@@ -12,12 +12,12 @@ function identity(id){if(typeof id!=='string'||!id.length||id.length>128)throw T
  * authored chip. Each retired lease owns only its private node and fade gain. */
 export function createHuc6280SongAudition({ensureAudio,getAudio,getSelection,onUpdate=()=>{},createOutput=createSynthCodeOutput}={}){
   for(const callback of [ensureAudio,getAudio,getSelection,onUpdate,createOutput])if(typeof callback!=='function')throw TypeError('Paused HuC6280 audition needs host callbacks');
-  let disposed=false,epoch=0,lease=null,tail=Promise.resolve(),pending=0,stopping=0,lastError='',pitch=0,pitchRevision=0;
+  let disposed=false,epoch=0,lease=null,tail=Promise.resolve(),pending=0,stopping=0,lastError='',pitch=0,pitchRevision=0,channelMuteMask=0;
   const notes=new Map();
   function read(){
     const active=Boolean(lease||pending||notes.size),state=stopping||lease?.retiring?'stopping':lease?.ready?'ready':active?'preparing':lastError?'error':'idle';
     return{state,active,heldCount:notes.size,soundingCount:lease?.sounding?1:0,channel:lease?.prepared.channel??null,
-      source:lease?.prepared.source??null,pitch:lease?.prepared.source==='noise'?0:pitch,error:Boolean(lastError),
+      source:lease?.prepared.source??null,pitch:lease?.prepared.source==='noise'?0:pitch,channelMuteMask,error:Boolean(lastError),
       message:lastError||(state==='ready'?`Paused VGM CH ${lease.prepared.channel+1} audition · ${notes.size} held`:state==='preparing'?'Preparing the paused HuC6280 voice…':state==='stopping'?'Stopping the paused audition…':'Paused VGM audition stopped.')};
   }
   const emit=()=>{if(!disposed)try{onUpdate(read());}catch{}};
@@ -31,6 +31,18 @@ export function createHuc6280SongAudition({ensureAudio,getAudio,getSelection,onU
   const sameSelection=item=>{try{return selection()?.fingerprint===item.selected.fingerprint;}catch{return false;}};
   const current=item=>!disposed&&lease===item&&!item.retiring&&item.epoch===epoch&&sameSelection(item)&&getAudio()===item.engine;
   const check=item=>{if(!current(item)||item.client?.isCurrent?.()===false)throw cancelled();};
+  // A private trial may allocate a different physical channel from the song.
+  // Ordinary trials have one audible voice; recorded LFO trials retain CH1/2.
+  const physicalMask=(item,mask)=>item.prepared.preset.lfo.enabled?mask&3:mask&(1<<item.prepared.channel)?63:0;
+  async function applyChannelMask(item,mask){
+    const mapped=physicalMask(item,mask);
+    if((item.appliedChannelMask??0)===mapped)return;
+    check(item);
+    if(typeof item.client.setChannelMuteMask==='function')await item.client.setChannelMuteMask(mapped);
+    else if(typeof item.client.command==='function')await item.client.command('setChannelMuteMask',[mapped]);
+    else throw Error('Paused audition does not support channel output switches');
+    check(item);item.appliedChannelMask=mapped;
+  }
   const noteCurrent=note=>{if(notes.get(note.id)!==note||note.released)return false;try{return note.isCurrent()!==false;}catch{return false;}};
   const forget=note=>{note.released=true;if(notes.get(note.id)===note)notes.delete(note.id);};
   function retire(item){
@@ -59,6 +71,11 @@ export function createHuc6280SongAudition({ensureAudio,getAudio,getSelection,onU
         void retire(item).catch(()=>{});emit();
       }});
       item.output=createOutput({getContext:()=>item.client.context,getGain:()=>item.client.outputGain});
+      check(item);
+      // A mixer gesture while WASM/node creation waits must be adopted before
+      // opening this private node's output, without acquiring another context.
+      let applied;
+      do{applied=channelMuteMask;await applyChannelMask(item,applied);}while(applied!==channelMuteMask);
       check(item);item.ready=true;emit();return item;
     }catch(error){await retire(item);throw error;}
   }
@@ -105,6 +122,25 @@ export function createHuc6280SongAudition({ensureAudio,getAudio,getSelection,onU
       try{await item.client.setPitch(pitch);check(item);emit();return read();}catch(error){await retire(item);if(isAbort(error))return read();lastError=error?.message??String(error);emit();throw error;}
     });
   }
+  function setChannelMuteMask(mask){
+    if(!Number.isInteger(mask)||mask<0||mask>63)throw RangeError('HuC6280 channel mute mask must be an integer 0..63');
+    if(disposed)return Promise.reject(Error('Paused HuC6280 audition is disposed'));
+    // No sounding node exists yet. Keep this as passive session state; prepare
+    // applies its latest value before any future Note On can become audible.
+    if(!lease?.ready){channelMuteMask=mask;emit();return Promise.resolve(read());}
+    return enqueue(async()=>{
+      const item=lease;
+      if(item?.ready&&current(item)){
+        try{await applyChannelMask(item,mask);}
+        catch(error){
+          // A retired node cannot affect the session. A live failed node is
+          // discarded so a rejected gesture cannot leave an unknown output mix.
+          if(!isAbort(error)){lastError=error?.message??String(error);await retire(item);emit();throw error;}
+        }
+      }
+      channelMuteMask=mask;emit();return read();
+    });
+  }
   function stop(){
     epoch++;pitchRevision++;pitch=0;lastError='';const item=lease;for(const note of notes.values())forget(note);
     // Abort a not-yet-ready worklet immediately; a sounding node first fades.
@@ -112,5 +148,5 @@ export function createHuc6280SongAudition({ensureAudio,getAudio,getSelection,onU
     return enqueue(async()=>{try{await retire(item);}finally{stopping--;emit();}});
   }
   async function dispose(){if(disposed)return tail;disposed=true;await stop();}
-  return{noteOn,noteOff,setPitch,stop,invalidate:stop,allNotesOff:stop,read,isRunning:()=>read().active,dispose};
+  return{noteOn,noteOff,setPitch,setChannelMuteMask,stop,invalidate:stop,allNotesOff:stop,read,isRunning:()=>read().active,dispose};
 }

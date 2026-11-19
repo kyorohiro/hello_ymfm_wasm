@@ -5,7 +5,7 @@ import {createDefaultPreset, readPreset, isWaveOnlyEdit} from './preset.js?v=wav
 import {decodeDdaData} from './dda_pcm.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateHuc6280CodeCall,huc6280CodeCancelled} from './code_endpoint.js';
-import {readHuc6280CodeEdit,applyHuc6280CodeEdit,createHuc6280CodeChanges,copyHuc6280CodeValue,readHuc6280AuthorFields} from './code_parameter_edit.js?v=huc-working-saved-1';
+import {readHuc6280CodeEdit,applyHuc6280CodeEdit,createHuc6280CodeChanges,copyHuc6280CodeValue,readHuc6280AuthorFields} from './code_parameter_edit.js?v=huc-shared-channels-1';
 import {huc6280CodeLiveView} from './code_state.js';
 
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -29,6 +29,9 @@ export class Huc6280Instrument {
     if (!core || typeof core.processFrames !== 'function' || typeof core.writeHuc6280 !== 'function' ||
         typeof core.sampleRate !== 'function') throw new TypeError('Expected a HuC6280AudioEngine');
     this.core = core;
+    // Listening state belongs to this app instance, never an instrument preset.
+    this.channelMuteMask = core.channelMask ?? 0;
+    this.channelMuteMaskDirty = false;
     this.synth = new Huc6280Synth({transport:new Huc6280DirectTransport(core)});
     this.synth.initialize();
     this.rate = core.sampleRate(); this.preset = createDefaultPreset();
@@ -40,6 +43,37 @@ export class Huc6280Instrument {
     this._restoreAuthor(); this.stop();
   }
   _open() { if (this.disposed) throw new Error('HuC6280 instrument is disposed'); }
+  setChannelMuteMask(mask, ...extra) {
+    this._open();
+    if (extra.length || !Number.isInteger(mask) || mask < 0 || mask > 63) throw new RangeError('HuC6280 output mask must be an integer from 0 to 63');
+    const previous = this.channelMuteMask, force = this.channelMuteMaskDirty;
+    if (mask === previous && !force) return {channelMuteMask:mask};
+    if (typeof this.core.setChannelMuted !== 'function') throw new Error('HuC6280 core does not support output masks');
+    const attempted = [];
+    try {
+      for (let channel = 0; channel < 6; channel++) {
+        if (!force && !((previous ^ mask) & (1 << channel))) continue;
+        attempted.push(channel);
+        // The native output multiplier leaves registers, gates, DDA feeding,
+        // software envelopes and the CH2 -> CH1 LFO clock running unchanged.
+        this.core.setChannelMuted(channel, Boolean(mask & (1 << channel)));
+      }
+    } catch (error) {
+      const failures = [];
+      for (const channel of attempted) {
+        try { this.core.setChannelMuted(channel, Boolean(previous & (1 << channel))); }
+        catch (rollbackError) { failures.push(rollbackError); }
+      }
+      // A failed rollback makes the native flags unverified. A subsequent
+      // request, even for the accepted mask, must repair all six flags.
+      this.channelMuteMaskDirty = force || failures.length > 0;
+      if (failures.length) throw new AggregateError([error, ...failures], 'HuC6280 output mask rollback failed');
+      throw error;
+    }
+    this.channelMuteMask = mask;
+    this.channelMuteMaskDirty = false;
+    return {channelMuteMask:mask};
+  }
   _frequency(midi, pitch = this.pitch) {
     const hz = 440 * 2 ** ((midi - 69 + pitch) / 12);
     // Notes outside the 12-bit period range reach the hardware endpoint.
@@ -151,7 +185,7 @@ export class Huc6280Instrument {
     const state = this.synth._getState();
     return {preset:readPreset(this.preset), voices:[...this.voices.values()].map(({id,midi,channel}) => ({id,midi,channel})),
       tails:this.slots.filter(voice => voice?.released).map(({id,channel}) => ({id,channel})),
-      capacity:poolFor(this.preset).length, pitch:this.pitch, registers:state.registers, globals:state.globals,
+      capacity:poolFor(this.preset).length, pitch:this.pitch, channelMuteMask:this.channelMuteMask, registers:state.registers, globals:state.globals,
       dda:{samples:this.ddaSamples.length,sampleRate:this.preset.dda.sampleRate,duration:this.ddaSamples.length/this.preset.dda.sampleRate,
         voices:this.slots.filter(voice=>voice?.dda).map(({id,channel,position,ended})=>({id,channel,position,ended}))}};
   }

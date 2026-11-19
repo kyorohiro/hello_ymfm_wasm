@@ -61,6 +61,25 @@ test('queued normal editor mutations are fenced by Stop while passive observatio
   f.processor.receive({id:4,method:'applyEditorEdit',args:[{channel:2,changes:{volume:11}}]});await f.processor.commands;assert.equal(edits.length,1);assert.equal(edits[0].changes.volume,11);f.processor.dispose();
 });
 
+test('output masks survive the Stop queue fence and never acquire or invalidate Code ownership',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;
+  let mask=0;
+  f.processor.instrument.setChannelMuteMask=(value,...extra)=>{if(extra.length||!Number.isInteger(value)||value<0||value>63)throw RangeError('Invalid output mask');mask=value;return{channelMuteMask:mask};};
+  f.processor.instrument.stop=()=>({preset:{dda:{data:''}}});
+  const owner={session:17,token:4};f.processor.codeOwner=owner;
+  f.processor.receive({id:1,method:'setChannelMuteMask',args:[2]});await f.processor.commands;
+  assert.equal(f.processor.codeOwner,owner);assert.equal(f.processor.commandEpoch,0);
+  assert.equal(f.messages.find(message=>message.id===1).value.channelMuteMask,2);
+  let release;f.processor.commands=new Promise(resolve=>release=resolve);
+  f.processor.receive({id:2,method:'setChannelMuteMask',args:[32]});
+  f.processor.receive({id:3,method:'stop',args:[]});release();await f.processor.commands;
+  assert.equal(mask,32);assert.equal(f.messages.find(message=>message.id===2).error,undefined);
+  assert.equal(f.messages.find(message=>message.id===2).value.channelMuteMask,32);
+  f.processor.receive({id:4,method:'setChannelMuteMask',args:[64]});await f.processor.commands;
+  assert.equal(mask,32);assert.equal(f.messages.find(message=>message.id===4).name,'RangeError');
+  assert.equal(f.processor.dead,false);f.processor.dispose();
+});
+
 test('processor retains only accepted PCM, resolves omitted-data edits, and keeps large data out of replies',async()=>{
   const f=fixture();f.resolve();await f.processor.ready;
   const flush=()=>new Promise(resolve=>queueMicrotask(resolve));

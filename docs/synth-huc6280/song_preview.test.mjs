@@ -220,6 +220,19 @@ test('a failed native output toggle rolls back its gate and leaves published fla
   assert.equal(missing.preview.read().channelMuteMask,0);missing.preview.dispose();
 });
 
+test('whole shared mask validates atomically and can repair an uncertain native rollback without publishing a false state',async()=>{
+  const engine=mixerEngine(),f=setup({createEngine:async()=>engine});await f.preview.load(song());await f.preview.play();
+  const original=engine.setChannelMuted;let failures=2;
+  engine.setChannelMuted=function(channel,muted){original.call(this,channel,muted);if(failures-->0)throw Error('Injected native failure');};
+  assert.throws(()=>f.preview.setChannelMuteMask(33),/rollback failed/);assert.equal(f.preview.read().channelMuteMask,0);
+  engine.muted[0]=true;const count=engine.mixCalls.length;
+  f.preview.setChannelMuteMask(0);assert.equal(engine.mixCalls.length-count,6,'uncertain native mask is fully reapplied even if accepted value is unchanged');
+  assert.deepEqual(engine.muted,Array(6).fill(false));
+  for(const mask of[-1,64,.5,NaN,'1'])assert.throws(()=>f.preview.setChannelMuteMask(mask),RangeError);
+  assert.equal(f.preview.read().channelMuteMask,0);f.preview.setChannelMuteMask(33);assert.equal(f.preview.read().channelMuteMask,33);
+  assert.deepEqual(engine.muted,[true,false,false,false,false,true]);f.preview.dispose();
+});
+
 test('On/Off preserves already rendered and paused PCM offsets; only future native chunks use the new mix',async()=>{
   const engine=mixerEngine(),f=setup({createEngine:async()=>engine});await f.preview.load(song());await f.preview.play();
   const initial=f.sources()[0],rendered=f.buffers.reduce((sum,buffer)=>sum+buffer.length,0),retained=f.buffers.map(buffer=>buffer.data.map(side=>side.slice()));

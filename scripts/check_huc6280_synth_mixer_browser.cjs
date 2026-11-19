@@ -131,6 +131,7 @@ async function check(browser,name,origin,fixtures){
     const previous=await page.locator('[data-huc-chip-tab][aria-selected="true"]').getAttribute('data-huc-chip-tab');
     await chip('mixer');assert(await page.locator('#hucSongChannels').isVisible());
     if((await toggle(ch).getAttribute('aria-pressed')==='true')!==on)await toggle(ch).click();
+    await until(async()=>await toggle(ch).getAttribute('aria-pressed')===String(on)&&await toggle(ch).isEnabled(),'CH'+(ch+1)+' accepted '+on);
     assert.equal(await toggle(ch).getAttribute('aria-pressed'),String(on));if(previous!=='mixer')await chip(previous);
   }
   async function setAll(on){for(let ch=0;ch<6;ch++)await setEnabled(ch,on);}
@@ -161,10 +162,12 @@ async function check(browser,name,origin,fixtures){
     const unchanged=await view(page);assert.equal(unchanged.volume,live.volume);assert.deepEqual(unchanged.wave,live.wave);assert.equal(unchanged.editor.positionFrames,live.editor.positionFrames);
     await setHucLive(page,true);await pause(page);const paused=await state(page);await setAll(false);await frozen(page,paused);
 
-    step('All reference channels Off do not mute paused CH audition, Capture, or the captured Synth keyboard voice');
-    const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);await press(page,key);await frozen(page,paused);await release(page,key);
+    step('Shared output switches also control paused CH audition and Capture keeps them separate from the saved sound');
+    const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
+    await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthTitle').click();await page.keyboard.down(key);await until(()=>view(page).then(v=>Number(v.tools.heldCount)>0),'muted paused audition');await pcm(page,false);await frozen(page,paused);
+    await setEnabled(0,true);await pcm(page);await setEnabled(0,false);await pcm(page,false);await page.keyboard.up(key);
     await capture(page);await frozen(page,paused);assert.deepEqual(await enabled(),Array(6).fill(false));const captured=(await read(page)).preset;assert.deepEqual(captured.wave,wave);assert.equal(captured.envelope.enabled,false);
-    await page.locator('#synthTitle').click();await page.keyboard.down(key);await pcm(page);await page.keyboard.up(key);await pcm(page,false);await frozen(page,paused);
+    await page.locator('#synthTitle').click();await page.keyboard.down(key);await pcm(page,false);await setAll(true);await pcm(page);await setAll(false);await pcm(page,false);await page.keyboard.up(key);await frozen(page,paused);
 
     step('Stop/Play and a new reference source retain the mixer flags; fully muted songs still advance and restoring a switch restores their PCM');
     await stop(page);assert.deepEqual(await enabled(),Array(6).fill(false));await play(page);await levels(false,false);const silent=await state(page);await until(()=>state(page).then(value=>value.frame>silent.frame+4410),'muted song advances');await stop(page);
@@ -172,7 +175,7 @@ async function check(browser,name,origin,fixtures){
     await importSource('dda');assert.deepEqual(await enabled(),Array(6).fill(false));await setEnabled(3,true);await play(page);measurements.dda=await levels(true,true);await setEnabled(3,false);await levels(false,false);await setEnabled(3,true);await levels(true,true);await stop(page);
 
     step('CH2 output Off preserves the active hardware LFO carrier and source snapshot, and paused pair Capture ignores reference mute flags');
-    await importSource('lfo');await setAll(false);await setEnabled(0,true);await setEnabled(1,true);await channel(page,0);await play(page);await levels(true,false);const lfoShown=await view(page),at=await state(page);
+    await importSource('lfo');await setAll(false);await setEnabled(0,true);await setEnabled(1,true);await channel(page,0);await play(page);await levels(true,false);await until(()=>view(page).then(value=>value.volume===24&&value.editor.period==='250'),'LFO Live snapshot');const lfoShown=await view(page),at=await state(page);
     await setEnabled(1,false);measurements.lfoCarrier=await levels(true,false);await until(()=>state(page).then(value=>value.frame>at.frame+4410),'LFO carrier continues');
     const after=await view(page);assert.equal(after.editor.source,'wave');assert.equal(after.volume,lfoShown.volume);assert.deepEqual(after.wave,lfoShown.wave);
     await pause(page);const lfoPause=await state(page);await capture(page);await frozen(page,lfoPause);const lfo=(await read(page)).preset;assert(lfo.lfo.enabled);assert.equal(lfo.lfo.modulatorPeriod,713);assert.equal(lfo.lfo.carrierPeriod,250);
@@ -180,7 +183,7 @@ async function check(browser,name,origin,fixtures){
 
     step('Mixer buttons release focus and keep musical key input available without rewriting author or source parameters');
     await setEnabled(0,false);assert.notEqual(await page.evaluate(()=>document.activeElement?.id),'hucSongChannel1Toggle');
-    await page.keyboard.down(key);await pcm(page);await page.keyboard.up(key);await pcm(page,false);await frozen(page,lfoPause);assert.deepEqual((await read(page)).preset,lfo);
+    await page.keyboard.down(key);await pcm(page,false);await setEnabled(0,true);await pcm(page);await page.keyboard.up(key);await pcm(page,false);await frozen(page,lfoPause);assert.deepEqual((await read(page)).preset,lfo);
     await channel(page,0);assert.equal((await view(page)).editor.readonly,'false');
 
     step('Mixer, Channel/Auto/Capture, Sounds and monitor keep compact order at 1240/390px; pagehide releases the only muted output route');

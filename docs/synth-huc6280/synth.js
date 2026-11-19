@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=huc-working-saved-1';
+import {createAudio} from './audio.js?v=huc-shared-channels-1';
 import {createMsm5205Source} from './msm5205_source.js?v=huc-media-live-1';
 import {setupMsm5205Controls} from './msm5205_controls.js';
 import {createCddaSource} from './cdda_source.js?v=huc-media-live-1';
@@ -8,6 +8,7 @@ import {createCddaSessionFiles} from './cdda_session_files.js';
 import {createCddaInputReader} from './cdda_inputs.js';
 import {setupCddaControls} from './cdda_controls.js';
 import {createPcEngineSourceMix,setupPcEngineSourceMix} from './source_mix.js?v=huc-media-live-1';
+import {createHuc6280ChannelMix,applyHuc6280ChannelMask,setupHuc6280ChannelMix} from './channel_mix.js?v=huc-shared-channels-1';
 import {createTestWaveFiles} from './test_pcm.js?v=huc-media-tools-1';
 import {setupTestPcmControls} from './test_pcm_controls.js?v=huc-test-default-1';
 import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
@@ -19,9 +20,9 @@ import {createHuc6280CodeEdit,createHuc6280CodeChanges} from './code_parameter_e
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {createVgmLibrary} from './vgm_library.js?v=huc-capture-1';
-import {setupHuc6280SongControls} from './song_controls.js?v=huc-media-live-1';
+import {setupHuc6280SongControls} from './song_controls.js?v=huc-shared-channels-1';
 import {huc6280SongLiveView} from './song_live.js?v=huc-live-1';
-import {createHuc6280SongAudition} from './song_audition.js?v=huc-capture-1';
+import {createHuc6280SongAudition} from './song_audition.js?v=huc-shared-channels-1';
 import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
 import {prepareDdaAudio} from './audio_import.js';
 import {prepareHuc6280SelectedPreset} from './selected_preset.js?v=huc-channel-ui-1';
@@ -70,6 +71,15 @@ const enqueue = action => {
   queue = task.catch(report);
   return task;
 };
+let channelMaskTarget=0;
+const channelMix=createHuc6280ChannelMix({applyMask:(mask,previous)=>applyHuc6280ChannelMask(mask,previous,{
+  // Do not hold the author queue while awaiting a private trial: preparing
+  // that trial may itself be waiting for ensureAudio on the author queue.
+  author:{setChannelMuteMask(value){channelMaskTarget=value;return enqueue(()=>audio?.setChannelMuteMask(value));}},
+  audition,song:songControls,onRollbackError:audioFailed,
+})});
+const channelMixerUi=setupHuc6280ChannelMix({mix:channelMix,onError:report});
+const unsubscribeChannelMix=channelMix.onChange(()=>visualizer.wake());
 const capacity = () => playbackPreset.source === 'noise' ? 2 : playbackPreset.source === 'wave' && playbackPreset.lfo.enabled ? 1 : 6;
 const channelContext=()=>['starting','seeking','playing','paused'].includes(songState?.playback)?'vgm':codeHost?.isRunning()?'code':'synth';
 function updateKeys() {
@@ -137,12 +147,13 @@ async function ensureAudio() {
       const engine = await createAudio({volume: Number($('masterVolume').value),sourceMix:sourceMix.read(), onError: audioFailed});
       try {
         // Source edits remain available while WASM loads. Adopt the latest draft.
-        let applied, appliedPitch;
+        let applied, appliedPitch, appliedMask;
         do {
-          applied = playbackRevision; appliedPitch = pitch;
+          applied = playbackRevision; appliedPitch = pitch; appliedMask=channelMaskTarget;
           await engine.command('loadPreset', [readPreset(playbackPreset)]);
           await engine.command('setPitch', [appliedPitch]);
-        } while (applied !== playbackRevision || appliedPitch !== pitch);
+          await engine.setChannelMuteMask(appliedMask);
+        } while (applied !== playbackRevision || appliedPitch !== pitch || appliedMask!==channelMaskTarget);
         if (disposed) throw new Error('HuC6280 Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
         engine.setSourceMix(sourceMix.read());
@@ -159,7 +170,7 @@ async function ensureAudio() {
   await engine.resume();
   return engine;
 }
-function applyPreset(value, {load=false,message,fromVgm=false,keepSongPaused=false,atomic=false,
+function applyPreset(value, {load=false,message,fromVgm=false,keepSongPaused=false,keepChannelView=false,atomic=false,
   isCurrent=()=>true,record=true,source,applyAudio,displayPreset,externalImport=false}={}) {
   const next=readPreset(value),shown=readPreset(displayPreset??next);
   if(disposed||!isCurrent())return Promise.resolve(false);
@@ -174,7 +185,7 @@ function applyPreset(value, {load=false,message,fromVgm=false,keepSongPaused=fal
     catch(error){liveSignature=null;updatePresetUi();return Promise.reject(error);}
     preset=shown;revision++;updatePresetUi();
   }
-  if(load&&channelTarget!=='synth'){
+  if(load&&!keepChannelView&&channelTarget!=='synth'){
     // Loading an author sound chooses Auto without retiring the reference song.
     channelTarget='synth';channelSelection++;
     songControls?.setView?.('synth',{notify:false});
@@ -569,7 +580,7 @@ window.addEventListener('pagehide',event=>{
   songControls?.stop();
   if(event.persisted){stopNotes();void codeHost?.stop();void msmSource?.stop().catch(()=>{});void cddaSource?.stop().catch(()=>{});return;}
   liveHighlighter?.dispose();liveHighlightToggle.removeEventListener('change',setLiveHighlight);$('voiceEditor').removeEventListener('toggle',refreshLiveHighlight,true);document.removeEventListener('visibilitychange',refreshLiveHighlight);
-  disposed=true;expandedTabs?.dispose();for(const controls of testPcmControls)controls.dispose();const mediaDisposing=Object.values(mediaKeyboards??{}).map(controller=>controller.dispose());mediaPressedKeys.clear();channelTabs?.dispose();msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([...mediaDisposing,codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
+  disposed=true;expandedTabs?.dispose();for(const controls of testPcmControls)controls.dispose();const mediaDisposing=Object.values(mediaKeyboards??{}).map(controller=>controller.dispose());mediaPressedKeys.clear();channelTabs?.dispose();msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();channelMixerUi.dispose();unsubscribeChannelMix();channelMix.dispose();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([...mediaDisposing,codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
 });
 function selectedPresetFor(context,snapshot){
   const key=channelTarget==='synth'?`auto:${revision}`:JSON.stringify([context,channelTarget,snapshot?.clock,snapshot?.positionFrames,snapshot?.revision,snapshot?.registers,snapshot?.globals,snapshot?.waveforms,snapshot?.envelopes]);
@@ -678,7 +689,10 @@ async function setChannelTarget(value,{fromSong=false}={}){
 async function capturePausedVoice(payload,{isCurrent=()=>true}={}){
   if(!isCurrent()||!songState?.paused||!payload.capturable)return false;
   await stopNotes();if(!isCurrent()||!songState?.paused)return false;
-  return applyPreset(payload.preset,{load:true,keepSongPaused:true,atomic:true,isCurrent,message:'Captured VGM sound · song stays paused. Edit the Synth or save it to Files.'});
+  // The song controller owns Capture's selection guard. Switching its view
+  // here would cancel that same capture before the author Worklet acknowledges
+  // the sound. captureCurrent selects Auto only after this promise commits.
+  return applyPreset(payload.preset,{load:true,keepSongPaused:true,keepChannelView:true,atomic:true,isCurrent,message:'Captured VGM sound · song stays paused. Edit the Synth or save it to Files.'});
 }
 codeHost=setupHuc6280CodeHost({msm5205Source:msmSource,cddaSource,
   readCddaFile:(...args)=>cddaReader(...args),getExportNotice:()=>cddaSession.list().length?'Session WAVs are not included; keep the original WAVs and reopen them after restoring the Project.':'',
@@ -731,7 +745,7 @@ codeLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>channelContext(
 editorLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>Boolean(audio)&&channelContext()==='synth'&&channelTarget!=='synth',method:'observeEditor',onUpdate:()=>renderCodeLive()});
 audition=createHuc6280SongAudition({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,getSelection:pausedSelection,
   onUpdate(){if(!disposed){renderCodeLive();visualizer.wake();}}});
-songControls=setupHuc6280SongControls({project:codeHost.project,getAudio:()=>enqueue(ensureAudio),
+songControls=setupHuc6280SongControls({project:codeHost.project,getAudio:()=>enqueue(ensureAudio),manageChannelOutputs:false,
   onCapture:capturePausedVoice,onViewChange:(target)=>{void setChannelTarget(target,{fromSong:true}).catch(report);},
   beforePlay:async({isCurrent=()=>true}={})=>{if(!isCurrent())return;msmControls?.cancelPlay();cddaControls?.cancelPlay();await codeHost.stop();if(!isCurrent())return;await Promise.all([msmSource.stop(),cddaSource.stop()]);if(!isCurrent())return;setPitchUi(0);await stopNotes();},
   onState(state){const previousState=songState,previous=songState?.playback;songState=state;syncSongManualState(previousState);syncAuditionSelection();syncChannelObservers();renderCodeLive();if(state.playing)visualizer.wake();

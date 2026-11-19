@@ -83,6 +83,43 @@ test('Noise preserves its clock while keyboard Pitch stays neutral',async t=>{
   assert(!f.events.some(event=>event[0]==='setPitch'&&event[1]!==0));
 });
 
+test('shared output switches follow the logical song channel without retriggering a private trial',async t=>{
+  const state=snapshot(5);state.registers[5][7]=128|23;state.waveforms[5]=null;
+  const f=fixture(t,{initial:state,channel:5});
+  await f.audition.setChannelMuteMask(1<<4); // Physical trial CH5 is not song CH6.
+  await f.audition.noteOn('noise',60);
+  assert(!f.events.some(event=>event[0]==='setChannelMuteMask'));
+  const before=f.events.length;
+  await f.audition.setChannelMuteMask(1<<5);
+  assert.deepEqual(f.events.slice(before),[['setChannelMuteMask',63]]);
+  assert.equal(f.audition.read().heldCount,1);assert.equal(f.audition.read().soundingCount,1);
+  await f.audition.setChannelMuteMask(0);
+  assert.deepEqual(f.events.at(-1),['setChannelMuteMask',0]);
+  assert.equal(f.clients.length,1);assert.equal(f.audition.read().channelMuteMask,0);
+});
+
+test('pending trial creation adopts the latest session mask before it opens',async t=>{
+  const gate=deferred(),f=fixture(t,{createGate:gate});
+  const playing=f.audition.noteOn('pending',60);await turn();
+  await f.audition.setChannelMuteMask(1<<2);
+  gate.resolve();await playing;
+  const masked=f.events.findIndex(event=>event[0]==='setChannelMuteMask');
+  assert.deepEqual(f.events[masked],['setChannelMuteMask',63]);
+  assert(masked<f.events.findIndex(event=>event[0]==='noteOn'));
+  assert(masked<f.events.findIndex(event=>event[0]==='open'));
+  assert.equal(f.audition.read().channelMuteMask,4);
+  await f.audition.stop();assert.equal(f.audition.read().channelMuteMask,4);
+});
+
+test('mask validation and rejected native updates preserve the accepted session mask',async t=>{
+  const f=fixture(t,{failure:'setChannelMuteMask'});
+  for(const mask of [-1,64,1.5,NaN,'2'])assert.throws(()=>f.audition.setChannelMuteMask(mask),/integer 0..63/);
+  assert.equal(f.ensures,0);await f.audition.noteOn('held',60);
+  await assert.rejects(f.audition.setChannelMuteMask(4),/Private setChannelMuteMask/);
+  assert.equal(f.audition.read().channelMuteMask,0);assert.equal(f.audition.read().soundingCount,0);
+  assert(f.events.some(event=>event[0]==='dispose'));
+});
+
 test('private RPC failure or engine replacement retires only the old trial lease',async t=>{
   const failed=fixture(t,{failure:'noteOn'});await assert.rejects(failed.audition.noteOn('bad',60),/Private noteOn/);assert(failed.audition.read().error);assert(failed.events.some(event=>event[0]==='dispose'));
   const f=fixture(t);await f.audition.noteOn('old',60);f.replaceEngine();await f.audition.noteOn('new',64);
@@ -97,7 +134,7 @@ test('release and asynchronous processor failures clear sounding state and retir
 });
 
 const wasmBinary=await readFile(new URL('../generated/huc6280_wasm.wasm',import.meta.url));
-async function instrument(preset){const core=await Huc6280AudioEngine.create({moduleFactory:()=>factory({wasmBinary}),clock:3579545,outputSampleRate:48000});const i=new Huc6280Instrument(core);i.loadPreset(preset);return i;}
+async function instrument(preset,rate=48000){const core=await Huc6280AudioEngine.create({moduleFactory:()=>factory({wasmBinary}),clock:3579545,outputSampleRate:rate});const i=new Huc6280Instrument(core);i.loadPreset(preset);return i;}
 test('actual isolated Wave and recorded LFO trials render the same PCM as their prepared static presets',async t=>{
   const wave=snapshot(2),lfo=snapshot(0);lfo.globals[8]=7;lfo.globals[9]=2;lfo.registers[0][2]=188;lfo.registers[0][3]=2;
   lfo.registers[1][2]=145;lfo.registers[1][3]=3;lfo.registers[1][4]=8;lfo.registers[1][5]=0x39;lfo.waveforms[1]=waveShape('triangle');
@@ -105,5 +142,29 @@ test('actual isolated Wave and recorded LFO trials render the same PCM as their 
     const before=structuredClone(state),prepared=prepareHuc6280SongVoice(state,channel),oracle=await instrument(prepared.preset);t.after(()=>oracle.dispose());
     const f=fixture(t,{initial:state,channel,realCreate:instrument});await f.audition.noteOn('trial',60);oracle.noteOn('oracle',60);
     assert.deepEqual(f.clients[0].instrument.generateStereo(2048),oracle.generateStereo(2048));assert.deepEqual(state,before);
+  });
+});
+
+test('real private Wave/Noise/LFO output masks preserve future PCM at 44.1 and 48 kHz',async t=>{
+  const lfo=snapshot(0);lfo.globals[8]=7;lfo.globals[9]=2;
+  lfo.registers[1][2]=145;lfo.registers[1][3]=3;lfo.registers[1][4]=128|24;lfo.registers[1][5]=255;lfo.waveforms[1]=waveShape('triangle');
+  const noise=snapshot(5);noise.registers[5][7]=128|23;noise.waveforms[5]=null;
+  for(const rate of [44100,48000])for(const [state,channel]of [[snapshot(),2],[noise,5],[lfo,0]])await t.test(`${rate} CH${channel+1}`,async t=>{
+    const prepared=prepareHuc6280SongVoice(state,channel),oracle=await instrument(prepared.preset,rate);t.after(()=>oracle.dispose());
+    const f=fixture(t,{initial:state,channel,realCreate:preset=>instrument(preset,rate)});
+    await f.audition.noteOn('trial',60);oracle.noteOn('oracle',60);
+    const actual=f.clients[0].instrument;
+    await f.audition.setChannelMuteMask(63);
+    const masked=actual.generateStereo(2048);oracle.generateStereo(2048);
+    assert(masked.left.every(value=>value===0));assert(masked.right.every(value=>value===0));
+    assert.equal(f.audition.read().heldCount,1);assert.equal(f.audition.read().soundingCount,1);
+    await f.audition.setChannelMuteMask(0);
+    assert.deepEqual(actual.generateStereo(2048),oracle.generateStereo(2048),'unmute continues rather than restarting the oscillator/envelope');
+    if(channel===0){
+      await f.audition.setChannelMuteMask(2);
+      oracle.setChannelMuteMask(2);
+      const carrier=actual.generateStereo(2048);
+      assert(carrier.left.some(value=>value!==0));assert.deepEqual(carrier,oracle.generateStereo(2048),'CH2 stays a live modulator while its direct output is muted');
+    }
   });
 });

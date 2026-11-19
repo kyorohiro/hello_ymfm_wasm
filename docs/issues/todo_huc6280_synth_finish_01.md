@@ -230,3 +230,18 @@ Live highlightは初期Onで独立して記憶し、Off時の比較・DOM更新�
 初回・CH／owner切替・Pause／Seek・非表示・Unknown・Auto update再開で比較を取り直す。
 746件のNodeテストと、ソース／実ZIPのChromium／WebKit・Monaco／fallbackの
 8通り・64項目が成功。人の実聴・公開・Tauri反映は未実行。
+
+## Shared channel output Mixer — 2026-11-19
+
+[詳細TODO](todo_huc6280_shared_channel_mixer_20261119.md)、
+[検証記録](verification_huc6280_shared_channel_mixer_20261119.json)。
+MixerのCH1–CH6 On／OffをKeyboard／Code／VGM／Pause試奏で共通化し、
+曲の読み込み前から操作可能にした。native出力だけを変更し、gate・register・
+Wave／Noise／DDA／CH2→CH1 LFO・Code所有権を保つ。音色やCassetteとは別の
+session状態としてStop／Run／音色変更／New Cassette／音声再作成でも保持する。
+Pause試奏は元の論理CHへ対応させ、Captureには出力maskを混ぜない。
+CaptureのAuto切替で自身をキャンセルする既存問題も、author ACK後の切替に修正。
+774件のNodeテスト、ソース／実ZIPの8通り・120項目・40layout、既存Mixerの
+2ブラウザー・16項目が成功。物理出力は無音。人の実聴・公開・Tauri反映は未実行。
+既存校正テスト4件のHEAD時点からのreceipt不一致は
+[別TODO](todo_fm2612_synth_calibration_freshness_01.md)へ記録した。

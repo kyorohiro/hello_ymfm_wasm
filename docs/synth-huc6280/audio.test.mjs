@@ -46,6 +46,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
         if (mode === 'drop') return;
         queueMicrotask(() => {
           if (mode === 'error') {this.port.onmessage?.({data:{id:message.id,error:'Invalid preset',name:'RangeError'}});return;}
+          if (message.method === 'setChannelMuteMask') {this.port.onmessage?.({data:{id:message.id,value:{channelMuteMask:message.args[0]}}});return;}
           if (presetReplies) {
             if (['setPreset','loadPreset'].includes(message.method)) {
               const next=message.args[0];
@@ -92,6 +93,30 @@ test('HuC6280 audio is lazy and routes its software output gain before the user 
   const first = audio.dispose(); assert.equal(audio.dispose(),first); await first;
   assert.equal(f.context.closeCount,1); assert.equal(f.node.disposed,1); assert.equal(f.timers.size,0);
   assert.equal(song.disconnected,true);
+});
+
+test('author and private audition expose validated output-mask commands without acquiring or invalidating a Code session',async()=>{
+  const f=fixture(),audio=await f.create(),author=f.nodes[0];
+  const before=f.messages.length;
+  for(const mask of[-1,64,.5,NaN,Infinity,'1',null,undefined])await assert.rejects(audio.setChannelMuteMask(mask),/output mask/);
+  await assert.rejects(audio.command('setChannelMuteMask',[]),/one argument/);
+  await assert.rejects(audio.command('setChannelMuteMask',[0,1]),/one argument/);
+  assert.equal(f.messages.length,before,'invalid requests never reach the worklet');
+  assert.equal(audio.codeSession,null);
+  f.mode('drop');const starting=audio.getHuc6280Client(),begin=author.messages.at(-1);
+  author.port.onmessage({data:{id:begin.id,value:{session:17,clock:3579545,channels:6}}});
+  const client=await starting;f.mode('reply');const session=audio.codeSession;
+  assert.equal((await audio.setChannelMuteMask(37)).channelMuteMask,37);
+  assert.equal(audio.codeSession,session);assert.equal(author.messages.at(-1).method,'setChannelMuteMask');
+  assert.deepEqual(Array.from(author.messages.at(-1).args),[37]);
+  assert.equal(await audio.getHuc6280Client(),client);await client.setVolume(0,19);assert.equal(audio.codeSession,17);
+  const trial=await audio.createAuditionVoice(createDefaultPreset()),privateNode=f.nodes[1],count=f.messages.length;
+  await assert.rejects(trial.setChannelMuteMask(64),/output mask/);assert.equal(f.messages.length,count);
+  assert.equal((await trial.setChannelMuteMask(8)).channelMuteMask,8);assert.equal(privateNode.messages.at(-1).method,'setChannelMuteMask');
+  assert.equal(author.messages.filter(message=>message.method==='setChannelMuteMask').at(-1).args[0],37,'private mask never targets the author');
+  f.mode('error');await assert.rejects(audio.setChannelMuteMask(63),{name:'RangeError'});await assert.rejects(trial.setChannelMuteMask(63),{name:'RangeError'});
+  f.mode('reply');assert.equal((await audio.setChannelMuteMask(0)).channelMuteMask,0);assert.equal((await trial.setChannelMuteMask(0)).channelMuteMask,0);
+  await audio.dispose();await assert.rejects(audio.setChannelMuteMask(1),/closed/);await assert.rejects(trial.setChannelMuteMask(1),/closed/);
 });
 
 test('PCM is sent once, metadata edits refer to acknowledged data, and replies restore the local preset',async()=>{

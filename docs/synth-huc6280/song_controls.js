@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-media-live-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-shared-channels-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 
@@ -15,7 +15,7 @@ const preciseTime=seconds=>{
 /** Files are validated passively. Only the transport's Play gesture acquires
  * audio; it never applies a song's registers to the authored instrument. */
 export function setupHuc6280SongControls({project,getAudio,beforePlay,
-  onState=()=>{},onStatus=()=>{},onCapture=async()=>false,onViewChange=()=>{},createPreview=createHuc6280SongPreview,document:doc=globalThis.document}={}){
+  onState=()=>{},onStatus=()=>{},onCapture=async()=>false,onViewChange=()=>{},manageChannelOutputs=true,createPreview=createHuc6280SongPreview,document:doc=globalThis.document}={}){
   const $=id=>doc.getElementById(id),root=$('hucSongPlayer'),select=$('hucSongSelect');
   const play=$('hucSongPlayButton'),stop=$('hucSongStopButton'),status=$('hucSongStatus'),position=$('hucSongPosition');
   const capture=$('hucSongCaptureButton'),captureStatus=$('hucSongCaptureStatus'),captureInfo=$('hucSongCaptureInfo');
@@ -52,9 +52,9 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     text(cacheStatus,cache?.enabled===false?'Cache Off. Seek rebuilds from the beginning.':cache?.available===false?`${state.cacheUnavailableReason||'This sound core has no state support.'} Seek rebuilds from the beginning.`:
       `Cache On · ${cache?.count??0} points · ${Math.ceil((cache?.bytes??0)/1024)} KiB retained.${cache?.restoredFrame>0?` Last reuse: ${preciseTime((cache.restoredFrame??0)/(state.sampleRate??44100))}.`:''}${cache?.error?' A checkpoint was skipped; normal reconstruction is available.':''}`);
     const channelEnabled=state.channelEnabled??Array(6).fill(true);
-    if(channelGroup)channelGroup.hidden=!state.hasSource;
+    if(manageChannelOutputs&&channelGroup)channelGroup.hidden=!state.hasSource;
     root.dataset.channelMuteMask=String(state.channelMuteMask??channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0));
-    channelButtons.forEach((button,index)=>{
+    if(manageChannelOutputs)channelButtons.forEach((button,index)=>{
       if(!button)return;const enabled=channelEnabled[index]!==false;
       text(button,`CH ${index+1} · ${enabled?'On':'Off'}`);
       button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',`VGM CH${index+1} output ${enabled?'On':'Off'}`);
@@ -214,7 +214,8 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     if(disposed)return false;
     return decorate(preview.setChannelEnabled(channel,enabled));
   }
-  channelButtons.forEach((button,index)=>{
+  function setChannelMuteMask(mask){return decorate(preview.setChannelMuteMask(mask));}
+  if(manageChannelOutputs)channelButtons.forEach((button,index)=>{
     if(!button)return;
     listen(button,'pointerdown',event=>{if(event.button===0)event.preventDefault();});
     listen(button,'click',()=>{button.blur();try{setChannelEnabled(index,read().channelEnabled?.[index]===false);}catch(error){report(error);}});
@@ -277,7 +278,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   refresh();showState(read());
   return{
     getState:()=>decorate(read()),read:()=>decorate(read()),isPlaying:()=>Boolean(read().playing),
-    getPausedSelection,getCapturePayload,capture:captureCurrent,setView,cancelPendingCapture,setChannelEnabled,
+    getPausedSelection,getCapturePayload,capture:captureCurrent,setView,cancelPendingCapture,setChannelEnabled,setChannelMuteMask,
     getManualSelection,applyEdit,noteOn,noteOff,setPitch,releaseKeyboard,
     isActive:()=>Boolean(choosing||read().loading||read().seeking||read().seekPreparing||read().seekCancelling||['starting','seeking','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},

@@ -2,12 +2,16 @@
 // Copyright (c) 2026 kyorohiro.
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
 import {readPreset} from './preset.js';
-import {readHuc6280CodeEdit,readHuc6280AuthorFields} from './code_parameter_edit.js?v=huc-working-saved-1';
-import {PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js?v=huc-media-live-1';
+import {readHuc6280CodeEdit,readHuc6280AuthorFields} from './code_parameter_edit.js?v=huc-shared-channels-1';
+import {PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js?v=huc-shared-channels-1';
 
 export const HUC6280_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read','observeCode','observeEditor','applyEditorEdit','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
+const COMMANDS = new Set(['read','observeCode','observeEditor','setChannelMuteMask','applyEditorEdit','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
+
+function validateChannelMuteMask(mask) {
+  if (!Number.isInteger(mask) || mask < 0 || mask > 63) throw new RangeError('HuC6280 output mask must be an integer from 0 to 63');
+}
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('HuC6280 Master must be from 0 to 3.8');
@@ -96,7 +100,7 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
         if (!response.ok) throw new Error(`HuC6280 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?v=huc-working-saved-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=huc-shared-channels-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();
@@ -156,6 +160,7 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
       assertOpen();
       if (!COMMANDS.has(method)) throw new Error(`Unknown HuC6280 command: ${method}`);
       if (!Array.isArray(args)) throw new TypeError('HuC6280 command arguments must be an array');
+      if(method==='setChannelMuteMask'){if(args.length!==1)throw RangeError('HuC6280 output mask requires one argument');validateChannelMuteMask(args[0]);}
       if(method==='stop'){if(args.length)throw TypeError('HuC6280 Stop takes no arguments');invalidateCode();}
       const changesPreset = ['setPreset','loadPreset','applyCodePreset','applyCodeEdit'].includes(method);
       const candidate=method==='applyCodePreset'?args[1]?.dda?.data:method==='applyCodeEdit'?args[1]?.changes?.['dda.data']:args[0]?.dda?.data;
@@ -216,7 +221,7 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
       if(typeof isCurrent!=='function'||typeof onError!=='function')throw TypeError('Audition requires ownership and error callbacks');
       if(signal!==undefined&&(!signal||typeof signal.addEventListener!=='function'))throw TypeError('Audition signal must be an AbortSignal');
       const aborted=()=>new DOMException('Paused HuC6280 audition cancelled','AbortError');
-      const methods=new Set(['read','loadPreset','noteOn','noteOff','setPitch','stop']);
+      const methods=new Set(['read','loadPreset','setChannelMuteMask','noteOn','noteOff','setPitch','stop']);
       let trialNode=null,outputGain=null,closed=false,failure=null,timer=null,serial=0,resolveReady,rejectReady,trialDdaData=preset.dda.data;
       const requests=new Map(),ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
       // Disposal may precede the first await (including a constructor error).
@@ -239,6 +244,7 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
       const failTrial=error=>{if(closed)return;failure=error instanceof Error?error:new Error(String(error));close(failure);try{onError(failure);}catch{}};
       async function trialCommand(method,args=[]){
         check();if(!methods.has(method))throw Error('Unknown HuC6280 audition command');if(!Array.isArray(args))throw TypeError('Audition command arguments must be an array');
+        if(method==='setChannelMuteMask'){if(args.length!==1)throw RangeError('HuC6280 output mask requires one argument');validateChannelMuteMask(args[0]);}
         const id=++serial;
         const result=await new Promise((resolve,reject)=>{
           const deadline=setTimeout(()=>failTrial(new Error(`HuC6280 audition command timed out (${method})`)),DEADLINE_MS);
@@ -247,7 +253,8 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
         });check();return result;
       }
       const handle={context,get outputGain(){return outputGain;},isCurrent:current,command:trialCommand,read:()=>trialCommand('read'),
-        noteOn:(id,midi)=>trialCommand('noteOn',[id,midi]),noteOff:id=>trialCommand('noteOff',[id]),setPitch:value=>trialCommand('setPitch',[value]),dispose:()=>close()};
+        noteOn:(id,midi)=>trialCommand('noteOn',[id,midi]),noteOff:id=>trialCommand('noteOff',[id]),setPitch:value=>trialCommand('setPitch',[value]),
+        setChannelMuteMask:mask=>trialCommand('setChannelMuteMask',[mask]),dispose:()=>close()};
       auditions.add(handle);signal?.addEventListener('abort',cancel,{once:true});
       try{
         check();
@@ -272,7 +279,7 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
     return {
       context, outputNode:master,songInputNode:songInput,codeInputNode:codeInput,codeOutputNode:codeFade,codeFadeNode:codeFade,
       getChipInputNode,setSourceMix,getChipMix:id=>{assertOpen();if(!PC_ENGINE_SOURCES.includes(id))throw RangeError('Unknown PC Engine source');return mix[id];},
-      command, read:() => command('read'),observeEditor:()=>command('observeEditor'),getHuc6280Client,applyCodePreset,applyCodeEdit,applyEditorEdit,createAuditionVoice,
+      command, read:() => command('read'),observeEditor:()=>command('observeEditor'),setChannelMuteMask:mask=>command('setChannelMuteMask',[mask]),getHuc6280Client,applyCodePreset,applyCodeEdit,applyEditorEdit,createAuditionVoice,
       get codeSession(){return codeOwner?.session??null;},
       async resume() {
         assertOpen();

@@ -517,20 +517,24 @@ monitor. VGM loop points do not automatically repeat. The reference chip is
 independent of the authored instrument; Pause retains unheard PCM and its exact
 offset so Resume continues at the heard song position.
 
-Open the **Mixer** tab for **VGM output: CH1–CH6 On / Off**, alongside the three
-source-level controls. These
-software listening switches affect only the reference song mix, independently
-of the Channel view selector. All six start On. Turning a channel Off does not
+Open the **Mixer** tab for **HuC6280 output: CH1–CH6 On / Off**, alongside the
+three source-level controls. The same session switches apply to Keyboard, Code,
+VGM and paused CH audition, independently of the Channel view selector. They are
+available before loading a song or enabling audio; all six start On. Turning a channel Off does not
 stop its oscillator, change its recorded Gate/volume/Wave/Noise/DDA settings,
 or disable CH2's hardware LFO modulation of CH1. Live and Capture continue to
-show the recorded sound. Keyboard audition, the common Auto instrument and Code remain
-separate.
+show the recorded sound. A paused trial follows its original song CH even when
+its private instrument uses a different physical channel. These switches leave
+MSM5205 and CD-DA output to their separate source controls.
 
 Changes apply to newly generated PCM after already buffered audio has played;
 Pause retains that same buffered tail for Resume. On / Off never restarts the
 song or changes its position. Flags remain selected across Pause / Resume,
-Stop / Play and song changes in this session; they are not instrument preset
-fields and are not saved in a Cassette.
+Stop / Play, Code Run / Apply / Stop, sound selection, New Cassette and project
+changes in this session. Recreated audio engines adopt the same mask. These are
+not instrument preset fields and are not saved in a Cassette or across reloads.
+The buttons wait for audio acknowledgement; a rejected change keeps the previous
+accepted selection. Source **Reset** restores source levels, not the CH switches.
 
 Code and reference playback run one at a time. Play / Resume stops Code and
 releases manual keys; Run stops the reference song. **Stop all sound** stops
@@ -919,11 +923,14 @@ VGM／VGZの元ファイルはFilesの`vgm/`へ保持し、モニター上の曲
 Stop／Code Runでは保持し、曲やCH別出力が変わると破棄します。Cache Offや再生欄の? → Clear seek cacheで解放できます。
 位置・編集用音色・Pause試奏は変えません。初めて移動する未cache区間は数秒かかることがあり、非対応backendや容量超過の点は通常の再構築で扱います。
 模範演奏は1回再生で、現在のMasterと出力モニターを使い、編集中の音色を保ちます。
-VGM outputのCH1–CH6 On／OffはMixerタブにまとめています。曲の聴き分け用のソフト側スイッチで、初期値は全CH On。
-表示対象のChannel選択とは独立し、共通Auto音色／Code／Pause試奏には適用しません。
+MixerのHuC6280 outputにCH1–CH6 On／Offをまとめています。Keyboard／Code／VGM／Pause試奏で共通のソフト側出力スイッチです。
+曲の読み込みやAudio有効化の前から操作でき、初期値は全CH On。表示・編集対象のCH選択や鍵盤の割り当ては変更しません。
+Pause試奏は内部で別のCHへ割り当てても元の曲のCHに従います。MSM5205／CD-DAはそれぞれの音源別Mixerで調整します。
 発振器・Noise・DDA・CH2→CH1のLFOと記録設定は保ち、出力だけを変更します。
 生成済みPCMを保持し、その先の音から反映します。Pause中の変更も未再生の短いbufferの後から反映されます。
-Pause／Resume、Stop／Play、曲切替でも選択を保持します。セッション内の状態で、音色presetやCassetteには保存しません。
+Pause／Resume、Stop／Play、Code Run／Apply／Stop、音色・曲・Project切替、New Cassetteと音声エンジン再作成でも選択を保持します。
+セッション内だけの状態で、音色presetやCassetteには保存せず、ページ再読み込みでは全CH Onへ戻ります。
+ボタンは音声側の適用完了を待ち、失敗した変更は直前の選択に戻します。SourceのResetはCH別出力を変更しません。
 Codeと曲再生は排他的で、RunとPlayが互いの演奏を停止します。Pauseは未再生PCMとoffsetを保持します。
 CH1–CH6を選ぶと、聞こえた位置の設定を同じ音色UIへ表示し、再生中もPause中も個別に編集できます。
 未記録Wave RAMは空欄、DDAは最後に書かれたDAC値を表示し、元のPCM音色や音階を推測しません。

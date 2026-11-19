@@ -252,15 +252,15 @@
       </section>
       <section id="mixerChipPanel" class="huc-source-mixer" role="tabpanel" aria-labelledby="mixerChipTab" data-huc-chip-panel="mixer" hidden>
         <h2>Mixer</h2><div id="hucSourceMixer"></div>
-        <div id="hucSongChannels" class="huc-song-channels" role="group" aria-label="VGM channel outputs" hidden>
-          <span class="huc-song-channels-label">VGM output</span>
-          <button id="hucSongChannel1Toggle" type="button" aria-pressed="true" aria-label="VGM CH 1 output" title="Toggle VGM CH 1 output">CH 1 · On</button>
-          <button id="hucSongChannel2Toggle" type="button" aria-pressed="true" aria-label="VGM CH 2 output" title="Toggle VGM CH 2 output">CH 2 · On</button>
-          <button id="hucSongChannel3Toggle" type="button" aria-pressed="true" aria-label="VGM CH 3 output" title="Toggle VGM CH 3 output">CH 3 · On</button>
-          <button id="hucSongChannel4Toggle" type="button" aria-pressed="true" aria-label="VGM CH 4 output" title="Toggle VGM CH 4 output">CH 4 · On</button>
-          <button id="hucSongChannel5Toggle" type="button" aria-pressed="true" aria-label="VGM CH 5 output" title="Toggle VGM CH 5 output">CH 5 · On</button>
-          <button id="hucSongChannel6Toggle" type="button" aria-pressed="true" aria-label="VGM CH 6 output" title="Toggle VGM CH 6 output">CH 6 · On</button>
-          <details class="spu-code-help"><summary aria-label="About VGM channel outputs">?</summary><p>These software listening switches change only a channel's contribution to VGM song output. Wave, Noise, DDA and CH2 → CH1 hardware LFO keep running; Live and Capture still show the recorded settings. Already buffered audio plays first, then the new mix is heard. These switches keep their settings across Pause, Stop and song changes. Keyboard and Code output are separate.</p></details>
+        <div id="hucSongChannels" class="huc-song-channels" role="group" aria-label="HuC6280 channel outputs">
+          <span class="huc-song-channels-label">HuC6280 output</span>
+          <button id="hucSongChannel1Toggle" type="button" aria-pressed="true" aria-label="HuC6280 CH 1 output" title="Toggle HuC6280 CH 1 output">CH 1 · On</button>
+          <button id="hucSongChannel2Toggle" type="button" aria-pressed="true" aria-label="HuC6280 CH 2 output" title="Toggle HuC6280 CH 2 output">CH 2 · On</button>
+          <button id="hucSongChannel3Toggle" type="button" aria-pressed="true" aria-label="HuC6280 CH 3 output" title="Toggle HuC6280 CH 3 output">CH 3 · On</button>
+          <button id="hucSongChannel4Toggle" type="button" aria-pressed="true" aria-label="HuC6280 CH 4 output" title="Toggle HuC6280 CH 4 output">CH 4 · On</button>
+          <button id="hucSongChannel5Toggle" type="button" aria-pressed="true" aria-label="HuC6280 CH 5 output" title="Toggle HuC6280 CH 5 output">CH 5 · On</button>
+          <button id="hucSongChannel6Toggle" type="button" aria-pressed="true" aria-label="HuC6280 CH 6 output" title="Toggle HuC6280 CH 6 output">CH 6 · On</button>
+          <details class="spu-code-help"><summary aria-label="About HuC6280 channel outputs">?</summary><p>One session of output switches for Keyboard, Code and VGM, including paused CH audition. Wave, Noise, DDA and CH2 → CH1 hardware LFO keep running internally. Muting CH2 preserves its modulation of CH1. Live and Capture keep their hardware settings. VGM changes follow already-buffered audio. The switches survive transport, sound and project changes; presets and Cassette files do not store this listening mix. MSM5205 and CD-DA use their separate source controls above.</p></details>
         </div>
         <details class="spu-code-help"><summary aria-label="About source mixer">?</summary><p>One session mix for Keyboard, Code and VGM. Levels use the same calibrated source gains as Playground; Reset returns those defaults. Master controls the final combined output. VGM changes follow already-rendered audio and invalidate affected Seek checkpoints. CD-DA is a separate authored audio-track source, shared by its UI and Code.</p></details>
       </section>
@@ -318,6 +318,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-live-highlight-1"></script>
+  <script type="module" src="./synth.js?v=huc-shared-channels-1"></script>
 </body>
 </html>

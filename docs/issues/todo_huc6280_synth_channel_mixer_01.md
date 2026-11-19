@@ -2,6 +2,9 @@
 
 開始: 2026-11-14。[仕上げTODO](todo_huc6280_synth_finish_01.md)のCH別On／Off工程。
 
+2026-11-19追記: 以下は当初のVGM専用工程の記録です。現在は
+[共通CH Mixer](todo_huc6280_shared_channel_mixer_20261119.md)でKeyboard／Code／VGM／Pause試奏へ拡張しています。
+
 - [x] VGMのCH1–CH6へ独立したOn／Offを追加する。初期値は全CH On。
       通常Synth／Code／Pause試奏の音には適用せず、VGMの聴取用出力だけを変更する。
 - [x] 既存HuC6280AudioEngine.setChannelMutedを利用し、音源レジスタ、

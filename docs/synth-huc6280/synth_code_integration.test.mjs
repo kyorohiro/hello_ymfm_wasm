@@ -334,6 +334,17 @@ test('actual Capture applies an acknowledged authored preset while retaining the
   assert(h.calls.some(call=>call[0]==='dirty'));assert(h.calls.findIndex(call=>call[0]==='auditionStop')<h.calls.findIndex(call=>call[0]==='command'&&call[1]==='loadPreset'));
 });
 
+test('Capture leaves its controller-owned CH view intact until acknowledgement so it cannot cancel its own selection guard',async()=>{
+  const h=pausedHarness(),gate=deferred(),selected=h.scope.channelTarget;let current=true;
+  h.scope.songControls.setView=target=>{h.calls.push(['songView',target]);current=false;};
+  h.engine.pendingCommand=gate.promise;
+  const capturing=h.scope.capturePausedVoice({...h.selection.prepared,capturable:true},{isCurrent:()=>current});await turn();
+  assert(current);assert(!h.calls.some(call=>call[0]==='songView'));assert.equal(h.scope.channelTarget,selected);
+  assert(h.calls.some(call=>call[0]==='command'&&call[1]==='loadPreset'));
+  gate.resolve();assert.equal(await capturing,true);assert(current);assert.deepEqual(h.engine.state.preset,h.captured);
+  assert.equal(h.scope.songState.playback,'paused');assert.equal(h.scope.songState.positionFrames,123);
+});
+
 test('atomic Capture cancellation during load ACK or read ACK restores the previous native author checkpoint without publishing capture',async()=>{
   for(const boundary of['command','read']){
     const h=pausedHarness(),before=readPreset(h.scope.preset),gate=deferred();let current=true;

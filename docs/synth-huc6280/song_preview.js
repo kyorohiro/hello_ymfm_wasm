@@ -108,7 +108,9 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     }catch(error){
       // Do not publish a half-applied user toggle. A native setter normally
       // cannot fail; compatible injected engines can still reject a request.
-      if(previous!==undefined)for(const channel of attempted)try{engine.setChannelMuted(channel,Boolean(previous&(1<<channel)));}catch{}
+      const failures=[];
+      if(previous!==undefined)for(const channel of attempted)try{engine.setChannelMuted(channel,Boolean(previous&(1<<channel)));}catch(rollbackError){failures.push(rollbackError);}
+      if(failures.length){appliedChannelMasks.delete(engine);throw new AggregateError([error,...failures],'HuC6280 song output mask rollback failed');}
       throw error;
     }
     appliedChannelMasks.set(engine,mask);
@@ -275,7 +277,12 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('HuC6280 song channel must be an integer 0..5');
     if(typeof enabled!=='boolean')throw TypeError('HuC6280 song channel enabled must be boolean');
     const next=enabled?channelMuteMask&~(1<<channel):channelMuteMask|(1<<channel);
-    if(next===channelMuteMask)return getState();
+    return setChannelMuteMask(next);
+  }
+  function setChannelMuteMask(next) {
+    open();
+    if(!Number.isInteger(next)||next<0||next>63)throw RangeError('HuC6280 song channel mask must be an integer 0..63');
+    if(next===channelMuteMask){if(active&&!active.released)applyChannelMask(active.engine,next);return getState();}
     // Output only: parser/registers, LFO/Noise phase and retained PCM are kept.
     // The changed mix reaches the output after already rendered PCM drains.
     if(active&&!active.released)applyChannelMask(active.engine,next);
@@ -512,7 +519,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     job.controller.abort();emit();await job.promise;return true;
   }
   function dispose() {if (disposed) return; stop(); disposed = true; source = null; name = '';seekCache.reset(null,channelMuteMask); emit();}
-  return {load, play, pause, resume, stop,clear,seek,cancelSeek,setCacheEnabled,clearSeekCache,setSourceMix,whenIdle:()=>seekCleanup,getState,read:getState,setLiveEnabled,setChannelEnabled,
+  return {load, play, pause, resume, stop,clear,seek,cancelSeek,setCacheEnabled,clearSeekCache,setSourceMix,whenIdle:()=>seekCleanup,getState,read:getState,setLiveEnabled,setChannelEnabled,setChannelMuteMask,
     getManualSelection,applyEdit:(edit,options)=>manualOperation('applyEdit',[edit],options),
     noteOn:(id,midi,channel,options)=>manualOperation('noteOn',[id,midi,channel],options),
     noteOff:(id,options)=>manualOperation('noteOff',[id],options,true),
