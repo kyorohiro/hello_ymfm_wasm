@@ -1,9 +1,10 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {measureScspFmCustom2DefaultParity,reconstructScspFmCustom2ParityPredecessor,
-  SCSP_FM_CUSTOM2_PARITY_BASE_COMMIT as base,SCSP_FM_CUSTOM2_PARITY_RECEIPT as receiptPath,
-  SCSP_FM_CUSTOM2_PARITY_REPORT as reportPath} from './record_scsp_fm_custom2_default_parity.mjs';
+const {measureScspFmCustom2DefaultParity,reconstructScspFmCustom2ParityPredecessor,
+  SCSP_FM_CUSTOM2_PARITY_BASE_COMMIT:base,SCSP_FM_CUSTOM2_PARITY_RECEIPT:receiptPath,
+  SCSP_FM_CUSTOM2_PARITY_REPORT:reportPath}=await historicalCalibrationModule('record_scsp_fm_custom2_default_parity.mjs');
 const url=name=>new URL('../'+name,import.meta.url);
 test('real Synth default PCM, ring and registers match the exact pre-custom owner at 44.1/48 kHz',async()=>{
   const report=await measureScspFmCustom2DefaultParity();

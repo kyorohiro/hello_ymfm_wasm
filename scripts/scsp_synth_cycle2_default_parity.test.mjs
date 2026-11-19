@@ -1,10 +1,11 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
-import {measureScspSynthCycle2DefaultParity,reconstructScspSynthCycle2ParityPredecessor,
-  SCSP_SYNTH_CYCLE2_PARITY_BASE_COMMIT as base,SCSP_SYNTH_CYCLE2_PARITY_RECEIPT as receiptPath,
-  SCSP_SYNTH_CYCLE2_PARITY_REPORT as reportPath} from './record_scsp_synth_cycle2_default_parity.mjs';
+const {createScspCycle2PresetsRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_presets_revision.mjs');
+const {measureScspSynthCycle2DefaultParity,reconstructScspSynthCycle2ParityPredecessor,
+  SCSP_SYNTH_CYCLE2_PARITY_BASE_COMMIT:base,SCSP_SYNTH_CYCLE2_PARITY_RECEIPT:receiptPath,
+  SCSP_SYNTH_CYCLE2_PARITY_REPORT:reportPath}=await historicalCalibrationModule('record_scsp_synth_cycle2_default_parity.mjs');
 const url=name=>new URL('../'+name,import.meta.url);
 test('real prior default/DAG/Self/multiple-Self PCM and complete state match the exact pre-Cycle2 owner at both output rates',async()=>{
   const report=await measureScspSynthCycle2DefaultParity();

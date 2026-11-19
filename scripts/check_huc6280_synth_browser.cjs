@@ -608,7 +608,17 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#vgmFileInput').setInputFiles({name:'volume-variants.vgm',mimeType:'application/octet-stream',buffer:importBytes});
     await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&/\/presets\/volume-variants \(2\)/.test(document.querySelector('#vgmStatus').textContent));
     const repeated=await exportProject(page);
-    for(const [file,bytes]of groupedProject.project.files)assert.deepEqual(repeated.project.files.get(file),bytes,'repeat import keeps '+file);
+    for(const [file,bytes]of groupedProject.project.files){
+      // The recovery manifest lists saved text files, so importing six new
+      // presets legitimately extends it. Existing user-file bytes stay exact.
+      if(file==='huc6280-synth.project.json'){
+        const before=JSON.parse(Buffer.from(bytes).toString('utf8')),after=JSON.parse(Buffer.from(repeated.project.files.get(file)).toString('utf8'));
+        const beforePaths=before.workingDelta.savedTextPaths,afterPaths=after.workingDelta.savedTextPaths;
+        assert(beforePaths.every(path=>afterPaths.includes(path)),'manifest retains prior saved text paths');
+        assert.equal(afterPaths.length-beforePaths.length,6,'manifest records the six new preset files');
+        before.workingDelta.savedTextPaths=afterPaths;assert.deepEqual(after,before,'only saved text inventory changes');
+      }else assert.deepEqual(repeated.project.files.get(file),bytes,'repeat import keeps '+file);
+    }
     const repeatedPresets=presetEntries(repeated.project).filter(([file])=>!groupedProject.project.files.has(file));
     assert.equal(repeatedPresets.length,6);assert(repeatedPresets.every(([file])=>file.startsWith('presets/volume-variants (2)/')));
     assert.deepEqual(repeatedPresets.map(([,bytes])=>JSON.parse(Buffer.from(bytes).toString('utf8'))),added.map(([,bytes])=>JSON.parse(Buffer.from(bytes).toString('utf8'))));

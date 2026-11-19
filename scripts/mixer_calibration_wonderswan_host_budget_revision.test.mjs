@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { readFile, mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import {tmpdir} from 'node:os';
 import { pathToFileURL } from 'node:url';
 const {
   restoreMixerCalibrationWonderSwanHostBudgetRevision:restore,
@@ -118,7 +119,7 @@ test('future source bodies and changed proof dependencies cannot use the reviewe
 });
 
 test('the receipt itself requires its independently pinned object hash', async (t) => {
-  const directory = await mkdtemp('/private/tmp/wonderswan-host-receipt-');
+  const directory = await mkdtemp(join(tmpdir(),'wonderswan-host-receipt-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const modulePath = join(
     directory,

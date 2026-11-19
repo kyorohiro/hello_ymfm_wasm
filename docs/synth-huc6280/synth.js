@@ -211,6 +211,7 @@ function applyPreset(value, {load=false,message,fromVgm=false,keepSongPaused=fal
   if(replacesVoices){epoch++;notes.clear();updateKeys();}
   const performanceEpoch=epoch,acceptedRevision=++playbackRevision;
   playbackPreset=next;
+  updateKeys();
   if(load||previous.source!==next.source)setPitchUi(0);
   if(!audio){
     if(deferDisplay){if(record)files?.recordSoundEdit?.(shown,{allowExternal:externalImport});preset=shown;revision++;updatePresetUi();}

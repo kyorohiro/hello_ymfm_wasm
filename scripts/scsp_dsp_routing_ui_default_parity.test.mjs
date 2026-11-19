@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {measureScspDspUiDefaultParity,reconstructScspDspUiParityPredecessor,
-  SCSP_DSP_UI_PARITY_BASE_COMMIT as base,SCSP_DSP_UI_PARITY_RECEIPT as receiptPath,
-  SCSP_DSP_UI_PARITY_REPORT as reportPath} from './record_scsp_dsp_routing_ui_default_parity.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+const {measureScspDspUiDefaultParity,reconstructScspDspUiParityPredecessor,
+  SCSP_DSP_UI_PARITY_BASE_COMMIT:base,SCSP_DSP_UI_PARITY_RECEIPT:receiptPath,
+  SCSP_DSP_UI_PARITY_REPORT:reportPath}=await historicalCalibrationModule('record_scsp_dsp_routing_ui_default_parity.mjs');
 const url=name=>new URL('../'+name,import.meta.url);
 test('real Synth default PCM, ring and registers match the exact pre-UI owner at 44.1/48 kHz',async()=>{
   const report=await measureScspDspUiDefaultParity();

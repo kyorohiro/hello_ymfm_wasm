@@ -22,6 +22,8 @@ on:
       - 'tetorica_src/native/audio_effect/**'
       - 'tetorica_src/wasm/ssf_player/**'
       - 'test/helpers/scsp_ssf_fixture.mjs'
+      - 'test/helpers/*historical*'
+      - 'test/fixtures/pre-huc-timed-calibration-inputs.json'
       - 'test/runtime/*scsp*'
       - 'scripts/*scsp*'
       - 'scripts/mixer_calibration_aswan_navigation_revision*'
@@ -48,6 +50,8 @@ on:
       - 'tetorica_src/native/audio_effect/**'
       - 'tetorica_src/wasm/ssf_player/**'
       - 'test/helpers/scsp_ssf_fixture.mjs'
+      - 'test/helpers/*historical*'
+      - 'test/fixtures/pre-huc-timed-calibration-inputs.json'
       - 'test/runtime/*scsp*'
       - 'scripts/**'
       - 'docs/issues/aswan_shared_client_navigation_ui_revision_01.json'
@@ -83,32 +87,32 @@ jobs:
           node --test scripts/mixer_calibration_scsp_dsp_flow_revision.test.mjs
           node --test scripts/mixer_calibration_scsp_fm_custom_revision.test.mjs scripts/scsp_fm_custom2_default_parity.test.mjs
           node --test scripts/mixer_calibration_scsp_fm_multi_revision.test.mjs scripts/scsp_fm_multi_default_parity.test.mjs
-          node scripts/record_scsp_fm_multi_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_fm_multi_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_depth_revision.test.mjs scripts/scsp_fm_depth_default_parity.test.mjs
-          node scripts/record_scsp_fm_depth_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_fm_depth_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_ssf_dsp_revision.test.mjs
-          node scripts/record_scsp_ssf_dsp_revision.mjs --check
-          node scripts/record_scsp_ssf_dsp_passive_parity.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_ssf_dsp_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_ssf_dsp_passive_parity.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_self_feedback_revision.test.mjs scripts/scsp_fm_self_feedback_default_parity.test.mjs
-          node scripts/record_scsp_fm_self_feedback_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_fm_self_feedback_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_multi_self_feedback_revision.test.mjs scripts/scsp_fm_multi_self_feedback_default_parity.test.mjs
-          node scripts/record_scsp_fm_multi_self_feedback_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_fm_multi_self_feedback_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_multiple_self_revision.test.mjs scripts/scsp_fm_multiple_self_default_parity.test.mjs
-          node scripts/record_scsp_fm_multiple_self_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_fm_multiple_self_revision.mjs --check
           node --test scripts/mixer_calibration_playground_scsp_cycle2_examples_revision.test.mjs
-          node scripts/record_playground_scsp_cycle2_examples_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_playground_scsp_cycle2_examples_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_synth_cycle2_revision.test.mjs scripts/scsp_synth_cycle2_default_parity.test.mjs
-          node scripts/record_scsp_synth_cycle2_revision.mjs --check
-          node scripts/record_scsp_synth_cycle2_default_parity.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_synth_cycle2_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_synth_cycle2_default_parity.mjs --check
           node --test scripts/mixer_calibration_scsp_cycle2_presets_revision.test.mjs scripts/scsp_cycle2_presets_parity.test.mjs
-          node scripts/record_scsp_cycle2_presets_revision.mjs --check
-          node scripts/record_scsp_cycle2_presets_parity.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_cycle2_presets_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_cycle2_presets_parity.mjs --check
           node --test scripts/mixer_calibration_scsp_cycle2_ui_revision.test.mjs
-          node scripts/record_scsp_cycle2_ui_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_cycle2_ui_revision.mjs --check
           node scripts/build_playground_examples.mjs --check
           node --test docs/playground/playground_examples.test.mjs docs/playground/playground_mode_starters.test.mjs
           node --test scripts/scsp_fm_cycle2.test.mjs docs/playground/playground_scsp_cycle2_example.test.mjs
-          node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
+          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci
           python3 -m zipfile -e release/tetorica_scsp_synth_ci_itch.zip release/scsp-synth-browser
           node scripts/check_scsp_synth_browser.cjs --root release/scsp-synth-browser --entry /index.html --out release/scsp-synth-browser.json

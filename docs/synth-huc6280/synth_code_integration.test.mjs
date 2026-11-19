@@ -518,3 +518,15 @@ test('Save applies sparse accepted fields while retaining a newer working draft 
   assert.deepEqual(Array.from(h.engine.lastAuthorFields),['volume']);assert.equal(h.scope.playbackPreset.volume,8);assert.equal(h.scope.preset.volume,4);
   assert.equal(h.scope.pitch,1);assert.equal(h.host.running,true);assert.equal(h.engine.codeSession,1);
 });
+
+
+test('offline accepted source changes immediately refresh playable keys without opening audio',async()=>{
+  const h=harness({channel:'synth',running:false});h.scope.audio=null;
+  const availability=[];h.scope.updateKeys=()=>availability.push(h.scope.canPlay(60));
+  const dda=readPreset(h.scope.preset);dda.source='dda';
+  assert.equal(await h.scope.applyPreset(dda),true);
+  assert.equal(h.scope.canPlay(60),false);assert.equal(availability.at(-1),false,'Empty DDA disables keys using the accepted source');
+  const wave=createDefaultPreset();await h.scope.applyPreset(wave);
+  assert.equal(availability.at(-1),true,'Switching back to Wave restores playable keys');
+  assert.equal(h.scope.audio,null);assert(!h.calls.some(call=>['command','preset','prepareClient'].includes(call[0])));
+});

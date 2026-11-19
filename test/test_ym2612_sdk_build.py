@@ -63,6 +63,7 @@ YM2608_EXPORTS = [
     '_ym2608_get_irq', '_ym2608_sample_rate', '_ym2608_load_adpcm_a_rom',
     '_ym2608_load_adpcm_b_memory', '_ym2608_clear_adpcm_b_memory',
     '_ym2608_generate', '_ym2608_set_source_mute_mask', '_ym2608_set_output_gains',
+    '_ym2608_set_source_gains',
     '_ym2608_save_state',
     '_ym2608_load_state', '_malloc', '_free',
 ]

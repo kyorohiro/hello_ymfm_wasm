@@ -1,9 +1,10 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {measureScspCycle2PresetsParity,reconstructScspCycle2PresetsParityPredecessor,
-  SCSP_CYCLE2_PRESETS_PARITY_BASE_COMMIT as base,SCSP_CYCLE2_PRESETS_PARITY_RECEIPT as receiptPath,
-  SCSP_CYCLE2_PRESETS_PARITY_REPORT as reportPath} from './record_scsp_cycle2_presets_parity.mjs';
+const {measureScspCycle2PresetsParity,reconstructScspCycle2PresetsParityPredecessor,
+  SCSP_CYCLE2_PRESETS_PARITY_BASE_COMMIT:base,SCSP_CYCLE2_PRESETS_PARITY_RECEIPT:receiptPath,
+  SCSP_CYCLE2_PRESETS_PARITY_REPORT:reportPath}=await historicalCalibrationModule('record_scsp_cycle2_presets_parity.mjs');
 const url=name=>new URL('../'+name,import.meta.url);
 test('real prior default/DAG/Self/multiple-Self/Cycle PCM and complete state match the exact pre-v11 owner at both output rates',async()=>{
   const report=await measureScspCycle2PresetsParity();

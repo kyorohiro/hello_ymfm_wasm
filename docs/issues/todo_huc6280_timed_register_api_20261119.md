@@ -228,3 +228,51 @@ the shared chip class (matching the recorder's already listed operation).
 - Final `git diff --check`, both generator `--check` commands and the actual
   browser ZIP entry/size validator passed. No remote Actions result is claimed;
   the workflow changes still need commit/push to run on GitHub.
+
+## Follow-up: Linux Actions failures after push (2026-11-19)
+
+- [x] ASWAN: replace macOS-only `/private/tmp` test scratch path with OS tmpdir.
+- [x] SCSP: isolate the real-WASM historical DSP UI parity recorder's guard
+  dependencies using the same test-only archived input graph.
+- [x] HuC6280: reconcile the browser WAV-conversion keyboard expectation with
+  the current empty-DDA behavior, then rerun the full packaged browser check.
+- Failed runs on commit `15acfdc255ef1aafa802fda118ddb864288b7a36`:
+  ASWAN `44530114446`, SCSP `44530114127`, HuC6280 `44530114489`.
+
+### Actions repair verification
+
+- ASWAN: OS-provided `tmpdir()` replaces the macOS-only scratch prefix. Both
+  historical guards pass (8 tests); malformed receipt rejection is retained.
+- SCSP: all nine real-WASM historical parity test files use the archived guard
+  graph. Their original test bodies were added with actual Git provenance to
+  the independently pinned test-only archive. Parity + archive tests: 20 passed.
+- SCSP workflow retains every original `--check` assertion, now through a
+  test-only CLI that rejects `--write` and escaping paths. All 14 historical
+  receipt commands were verified (13 passed in the full sequence; the final
+  navigation command passed after giving it the same AY-era reader already
+  used by its unit test). Cycle2 Examples uses its exact Synth Cycle2 checkpoint
+  reader; this keeps later measured gain-policy changes outside that old proof.
+  No production guard, historical report, or recorder implementation changed.
+- HuC6280 real defect: accepting a source before opening audio updated keyboard
+  availability before updating `playbackPreset`. Refresh keys after accepting
+  it as well. Empty DDA now disables keys immediately, Wave restores them,
+  manual drafts remain passive. Added an offline regression. Product tests:
+  747 passed; keyboard dispatch tests: 40 passed.
+- HuC6280 browser import test now allows exactly the six newly imported
+  `workingDelta.savedTextPaths` entries in its recovery manifest. Every earlier
+  user file remains byte-identical; every other manifest field remains exact.
+  Full packaged Chromium/WebKit browser check passed with physical output muted.
+- Additional VGM workflow failure `44530114029`: SDK build test expected-export
+  list omitted the existing `_ym2608_set_source_gains` export. Updated only the
+  list, leaving exact matching in place. All 113 SDK build tests passed.
+- Local HuC6280 and SCSP ZIP packaging passed. Both current mixer-policy
+  generators still pass strict `--check`; no new measurement waiver was added.
+- Relevant logs: `/private/tmp/actions-aswan-guards-final.log`,
+  `/private/tmp/actions-scsp-all-parities-final3.log`,
+  `/private/tmp/actions-scsp-historical-receipts-final.log`,
+  `/private/tmp/actions-scsp-navigation-receipt.log`,
+  `/private/tmp/actions-huc-browser.json`,
+  `/private/tmp/actions-sdk-build-tests.log`.
+- Repairs are local, not committed/pushed. Completed old failing runs cannot
+  validate these new edits; a new push is required. Other old runs were still
+  running at the last remote check.
