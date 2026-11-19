@@ -28,7 +28,8 @@ liveLoop("melody", async () => {
 const aborted=()=>new DOMException('HuC6280 Code stopped','AbortError');
 export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySettings,
   stopKeyboard,stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{},msm5205Source,cddaSource,readCddaFile,
-  getExportNotice=()=>'',onBeforeWorkspaceReplace:beforeWorkspaceReplace=async()=>{},getAcceptedSettings=()=>null}={}) {
+  getExportNotice=()=>'',onBeforeWorkspaceReplace:beforeWorkspaceReplace=async()=>{},getAcceptedSettings=()=>null,
+  onViewChange=()=>{},onExpandedChange=()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null;
   const project=createHuc6280CodeProject({settings:getSettings(),getStarterCode:()=>HUC6280_STARTER_CODE});
   const readSaved=(...args)=>project.readSavedFile(...args);
@@ -78,12 +79,12 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
       },
     });return runtime;
   }
-  controls=setupSynthCodeControls({project,files,getRuntime,keepRunningOnKeyboard:true,
+  controls=setupSynthCodeControls({project,files,getRuntime,keepRunningOnKeyboard:true,persistentExpanded:true,
     allowTextFiles:true,maxTextLength:HUC6280_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'huc6280',transformDeclarations:selectHuc6280CodeDeclarations,
     journalKey:'tetorica-huc6280-synth-pending-code',getStarterCode:()=>HUC6280_STARTER_CODE,
     async onBeforeRun(){modeEpoch++;await stopSong();if(!runtime?.getState().running)await stopKeyboard();},
-    async onModeChange(){modeEpoch++;openOutput();onActivity();},setStatus,
+    async onModeChange(){modeEpoch++;openOutput();onActivity();},onViewChange,onExpandedChange,setStatus,
   });
   return {project,files,controls,ready:controls.ready,isCodeMode:()=>controls.isCodeMode(),
     isRunning:()=>Boolean(runtime?.getState().running),getState:()=>runtime?.getState()??{state:'idle',running:false},

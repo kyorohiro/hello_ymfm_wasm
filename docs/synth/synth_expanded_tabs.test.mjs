@@ -25,35 +25,37 @@ class Element {
     return event;
   }
 }
-function fixture() {
+function fixture({huc=false}={}) {
   const old=Object.getOwnPropertyDescriptor(globalThis,'document'),elements=new Map();
   const byId=id=>{if(!elements.has(id))elements.set(id,new Element(id));return elements.get(id);};
   const workspace=byId('synthWorkspace'),editor=new Element('editor'),main=new Element('main');
   const header=new Element('header');header.append(byId('synthWorkspaceCodeButton'),byId('synthWorkspaceSynthButton'));
   workspace.append(header,main);main.append(byId('synthExpandedVolumeSlot'),byId('synthExpandedTabsSlot'),editor,byId('synthExpandedCodeSlot'));
   const tablist=new Element('chipTabs'),inputTablist=new Element('inputTabs'),inputHeading=new Element('inputHeading'),transport=new Element('transport');
-  const chipIds=['synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabCdda','synthChipTabPwm','synthSongMixButton'];
+  const chipIds=huc?['huc6280ChipTab','msm5205ChipTab','cddaChipTab','mixerChipTab']:['synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabCdda','synthChipTabPwm','synthSongMixButton'];
   const chipTabs=chipIds.map(byId),code=byId('synthInputCodeTab'),keyboard=byId('synthInputKeyboardTab');
-  for(const [i,tab]of chipTabs.entries()){tab.dataset.synthChip=['ym2612','psg','pcm','cdda','pwm','mixer'][i];tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(i===0));tab.tabIndex=i===0?0:-1;}
+  for(const [i,tab]of chipTabs.entries()){tab.dataset[huc?'hucChipTab':'synthChip']=(huc?['huc6280','msm5205','cdda','mixer']:['ym2612','psg','pcm','cdda','pwm','mixer'])[i];tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(i===0));tab.tabIndex=i===0?0:-1;}
   for(const tab of [code,keyboard])tab.setAttribute('role','tab');
   code.setAttribute('aria-selected','true');keyboard.setAttribute('aria-selected','false');
   tablist.setAttribute('aria-label','Sound chip editor');tablist.append(...chipTabs);
   const volumeRow=new Element('volumeRow'),volume=new Element('volume');volume.classList.toggle('volume-control',true);
   volume.append(byId('masterVolumeRange'),byId('masterVolumeValue'));volumeRow.append(volume);
-  const section=byId('synthInputSection');editor.append(volumeRow,tablist,section);
+  const section=byId('synthInputSection');
+  if(huc){header.append(volumeRow);editor.append(tablist,section);}else editor.append(volumeRow,tablist,section);
   section.append(inputHeading,transport,byId('synthKeyboardPanel'),byId('synthCodePanel'));
   inputHeading.append(inputTablist,byId('synthCodeExpandButton'));inputTablist.append(keyboard,code);
   transport.append(byId('synthCodeRunButton'),byId('synthCodeApplyButton'),byId('synthCodeStopButton'));
   byId('synthExpandedVolumeSlot').hidden=true;byId('synthExpandedTabsSlot').hidden=true;byId('synthExpandedCodeSlot').hidden=true;
-  globalThis.document={getElementById:byId,querySelector:selector=>selector==='#synthWorkspace .synth-editor'?editor:null,
+  globalThis.document={getElementById:id=>huc&&['synthExpandedVolumeSlot','masterVolumeRange'].includes(id)?null:byId(id),querySelector:selector=>!huc&&selector==='#synthWorkspace .synth-editor'?editor:null,
     createElement:()=>new Element(),createComment:()=>new Element('comment'),activeElement:null};
   const calls={chips:[],modes:[],expansions:[],layouts:0},originalChildren={editor:[...editor.children],section:[...section.children],heading:[...inputHeading.children],input:[...inputTablist.children]};
   let inputMode='code',expanded=false,controls;
   const codeControls={isCodeMode:()=>inputMode==='code',isExpanded:()=>expanded,layoutEditor:()=>calls.layouts++,
     async setExpanded(value){calls.expansions.push(value);expanded=value;controls.setExpanded(value);return value;},
     async setMode(mode,options){calls.modes.push([mode,options]);inputMode=mode;controls.showInput(mode);return true;}};
-  controls=setupSynthExpandedTabs({codeControls,async selectChip(button){calls.chips.push(button);controls.showChip(button);return true;}});
-  return {controls,codeControls,calls,byId,editor,tablist,inputTablist,inputHeading,section,transport,volumeRow,volume,chipTabs,code,keyboard,originalChildren,
+  const selectChip=async button=>{calls.chips.push(button);controls.showChip(button);return true;};
+  controls=setupSynthExpandedTabs({codeControls,selectChip,...(huc?{elements:{editor,chipTabs},getChipView:button=>button.dataset.hucChipTab}:{})});
+  return {controls,codeControls,selectChip,calls,byId,editor,tablist,inputTablist,inputHeading,section,transport,volumeRow,volume,chipTabs,code,keyboard,originalChildren,
     expand(value=true){expanded=value;controls.setExpanded(value);},
     cleanup(){controls.dispose();old?Object.defineProperty(globalThis,'document',old):delete globalThis.document;}};
 }
@@ -181,4 +183,75 @@ test('a delayed Code request cannot expand after a later Synth choice or disposa
       assert.equal(f.byId('synthWorkspaceSynthButton').getAttribute('aria-pressed'),'true');
     }finally{f.cleanup();}
   }
+});
+
+test('HuC6280 overrides share six expanded tabs, header switching, navigation and restoration',async()=>{
+  const f=fixture({huc:true});
+  try{
+    f.byId('synthWorkspaceCodeButton').fire('click');await settle();
+    const all=[f.code,...f.chipTabs,f.keyboard];
+    assert.deepEqual(realChildren(f.tablist),all);
+    assert.deepEqual(f.chipTabs.map(tab=>tab.dataset.hucChipTab),['huc6280','msm5205','cdda','mixer']);
+    for(const tab of f.chipTabs){
+      f.controls.showChip(tab);
+      assert.equal(f.byId('synthExpandedTabsSlot').dataset.view,tab.dataset.hucChipTab);
+      assert.equal(f.editor.hidden,false);assert.equal(f.byId('synthExpandedCodeSlot').hidden,true);
+      assert.deepEqual(selected(all),[tab]);assert.equal(f.byId('synthWorkspaceCodeButton').getAttribute('aria-pressed'),'true');
+    }
+    for(let i=0;i<all.length;i++){
+      f.tablist.fire('keydown',{target:all[i],key:'ArrowRight'});await settle();
+      assert.equal(document.activeElement,all[(i+1)%all.length]);assert.deepEqual(selected(all),[all[(i+1)%all.length]]);
+    }
+    f.tablist.fire('keydown',{target:f.code,key:'End'});await settle();assert.equal(document.activeElement,f.keyboard);
+    assert.equal(f.byId('synthExpandedCodeSlot').hidden,false);assert.equal(f.editor.hidden,true);
+    assert.equal(f.byId('synthWorkspaceCodeButton').getAttribute('aria-pressed'),'true','Keyboard does not leave the expanded workspace');
+    assert.equal(f.transport.parentNode,f.byId('synthExpandedTabsSlot'),'transport remains reachable for every source');
+    f.tablist.fire('keydown',{target:f.keyboard,key:'Home'});await settle();assert.equal(document.activeElement,f.code);
+    f.controls.showChip(f.chipTabs[2]);f.byId('synthWorkspaceSynthButton').fire('click');await settle();
+    assert.deepEqual(realChildren(f.editor),f.originalChildren.editor);
+    assert.deepEqual(realChildren(f.inputHeading),f.originalChildren.heading);
+    assert.deepEqual(realChildren(f.inputTablist),f.originalChildren.input);
+    assert.deepEqual(selected(f.chipTabs),[f.chipTabs[2]]);
+    assert.equal(f.transport.parentNode,f.section);assert.equal(f.editor.hidden,false);
+    assert.equal(f.byId('synthWorkspaceSynthButton').getAttribute('aria-pressed'),'true');
+    assert.equal(f.calls.chips.length,4,'one original selection per arrow-key chip destination');
+    assert.deepEqual(f.calls.expansions,[true,false]);
+  }finally{f.cleanup();}
+});
+
+test('HuC6280 keeps the original header Master when no expanded volume nodes are supplied',async()=>{
+  const f=fixture({huc:true});let changes=0;
+  try{
+    assert.equal(document.getElementById('synthExpandedVolumeSlot'),null);
+    assert.equal(document.getElementById('masterVolumeRange'),null);
+    const parent=f.volumeRow.parentNode,input=f.byId('masterVolumeRange');
+    input.value='70';input.addEventListener('input',()=>changes++);
+    f.byId('synthWorkspaceCodeButton').fire('click');await settle();
+    for(const tab of f.chipTabs){f.controls.showChip(tab);assert.equal(f.volumeRow.parentNode,parent);assert.equal(parent.hidden,false);}
+    f.controls.showInput('keyboard');input.value='180';input.fire('input');
+    f.byId('synthWorkspaceSynthButton').fire('click');await settle();
+    assert.equal(f.volumeRow.parentNode,parent);assert.equal(input.value,'180');assert.equal(changes,1);
+    assert.equal(input.parentNode,f.volume,'the existing slider and listener are retained');
+  }finally{f.cleanup();}
+});
+
+test('invalid overrides and chip view mappings reject before adding anchors or changing the DOM',()=>{
+  const f=fixture({huc:true});
+  const tree=node=>[node,...node.children.flatMap(tree)];
+  try{
+    const before=tree(f.byId('synthWorkspace')).map(node=>[node,node.parentNode,[...node.children],node.hidden,{...node.attributes}]);
+    const options={codeControls:f.codeControls,selectChip:f.selectChip,elements:{editor:f.editor,chipTabs:f.chipTabs},getChipView:tab=>tab.dataset.hucChipTab};
+    for(const invalid of [
+      {elements:null},{elements:[]},{elements:{unknown:f.editor}},
+      {elements:{...options.elements,editor:null}},{elements:{...options.elements,editor:{parentNode:{}}}},
+      {elements:{...options.elements,chipTabs:[]}},{elements:{...options.elements,chipTabs:[f.chipTabs[0],f.chipTabs[0]]}},
+      {elements:{...options.elements,chipTabs:[new Element('detached')]}},{elements:{...options.elements,chipTabs:[f.code]}},
+      {getChipView:null},{getChipView:()=>undefined},{getChipView:()=>''},{getChipView:()=> 'code'},
+      {getChipView:()=> 'same'},
+    ]){
+      assert.throws(()=>setupSynthExpandedTabs({...options,...invalid}),TypeError);
+      assert.deepEqual(tree(f.byId('synthWorkspace')).map(node=>[node,node.parentNode,[...node.children],node.hidden,{...node.attributes}]),before);
+    }
+    assert.deepEqual(f.calls.chips,[]);assert.deepEqual(f.calls.expansions,[]);assert.deepEqual(f.calls.modes,[]);
+  }finally{f.cleanup();}
 });

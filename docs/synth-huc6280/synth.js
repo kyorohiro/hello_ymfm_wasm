@@ -12,10 +12,11 @@ import {createTestWaveFiles} from './test_pcm.js?v=huc-media-tools-1';
 import {setupTestPcmControls} from './test_pcm_controls.js?v=huc-test-default-1';
 import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
 import {createEditor} from './editor.js?v=huc-vgm-manual-2';
-import {setupHuc6280CodeHost} from './code_host.js?v=huc-working-saved-1';
+import {setupHuc6280CodeHost} from './code_host.js?v=huc-code-workspace-1';
 import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-live-1';
 import {createHuc6280CodeEdit,createHuc6280CodeChanges} from './code_parameter_edit.js?v=huc-working-saved-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {createVgmLibrary} from './vgm_library.js?v=huc-capture-1';
 import {setupHuc6280SongControls} from './song_controls.js?v=huc-media-live-1';
 import {huc6280SongLiveView} from './song_live.js?v=huc-live-1';
@@ -45,6 +46,7 @@ let vgmLibrary = null, codeHost = null, codeLive = null, editorLive=null, codeWa
 let msmSource=null,msmControls=null,cddaSource=null,cddaControls=null,cddaReader=null;
 const cddaSession=createCddaSessionFiles();
 let songControls=null, songState=null, chipView='huc6280';
+let expandedTabs=null;
 const sourceMix=createPcEngineSourceMix();
 const sourceMixerUi=setupPcEngineSourceMix({root:$('hucSourceMixer'),mix:sourceMix});
 const unsubscribeSourceMix=sourceMix.onChange(value=>{
@@ -550,7 +552,7 @@ $('copyCode').addEventListener('click',async()=>{
 window.addEventListener('pagehide',event=>{
   songControls?.stop();
   if(event.persisted){stopNotes();void codeHost?.stop();void msmSource?.stop().catch(()=>{});void cddaSource?.stop().catch(()=>{});return;}
-  disposed=true;for(const controls of testPcmControls)controls.dispose();const mediaDisposing=Object.values(mediaKeyboards??{}).map(controller=>controller.dispose());mediaPressedKeys.clear();channelTabs?.dispose();msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([...mediaDisposing,codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
+  disposed=true;expandedTabs?.dispose();for(const controls of testPcmControls)controls.dispose();const mediaDisposing=Object.values(mediaKeyboards??{}).map(controller=>controller.dispose());mediaPressedKeys.clear();channelTabs?.dispose();msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([...mediaDisposing,codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
 });
 function selectedPresetFor(context,snapshot){
   const key=channelTarget==='synth'?`auto:${revision}`:JSON.stringify([context,channelTarget,snapshot?.clock,snapshot?.positionFrames,snapshot?.revision,snapshot?.registers,snapshot?.globals,snapshot?.waveforms,snapshot?.envelopes]);
@@ -661,6 +663,8 @@ codeHost=setupHuc6280CodeHost({msm5205Source:msmSource,cddaSource,
   onBeforeWorkspaceReplace:()=>{for(const controls of testPcmControls)controls.cancel({reset:true});testWaveFiles?.clear();cddaSession.clear();},ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,
   getSettings:()=>readPreset(preset),getAcceptedSettings:()=>readPreset(playbackPreset),applySettings:(value,options={})=>applyPreset(value,{load:true,...options}),stopKeyboard:()=>stopNotes(),
   stopSong:async()=>{songControls?.stop();await stopAudition();},
+  onViewChange:mode=>expandedTabs?.showInput(mode),
+  onExpandedChange:value=>expandedTabs?.setExpanded(value),
   onActivity(){const running=Boolean(codeHost?.isRunning());if(running!==codeWasRunning){if(!running){msmControls?.cancelPlay();cddaControls?.cancelPlay();}epoch++;notes.clear();setPitchUi(0);codeWasRunning=running;updateKeys();}syncChannelObservers();renderCodeLive();msmControls?.refresh();cddaControls?.refresh();visualizer.wake();},setStatus:status});
 cddaReader=createCddaInputReader({project:codeHost.project,session:cddaSession});
 msmControls=setupMsm5205Controls({root:$('msm5205Controls'),source:msmSource,project:codeHost.project,
@@ -718,21 +722,27 @@ songControls=setupHuc6280SongControls({project:codeHost.project,getAudio:()=>enq
     }
   },onStatus:status});
 songControls.setSourceMix(sourceMix.read());
-for(const tab of document.querySelectorAll('[data-huc-chip-tab]')){
-  const select=()=>{
+function selectChip(tab){
+  if(disposed)return false;
     if(chipView!==tab.dataset.hucChipTab)void cancelMediaKeys();
     chipView=tab.dataset.hucChipTab;$('hucSynthMain').dataset.chipView=chipView;
     for(const button of document.querySelectorAll('[data-huc-chip-tab]')){const active=button===tab;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}
     for(const panel of document.querySelectorAll('[data-huc-chip-panel]'))panel.hidden=panel.dataset.hucChipPanel!==chipView;
+    expandedTabs?.showChip(tab);
     renderCodeLive();msmControls?.refresh();cddaControls?.refresh();visualizer.wake();
-  };
-  tab.addEventListener('click',()=>{tab.blur();select();});
+    return true;
+}
+for(const tab of document.querySelectorAll('[data-huc-chip-tab]')){
+  tab.addEventListener('click',()=>{tab.blur();selectChip(tab);if(codeHost.controls.isExpanded())tab.focus();});
   tab.addEventListener('keydown',event=>{
     const tabs=[...document.querySelectorAll('[data-huc-chip-tab]')],index=tabs.indexOf(tab);
     const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:event.key==='ArrowRight'?(index+1)%tabs.length:event.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:null;
     if(next===null)return;event.preventDefault();tabs[next].click();tabs[next].focus();
   });
 }
+expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,selectChip,
+  elements:{editor:$('hucSynthEditor'),chipTabs:[...document.querySelectorAll('[data-huc-chip-tab]')]},
+  getChipView:tab=>tab.dataset.hucChipTab});
 for(const button of document.querySelectorAll('[data-add-cdrom2-examples]'))button.addEventListener('click',()=>{
   button.blur();try{const added=addPcEngineCodeExamples(codeHost.project);status(added.length?'Added missing HuC6280, MSM5205 and CD-DA examples to Files. Select a file in Code, then Run.':'Code examples are already in Files; existing files were kept.');}catch(error){report(error);}
 });

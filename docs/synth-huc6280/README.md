@@ -217,6 +217,17 @@ normal keyboard input. A later Code note can take over the same channel without
 being cut by an older hand-key release. Code frequency changes also survive
 returning the manual Pitch wheel to center.
 
+The header **Code / Synth** buttons beside Files choose the workspace layout.
+**Code** expands the same editor beside Files, with one tab row:
+**Code / HuC6280 / MSM5205 / CD-DA / Mixer / Keyboard**. Switch among those views
+without collapsing the workspace or restarting the performance. The transport
+stays above every expanded view, and the original header **Master** remains
+available, including its orange boost indication above 100%. **Synth** or the
+restore button returns the existing controls to the normal layout. These are
+view changes: they do not save working files, change the selected HuC channel,
+reload a media source or start Code/VGM playback. Arrow keys and Home/End
+navigate the expanded tab row; opening Code never creates a second editor.
+
 The child tabs below **HuC6280** offer **Auto** and **CH1–CH6** in normal, Code and VGM modes.
 Auto edits the common instrument and uses its automatic keyboard allocation
 (round robin for an ordinary Wave sound);
@@ -838,6 +849,10 @@ Keyboard／Codeを切り替え、同じHuC6280を`useSoundChip("huc6280")`で操
 Code実行中も鍵盤・つまみ・波形編集・音色の読込を使えます。
 Keyboard／Codeを切り替えてもloop・context・接続は維持します。Code表示中も、
 つまみや背景へFocusを移すと鍵盤演奏ができます。編集欄・文字入力・select・dialog内は演奏しません。
+Files横のCode／Synthは画面配置の切り替えです。Codeで同じエディターをFiles横へ拡大し、
+Code／HuC6280／MSM5205／CD-DA／Mixer／Keyboardを拡大状態のまま切り替えられます。
+Run／Apply／StopとヘッダーのMasterは各表示から操作でき、100%超のオレンジ表示も維持します。
+Synthまたは復元ボタンで通常配置へ戻します。表示変更だけでは演奏・選択CH・素材・未保存ファイルを変更しません。
 古い手動離鍵やPitch解除で新しいCodeの発音・周波数を巻き戻さず、Octave／CH変更は手動Releaseも解放します。
 CH1–CH6の表示・編集と自動更新、Files・Cassetteの保存／読込、型補完・実装への移動に対応します。
 FilesのAuto applyは初期Onで、編集を保存し、有効な音色変更を反映します。Offではworkingとsavedを分け、未保存のパスへ●を表示します。

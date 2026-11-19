@@ -211,3 +211,12 @@ Ctrl・Cmd+S、Undo files、音色JSONとつまみ・波形の同期を追加。
 Codeを停止せず必要な音色変更だけを保存反映し、Run／Applyはsavedを使用する。
 Cassette／再読込に両状態を保持。717件のNodeテストと実配布ZIPを含む8通りの
 Chromium／WebKit・Monaco／fallback検証が成功。人の実聴・公開・Tauri反映は未実行。
+
+## Persistent Code workspace — 2026-11-19
+
+[詳細TODO](todo_huc6280_code_workspace_20261119.md)、
+[検証記録](verification_huc6280_code_workspace_20261119.json)。
+Files横のCode／Synthと、拡大中のCode／HuC6280／MSM5205／CD-DA／Mixer／Keyboard
+切り替えを追加。元のeditor・transport・Masterを維持し、Code／VGMの演奏、
+選択CH、未保存の編集を保つ。727件のNodeテストと、ソース／実ZIPの8通りの
+Chromium／WebKit・Monaco／fallback検証が成功。人の実聴・公開・Tauri反映は未実行。

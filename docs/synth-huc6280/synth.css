@@ -16,6 +16,21 @@ input[type="range"] { accent-color:#458eb8; }
 .huc-chip-tabs { display:flex; gap:5px; overflow-x:auto; border-bottom:1px solid var(--line); margin:12px 0 0; }
 .huc-chip-tabs > button { flex:0 0 auto; border-radius:10px 10px 0 0; margin-bottom:-1px; min-height:38px; padding:8px 15px; }
 .huc-chip-tabs > button[aria-selected="true"] { color:#fff; background:#a34c15; border-color:#874016; }
+.huc-workspace-switch { display:inline-flex; }
+.huc-workspace-switch > button { border-radius:0; }
+.huc-workspace-switch > button:first-child { border-radius:999px 0 0 999px; }
+.huc-workspace-switch > button:last-child { border-radius:0 999px 999px 0; margin-left:-1px; }
+.huc-workspace-switch > button[aria-pressed="true"] { color:#fff; }
+/* Keep the main column mounted while its existing editor/input views switch. */
+.huc-code-workspace.is-code-expanded .huc-main { display:block; }
+.huc-code-workspace #hucSynthEditor[hidden],.huc-code-workspace #synthExpandedTabsSlot[hidden],.huc-input-heading[hidden] { display:none; }
+.huc-code-workspace .synth-expanded-heading { display:flex; align-items:flex-start; gap:8px; margin-bottom:12px; min-width:0; }
+.huc-code-workspace .synth-expanded-heading .huc-chip-tabs { flex:1; min-width:0; flex-wrap:wrap; margin:0; overflow:visible; }
+.huc-code-workspace .synth-expanded-heading .huc-chip-tabs > button { min-height:34px; padding:7px 11px; font-size:.77rem; }
+.huc-code-workspace .synth-expanded-heading .spu-code-expand { flex:none; padding:5px 9px; }
+.huc-code-workspace #synthExpandedTabsSlot > .spu-code-toolbar { margin-bottom:12px; }
+.huc-code-workspace #synthExpandedCodeSlot { grid-column:auto; }
+.huc-code-workspace.is-code-expanded .spu-input-section { margin-top:0; padding-top:0; border-top:0; }
 .huc-channel-controls,.huc-single-channel-controls { margin:0 0 10px; padding:8px 0 10px; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; }
 .huc-channel-tabs { display:flex; flex:1 1 330px; gap:4px; min-width:0; max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:thin; }
 .huc-channel-tabs > button { flex:none; min-width:41px; min-height:29px; padding:5px 9px; border-radius:7px 7px 0 0; font-size:.73rem; white-space:nowrap; }
