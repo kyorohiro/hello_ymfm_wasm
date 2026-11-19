@@ -7,6 +7,15 @@
 | タム | 音程が少し下がる正弦波＋倍音 |
 | リムショット | 非常に短い共鳴音＋クリック |
 
+## ROM作成・比較ページの英語対応（2026-11-19）
+
+- [x] Language選択でEnglish／日本語を切り替える。初回はブラウザー言語を使い、選択を保存する。URLの`?lang=en`／`?lang=ja`でも指定可能。
+- [x] 説明・パラメーター名・状態・エラー・波形ラベルを翻訳し、切り替え時も編集値と読み込み済みROMを維持する。
+- [x] Chromium／WebKitで編集値維持・ROM生成／保存・言語保存・不正ROMの英語エラー・390px表示を無音検証。既定の生成ROMは既存8 KiBデータとbyte一致。
+- [x] `node --test docs/vgm_analyzer/opna_compare.test.mjs`の8件成功。合成処理・ROM形式は変更しない。
+
+ブラウザー検証用スクリプト：`/private/tmp/check-opna-locale.cjs`。未commit／未push。
+
 ## AnalyzerのROM読み込み後の案内・状態更新
 
 `Loaded YM2608 ADPCM-A ROM` は音色ROMの読み込み通知であり、曲の再生準備完了ではない。

@@ -1,8 +1,10 @@
 name: itch web release ZIPs
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
   push:
-  pull_request:
+    tags:
+      - '**'
   workflow_dispatch:
 
 # Build downloadable artifacts only. GitHub Releases and itch publication remain manual.

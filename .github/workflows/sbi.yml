@@ -1,7 +1,11 @@
 name: SBI export tests
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
   push:
-  pull_request:
+    tags:
+      - '**'
+  workflow_dispatch:
+
 permissions:
   contents: read
 jobs:

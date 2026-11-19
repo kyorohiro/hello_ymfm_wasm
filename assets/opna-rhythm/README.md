@@ -31,7 +31,12 @@ byte for byte with regenerated data.
 ## Use
 
 Open `docs/demos/opna-rhythm-compare.html` through your local HTTP server
-to compare two ROMs. A defaults to the bundled Tetorica ROM; select a local
+to compare two ROMs. Use the Language selector for English or Japanese;
+`?lang=en` / `?lang=ja` also selects the language. The browser language is used
+initially, and your selection is remembered. Switching languages keeps edited
+parameters, loaded ROMs and playback intact.
+
+A defaults to the bundled Tetorica ROM; select a local
 original ROM for B. Both slots accept replacement 8 KiB files. The page offers
 six individual voices, A/B sequential playback and waveforms at the same
 scale. Selected files stay in the browser and are not uploaded.

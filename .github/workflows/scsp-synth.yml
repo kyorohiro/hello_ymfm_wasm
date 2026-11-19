@@ -1,63 +1,11 @@
 name: SCSP Synth
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'docs/synth-scsp/**'
-      - 'docs/tetorica-scsp-synth.webp'
-      - 'docs/js/**'
-      - 'docs/generated/scsp*'
-      - 'docs/generated/ssf-player/**'
-      - 'docs/synth/synth_keyboard.js'
-      - 'docs/synth/synth_code*.js'
-      - 'docs/synth/synth_project_store.js'
-      - 'docs/synth/synth_menu.js'
-      - 'docs/synth-spu/synth.css'
-      - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'docs/synth-2a03/state_observer.js'
-      - 'docs/playground/**'
-      - 'tetorica_src/runtime/scspsynth*'
-      - 'tetorica_src/runtime/generated/**'
-      - 'tetorica_src/native/audio_effect/**'
-      - 'tetorica_src/wasm/ssf_player/**'
-      - 'test/helpers/scsp_ssf_fixture.mjs'
-      - 'test/helpers/*historical*'
-      - 'test/fixtures/pre-huc-timed-calibration-inputs.json'
-      - 'test/runtime/*scsp*'
-      - 'scripts/*scsp*'
-      - 'scripts/mixer_calibration_aswan_navigation_revision*'
-      - 'docs/issues/aswan_shared_client_navigation_ui_revision_01.json'
-      - 'scripts/*ssf*'
-      - 'scripts/copy_readable_modules.mjs'
-      - 'scripts/runtime_artifacts.mjs'
-      - 'scripts/wasm_sdk_inventory.mjs'
-      - 'third_party/**'
-      - 'package*.json'
-      - '.github/workflows/scsp-synth.yml'
-  pull_request:
-    paths:
-      - 'docs/synth-scsp/**'
-      - 'docs/tetorica-scsp-synth.webp'
-      - 'docs/js/**'
-      - 'docs/generated/**'
-      - 'docs/synth/**'
-      - 'docs/synth-spu/synth.css'
-      - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'docs/synth-2a03/state_observer.js'
-      - 'docs/playground/**'
-      - 'tetorica_src/runtime/**'
-      - 'tetorica_src/native/audio_effect/**'
-      - 'tetorica_src/wasm/ssf_player/**'
-      - 'test/helpers/scsp_ssf_fixture.mjs'
-      - 'test/helpers/*historical*'
-      - 'test/fixtures/pre-huc-timed-calibration-inputs.json'
-      - 'test/runtime/*scsp*'
-      - 'scripts/**'
-      - 'docs/issues/aswan_shared_client_navigation_ui_revision_01.json'
-      - 'third_party/**'
-      - 'package*.json'
-      - '.github/workflows/scsp-synth.yml'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 permissions:
   contents: read

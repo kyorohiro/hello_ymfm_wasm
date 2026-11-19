@@ -1,57 +1,11 @@
 name: 2A03 Synth
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'docs/synth-2a03/**'
-      - 'docs/synth-nes/**'
-      - 'docs/tetorica_2a03_synth.webp'
-      - 'docs/js/nesapu*'
-      - 'docs/js/ym2612vgm.js'
-      - 'docs/js/opn_fm_vgm.js'
-      - 'docs/js/vgm_file.js'
-      - 'docs/js/fds_audio.js'
-      - 'docs/js/nes_apu_vendor/**'
-      - 'docs/generated/nesapu*'
-      - 'docs/synth/synth_keyboard.js'
-      - 'docs/synth/synth_code*.js'
-      - 'docs/synth/synth_project_store.js'
-      - 'docs/synth/synth_menu.js'
-      - 'docs/playground/playground_monaco*.js'
-      - 'docs/playground/tetorica-*.d.ts'
-      - 'docs/js/playground_code_runtime.js'
-      - 'docs/js/native*'
-      - 'docs/js/tetorica_virtual_files/**'
-      - 'docs/synth-spu/synth.css'
-      - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'tetorica_src/runtime/nesapu*'
-      - 'tetorica_src/runtime/generated/**'
-      - 'scripts/*nes*'
-      - 'scripts/*2a03*'
-      - 'scripts/runtime_artifacts.mjs'
-      - 'scripts/wasm_sdk_inventory.mjs'
-      - 'third_party/soundchip-sdk.json'
-      - 'third_party/tetorica-soundchip-native/**'
-      - 'third_party/jsnes/**'
-      - 'third_party/fixnes-fds/**'
-      - 'package*.json'
-      - '.github/workflows/2a03-synth.yml'
-  pull_request:
-    paths:
-      - 'docs/synth-2a03/**'
-      - 'docs/synth-nes/**'
-      - 'docs/tetorica_2a03_synth.webp'
-      - 'docs/js/**'
-      - 'docs/generated/**'
-      - 'docs/synth/synth_keyboard.js'
-      - 'docs/synth-spu/synth.css'
-      - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'tetorica_src/runtime/**'
-      - 'scripts/**'
-      - 'third_party/**'
-      - 'package*.json'
-      - '.github/workflows/2a03-synth.yml'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 permissions:
   contents: read

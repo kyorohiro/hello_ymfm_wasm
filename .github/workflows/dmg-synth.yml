@@ -1,63 +1,11 @@
 name: DMG Synth
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'docs/synth-dmg/**'
-      - 'docs/synth-gameboy/**'
-      - 'docs/tetorica_dmg_synth.webp'
-      - 'docs/js/gameboy*'
-      - 'docs/js/playground_*'
-      - 'docs/js/native*fx*'
-      - 'docs/js/tetorica_virtual_files/**'
-      - 'docs/playground/tetorica-*.d.ts'
-      - 'docs/playground/playground_monaco*'
-      - 'docs/js/ym2612vgm.js'
-      - 'docs/js/opn_fm_vgm.js'
-      - 'docs/js/vgm_file.js'
-      - 'docs/vgm_analyzer/gameboy_voices.js'
-      - 'docs/vgm_analyzer/gameboy_waves.js'
-      - 'docs/generated/gameboy*'
-      - 'docs/synth/synth_keyboard.js'
-      - 'docs/synth/synth_menu.js'
-      - 'docs/synth/synth_code*'
-      - 'docs/synth/synth_*store*'
-      - 'scripts/check_synth_project_draft_reconnect_browser.cjs'
-      - 'docs/synth-spu/synth.css'
-      - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'tetorica_src/runtime/gameboy*'
-      - 'tetorica_src/runtime/generated/**'
-      - 'scripts/*gameboy*'
-      - 'scripts/*dmg*'
-      - 'test/helpers/dmg_synth_song_fixture.mjs'
-      - 'scripts/runtime_artifacts.mjs'
-      - 'scripts/wasm_sdk_inventory.mjs'
-      - 'third_party/soundchip-sdk.json'
-      - 'third_party/tetorica-soundchip-native/**'
-      - 'package*.json'
-      - '.github/workflows/dmg-synth.yml'
-  pull_request:
-    paths:
-      - 'docs/synth-dmg/**'
-      - 'docs/synth-gameboy/**'
-      - 'docs/tetorica_dmg_synth.webp'
-      - 'docs/js/**'
-      - 'docs/vgm_analyzer/gameboy_voices.js'
-      - 'docs/vgm_analyzer/gameboy_waves.js'
-      - 'docs/generated/**'
-      - 'docs/synth/synth_keyboard.js'
-      - 'docs/synth/synth_menu.js'
-      - 'docs/synth/synth_code*'
-      - 'docs/synth/synth_*store*'
-      - 'docs/synth-spu/synth.css'
-      - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'tetorica_src/runtime/**'
-      - 'scripts/**'
-      - 'test/helpers/dmg_synth_song_fixture.mjs'
-      - 'third_party/**'
-      - 'package*.json'
-      - '.github/workflows/dmg-synth.yml'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 permissions:
   contents: read

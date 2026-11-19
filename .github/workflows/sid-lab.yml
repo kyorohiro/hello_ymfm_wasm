@@ -1,35 +1,11 @@
 name: SID register lab
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - '**/*sid*'
-      - 'docs/playground/sid-lab/**'
-      - 'docs/sources/sid/**'
-      - 'docs/generated/sid/**'
-      - 'tetorica_src/runtime/generated/sid/**'
-      - 'third_party/chips-m6581/**'
-      - 'package*.json'
-      - 'docs/playground/**'
-      - 'tetorica_src/runtime/playground_*'
-      - 'tetorica_src/runtime/native_runtime_synth.js'
-      - 'tetorica_src/runtime/tetorica_synth.js'
-      - '.github/workflows/sid-lab.yml'
-  pull_request:
-    paths:
-      - '**/*sid*'
-      - 'docs/playground/sid-lab/**'
-      - 'docs/sources/sid/**'
-      - 'docs/generated/sid/**'
-      - 'tetorica_src/runtime/generated/sid/**'
-      - 'third_party/chips-m6581/**'
-      - 'package*.json'
-      - 'docs/playground/**'
-      - 'tetorica_src/runtime/playground_*'
-      - 'tetorica_src/runtime/native_runtime_synth.js'
-      - 'tetorica_src/runtime/tetorica_synth.js'
-      - '.github/workflows/sid-lab.yml'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 permissions:
   contents: read

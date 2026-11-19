@@ -1,51 +1,11 @@
 name: SID8580 isolated C64 machine
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'third_party/sidera/**'
-      - 'third_party/sid8580-machine-toolchain-notices/**'
-      - 'third_party/chips-c64/**'
-      - 'third_party/chips-m6502/**'
-      - 'third_party/chips-m6581/**'
-      - 'tetorica_src/wasm/sid_rsid_core.h'
-      - 'tetorica_src/wasm/sid8580-machine/**'
-      - 'tetorica_src/runtime/sid_psid.js'
-      - 'tetorica_src/runtime/sid_rsid.js'
-      - 'docs/sid8580-lab/**'
-      - 'docs/js/sid_rsid.js'
-      - 'docs/sid-player/roms.js'
-      - 'scripts/*sid8580_machine*'
-      - 'scripts/prepare_sid8580_parser.mjs'
-      - 'test/sid8580_machine*.mjs'
-      - 'test/helpers/sid8580_machine_fixtures.mjs'
-      - 'test/helpers/psid_vbi_machine_fixtures.mjs'
-      - 'test/helpers/psid_cia_fixtures.mjs'
-      - 'test/helpers/rsid_fixtures.mjs'
-      - '.github/workflows/sid8580-machine.yml'
-  pull_request:
-    paths:
-      - 'third_party/sidera/**'
-      - 'third_party/sid8580-machine-toolchain-notices/**'
-      - 'third_party/chips-c64/**'
-      - 'third_party/chips-m6502/**'
-      - 'third_party/chips-m6581/**'
-      - 'tetorica_src/wasm/sid_rsid_core.h'
-      - 'tetorica_src/wasm/sid8580-machine/**'
-      - 'tetorica_src/runtime/sid_psid.js'
-      - 'tetorica_src/runtime/sid_rsid.js'
-      - 'docs/sid8580-lab/**'
-      - 'docs/js/sid_rsid.js'
-      - 'docs/sid-player/roms.js'
-      - 'scripts/*sid8580_machine*'
-      - 'scripts/prepare_sid8580_parser.mjs'
-      - 'test/sid8580_machine*.mjs'
-      - 'test/helpers/sid8580_machine_fixtures.mjs'
-      - 'test/helpers/psid_vbi_machine_fixtures.mjs'
-      - 'test/helpers/psid_cia_fixtures.mjs'
-      - 'test/helpers/rsid_fixtures.mjs'
-      - '.github/workflows/sid8580-machine.yml'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 permissions:
   contents: read

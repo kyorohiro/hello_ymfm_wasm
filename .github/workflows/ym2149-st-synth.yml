@@ -1,61 +1,11 @@
 name: YM2149 ST Synth
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'docs/synth-ym2149-st/**'
-      - 'docs/js/ay8910*'
-      - 'docs/js/playground_ay8910*'
-      - 'docs/js/vgm_file.js'
-      - 'docs/js/vgmplayer.js'
-      - 'docs/js/ym2612vgm.js'
-      - 'docs/js/opn_fm_vgm.js'
-      - 'docs/generated/atari-audio-player/**'
-      - 'docs/js/playground_code_runtime.js'
-      - 'docs/js/tetorica_virtual_files/**'
-      - 'docs/synth/synth_code*'
-      - 'docs/synth/synth_keyboard.js'
-      - 'docs/synth-spu/synth.css'
-      - 'docs/synth-spu/file_context_menu.js'
-      - 'docs/playground/playground_cassette.js'
-      - 'docs/playground/playground_file_tree.js'
-      - 'docs/playground/playground_monaco*'
-      - 'docs/playground/tetorica-*.d.ts'
-      - 'tetorica_src/runtime/ay8910*'
-      - 'tetorica_src/runtime/playground_ay8910*'
-      - 'tetorica_src/runtime/generated/ay8910*'
-      - 'scripts/*ym2149*'
-      - 'scripts/verify_ay8910_reference.py'
-      - 'scripts/copy_ay8910_sources.mjs'
-      - 'scripts/copy_atari_audio_sources.mjs'
-      - 'scripts/*atari_audio_player*'
-      - 'scripts/copy_readable_modules.mjs'
-      - 'third_party/mame-ay8910/**'
-      - 'third_party/atari-audio/**'
-      - 'tetorica_src/wasm/atari_audio_player_wasm.cpp'
-      - 'third_party/soundchip-sdk.json'
-      - 'third_party/tetorica-soundchip-native/**'
-      - 'package*.json'
-      - '.github/workflows/ym2149-st-synth.yml'
-  pull_request:
-    paths:
-      - 'docs/synth-ym2149-st/**'
-      - 'docs/js/**'
-      - 'docs/generated/ay8910*'
-      - 'docs/generated/atari-audio-player/**'
-      - 'docs/synth/synth_code*'
-      - 'docs/synth/synth_keyboard.js'
-      - 'docs/synth-spu/**'
-      - 'docs/playground/playground_cassette.js'
-      - 'docs/playground/playground_file_tree.js'
-      - 'docs/playground/playground_monaco*'
-      - 'docs/playground/tetorica-*.d.ts'
-      - 'tetorica_src/runtime/**'
-      - 'scripts/**'
-      - 'third_party/**'
-      - 'package*.json'
-      - '.github/workflows/ym2149-st-synth.yml'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 permissions:
   contents: read

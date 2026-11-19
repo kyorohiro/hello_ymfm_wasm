@@ -1,24 +1,10 @@
 name: Interactive introductions
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
   push:
-    paths:
-      - 'docs/introductions/**'
-      - 'docs/index*.html'
-      - 'docs/js/**'
-      - 'docs/generated/**'
-      - 'scripts/check_sid_filter_introduction_browser.cjs'
-      - 'package*.json'
-      - '.github/workflows/introductions.yml'
-  pull_request:
-    paths:
-      - 'docs/introductions/**'
-      - 'docs/index*.html'
-      - 'docs/js/**'
-      - 'docs/generated/**'
-      - 'scripts/check_sid_filter_introduction_browser.cjs'
-      - 'package*.json'
-      - '.github/workflows/introductions.yml'
+    tags:
+      - '**'
   workflow_dispatch:
 
 permissions:

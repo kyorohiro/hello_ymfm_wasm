@@ -1,39 +1,11 @@
 name: SID reference comparison
 
+# Run routine tests locally; use a tag push or an explicit manual CI run.
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'tetorica_src/cli/sid_*.mjs'
-      - 'tetorica_src/runtime/sid_psid.js'
-      - 'scripts/*sid_reference*'
-      - 'test/sid_*.test.mjs'
-      - 'test/helpers/sid_*reference.cpp'
-      - 'test/helpers/sid_trace_render.cpp'
-      - 'test/fixtures/sid-reference/**'
-      - 'third_party/sid-reference/**'
-      - 'third_party/chips-m6581/**'
-      - 'tetorica_src/wasm/sid_core.h'
-      - 'tetorica_src/runtime/sid.js'
-      - 'tetorica_src/runtime/generated/sid/**'
-      - 'package*.json'
-      - '.github/workflows/sid-reference.yml'
-  pull_request:
-    paths:
-      - 'tetorica_src/cli/sid_*.mjs'
-      - 'tetorica_src/runtime/sid_psid.js'
-      - 'scripts/*sid_reference*'
-      - 'test/sid_*.test.mjs'
-      - 'test/helpers/sid_*reference.cpp'
-      - 'test/helpers/sid_trace_render.cpp'
-      - 'test/fixtures/sid-reference/**'
-      - 'third_party/sid-reference/**'
-      - 'third_party/chips-m6581/**'
-      - 'tetorica_src/wasm/sid_core.h'
-      - 'tetorica_src/runtime/sid.js'
-      - 'tetorica_src/runtime/generated/sid/**'
-      - 'package*.json'
-      - '.github/workflows/sid-reference.yml'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 permissions:
   contents: read
