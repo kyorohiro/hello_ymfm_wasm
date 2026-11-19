@@ -7,7 +7,7 @@ import {PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN}
 
 export const HUC6280_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read','observeCode','observeEditor','setChannelMuteMask','applyEditorEdit','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
+const COMMANDS = new Set(['read','observeCode','observeEditor','setChannelMuteMask','applyEditorEdit','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','timed','code','applyCodePreset','applyCodeEdit']);
 
 function validateChannelMuteMask(mask) {
   if (!Number.isInteger(mask) || mask < 0 || mask > 63) throw new RangeError('HuC6280 output mask must be an integer from 0 to 63');
@@ -188,7 +188,8 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
       const check=()=>{assertOpen();if(!current())throw huc6280CodeCancelled();};
       owner.promise=command('beginCode').then(metadata=>{
         check();owner.session=metadata.session;
-        return createHuc6280CodeClient({metadata,isCurrent:current,
+        return createHuc6280CodeClient({metadata,isCurrent:current,port:node.port,
+          requestControl(payload){check();return command('timed',[metadata.session,payload]);},
           ownsOutput:()=>current()||!disposed&&!fatalError&&codeOwner===null&&owner.releasedGeneration===codeGeneration,
           invoke(method,args){check();return command('code',[metadata.session,method,args]);},
           dispose(){check();owner.closed=true;owner.ending=command('code',[metadata.session,'dispose',[]]).then(value=>{if(codeOwner===owner){invalidateCode();owner.releasedGeneration=codeGeneration;}return value;},error=>{if(codeOwner===owner)invalidateCode();throw error;});return owner.ending;},

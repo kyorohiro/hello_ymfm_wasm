@@ -103,3 +103,11 @@ Timed API progress (2026-11-19): internal HuC6280 Worklet queue adapter and
 state snapshots are tested against real WASM rendering at 44.1/48 kHz. Public
 Code/Worklet host integration, software-envelope ownership and types remain;
 see the linked timed API TODO for the explicit integration contract.
+
+Timed Synth Code connection: build/schedule/compile/captureState/clearSchedule
+are now available in the HuC6280 Synth's existing Worklet route, with declarations
+and examples/huc6280-timed.js. Run/Apply/Stop, liveLoop ownership and manual
+interleaving pass real-processor and muted Chromium/WebKit checks. Immediate
+software-envelope noteOn/off remain unchanged; timed register patterns use
+explicit setNote/keyOn/keyOff. Shared Playground Main/Worker/npm exposure and
+Native capability reporting remain in the timed API TODO.

@@ -19,7 +19,7 @@ export const huc6280TimedCommandCost = command => command.method === 'applyHuc62
  * No user functions cross this boundary; captures occur between complete batches.
  */
 export function createHuc6280TimedProcessor({performance: timeline, getState, getConfig, dispatch,
-  nowFrame, sampleRate, leadFrames = 128}) {
+  nowFrame, sampleRate, leadFrames = 128, validatePlan}) {
   const staged = new Map();
   let resolver, resolverClock;
   const freshTime = () => (nowFrame() + leadFrames) / sampleRate;
@@ -42,7 +42,9 @@ export function createHuc6280TimedProcessor({performance: timeline, getState, ge
     const plan = validateHuc6280Operations(operations, {validateArguments:false});
     // Admission is a virtual pass over authoritative state, including DDA mode.
     // Actual execution resolves again, so intervening manual writes are retained.
-    compileHuc6280Operations(plan, getState(), {clock:getConfig().clock});
+    const state = getState();
+    validatePlan?.(plan,state);
+    compileHuc6280Operations(plan, state, {clock:getConfig().clock});
     return plan;
   }
   function specification(operations, options, ownerContext) {

@@ -958,3 +958,42 @@ LFOはCH1とCH2の両出力を扱い、アプリのMaster値は変更しませ�
 他チップの音を黙って省略せず、単一HuC6280とVGM 1.72の単一MSM5205以外や未対応データは理由付きで拒否します。
 MSM5205を含む曲のSeekは、両音源をまとめた状態保存形式がないため先頭から再構築します。
 CD-DAはVGMに含まれず、Codeから別の音声トラックを読み込んで利用します。実CD-ROMの読込・ゲーム実行は対象外です。
+
+## Sample-timed register operations in Synth Code
+
+New Cassettes include `examples/huc6280-timed.js` in Files. Existing restored
+projects are preserved. `build()` records hardware operations
+once; `schedule()` executes them in the AudioWorklet at sample boundaries.
+`atSeconds()` and `atSample()` are absolute offsets from the pattern's start;
+sample offsets default to a 44100 Hz reference, independent of the output device.
+A named pattern is replaced atomically by Apply. Stop cancels reservations;
+removing/replacing a liveLoop retires its reservations and owned hardware gates.
+This timing is separate from `beat()`/BPM and is software control of the chip.
+
+```javascript
+const pce = await useSoundChip("huc6280");
+const operations = pce.build(b => {
+  b.atSample(0).setNote(CH1, "E3").keyOn(CH1);
+  b.atSeconds(0.1).keyOff(CH1);
+});
+const snapshot = await pce.captureState();
+console.table(await pce.compile(operations, { initialState: snapshot }));
+await pce.schedule(operations, { name: "pulse", repeatSeconds: 0.2 });
+// await pce.clearSchedule("pulse");
+```
+
+Immediate `noteOn()`/`noteOff()` retain the Synth's Software Envelope and DDA
+sample feeder. Register reservations use explicit `setNote()` and `keyOn()` /
+`keyOff()` instead: recorded noteOn/off aliases reject with an explanation.
+Parameter edits retain an existing envelope; explicit hardware gates supersede
+it. A stale reserved release cannot cut a newer keyboard/immediate note.
+Bulk Wave RAM transfers and PCM feeding remain outside register reservations;
+R6 is accepted only when the virtual applied state enables DDA.
+
+`compile()` defaults to an acknowledged Worklet snapshot. `initialState: "reset"`
+and a previously captured snapshot need no state RPC and never alter live sound.
+Snapshots contain detached sent-register/control state, not native playback
+phase or transport state. `initialState: "client"` explicitly rejects because
+this Synth has no complete local register mirror. These APIs currently belong
+to this Synth Code host; Playground Main/Worker, npm and Native integration are
+separate pending tasks.

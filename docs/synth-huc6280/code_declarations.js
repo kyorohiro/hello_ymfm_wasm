@@ -15,10 +15,29 @@ interface Huc6280CodeState {
   envelopes:Array<{enabled:boolean;attack:number;decay:number;sustain:number;release:number}|null>;
   observation:{registers:'sent';waveforms:'configured';softwareEnvelope:true};
 }
+/** Serializable hardware operations; no software ADSR, PCM upload or callbacks at playback time. */
+type Huc6280TimedMethod='writeRegister'|'setVolume'|'setPan'|'setMasterVolume'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'allNotesOff'|'setNoise'|'setDda'|'writeDda'|'setLfo';
+type Huc6280TimedRecorder={
+  [K in Huc6280TimedMethod]:(...args:Parameters<PlaygroundHuc6280[K]>)=>Huc6280TimedRecorder;
+} & {atSeconds(offset:number):Huc6280TimedRecorder;atSample(offset:number):Huc6280TimedRecorder};
+type Huc6280Operations={version:1;chip:'huc6280';referenceSampleRate:number;operations:Array<{time:{unit:'seconds'|'sample';value:number};order:number;method:string;args:unknown[]}>};
+type Huc6280OperationState={clock:number;initialized:boolean;selectedChannel:number;globals:number[];registers:number[][];waveforms:number[][];indices:number[]};
+/** Detached sent-register/control state; not oscillator phase or a native save-state. */
+type Huc6280TimedSnapshot={readonly format:'tetorica-huc6280-state';readonly version:1;readonly instanceId:string|number;readonly frame:number;readonly sampleRate:number;readonly state:Huc6280OperationState};
+type Huc6280TimedWrite={offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number};
+type Huc6280Reservation={name:string;startFrame:number;entries:number;repeatSeconds?:number};
 /** The editor's one physical HuC6280. Await commands. CH5/CH6 support Noise;
  * shared hardware LFO uses CH2 to modulate CH1. Scheduling/FX are software. */
 type Huc6280CodeClient=Omit<PlaygroundHuc6280,'dispose'|'noteOn'> & {
   readonly id:string;readonly chip:'huc6280';readonly channels:6;readonly clock:number;
+  /** Record raw hardware calls once without changing the chip. Times are absolute offsets; sample reference defaults to 44100 Hz. Use setNote + keyOn/keyOff instead of software-envelope noteOn/off. */
+  build(callback:(builder:Huc6280TimedRecorder)=>void,options?:{referenceSampleRate?:number}):Huc6280Operations;
+  /** Apply in AudioWorklet at sample boundaries. Same-name replacement is atomic; repeatSeconds exceeds the last offset. */
+  schedule(operations:Huc6280Operations,options:{name:string;repeatSeconds?:number}):Promise<Huc6280Reservation>;
+  clearSchedule(name:string):Promise<boolean>;
+  captureState():Promise<Huc6280TimedSnapshot>;
+  /** Current uses an acknowledged Worklet snapshot. Reset/reused snapshots need no state RPC. Client rejects: this Synth has no complete local register mirror. */
+  compile(operations:Huc6280Operations,options?:{initialState?:'current'|'reset'|'client'|Huc6280TimedSnapshot}):Promise<Huc6280TimedWrite[]>;
   /** Detached sent-register state, not live hardware oscillator readback. */
   getState():Promise<Huc6280CodeState>;
   /** Start the current waveform or loaded DDA sample with the authored Software Envelope. */

@@ -176,7 +176,7 @@ test('Files examples are explicit, add missing files only and preserve active Co
     flush:async()=>{flushes++;return true;},openFile:()=>assert.fail('Adding examples does not select Code'),
     stop:()=>assert.fail('Adding examples never stops Code'),workspaceReplaced:()=>assert.fail('Adding examples does not replace the workspace')});
   const selected=f.project.selectedPath,state=f.project.getCodeState(),settings=f.project.settings;
-  assert.deepEqual(await f.files.addExamples(),['/examples/huc6280.js','/examples/msm5205.js']);
+  assert.deepEqual(await f.files.addExamples(),['/examples/huc6280.js','/examples/huc6280-timed.js','/examples/msm5205.js']);
   assert.equal(f.project.selectedPath,selected);assert.deepEqual(f.project.getCodeState(),state);assert.deepEqual(f.project.settings,settings);
   assert.equal(f.project.fs.get('/examples/cdda.js').data,'// user CD track');assert.deepEqual(f.calls,[]);
   f.project.writeEditorText('/examples/huc6280.js','// modified melody');assert.deepEqual(await f.files.addExamples(),[]);
@@ -439,7 +439,7 @@ test('PC Engine New Cassette resets sound, files and Code mode with a fresh iden
   assert.equal(await f.files.newProject(),true);assert.equal(retired,1);assert.notEqual(f.files.workspaceId,identity);
   assert.equal(f.project.fs.get('/index.js').data,'// kept');assert(!f.project.fs.has('/keep.bin'));assert.deepEqual(f.project.settings,createDefaultPreset());
   assert.deepEqual(restored,[{mode:'keyboard',path:'/index.js'}]);assert.equal(f.project.selectedPath,'/index.js');
-  assert.deepEqual(f.project.fs.list().map(file=>file.path).sort(),['/examples/cdda.js','/examples/huc6280.js','/examples/msm5205.js','/index.js']);
+  assert.deepEqual(f.project.fs.list().map(file=>file.path).sort(),['/examples/cdda.js','/examples/huc6280-timed.js','/examples/huc6280.js','/examples/msm5205.js','/index.js']);
   assert.equal(f.writes.at(-1).workspaceId,f.files.workspaceId);assert.match(f.statuses.at(-1),/created.*not run.*Saved locally/);
   assert.equal(globalThis.newCassetteMustNotRun,undefined);
 });

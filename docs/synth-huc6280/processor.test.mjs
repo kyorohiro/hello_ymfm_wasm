@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
+import {createProcessorPerformance} from '../js/playground_performance_processor.js';
+import {createHuc6280TimedProcessor,huc6280TimedCommandCost} from '../js/huc6280_timed_processor.js';
+import {validateHuc6280SynthPlan} from './timed_operations.js';
 
 const source=await readFile(new URL('./processor.js',import.meta.url),'utf8');
 function fixture() {
@@ -22,6 +25,7 @@ function fixture() {
   vm.runInNewContext(source.replace(/^import .*;\n/gm,''),{
     AudioWorkletProcessor:class{constructor(){this.port={postMessage:value=>messages.push(value)};}},
     Huc6280AudioEngine:{create:value=>{options.push(value);value.moduleFactory();return loading;}},
+    createProcessorPerformance,createHuc6280TimedProcessor,huc6280TimedCommandCost,validateHuc6280SynthPlan,
     Huc6280Instrument:Instrument,HUC6280_CLOCK:3579545,sampleRate:48000,
     factory:value=>{factoryOptions.push(value);return Promise.resolve({});},Set,
     registerProcessor(name,value){assert.equal(name,'tetorica-huc6280-synth');Constructor=value;},

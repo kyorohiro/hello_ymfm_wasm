@@ -42,8 +42,8 @@ validation as proof of live validity in the upcoming scheduler integration.
   again at each execution; never cache compiled register values for playback.
 - [x] Test atomic replacement, staged commit/abort, owner cancellation and Stop,
   ordering and 44.1/48 kHz rendering without an audio device.
-- [ ] Keep Synth Code exposure for the next component: reconcile hardware gates
-  with the existing software envelope/DDA ownership before enabling the endpoint.
+- [x] Connect Synth Code with explicit register-only gates; reconcile hardware gates
+  with existing software envelope/DDA ownership without changing immediate methods.
 
 Internal Worklet component verification: 750 HuC6280/package/AY timing tests and
 54 shared queue/ownership/inspector tests pass. Twelve new cases render the real
@@ -53,8 +53,8 @@ Logs: `/private/tmp/huc-timed-worklet-tests-20261119.log` and
 
 Integration contract for the next component:
 
-- `createHuc6280TimedProcessor` is an internal adapter, not yet instantiated by
-  the production Synth/Playground Worklets or exposed by their Code clients.
+- `createHuc6280TimedProcessor` is now instantiated by the Synth Worklet
+  and exposed by its Code client. Playground Main/Worker remain pending.
 - The host must route `huc6280Timed` requests, dispatch
   `applyHuc6280TimedOperation` through the adapter, use
   `huc6280TimedCommandCost` in Performance Queue, and clear staged data on Stop.
@@ -69,3 +69,37 @@ Integration contract for the next component:
   changing existing immediate noteOn/noteOff behavior. Preserve manual ownership
   for parameter writes, protect newer gates from old releases, and validate this
   with the actual Synth processor before exposing the capability.
+
+## Synth Code connection (next bounded component)
+
+- [x] Attach acknowledged build/schedule/compile/captureState/clearSchedule to
+  the Synth Code client and render queue; preserve Run/Apply/Stop transactions.
+- [x] Preserve software-envelope/DDA immediate methods. Scheduled register-only
+  programs use setNote + keyOn/keyOff; reject noteOn/noteOff with guidance rather
+  than silently changing their Synth semantics. Raw Wave RAM writes are outside
+  this component; allow R6 only when virtual applied state has DDA enabled.
+- [x] Current compilation reads applied Worklet state. Reset/snapshot paths do
+  not request state; client compilation explicitly rejects the absent mirror.
+- [x] Cover manual ownership, software-envelope edits, real processor rendering,
+  declarations, examples and readable package graph without speaker output.
+
+Synth connection verification: 746 HuC6280/package/runtime tests pass, including
+8 actual Synth processor/Code runtime cases and strict declaration checks.
+Readable ZIP tests require the new operation/compiler/client/processor/state
+modules in the packaged graph. Chromium and WebKit source checks pass with
+physical output muted; both exercise capture/compile, reservation playback,
+atomic Apply replacement and Stop on the existing one-chip route. No listening,
+release or npm publication was performed.
+
+- Node log: `/private/tmp/huc-timed-code-tests-20261119.log`
+- Muted browser receipt: `/private/tmp/huc-timed-code-browser-20261119.json`
+- Example: `docs/synth-huc6280/cdrom2_examples.js` adds
+  `/examples/huc6280-timed.js` to Files without replacing existing user examples.
+- Browser regression expectations now follow existing accepted-author restoration
+  on Stop and the named + Instrument dialog; product behavior was not changed
+  to satisfy those formerly stale checks.
+
+Remaining: user listening, Playground Main/Worker, npm/common type exposure and
+Native capability reporting. Synth client compilation intentionally rejects the
+incomplete local mirror. Bulk Wave RAM transfer/software DDA feeder scheduling
+and Software Envelope note aliases are excluded with explicit diagnostics.

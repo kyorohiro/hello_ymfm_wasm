@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {attachHuc6280TimedClient} from '../js/huc6280_timed_client.js';
+import {validateHuc6280SynthPlan} from './timed_operations.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
 
@@ -30,7 +32,7 @@ export function validateHuc6280CodeCall(method,args){
 /** Awaitable Playground-shaped interface over the existing Synth PSG. noteOn /
  * noteOff also use this host's labelled software envelope and loaded DDA feed;
  * keyOn / keyOff are explicit raw gates. This object owns no audio device. */
-export function createHuc6280CodeClient({metadata,invoke,isCurrent,ownsOutput,dispose}={}){
+export function createHuc6280CodeClient({metadata,invoke,isCurrent,ownsOutput,dispose,requestControl,port}={}){
   if(!Number.isSafeInteger(metadata?.session)||metadata.session<1||metadata.clock!==HUC6280_CLOCK||metadata.channels!==6)throw Error('Invalid HuC6280 Code session');
   for(const fn of [invoke,isCurrent,dispose])if(typeof fn!=='function')throw TypeError('HuC6280 Code requires ownership callbacks');
   let closed=false,closing=null;
@@ -42,5 +44,9 @@ export function createHuc6280CodeClient({metadata,invoke,isCurrent,ownsOutput,di
   }
   client.isCurrent=current;client.ownsOutput=()=>Boolean(ownsOutput?ownsOutput():current());
   client.dispose=(...args)=>{if(closing)return closing;check();validateHuc6280CodeCall('dispose',args);closed=true;return closing=Promise.resolve().then(dispose);};
+  if(requestControl){
+    Object.defineProperty(client,'_requestControl',{value:(_method,args)=>{check();return requestControl(args[0]);}});
+    attachHuc6280TimedClient(client,{instanceId:metadata.instanceId,validatePlan:validateHuc6280SynthPlan},port);
+  }
   return client;
 }

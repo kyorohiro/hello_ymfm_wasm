@@ -18,6 +18,23 @@ liveLoop("pce-melody", async () => {
   await beat(0.25);
 });
 `,
+  '/examples/huc6280-timed.js': `const pce = await useSoundChip("huc6280");
+// Worklet sample timing, separate from beat()/BPM. The controls still edit this chip.
+// Raw gates deliberately bypass the Synth's Software Envelope.
+await pce.setNote(CH1, "E3");
+await pce.keyOn(CH1);
+const pulse = pce.build(b => {
+  b.atSample(0).setVolume(CH1, 24);
+  b.atSeconds(0.05).setVolume(CH1, 12);
+  b.atSeconds(0.1).setVolume(CH1, 6);
+  b.atSeconds(0.15).setVolume(CH1, 12);
+});
+const snapshot = await pce.captureState();
+console.table(await pce.compile(pulse, { initialState: snapshot }));
+await pce.schedule(pulse, { name: "volume-pulse", repeatSeconds: 0.2 });
+// Apply replaces the named pattern atomically. Stop cancels it and releases notes.
+// await pce.clearSchedule("volume-pulse");
+`,
   '/examples/msm5205.js': `const adpcm = await useSoundChip("msm5205");
 // Generate PCM in software, then encode it for the chip's 4-bit ADPCM RAM.
 // This is a sample player, not a pitched noteOn instrument.

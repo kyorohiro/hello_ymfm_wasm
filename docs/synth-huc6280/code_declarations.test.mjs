@@ -29,6 +29,14 @@ await pce.setWaveform(CH1,new Uint8Array(32));await pce.setVolume(CH2,24);await 
 await pce.setNoise(CH5,{enabled:true,frequency:12});await pce.setNoise(CH6,{enabled:false});
 await pce.setLfo({frequency:32,depth:2,reset:false});await pce.setDda(CH4,true);await pce.writeDda(CH4,16);
 await pce.writeRegister(0,5);await pce.keyOn(CH6);await pce.keyOff(CH6);await pce.allNotesOff();
+const operations=pce.build(b=>{b.atSample(0).setVolume(CH1,12).keyOn(CH1);b.atSeconds(.1).keyOff(CH1);},{referenceSampleRate:48000});
+const snapshot=await pce.captureState();const trace:Huc6280TimedWrite[]=await pce.compile(operations,{initialState:snapshot});
+await pce.compile(operations,{initialState:'current'});await pce.compile(operations,{initialState:'reset'});await pce.compile(operations,{initialState:'client'});
+const receipt=await pce.schedule(operations,{name:'pulse',repeatSeconds:.2});const startFrame:number=receipt.startFrame;await pce.clearSchedule('pulse');
+// @ts-expect-error register reservations deliberately exclude software-envelope aliases
+pce.build(b=>b.noteOn(CH1,'C4'));
+// @ts-expect-error bulk Wave RAM transfer is immediate-only
+pce.build(b=>b.setWaveform(CH1,new Uint8Array(32)));
 const released:Promise<boolean>=pce.noteOff(CH1);await released;
 const state=await pce.getState();const source:'wave'|'noise'|'dda'=state.editorSource;state.globals[0];state.registers[0][4];state.waveforms[0][31];state.positionFrames;
 const observed:'sent'=state.observation.registers;const samples:number=state.dda.samples;const release:number|undefined=state.envelopes[0]?.release;

@@ -76,7 +76,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.equal(info.receipt.builder.dependencyAnalyzer.name,'esbuild');
   assert.equal(typeof info.receipt.builder.dependencyAnalyzer.version,'string');
   assert(info.receipt.modules.length>info.receipt.bundles.length);
-  for(const path of ['synth-huc6280/code_host.js','synth-huc6280/code_audio.js','synth-huc6280/code_project.js','synth-huc6280/code_files.js',
+  for(const path of ['js/huc6280_timed_client.js','js/huc6280_timed_processor.js','js/huc6280_timed_state.js','js/huc6280_operations.js','synth-huc6280/timed_operations.js','synth-huc6280/code_host.js','synth-huc6280/code_audio.js','synth-huc6280/code_project.js','synth-huc6280/code_files.js',
     'synth-huc6280/cdrom2_audio.js','synth-huc6280/song_engine.js',
     'synth-huc6280/msm5205_asset.js','synth-huc6280/msm5205_source.js','synth-huc6280/msm5205_controls.js',
     'synth-huc6280/cdda_controls.js','synth-huc6280/cdda_source.js','synth-huc6280/cdda_session_files.js','synth-huc6280/cdda_inputs.js',

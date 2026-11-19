@@ -402,6 +402,25 @@ export class Huc6280Instrument {
     for(let channel=0;channel<6;channel++)if(this.gateOwners[channel]?.manualEdit){this.synth.keyOff(channel);this.gateOwners[channel]=null;}
     this.pitch=0;return this.read();
   }
+  applyTimedRegister(register,value,metadata={}) {
+    const state=this.synth._getState(),ch=state.selectedChannel,voice=this.slots[ch];
+    if(ch<6&&register===4){
+      const gate=!metadata.preserveOwner,previous=this.gateOwners[ch];
+      // A newer keyboard/immediate note owns its release, even if an older
+      // reservation's keyOff arrives later. Parameter patches retain that owner.
+      if(gate&&!(value&128)&&previous&&previous.timedOwner!==metadata.owner)return false;
+      if(gate||((state.registers[ch][4]^value)&64)){
+        this._forgetLiveVoice(ch);this.ddaValues[ch]=null;
+        this.gateOwners[ch]=value&128?{owner:'timed',timedOwner:metadata.owner}:null;
+      }
+      this.codeBaseVolumes[ch]=value&31;
+      if(!gate&&voice&&this.slots[ch]===voice)voice.baseVolume=value&31;
+      this.levels[ch]=null;
+    }
+    if(ch<6&&[2,3].includes(register)&&voice)voice.pitchOwned=false;
+    if(ch<6&&register===6){this._forgetLiveVoice(ch);this.ddaValues[ch]=null;}
+    this.synth.writeRegister(register,value);return true;
+  }
   code(session,method,args=[]) {
     this._open();if(!this.codeActive||session!==this.codeEpoch)throw huc6280CodeCancelled();
     validateHuc6280CodeCall(method,args);

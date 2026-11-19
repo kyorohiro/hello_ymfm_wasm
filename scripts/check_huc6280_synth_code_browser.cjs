@@ -220,7 +220,7 @@ async function check(browser,name,origin,fixture){
     state=await observe(page);assert(state.registers[2][4]&128);assert.deepEqual(state.waveforms[0],before.waveforms[0]);
     const authorAfterEdits=(await read(page)).preset;assert.deepEqual(authorAfterEdits,{...author,volume:12,wave:state.waveforms[2]},'only manual touched fields enter the authored sound');assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
     await page.evaluate(()=>__hucSaved.noteOff(2));await until(async()=>!((await observe(page)).registers[2][4]&128),'Code releases the same note after a waveform edit');
-    await stop(page);assert.equal(await observe(page),null);assert.deepEqual((await read(page)).preset,authorAfterEdits);
+    await stop(page);assert.equal(await observe(page),null);assert.deepEqual((await read(page)).preset,author,'Stop restores the accepted author instrument; physical CH edits are session state');
     assert.equal(await page.evaluate(async()=>{try{await __hucSaved.noteOn(0,'C5');return'allowed';}catch(error){return error.name;}}),'AbortError');
 
     step('Code and Keyboard views share physical CH ownership; an old release cannot cut the newer performer');
@@ -283,6 +283,23 @@ async function check(browser,name,origin,fixture){
     const ddaAfter=await observe(page);assert(ddaAfter.positionFrames>ddaBefore.positionFrames);assert(ddaAfter.ddaVoices[0].position>=0&&ddaAfter.ddaVoices[0].position<1024);measurements.dda=await pcm(page);
     await stop(page);const restored=(await read(page)).preset;assert.equal(restored.dda.name,fixture.dda.dda.name);assert.equal(restored.dda.sampleRate,fixture.dda.dda.sampleRate);assert.equal(restored.dda.loop,true);
 
+    step('sample-timed Code uses authoritative snapshots, atomic Apply replacement and the same muted chip');
+    await source(page,`const pce=await useSoundChip('huc6280');
+await pce.setDda(CH1,false);await pce.setNote(CH1,'C4');await pce.keyOn(CH1);
+const pattern=pce.build(b=>{b.atSample(0).setVolume(CH1,24);b.atSeconds(.025).setVolume(CH1,8);});
+const snapshot=await pce.captureState();
+const trace=await pce.compile(pattern,{initialState:snapshot});
+globalThis.__hucTimed={snapshot,trace,reset:await pce.compile(pattern,{initialState:'reset'})};
+await pce.schedule(pattern,{name:'browser-pulse',repeatSeconds:.05});`);
+    await execute(page);await pcm(page);
+    for(const level of [24,8])await until(async()=>(await observe(page)).registers[0][4]===(128|level),'timed volume '+level);
+    const timed=await page.evaluate(()=>__hucTimed);assert.equal(timed.snapshot.format,'tetorica-huc6280-state');assert(timed.trace.length);assert(timed.reset.length);
+    await page.locator('#synthCodeEditor').fill(`const pce=await useSoundChip('huc6280');
+await pce.schedule(pce.build(b=>b.setVolume(CH1,13)),{name:'browser-pulse',repeatSeconds:.05});`);
+    await execute(page,true);await until(async()=>(await observe(page)).registers[0][4]===(128|13),'Apply replaces named reservation');
+    await wait(150);assert.equal((await observe(page)).registers[0][4],128|13);assert.equal((await graph(page)).editorWorklets,1);await stop(page);
+    measurements.timed={writes:timed.trace.length,sampleRate:timed.snapshot.sampleRate,muted:(await graph(page)).muted};
+
     step('Software Stop fades actual output to silence and invalidates the saved Code client');
     await source(page,OWNER);await execute(page);await pcm(page);await wait(130);await page.evaluate(()=>__hucCodeAudit.beginCapture());await wait(100);
     await page.locator('#synthCodeStopButton').evaluate(button=>button.addEventListener('click',()=>__hucCodeAudit.markStop(),{once:true,capture:true}));
@@ -292,7 +309,7 @@ async function check(browser,name,origin,fixture){
 
     step('Files project roundtrip retains preset/PCM/Code/binary without autoplay, and Code fits desktop and 390px');
     await source(page,'// Restored source must never execute itself.\nglobalThis.__hucUnexpectedAutoRun=true;\n');await page.keyboard.press('Control+s');
-    await page.locator('#hucFileSaveSoundButton').click();await until(()=>page.locator('#hucFilesStatus').textContent().then(text=>text.startsWith('Saved to /presets/')),'save authored sound');
+    await page.locator('#hucFileSaveSoundButton').click();await page.locator('#hucFileNameInput').fill('/presets/browser-saved.huc6280.json');await page.locator('#hucFileNameConfirm').click();await until(()=>page.locator('#hucFilesStatus').textContent().then(text=>text.startsWith('Saved to /presets/')),'save authored sound');
     const sound=JSON.parse(await page.locator('#synthCodeEditor').inputValue());assert.equal(sound.format,'tetorica-huc6280-voice');assert.equal(sound.source,'dda');assert.equal(sound.dda.data,fixture.dda.dda.data);
     assert(await page.locator('#synthCodeRunButton').isDisabled());await selectFile(page,'/index.js',{code:true});
     const projectDownload=await download(page,'#hucProjectExportButton'),project=await fixture.loadCassette(projectDownload.bytes);

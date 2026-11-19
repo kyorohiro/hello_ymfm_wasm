@@ -7,7 +7,7 @@ test('adding media examples preserves user edits, selection, mode and portable p
   const project=createHuc6280CodeProject({starterCode:'// user melody'});
   project.importFiles([{path:'/examples/cdda.js',type:'text',data:'// user track'}]);
   project.select('/index.js');project.setCodeState({mode:'keyboard',path:'/index.js'});
-  assert.deepEqual(addPcEngineCodeExamples(project),['/examples/huc6280.js','/examples/msm5205.js']);
+  assert.deepEqual(addPcEngineCodeExamples(project),['/examples/huc6280.js','/examples/huc6280-timed.js','/examples/msm5205.js']);
   assert.equal(project.fs.get('/examples/cdda.js').data,'// user track');
   assert.equal(project.fs.get('/index.js').data,'// user melody');
   assert.equal(project.selectedPath,'/index.js');assert.equal(project.getCodeState().mode,'keyboard');
@@ -22,7 +22,7 @@ test('example insertion respects case-insensitive user files and directory colli
   const project=createHuc6280CodeProject();
   project.importFiles([{path:'/examples/HUC6280.js',data:'// user melody'}]);
   project.fs.mkdir('/examples/msm5205.js');
-  assert.deepEqual(addPcEngineCodeExamples(project),['/examples/cdda.js']);
+  assert.deepEqual(addPcEngineCodeExamples(project),['/examples/huc6280-timed.js','/examples/cdda.js']);
   assert.equal(project.fs.get('/examples/HUC6280.js').data,'// user melody');assert(!project.fs.has('/examples/huc6280.js'));
   assert.equal(project.fs.stat('/examples/msm5205.js').type,'directory');
 });

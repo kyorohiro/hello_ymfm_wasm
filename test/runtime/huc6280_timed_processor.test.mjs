@@ -151,7 +151,7 @@ test('execution-time invalidity retires only the failing reservation and reports
 });
 
 test('canonical timed modules match their browser mirrors',async()=>{
- for(const name of ['huc6280_timed_state.js','huc6280_timed_processor.js'])assert.deepEqual(await readFile(new URL(`../../docs/js/${name}`,import.meta.url)),await readFile(new URL(`../../tetorica_src/runtime/${name}`,import.meta.url)));
+ for(const name of ['huc6280_timed_state.js','huc6280_timed_processor.js','huc6280_timed_client.js'])assert.deepEqual(await readFile(new URL(`../../docs/js/${name}`,import.meta.url)),await readFile(new URL(`../../tetorica_src/runtime/${name}`,import.meta.url)));
 });
 
 test('explicit timed parameters update a held manual audition but stale releases leave its gate intact',async()=>{
