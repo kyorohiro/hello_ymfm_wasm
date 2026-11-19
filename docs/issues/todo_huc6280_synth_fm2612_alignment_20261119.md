@@ -98,3 +98,8 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
 Implementation tracking: [HuC6280 timed API](todo_huc6280_timed_register_api_20261119.md).
 The internal recorder/compiler foundation is implemented; public scheduling,
 coherent snapshots and Code lifecycle integration are still pending there.
+
+Timed API progress (2026-11-19): internal HuC6280 Worklet queue adapter and
+state snapshots are tested against real WASM rendering at 44.1/48 kHz. Public
+Code/Worklet host integration, software-envelope ownership and types remain;
+see the linked timed API TODO for the explicit integration contract.

@@ -34,3 +34,38 @@ started. Log: `/private/tmp/huc-timed-foundation-tests-20261119.log`.
 State-dependent admission (notably writeDda while DDA is already enabled) must
 use authoritative execution state rather than treating reset-based argument
 validation as proof of live validity in the upcoming scheduler integration.
+
+## Current bounded Worklet component
+
+- [x] Add a HuC6280-specific Performance Queue adapter and detached state captures.
+- [x] Validate reservations against the applied state, then resolve partial writes
+  again at each execution; never cache compiled register values for playback.
+- [x] Test atomic replacement, staged commit/abort, owner cancellation and Stop,
+  ordering and 44.1/48 kHz rendering without an audio device.
+- [ ] Keep Synth Code exposure for the next component: reconcile hardware gates
+  with the existing software envelope/DDA ownership before enabling the endpoint.
+
+Internal Worklet component verification: 750 HuC6280/package/AY timing tests and
+54 shared queue/ownership/inspector tests pass. Twelve new cases render the real
+HuC6280 WASM core through the shared queue into arrays; no audio device is opened.
+Logs: `/private/tmp/huc-timed-worklet-tests-20261119.log` and
+`/private/tmp/huc-timed-queue-regressions-20261119.log`.
+
+Integration contract for the next component:
+
+- `createHuc6280TimedProcessor` is an internal adapter, not yet instantiated by
+  the production Synth/Playground Worklets or exposed by their Code clients.
+- The host must route `huc6280Timed` requests, dispatch
+  `applyHuc6280TimedOperation` through the adapter, use
+  `huc6280TimedCommandCost` in Performance Queue, and clear staged data on Stop.
+- The host must supply a complete applied-state mirror; passing the UI/client
+  shadow as current state is not sufficient. Native Wave RAM read pointers can
+  advance while rendering: establish pointer provenance or explicitly reject
+  incomplete state before allowing raw Wave RAM edits/capture compilation.
+- The detached snapshot is operation-resolution state, not an oscillator phase,
+  native save-state or transport restoration facility. Live/client/reset/snapshot
+  compile options remain to be connected at the public client boundary.
+- Hardware gate operations must coexist with software-envelope voices without
+  changing existing immediate noteOn/noteOff behavior. Preserve manual ownership
+  for parameter writes, protect newer gates from old releases, and validate this
+  with the actual Synth processor before exposing the capability.
