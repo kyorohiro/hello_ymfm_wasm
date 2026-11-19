@@ -34,6 +34,7 @@ score_groups.js
 score_group_ui.js
 playback_core.js
 playback_mixer.js
+ym2608_source_mix.js
 mixer_defaults.js
 mixer_calibration_data.js
 mixer_ui.js

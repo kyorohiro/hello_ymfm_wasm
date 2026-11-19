@@ -1,5 +1,6 @@
-import {mixerDefaults} from './playback_mixer.js?v=pokey-vgm-1';
+import {mixerDefaults} from './playback_mixer.js?v=opna-source-mixer-1';
 import {legacyEngineTrim} from './mixer_defaults.js';
+import {YM2608_SOURCE_LABELS, ym2608SourceDefaults} from './ym2608_source_mix.js?v=opna-source-mixer-1';
 
 export const AUDIO_PREFERENCES_KEY = 'tetorica-vgm-analyzer.audio.v1';
 export const effectDefaults = () => ({enabled: false, gain: 100, bass: 0, middle: 0, treble: 0, reverb: 0, compressor: 0, noiseGate: 0});
@@ -22,15 +23,31 @@ function validChip(value) {
   if (typeof saved.muted === 'boolean') next.muted = saved.muted;
   return next;
 }
+function validSource(value) {
+  const next = {}, saved = object(value);
+  if (inRange(saved.gain, 0, 3.8)) next.gain = saved.gain;
+  if (typeof saved.muted === 'boolean') next.muted = saved.muted;
+  return next;
+}
+const supportedSource = (parent, part) => parent === 'ym2608' && Object.hasOwn(YM2608_SOURCE_LABELS, part);
 function browserStorage() { try {return globalThis.localStorage;} catch {return null;} }
 
 /** Audio preferences belong to this app, not a track. Storage failures leave session settings usable. */
 export function createAudioPreferences(storage = browserStorage()) {
   let saved = {};
   try {saved = object(JSON.parse(storage?.getItem(AUDIO_PREFERENCES_KEY) ?? '{}'));} catch {}
-  const state = {effect: validEffect(saved.effect), master: inRange(saved.master, 0, 3.8) ? saved.master : 1, chips: Object.create(null)};
+  const state = {effect: validEffect(saved.effect), master: inRange(saved.master, 0, 3.8) ? saved.master : 1, chips: Object.create(null), sourceMixes: Object.create(null)};
   for (const [id, value] of Object.entries(object(saved.chips))) state.chips[id] = validChip(value);
-  const save = () => {try {storage?.setItem(AUDIO_PREFERENCES_KEY, JSON.stringify(state));} catch {}};
+  for (const [parent, sources] of Object.entries(object(saved.sourceMixes))) {
+    for (const [part, value] of Object.entries(object(sources))) {
+      if (!supportedSource(parent, part)) continue;
+      (state.sourceMixes[parent] ??= Object.create(null))[part] = validSource(value);
+    }
+  }
+  const save = () => {
+    const {sourceMixes, ...legacyState} = state;
+    try {storage?.setItem(AUDIO_PREFERENCES_KEY, JSON.stringify(Object.keys(sourceMixes).length ? state : legacyState));} catch {}
+  };
   return {
     getEffect: () => ({...state.effect}),
     setEffect(value) {state.effect = validEffect(value); save();},
@@ -48,6 +65,15 @@ export function createAudioPreferences(storage = browserStorage()) {
       if(Object.hasOwn(authored,'gain'))authored.gainUnits='source';
       state.chips[id] = {...state.chips[id],...authored}; save();
     },
-    resetMixer() {state.chips = Object.create(null); state.master = 1; save();},
+    getSource(parent, part) {
+      if (!supportedSource(parent, part)) throw new RangeError(`Unknown mixer source: ${parent}/${part}`);
+      return {...ym2608SourceDefaults(), ...state.sourceMixes[parent]?.[part]};
+    },
+    setSource(parent, part, patch) {
+      if (!supportedSource(parent, part)) throw new RangeError(`Unknown mixer source: ${parent}/${part}`);
+      const sources = state.sourceMixes[parent] ??= Object.create(null);
+      sources[part] = {...sources[part], ...validSource(patch)}; save();
+    },
+    resetMixer() {state.chips = Object.create(null); state.sourceMixes = Object.create(null); state.master = 1; save();},
   };
 }

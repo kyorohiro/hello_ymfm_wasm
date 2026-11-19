@@ -95,3 +95,78 @@ test('new gain edits use source units in every context while pan-only edits reta
   assert.equal(next.getChip('psg',genesis).gain,gain);assert.equal(next.getChip('psg',standalone).gain,gain);
  }
 });
+
+test('OPNA sources persist independently without changing parent calibration or other audio settings',()=>{
+ const disk=storage(),prefs=createAudioPreferences(disk);
+ const parent=prefs.getChip('ym2608');
+ prefs.setEffect({...effectDefaults(),enabled:true,reverb:17});prefs.setMaster(.7);
+ prefs.setChip('ym2608',{pan:-.25});prefs.setChip('ay8910',{gain:.42});
+ prefs.setSource('ym2608','fm',{gain:3.8});prefs.setSource('ym2608','fm',{muted:true});
+ prefs.setSource('ym2608','rhythm',{gain:0});prefs.setSource('ym2608','adpcm',{gain:.37});
+ const reopened=createAudioPreferences(disk);
+ assert.deepEqual(reopened.getSource('ym2608','fm'),{gain:3.8,muted:true});
+ assert.deepEqual(reopened.getSource('ym2608','ssg'),{gain:1,muted:false});
+ assert.deepEqual(reopened.getSource('ym2608','rhythm'),{gain:0,muted:false});
+ assert.deepEqual(reopened.getSource('ym2608','adpcm'),{gain:.37,muted:false});
+ assert.deepEqual(reopened.getChip('ym2608'),{...parent,pan:-.25});
+ assert.equal(reopened.getChip('ay8910').gain,.42);assert.equal(reopened.getMaster(),.7);
+ assert.equal(reopened.getEffect().reverb,17);
+ const raw=JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY));
+ assert.deepEqual(raw.sourceMixes,{ym2608:{fm:{gain:3.8,muted:true},rhythm:{gain:0},adpcm:{gain:.37}}});
+ assert.deepEqual(raw.chips.ym2608,{pan:-.25});
+ const detached=reopened.getSource('ym2608','fm');detached.gain=.25;
+ assert.equal(reopened.getSource('ym2608','fm').gain,3.8);
+ reopened.resetMixer();
+ const reset=createAudioPreferences(disk);
+ for(const part of ['fm','ssg','rhythm','adpcm'])assert.deepEqual(reset.getSource('ym2608',part),{gain:1,muted:false});
+ assert.deepEqual(reset.getChip('ym2608'),parent);assert.equal(reset.getMaster(),1);
+ assert.equal(reset.getEffect().reverb,17);assert.equal(reset.getEffect().enabled,true);
+ assert.equal(Object.hasOwn(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)),'sourceMixes'),false);
+});
+
+test('unrelated writes retain the legacy preference shape until a source is authored',()=>{
+ const disk=storage(),legacy={effect:{...effectDefaults(),enabled:true,reverb:12},master:.65,chips:{ym2608:{gain:1.2,pan:-.3,muted:true},ay8910:{pan:.4}}};
+ disk.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify(legacy));
+ const prefs=createAudioPreferences(disk);
+ assert.deepEqual(prefs.getSource('ym2608','fm'),{gain:1,muted:false});
+ prefs.setEffect(prefs.getEffect());prefs.setMaster(prefs.getMaster());
+ assert.deepEqual(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)),legacy);
+ prefs.setEffect({...prefs.getEffect(),reverb:30});prefs.setMaster(.8);
+ const edited={...legacy,effect:{...legacy.effect,reverb:30},master:.8};
+ assert.deepEqual(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)),edited);
+ assert.deepEqual(prefs.getChip('ym2608'),{gain:1.2,pan:-.3,muted:true});
+ prefs.setSource('ym2608','ssg',{gain:.45,muted:true});
+ prefs.setEffect(prefs.getEffect());prefs.setMaster(prefs.getMaster());
+ assert.deepEqual(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)),{...edited,sourceMixes:{ym2608:{ssg:{gain:.45,muted:true}}}});
+ const reopened=createAudioPreferences(disk);
+ assert.deepEqual(reopened.getSource('ym2608','ssg'),{gain:.45,muted:true});
+ assert.equal(reopened.getEffect().reverb,30);assert.equal(reopened.getMaster(),.8);
+ reopened.resetMixer();
+ assert.equal(Object.hasOwn(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)),'sourceMixes'),false);
+});
+
+test('source defaults do not rewrite old records and malformed source fields are isolated',()=>{
+ const disk=storage();disk.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify({chips:{ym2608:{gain:1.25,pan:.2}},sourceMixes:{ym2608:{fm:{gain:4,muted:true},ssg:{gain:.5,muted:'yes'},rhythm:{gain:-1,muted:false},adpcm:{gain:'2',pan:.8}},ay8910:{fm:{gain:2}}}}));
+ const original=disk.getItem(AUDIO_PREFERENCES_KEY),prefs=createAudioPreferences(disk);
+ assert.deepEqual(prefs.getSource('ym2608','fm'),{gain:1,muted:true});
+ assert.deepEqual(prefs.getSource('ym2608','ssg'),{gain:.5,muted:false});
+ assert.deepEqual(prefs.getSource('ym2608','rhythm'),{gain:1,muted:false});
+ assert.deepEqual(prefs.getSource('ym2608','adpcm'),{gain:1,muted:false});
+ assert.deepEqual(prefs.getChip('ym2608'),{gain:1.25,pan:.2,muted:false});
+ assert.equal(disk.getItem(AUDIO_PREFERENCES_KEY),original);
+ prefs.setSource('ym2608','ssg',{gain:NaN,muted:true,pan:1});
+ assert.deepEqual(createAudioPreferences(disk).getSource('ym2608','ssg'),{gain:.5,muted:true});
+ assert.throws(()=>prefs.getSource('ym2612','fm'),RangeError);
+ assert.throws(()=>prefs.setSource('ym2608','unknown',{gain:1}),RangeError);
+ for(const sourceMixes of [null,[],true,{ym2608:null},{ym2608:[]},{ym2608:{fm:[],ssg:null,rhythm:true,adpcm:7}}]){
+  disk.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify({sourceMixes}));
+  for(const part of ['fm','ssg','rhythm','adpcm'])assert.deepEqual(createAudioPreferences(disk).getSource('ym2608',part),{gain:1,muted:false});
+ }
+ const legacy=storage();legacy.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify({chips:{ym2608:{gain:1.1}}}));
+ const before=legacy.getItem(AUDIO_PREFERENCES_KEY),older=createAudioPreferences(legacy);
+ for(const part of ['fm','ssg','rhythm','adpcm'])assert.deepEqual(older.getSource('ym2608',part),{gain:1,muted:false});
+ assert.equal(legacy.getItem(AUDIO_PREFERENCES_KEY),before);
+ const blocked=createAudioPreferences({getItem(){throw Error('blocked');},setItem(){throw Error('quota');}});
+ blocked.setSource('ym2608','fm',{gain:2.1,muted:true});
+ assert.deepEqual(blocked.getSource('ym2608','fm'),{gain:2.1,muted:true});
+});

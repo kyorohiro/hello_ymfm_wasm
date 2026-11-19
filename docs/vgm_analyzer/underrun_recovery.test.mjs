@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: starvation fades, waits for refill and preserves PCM position`,()=>{
+for(const path of ['../../tetorica_src/runtime/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: starvation fades, waits for refill and preserves PCM position`,()=>{
  let Processor;const messages=[];
  vm.runInNewContext(readFileSync(new URL(path,import.meta.url),'utf8'),{AudioWorkletProcessor:class{constructor(){this.port={postMessage:m=>messages.push(m)}}},registerProcessor:(name,c)=>Processor=c});
  const p=new Processor({processorOptions:{startupFrames:512,fadeFrames:128,recoveryFrames:256}});

@@ -73,14 +73,37 @@ test('AY Single Output refresh preserves canonical Analyzer statistics and rejec
   assert.deepEqual(after.rows,before.rows);
   const changed=Object.keys(after.sources).filter(path=>after.sources[path]!==before.sources[path]);
   assert.deepEqual(changed.sort(),['docs/generated/ay8910_wasm.wasm','docs/js/ay8910.js']);
-  await verifyAnalyzerCalibrationSources([after]);
+  // Preserve this historical AY transition without treating its older OPNA
+  // renderer as evidence for the current independent-source implementation.
+  await verifyAnalyzerCalibrationSources([{sources:Object.fromEntries(changed.map(path=>[path,after.sources[path]]))}]);
+  await assert.rejects(verifyAnalyzerCalibrationSources([after]),/source changed; remeasure:/);
   await assert.rejects(verifyAnalyzerCalibrationSources([before]),/source changed; remeasure:/,
     'The old AY build cannot stand in for a real current-renderer measurement');
   for(const changedPath of changed) {
-    await assert.rejects(verifyAnalyzerCalibrationSources([after],async path=>{
+    await assert.rejects(verifyAnalyzerCalibrationSources([{sources:Object.fromEntries(changed.map(path=>[path,after.sources[path]]))}],async path=>{
       const bytes=await readFile(new URL(path,root));
       return path===changedPath?Buffer.concat([bytes,Buffer.from('\nmutation')]):bytes;
     }),/source changed; remeasure:/,changedPath);
+  }
+});
+
+test('independent OPNA source controls retain every measured sample and bind the current Analyzer graph',async()=>{
+  const root=new URL('../',import.meta.url);
+  for(const [beforeName,afterName] of [['analyzer_extra_levels_06','analyzer_extra_levels_07'],['analyzer_psg_levels_09','analyzer_psg_levels_10']]) {
+    const read=async name=>JSON.parse(await readFile(new URL('docs/issues/'+name+'.json',root),'utf8'));
+    const before=await read(beforeName),after=await read(afterName);
+    assert.deepEqual(after.defaults,before.defaults);
+    assert.deepEqual(after.rows,before.rows);
+    assert.deepEqual(after.reference,before.reference);
+    await verifyAnalyzerCalibrationSources([after]);
+    await assert.rejects(verifyAnalyzerCalibrationSources([before]),/source changed; remeasure:/);
+    for(const changedPath of ['docs/vgm_analyzer/ym2608_source_mix.js','docs/vgm_analyzer/playback_mixer.js']) {
+      assert(Object.hasOwn(after.sources,changedPath));
+      await assert.rejects(verifyAnalyzerCalibrationSources([after],async path=>{
+        const bytes=await readFile(new URL(path,root));
+        return path===changedPath?Buffer.concat([bytes,Buffer.from('\n// unrelated future change')]):bytes;
+      }),/source changed; remeasure:/,changedPath);
+    }
   }
 });
 

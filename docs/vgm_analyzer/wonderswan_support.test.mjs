@@ -48,11 +48,13 @@ test('deployed Analyzer entry, Worker, player and score graph invalidate older p
     './pokey_notes.js','./pokey_monitor.js','./pokey_playback.js','../js/vgmplayer.js']){
     const text=read(file);
     for(const ref of text.matchAll(/['"]([^'"\n]*(?:ym2612vgm|vgmplayer|playback_core|analyzer_core|vgm_lilypond|vgm_midi|vgm_notes|wonderswan_notes|source_mutes|command_editor|note_timeline_view|pokey_notes|pokey_monitor|pokey_playback)\.js)(?:\?([^'"\n]*))?['"]/g)){
-      assert.equal(ref[2],'v='+token,`${file}: ${ref[1]}`);
+      const mixerRevision = ref[1].endsWith('playback_core.js') ||
+        (file === './vgm_analyzer.js' && ref[1].endsWith('analyzer_core.js'));
+      assert.equal(ref[2],'v='+token+(mixerRevision ? '&mix=opna-source-mixer-1' : ''),`${file}: ${ref[1]}`);
     }
   }
   // The website revision must not create a second package class identity.
-  assert(!read('../../web/vgmplayer.js').includes(token));
+  assert(!read('../../tetorica_src/runtime/vgmplayer.js').includes(token));
 });
 
 test('live monitor follows relative engine writes, mode labels, history and replay reset',()=>{

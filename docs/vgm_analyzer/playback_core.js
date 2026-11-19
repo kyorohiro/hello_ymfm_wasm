@@ -1,4 +1,4 @@
-import {installPlaybackMixer} from './playback_mixer.js?v=pokey-vgm-1';
+import {installPlaybackMixer} from './playback_mixer.js?v=opna-source-mixer-1';
 import {Msm5205AudioEngine,attachMsm5205} from '../js/msm5205audioengine.js';
 import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
@@ -20,7 +20,7 @@ import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
-import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
+import { createYm2608AudioEngine } from "../js/ym2608audioengine.js?v=ym2608-source-gains-1";
 import {MultiChipAudioEngine} from "../js/multichipaudioengine.js";
 import { VgmPlayer, createVgmTargets } from "../js/vgmplayer.js?v=pokey-vgm-1";
 export function detectPlaybackChipKind(header) {

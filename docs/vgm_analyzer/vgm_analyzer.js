@@ -1,9 +1,9 @@
 import {createWonderSwanMonitor,applyWonderSwanWrite,describeWonderSwanNotes,extractWonderSwanNotes} from './wonderswan_notes.js?v=pokey-vgm-1';
-import {createAudioPreferences, effectDefaults} from './audio_preferences.js?v=pokey-vgm-1';
+import {createAudioPreferences, effectDefaults} from './audio_preferences.js?v=opna-source-mixer-1';
 import {mountSpcAnalyzer} from './spc_analyzer.js?v=voice-preview-1';
 import {mountSpcNoteish} from './spc_noteish.js?v=snes-score-1';
 import {prepareSnesScore} from './snes_score.js?v=pokey-vgm-1';
-import {createMixerUi} from './mixer_ui.js?v=pokey-vgm-1';
+import {createMixerUi} from './mixer_ui.js?v=opna-source-mixer-1';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js?v=pokey-vgm-1';
 import {updateNoteishHtml, updateNoteishGraph} from './noteish_dom.js';
@@ -18,11 +18,11 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js?v=pokey-vgm-1';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js?v=pokey-vgm-1';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=pokey-vgm-1';
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=pokey-vgm-1&mix=opna-source-mixer-1';
 import { mountMusicSheet } from "./music_sheet.js?v=snes-score-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js?v=snes-score-1";
-import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=pokey-vgm-1";
+import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=pokey-vgm-1&mix=opna-source-mixer-1";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js?v=pokey-vgm-1';
 import {mountOpmInfo} from './opm_info.js?v=pokey-vgm-1';
 import {mountSbiInfo} from './sbi_info.js?v=pokey-vgm-1';
@@ -44,7 +44,7 @@ import { describeToneNotes } from './tone_notes.js?v=pokey-vgm-1';
 import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js?v=pokey-vgm-1';
 import { midiChipKind } from "./vgm_notes.js?v=pokey-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1";
+import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=opna-source-mixer-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pokey-vgm-1";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
@@ -598,6 +598,7 @@ const mixerUi = createMixerUi({
   container: document.getElementById('mixerStrips'),
   resetButton: document.getElementById('mixerReset'),
   preferences: audioPreferences,
+  onError(error) {setStatus(`Source Mixer update failed: ${error.message}`);},
   onChange() { player?.clearCheckpoints(); flushPendingAudio(); },
   onReset() {masterVolume = 1; updateMasterVolumeUi(); applyMasterVolume(); flushPendingAudio();},
 });
@@ -2259,8 +2260,13 @@ async function loadYm2203ModuleFactory() {
 
 async function loadYm2608ModuleFactory() {
   if (!activeYm2608ModuleFactoryPromise) {
-    activeYm2608ModuleFactoryPromise = import("../generated/ym2608_wasm.js")
-      .then((module) => module.default);
+    activeYm2608ModuleFactoryPromise = import("../generated/ym2608_wasm.js?v=opna-source-mixer-1")
+      .then(async (module) => {
+        const response = await fetch(new URL('../generated/ym2608_wasm.wasm?v=opna-source-mixer-1',import.meta.url));
+        if (!response.ok) throw new Error(`YM2608 audio processor could not be loaded (${response.status})`);
+        const wasmBinary = new Uint8Array(await response.arrayBuffer());
+        return options => module.default({...options,wasmBinary});
+      }).catch(error => {activeYm2608ModuleFactoryPromise = null; throw error;});
   }
   return await activeYm2608ModuleFactoryPromise;
 }

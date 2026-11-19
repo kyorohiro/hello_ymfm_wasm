@@ -14,7 +14,7 @@ function processor(path,frames=4,fadeFrames=0){
  const output=n=>{const l=new Float32Array(n),r=new Float32Array(n);p.process([],[[l,r]]);return [Array.from(l),Array.from(r)];};
  return {p,send,enqueue,output,messages};
 }
-for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js']){
+for(const path of ['../../tetorica_src/runtime/vgm-output-worklet.js','../js/vgm-output-worklet.js']){
  test(`${path}: startup retains first sample and full amplitude until threshold`,()=>{
   const w=processor(path);w.enqueue([.25,.5]);assert.deepEqual(w.output(2),[[0,0],[0,0]]);
   assert.equal(w.p.consumedFrames,0);assert.equal(w.p.queuedFrames,2);
@@ -63,7 +63,7 @@ for(const length of [0,13,4096,5000])test(`Analyzer pump completes ${length}-sam
  assert(result.slice(length).every(v=>v===0));
 });
 
-for (const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js']) {
+for (const path of ['../../tetorica_src/runtime/vgm-output-worklet.js','../js/vgm-output-worklet.js']) {
  test(`${path}: fades retain a tail across chunks and end at zero`, () => {
   const w=processor(path,4,4);
   w.enqueue(Array(8).fill(1));
@@ -103,7 +103,7 @@ test('stopping fades the old worklet without disconnecting the replacement', () 
  assert.equal(disconnected,1);assert.equal(context.activeStream,replacement);assert.equal(pending.length,0);
 });
 
-for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: mute flush bridges held PWM level to silence and refilled output`,()=>{
+for(const path of ['../../tetorica_src/runtime/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: mute flush bridges held PWM level to silence and refilled output`,()=>{
  const w=processor(path,4);w.enqueue(Array(8).fill(.8));w.output(4);
  w.send({type:'flush',startupFrames:4,smoothFrames:4});
  const tail=w.output(5)[0];assert(Math.abs(tail[0]-.8)<1e-6);assert.equal(tail[4],0);
@@ -115,7 +115,7 @@ for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.j
  w.send({type:'flush',startupFrames:4,smoothFrames:4});w.enqueue(Array(8).fill(.8));assert(Math.abs(w.output(1)[0][0]+.8)<1e-6);
 });
 
-for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: mute refill reports current revision and keeps pause intact`,()=>{
+for(const path of ['../../tetorica_src/runtime/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: mute refill reports current revision and keeps pause intact`,()=>{
  const w=processor(path,8192);
  w.send({type:'flush',queueRevision:3,startupFrames:8192,paused:true});
  w.enqueue(Array(2048).fill(.5));w.output(128);

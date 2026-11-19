@@ -137,7 +137,7 @@ async function checkOpnaPcm(page) {
     assert(defaults.viewCalls>0,`${section}: playback did not consume borrowed PCM views`);
     await chipRange(page,'ym2608',0,100);const unity=await capture();
     await chipRange(page,'ym2608',0,50);const half=await capture();
-    await page.locator('#mixerStrips [data-chip="ym2608"] button').click();const muted=await capture();
+    await page.locator('#mixerStrips [data-chip="ym2608"] > .mixer-strip-title button').click();const muted=await capture();
     assert.equal((await snapshot(page)).mixer.ym2608.muted,true);
     assert.equal(muted.peak,0,`${section}: Mixer mute bypassed borrowed PCM`);
     // Core reset retains native resampler phase, so compare steady AC levels

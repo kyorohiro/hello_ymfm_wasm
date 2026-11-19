@@ -269,3 +269,16 @@ button.instrument-specs:focus-visible { outline: 3px solid var(--accent); outlin
 .mixer-control { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
 .mixer-control input[type="range"] { flex: 1; min-width: 0; }
 .mixer-control output { min-width: 4em; text-align: right; font-variant-numeric: tabular-nums; }
+.mixer-strip[data-chip="ym2608"] { container-type: inline-size; }
+.mixer-source-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mixer-source-strip { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid var(--accent-dark); border-radius: 6px; }
+.mixer-source-strip .mixer-strip-title { font-size: .85rem; }
+.mixer-source-strip .channel-toggle { padding: 3px 8px; }
+.mixer-source-strip.is-boosted { border-color: #b15b08; }
+.mixer-source-strip output.is-boosted { color: #a54b00; font-weight: bold; }
+@container (max-width: 450px) {
+  .mixer-source-group { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .mixer-source-group { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,5 +1,6 @@
 import {PCMChipMixer, chipMixGains} from '../js/soundchip_mixer.js';
 import {mixerDefaults} from './mixer_defaults.js';
+import {Ym2608SourceMixer} from './ym2608_source_mix.js?v=opna-source-mixer-1';
 export {mixerDefaults} from './mixer_defaults.js';
 // Absolute chip gains, before engine master gain and FX.
 // Register writes and synthesis keep advancing even when a strip is muted.
@@ -13,7 +14,7 @@ const properties = {
 };
 // Preserve Analyzer's existing gain-facing API while sharing rendering and defaults.
 export class PlaybackMixer extends PCMChipMixer {
-  constructor(configuration) { super(); this.configuration = configuration; }
+  constructor(configuration) { super(); this.configuration = configuration; this.sourceMixers = new Map(); }
   addSource(id, source, method = 'generateStereo', rate = 44100, downstreamTrim = undefined) {
     const trim=downstreamTrim??1;
     if(!Number.isFinite(trim)||trim<=0)throw new RangeError('Invalid Analyzer output trim');
@@ -42,6 +43,10 @@ export class PlaybackMixer extends PCMChipMixer {
   }
   set(id, {gain, ...settings}) { super.set(id, {...settings, ...(gain === undefined ? {} : {volume: gain})}); }
   get(id) { const {volume, ...settings} = super.get(id); return {gain: volume, ...settings}; }
+  reset() {
+    super.reset();
+    for (const controller of this.sourceMixers.values()) controller.apply();
+  }
 }
 
 export function installPlaybackMixer(engine, configuration) {
@@ -49,7 +54,10 @@ export function installPlaybackMixer(engine, configuration) {
   const visit = (part, ids) => {
     if (part.mixerEngine) return visit(part.mixerEngine, ids);
     if (Array.isArray(part.playbackMixerSources)) {
-      for(const {id,source,method,rate} of part.playbackMixerSources)mixer.addSource(id,source,method,rate,1);
+      for(const {id,source,method,rate} of part.playbackMixerSources) {
+        mixer.addSource(id,source,method,rate,1);
+        if (id === 'ym2608') mixer.sourceMixers.set(id,new Ym2608SourceMixer(source));
+      }
       return;
     }
     if (part.entries instanceof Map) {
@@ -73,6 +81,7 @@ export function installPlaybackMixer(engine, configuration) {
       if (typeof source[method] !== 'function') continue;
       const downstreamTrim = genesis ? id === 'ym2612' ? 0.9 : id === 'psg' ? 0.35 : 1 : 1;
       mixer.addSource(id, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate(), downstreamTrim);
+      if (id === 'ym2608') mixer.sourceMixers.set(id,new Ym2608SourceMixer(source));
       found = true;
     }
     // NES, HuC6280 and OKI render directly rather than through a chip wrapper.
@@ -84,7 +93,8 @@ export function installPlaybackMixer(engine, configuration) {
   engine.reset = () => {reset(); mixer.reset();};
   if (engine.stateSettingsKey) {
     const key = engine.stateSettingsKey.bind(engine);
-    engine.stateSettingsKey = () => JSON.stringify([key(), [...mixer.strips].map(([id, strip]) => [id, strip.settings])]);
+    engine.stateSettingsKey = () => JSON.stringify([key(), [...mixer.strips].map(([id, strip]) => [id, strip.settings]),
+      [...mixer.sourceMixers].map(([id,controller]) => [id,controller.getState()])]);
   }
   engine.playbackMixer = mixer;
   return mixer;

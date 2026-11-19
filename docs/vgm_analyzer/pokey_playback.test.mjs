@@ -8,6 +8,7 @@ import {createPokeyVgm} from '../../test/helpers/pokey_vgm_fixture.mjs';
 import {createPlaybackEngine,createPlaybackPlayer,selectPlaybackConfiguration,applyPlaybackMutes} from './playback_core.js';
 import {PokeyPlaybackEngine,pokeyPlaybackConfiguration} from './pokey_playback.js';
 import {seekPlayback} from './seek_playback.js';
+import {mixerDefaults} from './mixer_defaults.js';
 const binary=await readFile(new URL('../generated/pokey_wasm.wasm',import.meta.url));
 const getFactory=async name=>{assert.equal(name,'pokey');return options=>factory({...options,wasmBinary:binary});};
 const energy=pcm=>pcm.left.reduce((sum,v)=>sum+v*v,0);
@@ -19,7 +20,7 @@ for(const dual of [false,true])test(`POKEY ${dual?'dual':'single'} declares inde
   const engine=await createPlaybackEngine(vgm,{getFactory});
   try{
     assert.equal(engine.entries.size,dual?2:1);assert.deepEqual([...engine.playbackMixer.strips.keys()],config.chips.map(c=>c.id));
-    for(const id of engine.playbackMixer.strips.keys())assert.deepEqual(engine.playbackMixer.get(id),{gain:1,pan:0,muted:false});
+    for(const id of engine.playbackMixer.strips.keys())assert.deepEqual(engine.playbackMixer.get(id),mixerDefaults(id,config));
     const player=createPlaybackPlayer(engine,source);player.setPrefetchFactor(1);player.play();assert(energy(render(player,4096))>1);
     assert.throws(()=>engine.getVgmTarget('pokey',dual?2:1),/No playback instance/);
     applyPlaybackMutes(engine,config,Array.from({length:dual?8:4},(_,i)=>`pokey-ch-${i+1}`));
