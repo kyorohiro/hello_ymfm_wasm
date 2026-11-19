@@ -466,3 +466,75 @@ test('post-commit source cleanup errors are reported without hiding or undoing t
   assert.equal(await f.files.newProject(),true);assert.equal(f.project.settings.name,'Sine');
   assert.match(f.statuses.at(-1),/Source cleanup failed: Source cleanup unavailable/);
 });
+
+test('Files Undo restores deleted/renamed native bytes, dirty versions and pending moves without running Code',async t=>{
+  const events=[],f=fixture(t);await f.files.ready;assert.equal(await f.files.undo(),false);
+  assert.equal(f.doc.getElementById('spuFileUndoButton').disabled,true);
+  f.project.importFiles([{path:'/banks/a.vh',type:'binary',data:Uint8Array.from([1,2,3])},{path:'/banks/a.vb',type:'binary',data:Uint8Array.from([4,5,6])}]);
+  f.project.setAutoApply(false);f.project.writeEditorText('/index.js','working');
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},captureState:()=>f.project.getCodeState(),workspaceReplaced:async()=>events.push('retire'),restoreState:async state=>events.push(['display',state]),pathChanged(){}});
+  await f.files.move('/banks','/moved');const moved=f.project.snapshot();assert.equal(f.files.getUndoState().entries,1);
+  await f.files.remove('/moved');assert.equal(f.files.getUndoState().entries,2);assert.equal(await f.files.undo(),true);
+  assert.deepEqual(f.project.snapshot(),moved);assert.deepEqual(f.project.fs.get('/moved/a.vb').data,Uint8Array.from([4,5,6]));
+  assert.equal(await f.files.undo(),true);assert.equal(f.project.fs.has('/moved/a.vh'),false);
+  assert.deepEqual(f.project.fs.get('/banks/a.vh').data,Uint8Array.from([1,2,3]));
+  assert.equal(f.project.fs.get('/index.js').data,'working');assert.equal(f.project.savedFs.get('/index.js').data,'kept');assert.deepEqual(f.project.getPendingMoves(),[]);
+  assert.equal(events.filter(e=>e==='retire').length,2);assert.equal(f.files.getUndoState().entries,0);
+});
+test('Undo Save / Discard and Auto apply recover both document versions, not keystroke history',async t=>{
+  const f=fixture(t);await f.files.ready;f.files.adoptExternalSound(soundFixture());f.project.setAutoApply(false);
+  const path=f.files.recordSoundEdit({...soundFixture(),name:'Working'});assert.equal(f.files.getUndoState().entries,0);
+  const before=f.project.snapshot();await f.files.saveCurrent();assert.equal(f.files.getUndoState().entries,1);await f.files.undo();
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.project.savedFs.has(path),false);
+  await f.files.discardAll();await f.files.undo();assert.deepEqual(f.project.snapshot(),before);
+  await f.files.setAutoApply(true);assert.equal(f.project.isFileModified(path),false);await f.files.undo();assert.deepEqual(f.project.snapshot(),before);
+});
+test('Undo New and import recover native Files, selected text and sound drafts but never restart owners',async t=>{
+  const f=fixture(t);await f.files.ready;f.files.adoptExternalSound(soundFixture());f.project.setAutoApply(false);
+  f.files.recordSoundEdit({...soundFixture(),name:'Unheard'});f.project.writeEditorText('/index.js','// working');f.project.select('/index.js');f.project.setCodeState({mode:'code',path:'/index.js'});f.files.setVisible(true);
+  const before=f.project.snapshot();await f.files.newProject();assert.equal(f.project.settings.name,'Sine');
+  const states=[];f.files.setCodeControls({flush:async()=>true,setBusy(){},workspaceReplaced:async()=>true,restoreState:async state=>states.push(state)});
+  await f.files.undo();assert.deepEqual(f.project.snapshot(),before);assert.equal(f.doc.getElementById('spuFilesPanel').hidden,false);assert.equal(f.calls.at(-1)[1].name,'Saved PCM');
+  const other=createSpuCodeProject({starterCode:'// other'});await f.files.importProject(other.exportProject());await f.files.undo();assert.deepEqual(f.project.snapshot(),before);
+  assert(states.every(state=>['code','keyboard'].includes(state.mode)));assert(!('history'in f.project.snapshot()));
+});
+test('Undo keeps an entry and current data after sound/editor/retirement failure so it can be retried',async t=>{
+  for(const phase of ['retire','sound','editor'])await t.test(phase,async t=>{
+    let failing=false;const f=fixture(t,{applyInstrument:async(_value,options)=>{if(failing&&phase==='sound'&&options.source==='undo')throw Error('Sound failed');}});await f.files.ready;
+    f.files.adoptExternalSound(soundFixture());await f.files.createFile('/new.js');const before=f.project.snapshot(),identity=f.files.workspaceId;
+    f.files.setCodeControls({flush:async()=>true,setBusy(){},workspaceReplaced:async()=>phase==='retire'&&failing?false:true,restoreState:async()=>{if(phase==='editor'&&failing){failing=false;throw Error('Editor failed');}}});
+    failing=true;if(phase==='retire')assert.equal(await f.files.undo(),false);else await assert.rejects(f.files.undo(),/failed/);
+    assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(f.files.getUndoState().entries,1);
+    failing=false;assert.equal(await f.files.undo(),true);assert.equal(f.project.fs.has('/new.js'),false);assert.equal(f.files.getUndoState().entries,0);
+  });
+});
+test('failed operations and no-op Save do not create Undo entries; local failure keeps restored data exportable',async t=>{
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>false,close:async()=>{}}});await f.files.ready;f.project.select('/index.js');
+  await f.files.saveCurrent();assert.equal(f.files.getUndoState().entries,0);
+  await assert.rejects(f.files.createFile('/index.js'),/exists/);assert.equal(f.files.getUndoState().entries,0);
+  await f.files.duplicate('/index.js');assert.equal(f.files.getUndoState().entries,1);await f.files.undo();assert.equal(f.project.fs.has('/index-copy.js'),false);
+  assert.match(f.statuses.at(-1),/Local save unavailable/);const copy=createSpuCodeProject();copy.restore(await copy.prepareImport(await f.files.exportProject()));assert.equal(copy.fs.get('/index.js').data,'kept');
+});
+test('Undo New retains a cached native VAB Tone even before an editable JSON exists, without opening audio',async t=>{
+  const cached=soundFixture(),f=fixture(t,{getCachedInstrument:()=>cached,getInstrument:()=>assert.fail('Must not open or query audio')});await f.files.ready;
+  assert.equal(f.project.settings,null);await f.files.newProject();assert.equal(f.project.settings.name,'Sine');
+  await f.files.undo();assert.deepEqual(f.project.settings,cached);assert.deepEqual(f.project.savedSettings,cached);
+  assert.equal(f.project.activeSoundPath,null);assert.equal(f.project.fs.list().some(file=>file.path.startsWith('/presets/')),false);
+});
+test('Files history is bounded and an oversized snapshot disables Undo without undoing a completed operation',async t=>{
+  const f=fixture(t);await f.files.ready;
+  for(let i=0;i<23;i++)await f.files.createFile(`/file-${i}.js`);
+  assert.equal(f.files.getUndoState().entries,20);assert(f.files.getUndoState().bytes<=32*1024*1024);
+  for(let i=0;i<20;i++)assert.equal(await f.files.undo(),true);
+  assert(f.project.fs.has('/file-2.js'));assert.equal(f.project.fs.has('/file-3.js'),false);
+  f.project.importFiles([{path:'/large.txt',type:'text',data:'x'.repeat(9*1024*1024)}]);
+  await f.files.createFile('/kept.js');assert(f.project.fs.has('/kept.js'));assert.equal(f.files.getUndoState().entries,0);
+  assert.match(f.statuses.at(-1),/32 MiB history limit/);assert.equal(f.doc.getElementById('spuFileUndoButton').disabled,true);
+});
+test('explicit preset copies and VAB bank batches are single reversible Files operations',async t=>{
+  const f=fixture(t);await f.files.ready;f.files.adoptExternalSound(soundFixture());const before=f.project.snapshot();
+  await f.files.saveSound();assert.equal(f.files.getUndoState().entries,1);await f.files.undo();assert.deepEqual(f.project.snapshot(),before);
+  await f.files.saveInstruments([soundFixture()],{assets:[{name:'Native bank',data:createVabFixture().vab}]});
+  assert.equal(f.files.getUndoState().entries,1);assert(f.project.fs.list().some(file=>file.path.endsWith('.vab')));
+  await f.files.undo();assert.deepEqual(f.project.snapshot(),before);
+});

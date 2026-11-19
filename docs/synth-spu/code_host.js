@@ -24,7 +24,7 @@ liveLoop("melody", async () => {
 });
 `;
 const aborted=()=>new DOMException('SPU Code stopped','AbortError');
-export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstrument,applyVabTone,stopKeyboard,onWorkspaceRestored,onNewProjectCommitted,getExportNotice,beforeNewProject=async()=>{},
+export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,getCachedInstrument,applyInstrument,applyVabTone,stopKeyboard,onWorkspaceRestored,onNewProjectCommitted,getExportNotice,beforeNewProject=async()=>{},beforeUndoFiles=async()=>{},
   beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSpuCodeProject({getStarterCode:()=>SPU_STARTER_CODE});
@@ -41,9 +41,10 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
     if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
-  files=setupSpuCodeFiles({project,getInstrument,applyInstrument,applyVabTone,onWorkspaceRestored,onNewProjectCommitted,getExportNotice,setStatus,
+  files=setupSpuCodeFiles({project,getInstrument,getCachedInstrument,applyInstrument,applyVabTone,onWorkspaceRestored,onNewProjectCommitted,getExportNotice,setStatus,
     async onBeforeWorkspaceReplace(options={}){
       if(options.reason==='new'&&await beforeNewProject(options)===false)return false;
+      if(options.reason==='undo'&&await beforeUndoFiles(options)===false)return false;
       await stop();await stopKeyboard();
     }});
   function getRuntime(){

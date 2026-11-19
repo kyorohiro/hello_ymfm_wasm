@@ -13,8 +13,9 @@ The working/saved Files slice is complete; see its linked TODO for validation.
 Auto apply defaults On; Save/Save all/Discard/Discard all, Files dots and
 Ctrl/Cmd+S are mounted. Controls/PCM/JSON share an editable document, native
 sources remain binary, and explicit Run/Apply reads saved files. v1 projects
-migrate and Cassette retains both versions. Files history, output policy and
-timed API remain separate.
+migrate and Cassette retains both versions. Output policy and timed API remain
+separate. [Files Undo](todo_spu_files_undo_20261120.md) now restores operation
+snapshots with bounded session history, stopping playback without restarting it.
 [New Cassette](todo_spu_new_cassette_20261120.md) is also implemented, with
 confirmation, optional pre-retirement backup, default sound/starter restoration
 and failure rollback; no automatic playback.
@@ -59,7 +60,7 @@ functionality. Chip-specific behavior and file formats must remain independent.
 - [ ] Retain working and saved across selection, rename/delete, Undo, New,
       import and reload. Export ordinary saved files plus working recovery
       differences, without duplicating unchanged sample/bank bytes.
-- [ ] Add Files operation history.
+- [x] Add Files operation history.
 - [x] Add a reviewable New Cassette workflow; preserve Code/song retirement,
       backup cancellation and failure rollback.
 - [x] Add persistent expanded navigation, header Code/Synth and visible Master.

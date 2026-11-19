@@ -111,6 +111,10 @@ async function check(browser,name,origin){
   await page.locator('#spuNewCassetteCancel').click();assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0);
   await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();await page.locator('#spuNewCassetteCreate').click();
   await page.locator('#spuNewCassetteDialog').waitFor({state:'hidden'});assert(!/failed/i.test(await page.locator('#audioStatus').textContent()));assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0);
+  await page.locator('#spuFileUndoButton').click();await until(()=>page.locator('#spuFilesStatus').textContent().then(s=>s.startsWith('Undid file operation')),'cold Undo');
+  assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0,'Undo never opens cold audio');
+  await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();await page.locator('#spuNewCassetteCreate').click();
+  await page.locator('#spuNewCassetteDialog').waitFor({state:'hidden'});
   await page.locator('#startAudio').click();await until(()=>page.evaluate(()=>__spuCodeAudit.graph().editorWorklets===1),'worklet');await until(()=>state().then(s=>Boolean(s.sample)),'audio');
   const before=await state(),original=before.preset.adsr2&31;
   await page.locator('#spuAutoApplyToggle').uncheck();await page.locator('[data-spu-editor-tab=adsr]').click();await edit(9);
@@ -214,8 +218,19 @@ async function check(browser,name,origin){
   assert(!/workingMemo/.test(await page.locator('#synthCodeEditor').inputValue()));assert.match(await page.locator('#synthCodeState').textContent(),/Stopped|Idle/);
   assert.equal(await page.locator('#spuFilesTree [data-file-path="/original.vb"]').count(),0);
   const stoppedTicks=await page.evaluate(()=>__workingMemo.ticks);await pause(150);assert.equal(await page.evaluate(()=>__workingMemo.ticks),stoppedTicks,'New never runs Code');
+  // Undo New restores both file versions and the sound/editor, with Code
+  // stopped. The cleared external inspector is not a performance snapshot.
+  await page.locator('#spuFileUndoButton').click();await until(()=>page.locator('#spuFilesStatus').textContent().then(s=>s.startsWith('Undid file operation')),'Undo New');
+  assert.equal(await page.locator('#spuFilesTree [data-file-path="/original.vb"]').count(),1);
+  assert.match(await page.locator('#synthCodeEditor').inputValue(),/__workingMemo/);assert.match(await page.locator('#synthCodeState').textContent(),/Stopped|Idle/);
+  assert.equal(await page.evaluate(()=>__workingMemo.ticks),stoppedTicks,'Undo never resumes the old loop');
+  assert.equal((await state()).preset.adsr2&31,savedRelease);
+  await page.locator('[data-spu-editor-tab=adsr]').click();assert.equal(await page.locator('[data-chip-control=ps1-release-rate]').inputValue(),'21');
+  await page.locator('#spuFilesTree [data-file-path="/original.vb"]').click();await page.locator('#spuFileDeleteButton').click();await page.locator('#spuFileNameConfirm').click();
+  await until(()=>page.locator('#spuFilesTree [data-file-path="/original.vb"]').count().then(n=>n===0),'binary deleted');
+  await page.locator('#spuFileUndoButton').click();await until(()=>page.locator('#spuFilesTree [data-file-path="/original.vb"]').count().then(n=>n===1),'binary restored');
   await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthKeyboardPanel').waitFor({state:'visible'});await page.locator('h1').click();
-  await page.keyboard.down('y');await until(()=>page.evaluate(()=>{const output=__spuCodeAudit.output();return output.muted&&output.finite&&output.rms>0.00005;}),'new Sine plays internally');await page.keyboard.up('y');
+  await page.keyboard.down('y');await until(()=>page.evaluate(()=>{const output=__spuCodeAudit.output();return output.muted&&output.finite&&output.rms>0.00005;}),'restored instrument plays internally');await page.keyboard.up('y');
   assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().muted),true);assert.deepEqual(errors,[]);
   for(const width of[1240,390]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'layout '+width);}
   console.log('PASS '+name+': drafts, Save/Discard, Code continuity, reload and muted output');

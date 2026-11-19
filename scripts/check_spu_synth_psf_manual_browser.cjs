@@ -204,6 +204,15 @@ async function check(browser,name,origin,fixture){
     for(const width of[1240,390]){await page.setViewportSize({width,height:1000});await page.locator('#spuCodeLiveTools').scrollIntoViewIfNeeded();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-${width}.png`)});}
     const final=await graph(page);assert(final.muted&&final.finite);assert.equal(final.contexts,1);assert.equal(final.editorWorklets,1);assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);
     step('New Cassette Cancel keeps PSF; confirmed New retires the source and restores Sine without auto-playing');
+    // A file Undo is an owner transition: it stops the current PSF but does
+    // not automatically reconstruct/play that machine or execute restored Code.
+    if(await page.locator('#spuFilesPanel').isHidden())await page.locator('#spuFilesToggle').click();
+    await page.locator('#spuFileNewButton').click();await page.locator('#spuFileNameInput').fill('/undo-proof.js');await page.locator('#spuFileNameConfirm').click();
+    await until(()=>page.locator('#spuFilesTree [data-file-path="/undo-proof.js"]').count().then(n=>n===1),'file created during PSF');
+    await page.locator('#spuFileUndoButton').click();await until(()=>page.locator('#spuFilesStatus').textContent().then(v=>v.startsWith('Undid file operation')),'Undo while PSF plays');
+    assert.equal((await graph(page)).openCores.length,0);assert.equal(await page.locator('#spuFilesTree [data-file-path="/undo-proof.js"]').count(),0);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Stopped|Idle/);assert(await page.locator('#psfPlaySong').isEnabled());
+    await page.locator('#psfPlaySong').click();await until(()=>native(page).then(v=>v&&v.frame>2205),'explicit PSF replay after Undo');
     const sourceBeforeNew=await native(page);
     await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();
     assert.match(await page.locator('#spuNewCassetteDescription').textContent(),/External PSF/);await page.locator('#spuNewCassetteCancel').click();
@@ -212,6 +221,8 @@ async function check(browser,name,origin,fixture){
     await page.locator('#spuNewCassetteDialog').waitFor({state:'hidden'});assert.equal((await graph(page)).openCores.length,0);
     assert(await page.locator('#psfSongPlayer').isHidden());assert.equal(await page.locator('#psfPlaySong').isDisabled(),true);
     assert.equal(await page.locator('#psfEntry').inputValue(),'');assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
+    await page.locator('#spuFileUndoButton').click();await until(()=>page.locator('#spuFilesStatus').textContent().then(v=>v.startsWith('Undid file operation')),'Undo New after PSF');
+    assert.equal((await graph(page)).openCores.length,0);assert(await page.locator('#psfSongPlayer').isHidden(),'Undo restores Files, not external PSF inspector sessions');
 
     return{browser:name,passed:true,checks,measurements,graph:final,errors,consoleErrors};
   }catch(error){await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-failure.png`)}).catch(()=>{});error.receipt={browser:name,passed:false,stage,error:error.stack,checks,view:await view(page).catch(()=>null),native:await native(page).catch(()=>null),manual:(await manual(page).catch(()=>[])).slice(-15),graph:await graph(page).catch(()=>null),errors,consoleErrors};throw error;}

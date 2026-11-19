@@ -1278,11 +1278,14 @@ window.addEventListener('pagehide', event => {
 });
 renderKeyboard();
 
-codeHost=setupSpuCodeHost({ensureAudio,getAudio:()=>audio,getInstrument:getNativeInstrumentDocument,
+codeHost=setupSpuCodeHost({ensureAudio,getAudio:()=>audio,getInstrument:getNativeInstrumentDocument,getCachedInstrument:()=>acceptedInstrument,
   getExportNotice:()=>psfSet||vabBank?'External PSF/VAB inspector sources are not included unless saved in Files. Keep their original files separately.':'',
   async beforeNewProject({isCurrent}){
     beginAssetOperation();preparation?.cancel();
     await stop();return isCurrent();
+  },
+  async beforeUndoFiles({isCurrent}){
+    beginAssetOperation();preparation?.cancel();await stop();return isCurrent();
   },
   async onNewProjectCommitted(){
     psfSet=null;psfHasSongs=false;vabBank=null;vabName='';bankChoices=[];bankSaveRequest=null;

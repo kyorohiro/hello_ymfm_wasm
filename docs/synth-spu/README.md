@@ -258,6 +258,29 @@ focused controls are left alone. It follows the existing Live snapshots, so
 intermediate writes between snapshots can be missed. PCM/sample arrays and
 waveform previews are not diffed. Highlighting adds no polling or sound changes.
 
+## Files Undo
+
+**Undo files** restores the complete Files snapshot from before the last
+recorded operation: saved and working versions, pending renames, selected
+file/editor mode and authored sound. It covers create/duplicate/rename/delete,
+file or Cassette import, explicit preset/bank saves, Save/Discard, Auto apply
+changes and New Cassette. Edits made after that snapshot are replaced too.
+Ordinary text typing and knob strokes do not add Files history entries;
+Monaco's normal text undo shortcuts remain independent.
+
+Undo stops the current keyboard, Code and PSF performance, restores the accepted
+sound and displays its working draft. It does not press Run/Play, re-trigger
+notes, or open audio when cold. Source files are restored byte-for-byte, but
+external PSF/VAB inspector sessions and playback positions are not rebuilt.
+Load the original source files again when you need their inspector session.
+
+History lasts only for this page session, with up to 20 entries and a 32 MiB
+estimated retained-data budget. Oldest entries are evicted. An operation too
+large to retain completes with an Undo-unavailable notice and clears older
+history. History is not exported or saved locally. If restoration fails, the
+current files and the Undo entry are kept for retry. A local save failure leaves
+the restored files usable and exportable in memory.
+
 ## New Cassette
 
 **Menu → New → Cassette…** opens a confirmation dialog. **Cancel** keeps the

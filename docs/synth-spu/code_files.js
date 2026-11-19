@@ -1,4 +1,5 @@
 // Compact SPU Files adapter for the shared Synth Code editor.
+import {createSpuFileHistory} from './file_history.js';
 import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
@@ -45,7 +46,7 @@ function copyPath(project,path){
   do{result=`${directory==='/'?'':directory}/${stem}-copy${index===1?'':`-${index}`}${extension}`;index++;}while(occupied(project,result));
   return result;
 }
-export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=async()=>{throw Error("Enable audio before saving a sound.");},applyInstrument=async()=>{},
+export function setupSpuCodeFiles({project=createSpuCodeProject(),getCachedInstrument=()=>null,getInstrument=async()=>{throw Error("Enable audio before saving a sound.");},applyInstrument=async()=>{},
   applyVabTone=async()=>{throw Error('VAB preset loading is unavailable.');},
   onBeforeWorkspaceReplace=async()=>{},onWorkspaceRestored=async()=>{},onNewProjectCommitted=async()=>{},getExportNotice=()=>'',downloadFile,setStatus=()=>{},store=createSpuProjectStore(),storage=globalThis.localStorage,document:doc=globalThis.document}={}){
   const panel=doc.getElementById('spuFilesPanel'),toggle=doc.getElementById('spuFilesToggle'),workspace=doc.getElementById('synthWorkspace');
@@ -54,6 +55,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   const win=doc.defaultView??globalThis,main=doc.querySelector?.('.spu-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
   let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false,pendingNewCassette=null,disposing=false;
   let soundEditOperation=0,pendingSoundEdit=Promise.resolve(),soundApplicationPending=false,soundGeneration=0,pendingSoundJournal=null,recoveryWarning=null;
+  const history=createSpuFileHistory();let historyWarning='';
   const getSettings=()=>project.settings;
   const onBeforeSoundApply=async()=>{};
   const applySettings=(sound,options={})=>sound||options.displayPreset?applyInstrument(sound??options.displayPreset,{...options,applyAudio:options.applyAudio!==false&&Boolean(sound)}):true;
@@ -73,9 +75,10 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   const actions=make('div');actions.className='spu-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
   for(const button of saving.querySelectorAll('button'))buttons.set(button.id,button);
-  for(const[id,label]of [['spuProjectNewButton','Cassette…'],['spuFileNewButton','＋ JS'],['spuFileSaveSoundButton','＋ Instrument'],['spuFileRenameButton','Rename…'],['spuFileDeleteButton','Delete…'],['spuFileImportButton','Add files…'],['spuFileExportButton','Export file'],['spuProjectExportButton','Export project'],['spuProjectImportButton','Import project…']]){
+  for(const[id,label]of [['spuFileUndoButton','Undo files'],['spuProjectNewButton','Cassette…'],['spuFileNewButton','＋ JS'],['spuFileSaveSoundButton','＋ Instrument'],['spuFileRenameButton','Rename…'],['spuFileDeleteButton','Delete…'],['spuFileImportButton','Add files…'],['spuFileExportButton','Export file'],['spuProjectExportButton','Export project'],['spuProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';
     (id==='spuFileNewButton'||id==='spuFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
+    if(id==='spuFileUndoButton')button.title='Restore Files to before the last file operation, including both versions. Stops performance; does not run Code or play notes.';
     if(id==='spuFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
     const destination={spuProjectNewButton:['spuMenuProjectNew','Cassette…'],spuProjectImportButton:['spuMenuProjectImport','Cassette · ZIP…'],spuProjectExportButton:['spuMenuProjectExport','Cassette · ZIP'],spuFileImportButton:['spuMenuFilesImport','Project files…'],spuFileExportButton:['spuMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
@@ -98,7 +101,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   for(const button of [newCassetteCancel,newCassetteExport,newCassetteCreate])button.type='button';
   newCassetteActions.append(newCassetteCancel,newCassetteExport,newCassetteCreate);newCassetteDialog.append(newCassetteTitle,newCassetteDescription,newCassetteActions);doc.body.append(newCassetteDialog);
   let dialogAction=null,dialogPath=null;
-  const say=message=>{if(!disposed){info.textContent=message;setStatus(message);}};
+  const say=message=>{if(!disposed){const text=message+(historyWarning?' '+historyWarning:'');info.textContent=text;setStatus(text);}};
   const report=error=>{if(error?.name!=='AbortError')say(`Files: ${error?.message??error}`);};
   const allowed=path=>{path=normalizeVirtualPath(path);if(path==='/'||path===SPU_PROJECT_MANIFEST||isCheckpointPath(path))throw Error('That path is reserved.');return path;};
   const soundPath=()=>project.activeSoundPath??null;
@@ -113,6 +116,17 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     const file=path&&fs.get(path);return file?.type==='text'?readSpuProjectSound(file.data):null;
   }
   function displaySound(){try{return soundFromFile(soundPath())??project.settings;}catch{return project.settings;}}
+  function capture(){
+    const snapshot={...project.snapshot(),codeState:code?.captureState?.()??project.getCodeState()};
+    // Native VAB Tone selection deliberately has no editable JSON yet. Retain
+    // its already-validated authored cache without requesting or opening audio.
+    if(!snapshot.settings){const cached=getCachedInstrument();if(cached){const sound=readSpuProjectSound(cached);if(!sound)throw Error('Invalid cached SPU instrument');snapshot.settings=sound;snapshot.savedSettings=structuredClone(sound);}}
+    return{project:snapshot,appliedPreset:appliedPreset?structuredClone(appliedPreset):null,filesVisible:!panel.hidden};
+  }
+  function pushHistory(value){
+    historyWarning=history.push(value)?'':'Undo unavailable for this operation: its snapshot exceeds the 32 MiB history limit.';
+    if(historyWarning)say('File operation completed.');
+  }
   function expandedSavePaths(paths){
     const result=new Set(paths);
     for(const path of paths)for(const[source,destination]of pendingMoves()){
@@ -209,9 +223,9 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     await api.ready;if(disposed||busy)return false;
     if(await code?.flush?.({persist:false})===false)return false;await pendingSoundEdit;if(disposed||busy)return false;
     const path=project.selectedPath??code?.activePath??soundPath();if(!all&&!path)return false;
-    const requested=all?project.getDirtyPaths():[path],targets=all?requested:expandedSavePaths(requested);setBusy(true,{lockMain:false});
+    const requested=all?project.getDirtyPaths():[path],targets=all?requested:expandedSavePaths(requested),before=requested.some(path=>project.isFileModified(path))?capture():null;setBusy(true,{lockMain:false});
     try{
-      if(all)project.saveAll();else if(targets.length)project.saveFiles(targets);clearMoves(targets);
+      if(all)project.saveAll();else if(targets.length)project.saveFiles(targets);clearMoves(targets);if(before)pushHistory(before);
       if(soundPath()&&!project.fs.has(soundPath())&&!project.savedFs.has(soundPath()))project.setActiveSoundPath(null);
       const active=soundPath(),changesSound=Boolean(active&&(all||targets.some(target=>inside(active,target))));
       const invalid=changesSound?await applyAccepted():null;
@@ -225,9 +239,9 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     const path=project.selectedPath??code?.activePath??soundPath();if(all?!project.getDirtyPaths().length:!path||!project.isFileModified(path))return false;
     const original=path?savedPath(path):null,active=soundPath(),activeOriginal=active?savedPath(active):null;
     const codePath=code?.activePath,codeOriginal=codePath?savedPath(codePath):null;
-    const targets=all?project.getDirtyPaths():expandedSavePaths([path]);setBusy(true,{lockMain:false});
+    const targets=all?project.getDirtyPaths():expandedSavePaths([path]),before=capture();setBusy(true,{lockMain:false});
     try{
-      project.discardFiles(targets);clearMoves(targets);
+      project.discardFiles(targets);clearMoves(targets);pushHistory(before);
       if(all&&codePath&&codePath!==codeOriginal)code?.pathChanged?.(codePath,codeOriginal,{preserveExecution:!project.autoApply});
       else if(!all&&path!==original)code?.pathChanged?.(path,original,{preserveExecution:!project.autoApply});
       if(active&&(all||inside(active,path))){
@@ -242,14 +256,55 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   async function setAutoApply(enabled){
     await api.ready;if(disposed||busy)return false;
     if(await code?.flush?.({persist:false})===false)return false;await pendingSoundEdit;
-    setBusy(true,{lockMain:false});
+    if(project.autoApply===enabled)return true;
+    const before=capture();setBusy(true,{lockMain:false});
     try{
-      project.setAutoApply(enabled);let invalid=null;
+      project.setAutoApply(enabled);pushHistory(before);let invalid=null;
       if(enabled)invalid=await applyAccepted({source:'auto'});
       else await applySettings(project.savedSettings,{record:false,source:'auto',applyAudio:false,displayPreset:displaySound()});
       await code?.flush?.({persist:false});protectSound();render();const durable=await persistCode();
       say(`${enabled?'Auto apply on. Edits save automatically.':'Auto apply off. Edit files, then Save to apply changes.'}${invalid?` JSON not applied; current sound kept. ${invalid.message}`:''}${durable===false?' Local draft unavailable; Export Cassette to keep both versions.':''}`);return true;
     }finally{if(!disposed)setBusy(false);}
+  }
+  async function undo(){
+    await api.ready;if(disposed||disposing||busy||pendingNewCassette!==null||!history.peek())return false;
+    const token=++operation,current=()=>!disposed&&!disposing&&token===operation;
+    if(await code?.flush?.({persist:false})===false||!current())return false;
+    let pending;do{pending=pendingSoundEdit;await pending;}while(current()&&pending!==pendingSoundEdit);
+    if(!current())return false;
+    // A corrupt/incompatible entry must reject before stopping any owner.
+    const entry=history.peek(),candidate=createSpuCodeProject({snapshot:entry.project}),before=capture(),oldIdentity=identity,oldPersistence=persistenceReady;
+    let retired=false,applied=false,committed=false;
+    setBusy(true);persistenceReady=false;restoring=true;
+    try{
+      retired=true;
+      if(await code?.workspaceReplaced?.()===false||!current())return false;
+      if(await onBeforeWorkspaceReplace({reason:'undo',isCurrent:current})===false||!current())return false;
+      soundEditOperation++;soundApplicationPending=false;
+      project.restore(candidate.snapshot());identity=workspaceId();appliedPreset=entry.appliedPreset;presetCache.clear();
+      applied=true;
+      if(await applySettings(project.savedSettings,{record:false,source:'undo',load:false,applyAudio:true,displayPreset:project.settings,isCurrent:current})===false||!current())return false;
+      if(await code?.restoreState?.(project.getCodeState())===false||!current())return false;
+      history.pop();historyWarning='';committed=true;
+      soundGeneration=0;pendingSoundJournal=null;recoveryWarning=null;
+      try{storage?.removeItem(SPU_SOUND_JOURNAL_KEY);}catch{}
+      setVisible(entry.filesVisible);protectSound();restoring=false;persistenceReady=oldPersistence;
+      render();const durable=await persistCode();
+      say('Undid file operation. Performance stopped; Code was not run.'+(durable===false?' Local save unavailable; Export Cassette to keep the restored files.':''));return true;
+    }finally{
+      if(!committed&&retired){
+        project.restore(before.project);identity=oldIdentity;appliedPreset=before.appliedPreset;presetCache.clear();
+        if(!disposed&&!disposing){
+          if(applied)try{
+            if(await applySettings(project.savedSettings,{record:false,source:'undo-rollback',load:false,applyAudio:true,displayPreset:project.settings,isCurrent:()=>!disposed&&!disposing&&token===operation})===false)throw Error('Sound restoration cancelled');
+          }catch(error){report(Error('Current sound could not be restored: '+error.message));}
+          try{await code?.restoreState?.(project.getCodeState());}catch(error){report(Error('Current editor could not be restored: '+error.message));}
+          setVisible(before.filesVisible);
+        }
+      }
+      restoring=false;persistenceReady=oldPersistence;
+      if(!disposed&&!disposing){setBusy(false);if(!committed)schedule();}
+    }
   }
   function vabPreset(file){
     let saved=presetCache.get(file.path);
@@ -313,6 +368,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     buttons.get('spuFileSaveAllButton').disabled=busy||!project.getDirtyPaths().length;
     buttons.get('spuFileDiscardButton').disabled=busy||!project.selectedPath||!project.isFileModified(project.selectedPath);
     buttons.get('spuFileDiscardAllButton').disabled=busy||!project.getDirtyPaths().length;
+    buttons.get('spuFileUndoButton').disabled=busy||!history.read().entries;
     autoToggle.checked=project.autoApply;autoToggle.disabled=busy;
     newCassetteExport.disabled=newCassetteCreate.disabled=busy;
 
@@ -387,11 +443,11 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     const entries=[];for(const file of files){if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');const bytes=new Uint8Array(await file.arrayBuffer());entries.push({path:'/'+basename(file.name),type:isSpuTextPath(file.name)?'text':'binary',data:isSpuTextPath(file.name)?decoder.decode(bytes):bytes});}
     if(disposed||token!==operation)return[];await code?.flush?.();if(disposed||token!==operation)return[];
     const candidate=createSpuCodeProject({snapshot:project.snapshot()}),paths=candidate.importFiles(entries),replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
-    setBusy(true);try{
+    const before=capture();setBusy(true);try{
       if(replaceExecution){if(await code.workspaceReplaced()===false||disposed||token!==operation)return[];}
       if(disposed||token!==operation)return[];
       for(const path of paths)if(/\.vab$/i.test(path))presetCache.delete(path);
-      project.restore(candidate.snapshot());
+      project.restore(candidate.snapshot());pushHistory(before);
       if(replaceActive||replaceExecution)await code.restoreState(project.getCodeState());
       render();await persistCode();say(`Added ${paths.length} file(s). Code was not run.`);return paths;
     }finally{if(!disposed)setBusy(false);}
@@ -399,11 +455,11 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   async function importProject(bytes){
     await api.ready;if(disposed||busy)return false;const token=++operation;
     const candidate=await project.prepareImport(bytes);if(disposed||token!==operation)return false;
-    await code?.flush?.();if(disposed||token!==operation)return false;setBusy(true);
+    await code?.flush?.();if(disposed||token!==operation)return false;const before=capture();setBusy(true);
     try{
       if(await code?.workspaceReplaced?.()===false||disposed||token!==operation)return false;
       await onBeforeWorkspaceReplace();if(disposed||token!==operation)return false;
-      restoring=true;try{soundEditOperation++;appliedPreset=null;presetCache.clear();project.restore(candidate);identity=workspaceId();}finally{restoring=false;}
+      restoring=true;try{soundEditOperation++;appliedPreset=null;presetCache.clear();project.restore(candidate);identity=workspaceId();pushHistory(before);}finally{restoring=false;}
       await onWorkspaceRestored({settings:project.settings,savedSettings:project.savedSettings});
       await code?.restoreState?.(project.getCodeState());await persistCode();say('SPU project imported. Code was not run.');return true;
     }finally{if(!disposed)setBusy(false);}
@@ -427,7 +483,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
 		if (disposed || disposing || busy || pendingNewCassette !== null) return false;
 		const token = ++operation,
 			current = () => !disposed && !disposing && token === operation;
-		const previousIdentity = identity, previousPersistence = persistenceReady;
+		const previousIdentity = identity, previousPersistence = persistenceReady,previousApplied=appliedPreset?structuredClone(appliedPreset):null,previousVisible=!panel.hidden;
 		const backupNotice=exportCurrent?getExportNotice():'';
 		let previous = null, retired = false, applyAttempted = false, committed = false, failure = null, locked=false, cleanupError=null;
 		pendingNewCassette = token;
@@ -441,7 +497,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
             let pending;
             do{pending=pendingSoundEdit;await pending;}while(current()&&pending!==pendingSoundEdit);
             if(!current())return false;setBusy(true);locked=true;restoring=true;
-            previous=createSpuCodeProject({snapshot:{...project.snapshot(),codeState:code?.captureState?.()??project.getCodeState()}}).snapshot();
+            previous=createSpuCodeProject({snapshot:capture().project}).snapshot();
 			if (exportCurrent) {
 				const oldProject = createSpuCodeProject({ snapshot: previous });
 				const exported = await (downloadFile ?? download)(oldProject.exportProject(),
@@ -460,6 +516,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
 			identity = workspaceId();
 			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
 			committed = true;
+            pushHistory({project:previous,appliedPreset:previousApplied,filesVisible:previousVisible});
             try{await onNewProjectCommitted({isCurrent:current});}catch(error){cleanupError=error;report(error);}
             soundGeneration=0;pendingSoundJournal=null;recoveryWarning=null;
             try{storage?.removeItem(SPU_SOUND_JOURNAL_KEY);}catch{}
@@ -517,7 +574,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
       const runningPath=executionPath(),movedCodePath=inside(runningPath,source)?destination+runningPath.slice(source.length):null;
       if(!copy&&project.autoApply&&movedCodePath&&!isSpuCodePath(movedCodePath))if(await code?.stop?.()===false||disposed||token!==operation)return false;
       if(disposed||token!==operation)return false;
-      const previousApplied=appliedPreset,active=soundPath();
+      const before=capture(),previousApplied=appliedPreset,active=soundPath();
       let moves=null;
       if(!copy&&!project.autoApply){
         const prior=pendingMoves(),covered=prior.some(([,to])=>inside(source,to));
@@ -535,7 +592,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
         if(inside(project.selectedPath,source))project.select(destination+project.selectedPath.slice(source.length));
         if(project.autoApply)code?.pathChanged?.(source,destination);else code?.pathChanged?.(source,destination,{preserveExecution:true});
       }
-      protectSound();
+      pushHistory(before);protectSound();
       render();await persistCode();return true;
     }finally{if(!disposed)setBusy(false);}
   }
@@ -548,12 +605,12 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   }
   async function remove(path){
     if(disposed||busy)return false;const token=++operation;await code?.flush?.();if(disposed||token!==operation)return false;path=allowed(path);setBusy(true);
-    try{if(project.autoApply&&inside(executionPath(),path))await code.stop();if(disposed||token!==operation)return false;
+    try{const before=capture();if(project.autoApply&&inside(executionPath(),path))await code.stop();if(disposed||token!==operation)return false;
       if(inside(project.selectedPath,path))project.select(null);
       project.fs.remove(path,{recursive:true});
       if(project.autoApply)code?.pathChanged?.(path,null);else code?.pathChanged?.(path,null,{preserveExecution:true});
       if(project.autoApply&&inside(soundPath(),path))project.setActiveSoundPath(null);
-      protectSound();render();await persistCode();return true;
+      pushHistory(before);protectSound();render();await persistCode();return true;
     }finally{if(!disposed)setBusy(false);}
   }
   async function createFile(path){
@@ -561,8 +618,8 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     await code?.flush?.();if(disposed||token!==operation)return false;
     if(occupied(project,path))throw Error('That path already exists.');setBusy(true,{lockMain:false});
     try{
-      const candidate=createSpuCodeProject({snapshot:project.snapshot()});if(directory)candidate.fs.mkdir(path,{recursive:true});else candidate.importFiles([{path,type:'text',data:''}]);
-      candidate.restore(candidate.snapshot());project.fs.restore(candidate.fs.snapshot());project.select(path);reveal(path);if(directory)expanded.set(path,true);render();
+      const before=capture(),candidate=createSpuCodeProject({snapshot:project.snapshot()});if(directory)candidate.fs.mkdir(path,{recursive:true});else candidate.importFiles([{path,type:'text',data:''}]);
+      candidate.restore(candidate.snapshot());project.fs.restore(candidate.fs.snapshot());pushHistory(before);project.select(path);reveal(path);if(directory)expanded.set(path,true);render();
       if(!directory)await openInCurrentMode(path);if(disposed||token!==operation)return false;
       await persistCode();say(`Created ${path}.`);return true;
     }finally{if(!disposed)setBusy(false);}
@@ -578,7 +635,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
       if(requestedPath!==undefined){sound.name=basename(path).replace(/\.spu\.json$/i,'');readSpuProjectSound(sound);}
       // importFiles validates its candidate before touching this workspace.
       // Name / size failures must keep both existing files and selection.
-      project.importFiles([{path,type:'text',data:JSON.stringify(sound,null,2)+'\n'}]);
+      const before=capture();project.importFiles([{path,type:'text',data:JSON.stringify(sound,null,2)+'\n'}]);pushHistory(before);
       project.saveFiles([path]);project.setActiveSoundPath(path);project.setSettings(sound);project.setSavedSettings(sound);
       if(!project.autoApply)await applySettings(sound,{record:false,source:'save',load:false,applyAudio:true,displayPreset:sound});
       project.select(path);reveal(path);setVisible(true);render();
@@ -615,7 +672,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
       const binaryEntries=binaries.map(asset=>{const path=newVabPath(asset.name,used);used.add(foldedPath(path));return {path,type:'binary',data:asset.data};});
       if(!current())return false;
       if(presetSelect)for(const entry of entries)presetCache.set(entry.path,{kind:'json',data:entry.data,name:entry.name});
-      project.importFiles([...entries.map(({name,...entry})=>entry),...binaryEntries]);
+      const before=capture();project.importFiles([...entries.map(({name,...entry})=>entry),...binaryEntries]);pushHistory(before);
       const paths=entries.map(entry=>entry.path),selectedPath=paths[0]??binaryEntries[0].path;project.select(selectedPath);reveal(selectedPath);setVisible(true);render();
       if(paths.length)await code?.openFile?.(paths[0],{show:false});if(!current())return false;
       const persisted=await persistCode({force:true});completed=true;if(!current())return false;
@@ -651,7 +708,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   listen(newCassetteExport,'click',()=>void newProject({exportCurrent:true}).catch(report));
   listen(newCassetteCreate,'click',()=>void newProject().catch(report));
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(choice.kind==='vab'?selectVabTone(choice.path,choice.toneNumber):selectFile(choice.path)).catch(report);});
-  for(const[id,fn]of [['spuProjectNewButton',askNewCassette],['spuFileNewButton',()=>ask('new')],['spuFileRenameButton',()=>ask('rename')],['spuFileDeleteButton',()=>ask('delete')],['spuFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['spuProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['spuFileSaveSoundButton',()=>void saveSound().catch(report)],['spuProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['spuFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
+  for(const[id,fn]of [['spuFileUndoButton',()=>void undo().catch(report)],['spuProjectNewButton',askNewCassette],['spuFileNewButton',()=>ask('new')],['spuFileRenameButton',()=>ask('rename')],['spuFileDeleteButton',()=>ask('delete')],['spuFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['spuProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['spuFileSaveSoundButton',()=>void saveSound().catch(report)],['spuProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['spuFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
   listen(autoToggle,'change',()=>{void setAutoApply(autoToggle.checked).catch(report);autoToggle.blur();});
@@ -660,7 +717,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,selectVabTone,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveInstruments,newProject,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,selectVabTone,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveInstruments,newProject,undo,getUndoState:()=>history.read(),
     recordSoundEdit,adoptExternalSound,canEditSound,codeEdited,recoverCodeState,isAutoApply:()=>project.autoApply,getSavedEditorPreset:()=>project.savedSettings,
     saveCurrent,saveAll:()=>saveCurrent(true),discardCurrent,discardAll:()=>discardCurrent(true),setAutoApply,
     getWorkingInstrument:()=>project.settings,
@@ -672,7 +729,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
         return recordSoundEdit(value);
       }).catch(report);return pendingSoundEdit;
     },
-    async dispose(){if(disposed)return;disposing=true;operation++;newCassetteDialog.close();newCassetteDialog.remove();contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
+    async dispose(){if(disposed)return;disposing=true;operation++;newCassetteDialog.close();newCassetteDialog.remove();history.clear();contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };
   function recoverSound(saved){
     const raw=storage?.getItem(SPU_SOUND_JOURNAL_KEY);if(!raw)return false;
