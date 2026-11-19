@@ -11,6 +11,12 @@ const paths=[
 ];
 const at=(value,path)=>path.split('.').reduce((item,key)=>item[key],value);
 const same=(a,b)=>Array.isArray(a)&&Array.isArray(b)?a.length===b.length&&a.every((v,i)=>v===b[i]):a===b;
+// An accepted document may follow direct physical-CH edits. Only the fields
+// deliberately changed in that document should replace those live settings.
+export function readHuc6280AuthorFields(value) {
+  if(!Array.isArray(value)||value.length>paths.length||new Set(value).size!==value.length||value.some(path=>!paths.includes(path)))throw TypeError('Expected unique HuC6280 author fields');
+  return [...value];
+}
 // AudioWorkletGlobalScope need not provide structuredClone. Preset fields are
 // validated plain data; strings (including PCM) are immutable and need no copy.
 export function copyHuc6280CodeValue(value){

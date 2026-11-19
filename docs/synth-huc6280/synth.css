@@ -163,6 +163,11 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .huc-files-toolbar,.huc-files-actions { display:flex; flex-wrap:wrap; gap:5px; }
 .huc-files-toolbar button,.huc-files-actions button { min-height:28px; padding:4px 7px; font-size:.7rem; }
 .huc-files-actions { padding-top:9px; margin-top:8px; border-top:1px solid var(--line); }
+.huc-files-save-controls { display:flex; flex-wrap:wrap; align-items:center; gap:5px; padding-bottom:10px; margin-bottom:9px; border-bottom:1px solid var(--line); }
+.huc-files-save-controls label { display:flex; align-items:center; gap:5px; flex-basis:100%; font-size:.73rem; }
+.huc-files-save-controls input { margin:0; }
+.huc-files-save-controls button { min-height:28px; padding:4px 7px; font-size:.7rem; }
+.huc-file-unsaved { margin-left:5px; color:#a3440d; font-size:.85em; }
 .huc-files-status { margin:8px 0 0; font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
 .huc-files-path { display:none; }
 #hucFilesTree { min-height:80px; max-height:55vh; overflow:auto; }

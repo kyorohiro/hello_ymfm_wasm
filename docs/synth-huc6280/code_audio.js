@@ -17,8 +17,8 @@ export function resolveHuc6280CodeNoteTarget(client,target,method,args){
  * No independent HuC6280, AudioContext or speaker connection is created.
  */
 export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},createFxRack=createNativeFXRack,
-  createOutput=createSynthCodeOutput,readFile,readCddaFile,resolveCddaPath,createMedia=createHuc6280Cdrom2Audio,msm5205Source,cddaSource}={}) {
-  for(const callback of [ensureReady,getAudio,onLog,createFxRack,createOutput,createMedia])
+  createOutput=createSynthCodeOutput,readFile,readCddaFile,resolveCddaPath,createMedia=createHuc6280Cdrom2Audio,msm5205Source,cddaSource,getRestorePreset=()=>null}={}) {
+  for(const callback of [ensureReady,getAudio,onLog,createFxRack,createOutput,createMedia,getRestorePreset])
     if(typeof callback!=='function')throw new TypeError('HuC6280 Code audio requires host callbacks');
   let epoch=0,owner=null,disposed=false,stopping=null;
   const output=createOutput({getContext:()=>getAudio()?.context,getGain:()=>getAudio()?.codeFadeNode});
@@ -111,6 +111,11 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
     const task=Promise.resolve().then(async()=>{
       const results=await Promise.allSettled([msm5205Source,cddaSource].map(source=>Promise.resolve().then(()=>source?.stopCode())));
       try{await engine?.command('stop');}catch(reason){results.push({status:'rejected',reason});}
+      // Physical Code-channel edits are session state. After the Stop fade,
+      // restore the accepted author instrument, never a pending UI draft.
+      if(!disposed&&engine&&engine===getAudio())try{
+        const preset=getRestorePreset();if(preset)await engine.command('loadPreset',[preset]);
+      }catch(reason){results.push({status:'rejected',reason});}
       const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
     }).then(()=>undefined);
     stopping=task.finally(()=>{if(stopping===result)stopping=null;});const result=stopping;

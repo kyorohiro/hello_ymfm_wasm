@@ -148,6 +148,30 @@ test('common carrier wave/volume edits keep the hardware LFO modulator wave and 
   assert.deepEqual(after.waveforms[0],p.wave);assert.equal(after.registers[0][4]&31,19);assert.equal(after.registers[0][5]>>4,7);
 });
 
+test('accepted author fields preserve Code pitch and physical-channel companion edits',async t=>{
+  const i=await setup(t),accepted=plain(i),{session}=i.beginCode();
+  i.code(session,'noteOn',[2,'A4']);i.applyCodeEdit(session,{channel:2,changes:{'pan.left':5}});
+  i.code(session,'setFrequency',[2,880]);i.generateStereo(256);const before=i.observeCode();
+  const next=structuredClone(accepted);next.volume=12;
+  i.applyCodePreset(session,next,{replace:false,fields:['volume']});const after=i.observeCode();
+  assert.equal(after.registers[2][4]&31,12);assert.equal(after.registers[2][4]&128,128);
+  assert.equal(after.registers[2][5],before.registers[2][5],'Save does not undo an unrelated physical pan edit');
+  assert.equal(period(after,2),period(before,2));assert.deepEqual(after.waveforms,before.waveforms);
+  assert.equal(after.positionFrames,before.positionFrames);assert.deepEqual(i.read().preset,next);
+  const unchanged=i.observeCode();next.name='Only document metadata';
+  i.applyCodePreset(session,next,{replace:false,fields:[]});assert.deepEqual(i.observeCode(),unchanged);
+});
+
+test('malformed author field masks reject atomically before changing the Code chip',async t=>{
+  const i=await setup(t),p=plain(i),{session}=i.beginCode();i.code(session,'noteOn',[0,'C4']);const before=i.observeCode();
+  for(const fields of [null,{},['unknown'],['volume','volume'],['__proto__']]) {
+    assert.throws(()=>i.applyCodePreset(session,p,{replace:false,fields}),/author fields/);
+    assert.deepEqual(i.observeCode(),before);
+  }
+  assert.throws(()=>i.applyCodePreset(session,p,{replace:true,fields:[]}),/incremental/);
+  assert.deepEqual(i.observeCode(),before);
+});
+
 test('a deliberate CH2 output gate edit takes effect and old Code releases cannot steal it',async t=>{
   const i=await setup(t);plain(i);const {session}=i.beginCode();i.code(session,'noteOn',[1,'A3']);
   i.applyCodeEdit(session,{channel:0,changes:{'lfo.output.enabled':true}});

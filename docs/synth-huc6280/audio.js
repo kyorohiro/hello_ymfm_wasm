@@ -2,7 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
 import {readPreset} from './preset.js';
-import {readHuc6280CodeEdit} from './code_parameter_edit.js';
+import {readHuc6280CodeEdit,readHuc6280AuthorFields} from './code_parameter_edit.js?v=huc-working-saved-1';
 import {PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js?v=huc-media-live-1';
 
 export const HUC6280_SYNTH_BALANCE = 1;
@@ -96,7 +96,7 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
         if (!response.ok) throw new Error(`HuC6280 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?v=huc-manual-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=huc-working-saved-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();
@@ -191,11 +191,13 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
       }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
       return owner.promise;
     }
-    async function applyCodePreset(value,{isCurrent=()=>true,replace=true}={}){
+    async function applyCodePreset(value,{isCurrent=()=>true,replace=true,fields}={}){
       assertOpen();const next=readPreset(value),owner=codeOwner;
       if(typeof isCurrent!=='function'||typeof replace!=='boolean')throw TypeError('HuC6280 preset requires ownership and replacement options');
+      if(fields!==undefined&&replace)throw TypeError('Author fields require an incremental preset');
+      const options={replace,...(fields===undefined?{}:{fields:readHuc6280AuthorFields(fields)})};
       const check=()=>{assertOpen();if(!owner||owner!==codeOwner||owner.closed||owner.generation!==codeGeneration||!isCurrent())throw huc6280CodeCancelled();};
-      check();await owner.promise;check();const result=await command('applyCodePreset',[owner.session,next,{replace}]);check();return result;
+      check();await owner.promise;check();const result=await command('applyCodePreset',[owner.session,next,options]);check();return result;
     }
     async function applyCodeEdit(value,{isCurrent=()=>true}={}){
       assertOpen();const edit=readHuc6280CodeEdit(value),owner=codeOwner;

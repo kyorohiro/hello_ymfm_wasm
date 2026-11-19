@@ -300,9 +300,10 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     }
     update();return true;
   }
-  function pathChanged(source,destination) {
+  function pathChanged(source,destination,{preserveExecution=false}={}) {
+    if(typeof preserveExecution!=='boolean')throw TypeError('Code execution preservation must be boolean');
     const executing=within(executionPath,source);let stopExecution=false;
-    if(executing) {
+    if(executing&&!preserveExecution) {
       const next=destination?destination+executionPath.slice(source.length):null;
       if(next&&codePath(next))executionPath=next;else stopExecution=true;
     }
@@ -315,7 +316,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
       rememberState();update();
     }
     else {
-      if(!executionPath&&codePath(activePath)&&!executing)stopExecution=true;
+      if(!preserveExecution&&!executionPath&&codePath(activePath)&&!executing)stopExecution=true;
       activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}rememberState();update();
     }
     // Start the physical Stop after updating editor ownership so the path
@@ -375,6 +376,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
         validateSource(entry.path,entry.source);
         if(project.recoverCode&&typeof entry.autoSave==='boolean'&&(entry.savedSource===null||typeof entry.savedSource==='string'))project.recoverCode(entry.path,entry);
         else writeText(entry.path,entry.source);
+        await files?.recoverCodeState?.(entry.path);
       }
     }catch(error){setStatus(`Could not recover the last code edit: ${error.message}`);}
     await restoreState(files?.getCodeState?.());

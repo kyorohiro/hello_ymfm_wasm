@@ -10,7 +10,7 @@ test('HuC6280 note ownership resolves only physical channels on the shared chip'
   const client={};for(const channel of[0,1,2,3,4,5])for(const method of['noteOn','keyOn','noteOff','keyOff'])assert.deepEqual(resolveHuc6280CodeNoteTarget(client,client,method,[channel]),{target:client,channel});
   assert.equal(resolveHuc6280CodeNoteTarget(client,client,'noteOn',[6]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,client,'setNote',[0]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,{},'keyOn',[0]),null);
 });
-function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=false,pendingFade=false,msm5205Source,cddaSource,readCddaFile,resolveCddaPath}={}){
+function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=false,pendingFade=false,msm5205Source,cddaSource,readCddaFile,resolveCddaPath,getRestorePreset}={}){
   const events=[],racks=[],clients=[],contexts=[],outputCalls=[],media=[];let engine,stops=0,active=0,serial=0,stopTask=null;
   const fadeTask=deferred();
   function node(name,context,gain=1){return{name,context,gain:{value:gain},edges:new Set(),connect(target){this.edges.add(target);events.push(['connect',name,target.name]);},
@@ -24,13 +24,13 @@ function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=fa
         const call=(method,args)=>{if(active!==token)throw new DOMException('Old session','AbortError');events.push([method,...args]);return Promise.resolve();};
         const client={sampleRate:48000,nativeSampleRate:44100,channelCount:24,noteOn:(...args)=>call('noteOn',args),noteOff:(...args)=>call('noteOff',args)};
         const task=deferred();clients.push({task,client,token});if(!pendingFirstClient||clients.length>1)task.resolve(client);return task.promise;
-      },command(method){assert.equal(method,'stop');events.push(['stop']);stops++;active=0;
+      },command(method,args){if(method==='loadPreset'){events.push(['restore',structuredClone(args[0])]);return Promise.resolve();}assert.equal(method,'stop');events.push(['stop']);stops++;active=0;
         if(pendingStop){stopTask=deferred();return stopTask.promise;}return Promise.resolve();}};
     return result;
   }
   engine=makeEngine();
   const host=createHuc6280CodeAudio({ensureReady:async()=>{events.push(['ensure']);},getAudio:()=>engine,
-    msm5205Source,cddaSource,readCddaFile,resolveCddaPath,
+    msm5205Source,cddaSource,readCddaFile,resolveCddaPath,getRestorePreset,
     createFxRack:async context=>{
       const task=deferred(),names=new Map();let chain=[];
       const rack={node:node('fx'+racks.length,context),stops:0,disposals:0,
@@ -203,4 +203,16 @@ test('beforeStop attempts both revocations and always fades even when a source r
     const fading=f.host.beforeStop(),rejected=assert.rejects(fading,/Revoke failed/);assert.deepEqual(calls,['msm','cdda']);assert(f.outputCalls.includes('fade'));assert.equal(f.stops,0);
     f.releaseFade();await rejected;await f.host.stop();assert.equal(f.stops,1);
   }finally{f.releaseFade();await f.host.dispose();}
+});
+
+
+test('Code Stop restores the accepted instrument after its fade, keeping an unaccepted draft out of the keyboard',async()=>{
+  const accepted={name:'Accepted sound',volume:9},draft={name:'Working draft',volume:3};
+  const f=fixture({getRestorePreset:()=>accepted});
+  try{
+    await f.host.prepare();await f.host.beforeStop();await f.host.stop();
+    const fade=f.events.findIndex(event=>event[0]==='fade'),stop=f.events.findIndex(event=>event[0]==='stop'),restored=f.events.findIndex(event=>event[0]==='restore');
+    assert(fade>=0&&stop>fade&&restored>stop);assert.deepEqual(f.events[restored],['restore',accepted]);
+    assert.notDeepEqual(f.events[restored][1],draft);assert.equal(f.contexts[0].closeCalls,0);
+  }finally{await f.host.dispose();}
 });

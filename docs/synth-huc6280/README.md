@@ -229,10 +229,10 @@ The **MSM5205** tab has one **CH1** source and **CD-DA** has one **Stereo** sour
 their child tabs describe those single outputs. Mixer has no channel editor.
 **Auto update** reads the configured wave and sent registers at up to 20 Hz;
 turn it off to reduce readback. This is an observation of software writes, not
-an oscillator-phase measurement. During Code, manual channel edits retain their changed
-fields in the authored instrument. Raw Code register writes do not overwrite
-the saved instrument. **Stop** fades the software output briefly, cancels Code
-and restores the authored settings with all notes released.
+an oscillator-phase measurement. Physical-channel edits and raw Code register
+writes are session changes; they do not overwrite the common sound document.
+**Stop** fades the software output briefly, cancels Code and restores the saved
+common instrument with all notes released.
 
 In normal mode a physical CH has independent settings and keyboard ownership.
 Selecting CH or Auto alone does not copy or unify settings. Stop / blur releases
@@ -294,9 +294,36 @@ silent, and `play()` starts the selected track. `pause()`, `resume()`,
 Track playback, file preparation, scheduling and FX are software functions.
 
 **Files** holds `index.js`, presets, text and binary assets. Selecting a sound
-loads it without stopping Code; selecting JSON while Keyboard is visible keeps
+chooses Auto without stopping Code or changing VGM Play/Pause; selecting JSON while Keyboard is visible keeps
 the Keyboard tab. Right-click a file for duplicate, rename, delete and creation
 actions. Save sound stores the common Auto instrument under `presets/`.
+
+**Auto apply** is On by default: edits become saved files immediately, and valid
+sound changes apply to the instrument. Turn it Off to keep a separate working
+version. Files marks changed paths with **●**. **Save** or **Ctrl/Cmd+S** accepts
+the selected file; **Save all** accepts every working change; **Discard** restores
+the selected file from its saved version. **Undo files** restores the previous
+file/project operation. Accepting a sound keeps Code loops, context, FX and
+unrelated live register fields running; physical CH controls remain immediate.
+
+Knobs, Main/LFO drawings and the selected sound JSON edit the same working
+document. A valid JSON edit refreshes the controls; an incomplete JSON remains
+editable and keeps the last playable sound. Knob edits are blocked until that
+document is valid, so they cannot erase unfinished text. Saving invalid JSON
+saves its text without replacing the last playable instrument.
+
+**Save never runs JavaScript.** Explicit **Run / Apply** uses saved entry code,
+modules and project assets. In manual mode, save those files first, then use
+Run / Apply. Source edits, sound selection and Save keep an existing performance
+running. A manual rename or deletion also keeps its current accepted execution
+path until the next Run / Apply.
+
+Local recovery and Cassette ZIP preserve both versions, the saving mode and the
+linked sound document. Ordinary files in the ZIP contain saved content; project
+metadata carries working differences. Unchanged binary assets appear once.
+Save accepts edits in memory; if browser storage fails, retain the project and
+use **Export project** to keep both versions. Temporary session WAVs still need
+to be reopened separately.
 The **Save to presets** button beside Channel saves the selected Auto or physical
 CH sound directly to `presets/`, without Capture, changing the channel view,
 selecting the new JSON, switching Keyboard / Code or stopping playback. The new
@@ -311,7 +338,11 @@ restore editable data without running Code or opening audio. Cassette projects
 are limited to **16 MiB expanded**, including settings and metadata; the existing
 direct audio / preset imports retain their **32 MiB** input limit. A large sound
 can therefore be played and saved separately even if it exceeds the project
-limit.
+limit. The standalone **Load preset…** action explicitly accepts an external
+sound, including in manual saving mode, and detaches the previous linked JSON.
+It never overwrites that document. If the sound cannot fit in Files, use
+**Save preset** to export it separately; Auto apply can keep editing that
+external sound in memory, while manual document edits require room in Files.
 
 ## Sounds from VGM
 
@@ -483,9 +514,9 @@ fields and are not saved in a Cassette.
 Code and reference playback run one at a time. Play / Resume stops Code and
 releases manual keys; Run stops the reference song. **Stop all sound** stops
 both. Select **Auto** to play or adjust your own instrument while the song
-continues. Preset loads in Auto view also keep playback; loading another sound
-while viewing a physical song CH stops the reference and loads the authored
-instrument. Capture deliberately keeps the song paused.
+continues. Loading another sound chooses Auto and keeps the current Play/Pause
+position, including when a physical song CH was selected. Capture deliberately
+keeps the song paused.
 
 Select **CH1–CH6** to see the VGM's Wave, Noise, LFO, level, stereo balance,
 period and Gate in the same instrument UI. While playing, change hardware
@@ -809,6 +840,14 @@ Keyboard／Codeを切り替えてもloop・context・接続は維持します。
 つまみや背景へFocusを移すと鍵盤演奏ができます。編集欄・文字入力・select・dialog内は演奏しません。
 古い手動離鍵やPitch解除で新しいCodeの発音・周波数を巻き戻さず、Octave／CH変更は手動Releaseも解放します。
 CH1–CH6の表示・編集と自動更新、Files・Cassetteの保存／読込、型補完・実装への移動に対応します。
+FilesのAuto applyは初期Onで、編集を保存し、有効な音色変更を反映します。Offではworkingとsavedを分け、未保存のパスへ●を表示します。
+Save／Ctrl・Cmd+Sは選択ファイル、Save allは全変更を保存し、Discardは選択ファイルをsavedへ戻します。Undo filesでファイル／Project操作を戻せます。
+つまみ・波形と選択中の音色JSONは同じ文書を編集します。書きかけのJSONは消さず、最後の有効な音を保持し、つまみで上書きしません。
+手動保存時の音色はSaveで反映し、Codeのloop・context・FX・無関係なレジスタ値を維持します。物理CHの編集は直接反映するsession操作です。
+SaveだけではJavaScriptを実行しません。明示的なRun／ApplyはsavedのCode・module・素材を使います。
+両状態・保存mode・選択音色をlocal recovery／Cassetteへ残し、ZIP内の通常ファイルはsaved、差分はmetadataへ収めます。変更していないbinaryは重複しません。
+ブラウザー保存に失敗してもメモリ内の両状態は保ちます。Export projectで退避してください。session WAVは引き続き保存対象外です。
+音色の選択はAutoへ切り替わり、CodeやVGMのPlay／Pause位置を保ちます。KeyboardからCodeへ無理に切り替えません。
 HuC6280タブの下の子タブでAuto／CH1–CH6を選びます。Autoは共通音色と自動割当、各CHは表示・編集・鍵盤の対象を揃えます。
 MSM5205は単一のCH1、CD-DAはStereoの音源を表示し、MixerにはCH編集タブを出しません。
 FilesのExamplesボタンから`examples/huc6280.js`／`msm5205.js`／`cdda.js`を明示追加できます。

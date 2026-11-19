@@ -490,6 +490,29 @@ test('JSON display and autosave leave a running JS performance independent, incl
   }finally{f.cleanup();}
 });
 
+test('manual working renames and deletions can retain the running saved execution path',async()=>{
+  const f=fixture({source:'// accepted program'});
+  try{
+    await f.controls.ready;await f.controls.setMode('code');f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.runs.length===1);
+    const context=f.runtime.getContext();f.project.fs.writeText('/renamed.js',f.project.fs.get('/index.js').data);f.project.fs.remove('/index.js');
+    f.controls.pathChanged('/index.js','/renamed.js',{preserveExecution:true});
+    assert.equal(f.controls.activePath,'/renamed.js');assert.equal(f.controls.executionPath,'/index.js');assert.equal(f.calls.stops,0);
+    f.project.fs.remove('/renamed.js');f.controls.pathChanged('/renamed.js',null,{preserveExecution:true});
+    assert.equal(f.controls.activePath,null);assert.equal(f.controls.executionPath,'/index.js');assert.equal(f.calls.stops,0);assert.equal(f.runtime.getContext(),context);
+    assert.throws(()=>f.controls.pathChanged('/x','/y',{preserveExecution:1}),/preservation/);
+  }finally{f.cleanup();}
+});
+
+test('journal recovery reconciles optional host document state before restoring the editor without running Code',async()=>{
+  const project=createSynthProject(),journal=new Map(),events=[];
+  project.fs.writeText('/index.js','saved source');project.setAutoApply(false);
+  journal.set('tetorica-fm2612-synth-pending-code',JSON.stringify({workspaceId:'workspace-a',path:'/index.js',source:'working source',savedSource:'saved source',autoSave:false}));
+  const f=fixture({project,journal,storedState:{mode:'keyboard',path:'/index.js'}});
+  f.files.recoverCodeState=async path=>{events.push(path);assert.equal(project.fs.get(path).data,'working source');assert.equal(project.savedFs.get(path).data,'saved source');};
+  try{await f.controls.ready;assert.deepEqual(events,['/index.js']);assert.equal(f.calls.factories,0);assert.equal(f.calls.runs.length,0);}
+  finally{f.cleanup();}
+});
+
 test('switching pending Run preparation to JSON cancels that execution without creating a runtime',async()=>{
   const before=deferred(),f=fixture({source:'globalThis.mustNotRun=true;',before:()=>before.promise,hostOptions:{allowTextFiles:true}});
   try {

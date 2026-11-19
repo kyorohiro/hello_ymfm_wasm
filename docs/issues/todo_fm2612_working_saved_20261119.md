@@ -1,5 +1,7 @@
 # Files working/saved and explicit Save — 2026-11-19
 
+Follow-up: [per-Synth common-feature TODOs and rollout order](todo_synth_fm2612_alignment_20261119.md).
+
 User-approved behavior: two internal versions, `working` and `saved`. Auto apply
 is on by default and advances saved immediately. With Auto apply off, edits
 remain working until Save or Save all. Show a dot beside unsaved filenames in

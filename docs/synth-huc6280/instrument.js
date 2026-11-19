@@ -5,7 +5,7 @@ import {createDefaultPreset, readPreset, isWaveOnlyEdit} from './preset.js?v=wav
 import {decodeDdaData} from './dda_pcm.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateHuc6280CodeCall,huc6280CodeCancelled} from './code_endpoint.js';
-import {readHuc6280CodeEdit,applyHuc6280CodeEdit,createHuc6280CodeChanges,copyHuc6280CodeValue} from './code_parameter_edit.js';
+import {readHuc6280CodeEdit,applyHuc6280CodeEdit,createHuc6280CodeChanges,copyHuc6280CodeValue,readHuc6280AuthorFields} from './code_parameter_edit.js?v=huc-working-saved-1';
 import {huc6280CodeLiveView} from './code_state.js';
 
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -413,8 +413,10 @@ export class Huc6280Instrument {
   }
   applyCodePreset(session,value,options={}) {
     this._open();if(!this.codeActive||session!==this.codeEpoch)throw huc6280CodeCancelled();
-    if(!options||typeof options!=='object'||Object.keys(options).some(key=>key!=='replace')||options.replace!==undefined&&typeof options.replace!=='boolean')throw TypeError('Preset replacement must be boolean');
-    const next=readPreset(value),previous=this.preset,changes=options.replace===false?createHuc6280CodeChanges(previous,next):createHuc6280CodeChanges(createDefaultPreset(),next);
+    if(!options||typeof options!=='object'||Object.keys(options).some(key=>!['replace','fields'].includes(key))||options.replace!==undefined&&typeof options.replace!=='boolean')throw TypeError('Preset replacement must be boolean');
+    if(options.fields!==undefined&&options.replace!==false)throw TypeError('Author fields require an incremental preset');
+    const fields=options.fields===undefined?null:readHuc6280AuthorFields(options.fields);
+    const next=readPreset(value),previous=this.preset,changes=fields?Object.fromEntries(fields.map(path=>{let value=next;for(const key of path.split('.'))value=value[key];return[path,copyHuc6280CodeValue(value)];})):options.replace===false?createHuc6280CodeChanges(previous,next):createHuc6280CodeChanges(createDefaultPreset(),next);
     if(options.replace!==false)for(const path of ['source','wave','volume','pan.left','pan.right','noise.frequency','lfo.enabled','lfo.wave','lfo.frequency','lfo.depth','lfo.reset','lfo.output.volume','lfo.output.pan.left','lfo.output.pan.right']){
       let v=next;for(const part of path.split('.'))v=v[part];changes[path]=copyHuc6280CodeValue(v);
     }

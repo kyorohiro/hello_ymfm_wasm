@@ -1,0 +1,77 @@
+# 2A03 Synth: FM2612 common-feature alignment
+
+Recorded: 2026-11-19. Documentation and source audit only; no implementation or
+new runtime/listening verification was performed for this checklist.
+
+The agreed first sequence is **HuC6280 → SPU → DMG → SID**. 2A03 is an
+unprioritized follow-up candidate. This inventory does not authorize every
+optional feature or a release. `synth-nes` is the compatibility entry, not a
+separate Synth requiring another rollout.
+
+Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261119.md).
+
+## Current status
+
+| Common feature | Audited 2A03 status |
+| --- | --- |
+| working/saved, Auto apply, ●, Save/Save all/Discard, accepted Code, two-version Cassette | **Missing.** [code_project.js](../synth-2a03/code_project.js) owns one filesystem and a v1 project snapshot. Ctrl/Cmd+S flushes the editor/local draft; it is not an accepted-content boundary. |
+| Active instrument file linked to knob/wave/JSON editing | **Partial.** JSON selection applies a sound, and JSON can be edited in Code. [code_files.js](../synth-2a03/code_files.js) `saveSound()` adds a new instrument; `markSoundDirty()` updates project settings, not the selected JSON. |
+| Files Undo, New Cassette and replacement recovery | **Partial.** Validated import/restore and local recovery exist. There is no FM-style Files Undo history or New Cassette workflow in the current Files adapter. DMC edit Undo is a different feature. |
+| Persistent expanded Code workspace, chip/Mixer/Keyboard tabs, header Code/Synth, visible Master | **Partial.** Code and maximize exist; [code_host.js](../synth-2a03/code_host.js) uses the legacy shared layout, without `persistentExpanded` or FM's expanded-tab host. |
+| Brief Live changed-value highlights, default On and switchable | **Missing.** [index.html](../synth-2a03/index.html) has Auto update and channel following, not a changed-value highlighter. |
+| Output-only channel switches shared by Keyboard, Code and song | **Missing UI/integration.** There is no common six-channel Mixer. [song_player.js](../synth-2a03/song_player.js) has reference-player channel switching primitives; selecting a CH or disabling a hardware voice is not equivalent to output-only mute. |
+| PCM drawing and Start/Loop range editing | **Chip-specific / already different.** [dmc_editor.js](../synth-2a03/dmc_editor.js) already edits DPCM bits and draws target DAC curves with Undo; FDS wave drawing also exists. RF5C164 PCM byte/range semantics must not be copied into DMC. |
+| Looper / Event Rec | **Not implemented; optional.** No equivalent recording UI is present. This is not required for the first saving/layout rollout. |
+| Timed build/schedule/compile/capture-state API | **Separate proposal.** No equivalent is wired through [code_host.js](../synth-2a03/code_host.js); preserve immediate APIs and distinguish hardware frame sequencing from software reservations. |
+
+## First implementation candidate: saving and Files
+
+- [ ] Reuse the shared Virtual Files working/saved workspace. Migrate existing
+      v1 snapshots without losing DMC payloads, FDS modulation tables, VGM bytes,
+      metadata, text files, selection or the current instrument.
+- [ ] Add Auto apply **On by default**, filename ●, Save, Save all and Discard;
+      route Ctrl/Cmd+S to the selected/last-edited file without stealing note input.
+- [ ] Link authored controls and DMC/FDS edits to their instrument file. Define
+      validation of temporarily incomplete JSON before automatic sound changes;
+      malformed edits must preserve the previously playable sound.
+- [ ] With Auto apply Off, defer authored sound changes until Save. Physical CH
+      edits remain direct; Code continues running. Run/Apply reads accepted
+      entry/modules/data; saving JavaScript never executes it.
+- [ ] Export ordinary **saved** files plus recoverable **working differences**;
+      restore both versions and the mode. Avoid duplicating unchanged DPCM/audio.
+- [ ] Add bounded Files Undo and a New Cassette workflow with starter Code and
+      examples. Import/New/Undo must restore the two versions coherently and
+      never execute restored scripts.
+
+## Subsequent UI candidates
+
+- [ ] Adopt persistent expanded Code/chip/Keyboard navigation and header
+      Code/Synth controls; include Mixer if that feature is approved. Keep
+      Run/Apply/Stop and Master usable without changing the active performance.
+- [ ] Add switchable Live changed-value highlights, default On; keep Auto update
+      and its frozen-view semantics separate.
+- [ ] Consider one shared output-only six-channel Mixer for Keyboard/Code/VGM.
+      Muting must not alter hardware registers, DMC progress or FDS modulation.
+
+## Optional work requiring a separate decision
+
+- [ ] Decide whether Looper or Event Rec is useful here before implementing it.
+- [ ] Evaluate timed operations as a separate chip-API design; do not substitute
+      `setTimeout()` for an AudioWorklet sample-clock execution path.
+- [ ] If additional sample tools are wanted, retain LSB-first DPCM, ±2 DAC steps,
+      initial-level parity and aligned sample-length constraints. Do not label
+      existing DMC drawing as missing PCM conversion or add conversion implicitly.
+
+## Completion checks for a future implementation
+
+- [ ] Cover text/binary Save/Discard, atomic invalid edits, rename/delete,
+      import/New/Undo, reload and failed IndexedDB writes; recovery must preserve
+      working and saved independently rather than silently accepting a draft.
+- [ ] Use self-authored DMC/FDS fixtures and actual Worklet output with physical
+      speaker gain zero. Check continuing Code, key ownership and raw hardware
+      gates; preserve the existing software click guard.
+- [ ] Verify source and readable standalone ZIP in Chromium/WebKit, fallback and
+      real Monaco, normal/expanded 390px layouts and shortcuts. Keep native
+      formats and chip limits intact; do not change calibration to match FM.
+- [ ] Update existing 2A03 documentation and record automated results separately
+      from human listening. Commit/push/npm/tag/Tauri/release need their own task.

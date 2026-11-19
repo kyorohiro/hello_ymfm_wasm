@@ -1,5 +1,8 @@
 # HuC6280 Synth: finish the current product before expanding to another Synth
 
+2026-11-19以降の共通機能整理は、[FM2612との比較・個別TODO](todo_huc6280_synth_fm2612_alignment_20261119.md)と
+[Synth全体の優先順](todo_synth_fm2612_alignment_20261119.md)を参照。以下は各段階の実装記録を含む。
+
 開始: 2026-11-13。ユーザーの方針は、S-DSPへの横展開より先にPC Engineの
 HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴らすだけでなく
 「元の演奏を見る → 選択CHを試す → 編集・保存 → Codeで利用する」までを揃える。
@@ -198,3 +201,13 @@ Save to presetsは選択CHの設定を直接Filesへ保存し、表示CH・Code�
 FilesのExamplesはHuC6280／MSM5205／CD-DAの不足例だけを追加する。
 Node619件、最終ZIPのChromium／WebKitで13 suite／26 run／242項目が成功した。
 [検証記録](verification_huc6280_synth_channel_ui_20261114.json)。人の実聴・Tauri反映・公開は未実行。
+
+## Working / saved Files — 2026-11-19
+
+[詳細TODO](todo_huc6280_working_saved_20261119.md)、
+[検証記録](verification_huc6280_working_saved_20261119.json)。
+Auto apply初期On、Off時のworking／saved、Filesの●、Save／Save all／Discard、
+Ctrl・Cmd+S、Undo files、音色JSONとつまみ・波形の同期を追加。
+Codeを停止せず必要な音色変更だけを保存反映し、Run／Applyはsavedを使用する。
+Cassette／再読込に両状態を保持。717件のNodeテストと実配布ZIPを含む8通りの
+Chromium／WebKit・Monaco／fallback検証が成功。人の実聴・公開・Tauri反映は未実行。

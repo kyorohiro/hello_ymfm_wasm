@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {createDefaultPreset,readPreset,isWaveOnlyEdit} from './preset.js';
-import {createHuc6280CodeEdit} from './code_parameter_edit.js';
+import {createHuc6280CodeEdit,createHuc6280CodeChanges} from './code_parameter_edit.js';
 
 const source=await readFile(new URL('./synth.js',import.meta.url),'utf8');
 const contextSource=source.match(/^const channelContext=.*$/m)[0];
@@ -13,6 +13,7 @@ const apply=source.slice(source.indexOf('function applyPreset('),source.indexOf(
 const keyboard=source.slice(source.indexOf('function pausedSelection('),source.indexOf("$('startAudio').addEventListener"));
 const pitchSource=source.slice(source.indexOf('function setPitch(value)'),source.indexOf('for (const [wheel] of pitchWheels)'));
 const inputSource=source.slice(source.indexOf('function editing('),source.indexOf("window.addEventListener('keyup'"));
+const externalPresetSource=source.slice(source.indexOf("$('presetFileInput').addEventListener('change'"),source.indexOf("$('saveSoundToFiles').addEventListener"));
 const edit=source.slice(source.indexOf('async function editVisiblePreset('),source.indexOf('codeHost=setupHuc6280CodeHost('));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
@@ -24,14 +25,14 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
       if(['loadPreset','setPreset'].includes(method)){engine.state.preset=readPreset(args[0]);if(engine.pendingCommand)await engine.pendingCommand;}
       return{channel};},
     async getHuc6280Client(){calls.push(['prepareClient']);if(engine.pendingPrepare)await engine.pendingPrepare;engine.codeSession=7;return{};},
-    async applyCodePreset(value,options){assert(options.isCurrent());calls.push(['preset',structuredClone(value),options.replace]);engine.state.preset=readPreset(value);if(engine.pendingPreset)await engine.pendingPreset;},
+    async applyCodePreset(value,options){assert(options.isCurrent());calls.push(['preset',structuredClone(value),options.replace]);engine.lastAuthorFields=options.fields;engine.state.preset=readPreset(value);if(engine.pendingPreset)await engine.pendingPreset;},
     async applyCodeEdit(value,options){assert(options.isCurrent());calls.push(['edit',structuredClone(value)]);if(engine.pendingEdit)await engine.pendingEdit;return structuredClone(engine.state);},
     async applyEditorEdit(value,options){assert(options.isCurrent());calls.push(['editorEdit',structuredClone(value)]);return structuredClone(engine.state);},
     async read(){calls.push(['read']);if(engine.pendingRead)await engine.pendingRead;
       if(engine.readFailure){const error=engine.readFailure;engine.readFailure=null;throw error;}
       return structuredClone(engine.state);},
   };
-  const host={running,mode:false,phase:{busy:false,stopping:false},getState(){return this.phase;},isRunning(){return this.running;},isCodeMode(){return this.mode;},markSoundDirty(){calls.push(['dirty']);}};
+  const host={running,mode:false,phase:{busy:false,stopping:false},files:{isAutoApply:()=>true,canEditSound(){},recordSoundEdit(){calls.push(['dirty']);}},getState(){return this.phase;},isRunning(){return this.running;},isCodeMode(){return this.mode;},markSoundDirty(){calls.push(['dirty']);}};
   const audition={active:false,async noteOn(id,midi,options){calls.push(['auditionOn',id,midi]);audition.lastGuard=options.isCurrent;
       if(audition.pendingOn)await audition.pendingOn;return options.isCurrent();},
     async noteOff(id){calls.push(['auditionOff',id]);},async setPitch(value){calls.push(['auditionPitch',value]);},
@@ -39,11 +40,11 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
   };
   const observer=name=>({async refresh(){calls.push([name+'Refresh']);},setEnabled(){},sync(){},setVoice(value){calls.push([name+'Voice',value]);},read:()=>({liveState:{}})});
   scope=vm.createContext({Promise,DOMException,Map,Set,Array,Number,JSON,structuredClone,
-    audio:engine,preset:createDefaultPreset(),displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,octave:0,
+    audio:engine,preset:createDefaultPreset(),playbackPreset:createDefaultPreset(),playbackRevision:1,displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,octave:0,
     window:{addEventListener(type,listener){listeners.set(type,listener);}},layout:{entries:[{key:'a',midi:60}]},
     chipView:'huc6280',codeHost:host,songControls:null,songState:null,channelTarget:channel,channelSelection:0,autoUpdate:true,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,auditionNotes,audition,auditionSelectionKey:null,
     mediaPressedKeys:new Map(),mediaKeyboards:null,msmSource:{read:()=>({asset:null})},cddaSource:{read:()=>({asset:null})},msmControls:null,cddaControls:null,
-    readPreset,isWaveOnlyEdit,createHuc6280CodeEdit,
+    readPreset,isWaveOnlyEdit,createHuc6280CodeEdit,createHuc6280CodeChanges,
     enqueue(action){const task=pending.then(action);pending=task.catch(error=>errors.push(error));return task;},
     ensureAudio:async()=>{await ready;return engine;},
     updatePresetUi(){calls.push(['ui']);},updateKeys(){},updateCapacity(){},readVoices(){calls.push(['voices']);},
@@ -108,14 +109,14 @@ test('author preset/source loads keep Code running and route through its current
   assert.deepEqual(h.scope.preset,next);assert.equal(h.scope.pitch,0);assert(h.calls.some(call=>call[0]==='dirty'));
 });
 
-test('physical UI changes send only the selected sparse parameter and retain the returned authored checkpoint',async()=>{
+test('physical Code edits keep the working author document independent',async()=>{
   const h=harness({channel:4}),shown=createDefaultPreset();shown.volume=10;shown.wave.fill(3);h.scope.displayedPreset=shown;
   const next=readPreset(shown);next.volume=12;
   const authored=createDefaultPreset();authored.volume=12;h.engine.state.preset=authored;
   await h.scope.editVisiblePreset(next);
   assert.deepEqual(h.calls.find(call=>call[0]==='edit'),['edit',{channel:4,changes:{volume:12}}]);
-  assert.deepEqual(h.scope.preset,authored,'observed foreign wave/pitch settings are not copied wholesale into the author sound');
-  assert.equal(h.scope.revision,2);assert(h.calls.some(call=>call[0]==='dirty'));assert(h.calls.some(call=>call[0]==='refresh'));
+  assert.deepEqual(h.scope.preset,createDefaultPreset(),'physical changes remain session state');
+  assert.equal(h.scope.revision,1);assert(!h.calls.some(call=>call[0]==='dirty'));assert(h.calls.some(call=>call[0]==='refresh'));
   assert(!h.calls.some(call=>call[0]==='preset'||call[0]==='command'));
 });
 
@@ -144,7 +145,7 @@ test('stale Code session or epoch retires queued edits before they reach the chi
     assert(!h.calls.some(call=>['edit','preset','command','dirty'].includes(call[0])),fence);
   }
   const h=harness(),next=createDefaultPreset();next.volume=18;
-  const loading=h.scope.applyPreset(next,{load:true});h.engine.codeSession++;
+  const loading=h.scope.applyPreset(next,{load:true,record:false});h.engine.codeSession++;
   assert.equal(await loading,false);assert(!h.calls.some(call=>['preset','command','read'].includes(call[0])),'an old queued load cannot address a new Code session');
 });
 
@@ -229,18 +230,57 @@ test('reference playback blocks hand keys and a late hand On cannot enter a newl
   }
 });
 
-test('an explicit sound load ends reference playback before applying to the authored chip',async()=>{
-  const h=harness({running:false});h.scope.songControls={read:()=>({canStop:true}),stop:()=>h.calls.push(['songStop'])};
+test('an explicit sound load selects Auto while retaining reference Play',async()=>{
+  const h=harness({running:false});h.scope.songState={playing:true,playback:'playing'};h.scope.songControls={read:()=>({canStop:true}),setView:target=>h.calls.push(['songView',target]),stop:()=>h.calls.push(['songStop'])};
   const next=createDefaultPreset();next.name='New sound';
   await h.scope.applyPreset(next,{load:true});
-  assert.equal(h.calls[0][0],'songStop');assert(h.calls.some(call=>call[0]==='command'&&call[1]==='loadPreset'));
+  assert(!h.calls.some(call=>call[0]==='songStop'));assert(h.calls.some(call=>call[0]==='command'&&call[1]==='loadPreset'));assert.equal(h.scope.channelTarget,'synth');assert.equal(h.scope.songState.playing,true);
   assert.equal(h.scope.preset.name,'New sound');
+});
+
+test('selecting a manual unsaved sound chooses Auto without applying audio or retiring the song',async()=>{
+  const h=harness({running:false});h.scope.songState={paused:true,playback:'paused',positionFrames:4410};
+  h.scope.songControls={setView:target=>h.calls.push(['songView',target]),stop:()=>h.calls.push(['songStop'])};
+  const next=createDefaultPreset();next.name='Working only';next.volume=9;
+  await h.scope.applyPreset(next,{load:true,record:false,applyAudio:false,displayPreset:next});
+  assert.equal(h.scope.channelTarget,'synth');assert.equal(h.scope.preset.name,'Working only');
+  assert.deepEqual(h.scope.playbackPreset,createDefaultPreset());assert.equal(h.scope.songState.positionFrames,4410);
+  assert(h.calls.some(call=>call[0]==='songView'&&call[1]==='synth'));
+  assert(!h.calls.some(call=>['songStop','command','preset','dirty','auditionStop'].includes(call[0])));
+});
+
+test('a rejected knob edit forces controls to render the retained valid sound',async()=>{
+  for(const boundary of ['canEditSound','recordSoundEdit']){
+    const h=harness();h.host.files[boundary]=()=>{throw Error('Keep incomplete JSON');};
+    const next=createDefaultPreset();next.volume=9;
+    await assert.rejects(h.scope.applyPreset(next),/Keep incomplete JSON/);
+    assert.equal(h.scope.liveSignature,null);assert(h.calls.some(call=>call[0]==='ui'));
+    assert.deepEqual(h.scope.preset,createDefaultPreset());assert.deepEqual(h.scope.playbackPreset,createDefaultPreset());
+    assert(!h.calls.some(call=>['command','preset'].includes(call[0])));
+  }
+});
+
+test('standalone preset loading accepts external data without overwriting the previously linked document',async()=>{
+  for(const size of [1024,16*1024*1024+1]){
+    const h=harness({running:false}),next=createDefaultPreset();next.name='External';next.volume=9;
+    let change;const input={files:[{name:'external.json',size,text:async()=>JSON.stringify(next)}],value:'',blur(){},addEventListener(_type,fn){change=fn;}};
+    h.scope.$=()=>input;h.scope.MAX_PRESET_BYTES=32*1024*1024;h.host.files.isAutoApply=()=>false;
+    h.host.files.recordSoundEdit=()=>{throw Error('Do not edit the old linked document');};
+    h.host.files.adoptExternalSound=value=>h.calls.push(['adoptExternal',readPreset(value)]);
+    h.host.files.importFiles=async()=>h.calls.push(['archiveExternal']);
+    vm.runInContext(externalPresetSource,h.scope);await change();
+    assert.equal(h.errors.length,0);assert.equal(h.scope.playbackPreset.name,'External');
+    assert.deepEqual(h.calls.find(call=>call[0]==='adoptExternal'),['adoptExternal',next]);
+    assert.equal(h.calls.some(call=>call[0]==='archiveExternal'),size<16*1024*1024);
+    assert(h.calls.findIndex(call=>call[0]==='command'&&call[1]==='loadPreset')<h.calls.findIndex(call=>call[0]==='adoptExternal'));
+    assert(!h.calls.some(call=>call[0]==='dirty'));
+  }
 });
 
 test('an author load made while Code is preparing waits for its session without restarting or losing the selection',async()=>{
   const gate=deferred(),h=harness({session:null}),next=createDefaultPreset();next.name='Prepared noise';next.source='noise';
   h.engine.pendingPrepare=gate.promise;
-  const loading=h.scope.applyPreset(next,{load:true});await turn();
+  const loading=h.scope.applyPreset(next,{load:true,record:false});await turn();
   assert(h.calls.some(call=>call[0]==='prepareClient'),'the host prepares the existing Code client');
   assert(!h.calls.some(call=>call[0]==='preset'));assert.equal(h.scope.preset.name,'Sine','author checkpoint waits for acknowledgement');
   gate.resolve();assert.equal(await loading,true);
@@ -251,7 +291,7 @@ test('an author load made while Code is preparing waits for its session without 
 
 test('Code Stop during client preparation discards the old selection without checkpointing an unapplied sound',async()=>{
   const gate=deferred(),h=harness({session:null}),next=createDefaultPreset();next.name='Stale selection';next.source='noise';
-  h.engine.pendingPrepare=gate.promise;const before=readPreset(h.scope.preset),loading=h.scope.applyPreset(next,{load:true});
+  h.engine.pendingPrepare=gate.promise;const before=readPreset(h.scope.preset),loading=h.scope.applyPreset(next,{load:true,record:false});
   await turn();assert(h.calls.some(call=>call[0]==='prepareClient'));
   h.host.running=false;h.scope.epoch++;gate.resolve();assert.equal(await loading,false);
   assert.deepEqual(h.scope.preset,before);assert(!h.calls.some(call=>['preset','dirty'].includes(call[0])));
@@ -260,11 +300,11 @@ test('Code Stop during client preparation discards the old selection without che
 test('Files selection cancellation reports false and cannot publish a stale authored sound',async()=>{
   const next=createDefaultPreset();next.name='Cancelled file selection';next.volume=18;
   const untouched=harness(),before=readPreset(untouched.scope.preset);
-  assert.equal(await untouched.scope.applyPreset(next,{load:true,isCurrent:()=>false}),false);
+  assert.equal(await untouched.scope.applyPreset(next,{load:true,record:false,isCurrent:()=>false}),false);
   assert.equal(untouched.calls.length,0);assert.equal(untouched.scope.revision,1);assert.deepEqual(untouched.scope.preset,before);
 
   const gate=deferred(),h=harness();let selected=true;h.engine.pendingPreset=gate.promise;
-  const loading=h.scope.applyPreset(next,{load:true,isCurrent:()=>selected});
+  const loading=h.scope.applyPreset(next,{load:true,record:false,isCurrent:()=>selected});
   await turn();assert(h.calls.some(call=>call[0]==='preset'));
   selected=false;gate.resolve();assert.equal(await loading,false);
   assert.deepEqual(h.scope.preset,before,'a backend acknowledgement cannot overwrite the newly selected file');
@@ -337,14 +377,14 @@ test('Capture cancellation before/while private audition shutdown cannot address
   assert.equal(h.scope.songState.playback,'paused');
 });
 
-test('Synth knobs keep Pause, while an explicit preset load stops the song before applying the authored sound',async()=>{
+test('Synth knobs and an explicit sound selection keep reference Pause and its position',async()=>{
   const knob=pausedHarness();knob.scope.channelTarget='synth';const next=readPreset(knob.scope.preset);next.volume=11;
   await knob.scope.editVisiblePreset(next);assert(!knob.calls.some(call=>call[0]==='songStop'));
   assert.equal(knob.scope.songState.playback,'paused');assert.equal(knob.scope.songState.positionFrames,123);
   assert(knob.calls.some(call=>call[0]==='command'&&call[1]==='setPreset'));assert.equal(knob.scope.preset.volume,11);
   const loaded=pausedHarness();loaded.scope.channelTarget='synth';await loaded.scope.applyPreset(next,{load:true});
   const stop=loaded.calls.findIndex(call=>call[0]==='songStop'),load=loaded.calls.findIndex(call=>call[0]==='command'&&call[1]==='loadPreset');
-  assert(stop>=0&&stop<load);assert.equal(loaded.scope.songState.playback,'stopped');
+  assert.equal(stop,-1);assert(load>=0);assert.equal(loaded.scope.songState.playback,'paused');assert.equal(loaded.scope.songState.positionFrames,123);
 });
 
 test('paused physical keyboard and Pitch use the isolated audition endpoint; Synth still uses the authored endpoint while Pause survives',async()=>{
@@ -446,4 +486,24 @@ test('Synth author keys, Pitch, knobs and explicit sound loads coexist with a pl
   h.scope.press('key:KeyA',{key:'a',midi:60});await h.idle();assert(h.calls.some(x=>x[0]==='command'&&x[1]==='noteOn'));
   h.scope.setPitch(.5);await h.idle();assert(h.calls.some(x=>x[0]==='command'&&x[1]==='setPitch'&&x[2][0]===.5));
   assert(!h.calls.some(x=>['songOn','songPitch','songStop'].includes(x[0])));
+});
+
+
+test('manual author drafts do not change sounding Code, key ownership, Pitch or the accepted instrument',async()=>{
+  const h=harness({channel:'synth'}),before=readPreset(h.scope.playbackPreset),next=readPreset(before);
+  h.host.files.isAutoApply=()=>false;next.source='noise';next.volume=3;h.notes.set('held',{id:'held',midi:60,epoch:1});
+  assert.equal(await h.scope.applyPreset(next,{load:true}),true);
+  assert.deepEqual(h.scope.preset,next);assert.deepEqual(h.scope.playbackPreset,before);
+  assert.equal(h.scope.pitch,1);assert(h.notes.has('held'));assert.equal(h.host.running,true);
+  assert(!h.calls.some(call=>['preset','read','clearVgm','pitchUi','command'].includes(call[0])));
+});
+
+test('Save applies sparse accepted fields while retaining a newer working draft and the same Code session',async()=>{
+  const h=harness({channel:'synth'}),gate=deferred(),accepted=readPreset(h.scope.preset);
+  h.host.files.isAutoApply=()=>false;accepted.volume=8;h.engine.pendingPreset=gate.promise;
+  const saving=h.scope.applyPreset(accepted,{record:false,source:'save',load:false,applyAudio:true,displayPreset:accepted});
+  await turn();const newer=readPreset(accepted);newer.volume=4;await h.scope.applyPreset(newer);
+  gate.resolve();assert.equal(await saving,true);
+  assert.deepEqual(Array.from(h.engine.lastAuthorFields),['volume']);assert.equal(h.scope.playbackPreset.volume,8);assert.equal(h.scope.preset.volume,4);
+  assert.equal(h.scope.pitch,1);assert.equal(h.host.running,true);assert.equal(h.engine.codeSession,1);
 });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {setupHuc6280CodeFiles} from './code_files.js';
+import {setupHuc6280CodeFiles,HUC6280_SOUND_JOURNAL_KEY} from './code_files.js';
 import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES,isHuc6280SongPath} from './code_project.js';
 import {createDefaultPreset,readPreset} from './preset.js';
 import {encodeDdaData,MAX_PRESET_BYTES} from './dda_pcm.js';
@@ -11,9 +11,9 @@ class Element{
   append(...nodes){for(const node of nodes){node.parentNode=this;this.children.push(node);}}appendChild(node){this.append(node);return node;}replaceChildren(...nodes){for(const node of this.children)node.parentNode=null;this.children=[];this.append(...nodes);}remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(node=>node!==this);this.parentNode=null;}
   setAttribute(key,value){this.attributes[key]=String(value);}getAttribute(key){return this.attributes[key]??null;}
   addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(fn);}removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);}
-  querySelectorAll(selector){return walk(this).filter(node=>selector==='button'&&node.tagName==='BUTTON');}
+  querySelectorAll(selector){return walk(this).filter(node=>selector==='button'?node.tagName==='BUTTON':selector==='[data-file-path]'?node.getAttribute('data-file-path')!==null:false);}
   focus(){this.ownerDocument.activeElement=this;}blur(){if(this.ownerDocument.activeElement===this)this.ownerDocument.activeElement=null;}select(){}showModal(){this.open=true;}close(){this.open=false;}
-  async fire(type,extra={}){const event={target:this,preventDefault(){},stopPropagation(){},...extra};for(const fn of this.listeners.get(type)??[])await fn(event);}
+  async fire(type,extra={}){const event={target:this,currentTarget:this,preventDefault(){},stopPropagation(){},...extra};for(const fn of this.listeners.get(type)??[])await fn(event);}
 }
 const walk=node=>[node,...node.children.flatMap(walk)],deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 const extractedVoice=(kind,name,volume=31,changes={})=>({kind,id:name,channel:1,occurrences:1,firstTime:0,
@@ -30,7 +30,7 @@ function fixture(t,options={}){
   globalThis.document=doc;
   let settings=readPreset(options.settings??createDefaultPreset());const project=options.project??createHuc6280CodeProject({settings,starterCode:'// kept'}),writes=[],calls=[],opened=[],statuses=[];
   const store=options.store??{read:async()=>null,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}};
-  const files=setupHuc6280CodeFiles({project,document:doc,store,getSettings:()=>settings,applySettings:async value=>{calls.push(['apply',value]);settings=readPreset(value);},onBeforeSoundApply:async()=>calls.push(['sound']),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
+  const files=setupHuc6280CodeFiles({project,document:doc,store,getSettings:()=>settings,applySettings:async(value,options)=>{calls.push(['apply',value]);settings=readPreset(options?.displayPreset??value);},onBeforeSoundApply:async()=>calls.push(['sound']),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
   files.setCodeControls({flush:async()=>true,openFile:async(path,options)=>{opened.push({path,options});return true;},setBusy(){}});
   owners.push({files,doc});return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};
 }
@@ -41,7 +41,7 @@ test('HuC6280 saves named presets without acquiring audio, applying or changing 
   const one=await f.files.saveSound();assert.equal(one,'/presets/Sine.huc6280.json');assert.deepEqual(JSON.parse(f.project.fs.get(one).data),createDefaultPreset());
   f.project.fs.mkdir('/presets/SINE (2).huc6280.json');const two=await f.files.saveSound();assert.equal(two,'/presets/Sine (3).huc6280.json');
   assert.deepEqual(f.opened,[one,two].map(path=>({path,options:{show:false}})));assert.deepEqual(f.calls,[]);assert.equal(f.doc.getElementById('hucFilesPanel').hidden,false);
-  assert.equal(f.doc.getElementById('hucFileTextEditor'),undefined);assert.equal(f.doc.getElementById('hucPresetSelect').value,'','Saving does not imply a preset was loaded');
+  assert.equal(f.doc.getElementById('hucFileTextEditor'),undefined);assert.equal(f.doc.getElementById('hucPresetSelect').value,two,'The saved new document is now the bound instrument without uploading sound');assert.equal(f.project.activeSoundPath,two);
 });
 
 test('VGM archive saves grouped portable presets and original bytes atomically without applying, selecting or stopping Code',async t=>{
@@ -233,7 +233,7 @@ test('HuC6280 duplicate/rename/delete preserve binary data and stop only the exe
   let stops=0;const changes=[];f.files.setCodeControls({activePath:'/notes.json',executionPath:'/folder/code.js',flush:async()=>true,isCodeMode:()=>false,openFile:async()=>true,pathChanged:(...args)=>changes.push(args),stop:async()=>{stops++;},setBusy(){}});
   const copy=await f.files.duplicate('/folder');assert.equal(copy,'/folder-copy');assert.deepEqual(f.project.fs.get('/folder-copy/raw.bin').data,Uint8Array.of(0,255));assert.equal(stops,0);
   await f.files.move('/folder-copy/code.js','/folder-copy/code.json');assert.equal(stops,0);await f.files.remove('/folder-copy');assert.equal(stops,0);
-  await f.files.move('/folder/code.js','/folder/code.json');assert.equal(stops,1);assert.deepEqual(changes.at(-1),['/folder/code.js','/folder/code.json']);
+  await f.files.move('/folder/code.js','/folder/code.json');assert.equal(stops,1);assert.deepEqual(changes.at(-1),['/folder/code.js','/folder/code.json',{preserveExecution:false}]);
 });
 
 test('HuC6280 local restore and project import apply detached settings but never execute source',async t=>{
@@ -488,7 +488,7 @@ test('PC Engine failed New Cassette application or editor restoration rolls back
     const f=fixture(t,{applySettings:async value=>{applied.push(structuredClone(value));f.setSettings(value);if(applied.length===1){if(phase==='apply-false')return false;if(phase==='apply-throw')throw Error('Apply failed');}}});
     await f.files.ready;const edited=createDefaultPreset();edited.volume=7;f.setSettings(edited);
     f.project.importFiles([{path:'/keep.txt',data:'Kept'}]);f.project.select('/keep.txt');f.project.setCodeState({mode:'code',path:'/index.js'});
-    const before={...f.project.snapshot(),settings:edited},identity=f.files.workspaceId;
+    const before={...f.project.snapshot(),settings:edited,savedSettings:edited},identity=f.files.workspaceId;
     f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async state=>{states.push(state);if(++restores===1){if(phase==='editor-false')return false;if(phase==='editor-throw')throw Error('Editor failed');}}});
     if(phase.endsWith('throw'))await assert.rejects(f.files.newProject(),/failed/);else assert.equal(await f.files.newProject(),false);
     assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(applied.at(-1),edited);assert.equal(applied.length,2);
@@ -523,4 +523,148 @@ test('PC Engine New Cassette explains external CD-DA WAV omissions before confir
   f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async()=>{}});
   assert.equal(await f.files.newProject({exportCurrent:true}),true);assert.equal(hasSession,false);
   assert.match(f.statuses.at(-1),/created.*Session WAVs are not included/);
+});
+
+const soundText=sound=>JSON.stringify(sound,null,2)+'\n';
+const fileDots=f=>walk(f.doc.getElementById('hucFilesTree')).filter(node=>node.className==='huc-file-unsaved').map(node=>node.parentNode.getAttribute('data-file-path'));
+const turn=()=>new Promise(resolve=>setImmediate(resolve));
+function memoryStorage(){const map=new Map();return{map,getItem:key=>map.get(key)??null,setItem:(key,value)=>map.set(key,String(value)),removeItem:key=>map.delete(key)};}
+
+test('working/saved UI starts in Auto apply and control edits stay linked to one sound document',async t=>{
+  const f=fixture(t);await f.files.ready;const checkbox=f.doc.getElementById('hucAutoApplyToggle');assert.equal(checkbox.checked,true);
+  let reloads=0;f.files.setCodeControls({activePath:null,flush:async()=>true,setBusy(){},reloadFile:()=>{reloads++;}});
+  const one=createDefaultPreset();one.volume=9;f.setSettings(one);const path=f.files.recordSoundEdit(one);
+  assert.equal(path,'/presets/Sine.huc6280.json');assert.equal(f.project.activeSoundPath,path);assert.equal(f.project.selectedPath,path);
+  assert.deepEqual(JSON.parse(f.project.fs.get(path).data),one);assert.equal(f.project.savedFs.get(path).data,f.project.fs.get(path).data);assert.deepEqual(fileDots(f),[]);
+  f.files.setCodeControls({activePath:path,flush:async()=>true,setBusy(){},reloadFile:()=>{reloads++;}});
+  const two=readPreset(one);two.wave[0]=2;f.setSettings(two);f.files.recordSoundEdit(two);
+  assert.equal(f.project.fs.list().filter(file=>/\.huc6280\.json$/.test(file.path)).length,1,'another knob edit updates the same document');
+  assert.deepEqual(JSON.parse(f.project.fs.get(path).data),two);assert.deepEqual(f.project.savedSettings,two);assert.equal(reloads,1,'the active text model refreshes instead of writing stale JSON back');assert.deepEqual(f.calls,[],'recording a UI document never uploads sound itself');
+});
+
+test('explicit standalone sound acceptance detaches the old document without rewriting either version or changing Auto apply',async t=>{
+  const f=fixture(t);await f.files.ready;const path=await f.files.saveSound(),saved=f.project.savedFs.get(path).data;
+  await f.files.setAutoApply(false);const draft={...createDefaultPreset(),volume:7};f.setSettings(draft);f.files.recordSoundEdit(draft);const working=f.project.fs.get(path).data;
+  const external={...createDefaultPreset(),name:'External sound',volume:12};f.setSettings(external);f.files.adoptExternalSound(external);
+  assert.equal(f.project.autoApply,false);assert.equal(f.project.activeSoundPath,null);assert.deepEqual(f.project.settings,external);assert.deepEqual(f.project.savedSettings,external);
+  assert.equal(f.project.fs.get(path).data,working);assert.equal(f.project.savedFs.get(path).data,saved);assert.equal(f.doc.getElementById('hucPresetSelect').value,'');assert.deepEqual(f.calls,[],'the caller already acknowledged audio before adoption');
+  const edited={...external,volume:10};f.setSettings(edited);const next=f.files.recordSoundEdit(edited);
+  assert.notEqual(next,path);assert.equal(f.project.activeSoundPath,next);assert.equal(f.project.fs.get(path).data,working);assert.equal(f.project.savedFs.get(path).data,saved);assert(!f.project.savedFs.has(next));
+});
+
+test('only proven Project capacity permits unbound Auto apply or explicit external audio; manual and ordinary linked edits stay atomic',async t=>{
+  const f=fixture(t);await f.files.ready;const path=await f.files.saveSound(),source=f.project.fs.get(path).data;
+  const used=f.project.listEntries().reduce((total,file)=>total+file.size,0);f.project.importFiles([{path:'/full.bin',type:'binary',data:new Uint8Array(HUC6280_PROJECT_FILE_BYTES-used)}]);
+  const count=f.project.fs.list().length,external={...createDefaultPreset(),name:'Standalone DDA',source:'dda'};external.dda.data=encodeDdaData(Uint8Array.of(0,8,16,24,31));
+  f.setSettings(external);f.files.adoptExternalSound(external);
+  const changed={...external,volume:11};assert.equal(f.files.recordSoundEdit(changed),null);f.setSettings(changed);
+  assert.equal(f.project.activeSoundPath,null);assert.deepEqual(f.project.settings,changed);assert.deepEqual(f.project.savedSettings,changed);assert.equal(f.project.fs.list().length,count);assert.equal(f.project.fs.get(path).data,source);assert.match(f.statuses.at(-1),/outside the 16 MiB Project.*Export preset/);
+  f.project.setAutoApply(false);const before=f.project.settings;
+  assert.throws(()=>f.files.recordSoundEdit({...changed,volume:4}),/controls were not changed.*enable Auto apply/);assert.deepEqual(f.project.settings,before);assert.deepEqual(f.project.savedSettings,before);assert.equal(f.project.activeSoundPath,null);
+  f.project.setAutoApply(true);await f.files.selectFile(path);
+  assert.throws(()=>f.files.recordSoundEdit(external),/linked JSON was kept/);assert.equal(f.project.activeSoundPath,path);assert.equal(f.project.fs.get(path).data,source);
+  assert.throws(()=>f.files.recordSoundEdit({...external,volume:99},{allowExternal:true}),/Channel volume/);assert.equal(f.project.activeSoundPath,path,'an unrelated validation error cannot use the capacity fallback');
+  assert.equal(f.files.recordSoundEdit(external,{allowExternal:true}),null);f.setSettings(external);
+  assert.equal(f.project.activeSoundPath,null);assert.equal(f.project.fs.get(path).data,source);assert.equal(f.project.savedFs.get(path).data,source);assert.deepEqual(f.project.savedSettings,external);
+});
+
+test('manual sound edits retain accepted bytes until Save; Discard restores editor and Save all accepts other text too',async t=>{
+  const applied=[];const f=fixture(t,{applySettings:async(value,options)=>{applied.push({sound:readPreset(value),options});f.setSettings(options?.displayPreset??value);}});await f.files.ready;
+  const path=await f.files.saveSound(),initial=f.project.fs.get(path).data;
+  await f.files.setAutoApply(false);assert.equal(f.doc.getElementById('hucAutoApplyToggle').checked,false);
+  const next=createDefaultPreset();next.volume=6;next.wave[2]=1;f.setSettings(next);f.files.recordSoundEdit(next);
+  assert.deepEqual(fileDots(f),['/','/presets',path]);assert.equal(f.project.savedFs.get(path).data,initial);assert.equal(applied.length,0);
+  assert.equal(await f.files.saveCurrent(),true);assert.equal(f.project.savedFs.get(path).data,f.project.fs.get(path).data);assert.equal(applied.length,1);
+  assert.equal(applied[0].options.load,false);assert.equal(applied[0].options.record,false);assert.equal(applied[0].options.applyAudio,true);assert.deepEqual(f.project.savedSettings,next);
+  const draft=readPreset(next);draft.volume=3;f.setSettings(draft);f.files.recordSoundEdit(draft);f.project.writeEditorText('/index.js','// not yet accepted');
+  assert(f.project.isFileModified(path));assert(f.project.isFileModified('/index.js'));
+  assert.equal(await f.files.discardCurrent(),true);assert.deepEqual(f.project.settings,next);assert.deepEqual(JSON.parse(f.project.fs.get(path).data),next);assert.equal(applied.at(-1).options.applyAudio,false,'Discard updates UI without re-uploading unchanged accepted audio');
+  assert.equal(await f.files.saveAll(),true);assert.equal(f.project.savedFs.get('/index.js').data,'// not yet accepted');assert.deepEqual(fileDots(f),[]);
+});
+
+test('unfinished active JSON remains editable, Save retains it but cannot replace a playable instrument',async t=>{
+  const applied=[];const f=fixture(t,{applySettings:async(value,options)=>{applied.push({sound:value,options});f.setSettings(options?.displayPreset??value);}});await f.files.ready;
+  const path=await f.files.saveSound();await f.files.setAutoApply(false);const playable=f.project.savedSettings;
+  f.project.writeEditorText(path,'{ "wave": [');f.files.codeEdited(path);const source=f.project.fs.get(path).data;
+  assert.throws(()=>f.files.recordSoundEdit({...createDefaultPreset(),volume:2}),/Finish or Discard/);assert.equal(f.project.fs.get(path).data,source);assert.equal(applied.length,0);
+  await f.files.saveCurrent();assert.equal(f.project.savedFs.get(path).data,source);assert.deepEqual(f.project.savedSettings,playable);assert.equal(applied.length,0);assert.match(f.statuses.at(-1),/Saved.*JSON not applied.*current sound kept/);
+  f.project.writeEditorText(path,soundText({...createDefaultPreset(),volume:4}));f.files.codeEdited(path);await turn();assert.equal(applied.at(-1).options.applyAudio,false);assert.deepEqual(f.project.savedSettings,playable);
+  await f.files.setAutoApply(true);assert.equal(f.project.savedSettings.volume,4);assert.equal(applied.at(-1).options.applyAudio,true);assert(!f.project.isFileModified(path));
+});
+
+test('selecting invalid JSON or a newly imported unsaved sound never reloads unrelated audible fallback',async t=>{
+  const applied=[];let soundHooks=0;const f=fixture(t,{onBeforeSoundApply:async()=>{soundHooks++;},applySettings:async(value,options)=>{applied.push({value,options});f.setSettings(options.displayPreset??value);}});await f.files.ready;
+  f.project.importFiles([{path:'/broken.huc6280.json',data:'{ broken'}]);await f.files.selectFile('/broken.huc6280.json');
+  assert.equal(soundHooks,0);assert.equal(applied.at(-1).options.applyAudio,false);assert.equal(f.project.activeSoundPath,'/broken.huc6280.json');
+  await f.files.setAutoApply(false);const sound={...createDefaultPreset(),volume:5};f.project.importFiles([{path:'/draft.huc6280.json',data:soundText(sound)}]);
+  await f.files.selectFile('/draft.huc6280.json');assert.equal(soundHooks,0);assert.equal(applied.at(-1).options.applyAudio,false);assert.equal(f.project.settings.volume,5);assert.notEqual(f.project.savedSettings.volume,5);
+});
+
+test('manual rename Save accepts original and target atomically; Discard and Undo retain document identity',async t=>{
+  const f=fixture(t);await f.files.ready;const original=await f.files.saveSound(),baseline=f.project.savedFs.get(original).data;await f.files.setAutoApply(false);
+  const edited={...createDefaultPreset(),volume:3};f.setSettings(edited);f.files.recordSoundEdit(edited);
+  const renamed='/presets/Renamed.huc6280.json';await f.files.move(original,renamed);assert.equal(f.project.activeSoundPath,renamed);assert(f.project.savedFs.has(original));assert(!f.project.savedFs.has(renamed));
+  await f.files.saveCurrent();assert(!f.project.savedFs.has(original));assert.equal(JSON.parse(f.project.savedFs.get(renamed).data).volume,3);assert.deepEqual(f.project.getPendingMoves(),[]);
+  await f.files.undo();assert(f.project.fs.has(renamed));assert(f.project.savedFs.has(original));assert(!f.project.savedFs.has(renamed));assert.equal(f.project.autoApply,false);
+  await f.files.discardCurrent();assert.equal(f.project.activeSoundPath,original);assert.equal(f.project.selectedPath,original);assert(!f.project.fs.has(renamed));assert.equal(f.project.fs.get(original).data,baseline);assert.deepEqual(f.project.getPendingMoves(),[]);
+});
+
+test('unsaved new files can be renamed and discarded without stat errors or stopping accepted Code',async t=>{
+  const f=fixture(t);await f.files.ready;await f.files.setAutoApply(false);let stops=0;const changed=[];
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,setBusy(){},flush:async()=>true,pathChanged:(...args)=>changed.push(args),stop:async()=>{stops++;}});
+  await f.files.createFile('/scratch.js');await f.files.move('/scratch.js','/renamed.js');assert(!f.project.savedFs.has('/renamed.js'));
+  await f.files.discardCurrent();assert(!f.project.fs.has('/renamed.js'));assert.equal(f.project.selectedPath,null);assert.equal(stops,0);
+  await f.files.move('/index.js','/entry.json');assert.equal(stops,0);assert.deepEqual(changed.at(-1),['/index.js','/entry.json',{preserveExecution:true}]);
+});
+
+test('rename chains through a pending deletion keep the original accepted sound and validate before mutation',async t=>{
+  const f=fixture(t);await f.files.ready;const a=await f.files.saveSound({path:'/A.huc6280.json'}),soundA=f.project.savedFs.get(a).data;
+  f.project.importFiles([{path:'/B.huc6280.json',data:soundText({...createDefaultPreset(),volume:2})}]);await f.files.setAutoApply(false);
+  await f.files.remove('/B.huc6280.json');await f.files.move(a,'/B.huc6280.json');await f.files.selectFile('/B.huc6280.json');assert.deepEqual(f.project.savedSettings,JSON.parse(soundA),'pending rename identity precedes the deleted old target baseline');
+  await f.files.move('/B.huc6280.json','/C.huc6280.json');assert.deepEqual(f.project.getPendingMoves(),[['/A.huc6280.json','/C.huc6280.json']]);
+  await f.files.saveCurrent();assert(!f.project.savedFs.has(a));assert.equal(f.project.savedFs.get('/C.huc6280.json').data,soundA);assert(f.project.savedFs.has('/B.huc6280.json'),'unrelated pending deletion remains unaccepted until its own Save');
+});
+
+test('moving a nested file out of an unresolved folder rename rejects before filesystem or accepted identity changes',async t=>{
+  const f=fixture(t);await f.files.ready;const path=await f.files.saveSound({path:'/A/sub/Tone.huc6280.json'});await f.files.setAutoApply(false);
+  await f.files.move('/A','/B');assert.equal(f.project.activeSoundPath,'/B/sub/Tone.huc6280.json');const before=f.project.snapshot();
+  await assert.rejects(f.files.move('/B/sub','/C'),/Save or Discard the parent folder rename/);
+  assert.deepEqual(f.project.snapshot(),before);assert(f.project.savedFs.has(path));assert(!f.project.fs.has('/C/Tone.huc6280.json'));
+});
+
+test('a later UI edit invalidates queued JSON application and keeps the newest linked source',async t=>{
+  const gate=deferred(),applied=[];const f=fixture(t,{applySettings:async(value,options)=>{await gate.promise;if(options.isCurrent?.()===false)return false;applied.push(value);f.setSettings(options.displayPreset??value);}});await f.files.ready;
+  const path=await f.files.saveSound();f.project.writeEditorText(path,soundText({...createDefaultPreset(),volume:5}));f.files.codeEdited(path);
+  const latest={...createDefaultPreset(),volume:11};f.setSettings(latest);f.files.recordSoundEdit(latest);gate.resolve();await turn();
+  assert.deepEqual(applied,[]);assert.deepEqual(JSON.parse(f.project.fs.get(path).data),latest);assert.deepEqual(f.project.savedSettings,latest);
+});
+
+test('an incomplete later JSON edit retains the last valid queued sound and its warning after acknowledgement',async t=>{
+  const gate=deferred(),applied=[];const f=fixture(t,{applySettings:async(value,options)=>{await gate.promise;if(options.isCurrent?.()===false)return false;applied.push(value);f.setSettings(options.displayPreset??value);f.statuses.push('Instrument updated.');}});await f.files.ready;
+  const path=await f.files.saveSound(),valid={...createDefaultPreset(),volume:7};
+  f.project.writeEditorText(path,soundText(valid));f.files.codeEdited(path);await Promise.resolve();
+  const incomplete='{ "volume":';f.project.writeEditorText(path,incomplete);f.files.codeEdited(path);gate.resolve();await turn();
+  assert.deepEqual(applied,[valid]);assert.deepEqual(f.project.settings,valid);assert.deepEqual(f.project.savedSettings,valid);
+  assert.equal(f.project.fs.get(path).data,incomplete);assert.equal(f.project.savedFs.get(path).data,incomplete,'Auto apply retains source edits even when not playable');
+  assert.match(f.statuses.at(-1),/JSON not applied; current sound kept/);assert.throws(()=>f.files.recordSoundEdit(valid),/Finish or Discard/);
+});
+
+test('manual sound journals retain both versions after quota failure and accepted Save is not undone by reload',async t=>{
+  const storage=memoryStorage();let durable=null,quota=false;
+  const store={read:async()=>durable&&structuredClone(durable),write:async value=>{if(quota)throw new DOMException('Quota','QuotaExceededError');durable=structuredClone(value);return true;},close:async()=>{}};
+  const f=fixture(t,{store,storage});await f.files.ready;const path=await f.files.saveSound();await f.files.setAutoApply(false);const original=durable.workspace.saved.files.find(file=>file.path===path).data;
+  quota=true;const next={...createDefaultPreset(),volume:4};f.setSettings(next);f.files.recordSoundEdit(next);assert.equal(await f.files.persistCode(),false);
+  let journal=JSON.parse(storage.getItem(HUC6280_SOUND_JOURNAL_KEY));assert.equal(journal.autoSave,false);assert.equal(journal.savedText,original);assert.equal(JSON.parse(journal.workingText).volume,4);await f.files.dispose();
+  const recovered=fixture(t,{store,storage});await recovered.files.ready;assert.equal(recovered.project.autoApply,false);assert.equal(recovered.project.settings.volume,4);assert.notEqual(recovered.project.savedSettings.volume,4);assert(recovered.project.isFileModified(path));
+  assert.equal(await recovered.files.saveCurrent(),true);assert.equal(recovered.project.savedSettings.volume,4);assert(!recovered.project.isFileModified(path));journal=JSON.parse(storage.getItem(HUC6280_SOUND_JOURNAL_KEY));assert.equal(journal.workingText,journal.savedText);await recovered.files.dispose();
+  const accepted=fixture(t,{store,storage});await accepted.files.ready;assert.equal(accepted.project.savedSettings.volume,4);assert(!accepted.project.isFileModified(path));assert.equal(durable.workspace.saved.files.find(file=>file.path===path).data,original,'failed durable writes retain the old database image');
+});
+
+test('large JSON Code recovery reconciles working and accepted sound caches without a compact tone journal',async t=>{
+  const storage=memoryStorage(),large=createDefaultPreset();large.source='dda';large.dda.data=encodeDdaData(Uint8Array.from({length:300000},(_,index)=>index%32));
+  const f=fixture(t,{settings:large,storage});await f.files.ready;const path=await f.files.saveSound();await f.files.setAutoApply(false);
+  const working=readPreset(large),accepted=readPreset(large);working.volume=3;working.wave[0]=2;accepted.volume=8;
+  f.project.recoverCode(path,{source:soundText(working),savedSource:soundText(accepted),autoSave:false});assert.notEqual(f.project.settings.volume,3);
+  assert.equal(await f.files.recoverCodeState(path),true);assert.equal(f.project.settings.volume,3);assert.equal(f.project.savedSettings.volume,8);assert.equal(f.project.settings.wave[0],2);assert.equal(f.project.fs.get(path).data,soundText(working));assert.equal(f.project.savedFs.get(path).data,soundText(accepted));
+  assert.equal(storage.getItem(HUC6280_SOUND_JOURNAL_KEY),null);assert(f.statuses.some(message=>/immediate recovery limit/.test(message)));
 });
