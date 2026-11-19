@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {measureScspDspRoutingDefaultParity,reconstructScspDspRoutingParityPredecessor,
-  SCSP_DSP_ROUTING_PARITY_BASE_COMMIT,SCSP_DSP_ROUTING_PARITY_RECEIPT,SCSP_DSP_ROUTING_PARITY_REPORT} from './record_playground_scsp_dsp_routing_default_parity.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+const {measureScspDspRoutingDefaultParity,reconstructScspDspRoutingParityPredecessor,
+  SCSP_DSP_ROUTING_PARITY_BASE_COMMIT,SCSP_DSP_ROUTING_PARITY_RECEIPT,SCSP_DSP_ROUTING_PARITY_REPORT}=await historicalCalibrationModule('record_playground_scsp_dsp_routing_default_parity.mjs');
 
 const root=new URL('../',import.meta.url);
 test('real SCSP default local/Main/Worker audio and legacy Worker packets match the exact npm 0.2.44 sources',async()=>{

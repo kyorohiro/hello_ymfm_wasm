@@ -276,3 +276,68 @@ the shared chip class (matching the recorder's already listed operation).
 - Repairs are local, not committed/pushed. Completed old failing runs cannot
   validate these new edits; a new push is required. Other old runs were still
   running at the last remote check.
+
+## Follow-up: next Actions push a3906e1a (2026-11-19)
+
+- [x] npm: remove stale explicit measurement-report overrides from the package
+  builder; use the same current defaults as the checked mixer generator.
+- [x] ASWAN WebKit: investigate silence after song-B channel unmute. The
+  self-authored fixture lasts only three seconds despite several browser
+  actions; require the transport still playing when checking the output.
+- Failed runs: npm `44532199573`, ASWAN `44532199438`. VGM now succeeds.
+
+### a3906e1a repair results
+
+- npm builder and generator CLI now share one frozen set of current report
+  paths. Their optional generator API remains unchanged; no old report is
+  rewritten or admitted against current sources. The full installed tarball
+  check with `--browser` passed (Node, declarations, SID/DX7/HuC6280 browser
+  renderers and Main/Worker routes). No npm publication was performed.
+- Subsequent npm declaration generation exposed untyped HuC6280 snapshot
+  destructured options. Added the same type-only staged annotation already
+  used for AY snapshots. Original staged JS is restored, including on failure;
+  no measured runtime JS was modified. Positive/negative consumer tests now
+  include HuC6280 snapshot options.
+- ASWAN's three-second non-looping song B could end during the test's Resume
+  and eight sequential mute toggles on a slower runner. Made this generated
+  fixture 30 seconds and added an assertion that the transport is still
+  playing before demanding restored output. Original silence/nonzero PCM
+  assertions stay intact. WebKit and Chromium checks passed locally. This is
+  test timing stabilization, not a change to the ASWAN audio engine.
+- SCSP's next browser step exposed additional Mac-only screenshot paths.
+  Synth and DSP Lab now use `tmpdir()`; both full Chromium/WebKit checks pass,
+  with physical output muted.
+- HuC6280's next CD-ROM2 check still assumed media keyboard presses were
+  passive and source gains were 1.0. Tab switching is still checked to create
+  no audio; keyboard triggering is covered by dedicated media checks. The
+  balance expectation now uses the existing MSM/CDDA 0.3 defaults. Both
+  browsers passed the full CD-ROM2 and MSM5205 checks.
+- itch archive tests now check the identical retained license/notice copy
+  rather than a source-kit duplicate intentionally stored only in the
+  complete corresponding-source archive. Exact bytes are still validated.
+  Archive + declaration-staging tests: 29 passed.
+- Updated all four itch workflow `--baseline` paths and the browser bundle
+  POKEY expectation to the current HuC timed measurements. Current-policy
+  baseline and offline Playground SCSP parity checks: 6 passed. The latter
+  uses the existing historical guard graph; its original test body was pinned
+  with actual Git provenance before changing reader wiring. Archive integrity
+  and SCSP routing guard/parity checks: 9 passed.
+- Mixer generator tests: 11 passed; both generated-policy `--check` commands
+  pass. Waveforms, calibration values, WASM and production freshness guards
+  were not changed by this repair.
+- Logs/receipts: `/private/tmp/actions-a390-npm-browser.log`,
+  `/private/tmp/actions-a390-aswan-webkit.json`,
+  `/private/tmp/actions-a390-aswan-chromium.json`,
+  `/private/tmp/actions-a390-scsp-browser.json`,
+  `/private/tmp/actions-a390-scsp-lab.json`,
+  `/private/tmp/actions-a390-huc-cdrom2.json`,
+  `/private/tmp/actions-a390-huc-msm.json`,
+  `/private/tmp/actions-a390-archive-types-tests-final2.log`.
+- Other completed failing runs from this push: HuC6280 `44532199679`,
+  SCSP `44532199465`, itch ZIPs `44532199550`. Those old runs have not been
+  rerun with these local edits. Commit/push remains the next remote check.
+
+- Follow-on CD-DA checks also passed Chromium/WebKit, including the actual
+  bounded 20-second timeout and replay past the retired RPC deadline. Receipt:
+  `/private/tmp/actions-a390-huc-cdda.json` (2 runs, 14 checks).
+- Final `git diff --check` passed. Repairs remain uncommitted/unpushed.

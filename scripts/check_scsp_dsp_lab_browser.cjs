@@ -1,7 +1,8 @@
+const {tmpdir}=require('node:os');
 // Real AudioWorklet/WASM DSP Lab; measure destination signal and mute speakers.
 const {chromium,webkit}=require('playwright');
 const http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
-let root=path.resolve(__dirname,'../docs'),out='/private/tmp/scsp-dsp-lab-browser.json';
+let root=path.resolve(__dirname,'../docs'),out=path.join(tmpdir(),'scsp-dsp-lab-browser.json');
 for(let i=2;i<process.argv.length;i++){const flag=process.argv[i],value=process.argv[++i];assert(value);if(flag==='--root')root=path.resolve(value);else if(flag==='--out')out=path.resolve(value);else throw Error('Usage: --root DIR --out FILE');}
 (async()=>{
  const mime={'.html':'text/html','.js':'text/javascript','.wasm':'application/wasm','.css':'text/css','.webp':'image/webp'};
@@ -18,7 +19,7 @@ for(let i=2;i<process.argv.length;i++){const flag=process.argv[i],value=process.
    await page.uncheck('#enabled');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('DSP updated'));await page.click('#pulse');await page.waitForTimeout(300);
    assert(await page.evaluate(()=>{const a=window.labAnalyser,v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.every(x=>x===0);}));
    await page.check('#enabled');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('DSP updated'));await page.click('#pulse');await page.waitForFunction(()=>{const a=window.labAnalyser,v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.some(x=>Math.abs(x)>.0001);});await page.click('#stop');
-   await page.setViewportSize({width:390,height:844});const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert(overflow<=1);await page.screenshot({path:`/private/tmp/scsp-dsp-lab-${name}.png`,fullPage:true});assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
+   await page.setViewportSize({width:390,height:844});const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert(overflow<=1);await page.screenshot({path:path.join(tmpdir(),`scsp-dsp-lab-${name}.png`),fullPage:true});assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
    rows.push({engine:name,wetOnly:true,bypass:true,reenable:true,stopSilence:true,mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,measurement:'destination input after Volume',physicalOutput:'muted'});
   }finally{await browser.close();}
  }}finally{await new Promise(resolve=>server.close(resolve));}

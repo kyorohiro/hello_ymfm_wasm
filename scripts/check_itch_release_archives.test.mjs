@@ -138,7 +138,7 @@ test('SID kits follow the current source-only archive policy while guides and re
   const f=await fixture(t,{sidKits:true}),manifest=await check(f);
   assert(manifest.playgroundRun.correspondingSource.archivedFiles>manifest.playgroundRun.correspondingSource.compilationFiles,
     'the archive includes duplicate SID scripts and complete Rust/Cargo/notice/receipt kit members beyond C/header/shell');
-  for(const name of ['js/sid.js','js/sid8580.js','js/sid8580.d.ts','sources/sid/third_party/chips-m6581/LICENSE','generated/sid8580-machine/sid8580-machine-build.json'])
+  for(const name of ['js/sid.js','js/sid8580.js','js/sid8580.d.ts','licenses/chips-m6581/LICENSE','generated/sid8580-machine/sid8580-machine-build.json'])
     assert.deepEqual(await readFile(join(f.run,name)),await readFile(join(f.full,name)),'Retained byte-exact runtime/license/receipt '+name);
   for(const name of ['sources/sid/scripts/sid_artifacts.mjs','sources/sid/tetorica_src/runtime/sidsynth.d.ts',
     'sources/sid8580-machine/tetorica_src/wasm/endpoint.rs','sources/sid8580-machine/third_party/sidera/Cargo.lock',
@@ -232,8 +232,8 @@ test('archived UI inputs must equal the original full distribution, including ro
 });
 
 test('source notices remain accessible and unchanged outside the source ZIP',async t=>{
-  const f=await fixture(t);await writeFile(join(f.run,'sources/native/cdda/NOTICE.md'),'Changed notice');zip(f.release,'playground-run');
-  await assert.rejects(check(f),/Unaltered runtime\/audio\/asset\/source\/notice: sources\/native\/cdda\/NOTICE.md/);
+  const f=await fixture(t);await writeFile(join(f.run,'licenses/tetorica-cdda/NOTICE.md'),'Changed notice');zip(f.release,'playground-run');
+  await assert.rejects(check(f),/Individually readable attribution guide bytes: licenses\/tetorica-cdda\/NOTICE.md/);
 });
 
 test('unsafe receipt input paths are rejected before opening them',async t=>{

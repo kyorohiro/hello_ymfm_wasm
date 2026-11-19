@@ -1083,6 +1083,7 @@ async function check(browser, engine, origin, fixture) {
 		await wait(150);
 		await output(false);
 		for (let i = 0; i < 4; i++) await page.click(`[data-mix-channel="${i}"]`);
+		assert.equal(await page.locator('#aswanSongPlayer').getAttribute('data-state'),'playing','mute/unmute probe must finish before the test song ends');
 		await output();
 		await page.click('#aswanSongStopButton');
 		await until(
@@ -1696,7 +1697,8 @@ const server = http.createServer(async (request, response) => {
 	);
 	const fixture = {
 		a: createWonderSwanVgm({ seconds: 3, loop: false }),
-		b: createWonderSwanVgm({ channel: 1, seconds: 3, loop: false }),
+		// Song B must outlast the Resume + eight mute-toggle browser actions.
+		b: createWonderSwanVgm({ channel: 1, seconds: 30, loop: false }),
 		sweep: createWonderSwanVgm({ mode: 'sweep', seconds: 3, loop: false }),
 		noise: createWonderSwanVgm({ mode: 'noise', seconds: 3, loop: false }),
 		voice: createWonderSwanVgm({ mode: 'voice', seconds: 3, loop: false }),

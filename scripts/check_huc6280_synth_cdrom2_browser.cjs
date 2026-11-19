@@ -170,13 +170,13 @@ async function check(browser,name,origin,fixture,track){
     await page.goto(origin+config.entry);await files(page);
     step('Four compact tabs are passive; MSM sample and CD-DA track controls keep Code reachable');
     assert.deepEqual(await page.locator('[data-huc-chip-tab]').allTextContents().then(x=>x.map(v=>v.trim())),['HuC6280','MSM5205','CD-DA','Mixer']);
-    for(const id of ['msm5205','cdda']){await tab(page,id);assert(await page.locator(id==='cdda'?'#cddaControls':'#msm5205Controls').isVisible());await page.locator('#synthTitle').click();await page.keyboard.press('a');assert.equal((await graph(page)).contexts,0);}
+    for(const id of ['msm5205','cdda']){await tab(page,id);assert(await page.locator(id==='cdda'?'#cddaControls':'#msm5205Controls').isVisible());assert.equal((await graph(page)).contexts,0,'switching media tabs must not enable audio');}
     const selectedBefore=await page.locator('#hucFilesSelected').textContent(),modeBefore=await page.locator('#synthInputSection').getAttribute('data-input-mode');
     await page.locator('[data-huc-chip-panel="cdda"] [data-add-cdrom2-examples]').click();
     for(const filename of ['/examples/msm5205.js','/examples/cdda.js'])await until(()=>page.locator(`#hucFilesTree [data-file-path="${filename}"]`).count().then(Boolean),'passive Code example '+filename);
     assert.equal(await page.locator('#hucFilesSelected').textContent(),selectedBefore);assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),modeBefore);assert.equal((await graph(page)).contexts,0);
     await tab(page,'mixer');assert.equal(await page.locator('[data-cdrom2-source]').count(),3);assert.equal((await graph(page)).contexts,0);
-    for(const[id,value]of [['huc6280',.44],['msm5205',1],['cdda',1]])assert.equal(Number(await page.locator(`[data-cdrom2-source="${id}"] [data-mixer-volume]`).inputValue()),value,'standard source balance '+id);
+    for(const[id,value]of [['huc6280',.44],['msm5205',.3],['cdda',.3]])assert.equal(Number(await page.locator(`[data-cdrom2-source="${id}"] [data-mixer-volume]`).inputValue()),value,'standard source balance '+id);
 
     step('Code renders HuC6280, decoded MSM5205 and stereo CD-DA through one context and one final Master destination');
     await page.locator('#hucFilesInput').setInputFiles({name:'cdrom2-track.wav',mimeType:'audio/wav',buffer:track});

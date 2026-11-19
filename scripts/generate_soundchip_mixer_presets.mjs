@@ -136,13 +136,18 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
   }
 }
 
-async function main(args) {
-  const options = {
+// Shared by CLI validation and npm packaging; report generations must agree.
+export const DEFAULT_SOUNDCHIP_MIXER_REPORT_PATHS=Object.freeze({
     reportPath:fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)),
     ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_huc_timed_chip_levels_01.json',import.meta.url)),
     wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_huc_timed_chip_levels_01.json',import.meta.url)),
     scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_huc_timed_chip_levels_01.json',import.meta.url)),
     pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_huc_timed_chip_levels_01.json',import.meta.url)),
+});
+
+async function main(args) {
+  const options = {
+    ...DEFAULT_SOUNDCHIP_MIXER_REPORT_PATHS,
     outPath:fileURLToPath(new URL('../tetorica_src/runtime/soundchip_mixer_presets.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false,noScsp=false,explicitScsp=false;

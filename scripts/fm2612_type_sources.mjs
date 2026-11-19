@@ -4,6 +4,12 @@ import {basename} from 'node:path';
 // Supply missing destructured-option shapes during declaration inference.
 // Restore the original staged JavaScript when TypeScript finishes or fails.
 const annotations = {
+  'huc6280_timed_state.js': [
+    ['export function createHuc6280TimedSnapshot(',
+      '/** @param {any} state\n' +
+      ' * @param {{instanceId: string | number, frame: number, sampleRate: number}} [options]\n' +
+      ' */'],
+  ],
   'ay8910_timed_state.js': [
     ['export function createAyTimedSnapshot(',
       '/** @param {any} state\n' +

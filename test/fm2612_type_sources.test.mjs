@@ -17,9 +17,10 @@ async function fixture(t) {
   await mkdir(sourceDirectory);
   await writeFile(join(directory, 'package.json'), '{"type":"module"}\n');
   const sources = new Map();
-  for (const name of ['ay8910_timed_state.js', 'playground_performance_queue.js']) {
+  for (const name of ['ay8910_timed_state.js', 'huc6280_timed_state.js', 'playground_performance_queue.js']) {
     sources.set(join(sourceDirectory, name), await readFile(join(root, 'tetorica_src/runtime', name), 'utf8'));
   }
+  sources.set(join(sourceDirectory, 'huc6280_operations.js'), 'export function validateHuc6280OperationState(state) { return state; }\n');
   sources.set(join(sourceDirectory, 'ay8910.js'), 'export function validateAy8910(options) {}\n');
   sources.set(join(sourceDirectory, 'ay8910_operations.js'), 'export function validateAyOperationState(state) { return state; }\n');
   sources.set(join(sourceDirectory, 'processor.js'), `
@@ -49,11 +50,15 @@ test('declaration staging retains snapshot and queue option contracts through pr
   const consumer = join(directory, 'consumer.mts');
   await writeFile(consumer, `
 import {createAyTimedSnapshot} from './types/ay8910_timed_state.js';
+import {createHuc6280TimedSnapshot} from './types/huc6280_timed_state.js';
 import {Processor} from './types/processor.js';
 const snapshot = createAyTimedSnapshot({}, {
   instanceId: 'chip', clock: 2000000, type: 16, flags: 1, frame: 0, sampleRate: 48000,
 });
 const frame: number = snapshot.frame;
+const hucFrame: number = createHuc6280TimedSnapshot({}, {instanceId: 'huc', frame: 0, sampleRate: 48000}).frame;
+// @ts-expect-error A HuC6280 snapshot frame is numeric.
+createHuc6280TimedSnapshot({}, {instanceId: 'huc', frame: 'zero', sampleRate: 44100});
 const processor = new Processor({} as any);
 processor.queue.clearPattern('buzzer', {session: 1, owner: 'melody'});
 processor.queue.clearPattern('buzzer');
