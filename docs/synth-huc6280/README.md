@@ -317,7 +317,7 @@ Track playback, file preparation, scheduling and FX are software functions.
 **Files** holds `index.js`, presets, text and binary assets. Selecting a sound
 chooses Auto without stopping Code or changing VGM Play/Pause; selecting JSON while Keyboard is visible keeps
 the Keyboard tab. Right-click a file for duplicate, rename, delete and creation
-actions. Save sound stores the common Auto instrument under `presets/`.
+actions. ＋ Instrument creates a named file for the common Auto instrument under `presets/`.
 
 **Auto apply** is On by default: edits become saved files immediately, and valid
 sound changes apply to the instrument. Turn it Off to keep a separate working
@@ -587,7 +587,7 @@ speaker connection is added.
 
 Choose **Copy to Auto** to copy the configured Wave, Noise or CH1 LFO pair
 into the editable common instrument. The song stays paused at the same position
-and the view returns to **Auto**. Adjust it, then choose **Files → Save sound**
+and the view returns to **Auto**. Adjust it, then choose **Files → ＋ Instrument**
 to keep a preset. Alternatively, **Save to presets** saves the selected CH directly,
 without Capture or changing the view, song state or current Code file. Capture
 itself does not create a file or resume the song.
@@ -946,7 +946,7 @@ LFO有効時はCH1でCH1・CH2の組を試奏し、C4で記録時のCH1周期、
 試奏は専用Workletとフェード用Gainを使い、同じAudioContext・Masterへ接続します。
 曲の停止位置・未再生PCM・編集中の共通音色・通常CH設定は変更しません。
 Copy to Autoは曲をPauseのまま設定だけを共通音色へ取り込み、Auto表示へ戻します。
-FilesのSave soundはこの共通Auto音色を`presets/`へ保存します。Captureだけではファイルを作りません。
+Filesの＋ Instrumentは名前を指定して共通Auto音色を`presets/`へ保存します。Captureだけではファイルを作りません。
 Channel横のSave to presetsは選択中のAuto／CHを直接`presets/`へ保存し、Capture・表示CH変更・Codeファイル選択・モード切替・再生停止は行いません。
 保存したJSONはFilesとPreset一覧へすぐ追加され、後で選択して読み込めます。保存だけで音色は適用しません。
 既知のWave／Noise／CH1 LFOペアを保存でき、未知のWave RAMや物理CHの一時的なDDA値は完全なPCM音色として保存できない理由を表示します。

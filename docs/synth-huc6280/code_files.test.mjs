@@ -678,3 +678,15 @@ test('Discard all restores all unsaved documents and keeps accepted sound withou
   assert.deepEqual(f.project.getDirtyPaths(),[]);assert.equal(f.project.fs.get('/index.js').data,original);assert.equal(f.project.fs.get(path).data,saved);
   assert.equal(f.doc.getElementById('hucFileNewButton').textContent,'＋ JS');
 });
+
+test('＋ Instrument names a new current-sound preset; cancelling leaves the project intact',async t=>{
+  const f=fixture(t);await f.files.ready;const button=f.doc.getElementById('hucFileSaveSoundButton');
+  assert.equal(button.textContent,'＋ Instrument');const before=f.project.snapshot();
+  await button.fire('click');const dialog=f.doc.getElementById('hucFileNameDialog');assert(dialog.open);
+  assert.equal(f.doc.getElementById('hucFileNameInput').value,'/presets/Untitled.huc6280.json');
+  await f.doc.getElementById('hucFileNameCancel').fire('click');assert.deepEqual(f.project.snapshot(),before);
+  await button.fire('click');f.doc.getElementById('hucFileNameInput').value='/presets/My tone.huc6280.json';
+  await dialog.children[0].fire('submit');await new Promise(resolve=>setImmediate(resolve));
+  const path='/presets/My tone.huc6280.json';assert.equal(f.project.selectedPath,path);
+  assert.equal(JSON.parse(f.project.savedFs.get(path).data).name,'My tone');
+});

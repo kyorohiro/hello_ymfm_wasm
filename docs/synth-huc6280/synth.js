@@ -14,7 +14,7 @@ import {setupTestPcmControls} from './test_pcm_controls.js?v=huc-test-default-1'
 import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
 import {createEditor} from './editor.js?v=huc-live-highlight-1';
 import {createHuc6280LiveHighlighter} from './live_highlight.js?v=huc-live-highlight-1';
-import {setupHuc6280CodeHost} from './code_host.js?v=huc-files-controls-1';
+import {setupHuc6280CodeHost} from './code_host.js?v=huc-instrument-create-1';
 import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-live-1';
 import {createHuc6280CodeEdit,createHuc6280CodeChanges} from './code_parameter_edit.js?v=huc-working-saved-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';

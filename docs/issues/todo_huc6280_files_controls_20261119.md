@@ -12,3 +12,8 @@ separate from the four save/discard controls. Save sound creates a new preset.
 Verification: Files/Code host tests 74/74 pass, including multi-document Discard
 all. Chromium/WebKit at 1240px/390px retain context-menu layout and Escape
 behavior without creating audio. No automatic Code execution was added.
+
+Follow-up: ＋ Instrument now matches FM2612 wording and opens the existing
+name dialog before creating a current-sound preset. Cancel leaves files intact;
+Save/Save all keep their existing document-update roles. Named creation and
+cancellation are covered by the Files regression suite.
