@@ -210,6 +210,15 @@ async function importFolder(page, folder) {
 	const chooser = page.waitForEvent('filechooser');
 	await page.click('#loadSsfFolder');
 	await (await chooser).setFiles(folder);
+	// Files publishes the new song options before persisting the import and
+	// loading its initial entry. Wait for that complete public workflow before
+	// the next test action, or the import's later auto-selection can win.
+	await until(async () => {
+		const state = await view(page);
+		return (await page.locator('#scspFilesPanel').getAttribute('aria-busy')) === 'false' &&
+			state.selected && !state.playDisabled &&
+			state.status === 'SCSP reference song loaded · ' + state.selected;
+	}, 'folder import and initial song load');
 }
 async function importSingle(page, name, bytes) {
 	await openMenu(page);
