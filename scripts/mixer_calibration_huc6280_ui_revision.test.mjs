@@ -31,9 +31,9 @@ test('the independently pinned passive revision reconstructs exact VAB predecess
       const bytes=read(reportPath),report=JSON.parse(bytes),identity=receipt.reports[reportPath];
       assert.equal(bytes.length,identity.bytes);assert.equal(sha(bytes),identity.sha256);
       // These immutable reports precede the newer AY WASM. The current UI no
-      // longer authorizes that old DSP dependency; reconstruct the archived
+      // longer authorizes the old DSP or newer FM app dependencies; reconstruct the archived
       // VAB predecessor separately to test the historical navigation chain.
-      assert.throws(()=>fresh({path,bytes:current,record:report.sources[path],report}),/pinned report\/helper\/cache dependency changed/);
+      assert.throws(()=>fresh({path,bytes:current,record:report.sources[path],report}),/pinned (?:report\/helper\/cache|source\/report) dependency changed/);
       const historical=historicalVabSourceFixture(path,original);
       assert.doesNotThrow(()=>fresh({path,bytes:historical,record:report.sources[path],report}));
       assert.deepEqual(read(reportPath),bytes,'validation never rewrites source fingerprints or measured levels');
@@ -56,7 +56,7 @@ test('one-byte, extra-byte, cache-token, import and future viewer edits remain s
       assert.equal(restore(other,current),current);
       assert.throws(()=>fresh({path:other,bytes:current,record:entry.before}));
     }
-    assert.throws(()=>fresh({path,bytes:current,record:{...entry.before,sha256:'0'.repeat(64)}}),/remeasure/);
+    assert.throws(()=>fresh({path,bytes:current,record:{...entry.before,sha256:'0'.repeat(64)}}),/remeasure|pinned source\/report dependency changed/);
     for(const target of reports)assert.throws(()=>restore(path,current,{readSource(url){const bytes=readFileSync(url);return url.pathname.endsWith('/'+target)?Buffer.concat([bytes,Buffer.from([0])]):bytes;}}),/original measurement changed/);
   }
 });

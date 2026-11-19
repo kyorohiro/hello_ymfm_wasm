@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-19",
+  "scope": "Historical calibration test dependency repair for the FM2612 application changes",
+  "passed": true,
+  "baseCommit": "906ee67d9f157cc1d7a16086dad80a2bc000b891",
+  "originalFailure": {
+    "suites": [
+      "scripts/mixer_calibration_huc6280_ui_revision.test.mjs",
+      "scripts/mixer_calibration_code_note_revision.test.mjs"
+    ],
+    "collectedBefore": 4,
+    "failedBefore": 4,
+    "collectedAfter": 6,
+    "passedAfter": 6,
+    "reason": "Historical AY/SCSP inputs read the post-Cassette/CD-DA/working-saved FM app instead of the pinned predecessor. Code-note suite failed during module initialization before its three tests could collect."
+  },
+  "repair": {
+    "productionReadersChanged": false,
+    "runtimeOrApplicationChanged": false,
+    "historicalMeasurementsChanged": false,
+    "generatedGainChanged": false,
+    "testOnlySourceReader": "test/helpers/historical_fm2612_application_source_fixture.mjs",
+    "fixture": {
+      "path": "test/fixtures/fm2612-application-predecessors.json",
+      "file": {
+        "bytes": 29370,
+        "sha256": "ae70aad5d083e5f733af86af08dee1783f1bd2fe66d87106dce6d0ce9d82998d"
+      },
+      "objectSha256": "ab40e94c5a328241f1e767ac2cf65df20fc21bad3f873ea6e8b8fecb828f37d9",
+      "sources": {
+        "docs/synth/synth.js": {
+          "before": {
+            "bytes": 150646,
+            "sha256": "1b7d9c389fa3ebdbaf495a011b0b5f0cf9344e1030f03a47316d7bd00bcff282"
+          },
+          "after": {
+            "bytes": 162398,
+            "sha256": "08930d99d48d6dfaee9a876b645c1a4bfc2f80efbd18cced094dea78bb9da28a"
+          }
+        },
+        "docs/synth/index.html": {
+          "before": {
+            "bytes": 93085,
+            "sha256": "37b051424d4141d40fca1aef8f30effb9f7a891d45099d32643ffa8afb8dff70"
+          },
+          "after": {
+            "bytes": 101061,
+            "sha256": "fb1381eefbecf2666bff98e45c48b49bf17040c48234e20eae81affbfeebde77"
+          }
+        },
+        "docs/synth/synth_code_declarations.js": {
+          "before": {
+            "bytes": 7512,
+            "sha256": "6900321b87afed830e3b95b202f39567c57a019cf49aca94e1ad8b256500f770"
+          },
+          "after": {
+            "bytes": 8299,
+            "sha256": "120562264e16dbe764955516da37bd44eee03855fe39fbbde3a04761afe1ead0"
+          }
+        },
+        "scripts/mixer_calibration_scsp_output_level_new_cassette_revision.test.mjs": {
+          "before": {
+            "bytes": 12483,
+            "sha256": "adc61415d1f9e5fc87019e74755f054648be75fbfde603906e1ed121d9bf04e2"
+          },
+          "after": {
+            "bytes": 13072,
+            "sha256": "692e24699a63139e46c206abaebb71fadf32399b1c5a633332c6d60b510abee4"
+          },
+          "beforeCommit": "906ee67d9f157cc1d7a16086dad80a2bc000b891"
+        },
+        "scripts/mixer_calibration_scsp_live_highlight_revision.test.mjs": {
+          "before": {
+            "bytes": 9913,
+            "sha256": "8263769db1f23a6b55713d5384a5a559feb8b2067de36ce90330734bad66c3b4"
+          },
+          "after": {
+            "bytes": 10490,
+            "sha256": "7563764a599e862d65aa69bedf2803039db6666cbed92a05e707b436e5c266a8"
+          },
+          "beforeCommit": "906ee67d9f157cc1d7a16086dad80a2bc000b891"
+        }
+      },
+      "historicalReceipts": {
+        "docs/issues/scsp_output_level_new_cassette_source_revision_01.json": {
+          "bytes": 33849,
+          "sha256": "3ec5543ef6d6b10ff977706dbb53636f401addc6ce0c368ca440deaa577f5404"
+        },
+        "docs/issues/playground_scsp_dsp_helpers_source_revision_01.json": {
+          "bytes": 14594,
+          "sha256": "d4b6393957dc115224243357128281bbe0948876ce8d6988e09af6005d0377d0"
+        },
+        "docs/issues/ym2608_source_mix_mixer_policy_revision_01.json": {
+          "bytes": 63425,
+          "sha256": "8243d03857be35fbfbba953ea6d66e7d6a27d2138a590400292e8f2be6ed858f"
+        }
+      }
+    },
+    "guards": [
+      "complete before/after SHA-256",
+      "independent fixture pin",
+      "historical receipt linkage",
+      "exact actual-Git predecessor comparison",
+      "unknown/future body pass-through to strict historical guard",
+      "companion and evidence tampering rejection",
+      "owned immutable reads and detached buffers",
+      "production reader still rejects the new unapproved graph"
+    ]
+  },
+  "tests": {
+    "related": {
+      "tests": 56,
+      "pass": 56,
+      "fail": 0,
+      "suites": [
+        "fm2612_application_history",
+        "huc6280_ui_revision",
+        "code_note_revision",
+        "scsp_output_level_new_cassette_revision",
+        "scsp_live_highlight_revision",
+        "ym2608_source_mix_history",
+        "ym2608_source_mix_policy_revision",
+        "sources"
+      ]
+    },
+    "ciCommand": {
+      "tests": 11,
+      "pass": 11,
+      "fail": 0,
+      "command": "node --test scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs scripts/mixer_calibration_fm2612_application_history.test.mjs"
+    },
+    "package": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "command": "node --test --test-concurrency=4 scripts/package_itch_huc6280_synth.test.mjs"
+    },
+    "artifactProfile": {
+      "passed": true,
+      "command": "node scripts/runtime_artifact_profiles.mjs playground --check"
+    },
+    "diffCheck": true
+  },
+  "logs": {
+    "before": {
+      "path": "/private/tmp/calibration-repair-before-20261119.log",
+      "bytes": 7781,
+      "sha256": "d667b157ba278abc2b4c9ed02c92271550df2e42537ed972eb227c313ba492bb"
+    },
+    "related": {
+      "path": "/private/tmp/calibration-repair-guards-20261119.log",
+      "bytes": 5862,
+      "sha256": "fdb517d2cf5828d0a4842266a8d2f7ad816ed7651677b4ea0a5c990ddbe370bf"
+    },
+    "ciCommand": {
+      "path": "/private/tmp/calibration-repair-ci-command-20261119.log",
+      "bytes": 1369,
+      "sha256": "7a15611a39664a508cca435c14b0b080af1fcf0497f69b655a263875d3c3341f"
+    },
+    "package": {
+      "path": "/private/tmp/calibration-repair-package-20261119.log",
+      "bytes": 320,
+      "sha256": "e537ee1885bfa9f0277da2f8f76c1245abc6c5cf5950640737d4ba1eabdebf39"
+    }
+  },
+  "unchangedApplicationAndGainSources": {
+    "docs/synth/synth.js": {
+      "bytes": 162398,
+      "sha256": "08930d99d48d6dfaee9a876b645c1a4bfc2f80efbd18cced094dea78bb9da28a"
+    },
+    "docs/synth/index.html": {
+      "bytes": 101061,
+      "sha256": "fb1381eefbecf2666bff98e45c48b49bf17040c48234e20eae81affbfeebde77"
+    },
+    "docs/synth/synth_code_declarations.js": {
+      "bytes": 8299,
+      "sha256": "120562264e16dbe764955516da37bd44eee03855fe39fbbde3a04761afe1ead0"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "38887acc235d3c26a88c1d84ef1190e97038715e818786d68f4ccf7a930741da"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "7d254801a2856cd0ce5262e45496efdc85c756e7b7d74e00b56f4ff13dbf7d6d"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13459,
+      "sha256": "64ac4a653c6b1adc1b80b5cc6fba2f1c1fdf52392a34b578a99028ad99cd168b"
+    }
+  },
+  "changedFiles": {
+    ".github/workflows/huc6280-synth.yml": {
+      "bytes": 8481,
+      "sha256": "c24cf15a9d5b42dfe970532e3092b899cf6d812f003640c3a08173f1646a6b92"
+    },
+    "docs/issues/todo_fm2612_synth_calibration_freshness_01.md": {
+      "bytes": 5136,
+      "sha256": "e3a6c0cebbc8774aa1b46a012935c42fd1120d0e8bd4f7ffa8727a0cda94e859"
+    },
+    "scripts/mixer_calibration_huc6280_ui_revision.test.mjs": {
+      "bytes": 6445,
+      "sha256": "a2b2588de8e2e4f56030f6aa869d48fd305f92921b2a2da9499b2bafed6fd00d"
+    },
+    "scripts/mixer_calibration_scsp_live_highlight_revision.test.mjs": {
+      "bytes": 10490,
+      "sha256": "7563764a599e862d65aa69bedf2803039db6666cbed92a05e707b436e5c266a8"
+    },
+    "scripts/mixer_calibration_scsp_output_level_new_cassette_revision.test.mjs": {
+      "bytes": 13072,
+      "sha256": "692e24699a63139e46c206abaebb71fadf32399b1c5a633332c6d60b510abee4"
+    },
+    "scripts/mixer_calibration_sources.test.mjs": {
+      "bytes": 15698,
+      "sha256": "015736583e37c18552851ad8fd6ec5d4e51b735bf34e82a905861611b7835bb7"
+    },
+    "scripts/mixer_calibration_ym2608_source_mix_policy_revision.test.mjs": {
+      "bytes": 4573,
+      "sha256": "4aa8f4995ba96a1db129bf51e1d7bf5b44e2190607d0fabba255622e505ed0f5"
+    },
+    "test/helpers/historical_ay_timed_source_fixture.mjs": {
+      "bytes": 1593,
+      "sha256": "caebf1ed2314d2bc1d9a4008b2f4f95109115914ec4768ae575d8e9e92af282b"
+    },
+    "scripts/mixer_calibration_fm2612_application_history.test.mjs": {
+      "bytes": 5194,
+      "sha256": "cadc3768b921e409dbb7bf8b14f6ffec6978eb8203338d3684eeb46a861aef87"
+    },
+    "test/fixtures/fm2612-application-predecessors.json": {
+      "bytes": 29370,
+      "sha256": "ae70aad5d083e5f733af86af08dee1783f1bd2fe66d87106dce6d0ce9d82998d"
+    },
+    "test/helpers/historical_fm2612_application_source_fixture.mjs": {
+      "bytes": 5049,
+      "sha256": "358a2fc1355b6d5d8b4015cf5fda4444036d60672c0ceb596d4e69a770ef79f8"
+    }
+  },
+  "separateRemainingGeneratorFreshness": {
+    "passed": false,
+    "fileUnchangedFromHead": true,
+    "path": "docs/js/tetorica_virtual_files/filesystem.js",
+    "actual": {
+      "bytes": 20639,
+      "sha256": "c74e0072c09884917896bd7af4b487799e34f83ffb5cda40896b22acf510434b"
+    },
+    "recorded": {
+      "bytes": 20206,
+      "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+    },
+    "error": "Invalid PS1 Mixer calibration: served DSP/WASM source changed; remeasure: docs/js/tetorica_virtual_files/filesystem.js",
+    "checks": [
+      "generate_soundchip_mixer_presets.mjs --check",
+      "generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check"
+    ],
+    "reports": {
+      "ps1": "docs/issues/ps1_ym2608_source_mix_chip_levels_01.json",
+      "wonderswan": "docs/issues/wonderswan_ym2608_source_mix_chip_levels_01.json",
+      "pokey": "docs/issues/pokey_ym2608_source_mix_chip_levels_01.json",
+      "scsp": "docs/issues/scsp_ym2608_source_mix_chip_levels_01.json"
+    },
+    "measurementsOrGainsRewritten": false,
+    "followup": "docs/issues/todo_fm2612_synth_calibration_freshness_01.md"
+  },
+  "audioDeviceOpened": false,
+  "browserRun": false,
+  "commit": false,
+  "push": false,
+  "release": false
+}

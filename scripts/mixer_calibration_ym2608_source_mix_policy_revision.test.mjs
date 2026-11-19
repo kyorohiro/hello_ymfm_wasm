@@ -1,13 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {createHistoricalFm2612ApplicationReader} from '../test/helpers/historical_fm2612_application_source_fixture.mjs';
 import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 import {renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
 import {renderPlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
-import {restoreMixerCalibrationYm2608SourceMixPolicyRevision as restore,createYm2608SourceMixPolicyReadContext,
+import {restoreMixerCalibrationYm2608SourceMixPolicyRevision as productionRestore,createYm2608SourceMixPolicyReadContext as productionContext,
  YM2608_SOURCE_MIX_POLICY_RECEIPT as receiptPath,YM2608_SOURCE_MIX_POLICY_PIN as pin,
  YM2608_SOURCE_MIX_POLICY_SOURCES as sources,YM2608_SOURCE_MIX_POLICY_REPORTS as reports} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
+
+// Historical policy tests retain their original dependency graph.
+const readFileSync=createHistoricalFm2612ApplicationReader();
+const restore=(path,bytes,options={})=>productionRestore(path,bytes,{readSource:readFileSync,...options});
+const createYm2608SourceMixPolicyReadContext=()=>productionContext(readFileSync);
 
 const root=new URL('../',import.meta.url),url=name=>new URL(name,root),read=name=>readFileSync(url(name));
 const json=name=>JSON.parse(read(name)),sha=bytes=>createHash('sha256').update(bytes).digest('hex');

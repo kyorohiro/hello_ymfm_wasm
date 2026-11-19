@@ -11,7 +11,7 @@
 
 ## 2026-11-19: existing SCSP provenance dependency mismatch
 
-- [ ] Reconcile the historical SCSP output-level/New Cassette source-revision
+- [x] Reconcile the historical SCSP output-level/New Cassette source-revision
   chain with the subsequent FM2612 `docs/synth/synth.js` changes, preserving the
   measured reports and gains. `mixer_calibration_huc6280_ui_revision.test.mjs`
   and `mixer_calibration_code_note_revision.test.mjs` currently have four
@@ -22,3 +22,53 @@
   SHA-256 `08930d99d48d6dfaee9a876b645c1a4bfc2f80efbd18cced094dea78bb9da28a`;
   the historical receipt expects 150646 bytes,
   `1b7d9c389fa3ebdbaf495a011b0b5f0cf9344e1030f03a47316d7bd00bcff282`.
+
+### Authorized repair — 2026-11-19
+
+- [x] Reproduce the two failing suites against the current clean checkout and
+  identify the missing reviewed source-revision connection.
+- [x] Audit the FM2612 changes and existing source receipts. Reuse an exact
+  reviewed predecessor where available; retain rejection of unknown/future
+  source changes and distinguish historical test fixtures from production
+  freshness validation.
+- [x] Repair the smallest affected reader/chain without changing synthesizer
+  behavior, measured reports or generated mixer gains.
+- [x] Run the repaired suites and relevant source-guard/chain/package checks;
+  record the results and remaining limits before marking this task complete.
+
+### Repair completed
+
+The historical AY reader now supplies a test-only, independently pinned FM
+application predecessor reader before entering the existing YM2608/AY/SCSP
+chain. It covers the two launcher files and the later CD-DA declaration changes.
+Two self-pinned SCSP test files also retain their exact original bodies inside
+that fixture after their reader injection is updated. The policy tests use the
+same explicit historical reader. Production calibration readers do not import
+this fixture and continue rejecting an unapproved current or future graph.
+
+The fixture checks both complete source identities, historical receipt links,
+reverse reconstruction, changed companion files, forged evidence, and immutable
+owned reads. Negative freshness tests accept the relevant exact dependency
+rejection when it precedes the old binary check; they still require rejection.
+No live Synth, runtime, WASM, historical measurement or generated gain changed.
+
+[Verification](verification_fm2612_calibration_history_repair_20261119.json):
+the original two suites now pass all 6 collected tests (the original Code test
+file previously failed during module loading, counting as one of the 4 failures).
+Related history/policy/source-guard tests pass 56/56; the HuC6280 package tests
+pass 2/2; Playground artifact-profile checking passes. CI includes the new
+fixture tests and fetches the history needed for actual-Git comparisons.
+No audio device, browser, publish, commit or push was used for this repair.
+
+### Separate remaining calibration-generation check
+
+- [ ] Review/remeasure the public Virtual Files source dependency after the
+  working/saved changes. Both current mixer generators' `--check`, using the
+  latest YM2608 source-mix reports, reject
+  `docs/js/tetorica_virtual_files/filesystem.js`. Its 20639-byte body has SHA-256
+  `c74e0072c09884917896bd7af4b487799e34f83ffb5cda40896b22acf510434b`,
+  while the report records 20206 bytes and
+  `25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41`.
+  The current file is byte-identical to HEAD before this repair. This separate
+  freshness rejection was retained, and no measurement or gain was rewritten
+  to suppress it.

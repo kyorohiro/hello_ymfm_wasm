@@ -1,0 +1,888 @@
+{
+  "schemaVersion": 1,
+  "scope": "test-only-fm2612-application-history",
+  "baseCommit": "db1e739d5bf8dac68bf93aa3aea34ef098153b25",
+  "sources": {
+    "docs/synth/synth.js": {
+      "before": {
+        "bytes": 150646,
+        "sha256": "1b7d9c389fa3ebdbaf495a011b0b5f0cf9344e1030f03a47316d7bd00bcff282"
+      },
+      "after": {
+        "bytes": 162398,
+        "sha256": "08930d99d48d6dfaee9a876b645c1a4bfc2f80efbd18cced094dea78bb9da28a"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 723,
+          "beforeText": "import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=channel-presets-1';\nimport {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';\nimport {setupSynthFiles} from './synth_files.js?v=draft-reconnect-1';\nimport {setupSynthCodeControls} from './synth_code_controls.js?v=draft-reconnect-1';\nimport {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';\nimport {createSynthCodeAudio} from './synth_code_audio.js?v=channel-view-1';\n"
+        },
+        {
+          "afterOffset": 2035,
+          "afterBytes": 81,
+          "beforeText": "import {setupSynthSongControls} from './synth_song_controls.js?v=channel-presets-1';\n"
+        },
+        {
+          "afterOffset": 7942,
+          "afterBytes": 4694,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 15596,
+          "afterBytes": 44,
+          "beforeText": "      const settings=modulationSettings(commonState,modulationWheelValue);\n"
+        },
+        {
+          "afterOffset": 25891,
+          "afterBytes": 34,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 27064,
+          "afterBytes": 142,
+          "beforeText": "  if (!isSongChannelTarget()&&(editorChip === 'psg' && !psgAudio.getPsg() || editorChip === 'pcm' && !pcmVoice.isReady()) && synth) {\n"
+        },
+        {
+          "afterOffset": 35536,
+          "afterBytes": 119,
+          "beforeText": "const pcmVoice=createSynthPcmVoice({getPcm:()=>pcmAudio.getPcm(),getPitchClock:()=>synth?.clock??YM2612_CLOCK,\n"
+        },
+        {
+          "afterOffset": 36060,
+          "afterBytes": 181,
+          "beforeText": "const psgVoice = createSynthPsgVoice({\n"
+        },
+        {
+          "afterOffset": 36773,
+          "afterBytes": 134,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 36995,
+          "afterBytes": 50,
+          "beforeText": "  getSettings:()=>psgVoice.getSettings(),\n"
+        },
+        {
+          "afterOffset": 37221,
+          "afterBytes": 47,
+          "beforeText": "    psgVoice.stop();clearInputState();\n"
+        },
+        {
+          "afterOffset": 37634,
+          "afterBytes": 91,
+          "beforeText": "  getPreset:()=>pcmVoice.getPreset(),getPitchClock:()=>synth?.clock??YM2612_CLOCK,\n"
+        },
+        {
+          "afterOffset": 37806,
+          "afterBytes": 47,
+          "beforeText": "    pcmVoice.stop();clearInputState();\n"
+        },
+        {
+          "afterOffset": 38462,
+          "afterBytes": 242,
+          "beforeText": "  onBeforeSourceChange:() => {if(codeActive)psgVoice.stop();else stopAllNotes();},\n  onBeforeEnvelopeToggle:() => {if(codeActive)psgVoice.stop();else stopAllNotes();},\n"
+        },
+        {
+          "afterOffset": 38799,
+          "afterBytes": 235,
+          "beforeText": "    codeAudio?.syncPsgSettings(previous,patch);\n    if(isPsgSongPlaying())forwardAuthorPsgSettings(patch);\n"
+        },
+        {
+          "afterOffset": 40155,
+          "afterBytes": 442,
+          "beforeText": "    const previous=pcmVoice.getSettings();\n    pcmVoice.setSettings(patch,{applyHardware:!codeActive});codeAudio?.syncPcmSettings(previous,patch);synthFiles?.markDirty();pcmControls.update();\n    if(audioContext&&!pcmVoice.isReady())void ensureAudioReady({announce:false}).catch(error=>setStatus(`PCM audio: ${error.message}`));\n"
+        },
+        {
+          "afterOffset": 40958,
+          "afterBytes": 222,
+          "beforeText": "  ++pcmLoadGeneration;if(!codeActive)stopAllNotes();\n  pcmVoice.setPreset(preset);codeAudio?.pcmSourceChanged?.();pcmControls.update();synthFiles?.markDirty();\n"
+        },
+        {
+          "afterOffset": 41767,
+          "afterBytes": 0,
+          "beforeText": "  codeAudio?.beforePcmSampleEdit();\n"
+        },
+        {
+          "afterOffset": 41864,
+          "afterBytes": 89,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 42142,
+          "afterBytes": 100,
+          "beforeText": "  if(pcm)void pcmVoice.install(pcm).catch(error=>setStatus(`PCM audio: ${error.message}`));\n"
+        },
+        {
+          "afterOffset": 44049,
+          "afterBytes": 85,
+          "beforeText": "  document.querySelector('.synth-file-editor-heading').hidden = false;\n"
+        },
+        {
+          "afterOffset": 44200,
+          "afterBytes": 533,
+          "beforeText": "  note.textContent = fm ? 'TFI / VGI + Synth settings · Format info ⓘ' : pcm?'RF5C164 PCM · JSON / Files / Cassette':'PSG instrument · JSON / Files / Cassette';\n  note.title = fm ? fmFormatTitle : pcm?'Self-contained PCM sample and settings. WAV conversion is software.':'Tone / Noise, attenuation and noise clock. Save with Sync or export PSG JSON.';\n"
+        },
+        {
+          "afterOffset": 45069,
+          "afterBytes": 137,
+          "beforeText": "  for (const wheel of modulationWheels) wheel.disabled = editorChip === 'psg' || editorChip==='pcm' || observing;\n"
+        },
+        {
+          "afterOffset": 48160,
+          "afterBytes": 26,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 50157,
+          "afterBytes": 100,
+          "beforeText": "    while(pcmAudio.getPcm()===pcm&&!pcmVoice.isReady())await pcmVoice.install(pcm);\n"
+        },
+        {
+          "afterOffset": 50809,
+          "afterBytes": 420,
+          "beforeText": "    getPsg:()=>psgAudio.getPsg(),getPsgVoice:()=>psgVoice,\n    getPcm:()=>pcmAudio.getPcm(),getPcmVoice:()=>pcmVoice,\n"
+        },
+        {
+          "afterOffset": 51420,
+          "afterBytes": 128,
+          "beforeText": "      if(chip==='segapsg')psgVoice.forgetNote(channel);\n      if(chip==='rf5c164')pcmVoice.forgetNote(channel);\n"
+        },
+        {
+          "afterOffset": 52318,
+          "afterBytes": 72,
+          "beforeText": "    const files=createSynthCodeProject(synthProject);\n"
+        },
+        {
+          "afterOffset": 52436,
+          "afterBytes": 71,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 53627,
+          "afterBytes": 179,
+          "beforeText": "  return songTargetState.source!=='local'&&songTargetState.target !== 'synth' && ['loading','playing','paused','seeking'].includes(songTargetState.playback);\n"
+        },
+        {
+          "afterOffset": 55875,
+          "afterBytes": 67,
+          "beforeText": "      const preset=pcmVoice.getPreset(),s=preset.settings;\n"
+        },
+        {
+          "afterOffset": 60151,
+          "afterBytes": 142,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 61416,
+          "afterBytes": 252,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 62559,
+          "afterBytes": 135,
+          "beforeText": "  return codeActive||Boolean(codeControls?.isCodeMode())||switchingAudioOutput||Boolean(referenceRecordingStop)||\n"
+        },
+        {
+          "afterOffset": 62856,
+          "afterBytes": 126,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 64026,
+          "afterBytes": 101,
+          "beforeText": "    for(const channel of pcmVoice.getState().heldChannels)pcmVoice.noteOff(channel);\n"
+        },
+        {
+          "afterOffset": 64210,
+          "afterBytes": 99,
+          "beforeText": "  for(const channel of psgVoice.getState().heldChannels)psgVoice.noteOff(channel);\n"
+        },
+        {
+          "afterOffset": 65312,
+          "afterBytes": 95,
+          "beforeText": "  if(psgEventRecorder?.isRecording()) {psgVoice.stop();psgEventRecorder.stopRecord();}\n"
+        },
+        {
+          "afterOffset": 65452,
+          "afterBytes": 95,
+          "beforeText": "  if(pcmEventRecorder?.isRecording()) {pcmVoice.stop();pcmEventRecorder.stopRecord();}\n"
+        },
+        {
+          "afterOffset": 96258,
+          "afterBytes": 231,
+          "beforeText": "  const isInitializing = audioInitStarted && !synth || (channel?songAuditionPreparing:editorChip === 'psg' && psgAudio.isPreparing() || editorChip==='pcm'&&(pcmAudio.isPreparing()||pcmAudio.getPcm()&&!pcmVoice.isReady()));\n"
+        },
+        {
+          "afterOffset": 97791,
+          "afterBytes": 234,
+          "beforeText": "    : editorChip==='pcm'?'Mega CD PCM 8-channel keyboard':editorChip === 'psg' ? `Sega PSG ${psgVoice.getSettings().source} keyboard` : 'Synth keyboard');\n"
+        },
+        {
+          "afterOffset": 99141,
+          "afterBytes": 56,
+          "beforeText": "function applyPatchToVoices() {\n"
+        },
+        {
+          "afterOffset": 99230,
+          "afterBytes": 475,
+          "beforeText": "  const modulation = modulationSettings(commonState, modulationWheelValue);\n"
+        },
+        {
+          "afterOffset": 99856,
+          "afterBytes": 34,
+          "beforeText": "    channel3SpecialState.enabled\n"
+        },
+        {
+          "afterOffset": 99990,
+          "afterBytes": 36,
+          "beforeText": "      channel3SpecialState\n        .frequencies[operator];\n"
+        },
+        {
+          "afterOffset": 100166,
+          "afterBytes": 64,
+          "beforeText": "    channel3SpecialState\n      .frequencies[3].block,\n    channel3SpecialState\n      .frequencies[3].fnum\n"
+        },
+        {
+          "afterOffset": 100482,
+          "afterBytes": 114,
+          "beforeText": "          ...operatorStates[operator],\n          am:\n            operatorStates[operator].am ===\n            true,\n"
+        },
+        {
+          "afterOffset": 100656,
+          "afterBytes": 46,
+          "beforeText": "      commonState.algorithm,\n      commonState.feedback\n"
+        },
+        {
+          "afterOffset": 100743,
+          "afterBytes": 82,
+          "beforeText": "      currentPresetPan.left,\n      currentPresetPan.right,\n      commonState.ams,\n"
+        },
+        {
+          "afterOffset": 103978,
+          "afterBytes": 119,
+          "beforeText": "      pcmVoice.setPreset(pcmPreset);codeAudio?.pcmSourceChanged?.();\n"
+        },
+        {
+          "afterOffset": 104350,
+          "afterBytes": 0,
+          "beforeText": "    const previous=psgVoice.getSettings();\n"
+        },
+        {
+          "afterOffset": 104396,
+          "afterBytes": 64,
+          "beforeText": "    codeAudio?.syncPsgSettings(previous,psgPreset.settings);\n"
+        },
+        {
+          "afterOffset": 104565,
+          "afterBytes": 93,
+          "beforeText": "    if(!restoreEditor)forwardAuthorPsgSettings(psgPreset.settings);\n"
+        },
+        {
+          "afterOffset": 106497,
+          "afterBytes": 56,
+          "beforeText": "  if (synth&&!restoreEditor) {\n"
+        },
+        {
+          "afterOffset": 106583,
+          "afterBytes": 67,
+          "beforeText": "  if(!restoreEditor&&isFmSongPlaying()) {\n"
+        },
+        {
+          "afterOffset": 108103,
+          "afterBytes": 127,
+          "beforeText": "  const modulation = modulationSettings(commonState, modulationWheelValue);\n"
+        },
+        {
+          "afterOffset": 108256,
+          "afterBytes": 24,
+          "beforeText": "      commonState.algorithm,\n"
+        },
+        {
+          "afterOffset": 108294,
+          "afterBytes": 44,
+          "beforeText": "      commonState.feedback,\n    ams: commonState.ams,\n"
+        },
+        {
+          "afterOffset": 108503,
+          "afterBytes": 26,
+          "beforeText": "    pan: {...currentPresetPan},\n"
+        },
+        {
+          "afterOffset": 108653,
+          "afterBytes": 45,
+          "beforeText": "        ...operatorStates[1],\n"
+        },
+        {
+          "afterOffset": 108715,
+          "afterBytes": 47,
+          "beforeText": "        ...operatorStates[2],\n"
+        },
+        {
+          "afterOffset": 108779,
+          "afterBytes": 47,
+          "beforeText": "        ...operatorStates[3],\n"
+        },
+        {
+          "afterOffset": 108843,
+          "afterBytes": 47,
+          "beforeText": "        ...operatorStates[4],\n"
+        },
+        {
+          "afterOffset": 113346,
+          "afterBytes": 77,
+          "beforeText": "        stopAllNotes();\n"
+        },
+        {
+          "afterOffset": 113492,
+          "afterBytes": 74,
+          "beforeText": "        if (synth) {\n"
+        },
+        {
+          "afterOffset": 114470,
+          "afterBytes": 76,
+          "beforeText": "          if (synth) {\n"
+        },
+        {
+          "afterOffset": 116045,
+          "afterBytes": 76,
+          "beforeText": "          if (synth) {\n"
+        },
+        {
+          "afterOffset": 118646,
+          "afterBytes": 94,
+          "beforeText": "      if(id!=='dacEnabled')forwardAuthorFmEdit({[field]:nextValue});\n"
+        },
+        {
+          "afterOffset": 120468,
+          "afterBytes": 104,
+          "beforeText": "  const voice = getCurrentPerformanceVoice() ?? {keyMask:15, specialMode:false, specialFrequencies:[]};\n"
+        },
+        {
+          "afterOffset": 120925,
+          "afterBytes": 140,
+          "beforeText": "  forwardAuthorFmEdit({[`gates.${operator}`]:enabled});\n  codeAudio?.syncFmVoice?.();\n"
+        },
+        {
+          "afterOffset": 121110,
+          "afterBytes": 57,
+          "beforeText": "  if (!isSongChannelTarget()) {\n"
+        },
+        {
+          "afterOffset": 121899,
+          "afterBytes": 40,
+          "beforeText": "  if (synth) {\n"
+        },
+        {
+          "afterOffset": 122159,
+          "afterBytes": 156,
+          "beforeText": "  forwardAuthorFmEdit(Object.fromEntries(Object.entries(patch).map(([field,value])=>[`operators.${operator}.${field}`,value])));\n"
+        },
+        {
+          "afterOffset": 122525,
+          "afterBytes": 55,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 124859,
+          "afterBytes": 119,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 125281,
+          "afterBytes": 138,
+          "beforeText": "    for(const [name,target,count]of [['segapsg',psgVoice,4],['rf5c164',pcmVoice,8],['ym2612',editorPerformanceTarget,6]])\n"
+        },
+        {
+          "afterOffset": 125537,
+          "afterBytes": 54,
+          "beforeText": "  pcmVoice.stop();\n  psgVoice.stop();\n"
+        },
+        {
+          "afterOffset": 126095,
+          "afterBytes": 51,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 126606,
+          "afterBytes": 304,
+          "beforeText": "  if(editorChip==='pcm')return pcmAudio.getPcm()?(codeActive&&codeAudio?codeAudio.keyboardTarget('rf5c164',pcmVoice):pcmVoice):null;\n  if (editorChip === 'psg') return psgAudio.getPsg() ? codeActive&&codeAudio?codeAudio.keyboardTarget('segapsg',psgVoice):psgVoice : null;\n"
+        },
+        {
+          "afterOffset": 126996,
+          "afterBytes": 724,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 128422,
+          "afterBytes": 95,
+          "beforeText": "      getPreset:()=>pcmVoice.getPreset(),getPitchClock:()=>synth?.clock??YM2612_CLOCK,\n"
+        },
+        {
+          "afterOffset": 128544,
+          "afterBytes": 105,
+          "beforeText": "        for(const channel of pcmVoice.getState().heldChannels)pcmVoice.noteOff(channel);\n"
+        },
+        {
+          "afterOffset": 130348,
+          "afterBytes": 54,
+          "beforeText": "      getSettings:()=>psgVoice.getSettings(),\n"
+        },
+        {
+          "afterOffset": 130481,
+          "afterBytes": 105,
+          "beforeText": "        for(const channel of psgVoice.getState().heldChannels)psgVoice.noteOff(channel);\n"
+        },
+        {
+          "afterOffset": 139517,
+          "afterBytes": 199,
+          "beforeText": "  stopAllNotes();\n"
+        },
+        {
+          "afterOffset": 141025,
+          "afterBytes": 102,
+          "beforeText": "      while(editorChip==='pcm'&&!pcmVoice.isReady()&&!(codeActive&&isLocalChannelTarget())) {\n"
+        },
+        {
+          "afterOffset": 141170,
+          "afterBytes": 45,
+          "beforeText": "        await pcmVoice.install(pcm);\n"
+        },
+        {
+          "afterOffset": 141223,
+          "afterBytes": 117,
+          "beforeText": "      if(announce&&editorChip==='pcm'&&pcmVoice.isReady())setStatus('Audio ready. Mega CD PCM · RF5C164.');\n"
+        },
+        {
+          "afterOffset": 141583,
+          "afterBytes": 57,
+          "beforeText": "    showPitch:editorChip !== 'psg',\n"
+        },
+        {
+          "afterOffset": 147128,
+          "afterBytes": 112,
+          "beforeText": "    chooseVoice: available => isLocalChannelTarget()?available[localChannel()]\n"
+        },
+        {
+          "afterOffset": 147477,
+          "afterBytes": 153,
+          "beforeText": "        :chooseVoice(available.filter(voice=>psgVoice.getChannels().includes(voice.channel)&&songControls.describePsg(voice.channel)?.playable))\n"
+        },
+        {
+          "afterOffset": 147985,
+          "afterBytes": 254,
+          "beforeText": "      : editorChip === 'psg' ? chooseVoice(available.filter(voice => psgVoice.getChannels().includes(voice.channel)))\n      : channel3SpecialState.enabled?available[2]:chooseVoice(available.filter(voice=>voice.channel<VOICE_COUNT)),\n"
+        },
+        {
+          "afterOffset": 154654,
+          "afterBytes": 427,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 155693,
+          "afterBytes": 270,
+          "beforeText": "  onWorkspaceReplaced:()=>songControls?.reset(),\n"
+        },
+        {
+          "afterOffset": 156435,
+          "afterBytes": 125,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 157009,
+          "afterBytes": 126,
+          "beforeText": "    if (state.target !== 'synth' && ['loading','playing','paused','seeking'].includes(state.playback)) {\n"
+        },
+        {
+          "afterOffset": 157356,
+          "afterBytes": 75,
+          "beforeText": "    if(state.target==='synth'&&!editorSwitchPending){\n"
+        },
+        {
+          "afterOffset": 158284,
+          "afterBytes": 139,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 158794,
+          "afterBytes": 1387,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 160308,
+          "afterBytes": 66,
+          "beforeText": "  if(event.persisted)songControls.stop();\n"
+        },
+        {
+          "afterOffset": 160510,
+          "afterBytes": 109,
+          "beforeText": "    codeControls?.dispose();void codeAudio?.dispose();\n"
+        },
+        {
+          "afterOffset": 161834,
+          "afterBytes": 32,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth/index.html": {
+      "before": {
+        "bytes": 93085,
+        "sha256": "37b051424d4141d40fca1aef8f30effb9f7a891d45099d32643ffa8afb8dff70"
+      },
+      "after": {
+        "bytes": 101061,
+        "sha256": "fb1381eefbecf2666bff98e45c48b49bf17040c48234e20eae81affbfeebde77"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4407,
+          "afterBytes": 1067,
+          "beforeText": "      .synth-workspace.is-code-expanded > .synth-editor { display:none; }\n"
+        },
+        {
+          "afterOffset": 6143,
+          "afterBytes": 416,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8024,
+          "afterBytes": 53,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8189,
+          "afterBytes": 58,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 20438,
+          "afterBytes": 2069,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 41759,
+          "afterBytes": 43,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 42092,
+          "afterBytes": 0,
+          "beforeText": "      .is-code-expanded #synthCodeMixerButton { display:inline-flex; align-items:center; }\n"
+        },
+        {
+          "afterOffset": 55912,
+          "afterBytes": 334,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 59529,
+          "afterBytes": 745,
+          "beforeText": "          <button id=\"synthFilesToggle\" class=\"toolbar-button\" type=\"button\" aria-controls=\"synthFilesPanel\" aria-expanded=\"false\">Files</button>\n"
+        },
+        {
+          "afterOffset": 60693,
+          "afterBytes": 943,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 62590,
+          "afterBytes": 151,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 63006,
+          "afterBytes": 112,
+          "beforeText": "              <span id=\"synthActiveFilePath\">Built-in instrument</span><span id=\"synthFileDirty\"></span>\n              <div class=\"synth-file-sync-actions\" role=\"toolbar\" aria-label=\"Instrument file controls\">\n                <button id=\"synthFileSaveButton\" class=\"toolbar-button\" type=\"button\" title=\"Sync this instrument (Ctrl/Cmd+S)\" aria-keyshortcuts=\"Control+S Meta+S\" disabled>Sync</button>\n                <button id=\"synthFileRevertButton\" class=\"toolbar-button\" type=\"button\" title=\"Restore this instrument from its last synced copy\" disabled>Revert</button>\n                <span id=\"synthSyncAnnouncement\" class=\"synth-sync-announcement\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"></span>\n              </div>\n"
+        },
+        {
+          "afterOffset": 65613,
+          "afterBytes": 198,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 88267,
+          "afterBytes": 2803,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 99092,
+          "afterBytes": 193,
+          "beforeText": "                <p id=\"synthCodeEditorNote\" class=\"synth-code-note\">Run starts a new session. Apply keeps context. Stop clears the live session. Code is saved with the Cassette.</p>\n"
+        },
+        {
+          "afterOffset": 99613,
+          "afterBytes": 17,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 100984,
+          "afterBytes": 45,
+          "beforeText": "      import \"./synth.js?v=draft-reconnect-2\";\n"
+        }
+      ]
+    },
+    "docs/synth/synth_code_declarations.js": {
+      "before": {
+        "bytes": 7512,
+        "sha256": "6900321b87afed830e3b95b202f39567c57a019cf49aca94e1ad8b256500f770"
+      },
+      "after": {
+        "bytes": 8299,
+        "sha256": "120562264e16dbe764955516da37bd44eee03855fe39fbbde3a04761afe1ead0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4295,
+          "afterBytes": 553,
+          "beforeText": "type SynthCodeSoundChipMap = {ym2612:SynthCodeFm; segapsg:SynthCodePsg; rf5c164:SynthCodePcm; pwm:SynthCodePwm};\n"
+        },
+        {
+          "afterOffset": 6978,
+          "afterBytes": 76,
+          "beforeText": "/** Narrow globals, clients and livePrepare/pg to the actual four-chip host.\n"
+        },
+        {
+          "afterOffset": 7306,
+          "afterBytes": 451,
+          "beforeText": "    banner:'Synth Code: four shared instruments, no independent chip factory.',transformTypes(types) {\n"
+        }
+      ]
+    },
+    "scripts/mixer_calibration_scsp_output_level_new_cassette_revision.test.mjs": {
+      "before": {
+        "bytes": 12483,
+        "sha256": "adc61415d1f9e5fc87019e74755f054648be75fbfde603906e1ed121d9bf04e2"
+      },
+      "after": {
+        "bytes": 13072,
+        "sha256": "692e24699a63139e46c206abaebb71fadf32399b1c5a633332c6d60b510abee4"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 119,
+          "afterBytes": 1,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 123,
+          "afterBytes": 1,
+          "beforeText": "dFil"
+        },
+        {
+          "afterOffset": 125,
+          "afterBytes": 7,
+          "beforeText": "Syn"
+        },
+        {
+          "afterOffset": 133,
+          "afterBytes": 25,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 166,
+          "afterBytes": 4,
+          "beforeText": "nod"
+        },
+        {
+          "afterOffset": 171,
+          "afterBytes": 22,
+          "beforeText": ":"
+        },
+        {
+          "afterOffset": 194,
+          "afterBytes": 35,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 885,
+          "afterBytes": 1,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 887,
+          "afterBytes": 9,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 960,
+          "afterBytes": 5,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 966,
+          "afterBytes": 5,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1741,
+          "afterBytes": 389,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2184,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6359,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6678,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6999,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7288,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7549,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7880,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 11013,
+          "afterBytes": 12,
+          "beforeText": ""
+        }
+      ],
+      "beforeCommit": "906ee67d9f157cc1d7a16086dad80a2bc000b891"
+    },
+    "scripts/mixer_calibration_scsp_live_highlight_revision.test.mjs": {
+      "before": {
+        "bytes": 9913,
+        "sha256": "8263769db1f23a6b55713d5384a5a559feb8b2067de36ce90330734bad66c3b4"
+      },
+      "after": {
+        "bytes": 10490,
+        "sha256": "7563764a599e862d65aa69bedf2803039db6666cbed92a05e707b436e5c266a8"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 119,
+          "afterBytes": 1,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 123,
+          "afterBytes": 1,
+          "beforeText": "dFil"
+        },
+        {
+          "afterOffset": 125,
+          "afterBytes": 7,
+          "beforeText": "Syn"
+        },
+        {
+          "afterOffset": 133,
+          "afterBytes": 25,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 166,
+          "afterBytes": 4,
+          "beforeText": "nod"
+        },
+        {
+          "afterOffset": 171,
+          "afterBytes": 22,
+          "beforeText": ":"
+        },
+        {
+          "afterOffset": 194,
+          "afterBytes": 35,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 615,
+          "afterBytes": 1,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 617,
+          "afterBytes": 9,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 681,
+          "afterBytes": 5,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 687,
+          "afterBytes": 5,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1471,
+          "afterBytes": 389,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1925,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6027,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6348,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6637,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6898,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7229,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10268,
+          "afterBytes": 12,
+          "beforeText": ""
+        }
+      ],
+      "beforeCommit": "906ee67d9f157cc1d7a16086dad80a2bc000b891"
+    }
+  },
+  "historicalReceipts": {
+    "docs/issues/scsp_output_level_new_cassette_source_revision_01.json": {
+      "bytes": 33849,
+      "sha256": "3ec5543ef6d6b10ff977706dbb53636f401addc6ce0c368ca440deaa577f5404"
+    },
+    "docs/issues/playground_scsp_dsp_helpers_source_revision_01.json": {
+      "bytes": 14594,
+      "sha256": "d4b6393957dc115224243357128281bbe0948876ce8d6988e09af6005d0377d0"
+    },
+    "docs/issues/ym2608_source_mix_mixer_policy_revision_01.json": {
+      "bytes": 63425,
+      "sha256": "8243d03857be35fbfbba953ea6d66e7d6a27d2138a590400292e8f2be6ed858f"
+    }
+  }
+}

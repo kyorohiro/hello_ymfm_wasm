@@ -44,6 +44,9 @@ on:
       - 'scripts/copy_cdda_sources.mjs'
       - 'scripts/mixer_calibration_huc6280_ui_revision*'
       - 'scripts/mixer_calibration_code_note_revision*'
+      - 'scripts/mixer_calibration_fm2612_application_history.test.mjs'
+      - 'test/helpers/historical_*'
+      - 'test/fixtures/*predecessors.json'
       - 'docs/issues/huc6280_cdrom2_definition_ui_revision_01.json'
       - 'docs/issues/code_note_target_ownership_revision_01.json'
       - 'scripts/runtime_artifacts.mjs'
@@ -69,6 +72,8 @@ on:
       - 'tetorica_src/runtime/**'
       - 'test/runtime/huc6280_state.test.mjs'
       - 'scripts/**'
+      - 'test/helpers/historical_*'
+      - 'test/fixtures/*predecessors.json'
       - 'third_party/**'
       - 'package*.json'
       - '.github/workflows/huc6280-synth.yml'
@@ -82,6 +87,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historical dependency tests compare complete committed predecessors.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -91,7 +99,7 @@ jobs:
       - name: Test and package the standalone HuC6280 Synth
         run: |
           npm run test:huc6280-synth
-          node --test scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs
+          node --test scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs scripts/mixer_calibration_fm2612_application_history.test.mjs
           sh scripts/package_itch_huc6280_synth.sh ci
           python3 -m zipfile -e release/tetorica_huc6280_synth_ci_itch.zip release/huc6280-synth-browser
           node scripts/check_huc6280_synth_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-browser.json --screenshots release/huc6280-synth-images

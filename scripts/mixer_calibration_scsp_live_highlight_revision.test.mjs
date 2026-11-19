@@ -1,21 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {createHistoricalFm2612ApplicationReader} from '../test/helpers/historical_fm2612_application_source_fixture.mjs';
 import {execFileSync} from 'node:child_process';
 import {SCSP_LIVE_HIGHLIGHT_BASE as base,SCSP_LIVE_HIGHLIGHT_RECEIPT as receiptPath,
  SCSP_LIVE_HIGHLIGHT_PIN as pin,SCSP_LIVE_HIGHLIGHT_SOURCES as paths,
  SCSP_LIVE_HIGHLIGHT_UNCHANGED as unchanged,
  SCSP_LIVE_HIGHLIGHT_RELATED as related,SCSP_LIVE_HIGHLIGHT_REPORTS as reports,
- restoreMixerCalibrationScspLiveHighlightRevision as restore,
- createScspLiveHighlightRevisionReadContext as context} from './mixer_calibration_scsp_live_highlight_revision.mjs';
+ restoreMixerCalibrationScspLiveHighlightRevision as productionRestore,
+ createScspLiveHighlightRevisionReadContext as productionContext} from './mixer_calibration_scsp_live_highlight_revision.mjs';
 import {createScspAllocationNavigationRevisionReadContext} from './mixer_calibration_scsp_allocation_navigation_revision.mjs';
 import {createScspSynthSlotAllocationRevisionReadContext} from './mixer_calibration_scsp_synth_slot_allocation_revision.mjs';
 import {createScspSsfSlotMapRevisionReadContext} from './mixer_calibration_scsp_ssf_slot_map_revision.mjs';
 import {createScspCycle2UiRevisionReadContext} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
 import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
 import {createScspOutputLevelNewCassetteRevisionReadContext} from './mixer_calibration_scsp_output_level_new_cassette_revision.mjs';
-const latest=createScspOutputLevelNewCassetteRevisionReadContext();
+// Exercise immutable historical evidence with its exact dependency bodies.
+// Raw production readers still reject the newer, unapproved application graph.
+const readFileSync=createHistoricalFm2612ApplicationReader();
+const restore=(path,bytes,options={})=>productionRestore(path,bytes,{readSource:readFileSync,...options});
+const context=(reader=readFileSync)=>productionContext(reader);
+const latest=createScspOutputLevelNewCassetteRevisionReadContext(readFileSync);
 const url=name=>new URL('../'+name,import.meta.url),read=name=>latest.readSource(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const historical=name=>execFileSync('git',['show',base+':'+name],{maxBuffer:4*1024*1024});
@@ -47,15 +52,15 @@ test('owned proof reads stay immutable and the prior allocation/SSF/Cycle2 UI/na
  for(const name of paths){assert.deepEqual(proof.readSource(url(name)),historical(name));assert.deepEqual(proof.restore(name,read(name)),historical(name));}
  assert([...counts.values()].every(count=>count===1));changed=true;
  assert.deepEqual(proof.readSource(url(paths[0])),historical(paths[0]));assert.throws(()=>context(source).restore(paths[0],read(paths[0])),/pinned source\/report dependency changed/);
- const navigationReceipt=JSON.parse(read('docs/issues/scsp_allocation_navigation_source_revision_01.json')),navigation=createScspAllocationNavigationRevisionReadContext();
+ const navigationReceipt=JSON.parse(read('docs/issues/scsp_allocation_navigation_source_revision_01.json')),navigation=createScspAllocationNavigationRevisionReadContext(readFileSync);
  for(const name of Object.keys(navigationReceipt.sources))match(navigation.readSource(url(name)),navigationReceipt.sources[name].before);
- const allocationReceipt=JSON.parse(read('docs/issues/scsp_synth_slot_allocation_source_revision_01.json')),allocation=createScspSynthSlotAllocationRevisionReadContext();
+ const allocationReceipt=JSON.parse(read('docs/issues/scsp_synth_slot_allocation_source_revision_01.json')),allocation=createScspSynthSlotAllocationRevisionReadContext(readFileSync);
  for(const name of Object.keys(allocationReceipt.sources))match(allocation.readSource(url(name)),allocationReceipt.sources[name].before);
- const ssfReceipt=JSON.parse(read('docs/issues/scsp_ssf_slot_map_source_revision_01.json')),ssf=createScspSsfSlotMapRevisionReadContext();
+ const ssfReceipt=JSON.parse(read('docs/issues/scsp_ssf_slot_map_source_revision_01.json')),ssf=createScspSsfSlotMapRevisionReadContext(readFileSync);
  for(const name of Object.keys(ssfReceipt.sources))match(ssf.readSource(url(name)),ssfReceipt.sources[name].before);
- const uiReceipt=JSON.parse(read('docs/issues/scsp_cycle2_ui_source_revision_01.json')),ui=createScspCycle2UiRevisionReadContext();
+ const uiReceipt=JSON.parse(read('docs/issues/scsp_cycle2_ui_source_revision_01.json')),ui=createScspCycle2UiRevisionReadContext(readFileSync);
  for(const name of ['docs/synth-scsp/synth.js','docs/synth-scsp/index.html','docs/synth-scsp/README.md'])match(ui.readSource(url(name)),uiReceipt.sources[name].before);
- const nativeReceipt=JSON.parse(read('docs/issues/scsp_cycle2_presets_source_revision_01.json')),native=createScspCycle2PresetsRevisionReadContext();
+ const nativeReceipt=JSON.parse(read('docs/issues/scsp_cycle2_presets_source_revision_01.json')),native=createScspCycle2PresetsRevisionReadContext(readFileSync);
  for(const name of ['docs/synth-scsp/routing.js','docs/synth-scsp/patch.js','docs/synth-scsp/instrument.js'])match(native.readSource(url(name)),nativeReceipt.sources[name]?.before??nativeReceipt.relatedSources[name]);
 });
 
@@ -90,7 +95,7 @@ test('every complete source predecessor in the established SCSP proof chain stil
   ['scsp_dsp_helpers','createScspDspHelpersRevisionReadContext','playground_scsp_dsp_helpers'],
  ];
  for(const [moduleName,createName,receiptName] of chain){
-  const module=await import('./mixer_calibration_'+moduleName+'_revision.mjs'),proof=module[createName]();
+  const module=await import('./mixer_calibration_'+moduleName+'_revision.mjs'),proof=module[createName](readFileSync);
   const previous=JSON.parse(read('docs/issues/'+receiptName+'_source_revision_01.json'));
   for(const [name,entry] of Object.entries(previous.sources))match(proof.readSource(url(name)),entry.before);
  }
