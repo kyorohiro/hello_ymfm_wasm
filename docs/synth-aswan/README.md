@@ -79,8 +79,21 @@ while playing the editor's PCM sample uses the host's audio-thread streamer.
 **Files** keeps `/index.js`, local JavaScript modules, text, `/presets/` JSON
 and original `/vgm/` files. Right-click for Duplicate, Rename, Delete, a new
 instrument, a JavaScript file or a folder. Selecting a valid instrument JSON
-applies it; editing its JSON alone does not. Selection does not force Keyboard
-into Code. Importing a project never runs its code.
+loads it and links Auto's controls and wave drawing to that document. Valid
+JSON edits follow **Auto apply**, which defaults On. A first Auto control edit
+creates a sound document in `/presets/` if none is linked. Incomplete JSON
+remains editable and keeps the last valid sound; finish or Discard that JSON
+before using its controls. Selection does not force Keyboard into Code.
+Importing a project never runs its code.
+
+Turn **Auto apply** off to keep a working draft. Modified filenames show **●**.
+**Save** (Cmd/Ctrl+S) accepts the selected file; **Save all** accepts all changes.
+**Discard / Discard all** restores saved content. Auto sound edits wait for
+Save; the keyboard keeps playing the accepted sound. Physical CH1–CH4 and VGM
+hardware edits remain direct. Run/Apply reads saved entry points, modules and
+data; saving JavaScript does not execute it or stop a running Code loop.
+Enabling Auto apply accepts pending files. Saved means accepted content in
+memory, separate from durable browser storage; export for a portable backup.
 
 **Save sound** writes a self-contained `.aswan.json` preset. PCM bytes are
 included. **Export project** creates a Cassette ZIP with Files, current sound
@@ -91,10 +104,9 @@ preferences, separate from instrument data.
 The project data layer now uses a version 2 working/saved workspace. Existing
 version 1 local drafts and Cassettes migrate with their files and settings
 intact. New Cassettes contain ordinary saved files plus recoverable working
-differences, avoiding duplicate unchanged VGM/PCM files. The current Files UI
-still uses immediate acceptance; Auto apply, Save/Discard and active-sound
-document controls are the next integration step. Restoring either format
-never starts Code or audio.
+differences, avoiding duplicate unchanged VGM/PCM files. The active sound,
+accepted sound settings, pending renames and Auto apply mode are restored too.
+Restoring either format never starts Code or audio.
 
 ## VGM reference songs and sounds
 

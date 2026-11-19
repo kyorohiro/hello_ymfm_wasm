@@ -909,3 +909,12 @@ button[aria-pressed='true'],
 		}
 	}
 }
+
+.aswan-files-auto {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0.6rem 0;
+}
+.aswan-files-actions button { white-space: nowrap; }
+#aswanFilesTree [data-modified="true"] { font-weight: 700; }

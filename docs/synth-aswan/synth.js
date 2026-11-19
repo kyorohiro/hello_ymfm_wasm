@@ -69,6 +69,7 @@ const highlightPreference = 'tetorica-aswan-synth-live-highlight';
 try {
 	$('aswanHighlightEnabled').checked = localStorage.getItem(highlightPreference) !== 'off';
 } catch {}
+let playbackPreset = readPreset(preset);
 const physical = Array.from({ length: 4 }, () => readPreset(preset)),
 	notes = new Map(),
 	channelEnabled = Array(4).fill(true);
@@ -239,9 +240,9 @@ async function ensureAudio() {
 					mix = mixRevision,
 					initialPitch = authoredPitch;
 				instance.setChipVolume(chipVolume);
-				await instance.command('setPreset', [preset]);
+				await instance.command('setPreset', [playbackPreset]);
 				for (let ch = 0; ch < 4; ch++) {
-					if (JSON.stringify(physical[ch]) !== JSON.stringify(preset))
+					if (JSON.stringify(physical[ch]) !== JSON.stringify(playbackPreset))
 						await instance.command('setPreset', [physical[ch], ch]);
 					await instance.setChannelEnabled(ch, channelEnabled[ch]);
 				}
@@ -440,13 +441,20 @@ function codeActivity() {
 	if (!active) editor.highlightLive(null);
 	syncActivity();
 }
-async function applyPreset(value, { channel = target, isCurrent = () => true } = {}) {
-	const next = readPreset(value),
+async function applyPreset(value, { channel = target, isCurrent = () => true, record = true, applyAudio, displayPreset } = {}) {
+	const next = readPreset(value), shown = readPreset(displayPreset ?? value),
 		revision = ++editRevision;
 	if (!isCurrent()) return false;
 	if (liveSong() && channel !== null) {
 		if (referenceSelection()) return editReferencePreset(next, currentSound());
 		throw new Error('Select a complete Wave, Sweep or Noise channel to edit, or Copy to Auto.');
+	}
+	if (record && channel === null) codeHost?.files.validateSoundEdit(next);
+	const audible = applyAudio ?? (channel !== null || !record || codeHost?.files.isAutoApply() !== false);
+	if (!audible) {
+		if (record && channel === null) codeHost?.files.recordSoundEdit(shown);
+		preset = shown; display(true);
+		return true;
 	}
 	// Validate routing even before audio exists, and publish only acknowledged edits.
 	if (
@@ -463,7 +471,8 @@ async function applyPreset(value, { channel = target, isCurrent = () => true } =
 		if (audio) await audio.command('setPreset', [next, channel]);
 		if (!isCurrent()) return;
 		if (channel === null) {
-			preset = next;
+			preset = shown;
+			playbackPreset = next;
 			const pool =
 				next.source === 'noise'
 					? [3]
@@ -476,7 +485,7 @@ async function applyPreset(value, { channel = target, isCurrent = () => true } =
 		} else physical[channel] = next;
 		observed = null;
 		if (revision === editRevision) display(true);
-		codeHost?.markSoundDirty();
+		if (record && channel === null) codeHost?.files.recordSoundEdit(shown);
 		visualizer.wake();
 	});
 	return isCurrent();
@@ -521,7 +530,8 @@ async function editVisiblePreset(value, beforeValue = currentSound()) {
 	const next = readPreset(value),
 		before = readPreset(beforeValue),
 		channel = target;
-	if (!audio) return applyPreset(next, { channel });
+	if (!audio || (channel === null && codeHost?.files.isAutoApply() === false)) return applyPreset(next, { channel });
+	if (channel === null) codeHost?.files.validateSoundEdit(next);
 	if (liveSong()) return editReferencePreset(next, before);
 	const revision = ++editRevision;
 	pendingEdits++;
@@ -529,11 +539,11 @@ async function editVisiblePreset(value, beforeValue = currentSound()) {
 		await enqueue(async () => {
 			const state = await audio.command('editPreset', [before, next, channel]);
 			observed = state;
-			preset = readPreset(state.preset);
+			if (channel === null) { preset = readPreset(state.preset); playbackPreset = readPreset(preset); }
 			for (let ch = 0; ch < 4; ch++)
 				physical[ch] = readPreset(state.channels[ch].authoredPreset);
 			if (revision === editRevision) display(true);
-			codeHost?.markSoundDirty();
+			if (channel === null) codeHost?.files.recordSoundEdit(preset);
 			visualizer.wake();
 		});
 	} finally {
@@ -1127,8 +1137,8 @@ codeHost = setupAswanCodeHost({
 	getSettings: () => readPreset(preset),
 	applySettings: (value, options) => {
 		if (options?.isCurrent?.() === false) return false;
-		selectChannel('auto');
-		return applyPreset(value, { ...options, channel: null });
+		if (options?.load) selectChannel('auto');
+		return applyPreset(value, { ...options, channel: null, record: false });
 	},
 	stopKeyboard,
 	stopSong: () => songPlayer.stop(),

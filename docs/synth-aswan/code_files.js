@@ -134,6 +134,7 @@ export function setupAswanCodeFiles({
 		appliedPreset = null,
 		presetOptions = new Map();
 	if (!panel || !toggle || !workspace) throw Error('ASWAN Files mount is missing.');
+	const hasPath = (fs, path) => { try { return Boolean(path && fs.stat(path)); } catch { return false; } };
 	const win = doc.defaultView ?? globalThis,
 		main = doc.getElementById('aswanSynthMain'),
 		listeners = [],
@@ -152,7 +153,8 @@ export function setupAswanCodeFiles({
 		editRevision = 0,
 		saveTimer = null,
 		identity = workspaceId(),
-		visibilityTouched = false;
+		visibilityTouched = false,
+		soundEditOperation = 0, soundApplicationPending = false, pendingSoundEdit = Promise.resolve(), pendingAutoValue = null;
 	const make = (tag, id, text) => {
 		const node = doc.createElement(tag);
 		if (id) node.id = id;
@@ -177,7 +179,11 @@ export function setupAswanCodeFiles({
 	actions.setAttribute('aria-label', 'Selected file actions');
 	const buttons = new Map();
 	for (const [id, label] of [
-		['aswanFileNewButton', 'New JS'],
+		['aswanFileNewButton', '+ JS'],
+		['aswanFileSaveButton', 'Save'],
+		['aswanFileSaveAllButton', 'Save all'],
+		['aswanFileDiscardButton', 'Discard'],
+		['aswanFileDiscardAllButton', 'Discard all'],
 		['aswanFileSaveSoundButton', 'Save sound'],
 		['aswanFileRenameButton', 'Rename…'],
 		['aswanFileDeleteButton', 'Delete…'],
@@ -215,6 +221,11 @@ export function setupAswanCodeFiles({
 			}
 		});
 	}
+	const autoLabel = make('label');
+	autoLabel.className = 'aswan-files-auto';
+	const autoToggle = make('input', 'aswanFilesAutoApply');
+	autoToggle.type = 'checkbox'; autoToggle.checked = project.autoApply;
+	autoLabel.append(autoToggle, make('span', null, 'Auto apply'));
 	const selected = make('p', 'aswanFilesSelected', '');
 	selected.className = 'aswan-files-path aswan-sr-only';
 	selected.setAttribute('role', 'status');
@@ -223,7 +234,7 @@ export function setupAswanCodeFiles({
 	const info = make(
 		'p',
 		'aswanFilesStatus',
-		'Code and text edits save locally. Importing a project never runs it.',
+		'Auto apply saves edits immediately. Turn it off to edit, then Save. Importing never runs Code.',
 	);
 	info.className = 'aswan-files-status';
 	info.setAttribute('role', 'status');
@@ -246,7 +257,7 @@ export function setupAswanCodeFiles({
 	cancel.type = 'button';
 	form.append(label, nameInput, confirm, cancel);
 	dialog.append(form);
-	panel.append(heading, tree, actions, selected, info, fileInput, projectInput, dialog);
+	panel.append(heading, autoLabel, tree, actions, selected, info, fileInput, projectInput, dialog);
 	let dialogAction = null,
 		dialogPath = null;
 	const say = (message) => {
@@ -351,6 +362,15 @@ export function setupAswanCodeFiles({
 					void move(source, destination, copy).catch(report),
 			},
 		);
+		for (const node of tree.querySelectorAll('button')) {
+			const path = node.getAttribute('data-file-path');
+			if (path && project.isFileModified(path)) {
+				node.textContent += ' ●';
+				node.title = path + ' · Unsaved changes';
+				node.setAttribute('data-modified', 'true');
+			}
+		}
+		autoToggle.checked = pendingAutoValue ?? project.autoApply; autoToggle.disabled = busy || pendingAutoValue !== null;
 		for (const [id, button] of buttons)
 			button.disabled =
 				busy ||
@@ -360,6 +380,10 @@ export function setupAswanCodeFiles({
 					'aswanFileDeleteButton',
 				].includes(id) &&
 					!project.selectedPath);
+		for (const id of ['aswanFileSaveButton', 'aswanFileDiscardButton'])
+			buttons.get(id).disabled = busy || !(project.selectedPath && project.isFileModified(project.selectedPath));
+		for (const id of ['aswanFileSaveAllButton', 'aswanFileDiscardAllButton'])
+			buttons.get(id).disabled = busy || !project.getDirtyPaths().length;
 		code?.setBusy?.(busy);
 		for (const button of tree.querySelectorAll('button')) button.disabled = busy;
 	}
@@ -370,7 +394,10 @@ export function setupAswanCodeFiles({
 	}
 	async function persistCode() {
 		if (disposed || !persistenceReady) return false;
-		if (!busy && !restoring) project.setSettings(getSettings());
+		if (!busy && !restoring && !soundApplicationPending) {
+			project.setSettings(getSettings());
+			if (project.autoApply) project.setSavedSettings(project.settings);
+		}
 		try {
 			return await store.write({
 				...project.snapshot(),
@@ -395,6 +422,11 @@ export function setupAswanCodeFiles({
 		workspace.classList.toggle('has-files', Boolean(value));
 		toggle.setAttribute('aria-expanded', String(Boolean(value)));
 	}
+	async function flushCode() {
+		const result = await code?.flush?.();
+		await pendingSoundEdit;
+		return result;
+	}
 	const executionPath = () =>
 		code?.executionPath ?? (isAswanCodePath(code?.activePath) ? code.activePath : null);
 	const openInCurrentMode = (path) =>
@@ -403,72 +435,195 @@ export function setupAswanCodeFiles({
 		for (let directory = dirname(path); directory !== '/'; directory = dirname(directory))
 			expanded.set(directory, true);
 	}
-	async function selectFile(path) {
-		if (!disposed && !busy) code?.cancelPendingExecution?.();
+  const soundPath=()=>project.activeSoundPath??null;
+  const pendingMoves=()=>project.getPendingMoves?.()??[];
+  function savedPath(path){
+    if(!path)return path;
+    const move=pendingMoves().find(([,destination])=>inside(path,destination));
+    const original=move?move[0]+path.slice(move[1].length):null;
+    return original&&hasPath(project.savedFs,original)?original:path;
+  }
+  function soundFromFile(path,fs=project.fs){
+    const file=path&&fs.get(path);return file?.type==='text'?readAswanProjectSound(file.data):null;
+  }
+  function displaySound(){try{return soundFromFile(soundPath())??project.settings;}catch{return project.settings;}}
+  function expandedSavePaths(paths){
+    const result=new Set(paths);
+    for(const path of paths)for(const[source,destination]of pendingMoves()){
+      if(inside(path,destination))result.add(source+path.slice(destination.length));
+      if(inside(path,source))result.add(destination+path.slice(source.length));
+      if(inside(source,path)||inside(destination,path)){result.add(source);result.add(destination);}
+    }
+    return [...result].filter(path=>hasPath(project.fs,path)||hasPath(project.savedFs,path));
+  }
+  function canEditSound(){
+    if(disposed||busy||restoring)throw Error('Wait for the current Files operation before editing the instrument.');
+    const path=soundPath();if(!path)return true;
+    try{if(!soundFromFile(path))throw Error('Expected a ASWAN sound JSON.');}
+    catch(error){throw Error(`Finish or Discard the JSON edits in ${path} before changing its controls. ${error.message}`);}
+    return true;
+  }
+  function adoptExternalSound(value){
+    if(disposed||busy||restoring)throw Error('Wait for the current Files operation before loading an instrument.');
+    const sound=readAswanProjectSound(value);if(!sound)throw Error('Expected a ASWAN instrument.');
+    soundEditOperation++;soundApplicationPending=false;editRevision++;
+    project.setActiveSoundPath(null);project.setSettings(sound);project.setSavedSettings(sound);appliedPreset=null;
+    render();schedule();return sound;
+  }
+  function validateSoundEdit(value=getSettings()) {
+    canEditSound();
+    const sound=readAswanProjectSound(value);if(!sound)throw Error('Expected an ASWAN instrument.');
+    const path=soundPath()??newSoundPath(project,sound.name), source=JSON.stringify(sound,null,2)+'\n';
+    const bytes=encoder.encode(source).byteLength+project.listEntries().reduce((total,file)=>total+(file.path===path?0:file.size),0);
+    if(bytes>ASWAN_PROJECT_FILE_BYTES)throw Error('Instrument exceeds the 16 MiB Project limit. Export preset to keep a larger instrument.');
+    return {sound,path,source};
+  }
+  function recordSoundEdit(value=getSettings()) {
+    const {sound,path,source}=validateSoundEdit(value),active=soundPath();
+    if(!active){project.importFiles([{path,type:'text',data:source}]);project.setActiveSoundPath(path);}
+    else project.writeEditorText(path,source);
+    soundEditOperation++;soundApplicationPending=false;
+    editRevision++;project.setSettings(sound);if(project.autoApply)project.setSavedSettings(sound);
+    project.select(path);appliedPreset={kind:'json',path,data:project.fs.get(path).data};reveal(path);
+    if(code?.activePath===path)code.reloadFile?.(path);
+    render();schedule();return path;
+  }
+  function codeEdited(path){
+    if(disposed)return;project.select(path);if(path!==soundPath())return;
+    let sound;try{sound=soundFromFile(path);if(!sound)throw Error('Expected a ASWAN sound JSON.');}
+    catch(error){say(`JSON not applied; current sound kept. ${error.message}`);return;}
+    const token=++soundEditOperation,workspace=identity;soundApplicationPending=false;
+    project.setSettings(sound);if(project.autoApply)project.setSavedSettings(sound);
+    editRevision++;appliedPreset={kind:'json',path,data:project.fs.get(path).data};
+    soundApplicationPending=true;
+    pendingSoundEdit=Promise.resolve().then(async()=>{
+      const current=()=>!disposed&&token===soundEditOperation&&workspace===identity&&soundPath()===path;
+      const result=await applySettings(sound,{record:false,source:'json',load:false,applyAudio:project.autoApply,displayPreset:sound,isCurrent:current});
+      // An incomplete later edit is source text, not a newer playable command.
+      // Keep this last valid command, then restore its warning after the ack.
+      if(current())try{if(!soundFromFile(path))throw Error('Expected a ASWAN sound JSON.');}catch(error){say(`JSON not applied; current sound kept. ${error.message}`);}
+      return result;
+    }).catch(report).finally(()=>{if(token===soundEditOperation)soundApplicationPending=false;});
+    render();schedule();
+  }
+  async function recoverCodeState(path){
+    if(disposed||path!==soundPath())return false;
+    let working=null,accepted=null;
+    try{working=soundFromFile(path);}catch{}
+    try{accepted=soundFromFile(savedPath(path),project.savedFs);}catch{}
+    if(accepted)project.setSavedSettings(accepted);
+    project.setSettings(working??accepted??project.settings);
+    const token=++soundEditOperation,workspace=identity;soundApplicationPending=false;
+    await applySettings(project.savedSettings,{record:false,source:'restore',load:false,applyAudio:true,displayPreset:project.settings,
+      isCurrent:()=>!disposed&&token===soundEditOperation&&workspace===identity});
+    appliedPreset={kind:'json',path,data:project.fs.get(path)?.data};render();schedule();return true;
+  }
+	// Acceptance is prepared separately. A rejected/cancelled sound application
+	// cannot promote working files to saved or consume a pending rename.
+	async function changeAcceptance(kind, all = false, enabled = false) {
 		await api.ready;
 		if (disposed || busy) return false;
-		const token = ++operation;
-		await code?.flush?.();
-		if (disposed || token !== operation) return false;
-		path = normalizeVirtualPath(path);
-		const file = project.fs.get(path);
-		if (!file) throw Error('Choose a file.');
-		if (isAswanCodePath(path)) {
-			project.select(path);
+		if ((await code?.flush?.({persist: false})) === false) return false;
+		await pendingSoundEdit;
+		if (disposed || busy) return false;
+		const path = project.selectedPath ?? code?.activePath ?? soundPath();
+		if (kind !== 'auto' && !all && !path) return false;
+		const token = ++operation, current = () => !disposed && token === operation;
+		const active = soundPath(), activeOriginal = savedPath(active), original = savedPath(path);
+		const editorPath = code?.activePath, editorOriginal = savedPath(editorPath);
+		const targets = all ? project.getDirtyPaths() : path && project.isFileModified(path) ? expandedSavePaths([path]) : [];
+		const candidate = createAswanCodeProject({snapshot: project.snapshot()});
+		setBusy(true, {lockMain: false});
+		try {
+			if (kind === 'auto') candidate.setAutoApply(enabled);
+			else if (kind === 'save') {
+				if (all) candidate.saveAll(); else if (targets.length) candidate.saveFiles(targets);
+			} else if (targets.length) candidate.discardFiles(targets);
+			if (kind !== 'auto') candidate.setPendingMoves(candidate.getPendingMoves().filter(
+				([source, destination]) => !targets.some(target => inside(source, target) || inside(destination, target))));
+			const changesSound = Boolean(active && (kind === 'auto' || targets.some(root => inside(active, root) || inside(activeOriginal, root))));
+			if (kind === 'discard') {
+				if (changesSound) candidate.setActiveSoundPath(hasPath(candidate.fs, activeOriginal) ? activeOriginal : null);
+				candidate.select(hasPath(candidate.fs, original) ? original : null);
+			}
+			if (candidate.activeSoundPath && !hasPath(candidate.fs, candidate.activeSoundPath) && !hasPath(candidate.savedFs, candidate.activeSoundPath))
+				candidate.setActiveSoundPath(null);
+			let invalid = null;
+			if (changesSound) {
+				let accepted = candidate.savedSettings, shown = candidate.settings;
+				const activePath = candidate.activeSoundPath;
+				try {
+					if (activePath && candidate.savedFs.has(activePath)) {
+						accepted = soundFromFile(activePath, candidate.savedFs);
+						if (!accepted) throw Error('Expected an ASWAN sound JSON.');
+					}
+				} catch (error) { invalid = error; accepted = candidate.savedSettings; }
+				try { shown = soundFromFile(activePath, candidate.fs) ?? accepted; } catch { shown = accepted; }
+				candidate.setSettings(shown);
+				candidate.setSavedSettings(accepted);
+				const applyAudio = kind === 'save' || kind === 'auto' && enabled;
+				if ((await applySettings(accepted, {record: false, source: kind, load: false,
+					applyAudio: applyAudio && !invalid, displayPreset: shown, isCurrent: current})) === false || !current()) return false;
+			}
+			if (!current()) return false;
+			project.restore(candidate.snapshot());
+			if (kind === 'discard') {
+				if (editorPath && editorPath !== editorOriginal && (all || inside(editorPath, path)))
+					code?.pathChanged?.(editorPath, editorOriginal, {preserveExecution: true});
+				await code?.reloadFile?.();
+			}
 			render();
-			return await openInCurrentMode(path);
-		}
-		let sound = null,
-			soundError = null;
-		if (file.type === 'text' && /\.json$/i.test(path)) {
-			try {
-				sound = readAswanProjectSound(file.data);
-			} catch (error) {
-				soundError = error;
-			}
-		}
-		if (sound) {
-			setBusy(true);
-			try {
-				await onBeforeSoundApply();
-				if (disposed || token !== operation) return false;
-				const applied = await applySettings(sound, {
-					isCurrent: () => !disposed && token === operation,
-				});
-				if (applied === false || disposed || token !== operation) return false;
-			} finally {
-				if (!disposed) {
-					// A Stop can arrive after the chip committed but before its reply.
-					// Persist the host's reconciled sound without marking a failed file
-					// selection as the applied preset.
-					if (token === operation) project.setSettings(getSettings());
-					setBusy(false);
-					if (token === operation) schedule();
-				}
-			}
-		}
-		if (sound) {
-			project.setSettings(sound);
-			appliedPreset = { kind: 'json', path, data: file.data };
-		}
-		project.select(path);
-		render();
-		schedule();
-		if (file.type === 'text') await openInCurrentMode(path);
-		if (disposed || token !== operation) return false;
-		say(
-			sound
-				? 'ASWAN sound loaded. Edit its JSON in Code; select it again to apply changes.'
-				: soundError
-					? `JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`
-					: file.type === 'text'
-						? 'Text edits save to Files from Code; select a ASWAN sound JSON again to apply it.'
-						: isAswanSongPath(path)
-							? 'VGM source selected. Press Play in the song list; your instrument is kept.'
-							: `Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`,
-		);
-		return true;
+			const durable = await persistCode();
+			say((kind === 'auto' ? (enabled ? 'Auto apply on. Edits apply immediately.' : 'Auto apply off. Save to apply edits.') :
+				kind === 'save' ? `Saved ${all ? 'all files' : path}.` : `Discarded ${all ? 'all unsaved changes' : path}.`) +
+				(invalid ? ` JSON not applied; current sound kept. ${invalid.message}` : '') +
+				(durable === false ? ' Local save unavailable; Export Cassette to keep both versions.' : ''));
+			return true;
+		} finally { if (!disposed) setBusy(false); }
 	}
+	const saveCurrent = (all = false) => changeAcceptance('save', all);
+	const discardCurrent = (all = false) => changeAcceptance('discard', all);
+	async function setAutoApply(enabled) {
+		if (typeof enabled !== 'boolean') throw TypeError('Auto apply must be boolean.');
+		if (disposed || busy || pendingAutoValue !== null) return false;
+		pendingAutoValue = enabled; render();
+		try { return await changeAcceptance('auto', false, enabled); }
+		finally { pendingAutoValue = null; render(); }
+	}
+  async function selectFile(path){
+    if(!disposed&&!busy)code?.cancelPendingExecution?.();
+    await api.ready;if(disposed||busy)return false;const token=++operation;
+    await code?.flush?.();await pendingSoundEdit;if(disposed||token!==operation)return false;
+    path=normalizeVirtualPath(path);const file=project.fs.get(path);if(!file)throw Error('Choose a file.');
+    if(isAswanCodePath(path)){project.select(path);render();return await openInCurrentMode(path);}
+    let sound=null,soundError=null,accepted=null;
+    if(file.type==='text'&&/\.json$/i.test(path)){try{sound=readAswanProjectSound(file.data);}catch(error){soundError=error;}}
+    try{accepted=soundFromFile(savedPath(path),project.savedFs);}catch{}
+    const instrument=Boolean(sound||accepted||path===soundPath()||/\.aswan\.json$/i.test(path));
+    if(instrument){
+      accepted=project.autoApply?sound:accepted;
+      const audible=accepted??project.savedSettings,display=sound??accepted??project.settings;
+      setBusy(true);
+      try{
+        if(accepted)await onBeforeSoundApply();if(disposed||token!==operation)return false;
+        const applied=await applySettings(audible,{record:false,source:'selection',load:true,applyAudio:Boolean(accepted),displayPreset:display,isCurrent:()=>!disposed&&token===operation});
+        if(applied===false||disposed||token!==operation)return false;
+      }finally{
+        if(!disposed){
+          // A Stop can arrive after the chip committed but before its reply.
+          // Persist the host's reconciled sound without marking a failed file
+          // selection as the applied preset.
+          if(token===operation){project.setSettings(getSettings());if(project.autoApply)project.setSavedSettings(project.settings);}
+          setBusy(false);if(token===operation)schedule();
+        }
+      }
+    }
+    if(instrument){project.setActiveSoundPath(path);if(sound)project.setSettings(sound);if(accepted)project.setSavedSettings(accepted);appliedPreset={kind:'json',path,data:file.data};}
+    project.select(path);render();schedule();
+    if(file.type==='text')await openInCurrentMode(path);
+    if(disposed||token!==operation)return false;
+    say(sound?(project.autoApply?'ASWAN sound loaded. Controls and valid JSON edits update this file automatically.':'Sound draft selected. Saved sound plays; Save applies your edits.'):soundError?`JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`:isAswanSongPath(path)?'VGM source selected. Press Play in the song list; your instrument is kept.':file.type==='text'?'Text edits save to Files from Code; valid edits to the active sound follow Auto apply.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
+  }
 	async function importFiles(files, { isCurrent = () => true } = {}) {
 		if (disposed || !isCurrent()) return [];
 		await api.ready;
@@ -491,7 +646,7 @@ export function setupAswanCodeFiles({
 				});
 		}
 		if (!current()) return [];
-		await code?.flush?.();
+		await flushCode();
 		if (!current()) return [];
 		const extracted = [];
 		for (const song of songs) {
@@ -533,7 +688,7 @@ export function setupAswanCodeFiles({
 			current = () => !disposed && token === operation && isCurrent();
 		const result = await extractVgmInstruments(bytes, { allowEmpty: true });
 		if (!current()) return false;
-		if ((await code?.flush?.()) === false || !current()) return false;
+		if ((await flushCode()) === false || !current()) return false;
 		const candidate = createAswanCodeProject({ snapshot: project.snapshot() });
 		const [sourcePath] = candidate.importSongSources([{ name, bytes }]);
 		const { entries, directory } = aswanVgmSoundEntries(candidate, {
@@ -571,7 +726,7 @@ export function setupAswanCodeFiles({
 		if (disposed || busy || !isCurrent()) return false;
 		const token = ++operation,
 			current = () => !disposed && token === operation && isCurrent();
-		if ((await code?.flush?.()) === false || !current()) return false;
+		if ((await flushCode()) === false || !current()) return false;
 		const candidate = createAswanCodeProject({ snapshot: project.snapshot() }),
 			paths = candidate.importSongSources([source]);
 		if (!current()) return false;
@@ -603,7 +758,7 @@ export function setupAswanCodeFiles({
 		if (disposed || busy || !isCurrent()) return false;
 		const token = ++operation,
 			current = () => !disposed && token === operation && isCurrent();
-		if (!current() || (await code?.flush?.()) === false || !current()) return false;
+		if (!current() || (await flushCode()) === false || !current()) return false;
 		const { entries, directory } = aswanVgmSoundEntries(project, { name, voices });
 		const candidate = createAswanCodeProject({ snapshot: project.snapshot() });
 		candidate.importFiles(entries);
@@ -636,7 +791,7 @@ export function setupAswanCodeFiles({
 		const token = ++operation;
 		const candidate = await project.prepareImport(bytes);
 		if (disposed || token !== operation) return false;
-		await code?.flush?.();
+		await flushCode();
 		if (disposed || token !== operation) return false;
 		setBusy(true);
 		try {
@@ -644,10 +799,11 @@ export function setupAswanCodeFiles({
 				return false;
 			await onBeforeWorkspaceReplace();
 			if (disposed || token !== operation) return false;
-			await applySettings(candidate.settings, {
+			const applied = await applySettings(candidate.savedSettings ?? candidate.settings, {
+				record: false, source: 'restore', load: true, applyAudio: true, displayPreset: candidate.settings,
 				isCurrent: () => !disposed && token === operation,
 			});
-			if (disposed || token !== operation) return false;
+			if (applied === false || disposed || token !== operation) return false;
 			restoring = true;
 			try {
 				appliedPreset = null;
@@ -667,14 +823,14 @@ export function setupAswanCodeFiles({
 	}
 	async function exportProject() {
 		await api.ready;
-		await code?.flush?.();
+		await flushCode();
 		project.setSettings(getSettings());
 		return project.exportProject();
 	}
 	async function move(source, destination, copy = false) {
 		if (disposed || busy) return false;
 		const token = ++operation;
-		await code?.flush?.();
+		await flushCode();
 		if (disposed || token !== operation) return false;
 		source = allowed(source);
 		destination = allowed(destination);
@@ -703,7 +859,7 @@ export function setupAswanCodeFiles({
 				movedCodePath = inside(runningPath, source)
 					? destination + runningPath.slice(source.length)
 					: null;
-			if (!copy && movedCodePath && !isAswanCodePath(movedCodePath))
+			if (project.autoApply && !copy && movedCodePath && !isAswanCodePath(movedCodePath))
 				if ((await code?.stop?.()) === false || disposed || token !== operation)
 					return false;
 			if (disposed || token !== operation) return false;
@@ -721,9 +877,17 @@ export function setupAswanCodeFiles({
 				throw error;
 			}
 			if (!copy) {
+				if (!project.autoApply) {
+					const original = savedPath(source), prior = pendingMoves();
+					const moves = prior.filter(([, target]) => !inside(target, source));
+					if (original !== destination && hasPath(project.savedFs, original)) moves.push([original, destination]);
+					project.setPendingMoves(moves);
+				}
+				if (inside(soundPath(), source)) project.setActiveSoundPath(destination + soundPath().slice(source.length));
 				if (inside(project.selectedPath, source))
 					project.select(destination + project.selectedPath.slice(source.length));
-				code?.pathChanged?.(source, destination);
+				if (project.autoApply) code?.pathChanged?.(source, destination);
+				else code?.pathChanged?.(source, destination, {preserveExecution: true});
 			}
 			render();
 			await persistCode();
@@ -751,16 +915,18 @@ export function setupAswanCodeFiles({
 	async function remove(path) {
 		if (disposed || busy) return false;
 		const token = ++operation;
-		await code?.flush?.();
+		await flushCode();
 		if (disposed || token !== operation) return false;
 		path = allowed(path);
 		setBusy(true);
 		try {
-			if (inside(executionPath(), path)) await code.stop();
+			if (project.autoApply && inside(executionPath(), path)) await code.stop();
 			if (disposed || token !== operation) return false;
 			if (inside(project.selectedPath, path)) project.select(null);
 			project.fs.remove(path, { recursive: true });
-			code?.pathChanged?.(path, null);
+			if (soundPath() && !project.fs.has(soundPath()) && !project.savedFs.has(soundPath())) project.setActiveSoundPath(null);
+			if (project.autoApply) code?.pathChanged?.(path, null);
+			else code?.pathChanged?.(path, null, {preserveExecution: true});
 			render();
 			await persistCode();
 			return true;
@@ -774,7 +940,7 @@ export function setupAswanCodeFiles({
 		const token = ++operation,
 			directory = String(path).endsWith('/');
 		path = allowed(path);
-		await code?.flush?.();
+		await flushCode();
 		if (disposed || token !== operation) return false;
 		if (occupied(project, path)) throw Error('That path already exists.');
 		setBusy(true, { lockMain: false });
@@ -819,9 +985,17 @@ export function setupAswanCodeFiles({
 			}
 			// importFiles validates its candidate before touching this workspace.
 			// Name / size failures must keep both existing files and selection.
-			project.importFiles([
-				{ path, type: 'text', data: JSON.stringify(sound, null, 2) + '\n' },
-			]);
+			const candidate = createAswanCodeProject({snapshot: project.snapshot()});
+			candidate.importFiles([{path, type: 'text', data: JSON.stringify(sound, null, 2) + '\n'}]);
+			candidate.saveFiles([path]);
+			if (value === undefined) {
+				candidate.setActiveSoundPath(path);
+				candidate.setSettings(sound); candidate.setSavedSettings(sound);
+				if (!project.autoApply && (await applySettings(sound, {record: false, source: 'save', load: false,
+					applyAudio: true, displayPreset: sound, isCurrent: () => !disposed && token === operation})) === false) return false;
+			}
+			if (disposed || token !== operation) return false;
+			project.restore(candidate.snapshot());
 			project.select(path);
 			reveal(path);
 			setVisible(true);
@@ -855,7 +1029,7 @@ export function setupAswanCodeFiles({
 			current = () => !disposed && token === operation && isCurrent();
 		setBusy(true, { lockMain: false });
 		try {
-			if ((await code?.flush?.()) === false || !current()) return false;
+			if ((await flushCode()) === false || !current()) return false;
 			const original = readAswanProjectSound(getSettings()),
 				captured = readAswanProjectSound(value);
 			if (!original || !captured)
@@ -877,7 +1051,9 @@ export function setupAswanCodeFiles({
 					data: JSON.stringify(captured, null, 2) + '\n',
 				},
 			]);
-			candidate.setSettings(captured);
+			candidate.saveFiles([originalPath, capturedPath]);
+			candidate.setSettings(captured); candidate.setSavedSettings(captured);
+			candidate.setActiveSoundPath(capturedPath);
 			candidate.select(capturedPath);
 			if (!current()) return false;
 			if (
@@ -1057,6 +1233,11 @@ export function setupAswanCodeFiles({
 		],
 	])
 		listen(buttons.get(id), 'click', fn);
+	listen(autoToggle, 'change', () => { void setAutoApply(autoToggle.checked).catch(report); autoToggle.blur(); });
+	for (const [id, action] of [
+		['aswanFileSaveButton', () => saveCurrent()], ['aswanFileSaveAllButton', () => saveCurrent(true)],
+		['aswanFileDiscardButton', () => discardCurrent()], ['aswanFileDiscardAllButton', () => discardCurrent(true)],
+	]) listen(buttons.get(id), 'click', () => void action().catch(report));
 	listen(fileInput, 'change', () => {
 		const files = [...fileInput.files];
 		fileInput.value = '';
@@ -1073,12 +1254,13 @@ export function setupAswanCodeFiles({
 		(event) => {
 			if (
 				(event.ctrlKey || event.metaKey) &&
-				!event.altKey &&
-				event.key.toLowerCase() === 's'
+				!event.altKey && !event.shiftKey && !event.isComposing &&
+				event.key?.toLowerCase() === 's' && !doc.querySelector?.('dialog[open]')
 			) {
 				event.preventDefault();
 				event.stopPropagation();
-				void (code?.flush?.() ?? persistCode()).catch(report);
+				event.stopImmediatePropagation?.();
+				if (!event.repeat) void saveCurrent().catch(report);
 			}
 		},
 		true,
@@ -1119,19 +1301,25 @@ export function setupAswanCodeFiles({
 		saveSongSource,
 		saveVgmSounds,
 		saveCapturedSound,
-		markSoundDirty() {
-			editRevision++;
-			appliedPreset = null;
-			if (presetSelect) presetSelect.value = '';
-			if (disposed || busy || restoring) return;
-			project.setSettings(getSettings());
-			schedule();
+		isAutoApply: () => project.autoApply,
+		getSavedEditorPreset: () => project.savedSettings,
+		recordSoundEdit, validateSoundEdit, canEditSound, adoptExternalSound, codeEdited, recoverCodeState,
+		saveCurrent, saveAll: () => saveCurrent(true),
+		discardCurrent, discardAll: () => discardCurrent(true), setAutoApply,
+		markSoundDirty(value = getSettings()) {
+			if (disposed) return false;
+			if (busy || restoring) {
+				editRevision++; project.setSettings(value);
+				if (project.autoApply) project.setSavedSettings(value);
+				return false;
+			}
+			return recordSoundEdit(value);
 		},
 		async dispose() {
 			if (disposed) return;
 			operation++;
 			contextMenu.dispose();
-			await code?.flush?.();
+			await flushCode();
 			await persistCode();
 			disposed = true;
 			if (main) main.inert = false;
@@ -1149,13 +1337,14 @@ export function setupAswanCodeFiles({
 			if (disposed) return;
 			if (saved) {
 				const candidate = createAswanCodeProject({ snapshot: saved });
-				if (before !== editRevision) candidate.setSettings(getSettings());
+				if (before !== editRevision) { candidate.setSettings(getSettings()); if (candidate.autoApply) candidate.setSavedSettings(getSettings()); }
 				restoring = true;
 				try {
 					await onBeforeWorkspaceReplace();
 					if (disposed) return;
-					if (before !== editRevision) candidate.setSettings(getSettings());
-					await applySettings(candidate.settings, { isCurrent: () => !disposed });
+					if (before !== editRevision) { candidate.setSettings(getSettings()); if (candidate.autoApply) candidate.setSavedSettings(getSettings()); }
+					const applied = await applySettings(candidate.savedSettings, {record: false, source: 'restore', load: true, applyAudio: true, displayPreset: candidate.settings, isCurrent: () => !disposed });
+					if (applied === false) throw Error('Sound restoration was cancelled.');
 					if (disposed) return;
 					presetCache.clear();
 					appliedPreset = null;

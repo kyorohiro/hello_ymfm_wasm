@@ -400,3 +400,31 @@ test('ASWAN pending Code recovery retains both versions without accepting or exe
 	assert.throws(() => p.recoverCode(ASWAN_PROJECT_MANIFEST, {source: '{}', savedSource: null, autoSave: false}), /recovery path/);
 	assert.deepEqual(p.snapshot(), before);
 });
+
+test('ASWAN Cassette restores active manual sound, saved settings and pending rename without duplicating unchanged PCM', async () => {
+	const p = createAswanCodeProject({starterCode: '// saved'}), accepted = p.settings;
+	p.importFiles([{path: '/presets/old.aswan.json', data: JSON.stringify(accepted)}]);
+	p.setAutoApply(false);
+	const draft = {...accepted, left: 2};
+	p.importFiles([{path: '/presets/new.aswan.json', data: JSON.stringify(draft)}]);
+	p.fs.remove('/presets/old.aswan.json');
+	p.setActiveSoundPath('/presets/new.aswan.json');
+	p.setPendingMoves([['/presets/old.aswan.json', '/presets/new.aswan.json']]);
+	p.setSettings(draft);
+	const zip = p.exportProject(), cassette = await loadPlaygroundCassette(zip);
+	const manifest = JSON.parse(new TextDecoder().decode(cassette.files.get(ASWAN_PROJECT_MANIFEST.slice(1))));
+	assert.equal(manifest.savedSettings.pcm.data, undefined);
+	assert.equal(manifest.savedPcmSource, 'settings');
+	const copy = createAswanCodeProject({snapshot: await p.prepareImport(zip)});
+	assert.equal(copy.settings.left, 2); assert.equal(copy.savedSettings.left, 9);
+	assert.equal(copy.activeSoundPath, '/presets/new.aswan.json');
+	assert.deepEqual(copy.getPendingMoves(), p.getPendingMoves());
+	assert.equal(copy.savedSettings.pcm.data, accepted.pcm.data);
+	const before = p.snapshot(), bad = structuredClone(before);
+	bad.savedSettings.source = 'invalid';
+	assert.throws(() => p.restore(bad)); assert.deepEqual(p.snapshot(), before);
+	const {savedSettings, activeSoundPath, pendingMoves, ...oldV2} = before;
+	const legacy = createAswanCodeProject({snapshot: oldV2});
+	assert.deepEqual(legacy.savedSettings, draft);
+	assert.equal(legacy.activeSoundPath, null);
+});

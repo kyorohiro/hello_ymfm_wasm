@@ -236,6 +236,40 @@ function restoreDelta(entries, directories, delta) {
 	return {version: 1, working: working.snapshot(), saved: saved.snapshot(), autoSave: delta.autoSave};
 }
 
+function soundPath(value,working,saved){
+  if(value==null)return null;const path=pathForUser(canonicalDataPath(value)),file=working.get(path)??saved.get(path);
+  if(file?.type!=='text'||!isAswanTextPath(path))throw Error('Active ASWAN sound document is missing or not text.');return path;
+}
+function pendingPaths(value){
+  if(!Array.isArray(value))throw Error('Invalid ASWAN pending moves.');
+  const sources=new Set(),targets=new Set();
+  return value.map(pair=>{if(!Array.isArray(pair)||pair.length!==2)throw Error('Invalid ASWAN pending move.');const [source,target]=pair.map(value=>pathForUser(canonicalDataPath(value)));
+    if(source===target||sources.has(source)||targets.has(target))throw Error('Duplicate ASWAN pending move.');sources.add(source);targets.add(target);return[source,target];});
+}
+// These aliases apply only to our ZIP manifest. Public snapshots keep both
+// settings objects explicit, but unchanged PCM payloads need not be stored a
+// second time solely to retain the accepted authoring cache.
+function compactManifestSettings(value){
+  const result=clone(value);
+  if(JSON.stringify(result.settings)===JSON.stringify(result.savedSettings)){
+    delete result.savedSettings;result.savedSettingsSource='settings';
+  }else if(result.savedSettings.pcm.data===result.settings.pcm.data){
+    delete result.savedSettings.pcm.data;result.savedPcmSource='settings';
+  }
+  return result;
+}
+function expandManifestSettings(value){
+  const result={...value};
+  if(value.savedSettingsSource!==undefined){
+    if(value.savedSettingsSource!=='settings'||value.savedSettings!==undefined||value.savedPcmSource!==undefined)throw Error('Invalid ASWAN accepted-settings alias.');
+    result.savedSettings=readPreset(value.settings);
+  }else if(value.savedPcmSource!==undefined){
+    if(value.savedPcmSource!=='settings'||!value.savedSettings?.pcm||value.savedSettings.pcm.data!==undefined||typeof value.settings?.pcm?.data!=='string')throw Error('Invalid ASWAN accepted-PCM alias.');
+    result.savedSettings={...value.savedSettings,pcm:{...value.savedSettings.pcm,data:value.settings.pcm.data}};
+  }
+  return result;
+}
+
 export function createAswanCodeProject({
 	settings = createDefaultPreset(),
 	snapshot,
@@ -247,6 +281,7 @@ export function createAswanCodeProject({
 		savedFs = workspace.saved,
 		listeners = new Set();
 	let current = readPreset(settings),
+		accepted = readPreset(settings), activeSound = null, moves = [],
 		selected = null,
 		state = { mode: 'keyboard', path: null },
 		projectName = 'Tetorica ASWAN',
@@ -267,6 +302,7 @@ export function createAswanCodeProject({
 		setAutoApply(enabled) {
 			if (enabled) validateFiles(fs);
 			workspace.setAutoSave(enabled);
+			if (enabled) moves = [];
 			return workspace.autoSave;
 		},
 		getDirtyPaths: () => workspace.getDirtyPaths(),
@@ -284,6 +320,7 @@ export function createAswanCodeProject({
 			validateFiles(fs);
 			const paths = workspace.getDirtyPaths();
 			workspace.saveAll();
+			moves = [];
 			return paths;
 		},
 		onDidChange(listener) {
@@ -301,6 +338,20 @@ export function createAswanCodeProject({
 			}
 			return project.settings;
 		},
+		get savedSettings() { return readPreset(accepted); },
+		setSavedSettings(value) {
+			const next = readPreset(value);
+			if (JSON.stringify(next) !== JSON.stringify(accepted)) { accepted = next; notify(); }
+			return project.savedSettings;
+		},
+		get activeSoundPath() { return activeSound; },
+		setActiveSoundPath(value) {
+			const next = soundPath(value, fs, savedFs);
+			if (next !== activeSound) { activeSound = next; notify(); }
+			return activeSound;
+		},
+		getPendingMoves: () => clone(moves),
+		setPendingMoves(value) { moves = pendingPaths(value); notify(); return clone(moves); },
 		listEntries() {
 			entryCache ??= fs
 				.list()
@@ -365,6 +416,9 @@ export function createAswanCodeProject({
 				version: 2,
 				name: projectName,
 				settings: project.settings,
+				savedSettings: project.savedSettings,
+				activeSoundPath: activeSound,
+				pendingMoves: clone(moves),
 				selectedPath: selected,
 				codeState: clone(state),
 				filesystem: fs.snapshot(),
@@ -391,6 +445,9 @@ export function createAswanCodeProject({
 			validateFiles(candidate.working);
 			validateFiles(candidate.saved);
 			const nextSettings = readPreset(value.settings),
+				nextAccepted = readPreset(value.version === 1 ? value.settings : value.savedSettings ?? value.settings),
+				nextActive = soundPath(value.activeSoundPath, candidate.working, candidate.saved),
+				nextMoves = pendingPaths(value.pendingMoves ?? []),
 				nextSelected = selectedPath(value.selectedPath, candidate.working),
 				nextState = codeState(value.codeState, candidate.working),
 				nextName = name(value.name);
@@ -398,6 +455,7 @@ export function createAswanCodeProject({
 			try {
 				workspace.restore(candidate.snapshot());
 				current = nextSettings;
+				accepted = nextAccepted; activeSound = nextActive; moves = nextMoves;
 				selected = nextSelected;
 				state = nextState;
 				projectName = nextName;
@@ -445,7 +503,7 @@ export function createAswanCodeProject({
 					if ('/' + path !== ASWAN_PROJECT_MANIFEST) files.push({path: '/' + path, type: 'binary', data});
 				const layers = restoreDelta(files, cassette.directories, metadata.workingDelta);
 				const candidate = createAswanCodeProject({settings: current});
-				candidate.restore({...metadata, workspace: layers, filesystem: layers.working});
+				candidate.restore({...expandManifestSettings(metadata), workspace: layers, filesystem: layers.working});
 				return candidate.snapshot();
 			}
 			for (const [path, data] of cassette.files) {
@@ -475,7 +533,7 @@ export function createAswanCodeProject({
 			validateFiles(fs);
 			validateFiles(savedFs);
 			const {filesystem, workspace: layers, ...manifest} = project.snapshot();
-			const metadata = JSON.stringify({...manifest, workingDelta: workingDelta(workspace)}, null, 2) + '\n';
+			const metadata = JSON.stringify({...compactManifestSettings(manifest), workingDelta: workingDelta(workspace)}, null, 2) + '\n';
 			const total = new TextEncoder().encode(metadata).byteLength + savedFs.list().reduce(
 				(bytes, file) => bytes + (file.type === 'text' ? new TextEncoder().encode(file.data).byteLength : file.data.byteLength), 0);
 			if (total > 16 * 1024 * 1024) throw Error('Code project exceeds the 16 MiB expanded cassette limit.');

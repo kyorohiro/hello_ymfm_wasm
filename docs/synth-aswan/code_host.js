@@ -107,8 +107,8 @@ export function setupAswanCodeHost({
 			useSoundChip: (name) => audio.useSoundChip(name),
 			fx: audio.fx,
 			resolveNoteTarget: audio.resolveNoteTarget,
-			readFile: (...args) => project.readFile(...args),
-			prepareSource: (...args) => project.prepareSource(...args),
+			readFile: (...args) => project.readSavedFile(...args),
+			prepareSource: (...args) => project.prepareSavedSource(...args),
 			onLog: (line) => controls?.appendLog(line),
 			onState: (state) => {
 				controls?.setRuntimeState(state);

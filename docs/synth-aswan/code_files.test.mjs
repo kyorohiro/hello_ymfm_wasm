@@ -110,9 +110,7 @@ function fixture(t, options = {}) {
 	doc.append(select);
 	const previous = globalThis.document;
 	globalThis.document = doc;
-	t.after(() => {
-		globalThis.document = previous;
-	});
+
 	let settings = readPreset(options.settings ?? createDefaultPreset());
 	const project = options.project ?? createAswanCodeProject({ settings, starterCode: '// kept' }),
 		writes = [],
@@ -149,7 +147,7 @@ function fixture(t, options = {}) {
 		},
 		setBusy() {},
 	});
-	t.after(() => files.dispose());
+	t.after(async () => { try { await files.dispose(); } finally { globalThis.document = previous; } });
 	return {
 		files,
 		project,
@@ -1217,4 +1215,168 @@ test('ASWAN Save selected value is one passive preset, leaving Auto and running 
 	const snapshot = f.project.snapshot();
 	await assert.rejects(f.files.saveSound({ value: {} }));
 	assert.deepEqual(f.project.snapshot(), snapshot);
+});
+
+test('ASWAN Files defaults to Auto apply and exposes Save/Discard with dirty filename dots', async t => {
+	const f = fixture(t); await f.files.ready;
+	assert.equal(f.doc.getElementById('aswanFilesAutoApply').checked, true);
+	await f.files.setAutoApply(false);
+	f.project.writeEditorText('/index.js', '// draft'); f.files.codeEdited('/index.js');
+	assert.equal(f.project.savedFs.get('/index.js').data, '// kept');
+	const entry = walk(f.doc).find(node => node.getAttribute('data-file-path') === '/index.js' && node.tagName === 'BUTTON');
+	assert.equal(entry.getAttribute('data-modified'), 'true');
+	assert.match(entry.textContent, /●$/);
+	assert.equal(f.doc.getElementById('aswanFileSaveButton').disabled, false);
+	await f.files.saveCurrent();
+	assert.equal(f.project.savedFs.get('/index.js').data, '// draft');
+	assert.equal(f.project.isFileModified('/index.js'), false);
+	assert.equal(f.doc.getElementById('aswanFileSaveButton').disabled, true);
+});
+
+test('ASWAN Auto controls update the linked JSON; manual drafts apply only at Save and Discard restores controls', async t => {
+	const applied = [];
+	let host = createDefaultPreset();
+	const f = fixture(t, {getSettings: () => host, applySettings: async (value, options) => {
+		applied.push({value: readPreset(value), ...options}); host = readPreset(options.displayPreset ?? value);
+	}}); await f.files.ready;
+	const path = await f.files.saveSound();
+	assert.equal(f.project.activeSoundPath, path);
+	await f.files.setAutoApply(false);
+	host = {...host, left: 4}; f.files.recordSoundEdit(host);
+	assert.equal(JSON.parse(f.project.fs.get(path).data).left, 4);
+	assert.equal(JSON.parse(f.project.savedFs.get(path).data).left, 9);
+	assert.equal(f.project.savedSettings.left, 9);
+	await f.files.saveCurrent();
+	assert.equal(applied.at(-1).source, 'save');
+	assert.equal(applied.at(-1).applyAudio, true);
+	assert.equal(applied.at(-1).value.left, 4);
+	assert.equal(f.project.savedSettings.left, 4);
+	host = {...host, right: 2}; f.files.recordSoundEdit(host);
+	await f.files.discardCurrent();
+	assert.equal(host.right, 9);
+	assert.equal(applied.at(-1).applyAudio, false);
+	assert.equal(f.project.isFileModified(path), false);
+	await f.files.setAutoApply(true);
+	host = {...host, wave: host.wave.map((v, i) => i === 1 ? 0 : v)};
+	f.files.recordSoundEdit(host);
+	assert.equal(JSON.parse(f.project.savedFs.get(path).data).wave[1], 0);
+});
+
+test('ASWAN valid active JSON follows Auto apply while malformed text is kept and protected from knobs', async t => {
+	let host = createDefaultPreset(); const applied = [];
+	const f = fixture(t, {getSettings: () => host, applySettings: async (value, options) => {
+		host = readPreset(options.displayPreset ?? value); applied.push(options);
+	}}); await f.files.ready;
+	const path = await f.files.saveSound();
+	const edit = {...host, left: 3};
+	f.project.writeEditorText(path, JSON.stringify(edit)); f.files.codeEdited(path);
+	await f.files.saveCurrent();
+	assert.equal(host.left, 3);
+	assert(applied.some(options => options.source === 'json' && options.applyAudio));
+	await f.files.setAutoApply(false);
+	f.project.writeEditorText(path, '{ unfinished'); f.files.codeEdited(path);
+	assert.throws(() => f.files.recordSoundEdit({...host, right: 1}), /Finish or Discard/);
+	assert.equal(f.project.fs.get(path).data, '{ unfinished');
+	await f.files.saveCurrent();
+	assert.equal(f.project.savedFs.get(path).data, '{ unfinished');
+	assert.equal(host.left, 3);
+	assert.equal(applied.at(-1).applyAudio, false);
+	assert.match(f.statuses.at(-1), /JSON not applied/);
+});
+
+test('ASWAN Save all and Discard all retain binary drafts, pending folder renames and linked sound selection', async t => {
+	const f = fixture(t); await f.files.ready;
+	const path = await f.files.saveSound();
+	f.project.importFiles([{path: '/data/raw.bin', type: 'binary', data: Uint8Array.of(0, 255)}]);
+	await f.files.setAutoApply(false);
+	await f.files.move('/presets', '/sounds');
+	const moved = '/sounds' + path.slice('/presets'.length);
+	assert.equal(f.project.activeSoundPath, moved);
+	f.project.fs.writeBinary('/data/raw.bin', Uint8Array.of(127, 128));
+	await f.files.discardAll();
+	assert.equal(f.project.activeSoundPath, path);
+	assert(f.project.fs.has(path)); assert(!f.project.fs.has(moved));
+	assert.deepEqual(f.project.fs.get('/data/raw.bin').data, Uint8Array.of(0, 255));
+	await f.files.move('/presets', '/sounds');
+	f.project.fs.writeBinary('/data/raw.bin', Uint8Array.of(1, 254));
+	await f.files.saveAll();
+	assert.equal(f.project.savedFs.has(path), false);
+	assert(f.project.savedFs.has(moved));
+	assert.deepEqual(f.project.savedFs.get('/data/raw.bin').data, Uint8Array.of(1, 254));
+	assert.deepEqual(f.project.getDirtyPaths(), []);
+});
+
+test('ASWAN failed sound Save cannot promote files or lose the working draft', async t => {
+	let host = createDefaultPreset(), fail = false;
+	const f = fixture(t, {getSettings: () => host, applySettings: async (value, options) => {
+		if (fail && options.source === 'save') throw Error('device unavailable');
+		host = readPreset(options.displayPreset ?? value);
+	}}); await f.files.ready;
+	const path = await f.files.saveSound(); await f.files.setAutoApply(false);
+	host = {...host, left: 1}; f.files.recordSoundEdit(host);
+	const before = f.project.snapshot(); fail = true;
+	await assert.rejects(f.files.saveCurrent(), /device unavailable/);
+	assert.deepEqual(f.project.snapshot(), before);
+	assert.equal(f.project.isFileModified(path), true);
+});
+
+test('ASWAN manual renamed Code stays running and Save accepts both sides without restarting', async t => {
+	const f = fixture(t); await f.files.ready; await f.files.setAutoApply(false);
+	const changes = [];
+	f.files.setCodeControls({activePath: '/index.js', executionPath: '/index.js',
+		flush: async () => true, setBusy() {}, pathChanged: (...args) => changes.push(args),
+		stop: () => assert.fail('Manual Files changes must keep Code running')});
+	await f.files.move('/index.js', '/renamed.js');
+	assert.equal(changes.at(-1)[2].preserveExecution, true);
+	assert.equal(f.project.savedFs.has('/index.js'), true);
+	await f.files.saveCurrent();
+	assert.equal(f.project.savedFs.has('/index.js'), false);
+	assert.equal(f.project.savedFs.get('/renamed.js').data, '// kept');
+	assert.deepEqual(f.project.getPendingMoves(), []);
+});
+
+test('ASWAN manual project restore plays accepted sound while retaining edited JSON and visible draft', async t => {
+	const p = createAswanCodeProject();
+	const original = p.settings, draft = {...original, left: 2};
+	p.importFiles([{path: '/presets/voice.aswan.json', data: JSON.stringify(original)}]);
+	p.setActiveSoundPath('/presets/voice.aswan.json'); p.setAutoApply(false);
+	p.writeEditorText(p.activeSoundPath, JSON.stringify(draft)); p.setSettings(draft);
+	const applications = [];
+	const f = fixture(t, {store: {read: async () => p.snapshot(), write: async () => true},
+		applySettings: async (value, options) => applications.push({value, options})});
+	await f.files.ready;
+	assert.equal(applications[0].value.left, 9);
+	assert.equal(applications[0].options.displayPreset.left, 2);
+	assert.equal(f.project.savedSettings.left, 9);
+	assert.equal(f.project.settings.left, 2);
+	assert.equal(f.project.autoApply, false);
+});
+
+test('ASWAN Auto apply checkbox keeps the requested value while flushing and restores it on failure', async t => {
+	const f = fixture(t); await f.files.ready;
+	const gate = deferred();
+	f.files.setCodeControls({flush: () => gate.promise, setBusy() {}});
+	const pending = f.files.setAutoApply(false);
+	assert.equal(f.doc.getElementById('aswanFilesAutoApply').checked, false);
+	assert.equal(f.doc.getElementById('aswanFilesAutoApply').disabled, true);
+	f.project.select('/index.js'); // A render while awaiting flush must not reset the checkbox.
+	assert.equal(f.doc.getElementById('aswanFilesAutoApply').checked, false);
+	gate.resolve(false);
+	assert.equal(await pending, false);
+	assert.equal(f.doc.getElementById('aswanFilesAutoApply').checked, true);
+	assert.equal(f.doc.getElementById('aswanFilesAutoApply').disabled, false);
+});
+
+test('ASWAN manual rename back to the saved name clears its pending move without losing edits', async t => {
+	const f = fixture(t); await f.files.ready;
+	await f.files.setAutoApply(false);
+	f.project.select('/index.js');
+	await f.files.move('/index.js', '/temporary.js');
+	f.project.writeEditorText('/temporary.js', '// changed');
+	await f.files.move('/temporary.js', '/index.js');
+	assert.deepEqual(f.project.getPendingMoves(), []);
+	assert.equal(f.project.fs.get('/index.js').data, '// changed');
+	assert.equal(f.project.savedFs.get('/index.js').data, '// kept');
+	await f.files.discardCurrent();
+	assert.equal(f.project.fs.get('/index.js').data, '// kept');
 });

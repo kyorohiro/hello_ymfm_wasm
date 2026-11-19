@@ -8,26 +8,35 @@ The original sequence was **HuC6280 → SPU → DMG → SID**. On 2026-11-20,
 ASWAN was selected as the next alignment target after SPU. Missing entries
 below are not a commitment to implement every optional feature.
 
-## Active implementation slice (2026-11-20)
+## Saving rollout (2026-11-20)
 
-Implement the data layer first: shared working/saved workspace, atomic
-Save/Discard, v1 migration, saved Code readers and a v2 Cassette containing
-saved files plus working differences. Keep Auto apply On and the existing UI
-behavior until the Files controls and active-sound acceptance are connected
-together in the next slice. Do not switch Run/Apply to saved-only readers yet.
-No timed API, recording, audio gain or playback changes in this slice.
+The first slice added the shared working/saved workspace, atomic Save/Discard,
+v1 migration, saved Code readers and a v2 Cassette containing saved files plus
+working differences. The second slice connects the Files controls and active
+sound acceptance, and switches Run/Apply to saved-only readers.
+No timed API, recording or audio gain changes in this rollout.
+
+### Files UI integration (implemented)
+
+Connect Auto apply (default On), dirty dots, Save/Save all/Discard/Discard all
+and Cmd/Ctrl+S. Bind authored Auto controls/waves/valid JSON to an active sound
+document; manual mode retains an accepted audible sound until Save. Physical
+CH edits remain direct. Run/Apply reads accepted entries, modules and data.
+Preserve running Code, VGM/Capture, invalid JSON drafts, rename/delete recovery
+and the two-version Cassette. Do not add Undo/New/layout or timed operations in
+this slice. Verify with speakers muted.
 
 - [x] Implement and test the project data layer and legacy migration.
 - [x] Verify existing Files/Capture/source-import behavior with Auto apply On.
-- [ ] Connect Auto apply/Save/Discard UI, active sound documents and saved
-      Run/Apply together in the next slice.
+- [x] Connect Auto apply/Save/Discard UI, active sound documents and saved
+      Run/Apply together.
 
 Implemented in this slice: `savedFs`, `workspace`, `setAutoApply`, dirty-path
 queries, atomic Save/Discard, saved entry/module/data readers, v1 local/ZIP
 migration and v2 ZIP export/import. Shared editor crash-journal recovery keeps
-working and accepted Code separate. Auto apply remains On for existing users;
-there are no new visible controls yet. `saved` means accepted content in memory,
-not proof of a successful IndexedDB/disk write.
+working and accepted Code separate. Auto apply remains On by default; the
+Files checkbox and Save/Discard controls now expose manual acceptance. `saved`
+means accepted content in memory, not proof of a successful IndexedDB/disk write.
 
 Automated checks (2026-11-20):
 
@@ -39,14 +48,23 @@ Automated checks (2026-11-20):
   Existing keyboard/Code, Capture, reference playback, channel edits, highlight
   and Mixer behavior were checked. No human listening was performed.
 
+Second-slice verification: `npm run test:aswan-synth` **189 passed**, including
+manual Save/Discard, binary/folder rename recovery, malformed JSON, rejected
+sound acceptance, old-v2 cache migration, PCM manifest aliasing and pending
+checkbox state. Chromium and WebKit source checks passed with physical output
+muted: manual sound drafts, Cmd/Ctrl+S, saved Code Run/Apply, Save not executing
+or retiring Code, physical CH editing, and existing VGM/Capture/Mixer/Live.
+A standalone readable ZIP also passed the same Chromium/WebKit browser suite. No
+commit/push/npm/Tauri/release was performed by this task.
+
 Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261119.md).
 
 ## Current status
 
 | Common feature | Audited ASWAN status |
 | --- | --- |
-| working/saved, Auto apply, ●, Save/Save all/Discard, accepted Code, two-version Cassette | **Data layer implemented; UI pending.** [code_project.js](../synth-aswan/code_project.js) now uses the shared workspace, v1→v2 migration, atomic Save/Discard, saved Code readers and two-version Cassette export/import. Files controls and Run/Apply still use their existing immediate behavior until the acceptance UI is connected. |
-| Active instrument file linked to knob/wave/JSON editing | **Partial.** Files opens sound JSON for editing/selection. [code_files.js](../synth-aswan/code_files.js) `saveSound()` creates another file, and `markSoundDirty()` persists settings rather than updating an active sound document. |
+| working/saved, Auto apply, ●, Save/Save all/Discard, accepted Code, two-version Cassette | **Implemented.** Shared workspace, v1→v2 migration, Files Auto apply/●/Save/Discard, saved Code entry/modules/data and two-version Cassette export/import. |
+| Active instrument file linked to knob/wave/JSON editing | **Implemented for authored Auto.** Selecting a sound links its document; controls/waves/valid JSON follow Auto apply. First Auto edits create a document. Physical CH edits stay direct and do not rewrite the Auto sound file. Incomplete JSON is retained and protected from knob overwrites. |
 | Files Undo, New Cassette and replacement recovery | **Partial.** Validated imports and recovery exist; Capture transactionally keeps the previous and captured sounds. There is no general Files Undo history or New Cassette workflow in the adapter. |
 | Persistent expanded Code workspace, chip/Mixer/Keyboard tabs, header Code/Synth, visible Master | **Partial.** Keyboard/Code and maximize exist. [code_host.js](../synth-aswan/code_host.js) does not wire FM's persistent expanded tabs or header layout switch. |
 | Brief Live changed-value highlights, default On and switchable | **Implemented.** [live_highlight.js](../synth-aswan/live_highlight.js), [synth.js](../synth-aswan/synth.js) and `aswanHighlightEnabled` in [index.html](../synth-aswan/index.html) follow VGM/Code, default On and retain a preference. Preserve this feature rather than adding a second highlighter. |
@@ -60,15 +78,15 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 - [x] Reuse the shared working/saved workspace and migrate v1 projects without
       losing Wave/Noise/Sweep/Voice settings, PCM payloads, source VGM/VGZ,
       captured sounds, metadata, editor selection or Code.
-- [ ] Add Auto apply **On by default**, filename ●, Save, Save all and Discard;
+- [x] Add Auto apply **On by default**, filename ●, Save, Save all and Discard;
       make Ctrl/Cmd+S save the selected/last-edited document and return pointer
       controls to performance focus.
-- [ ] Link authored controls, drawn waves and valid JSON editing to the active
+- [x] Link authored controls, drawn waves and valid JSON editing to the active
       sound file. Retain safe behavior while JSON is incomplete or malformed.
-- [ ] With Auto apply Off, apply authored edits at Save without retiring Code.
+- [x] With Auto apply Off, apply authored edits at Save without retiring Code.
       Physical CH edits remain direct. Run/Apply uses saved entry/modules/data;
       saving source never runs it.
-- [ ] Cassette export must include ordinary **saved** files and recoverable
+- [x] Cassette export must include ordinary **saved** files and recoverable
       **working differences**, preserving mode and both versions on import.
       Do not duplicate unchanged PCM/source files.
 - [ ] Add bounded Files Undo and New Cassette with starter Code/examples.

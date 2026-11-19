@@ -359,7 +359,7 @@ export function createEditor({
 	}
 	help(
 		waveCard.content,
-		'Software drawing writes the real 32-point, 4-bit wave RAM. Edits apply immediately and preserve held notes.',
+		'Software drawing edits the 32-point, 4-bit wave RAM. Auto follows Files Auto apply; physical CH edits apply immediately and preserve held notes.',
 	);
 	const stereo = card('Level & stereo · hardware', 'levelSection'),
 		levels = group(stereo.content);
