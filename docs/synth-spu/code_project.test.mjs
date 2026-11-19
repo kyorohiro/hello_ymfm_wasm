@@ -117,3 +117,11 @@ test('New Cassette prepares the original starter and valid Sine without changing
   assert.equal(fresh.activeSoundPath,null);assert.equal(fresh.fs.has('/original.vab'),false);assert.deepEqual(fresh.getDirtyPaths(),[]);
   assert.deepEqual(fresh.getCodeState(),{mode:'keyboard',path:'/index.js'});
 });
+
+test('starter examples enter fresh Files and New Cassette without overwriting a restored workspace',()=>{
+ const options={starterCode:'// starter',starterFiles:{'/examples/timed-phrase.js':'// schedule example'}};
+ const project=createSpuCodeProject(options);assert.equal(project.fs.get('/examples/timed-phrase.js').data,'// schedule example');
+ project.writeEditorText('/examples/timed-phrase.js','// user edit');
+ const restored=createSpuCodeProject({...options,snapshot:project.snapshot()});assert.equal(restored.fs.get('/examples/timed-phrase.js').data,'// user edit');
+ project.restore(project.prepareNew());assert.equal(project.fs.get('/examples/timed-phrase.js').data,'// schedule example');assert.equal(project.fs.get('/index.js').data,'// starter');
+});

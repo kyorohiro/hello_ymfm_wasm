@@ -1,3 +1,5 @@
+import {createPs1TimedProcessor,ps1TimedCommandCost} from '../../tetorica_src/runtime/ps1_timed_processor.js';
+import {capturePs1OperationState} from '../../tetorica_src/runtime/ps1_operations.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
@@ -21,7 +23,7 @@ let assets;
 async function setup(rate=48000){
   const [factory,wasmBinary,source]=await(assets??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js").then(m=>m.default),readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl)),readFile(new URL('./playground_ps1_worklet.js',runtimeDirectoryUrl),'utf8')]));
   const main=new MessageChannel();let Processor;
-  const scope={factory,Ps1Spu,Ps1Synth,createPs1InitSample,Ps1Resampler,Ps1VoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(name,Class){assert.equal(name,'tetorica-playground-ps1');Processor=Class;}};
+  const scope={createPs1TimedProcessor,ps1TimedCommandCost,capturePs1OperationState,factory,Ps1Spu,Ps1Synth,createPs1InitSample,Ps1Resampler,Ps1VoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(name,Class){assert.equal(name,'tetorica-playground-ps1');Processor=Class;}};
   scope.createProcessorPerformance=options=>createProcessorPerformance({...options,rate,nowFrame:()=>scope.currentFrame});
   vm.runInNewContext(source.replace(/^import .*;\n/gm,'').replace('export class Ps1InstrumentProcessor','class Ps1InstrumentProcessor'),scope);
   const ready=new Promise((resolve,reject)=>{main.port2.onmessage=({data})=>data.ready?resolve(data):data.error?reject(Error(data.error)):undefined;});
@@ -190,7 +192,7 @@ test('PS1 repeated uploads are owned and read snapshots never advance; disposal 
   const p=await setup();t.after(()=>p.close());const{adpcm,...options}=createPs1InitSample(),before=adpcm.slice(),sample=await p.client.loadADPCM(adpcm,options);assert.equal(sample.id,1);assert.deepEqual(adpcm,before);p.client.setPreset(23,{sample});p.client.noteOn(23,60);const snap=await p.client.snapshot();assert.equal(snap.channels[23].sample,1);assert.equal(snap.ram.length,524288);
   const state=await p.client.getState();for(let n=0;n<5;n++)await p.client.getState();assert.equal((await p.client.getState()).nativeFrames,state.nativeFrames);
   const file=await readFile(new URL('./playground_ps1_worklet.js',runtimeDirectoryUrl),'utf8');let resolveCore,Processor;const main=new MessageChannel(),fake={disposeCount:0,dispose(){this.disposeCount++;}};
-  const scope={factory(){},Ps1Spu:{create:()=>new Promise(resolve=>resolveCore=resolve)},Ps1Synth,createPs1InitSample,Ps1Resampler,Ps1VoiceInspector,receiveChipInspector,createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),sampleRate:48000,AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(_,Class){Processor=Class;}};
+  const scope={createPs1TimedProcessor,ps1TimedCommandCost,capturePs1OperationState,factory(){},Ps1Spu:{create:()=>new Promise(resolve=>resolveCore=resolve)},Ps1Synth,createPs1InitSample,Ps1Resampler,Ps1VoiceInspector,receiveChipInspector,createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),sampleRate:48000,AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(_,Class){Processor=Class;}};
   vm.runInNewContext(file.replace(/^import .*;\n/gm,'').replace('export class Ps1InstrumentProcessor','class Ps1InstrumentProcessor'),scope);const processor=new Processor();processor.dispose();resolveCore(fake);await processor.ready;assert.equal(fake.disposeCount,1);assert.equal(processor.synth,null);main.port1.close();main.port2.close();
 });
 test('PS1 manual voice allows append-only uploads and invalid inspector edits remain recoverable',async t=>{
@@ -383,4 +385,21 @@ test('PS1 Main reset clears held manual leases and keeps local and applied sampl
  const p=await setup();t.after(()=>p.close());const i=p.processor.inspector;i.invoke('auditionOn',[23,69,'held']);assert(peak(p.render(512).left)>.001);
  p.client.reset({clearRam:true});const remote=await p.client.getState();assert.equal(remote.samples.length,0);assert.equal(p.client._getState().samples.length,0);assert.equal(i.read().auditions.length,0);assert.equal(i.invoke('auditionOff',[23,'held']),false);assert.equal(peak(p.render(1024).left),0);
  const{adpcm,...options}=createPs1InitSample(),sample=await p.client.loadADPCM(adpcm,options);assert.equal(sample.id,0);p.client.setPreset(23,{sample});p.client.noteOn(23,69);await p.client.getState();assert(peak(p.render(1024).left)>.001);
+});
+
+test('Main and Worker timed APIs share authoritative state, execute and cancel without changing immediate controls',async t=>{
+ const p=await setup(48000);t.after(()=>p.close());
+ const secondary=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});
+ const worker=createPs1Client(secondary.port2,p.metadata);t.after(()=>{worker.dispose();secondary.port1.close();});
+ const base=await worker.captureState();assert.equal(base.format,'tetorica-ps1-state');
+ const plan=worker.build(b=>b.setPitch(0,777).keyOn(0));
+ assert((await worker.compile(plan,{initialState:base})).some(row=>row.register===4&&row.value===777));
+ await worker.schedule(plan,{name:'worker',repeatSeconds:.02});p.render(256);
+ assert.equal(p.processor.synth.channels[0].pitch,777);assert.equal(p.processor.synth.gates[0],true);
+ assert.equal(await worker.clearSchedule('worker'),true);
+ const current=await p.client.captureState();assert.equal(current.instanceId,base.instanceId);
+ p.client.setPitch(0,555);await p.client.getState();assert.equal((await worker.captureState()).state.channels[0].pitch,555);
+ await assert.rejects(worker.compile(plan,{initialState:'client'}),/Incomplete/);
+ await worker.schedule(plan,{name:'stop',repeatSeconds:.02});await worker._stopVoices();p.render(1000);
+ assert.equal(p.processor.synth.gates[0],false);assert.equal(p.processor.performance.getStats().patternCount,0);
 });

@@ -13,8 +13,8 @@ The working/saved Files slice is complete; see its linked TODO for validation.
 Auto apply defaults On; Save/Save all/Discard/Discard all, Files dots and
 Ctrl/Cmd+S are mounted. Controls/PCM/JSON share an editable document, native
 sources remain binary, and explicit Run/Apply reads saved files. v1 projects
-migrate and Cassette retains both versions. Output policy and timed API remain
-separate. [Files Undo](todo_spu_files_undo_20261120.md) now restores operation
+migrate and Cassette retains both versions. The first timed API slice is now
+implemented separately from Files/UI alignment. [Files Undo](todo_spu_files_undo_20261120.md) now restores operation
 snapshots with bounded session history, stopping playback without restarting it.
 [New Cassette](todo_spu_new_cassette_20261120.md) is also implemented, with
 confirmation, optional pre-retirement backup, default sound/starter restoration
@@ -40,7 +40,7 @@ functionality. Chip-specific behavior and file formats must remain independent.
 | Shared channel output switches | Missing as a common Keyboard/Code/PSF output policy. PSF's 24-CH activity indicators are observations, not output toggles. Keep shared Noise, reverb and PMON processing active when output is muted. |
 | PCM drawing / sample range | Already substantial: [README](../synth-spu/README.md) documents full imported ADPCM drawing, zoom, numeric sample edits and loop preservation. Arbitrary Start/Loop Start/End editing equivalent to RF5C164 is not established; assess separately rather than duplicating RF5C164 registers. |
 | Looper / Event Rec | Missing; optional backlog, not required for saving/layout alignment. |
-| Timed build/schedule/compile/snapshots | Missing the YM2612-style timed-operation API. Existing immediate SPU APIs and ordinary live loops remain usable; this needs a separate chip API design. |
+| Timed build/schedule/compile/snapshots | First slice implemented: existing-sample notes, pitch, ADSR and reverb; RAM transfer / public Noise-PMON operations stay separate. |
 
 ## Proposed implementation phases
 
@@ -98,10 +98,12 @@ Related history: [Files/Capture](todo_spu_files_capture_resume_01.md),
 
 ## Timed register API follow-up
 
-Not implemented; separate chip-level API work from Files/UI alignment.
+First register-operation slice implemented on 2026-11-20. Details and remaining scope:
+[timed implementation / verification](todo_spu_timed_register_api_20261120.md).
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
-- [ ] Resolve voice/global 16-bit register updates, key-on/key-off event masks, ADSR, PMON, Noise clock and shared reverb operations without losing neighboring fields.
-- [ ] Retain raw keyOff versus software noteOff semantics and ordered retriggers; scope sample RAM transfer and long software audio separately.
-- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
-  and 44.1/48 kHz verification checklist to this chip when the work is authorized.
+- [x] Existing-sample notes, pitch, voice presets, ADSR, shared reverb and ordered KON/KOFF events.
+- [ ] Public Noise/PMON operations and a safe raw-register API; RAM transfer remains separate.
+- [x] Retain raw keyOff versus software noteOff semantics and ordered retriggers; scope sample RAM transfer and long software audio separately.
+- [x] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this first operation slice.

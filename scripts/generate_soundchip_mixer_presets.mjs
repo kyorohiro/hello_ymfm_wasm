@@ -139,10 +139,10 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
 // Shared by CLI validation and npm packaging; report generations must agree.
 export const DEFAULT_SOUNDCHIP_MIXER_REPORT_PATHS=Object.freeze({
     reportPath:fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)),
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_huc_timed_chip_levels_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_huc_timed_chip_levels_01.json',import.meta.url)),
-    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_huc_timed_chip_levels_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_huc_timed_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_spu_timed_chip_levels_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_spu_timed_chip_levels_01.json',import.meta.url)),
+    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_spu_timed_chip_levels_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_spu_timed_chip_levels_01.json',import.meta.url)),
 });
 
 async function main(args) {

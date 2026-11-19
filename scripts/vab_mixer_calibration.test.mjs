@@ -11,9 +11,9 @@ import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mj
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 for(const [kind,parameter,validate,current,prior]of [
-  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_huc_timed_chip_levels_01','ps1_spc_voice_edit_chip_levels_01'],
-  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_huc_timed_chip_levels_01','wonderswan_spc_voice_edit_chip_levels_01'],
-  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_huc_timed_chip_levels_01','pokey_spc_voice_edit_chip_levels_01'],
+  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_spu_timed_chip_levels_01','ps1_spc_voice_edit_chip_levels_01'],
+  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_spu_timed_chip_levels_01','wonderswan_spc_voice_edit_chip_levels_01'],
+  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_spu_timed_chip_levels_01','pokey_spc_voice_edit_chip_levels_01'],
 ])test(`${kind} latest complete measurement matches current scripts and served sources`,async()=>{
   const path=`docs/issues/${current}.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
   const old=await readFile(new URL(`docs/issues/${prior}.json`,root));assert.notEqual(sha(bytes),sha(old));

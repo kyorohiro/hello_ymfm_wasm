@@ -1,3 +1,4 @@
+import {attachPs1TimedClient} from './ps1_timed_client.js';
 /** Ordered Browser/logic-Worker controls for the experimental PS1 SPU. */
 import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-oneshot-marker-1';
 const TIMEOUT_MS=15000;
@@ -22,10 +23,12 @@ export function createPs1Client(port,initial={},lifecycle={}) {
       if(ownClear)pendingClearFence=null;bankEpoch=data.bankEpoch;
       resourceRevision=data.revision;validation._adoptResources(data.resources);return;
     }
+    if(data.type==='ps1-timed-error')return;
     if(data.fatal){fail(new Error(data.error??'PS1 SPU AudioWorklet failed'));return;}const p=pending.get(data.id);if(!p){if(data.error)fail(new Error(data.error));return;}pending.delete(data.id);clearTimeout(p.timer);if(data.error){const error=new Error(data.error);if(data.name)error.name=data.name;p.reject(error);}else p.resolve(data.value);};
   port.onmessageerror=()=>fail(new Error('Invalid PS1 SPU AudioWorklet message'));port.start?.();
   const client={
     sampleRate:initial.sampleRate??44100,nativeSampleRate:44100,channelCount:24,
+    _requestControl:request,
     _getState(){return validation.getState();},
     _setLifecycle(options){lifecycle=options;},
     _adoptState(state){if(!state)return;validation._adoptResources({samples:state.samples??[],nextAddress:state.nextAddress??0x1000,waveforms:state.channels?.map(ch=>ch.waveform??null)});validation.channels=(state.channels??validation.channels).map(({sample,volumeLeft,volumeRight,adsr1,adsr2,pitch,reverb=false})=>({sample,volumeLeft,volumeRight,adsr1,adsr2,pitch,reverb}));validation.gates=state.channels?.map(ch=>!!ch.gate)??validation.gates;if(state.reverb)validation.reverb=structuredClone(state.reverb);},
@@ -65,5 +68,5 @@ export function createPs1Client(port,initial={},lifecycle={}) {
     for(const method of ['loadADPCM','getState','getPreset','snapshot']){const original=client[method].bind(client);client[method]=(...args)=>{if(!lifecycle.captureContext)return original(...args);const context=lifecycle.captureContext();check(context);return original(...args).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};}
   }
   if(initial.state)client._adoptState(initial.state);
-  return client;
+  return attachPs1TimedClient(client,{native:!!initial.native},port);
 }

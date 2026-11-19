@@ -2611,15 +2611,15 @@ export function createPlaygroundRuntime(
           decodeAudio:decodePcm,
         });
         device.client=client;
-        if(client._timedOperations){
-          const release=device.releaseOwner;device.releaseOwner=loop=>{ayTimedLifecycle.cancelLoop(loop,client._timedOperations);release?.(loop);};
-        }
         if(name==='pokey'&&!device.native)setPokeyTimelineLifecycle(client);
         if(['ps1','scsp'].includes(name)&&!device.native)device.releaseOwner=ownPs1Main(client).releaseOwner;
         if(name==='sid'&&!device.native)device.releaseOwner=ownSidMain(client).releaseOwner;
         if (name === 'wonderswan' && !device.native) device.releaseOwner=ownWonderSwanMain(client).releaseOwner;
         if(name==='pokey'&&!device.native)device.releaseOwner=ownPokeyMain(client).releaseOwner;
         if(name==='spc'&&device.native)device.releaseOwner=owner=>client._cancelContext(owner);
+        if(client._timedOperations){
+          const release=device.releaseOwner;device.releaseOwner=loop=>{ayTimedLifecycle.cancelLoop(loop,client._timedOperations);release?.(loop);};
+        }
         if (client.id !== device.mixerId) Object.defineProperty(client, 'id', {value: device.mixerId, enumerable: true});
         const dispose=device.dispose, disposeClient=client.dispose.bind(client); let disposed=false;
         client.dispose=()=>{if(disposed)return;disposed=true;try{disposeClient();}finally{dispose();}};

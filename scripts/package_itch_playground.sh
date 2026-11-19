@@ -179,6 +179,10 @@ ps1_spu.js
 ps1_parameters.js
 ps1_waveform.js
 ps1synth.js
+ps1_operations.js
+ps1_timed_state.js
+ps1_timed_client.js
+ps1_timed_processor.js
 ps1_vab.js
 ps1_resampler.js
 pcm_44100_resampler.js
@@ -762,7 +766,7 @@ node --experimental-vm-modules "${ROOT_DIR}/scripts/check_playground_package.mjs
 
 (
   cd "${STAGE_DIR}"
-  zip -r "${ZIP_PATH}" .
+  zip -r "${ZIP_PATH}" . -x "*.DS_Store"
 )
 
 # itch.io counts directory records toward its 1,000-entry limit. Keep the full
@@ -773,7 +777,7 @@ rm -f "${RUN_ZIP_PATH}"
 node "${ROOT_DIR}/scripts/prepare_itch_playground_run.mjs" "${STAGE_DIR}" "${RUN_STAGE_DIR}" --bundle
 (
   cd "${RUN_STAGE_DIR}"
-  zip -r -D "${RUN_ZIP_PATH}" .
+  zip -r -D "${RUN_ZIP_PATH}" . -x "*.DS_Store"
 )
 node "${ROOT_DIR}/scripts/prepare_itch_playground_run.mjs" --check-zip "${RUN_ZIP_PATH}"
 

@@ -1,3 +1,7 @@
+import {createPs1TimedProcessor,ps1TimedCommandCost} from '../../tetorica_src/runtime/ps1_timed_processor.js';
+import {capturePs1OperationState} from '../../tetorica_src/runtime/ps1_operations.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {attachPs1TimedClient} from '../../tetorica_src/runtime/ps1_timed_client.js';
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import test from 'node:test';
@@ -55,7 +59,7 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
     disconnect() {}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm, '').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./spu_synth_audio.js', import.meta.url).href)) + '\nprovide(createSpuAudio);', {
-    readPmon, pmonPcm, readMorph, morphPcm, readNoise, readSpuInstrument, SPU_SYNTH_MIX_HEADROOM, AudioContext:Context, AudioWorkletNode:WorkletNode,
+    attachPs1TimedClient,readPmon, pmonPcm, readMorph, morphPcm, readNoise, readSpuInstrument, SPU_SYNTH_MIX_HEADROOM, AudioContext:Context, AudioWorkletNode:WorkletNode,
     preparePs1Waveform:pcm => {encodes++; return preparePs1Waveform(pcm);},
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1', volume:.128832}]}}},
     URL, fetch:async () => ({ok:true, arrayBuffer:async () => wasmBinary.buffer}),
@@ -120,7 +124,7 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
     connect(target){this.connections.push(target);}disconnect(){}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify(new URL('./spu_synth_audio.js',import.meta.url).href))+'\nprovide(createSpuAudio);',{
-    readPmon,pmonPcm,readMorph,morphPcm,readNoise,readSpuInstrument,SPU_SYNTH_MIX_HEADROOM,preparePs1Waveform,AudioContext:Context,AudioWorkletNode:WorkletNode,
+    attachPs1TimedClient,readPmon,pmonPcm,readMorph,morphPcm,readNoise,readSpuInstrument,SPU_SYNTH_MIX_HEADROOM,preparePs1Waveform,AudioContext:Context,AudioWorkletNode:WorkletNode,
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1',volume:.128832}]}}},URL,fetch:async()=>({ok:true,arrayBuffer:async()=>wasmBinary.buffer}),
     setTimeout,clearTimeout,provide:value=>{createAudio=value;},
   });
@@ -177,6 +181,9 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import assert from 'node:assert/strict';
     import {readFile} from 'node:fs/promises';
     import vm from 'node:vm';
+    import {createProcessorPerformance} from ${url('../../tetorica_src/runtime/playground_performance_processor.js')};
+    import {createPs1TimedProcessor,ps1TimedCommandCost} from ${url('../../tetorica_src/runtime/ps1_timed_processor.js')};
+    import {capturePs1OperationState} from ${url('../../tetorica_src/runtime/ps1_operations.js')};
     import factory from ${url('../generated/ps1_spu_wasm.js')};
     import {Ps1Spu} from ${url('../../tetorica_src/runtime/ps1_spu.js')};
     import {Ps1Synth,preparePs1ADPCM} from ${url('../../tetorica_src/runtime/ps1synth.js')};
@@ -199,7 +206,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, planSpuParameterEdit, SPU_PARAMETER_METHODS, sampleRate:48000,
+      createProcessorPerformance,createPs1TimedProcessor,ps1TimedCommandCost,capturePs1OperationState,factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, planSpuParameterEdit, SPU_PARAMETER_METHODS, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -230,7 +237,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, planSpuParameterEdit, SPU_PARAMETER_METHODS, sampleRate:rate,
+    createProcessorPerformance,createPs1TimedProcessor,ps1TimedCommandCost,capturePs1OperationState,factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, planSpuParameterEdit, SPU_PARAMETER_METHODS, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -1801,4 +1808,16 @@ for (const rate of [44100,48000]) test(`long software audio uses independent SPU
   p.command('instrumentNoteOn',[69,'cycle']);assert(peak(p.render(8192).left)>0);
   p.command('loadHostPCM',[pcm,{baseFrequencyHz:220,loop:false}]);
   assert.equal(p.command('inspect').nextAddress,ram+64,'reloading reuses the one host placeholder (only PMON allocated)');
+});
+
+test('Synth Code timed schedule uses the borrowed SPU, maintains raw/guarded releases and cancels on Stop',async t=>{
+ const p=await setup(48000);t.after(()=>p.close());const {session}=p.command('beginCode');
+ const {buildPs1Operations}=await import('../../tetorica_src/runtime/ps1_operations.js');
+ const plan=buildPs1Operations(b=>{b.noteOn(0,'E3');b.atSeconds(.02).noteOff(0);});
+ const baseline=p.command('codeTimed',[session,{action:'capture'}]);assert.equal(baseline.format,'tetorica-ps1-state');
+ p.command('codeTimed',[session,{action:'schedule',operations:plan,options:{name:'notes',repeatSeconds:.05}}]);
+ p.render(256);assert(p.processor.codeGates.has(0));
+ p.render(1200);assert(!p.processor.codeGates.has(0));assert.equal(p.processor.clickGuard,true);
+ p.command('stop');p.render(2000);assert.equal(p.processor.performance.getStats().patternCount,0);
+ assert.throws(()=>p.command('codeTimed',[session,{action:'capture'}]),/session stopped/);
 });

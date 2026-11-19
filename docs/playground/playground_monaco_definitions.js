@@ -68,6 +68,11 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (owner === 'PlaygroundSecondsTimeline') return {file:'playground_clock.js',symbol};
   if (['hzToBlockFnum', 'createPitchFromMidi'].includes(symbol)) return {file:'pitch.js', symbol};
   if (['noteToBlockFnum', 'play', 'scale', 'chord', 'noteLerp'].includes(symbol)) return {file:'playground_music.js', symbol};
+  if(/^PlaygroundPs1Operation(?:Program|Recorder)$/.test(owner))return {file:'ps1_operations.js',symbol:'buildPs1Operations'};
+  if(owner==='PlaygroundPs1StateSnapshot')return {file:'ps1_timed_state.js',symbol:'createPs1TimedSnapshot'};
+  if(owner==='PlaygroundPs1CompiledWrite')return {file:'ps1_operations.js',symbol:'compilePs1Operations'};
+  if(['PlaygroundPs1','PlaygroundPrimaryPs1','SpuCodeClient'].includes(owner)&&['build','compile','captureState','schedule','clearSchedule'].includes(symbol))
+    return symbol==='build'?{file:'ps1_operations.js',symbol:'buildPs1Operations'}:{file:'ps1_timed_client.js',symbol:'attachPs1TimedClient'};
   if (/^Playground(?:Primary)?Ps1/.test(owner)||owner==='SpuCodeClient') return {file:'ps1synth.js',symbol:/^(?:Playground|SpuCodeClient)/.test(symbol)?'Ps1Synth':symbol};
   if (/^Playground(?:Primary)?Scsp/.test(owner)) return {file:'scspsynth.js',symbol:owner==='PlaygroundScsp'&&!/^Playground/.test(symbol)?'ScspSynth.'+symbol:'ScspSynth'};
   if (/^PlaygroundNes$/.test(owner)) return {file:'nesapusynth.js', symbol};

@@ -1,3 +1,4 @@
+import {attachPs1TimedClient} from './ps1_timed_client.js';
 // SPDX-License-Identifier: BSD-3-Clause
 /** PS1 register authoring and instrument metadata stay in JavaScript. The SPU,
  * sample RAM, envelopes, reverb and resampling execute on the Native callback. */
@@ -144,6 +145,7 @@ export function createNativeGenesisPs1(owner,{additional=false}={}){
     async _stopVoices(){const op=operation();try{await admit([identify({method:'stop-voices'})],{},op);}finally{operations.delete(op);}},
     loadADPCM,getState:()=>readControl('getState'),getPreset:ch=>readControl('getPreset',[ch]),snapshot:()=>readControl('snapshot'),dispose(){}};
   for(const method of nativePs1Controls)client[method]=(...args)=>{const pending=controls(method,clone(args));report(pending);};
+  attachPs1TimedClient(client,{native:true});
   function dispatch(message,timing={}){const {method,args=[]}=message;let result;if(method==='dispose')result=true;
     else if(method==='loadADPCM')result=loadADPCM(args[0],args[1],timing);
     else if(['getState','getPreset','snapshot'].includes(method))result=readControl(method,args,timing);

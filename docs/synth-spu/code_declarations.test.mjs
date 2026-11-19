@@ -30,6 +30,13 @@ test('SPU Code types cover its 24 physical channels, samples, shared sound, ackn
 const ps1=await useSoundChip('ps1');
 const other=await pg.useSoundChip('ps1');
 const id:string=ps1.id, rate:number=ps1.sampleRate, channels:24=ps1.channelCount;
+const ops=ps1.build(b=>{b.atSample(0).noteOn(CH1,'C4');b.atSeconds(.2).setEnvelope(CH1,{releaseRate:4}).noteOff(CH1);});
+const base=await ps1.captureState();
+const rows:PlaygroundPs1CompiledWrite[]=await ps1.compile(ops,{initialState:base});
+await ps1.compile(ops,{initialState:'reset'});await ps1.compile(ops,{initialState:'client'});
+await ps1.schedule(ops,{name:'phrase',repeatSeconds:1});await ps1.clearSchedule('phrase');
+// @ts-expect-error sample RAM is not part of timed authoring
+ps1.build(b=>b.loadADPCM(new Uint8Array(16),{rootNote:'C4'}));
 const state=await ps1.getState();
 const channel=state.pmon.enabled?CH2:CH1;
 const clock:number=state.noise.clock, amount:number=state.morph.amount;
@@ -88,4 +95,18 @@ test('SPU hardware methods and shared clock helpers navigate to readable impleme
     const line=lines.findIndex(value=>value.trimStart().startsWith(symbol+'('));assert(line>=0,symbol);
     assert.deepEqual(definitionSource(selected,{lineNumber:line+1,column:lines[line].indexOf(symbol)+1},'ps1',{runtimeFile:'playground_code_runtime.js'}),{file:'ps1synth.js',symbol});assert(sourcePosition(ps1,symbol).lineNumber>1,symbol);
   }
+});
+
+test('timed SPU completion opens the recorder, client and snapshot implementations',async()=>{
+ for(const [owner,method,file,symbol]of [
+  ['PlaygroundPs1','compile','ps1_timed_client.js','attachPs1TimedClient'],
+  ['SpuCodeClient','schedule','ps1_timed_client.js','attachPs1TimedClient'],
+  ['PlaygroundPs1','build','ps1_operations.js','buildPs1Operations'],
+  ['PlaygroundPs1OperationRecorder','atSample','ps1_operations.js','buildPs1Operations'],
+  ['PlaygroundPs1StateSnapshot','frame','ps1_timed_state.js','createPs1TimedSnapshot'],
+ ]){
+  const text=`interface ${owner} {\n  ${method}():void;\n}`;
+  assert.deepEqual(definitionSource(text,{lineNumber:2,column:3},'ps1'),{file,symbol});
+  assert(sourcePosition(await readFile(new URL('../js/'+file,import.meta.url),'utf8'),symbol).lineNumber>1);
+ }
 });

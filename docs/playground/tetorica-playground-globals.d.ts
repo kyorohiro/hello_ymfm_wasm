@@ -2159,7 +2159,47 @@ interface PlaygroundPs1State {
  * 24 physical voices, 512 KiB RAM. This is not a PSF player or a full PS1.
  * Samples are raw PS1 SPU ADPCM, not PCM/WAV, BRR or Yamaha ADPCM.
  */
+/** Serializable register-only operations. Sample uploads stay immediate. */
+interface PlaygroundPs1OperationProgram {
+  readonly version:1;readonly chip:'ps1';readonly referenceSampleRate:number;
+  readonly operations:readonly {readonly time:{readonly unit:'sample'|'seconds';readonly value:number};readonly order:number;readonly method:string;readonly args:readonly unknown[]}[];
+}
+interface PlaygroundPs1OperationRecorder {
+  atSample(offset:number):PlaygroundPs1OperationRecorder;
+  atSeconds(offset:number):PlaygroundPs1OperationRecorder;
+  setPreset(channel:PlaygroundPs1Channel,preset:PlaygroundPs1Preset,options?:PlaygroundPs1EnvelopeUpdateOptions):PlaygroundPs1OperationRecorder;
+  setChannel(channel:PlaygroundPs1Channel,preset:PlaygroundPs1Preset,options?:PlaygroundPs1EnvelopeUpdateOptions):PlaygroundPs1OperationRecorder;
+  setEnvelope(channel:PlaygroundPs1Channel,settings:Partial<PlaygroundPs1Envelope>,options?:PlaygroundPs1EnvelopeUpdateOptions):PlaygroundPs1OperationRecorder;
+  setReverb(settings:Partial<PlaygroundPs1Reverb>):PlaygroundPs1OperationRecorder;
+  setPitch(channel:PlaygroundPs1Channel,pitch:number):PlaygroundPs1OperationRecorder;
+  setFrequency(channel:PlaygroundPs1Channel,hz:number):PlaygroundPs1OperationRecorder;
+  setNote(channel:PlaygroundPs1Channel,note:string|number):PlaygroundPs1OperationRecorder;
+  noteOn(channel:PlaygroundPs1Channel,note?:string|number):PlaygroundPs1OperationRecorder;
+  noteOff(channel:PlaygroundPs1Channel):PlaygroundPs1OperationRecorder;
+  keyOn(channel:PlaygroundPs1Channel):PlaygroundPs1OperationRecorder;
+  keyOff(channel:PlaygroundPs1Channel):PlaygroundPs1OperationRecorder;
+  allNotesOff():PlaygroundPs1OperationRecorder;
+}
+/** Detached resolver metadata; no RAM, decoder or oscillator save state. */
+interface PlaygroundPs1StateSnapshot {
+  readonly format:'tetorica-ps1-state';readonly version:1;readonly instanceId:string|number;
+  readonly frame:number;readonly sampleRate:number;readonly state:Readonly<{
+    registers:readonly number[];channels:readonly PlaygroundPs1Preset[];samples:readonly PlaygroundPs1Sample[];
+    gates:readonly boolean[];reverb:Readonly<PlaygroundPs1Reverb>;nextAddress:number;
+  }>;
+}
+interface PlaygroundPs1CompiledWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
 interface PlaygroundPs1 {
+  /** Record once; no chip state is captured or changed. */
+  build<Result>(callback:(builder:PlaygroundPs1OperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundPs1OperationProgram;
+  /** AudioWorklet applied state. Native transport does not support timed operations. */
+  captureState():Promise<PlaygroundPs1StateSnapshot>;
+  /** reset has no assigned samples; use current/snapshot for musical note operations.
+   * client rejects explicitly while the complete register shadow is unavailable.
+   * Traces show hardware API writes, excluding Synth-only click protection and PMON helper voices. */
+  compile(operations:PlaygroundPs1OperationProgram,options?:{initialState?:'current'|'client'|'reset'|PlaygroundPs1StateSnapshot}):Promise<PlaygroundPs1CompiledWrite[]>;
+  schedule(operations:PlaygroundPs1OperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;startFrame?:number;sampleRate:number;entries:number;repeatSeconds?:number;staged?:boolean}>;
+  clearSchedule(name:string):Promise<boolean>;
   readonly sampleRate:number;
   readonly nativeSampleRate:44100;
   readonly channelCount:24;

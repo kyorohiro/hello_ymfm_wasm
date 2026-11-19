@@ -249,3 +249,9 @@ test('SCSP DSP setup and live coefficients retain owner admission while bypassin
  assert.throws(()=>port.postMessage({method:'setDspReturn',args:[1,{level:0}],id:82}),{name:'AbortError'});
  assert.equal(f.sent.length,before+1,'Only owner cancellation crossed the port');
 });
+
+test('SPU timed RPC keeps its envelope intact and carries the current owner without double scheduling',()=>{
+ const f=fixture();f.setLoop({performanceOwner:'spu-loop'});
+ const data={id:1,method:'ps1Timed',args:[{action:'capture'}]};f.channel.postMessage(data);
+ assert.deepEqual(f.sent[0],{...data,timedPerformance:{session:1,owner:'spu-loop',time:3.15}});
+});

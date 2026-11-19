@@ -36,6 +36,7 @@ const sdkBuildMetadata=new Set([
 // Source-kit copies retain their original paths in corresponding-source.zip.
 // Their identical attribution documents stay individually readable under licenses/.
 export const ITCH_RUN_DUPLICATE_SOURCE_GUIDES=Object.freeze({
+ 'sdk/LICENSE':'sources/LICENSE',
  'native/cdda/NOTICE.md':'licenses/tetorica-cdda/NOTICE.md',
  'sid/third_party/chips-m6581/LICENSE':'licenses/chips-m6581/LICENSE',
  'third_party/tetorica-nes/LICENSE-FDS':'licenses/tetorica-nes/LICENSE-FDS',
@@ -106,6 +107,8 @@ export function checkItchPlaygroundZip(file){
 async function walk(directory,prefix=''){
  const files=[];
  for(const item of await readdir(join(directory,prefix),{withFileTypes:true})){
+  // Finder may rewrite this host metadata while the immutable stage is read.
+  if(item.name==='.DS_Store')continue;
   const name=prefix?prefix+'/'+item.name:item.name,info=await lstat(join(directory,name));
   if(!safeName(name))throw Error('Unsafe stage path: '+name);
   if(info.isSymbolicLink())throw Error('Stage symlinks are not allowed: '+name);

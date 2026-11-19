@@ -1,15 +1,15 @@
 # Synth timed register API rollout
 
-Recorded: 2026-11-19. This request updates design/TODO documents only.
-YM2149 ST and YM2612 provide the reference implementation. HuC6280 is the next
-planned candidate; later API-port order is not implied by the Files/UI rollout.
+Recorded: 2026-11-19; implementation status updated 2026-11-20.
+YM2149 ST and YM2612 provide the reference implementation. HuC6280 is implemented; SPU now has its first register-operation slice.
+Later API-port order is not implied by the Files/UI rollout.
 
 | Synth | Status / individual TODO |
 |---|---|
 | FM2612 / Genesis | YM2612 present; other chips separate: [TODO](todo_fm2612_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | YM2149 ST | Present; preserve and verify: [TODO](todo_ym2149_st_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
-| HuC6280 / PC Engine | Planned: [TODO](todo_huc6280_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
-| PS1 SPU | Planned: [TODO](todo_spu_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
+| HuC6280 / PC Engine | Present: [TODO](todo_huc6280_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
+| PS1 SPU | Existing-sample note/pitch/ADSR/reverb implemented; see [verification](todo_spu_timed_register_api_20261120.md). Remaining scope: [TODO](todo_spu_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | DMG | Planned: [TODO](todo_dmg_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | SID | Planned: [TODO](todo_sid_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | FM2608 / PC-98 | Planned: [TODO](todo_fm2608_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |

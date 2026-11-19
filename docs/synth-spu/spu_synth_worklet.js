@@ -1,3 +1,6 @@
+import {createProcessorPerformance} from '../js/playground_performance_processor.js';
+import {createPs1TimedProcessor,ps1TimedCommandCost} from '../js/ps1_timed_processor.js';
+import {capturePs1OperationState} from '../js/ps1_operations.js';
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import factory from '../generated/ps1_spu_wasm.js?v=spu-long-audio-1';
@@ -56,6 +59,12 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     // independent of reusable numeric sample IDs and temporary Code banks.
     this.samplePcm = {sequence:0,revision:0,byteSequence:0,bytes:new WeakMap(),slotId:null};
     this.voices = new SpuRoundRobinVoices();
+    this.timedFrame=0;this.timedIdentity=`spu:${Math.random().toString(36).slice(2)}`;
+    this.performance=createProcessorPerformance({chip:'ps1',rate:sampleRate,nowFrame:()=>this.timedFrame,trackImmediateNotes:false,patternCommandCost:ps1TimedCommandCost,
+      apply:(command,port,frame,metadata)=>command.method==='applyPs1TimedOperation'
+        ?this.timed.apply(command.operation,port,frame,metadata)
+        :this.invokeCode(this.codeEpoch,command.method,command.args),
+      validate:command=>{if(command.method!=='applyPs1TimedOperation'&&!CODE_METHODS.has(command.method))throw TypeError('Unsupported SPU timed command');}});
     this.port.onmessage = ({data}) => {
       if (data?.method === 'dispose') {this.dispose(); return;}
       void this.ready.then(() => this.receive(data)).catch(() => {});
@@ -81,6 +90,9 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         return this.synth[command.method](...(command.args??[]));
       }});
       this.resampler = new Ps1Resampler(this.synth, sampleRate);
+      this.timed=createPs1TimedProcessor({performance:this.performance,getState:()=>capturePs1OperationState(this.synth),
+        getConfig:()=>({instanceId:`${this.timedIdentity}:${this.codeEpoch}`}),nowFrame:this.performance.nowFrame,sampleRate,
+        dispatch:(command,port,_frame,metadata)=>this.performance.applyImmediate(command,port,metadata)});
       this.syncModulators();
       this.port.postMessage({ready:true, sampleRate, nativeSampleRate:44100, state:this.readState()});
     }).catch(error => this.fail(error));
@@ -92,7 +104,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       if (this.dead || !this.synth) throw new Error('SPU synth is not ready');
       if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
       let value;
-      const codeRequest=['beginCode','code','observeCode'].includes(method);
+      const codeRequest=['beginCode','code','codeTimed','observeCode'].includes(method);
       const configuration=method==='setClickGuard';
       const soundSelection=method==='applyInstrument';
       const parameterEdit=method==='editInstrument';
@@ -108,6 +120,10 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         value=this.beginCode();
       }
       else if(method==='code')value=this.invokeCode(...args);
+      else if(method==='codeTimed') {
+        if(args.length!==2||!this.codeCheckpoint||args[0]!==this.codeEpoch)throw codeCancelled();
+        this.timed.receive({id,method:'ps1Timed',args:[args[1]]},this.port);return;
+      }
       else if(method==='observeCode') {
         if(args.length)throw new TypeError('SPU Code observation takes no arguments');
         value=this.observeCode();
@@ -637,10 +653,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       pmonWaveform:this.pmonWaveform?.slice()??null,hostAudio:this.hostAudio,hostSlotId:this.hostSlot?.id??null,
       samplePcmRevision:samplePcm.revision,samplePcmSlotId:samplePcm.slotId};
     this.codeEpoch++;this.codeGates.clear();
-    return {session:this.codeEpoch,sampleRate,nativeSampleRate:44100,channelCount:24};
+    return {session:this.codeEpoch,instanceId:`${this.timedIdentity}:${this.codeEpoch}`,sampleRate,nativeSampleRate:44100,channelCount:24};
   }
 
   endCode() {
+    this.timed?.clear();this.performance.clear();
     const saved=this.codeCheckpoint;this.codeCheckpoint=null;this.codeEpoch++;this.codeGates.clear();
     this.codeNoiseSample=null;this.clearCodeEdits();
     if(!saved)return false;
@@ -694,6 +711,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       for(let voice=0;voice<24;voice++)this.voiceKey(voice,false,true);
     }else result=this.synth[method](...args);
     if(method==='reset') {
+      this.timed?.clear();this.performance.clear();
       this.codeGates.clear();this.keyboardOwners.clear();this.keyboardModulators.clear();this.inspector.resetAuditions();this.clearCodeEdits();this.lastMidi.fill(null);this.lastBend.fill(null);this.voices.reset();
       if(args[0]?.clearRam) {
         // A new Code bank can reuse numeric sample IDs. Retire all bindings
@@ -882,6 +900,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   dispose() {
     if (this.dead) return;
     this.dead = true;
+    this.timed?.clear();this.performance.clear();
     this.codeCheckpoint=null;this.codeNoiseSample=null;this.codeEpoch++;this.codeGates.clear();
     this.inspector?.resetAuditions();
     this.synth?.dispose();
@@ -892,7 +911,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     const left = outputs[0]?.[0], right = outputs[0]?.[1];
     if (!left || !right) return !this.dead;
     if (this.dead || !this.resampler) {left.fill(0); right.fill(0); return !this.dead;}
-    try {this.resampler.render(left, right); return true;}
+    try {this.performance.render(left,right,(l,r)=>this.resampler.render(l,r));this.timedFrame+=left.length; return true;}
     catch (error) {left.fill(0); right.fill(0); this.fail(error); return false;}
   }
 }

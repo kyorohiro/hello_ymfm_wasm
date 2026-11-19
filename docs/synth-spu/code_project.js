@@ -134,7 +134,7 @@ function expandManifestSettings(value){
   }
   return result;
 }
-export function createSpuCodeProject({settings=null,snapshot,starterCode,getStarterCode}={}){
+export function createSpuCodeProject({settings=null,snapshot,starterCode,getStarterCode,starterFiles={}}={}){
   const workspace=createVirtualFileWorkspace(),fs=workspace.working,savedFs=workspace.saved,listeners=new Set(),entryCache=new Map();
   let current=readPreset(settings),accepted=readPreset(settings),activeSound=null,moves=[],selected=null,state={mode:'keyboard',path:null},projectName='Tetorica SPU',restoring=false;
   const notify=()=>{if(!restoring)for(const listener of listeners)listener();};
@@ -172,7 +172,7 @@ export function createSpuCodeProject({settings=null,snapshot,starterCode,getStar
     setCodeState(value){const next=codeState(value,fs);if(next.mode!==state.mode||next.path!==state.path){state=next;notify();}},getCodeState:()=>clone(state),
     prepareNew(){
       // Prepare defaults separately, using the original starter rather than edited Code.
-      const fresh=createSpuCodeProject({settings:createSpuDefaultInstrument(),starterCode:getStarterCode?getStarterCode():starterCode??''});
+      const fresh=createSpuCodeProject({settings:createSpuDefaultInstrument(),starterFiles,starterCode:getStarterCode?getStarterCode():starterCode??''});
       fresh.select('/index.js');fresh.setCodeState({mode:'keyboard',path:'/index.js'});
       fresh.setAutoApply(project.autoApply);
       return fresh.snapshot();
@@ -229,6 +229,7 @@ export function createSpuCodeProject({settings=null,snapshot,starterCode,getStar
   const savedCode=createSynthCodeProject(project,{version:'saved'});project.readSavedFile=savedCode.readFile;project.prepareSavedSource=savedCode.prepareSource;
   if(starterCode===undefined&&!snapshot&&getStarterCode)starterCode=getStarterCode();
   if(starterCode!==undefined){if(typeof starterCode!=='string')throw TypeError('Starter code must be text.');fs.writeText('/index.js',starterCode);}
+  if(!snapshot)for(const [path,text]of Object.entries(starterFiles))fs.writeText(path,text);
   if(snapshot)project.restore(snapshot);
   return project;
 }

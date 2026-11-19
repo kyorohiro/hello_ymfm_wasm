@@ -21,7 +21,7 @@ const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
 const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url));
-const currentScspReportPath='docs/issues/scsp_huc_timed_chip_levels_01.json';
+const currentScspReportPath='docs/issues/scsp_spu_timed_chip_levels_01.json';
 
 test('source relocation retains the exact measured SCSP script digests and rejects unrelated edits',async()=>{
  for(const path of ['scripts/calibrate_scsp_levels.cjs','scripts/soundchip_calibration_scsp.mjs']){
@@ -33,9 +33,11 @@ test('source relocation retains the exact measured SCSP script digests and rejec
   assert.equal(isScspCalibrationSourceLayoutRevision(path,bytes,'0'.repeat(64)),false,path);
   assert.equal(isScspCalibrationSourceLayoutRevision('scripts/other.mjs',bytes,expected),false,path);
  }
+ // This immutable old graph may fail first on its separately pinned SPU CSS
+ // dependency. Either exact mismatch still rejects stale measurement approval.
  const before=await readFile(scspReportPath);
  await assert.rejects(validateHistoricalScspSources({reportPath,scspReport:report}),
-   /script source changed; remeasure: web\/scspsynth\.js/);
+   /script source changed; remeasure: web\/scspsynth\.js|pinned source\/report dependency changed: docs\/synth-spu\/synth\.css/);
  assert.deepEqual(await readFile(scspReportPath),before,'Captured provenance keys and hashes stay unchanged');
 });
 
@@ -78,7 +80,7 @@ test('PSG relocation keeps original digests while the AY native addition require
   const actual=path.startsWith('web/')?'tetorica_src/runtime/'+path.slice(4):path;
   const current=await readFile(new URL('../'+actual,import.meta.url)),bytes=path==='web/soundchip.js'?current:restoreMixerCalibrationVabApiRevision(path,current),expected=measured.sources[path];
   if(path==='web/soundchip.js') {
-   assert.throws(()=>restoreMixerCalibrationVabApiRevision(path,current),/pinned report\/helper\/cache dependency changed: docs\/generated\/ay8910_wasm\.wasm/);
+   assert.throws(()=>restoreMixerCalibrationVabApiRevision(path,current),/pinned report\/helper\/cache dependency changed: docs\/generated\/ay8910_wasm\.wasm|pinned source\/report dependency changed: docs\/synth-spu\/synth\.css/);
    const fresh=await read('docs/issues/soundchip_psg_levels_06.json');assert.equal(createHash('sha256').update(bytes).digest('hex'),fresh.sources[actual],'the current factory has fresh PSG06 source provenance');
    assert.equal(isSoundChipPsgSourceLayoutRevision(path,bytes,expected),false,'layout alone cannot authorize the earlier SID factory addition against PSG04');
   }else assert.equal(isSoundChipPsgSourceLayoutRevision(path,bytes,expected),true,path);

@@ -1,3 +1,4 @@
+import {attachPs1TimedClient} from '../js/ps1_timed_client.js';
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-cyclic-1';
@@ -121,7 +122,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     };
     async function command(method,args=[]) {
       if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
-      if(!['beginCode','code','observeCode','setClickGuard','applyInstrument','editInstrument','setInstrumentSample','instrumentNoteOn','instrumentNoteOff','instrumentAllNotesOff','setInstrumentPitchBend'].includes(method)&&!READ_METHODS.has(method))invalidateCode();
+      if(!['beginCode','code','codeTimed','observeCode','setClickGuard','applyInstrument','editInstrument','setInstrumentSample','instrumentNoteOn','instrumentNoteOff','instrumentAllNotesOff','setInstrumentPitchBend'].includes(method)&&!READ_METHODS.has(method))invalidateCode();
       else if(!codeOwner&&['applyInstrument','setInstrumentSample','instrumentNoteOn','instrumentNoteOff','instrumentAllNotesOff','setInstrumentPitchBend'].includes(method))invalidateCode();
       const editing=method==='editInstrument',editOwner=codeOwner;let editSession,editTarget,editMethod;
       if(editing){
@@ -182,7 +183,10 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         client.dispose=()=>{
           check();const pending=command('stop'),generation=codeGeneration;
           return pending.then(value=>{releasedGeneration=generation;return value;});
-        };return client;
+        };
+        client.isCurrent=()=>{try{check();return true;}catch{return false;}};
+        client._requestControl=(_method,args)=>{check();return command('codeTimed',[metadata.session,args[0]]).then(value=>{check();return value;});};
+        return attachPs1TimedClient(client,{instanceId:metadata.instanceId},node.port);
       }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
       return owner.promise;
     }
