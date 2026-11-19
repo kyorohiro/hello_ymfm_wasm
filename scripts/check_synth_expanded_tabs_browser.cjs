@@ -71,8 +71,8 @@ function installAudioAudit() {
   }
   window.__expandedAudioAudit={read};
 }
-const TABS=['synthInputCodeTab','synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabPwm','synthSongMixButton','synthInputKeyboardTab'];
-const LABELS=['Code','YM2612','PSG','RF5C164','32X PWM','Mixer','Keyboard'];
+const TABS=['synthInputCodeTab','synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabCdda','synthChipTabPwm','synthSongMixButton','synthInputKeyboardTab'];
+const LABELS=['Code','YM2612','PSG','RF5C164','CD-DA','32X PWM','Mixer','Keyboard'];
 const LIVE_SOURCE=`const fm = await useSoundChip('ym2612');
 fm.setPreset(CH2, FM_PRESETS.sine);
 fm.noteOn(CH2, 'C4');
@@ -265,7 +265,7 @@ async function run(browser,name,origin,fixture,starterExamples) {
     });
     await page.locator('#synthWorkspaceCodeButton').click();await assertExpanded(TABS[0]);
     assert(await page.locator('#synthFilesPanel').isVisible(),'Expanded layout opens Files');
-    step('Opt-in maximize opens Files and exactly one seven-tab workspace row in the requested order');
+    step('Opt-in maximize opens Files and exactly one eight-tab workspace row in the requested order');
     masterLevels=await checkMaster();
     step('Expanded Master changes measured Code PCM at 100/50/0 percent and restores it while the same live loop advances');
 
@@ -274,15 +274,15 @@ async function run(browser,name,origin,fixture,starterExamples) {
       for(const width of [1360,390])await layout(id,width);
     }
     await page.setViewportSize({width:1360,height:1000});
-    step('All seven tabs preserve maximized mode, the same live loop and held PCM; desktop and mobile layouts fit');
+    step('All eight tabs preserve maximized mode, the same live loop and held PCM; desktop and mobile layouts fit');
 
     await page.locator('#synthInputCodeTab').click();await page.locator('#synthInputCodeTab').focus();
-    for(const [key,id] of [['ArrowRight',TABS[1]],['End',TABS[6]],['ArrowRight',TABS[0]],['ArrowLeft',TABS[6]],['Home',TABS[0]],['ArrowDown',TABS[1]],['ArrowUp',TABS[0]]]) {
+    for(const [key,id] of [['ArrowRight',TABS[1]],['End',TABS.at(-1)],['ArrowRight',TABS[0]],['ArrowLeft',TABS.at(-1)],['Home',TABS[0]],['ArrowDown',TABS[1]],['ArrowUp',TABS[0]]]) {
       await page.keyboard.press(key);await ready();await assertExpanded(id);
       assert.equal(await page.evaluate(()=>document.activeElement?.id),id,'Navigation keeps focus on '+id);
     }
     await running();
-    step('Arrow keys wrap all seven tabs; Home/End select endpoints and focus stays on the selected tab');
+    step('Arrow keys wrap all eight tabs; Home/End select endpoints and focus stays on the selected tab');
 
     await selectFile('/lib/second.js');await assertExpanded(TABS[0]);assert.equal(await currentSource(),SECOND_SOURCE);await running();
     assert.equal(await page.evaluate(()=>globalThis.__expandedMustNotRun),undefined);

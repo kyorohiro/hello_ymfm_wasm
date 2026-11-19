@@ -106,7 +106,7 @@ async function field(page,id,value){const node=page.locator('#'+id),map={synthPs
   for(let i=0;i<512;i++){const current=Number(await node.textContent());if(current===value)return;const parent=node.locator('..');const buttons=parent.locator('.param-button');assert.equal(await buttons.count(),2,'Numeric field has +/- controls: '+id);await buttons.nth(value>current?1:0).click();}
   assert.equal(Number(await node.textContent()),value,'Numeric field '+id);
 }
-async function chip(page,name){const id={fm:'synthChipTabYm2612',psg:'synthChipTabPsg',pcm:'synthChipTabPcm',pwm:'synthChipTabPwm'}[name];await page.locator('#'+id).click();await ready(page);}
+async function chip(page,name){const id={fm:'synthChipTabYm2612',psg:'synthChipTabPsg',pcm:'synthChipTabPcm',cdda:'synthChipTabCdda',pwm:'synthChipTabPwm'}[name];await page.locator('#'+id).click();await ready(page);}
 async function menu(page){if(!await page.locator('#synthMenu').evaluate(n=>n.open))await page.locator('#synthMenuButton').click();}
 async function download(page,id){await menu(page);const waiting=page.waitForEvent('download');await page.locator(id).click();const item=await waiting,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return {bytes:Buffer.concat(chunks),name:item.suggestedFilename()};}
 async function choose(page,file){if(!await page.locator('#synthFilesPanel').isVisible())await page.locator('#synthFilesToggle').click();
@@ -160,14 +160,14 @@ async function mixerChecks(page,name){
   const openMixer=async()=>{await page.locator('#synthSongMixButton').click();await page.locator('#synthChipMixer').waitFor({state:'visible'});};
   assert(await page.locator('#synthSongPlayer').isHidden());await openMixer();
   assert.equal(await page.locator('#synthSongMixButton').getAttribute('role'),'tab');
-  assert.deepEqual(await page.locator('[data-synth-chip]').evaluateAll(nodes=>nodes.map(n=>n.textContent.trim())),['YM2612','PSG','RF5C164','32X PWM','Mixer']);
-  assert.equal(await page.locator('[data-song-group-volume]').count(),4);assert.equal(await page.locator('[data-song-mute]').count(),20);
+  assert.deepEqual(await page.locator('[data-synth-chip]').evaluateAll(nodes=>nodes.map(n=>n.textContent.trim())),['YM2612','PSG','RF5C164','CD-DA','32X PWM','Mixer']);
+  assert.equal(await page.locator('[data-song-group-volume]').count(),5);assert.equal(await page.locator('[data-song-mute]').count(),21);
   assert(await page.locator('#synthSongMixReferenceOptions').isHidden());
   for(const [id,gain]of Object.entries(mixerDefaults))assert(Math.abs(Number(await page.locator('#synthSongGroupVolume-'+id).inputValue())/100-gain)<1e-6,'Initial System source gain '+id);
   for(const button of await page.locator('[data-song-mute]').all())assert.equal(await button.getAttribute('aria-pressed'),'true','Every CH starts On');
   await fs.mkdir(config.screenshots,{recursive:true});
   for(const width of [1240,390]){await page.setViewportSize({width,height:1100});await pause(100);assert(await evaluate(page,()=>document.documentElement.scrollWidth<=innerWidth+1));await page.locator('#synthSongMixButton').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(config.screenshots,`${name}-mixer-tab-${width}.png`)});}
-  await page.setViewportSize({width:1240,height:1100});result.steps.push('Mixer is the fifth tab after 32X PWM; all 20 On/Off switches and four calibrated source volumes are available before a VGM');
+  await page.setViewportSize({width:1240,height:1100});result.steps.push('Mixer follows 32X PWM and CD-DA follows RF5C164; all 21 On/Off switches and five source volumes are available before a VGM');
   const probes=[
     {id:'ym2612',chip:'fm',channel:2,source:KEEP_FM},
     {id:'psg',chip:'psg',channel:0,source:`const psg=await useSoundChip('segapsg');psg.tone(0,{note:'C4'});liveLoop('hold',async()=>{await sleep(1);});`},

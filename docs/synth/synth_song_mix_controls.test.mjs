@@ -28,7 +28,7 @@ class Element extends Events {
   focus(){this.focused=true;}blur(){this.blurred=true;}
 }
 const walk=node=>[node,...node.children.flatMap(walk)];
-const groups=['ym2612','psg','pcm','pwm'];
+const groups=['ym2612','psg','pcm','cdda','pwm'];
 function fixture(){
   const old=new Map(['document','window','innerWidth','innerHeight'].map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const elements=new Map(),document=new Events(),window=new Events();
@@ -56,19 +56,19 @@ function fixture(){
     cleanup(){unsubscribe();controls.dispose();for(const[name,descriptor]of old)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
 
-test('the Mixer tab renders all four volumes and twenty On / Off switches before a VGM exists',()=>{
+test('the Mixer tab renders all five volumes and twenty-one On / Off switches before a VGM exists',()=>{
   const f=fixture();
   try {
     for(const id of groups)assert(f.volume(id),id);
     const switches=walk(f.byId('synthSongMixChannels')).filter(node=>node.dataset.songMute);
-    assert.equal(switches.length,20);
+    assert.equal(switches.length,21);
     for(const control of switches){assert.equal(control.textContent,'On');assert.equal(control.attributes['aria-pressed'],'true');}
     assert.equal(f.byId('synthSongMixReferenceOptions').hidden,true);
     assert.equal(f.byId('synthSongMixReset').disabled,true);
     f.byId('synthSongMixButton').fire('click');
     assert.equal(f.byId('synthChipMixer').hidden,false);
     assert.equal(f.byId('synthSongMixButton').attributes['aria-selected'],'true');
-    assert.equal(f.byId('synthSongMixChannelStatus').textContent,'20 channels on');
+    assert.equal(f.byId('synthSongMixChannelStatus').textContent,'21 channels on');
     assert.deepEqual(f.calls,{volumes:[],muted:[],resets:0,views:['mixer']},'selecting the tab changes only the view');
   }finally{f.cleanup();}
 });
@@ -106,7 +106,7 @@ test('channel On / Off is shared and persists while VGM-only display options fol
     assert.equal(f.mute('ym2612:0').textContent,'Off');
     assert.equal(f.mute('ym2612:0').attributes['aria-pressed'],'false');
     assert.equal(f.mute('ym2612:0').attributes['aria-label'],'Turn on YM2612 CH1');
-    assert.equal(f.byId('synthSongMixChannelStatus').textContent,'1 of 20 channels off');
+    assert.equal(f.byId('synthSongMixChannelStatus').textContent,'1 of 21 channels off');
     f.model.clear();
     assert.equal(f.byId('synthSongMixReferenceOptions').hidden,true);assert(f.mute('ym2612:0'));
     assert.equal(f.mute('ym2612:0').textContent,'Off','removing a VGM keeps shared channel settings');

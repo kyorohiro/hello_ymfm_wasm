@@ -4,6 +4,9 @@ import {setupSynthFiles} from './synth_files.js';
 import {createSynthProject,isPsgPresetPath,isPcmPresetPath} from './synth_project.js';
 import {createPsgPreset,isPsgPreset,normalizePsgPreset} from './synth_psg_preset.js';
 import {createPcmBuiltinPreset,createPcmPreset,isPcmPreset,normalizePcmPreset,PCM_ENCODING,PCM_MAX_FRAMES} from './synth_pcm.js';
+import {createTestCycle,generateTestPcmWav} from '../synth-huc6280/test_pcm.js';
+
+const mediaFile=(name,data)=>({name,size:data.byteLength,arrayBuffer:async()=>data.slice().buffer});
 
 class Element {
   constructor(tag='div') {this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attributes={};this.style={};this.listeners=new Map();this.hidden=false;this.open=false;this.value='';
@@ -153,6 +156,38 @@ function attachCode(h) {
   };
   h.files.setCodeControls(controls);return {controls,opened,changes,flushes};
 }
+
+test('portable CD audio import keeps live Code and the instrument, persists exact WAV/manifest bytes and supports Undo',async()=>{
+  const reasons=[],h=harness(undefined,{onBeforeWorkspaceReplace:async({reason})=>{reasons.push(reason);}});
+  try {
+    await h.files.ready;const code=attachCode(h);
+    h.project.fs.writeText('/index.js','// keep running\n');await h.files.selectFile('/index.js');
+    const patch=structuredClone(h.patches.fm),applications=h.applied.length;
+    const wav=generateTestPcmWav({cycle:createTestCycle(),duration:.1});
+    const manifest=new TextEncoder().encode(JSON.stringify({tracks:[{number:2,file:'Track.wav',title:'Track'}]}));
+    assert.deepEqual(await h.files.importMediaFiles([mediaFile('Track.wav',wav),mediaFile('Album.cdda.json',manifest)]),['/audio/Track.wav','/audio/Album.cdda.json']);
+    assert.deepEqual(h.project.fs.get('/audio/Track.wav').data,wav);
+    assert.equal(h.project.fs.get('/audio/Album.cdda.json').data,new TextDecoder().decode(manifest));
+    assert.equal(code.controls.activePath,'/index.js');assert(code.controls.isCodeMode());
+    assert.equal(h.applied.length,applications);assert.deepEqual(h.patches.fm,patch);
+    assert(h.store.saved.project.files.some(file=>file.path==='/audio/Track.wav'));
+    await h.action('undo');assert.deepEqual(reasons,['undo']);
+    assert.equal(h.project.fs.has('/audio/Track.wav'),false);assert.equal(h.project.fs.get('/index.js').data,'// keep running\n');
+  }finally{h.cleanup();}
+});
+
+test('CD audio import rejects invalid, duplicate and oversized batches without partially changing Files',async()=>{
+  const h=harness();
+  try {
+    await h.files.ready;const before=h.project.snapshot(),wav=generateTestPcmWav({cycle:createTestCycle(),duration:.1});
+    assert.deepEqual(await h.files.importMediaFiles([mediaFile('Track.wav',wav),mediaFile('bad.cdda.json',new TextEncoder().encode('{}'))]),[]);
+    assert.deepEqual(h.project.snapshot(),before);
+    assert.deepEqual(await h.files.importMediaFiles([mediaFile('Track.wav',wav),mediaFile('Track.wav',wav)]),[]);
+    assert.deepEqual(h.project.snapshot(),before);
+    assert.deepEqual(await h.files.importMediaFiles([{name:'Large.wav',size:16*1024*1024+1,arrayBuffer(){throw Error('Must not read oversized file');}}]),[]);
+    assert.deepEqual(h.project.snapshot(),before);assert(h.messages.at(-1).includes('Open session WAVs'));
+  }finally{h.cleanup();}
+});
 
 test('selecting each PCM builtin detaches the long active file before applying and preserves its draft and checkpoint in Normal and Code',async()=>{
   for(const running of [false,true])for(const shape of ['sine','triangle','saw','square']) {
@@ -334,7 +369,7 @@ test('confirmed New Cassette resets all author editors and files, persists start
     h.byId('newCassetteButton').click();h.byId('synthNewCassetteCreate').click();await until(()=>h.byId('newCassetteButton').disabled===false);
     const fresh=h.project.snapshot();
     assert.equal(beforeReplace,1);assert.notEqual(h.files.workspaceId,oldIdentity);assert.equal(h.project.cassetteName,'cassette');
-    assert.deepEqual(fresh.files.map(file=>file.path).sort(),['/examples/timed-operators.js','/index.js']);
+    assert.deepEqual(fresh.files.map(file=>file.path).sort(),['/examples/cdda.js','/examples/timed-operators.js','/index.js']);
     assert.equal(h.project.fs.get('/index.js').data,'// Fresh starter Code\n');
     assert.equal(h.kind,'fm');assert.equal(h.files.activeTonePath,null);assert.equal(h.files.dirty,false);
     assert.deepEqual(h.patches.fm,fm());assert.deepEqual(h.patches.psg,normalizePsgPreset(createPsgPreset({})));assert.deepEqual(h.patches.pcm,normalizePcmPreset(createPcmBuiltinPreset('sine')));

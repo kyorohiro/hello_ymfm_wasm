@@ -9,10 +9,10 @@ import {SEGAPSG_CLOCK} from '../js/segapsg.js';
 import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
 import {rf5c164MidiNote,rf5c164NoteStep} from '../js/rf5c164_notes.js?v=shared-notes-1';
 import {PCM_NATIVE_RATE} from './synth_pcm.js?v=pcm-live-draw-1';
-import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
+import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=megacd-cdda-1';
 import {createSynthPerformanceTarget,normalizeCapturedVoice} from './synth_performance.js?v=op-gates-1';
 
-const names=new Set(['ym2612','segapsg','rf5c164','pwm']);
+const names=new Set(['ym2612','segapsg','rf5c164','cdda','pwm']);
 const cancelled=()=>new DOMException('Code audio stopped','AbortError');
 const integer=(value,max,label)=>{
   if(!Number.isInteger(value)||value<0||value>max)throw RangeError(`Invalid ${label}`);
@@ -45,10 +45,12 @@ function createPwmStereoGate(context,output,{muted}) {
  */
 export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput,getOutput,getFm,getPsg,getPsgVoice,
   getPcm,getPcmVoice,getFmVoice=()=>null,getMaster=()=>1,onLog=()=>{},onCodeGate=()=>{},createFxRack=createNativeFXRack,
+  getCddaSource=()=>null,readCddaFile,resolveCddaPath,
   createPwmDevice=createPWM32XAudio,createPwmClient=createPWM32XClient,createPwmGate=createPwmStereoGate}={}) {
-  for(const value of [ensureChip,getContext,getInput,getOutput,getFm,getPsg,getPsgVoice,getPcm,getPcmVoice,getFmVoice,getMaster,onLog,createFxRack,createPwmDevice,createPwmClient,createPwmGate]) {
+  for(const value of [ensureChip,getContext,getInput,getOutput,getFm,getPsg,getPsgVoice,getPcm,getPcmVoice,getFmVoice,getMaster,onLog,createFxRack,createPwmDevice,createPwmClient,createPwmGate,getCddaSource]) {
     if(typeof value!=='function')throw TypeError('Code audio requires host callbacks');
   }
+  if([readCddaFile,resolveCddaPath].some(value=>value!==undefined&&typeof value!=='function'))throw TypeError('CD-DA Code requires file callbacks');
   let epoch=0,disposed=false,fxOwner=null,pwmOwner=null,pcmSeeded=false,pcmMemoryChanged=false,pcmSelected=0,stopping=null;
   let lastPcmSettings=null,lastPsgSettings=null,psgNoise=null,psgSessionUsed=false,psgLatched=0,pcmSourceGeneration=0,pcmRootNote=null;
   let pwmSourceVolume=SYNTH_SONG_MIX_DEFAULTS.pwm,pwmMaster=null;
@@ -56,6 +58,8 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
   const clients=new Map(),fmActive=new Set(),psgActive=new Map(),pcmChannels=new Map(),pcmActive=new Set(),pcmPending=new Map(),fxNames=new Set();
   const pcmCodeRootChannels=new Set();
   const gates=new Map(),keyboardTargets=new WeakMap();
+  let cddaOwner=null;
+  const cddaSources=new Set();
   const gateKey=(chip,ch)=>`${chip}:${ch}`;
   const claim=(chip,ch)=>{gates.set(gateKey(chip,ch),'code');onCodeGate(chip,ch);};
   const canRelease=(chip,ch)=>gates.get(gateKey(chip,ch))!=='keyboard';
@@ -464,9 +468,25 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     reset() {fmActive.clear();return required(getFm,'FM').reset();},
   };
   function syncFmVoice() {for(const ch of fmActive)fmTarget.setKeyMask(ch,fmVoice(ch));}
+  async function useCdda(token) {
+    const source=getCddaSource();
+    if(!source||typeof source.useCodeClient!=='function')throw Error('CD-DA source is not available');
+    if(cddaOwner?.source!==source) {
+      const owner=cddaOwner={source,promise:null};cddaSources.add(source);
+      const current=()=>!disposed&&token===epoch&&cddaOwner===owner&&getCddaSource()===source;
+      owner.promise=Promise.resolve().then(()=>{
+        if(!current())throw cancelled();
+        return source.useCodeClient({readFile:readCddaFile,resolvePath:resolveCddaPath,isCurrent:current,
+          onDispose(){if(cddaOwner===owner)cddaOwner=null;}});
+      }).then(value=>{if(!current())throw cancelled();return value;}).catch(error=>{if(cddaOwner===owner)cddaOwner=null;throw error;});
+    }
+    const value=await cddaOwner.promise;check(token);return value;
+  }
   async function useSoundChip(name) {
-    if(!names.has(name))throw Error(`Synth Code supports ym2612, segapsg, rf5c164 and pwm; got ${String(name)}`);
-    const token=epoch;check(token);if(stopping)await stopping;check(token);await ensureChip(name);check(token);
+    if(!names.has(name))throw Error(`Synth Code supports ym2612, segapsg, rf5c164, cdda and pwm; got ${String(name)}`);
+    const token=epoch;check(token);if(stopping)await stopping;check(token);
+    if(name==='cdda')return useCdda(token);
+    await ensureChip(name);check(token);
     if(name==='ym2612')return client(name,fmOverrides,getFm);
     if(name==='segapsg'){
       lastPsgSettings=settingsPsg();
@@ -478,7 +498,9 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
   }
   function stop() {
     if(stopping)return stopping;
-    ++epoch;stopFm();
+    ++epoch;cddaOwner=null;
+    const media=[...cddaSources];cddaSources.clear();
+    stopFm();
     stopPsg();stopPcm();retirePwm(pwmOwner);
     psgNoise=null;psgSessionUsed=false;lastPsgSettings=null;
     fxNames.clear();
@@ -487,7 +509,10 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     pcmSeeded=false;pcmChannels.clear();pcmCodeRootChannels.clear();pcmRootNote=null;
     const restore=pcmMemoryChanged;pcmMemoryChanged=false;
     const task=Promise.resolve().then(async()=>{
-      if(restore){const voice=getPcmVoice(),api=getPcm();if(voice&&api){voice.setPreset(voice.getPreset());await voice.install(api);}}
+      await Promise.all([
+        ...media.map(source=>Promise.resolve().then(()=>source.stopCode())),
+        ...(restore?[Promise.resolve().then(async()=>{const voice=getPcmVoice(),api=getPcm();if(voice&&api){voice.setPreset(voice.getPreset());await voice.install(api);}})]:[]),
+      ]);
     }).finally(()=>{if(stopping===task)stopping=null;});
     stopping=task;return task;
   }

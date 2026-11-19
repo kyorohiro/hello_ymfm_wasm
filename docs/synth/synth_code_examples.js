@@ -1,6 +1,32 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Editable source only. Adding these files never starts an audio engine.
 export const FM_CODE_EXAMPLES = Object.freeze({
+  '/examples/cdda.js': `const cd = await useSoundChip("cdda");
+setBpm(120);
+
+// Original stereo PCM16 / 44.1 kHz audio generated here: no external files.
+// This replaces the track loaded in the CD-DA tab; UI and Code share its cursor.
+const rate = 44100, seconds = 2, frames = rate * seconds;
+const wav = new Uint8Array(44 + frames * 4);
+const view = new DataView(wav.buffer);
+function tag(offset, text) { for (let i = 0; i < text.length; i++) wav[offset + i] = text.charCodeAt(i); }
+tag(0, "RIFF"); view.setUint32(4, wav.length - 8, true); tag(8, "WAVE");
+tag(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+view.setUint16(22, 2, true); view.setUint32(24, rate, true); view.setUint32(28, rate * 4, true);
+view.setUint16(32, 4, true); view.setUint16(34, 16, true); tag(36, "data"); view.setUint32(40, frames * 4, true);
+for (let frame = 0; frame < frames; frame++) {
+  const t = frame / rate, fade = Math.min(1, t / 0.02, (seconds - t) / 0.05);
+  const left = Math.sin(2 * Math.PI * 220 * t) * fade * 0.16;
+  const right = Math.sin(2 * Math.PI * 330 * t) * fade * 0.16;
+  view.setInt16(44 + frame * 4, Math.round(left * 32767), true);
+  view.setInt16(46 + frame * 4, Math.round(right * 32767), true);
+}
+await cd.load(wav);
+liveLoop("cd-audio", async () => {
+  await cd.play(1);
+  await beat(4);
+});
+`,
   '/examples/timed-operators.js': `const fm = await useSoundChip("ym2612");
 setBpm(120);
 

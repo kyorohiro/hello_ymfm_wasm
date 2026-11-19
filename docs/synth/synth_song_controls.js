@@ -1,4 +1,4 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=pcm-manual-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=megacd-cdda-1';
 import {setupSynthSongSeekControls} from './synth_song_seek_controls.js?v=song-seek-1';
 import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=expanded-tabs-cassette-1';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';

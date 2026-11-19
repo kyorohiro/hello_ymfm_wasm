@@ -1,11 +1,12 @@
 // One session mixer for Keyboard, Code and reference playback. Its source
-// volumes and twenty channel switches stay available without a song.
-import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
+// volumes and twenty-one channel switches stay available without a song.
+import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=megacd-cdda-1';
 
 const GROUPS = [
   {clock:'ym2612Clock', prefix:'ym2612', group:'YM2612', labels:['CH1','CH2','CH3','CH4','CH5','CH6 / DAC']},
   {clock:'psgClock', prefix:'psg', group:'Sega PSG', labels:['Tone 1','Tone 2','Tone 3','Noise']},
   {clock:'rf5c164Clock', prefix:'pcm', group:'Mega CD PCM', labels:Array.from({length:8},(_,i)=>`PCM ${i+1}`)},
+  {prefix:'cdda', group:'CD-DA', labels:['Stereo']},
   {clock:'pwmClock', prefix:'pwm', group:'32X PWM', labels:['L output','R output']},
 ];
 
@@ -76,6 +77,7 @@ export function createSynthSongMix() {
     return () => listeners.delete(listener);
   }
   function getGroupVolumes() {return Object.fromEntries(volumes);}
+  function getReferenceGroupVolumes() {return Object.fromEntries([...volumes].filter(([id])=>id!=='cdda'));}
   function getChannelMuted(id) {
     if (!settings.has(id)) throw new RangeError(`Unknown reference channel: ${id}`);
     return settings.get(id);
@@ -85,8 +87,8 @@ export function createSynthSongMix() {
     // The Genesis renderer always allocates YM2612/PSG endpoints, even for a
     // PSG/PCM-only log. Its absent chips must stay silent (including YM2612 DC)
     // without changing the independent Keyboard/Code channel switches.
-    return entries.filter(entry=>settings.get(entry.id)||!referenceIds.has(entry.id)).map(entry=>entry.id);
+    return entries.filter(entry=>entry.groupId!=='cdda'&&(settings.get(entry.id)||!referenceIds.has(entry.id))).map(entry=>entry.id);
   }
-  return {configure, getState, getMutedChannels, getLiveMutedChannels, getChannelMuted,getGroupVolumes, clear, reset, onDidChange,
+  return {configure, getState, getMutedChannels, getLiveMutedChannels, getChannelMuted,getGroupVolumes,getReferenceGroupVolumes, clear, reset, onDidChange,
     setChannelMuted, setGroupVolume};
 }

@@ -11,7 +11,7 @@ import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
 import {createYm2612SongTimeline} from './synth_song_state.js?v=song-seek-1';
 import {createPsgSongTimeline} from './synth_song_psg_state.js?v=psg-live-1';
 import {createPcmSongTimeline} from './synth_song_pcm_state.js?v=pcm-live-1';
-import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
+import {createSynthSongMix} from './synth_song_mix.js?v=megacd-cdda-1';
 import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=channel-mixer-1';
 import {seekPlayback} from '../vgm_analyzer/seek_playback.js';
 import {createSynthSongInteraction} from './synth_song_interaction.js?v=vgm-manual-1';
@@ -129,9 +129,12 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   let lastLiveState = null, lastPsgLiveState = null, lastPcmLiveState = null, metadata = null, metadataReady = null;
   let seekProgress = 0, seekTargetSeconds = null, seekResumePlaying = false, lastSeekCacheFrame = 0;
   let abortSeek = null, work = Promise.resolve();
+  const referenceMixKey=()=>JSON.stringify([mix.getMutedChannels(),mix.getReferenceGroupVolumes()]);
+  let referenceMixSignature=referenceMixKey();
   const releaseMix = mix.onDidChange((_state,change)=>{
     if (disposed) return;
-    if (['volume','mute','reset'].includes(change.type)) {
+    const signature=referenceMixKey(),changed=signature!==referenceMixSignature;referenceMixSignature=signature;
+    if (changed&&['volume','mute','reset'].includes(change.type)) {
       applyMix();invalidateCache();restartChangedSeek();
     }
     emit();
@@ -283,7 +286,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   function applyMix() {
     if (!active) return;
     active.outputMix.setMutedChannels(mix.getMutedChannels());
-    for (const [id,value] of Object.entries(mix.getGroupVolumes())) active.outputMix.setGroupVolume(id,value);
+    for (const [id,value] of Object.entries(mix.getReferenceGroupVolumes())) active.outputMix.setGroupVolume(id,value);
   }
   function updateCachePolicy(run) {
     run.player.checkpointIntervalSeconds=seekCacheEnabled&&!run.manualDirty&&
@@ -518,7 +521,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       // it still records the VGM's original register values, including pan.
       outputMix = installSynthSongOutputMix(engine);
       outputMix.setMutedChannels(mix.getMutedChannels());
-      for (const [id,value] of Object.entries(mix.getGroupVolumes())) outputMix.setGroupVolume(id,value);
+      for (const [id,value] of Object.entries(mix.getReferenceGroupVolumes())) outputMix.setGroupVolume(id,value);
       // Track source writes against native generated frames before the player
       // resets / prefetches. The UI later reads only the audible prefix.
       timeline = header.ym2612Clock ? createYm2612SongTimeline(engine, header.ym2612Clock) : null;
@@ -533,7 +536,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       player.setPrefetchFactor(1);
       player.setLoopEnabled(false);
       player.checkpointMaxBytes=CACHE_MAX_BYTES;player.checkpointMaxCount=CACHE_MAX_COUNT;
-      player.seekSettingsKey=()=>JSON.stringify([mix.getMutedChannels(),mix.getGroupVolumes()]);
+      player.seekSettingsKey=referenceMixKey;
       player.captureSeekState=()=>({timeline:timeline?.saveState(),psgTimeline:psgTimeline?.saveState(),pcmTimeline:pcmTimeline?.saveState(),outputMix:outputMix.saveState(),interaction:interaction?.saveState(),psgInteraction:psgInteraction?.saveState(),pcmInteraction:pcmInteraction?.saveState()});
       player.restoreSeekState=state=>{
         if(state.timeline)timeline?.loadState(state.timeline);

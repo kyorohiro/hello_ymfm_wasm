@@ -22,7 +22,7 @@ function pcmRegisterEndpoint() {
     loopStart:registers[i+4]|registers[i+5]<<8,start:registers[i+6]<<8};};
   return{api,ram,writes,channel,get mask(){return mask;}};
 }
-function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip=null,psgChip=null,pcmChip=null,pcmVoiceOverride=null,getFmVoice=()=>null}={}) {
+function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip=null,psgChip=null,pcmChip=null,pcmVoiceOverride=null,getFmVoice=()=>null,audioOptions={}}={}) {
   const events=[],gains=[],fxRequests=[],pwmRequests=[],nodes=[];
   const context={state:'running',currentTime:0,sampleRate:48000,closeCalls:0,close(){this.closeCalls++;},
     createChannelSplitter(count){const value=node('splitter');value.outputs=count;return value;},
@@ -62,7 +62,7 @@ function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip
     },
     createPwmClient:()=>({writes:[],disposeCalls:0,write(register,value){this.writes.push([register,value]);},dispose(){this.disposeCalls++;}}),
   };
-  const audio=createSynthCodeAudio(options);
+  const audio=createSynthCodeAudio({...options,...audioOptions});
   return {audio,options,events,context,input,output,fm,psg,pcm,gains,fxRequests,pwmRequests,nodes,
     setPsg:value=>{psgSettings={...psgSettings,...value};},getPsg:()=>structuredClone(psgSettings),
     setPcm:value=>{preset={...preset,settings:{...preset.settings,...value}};},getPreset:()=>structuredClone(preset)};
@@ -88,6 +88,36 @@ test('borrowed FM retains timed data and lifecycle capability on the same editor
   assert.equal(client._timedOperations,capability);
   assert.deepEqual(events,['build','client']);
   await audio.dispose();
+});
+
+test('CD-DA acquires one lazy shared lease with local file routing and stops only after it was requested',async()=>{
+  const requests=[],asset={title:'Retained authored track'},readFile=()=>{},resolvePath=path=>'/music/'+path;let stops=0,lookups=0;
+  const source={asset,async useCodeClient(options){requests.push(options);return {chip:'cdda',sourceId:'shared-track',
+    async play(){if(!options.isCurrent())throw new DOMException('Retired lease','AbortError');return asset;},
+    async dispose(){options.onDispose();}};},async stopCode(){stops++;}};
+  const f=fixture({audioOptions:{getCddaSource:()=>{lookups++;return source;},readCddaFile:readFile,resolveCddaPath:resolvePath}});
+  try {
+    await f.audio.prepare();await f.audio.useSoundChip('ym2612');await f.audio.stop();
+    assert.equal(lookups,0);assert.equal(stops,0,'an unrelated Code session leaves the UI track alone');
+    const [first,second]=await Promise.all([f.audio.useSoundChip('cdda'),f.audio.useSoundChip('cdda')]);
+    assert.equal(first,second);assert.equal(requests.length,1);assert.equal(requests[0].readFile,readFile);assert.equal(requests[0].resolvePath,resolvePath);
+    assert.equal(await first.play(),asset);assert(!f.events.some(event=>event[0]==='ensure'&&event[1]==='cdda'),'the shared source owns its own lazy audio endpoint');
+    await first.dispose();const renewed=await f.audio.useSoundChip('cdda');assert.notEqual(renewed,first);assert.equal(requests.length,2);
+    await f.audio.stop();assert.equal(stops,1);assert.equal(source.asset,asset,'Code Stop retains the authored source');
+    await assert.rejects(renewed.play(),{name:'AbortError'});await f.audio.stop();assert.equal(stops,1);
+  }finally{await f.audio.dispose();}
+});
+
+test('a pending CD-DA lease cannot return after Stop and a later epoch acquires a fresh client',async()=>{
+  const pending=deferred(),requests=[];let stops=0;
+  const source={async useCodeClient(options){requests.push(options);if(requests.length===1)await pending.promise;return {epoch:requests.length};},async stopCode(){stops++;}};
+  const f=fixture({audioOptions:{getCddaSource:()=>source}});
+  try {
+    const opening=f.audio.useSoundChip('cdda');await turn();await turn();assert.equal(requests.length,1);
+    await f.audio.stop();pending.resolve();await assert.rejects(opening,{name:'AbortError'});
+    assert.equal(stops,1);assert.equal(requests[0].isCurrent(),false);
+    const next=await f.audio.useSoundChip('cdda');assert.equal(next.epoch,2);assert.equal(requests[1].isCurrent(),true);
+  }finally{pending.resolve();await f.audio.dispose();}
 });
 
 test('borrowed FM stays shared with its editor and Code disposal never closes that chip or the context',async()=>{

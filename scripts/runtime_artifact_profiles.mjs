@@ -13,7 +13,7 @@ export const runtimeArtifactProfiles = Object.freeze({
   // The generic factory / output Worklet imports the standalone SID adapters.
   // This closes their runtime dependency; Analyzer VGM coverage is unchanged.
   analyzer: ids('sid nesapu pwm32x spc huc6280 wonderswan pokey okim6258 ym2610b ay8910 k051649 segapcm gameboy_apu y8950 ymf278b ym3526 ym3812 ymf262 ym2151 ym2413 ym2203 ym2608 ym2612 nuked_opn2 segapsg rf5c164 native_audio_effect'),
-  synth: ids('ym2612 nuked_opn2 segapsg nesapu pwm32x ym2203 ym2608 rf5c164 native_audio_effect'),
+  synth: ids('ym2612 nuked_opn2 segapsg nesapu pwm32x ym2203 ym2608 rf5c164 cdda native_audio_effect'),
   // Remaining CLI assets are discovered from static imports by build_cli.mjs.
   cli: ids('nesapu pwm32x'),
 });

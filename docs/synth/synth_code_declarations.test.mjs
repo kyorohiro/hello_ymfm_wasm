@@ -26,7 +26,7 @@ test('Code declaration globals match the running lightweight host and exclude th
   }finally{await runtime.stop();}
 });
 
-test('Code types accept its four clients, shared helpers and FX while rejecting unavailable globals and channels',async()=>{
+test('Code types accept its five sources, shared helpers and FX while rejecting unavailable globals and channels',async()=>{
   const scratch=await mkdtemp(join(tmpdir(),'synth-code-types-'));
   try {
     await writeFile(join(scratch,'globals.d.ts'),selected);
@@ -52,6 +52,16 @@ pcm.setRootNote(midi); pcm.setRootNote(0); pcm.setRootNote(127); pcm.setRootNote
 const started:void|Promise<void> = pcm.noteOn(0,'C4'); await started;
 await pcm.noteOn(7,127); pcm.noteOff(0);
 await pcm.loadSample(new Uint8Array([1,2]),{loopStart:0});
+const cd = await useSoundChip('cdda');
+await cd.load(new Uint8Array([1,2,3])); await cd.play(1,{offset:0,at:1});
+await cd.pause(); await cd.resume(); await cd.seek(.5); await cd.stop(); await cd.dispose();
+const sourceId:string=cd.sourceId; const cdChip:'cdda'=cd.chip;
+const cdState=await cd.getState(); const cdRevision:number=cdState.revision;
+const cdStateName:'empty'|'ready'|'playing'|'paused'|'ended'=cdState.state;
+// @ts-expect-error CD-DA is an explicit acquired source, not an implicit global.
+await cdda.play();
+// @ts-expect-error CD-DA plays tracks, not note pitches.
+await cd.noteOn(0,'C4');
 const pwm = await useSoundChip('pwm'); await pwm.writeRegister(1,1047); await pwm.setClock(23011361);
 setBpm(120); await beat(.5); await sleep(.01); await sleepSamples(4);
 liveLoop('phrase',async()=>{

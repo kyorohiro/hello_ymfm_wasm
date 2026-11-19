@@ -7,7 +7,7 @@ export function setupSynthExpandedTabs({codeControls,selectChip}={}) {
   const codeLayoutButton=byId('synthWorkspaceCodeButton'),synthLayoutButton=byId('synthWorkspaceSynthButton');
   const editor=document.querySelector('#synthWorkspace .synth-editor');
   const codeTab=byId('synthInputCodeTab'),keyboardTab=byId('synthInputKeyboardTab');
-  const chipTabs=['synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabPwm','synthSongMixButton'].map(byId);
+  const chipTabs=['synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabCdda','synthChipTabPwm','synthSongMixButton'].map(byId);
   const tablist=chipTabs[0]?.parentNode,inputTablist=codeTab?.parentNode,inputHeading=inputTablist?.parentNode;
   const expand=byId('synthCodeExpandButton'),transport=byId('synthCodeRunButton')?.parentNode;
   if([slot,codeSlot,editor,codeTab,keyboardTab,tablist,inputTablist,inputHeading,expand,transport,...chipTabs].some(node=>!node))throw TypeError('Expanded tabs need the FM2612 workspace.');

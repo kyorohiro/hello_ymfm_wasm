@@ -19,6 +19,7 @@ CODE.md
 synth.js
 synth_code_controls.js
 synth_expanded_tabs.js
+synth_cdda.js
 synth_code_examples.js
 synth_code_project.js
 synth_code_audio.js
@@ -97,6 +98,11 @@ synth_recording.js
 synth_looper.js
 "
 RUNTIME_FILES="
+cdda_audio.js
+cdda_player.js
+cdda_source.js
+cdda_worklet.js
+cdda_pcm.js
 playground_code_runtime.js
 scsp_dsp_assembler.js
 scsp_dsp_assembler.d.ts
@@ -307,6 +313,13 @@ done
 cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${STAGE_DIR}"
+
+# Keep these reused, readable media modules in their existing relative layout.
+mkdir -p "${STAGE_DIR}/synth-huc6280"
+for file in cdda_source.js cdda_controls.js cdda_inputs.js cdda_session_files.js media_output.js media_keyboard.js test_pcm_controls.js test_pcm.js; do
+  cp "${ROOT_DIR}/docs/synth-huc6280/${file}" "${STAGE_DIR}/synth-huc6280/${file}"
+done
 
 node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" synth --copy "${STAGE_DIR}"
 
@@ -327,6 +340,7 @@ NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 NES/FDS shared WASM port: Apache-2.0 and MIT. See licenses/tetorica-nes/ and sources/NES-FDS.md for source, authors and rebuilding.
 Virtual filesystem: tetorica-virtual-files core, BSD-3-Clause. See licenses/tetorica-virtual-files/.
+CD-DA: original Tetorica PCM player, BSD-3-Clause. Source and rebuild instructions are included under sources/.
 Cassette ZIP: fflate, MIT. See playground/vendor/fflate-LICENSE.
 
 This package includes two YM2612 engine options:
@@ -356,6 +370,7 @@ perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g; s#\.\./vgm_a
   "${STAGE_DIR}/synth_fm_worklet.js" "${STAGE_DIR}/synth_fm_worklet_nuked.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' \
   "${STAGE_DIR}/synth_code_controls.js" "${STAGE_DIR}/synth_code_project.js" "${STAGE_DIR}/synth_code_audio.js"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./synth-huc6280/#./synth-huc6280/#g' "${STAGE_DIR}/synth_cdda.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_project.js" "${STAGE_DIR}/synth_files.js" "${STAGE_DIR}/synth_recovery.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"

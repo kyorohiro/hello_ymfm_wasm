@@ -3,9 +3,10 @@ import {createSynthProject,isSynthTonePath,isSynthStatePath,isPsgPresetPath,isPc
 import {isPsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
 import {isPcmPreset} from './synth_pcm.js?v=pcm-live-draw-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
+import {createCddaWavTrackSource,parseCddaTrackManifest} from '../js/cdda_source.js';
 import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=pcm-live-draw-1';
 import {openSynthDraftStore} from './synth_draft_store.js?v=draft-reconnect-1';
-import {addFmCodeExamples} from './synth_code_examples.js';
+import {addFmCodeExamples} from './synth_code_examples.js?v=megacd-cdda-1';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';
@@ -471,10 +472,11 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
           const requestGeneration=++importGeneration;
           const previous = history.at(-1);
           if(await codeControls?.workspaceReplaced?.()===false||requestGeneration!==importGeneration)return;
+          if(await onBeforeWorkspaceReplace({reason:'undo',isCurrent:()=>requestGeneration===importGeneration})===false||requestGeneration!==importGeneration)return;
           history.pop();
           project.restore(previous.project);
           savedCodeState=previous.codeState??null;
-          onWorkspaceReplaced?.();
+          await onWorkspaceReplaced?.({reason:'undo'});
           workspaceId = newWorkspaceId(); generation = 0;
           const contexts=Object.entries(previous.editorContexts??{}).map(([kind,value])=>[kind,validateEditorContext(value,kind)]);
           editorContexts.clear();for(const [kind,value]of contexts)editorContexts.set(kind,value);
@@ -595,6 +597,35 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       render();await remember(true);
     }catch(error){report(error);}finally{busy=false;updateButtons();document.activeElement?.blur?.();}
   }
+  /** Add portable CD audio without interpreting it as an FM instrument or
+   * changing the running performance. Validate the entire batch before writes. */
+  async function importMediaFiles(files) {
+    const selection=Array.from(files??[]);if(!selection.length||busy)return [];
+    busy=true;updateButtons();
+    try {
+      if(!await flushEdits())return [];
+      const entries=[],occupied=new Set(project.listEntries().map(entry=>entry.path));
+      let total=project.fs.list().reduce((sum,file)=>sum+(typeof file.data==='string'?new TextEncoder().encode(file.data).length:file.data.byteLength),0);
+      for(const file of selection) {
+        const name=basename(String(file.name));validName(name);
+        if(!/\.(wav|json)$/i.test(name))throw Error('Choose CD-DA WAV files or track manifests.');
+        if(!Number.isSafeInteger(file.size)||file.size<1||file.size>16*1024*1024)throw Error('Files / Cassette audio is limited to 16 MiB. Use Open session WAVs for longer tracks.');
+        const path='/audio/'+name;
+        if(occupied.has(path))throw Error(`${path} already exists. Rename it in Files before adding another source with the same name.`);
+        occupied.add(path);
+        const bytes=new Uint8Array(await file.arrayBuffer());total+=bytes.byteLength;
+        if(total>16*1024*1024)throw Error('Files / Cassette exceeds 16 MiB. Use Open session WAVs for longer tracks.');
+        if(/\.wav$/i.test(name)){createCddaWavTrackSource(bytes);entries.push({path,type:'binary',data:bytes});}
+        else {const text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);parseCddaTrackManifest(text);entries.push({path,type:'text',data:text});}
+      }
+      const previous=capture();project.fs.writeFiles(entries);pushUndo(previous);
+      selectedPath=entries[0].path;project.select(selectedPath);for(const entry of entries)reveal(entry.path);
+      setVisible(true);render();await remember(true);
+      setStatus(`Added ${entries.length} CD audio file(s) to /audio/. Select a source in CD-DA and Load. Cassette export includes these files.`);
+      return entries.map(entry=>entry.path);
+    } catch(error){report(error);return [];}
+    finally{busy=false;updateButtons();}
+  }
   async function importCassette(file) {
     if(!file||busy)return;
     busy=true;updateButtons();
@@ -608,10 +639,11 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       const result=await prepared.importCassette(new Uint8Array(await file.arrayBuffer()),{name:file.name,isCurrent:()=>requestGeneration===importGeneration});
       if(result.cancelled)return;
       if(await codeControls?.workspaceReplaced?.()===false||requestGeneration!==importGeneration)return;
+      if(await onBeforeWorkspaceReplace({reason:'import',isCurrent:()=>requestGeneration===importGeneration})===false||requestGeneration!==importGeneration)return;
       project.restore(prepared.snapshot());
       workspaceId=newWorkspaceId();generation=0;
       savedCodeState=null;
-      onWorkspaceReplaced?.();
+      await onWorkspaceReplaced?.({reason:'import'});
       pushUndo(previous);dirty=false;selectedPath=project.selectedPath;activeTonePath=isSynthTonePath(selectedPath)?selectedPath:null;
       editorContexts.clear();
       stopAllNotes();if(activeTonePath){editorKind=kindOfPath(activeTonePath);setEditorKind(editorKind);applyPreset('vfs:'+activeTonePath);reveal(activeTonePath);}else{setEditorKind(editorKind);applyPreset(getDefaultPresetId(editorKind));}setBaseline();
@@ -819,7 +851,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     }
     finally{draftLoaded=true;busy=false;if(dirty)persistCurrentTone();render();remember();}
   })();
-  return {ready,selectFile,selectPreset,switchEditor,importInstruments,createFromPreset,saveFromPreset,newCassette,setVisible,isVisible:()=>!panel.hidden,
+  return {ready,selectFile,selectPreset,switchEditor,importInstruments,importMediaFiles,createFromPreset,saveFromPreset,newCassette,setVisible,isVisible:()=>!panel.hidden,
     setCodeControls(controls){codeControls=controls;updateButtons();},
     getCodeState:()=>savedCodeState==null?null:structuredClone(savedCodeState),
     rememberCodeState(state){savedCodeState=structuredClone(state);updateButtons();remember();},

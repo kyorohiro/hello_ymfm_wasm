@@ -594,7 +594,7 @@ test('reference mix changes future PCM without discarding queued audio, Live sta
   const quiet=nodes=>nodes.length>0&&nodes.every(node=>node.buffer.getChannelData(0).every(value=>value===0));
   try {
     preview.load(bytes,'tone.vgm');
-    assert.equal(preview.getState().mix.channels.length,20,'common channel switches exist before playback');
+    assert.equal(preview.getState().mix.channels.length,21,'common channel switches exist before playback');
     assert.deepEqual(preview.getState().mix.referenceChannels,[],'selection never initializes audio or configures reference chip presence');
     await preview.play();
     const deadline=Date.now()+1000;
@@ -639,20 +639,20 @@ test('common volumes and channel switches survive Stop, replay, source replaceme
     const chosen=preview.getState().mix;
     preview.stop();assert.equal(preview.getState().mix,chosen);
     await preview.play();assert.equal(preview.getState().mix,chosen);
-    assert.deepEqual(preview.getState().mix.groups.map(({id,volume})=>[id,volume]),[['ym2612',2],['psg',.4],['pcm',defaults.pcm],['pwm',defaults.pwm]]);
+    assert.deepEqual(preview.getState().mix.groups.map(({id,volume})=>[id,volume]),[['ym2612',2],['psg',.4],['pcm',defaults.pcm],['cdda',defaults.cdda],['pwm',defaults.pwm]]);
     preview.load(vgm({psg:0}),'second.vgm');
-    assert.equal(preview.getState().mix.channels.length,20);assert.deepEqual(preview.getState().mix.referenceChannels,[]);
+    assert.equal(preview.getState().mix.channels.length,21);assert.deepEqual(preview.getState().mix.referenceChannels,[]);
     assert.equal(preview.getState().mix.channels.find(channel=>channel.id==='psg:3').muted,true);
     await preview.play();
     assert.equal(preview.getState().mix.referenceChannels.length,6);
     assert.equal(preview.getState().mix.referenceChannels.find(channel=>channel.id==='ym2612:5').muted,true,'the next song inherits common switches');
     assert.equal(preview.getState().mix.channels.find(channel=>channel.id==='psg:3').muted,true,'an absent source retains its switch too');
     assert.equal(preview.getState().mix.changed,true,'common source volumes remain edited');
-    assert.deepEqual(preview.getState().mix.groups.map(({id,volume})=>[id,volume]),[['ym2612',2],['psg',.4],['pcm',defaults.pcm],['pwm',defaults.pwm]]);
+    assert.deepEqual(preview.getState().mix.groups.map(({id,volume})=>[id,volume]),[['ym2612',2],['psg',.4],['pcm',defaults.pcm],['cdda',defaults.cdda],['pwm',defaults.pwm]]);
     preview.setChannelMuted('ym2612:0',true);preview.setGroupVolume('ym2612',0);preview.resetMix();
     assert.equal(preview.getState().mix.changed,false);
     preview.setChannelMuted('pwm:1',true);preview.clear();assert.deepEqual(preview.getState().mix.referenceChannels,[]);
-    assert.equal(preview.getState().mix.channels.length,20);assert.equal(preview.getState().mix.channels.at(-1).muted,true);
+    assert.equal(preview.getState().mix.channels.length,21);assert.equal(preview.getState().mix.channels.at(-1).muted,true);
   } finally {preview.dispose();}
   assert.throws(()=>preview.setChannelMuted('ym2612:0',true),/disposed/);
   assert.throws(()=>preview.setGroupVolume('ym2612',1),/disposed/);
@@ -725,7 +725,7 @@ test('an injected common mixer works before VGM load, updates reference PCM dire
     assert.equal(host.starts.length,scheduled);assert.equal(preview.getState().consumedFrames,position);
     assert.deepEqual(mix.getGroupVolumes(),defaults);assert.equal(preview.getState().mix.channels[0].muted,false);
     preview.setGroupVolume('pwm',2);preview.clear();
-    assert.equal(mix.getGroupVolumes().pwm,2);assert.deepEqual(mix.getState().referenceChannels,[]);assert.equal(mix.getState().channels.length,20);
+    assert.equal(mix.getGroupVolumes().pwm,2);assert.deepEqual(mix.getState().referenceChannels,[]);assert.equal(mix.getState().channels.length,21);
   } finally {preview.dispose();}
   const beforeDisposeEdit=states.length;mix.setGroupVolume('pwm',.75);
   assert.equal(states.length,beforeDisposeEdit,'disposing one reference player releases its common-mixer listener');
@@ -845,6 +845,23 @@ function statefulEngine({rate=1000,stateBytes=128,slow=false}={}) {
       const left=Float32Array.from({length:frames},()=>((phase++%100)/100-.5)*.1);return {left,right:left.slice()};
     },dispose(){this.disposed++;}};
 }
+
+test('CD-DA live Mixer edits and CD-DA-only Reset preserve VGM playback, cursor and seek checkpoints',async()=>{
+  const host=audioHost(),engine=statefulEngine(),mix=createSynthSongMix();
+  const preview=createSynthSongPreview({mix,getAudio:()=>host,createEngine:async()=>engine});
+  try {
+    await preview.load(longPsgSong(20),'separate-cd-audio.vgm');await preview.seek(12);
+    const cached=preview.getState().cache.count;assert(cached>0);
+    mix.setGroupVolume('cdda',.5);mix.setChannelMuted('cdda:0',true);
+    assert.equal(preview.getState().cache.count,cached);assert.equal(preview.getState().positionSeconds,12);
+    mix.reset();assert.equal(preview.getState().cache.count,cached,'resetting only authored CD audio does not retire compatible VGM snapshots');
+    await preview.play();const nodes=[...host.starts],before=preview.getState();
+    mix.setChannelMuted('cdda:0',true);mix.setGroupVolume('cdda',2);
+    const after=preview.getState();assert.equal(after.playback,'playing');assert.equal(after.positionFrames,before.positionFrames);
+    assert.equal(after.cache.count,before.cache.count);assert(nodes.every(node=>!node.stopped));assert.equal(engine.disposed,0);
+    assert.equal(mix.getGroupVolumes().cdda,2);assert.equal(mix.getChannelMuted('cdda:0'),true);
+  }finally{preview.dispose();}
+});
 
 test('seek cache stays inside count and byte budgets and Off retains no hidden snapshots',async()=>{
   for(const stateBytes of [128,8*1024*1024]) {

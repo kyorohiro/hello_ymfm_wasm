@@ -1,10 +1,11 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=channel-presets-1';
-import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=workspace-switch-cassette-2';
-import {setupSynthCodeControls} from './synth_code_controls.js?v=workspace-switch-cassette-2';
-import {setupSynthExpandedTabs} from './synth_expanded_tabs.js?v=workspace-switch-cassette-2';
+import {createSynthSongMix} from './synth_song_mix.js?v=megacd-cdda-1';
+import {setupSynthFiles} from './synth_files.js?v=megacd-cdda-1';
+import {setupSynthCodeControls} from './synth_code_controls.js?v=megacd-cdda-1';
+import {setupSynthExpandedTabs} from './synth_expanded_tabs.js?v=megacd-cdda-1';
+import {setupSynthCdda,resolveCddaInputPath} from './synth_cdda.js?v=megacd-cdda-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
-import {createSynthCodeAudio} from './synth_code_audio.js?v=channel-view-1';
+import {createSynthCodeAudio} from './synth_code_audio.js?v=megacd-cdda-1';
 import {createSynthFmEdits} from './synth_fm_edits.js?v=channel-presets-1';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
@@ -18,7 +19,7 @@ import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-view-1';
 import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-frames-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=expanded-tabs-cassette-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=megacd-cdda-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -198,6 +199,7 @@ const outputVisualizer = createSynthOutputVisualizer();
 let visualMode = 'envelope';
 let editorChip = 'ym2612';
 let expandedTabs = null;
+let cddaHost = null;
 // The displayed reference/placeholder tab need not own the editable document.
 let activeInstrumentKind = 'fm';
 let editorSwitchPending = false;
@@ -856,16 +858,16 @@ function refreshChipAvailability() {
   const pcmObserving=observing&&songTargetState.chip==='pcm';
   const fm = observing?songTargetState.chip==='ym2612':activeInstrumentKind==='fm';
   const pcm=pcmObserving||!observing&&activeInstrumentKind==='pcm';
-  document.querySelector('.synth-file-editor-heading').hidden = false;
+  document.querySelector('.synth-file-editor-heading').hidden = editorChip==='cdda';
   const note = document.querySelector('.synth-file-format-note');
-  note.textContent = fm ? 'TFI / VGI + Synth settings · Format info ⓘ' : pcm?'RF5C164 PCM · JSON / Files / Cassette':'PSG instrument · JSON / Files / Cassette';
-  note.title = fm ? fmFormatTitle : pcm?'Self-contained PCM sample and settings. WAV conversion is software.':'Tone / Noise, attenuation and noise clock. Save with Sync or export PSG JSON.';
+  note.textContent = editorChip==='cdda'?'CD-DA · stereo audio tracks / Files / Cassette':fm ? 'TFI / VGI + Synth settings · Format info ⓘ' : pcm?'RF5C164 PCM · JSON / Files / Cassette':'PSG instrument · JSON / Files / Cassette';
+  note.title = editorChip==='cdda'?'Load CD audio separately from VGM. Session WAVs are not included in Cassette export.':fm ? fmFormatTitle : pcm?'Self-contained PCM sample and settings. WAV conversion is software.':'Tone / Noise, attenuation and noise clock. Save with Sync or export PSG JSON.';
   exportTfiButton.hidden = exportVgiButton.hidden = !fm;
   exportPsgButton.hidden = fm||pcm;
   exportPcmButton.hidden=!pcm;exportPcmButton.disabled=!pcm||observing||editorSwitchPending;
   exportPsgButton.disabled = fm || pcm || observing || editorSwitchPending;
   exportTfiButton.disabled = exportVgiButton.disabled = !fm || observing;
-  for (const wheel of modulationWheels) wheel.disabled = editorChip === 'psg' || editorChip==='pcm' || observing;
+  for (const wheel of modulationWheels) wheel.disabled = editorChip === 'psg' || editorChip==='pcm' || editorChip==='cdda' || observing;
   document.getElementById('synthChipTabPcm').disabled=false;
   document.getElementById('synthChipTabPcm').title='Edit Mega CD PCM samples or view reference PCM channels';
   const sampleEvent=editorChip==='psg'||editorChip==='pcm';
@@ -922,6 +924,7 @@ function applySourceMix() {
   for(const endpoint of [psgAudio,psgEventAudio,psgLoopAudio])endpoint.setSourceVolume(levels.psg);
   for(const endpoint of [pcmAudio,pcmSongAudio,pcmEventAudio,pcmLoopAudio])endpoint.setSourceVolume(levels.pcm);
   codeAudio?.setPwmSourceVolume(levels.pwm);
+  cddaHost?.refreshMix();
 }
 
 function applyMasterVolume() {
@@ -992,6 +995,9 @@ async function ensureCodeReady() {
     ensureChip:ensureCodeChip,getContext:()=>audioContext,getFm:()=>synth,getFmVoice:getCurrentPerformanceVoice,
     getPsg:()=>psgAudio.getPsg(),getPsgVoice:()=>psgVoice,
     getPcm:()=>pcmAudio.getPcm(),getPcmVoice:()=>pcmVoice,
+    getCddaSource:()=>cddaHost?.source,
+    readCddaFile:(...args)=>cddaHost.readFile(...args),
+    resolveCddaPath:path=>resolveCddaInputPath(path,codeControls?.executionPath??'/index.js'),
     getInput:()=>performanceOutputBus,getOutput:()=>performanceMasterBus,getMaster:()=>codeActive?1:masterVolume,
     onLog:line=>codeControls?.appendLog(line),
     onCodeGate(chip,channel){
@@ -1015,6 +1021,7 @@ function getCodeRuntime() {
   if(!codeRuntime) {
     const files=createSynthCodeProject(synthProject);
     codeRuntime=createPlaygroundCodeRuntime({
+      supportedSoundChips:['ym2612','segapsg','rf5c164','cdda','pwm'],
       ensureReady:ensureCodeReady,now:()=>audioContext?.currentTime??0,
       useSoundChip:name=>codeAudio.useSoundChip(name),getFm:()=>codeAudio?.getFm(),
       fx:new Proxy({}, {get(_target,key){
@@ -1042,7 +1049,7 @@ async function beforeCodeRun({apply=false}={}) {
 }
 
 function isSongChannelTarget() {
-  return songTargetState.source!=='local'&&songTargetState.target !== 'synth' && ['loading','playing','paused','seeking'].includes(songTargetState.playback);
+  return editorChip!=='cdda'&&songTargetState.source!=='local'&&songTargetState.target !== 'synth' && ['loading','playing','paused','seeking'].includes(songTargetState.playback);
 }
 
 function isLocalChannelTarget() {return songTargetState.source==='local'&&songTargetState.target!=='synth'&&songTargetState.chip===editorChip;}
@@ -1164,6 +1171,7 @@ function forwardAuthorPsgSettings(patch) {
 
 function isPerformanceInputEnabled() {
   if(codeRuntime?.getState().busy)return false;
+  if(editorChip==='cdda')return !editorSwitchPending&&!switchingAudioOutput&&!referenceRecordingStop&&Boolean(cddaHost?.source.read().track);
   if(isLocalChannelTarget()&&localChannelDescription()?.playable===false)return false;
   let referenceKeyboard=isReferenceKeyboard();
   if(referenceKeyboard&&isSongChannelTarget()) {
@@ -1207,11 +1215,12 @@ function hasActiveRecordingPerformance() {
 }
 
 function eventRecordingBlocked() {
-  return codeActive||Boolean(codeControls?.isCodeMode())||switchingAudioOutput||Boolean(referenceRecordingStop)||
+  return editorChip==='cdda'||codeActive||Boolean(codeControls?.isCodeMode())||switchingAudioOutput||Boolean(referenceRecordingStop)||
     ['loading','playing','seeking'].includes(songTargetState.playback)||isSongChannelTarget()||isLocalChannelTarget();
 }
 
 function recordingUnavailableReason() {
+  if(editorChip==='cdda')return 'CD-DA uses its track transport or Code; Looper and Event Rec are for the chip instruments.';
   if(codeActive)return 'Stop Code to use Looper or Event Rec.';
   if(codeControls?.isCodeMode())return 'Choose Keyboard to use Looper or Event Rec.';
   if(isLocalChannelTarget())return 'Choose Auto to record your instrument.';
@@ -2308,7 +2317,7 @@ function updateKeyboardAvailability() {
     : songTargetState.chip==='pcm'?`PCM CH${Number(String(songTargetState.target).split(':')[1])+1}`:`CH${songTargetState.target + 1}`;
   keyboard.setAttribute('aria-label', isLocalChannelTarget()?`${targetName} keyboard · ${codeActive?'Code':'Normal'} physical channel`:channel
     ? `${targetName} keyboard${manual&&enabled?' · writes into the playing song':songAuditionVoice ? ' audition' : ' unavailable; pause the song to audition this channel'}`
-    : editorChip==='pcm'?'Mega CD PCM 8-channel keyboard':editorChip === 'psg' ? `Sega PSG ${psgVoice.getSettings().source} keyboard` : 'Synth keyboard');
+    : editorChip==='cdda'?'CD-DA keyboard · selected stereo track at original rate':editorChip==='pcm'?'Mega CD PCM 8-channel keyboard':editorChip === 'psg' ? `Sega PSG ${psgVoice.getSettings().source} keyboard` : 'Synth keyboard');
   keyboard.classList.toggle('is-song-unavailable', !enabled);
 }
 
@@ -3237,6 +3246,7 @@ function renderFretboardUi() {
 }
 
 function stopAllNotes() {
+  void cddaHost?.keyboard.cancel().catch(error=>{if(error.name!=='AbortError')setStatus(`CD-DA: ${error.message}`);});
   fmEdits?.channelKeyboard?.releaseKeyboard();
   psgAudio.getPsg()?.channelKeyboard?.releaseKeyboard();
   pcmAudio.getPcm()?.channelKeyboard?.releaseKeyboard();
@@ -3268,6 +3278,7 @@ function stopAllNotes() {
 }
 
 function getPlayableSynth() {
+  if(editorChip==='cdda')return cddaKeyboardVoice;
   if(isLocalChannelTarget())return localChannelKeyboard();
   if(isPcmReferenceKeyboard())return pcmSongManualVoice;
   if(isPsgSongPlaying()&&editorChip==='psg')return psgSongManualVoice;
@@ -3283,6 +3294,19 @@ function getPlayableSynth() {
 
   return getEditorPlayableSynth();
 }
+
+// CD audio is one stereo transport, so keyboard notes trigger it at its
+// original rate. Ownership prevents a late key-up from stopping newer Code/UI.
+const cddaKeyboardVoice={
+  noteOn(channel){
+    const id=`keyboard:${channel}`;
+    void cddaHost.keyboard.press(id).then(started=>{
+      if(started&&cddaHost.keyboard.read().activeId===id){if(!codeActive)codeOutput.open();setStatus('CD-DA keyboard · selected track at original rate.');}
+    }).catch(error=>{if(error.name!=='AbortError')setStatus(`CD-DA: ${error.message}`);});
+  },
+  noteOff(channel){void cddaHost?.keyboard.release(`keyboard:${channel}`).catch(error=>{if(error.name!=='AbortError')setStatus(`CD-DA: ${error.message}`);});},
+  setFrequency(){},
+};
 
 // OP gates and CH3 pitch ratios share the keyboard and recording path.
 // The existing parameter controls still program the chip directly.
@@ -3664,7 +3688,9 @@ async function initializeDirectAudio() {
   outputVisualizer.connect(audioContext, [finalOutputBus]);
 
   applyPatchToVoices();
-  stopAllNotes();
+  // A first CD-DA key is waiting for this AudioContext, before its transport
+  // starts. Do not cancel that pending key while initializing the FM endpoint.
+  if(editorChip!=='cdda')stopAllNotes();
   ensureVisualLoop();
   updateKeyboardAvailability();
 
@@ -3735,7 +3761,7 @@ function buildKeyboard() {
       fretboardLayout.rowDefs,
     layoutEntries:
       fretboardLayout.entries,
-    showPitch:editorChip !== 'psg',
+    showPitch:editorChip !== 'psg'&&editorChip!=='cdda',
     onPointerDown: (
       event,
       entry,
@@ -3946,7 +3972,7 @@ inputController =
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady:ensurePerformanceAudioReady,
-    chooseVoice: available => isLocalChannelTarget()?available[localChannel()]
+    chooseVoice: available => editorChip==='cdda'?available[0]:isLocalChannelTarget()?available[localChannel()]
       :isPcmReferenceKeyboard()?available[Number(String(songTargetState.target).split(':')[1])]
       : isPsgSongPlaying()&&editorChip==='psg'
       ? isSongChannelTarget()?available[Number(String(songTargetState.target).split(':')[1])]
@@ -4151,8 +4177,9 @@ synthFiles = setupSynthFiles({
     await songControls?.stop();
     await stopRecordingForReference();
     stopAllNotes();
+    await cddaHost?.beforeWorkspaceReplace();
   },
-  onWorkspaceReplaced:()=>songControls?.reset(),
+  onWorkspaceReplaced:async()=>{songControls?.reset();await cddaHost?.resetWorkspace();},
   isObserving:()=>isSongChannelTarget()||isLocalChannelTarget(),
   canEditObservation:canEditSongFm,
   canEditPsgObservation:canEditSongPsg,
@@ -4176,12 +4203,12 @@ songControls = setupSynthSongControls({
   onFileSelected:path=>synthFiles.selectFile(path),
   onLiveView:setSongLiveView,
   onTargetState:state => {
-    if (state.target !== 'synth' && ['loading','playing','paused','seeking'].includes(state.playback)) {
+    if (editorChip!=='cdda'&&state.target !== 'synth' && ['loading','playing','paused','seeking'].includes(state.playback)) {
       const chip = state.chip === 'pcm'?'pcm':state.chip === 'psg' ? 'psg' : 'ym2612';
       if (editorChip !== chip) selectEditorChip(editorButtonForKind(chip==='ym2612'?'fm':chip));
     }
     setSongTargetState(state);
-    if(state.target==='synth'&&!editorSwitchPending){
+    if(editorChip!=='cdda'&&state.target==='synth'&&!editorSwitchPending){
       const kind=state.chip==='pcm'?'pcm':state.chip==='psg'?'psg':'fm';
       if(kind!==activeInstrumentKind)void switchEditorChip(editorButtonForKind(kind));
     }
@@ -4215,17 +4242,40 @@ codeControls=setupSynthCodeControls({
   setStatus,
 });
 expandedTabs=setupSynthExpandedTabs({codeControls,selectChip:button=>switchEditorChip(button)});
+const cddaFiles=createSynthCodeProject(synthProject);
+cddaHost=setupSynthCdda({
+  project:synthProject,ready:synthFiles.ready,readFile:cddaFiles.readFile,
+  ensureAudio:()=>ensureAudioReady({announce:false}),getContext:()=>audioContext,getInput:()=>performanceOutputBus,
+  getMaster:()=>codeActive?1:masterVolume,
+  getMix:()=>{const muted=commonMix.getChannelMuted('cdda:0');return{volume:commonMix.getGroupVolumes().cdda,pan:0,muted,effectiveMuted:muted};},
+  onStatus:setStatus,isVisible:()=>editorChip==='cdda'&&!document.hidden,
+  onOutput(){
+    if(editorChip==='cdda'&&cddaHost&&!cddaHost.keyboard.read().ownsPlayback){
+      for(const [key]of activeKeys){activeKeys.delete(key);heldKeys.delete(key);}
+      for(const voice of voices){voice.held=false;voice.key=null;voice.startedAt=0;}
+    }
+    updateKeyboardAvailability();updateKeyboardVisuals();
+  },
+  openOutput:()=>{if(!codeActive)codeOutput.open();},
+  addFiles:()=>document.getElementById('cddaProjectInput').click(),
+});
+const cddaProjectInput=document.getElementById('cddaProjectInput');
+cddaProjectInput.addEventListener('change',()=>{
+  const files=Array.from(cddaProjectInput.files??[]);cddaProjectInput.value='';
+  void synthFiles.importMediaFiles(files).catch(error=>setStatus(`CD-DA Files: ${error.message}`));
+});
 window.addEventListener('pagehide',event=>{
   void codeControls?.stop();
   stopAllNotes();
   void stopRecordingForReference();
-  if(event.persisted)songControls.stop();
+  if(event.persisted){songControls.stop();void cddaHost?.stop();}
   else {
     songControls.dispose();
     liveHighlighter.dispose();
     psgLiveHighlighter.dispose();
     pcmLiveHighlighter.dispose();
     codeControls?.dispose();expandedTabs?.dispose();void codeAudio?.dispose();
+    void cddaHost?.dispose();
     psgControls.dispose();
     pcmControls.dispose();pcmAudio.dispose();pcmSongAudio.dispose();pcmEventAudio.dispose();pcmLoopAudio.dispose();
     psgAudio.dispose();
@@ -4258,6 +4308,7 @@ if (window.__TAURI_INTERNALS__) {
         songControls?.stop();
         await stopRecordingForReference();
         stopAllNotes();
+        await cddaHost?.stop();
         // Key-off alone can leave a long release tail playing after switching.
         synth?.reset();
         loopSynth?.reset();

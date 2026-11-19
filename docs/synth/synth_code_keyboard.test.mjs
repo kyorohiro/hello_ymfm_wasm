@@ -110,7 +110,7 @@ test('clearing a previous Live view keeps the selected chip Auto tab instead of 
 test('Code view keeps performance available in normal, running and stopped states while transition guards remain',()=>{
   const input=source.slice(source.indexOf('function isPerformanceInputEnabled()'),source.indexOf('function getCurrentPerformanceVoice()'));
   const state={busy:false};
-  const scope=vm.createContext({isLocalChannelTarget:()=>false,isReferenceKeyboard:()=>false,isSongChannelTarget:()=>false,
+  const scope=vm.createContext({editorChip:'ym2612',isLocalChannelTarget:()=>false,isReferenceKeyboard:()=>false,isSongChannelTarget:()=>false,
     codeRuntime:{getState:()=>state},codeControls:{isCodeMode:()=>true},editorSwitchPending:false,switchingAudioOutput:false,
     referenceRecordingStop:null,songTargetState:{playback:'stopped'}});
   vm.runInContext(input,scope);
@@ -126,7 +126,7 @@ test('Code view keeps performance available in normal, running and stopped state
 test('a hand note reopens a retired Code fade only after ready and never during a newer transition',async()=>{
   const input=source.slice(source.indexOf('function isPerformanceInputEnabled()'),source.indexOf('function getCurrentPerformanceVoice()'));
   const state={busy:false};let opens=0,resuming=null;
-  const scope=vm.createContext({isLocalChannelTarget:()=>false,isReferenceKeyboard:()=>false,isSongChannelTarget:()=>false,
+  const scope=vm.createContext({editorChip:'ym2612',isLocalChannelTarget:()=>false,isReferenceKeyboard:()=>false,isSongChannelTarget:()=>false,
     codeRuntime:{getState:()=>state},codeControls:{isCodeMode:()=>true},editorSwitchPending:false,switchingAudioOutput:false,
     referenceRecordingStop:null,songTargetState:{playback:'stopped'},codeActive:false,
     ensureAudioReady:async()=>{},codeOutput:{open(){opens++;}}});

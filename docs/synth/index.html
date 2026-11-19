@@ -373,6 +373,27 @@
       .synth-chip-tabs [aria-selected="true"] { color: #7be0d6; }
       .synth-chip-panel { display: grid; gap: 10px; min-width: 0; }
       .synth-chip-panel[hidden] { display: none; }
+      #cddaControls { min-width:0; }
+      #cddaControls .section-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
+      #cddaControls .huc-help { font-size:.76rem; color:#b8cac6; overflow-wrap:anywhere; }
+      #cddaControls [data-error="true"] { color:#ffb5a0; }
+      #cddaControls .huc-cdda-files, #cddaControls .huc-cdda-transport, #cddaControls .huc-cdda-seek { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
+      #cddaControls label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:.75rem; min-width:0; }
+      #cddaControls select { min-width:0; max-width:100%; }
+      #cddaControls .huc-cdda-files > label { flex:1 1 260px; }
+      #cddaControls .huc-cdda-files select { width:100%; }
+      #cddaSeek { flex:1 1 180px; min-width:0; }
+      #cddaControls input[type="file"], #cddaControls [hidden] { display:none; }
+      #cddaControls button { font:inherit; padding:6px 10px; border:1px solid #6a8277; border-radius:12px; color:#e4eee8; background:#243b34; cursor:pointer; }
+      #cddaControls button:disabled { opacity:.5; cursor:default; }
+      #cddaControls button[aria-pressed="true"] { background:#345750; border-color:#7be0d6; }
+      #cddaControls .huc-test-pcm { margin:12px 0; padding:12px; border:1px solid #526069; border-radius:12px; }
+      #cddaControls .huc-test-pcm > summary { cursor:pointer; font-weight:700; margin-bottom:10px; }
+      #cddaControls canvas { display:block; width:100%; height:150px; border:1px solid #526069; border-radius:8px; touch-action:none; cursor:crosshair; }
+      #cddaControls .huc-test-pcm-actions, #cddaControls .huc-test-pcm-parameters { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:10px 0; }
+      #cddaControls .huc-test-pcm-parameters > label { flex:1 1 160px; flex-direction:column; align-items:stretch; }
+      #cddaControls .huc-test-pcm-parameters input { width:100%; min-width:0; }
+      #cddaControls .huc-test-pcm-parameters output { font-variant-numeric:tabular-nums; }
       .synth-chip-panel.synth-chip-placeholder { min-height: 230px; align-content: center; justify-items: center; text-align: center; border-style: dashed; }
       .synth-chip-placeholder::before { content: ""; width: 120px; height: 6px; margin-bottom: 10px; background: repeating-linear-gradient(-45deg, #dfaf60 0 8px, #263331 8px 16px); }
       .synth-chip-placeholder h2 { margin: 0; font-size: 1rem; color: #dfaf60; }
@@ -1523,6 +1544,7 @@
                 <button id="synthChipTabYm2612" class="toolbar-button is-selected" type="button" role="tab" data-synth-chip="ym2612" aria-selected="true" aria-controls="synthChipYm2612" tabindex="0">YM2612</button>
                 <button id="synthChipTabPsg" class="toolbar-button" type="button" role="tab" data-synth-chip="psg" aria-selected="false" aria-controls="synthChipPsg" tabindex="-1">PSG</button>
                 <button id="synthChipTabPcm" class="toolbar-button" type="button" role="tab" data-synth-chip="pcm" aria-selected="false" aria-controls="synthChipPcm" tabindex="-1">RF5C164</button>
+                <button id="synthChipTabCdda" class="toolbar-button" type="button" role="tab" data-synth-chip="cdda" aria-selected="false" aria-controls="synthChipCdda" tabindex="-1">CD-DA</button>
                 <button id="synthChipTabPwm" class="toolbar-button" type="button" role="tab" data-synth-chip="pwm" aria-selected="false" aria-controls="synthChipPwm" tabindex="-1">32X PWM</button>
                 <button id="synthSongMixButton" class="toolbar-button" type="button" role="tab" data-synth-chip="mixer" aria-selected="false" aria-controls="synthChipMixer" tabindex="-1" title="Shared chip volumes and channel On / Off for Keyboard, Code and VGM.">Mixer</button>
             </div>
@@ -1741,6 +1763,27 @@
                 <div class="synth-pcm-fields"><div class="synth-pcm-field"><span id="synthPcmLoopStartLabel">Loop Start · frame</span><div id="synthPcmLoopStartControl"></div></div><div class="synth-pcm-field"><span id="synthPcmLoopEndLabel">Loop End · exclusive frame</span><div id="synthPcmLoopEndControl"></div></div></div>
               </div>
             </div>
+            <div id="synthChipCdda" class="card synth-chip-panel" role="tabpanel" aria-labelledby="synthChipTabCdda" hidden>
+              <div id="cddaControls">
+                <div class="section-heading"><h2>Mega CD · CD-DA</h2><output id="cddaSourceState" role="status">Empty</output></div>
+                <div class="huc-cdda-files">
+                  <label for="cddaSourceSelect">Audio in Files or session <select id="cddaSourceSelect"><option value="">No CD audio sources</option></select></label>
+                  <button id="cddaLoadSource" type="button" disabled>Load selected source</button>
+                  <button id="cddaAddFiles" type="button">Add to Files…</button>
+                  <input id="cddaProjectInput" type="file" multiple accept=".wav,.json,audio/wav,application/json" aria-label="Add CD-DA WAVs or track manifests to Files" hidden>
+                  <button id="cddaOpenSession" type="button">Open session WAVs…</button>
+                  <input id="cddaSessionInput" type="file" multiple accept=".wav,audio/wav,audio/x-wav" aria-label="Open temporary session WAV tracks" hidden>
+                  <button id="cddaClearSession" type="button" disabled>Clear session WAVs</button>
+                  <button id="cddaCancelLoad" type="button" hidden>Cancel load</button>
+                </div>
+                <p id="cddaStorageNote" class="huc-help">Files / Cassette: 16 MiB total. Open session WAVs for longer audio.</p>
+                <div class="huc-cdda-transport"><label for="cddaTrackSelect">Track <select id="cddaTrackSelect" aria-label="Selected CD-DA track" disabled></select></label><button id="cddaPlay" type="button" disabled>Play</button><button id="cddaStop" type="button" disabled>Stop</button></div>
+                <div class="huc-cdda-seek"><input id="cddaSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="CD-DA playback position in seconds" disabled><output id="cddaPosition" for="cddaSeek">0:00.00 / 0:00.00</output></div>
+                <p id="cddaSourceInfo" class="huc-help"></p><p id="cddaSourceStatus" class="huc-help" role="status"></p>
+                <details class="spu-code-help"><summary aria-label="About Mega CD audio playback">?</summary><p>CD-DA plays 44.1 kHz stereo PCM16 WAVs at their original rate. Keyboard keys trigger the selected track; releasing a key uses a short software fade. UI and <code>await useSoundChip("cdda")</code> share the track and cursor. CD audio is loaded separately from VGM; this does not load a game disc, ISO or CUE. Files and Cassette retain WAVs and track manifests. Session WAVs are temporary and must be reopened after reload. Mixer controls CD-DA volume and stereo On / Off.</p></details>
+                <div id="cddaTestPcm"></div>
+              </div>
+            </div>
             <div id="synthChipPwm" class="card synth-chip-panel synth-chip-placeholder" role="tabpanel" aria-labelledby="synthChipTabPwm" tabindex="0" hidden>
               <h2>32X PWM</h2><p>Under construction</p>
               <p class="subtext">Editor preview · Keyboard plays YM2612.</p>
@@ -1867,7 +1910,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=workspace-switch-cassette-2";
+      import "./synth.js?v=megacd-cdda-1";
     </script>
   </body>
 </html>

@@ -7,6 +7,7 @@ import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 const fullHeader = {ym2612Clock:7670454,psgClock:3579545,rf5c164Clock:12500000,pwmClock:23011361};
 const defaultGroups = [{id:'ym2612',label:'YM2612',volume:defaults.ym2612},
   {id:'psg',label:'Sega PSG',volume:defaults.psg},{id:'pcm',label:'Mega CD PCM',volume:defaults.pcm},
+  {id:'cdda',label:'CD-DA',volume:defaults.cdda},
   {id:'pwm',label:'32X PWM',volume:defaults.pwm}];
 
 test('source defaults share the calibrated factory gains exactly, including PWM and fractional percentages',()=>{
@@ -14,14 +15,15 @@ test('source defaults share the calibrated factory gains exactly, including PWM 
   for(const [id,kind] of Object.entries({ym2612:'ym2612',psg:'segapsg',pcm:'rf5c164',pwm:'pwm'})) {
     assert.equal(defaults[id],kinds.find(entry=>entry.name===kind).volume);
   }
+  assert.equal(defaults.cdda,1,'CD-DA retains the shared unlisted-source unity default, not a measured gain');
   assert(Object.isFrozen(defaults));
   assert.notEqual(defaults.ym2612,Math.round(defaults.ym2612*1000)/1000,'display rounding must not replace the measured source gain');
   assert.notEqual(defaults.pcm,Math.round(defaults.pcm*1000)/1000);
 });
 
-test('all source volumes and twenty channel switches are available without a VGM; reference presence stays separate', () => {
+test('all source volumes and twenty-one channel switches are available without a VGM; reference presence stays separate', () => {
   const mix = createSynthSongMix();
-  assert.equal(mix.getState().channels.length,20);
+  assert.equal(mix.getState().channels.length,21);
   assert.equal(mix.getState().referenceActive,false);assert.deepEqual(mix.getState().referenceChannels,[]);
   assert(mix.getState().channels.every(channel=>!channel.muted&&!channel.referencePresent));
   assert.deepEqual(mix.getLiveMutedChannels(),[]);assert.equal(mix.getMutedChannels().length,20);
@@ -29,14 +31,15 @@ test('all source volumes and twenty channel switches are available without a VGM
   assert.deepEqual(mix.getGroupVolumes(),defaults);
   mix.configure(fullHeader);
   const state = mix.getState();
-  assert.equal(state.channels.length,20);
+  assert.equal(state.channels.length,21);
   assert.equal(state.referenceActive,true);assert.equal(state.referenceChannels.length,20);
   assert.deepEqual(state.channels.map(channel => channel.id),[
     ...Array.from({length:6},(_,i)=>`ym2612:${i}`),...Array.from({length:4},(_,i)=>`psg:${i}`),
-    ...Array.from({length:8},(_,i)=>`pcm:${i}`),'pwm:0','pwm:1']);
+    ...Array.from({length:8},(_,i)=>`pcm:${i}`),'cdda:0','pwm:0','pwm:1']);
   assert.equal(state.channels.find(channel=>channel.id==='ym2612:5').label,'CH6 / DAC');
   assert.match(state.channels.find(channel=>channel.id==='pwm:0').label,/output/);
-  assert(state.channels.every(channel=>!channel.muted&&!channel.effectiveMuted&&channel.referencePresent));
+  assert(state.referenceChannels.every(channel=>!channel.muted&&!channel.effectiveMuted&&channel.referencePresent));
+  assert.equal(state.channels.find(channel=>channel.id==='cdda:0').referencePresent,false);
   assert.deepEqual(state.groups,defaultGroups);
   assert.deepEqual(mix.getGroupVolumes(),defaults);
   assert.equal(state.changed,false);
@@ -45,7 +48,7 @@ test('all source volumes and twenty channel switches are available without a VGM
   assert(Object.isFrozen(state.groups));
   assert(Object.isFrozen(state.referenceChannels));
   mix.configure({psgClock:3579545});
-  assert.equal(mix.getState().channels.length,20);
+  assert.equal(mix.getState().channels.length,21);
   assert.deepEqual(mix.getState().referenceChannels.map(channel=>channel.id),['psg:0','psg:1','psg:2','psg:3']);
   assert.equal(mix.getMutedChannels().length,16,'undeclared endpoints stay silent too');
   assert.deepEqual(mix.getState().groups,defaultGroups);
@@ -62,13 +65,13 @@ test('channel mutes remain independent from source volumes; Reset restores both'
   mix.setChannelMuted('ym2612:1',true);mix.setChannelMuted('pwm:1',true);
   mix.setChannelMuted('pcm:6',true);
   mix.setGroupVolume('ym2612',3.8);mix.setGroupVolume('psg',0);mix.setGroupVolume('pcm',.25);mix.setGroupVolume('pwm',.75);
-  assert.equal(audible().length,17,'group gain does not rewrite per-channel mute choices');
-  assert.deepEqual(mix.getGroupVolumes(),{ym2612:3.8,psg:0,pcm:.25,pwm:.75});
+  assert.equal(audible().length,18,'group gain does not rewrite per-channel mute choices');
+  assert.deepEqual(mix.getGroupVolumes(),{ym2612:3.8,psg:0,pcm:.25,cdda:defaults.cdda,pwm:.75});
   assert.equal(mix.getState().changed,true);
   mix.setChannelMuted('ym2612:1',false);
-  assert.equal(audible().length,18);
+  assert.equal(audible().length,19);
   assert.equal(mix.getState().groups[0].volume,3.8);
-  assert.equal(mix.reset(),true);assert.equal(audible().length,20);
+  assert.equal(mix.reset(),true);assert.equal(audible().length,21);
   assert.deepEqual(mix.getGroupVolumes(),defaults);
   mix.setGroupVolume('psg',.5);
   assert.equal(mix.getState().changed,true,'a gain-only edit enables Reset');
@@ -78,6 +81,18 @@ test('channel mutes remain independent from source volumes; Reset restores both'
   assert.equal(mix.getState().changed,true,'100% is an explicit source gain, not the measured factory balance');
   assert.equal(mix.reset(),true);
   assert.equal(mix.getGroupVolumes().ym2612,defaults.ym2612,'Reset preserves the exact fractional calibrated value');
+});
+
+test('CD-DA is one shared stereo source and never enters VGM engine settings',()=>{
+  const mix=createSynthSongMix();mix.configure(fullHeader);
+  const referenceVolumes={...defaults};delete referenceVolumes.cdda;
+  const referenceMutes=mix.getMutedChannels();
+  mix.setGroupVolume('cdda',.5);mix.setChannelMuted('cdda:0',true);
+  assert.equal(mix.getGroupVolumes().cdda,.5);assert.deepEqual(mix.getLiveMutedChannels(),['cdda:0']);
+  assert.deepEqual(mix.getReferenceGroupVolumes(),referenceVolumes);assert.deepEqual(mix.getMutedChannels(),referenceMutes);
+  assert.equal(mix.getState().referenceChannels.some(channel=>channel.groupId==='cdda'),false);
+  assert.equal(mix.getState().channels.find(channel=>channel.id==='cdda:0').label,'Stereo');
+  mix.reset();assert.equal(mix.getGroupVolumes().cdda,1);assert.equal(mix.getChannelMuted('cdda:0'),false);
 });
 
 test('common mutes and volumes survive reference header changes, source replacement and clear', () => {
@@ -96,7 +111,7 @@ test('common mutes and volumes survive reference header changes, source replacem
   assert.throws(()=>mix.getChannelMuted('missing'),/Unknown reference channel/);
   assert.throws(()=>mix.setChannelMuted('psg:0',1),/boolean/);
   assert.equal(mix.setChannelMuted('psg:3',true),false);
-  mix.clear();assert.equal(mix.getState().channels.length,20);assert.equal(mix.getState().referenceActive,false);
+  mix.clear();assert.equal(mix.getState().channels.length,21);assert.equal(mix.getState().referenceActive,false);
   assert.deepEqual(mix.getState().referenceChannels,[]);assert.equal(mix.getMutedChannels().length,20);
   assert.deepEqual(mix.getLiveMutedChannels(),['psg:3','pwm:0']);mix.configure(fullHeader);
   assert.deepEqual(mix.getMutedChannels(),['psg:3','pwm:0'],'the next VGM inherits common channel switches');
@@ -132,10 +147,10 @@ test('shared mixer observers see stable immutable snapshots, single changes and 
   assert.equal(changes.length,0);
   mix.setGroupVolume('pwm',1.5);assert.equal(changes.length,1);assert.deepEqual(changes[0].change,{type:'volume',id:'pwm'});
   const edited=changes[0].state;assert.equal(edited,mix.getState());assert.notEqual(edited,initial);
-  assert.equal(initial.groups[3].volume,defaults.pwm);assert.equal(edited.groups[3].volume,1.5);
+  assert.equal(initial.groups[4].volume,defaults.pwm);assert.equal(edited.groups[4].volume,1.5);
   mix.configure(fullHeader);mix.setChannelMuted('psg:1',true);mix.clear();
   assert.deepEqual(changes.map(({change})=>change.type),['volume','configure','mute','clear']);
-  assert.equal(mix.getGroupVolumes().pwm,1.5);assert.equal(mix.getState().channels.length,20);
+  assert.equal(mix.getGroupVolumes().pwm,1.5);assert.equal(mix.getState().channels.length,21);
   assert.equal(mix.getState().referenceActive,false);assert.equal(mix.getChannelMuted('psg:1'),true);
   assert.equal(mix.getState(),changes.at(-1).state);
   release();mix.reset();assert.equal(changes.length,4);assert.deepEqual(mix.getGroupVolumes(),defaults);

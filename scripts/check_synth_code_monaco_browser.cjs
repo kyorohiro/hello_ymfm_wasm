@@ -97,6 +97,8 @@ chipPsg.tone(PSG1, {note: 'C4'});
 const chipPcm = await useSoundChip('rf5c164');
 chipPcm.setChannel(7, {volume: 64, pan: {left: 15, right: 0}});
 await chipPcm.loadSample(new Uint8Array([1, 2]), {loopStart: 0});
+const chipCdda = await useSoundChip('cdda');
+await chipCdda.getState();
 const chipPwm = await useSoundChip('pwm');
 await chipPwm.writeRegister(1, 1047);
 context.marker = 'typed';
@@ -273,7 +275,7 @@ async function run(browser, name, origin) {
       if (/Timed out|TimeoutError/.test(error.message) && cdnFailures.length) throw new CdnUnavailableError(error.message);
       throw error;
     }
-    assert.deepEqual(result.good, {syntax: [], semantic: []}, 'Four-chip code, context, livePrepare and liveFx type-check');
+    assert.deepEqual(result.good, {syntax: [], semantic: []}, 'Five-chip code, context, livePrepare and liveFx type-check');
     await page.evaluate(() => {
       const host=document.getElementById('synthCodeEditorHost');
       const editor=monaco.editor.getEditors().find(item=>host.contains(item.getDomNode()));
@@ -306,9 +308,9 @@ async function run(browser, name, origin) {
       const worker = await (await monaco.languages.typescript.getJavaScriptWorker())(model.uri);
       const completion = await worker.getCompletionsAtPosition(model.uri.toString(), source.indexOf('""') + 1);
       return (completion?.entries ?? []).map(entry => entry.name.replace(/^["']|["']$/g, '')).sort();
-    }), 'Four-chip literal completions');
-    assert.deepEqual(result.chipCompletions, ['pwm', 'rf5c164', 'segapsg', 'ym2612']);
-    result.steps.push('useSoundChip literal completion offers exactly the four actual Synth clients');
+    }), 'Five-chip literal completions');
+    assert.deepEqual(result.chipCompletions, ['cdda', 'pwm', 'rf5c164', 'segapsg', 'ym2612']);
+    result.steps.push('useSoundChip literal completion offers exactly the five actual Synth clients');
 
     await setSource(page, GOOD_SOURCE);
     await diagnostics(page);
@@ -354,7 +356,7 @@ async function run(browser, name, origin) {
       }), 'launch ' + name);
       try {
         results.push(await run(browser, name, origin));
-        console.log(`PASS ${name}: real Monaco types, four-chip completion and readable implementation navigation`);
+        console.log(`PASS ${name}: real Monaco types, five-chip completion and readable implementation navigation`);
       } finally { await browser.close(); }
     }
   } catch (error) { failure = error; }

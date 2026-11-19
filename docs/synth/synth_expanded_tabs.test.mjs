@@ -32,9 +32,9 @@ function fixture() {
   const header=new Element('header');header.append(byId('synthWorkspaceCodeButton'),byId('synthWorkspaceSynthButton'));
   workspace.append(header,main);main.append(byId('synthExpandedVolumeSlot'),byId('synthExpandedTabsSlot'),editor,byId('synthExpandedCodeSlot'));
   const tablist=new Element('chipTabs'),inputTablist=new Element('inputTabs'),inputHeading=new Element('inputHeading'),transport=new Element('transport');
-  const chipIds=['synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabPwm','synthSongMixButton'];
+  const chipIds=['synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabCdda','synthChipTabPwm','synthSongMixButton'];
   const chipTabs=chipIds.map(byId),code=byId('synthInputCodeTab'),keyboard=byId('synthInputKeyboardTab');
-  for(const [i,tab]of chipTabs.entries()){tab.dataset.synthChip=['ym2612','psg','pcm','pwm','mixer'][i];tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(i===0));tab.tabIndex=i===0?0:-1;}
+  for(const [i,tab]of chipTabs.entries()){tab.dataset.synthChip=['ym2612','psg','pcm','cdda','pwm','mixer'][i];tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(i===0));tab.tabIndex=i===0?0:-1;}
   for(const tab of [code,keyboard])tab.setAttribute('role','tab');
   code.setAttribute('aria-selected','true');keyboard.setAttribute('aria-selected','false');
   tablist.setAttribute('aria-label','Sound chip editor');tablist.append(...chipTabs);
@@ -83,7 +83,7 @@ test('expanded workspace has one ordered tablist and keeps its original transpor
   }finally{f.cleanup();}
 });
 
-test('capture navigation traverses seven enabled tabs with wrapping, Home/End, and tab focus',async()=>{
+test('capture navigation traverses eight enabled tabs with wrapping, Home/End, and tab focus',async()=>{
   const f=fixture();
   try {
     f.expand();const all=[f.code,...f.chipTabs,f.keyboard];
@@ -97,7 +97,7 @@ test('capture navigation traverses seven enabled tabs with wrapping, Home/End, a
     f.chipTabs[0].disabled=true;f.tablist.fire('keydown',{key:'ArrowDown',target:f.code});await settle();
     assert.equal(document.activeElement,f.chipTabs[1]);
     assert(f.calls.modes.every(([,options])=>options.focusEditor===false));
-    assert.equal(f.calls.chips.length,6,'each chip key navigation invokes its handler only once');
+    assert.equal(f.calls.chips.length,7,'each chip key navigation invokes its handler only once');
     const modified=f.tablist.fire('keydown',{key:'ArrowRight',target:f.code,ctrlKey:true});assert.equal(modified.prevented,false);
   }finally{f.cleanup();}
 });

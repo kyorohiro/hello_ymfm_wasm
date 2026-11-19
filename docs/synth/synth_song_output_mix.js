@@ -3,7 +3,7 @@
 // original song writes. No note-off, envelope, sample address or DAC data is
 // changed to mute a channel. The checked SDK and its WASM ABI stay unchanged.
 // Volumes use raw-source gain units, including the shared calibrated defaults.
-import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
+import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=megacd-cdda-1';
 
 const GROUPS = {ym2612:6, psg:4, pcm:8, pwm:2};
 const VOLUME_GROUPS = new Set(['ym2612','psg','pcm','pwm']);
