@@ -182,14 +182,14 @@ test('Files examples are explicit, add missing files only and preserve active Co
   f.project.writeEditorText('/examples/huc6280.js','// modified melody');assert.deepEqual(await f.files.addExamples(),[]);
   assert.equal(f.project.fs.get('/examples/huc6280.js').data,'// modified melody');assert.equal(f.doc.getElementById('hucFilesPanel').hidden,false);
   assert.equal(flushes,0,'Adding examples keeps the current editor');
-  assert.equal(f.doc.getElementById('hucFileExamplesButton').disabled,false);assert.match(f.statuses.at(-1),/existing files were kept/);
+  assert.equal(f.doc.getElementById('hucFileExamplesButton'),undefined);assert.match(f.statuses.at(-1),/existing files were kept/);
 });
 
 test('Files examples reject a full project before adding any file',async t=>{
   const f=fixture(t);await f.files.ready;
   f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(HUC6280_PROJECT_FILE_BYTES-100)}]);
   const before=f.project.snapshot();await assert.rejects(f.files.addExamples(),/16 MiB/);
-  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.doc.querySelector('.huc-main').inert,false);assert.equal(f.doc.getElementById('hucFileExamplesButton').disabled,false);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.doc.querySelector('.huc-main').inert,false);assert.equal(f.doc.getElementById('hucFileExamplesButton'),undefined);
 });
 
 test('HuC6280 file selection preserves mode, text edits do not apply, explicit valid preset selection does',async t=>{
@@ -667,4 +667,14 @@ test('large JSON Code recovery reconciles working and accepted sound caches with
   f.project.recoverCode(path,{source:soundText(working),savedSource:soundText(accepted),autoSave:false});assert.notEqual(f.project.settings.volume,3);
   assert.equal(await f.files.recoverCodeState(path),true);assert.equal(f.project.settings.volume,3);assert.equal(f.project.savedSettings.volume,8);assert.equal(f.project.settings.wave[0],2);assert.equal(f.project.fs.get(path).data,soundText(working));assert.equal(f.project.savedFs.get(path).data,soundText(accepted));
   assert.equal(storage.getItem(HUC6280_SOUND_JOURNAL_KEY),null);assert(f.statuses.some(message=>/immediate recovery limit/.test(message)));
+});
+
+
+test('Discard all restores all unsaved documents and keeps accepted sound without restarting Code',async t=>{
+  const f=fixture(t);await f.files.ready;const path=await f.files.saveSound(),saved=f.project.fs.get(path).data;
+  await f.files.setAutoApply(false);const original=f.project.savedFs.get('/index.js').data;
+  f.project.writeEditorText('/index.js','// unsaved');const next=createDefaultPreset();next.volume=4;f.setSettings(next);f.files.recordSoundEdit(next);
+  assert(f.project.getDirtyPaths().length>=2);assert.equal(await f.files.discardAll(),true);
+  assert.deepEqual(f.project.getDirtyPaths(),[]);assert.equal(f.project.fs.get('/index.js').data,original);assert.equal(f.project.fs.get(path).data,saved);
+  assert.equal(f.doc.getElementById('hucFileNewButton').textContent,'＋ JS');
 });

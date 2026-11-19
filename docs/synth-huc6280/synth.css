@@ -191,6 +191,21 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .huc-file-unsaved { margin-left:5px; color:#a3440d; font-size:.85em; }
 .huc-files-status { margin:8px 0 0; font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
 .huc-files-path { display:none; }
+.huc-files-panel { min-width:0; padding:12px; border:1px solid #afb9c0; border-radius:14px; background:#f7f8f9; }
+.huc-files-panel button { border:1px solid #aab6bf; border-radius:999px; background:transparent; color:var(--ink); box-shadow:none; font-weight:600; }
+.huc-files-panel button:hover:not(:disabled) { background:#e8edf0; border-color:#7b8d99; }
+.huc-files-panel button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.huc-files-panel button:disabled { opacity:.45; }
+.huc-files-save-controls { gap:6px; padding:10px 0; }
+.huc-files-actions { gap:6px; padding-top:10px; border-top:0; }
+.huc-files-panel #hucFilesTree button { border:0; border-radius:6px; font-weight:400; }
+.huc-files-panel #hucFilesTree button[aria-current="true"] { background:#f0dfd1; color:#71370f; }
+.huc-files-panel #hucFilesTree .file-drop-target { background:#f0dfd1; outline:1px solid var(--accent); }
+/* The shared file-menu controller mounts on body, outside the Files panel. */
+.spu-file-context-menu { z-index:1000; display:grid; gap:3px; min-width:180px; padding:7px; border:1px solid #9eabb5; border-radius:10px; background:#f7f8f9; color:var(--ink); box-shadow:0 8px 28px #26344135; }
+.spu-file-context-menu button { min-height:32px; width:100%; padding:6px 12px; border:1px solid #aab6bf; border-radius:999px; background:transparent; color:var(--ink); text-align:left; font-size:.78rem; font-weight:500; box-shadow:none; }
+.spu-file-context-menu button:hover:not(:disabled),.spu-file-context-menu button:focus-visible { background:#f0dfd1; border-color:#ba7444; }
+.spu-file-context-menu button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 #hucFilesTree { min-height:80px; max-height:55vh; overflow:auto; }
 #hucFilesTree .file-tree { list-style:none; margin:0; padding:0; }
 #hucFilesTree .file-tree .file-tree { padding-left:12px; }

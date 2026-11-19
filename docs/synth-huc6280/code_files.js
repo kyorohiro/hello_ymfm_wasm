@@ -82,18 +82,18 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   const saving=make('div');saving.className='huc-files-save-controls';saving.setAttribute('role','group');saving.setAttribute('aria-label','File saving');
   const autoLabel=make('label'),autoToggle=make('input','hucAutoApplyToggle');autoToggle.type='checkbox';autoToggle.checked=true;
   autoLabel.append(autoToggle,make('span',null,'Auto apply'));autoLabel.title='Save edits automatically and apply valid instrument changes. JavaScript still uses Run / Apply.';saving.append(autoLabel);
-  for(const[id,label]of [['hucFileSaveButton','Save'],['hucFileSaveAllButton','Save all'],['hucFileDiscardButton','Discard'],['hucFileUndoButton','Undo files']]){
+  for(const[id,label]of [['hucFileSaveButton','Save'],['hucFileSaveAllButton','Save all'],['hucFileDiscardButton','Discard'],['hucFileDiscardAllButton','Discard all']]){
     const button=make('button',id,label);button.type='button';saving.append(button);
     listen(button,'pointerdown',event=>event.preventDefault());
   }
   const actions=make('div');actions.className='huc-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
   for(const button of saving.querySelectorAll('button'))buttons.set(button.id,button);
-  for(const[id,label]of [['hucProjectNewButton','New Cassette…'],['hucFileNewButton','New JS'],['hucFileSaveSoundButton','Save sound'],['hucFileExamplesButton','Examples'],['hucFileRenameButton','Rename…'],['hucFileDeleteButton','Delete…'],['hucFileImportButton','Add files…'],['hucFileExportButton','Export file'],['hucProjectExportButton','Export project'],['hucProjectImportButton','Import project…']]){
+  for(const[id,label]of [['hucFileUndoButton','Undo files'],['hucProjectNewButton','New Cassette…'],['hucFileNewButton','＋ JS'],['hucFileSaveSoundButton','Save sound'],['hucFileRenameButton','Rename…'],['hucFileDeleteButton','Delete…'],['hucFileImportButton','Add files…'],['hucFileExportButton','Export file'],['hucProjectExportButton','Export project'],['hucProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';
     (['hucFileNewButton','hucFileSaveSoundButton','hucFileExamplesButton'].includes(id)?toolbar:actions).append(button);buttons.set(id,button);
     if(id==='hucFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
-    if(id==='hucFileExamplesButton')button.title='Add missing HuC6280, MSM5205 and CD-DA examples to examples/. Existing files are kept; Code is not run.';
+    if(id==='hucFileSaveSoundButton')button.title='Save the current edited sound as a new preset file in presets/. Existing files are kept.';
     const destination={hucProjectNewButton:['hucMenuProjectNew','Cassette…'],hucProjectImportButton:['hucMenuProjectImport','Cassette · ZIP…'],hucProjectExportButton:['hucMenuProjectExport','Cassette · ZIP'],hucFileImportButton:['hucMenuFilesImport','Project files…'],hucFileExportButton:['hucMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
@@ -249,21 +249,24 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
       say(`Saved ${all?'all files':path}.${invalid?` JSON not applied; current sound kept. ${invalid.message}`:''}${durable===false?' Local draft unavailable; Export Cassette to keep both versions.':''}`);return true;
     }finally{if(!disposed)setBusy(false);}
   }
-  async function discardCurrent(){
+  async function discardCurrent(all=false){
     await api.ready;if(disposed||busy)return false;
     if(await code?.flush?.({persist:false})===false)return false;await pendingSoundEdit;
-    const path=project.selectedPath??code?.activePath??soundPath();if(!path||!project.isFileModified(path))return false;
-    const original=savedPath(path),targets=expandedSavePaths([path]),before=capture();setBusy(true,{lockMain:false});
+    const path=project.selectedPath??code?.activePath??soundPath();if(all?!project.getDirtyPaths().length:!path||!project.isFileModified(path))return false;
+    const original=path?savedPath(path):null,active=soundPath(),activeOriginal=active?savedPath(active):null;
+    const codePath=code?.activePath,codeOriginal=codePath?savedPath(codePath):null;
+    const targets=all?project.getDirtyPaths():expandedSavePaths([path]),before=capture();setBusy(true,{lockMain:false});
     try{
       project.discardFiles(targets);clearMoves(targets);pushHistory(before);
-      if(path!==original)code?.pathChanged?.(path,original,{preserveExecution:!project.autoApply});
-      if(soundPath()&&inside(soundPath(),path)){
-        const target=original+soundPath().slice(path.length);project.setActiveSoundPath(project.fs.has(target)?target:null);
+      if(all&&codePath&&codePath!==codeOriginal)code?.pathChanged?.(codePath,codeOriginal,{preserveExecution:!project.autoApply});
+      else if(!all&&path!==original)code?.pathChanged?.(path,original,{preserveExecution:!project.autoApply});
+      if(active&&(all||inside(active,path))){
+        const target=all?activeOriginal:original+active.slice(path.length);project.setActiveSoundPath(project.fs.has(target)?target:null);
         if(project.activeSoundPath){const sound=soundFromFile(target);if(sound)project.setSettings(sound);}
         else project.setSettings(project.savedSettings);
         await applySettings(project.savedSettings,{record:false,source:'discard',load:false,applyAudio:false,displayPreset:displaySound()});
       }
-      project.select(hasPath(project.fs,original)?original:null);await code?.reloadFile?.();protectSound();render();await persistCode();say(`Discarded changes to ${path}.`);return true;
+      project.select(hasPath(project.fs,original)?original:null);await code?.reloadFile?.();protectSound();render();await persistCode();say(all?'Discarded all unsaved file changes.':`Discarded changes to ${path}.`);return true;
     }finally{if(!disposed)setBusy(false);}
   }
   async function setAutoApply(enabled){
@@ -330,6 +333,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
     buttons.get('hucFileSaveButton').disabled=busy||!(project.selectedPath??code?.activePath??soundPath());
     buttons.get('hucFileSaveAllButton').disabled=busy||!project.getDirtyPaths().length;
     buttons.get('hucFileDiscardButton').disabled=busy||!project.selectedPath||!project.isFileModified(project.selectedPath);
+    buttons.get('hucFileDiscardAllButton').disabled=busy||!project.getDirtyPaths().length;
     buttons.get('hucFileUndoButton').disabled=busy||!history.length;
     autoToggle.checked=project.autoApply;autoToggle.disabled=busy;
     code?.setBusy?.(busy);
@@ -709,7 +713,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   listen(newCassetteCreate,'click',()=>void newProject().catch(report));
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(selectFile(choice.path)).catch(report);});
   listen(autoToggle,'change',()=>{void setAutoApply(autoToggle.checked).catch(report);autoToggle.blur();});
-  for(const[id,action]of [['hucFileSaveButton',()=>saveCurrent()],['hucFileSaveAllButton',()=>saveCurrent(true)],['hucFileDiscardButton',discardCurrent],['hucFileUndoButton',undo]])listen(buttons.get(id),'click',()=>void action().catch(report));
+  for(const[id,action]of [['hucFileSaveButton',()=>saveCurrent()],['hucFileSaveAllButton',()=>saveCurrent(true)],['hucFileDiscardButton',()=>discardCurrent()],['hucFileDiscardAllButton',()=>discardCurrent(true)],['hucFileUndoButton',undo]])listen(buttons.get(id),'click',()=>void action().catch(report));
   for(const[id,fn]of [['hucProjectNewButton',askNewCassette],['hucFileNewButton',()=>ask('new')],['hucFileRenameButton',()=>ask('rename')],['hucFileDeleteButton',()=>ask('delete')],['hucFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['hucProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['hucFileSaveSoundButton',()=>void saveSound().catch(report)],['hucFileExamplesButton',()=>void addExamples().catch(report)],['hucProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['hucFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
@@ -719,7 +723,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
     rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importSong,importVgm,importProject,newProject,exportProject,createFile,move,duplicate,remove,saveSound,addExamples,
     recordSoundEdit,adoptExternalSound,canEditSound,codeEdited,recoverCodeState,isAutoApply:()=>project.autoApply,getSavedEditorPreset:()=>project.savedSettings,
-    saveCurrent,saveAll:()=>saveCurrent(true),discardCurrent,setAutoApply,undo,
+    saveCurrent,saveAll:()=>saveCurrent(true),discardCurrent,discardAll:()=>discardCurrent(true),setAutoApply,undo,
     markSoundDirty(value=getSettings()){
       if(disposed)return false;
       // Startup may finish after an early control edit. Preserve that sound

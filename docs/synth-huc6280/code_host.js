@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
 // Software scheduling over the existing PSG and shared authored CD media.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=huc-working-saved-1';
 import {selectHuc6280CodeDeclarations} from './code_declarations.js?v=huc-cdda-ui-1';
 import {createHuc6280CodeAudio} from './code_audio.js?v=huc-working-saved-1';
 import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-working-saved-1';
-import {setupHuc6280CodeFiles} from './code_files.js?v=huc-working-saved-1';
+import {setupHuc6280CodeFiles} from './code_files.js?v=huc-files-controls-1';
 import {resolveCddaInputPath,createCddaInputReader} from './cdda_inputs.js';
 
 export const HUC6280_STARTER_CODE=`const pce = await useSoundChip("huc6280");
@@ -32,6 +33,7 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
   onViewChange=()=>{},onExpandedChange=()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null;
   const project=createHuc6280CodeProject({settings:getSettings(),getStarterCode:()=>HUC6280_STARTER_CODE});
+  addPcEngineCodeExamples(project);
   const readSaved=(...args)=>project.readSavedFile(...args);
   const cddaFiles=createCddaInputReader({project:{readFile:readSaved},session:{readFile:(path,options)=>{
     if(!readCddaFile)throw Error('Open this session WAV again before using it in Code.');
