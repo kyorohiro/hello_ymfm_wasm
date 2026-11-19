@@ -19,7 +19,7 @@ const toneExtension=path=>String(path).match(/\.(?:psg|pcm)\.json$|\.(?:tfi|vgi)
 const isCodePath=path=>/\.m?js$/i.test(String(path))&&!String(path).split('/').includes('.git')&&!isCheckpointPath(path);
 const newWorkspaceId = () => globalThis.crypto?.randomUUID?.() || `synth-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,applySnapshot,onSaved,onListChanged,onWorkspaceReplaced,
+export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,applySnapshot,onSaved,onListChanged,onWorkspaceReplaced,onBeforeWorkspaceReplace=async()=>{},
   getEditorKind=()=> 'fm',setEditorKind=()=>{},getDefaultPresetId=()=> 'one-op-basic',getPresetKind=()=>null,isObserving=()=>false,
   canEditObservation=()=>false,canEditPsgObservation=()=>false,canEditPcmObservation=()=>false,canLoadWhileObserving=()=>false,isChipModeLocked=()=>false,stopAllNotes,setStatus}) {
   const byId = id => document.getElementById(id);
@@ -29,6 +29,20 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
   const syncButton = byId('synthFileSaveButton'), revertButton = byId('synthFileRevertButton');
   const announcement = byId('synthSyncAnnouncement');
   const menu = byId('synthFileContextMenu');
+  const make = (tag,id,text) => {const node=document.createElement(tag);if(id)node.id=id;if(text)node.textContent=text;return node;};
+  const newCassetteDialog=make('dialog','synthNewCassetteDialog');
+  newCassetteDialog.className='synth-file-dialog';
+  newCassetteDialog.setAttribute('aria-labelledby','synthNewCassetteTitle');
+  const newCassetteTitle=make('h2','synthNewCassetteTitle','Create a new Cassette?');
+  const newCassetteDescription=make('p',null,'This replaces the current browser project and stops its performance. The new Cassette contains default sounds, starter Code and examples. Code will not run automatically. You can restore the previous project with Files Undo.');
+  const newCassetteError=make('p','synthNewCassetteError');newCassetteError.hidden=true;newCassetteError.setAttribute('role','alert');
+  const newCassetteActions=make('div');newCassetteActions.className='synth-file-dialog-actions';
+  const newCassetteCancel=make('button','synthNewCassetteCancel','Cancel');
+  const newCassetteExport=make('button','synthNewCassetteExport','Export current & create');
+  const newCassetteCreate=make('button','synthNewCassetteCreate','Create without export');
+  for(const button of [newCassetteCancel,newCassetteExport,newCassetteCreate]){button.type='button';button.className='toolbar-button';}
+  newCassetteActions.append(newCassetteCancel,newCassetteExport,newCassetteCreate);
+  newCassetteDialog.append(newCassetteTitle,newCassetteDescription,newCassetteError,newCassetteActions);document.body.append(newCassetteDialog);
   const expanded = new Map([['/presets', true]]);
   const history = [];
   let activeTonePath = null, selectedPath = null, dirty = false;
@@ -147,25 +161,29 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
   function closeMenu() {menu.hidden = true;}
   function clearSyncFeedback() {
     clearTimeout(syncFeedbackTimer); syncFeedbackTimer = null; syncFeedback = null;
-    syncButton.textContent = 'Sync'; delete syncButton.dataset.feedback;
+    syncButton.textContent = codeControls?.isCodeMode?.()?'Save code':'Sync'; delete syncButton.dataset.feedback;
   }
-  function showSyncFeedback(path) {
-    clearSyncFeedback(); syncFeedback = path;
-    syncButton.textContent = '✓ Synced'; syncButton.dataset.feedback = 'success';
-    announcement.textContent = `Synced ${path}.`;
+  function showSyncFeedback(path,kind='tone') {
+    clearSyncFeedback(); syncFeedback = {path,kind,revision:project.fs.getRevision(path)};
+    syncButton.textContent = kind==='code'?'✓ Saved':'✓ Synced'; syncButton.dataset.feedback = 'success';
+    announcement.textContent = `${kind==='code'?'Saved':'Synced'} ${path}.`;
     syncFeedbackTimer = setTimeout(clearSyncFeedback, 1800);
   }
   function updateButtons() {
     const readOnly = isObserving();
     const editingCode=Boolean(codeControls?.isCodeMode?.());
     const modified = Boolean(activeTonePath && project.isToneModified(activeTonePath));
-    if (syncFeedback && (syncFeedback !== activeTonePath || dirty || modified)) clearSyncFeedback();
+    if (syncFeedback && (syncFeedback.kind==='code'
+      ? !editingCode||syncFeedback.path!==codeControls.activePath||syncFeedback.revision!==project.fs.getRevision(syncFeedback.path)
+      : editingCode||syncFeedback.path!==activeTonePath||dirty||modified)) clearSyncFeedback();
     syncButton.disabled = busy || (readOnly&&!editingCode);
-    syncButton.textContent=editingCode?'Save code':syncFeedback?'✓ Synced':'Sync';
+    syncButton.textContent=editingCode?(syncFeedback?'✓ Saved':'Save code'):syncFeedback?'✓ Synced':'Sync';
     syncButton.title=editingCode?'Save this code file (Ctrl/Cmd+S)':'Sync this instrument (Ctrl/Cmd+S)';
+    revertButton.hidden=editingCode;
     revertButton.disabled = editingCode || busy || readOnly || !activeTonePath || !modified;
     byId('synthFileDirty').textContent = editingCode?'Code':dirty ? 'Not recorded' : unprotectedChanges ? 'Recording…' : modified ? 'Modified' :
       activeTonePath ? (project.fs.checkpoints.has(activeTonePath) ? 'Synced' : 'Current') : '';
+    byId('synthFileDirty').title=editingCode?'Code editor · changes save automatically':'';
     byId('synthActiveFilePath').textContent = !draftLoaded ? 'Restoring local project…' : editingCode?(codeControls.activePath||'Code'):activeTonePath || 'Built-in instrument';
     byId('synthFileUndoButton').disabled = busy || !history.length;
     document.querySelector('.synth-editor').setAttribute('aria-busy', String(busy));
@@ -186,6 +204,8 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     byId('importPresetButton').disabled=busy;
     byId('importCassetteButton').disabled=busy;
     byId('exportCassetteButton').disabled=busy;
+    if(byId('newCassetteButton'))byId('newCassetteButton').disabled=busy;
+    newCassetteCancel.disabled=newCassetteExport.disabled=newCassetteCreate.disabled=busy;
     byId('presetSelect').disabled=busy||readOnly&&!canLoadWhileObserving();
     codeControls?.setBusy?.(busy);
   }
@@ -296,7 +316,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     } catch (error) {report(error); updateButtons(); return false;}
   }
   async function flushEdits() {
-    await codeControls?.flush?.();
+    if(await codeControls?.flush?.()===false)return false;
     if (!persistCurrentTone()) return false;
     // Do not replace tone A's recovery journal with tone B until A is durable.
     if ((pendingTone || unprotectedChanges) && !await remember(true)) {
@@ -433,7 +453,13 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     closeMenu();
     try {
       if (action === 'sync') {
-        if(codeControls?.isCodeMode?.()){await codeControls.flush();setStatus(`Saved ${codeControls.activePath||'code'}.`);}
+        if(codeControls?.isCodeMode?.()){
+          clearSyncFeedback();
+          if(await codeControls.flush()===false){setStatus('Code was not saved locally. Export Cassette to keep your work.');return;}
+          const path=codeControls.activePath;
+          if(path)showSyncFeedback(path,'code');
+          setStatus(`Saved ${path||'code'}.`);
+        }
         else await syncCurrentTone();
         return;
       }
@@ -593,15 +619,92 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       render();await remember(true);setStatus(`Imported ${file.name}.`);
     }catch(error){setStatus(`Failed to import Cassette: ${error.message}`);}finally{busy=false;updateButtons();document.activeElement?.blur?.();}
   }
+  function downloadCassette() {
+    const bytes=project.exportCassette();
+    const filename=project.cassetteName.replace(/\.cassette\.zip$/i,'')+'.cassette.zip';
+    const url=URL.createObjectURL(new Blob([bytes],{type:'application/zip'}));
+    const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    return filename;
+  }
+  // The menu opens the confirmation dialog. This method is the confirmed action,
+  // also exposed for hosts that already own a New Cassette confirmation surface.
+  async function newCassette({exportCurrent=false}={}) {
+    if(typeof exportCurrent!=='boolean')throw TypeError('exportCurrent must be a boolean.');
+    if(busy)return false;
+    newCassetteError.hidden=true;
+    busy=true;updateButtons();
+    const requestGeneration=++importGeneration;
+    const current=()=>requestGeneration===importGeneration;
+    let previous=null,previousIdentity=null,replaced=false,committed=false;
+    const previousVisible=!panel.hidden;
+    try {
+      // Prepare and validate away from the live project, before stopping audio.
+      const starter=codeControls?.getStarterCode?.();
+      if(typeof starter!=='string'||starter.length>2*1024*1024)throw Error('Starter Code is unavailable.');
+      const prepared=createSynthProject();prepared.fs.writeText('/index.js',starter);addFmCodeExamples(prepared);
+      if(!await flushEdits())throw Error('Could not save the current local draft. Export Cassette before creating a new project.');
+      if(!current())return false;
+      // Protect the latest source and all editor drafts before retiring playback.
+      if(!await remember(true))throw Error('Local draft storage is unavailable. Export Cassette before creating a new project.');
+      previous=capture();
+      previousIdentity={workspaceId,generation,pendingTone,unprotectedChanges};
+      if(exportCurrent)downloadCassette();
+      clearTimeout(saveTimer);saveTimer=null;restoring=true;
+      if(await codeControls?.workspaceReplaced?.()===false||!current())return false;
+      if(await onBeforeWorkspaceReplace({reason:'new',isCurrent:current})===false||!current())return false;
+      replaced=true;
+      project.restore(prepared.snapshot());
+      workspaceId=newWorkspaceId();generation=0;pendingTone=null;unprotectedChanges=false;
+      savedCodeState=null;activeTonePath=selectedPath=null;dirty=false;editorContexts.clear();
+      stopAllNotes();
+      // Each editor owns its own authored sound. Reset all of them, ending on FM.
+      for(const kind of ['psg','pcm','fm']) {
+        editorKind=kind;setEditorKind(kind);applyPreset(getDefaultPresetId(kind));setBaseline();rememberEditor();
+      }
+      expanded.clear();expanded.set('/presets',true);renderedFiles=null;
+      setVisible(true,{persist:false});
+      await onWorkspaceReplaced?.({reason:'new'});
+      render();
+      // Keep autosaves suspended until the new identity and editor states commit.
+      if(!draftStore)throw Error('Local draft storage is unavailable.');
+      await writeDraft();
+      pushUndo(previous);committed=true;newCassetteDialog.close();
+      setStatus('New Cassette created. Code was not run. Saved locally. Use Files Undo to restore the previous project.');
+      return true;
+    } catch(error) {
+      const message=`Failed to create Cassette: ${error.message} Previous project kept.`;
+      newCassetteError.textContent=message;newCassetteError.hidden=false;setStatus(message);
+      return false;
+    } finally {
+      if(!committed&&previous) {
+        try {
+          if(replaced)project.restore(previous.project);
+          if(previousIdentity)({workspaceId,generation,pendingTone,unprotectedChanges}=previousIdentity);
+          savedCodeState=previous.codeState??null;
+          editorContexts.clear();
+          for(const [kind,value]of Object.entries(previous.editorContexts??{}))editorContexts.set(kind,validateEditorContext(value,kind));
+          if(replaced)for(const [kind,value]of editorContexts) {
+            editorKind=kind;setEditorKind(kind);applySnapshot(value.preset,value.presetId,{restoreEditor:true});
+          }
+          editorKind=validKind(previous.editorKind);setEditorKind(editorKind);
+          activeTonePath=previous.activeTonePath;selectedPath=previous.selectedPath;dirty=previous.dirty;
+          basePresetId=previous.basePresetId;basePreset=structuredClone(previous.basePreset);
+          if(replaced)applySnapshot(previous.preset,previous.presetId,{restoreEditor:true});
+          if(savedCodeState)await codeControls?.restoreState?.(savedCodeState);
+          panel.hidden=!previousVisible;updateVisibility();renderedFiles=null;render();
+        } catch(error) {setStatus(`Previous Cassette is available in the local draft, but its editor could not be restored: ${error.message}`);}
+      }
+      restoring=false;busy=false;updateButtons();document.activeElement?.blur?.();
+    }
+  }
   async function exportCassette() {
     if(busy)return;
     busy=true;updateButtons();
     try{
-      if(!persistCurrentTone())return;
-      const bytes=project.exportCassette();
-      const filename=project.cassetteName.replace(/\.cassette\.zip$/i,'')+'.cassette.zip';
-      const url=URL.createObjectURL(new Blob([bytes],{type:'application/zip'}));
-      const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      // Export is also the recovery path when IndexedDB cannot record a draft.
+      // Flush current editor text into Files without requiring a durable save.
+      if(await codeControls?.flush?.({persist:false})===false||!persistCurrentTone())return;
+      const filename=downloadCassette();
       setStatus(`Exported ${filename}.`);
     }catch(error){setStatus(`Failed to export Cassette: ${error.message}`);}finally{busy=false;updateButtons();}
   }
@@ -634,6 +737,11 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
   byId('importCassetteButton').addEventListener('click',()=>{cassetteInput.value='';cassetteInput.click();});
   cassetteInput.addEventListener('change',()=>void importCassette(cassetteInput.files?.[0]));
   byId('exportCassetteButton').addEventListener('click',()=>void exportCassette());
+  byId('newCassetteButton')?.addEventListener('click',()=>{if(!busy){newCassetteError.hidden=true;newCassetteDialog.showModal();newCassetteCancel.focus();}});
+  newCassetteCancel.addEventListener('click',()=>{if(!busy)newCassetteDialog.close();});
+  newCassetteDialog.addEventListener('cancel',event=>{event.preventDefault();if(!busy)newCassetteDialog.close();});
+  newCassetteExport.addEventListener('click',()=>void newCassette({exportCurrent:true}));
+  newCassetteCreate.addEventListener('click',()=>void newCassette());
   const instrumentInput=byId('tfiFile');
   instrumentInput.addEventListener('change',()=>{const files=Array.from(instrumentInput.files||[]);instrumentInput.value='';void importInstruments(files);});
   document.addEventListener('keydown',event=>{
@@ -711,7 +819,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     }
     finally{draftLoaded=true;busy=false;if(dirty)persistCurrentTone();render();remember();}
   })();
-  return {ready,selectFile,selectPreset,switchEditor,importInstruments,createFromPreset,saveFromPreset,setVisible,isVisible:()=>!panel.hidden,
+  return {ready,selectFile,selectPreset,switchEditor,importInstruments,createFromPreset,saveFromPreset,newCassette,setVisible,isVisible:()=>!panel.hidden,
     setCodeControls(controls){codeControls=controls;updateButtons();},
     getCodeState:()=>savedCodeState==null?null:structuredClone(savedCodeState),
     rememberCodeState(state){savedCodeState=structuredClone(state);updateButtons();remember();},

@@ -1,6 +1,6 @@
 import {createSynthSongPreview} from './synth_song_preview.js?v=pcm-manual-1';
 import {setupSynthSongSeekControls} from './synth_song_seek_controls.js?v=song-seek-1';
-import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=channel-mixer-1';
+import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=expanded-tabs-cassette-1';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
 import {describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {describeSynthPsgSongVoice,createSynthPsgSongCopyPreset} from './synth_song_psg_voice.js?v=psg-live-1';

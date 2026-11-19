@@ -1,7 +1,8 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=channel-presets-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=draft-reconnect-1';
-import {setupSynthCodeControls} from './synth_code_controls.js?v=draft-reconnect-1';
+import {setupSynthFiles} from './synth_files.js?v=workspace-switch-cassette-2';
+import {setupSynthCodeControls} from './synth_code_controls.js?v=workspace-switch-cassette-2';
+import {setupSynthExpandedTabs} from './synth_expanded_tabs.js?v=workspace-switch-cassette-2';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
 import {createSynthCodeAudio} from './synth_code_audio.js?v=channel-view-1';
 import {createSynthFmEdits} from './synth_fm_edits.js?v=channel-presets-1';
@@ -17,7 +18,7 @@ import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-view-1';
 import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-frames-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=channel-presets-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=expanded-tabs-cassette-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -196,6 +197,7 @@ const envelopeContext =
 const outputVisualizer = createSynthOutputVisualizer();
 let visualMode = 'envelope';
 let editorChip = 'ym2612';
+let expandedTabs = null;
 // The displayed reference/placeholder tab need not own the editable document.
 let activeInstrumentKind = 'fm';
 let editorSwitchPending = false;
@@ -488,6 +490,7 @@ function showEditorTab(button) {
   if(button.dataset.synthChip!=='pcm')pcmControls?.cancelEdit();
   for(const tab of editorChipTabs){const selected=tab===button;tab.classList.toggle('is-selected',selected);tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;}
   for(const panel of editorChipPanels)panel.hidden=panel.id!==button.getAttribute('aria-controls');
+  expandedTabs?.showChip(button);
 }
 function selectEditorChip(button) {
   if(button.dataset.synthChip==='mixer'){
@@ -4144,6 +4147,11 @@ synthFiles = setupSynthFiles({
     updateTfiSummary();
   },
   onListChanged:syncFilePresetOptions,
+  onBeforeWorkspaceReplace:async()=>{
+    await songControls?.stop();
+    await stopRecordingForReference();
+    stopAllNotes();
+  },
   onWorkspaceReplaced:()=>songControls?.reset(),
   isObserving:()=>isSongChannelTarget()||isLocalChannelTarget(),
   canEditObservation:canEditSongFm,
@@ -4195,6 +4203,9 @@ songControls = setupSynthSongControls({
 });
 codeControls=setupSynthCodeControls({
   keepRunningOnKeyboard:true,
+  persistentExpanded:true,
+  onViewChange:mode=>expandedTabs?.showInput(mode),
+  onExpandedChange:value=>expandedTabs?.setExpanded(value),
   project:synthProject,files:synthFiles,getRuntime:getCodeRuntime,onBeforeRun:beforeCodeRun,
   onModeChange:mode=>{
     if(mode==='code'&&!codeActive&&hasActiveRecordingPerformance())void stopRecordingForReference({keepCode:true});
@@ -4203,6 +4214,7 @@ codeControls=setupSynthCodeControls({
   },
   setStatus,
 });
+expandedTabs=setupSynthExpandedTabs({codeControls,selectChip:button=>switchEditorChip(button)});
 window.addEventListener('pagehide',event=>{
   void codeControls?.stop();
   stopAllNotes();
@@ -4213,7 +4225,7 @@ window.addEventListener('pagehide',event=>{
     liveHighlighter.dispose();
     psgLiveHighlighter.dispose();
     pcmLiveHighlighter.dispose();
-    codeControls?.dispose();void codeAudio?.dispose();
+    codeControls?.dispose();expandedTabs?.dispose();void codeAudio?.dispose();
     psgControls.dispose();
     pcmControls.dispose();pcmAudio.dispose();pcmSongAudio.dispose();pcmEventAudio.dispose();pcmLoopAudio.dispose();
     psgAudio.dispose();

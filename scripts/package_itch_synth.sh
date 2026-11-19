@@ -18,6 +18,7 @@ SYNTH_FILES="
 CODE.md
 synth.js
 synth_code_controls.js
+synth_expanded_tabs.js
 synth_code_examples.js
 synth_code_project.js
 synth_code_audio.js

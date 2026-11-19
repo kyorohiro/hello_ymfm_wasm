@@ -25,14 +25,14 @@ function textFile(project,path,allowTextFiles=false) {
   return typeof file.data==='string'?file.data:new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(file.data);
 }
 
-export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=async()=>{},onModeChange=()=>{},setStatus=()=>{},getStarterCode=()=>DEFAULT_CODE,
+export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=async()=>{},onModeChange=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{},getStarterCode=()=>DEFAULT_CODE,
   editorChip='ym2612',transformDeclarations=selectSynthCodeDeclarations,journalKey=JOURNAL_KEY,definitionRuntimeFile='playground_code_runtime.js',
-  allowTextFiles=false,keepRunningOnKeyboard=false,maxTextLength=MAX_CODE_LENGTH,writeText=(path,source)=>project.fs.writeText(path,source),
+  allowTextFiles=false,keepRunningOnKeyboard=false,persistentExpanded=false,maxTextLength=MAX_CODE_LENGTH,writeText=(path,source)=>project.fs.writeText(path,source),
   loadEditor=async()=>({initializePlaygroundMonaco})}={}) {
   if(!project?.fs||typeof getRuntime!=='function')throw TypeError('Code input needs a project and runtime factory.');
   if(typeof editorChip!=='string'||!editorChip||typeof journalKey!=='string'||!journalKey||
     typeof definitionRuntimeFile!=='string'||!definitionRuntimeFile||typeof transformDeclarations!=='function')throw TypeError('Code input needs editor and recovery settings.');
-  if(typeof allowTextFiles!=='boolean'||typeof keepRunningOnKeyboard!=='boolean'||!Number.isSafeInteger(maxTextLength)||maxTextLength<1||typeof writeText!=='function')throw TypeError('Code input needs valid text editing settings.');
+  if(typeof allowTextFiles!=='boolean'||typeof keepRunningOnKeyboard!=='boolean'||typeof persistentExpanded!=='boolean'||!Number.isSafeInteger(maxTextLength)||maxTextLength<1||typeof writeText!=='function'||typeof getStarterCode!=='function'||typeof onViewChange!=='function'||typeof onExpandedChange!=='function')throw TypeError('Code input needs valid text editing settings.');
   const byId=id=>document.getElementById(id),section=byId('synthInputSection');
   const keyboardTab=byId('synthInputKeyboardTab'),codeTab=byId('synthInputCodeTab');
   const keyboardPanel=byId('synthKeyboardPanel'),codePanel=byId('synthCodePanel');
@@ -80,7 +80,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   }
   function rememberState() {files?.rememberCodeState?.(captureState());}
   function showExpanded(value) {
-    expanded=Boolean(value)&&mode==='code';
+    expanded=Boolean(value)&&(persistentExpanded||mode==='code');
     if(expanded)expandedSlot.append(section);
     else homeAnchor.parentNode.insertBefore(section,homeAnchor.nextSibling);
     expandedSlot.hidden=!expanded;
@@ -89,6 +89,8 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     expandButton.setAttribute('aria-label',expanded?'Restore Code':'Maximize Code');
     expandButton.title=expanded?'Restore Code below the Synth':'Maximize Code beside Files';
     expandIcon.setAttribute('d',expanded?'M3 8h5V3m8 0v5h5M8 21v-5H3m18 0h-5v5':'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5');
+    expandButton.hidden=mode!=='code'&&!expanded;
+    onExpandedChange(expanded);
     monacoEditor?.layout();
   }
   async function setExpanded(value) {
@@ -96,7 +98,9 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(value&&mode!=='code')await setMode('code');
     if(disposed)return false;
     if(value)files?.setVisible?.(true);
-    showExpanded(value);adapter.focus();return expanded;
+    showExpanded(value);
+    if(persistentExpanded&&!expanded&&mode==='keyboard')keyboardTab.focus();else adapter.focus();
+    return expanded;
   }
   function showMode(next) {
     if(!['keyboard','code'].includes(next))throw TypeError('Unknown input mode.');
@@ -104,10 +108,13 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     keyboardTab.setAttribute('aria-selected',String(next==='keyboard'));keyboardTab.tabIndex=next==='keyboard'?0:-1;
     codeTab.setAttribute('aria-selected',String(next==='code'));codeTab.tabIndex=next==='code'?0:-1;
     keyboardPanel.hidden=next!=='keyboard';codePanel.hidden=next!=='code';
-    expandButton.hidden=next!=='code';
-    if(next!=='code'&&expanded)showExpanded(false);
+    expandButton.hidden=next!=='code'&&!expanded;
+    if(next!=='code'&&expanded&&!persistentExpanded)showExpanded(false);
     section.dataset.inputMode=next;
     if(changed)Promise.resolve(onModeChange(next)).catch(report);
+    // A file open can reveal Code even if its input mode never changed while
+    // a host displayed another workspace view.
+    onViewChange(next);
     rememberState();update();
     if(next==='code')monacoEditor?.layout();
   }
@@ -125,14 +132,21 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   function setEditorSource(path,source) {
     changing=true;
     try {
-      if(adapter.openVirtualFile)adapter.openVirtualFile(path,source);else adapter.setValue(source);
+      if(adapter.openVirtualFile) {
+        adapter.openVirtualFile(path,source);
+        // A cached Monaco model can still contain the previous Cassette's
+        // source. Files owns the source when a path is explicitly opened.
+        if(adapter.getValue()!==source)adapter.setValue(source);
+      } else adapter.setValue(source);
       const model=monacoEditor?.getModel?.();
       if(model)monacoApi?.editor?.setModelLanguage?.(model,codePath(path)?'javascript':/\.json$/i.test(path)?'json':'plaintext');
     }finally{changing=false;}
   }
-  async function flush() {
+  async function flush({persist=true}={}) {
+    if(typeof persist!=='boolean')throw TypeError('Code persistence must be boolean.');
     if(disposed)return false;
     writeCurrent();
+    if(!persist)return true;
     const receipt={workspaceId:files?.workspaceId,path:activePath,source:activePath?adapter.getValue():null};
     const saved=await files?.persistCode?.();
     if(saved&&!disposed&&receipt.path&&receipt.workspaceId===files?.workspaceId&&receipt.path===activePath&&receipt.source===adapter.getValue()) {
@@ -141,7 +155,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
         if(entry?.workspaceId===receipt.workspaceId&&entry.path===receipt.path&&entry.source===receipt.source)localStorage.removeItem(journalKey);
       }catch{}
     }
-    return true;
+    return saved!==false;
   }
   function changeSource() {try{writeCurrent();}catch(error){report(error);}}
   function cancelPendingExecution() {
@@ -299,6 +313,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(stopExecution)void stop();
   }
   const controls={openFile,flush,stop,cancelPendingExecution,setMode,setExpanded,restoreState,workspaceReplaced,pathChanged,captureState,appendLog,
+    getStarterCode,layoutEditor(){monacoEditor?.layout();},
     isCodeMode:()=>mode==='code',get activePath(){return activePath;},get executionPath(){return executionPath;},
     isExpanded:()=>expanded,
     setBusy(value){fileBusy=Boolean(value);update();},
@@ -331,6 +346,9 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     }
   };
   listen(section,'keydown',executionShortcut,true);
+  // Opt-in hosts may move tabs and transport into their workspace toolbar.
+  // Capture on each movable control keeps the existing execution shortcut.
+  if(persistentExpanded){listen(codeTab,'keydown',executionShortcut,true);listen(transport,'keydown',executionShortcut,true);}
   // Expanded Code is moved beside Files, outside the input section.
   listen(codePanel,'keydown',executionShortcut,true);
   listen(codePanel,'keydown',event=>{

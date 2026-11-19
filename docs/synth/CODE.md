@@ -179,9 +179,13 @@ edits. Pause keeps the separate captured audition and its software release;
 Copy retains its stricter contiguous-sample checks. Seek reconstructs the
 original VGM and discards temporary hand edits and their checkpoints.
 
-Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout while Code keeps playing. Maximized layout is temporary and is not restored after a reload.
+Use **Code / Synth** beside Files to switch between the expanded Code workspace and the ordinary Synth layout. The maximize button at the right of the Keyboard / Code tabs also puts the same editor beside Files. The expanded workspace has one tab row: Code, YM2612, PSG, RF5C164, 32X PWM, Mixer and Keyboard. Switching tabs keeps the expanded layout and running Code. Master volume stays available above the expanded tabs. Synth or Restore returns the controls to their ordinary placement without losing the editor, source or live context. Maximized layout is temporary and is not restored after a reload.
 
-Open the **Mixer** tab after 32X PWM for shared YM2612, Sega PSG, Mega CD PCM and 32X PWM volumes and channel **On / Off**. All 20 channel switches are available before loading a VGM and apply to live Keyboard, Code and VGM output. These are software output controls, applied once before Master; they stay in this session rather than the Cassette. Live highlight and Seek cache remain VGM options. The Mixer button in maximized Code restores the view and opens this tab without stopping Code.
+Menu → New → Cassette · ZIP creates a fresh project with default sounds, starter Code and examples. Choose whether to export the current Cassette first, or cancel to keep it. Creating a Cassette stops the current performance; Files Undo can restore the previous project without running its Code.
+
+The small **Code** label identifies the document being edited. Code edits save automatically to the Cassette and local draft; **Save code** explicitly saves the current file and confirms success. **Revert** belongs to instrument checkpoints and is hidden while editing Code.
+
+Open the **Mixer** tab after 32X PWM for shared YM2612, Sega PSG, Mega CD PCM and 32X PWM volumes and channel **On / Off**. All 20 channel switches are available before loading a VGM and apply to live Keyboard, Code and VGM output. These are software output controls, applied once before Master; they stay in this session rather than the Cassette. Live highlight and Seek cache remain VGM options. Mixer also stays available in the expanded workspace without stopping Code.
 
 Already rendered loop layers contain mixed audio; use their chip's Volume to adjust those layers. Channel switches control the live chips and reference playback.
 

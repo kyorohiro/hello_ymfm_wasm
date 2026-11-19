@@ -10,6 +10,7 @@ class Element {
     const names=new Set();this.classList={add:(...values)=>values.forEach(value=>names.add(value)),remove:value=>names.delete(value),toggle:(value,on)=>{on??=!names.has(value);on?names.add(value):names.delete(value);return on;},contains:value=>names.has(value)};}
   append(...children){for(const child of children){child.parentElement=this;this.children.push(child);}}
   appendChild(child){this.append(child);return child;}
+  remove(){if(this.parentElement)this.parentElement.children=this.parentElement.children.filter(child=>child!==this);this.parentElement=null;}
   replaceChildren(...children){this.children=[];this.append(...children);}
   setAttribute(name,value){this.attributes[name]=String(value);if(name.startsWith('data-'))this.dataset[name.slice(5).replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase())]=String(value);}
   addEventListener(type,handler){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(handler);}
@@ -83,18 +84,18 @@ function draftDatabase(store) {
   return control;
 }
 
-function harness(store={saved:null,journal:new Map()},options={}) {
+function harness(store={saved:null,journal:new Map()},options={},indexedDBAvailable=true) {
   const globals=['document','window','indexedDB','localStorage','setTimeout','clearTimeout'],previous=new Map(globals.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const elements=new Map(),body=new Element('body'),editor=new Element();editor.className='synth-editor';body.append(editor);
-  const byId=id=>{if(!elements.has(id)){const item=new Element(id==='synthFileNameDialog'?'dialog':'div');item.id=id;elements.set(id,item);body.append(item);}return elements.get(id);};
+  const byId=id=>{if(!elements.has(id)){const find=node=>node.id===id?node:node.children.map(find).find(Boolean),existing=find(body);if(existing)elements.set(id,existing);else{const item=new Element(id==='synthFileNameDialog'?'dialog':'div');item.id=id;elements.set(id,item);body.append(item);}}return elements.get(id);};
   const dialog=byId('synthFileNameDialog');for(const attr of ['data-file-name-confirm','data-file-name-cancel']){const button=new Element('button');button.setAttribute(attr,'');dialog.append(button);}
   const document={body,activeElement:null,getElementById:byId,createElement:tag=>new Element(tag),querySelector:selector=>body.querySelector(selector),addEventListener(){}};
   const window=new Element();window.innerWidth=1240;window.innerHeight=900;
   let timerId=0;const timers=new Map();
   globalThis.document=document;globalThis.window=window;
   globalThis.localStorage={getItem:key=>store.journal.get(key)??null,setItem:(key,value)=>store.journal.set(key,String(value)),removeItem:key=>store.journal.delete(key)};
-  globalThis.setTimeout=fn=>{timers.set(++timerId,fn);return timerId;};globalThis.clearTimeout=id=>timers.delete(id);
-  const database=draftDatabase(store);globalThis.indexedDB=database.indexedDB;
+  globalThis.setTimeout=(fn,delay)=>{timers.set(++timerId,{fn,delay});return timerId;};globalThis.clearTimeout=id=>timers.delete(id);
+  const database=draftDatabase(store);globalThis.indexedDB=indexedDBAvailable?database.indexedDB:undefined;
   const project=createSynthProject(),patches={fm:fm(),psg:createPsgPreset({}),pcm:createPcmBuiltinPreset('sine')},ids={fm:'one-op-basic',psg:'psg-default',pcm:'pcm-sine'},messages=[],applied=[];
   let kind='fm';
   function applySnapshot(preset,id){applied.push(id);kind=isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='pcm'?normalizePcmPreset(preset):kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
@@ -116,6 +117,7 @@ function harness(store={saved:null,journal:new Map()},options={}) {
     byId('synthFileNameInput').value=name;dialog.querySelector('[data-file-name-confirm]').click();await idle();
   }
   return {store,project,patches,ids,files,messages,applied,byId,action,rename,database,get kind(){return kind;},forceKind:value=>{kind=value;},
+    runTimers(delay){for(const [id,value]of [...timers])if(value.delay===delay){timers.delete(id);value.fn();}},
     cleanup(){for(const [name,descriptor]of previous)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
 
@@ -146,7 +148,7 @@ function attachCode(h) {
     async openFile(value){path=value;mode='code';opened.push(value);},
     async flush(){flushes.push(path);return true;},
     pathChanged(source,destination){changes.push([source,destination]);if(path===source||path?.startsWith(source+'/'))path=destination?destination+path.slice(source.length):null;},
-    workspaceReplaced(){path=null;mode='keyboard';},
+    workspaceReplaced(){path=null;mode='keyboard';},getStarterCode:()=> '// Fresh starter Code\n',
     restoreState(state){path=state.path;mode=state.mode;},
   };
   h.files.setCodeControls(controls);return {controls,opened,changes,flushes};
@@ -298,6 +300,171 @@ test('Cassette import waits for Code fade before replacing files or applying a n
   }
 });
 
+test('New Cassette confirmation can be canceled without flushing edits or retiring a performance',async()=>{
+  let stops=0,beforeReplace=0;
+  const h=harness(undefined,{stopAllNotes(){stops++;},onBeforeWorkspaceReplace(){beforeReplace++;}});
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:5},'Keep current');
+    h.project.fs.writeText('/index.js','// keep this source\n');const code=attachCode(h);await h.files.selectFile('/index.js');
+    const snapshot=h.project.snapshot(),saved=structuredClone(h.store.saved),identity=h.files.workspaceId,count=stops,flushes=code.flushes.length;
+    let retired=0;code.controls.workspaceReplaced=()=>{retired++;};
+    h.byId('newCassetteButton').click();assert.equal(h.byId('synthNewCassetteDialog').open,true);
+    h.byId('synthNewCassetteCancel').click();assert.equal(h.byId('synthNewCassetteDialog').open,false);
+    assert.deepEqual(h.project.snapshot(),snapshot);assert.deepEqual(h.store.saved,saved);assert.equal(h.files.workspaceId,identity);
+    assert.equal(stops,count);assert.equal(beforeReplace,0);assert.equal(retired,0);assert.equal(code.flushes.length,flushes);
+    assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
+    h.byId('newCassetteButton').click();h.byId('synthNewCassetteDialog').fire('cancel');
+    assert.equal(h.byId('synthNewCassetteDialog').open,false);assert.deepEqual(h.project.snapshot(),snapshot);
+  }finally{h.cleanup();}
+});
+
+test('confirmed New Cassette resets all author editors and files, persists starter Code and supports Undo of the latest draft',async()=>{
+  let beforeReplace=0;
+  const h=harness(undefined,{onBeforeWorkspaceReplace(){beforeReplace++;}});
+  try {
+    await h.files.ready;
+    await h.files.createFromPreset({...fm(),feedback:5},'Old FM');const oldFm=h.files.activeTonePath;
+    await h.files.createFromPreset(createPsgPreset({attenuation:4}),'Old PSG');const oldPsg=h.files.activeTonePath;
+    const pcm=createPcmBuiltinPreset('triangle');pcm.settings.volume=37;await h.files.createFromPreset(pcm,'Old PCM');const oldPcm=h.files.activeTonePath;
+    h.project.fs.writeText('/index.js','// last saved source\n');h.project.fs.writeText('/notes.txt','keep this note');
+    h.project.fs.writeBinary('/vgm/old.vgm',new Uint8Array([0x56,0x67,0x6d,0x20]));h.project.fs.writeText('/.git/config','[core]\n');
+    const code=attachCode(h);await h.files.selectFile('/index.js');
+    code.controls.flush=async()=>{code.flushes.push('/index.js');h.project.fs.writeText('/index.js','// latest editor draft\n');return true;};
+    const oldIdentity=h.files.workspaceId;
+    h.byId('newCassetteButton').click();h.byId('synthNewCassetteCreate').click();await until(()=>h.byId('newCassetteButton').disabled===false);
+    const fresh=h.project.snapshot();
+    assert.equal(beforeReplace,1);assert.notEqual(h.files.workspaceId,oldIdentity);assert.equal(h.project.cassetteName,'cassette');
+    assert.deepEqual(fresh.files.map(file=>file.path).sort(),['/examples/timed-operators.js','/index.js']);
+    assert.equal(h.project.fs.get('/index.js').data,'// Fresh starter Code\n');
+    assert.equal(h.kind,'fm');assert.equal(h.files.activeTonePath,null);assert.equal(h.files.dirty,false);
+    assert.deepEqual(h.patches.fm,fm());assert.deepEqual(h.patches.psg,normalizePsgPreset(createPsgPreset({})));assert.deepEqual(h.patches.pcm,normalizePcmPreset(createPcmBuiltinPreset('sine')));
+    assert.equal(h.ids.fm,'one-op-basic');assert.equal(h.ids.psg,'psg-default');assert.equal(h.ids.pcm,'pcm-sine');
+    assert.deepEqual(h.store.saved.project,fresh);assert.deepEqual(h.store.saved.codeState,{mode:'keyboard',path:null});
+    assert.deepEqual(Object.keys(h.store.saved.editorContexts).sort(),['fm','pcm','psg']);
+    assert.equal(h.byId('synthNewCassetteDialog').open,false);assert.match(h.messages.at(-1),/New Cassette created/);
+    code.controls.flush=async()=>true;
+    await h.action('undo');
+    assert.equal(h.project.fs.get('/index.js').data,'// latest editor draft\n');assert(h.project.fs.has('/notes.txt'));assert(h.project.fs.has('/vgm/old.vgm'));assert(h.project.fs.has('/.git/config'));
+    assert.equal(h.kind,'pcm');assert.equal(h.files.activeTonePath,oldPcm);assert.equal(h.patches.pcm.settings.volume,37);
+    assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
+    assert(await h.files.switchEditor('fm'));assert.equal(h.files.activeTonePath,oldFm);assert.equal(h.patches.fm.feedback,5);
+    assert(await h.files.switchEditor('psg'));assert.equal(h.files.activeTonePath,oldPsg);assert.equal(h.patches.psg.settings.attenuation,4);
+  }finally{h.cleanup();}
+});
+
+test('New Cassette waits for Code retirement before replacing the current workspace and aborts stale retirement',async()=>{
+  for(const completed of [true,false]) {
+    const h=harness(),fade=deferred();
+    try {
+      await h.files.ready;await h.files.createFromPreset({...fm(),feedback:6},'Keep until retired');
+      h.project.fs.writeText('/index.js','// playing source\n');const code=attachCode(h);await h.files.selectFile('/index.js');
+      const original=code.controls.workspaceReplaced;let retiring=0;
+      code.controls.workspaceReplaced=async()=>{retiring++;if(await fade.promise){original();return true;}return false;};
+      const before=h.project.snapshot(),count=h.applied.length,identity=h.files.workspaceId;
+      const creating=h.files.newCassette();await until(()=>retiring===1);
+      assert.deepEqual(h.project.snapshot(),before);assert.equal(h.applied.length,count);assert.equal(h.files.workspaceId,identity);
+      fade.resolve(completed);assert.equal(await creating,completed);
+      if(completed){assert.equal(h.project.fs.get('/index.js').data,'// Fresh starter Code\n');assert.equal(h.patches.fm.feedback,0);}
+      else {assert.deepEqual(h.project.snapshot(),before);assert.equal(h.applied.length,count);assert.equal(h.files.workspaceId,identity);assert.equal(code.controls.activePath,'/index.js');}
+    }finally{fade.resolve(false);await until(()=>h.byId('newCassetteButton').disabled===false);h.cleanup();}
+  }
+});
+
+test('Export current & create backs up the latest Code and opaque project files before starting a fresh Cassette',async()=>{
+  const h=harness(),createUrl=URL.createObjectURL,revokeUrl=URL.revokeObjectURL;let backup;
+  URL.createObjectURL=blob=>{backup=blob;return 'blob:new-cassette-backup';};URL.revokeObjectURL=()=>{};
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:2},'Backed up FM');
+    h.project.fs.writeText('/index.js','// old source\n');h.project.fs.writeBinary('/samples/opaque.bin',new Uint8Array([0,128,255]));
+    const code=attachCode(h);await h.files.selectFile('/index.js');
+    code.controls.flush=async()=>{h.project.fs.writeText('/index.js','// latest backup source\n');return true;};
+    assert.equal(await h.files.newCassette({exportCurrent:true}),true);assert(backup instanceof Blob);
+    const restored=createSynthProject();await restored.importCassette(new Uint8Array(await backup.arrayBuffer()),{name:'backup.cassette.zip'});
+    assert.equal(new TextDecoder().decode(restored.fs.get('/index.js').data),'// latest backup source\n');
+    assert.deepEqual(restored.fs.get('/samples/opaque.bin').data,new Uint8Array([0,128,255]));
+    assert.equal(restored.listTones().length,1);assert.equal(restored.readTone(restored.listTones()[0].path).preset.feedback,2);
+    assert.equal(h.project.fs.get('/index.js').data,'// Fresh starter Code\n');assert.equal(h.project.fs.has('/samples/opaque.bin'),false);
+  }finally{URL.createObjectURL=createUrl;URL.revokeObjectURL=revokeUrl;h.cleanup();}
+});
+
+test('Cassette export keeps the latest Code and modified instrument when IndexedDB is unavailable or cannot save',async()=>{
+  for(const storageAvailable of [false,true]) {
+    const h=harness(undefined,{},storageAvailable),createUrl=URL.createObjectURL,revokeUrl=URL.revokeObjectURL;let exported;
+    URL.createObjectURL=blob=>{exported=blob;return 'blob:cassette-recovery';};URL.revokeObjectURL=()=>{};
+    try {
+      await h.files.ready;await h.files.createFromPreset({...fm(),feedback:2},'Recovery instrument');
+      const path=h.files.activeTonePath;h.patches.fm.feedback=7;h.files.markDirty();
+      h.project.fs.writeText('/index.js','// previously stored source\n');const code=attachCode(h);await code.controls.openFile('/index.js');
+      const flushOptions=[];code.controls.flush=async options=>{
+        flushOptions.push(options);h.project.fs.writeText('/index.js','// latest unsaved editor source\n');
+        if(options?.persist!==false)await h.files.persistCode();
+        return true;
+      };
+      const writes=h.database.writeCount,saved=structuredClone(h.store.saved),identity=h.files.workspaceId;
+      if(storageAvailable)h.database.failStarts=2;
+      h.byId('exportCassetteButton').click();await until(()=>h.byId('exportCassetteButton').disabled===false);
+      assert(exported instanceof Blob,'export must remain available as the draft recovery path');
+      assert.deepEqual(flushOptions,[{persist:false}]);assert.equal(h.database.writeCount,writes);assert.deepEqual(h.store.saved,saved);
+      assert.equal(h.files.workspaceId,identity);assert.equal(h.files.activeTonePath,path);assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
+      const restored=createSynthProject();await restored.importCassette(new Uint8Array(await exported.arrayBuffer()),{name:'recovery.cassette.zip'});
+      assert.equal(restored.readTone(path).preset.feedback,7);
+      assert.equal(new TextDecoder().decode(restored.fs.get('/index.js').data),'// latest unsaved editor source\n');
+      assert.match(h.messages.at(-1),/^Exported cassette\.cassette\.zip\./);
+    }finally{URL.createObjectURL=createUrl;URL.revokeObjectURL=revokeUrl;h.cleanup();}
+  }
+});
+
+test('a fresh Cassette reload retains defaults, its new identity and stopped Code display',async()=>{
+  const store={saved:null,journal:new Map()};let h=harness(store),identity;
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:7},'Old discarded preset');
+    const code=attachCode(h);h.project.fs.writeText('/index.js','// old source\n');await h.files.selectFile('/index.js');
+    assert.equal(await h.files.newCassette(),true);identity=h.files.workspaceId;assert.equal(code.controls.isCodeMode(),false);
+  }finally{h.cleanup();}
+  h=harness(store);
+  try {
+    await h.files.ready;
+    assert.equal(h.files.workspaceId,identity);assert.equal(h.project.cassetteName,'cassette');assert.equal(h.kind,'fm');assert.equal(h.files.activeTonePath,null);
+    assert.equal(h.ids.fm,'one-op-basic');assert.equal(h.patches.fm.feedback,0);assert.equal(h.project.listTones().length,0);
+    assert.equal(h.project.fs.get('/index.js').data,'// Fresh starter Code\n');assert(h.project.fs.has('/examples/timed-operators.js'));
+    assert.deepEqual(h.files.getCodeState(),{mode:'keyboard',path:null});
+    assert(await h.files.switchEditor('psg'));assert.equal(h.ids.psg,'psg-default');assert.deepEqual(h.patches.psg,normalizePsgPreset(createPsgPreset({})));
+    assert(await h.files.switchEditor('pcm'));assert.equal(h.ids.pcm,'pcm-sine');assert.deepEqual(h.patches.pcm,normalizePcmPreset(createPcmBuiltinPreset('sine')));
+  }finally{h.cleanup();}
+});
+
+test('New Cassette preserves the current workspace when its latest draft cannot be protected before retirement',async()=>{
+  let retired=0,beforeReplace=0;
+  const h=harness(undefined,{onBeforeWorkspaceReplace(){beforeReplace++;}});
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:6},'Keep on failure');
+    h.project.fs.writeText('/index.js','// latest source\n');const code=attachCode(h);await h.files.selectFile('/index.js');
+    const before=h.project.snapshot(),saved=structuredClone(h.store.saved),identity=h.files.workspaceId;
+    code.controls.workspaceReplaced=()=>{retired++;return true;};h.database.failStarts=2;
+    assert.equal(await h.files.newCassette(),false);
+    assert.equal(retired,0);assert.equal(beforeReplace,0);assert.deepEqual(h.project.snapshot(),before);assert.deepEqual(h.store.saved,saved);assert.equal(h.files.workspaceId,identity);
+    assert.equal(code.controls.activePath,'/index.js');assert.equal(h.patches.fm.feedback,6);assert.match(h.messages.at(-1),/Previous project kept/);
+  }finally{h.cleanup();}
+});
+
+test('a failed fresh Cassette save rolls back files, author state, Code display and workspace identity without replacing the durable draft',async()=>{
+  let h;h=harness(undefined,{onBeforeWorkspaceReplace(){h.database.failStarts=2;}});
+  try {
+    await h.files.ready;await h.files.createFromPreset(createPsgPreset({attenuation:3}),'Keep hidden PSG');
+    const pcm=createPcmBuiltinPreset('triangle');pcm.settings.volume=39;await h.files.createFromPreset(pcm,'Keep hidden PCM');
+    await h.files.createFromPreset({...fm(),feedback:3},'Restore after failed save');
+    h.project.fs.writeText('/index.js','// keep source\n');const code=attachCode(h);await h.files.selectFile('/index.js');h.files.setVisible(false);
+    const before=h.project.snapshot(),identity=h.files.workspaceId,active=h.files.activeTonePath,patches=structuredClone(h.patches),ids={...h.ids};
+    h.byId('newCassetteButton').click();assert.equal(await h.files.newCassette(),false);
+    assert.deepEqual(h.project.snapshot(),before);assert.deepEqual(h.store.saved.project,before);assert.equal(h.files.workspaceId,identity);assert.equal(h.files.activeTonePath,active);
+    assert.equal(h.patches.fm.feedback,3);assert.equal(h.ids.fm,'vfs:'+active);assert.equal(h.files.isVisible(),false);
+    assert.deepEqual(h.patches,patches);assert.deepEqual(h.ids,ids);
+    assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);assert.equal(h.byId('synthNewCassetteDialog').open,true);
+    assert.deepEqual(h.store.saved.codeState,{mode:'code',path:'/index.js'});assert.match(h.messages.at(-1),/Previous project kept/);
+    assert.equal(await h.files.persistCode(),true,'the rolled back workspace remains editable and savable');
+  }finally{h.cleanup();}
+});
+
 test('Undo waits for Code retirement before restoring a workspace and its authoring snapshot',async()=>{
   const h=harness(),fade=deferred();
   try {
@@ -349,6 +516,43 @@ test('JavaScript selection and Save retain the active instrument and preserve ex
     assert.equal(h.project.fs.get('/index-2.js').data,'// Imported second script\n');
     assert.equal(code.controls.activePath,'/index-2.js');assert.equal(h.files.activeTonePath,tone);
     assert.deepEqual(h.store.saved.codeState,{mode:'code',path:'/index-2.js'});
+  }finally{h.cleanup();}
+});
+
+test('Code Save shows transient feedback for the saved file while the instrument Revert is hidden, then restores normal controls',async()=>{
+  const h=harness();
+  try {
+    await h.files.ready;await h.files.createFromPreset(fm(),'Keep author instrument');
+    h.project.fs.writeText('/index.js','// authored Code\n');const code=attachCode(h);await h.files.selectFile('/index.js');
+    assert.equal(h.byId('synthFileDirty').textContent,'Code');assert.match(h.byId('synthFileDirty').title,/changes save automatically/);
+    assert.equal(h.byId('synthFileRevertButton').hidden,true);assert.equal(h.byId('synthFileRevertButton').disabled,true);
+    await h.action('sync');
+    assert.equal(code.flushes.at(-1),'/index.js');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Saved');
+    assert.equal(h.byId('synthFileSaveButton').dataset.feedback,'success');assert.equal(h.byId('synthSyncAnnouncement').textContent,'Saved /index.js.');
+    h.runTimers(1800);assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    await h.action('sync');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Saved');
+    h.project.fs.writeText('/index.js','// newer Code after Save\n');
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    await h.action('sync');h.project.fs.writeText('/next.js','// another file\n');await h.files.selectFile('/next.js');
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code','a different file cannot inherit the previous save feedback');
+    code.controls.restoreState({mode:'keyboard',path:'/next.js'});h.files.refresh();
+    assert.equal(h.byId('synthFileRevertButton').hidden,false);assert.equal(h.byId('synthFileSaveButton').textContent,'Sync');assert.equal(h.byId('synthFileDirty').title,'');
+    h.patches.fm.feedback=4;h.files.markDirty();assert.equal(h.byId('synthFileRevertButton').disabled,false);
+    await h.action('sync');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Synced');assert.equal(h.byId('synthFileRevertButton').disabled,true);
+  }finally{h.cleanup();}
+});
+
+test('Code Save never reports success when the editor flush returns false or rejects',async()=>{
+  const h=harness();
+  try {
+    await h.files.ready;h.project.fs.writeText('/index.js','// retained source\n');const code=attachCode(h);await h.files.selectFile('/index.js');
+    await h.action('sync');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Saved');
+    code.controls.flush=async()=>false;await h.action('sync');
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    assert.equal(h.messages.at(-1),'Code was not saved locally. Export Cassette to keep your work.');
+    code.controls.flush=async()=>{throw Error('Draft save rejected');};await h.action('sync');
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    assert.match(h.messages.at(-1),/Draft save rejected/);assert.equal(h.project.fs.get('/index.js').data,'// retained source\n');
   }finally{h.cleanup();}
 });
 

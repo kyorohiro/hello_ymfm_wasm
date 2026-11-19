@@ -125,7 +125,20 @@
       .synth-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
       .synth-workspace.has-files { grid-template-columns: 250px minmax(0, 1fr); }
       .synth-editor { min-width: 0; }
-      .synth-workspace.is-code-expanded > .synth-editor { display:none; }
+      #synthMainColumn { min-width:0; }
+      .synth-editor[hidden] { display:none; }
+      #synthExpandedTabsSlot[hidden] { display:none; }
+      #synthExpandedVolumeSlot { display:flex; justify-content:flex-end; margin-bottom:10px; }
+      #synthExpandedVolumeSlot[hidden] { display:none; }
+      .synth-workspace-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; }
+      .synth-workspace-switch { display:inline-flex; }
+      .synth-workspace-switch .toolbar-button { border-radius:0; }
+      .synth-workspace-switch .toolbar-button:first-child { border-radius:999px 0 0 999px; }
+      .synth-workspace-switch .toolbar-button:last-child { border-radius:0 999px 999px 0; margin-left:-1px; }
+      .synth-workspace-switch [aria-pressed="true"] { color:#7be0d6; background:#234c46; }
+      .synth-expanded-heading { display:flex; align-items:flex-start; gap:8px; margin-bottom:12px; }
+      .synth-expanded-heading > .synth-chip-tabs { flex:1; min-width:0; }
+      .is-code-expanded .synth-input-heading { display:none; }
       #synthExpandedCodeSlot { min-width:0; }
       #synthExpandedCodeSlot[hidden] { display:none; }
       .synth-files-panel { min-width: 0; border: 1px solid #41615b; border-radius: 14px; padding: 12px; background: #172423; }
@@ -148,6 +161,7 @@
       #synthActiveFilePath { font-size: .76rem; overflow-wrap: anywhere; min-width: 0; flex: 1; }
       #synthFileDirty { font-size: .72rem; color: #ffd19b; }
       .synth-file-sync-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
+      .synth-file-sync-actions [hidden] { display:none; }
       #synthFileSaveButton { width: 80px; flex: none; }
       #synthFileSaveButton[data-feedback="success"] { background: #2f765a; color: #fff; border-color: #245f47; }
       .synth-sync-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -1000,7 +1014,6 @@
       .synth-input-heading { display:flex; align-items:center; gap:8px; margin-bottom:10px; min-width:0; }
       .synth-input-tabs { flex:1; min-width:0; }
       #synthCodeMixerButton { display:none; flex:none; }
-      .is-code-expanded #synthCodeMixerButton { display:inline-flex; align-items:center; }
       #synthCodeExpandButton { display:grid; place-items:center; width:28px; height:28px; flex:none; padding:3px; border-radius:7px; }
       #synthCodeExpandButton[hidden] { display:none; }
       #synthCodeExpandButton svg { width:18px; height:18px; }
@@ -1406,6 +1419,12 @@
                 </summary>
                 <div id="synthMenuPanel" class="synth-menu-panel">
                   <section class="synth-menu-section">
+                    <h2>New</h2>
+                    <div class="synth-menu-actions">
+                      <button id="newCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette · ZIP</button>
+                    </div>
+                  </section>
+                  <section class="synth-menu-section">
                     <h2>Import</h2>
                     <div class="synth-menu-actions">
                       <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>VGM / VGZ / S98 / TFI / VGI / PSG / PCM JSON…</button>
@@ -1445,7 +1464,13 @@
           </div>
           </div>
           <p class="synth-brand-caption">Mega Drive Sound <span>Sound laboratory</span></p>
-          <button id="synthFilesToggle" class="toolbar-button" type="button" aria-controls="synthFilesPanel" aria-expanded="false">Files</button>
+          <div class="synth-workspace-actions">
+            <button id="synthFilesToggle" class="toolbar-button" type="button" aria-controls="synthFilesPanel" aria-expanded="false">Files</button>
+            <div class="synth-workspace-switch" role="group" aria-label="Workspace layout">
+              <button id="synthWorkspaceCodeButton" class="toolbar-button" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot" title="Open the Code workspace beside Files">Code</button>
+              <button id="synthWorkspaceSynthButton" class="toolbar-button" type="button" aria-pressed="true" aria-controls="synthMainColumn" title="Return to the Synth layout without stopping Code">Synth</button>
+            </div>
+          </div>
         </div>
         <div id="synthWorkspace" class="synth-workspace">
           <aside id="synthFilesPanel" class="synth-files-panel" aria-label="Cassette files" hidden>
@@ -1461,6 +1486,9 @@
             </div>
             <p id="synthFileSelectionInfo" class="synth-files-caption">Choose an instrument or JavaScript file to edit. Other files stay in the Cassette.</p>
           </aside>
+          <div id="synthMainColumn">
+          <div id="synthExpandedVolumeSlot" hidden></div>
+          <div id="synthExpandedTabsSlot" hidden></div>
           <div class="synth-editor">
             <p id="presetImportError" class="preset-import-error" role="alert" hidden></p>
             <p id="presetImportNotice" class="tfi-summary" role="status" hidden></p>
@@ -1819,6 +1847,7 @@
         </div>
           </div>
           <div id="synthExpandedCodeSlot" hidden></div>
+          </div>
         </div>
       </section>
     </main>
@@ -1838,7 +1867,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=draft-reconnect-2";
+      import "./synth.js?v=workspace-switch-cassette-2";
     </script>
   </body>
 </html>

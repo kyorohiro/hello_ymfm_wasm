@@ -179,7 +179,9 @@ async function mixerChecks(page,name){
     if(probe.id==='psg')await field(page,'synthPsgAttenuation',6);
     if(probe.id==='pcm'){await page.locator('[data-pcm-builtin="sine"]').click();await field(page,'synthPcmVolume',64);}
     await code(page,probe.source);await execute(page);await sounding(page);
-    await page.locator('#synthCodeExpandButton').click();await page.locator('#synthCodeMixerButton').click();
+    if(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed')!=='true')await page.locator('#synthCodeExpandButton').click();
+    await page.locator('#synthSongMixButton').click();
+    assert.equal(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed'),'true','Mixer retains expanded workspace');
     assert.equal(await page.locator('#synthSongMixButton').getAttribute('aria-selected'),'true');assert(await page.locator('#synthChipMixer').isVisible());
     assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/,'Entering Mixer never stops Code');
     await mixerVolume(page,probe.id,100);const full=await reading(page);
@@ -491,7 +493,7 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
     const starter=await page.locator('#synthCodeEditor').inputValue();
     assert.match(starter,/const fm = await useSoundChip\("ym2612"\)/);assert.match(starter,/scale\("E1", "minorPentatonic", 3\)/);
-    assert.match(starter,/fm\.noteOn\(CH1, choose\(notes\)\)/);assert.match(starter,/sleep\(0\.1\)/);assert.match(starter,/beat\(0\.025\)/);assert.doesNotMatch(starter,/\bplay\(/);
+    assert.match(starter,/fm\.noteOn\(CH1, choose\(notes\)\)/);assert.match(starter,/beat\(0\.2\)/);assert.match(starter,/beat\(0\.025\)/);assert.doesNotMatch(starter,/\bplay\(/);
     await execute(page);await sounding(page);await stop(page);steps.push('The newly seeded index.js plays through its explicitly acquired FM client');
     await code(page,LOOP_SOURCE);await until(()=>page.locator('#synthCodeEditorNote').textContent().then(v=>/Fallback|Plain text|could not load/i.test(v)),'Monaco failure leaves textarea fallback');
     assert.equal(await page.locator('#synthActiveFilePath').textContent(),'/index.js');
@@ -559,10 +561,11 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     await code(page,`const fm=await useSoundChip('ym2612');fm.noteOn(0,4,644);await new Promise(resolve=>{globalThis.__finishCode=resolve;});fm.noteOn(0,4,700);`);await page.locator('#synthCodeRunButton').click();await until(()=>evaluate(page,()=>typeof __finishCode==='function'),'Pending Code promise');await sounding(page);await stop(page);await evaluate(page,()=>__finishCode());await pause(200);await silence(page);assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);
     await code(page,KEEP_FM);await execute(page);await sounding(page);assert(await page.locator('#eventRecordStartButton').isDisabled(),'Event recording disabled while Code owns chips');assert(await page.locator('#looperStartButton').isDisabled(),'Looper disabled while Code owns chips');
     await page.locator('#synthCodeExpandButton').click();await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputKeyboardTab').getAttribute('aria-selected').then(v=>v==='true'),'Keyboard tab');await sounding(page);assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/,'Keyboard is another view of the running performance');
-    assert(await page.locator('.synth-editor').isVisible());assert(await page.locator('#synthExpandedCodeSlot').isHidden(),'Keyboard restores the original layout');
+    assert(await page.locator('.synth-editor').isHidden());assert(await page.locator('#synthExpandedCodeSlot').isVisible(),'Keyboard stays inside the expanded workspace');
+    assert.equal(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed'),'true');
     const keyboardKey=page.locator('#keyboard .key[data-key="a"]');await keyboardKey.scrollIntoViewIfNeeded();const keyBox=await keyboardKey.boundingBox();
     await page.mouse.move(keyBox.x+keyBox.width/2,keyBox.y+keyBox.height*.8);await page.mouse.down();await sounding(page);await page.mouse.up();await sounding(page);await stop(page);
-    await code(page,KEEP_FM);await execute(page);await sounding(page);
+    await code(page,KEEP_FM);await execute(page);await sounding(page);await chip(page,'fm');
     await page.locator('#tfiFile').setInputFiles({name:'Authored Code reference.vgm',mimeType:'application/octet-stream',buffer:authoredVgm()});await ready(page);await page.locator('#synthSongPlayButton').click();await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'VGM starts');assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);await page.locator('#synthSongStopButton').click();await selectSynthChannel(page,'synth');await silence(page);
     steps.push('Stopped handles and delayed promises cannot restart audio; Keyboard shares the running Code session; VGM still takes ownership and recording cannot collide with Code');
 

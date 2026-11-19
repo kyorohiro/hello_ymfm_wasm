@@ -130,8 +130,6 @@ export function setupSynthSongMixControls({preview}) {
   }
   const codeButton=document.getElementById('synthCodeMixerButton');
   if(codeButton)listen(codeButton,'click',()=>{
-    const expand=document.getElementById('synthCodeExpandButton');
-    if(expand?.getAttribute('aria-pressed')==='true')expand.click();
     button.click();
     document.getElementById('synthChipMixer')?.scrollIntoView?.({block:'nearest'});
   });

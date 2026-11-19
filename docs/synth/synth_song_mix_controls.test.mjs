@@ -73,14 +73,15 @@ test('the Mixer tab renders all four volumes and twenty On / Off switches before
   }finally{f.cleanup();}
 });
 
-test('maximized Code restores its view and opens the same Mixer tab without rebuilding its controls',()=>{
+test('maximized Code opens the same Mixer tab without restoring or rebuilding its controls',()=>{
   const f=fixture();
   try {
     const slider=f.volume('psg');
     const original=slider.value;
     f.byId('synthCodeExpandButton').setAttribute('aria-pressed','true');
     f.byId('synthCodeMixerButton').fire('click');
-    assert.deepEqual(f.calls.views,['restore','mixer']);
+    assert.deepEqual(f.calls.views,['mixer']);
+    assert.equal(f.byId('synthCodeExpandButton').getAttribute('aria-pressed'),'true');
     assert.equal(f.byId('synthChipMixer').hidden,false);
     assert.equal(f.volume('psg'),slider,'opening from Code does not duplicate or rebuild the controls');
     slider.value='250';slider.fire('input');assert.deepEqual(f.calls.volumes,[['psg',2.5]]);

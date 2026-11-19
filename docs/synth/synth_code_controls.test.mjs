@@ -83,6 +83,28 @@ test('opt-in Keyboard does not cancel a Run waiting for its runtime, while works
   }finally{f.cleanup();}
 });
 
+test('persistent expansion survives input changes and reports same-mode Code reveals without restarting playback',async()=>{
+  const views=[],expansions=[],f=fixture({source:'// one session',monaco:true,hostOptions:{
+    keepRunningOnKeyboard:true,persistentExpanded:true,onViewChange:mode=>views.push(mode),onExpandedChange:value=>expansions.push(value),
+  }});
+  try {
+    await f.controls.ready;await f.controls.setExpanded(true);
+    f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.runs.length===1&&!f.byId('synthCodeRunButton').disabled);
+    const context=f.runtime.getContext(),section=f.byId('synthInputSection');
+    await f.controls.setMode('keyboard');
+    assert.equal(f.controls.isExpanded(),true);assert.equal(section.parentNode,f.byId('synthExpandedCodeSlot'));
+    assert.equal(f.byId('synthCodeExpandButton').hidden,false,'Restore stays available on Keyboard');
+    await f.controls.setMode('code',{focusEditor:false});await f.controls.openFile('/index.js');
+    assert.deepEqual(views,['code','keyboard','code','code'],'opening an already selected Code input still reveals its view');
+    assert.deepEqual(expansions,[true]);assert.equal(f.calls.stops,0);assert.equal(f.calls.runs.length,1);assert.equal(f.runtime.getContext(),context);
+    assert.equal(f.controls.getStarterCode().includes('useSoundChip("ym2612")'),true);
+    const layouts=f.calls.layouts;f.controls.layoutEditor();assert.equal(f.calls.layouts,layouts+1);
+    await f.controls.setMode('keyboard');await f.controls.setExpanded(false);
+    assert.equal(section.parentNode,f.home);assert.equal(f.byId('synthCodeExpandButton').hidden,true);
+    assert.equal(f.byId('synthInputKeyboardTab').focused,true,'restore focuses the visible Keyboard tab');
+  }finally{f.cleanup();}
+});
+
 test('Code opens lazily, preserves an existing index, and edits the Cassette independently from instruments',async()=>{
   const f=fixture({source:'// authored\n'});
   try {
@@ -155,6 +177,35 @@ test('an older pending flush cannot remove a newer edit recovery journal',async(
     const newest=[...f.journal.values()][0];gate.resolve(true);await older;
     assert.equal([...f.journal.values()][0],newest,'only the older source committed; newer source keeps recovery');
     await f.controls.flush();assert.equal(f.journal.size,0);assert.equal(saved.at(-1),'// newer unsaved source');
+  }finally{f.cleanup();}
+});
+
+test('export can flush Code to the project while draft persistence fails, retaining its recovery journal',async()=>{
+  const f=fixture({source:'// saved source'});let saves=0;
+  try {
+    await f.controls.ready;await f.controls.setMode('code');
+    f.files.persistCode=async()=>{saves++;throw Error('Draft storage is unavailable');};
+    await assert.rejects(f.controls.flush(),/Draft storage is unavailable/);
+    assert.equal(saves,1,'normal flush still awaits draft persistence');
+    f.byId('synthCodeEditor').value='// latest export source';
+    assert.equal(await f.controls.flush({persist:false}),true);
+    assert.equal(f.project.fs.get('/index.js').data,'// latest export source');
+    assert.equal(saves,1,'export opt-out writes the source without requiring the broken draft store');
+    assert.equal(JSON.parse([...f.journal.values()][0]).source,'// latest export source');
+  }finally{f.cleanup();}
+});
+
+test('a durable Code flush reports unavailable storage while retaining source, recovery and view behavior',async()=>{
+  const f=fixture({source:'// original source',save:false,hostOptions:{keepRunningOnKeyboard:true}});
+  try {
+    await f.controls.ready;assert.equal(await f.controls.setMode('code'),true);
+    f.byId('synthCodeEditor').value='// latest locally unsaved source';
+    assert.equal(await f.controls.flush(),false);assert.equal(f.project.fs.get('/index.js').data,'// latest locally unsaved source');
+    assert.equal(JSON.parse([...f.journal.values()][0]).source,'// latest locally unsaved source');
+    assert.equal(await f.controls.setMode('keyboard'),true,'a view change keeps working when local storage is unavailable');
+    assert.equal(await f.controls.setMode('code'),true);assert.equal(f.byId('synthCodeEditor').value,'// latest locally unsaved source');
+    assert.equal(await f.controls.flush({persist:false}),true,'export can still collect the source without local storage');
+    assert.equal(f.calls.factories,0);assert.equal(f.calls.stops,0);
   }finally{f.cleanup();}
 });
 
@@ -320,6 +371,41 @@ test('workspace replacement and disposal return an expanded editor to its origin
     assert.equal(f.byId('synthInputSection').parentNode,f.home);
     assert.deepEqual(f.home.children,[f.byId('synthInputSection')],'disposal removes the home anchor');
   }finally{f.cleanup();}
+});
+
+test('a replacement Cassette loads starter source into a cached Monaco model on its first open and saves that source',async()=>{
+  for(const route of ['code-tab','file','restored-state']) {
+    const models=new Map();let current={path:'/index.js',source:'// previous authored source'},changed=()=>{},initialized=false;
+    models.set(current.path,current);
+    const editor={getModel:()=>current,layout(){},dispose(){},onDidChangeModelContent(fn){changed=fn;},addCommand(){}};
+    const f=fixture({source:current.source,hostOptions:{loadEditor:async()=>({initializePlaygroundMonaco:async options=>{
+      options.setEditorAdapter({
+        getValue:()=>current.source,setValue(value){current.source=value;changed();},
+        // Monaco retains an existing model's contents when its URI is reopened.
+        openVirtualFile(path,source){if(!models.has(path))models.set(path,{path,source});current=models.get(path);},
+        syncVirtualFiles(files){for(const file of files)if(models.has(file.path)&&models.get(file.path)!==current)models.get(file.path).source=file.data;},
+        focus(){},setReadOnly(){},
+      });
+      options.onMonacoEditorReady({monaco:{KeyMod:{CtrlCmd:1,Shift:2},KeyCode:{Enter:4}},monacoEditor:editor});
+      initialized=true;
+    }})}});
+    try {
+      await f.controls.ready;await f.controls.setMode('code');await until(()=>initialized);
+      await f.controls.workspaceReplaced();assert.equal(current.source,'');
+      const fresh=createSynthProject(),starter=f.controls.getStarterCode();assert(starter.length>0);
+      fresh.fs.writeText('/index.js',starter);f.project.restore(fresh.snapshot());f.files.workspaceId='workspace-new';
+      assert.equal(current.source,'','virtual-file synchronization leaves the attached Monaco model alone');
+      assert.equal(f.project.fs.get('/index.js').data,starter);
+      if(route==='code-tab')await f.controls.setMode('code');
+      else if(route==='file')await f.controls.openFile('/index.js');
+      else await f.controls.restoreState({mode:'code',path:'/index.js'});
+      assert.equal(current.source,starter,`${route} shows the fresh starter on its first open`);
+      assert.equal(f.project.fs.get('/index.js').data,starter,'model attachment cannot overwrite the replacement file');
+      let saved;f.files.persistCode=async()=>{saved=f.project.snapshot();return true;};await f.controls.flush();
+      assert.equal(saved.files.find(file=>file.path==='/index.js').data,starter);assert.equal(f.project.fs.get('/index.js').data,starter);
+      assert.equal(f.calls.runs.length,0);assert.equal(f.calls.factories,0);
+    }finally{f.cleanup();}
+  }
 });
 
 test('workspace replacement keeps Code ownership and its editor until the delayed output stop completes',async()=>{
