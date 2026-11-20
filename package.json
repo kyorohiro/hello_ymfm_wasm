@@ -32,6 +32,7 @@
     "test:sid:waveoff": "node --test test/sid_waveoff.test.mjs",
     "test:sid:browser": "node scripts/check_sid_lab_browser.cjs",
     "test:sid-synth": "node --test docs/synth-sid/*.test.mjs scripts/package_itch_sid_synth.test.mjs",
+    "test:sid-synth:working-saved-browser": "node scripts/check_sid_working_saved_browser.cjs",
     "test:sid-synth:browser": "node scripts/check_sid_synth_browser.cjs",
     "test:sid-synth:live-presets-browser": "node scripts/check_sid_synth_live_presets_browser.cjs",
     "test:sid-synth:code-keyboard-browser": "node scripts/check_sid_synth_code_browser.cjs --checks=keyboard",

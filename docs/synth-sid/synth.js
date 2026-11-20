@@ -8,7 +8,9 @@ import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.j
 import {createSidImport} from './sid_import.js?sid-song-manual=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
 import {createSidLiveView} from './sid_live_view.js?sid-song-manual=1';
-import {setupSidCodeHost} from './code_host.js?sid-song-manual=1&draft-reconnect=1';
+import {setupSynthMenu} from '../synth/synth_menu.js';
+import {setupSidCodeHost} from './code_host.js?v=sid-working-saved-1';
+import {applySidDocumentChanges} from './document_settings.js?v=sid-working-saved-1';
 import {createSidCodeLive} from './code_live.js?sid-code-live=1&sid-code-keyboard=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
@@ -17,6 +19,8 @@ import {createFretboardState,createFretboardLayout,renderFretboardControls,build
 const $=id=>document.getElementById(id), notes=new Map(), fret=createFretboardState();
 let audio=null, opening=null, disposed=false, generation=0, noteEpoch=0, sequence=0;
 let channelSettings=createChannelSettings(),appliedChannelSettings=readChannelSettings(channelSettings);
+let playbackChannelSettings=readChannelSettings(channelSettings),documentChannelSettings=readChannelSettings(channelSettings),playbackRevision=0,applySequence=0;
+let topologyIntentSettings=readChannelSettings(channelSettings);
 let preset=selectedChannelPreset(channelSettings), appliedPreset=readPreset(preset), revision=0, manualRevision=0, importSequence=0, octave=0, pitch=0;
 let appliedPitch=0,pitchIntent=0,commandSequence=0,pitchAckSequence=0;
 let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
@@ -26,6 +30,7 @@ let songTarget=0,pausedKeyboard=false,lastSongPaused=false;
 let codeHost=null,codeLive=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
+setupSynthMenu({document,window});
 const visualizer=createSpuOutputVisualizer({canvas:$('outputCanvas')});visualizer.setMode('waveform');
 const cancelled=error=>error?.name==='AbortError';
 function status(text,error=false){if(disposed)return;$('audioStatus').textContent=text;$('audioStatus').dataset.error=String(error);}
@@ -35,9 +40,9 @@ function enqueue(action){const task=queue.then(action);queue=task.catch(report);
 async function prepareDesktopOutput(engine,isCurrent){
   if(desktopOutputHandler&&isCurrent())await desktopOutputHandler({context:engine.context,output:engine.outputNode},{isCurrent});
 }
-const paired=()=>channelPlaybackPlan(channelSettings).source!==null;
-const capacity=()=>channelPlaybackPlan(channelSettings).channels.length;
-const legato=()=>channelSettings.target!=='round-robin'&&channelSettings.keyboardMode==='legato';
+const paired=()=>channelPlaybackPlan(playbackChannelSettings).source!==null;
+const capacity=()=>channelPlaybackPlan(playbackChannelSettings).channels.length;
+const legato=()=>playbackChannelSettings.target!=='round-robin'&&playbackChannelSettings.keyboardMode==='legato';
 const heldKeys=()=>`${notes.size} ${notes.size===1?'key':'keys'} held`;
 const songOpen=(state=sidImporter?.read())=>Boolean(state&&(state.playing||state.paused||state.pausing||state.resuming||state.starting));
 const songChannel=(state=sidImporter?.read())=>songOpen(state)&&songTarget!=='round-robin';
@@ -141,13 +146,13 @@ async function ensureAudio(){
     owner.promise=(async()=>{
       let engine;
       try{
-        engine=await createAudio({model:preset.model,volume:Number($('masterVolume').value),signal:owner.controller.signal,onError:error=>audioFailed(error,owner.engine??owner)});owner.engine=engine;
+        engine=await createAudio({model:selectedChannelPreset(playbackChannelSettings).model,volume:Number($('masterVolume').value),signal:owner.controller.signal,onError:error=>audioFailed(error,owner.engine??owner)});owner.engine=engine;
         let applied,snapshotPitch,appliedSnapshot,snapshotReset;
         do{
-          owner.controller.signal.throwIfAborted();applied=revision;snapshotPitch=pitch;snapshotReset=resetIntent;
-          appliedSnapshot=readChannelSettings(channelSettings);await engine.command('loadChannelSettings',[appliedSnapshot]);
+          owner.controller.signal.throwIfAborted();applied=playbackRevision;snapshotPitch=pitch;snapshotReset=resetIntent;
+          appliedSnapshot=readChannelSettings(playbackChannelSettings);await engine.command('loadChannelSettings',[appliedSnapshot]);
           await engine.command('setPitch',[snapshotPitch]);
-        }while(applied!==revision||snapshotPitch!==pitch);
+        }while(applied!==playbackRevision||snapshotPitch!==pitch);
         if(disposed||opening!==owner||generation!==owner.generation)throw new DOMException('Audio preparation cancelled','AbortError');
         engine.setVolume(Number($('masterVolume').value));audio=engine;appliedChannelSettings=appliedSnapshot;appliedPreset=selectedChannelPreset(appliedSnapshot);
         appliedPitch=snapshotPitch;pitchAckSequence=++commandSequence;appliedResetIntent=snapshotReset;
@@ -163,56 +168,93 @@ async function ensureAudio(){
 }
 function clearNotes(){noteEpoch++;notes.clear();updateKeys();}
 function topology(value){return `${value.model}/${value.modulation.sync}/${value.modulation.ring}/${value.voice.test}`;}
-function applyPreset(value,{load=false,message}={}){
-  return applySettings((load?applyChannelPreset:editChannelPreset)(channelSettings,readPreset(value)),{load,message});
+function applyPreset(value,options={}){
+  const next=(options.load?applyChannelPreset:editChannelPreset)(channelSettings,readPreset(value));
+  return applySettings(next,options);
 }
-function applySettings(value,{load=false,message,fromSong=false,isCurrent=()=>true}={}){
+function applySettings(value,{load=false,message,isCurrent=()=>true,record=true,applyAudio,displayPreset,source='controls'}={}){
+  const nextDocument=readChannelSettings(value),shown=readChannelSettings(displayPreset??nextDocument),files=codeHost?.files;
   if(disposed||!isCurrent())return Promise.resolve(false);
-  const editOwner=audio?.captureSoundEditGuard?.()??(()=>true);
-  const nextSettings=readChannelSettings(value),next=selectedChannelPreset(nextSettings),previous=preset;
-  if(!load&&JSON.stringify(nextSettings)===JSON.stringify(channelSettings))return Promise.resolve(true);
-  const changedTopology=load||channelSettings.target!==nextSettings.target||channelSettings.keyboardMode!==nextSettings.keyboardMode||topology(previous)!==topology(next);
-  // A Code-owned model candidate may fail without touching the current chip.
-  // Keep keyboard IDs releasable until an acknowledged replacement retires
-  // them through readVoices(); an optimistic clear would strand a held Gate.
-  if(changedTopology){if(!codeHost?.isRunning())clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
-  if(!fromSong)manualRevision++;
-  channelSettings=nextSettings;preset=next;const editRevision=++revision;updatePresetUi();
-  if(!audio){if(!fromSong){codeHost?.markSoundDirty();patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');}return Promise.resolve(true);}
-  const target=audio;if(!fromSong)patchStatus('Applying latest edit…',true);
-  async function reconcile(){
-    if(disposed||audio!==target||editRevision!==revision)return;
-    const state=await target.read().catch(()=>null);
-    if(disposed||audio!==target||editRevision!==revision||!state)return;
-    appliedChannelSettings=readChannelSettings(state.channelSettings??applyChannelPreset(appliedChannelSettings,state.preset??appliedPreset));
-    appliedPreset=selectedChannelPreset(appliedChannelSettings);channelSettings=readChannelSettings(appliedChannelSettings);preset=selectedChannelPreset(channelSettings);
-    appliedResetIntent=resetIntent;revision++;acceptPitch(state,++commandSequence,pitchIntent);readVoices(state);updatePresetUi();
-    if(!fromSong)codeHost?.markSoundDirty();patchStatus('Current applied sound kept.');
+  const audible=applyAudio??(record?files?.isAutoApply?.()!==false:true);
+  try{if(record){files?.canEditSound?.();files?.validateSoundEdit?.(shown);}}
+  catch(error){updatePresetUi();return Promise.reject(error);}
+  const displayRevision=revision;
+  function publish(){
+    if(revision!==displayRevision)return;
+    if(record)files?.recordSoundEdit?.(shown);
+    channelSettings=readChannelSettings(shown);preset=selectedChannelPreset(channelSettings);
+    revision++;manualRevision++;updatePresetUi();
+    if(source==='target'){
+      codeHost?.project.setSettings(channelSettings);codeHost?.project.setSavedSettings(documentChannelSettings);
+    }
   }
+  if(!audible){publish();patchStatus('Unsaved sound · Save in Files to apply.');status(message??'Unsaved sound changes · accepted sound kept.');return Promise.resolve(true);}
+  const request=++applySequence,target=audio,editOwner=target?.captureSoundEditGuard?.()??(()=>true);
+  // Reset intent belongs to the gesture, even if a later edit coalesces this
+  // command. Retire old keyboard IDs before a newer key can be queued.
+  const proposed=load?nextDocument:applySidDocumentChanges(playbackChannelSettings,documentChannelSettings,nextDocument);
+  const previousTopology=selectedChannelPreset(topologyIntentSettings),proposedTopology=selectedChannelPreset(proposed);
+  const changedTopology=load||topologyIntentSettings.target!==proposed.target||topologyIntentSettings.keyboardMode!==proposed.keyboardMode||topology(previousTopology)!==topology(proposedTopology);
+  topologyIntentSettings=readChannelSettings(proposed);
+  if(changedTopology){if(!codeHost?.isRunning())clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
+  function accept(state,accepted){
+    playbackChannelSettings=readChannelSettings(state?.channelSettings??accepted);
+    appliedChannelSettings=readChannelSettings(playbackChannelSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);
+    documentChannelSettings=readChannelSettings(nextDocument);playbackRevision++;
+    if(request===applySequence)topologyIntentSettings=readChannelSettings(playbackChannelSettings);
+  }
+  function intended(current){return load?nextDocument:applySidDocumentChanges(current,documentChannelSettings,nextDocument);}
+  if(!target){
+    const accepted=intended(playbackChannelSettings);accept(null,accepted);publish();
+    patchStatus(opening?'Preparing accepted sound…':'Ready · accepted sound.');status(message??'Instrument updated · enable audio, then play.');return Promise.resolve(true);
+  }
+  async function reconcile(){
+    if(disposed||audio!==target||request!==applySequence)return;
+    const state=await target.read().catch(()=>null);
+    if(disposed||audio!==target||request!==applySequence||!state)return;
+    playbackChannelSettings=readChannelSettings(state.channelSettings);playbackRevision++;
+    appliedChannelSettings=readChannelSettings(playbackChannelSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);
+    // A superseded author gesture may already have been committed before a
+    // Run/Stop ownership change. Keep the accepted bank visible, but never
+    // replace a newer manual-save draft or a Files transaction's document.
+    if(revision===displayRevision&&source==='controls'&&record&&files?.isAutoApply?.()!==false){
+      const actual=readChannelSettings(playbackChannelSettings);
+      files?.recordSoundEdit?.(actual);documentChannelSettings=actual;
+      channelSettings=readChannelSettings(actual);preset=selectedChannelPreset(channelSettings);revision++;
+    }
+    appliedResetIntent=resetIntent;acceptPitch(state,++commandSequence,pitchIntent);readVoices(state);updatePresetUi();
+    topologyIntentSettings=readChannelSettings(playbackChannelSettings);patchStatus('Current applied sound kept.');
+  }
+  patchStatus('Applying accepted sound…',true);
   return enqueue(async()=>{
-    if(disposed||audio!==target||editRevision!==revision||!isCurrent()||!editOwner()){await reconcile();return false;}
+    if(disposed||audio!==target||request!==applySequence||!isCurrent()||!editOwner()){await reconcile();return false;}
+    let accepted,acknowledged=false;
     try{
-      // Coalescing a draft must preserve any earlier load/topology reset.
+      const before=await target.read();
+      if(disposed||audio!==target||request!==applySequence||!isCurrent()||!editOwner()){await reconcile();return false;}
+      accepted=intended(readChannelSettings(before.channelSettings));
       const hardReset=pausedKeyboard||resetIntent>appliedResetIntent,resetAtDispatch=resetIntent;
       const pitchAtDispatch=resetPitchIntent,order=++commandSequence;
-      const state=await target.command(hardReset?'loadChannelSettings':'setChannelSettings',[nextSettings]);
-      pausedKeyboard=false;
-      if(disposed||audio!==target||editRevision!==revision||!isCurrent()||!editOwner()){await reconcile();return false;}
+      if(record){files?.canEditSound?.();files?.validateSoundEdit?.(shown);}
+      const state=await target.command(hardReset?'loadChannelSettings':'setChannelSettings',[accepted]);acknowledged=true;pausedKeyboard=false;
+      // An accepted earlier command remains the baseline for a later queued
+      // edit, including a rapid revert. It must not publish over a newer draft.
+      if(disposed||audio!==target)return false;
+      accept(state,accepted);
       if(hardReset)appliedResetIntent=Math.max(appliedResetIntent,resetAtDispatch);
-      appliedChannelSettings=readChannelSettings(state?.channelSettings??nextSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);acceptPitch(state,order,hardReset?pitchAtDispatch:null);readVoices(state);visualizer.wake();
-      if(!fromSong)codeHost?.markSoundDirty();
-      if(editRevision===revision&&!fromSong){patchStatus('Applied · edits are live.');status(message??(hardReset?'Instrument updated · held notes and Pitch reset.':'Instrument updated · changes are live.'));}
+      acceptPitch(state,order,hardReset?pitchAtDispatch:null);readVoices(state);visualizer.wake();
+      if(request!==applySequence||!isCurrent()||!editOwner()){await reconcile();return false;}
+      publish();patchStatus('Applied · accepted sound.');status(message??(hardReset?'Instrument updated · held notes and Pitch reset.':'Instrument updated · changes are live.'));
       return true;
     }catch(error){
-      // Recover the actual applied bank after a rejected or cancelled edit.
-      const recoveryOrder=++commandSequence,recoveryIntent=pitchIntent;
       const current=await target.read().catch(()=>null);
       if(audio===target&&current){
-        appliedChannelSettings=readChannelSettings(current.channelSettings??applyChannelPreset(appliedChannelSettings,current.preset??appliedPreset));
-        appliedPreset=selectedChannelPreset(appliedChannelSettings);
-        acceptPitch(current,recoveryOrder,recoveryIntent);readVoices(current);
+        appliedChannelSettings=readChannelSettings(current.channelSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);
+        playbackChannelSettings=readChannelSettings(appliedChannelSettings);playbackRevision++;
+        if(acknowledged)documentChannelSettings=readChannelSettings(nextDocument);
+        acceptPitch(current,++commandSequence,pitchIntent);readVoices(current);
       }
-      if(audio===target&&editRevision===revision){channelSettings=readChannelSettings(appliedChannelSettings);preset=selectedChannelPreset(channelSettings);revision++;updatePresetUi();if(!fromSong)codeHost?.markSoundDirty();patchStatus('Edit rejected · previous settings kept.');}
+      if(request===applySequence){topologyIntentSettings=readChannelSettings(playbackChannelSettings);updatePresetUi();patchStatus('Edit rejected · previous settings kept.');}
       throw error;
     }
   });
@@ -226,11 +268,20 @@ const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(val
   return enqueue(async()=>{
     const current=()=>!disposed&&audio===target&&codeHost?.isRunning()&&(!guard||guard());
     if(!current())return;
+    const authorRevision=revision,applyIntent=applySequence;
     const state=await target.editCodeVoice(channel,patch,{isCurrent:current});
     if(!current())return;
-    channelSettings=readChannelSettings(state.channelSettings);preset=selectedChannelPreset(channelSettings);
-    appliedChannelSettings=readChannelSettings(channelSettings);appliedPreset=readPreset(preset);revision++;manualRevision++;
-    editor.update(preset);codeHost.markSoundDirty();visualizer.wake();
+    // Physical Live edits remain immediate. With manual saving, keep pending
+    // document bytes intact; a later unrelated Save merges its changed fields.
+    playbackChannelSettings=readChannelSettings(state.channelSettings);playbackRevision++;
+    appliedChannelSettings=readChannelSettings(playbackChannelSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);manualRevision++;
+    if(applyIntent===applySequence)topologyIntentSettings=readChannelSettings(playbackChannelSettings);
+    if(revision===authorRevision&&codeHost.files?.isAutoApply?.()!==false){
+      codeHost.files?.recordSoundEdit?.(playbackChannelSettings);
+      channelSettings=readChannelSettings(playbackChannelSettings);documentChannelSettings=readChannelSettings(channelSettings);
+      preset=selectedChannelPreset(channelSettings);revision++;editor.update(preset);
+    }
+    visualizer.wake();
   });
 },onError:report});
 const sidLiveView=createSidLiveView({root:$('sidLiveView')});
@@ -289,10 +340,10 @@ function chooseChannel(target){
   if(songOpen()){
     const released=stopNotes();songTarget=target;
     if(target!=='round-robin')sidImporter.setLiveVoice(target);
-    else if(channelSettings.target!=='round-robin')void applySettings(selectChannelTarget(channelSettings,'round-robin')).catch(report);
+    else if(channelSettings.target!=='round-robin')void selectAuthorTarget('round-robin').catch(report);
     updateLiveDisplay();return released;
   }
-  const changed=applySettings(selectChannelTarget(channelSettings,target),{message:target==='round-robin'?'Round robin · channel settings kept. Edits apply to all three.':`CH ${target+1} · edit and play this channel.`});
+  const changed=selectAuthorTarget(target);
   if(target!=='round-robin')sidImporter.setLiveVoice(target);
   return changed;
 }
@@ -300,9 +351,14 @@ for(const button of document.querySelectorAll('[data-sid-live-voice]'))button.ad
   button.blur();const target=button.dataset.sidLiveVoice==='round-robin'?'round-robin':Number(button.dataset.sidLiveVoice);
   void chooseChannel(target).catch(report);
 });
+function selectAuthorTarget(target){
+  const shown=selectChannelTarget(channelSettings,target),accepted=selectChannelTarget(documentChannelSettings,target);
+  return applySettings(accepted,{record:false,source:'target',displayPreset:shown,
+    message:target==='round-robin'?'Round robin · channel settings kept. Edits apply to all three.':`CH ${target+1} · edit and play this channel.`});
+}
 function chooseKeyboardMode(mode){
   if(channelSettings.target==='round-robin')return Promise.resolve();
-  return applySettings(selectKeyboardMode(channelSettings,mode),{message:`${mode==='legato'?'Legato':'Retrigger'} · software keyboard mode.`});
+  return applySettings(selectKeyboardMode(documentChannelSettings,mode),{record:false,source:'target',displayPreset:selectKeyboardMode(channelSettings,mode),message:`${mode==='legato'?'Legato':'Retrigger'} · software keyboard mode.`});
 }
 for(const button of document.querySelectorAll('[data-sid-keyboard-mode]'))button.addEventListener('click',()=>{
   button.blur();void chooseKeyboardMode(button.dataset.sidKeyboardMode).catch(report);
@@ -317,7 +373,7 @@ const tools=Object.fromEntries(['instrument','position','fret','strings','window
 const toolbar=document.createElement('div');toolbar.className='fretboard-toolbar';const summary=document.createElement('div');summary.className='fretboard-row fretboard-summary';summary.append(tools.fret,tools.strings);const choices=document.createElement('div');choices.className='fretboard-row';for(const name of ['instrument','position','window'])choices.append(tools[name]);toolbar.append(summary,choices);$('keyboardFretboard').append(toolbar);
 function canPlay(midi){
   if(songChannel())return midi>=0&&midi<=127&&440*2**((midi-69+pitch)/12)<=65535*985248/16777216;
-  const plan=channelPlaybackPlan(channelSettings),sound=channelSettings.channels[plan.carrier];
+  const plan=channelPlaybackPlan(playbackChannelSettings),sound=playbackChannelSettings.channels[plan.carrier];
   const hz=440*2**((midi-69+pitch)/12),source=plan.source!==null?hz*sound.modulation.ratio:hz;
   return midi>=0&&midi<=127&&hz>0&&Math.max(hz,source)<=65535*985248/16777216;
 }
@@ -369,11 +425,11 @@ function press(source,entry){
       const audition=selectChannelTarget(createChannelSettings(pausedSound.preset),song.liveVoice??0);
       await engine.command('loadChannelSettings',[audition]);pausedKeyboard=true;
       if(!current()){
-        await engine.command('loadChannelSettings',[channelSettings]);pausedKeyboard=false;
+        await engine.command('loadChannelSettings',[playbackChannelSettings]);pausedKeyboard=false;
         if(notes.get(source)===note){notes.delete(source);updateKeys();}return;
       }
       visualizer.disconnect();visualizer.connect(engine.context,engine.outputNode);
-    }else if(pausedKeyboard){await engine.command('loadChannelSettings',[channelSettings]);pausedKeyboard=false;if(!current())return;}
+    }else if(pausedKeyboard){await engine.command('loadChannelSettings',[playbackChannelSettings]);pausedKeyboard=false;if(!current())return;}
     const codeState=codeHost?.isRunning()?codeLive.read():null;
     note.started=true;await engine.command('noteOn',[note.id,note.midi,codeState?.liveEnabled?codeState.liveVoice:null]);
     if(audio!==engine||note.epoch!==noteEpoch)return;
@@ -400,7 +456,7 @@ async function stopNotes(message){
   try{
     const songReleased=sidImporter?.manualRelease?.();
     if(target){const order=++commandSequence,state=await target.command(codeHost?.isRunning()?'releaseKeyboard':'stop');if(audio===target){acceptPitch(state,order,stopPitchIntent);if(noteEpoch===stoppedEpoch&&!notes.size)readVoices(state);}}
-    if(target&&pausedKeyboard&&noteEpoch===stoppedEpoch&&!notes.size){pausedKeyboard=false;await target.command('loadChannelSettings',[channelSettings]);}
+    if(target&&pausedKeyboard&&noteEpoch===stoppedEpoch&&!notes.size){pausedKeyboard=false;await target.command('loadChannelSettings',[playbackChannelSettings]);}
     await songReleased;
     // A Stop ACK belongs to the notes cleared above, never a later key press.
     if((!target||audio===target)&&noteEpoch===stoppedEpoch&&!notes.size){
@@ -421,7 +477,7 @@ function editing(target){
   return control&&!control.matches?.('input[type="range"]');
 }
 window.addEventListener('keydown',event=>{
-  if(document.getElementById('spuFileContextMenu')?.hidden===false)return;
+  if(document.getElementById('spuFileContextMenu')?.hidden===false||document.getElementById('sidFileContextMenu')?.hidden===false)return;
   if(event.defaultPrevented||event.isComposing||event.ctrlKey||event.metaKey||event.altKey||editing(event.target))return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);if(!entry)return;
   event.preventDefault();if(!event.repeat)press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
@@ -490,12 +546,15 @@ function receivePlayerSnapshot(){
 }
 renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);
 codeHost=setupSidCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readChannelSettings(channelSettings),
+  getSaveSoundSettings:()=>readChannelSettings(codeHost?.isRunning()?playbackChannelSettings:channelSettings),
   async beforeSoundApply(){await stopNotes();if(songOpen()){songTarget='round-robin';updateLiveDisplay();}},
-  async applySettings(value,{isCurrent=()=>true}={}){
+  async applySettings(value,options={}){
+    const {isCurrent=()=>true}=options;
     if(disposed||!isCurrent())throw new DOMException('SID project selection cancelled','AbortError');
-    if(await applySettings(value,{load:true,isCurrent,message:'SID project sound loaded · play or run Code.'})===false)return false;
-    if(disposed||!isCurrent()||JSON.stringify(readChannelSettings(channelSettings))!==JSON.stringify(readChannelSettings(value)))
+    if(await applySettings(value,{...options,record:false,message:'SID project sound updated · play or run Code.'})===false)return false;
+    if(disposed||!isCurrent()||JSON.stringify(channelSettings)!==JSON.stringify(readChannelSettings(options.displayPreset??value)))
       throw new DOMException('SID project selection changed','AbortError');
+    return true;
   },
   stopKeyboard:()=>stopNotes(),stopSong:()=>stopSongForKeyboard(),beforeRun:()=>queue,
   prepareOutput:(engine,isCurrent)=>prepareDesktopOutput(engine,isCurrent),

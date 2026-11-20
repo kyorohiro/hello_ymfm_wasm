@@ -7,6 +7,9 @@ import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
 import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js';
 import {captureSidVoices} from '../sid-player/voice_snapshot.js';
 import {readSidLiveVoice} from './sid_live_view.js';
+import {setupSynthMenu} from '../synth/synth_menu.js';
+import {applySidDocumentChanges} from './document_settings.js';
+import {createSidCodeProject} from './code_project.js';
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 class Element {
@@ -26,6 +29,8 @@ class Element {
   blur(){if(this.ownerDocument.activeElement===this)this.ownerDocument.activeElement=null;}
   setPointerCapture(id){this.capture=id;}hasPointerCapture(id){return this.capture===id;}releasePointerCapture(){this.capture=null;}
   querySelectorAll(selector){return walk(this).filter(node=>selector==='.key'?node.className==='key':false);}
+  querySelector(selector){return walk(this).find(node=>selector.startsWith('.')&&node.className?.split(/\s+/).includes(selector.slice(1)))??null;}
+  contains(node){return walk(this).includes(node);}
 }
 const walk=node=>[node,...node.children.flatMap(walk)];
 const find=(root,id)=>walk(root).find(node=>node.id===id);
@@ -298,11 +303,13 @@ test('question-mark help starts closed, toggles independently, preserves focus/f
 });
 
 const appSource=(await readFile(new URL('./synth.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?from\s*['"][^'"]+['"];\n/gm,'');
-function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
+function appFixture({stall=false,desktop=false,codeStop=async()=>{},files}={}){
   const ids=new Map(),doc=new Element(null,'document');doc.ownerDocument=doc;doc.activeElement=null;doc.hidden=false;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>{if(!ids.has(id)){const node=new Element(doc);node.id=id;ids.set(id,node);}return ids.get(id);};
   for(const id of ['masterVolume','pitchBend','keyboardPitchBend'])doc.getElementById(id).value=id==='masterVolume'?'.7':'0';
   doc.getElementById('codeOutput').hidden=true;
   doc.getElementById('spuFileContextMenu').hidden=true;
+  doc.getElementById('sidFileContextMenu').hidden=true;
+  const menuPanel=new Element(doc);menuPanel.className='synth-menu-panel';doc.getElementById('synthMenu').append(menuPanel);
   const modes=['waveform','spectrum'].map(mode=>{const node=new Element(doc,'button');node.dataset.visualMode=mode;node.setAttribute('aria-pressed',String(mode==='waveform'));return node;});
   const channels=['0','1','2','round-robin'].map(value=>{const node=new Element(doc,'button');node.dataset.sidLiveVoice=value;return node;});
   const keyboardModes=['retrigger','legato'].map(value=>{const node=new Element(doc,'button');node.dataset.sidKeyboardMode=value;return node;});
@@ -353,8 +360,8 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
     setLiveVoice(voice){importState.liveVoice=voice;importer.hooks.onUpdate(importer.read());},
     setLiveEnabled(value){importState.liveEnabled=value;importer.hooks.onUpdate(importer.read());},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
-  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,
-    setupSidCodeHost:hooks=>{code.hooks=hooks;code.activity=hooks.onActivity;return{ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,getState:()=>({busy:Boolean(code.busy),running:code.running}),
+  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,setupSynthMenu,applySidDocumentChanges,
+    setupSidCodeHost:hooks=>{code.hooks=hooks;code.activity=hooks.onActivity;return{files,project:createSidCodeProject({settings:hooks.getSettings()}),ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,getState:()=>({busy:Boolean(code.busy),running:code.running}),
       async stop(){code.running=false;code.stops++;code.activity();await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}};},
     createSidCodeLive:hooks=>{codeLive.hooks=hooks;return codeLive;},
     createEditor:hooks=>{Object.assign(editorHooks,hooks);return{update(value){editorUpdates.push(readPreset(value));},observe(value,options){observations.push({value,active:options?.active,editable:options?.editable});},dispose(){}};},
@@ -859,4 +866,49 @@ test('a reset ACK does not overwrite a newer pitch request queued behind it',asy
   const f=appFixture();await f.ui.ensureAudio();let release;f.engines[0].holdNext=new Promise(resolve=>{release=resolve;});
   const loaded=createDefaultPreset();loaded.name='Reset';const reset=f.ui.applyPreset(loaded,{load:true});await flush();f.ui.setPitch(1);release();await reset;await flush();await flush();
   assert.equal((await f.engines[0].read()).pitch,1);assert.equal(f.doc.getElementById('pitchBend').value,'1');assert.equal(f.doc.getElementById('keyboardPitchBend').value,'1');
+});
+
+
+function authorFiles(autoApply){
+  const files={autoApply,recorded:[],isAutoApply:()=>files.autoApply,
+    canEditSound(){},validateSoundEdit:readChannelSettings,
+    recordSoundEdit(settings){files.recorded.push(readChannelSettings(settings));}};
+  return files;
+}
+
+test('manual SID drafts never reach startup, keys or a physical-CH target selection',async()=>{
+  const files=authorFiles(false),f=appFixture({files}),accepted=readChannelSettings(f.ui.getSettings());
+  const draft=readPreset(f.ui.getPreset());draft.model='8580';draft.voice.waveform='pulse';draft.voice.pulseWidth=719;draft.filter.cutoff=997;
+  await f.ui.applyPreset(draft);assert.equal(f.engines.length,0);assert.equal(f.ui.getPreset().model,'8580');assert.equal(files.recorded.length,1);
+  await f.ui.ensureAudio();assert.equal(f.audioOptions[0].model,'6581');
+  let actual=(await f.engines[0].read()).channelSettings;
+  assert.deepEqual(actual,accepted);
+  f.ui.press('accepted-key',f.entries[0]);await flush();await flush();
+  actual=(await f.engines[0].read()).channelSettings;assert.equal(actual.channels[0].voice.waveform,accepted.channels[0].voice.waveform);
+  await f.ui.chooseChannel(1);actual=(await f.engines[0].read()).channelSettings;
+  assert.equal(actual.target,1);assert.equal(actual.channels[1].model,'6581');assert.equal(actual.channels[1].filter.cutoff,accepted.channels[1].filter.cutoff);
+  assert.equal(f.ui.getPreset().model,'8580');assert.equal(f.ui.getPreset().voice.pulseWidth,719);
+  assert.equal(files.recorded.length,1,'target selection does not rewrite the instrument document');
+});
+
+test('accepting one SID document field keeps independent physical session edits and held Code notes',async()=>{
+  const files=authorFiles(false),f=appFixture({files});await f.ui.ensureAudio();f.code.running=true;
+  f.ui.press('held-code-key',f.entries[0]);await flush();await flush();
+  const original=readChannelSettings(f.ui.getSettings()),session=readChannelSettings(original);
+  session.channels[1].voice.pulseWidth=719;session.channels[2].voice.attack=13;
+  await f.engines[0].command('setChannelSettings',[session]);
+  const draft=readChannelSettings(original);for(const voice of draft.channels)voice.filter.cutoff=997;
+  await f.ui.applySettings(draft);assert.equal((await f.engines[0].read()).channelSettings.channels[0].filter.cutoff,original.channels[0].filter.cutoff);
+  await f.ui.applySettings(draft,{record:false,source:'save',applyAudio:true,displayPreset:draft});
+  const actual=await f.engines[0].read();assert.equal(actual.channelSettings.channels[1].voice.pulseWidth,719);assert.equal(actual.channelSettings.channels[2].voice.attack,13);
+  assert.equal(actual.channelSettings.channels[0].filter.cutoff,997);assert.equal(actual.voices.length,1);assert.equal(f.code.stops,0);assert(f.code.running);
+  assert.equal(files.recorded.length,1,'Save commits Files separately; native acknowledgement does not re-record pending JSON');
+});
+
+test('a rejected SID author edit does not record a saved source or replace the visible accepted sound',async()=>{
+  const files=authorFiles(true),f=appFixture({files});await f.ui.ensureAudio();const before=readChannelSettings(f.ui.getSettings());
+  const next=readPreset(f.ui.getPreset());next.filter.cutoff=997;f.engines[0].rejectPatch=true;
+  await assert.rejects(f.ui.applyPreset(next),/Tuning/);
+  assert.equal(files.recorded.length,0);assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);
+  assert.deepEqual((await f.engines[0].read()).channelSettings,before);
 });

@@ -169,3 +169,56 @@ footer { line-height:1.6; margin-top:18px; }footer p { flex:1 1 600px; }footer d
 #sidFileNameDialog input { box-sizing:border-box; width:100%; margin:8px 0 14px; padding:8px; }
 #sidFileTextEditor { box-sizing:border-box; width:100%; min-height:170px; padding:8px; resize:vertical; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
 @media(max-width:760px) { .sid-code-workspace.has-files { grid-template-columns:minmax(0,1fr); }.sid-code-workspace.has-files.is-code-expanded .sid-expanded-code { grid-column:1; }#sidFilesTree { max-height:240px; }.sid-code-editor { font-size:12px; } }
+
+.sid-files-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.sid-files-heading h2 { margin:0; font-size:.78rem; letter-spacing:.15em; }
+.sid-files-toolbar,.sid-files-actions { display:flex; flex-wrap:wrap; gap:5px; }
+.sid-files-toolbar button,.sid-files-actions button { min-height:28px; padding:4px 7px; font-size:.7rem; }
+.sid-files-actions { padding-top:9px; margin-top:8px; border-top:1px solid var(--line); }
+.sid-files-save-controls { display:flex; flex-wrap:wrap; align-items:center; gap:5px; padding:8px 0 10px; margin-bottom:9px; border-bottom:1px solid var(--line); }
+.sid-files-save-controls label { display:flex; align-items:center; gap:5px; flex-basis:100%; font-size:.73rem; }
+.sid-files-save-controls input { margin:0; }
+.sid-files-save-controls button { min-height:28px; padding:4px 7px; font-size:.7rem; }
+.sid-file-unsaved { margin-left:5px; color:#167f82; font-size:.85em; }
+.sid-new-cassette-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+.sid-files-panel button { border-radius:999px; box-shadow:none; }
+.spu-file-context-menu { z-index:1000; display:grid; gap:3px; min-width:180px; padding:7px; border:1px solid var(--line); border-radius:10px; background:#f6efdf; color:var(--ink); box-shadow:0 8px 28px #26344135; }
+.spu-file-context-menu button { min-height:32px; width:100%; padding:6px 12px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--ink); text-align:left; font-size:.78rem; font-weight:500; box-shadow:none; }
+.spu-file-context-menu button:hover:not(:disabled),.spu-file-context-menu button:focus-visible { background:#d9e9df; border-color:var(--accent); }
+.spu-file-context-menu button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.sid-files-status { margin:8px 0 0; font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
+#sidFilesTree { min-height:80px; max-height:55vh; overflow:auto; }
+#sidFilesTree .file-tree { list-style:none; margin:0; padding:0; }
+#sidFilesTree .file-tree .file-tree { padding-left:12px; }
+#sidFilesTree li { margin:0; padding:0; }
+#sidFilesTree summary { cursor:pointer; font-size:.75rem; padding:5px 2px; overflow-wrap:anywhere; }
+#sidFilesTree .file-tree-root { font-size:.7rem; color:var(--muted); margin:0 0 6px; padding:5px; border-bottom:1px solid var(--line); }
+#sidFilesTree button { display:block; width:100%; text-align:left; min-height:0; height:auto; padding:6px; border:0; border-radius:6px; background:transparent; color:var(--ink); box-shadow:none; font:inherit; font-size:.74rem; line-height:1.4; overflow-wrap:anywhere; }
+#sidFilesTree button[aria-pressed="true"] { background:transparent; color:var(--ink); box-shadow:none; }
+#sidFilesTree button[aria-selected="true"],#sidFilesTree button[aria-current="true"] { background:#d9e9df; }
+#sidFilesTree button:hover,#sidFilesTree summary:hover { background:#e2eada; }
+#sidFilesTree button:active { background:#d9e9df; box-shadow:none; }
+#sidFilesTree button:focus-visible { outline-offset:-2px; }
+#sidFilesTree .file-drop-target { background:#d9e9df; outline:1px solid var(--accent); }
+
+#sidFileNameDialog { width:min(420px,90vw); border:1px solid var(--line); border-radius:10px; background:var(--paper,#f6efdf); color:inherit; padding:18px; }
+#sidFileNameDialog input { box-sizing:border-box; width:100%; margin:8px 0 14px; padding:8px; }
+.sid-file-context-menu { position:fixed; z-index:1000; display:grid; gap:5px; min-width:210px; max-width:calc(100vw - 8px); max-height:calc(100vh - 8px); overflow:auto; box-sizing:border-box; padding:8px; border:1px solid var(--line); border-radius:10px; background:#f6efdf; color:var(--ink); box-shadow:0 8px 24px #26344135; }
+.sid-file-context-menu[hidden] { display:none; }
+.sid-file-context-menu button { width:100%; min-height:32px; padding:6px 12px; text-align:left; font-size:.8rem; box-shadow:none; }
+.sid-file-context-menu button:hover:not(:disabled),.sid-file-context-menu button:focus-visible { background:#d9e9df; }
+
+/* Shared saved/working Files tools use the existing SID palette. */
+.synth-menu-panel { background:#f6efdf; }
+.synth-icon-button { color:var(--accent-dark); background:#f6efdf; border-color:var(--line); }
+.sid-files-heading,.sid-files-save-controls,.sid-files-actions,.sid-files-toolbar { min-width:0; }
+.sid-files-toolbar button { white-space:normal; }
+.sid-files-panel[aria-busy="true"] { opacity:.8; }
+.sid-files-path.sid-sr-only { position:absolute; }
+.sid-saved-sounds { display:flex; flex:1 1 250px; min-width:0; gap:7px; align-items:center; color:var(--muted); font-size:.73rem; }
+.sid-saved-sounds select { min-width:0; max-width:100%; width:100%; color:var(--ink); padding:7px 9px; border:1px solid var(--line); border-radius:999px; background:#faf5e7; }
+#sidNewCassetteDialog,#sidImportCassetteDialog { width:min(520px,calc(100vw - 30px)); max-width:calc(100vw - 30px); box-sizing:border-box; border:1px solid var(--line); border-radius:12px; padding:20px; background:#f6efdf; color:var(--ink); }
+#sidNewCassetteDialog::backdrop,#sidImportCassetteDialog::backdrop { background:#242e3059; }
+#sidNewCassetteDialog h2,#sidImportCassetteDialog h2 { margin:0 0 10px; font-size:1rem; }
+#sidNewCassetteDialog p,#sidImportCassetteDialog p { font-size:.8rem; line-height:1.6; overflow-wrap:anywhere; }
+#sidFilesTree .file-tree > li { min-width:0; }

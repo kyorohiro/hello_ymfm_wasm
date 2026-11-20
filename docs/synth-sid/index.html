@@ -10,7 +10,7 @@
   <title>Tetorica SID Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sid_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sid_synth.webp">
-  <link rel="stylesheet" href="./synth.css?sid-code=2&amp;sid-code-live=1">
+  <link rel="stylesheet" href="./synth.css?v=sid-working-saved-1">
 </head>
 <body>
 <main>
@@ -28,7 +28,16 @@
         <span class="engine-badge"><b id="sidModelBadge">6581</b> <span id="sidModelStatus">PAL · APPROXIMATION</span></span>
       </div>
       <div class="audio-toolbar">
-        <div class="transport-actions"><button id="startAudio" class="primary" type="button">Enable audio</button><button id="stopAudio" type="button">Stop all sound</button><button id="sidFilesToggle" type="button" aria-expanded="false" aria-controls="sidFilesPanel">Files</button></div>
+        <div class="transport-actions">
+          <details id="synthMenu" class="synth-menu">
+            <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
+            <div id="synthMenuPanel" class="synth-menu-panel">
+              <section class="synth-menu-section"><h2>New</h2><div id="sidMenuProjectNew" class="synth-menu-actions"></div></section>
+              <section class="synth-menu-section"><h2>Import</h2><div class="synth-menu-actions"><div id="sidMenuProjectImport"></div><div id="sidMenuFilesImport"></div></div></section>
+              <section class="synth-menu-section"><h2>Export</h2><div class="synth-menu-actions"><div id="sidMenuProjectExport"></div><div id="sidMenuFileExport"></div></div></section>
+            </div>
+          </details>
+          <button id="startAudio" class="primary" type="button">Enable audio</button><button id="stopAudio" type="button">Stop all sound</button><button id="sidFilesToggle" type="button" aria-expanded="false" aria-controls="sidFilesPanel">Files</button></div>
         <label class="master-control" for="masterVolume"><span>Master</span><input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume, 0 to 380 percent"><output id="masterVolumeValue" for="masterVolume">70%</output></label>
       </div>
       <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
@@ -95,6 +104,7 @@
 
     <details id="presetTools" class="sid-card preset-tools"><summary>Preset · save, load and JavaScript</summary>
       <div class="sid-card-content preset-actions">
+        <label class="sid-saved-sounds" for="sidPresetSelect">Saved sounds <select id="sidPresetSelect" aria-label="Saved SID instrument files"><option value="">No playable presets</option></select></label>
         <label class="instrument-name-control" for="instrumentName">Name <input id="instrumentName" type="text" maxlength="80" value="Saw" autocomplete="off"></label>
         <button id="savePreset" type="button">Save voice preset…</button><button id="saveChannelSettings" type="button">Save channel setup…</button><button id="loadPreset" type="button">Load preset / setup…</button><button id="resetPreset" type="button">Reset</button><button id="copyCode" type="button">Copy JavaScript</button>
         <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a SID voice preset">
@@ -120,7 +130,7 @@
         <p class="sid-help sid-code-caption">Software performance · the same SID as the controls above. Run: Ctrl/Cmd+Enter · Apply: Ctrl/Cmd+Shift+Enter.</p>
         <div id="synthCodeEditorHost" class="sid-code-editor-host"></div>
         <textarea id="synthCodeEditor" class="sid-code-editor" spellcheck="false" aria-label="SID performance JavaScript" rows="12" readonly></textarea>
-        <p id="synthCodeEditorNote" class="sid-help">Code is saved in Files. Loading a project never runs it automatically.</p>
+        <p id="synthCodeEditorNote" class="sid-help">Code and text are edited in Files. Run / Apply uses saved code; Save never runs it.</p>
         <pre id="synthCodeError" class="sid-code-error" role="alert"></pre>
         <details class="sid-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
         <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About SID Code">?</summary><div class="sid-help-panel"><p class="sid-help">Use <code>const sid = await useSoundChip("sid")</code> and await its methods. Code addresses physical CH1 / CH2 / CH3 directly. Run starts fresh; Apply keeps context and named loops; Stop fades the software output and restores your edited sound. Keyboard allocation, Legato and the modulator ratio are keyboard tools. Code can set the source oscillator explicitly for hardware Sync / Ring.</p><p class="sid-help">Code register edits do not overwrite the preset controls. The upper controls edit this same chip. Keyboard / Code changes the view without stopping loops or FX. Code Live edits only the touched fields of the displayed CH. Preset changes keep Code running; starting a SID song stops Code. The hardware SID filter is shared by all three voices; liveFx is a separate software effect.</p></div></details>
@@ -133,6 +143,6 @@
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>
-<script type="module" src="./synth.js?sid-transport=3&amp;sid-song-manual=1&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2&amp;sid-code-keyboard=1&amp;draft-reconnect=1"></script>
+<script type="module" src="./synth.js?sid-transport=3&amp;sid-song-manual=1&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2&amp;sid-code-keyboard=1&amp;draft-reconnect=1&amp;v=sid-working-saved-1"></script>
 </body>
 </html>
