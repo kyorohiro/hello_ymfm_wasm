@@ -1,5 +1,12 @@
 # ST YM2149 Code workspace alignment — 2026-11-21
 
+## Deferred next phase: scheduled-performance Live display
+
+- [ ] Follow [the shared Live UI plan](todo_synth_scheduled_live_view_20261121.md):
+      render the executed schedule state at a bounded rate, updating only visible
+      selected-channel controls and suspending hidden/background polling.
+      Build/compile remain inspection-only. No runtime changes in this TODO slice.
+
 ## Playing VGM direct editing
 
 - [x] Apply selected-channel operations to the actual VGM renderer at its next

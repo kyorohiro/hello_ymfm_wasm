@@ -64,3 +64,8 @@ Existing ordinary `liveLoop` performance is not equivalent to this API.
 
 This index does not authorize npm publication, release, commit, push or remote CI.
 Individual implementation notes distinguish verified slices from remaining work.
+## Deferred display follow-up
+
+Executed schedules need a separate, rate-limited Synth Live view. See
+[Scheduled performance Live UI](todo_synth_scheduled_live_view_20261121.md).
+This display phase is deferred; build/compile do not change the live sound or UI.
