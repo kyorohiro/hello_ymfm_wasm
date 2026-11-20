@@ -169,3 +169,41 @@ editors retain their normal typing behavior.
 
 The output monitor Pitch wheel sits vertically to the right of the display,
 matching FM2612: up raises pitch, down lowers it. Both Pitch wheels stay linked.
+
+### Timed PSG Code (SMSGEAR Web Audio)
+
+New Cassettes include `examples/psg-timed.js`. This app-local first version adds
+`build`, `compile`, `captureState`, `schedule` and `clearSchedule` to
+`await useSoundChip("segapsg")`. YM2413 keeps its existing immediate API; its timed
+adapter and common Playground/npm/Native integration are follow-up work.
+
+`build` runs its synchronous callback once and records serializable operations,
+without copying or editing the live chip. `atSeconds` and `atSample` are absolute
+pattern offsets. The sample reference defaults to 44100 Hz (configurable through
+`build(callback, {referenceSampleRate})`), independent of the output device rate.
+Use `await beat()` between patterns for BPM changes; offsets inside a built
+pattern and `repeatSeconds` are deliberately measured in seconds/samples.
+
+`await psg.compile(plan)` captures the renderer's current operation-resolution
+state. `{initialState:"reset"}` uses a virtual reset without resetting audio;
+a detached `await psg.captureState()` may be reused as `initialState` to compare
+traces. PSG rows identify the logical register0–7, channel and actual command
+byte `value`; Game Gear stereo rows contain `stereo`. The byte stream is PSG's
+hardware format, not an invented address/value register bus. This trace predicts
+one baseline; it is not a recording of concurrent live writes. Snapshots do not
+include oscillator phase and cannot rewind audio.
+
+The immediate client lacks complete period/Noise metadata, so
+`{initialState:"client"}` explicitly rejects rather than returning a misleading
+trace. No extra continuous synchronization is installed.
+
+`schedule(plan, {name, repeatSeconds?})` resolves operations on AudioWorklet's
+sample clock using the existing Performance Queue. It stores bounded repeating
+patterns, not unrolled streams or JavaScript timers. Same-time operation order
+and repeated Noise-register writes are preserved; manual changes affect later
+partial operations. A valid same-name reservation replaces the old pattern;
+an invalid replacement leaves it intact. `clearSchedule(name)`, Stop and loop
+retirement cancel reservations and release only notes still owned by them.
+Apply stages entry reservations before committing; a failed Apply preserves the
+previous reservation. The scheduler is software; the command-byte effects are
+hardware PSG operations. VGM playback remains exclusive with Code.

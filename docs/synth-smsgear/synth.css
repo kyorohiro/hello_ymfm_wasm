@@ -351,10 +351,16 @@ dialog {
 	flex-wrap: wrap;
 }
 .smsgear-code-error {
+	max-width: 100%;
+	min-width: 0;
+	overflow: auto;
+	overflow-wrap: anywhere;
 	color: #ffb1b1;
 	white-space: pre-wrap;
 }
 .smsgear-code-console pre {
+	max-width: 100%;
+	min-width: 0;
 	max-height: 160px;
 	overflow: auto;
 	white-space: pre-wrap;

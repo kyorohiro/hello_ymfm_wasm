@@ -41,7 +41,7 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 - [x] Direct selected-CH editing during reference playback / Pause; touched controls update the renderer without stopping the song. Capture keeps a separate static Synth copy.
 - [ ] Improve extraction of driver-dependent dynamic sounds and Rhythm scenes; current snapshots do not reconstruct software automation.
 - [ ] Consider a clearly labeled software PSG Envelope after hardware/basic interactions are confirmed.
-- [ ] Timed operation APIs: audit existing PSG / OPLL API and ownership first; no new scheduling implementation in this consumer.
+- [x] Timed operation API audit and app-local PSG first milestone completed. YM2413 and common-runtime promotion remain explicitly tracked below.
 - [ ] Looper / Event Rec and Tauri only when requested.
 
 UI/reference base: FM2612 Synth. Reuse newer shared saving/editor adapters where
@@ -81,10 +81,26 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 
 ## Separate existing test maintenance
 
-- [ ] Repair archived historical calibration proof fixtures for the existing performance-queue / SPU CSS dependency changes without loosening production freshness guards. The broad suite has the same 157 failing test names before/after this feature (297 tests: 140 pass, 157 fail), confirmed using an isolated exact Git archive of the baseline commit. See `ym2413_state_baseline_test_comparison_01.json`. This is separate from the passing current-policy checks and the new native-state/cache tests.
+- [x] Repair archived historical calibration proof fixtures without loosening production freshness guards. The former 157 failures are resolved by completing 27 fixed-Git dependency bodies in the test-only archive. Final broad calibration + fixture suite: 310 passed, 0 failed; both production policy checks pass. See [repair verification](calibration_history_repair_20261120.md). Original baseline comparison remains in `ym2413_state_baseline_test_comparison_01.json`.
 
 ## Pause audition / Stop follow-up
 
 - [x] Apply paused selected-channel edits to the keyboard audition instrument as well as the frozen reference; keep reference time frozen.
 - [x] Display configured PSG attenuation separately from hardware release mute (15); Stop returns to the editing Synth instead of displaying the idle audition registers.
 - [x] Verify held-key edits, release/retrigger and Stop in muted Chromium / WebKit.
+
+## Historical calibration test repair
+
+- [x] Reproduce and classify the existing calibration-history failures.
+- [x] Complete test-only archived dependencies from independently recorded Git revisions; keep production freshness guards and original measurements unchanged.
+- [x] Run all historical calibration tests, fixture integrity tests and production policy checks; record remaining limitations.
+
+## Timed Code API — PSG first
+
+- [x] Audit current PSG / YM2413 clients: neither exposes build / compile / schedule yet. PSG client lacks full period/Noise shadow; YM2413 has a register shadow.
+- [x] Add an app-local PSG operation recorder, detached snapshot and register trace compiler using the existing SegaPSGSynth conversion; no live mutation while building/compiling.
+- [x] Execute PSG operations through AudioWorklet Performance Queue: named replacement/cancel, bounded repeats, actual-time resolution and atomic admission; preserve raw PSG latch semantics.
+- [x] Connect Run / Apply / Stop / loop-generation ownership, completion/types and a seeded timed PSG example with console.table.
+- [x] Validate 44.1/48 kHz timing, partial/interleaved writes, invalid replacement, stale note release and muted browser lifecycle.
+- [ ] Follow-up: YM2413 operations (shared User patch, Operator bitfields, melodic/Rhythm ownership); reuse existing synth conversion, not register-math copies.
+- [ ] Follow-up: promote proven PSG APIs into common Playground / npm / Worker / Native adapters with provenance and client-shadow completeness audit. This milestone is SMSGEAR Web Audio only; no npm publication.

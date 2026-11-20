@@ -61,6 +61,7 @@ export async function packageSmsGearSynth({
 		entries: [
 			"docs/synth-smsgear/synth.js",
 			"docs/synth-smsgear/song_worklet.js",
+			"docs/synth-smsgear/psg_worklet.js",
 			"docs/synth-smsgear/synth.css",
 			"docs/js/native-fx-worklet.js",
 		],

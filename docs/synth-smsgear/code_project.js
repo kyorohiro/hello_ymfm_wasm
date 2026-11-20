@@ -11,7 +11,11 @@ import {
 } from "../playground/playground_cassette.js";
 import { createSynthCodeProject } from "../synth/synth_code_project.js?v=huc-working-saved-1";
 import { createSynthProjectStore } from "../synth/synth_project_store.js?v=draft-reconnect-1";
-import { SMSGEAR_PSG_EXAMPLE, SMSGEAR_FM_EXAMPLE } from "./code_examples.js";
+import {
+	SMSGEAR_PSG_EXAMPLE,
+	SMSGEAR_FM_EXAMPLE,
+	SMSGEAR_PSG_TIMED_EXAMPLE,
+} from "./code_examples.js";
 import { readPreset, createDefaultPreset } from "./preset.js";
 
 export const SMSGEAR_PROJECT_FORMAT = "tetorica-smsgear-code-project";
@@ -825,6 +829,7 @@ export function createSmsGearCodeProject({
 		if (!snapshot && includeExamples) {
 			fs.writeText("/examples/psg.js", SMSGEAR_PSG_EXAMPLE);
 			fs.writeText("/examples/opll.js", SMSGEAR_FM_EXAMPLE);
+			fs.writeText("/examples/psg-timed.js", SMSGEAR_PSG_TIMED_EXAMPLE);
 		}
 	}
 	if (snapshot) project.restore(snapshot);

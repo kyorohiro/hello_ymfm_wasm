@@ -1,5 +1,9 @@
 // Test-only archived inputs for immutable historical proof tests. These bytes
 // never participate in production freshness approval or generated policies.
+// Freeze unchanged-at-cut dependencies too: later queue, Synth CSS,
+// WonderSwan, PS1 timed API, YM2413 state ABI and example edits must not leak
+// into historical proofs.
+// The fixture integrity test compares every complete body to its fixed Git revision.
 import {readFileSync as readLive} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
@@ -7,7 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {relative,resolve} from 'node:path';
 import {createHistoricalFm2612ApplicationReader} from './historical_fm2612_application_source_fixture.mjs';
 import {createHistoricalYm2608SourceMixReader} from './historical_ym2608_source_mix_fixture.mjs';
-export const HUC_HISTORY_PIN='eca918095d1373f4008d1aa164cffda2be921f36f63106563ffa94e8e71d1f85';
+export const HUC_HISTORY_PIN='524abb145d38bfb1a929579ed9fd6435f4c10f60ce7e6ec0465088f4aca69906';
 export const HUC_HISTORY_PATH='test/fixtures/pre-huc-timed-calibration-inputs.json';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const snapshot=JSON.parse(readLive(new URL('../../'+HUC_HISTORY_PATH,import.meta.url))),sha=b=>createHash('sha256').update(b).digest('hex');

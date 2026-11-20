@@ -889,6 +889,119 @@ function mute() {
 					false,
 				);
 				await page.locator("#synthCodeStopButton").click();
+				if (!withMonaco) {
+					// The offline editor exercises real Code Run/Apply ownership; every
+					// physical speaker connection remains behind the zero-gain audit.
+					await page.locator("#synthInputCodeTab").click();
+					const timedSource = (level, hz, invalid = false) => `
+const psg = await useSoundChip("segapsg");
+const pulse = psg.build(b => {
+  b.atSample(0).setAttenuation(CH1, ${level}).setFrequency(CH1, ${hz}).keyOn(CH1);
+});
+console.table(await psg.compile(pulse, {initialState: "reset"}));
+${
+	invalid
+		? 'await psg.schedule(pulse, {name: "browser-tone", repeatSeconds: 0});'
+		: `liveLoop("browser-timed", async () => {
+  await psg.schedule(pulse, {name: "browser-tone", repeatSeconds: 0.08});
+  await beat(4);
+});`
+}
+`;
+					const setTimedCode = async (text) => {
+						await page.locator("#synthCodeEditor").fill(text);
+					};
+					const waitForTone = async (level, hz) => {
+						const deadline = Date.now() + 5000;
+						let state;
+						do {
+							state = await inspectChip("segapsg");
+							if (
+								state.channels[0].attenuation === level &&
+								Math.abs(state.channels[0].frequency - hz) < 2
+							)
+								return state;
+							await page.waitForTimeout(30);
+						} while (Date.now() < deadline);
+						assert.fail(
+							"Timed Code did not reach its expected PSG level/pitch: " +
+								JSON.stringify(state),
+						);
+					};
+					await setTimedCode(timedSource(5, 330));
+					await page.locator("#synthCodeRunButton").click();
+					await waitForTone(5, 330);
+					await page.waitForFunction(() =>
+						document
+							.getElementById("synthCodeLog")
+							.textContent.includes("offsetSeconds"),
+					);
+					assert.equal(
+						await page.locator("#synthCodeError").textContent(),
+						"",
+					);
+
+					await page.locator("#psgTab").click();
+					await page
+						.locator('#channelTabs [data-channel="1"]')
+						.click();
+					if (
+						Number(
+							await page
+								.locator("#psgAttenuation .param-value")
+								.textContent(),
+						) === 15
+					)
+						await page
+							.locator("#psgAttenuation .param-button")
+							.first()
+							.click();
+					await page.keyboard.down("a");
+					await page.waitForTimeout(100);
+					assert(
+						(await inspectChip("segapsg")).channels[1].active,
+						"Keyboard remains available while a different PSG channel is scheduled",
+					);
+					await page.keyboard.up("a");
+					await page.locator("#synthInputCodeTab").click();
+
+					await setTimedCode(timedSource(8, 440));
+					await page.locator("#synthCodeApplyButton").click();
+					await waitForTone(8, 440);
+					assert.equal(
+						await page.locator("#synthCodeError").textContent(),
+						"",
+					);
+					await setTimedCode(timedSource(2, 660, true));
+					await page.locator("#synthCodeApplyButton").click();
+					await page.waitForFunction(() =>
+						document
+							.getElementById("synthCodeError")
+							.textContent.includes("repeatSeconds"),
+					);
+					await page.waitForTimeout(250);
+					await waitForTone(8, 440);
+					assert.equal(
+						await page.locator("#synthCodeStopButton").isDisabled(),
+						false,
+						"Rejected Apply keeps the previous performance running",
+					);
+					await page.locator("#synthCodeStopButton").click();
+					await page.waitForFunction(
+						() =>
+							document.getElementById("audioStatus")
+								.textContent === "Code stopped.",
+					);
+					for (let i = 0; i < 5; i++) {
+						await page.waitForTimeout(100);
+						assert(
+							(await inspectChip("segapsg")).channels.every(
+								(ch) => !ch.active,
+							),
+							"Stop removes repeating reservations; no note resumes later",
+						);
+					}
+				}
 				await page.locator("#synthWorkspaceCodeButton").click();
 				await page.waitForFunction(() =>
 					document
@@ -1353,12 +1466,19 @@ function mute() {
 					),
 					"Mobile page overflows: " +
 						JSON.stringify(
+							await page.evaluate(() => ({
+								width: innerWidth,
+								scroll: document.documentElement.scrollWidth,
+								x: scrollX,
+							})),
+						) +
+						JSON.stringify(
 							await page.evaluate(() =>
 								[...document.querySelectorAll("body *")]
 									.filter(
 										(n) =>
 											n.getBoundingClientRect().right >
-												innerWidth + 1 &&
+												innerWidth &&
 											!n.closest("[hidden]"),
 									)
 									.slice(0, 10)
