@@ -4,6 +4,150 @@ import {basename} from 'node:path';
 // Supply missing destructured-option shapes during declaration inference.
 // Restore the original staged JavaScript when TypeScript finishes or fails.
 const annotations = {
+  'segapsg_operations.js': [
+    ['export function buildPsgOperations(', String.raw`/**
+ * @typedef {Object} PsgOperationRecorder
+ * @property {(offset:number)=>PsgOperationRecorder} atSample
+ * @property {(offset:number)=>PsgOperationRecorder} atSeconds
+ * @property {(channel:0|1|2,period:number)=>PsgOperationRecorder} setPeriod
+ * @property {(channel:0|1|2,hz:number)=>PsgOperationRecorder} setFrequency
+ * @property {(channel:0|1|2,note:string|number)=>PsgOperationRecorder} setNote
+ * @property {(channel:0|1|2,note:string|number)=>PsgOperationRecorder} noteOn
+ * @property {(channel:0|1|2,options:{period?:number,frequency?:number,note?:string,volume?:number,attenuation?:number})=>PsgOperationRecorder} tone
+ * @property {(channel:0|1|2)=>PsgOperationRecorder} keyOn
+ * @property {(channel:0|1|2)=>PsgOperationRecorder} keyOff
+ * @property {(channel:0|1|2)=>PsgOperationRecorder} off
+ * @property {(channel:0|1|2|3,attenuation:number)=>PsgOperationRecorder} setAttenuation
+ * @property {(options?:{type?:'white'|'periodic',rate?:'low'|'medium'|'high'|'tone3'})=>PsgOperationRecorder} setNoise
+ * @property {(options?:{type?:'white'|'periodic',rate?:'low'|'medium'|'high'|'tone3',volume?:number,attenuation?:number})=>PsgOperationRecorder} noise
+ * @property {(volume:number)=>PsgOperationRecorder} noiseVolume
+ * @property {()=>PsgOperationRecorder} noiseOff
+ * @property {(mask:number)=>PsgOperationRecorder} setStereo
+ * @property {(value:number)=>PsgOperationRecorder} write
+ */
+/** @template Result
+ * @param {(builder:PsgOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown)} callback
+ * @param {{referenceSampleRate?:number}} [options]
+ * @returns {Readonly<{version:1,chip:'segapsg',referenceSampleRate:number,operations:ReadonlyArray<{time:{unit:'sample'|'seconds',value:number},order:number,method:string,args:ReadonlyArray<unknown>}>}>}
+ */`],
+    ['export function compilePsgOperations(', String.raw`/** @param {ReturnType<typeof buildPsgOperations>} plan
+ * @param {any} state
+ * @param {{clock?:number,stereoEnabled?:boolean}} [options]
+ * @returns {Array<{offsetSeconds:number,operationIndex:number,writeIndex:number}&({value:number,register:number,channel:number}|{stereo:number})>}
+ */`],
+    ['export function createPsgOperationResetState(', String.raw`/** @param {{clock?:number,stereoEnabled?:boolean}} [options] */`],
+  ],
+  'segapsg_timed_state.js': [
+    ['export function createPsgTimedSnapshot(', String.raw`/** @param {any} state
+ * @param {{instanceId:string|number,frame:number,sampleRate:number}} [options]
+ * @returns {Readonly<{format:'tetorica-psg-state',version:1,instanceId:string|number,frame:number,sampleRate:number,state:Readonly<{clock:number,stereoEnabled:boolean,periods:readonly number[],attenuations:readonly number[],latched:number,noiseMode:number,stereo:number}>}>}
+ */`],
+  ],
+  'segapsg_timed_client.js': [
+    ['export function attachPsgTimedClient(', String.raw`/**
+ * @typedef {Object} PsgTimedApi
+ * @property {typeof import('./segapsg_operations.js').buildPsgOperations} build
+ * @property {()=>Promise<ReturnType<typeof import('./segapsg_timed_state.js').createPsgTimedSnapshot>>} captureState
+ * @property {(operations:ReturnType<PsgTimedApi['build']>,options?:{initialState?:'current'|'client'|'reset'|Awaited<ReturnType<PsgTimedApi['captureState']>>})=>Promise<ReturnType<typeof import('./segapsg_operations.js').compilePsgOperations>>} compile
+ * @property {(operations:ReturnType<PsgTimedApi['build']>,options:{name:string,repeatSeconds?:number})=>Promise<{name:string,entries:number,sampleRate:number,startFrame?:number,repeatSeconds?:number,staged?:boolean}>} schedule
+ * @property {(name:string)=>Promise<boolean>} clearSchedule
+ */
+/** @template T
+ * @param {T} api
+ * @param {any} [configuration]
+ * @param {any} [port]
+ * @returns {T & PsgTimedApi}
+ */`],
+  ],
+  'ym2413_operations.js': [
+    ['export function buildOpllOperations(', String.raw`/**
+ * @typedef {0|1|2|3|4|5|6|7|8} OpllOperationChannel
+ * @typedef {{label?:string,feedback?:number,operators?:[import('./ym2413synth.js').YM2413UserOperatorParams?,Omit<import('./ym2413synth.js').YM2413UserOperatorParams,'tl'>?]}} OpllOperationUserPatch
+ * @typedef {Object} OpllOperationRecorder
+ * @property {(offset:number)=>OpllOperationRecorder} atSample
+ * @property {(offset:number)=>OpllOperationRecorder} atSeconds
+ * @property {(register:number,value:number)=>OpllOperationRecorder} writeRegister
+ * @property {(patch:OpllOperationUserPatch|number[])=>OpllOperationRecorder} setUserPatch
+ * @property {((operator:0,params:import('./ym2413synth.js').YM2413UserOperatorParams)=>OpllOperationRecorder)&((operator:1,params:Omit<import('./ym2413synth.js').YM2413UserOperatorParams,'tl'>)=>OpllOperationRecorder)} setUserOperator
+ * @property {(channel:OpllOperationChannel,voice:import('./ym2413synth.js').YM2413Voice)=>OpllOperationRecorder} setVoice
+ * @property {(channel:OpllOperationChannel,preset:number|(import('./ym2413synth.js').YM2413Voice&{userPatch?:OpllOperationUserPatch|number[]}))=>OpllOperationRecorder} setPreset
+ * @property {(channel:OpllOperationChannel,instrument:number,attenuation?:number)=>OpllOperationRecorder} setInstrument
+ * @property {(channel:OpllOperationChannel,attenuation:number)=>OpllOperationRecorder} setAttenuation
+ * @property {(channel:OpllOperationChannel,enabled:boolean)=>OpllOperationRecorder} setSustain
+ * @property {(channel:OpllOperationChannel,fnum:number,block?:number)=>OpllOperationRecorder} setPitch
+ * @property {(channel:OpllOperationChannel,hz:number)=>OpllOperationRecorder} setFrequency
+ * @property {(channel:OpllOperationChannel,note:string|number)=>OpllOperationRecorder} setNote
+ * @property {(channel:OpllOperationChannel)=>OpllOperationRecorder} keyOn
+ * @property {(channel:OpllOperationChannel)=>OpllOperationRecorder} keyOff
+ * @property {(channel:OpllOperationChannel,note:string|number)=>OpllOperationRecorder} noteOn
+ * @property {(channel:OpllOperationChannel)=>OpllOperationRecorder} noteOff
+ * @property {(settings:import('./ym2413synth.js').YM2413Rhythm)=>OpllOperationRecorder} setRhythm
+ * @property {(levels:import('./ym2413synth.js').YM2413RhythmLevels)=>OpllOperationRecorder} setRhythmLevels
+ * @property {(drum:import('./ym2413synth.js').YM2413Drum,attenuation:number)=>OpllOperationRecorder} setRhythmLevel
+ */
+/** @template Result
+ * @param {(builder:OpllOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown)} callback
+ * @param {{referenceSampleRate?:number}} [options]
+ * @returns {Readonly<{version:1,chip:'ym2413',referenceSampleRate:number,operations:ReadonlyArray<{time:{unit:'sample'|'seconds',value:number},order:number,method:string,args:ReadonlyArray<unknown>}>}>}
+ */`],
+    ['export function compileOpllOperations(', String.raw`/** @param {ReturnType<typeof buildOpllOperations>} plan
+ * @param {any} state
+ * @param {{clock?:number}} [options]
+ * @returns {Array<{offsetSeconds:number,register:number,value:number,operationIndex:number,writeIndex:number,intentMask?:number}>}
+ */`],
+    ['export function createOpllOperationResetState(', String.raw`/** @param {{clock?:number}} [options] */`],
+  ],
+  'ym2413_timed_state.js': [
+    ['export function createOpllTimedSnapshot(', String.raw`/** @param {any} state
+ * @param {{instanceId:string|number,frame:number,sampleRate:number}} [options]
+ * @returns {Readonly<{format:'tetorica-opll-state',version:1,instanceId:string|number,frame:number,sampleRate:number,state:Readonly<{clock:number,registers:readonly number[]}>}>}
+ */`],
+  ],
+  'ym2413_timed_client.js': [
+    ['export function attachOpllTimedClient(', String.raw`/**
+ * @typedef {Object} OpllTimedApi
+ * @property {typeof import('./ym2413_operations.js').buildOpllOperations} build
+ * @property {()=>Promise<ReturnType<typeof import('./ym2413_timed_state.js').createOpllTimedSnapshot>>} captureState
+ * @property {(operations:ReturnType<OpllTimedApi['build']>,options?:{initialState?:'current'|'client'|'reset'|Awaited<ReturnType<OpllTimedApi['captureState']>>})=>Promise<ReturnType<typeof import('./ym2413_operations.js').compileOpllOperations>>} compile
+ * @property {(operations:ReturnType<OpllTimedApi['build']>,options:{name:string,repeatSeconds?:number})=>Promise<{name:string,entries:number,sampleRate:number,startFrame?:number,repeatSeconds?:number,staged?:boolean}>} schedule
+ * @property {(name:string)=>Promise<boolean>} clearSchedule
+ */
+/** @template T
+ * @param {T} api
+ * @param {any} [configuration]
+ * @param {any} [port]
+ * @returns {T & OpllTimedApi}
+ */`],
+  ],
+  'playground_segapsg.js': [
+    ['export function createSegaPsgClient(', String.raw`/** @param {any} port
+ * @param {{clock?:number,stereoEnabled?:boolean,native?:boolean,instanceId?:string|number}} [options]
+ * @returns {ReturnType<typeof import('./segapsg_api.js').createSegaPsgApi> & import('./segapsg_timed_client.js').PsgTimedApi & {readonly clock:number,readonly stereoEnabled:boolean,setClock(hz:number):Promise<unknown>}}
+ */`],
+  ],
+  'playground_ym2413.js': [
+    ['export function createYm2413Client(', String.raw`/** @param {any} port
+ * @param {{clock?:number,native?:boolean,state?:any,instanceId?:string|number}} [options]
+ * @param {any} [lifecycle]
+ * @returns {import('./ym2413synth.js').YM2413Synth & import('./ym2413_timed_client.js').OpllTimedApi & {readonly clock:number,setClock(hz:number):Promise<unknown>}}
+ */`],
+  ],
+  'native_genesis_segapsg.js': [
+    ['export function createNativeGenesisSegaPsg(', String.raw`/** @param {any} context
+ * @param {{stereoEnabled?:boolean,acknowledgeClock?:boolean}} [options]
+ * @returns {Omit<ReturnType<typeof import('./native_genesis_voice_endpoint.js').createNativeVoiceEndpoint>,'client'> & {client:ReturnType<typeof import('./playground_segapsg.js').createSegaPsgClient>}}
+ */`],
+  ],
+  'native_genesis_opll.js': [
+    ['export function createNativeGenesisOpll(', String.raw`/** @param {any} context
+ * @returns {Omit<ReturnType<typeof import('./native_genesis_voice_endpoint.js').createNativeVoiceEndpoint>,'client'> & {client:ReturnType<typeof import('./playground_ym2413.js').createYm2413Client>}}
+ */`],
+  ],
+  'native_genesis_extra_ym2413.js': [
+    ['export function createNativeGenesisYm2413Endpoint(', String.raw`/** @param {any} synth
+ * @returns {Omit<ReturnType<typeof import('./native_genesis_extra_register_voice.js').createNativeExtraRegisterVoice>,'client'> & {client:ReturnType<typeof import('./playground_ym2413.js').createYm2413Client>}}
+ */`],
+  ],
   'ps1_timed_client.js': [
     ['export function attachPs1TimedClient(', String.raw`/** @template T
  * @param {T} api

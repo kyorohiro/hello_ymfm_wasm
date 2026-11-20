@@ -1,3 +1,4 @@
+import {attachPsgTimedClient} from './segapsg_timed_client.js';
 /** Shared Sega PSG authoring / inspection for Native Master System and Game Gear. */
 import {createSegaPsgApi} from './segapsg_api.js';
 import {PsgInspectorState} from './playground_chip_inspector_state.js';
@@ -48,5 +49,6 @@ export function createNativeGenesisSegaPsg(context,{stereoEnabled=false,acknowle
     };
     client.setClock=hz=>segapsg.dispatch({method:'clock',args:[hz]});
   }
+  attachPsgTimedClient(client,{native:true});
   return segapsg;
 }

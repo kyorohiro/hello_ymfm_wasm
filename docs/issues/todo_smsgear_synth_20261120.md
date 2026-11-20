@@ -41,12 +41,12 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 - [x] Direct selected-CH editing during reference playback / Pause; touched controls update the renderer without stopping the song. Capture keeps a separate static Synth copy.
 - [ ] Improve extraction of driver-dependent dynamic sounds and Rhythm scenes; current snapshots do not reconstruct software automation.
 - [ ] Consider a clearly labeled software PSG Envelope after hardware/basic interactions are confirmed.
-- [x] Timed operation API audit and app-local PSG first milestone completed. YM2413 and common-runtime promotion remain explicitly tracked below.
+- [x] Timed operation API audit and app-local PSG / YM2413 milestones completed. Common-runtime promotion and distribution checks are tracked below.
 - [ ] Looper / Event Rec and Tauri only when requested.
 
 UI/reference base: FM2612 Synth. Reuse newer shared saving/editor adapters where
 needed rather than carrying Genesis PCM/DAC/32X-specific code into this app.
-Native cores and shared runtime APIs already exist and were not changed.
+Native cores already exist and are unchanged by the shared timed API promotion. The reusable JavaScript runtime now includes the same timed operations used by this Synth.
 No commit/push, tag, npm publication, itch upload or Tauri release was performed.
 
 - [x] Combine Envelope handles as AT (AR/level) and DS (DR/SL), and compact the upper OPLL controls.
@@ -112,3 +112,13 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 - [x] Attach to the same Code/keyboard YM2413 and add completion/types, an independently paced melody / timbre example and new-Cassette seeding.
 - [x] Test 44.1/48 kHz, concurrent partial edits, invalid replacement, shared-patch/Rhythm cancellation, capture/current/client/reset, Run/Apply/Stop/stopLoop and actual muted browser/ZIP operation.
 - [ ] Keep shared Playground/npm/Worker/Native promotion separate; do not publish a package for this app-local milestone.
+
+## Shared PSG / YM2413 timed API promotion
+
+- [x] Promote the proven recorder / resolver / snapshot / client / Worklet paths into the canonical runtime, with matching served mirrors and Main/Worker clients. Native capture/scheduling remains explicitly unsupported until a native audio-clock implementation exists.
+- [x] Replace SMSGEAR-local implementations with shared adapters, keeping all immediate behavior and UI authoritative parameter edits.
+- [x] Expose matching Playground/npm types, completions, readable source navigation, package exports/assets and reusable examples; validate the actual built package and its declarations.
+- [x] Preserve default PCM and mixer policy via exact old/new comparison and source evidence; keep production freshness guards strict and historical proofs reproducible.
+- [x] Verify Main/Worker timing and ownership, SMSGEAR regressions, standalone ZIP and package browser integration with muted output. Prepare a distribution without bumping or publishing npm.
+
+Shared API completion details: [verification](smsgear_shared_timed_api_verification_20261120.md). The retained 0.2.45 candidate is for review; npm publication is a separate action.

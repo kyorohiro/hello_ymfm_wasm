@@ -285,7 +285,8 @@ for (const stereoEnabled of [true,false]) test(`PSG primary configures ${stereoE
   const borrowed = borrowNativeApi(worker,'segapsg');
   for (const name of ['dispose','transport','_getState','_adoptState']) assert.equal(borrowed[name],undefined);
   const count = messages.length; worker._adoptState(synth.psg._getState()); await immediate(); assert.equal(messages.length,count);
-  worker.keyOn(0); await until(() => messages.length > count); assert.equal(messages.at(-1).args[0],0x97);
+  worker.keyOn(0); await until(() => messages.slice(count).some(data=>data.method==='write')); assert.equal(messages.slice(count).find(data=>data.method==='write').args[0],0x97);
+  await until(() => messages.slice(count).some(data=>data.method==='psgConfiguredLevels')); const metadata=messages.slice(count).find(data=>data.method==='psgConfiguredLevels'); assert.deepEqual(metadata.args,[before.attenuations,1],'only CH1 retained-level metadata accompanies its immediate Key On');
 });
 
 test('native Stop awaits every DX7/SNES/PSG acknowledgement before completing',async()=>{

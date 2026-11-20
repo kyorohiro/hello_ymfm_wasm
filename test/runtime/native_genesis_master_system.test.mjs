@@ -43,7 +43,7 @@ test('Native Master System preserves Web PSG bytes, continuation targets and OPL
   function programPsg(api){for(let ch=0;ch<3;ch++){api.tone(ch,{note:'A4',attenuation:ch+3});api.keyOff(ch);api.keyOn(ch);}api.noise({type:'white',rate:'tone3',attenuation:9});api.write(0x81);api.write(0x23);api.noiseOff();}
   function programOpll(api){api.initialize();for(let ch=0;ch<9;ch++){api.setVoice(ch,{instrument:ch+1,attenuation:ch,sustain:ch%2===1});api.noteOn(ch,'A4');api.keyOff(ch);}api.setPreset(0,{userPatch:{feedback:4,operators:[{mul:3,tl:27,ar:15},{mul:1,ar:14,rr:9}]},attenuation:5});api.setRhythm({enabled:true,bassDrum:true,hiHat:true});api.setRhythmLevels({bassDrum:1,snare:2,tom:3,cymbal:4,hiHat:5});}
   programPsg(psg);programPsg(f.segapsg.client);programOpll(opll);programOpll(f.ym2413.client);
-  assert.deepEqual(f.commands.filter(c=>c.message.chip==='segapsg').map(c=>c.message),psgWrites.map(m=>({chip:'segapsg',method:'write',register:0,value:m.args[0],...(m.psgRegister===undefined?{}:{psgRegister:m.psgRegister})})));
+  assert.deepEqual(f.commands.filter(c=>c.message.chip==='segapsg').map(c=>c.message),psgWrites.filter(m=>m.method==='write').map(m=>({chip:'segapsg',method:'write',register:0,value:m.args[0],...(m.psgRegister===undefined?{}:{psgRegister:m.psgRegister})})));
   assert.deepEqual(f.commands.filter(c=>c.message.chip==='ym2413').map(c=>c.message),opllWrites.map(m=>m.method==='reset'?{chip:'ym2413',method:'reset'}:{chip:'ym2413',method:'write',register:m.args[0],value:m.args[1]}));
   assert.deepEqual(f.segapsg.client._getState(),psg._getState());assert.deepEqual(f.ym2413.client._getState().registers,opll._getState().registers);
 });

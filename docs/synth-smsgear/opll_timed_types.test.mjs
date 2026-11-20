@@ -79,7 +79,7 @@ const operations=chip.build(b=>{
   b.setRhythmLevel('snare',6).setRhythmLevels({cymbal:4,tom:7});
 });
 const snapshot=await chip.captureState();
-const traces:SmsGearOpllWrite[][]=await Promise.all([
+const traces:PlaygroundYm2413CompiledWrite[][]=await Promise.all([
   chip.compile(operations),
   chip.compile(operations,{initialState:'current'}),
   chip.compile(operations,{initialState:'reset'}),

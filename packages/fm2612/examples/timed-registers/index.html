@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tetorica timed Sega PSG / YM2413 example</title>
+<style>
+body{font:16px system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;background:#192128;color:#edf5fa}
+button{font:inherit;margin:.25rem;padding:.6rem 1rem}pre{max-height:65vh;overflow:auto;border:1px solid #526779;padding:1rem}
+a{color:#9dcff7}
+</style>
+<h1>Timed Sega PSG / YM2413 writes</h1>
+<p>Build operations, inspect the real register writes, then schedule them on the audio sample clock.</p>
+<button id="start">Start patterns</button><button id="stop" disabled>Stop</button>
+<p id="status">Audio starts only after Start patterns.</p>
+<pre id="trace">Compiled writes appear here.</pre>
+<p><a href="README.md">README</a> · <a href="browser.js">Browser source</a> · <a href="compile.mjs">Offline compiler source</a></p>
+<script type="importmap">{"imports":{"tetorica-fm2612/":"../../"}}</script>
+<script type="module" src="./browser.js"></script>
+</html>

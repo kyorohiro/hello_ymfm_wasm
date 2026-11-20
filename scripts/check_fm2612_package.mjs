@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {assertSidPackageFiles,checkInstalledSidNode} from './check_fm2612_sid_package.mjs';
 import {assertScspDspPackageFiles,checkInstalledScspDspNode} from './check_fm2612_scsp_dsp_package.mjs';
+import {assertSegaTimedPackageFiles,checkInstalledSegaTimedNode,checkInstalledSegaTimedBrowser} from './check_fm2612_sega_timed_package.mjs';
 import {createVabFixture} from '../test/helpers/spu_vab_fixture.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'tetorica-fm2612-check-'));
@@ -22,6 +23,7 @@ try {
   }
   assertSidPackageFiles(packedPaths);
   assertScspDspPackageFiles(packedPaths);
+  assertSegaTimedPackageFiles(packedPaths);
   for (const file of ['adpcm_a_sample.js','adpcm_a_sample.d.ts']) {
     assert.ok(packedPaths.has(file), `ADPCM-A encoder payload missing ${file}`);
   }
@@ -122,6 +124,7 @@ try {
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
   await checkInstalledScspDspNode(consumer);
+  await checkInstalledSegaTimedNode(consumer);
   await writeFile(join(consumer,'ym2612-timed-check.mjs'),`
 import assert from 'node:assert/strict';
 import {YM2612Synth} from 'tetorica-fm2612/ym2612synth';
@@ -979,6 +982,7 @@ await createSampleInstrument({pg:{},audio,volume:'255'});
     execFileSync(process.execPath, [join(root,'node_modules/typescript/bin/tsc'),'-p',join(consumer,'native-tsconfig.json')], {cwd:consumer,stdio:'inherit'});
   }
   execFileSync(process.execPath, [join(root, 'scripts/check_fm2612_types.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
+  if(process.argv.includes('--sega-browser')) console.log(JSON.stringify(await checkInstalledSegaTimedBrowser(consumer)));
   if(process.argv.includes('--browser')){
     execFileSync(process.execPath,[join(root,'scripts/check_fm2612_sid_browser.cjs'),'--tarball',join(scratch,packed.filename)],{cwd:consumer,stdio:'inherit'});
     execFileSync(process.execPath,[join(root,'scripts/check_fm2612_dx7_browser.cjs'),installed],{cwd:consumer,stdio:'inherit'});

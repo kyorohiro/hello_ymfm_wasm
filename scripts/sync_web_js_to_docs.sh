@@ -230,6 +230,14 @@ ay8910_operations.js
 ay8910_timed_state.js
 ay8910_timed_client.js
 ay8910_timed_processor.js
+segapsg_operations.js
+segapsg_timed_state.js
+segapsg_timed_client.js
+segapsg_timed_processor.js
+ym2413_operations.js
+ym2413_timed_state.js
+ym2413_timed_client.js
+ym2413_timed_processor.js
 playground_ay8910.js
 playground_ay8910_audio.js
 playground_ay8910_worklet.js

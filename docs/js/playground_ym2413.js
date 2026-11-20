@@ -1,3 +1,4 @@
+import {attachOpllTimedClient} from './ym2413_timed_client.js';
 import {YM2413Synth} from './ym2413synth.js?v=pokey-mode-1';
 import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 /** Register-authoring controls shared by Main and Worker. Adoption never writes audio.
@@ -35,5 +36,5 @@ export function createYm2413Client(port,options={},lifecycle={}){
     api.setClock=hz=>{const context=lifecycle.captureContext?.();return setClock(hz).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
     api.dispose=()=>{disposed=true;dispose();};
   }
-  return controlled;
+  return attachOpllTimedClient(controlled,options,port);
 }

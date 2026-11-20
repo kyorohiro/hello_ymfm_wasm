@@ -19,6 +19,7 @@ for (const name of ['package.json', 'README.md', 'package_assets.js']) {
   await cp(join(root, 'packages/fm2612', name), join(stage, name));
 }
 await cp(join(root, 'packages/fm2612/examples/scsp-dsp'), join(stage, 'examples/scsp-dsp'), {recursive: true});
+await cp(join(root, 'packages/fm2612/examples/timed-registers'), join(stage, 'examples/timed-registers'), {recursive: true});
 await cp(join(root, 'LICENSE'), join(stage, 'LICENSE'));
 await mkdir(join(stage, 'node'), {recursive: true});
 for (const name of (await readdir(join(root, 'tetorica_src/node'))).filter(name => name.endsWith('.mjs'))) {

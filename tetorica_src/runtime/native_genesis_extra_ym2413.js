@@ -1,3 +1,4 @@
+import {attachOpllTimedClient} from './ym2413_timed_client.js';
 import {createYm2413RegisterClient} from './playground_ym2413.js';
 import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
@@ -10,7 +11,7 @@ const physicalDrums=[6,7,8,8,7];
 const logical=key=>typeof key==='string'&&key.startsWith('rhythm:')?9+Number(key.slice(7)):Number(key);
 const physical=key=>logical(key)<9?logical(key):physicalDrums[logical(key)-9];
 export function createNativeGenesisYm2413Endpoint(synth){
-  return createNativeExtraRegisterVoice(synth,{kind:'ym2413',label:'YM2413',clock:CHIP_CLOCKS.ym2413,registerCount:64,voiceCount:14,
+  const endpoint=createNativeExtraRegisterVoice(synth,{kind:'ym2413',label:'YM2413',clock:CHIP_CLOCKS.ym2413,registerCount:64,voiceCount:14,
     createClient:createYm2413RegisterClient,createInspector:options=>new Ym2413VoiceInspector(options),logical,physical,
     voiceKey:channel=>channel<9?channel:`rhythm:${channel-9}`,
     validate(data){integer(data.status,255,'YM2413 status');if(typeof data.irq!=='boolean')throw new Error('Native additional YM2413 returned invalid IRQ');},
@@ -18,5 +19,7 @@ export function createNativeGenesisYm2413Endpoint(synth){
     track(registers,owners,message){const {register:r,value:v,group,intentMask=0}=message;if(r>=32&&r<=40){if(v&16)owners.set(r-32,group);else owners.delete(r-32);}if(r===14)for(let drum=0;drum<5;drum++){const bit=16>>drum;if(v&32&&v&bit){if(intentMask&bit||!(registers[14]&bit))owners.set(9+drum,group);}else owners.delete(9+drum);}},
     cancelAuthor(state,owners,group){for(const [channel,owner]of owners)if(owner===group){if(channel<9)state.registers[32+channel]&=~16;else state.registers[14]&=~(16>>(channel-9));owners.delete(channel);}},
   });
+  attachOpllTimedClient(endpoint.client,{native:true});
+  return endpoint;
 }
 export function createNativeGenesisExtraYm2413(synth,options={}){return createNativeGenesisExtraChip(synth,{...options,kind:'ym2413',label:'YM2413',clock:CHIP_CLOCKS.ym2413,createEndpoint:createNativeGenesisYm2413Endpoint});}

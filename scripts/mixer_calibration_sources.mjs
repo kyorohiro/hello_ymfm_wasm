@@ -1,3 +1,4 @@
+import {createSegaTimedRevisionReadContext} from './mixer_calibration_sega_timed_revision.mjs';
 import {restoreMixerCalibrationYm2413StateRevision} from './mixer_calibration_ym2413_state_revision.mjs';
 /** Freshness for calibration evidence, with narrowly scoped reviewed revisions.
  * Measurement reports retain every original raw source hash. A separately pinned
@@ -379,39 +380,42 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
-  const checkpointYm2413=restoreMixerCalibrationYm2413StateRevision(path,bytes),checkpointYm2413Revision=checkpointYm2413!==bytes;bytes=checkpointYm2413;
+  const segaContext=createSegaTimedRevisionReadContext(),segaTimed=segaContext.restore(path,bytes),segaRevision=segaTimed!==bytes;bytes=segaTimed;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return segaRevision?'sega-shared-timed-api':'raw';
+  const readSource=segaContext.readSource;
+  const checkpointYm2413=restoreMixerCalibrationYm2413StateRevision(path,bytes,{read:name=>readSource(new URL('../'+name,import.meta.url))}),checkpointYm2413Revision=checkpointYm2413!==bytes;bytes=checkpointYm2413;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return checkpointYm2413Revision?'ym2413-native-checkpoint-api':'raw';
-  const timedYm2612=restoreMixerCalibrationYm2612TimedRevision(path,bytes),timedYm2612Revision=timedYm2612!==bytes;bytes=timedYm2612;
+  const timedYm2612=restoreMixerCalibrationYm2612TimedRevision(path,bytes,{readSource}),timedYm2612Revision=timedYm2612!==bytes;bytes=timedYm2612;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return timedYm2612Revision?'ym2612-timed-operations-default-path-revision':'raw';
-  const timedAy=restoreMixerCalibrationAyTimedRevision(path,bytes),timedAyRevision=timedAy!==bytes;bytes=timedAy;
+  const timedAy=restoreMixerCalibrationAyTimedRevision(path,bytes,{readSource}),timedAyRevision=timedAy!==bytes;bytes=timedAy;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return timedAyRevision?'ay-timed-operations-default-path-revision':'raw';
-  const ayUiCache=restoreMixerCalibrationAySingleOutputUiCacheRevision(path,bytes,{report,record});
+  const ayUiCache=restoreMixerCalibrationAySingleOutputUiCacheRevision(path,bytes,{report,record,readSource});
   if(ayUiCache!==bytes&&ayUiCache.length===record?.bytes&&sha(ayUiCache)===record.sha256)return 'ui-ay-single-output-cache-restoration';
-  const hostBudget=restoreMixerCalibrationWonderSwanHostBudgetRevision(path,bytes),hostBudgetRevision=hostBudget!==bytes;bytes=hostBudget;
+  const hostBudget=restoreMixerCalibrationWonderSwanHostBudgetRevision(path,bytes,{readSource}),hostBudgetRevision=hostBudget!==bytes;bytes=hostBudget;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hostBudgetRevision?'wonderswan-host-preparation-budget':'raw';
-  const emptyDraft=restoreMixerCalibrationScspEmptyDraftRevision(path,bytes),emptyDraftRevision=emptyDraft!==bytes;bytes=emptyDraft;
+  const emptyDraft=restoreMixerCalibrationScspEmptyDraftRevision(path,bytes,{readSource}),emptyDraftRevision=emptyDraft!==bytes;bytes=emptyDraft;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return emptyDraftRevision?'ui-scsp-empty-draft-checkpoint':'raw';
-  const loopLink=restoreMixerCalibrationScspLoopLinkRevision(path,bytes),loopLinkRevision=loopLink!==bytes;bytes=loopLink;
+  const loopLink=restoreMixerCalibrationScspLoopLinkRevision(path,bytes,{readSource}),loopLinkRevision=loopLink!==bytes;bytes=loopLink;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return loopLinkRevision?'scsp-loop-link-hardware-api':'raw';
-  const draftCheckpoint=restoreMixerCalibrationScspDraftRevision(path,bytes),draftRevision=draftCheckpoint!==bytes;bytes=draftCheckpoint;
+  const draftCheckpoint=restoreMixerCalibrationScspDraftRevision(path,bytes,{readSource}),draftRevision=draftCheckpoint!==bytes;bytes=draftCheckpoint;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return emptyDraftRevision?'ui-scsp-empty-draft-checkpoint':draftRevision?'ui-scsp-draft-checkpoint':'raw';
-  const outputGains=restoreMixerCalibrationYm2608OutputGainRevision(path,bytes,{report,record});
+  const outputGains=restoreMixerCalibrationYm2608OutputGainRevision(path,bytes,{report,record,readSource});
   if(outputGains!==bytes&&outputGains.length===record?.bytes&&sha(outputGains)===record.sha256)return 'ym2608-dormant-output-gain-api';
-  const monacoModels=restoreMixerCalibrationMonacoModelRevision(path,bytes),monacoModelRevision=monacoModels!==bytes;bytes=monacoModels;
+  const monacoModels=restoreMixerCalibrationMonacoModelRevision(path,bytes,{readSource}),monacoModelRevision=monacoModels!==bytes;bytes=monacoModels;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return monacoModelRevision?'ui-monaco-virtual-model-lifecycle':'raw';
-  const aswanNavigation=restoreMixerCalibrationAswanNavigationRevision(path,bytes),aswanNavigationRevision=aswanNavigation!==bytes;bytes=aswanNavigation;
+  const aswanNavigation=restoreMixerCalibrationAswanNavigationRevision(path,bytes,{readSource}),aswanNavigationRevision=aswanNavigation!==bytes;bytes=aswanNavigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return aswanNavigationRevision?'ui-aswan-shared-client-source-navigation':'raw';
-  const scspNavigation=restoreMixerCalibrationScspNavigationRevision(path,bytes),scspNavigationRevision=scspNavigation!==bytes;bytes=scspNavigation;
+  const scspNavigation=restoreMixerCalibrationScspNavigationRevision(path,bytes,{readSource}),scspNavigationRevision=scspNavigation!==bytes;bytes=scspNavigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return scspNavigationRevision?'ui-scsp-shared-client-source-navigation':'raw';
-  const nesNavigation=restoreMixerCalibrationNesNavigationRevision(path,bytes),nesNavigationRevision=nesNavigation!==bytes;bytes=nesNavigation;
+  const nesNavigation=restoreMixerCalibrationNesNavigationRevision(path,bytes,{readSource}),nesNavigationRevision=nesNavigation!==bytes;bytes=nesNavigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return nesNavigationRevision?'ui-nes-shared-client-source-navigation':'raw';
-  const hardwareNavigation=restoreMixerCalibrationFm2608NavigationRevision(path,bytes),hardwareNavigationRevision=hardwareNavigation!==bytes;bytes=hardwareNavigation;
+  const hardwareNavigation=restoreMixerCalibrationFm2608NavigationRevision(path,bytes,{readSource}),hardwareNavigationRevision=hardwareNavigation!==bytes;bytes=hardwareNavigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hardwareNavigationRevision?'ui-fm2608-hardware-source-navigation':'raw';
-  const navigation=restoreMixerCalibrationSynthSourceNavigationRevision(path,bytes),navigationRevision=navigation!==bytes;bytes=navigation;
+  const navigation=restoreMixerCalibrationSynthSourceNavigationRevision(path,bytes,{readSource}),navigationRevision=navigation!==bytes;bytes=navigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return navigationRevision?'ui-synth-source-navigation':'raw';
-  const hucUi=restoreMixerCalibrationHuc6280UiRevision(path,bytes),hucUiRevision=hucUi!==bytes;bytes=hucUi;
+  const hucUi=restoreMixerCalibrationHuc6280UiRevision(path,bytes,{readSource}),hucUiRevision=hucUi!==bytes;bytes=hucUi;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hucUiRevision?'ui-huc6280-definitions':'raw';
-  const vab=restoreMixerCalibrationVabApiRevision(path,bytes),vabRevision=vab!==bytes;bytes=vab;
+  const vab=restoreMixerCalibrationVabApiRevision(path,bytes,{readSource}),vabRevision=vab!==bytes;bytes=vab;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return vabRevision?'ps1-vab-public-api':'raw';
   const ps1Import=restoreMixerCalibrationPs1ImportRevision(path,bytes),ps1ImportRevision=ps1Import!==bytes;bytes=ps1Import;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return ps1ImportRevision?'ps1-import-compatibility':'raw';
@@ -429,7 +433,7 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return viewerRevision?'ui-synth-definition-viewer':sidRevision?'sid-playground-routing':'raw';
   const controls=restoreMixerCalibrationSynthControlsRevision(path,bytes);
   if(controls!==bytes&&controls.length===record?.bytes&&sha(controls)===record.sha256)return 'ui-synth-controls';
-  if(isMixerCalibrationVirtualFilesWorkspaceRevision(path,bytes,record))return 'ui-virtual-files-workspace';
+  if(isMixerCalibrationVirtualFilesWorkspaceRevision(path,bytes,record,{readSource}))return 'ui-virtual-files-workspace';
   if(isMixerCalibrationVirtualFilesRevision(path,bytes,record))return 'ui-virtual-files';
   const keyboard=restoreMixerCalibrationKeyboardOctaveRevision(path,bytes);
   if(keyboard!==bytes&&keyboard.length===record?.bytes&&sha(keyboard)===record.sha256)return 'ui-keyboard-octave';

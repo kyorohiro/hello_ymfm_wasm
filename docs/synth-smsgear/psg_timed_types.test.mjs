@@ -72,7 +72,7 @@ const operations=chip.build(b=>{
   b.noise({type:'periodic',rate:'tone3',attenuation:4}).noiseOff();
 });
 const snapshot=await chip.captureState();
-const traces:SmsGearPsgWrite[][]=await Promise.all([
+const traces:PlaygroundSegaPsgCompiledWrite[][]=await Promise.all([
   chip.compile(operations),
   chip.compile(operations,{initialState:'current'}),
   chip.compile(operations,{initialState:'reset'}),

@@ -1,3 +1,4 @@
+import {attachOpllTimedClient} from './ym2413_timed_client.js';
 /** Shared YM2413 authoring / inspection for Native Master System and MSX. */
 import {YM2413Synth} from './ym2413synth.js';
 import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js';
@@ -34,5 +35,6 @@ export function createNativeGenesisOpll(context){
   }
   function patch(groups){const state=client._getState();for(const group of groups)for(const c of group.commands){if(c.method==='write')state.registers[c.register]=c.value;if(c.method==='key-off'){if(c.channel<9)state.registers[0x20+c.channel]&=239;else state.registers[14]&=~(16>>(c.channel-9));}if(c.method==='audition-key-on'){if(c.channel<9)state.registers[0x20+c.channel]|=16;else state.registers[14]|=16>>(c.channel-9);}if(c.method==='reset')state.registers.fill(0);}client._adoptState(state);}
   const endpoint=createNativeVoiceEndpoint(context,{chip:'ym2413',globalName:'opll',client,inspector,translate,adopt,patch,logical,physical,reset(){initialized=false;appliedClock=CLOCK;client._adoptState({clock:CLOCK,registers:Array(64).fill(0),initialized:false});}});
+  attachOpllTimedClient(client,{native:true});
   client.readStatus=async()=>(await endpoint.read()).status;client.getIrq=async()=>!!(await endpoint.read()).irq;return endpoint;
 }

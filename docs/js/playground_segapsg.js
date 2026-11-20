@@ -1,9 +1,11 @@
+import {attachPsgTimedClient} from './segapsg_timed_client.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 /** Immediate ordered commands, shared by main-thread and Worker runtimes.
  * @param {MessagePort} port
- * @param {{clock?:number,stereoEnabled?:boolean}} [options] */
-export function createSegaPsgClient(port, {clock = CHIP_CLOCKS.segapsg, stereoEnabled = true} = {}) {
+ * @param {{clock?:number,stereoEnabled?:boolean,native?:boolean,instanceId?:string|number}} [options] */
+export function createSegaPsgClient(port, options = {}) {
+  const {clock = CHIP_CLOCKS.segapsg, stereoEnabled = true} = options;
   let disposed = false,latched=0;
   const send = (method, args = []) => {
     if (disposed) throw new Error('Sega PSG disposed');
@@ -27,5 +29,5 @@ export function createSegaPsgClient(port, {clock = CHIP_CLOCKS.segapsg, stereoEn
   Object.defineProperty(client, 'stereoEnabled', {value:stereoEnabled, enumerable:true});
   const controlled=attachChipClock(client,port,clock);
   Object.defineProperty(client,'_stopVoices',{value:()=>controlled._requestControl('stopVoices')});
-  return controlled;
+  return attachPsgTimedClient(controlled,options,port);
 }

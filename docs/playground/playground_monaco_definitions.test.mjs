@@ -201,7 +201,7 @@ test('OPL declarations navigate to the shared Synth, original presets and native
 
 test('OPLL definitions identify the shared YM2413 patch instead of the OPL implementation',async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8'), lines = declarations.split('\n');
-  const start = lines.findIndex(line => /^interface PlaygroundYm2413 \{/.test(line)); assert(start >= 0);
+  const start = lines.findIndex(line => /^interface PlaygroundYm2413(?: extends \w+)? \{/.test(line)); assert(start >= 0);
   const source = await readFile(new URL('../../tetorica_src/runtime/ym2413synth.js',import.meta.url),'utf8');
   for (const symbol of ['setVoice','setUserPatch','setUserOperator','setRhythmLevel','noteOn','keyOff']) {
     const line = lines.findIndex((text,index) => index > start && new RegExp(`^  ${symbol}\\(`).test(text)); assert(line > start);
@@ -321,5 +321,31 @@ test('WonderSwan hardware controls and ASWAN host lease definitions stay distinc
     const matching=lines.map((line,index)=>({line,index})).filter(item=>item.line.trimStart().startsWith(symbol+'('));
     const item=matching[0];assert(item);
     assert.deepEqual(definitionSource(source,{lineNumber:item.index+1,column:item.line.indexOf(symbol)+1},'wonderswan'),{file,symbol:target});
+  }
+});
+
+
+test('shared PSG and YM2413 timed declarations navigate to actual recorder, snapshot and client sources', async () => {
+  const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
+  for (const [prefix, chip, build, compile, snapshot, attach] of [
+    ['PlaygroundSegaPsg', 'segapsg', 'buildPsgOperations', 'compilePsgOperations', 'createPsgTimedSnapshot', 'attachPsgTimedClient'],
+    ['PlaygroundYm2413', 'ym2413', 'buildOpllOperations', 'compileOpllOperations', 'createOpllTimedSnapshot', 'attachOpllTimedClient'],
+  ]) {
+    for (const [suffix, symbol, file, target] of [
+      ['OperationRecorder', 'atSample', chip + '_operations.js', build],
+      ['StateSnapshot', 'frame', chip + '_timed_state.js', snapshot],
+      ['CompiledWrite', 'offsetSeconds', chip + '_operations.js', compile],
+      ['TimedApi', 'schedule', chip + '_timed_client.js', attach],
+    ]) {
+      const start = declarations.search(new RegExp('(?:interface|type) ' + prefix + suffix + '\\b'));
+      assert(start >= 0, prefix + suffix);
+      const offset = declarations.indexOf(symbol, start);
+      const line = declarations.slice(0, offset).split('\n').length;
+      const column = offset - declarations.lastIndexOf('\n', offset - 1);
+      assert.deepEqual(definitionSource(declarations, {lineNumber:line, column}), {file, symbol:target});
+      const source = await readFile(new URL('../js/' + file, import.meta.url), 'utf8');
+      const position = sourcePosition(source, target);
+      assert.match(source.split('\n')[position.lineNumber - 1], new RegExp(target));
+    }
   }
 });

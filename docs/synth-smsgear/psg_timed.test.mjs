@@ -560,5 +560,7 @@ test("PSG immediate metadata distinguishes explicit silence from retained key re
 	);
 	assert(messages.every((m) => m.method === "psgConfiguredLevels"));
 	api.dispose();
-	assert.throws(() => api.keyOn(0), /stopped/);
+	// The additive API preserves the immediate client's existing disposal behavior.
+	assert.throws(() => api.build(() => {}), /stopped/);
+	assert(messages.every((m) => m.args[1] === 1));
 });

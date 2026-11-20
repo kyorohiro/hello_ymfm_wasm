@@ -4,7 +4,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createYm2413Client } from "../js/playground_ym2413.js";
-import { attachOpllTimedClient } from "./opll_timed_client.js";
 
 const wasmBinary = await readFile(
 	new URL("../generated/ym2413_wasm.wasm", import.meta.url),
@@ -81,7 +80,7 @@ async function setup(t, rate = 48000) {
 			});
 		},
 	};
-	api = attachOpllTimedClient(createYm2413Client(port), {}, port);
+	api = createYm2413Client(port);
 	api.initialize();
 	return {
 		api,

@@ -100,6 +100,17 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (/^PlaygroundSpc$/.test(owner)) return {file:'playground_spc.js', symbol};
   if (/^PlaygroundYm2608$/.test(owner)) return {file:'ym2608synth.js', symbol};
   if (/^PlaygroundRf5c164$/.test(owner)) return {file:'rf5c164synth.js', symbol};
+  for (const [prefix, file, build, compile, snapshot, attach, aliases] of [
+    ['PlaygroundSegaPsg', 'segapsg', 'buildPsgOperations', 'compilePsgOperations', 'createPsgTimedSnapshot', 'attachPsgTimedClient', ['SmsGearPsg']],
+    ['PlaygroundYm2413', 'ym2413', 'buildOpllOperations', 'compileOpllOperations', 'createOpllTimedSnapshot', 'attachOpllTimedClient', ['PlaygroundPrimaryYm2413', 'SmsGearOpll']],
+  ]) {
+    if (owner === prefix + 'OperationProgram' || owner === prefix + 'OperationRecorder' || owner === prefix + 'BuildOptions')
+      return {file:file + '_operations.js', symbol:build};
+    if (owner === prefix + 'StateSnapshot') return {file:file + '_timed_state.js', symbol:snapshot};
+    if (owner === prefix + 'CompiledWrite') return {file:file + '_operations.js', symbol:compile};
+    if (owner === prefix + 'TimedApi' || [prefix, ...aliases].includes(owner) && ['build','compile','captureState','schedule','clearSchedule'].includes(symbol))
+      return symbol === 'build' ? {file:file + '_operations.js', symbol:build} : {file:file + '_timed_client.js', symbol:attach};
+  }
   if (/^(?:PlaygroundSegaPsg|PSGApi)$/.test(owner)) return {file:'segapsgsynth.js', symbol};
   if (/^Playground(?:Primary)?(?:Opll|Ym2413)/.test(owner)) return {file:'ym2413synth.js',symbol:/^Playground/.test(symbol) ? 'YM2413Synth' : symbol};
   if (owner === 'PlaygroundYm2612OperationRecorder' || /^PlaygroundYm2612(?:BuildOptions|OperationProgram)$/.test(owner))

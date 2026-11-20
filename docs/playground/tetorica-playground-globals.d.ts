@@ -2396,8 +2396,53 @@ declare function createSoundChip(name: 'ym2610', options?: PlaygroundCreateSound
  * Browser and Native own separate A/B ROM banks per instance; Native shares the 16-instance / 64 MiB budget. */
 declare function createSoundChip(name: 'ym2610b', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2610B & PlaygroundChipClock & {readonly id: string}>;
 
+/** Detached Sega PSG operations; offsets are absolute reference samples/seconds. */
+interface PlaygroundSegaPsgOperationProgram {
+  readonly version:1;readonly chip:'segapsg';readonly referenceSampleRate:number;
+  readonly operations:ReadonlyArray<{readonly time:{readonly unit:'sample'|'seconds';readonly value:number};readonly order:number;readonly method:string;readonly args:ReadonlyArray<unknown>}>;
+}
+interface PlaygroundSegaPsgOperationRecorder {
+  atSample(offset:number):PlaygroundSegaPsgOperationRecorder;
+  atSeconds(offset:number):PlaygroundSegaPsgOperationRecorder;
+  setPeriod(channel:0|1|2,period:number):PlaygroundSegaPsgOperationRecorder;
+  setFrequency(channel:0|1|2,hz:number):PlaygroundSegaPsgOperationRecorder;
+  setNote(channel:0|1|2,note:string|number):PlaygroundSegaPsgOperationRecorder;
+  noteOn(channel:0|1|2,note:string|number):PlaygroundSegaPsgOperationRecorder;
+  tone(channel:0|1|2,options:{period?:number;frequency?:number;note?:string;volume?:number;attenuation?:number}):PlaygroundSegaPsgOperationRecorder;
+  keyOn(channel:0|1|2):PlaygroundSegaPsgOperationRecorder;
+  keyOff(channel:0|1|2):PlaygroundSegaPsgOperationRecorder;
+  off(channel:0|1|2):PlaygroundSegaPsgOperationRecorder;
+  setAttenuation(channel:0|1|2|3,attenuation:number):PlaygroundSegaPsgOperationRecorder;
+  setNoise(options?:{type?:'white'|'periodic';rate?:'low'|'medium'|'high'|'tone3'}):PlaygroundSegaPsgOperationRecorder;
+  noise(options?:{type?:'white'|'periodic';rate?:'low'|'medium'|'high'|'tone3';attenuation?:number;volume?:number}):PlaygroundSegaPsgOperationRecorder;
+  /** Normalized volume 0..1, matching the immediate noiseVolume method. */
+  noiseVolume(volume:number):PlaygroundSegaPsgOperationRecorder;
+  noiseOff():PlaygroundSegaPsgOperationRecorder;
+  /** Requires a Game Gear stereo-enabled endpoint; mono Master System rejects this operation. */
+  setStereo(mask:number):PlaygroundSegaPsgOperationRecorder;
+  write(value:number):PlaygroundSegaPsgOperationRecorder;
+}
+interface PlaygroundSegaPsgStateSnapshot {
+  readonly format:'tetorica-psg-state';readonly version:1;readonly instanceId:string|number;
+  readonly frame:number;readonly sampleRate:number;
+  readonly state:{readonly clock:number;readonly stereoEnabled:boolean;readonly periods:readonly number[];readonly attenuations:readonly number[];readonly latched:number;readonly noiseMode:number;readonly stereo:number};
+}
+type PlaygroundSegaPsgCompiledWrite = {offsetSeconds:number;operationIndex:number;writeIndex:number} &
+  ({value:number;register:number;channel:number}|{stereo:number});
+interface PlaygroundSegaPsgTimedApi {
+  /** Run once and record serializable operations without resolving or changing live state. */
+  build<Result>(callback:(builder:PlaygroundSegaPsgOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundSegaPsgOperationProgram;
+  /** Coherent operation-resolution metadata, not oscillator/LFSR audio state. Native rejects. */
+  captureState():Promise<PlaygroundSegaPsgStateSnapshot>;
+  /** current reads the Worklet; reset/snapshot need no RPC. client explicitly rejects the existing incomplete PSG shadow. */
+  compile(operations:PlaygroundSegaPsgOperationProgram,options?:{initialState?:'current'|'client'|'reset'|PlaygroundSegaPsgStateSnapshot}):Promise<PlaygroundSegaPsgCompiledWrite[]>;
+  /** Compact sample-clock reservation; not JavaScript timer playback. Native rejects. */
+  schedule(operations:PlaygroundSegaPsgOperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;entries:number;sampleRate:number;startFrame?:number;repeatSeconds?:number;staged?:boolean}>;
+  clearSchedule(name:string):Promise<boolean>;
+}
+
 /** Independent Sega PSG; resetAll only resets this chip. */
-type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
+type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & PlaygroundSegaPsgTimedApi & {
   /** Game Gear output mask: bits 0..3 right, bits 4..7 left. 0xff enables every channel on both sides. */
   setStereo(mask: number): void;
   /** Silence the three tone channels and noise without resetting their settings. */
@@ -2593,7 +2638,53 @@ interface PlaygroundYm2413Voice {
   attenuation?:number;
   sustain?:boolean;
 }
-interface PlaygroundYm2413 {
+/** Register-only OPLL operations; User patches are shared across instrument-0 voices. */
+interface PlaygroundYm2413OperationProgram {
+  readonly version:1;readonly chip:'ym2413';readonly referenceSampleRate:number;
+  readonly operations:ReadonlyArray<{readonly time:{readonly unit:'sample'|'seconds';readonly value:number};readonly order:number;readonly method:string;readonly args:ReadonlyArray<unknown>}>;
+}
+interface PlaygroundYm2413OperationRecorder {
+  atSample(offset:number):PlaygroundYm2413OperationRecorder;
+  atSeconds(offset:number):PlaygroundYm2413OperationRecorder;
+  writeRegister(register:number,value:number):PlaygroundYm2413OperationRecorder;
+  /** Recorder data is plain objects/number arrays; use Array.from for a Uint8Array patch. */
+  setUserPatch(patch:PlaygroundYm2413UserPatch|number[]):PlaygroundYm2413OperationRecorder;
+  setUserOperator(operator:0,params:PlaygroundYm2413ModulatorParams):PlaygroundYm2413OperationRecorder;
+  /** Carrier has no shared TL; use channel attenuation. */
+  setUserOperator(operator:1,params:PlaygroundYm2413OperatorParams):PlaygroundYm2413OperationRecorder;
+  setVoice(channel:PlaygroundYm2413Channel,voice:PlaygroundYm2413Voice):PlaygroundYm2413OperationRecorder;
+  setPreset(channel:PlaygroundYm2413Channel,preset:PlaygroundYm2413Instrument|(PlaygroundYm2413Voice & {userPatch?:PlaygroundYm2413UserPatch|number[]})):PlaygroundYm2413OperationRecorder;
+  setInstrument(channel:PlaygroundYm2413Channel,instrument:PlaygroundYm2413Instrument,attenuation?:number):PlaygroundYm2413OperationRecorder;
+  setAttenuation(channel:PlaygroundYm2413Channel,attenuation:number):PlaygroundYm2413OperationRecorder;
+  setSustain(channel:PlaygroundYm2413Channel,enabled:boolean):PlaygroundYm2413OperationRecorder;
+  setPitch(channel:PlaygroundYm2413Channel,fnum:number,block?:number):PlaygroundYm2413OperationRecorder;
+  setFrequency(channel:PlaygroundYm2413Channel,hz:number):PlaygroundYm2413OperationRecorder;
+  setNote(channel:PlaygroundYm2413Channel,note:string|number):PlaygroundYm2413OperationRecorder;
+  keyOn(channel:PlaygroundYm2413Channel):PlaygroundYm2413OperationRecorder;
+  keyOff(channel:PlaygroundYm2413Channel):PlaygroundYm2413OperationRecorder;
+  noteOn(channel:PlaygroundYm2413Channel,note:string|number):PlaygroundYm2413OperationRecorder;
+  noteOff(channel:PlaygroundYm2413Channel):PlaygroundYm2413OperationRecorder;
+  setRhythm(settings:{enabled?:boolean;bassDrum?:boolean;snare?:boolean;tom?:boolean;cymbal?:boolean;hiHat?:boolean}):PlaygroundYm2413OperationRecorder;
+  setRhythmLevels(levels:Partial<Record<PlaygroundYm2413Drum,number>>):PlaygroundYm2413OperationRecorder;
+  setRhythmLevel(drum:PlaygroundYm2413Drum,attenuation:number):PlaygroundYm2413OperationRecorder;
+}
+interface PlaygroundYm2413StateSnapshot {
+  readonly format:'tetorica-opll-state';readonly version:1;readonly instanceId:string|number;
+  readonly frame:number;readonly sampleRate:number;
+  readonly state:{readonly clock:number;readonly registers:readonly number[]};
+}
+interface PlaygroundYm2413CompiledWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;intentMask?:number}
+interface PlaygroundYm2413TimedApi {
+  build<Result>(callback:(builder:PlaygroundYm2413OperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundYm2413OperationProgram;
+  /** Coherent register-resolution snapshot, not Envelope/oscillator phase. Native rejects. */
+  captureState():Promise<PlaygroundYm2413StateSnapshot>;
+  /** client is the last local 64-byte shadow and excludes unseen scheduled/other writes. reset/snapshot need no RPC. */
+  compile(operations:PlaygroundYm2413OperationProgram,options?:{initialState?:'current'|'client'|'reset'|PlaygroundYm2413StateSnapshot}):Promise<PlaygroundYm2413CompiledWrite[]>;
+  /** Sample-clock reservation with atomic replacement and per-drum ownership. Native rejects. */
+  schedule(operations:PlaygroundYm2413OperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;entries:number;sampleRate:number;startFrame?:number;repeatSeconds?:number;staged?:boolean}>;
+  clearSchedule(name:string):Promise<boolean>;
+}
+interface PlaygroundYm2413 extends PlaygroundYm2413TimedApi {
   readonly chip:'ym2413';
   readonly channels:9;
   initialize():void;

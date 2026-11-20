@@ -70,7 +70,8 @@
     "runtime-manifest.json",
     "nes_apu_vendor/",
     "msfa_dx7/",
-    "examples/scsp-dsp/"
+    "examples/scsp-dsp/",
+    "examples/timed-registers/"
   ],
   "keywords": [
     "chiptune",

@@ -1280,6 +1280,64 @@ Pure Node/offline inspection can import `buildWonderSwanOperations`,
 processor modules and declarations are packaged alongside it. Playground Files
 contains `examples/wonderswan/ws-timed-registers.js`.
 
+### Sega PSG and YM2413 timed operations
+
+The Web Audio Sega PSG and YM2413 clients expose `build`, `compile`,
+`captureState`, `schedule` and `clearSchedule` in standalone hosts and Main/Worker
+Playground clients. Existing immediate methods keep their behavior. For a
+standalone SMS-style host, start audio inside a user gesture:
+
+```js
+import {createTetoricaSynth} from 'tetorica-fm2612/tetorica_synth.js';
+const synth = createTetoricaSynth({chip:'segapsg', ym2413:true});
+await synth.start();
+const opll = synth.opll;
+opll.initialize();
+opll.setVoice(0, {instrument:1, attenuation:5});
+const operations = opll.build(b => {
+  b.atSample(0).noteOn(0, 'E3');
+  b.atSeconds(0.1).setAttenuation(0, 8);
+  b.atSeconds(0.2).noteOff(0);
+});
+console.table(await opll.compile(operations));
+await opll.schedule(operations, {name:'bell', repeatSeconds:1});
+// await opll.clearSchedule('bell');
+// await synth.close();
+```
+
+`build` records plain operations once without reading or changing the chip.
+Offsets are absolute seconds or reference samples (44100 Hz by default),
+independent of the output device. Partial register edits resolve against applied
+state when the Worklet executes them. Same-value Noise reset, Key On/Off and
+other meaningful writes retain their order. PSG compilation returns actual
+command bytes with logical register/channel fields; Game Gear stereo writes use
+a separate `stereo` field. Mono Master System configurations reject stereo edits.
+YM2413 compilation returns register/value pairs and partial-update intent masks.
+The user patch is shared by instrument-0 voices; modulator TL belongs to OP1,
+while carrier level uses each channel's attenuation. Rhythm retains its shared
+hardware mode and CH7–CH9 arrangement.
+
+`compile` forecasts writes without changing the live chip. Its default
+`initialState:'current'` captures applied AudioWorklet state asynchronously;
+`'reset'` uses a local reset baseline. A detached `captureState()` snapshot can be
+reused for comparisons on the same instance/configuration. `'client'` performs
+no state request: YM2413 uses its complete local register shadow, which can lag
+other writers; PSG explicitly rejects this baseline because its local shadow is
+incomplete. Native scheduling and capture reject explicitly; local build/reset
+compilation and YM2413 client compilation remain available. There is no timer
+fallback. Prepared VGM timelines and timed reservations are separate transports.
+Named replacement, cancellation and Run/Apply/Stop ownership follow the common
+performance queue.
+
+For Node/offline inspection, import `buildPsgOperations`,
+`compilePsgOperations`, `createPsgOperationResetState` from
+`tetorica-fm2612/segapsg_operations.js`, or `buildOpllOperations`,
+`compileOpllOperations`, `createOpllOperationResetState` from
+`tetorica-fm2612/ym2413_operations.js`. No AudioContext or output device is needed.
+The [timed-register examples](examples/timed-registers/README.md) include an
+installed-package Node example, a browser host with write traces, and a
+beat-based Playground loop.
+
 ### Native configurations and host integration (0.2.21)
 
 The shared runtime supports Game Boy, NES + FDS, SNES, X68000

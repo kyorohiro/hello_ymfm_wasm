@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // PSG + OPLL share one output and one Code/keyboard instrument route.
 import { compileOpllOperations } from "./opll_operations.js";
-import { attachOpllTimedClient } from "./opll_timed_client.js";
-import { attachPsgTimedClient } from "./psg_timed_client.js";
 import { NativeRuntimeSynth } from "../js/native_runtime_synth.js";
 import { SoundChipMixer } from "../js/soundchip_mixer.js";
 import { SOUNDCHIP_MIXER_PRESETS } from "../js/soundchip_mixer_presets.js";
@@ -36,11 +34,7 @@ export async function createSmsGearAudio({
 	masterNode.connect(context.destination);
 	const synth = new NativeRuntimeSynth({
 		chip: "segapsg",
-		workletUrl: new URL("./psg_worklet.js", import.meta.url),
 		ym2413: true,
-		opllOptions: {
-			workletUrl: new URL("./opll_worklet.js", import.meta.url),
-		},
 		stereoEnabled: true,
 		audioContext: context,
 		outputNode: codeInputNode,
@@ -56,16 +50,6 @@ export async function createSmsGearAudio({
 	}
 	const psg = synth.psg,
 		opll = synth.opll;
-	attachPsgTimedClient(
-		psg,
-		{},
-		synth.primaryEndpoints.find((e) => e.name === "segapsg").port,
-	);
-	attachOpllTimedClient(
-		opll,
-		{},
-		synth.primaryEndpoints.find((e) => e.name === "ym2413").port,
-	);
 	psg.allNotesOff();
 	opll.initialize();
 	// Useful Synth tuning for the physical drum oscillators; source captures
