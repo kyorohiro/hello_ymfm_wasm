@@ -187,7 +187,10 @@ async function ensureAudio() {
 		return audio;
 	}
 	if (audioPending) return audioPending;
-	const task = createSmsGearAudio({ master: Number($("masterVolume").value) })
+	const task = createSmsGearAudio({
+		master: Number($("masterVolume").value),
+		onError: report,
+	})
 		.then((owner) => {
 			audio = owner;
 			owner.applySettings(accepted);

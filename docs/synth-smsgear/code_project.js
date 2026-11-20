@@ -15,6 +15,7 @@ import {
 	SMSGEAR_PSG_EXAMPLE,
 	SMSGEAR_FM_EXAMPLE,
 	SMSGEAR_PSG_TIMED_EXAMPLE,
+	SMSGEAR_FM_TIMED_EXAMPLE,
 } from "./code_examples.js";
 import { readPreset, createDefaultPreset } from "./preset.js";
 
@@ -830,6 +831,7 @@ export function createSmsGearCodeProject({
 			fs.writeText("/examples/psg.js", SMSGEAR_PSG_EXAMPLE);
 			fs.writeText("/examples/opll.js", SMSGEAR_FM_EXAMPLE);
 			fs.writeText("/examples/psg-timed.js", SMSGEAR_PSG_TIMED_EXAMPLE);
+			fs.writeText("/examples/opll-timed.js", SMSGEAR_FM_TIMED_EXAMPLE);
 		}
 	}
 	if (snapshot) project.restore(snapshot);

@@ -63,7 +63,28 @@ export function selectSmsGearCodeDeclarations(source) {
    schedule(operations:SmsGearPsgOperations,options:{name:string;repeatSeconds?:number}):Promise<unknown>;
    clearSchedule(name:string):Promise<boolean>;
  };
- type SmsGearOpll = Omit<PlaygroundYm2413,'dispose'>;
+ type SmsGearOpllMethod = 'writeRegister'|'setUserPatch'|'setUserOperator'|'setVoice'|'setPreset'|'setInstrument'|'setAttenuation'|'setSustain'|'setPitch'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'noteOff'|'setRhythm'|'setRhythmLevels'|'setRhythmLevel';
+ type SmsGearOpllBuilder = {
+   atSample(offset:number):SmsGearOpllBuilder;atSeconds(offset:number):SmsGearOpllBuilder;
+   /** All instrument-0 channels share this hardware patch. Recorded arguments use plain objects/number arrays. */
+   setUserPatch(patch:PlaygroundYm2413UserPatch|number[]):SmsGearOpllBuilder;
+   setUserOperator(operator:0,params:PlaygroundYm2413ModulatorParams):SmsGearOpllBuilder;
+   setUserOperator(operator:1,params:PlaygroundYm2413OperatorParams):SmsGearOpllBuilder;
+   setPreset(channel:PlaygroundYm2413Channel,preset:PlaygroundYm2413Instrument|(PlaygroundYm2413Voice & {userPatch?:PlaygroundYm2413UserPatch|number[]})):SmsGearOpllBuilder;
+ } & {[K in Exclude<SmsGearOpllMethod,'setUserPatch'|'setUserOperator'|'setPreset'>]: (...args:Parameters<PlaygroundYm2413[K]>)=>SmsGearOpllBuilder};
+ interface SmsGearOpllOperations {version:1;chip:'ym2413';referenceSampleRate:number;operations:ReadonlyArray<{time:{unit:'sample'|'seconds';value:number};order:number;method:SmsGearOpllMethod;args:unknown[]}>}
+ interface SmsGearOpllSnapshot {readonly format:'tetorica-opll-state';readonly version:1;readonly instanceId:string|number;readonly frame:number;readonly sampleRate:number;readonly state:{readonly clock:number;readonly registers:readonly number[]}}
+ interface SmsGearOpllWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;intentMask?:number}
+ type SmsGearOpll = Omit<PlaygroundYm2413,'dispose'> & {
+   /** Record synchronous operations without reading or editing the live chip. */
+   build(callback:(builder:SmsGearOpllBuilder)=>void,options?:{referenceSampleRate?:number}):SmsGearOpllOperations;
+   /** Detached register-resolution state, not an oscillator audio save state. */
+   captureState():Promise<SmsGearOpllSnapshot>;
+   /** current captures the renderer; client uses its last local shadow without claiming unseen scheduled writes. */
+   compile(operations:SmsGearOpllOperations,options?:{initialState?:'current'|'reset'|'client'|SmsGearOpllSnapshot}):Promise<SmsGearOpllWrite[]>;
+   schedule(operations:SmsGearOpllOperations,options:{name:string;repeatSeconds?:number}):Promise<unknown>;
+   clearSchedule(name:string):Promise<boolean>;
+ };
  declare function useSoundChip<Name extends 'segapsg'|'ym2413'>(name:Name):Promise<Name extends 'segapsg'?SmsGearPsg:SmsGearOpll>;
  type PlaygroundSelectedFmChannel = PlaygroundYm2413Channel;
  type PlaygroundLivePrepareAPI = SmsGearCodeAPI;

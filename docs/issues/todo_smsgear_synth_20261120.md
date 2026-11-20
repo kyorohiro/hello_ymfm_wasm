@@ -102,5 +102,13 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 - [x] Execute PSG operations through AudioWorklet Performance Queue: named replacement/cancel, bounded repeats, actual-time resolution and atomic admission; preserve raw PSG latch semantics.
 - [x] Connect Run / Apply / Stop / loop-generation ownership, completion/types and a seeded timed PSG example with console.table.
 - [x] Validate 44.1/48 kHz timing, partial/interleaved writes, invalid replacement, stale note release and muted browser lifecycle.
-- [ ] Follow-up: YM2413 operations (shared User patch, Operator bitfields, melodic/Rhythm ownership); reuse existing synth conversion, not register-math copies.
+- [x] YM2413 app-local operations (shared User patch, Operator bitfields, melodic/Rhythm ownership); reuse existing synth conversion. See the completed milestone below.
 - [ ] Follow-up: promote proven PSG APIs into common Playground / npm / Worker / Native adapters with provenance and client-shadow completeness audit. This milestone is SMSGEAR Web Audio only; no npm publication.
+
+## Timed Code API — YM2413
+
+- [x] Add OPLL recorder / detached state / compiler using YM2413Synth, preserving User patch Operator bitfields and neighboring Rhythm level nibbles.
+- [x] Resolve at actual AudioWorklet application time through existing Performance Queue, with named/staged atomic replacement and melodic/per-drum ownership across Rhythm mode changes.
+- [x] Attach to the same Code/keyboard YM2413 and add completion/types, an independently paced melody / timbre example and new-Cassette seeding.
+- [x] Test 44.1/48 kHz, concurrent partial edits, invalid replacement, shared-patch/Rhythm cancellation, capture/current/client/reset, Run/Apply/Stop/stopLoop and actual muted browser/ZIP operation.
+- [ ] Keep shared Playground/npm/Worker/Native promotion separate; do not publish a package for this app-local milestone.

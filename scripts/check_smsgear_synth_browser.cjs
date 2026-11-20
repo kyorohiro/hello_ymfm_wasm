@@ -1001,6 +1001,124 @@ ${
 							"Stop removes repeating reservations; no note resumes later",
 						);
 					}
+
+					// OPLL uses the same renderer as the controls, with one shared
+					// User patch and independently owned Rhythm trigger bits.
+					const opllTimedSource = (
+						level,
+						multi,
+						feedback,
+						invalid = false,
+					) => `
+const fm = await useSoundChip("ym2413");
+const pattern = fm.build(b => {
+  b.atSample(0).setRhythm({enabled:true});
+  b.setUserPatch([0xe1,0x61,0x20,0x18,0xf4,0xf6,0x58,0x36]);
+  b.setUserOperator(OP1,{multi:${multi}}).setUserPatch({feedback:${feedback}});
+  b.setVoice(CH1,{instrument:0,attenuation:${level},sustain:false}).noteOn(CH1,"A4");
+  b.setRhythmLevels({snare:9,hiHat:12}).setRhythmLevel("hiHat",4);
+  b.setRhythm({hiHat:true});
+  b.atSeconds(0.01).setRhythm({bassDrum:true});
+});
+console.table(await fm.compile(pattern,{initialState:"reset"}));
+${
+	invalid
+		? 'await fm.schedule(pattern,{name:"browser-opll",repeatSeconds:0});'
+		: `liveLoop("browser-opll-timed",async()=>{
+  await fm.schedule(pattern,{name:"browser-opll",repeatSeconds:0.08});
+  await beat(4);
+});`
+}
+`;
+					const waitForOpll = async (level, multi, feedback) => {
+						const deadline = Date.now() + 5000;
+						let state;
+						do {
+							state = await inspectChip("ym2413");
+							const r = state.registers;
+							if (
+								r[0] === (0xe0 | multi) &&
+								r[3] === (0x18 | feedback) &&
+								r[0x30] === level &&
+								r[0x37] === 0x49 &&
+								r[0x20] & 16 &&
+								(r[14] & 0x31) === 0x31 &&
+								Math.abs(state.channels[0].frequency - 440) < 2
+							)
+								return state;
+							await page.waitForTimeout(30);
+						} while (Date.now() < deadline);
+						assert.fail(
+							"Timed OPLL Code did not reach its expected shared patch/voice/Rhythm: " +
+								JSON.stringify({
+									state,
+									error: await page
+										.locator("#synthCodeError")
+										.textContent(),
+								}),
+						);
+					};
+					await setTimedCode(opllTimedSource(4, 6, 3));
+					await page.locator("#synthCodeRunButton").click();
+					const opllFirst = await waitForOpll(4, 6, 3);
+					assert.equal(
+						opllFirst.userPatch.operators[0].am,
+						true,
+						"Operator MULT update preserves neighboring AM/Vibrato/EGT bits",
+					);
+					assert.equal(opllFirst.userPatch.operators[0].egt, true);
+					assert.equal(
+						opllFirst.rhythm.hiHat,
+						true,
+						"Later Bass drum trigger preserves the existing Hi-hat trigger",
+					);
+					assert.equal(
+						opllFirst.rhythm.levels.snare,
+						9,
+						"Hi-hat level update preserves Snare's shared low nibble",
+					);
+					assert.equal(
+						await page.locator("#synthCodeError").textContent(),
+						"",
+					);
+					await setTimedCode(opllTimedSource(7, 2, 5));
+					await page.locator("#synthCodeApplyButton").click();
+					await waitForOpll(7, 2, 5);
+					assert.equal(
+						await page.locator("#synthCodeError").textContent(),
+						"",
+					);
+					await setTimedCode(opllTimedSource(1, 9, 1, true));
+					await page.locator("#synthCodeApplyButton").click();
+					await page.waitForFunction(() =>
+						document
+							.getElementById("synthCodeError")
+							.textContent.includes("repeatSeconds"),
+					);
+					await page.waitForTimeout(200);
+					await waitForOpll(7, 2, 5);
+					assert.equal(
+						await page.locator("#synthCodeStopButton").isDisabled(),
+						false,
+						"Rejected OPLL Apply keeps the previous performance running",
+					);
+					await page.locator("#synthCodeStopButton").click();
+					await page.waitForFunction(
+						() =>
+							document.getElementById("audioStatus")
+								.textContent === "Code stopped.",
+					);
+					for (let i = 0; i < 5; i++) {
+						await page.waitForTimeout(100);
+						const stopped = await inspectChip("ym2413");
+						assert(
+							stopped.registers
+								.slice(0x20, 0x29)
+								.every((v) => !(v & 16)) &&
+								(stopped.registers[14] & 31) === 0,
+							"Stop cancels OPLL repeats and independently owned melody/percussion Gates",
+						);
+					}
 				}
 				await page.locator("#synthWorkspaceCodeButton").click();
 				await page.waitForFunction(() =>

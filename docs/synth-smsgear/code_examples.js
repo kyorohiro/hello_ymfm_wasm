@@ -9,13 +9,13 @@ liveLoop("melody", async () => {
   await beat(0.125);
 });
 `;
-export const SMSGEAR_FM_EXAMPLE = `const fm = await useSoundChip("ym2413");
+export const SMSGEAR_FM_EXAMPLE = `const opll = await useSoundChip("ym2413");
 setBpm(120);
 // Existing controls and this Code share the same YM2413.
 liveLoop("melody", async () => {
-  fm.noteOn(CH1, choose(scale("E3", "minorPentatonic", 2)));
+  opll.noteOn(CH1, choose(scale("E3", "minorPentatonic", 2)));
   await beat(0.5);
-  fm.noteOff(CH1);
+  opll.noteOff(CH1);
   await beat(0.125);
 });
 `;
@@ -43,4 +43,41 @@ liveLoop("psg-pattern", async () => {
 });
 // Apply preserves named loop ownership. Stop / stopLoop("psg-pattern")
 // cancels its reservations and releases only notes it still owns.
+`;
+
+export const SMSGEAR_FM_TIMED_EXAMPLE = `const opll = await useSoundChip("ym2413");
+setBpm(120);
+// All instrument-0 channels share this one hardware User patch.
+opll.setRhythm({enabled: false});
+opll.setUserPatch({feedback: 2, operators: [
+  {multi: 2, tl: 20, ar: 15, dr: 6, sl: 7, rr: 6, egt: true},
+  {multi: 1, ar: 15, dr: 5, sl: 6, rr: 7, egt: true},
+]});
+opll.setVoice(CH1, {instrument: 0, attenuation: 4, sustain: false});
+
+// Timbre motion: sample-clocked hardware writes repeat every two seconds.
+// Changing OP1's TL changes modulation depth, not just channel volume.
+const timbre = opll.build(b => {
+  for (let step = 0; step < 16; step++) {
+    const wave = (1 - Math.cos(step / 16 * Math.PI * 2)) / 2;
+    b.atSeconds(step / 8).setUserOperator(OP1, {
+      tl: Math.round(24 - 20 * wave),
+    });
+  }
+});
+console.table(await opll.compile(timbre));
+await opll.schedule(timbre, {name: "opll-timbre", repeatSeconds: 2});
+
+// Melody: independently paced by beat(), so setBpm changes its speed.
+liveLoop("opll-melody", async () => {
+  const note = choose(scale("E3", "minorPentatonic", 2));
+  const pulse = opll.build(b => {
+    b.atSample(0).noteOn(CH1, note);
+    b.atSeconds(0.18).noteOff(CH1);
+  });
+  await opll.schedule(pulse, {name: "opll-note"});
+  await beat(0.5);
+});
+// Apply stages entry reservations; failed Apply keeps the last performance.
+// Stop cancels both cycles; stopLoop("opll-melody") stops only the melody.
 `;

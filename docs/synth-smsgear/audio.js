@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // PSG + OPLL share one output and one Code/keyboard instrument route.
+import { compileOpllOperations } from "./opll_operations.js";
+import { attachOpllTimedClient } from "./opll_timed_client.js";
 import { attachPsgTimedClient } from "./psg_timed_client.js";
 import { NativeRuntimeSynth } from "../js/native_runtime_synth.js";
 import { SoundChipMixer } from "../js/soundchip_mixer.js";
@@ -36,6 +38,9 @@ export async function createSmsGearAudio({
 		chip: "segapsg",
 		workletUrl: new URL("./psg_worklet.js", import.meta.url),
 		ym2413: true,
+		opllOptions: {
+			workletUrl: new URL("./opll_worklet.js", import.meta.url),
+		},
 		stereoEnabled: true,
 		audioContext: context,
 		outputNode: codeInputNode,
@@ -55,6 +60,11 @@ export async function createSmsGearAudio({
 		psg,
 		{},
 		synth.primaryEndpoints.find((e) => e.name === "segapsg").port,
+	);
+	attachOpllTimedClient(
+		opll,
+		{},
+		synth.primaryEndpoints.find((e) => e.name === "ym2413").port,
 	);
 	psg.allNotesOff();
 	opll.initialize();
@@ -120,27 +130,46 @@ export async function createSmsGearAudio({
 		}
 		if (!section || section === "opll") {
 			const { opll: o } = settings;
-			opll.setUserPatch(o.userPatch);
-			opll.setRhythm({ enabled: o.rhythm.enabled });
-			const targets =
-				channel === "auto"
-					? Array.from(
-							{ length: o.rhythm.enabled ? 6 : 9 },
-							(_, i) => i,
-						)
-					: typeof channel === "number"
-						? [channel]
-						: [];
-			for (const ch of targets)
-				if (!o.rhythm.enabled || ch < 6)
-					opll.setVoice(ch, {
-						instrument: o.instrument,
-						attenuation: o.attenuation,
-						sustain: o.sustain,
-					});
-			const { enabled, ...levels } = o.rhythm;
-			// These nibbles are melodic instrument numbers when Rhythm is Off.
-			if (enabled) opll.setRhythmLevels(levels);
+			// UI edits are parameter patches, not a Gate write compiled from a
+			// potentially older client shadow while a timed note is sounding.
+			const plan = opll.build((b) => {
+				b.setUserPatch(o.userPatch);
+				b.setRhythm({ enabled: o.rhythm.enabled });
+				const targets =
+					channel === "auto"
+						? Array.from(
+								{ length: o.rhythm.enabled ? 6 : 9 },
+								(_, i) => i,
+							)
+						: typeof channel === "number"
+							? [channel]
+							: [];
+				for (const ch of targets)
+					if (!o.rhythm.enabled || ch < 6)
+						b.setVoice(ch, {
+							instrument: o.instrument,
+							attenuation: o.attenuation,
+							sustain: o.sustain,
+						});
+				const { enabled, ...levels } = o.rhythm;
+				// These nibbles are melodic instrument numbers when Rhythm is Off.
+				if (enabled) b.setRhythmLevels(levels);
+			});
+			// Keep the local authoring view without sending its possibly stale
+			// Gate bits. The renderer independently resolves the parameter patch.
+			const local = opll._getState(),
+				registers = [...local.registers];
+			for (const row of compileOpllOperations(plan, {
+				clock: local.clock,
+				registers,
+			}))
+				registers[row.register] = row.value;
+			opll.adoptRegisterSnapshot(registers);
+			void opll
+				._requestControl("opllTimed", [
+					{ action: "edit", operations: plan },
+				])
+				.catch(onError);
 		}
 	}
 	function retune(voice, note, bend = 0) {

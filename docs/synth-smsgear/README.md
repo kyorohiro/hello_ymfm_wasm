@@ -174,8 +174,9 @@ matching FM2612: up raises pitch, down lowers it. Both Pitch wheels stay linked.
 
 New Cassettes include `examples/psg-timed.js`. This app-local first version adds
 `build`, `compile`, `captureState`, `schedule` and `clearSchedule` to
-`await useSoundChip("segapsg")`. YM2413 keeps its existing immediate API; its timed
-adapter and common Playground/npm/Native integration are follow-up work.
+`await useSoundChip("segapsg")`. YM2413 now has the corresponding app-local
+adapter described below. Common Playground/npm/Native integration remains
+follow-up work.
 
 `build` runs its synchronous callback once and records serializable operations,
 without copying or editing the live chip. `atSeconds` and `atSample` are absolute
@@ -207,3 +208,45 @@ retirement cancel reservations and release only notes still owned by them.
 Apply stages entry reservations before committing; a failed Apply preserves the
 previous reservation. The scheduler is software; the command-byte effects are
 hardware PSG operations. VGM playback remains exclusive with Code.
+
+### Timed YM2413 Code
+
+New Cassettes also include `examples/opll-timed.js`. `useSoundChip("ym2413")`
+provides the same `build`, `compile`, `captureState`, `schedule` and
+`clearSchedule` shape as the timed PSG prototype. These are SMSGEAR-local Web
+Audio APIs; shared Playground/npm/Worker/Native adapters remain follow-up work.
+
+The example schedules a two-second modulator-TL cycle independently of a
+`beat()`-paced melody. OP1 here is the modulator (index0); the carrier (OP2) has
+no shared TL control, so use per-channel attenuation for carrier loudness.
+The existing User patch is shared by every instrument-0 channel. This scheduling
+is software; all resulting Operator, pitch, Gate and Rhythm register writes use
+the existing hardware-style YM2413 API and core.
+
+The recorder accepts parameter methods, `writeRegister`, `keyOn`/`keyOff` and
+`noteOn`/`noteOff`, but not initialize/reset or arbitrary functions. Arguments
+must be plain serializable objects/arrays; a raw User patch can use a number[8]
+instead of Uint8Array. Compile rows contain `offsetSeconds`, `register`, `value`,
+`operationIndex` and `writeIndex`. Partial Rhythm trigger rows also retain an
+`intentMask` so a shared R14 byte does not claim another drum's note.
+
+`compile(plan)`/`{initialState:"current"}` captures authoritative Worklet
+register-resolution state. `reset` uses virtual all-zero registers; a captured
+snapshot can be reused without changing live audio. Unlike PSG, YM2413 already
+has a complete64-byte client register shadow, so `client` is supported without
+communication. It represents that local shadow and may omit scheduled changes
+not reflected there. These snapshots are not oscillator/Envelope audio save
+states and cannot resume a song.
+
+User-Operator and voice partial updates resolve against the renderer's state at
+the operation's actual application time. Rhythm trigger ownership is per drum,
+including Hi-hat/Snare and Tom/Cymbal sharing physical channels and level bytes.
+Clearing a drum pattern does not release its neighbor. Rhythm mode switches
+retire obsolete melodic/drum ownership, so a stale melodic KeyOff cannot mute a
+new percussion performance. Same-name replacement, failed Apply retention,
+Stop and stopLoop use the same Code lifecycle as PSG. Rewriting the same On
+value transfers ownership without inserting a synthetic hardware Off: like the
+immediate API, a fresh Envelope attack requires an Off-to-On interval. UI sound
+controls also resolve their parameter patches against current renderer state,
+so an older Main-side Gate shadow cannot inadvertently release a timed note.
+Later VGM playback stops Code as before.
