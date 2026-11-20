@@ -156,14 +156,12 @@ function mute() {
 					mode: "vertical-lr",
 					direction: "rtl",
 				});
-				await page
-					.locator(".wave-monitor")
-					.screenshot({
-						path: out.replace(
-							/\.json$/,
-							`-${engine}-monitor-pitch.png`,
-						),
-					});
+				await page.locator(".wave-monitor").screenshot({
+					path: out.replace(
+						/\.json$/,
+						`-${engine}-monitor-pitch.png`,
+					),
+				});
 
 				await page.locator("#startAudio").click();
 				await page.waitForFunction(
@@ -1043,6 +1041,68 @@ function mute() {
 								});
 							}),
 					);
+				const beforeEdit = await capture();
+				const adjust = async (id) => {
+					const value = Number(
+						await page.locator(`#${id} .param-value`).textContent(),
+					);
+					await page
+						.locator(`#${id} .param-button`)
+						.nth(value === 15 ? 0 : 1)
+						.click();
+					await page.waitForTimeout(80);
+					return Number(
+						await page.locator(`#${id} .param-value`).textContent(),
+					);
+				};
+				const level = await adjust("psgAttenuation");
+				assert.equal(
+					(await capture()).psg.attenuations[0],
+					level,
+					"paused UI writes the reference chip",
+				);
+				assert.equal((await capture()).frame, beforeEdit.frame);
+				await page.locator("#opllTab").click();
+				await page.locator("#fmInstrument").selectOption("0");
+				await page.waitForTimeout(80);
+				assert.equal((await capture()).opll[0x30] >> 4, 0);
+				const ar = await adjust("op0_ar");
+				const editedFm = await capture();
+				assert.equal(editedFm.opll[4] >> 4, ar);
+				assert.equal(
+					editedFm.opll[0x20],
+					beforeEdit.opll[0x20],
+					"patch edit preserves melody gate/pitch",
+				);
+				await page.locator("#psgTab").click();
+				await page.locator('#channelTabs [data-channel="3"]').click();
+				await page.locator("#noiseType").selectOption("periodic");
+				await page.locator("#noiseRate").selectOption("high");
+				await page.waitForTimeout(80);
+				assert.equal((await capture()).psg.noiseMode, 2);
+				await page.locator('#channelTabs [data-channel="0"]').click();
+				await page.locator("#songPause").click();
+				await page.waitForFunction(
+					() =>
+						document.getElementById("songPause").textContent ===
+						"Pause",
+				);
+				const playingLevel = await adjust("psgAttenuation");
+				const moving = await capture();
+				assert.equal(
+					moving.playing,
+					true,
+					"editing leaves transport playing",
+				);
+				assert(moving.frame > beforeEdit.frame);
+				assert.equal(moving.psg.attenuations[0], playingLevel);
+				await page.locator("#songPause").click();
+				await page.waitForFunction(
+					() =>
+						document.getElementById("songPause").textContent ===
+						"Resume",
+				);
+
 				const frozen = await capture();
 				assert.equal(
 					frozen.playing,
@@ -1194,6 +1254,52 @@ function mute() {
 					path: out.replace(/\.json$/, `-${engine}.png`),
 					fullPage: false,
 				});
+				const realVgm = args
+					.find((arg) => arg.startsWith("--real-vgm="))
+					?.slice(11);
+				if (realVgm) {
+					await page.setViewportSize({ width: 1280, height: 1000 });
+					await page.locator("#vgmFileInput").setInputFiles({
+						name: path.basename(realVgm),
+						mimeType: "application/octet-stream",
+						buffer: await fs.readFile(realVgm),
+					});
+					const realPath = "/vgm/" + path.basename(realVgm);
+					await page.waitForFunction(
+						(value) =>
+							[
+								...document.getElementById("songSelect")
+									.options,
+							].some((o) => o.value === value),
+						realPath,
+					);
+					await page.locator("#songSelect").selectOption(realPath);
+
+					await page.locator("#songPlay").click();
+					await page.waitForFunction(
+						() => !document.getElementById("songPause").disabled,
+					);
+					const actual = await seek(5);
+					assert(
+						actual.timeSamples >= 220500 &&
+							actual.timeSamples < 222548,
+						"running snapshot stays near seek target; playback continues between messages",
+					);
+					assert.equal(actual.playing, true);
+					await page.locator("#songPause").click();
+					await page.waitForFunction(
+						() =>
+							document.getElementById("songPause").textContent ===
+							"Resume",
+					);
+					const realState = await capture();
+					assert(
+						realState.opll.some((value) => value !== 0) ||
+							realState.psg.periods.some((value) => value !== 0),
+					);
+					await page.locator("#songStop").click();
+				}
+
 				assert.deepEqual(errors, []);
 				assert(
 					await page.evaluate(() =>

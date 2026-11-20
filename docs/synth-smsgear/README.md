@@ -40,7 +40,8 @@ startup tuning. Paused reference audition uses the song's oscillator tuning.
 New Cassettes start FM on **0 · User**, ready for operator editing. Existing
 fixed-ROM selections are kept. Fixed instruments cannot be edited; **Select
 User to edit operators** switches to the stored User patch and does not copy
-the ROM instrument. Reference views require Capture to Synth before editing.
+the ROM instrument. Reference-song controls edit the selected physical channel directly. Capture to Synth
+keeps an independent static copy.
 
 OP1 (orange) and OP2 (blue) share one Envelope canvas. Select OP1 or OP2 above
 the graph to choose the editing target; both curves remain visible. **AT** changes
@@ -99,7 +100,13 @@ seeks and song replacement within the session. In Rhythm mode CH7 mutes Bass
 drum, CH8 Hi-hat/Snare, and CH9 Tom/Cymbal together.
 
 Song view displays the selected physical CH from applied registers. Auto update
-can freeze this display. Capture to Synth copies its static parameters while
+can freeze this display. While Playing or Paused, sound controls directly edit
+the selected physical song CH without restarting transport. Only touched
+parameters are sent to the audio renderer; later VGM writes can overwrite them.
+The User patch and Rhythm mode are chip-wide. Noise settings belong to the
+Noise channel; Game Gear stereo controls edit the shared routing bits. Seek
+rebuilds original history and clears manual edits. Edits do not modify the VGM
+file or saved Synth preset. Capture to Synth copies its static parameters while
 preserving reference transport. Paused keyboard audition uses the Synth route;
 it does not overwrite the frozen reference chip. The curves above are output
 RMS, waveform and spectrum after Master, not hardware ADSR reconstruction.
@@ -107,12 +114,14 @@ RMS, waveform and spectrum after Master, not hardware ADSR reconstruction.
 Supported events: Sega PSG writes, Game Gear stereo, YM2413 writes and VGM waits.
 Limits: 16 MiB compressed/expanded file, two million writes, one-hour preview.
 Dual chips, VRC7 variants, unrelated chip writes and DAC stream commands reject
-explicitly rather than silently dropping audio. No games, ROMs or song files
+explicitly rather than silently dropping audio. An undeclared YM2413 clock still rejects FM writes except zero User-register
+initialization at time 0, which is ignored with a warning.
+No games, ROMs or song files
 are bundled. Synthetic demonstration data in `fixtures.js` is original.
 
 ## Current limits
 
-Direct reference-song editing, seek checkpoint caching, software PSG Envelope,
+Seek checkpoint caching, software PSG Envelope,
 Looper/Event Rec, timed operation recording and Tauri deployment remain later
 work. FM fixed patches are not exposed as editable ROM bytes; choose User to
 edit the shared patch. Captures are static sounds, not complete game-driver

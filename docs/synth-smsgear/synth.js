@@ -5,6 +5,7 @@ import {
 	createFretboardState,
 } from "../synth/synth_keyboard.js";
 import { RHYTHM_KEYS, assignedDrums, keyboardAction } from "./performance.js";
+import { buildSongEdit } from "./song_edit.js";
 import { setupPerformanceSelects } from "./performance_select.js";
 import { createOpllEnvelopeEditor } from "./opll_envelope.js";
 import { createParamControl } from "../synth/synth_controls.js";
@@ -105,7 +106,36 @@ function control(
 }
 function settingsEdit(change) {
 	if (songView()) {
-		status("Capture the song channel to Synth before editing its sound.");
+		if (!song || songBusy) {
+			status("Wait for the song operation to finish.");
+			return;
+		}
+		const next = clone(display);
+		change(next);
+		const valid = readPreset(next),
+			player = song;
+		const command = buildSongEdit(kind(), selected(), display, valid);
+		if (!command.changes.length) return;
+		display = valid;
+		render(false);
+		void player
+			.editSound(command)
+			.then(() => player.snapshot())
+			.then((state) => {
+				if (song !== player) return;
+				songState = state;
+				if (!$("songLive").checked) frozenSongState = clone(state);
+				render();
+				status(
+					"Edited the song channel. Later VGM writes may overwrite these controls.",
+				);
+			})
+			.catch((error) => {
+				if (song === player) {
+					render();
+					report(error);
+				}
+			});
 		return;
 	}
 	if (channel === "auto" && !host.files.canEditSound()) {
@@ -421,7 +451,7 @@ function renderChannels() {
 			"aria-selected",
 			String(channel === button.dataset.channel),
 		);
-		button.disabled = false;
+		button.disabled = !!songView() && button.dataset.channel === "auto";
 		const value = button.dataset.channel;
 		if (section === "opll" && Number(value) >= 6)
 			button.textContent = display.opll.rhythm.enabled
@@ -433,6 +463,8 @@ function renderChannels() {
 }
 
 function render(updateState = true) {
+	if (songView() && channel === "auto") channel = "0";
+	const blocked = !!songView() && (!song || songBusy);
 	const source = songView() ? songDisplay() : liveState,
 		selectedKind = kind();
 	if (updateState)
@@ -455,25 +487,27 @@ function render(updateState = true) {
 	for (const [id, c] of controls) {
 		c.updateVisual(c.get());
 		for (const button of c.element.querySelectorAll("button"))
-			button.disabled = !!songView();
+			button.disabled = blocked;
 	}
 	for (const { input, bit } of panControls) {
 		input.checked = !!(display.psg.stereo & (1 << bit));
-		input.disabled = !!songView();
+		input.disabled = blocked;
 	}
 	for (const id of ["noiseType", "noiseRate", "fmInstrument"])
-		$(id).disabled = !!songView();
+		$(id).disabled =
+			blocked ||
+			(id !== "fmInstrument" && !!songView() && selected() !== 3);
 	for (const button of $("userPatch").querySelectorAll(
 		".param-control button",
 	))
 		button.disabled =
-			display.opll.instrument !== 0 || !!songView() || rhythmChannel();
+			display.opll.instrument !== 0 || blocked || rhythmChannel();
 	for (const button of $("drumControls").querySelectorAll("[data-drum]"))
 		button.disabled = !display.opll.rhythm.enabled;
 	$("editUserPatch").hidden = display.opll.instrument === 0;
-	$("editUserPatch").disabled = !!songView() || rhythmChannel();
+	$("editUserPatch").disabled = blocked || rhythmChannel();
 	$("userPatchNote").textContent = songView()
-		? "Song view is read-only. Capture to Synth to edit the stored User patch."
+		? "Edits go directly to the song. User patch / Rhythm are shared; later VGM writes may overwrite edits. Capture keeps a Synth copy."
 		: display.opll.instrument === 0
 			? "Editing the one shared hardware patch. Every instrument-0 voice changes."
 			: "Fixed ROM instrument: operators cannot be edited. Select User to edit the stored User patch (the fixed ROM sound is not copied).";
@@ -488,7 +522,7 @@ function render(updateState = true) {
 	const state = source?.[selectedKind === "psg" ? "psg" : "fm"],
 		voice = state?.channels?.[selected()];
 	$("channelReadout").textContent =
-		`${ch} · ${songView() ? "Song registers · Capture to edit" : channel === "auto" ? "software keyboard allocation; select a CH to inspect Code" : "physical channel · direct editing"}${voice ? ` · ${voice.active ? "On" : "Off"} · ${Math.round(voice.frequencyHz ?? voice.frequency ?? 0)} Hz` : ""}`;
+		`${ch} · ${songView() ? "Song channel · direct editing" : channel === "auto" ? "software keyboard allocation; select a CH to inspect Code" : "physical channel · direct editing"}${voice ? ` · ${voice.active ? "On" : "Off"} · ${Math.round(voice.frequencyHz ?? voice.frequency ?? 0)} Hz` : ""}`;
 	if (rhythmChannel())
 		$("channelReadout").textContent = `${ch} · Rhythm · ${assignedDrums(
 			channel,
@@ -655,12 +689,13 @@ function updateRhythmView() {
 			assigned.some((d) => d.name === box.dataset.drumGroup)
 		);
 		for (const button of box.querySelectorAll(".param-control button"))
-			button.disabled = !display.opll.rhythm.enabled || !!songView();
+			button.disabled =
+				!display.opll.rhythm.enabled || (!!songView() && songBusy);
 	}
 	for (const id of ["fmAttenuation", "fmSustain"])
 		for (const button of $(id).querySelectorAll("button"))
-			button.disabled = !!songView() || rhythmChannel();
-	$("fmInstrument").disabled = !!songView() || rhythmChannel();
+			button.disabled = (!!songView() && songBusy) || rhythmChannel();
+	$("fmInstrument").disabled = (!!songView() && songBusy) || rhythmChannel();
 }
 envelopeEditors.push(
 	createOpllEnvelopeEditor({
@@ -673,7 +708,7 @@ envelopeEditors.push(
 		canEdit: () =>
 			section === "opll" &&
 			display.opll.instrument === 0 &&
-			!songView() &&
+			!(songView() && songBusy) &&
 			!rhythmChannel(),
 		getSelectionKey: () =>
 			`${section}:${channel}:${preset.name}:${songView() ? "song" : "synth"}`,
@@ -1082,7 +1117,7 @@ $("vgmFileInput").addEventListener(
 					});
 					if (result)
 						status(
-							`Imported ${file.name}: ${result.voices.length} static sound(s). Select a preset in Files or Play the song.`,
+							`Imported ${file.name}: ${result.voices.length} static sound(s). Select a preset in Files or Play the song.${result.warnings.length ? " " + result.warnings.join(" ") : ""}`,
 						);
 				} catch (error) {
 					try {

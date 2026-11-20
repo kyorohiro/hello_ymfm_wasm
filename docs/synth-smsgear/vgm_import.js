@@ -118,7 +118,23 @@ export async function readSmsGearVgm(input, { signal } = {}) {
 			if (state.latched & 1 && state.attenuations[ch] < 15)
 				capture("psg", ch);
 		} else if (event.type === "ym2413-write") {
-			if (!fmRaw || event.register >= 64)
+			if (!fmRaw) {
+				// Some old SMS PSG logs contain an initial unused User-patch
+				// clear despite declaring no FM clock. Never infer audible FM.
+				if (time === 0 && event.register <= 7 && event.value === 0) {
+					if (
+						!warnings.includes(
+							"Ignored zero User-patch initialization for undeclared YM2413 at time 0.",
+						)
+					)
+						warnings.push(
+							"Ignored zero User-patch initialization for undeclared YM2413 at time 0.",
+						);
+					continue;
+				}
+				throw Error("Invalid YM2413 register/clock");
+			}
+			if (event.register >= 64)
 				throw Error("Invalid YM2413 register/clock");
 			opll[event.register] = event.value;
 			events.push(time, 1, event.register, event.value);

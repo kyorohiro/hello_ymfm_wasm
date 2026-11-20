@@ -247,3 +247,57 @@ Muted Chromium and WebKit browser flows pass, including wheel placement,
 orientation and existing held-note pitch / linked-wheel checks. Screenshots:
 `build/smsgear-check/monitor-pitch-browser-*-monitor-pitch.png`.
 No shared runtime changes or ZIP rebuild.
+
+### Follow-up: local game VGM audit and direct reference editing
+
+Optional local audit command (no game assets are copied into this repository):
+
+```sh
+node scripts/check_smsgear_vgm_local.mjs /Users/kyorohiro/Downloads/GG --out=build/smsgear-check/real-vgm-audit.json
+```
+
+All 60 local Phantasy Star SMS PSG/FM and Game Gear Adventure/Gaiden files
+parsed successfully. At both 44.1 and 48 kHz, linear playback through the first
+min(10 seconds, half the song duration), followed by 4096 frames, matched
+post-seek PCM exactly. Output was finite; the largest measured pre-Master peak
+in these sections was 0.657959. This is bounded regression coverage, not a
+full-song listening or hardware fidelity claim. Full event scans found Noise
+writes in 33 tracks, Rhythm-enabled writes in 20 (actual trigger bits in 18),
+and stereo writes in 25. No Tone-3 Noise occurred in this corpus; existing
+synthetic Tone-3 tests cover that route.
+
+Two old PSG-only files (Story / Medusa) contain a single time-zero write of
+zero to undeclared YM2413 User register 0. These harmless initial clears now
+produce a warning and are omitted. Nonzero, delayed or channel writes without
+a declared FM clock still reject; the declared-chip policy is retained.
+
+Reference views now edit the selected physical song CH while Playing or Paused.
+Only changed sound parameters cross the Worklet port; partial edits resolve
+against current renderer registers. OPLL User patch / Rhythm remain chip-wide;
+ROM patches remain fixed. Noise controls belong to Noise, and stereo edits
+preserve untouched bits. No edit restarts the song, changes the saved Synth
+preset, or modifies original VGM bytes. Later song writes overwrite manual
+edits normally; seek reconstructs original history.
+
+Manual PSG writes can change its latch. The engine retains the original stream
+latch separately and restores the intended destination before subsequent data
+bytes; the untouched path does not introduce extra writes. This prevents a
+manual level change from redirecting later tone/volume/Noise data. Invalid
+commands validate on a private shadow before any live write, and seeking
+rejects edits. Paused keyboard audition uses the edited snapshot on the separate
+Synth route.
+
+Validation: 29 app/native-render unit tests pass, including 44.1/48-kHz direct
+edits, original-write precedence, adjacent-bit preservation, PSG latch variants,
+Rhythm trigger preservation and atomic invalid edits. Muted Chromium and WebKit
+flows pass for direct control edits and paused audition. The optional
+`--real-vgm=...` browser check also imports SMS FM Battle, plays, seeks to five
+seconds and pauses successfully in both engines. Running snapshots may advance
+between the seek acknowledgement and the next read; native PCM comparisons
+above verify the exact seek boundary independently.
+
+Artifacts: `build/smsgear-check/direct-edit-unit.log`,
+`direct-edit-real-browser*`, `real-vgm-audit.json` and `real-vgm-audit.log`.
+Physical outputs remained behind permanent zero gain in browser tests. Human
+listening is still pending. Shared runtime/core, calibration, CI workflows,
+publication and Tauri were not changed; distribution ZIPs were not rebuilt.

@@ -2,6 +2,7 @@
 // Reference renderer reuses the existing OPLL+PSG engine and register decoders.
 import { Ym2413AudioEngine } from "../js/ym2413audioengine.js";
 import { createPsgRegisterState } from "../synth/synth_song_psg_state.js";
+import { resolveSongEdit } from "./song_edit.js";
 import { decodeOpll } from "./preset.js";
 export async function createSmsGearSongEngine({
 	plan,
@@ -29,7 +30,9 @@ export async function createSmsGearSongEngine({
 		cursor = 0,
 		frame = 0,
 		playing = false;
-	let seeking = null;
+	let seeking = null,
+		sourceLatch = 0,
+		actualLatch = 0;
 	const seekLeft = new Float32Array(1024),
 		seekRight = new Float32Array(1024);
 	let channelMutes = {
@@ -89,15 +92,40 @@ export async function createSmsGearSongEngine({
 		engine.reset();
 		setChannelMutes(channelMutes);
 		shadow.reset();
+		sourceLatch = actualLatch = 0;
 		registers.fill(0);
 		stereo = 255;
 		engine.psg.setStereo(255);
 		cursor = 0;
 		frame = 0;
 	}
-	function apply(type, address, value) {
+	function apply(type, address, value, original = true) {
 		if (type === 0) {
+			if (original) {
+				if (value & 128) sourceLatch = (value >> 4) & 7;
+				else if (actualLatch !== sourceLatch) {
+					const state = shadow.snapshot(),
+						ch = sourceLatch >> 1;
+					// Volume/Noise data can be expressed as one latch byte.
+					// Tone high bits require restoring the current low nibble first.
+					if (sourceLatch & 1 || ch === 3)
+						value =
+							0x80 |
+							(sourceLatch << 4) |
+							(value & (ch === 3 && !(sourceLatch & 1) ? 7 : 15));
+					else {
+						const latch =
+							0x80 |
+							(sourceLatch << 4) |
+							(state.periods[ch] & 15);
+						engine.writePsg(latch);
+						shadow.write(latch);
+						actualLatch = sourceLatch;
+					}
+				}
+			}
 			engine.writePsg(value);
+			if (value & 128) actualLatch = (value >> 4) & 7;
 			shadow.write(value);
 		} else if (type === 1) {
 			engine.writeYm2413(address, value);
@@ -185,6 +213,13 @@ export async function createSmsGearSongEngine({
 		process,
 		reset,
 		beginSeek,
+		editSound(command) {
+			if (seeking) throw Error("Wait for seek to finish before editing");
+			const state = { opll: registers, psg: shadow.snapshot(), stereo };
+			const writes = resolveSongEdit(command, state);
+			for (const [type, address, value] of writes)
+				apply(type, address, value, false);
+		},
 		setChannelMutes,
 		get seeking() {
 			return Boolean(seeking);

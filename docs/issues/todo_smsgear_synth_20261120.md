@@ -31,13 +31,13 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 
 - [x] Show CH7 Bass drum / CH8 Snare + Hi-hat / CH9 Tom + Cymbal and allow selecting those physical CHs in Rhythm mode; identify the shared mode switch.
 - [x] Match FM2612's compact four-row computer keyboard. Auto Rhythm uses keys 1–5; reserved CHs expose only their assigned percussion. New Cassette defaults Rhythm On; retain saved choices.
-- [x] Two editable OP1/OP2 User Envelope diagrams, using actual YM2413 AR/DR/SL/RR/EGT ranges (schematic timing, no invented D2R). Preserve fixed-patch and reference-view read-only behavior.
+- [x] Two editable OP1/OP2 User Envelope diagrams, using actual YM2413 AR/DR/SL/RR/EGT ranges (schematic timing, no invented D2R). Preserve fixed-ROM patch restrictions; reference controls now edit their physical song channel.
 
 - [ ] User listening and interaction check with actual SMS / Game Gear VGMs, including optional FM and Noise/Tone-3 use. Synthetic tests are not a hardware accuracy claim.
 - [x] Reference seek: replay chip history in bounded silent Worklet slices, keep Play/Pause, update Live registers at target, allow Stop during preparation.
 - [x] Mixer: reference-only PSG CH1–3 / Noise and YM2413 CH1–9 output mute, without changing registers. Preserve choices through seek and replacement.
 - [ ] Reference seek cache (separate follow-up; first implement correct history reconstruction).
-- [ ] Direct selected-CH editing during reference playback; currently song view is read-only and Capture copies a static sound into the editable Synth route.
+- [x] Direct selected-CH editing during reference playback / Pause; touched controls update the renderer without stopping the song. Capture keeps a separate static Synth copy.
 - [ ] Improve extraction of driver-dependent dynamic sounds and Rhythm scenes; current snapshots do not reconstruct software automation.
 - [ ] Consider a clearly labeled software PSG Envelope after hardware/basic interactions are confirmed.
 - [ ] Timed operation APIs: audit existing PSG / OPLL API and ownership first; no new scheduling implementation in this consumer.
@@ -53,3 +53,11 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 - [x] Keep keyboard performance active while changing sound-source / Noise / instrument selections; test focus and held-key release.
 
 - [x] Match FM2612 monitor Pitch position and direction: vertical wheel to the right of the display.
+
+## Current follow-up: reference music and direct editing
+
+- [x] Audit local SMS PSG / SMS FM / Game Gear VGMs at 44.1/48 kHz: finite output, Noise/Tone-3/Rhythm/stereo coverage, and exact post-seek PCM against linear playback. Keep game assets outside distribution.
+- [x] Route selected physical CH control edits to the reference Worklet while Playing/Paused, without restarting transport or writing Synth/Files presets.
+- [x] Send only changed parameters and resolve partial register edits against current renderer state; retain melody key/pitch, adjacent OPLL bits and original PSG stream latch semantics. Later VGM writes win normally.
+- [x] Identify chip-wide User patch / Rhythm / Noise / stereo controls; preserve ROM instrument limitations and reject edits during seek.
+- [x] Muted browser and native-render tests for direct edits, paused audition, untouched-state preservation and later original writes; keep human listening pending.
