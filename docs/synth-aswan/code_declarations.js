@@ -46,6 +46,13 @@ interface AswanOperationBuilder {
   setPan(channel:PlaygroundWonderSwanChannel,left:number,right?:number):AswanOperationBuilder;
   setFrequency(channel:PlaygroundWonderSwanChannel,hz:number):AswanOperationBuilder;
   setNote(channel:PlaygroundWonderSwanChannel,note:string|number):AswanOperationBuilder;
+  /** Synth note with software envelope. Not compilable as a hardware-only trace. */
+  noteOn(channel:PlaygroundWonderSwanChannel,note:string|number):AswanOperationBuilder;
+  /** Release only this reservation's current note, with the existing software fade. */
+  noteOff(channel:PlaygroundWonderSwanChannel):AswanOperationBuilder;
+  /** Raw hardware Gate; use setNote for pitch, with no software envelope. */
+  keyOn(channel:PlaygroundWonderSwanChannel):AswanOperationBuilder;
+  keyOff(channel:PlaygroundWonderSwanChannel):AswanOperationBuilder;
   setNoise(options:{enabled:boolean;type?:number;reset?:boolean}):AswanOperationBuilder;
   setSweep(options:{enabled:boolean;step?:number;time?:number}):AswanOperationBuilder;
 }
@@ -86,11 +93,11 @@ type AswanCodeClient = Pick<PlaygroundWonderSwan,
   'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'allNotesOff'|'setNoise'|'setSweep'|'setVoiceMode'|'writeVoice'> & {
   readonly id:string;readonly chip:'wonderswan';readonly channels:4;readonly channelCount:4;readonly clock:3072000;
   getState():Promise<AswanCodeState>;
-  /** Record once without reading or changing live state. Parameter operations only. */
+  /** Record once without reading or changing live state. Parameter, Synth note and raw Gate operations. */
   build(callback:(builder:AswanOperationBuilder)=>void,options?:{referenceSampleRate?:number}):AswanOperations;
   /** Detached sent-register metadata, not oscillator/LFSR/Sweep phase. */
   captureState():Promise<AswanTimedSnapshot>;
-  /** Predict writes without changing audio. Incomplete client shadow is explicitly rejected. */
+  /** Predict hardware writes without changing audio. Soft noteOn/noteOff and incomplete client state are explicitly rejected. */
   compile(operations:AswanOperations,options?:{initialState?:'current'|'reset'|'client'|AswanTimedSnapshot}):Promise<Array<{offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number}>>;
   /** Sample-clock parameter reservation. Apply replaces names; Stop cancels owners. */
   schedule(operations:AswanOperations,options:{name:string;repeatSeconds?:number}):Promise<AswanTimedReceipt>;

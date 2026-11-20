@@ -709,6 +709,19 @@ await ws.schedule(plan,{name:"browser-motion",repeatSeconds:.1});`);
         assert.equal((await state()).channels[0].baseLeft,timedBefore.preset.left,'Stop prevents old repeated writes');
         checks.push('Code build/capture/compile executes locally scoped parameter reservations; scheduled stereo changes reach WASM, Apply replaces the name without restarting the lease, and Stop prevents later repeats');
 
+        step('sample-clock notes repeat with release gaps through the actual Code route');
+        const notesExample = await page.evaluate(async()=>
+            (await import(new URL('code_examples.js',location.href).href)).ASWAN_SCHEDULED_NOTES_EXAMPLE);
+        await page.locator('#synthCodeEditor').fill(notesExample);
+        await page.click('#synthCodeRunButton');
+        await until(async()=>(await state()).channels[0].gate,'scheduled phrase starts');
+        await until(async()=>!(await state()).channels[0].gate,'scheduled release finishes');
+        await until(async()=>(await state()).channels[0].gate,'scheduled phrase continues');
+        await page.click('#synthCodeStopButton');
+        await until(async()=>!(await state()).codeActive && !(await state()).channels[0].gate,'Stop releases the scheduled phrase');
+        await page.evaluate(preset=>__aswanAudit.request('setPreset',[preset]),timedBefore.preset);
+        checks.push('Files scheduled-notes example executes through Code: sample-clock notes, release gaps, repeated phrase, hardware Gate compilation and Stop cleanup');
+
 		step('Code and manual edits share the chip across tabs and preset selection');
 		await choose('source', 'wave');
 		await page.click('#synthInputCodeTab');
@@ -1808,7 +1821,8 @@ await ws.schedule(plan,{name:"browser-motion",repeatSeconds:.1});`);
 		assert.equal(await page.locator('#aswanSongSelect option').count(),1);
 		assert.equal(await page.locator('#aswanSongPlayButton').isDisabled(),true);
 		assert.equal(await page.locator('#vgmLibrary button').count(),0);
-		assert.equal(await page.locator('#aswanFilesTree button[data-file-path]').count(),2);
+		assert.equal(await page.locator('#aswanFilesTree button[data-file-path]').count(),3);
+        assert.equal(await page.locator('[data-file-path="/examples/scheduled-notes.js"]').count(),1);
         assert.equal(await page.locator('[data-file-path="/examples/timed-motion.js"]').count(),1);
 		assert.equal(await page.locator('#aswanFilesAutoApply').isChecked(),false);
 		await page.click('#synthInputCodeTab');

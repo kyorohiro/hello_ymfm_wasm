@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {validateAswanOperations, aswanOperationOffsetSeconds, compileAswanOperations, validateAswanParameterPlan} from './operations.js';
+import {validateAswanOperations, aswanOperationOffsetSeconds, validateAswanScheduledOperations, validateAswanParameterPlan} from './operations.js';
 import {createAswanTimedSnapshot} from './timed_state.js';
 
 const identity = (value, label) => {
@@ -11,15 +11,17 @@ const transactionKey = value => {
   return identity(value, 'transaction');
 };
 
-// Sweep expands to three writes; charge the worst case to queue budgets.
-export const aswanTimedCommandCost = command => command.method === 'applyAswanTimedOperation' ? 3 : 1;
+// Keep the existing parameter budget (three); soft noteOn also sets volume.
+export const aswanTimedCommandCost = command => command.method === 'applyAswanTimedOperation'
+  ? (command.operation.method === 'noteOn' ? 4 : 3) : 1;
 
 /** ASWAN-specific resolution and RPC. Time/order/storage belong to Performance Queue.
  * No user functions cross this boundary; captures occur between complete batches.
  */
 export function createAswanTimedProcessor({performance: timeline, getState, getConfig, dispatch,
-  nowFrame, sampleRate, leadFrames = 128, validatePlan}) {
+  nowFrame, sampleRate, leadFrames = 128, validatePlan, releaseOwner = () => {}, releasePattern = () => {}, releaseAll = () => {}}) {
   const staged = new Map();
+  let nextReservation = 0;
   const freshTime = () => (nowFrame() + leadFrames) / sampleRate;
   const reportTo = (port,context) => event => {
     // Reservation failures are recoverable and must not retire the audio engine.
@@ -42,17 +44,18 @@ export function createAswanTimedProcessor({performance: timeline, getState, getC
     // Actual execution resolves again, so intervening manual writes are retained.
     const state = getState();
     validatePlan?.(plan,state);
-    compileAswanOperations(plan, state, {clock:getConfig().clock});
+    validateAswanScheduledOperations(plan, state);
     return plan;
   }
   function specification(operations, options, ownerContext) {
     if (!options || typeof options !== 'object' || Array.isArray(options) ||
       Object.keys(options).some(key => !['name','repeatSeconds'].includes(key))) throw new TypeError('Invalid ASWAN schedule options');
     const plan = admit(operations);
+    const reservation = ++nextReservation;
     return {name:identity(options.name, 'schedule name'), repeatSeconds:options.repeatSeconds,
       performance:ownerContext, entries:plan.operations.map(operation => ({
         offsetSeconds:aswanOperationOffsetSeconds(operation, plan.referenceSampleRate),
-        command:{method:'applyAswanTimedOperation', operation},
+        command:{method:'applyAswanTimedOperation', operation, reservation, pattern:options.name},
       }))};
   }
   function changesFor(records, ownerContext) {
@@ -77,12 +80,22 @@ export function createAswanTimedProcessor({performance: timeline, getState, getC
     const ownerContext = context(payload, metadata);
     prune();
     const {session, owner} = ownerContext;
-    if (payload.action === 'schedule') return timeline.schedulePattern(specification(payload.operations, payload.options, ownerContext), reportTo(port,ownerContext));
-    if (payload.action === 'clear') return timeline.clearPattern(identity(payload.name, 'schedule name'), {session,owner});
+    if (payload.action === 'schedule') {
+      const receipt = timeline.schedulePattern(specification(payload.operations, payload.options, ownerContext), reportTo(port,ownerContext));
+      releasePattern(receipt.name); // also retire a completed one-shot's held note
+      return receipt;
+    }
+    if (payload.action === 'clear') {
+      const name = identity(payload.name, 'schedule name');
+      const cleared = timeline.clearPattern(name, {session,owner});
+      return releasePattern(name,owner) || cleared;
+    }
     if (payload.action === 'cancelOwner' || payload.action === 'releaseOwner') {
       for (const [key, value] of staged) if (value.session === session && value.owner === owner) staged.delete(key);
-      if(payload.action==='releaseOwner'){timeline.cancelOwner(owner);return true;}
-      return timeline.cancelPatternOwner(owner, {session});
+      if(payload.action==='releaseOwner'){timeline.cancelOwner(owner);releaseOwner(owner);return true;}
+      const canceled = timeline.cancelPatternOwner(owner, {session});
+      releaseOwner(owner);
+      return canceled;
     }
     const key = stagingKey(session, owner, payload.transactionId);
     if (payload.action === 'abort') { staged.delete(key); return true; }
@@ -120,6 +133,11 @@ export function createAswanTimedProcessor({performance: timeline, getState, getC
       // Use one fresh anchor after the user evaluation has completed, not its old stage time.
       const records = staged.get(key)?.records ?? new Map();
       const receipt = timeline.commitPatterns(changesFor(records, {...ownerContext,time:Math.max(freshTime(),ownerContext.time)}), {session,owner}, reportTo(port,ownerContext));
+      releaseOwner(owner);
+      for (const record of records.values()) {
+        const name = record.method === 'schedule' ? record.args[1].name : record.args[0];
+        releasePattern(name, record.method === 'schedule' ? undefined : owner);
+      }
       staged.delete(key);
       return receipt;
     }
@@ -132,15 +150,19 @@ export function createAswanTimedProcessor({performance: timeline, getState, getC
       catch (error) { port.postMessage({id:data.id,error:error.message,name:error.name}); }
       return true;
     },
-    apply(operation, port, frame, metadata) {
+    apply(command, port, frame, metadata) {
+      const {operation, reservation, pattern} = command;
       // Admission already checked complete calls at the fixed Synth clock.
       // Both compiler and live dispatch invoke WonderSwanSynth methods, retaining
       // its actual-time R90 merge, validation and identical register conversion.
       // Do not dispatch raw bytes: that would replace keyboard/envelope owners.
       if (['setVolume','setPan'].includes(operation.method) && operation.args[0] === 1)
         validateAswanParameterPlan({operations:[operation]},getState());
-      return dispatch(operation, port, frame, metadata);
+      if (operation.method === 'noteOn' && operation.args[0] === 1)
+        validateAswanScheduledOperations({version:1,chip:'wonderswan',referenceSampleRate:44100,
+          operations:[{...operation,order:0}]},getState());
+      return dispatch(operation, port, frame, {...metadata,reservation,pattern});
     },
-    clear() { staged.clear(); },
+    clear() { staged.clear(); releaseAll(); },
   };
 }

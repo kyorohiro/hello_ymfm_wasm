@@ -380,3 +380,116 @@ test('a later CH2 Voice-mode conflict cancels only the offending reservation and
   await f.command('code',[session,'noteOn',[0,60]]);
   assert(f.render(1024).left.some(value=>value!==0),'unrelated Wave channel still plays');
 });
+
+for (const rate of [44100,48000]) test(`scheduled ASWAN notes start/release on exact frames and retain the software tail at ${rate} Hz`,async t=>{
+  const {buildAswanOperations:build}=await import('./operations.js');
+  const f=await make(t,rate),{session}=await f.command('beginCode');
+  const plan=build(b=>{b.noteOn(0,'A4');b.atSample(441).noteOff(0);});
+  const receipt=await f.command('timed',[session,{action:'schedule',operations:plan,options:{name:'note'}}]);
+  f.render(receipt.startFrame);assert.equal(f.p.instrument.owners[0],null);
+  f.render(1);const voice=f.p.instrument.owners[0];assert(voice);
+  assert.equal(voice.start,receipt.startFrame);
+  const off=receipt.startFrame+Math.round(rate*.01);
+  f.render(off-f.p.renderedFrames);assert.equal(voice.release,null);
+  f.render(1);assert.equal(voice.release,off);assert.equal(f.p.instrument.owners[0],voice,'noteOff starts the existing release, not an immediate Gate cut');
+  assert((f.p.instrument.synth._getState().registers[16]&1)!==0);
+  f.render(Math.ceil(rate*voice.preset.envelope.release)+128);
+  assert.equal(f.p.instrument.owners[0],null);assert.equal(f.p.instrument.synth._getState().registers[16]&1,0);
+});
+
+test('scheduled releases and cancellation cannot stop a newer keyboard, immediate Code or another reservation voice',async t=>{
+  const {buildAswanOperations:build}=await import('./operations.js');
+  for (const replacement of ['keyboard','immediate','reservation','same-owner']) {
+    const f=await make(t,48000),{session}=await f.command('beginCode');
+    const a=await f.command('timed',[session,{action:'schedule',owner:'loop:a',operations:build(b=>{b.noteOn(0,60);b.atSeconds(.02).noteOff(0);}),options:{name:'old'}}]);
+    f.render(a.startFrame+1);
+    if(replacement==='keyboard')await f.command('noteOn',['human',67,0]);
+    if(replacement==='immediate')await f.command('code',[session,'noteOn',[0,67]]);
+    if(replacement==='reservation'||replacement==='same-owner'){
+      const next=await f.command('timed',[session,{action:'schedule',owner:replacement==='same-owner'?'loop:a':'loop:b',operations:build(b=>b.noteOn(0,67)),options:{name:'new'}}]);
+      f.render(next.startFrame+1-f.p.renderedFrames);
+    }
+    const voice=f.p.instrument.owners[0];
+    f.render(2000);assert.equal(f.p.instrument.owners[0],voice,replacement);assert.equal(voice.release,null,replacement);
+    if(replacement==='same-owner'){
+      await f.command('timed',[session,{action:'clear',owner:'loop:a',name:'old'}]);
+      assert.equal(voice.release,null,'clear of another reservation from the same owner must not release this note');
+    }
+    await f.command('timed',[session,{action:'cancelOwner',owner:'loop:a'}]);
+    if(replacement==='same-owner')assert.notEqual(voice.release,null,'owner cancellation releases its newer reservation too');
+    else assert.equal(voice.release,null,replacement);
+    if(replacement==='reservation'){
+      await f.command('timed',[session,{action:'clear',owner:'loop:b',name:'new'}]);
+      assert.notEqual(voice.release,null,'completed one-shot retains cancellation ownership');
+    }
+  }
+});
+
+test('invalid scheduled-note replacement preserves the held voice; clear/replacement handles finished one-shots',async t=>{
+  const {buildAswanOperations:build}=await import('./operations.js');
+  const f=await make(t,48000),{session}=await f.command('beginCode');
+  const payload={action:'schedule',operations:build(b=>b.noteOn(0,60)),options:{name:'one-shot'}};
+  const first=await f.command('timed',[session,payload]);f.render(first.startFrame+1);
+  assert.equal(f.p.timeline.getStats().patternCount,0);
+  const voice=f.p.instrument.owners[0];
+  await failure(f,'timed',[session,{...payload,operations:build(b=>b.noteOn(0,'invalid'))}]);
+  assert.equal(f.p.instrument.owners[0],voice);assert.equal(voice.release,null);
+  await failure(f,'timed',[session,{...payload,options:{name:'one-shot',repeatSeconds:1e-10}}]);assert.equal(voice.release,null);
+  await f.command('timed',[session,{...payload,operations:build(b=>b.atSeconds(.1).noteOn(0,64))}]);
+  assert.notEqual(voice.release,null,'successful replacement releases old finished one-shot');
+  await f.command('timed',[session,{action:'clear',name:'one-shot'}]);
+  f.render(20000);assert.equal(f.p.instrument.owners[0],null);
+});
+
+for (const rate of [44100,48000]) test(`raw scheduled ASWAN Gate writes match compile exactly at ${rate} Hz`,async t=>{
+  const {buildAswanOperations:build,compileAswanOperations:compile}=await import('./operations.js');
+  const f=await make(t,rate),{session}=await f.command('beginCode');
+  const plan=build(b=>{b.atSeconds(.01).setNote(0,'C4');b.keyOn(0);b.keyOn(0);b.atSeconds(.02).keyOff(0);});
+  const expected=compile(plan,f.p.instrument.synth._getState()),writes=[];
+  const core=f.p.instrument.core,original=core.writeWonderSwan.bind(core);
+  core.writeWonderSwan=(register,value)=>{writes.push({register:register+0x80,value});return original(register,value);};
+  const receipt=await f.command('timed',[session,{action:'schedule',operations:plan,options:{name:'raw'}}]);
+  f.render(receipt.startFrame+Math.round(rate*.02)+1);
+  assert.deepEqual(writes,expected.map(({register,value})=>({register,value})));
+  assert.equal(f.p.instrument.owners[0],null);
+});
+
+test('scheduled CH2 soft notes reject Voice mode at admission and after an intervening manual mode switch',async t=>{
+  const {buildAswanOperations:build}=await import('./operations.js');
+  const f=await make(t,48000),{session}=await f.command('beginCode');
+  const payload={action:'schedule',operations:build(b=>b.noteOn(1,60)),options:{name:'note'}};
+  await f.command('code',[session,'setVoiceMode',[true]]);
+  await failure(f,'timed',[session,payload]);assert.equal(f.p.timeline.getStats().patternCount,0);
+  await f.command('code',[session,'setVoiceMode',[false]]);
+  await f.command('timed',[session,payload]);
+  await f.command('code',[session,'setVoiceMode',[true]]);f.render(129);
+  assert(f.messages.some(message=>message.type==='aswan-timed-error'&&/Voice PCM/.test(message.message)));
+  assert.equal(f.p.timeline.getStats().patternCount,0);assert.equal(f.p.instrument.owners[1],null);
+});
+
+test('Code stopLoop releases scheduled notes only for its own loop and leaves a later keyboard voice alone',async t=>{
+  const {createPlaygroundCodeRuntime}=await import('../js/playground_code_runtime.js');
+  const {createAswanCodeClient}=await import('./code_endpoint.js');
+  const f=await make(t,48000),metadata=await f.command('beginCode');
+  const client=createAswanCodeClient({metadata,invoke:(method,args)=>f.command('code',[metadata.session,method,args]),
+    isCurrent:()=>true,dispose(){},requestControl:payload=>f.command('timed',[metadata.session,payload])});
+  const runtime=createPlaygroundCodeRuntime({ensureReady:async()=>{},now:()=>performance.now()/1000,
+    supportedSoundChips:['wonderswan'],useSoundChip:async()=>client,stopSoundChips:async()=>{},
+    guardExecution:false,createTaskChannel:()=>null});
+  t.after(()=>runtime.stop());
+  await runtime.run(`const ws=await useSoundChip('wonderswan');
+    context.cancelA=()=>stopLoop('a');context.cancelB=()=>stopLoop('b');
+    liveLoop('a',async()=>{await ws.schedule(ws.build(b=>b.noteOn(CH1,'C4')),{name:'a',repeatSeconds:.1});await beat(100);});
+    liveLoop('b',async()=>{await ws.schedule(ws.build(b=>b.noteOn(CH3,'E4')),{name:'b',repeatSeconds:.1});await beat(100);});`);
+  for(let i=0;i<100&&f.p.timeline.getStats().patternCount!==2;i++)await new Promise(r=>setTimeout(r,1));
+  assert.equal(f.p.timeline.getStats().patternCount,2);f.render(256);
+  const a=f.p.instrument.owners[0],b=f.p.instrument.owners[2];assert(a&&b);
+  runtime.getContext().cancelA();
+  for(let i=0;i<100&&a.release===null;i++)await new Promise(r=>setTimeout(r,1));
+  assert.notEqual(a.release,null);assert.equal(b.release,null);
+  await f.command('noteOn',['human',67,2]);const keyboard=f.p.instrument.owners[2];
+  runtime.getContext().cancelB();
+  for(let i=0;i<100&&f.p.timeline.getStats().patternCount;i++)await new Promise(r=>setTimeout(r,1));
+  assert.equal(f.p.timeline.getStats().patternCount,0);assert.equal(keyboard.release,null);
+  await runtime.stop();assert.equal(keyboard.release,null);
+});

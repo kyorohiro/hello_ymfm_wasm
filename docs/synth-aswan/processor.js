@@ -40,8 +40,11 @@ class AswanProcessor extends AudioWorkletProcessor {
 					sampleRate,
 					nowFrame: () => this.renderedFrames,
 					patternCommandCost: aswanTimedCommandCost,
+					onDiscard: (command, metadata) => this.instrument.releaseTimed({
+						owner: metadata.owner, reservation: command.reservation,
+					}),
 					apply: (command, reply, frame, metadata) =>
-						this.timed.apply(command.operation, this.port, frame, metadata),
+						this.timed.apply(command, this.port, frame, metadata),
 				});
 				this.timed = createAswanTimedProcessor({
 					performance: this.timeline,
@@ -52,8 +55,11 @@ class AswanProcessor extends AudioWorkletProcessor {
 						clock: this.instrument.synth.clock,
 						instanceId: `${this.instanceId}:${this.instrument.codeSession}`,
 					}),
-					dispatch: operation => this.instrument.code(
-						this.instrument.codeSession, operation.method, operation.args),
+					dispatch: (operation, port, frame, metadata) => this.instrument.timedCode(
+						this.instrument.codeSession, operation, metadata),
+					releaseOwner: owner => this.instrument.releaseTimed({owner}),
+					releasePattern: (pattern, owner) => this.instrument.releaseTimed({pattern, owner}),
+					releaseAll: () => this.instrument.releaseTimed(),
 				});
 				this.port.postMessage({ ready: true, state: this.instrument.read() });
 			})

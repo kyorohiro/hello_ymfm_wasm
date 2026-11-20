@@ -11,7 +11,7 @@ import {
 } from '../playground/playground_cassette.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js?v=huc-working-saved-1';
 import { createSynthProjectStore } from '../synth/synth_project_store.js?v=draft-reconnect-1';
-import { ASWAN_TIMED_EXAMPLE } from './code_examples.js';
+import { ASWAN_TIMED_EXAMPLE, ASWAN_SCHEDULED_NOTES_EXAMPLE } from './code_examples.js';
 import { readPreset, createDefaultPreset } from './preset.js';
 
 export const ASWAN_PROJECT_FORMAT = 'tetorica-aswan-code-project';
@@ -581,7 +581,10 @@ export function createAswanCodeProject({
 	if (starterCode !== undefined) {
 		if (typeof starterCode !== 'string') throw TypeError('Starter code must be text.');
 		fs.writeText('/index.js', starterCode);
-		if (!snapshot && includeExamples) fs.writeText('/examples/timed-motion.js', ASWAN_TIMED_EXAMPLE);
+		if (!snapshot && includeExamples) {
+			fs.writeText('/examples/timed-motion.js', ASWAN_TIMED_EXAMPLE);
+			fs.writeText('/examples/scheduled-notes.js', ASWAN_SCHEDULED_NOTES_EXAMPLE);
+		}
 	}
 	if (snapshot) project.restore(snapshot);
 	return project;

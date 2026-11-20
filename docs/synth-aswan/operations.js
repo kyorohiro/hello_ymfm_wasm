@@ -7,6 +7,7 @@ import {WONDERSWAN_CLOCK as ASWAN_CLOCK} from '../js/wonderswan.js';
 const arity = Object.freeze({
   setVolume:[2,3], setPan:[2,3], setFrequency:[2,2], setNote:[2,2],
   setNoise:[1,1], setSweep:[1,1],
+  noteOn:[2,2], noteOff:[1,1], keyOn:[1,1], keyOff:[1,1],
 });
 
 export const ASWAN_OPERATION_METHODS = Object.freeze(Object.keys(arity));
@@ -195,7 +196,7 @@ export function createAswanOperationResolver({clock = ASWAN_CLOCK} = {}) {
   const apply = operation => {
     const call = copyCall(operation);
     writes = [];
-    synth[call.method](...call.args);
+    synth[call.method === 'noteOff' ? 'keyOff' : call.method](...call.args);
     return writes;
   };
   return { start, apply,
@@ -220,6 +221,8 @@ export function validateAswanOperations(plan, {clock = ASWAN_CLOCK, validateArgu
 /** Compile one virtual pass. Baseline adoption never contributes write rows. */
 export function compileAswanOperations(plan, state, {clock = ASWAN_CLOCK} = {}) {
   const copy = copyProgram(plan), resolver = createAswanOperationResolver({clock}), rows = [];
+  if (copy.operations.some(operation => ['noteOn','noteOff'].includes(operation.method)))
+    throw new Error('ASWAN compile cannot predict Synth software envelopes/ownership; use setNote + keyOn/keyOff for hardware register traces');
   validateAswanParameterPlan(copy,state);
   resolver.start(state);
   for (let operationIndex = 0; operationIndex < copy.operations.length; operationIndex++) {
@@ -239,4 +242,15 @@ export function validateAswanParameterPlan(plan, state) {
     ['setVolume','setPan'].includes(operation.method) && operation.args[0] === 1)) {
     throw new Error('ASWAN timed CH2 volume/pan requires Wave mode; Voice PCM feeding is outside this parameter API');
   }
+}
+
+/** Admission validates soft note arguments through the existing hardware API,
+ * but does not claim its trace represents the Synth software envelope. */
+export function validateAswanScheduledOperations(plan, state) {
+  const copy = validateAswanOperations(plan, {clock:state.clock});
+  validateAswanParameterPlan(copy,state);
+  if ((state.registers[16] & 32) && copy.operations.some(operation =>
+    operation.method === 'noteOn' && operation.args[0] === 1))
+    throw new Error('ASWAN scheduled CH2 noteOn requires Wave mode; Voice PCM feeding is outside this API');
+  return copy;
 }

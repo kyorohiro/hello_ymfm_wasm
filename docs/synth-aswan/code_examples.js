@@ -27,3 +27,31 @@ liveLoop("melody", async () => {
 // Stop clears reservations. Apply replaces the named pattern atomically.
 // await ws.clearSchedule("sweep-pan");
 `;
+
+export const ASWAN_SCHEDULED_NOTES_EXAMPLE = `const ws = await useSoundChip("wonderswan");
+const bpm = 120;
+setBpm(bpm);
+const secondsPerBeat = 60 / bpm;
+
+// Build records this phrase once. Change bpm above and Apply to retime it.
+// Unlike liveLoop / beat(), an admitted sample-clock pattern has fixed offsets.
+const notes = scale("E3", "minorPentatonic", 2);
+const phrase = ws.build(b => {
+  for (let i = 0; i < 8; i++) {
+    b.atSeconds(i * secondsPerBeat / 2).noteOn(CH1, notes[i % notes.length]);
+    b.atSeconds((i / 2 + 0.3) * secondsPerBeat).noteOff(CH1);
+  }
+});
+await ws.schedule(phrase, { name: "phrase", repeatSeconds: 4 * secondsPerBeat });
+
+// Synth noteOff uses the current software Envelope release to soften the edge.
+// compile() cannot predict software envelope or ownership from registers alone.
+// Use raw hardware Gate operations to inspect a register trace instead:
+const hardware = ws.build(b => {
+  b.setNote(CH1, "E3").keyOn(CH1);
+  b.atSeconds(secondsPerBeat * 0.3).keyOff(CH1);
+});
+console.table(await ws.compile(hardware));
+// Stop / stopLoop release only their owned notes. A later keyboard note wins.
+// await ws.clearSchedule("phrase");
+`;

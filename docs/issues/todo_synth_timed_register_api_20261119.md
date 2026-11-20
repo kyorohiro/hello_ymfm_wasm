@@ -16,7 +16,7 @@ Later API-port order is not implied by the Files/UI rollout.
 | 2A03 / NES + FDS | Planned: [TODO](todo_2a03_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | S-DSP / SNES | Planned: [TODO](todo_snes_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | SCSP / Saturn | Planned; distinct from DSP assembly: [TODO](todo_scsp_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
-| ASWAN | Synth Web Audio parameter slice (`setVolume`/`setPan`, frequency/note, Noise/Sweep) implemented; scheduled gates, RAM/PCM and general Playground/npm remain separate: [TODO](todo_aswan_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
+| ASWAN | Synth Web Audio parameters, owned Synth notes and raw Gates implemented. Soft Envelope notes reject hardware-only compilation; RAM/PCM and general Playground/npm remain separate: [TODO](todo_aswan_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 
 ## Shared acceptance contract for each port
 

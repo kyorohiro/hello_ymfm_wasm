@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ASWAN_CODE_GLOBALS, selectAswanCodeDeclarations } from './code_declarations.js';
-import { ASWAN_TIMED_EXAMPLE } from './code_examples.js';
+import { ASWAN_TIMED_EXAMPLE, ASWAN_SCHEDULED_NOTES_EXAMPLE } from './code_examples.js';
 import { ASWAN_STARTER_CODE } from './code_host.js';
 import { definitionSource, sourcePosition } from '../playground/playground_monaco_definitions.js';
 const shared = await readFile(
@@ -34,6 +34,7 @@ test('ASWAN async controls, valid source types and channel limits typecheck, inc
 		await writeFile(join(work, 'globals.d.ts'), selected);
 		await writeFile(join(work, 'starter.js'), 'export {};\n' + ASWAN_STARTER_CODE);
         await writeFile(join(work, 'timed.js'), 'export {};\n' + ASWAN_TIMED_EXAMPLE);
+        await writeFile(join(work, 'notes.js'), 'export {};\n' + ASWAN_SCHEDULED_NOTES_EXAMPLE);
 		await writeFile(
 			join(work, 'entry.ts'),
 			`export {};
@@ -47,8 +48,7 @@ const plan=ws.build(b=>{b.atSample(20).setNote(CH1,'C4');b.setNoise({enabled:tru
 const snapshot=await ws.captureState();
 await ws.compile(plan,{initialState:snapshot});await ws.compile(plan,{initialState:'reset'});
 await ws.schedule(plan,{name:'test',repeatSeconds:.1});await ws.clearSchedule('test');
-// @ts-expect-error gates are immediate, outside this bounded recorder
-ws.build(b=>b.noteOn(CH1,'C4'));
+ws.build(b=>{b.noteOn(CH1,'C4');b.noteOff(CH1);b.keyOn(CH2);b.keyOff(CH2);});
 // @ts-expect-error RAM transfers are outside timed parameter operations
 ws.build(b=>b.setWaveform(CH1,[0,1]));
 const state=await ws.getState();const source:'wave'|'noise'|'pcm'=state.editorSource;state.registers[0];state.memory[0];state.channels[0];
@@ -92,6 +92,7 @@ play('C4');
 				join(work, 'entry.ts'),
 				join(work, 'starter.js'),
                 join(work, 'timed.js'),
+                join(work, 'notes.js'),
 			],
 			{ stdio: 'pipe' },
 		);

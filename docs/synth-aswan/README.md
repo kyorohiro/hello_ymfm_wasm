@@ -215,13 +215,14 @@ can still be extracted through Sounds from VGM. Paused audition currently
 requires the normal **3,072,000 Hz** clock; other clocks keep reference playback
 and complete static sound extraction without an inaccurate preview.
 
-## Timed parameter operations in Synth Code
+## Timed operations in Synth Code
 
 `useSoundChip("wonderswan")` now also provides `build`, `schedule`,
 `clearSchedule`, `captureState` and `compile` in this Synth's Web Audio Code
-endpoint. Immediate methods keep their existing meaning. The initial scope is
-`setVolume`, `setPan`, `setFrequency`, `setNote`, `setNoise` and `setSweep`.
-Wave RAM, Voice PCM feeding and scheduled note/gate ownership are separate work.
+endpoint. Immediate methods keep their existing meaning. Supported builder methods are
+`setVolume`, `setPan`, `setFrequency`, `setNote`, `setNoise`, `setSweep`,
+`noteOn`, `noteOff`, `keyOn` and `keyOff`. Wave RAM and Voice PCM feeding remain
+separate work. Scheduled CH2 soft noteOn explicitly requires Wave mode.
 In Voice mode, CH2's volume register becomes the DAC byte, so timed CH2
 volume/pan is explicitly rejected rather than treating it as stereo gain.
 
@@ -246,7 +247,13 @@ Repeated writes, including Noise resets, are kept. Another manual/Code write
 can subsequently overwrite these parameters in normal application order.
 
 `compile()` predicts one pass using the same WonderSwanSynth register conversion;
-it does not change the live chip or stop audio. Rows contain `offsetSeconds`,
+it does not change the live chip or stop audio. A plan containing Synth
+`noteOn`/`noteOff` explicitly rejects compilation: register/RAM metadata alone
+cannot predict the software Envelope and its release writes. Use `setNote` plus
+raw `keyOn`/`keyOff` to inspect hardware Gate writes instead. A raw Gate trace
+shows register intent; it does not simulate the Synth's live ownership guards,
+which suppress releases for a note now owned by a different reservation/player.
+Rows contain `offsetSeconds`,
 `register` (hardware address 0x80–0x9f), `value`, `operationIndex` and `writeIndex`.
 The default `initialState:"current"` captures coherent renderer authoring metadata
 asynchronously. `"reset"` uses zero hardware registers without initializing the
@@ -260,14 +267,26 @@ mirror. A forecast cannot include later manual writes or rendered hardware phase
 Run/Apply uses the shared Code transaction/loop lifecycle: a valid Apply replaces
 named reservations together, a failed evaluation keeps the previous ones,
 `stopLoop` cancels its own reservations and Stop ends the Code lease. Parameter
-operations do not acquire or steal note ownership. A runtime mode conflict, such
+operations retain note ownership. Scheduled notes have separate reservation and
+loop-owner tokens on the actual voice: a later keyboard, immediate Code note or
+another reservation replaces that voice/token, so an old scheduled release
+cannot stop it. `clearSchedule`, valid replacement and Stop/stopLoop release only
+their own notes, including held notes from completed one-shot patterns. Invalid
+replacements leave both the previous reservation and its held note untouched.
+`noteOff` and cancellation use the existing Synth software Release. Raw `keyOn`
+claims the Gate without a software Envelope; raw `keyOff` cuts only that
+reservation's current Gate immediately. A note with Envelope disabled/zero
+Release or raw Gate off can still click by design. A runtime mode conflict, such
 as CH2 changing to Voice mode before a scheduled stereo edit, cancels the failing
 pattern and reports a recoverable error without retiring the audio engine.
 
 Fresh projects and Menu → New → Cassette include
-`examples/timed-motion.js` in Files. Existing restored projects are not silently
+`examples/timed-motion.js` and `examples/scheduled-notes.js` in Files. Existing restored projects are not silently
 modified; New offers a backup before replacing them. Select the example in Code
 and Run it for an independent hardware Sweep/pan clock over a beat-based melody.
+The scheduled-notes example records a complete phrase. Its absolute offsets are
+fixed when built: change its `bpm` constant and Apply to retime the phrase; later
+`setBpm()` calls do not change an already admitted sample-clock reservation.
 The general Playground/npm and direct Native APIs have not yet gained this
 Synth-scoped endpoint; it does not claim parity for those backends.
 

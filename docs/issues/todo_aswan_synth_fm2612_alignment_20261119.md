@@ -194,15 +194,16 @@ Implemented (2026-11-20): first ASWAN Synth Web Audio parameter slice.
       actual 44.1/48 kHz rendering, declarations and a Files example.
 - [x] Verify muted source/readable-ZIP browsers and document backend limits.
 
-Later scope (not implied by this first slice): scheduled gate operations with
-software-envelope ownership, Playground/npm factory integration, direct Native
-API, Wave RAM transfer and Voice PCM feeding.
+The follow-up below adds scheduled notes and raw Gates with ownership.
+Remaining scope: Playground/npm factory integration, direct Native API, Wave
+RAM transfer and Voice PCM feeding.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
 - [x] Resolve stereo volume/pan, frequency/note and shared Sweep/Noise controls
       with execution-time R90 merges and hardware event ordering.
-- [ ] Extend scheduled gate/note operations with explicit software-envelope and
-      per-loop note ownership; then evaluate general Playground/npm integration.
+- [x] Extend scheduled gate/note operations with explicit software-envelope and
+      per-loop note ownership (follow-up below).
+- [ ] Evaluate general Playground/npm integration separately.
 - [ ] Scope Wave RAM transfer and software Voice PCM feeding explicitly; keep reservation execution independent from JS timers.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to future expanded scopes as well.
@@ -223,9 +224,10 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
   16 KiB of RAM for every operation or reproduce high-level register math.
 - Fresh app projects and New Cassette seed `examples/timed-motion.js`; restored
   projects and deliberately removed files are left alone. Declarations cover
-  the six supported operation methods and reject out-of-scope gates/RAM.
-- Public factory/npm, direct Native API, scheduled gates, Wave RAM and PCM
-  feeding are not completed by this Synth-scoped slice. Human listening remains
+  the initial six parameter methods; the follow-up below adds notes/Gates while
+  RAM remains out of scope.
+- Public factory/npm, direct Native API, Wave RAM and PCM feeding are not
+  completed by these Synth-scoped slices. Human listening remains
   separate. No npm publication, release, commit, push or Tauri import performed.
 - Source and readable standalone ZIP both passed the muted Chromium/WebKit
   runner, including scheduled stereo changes through the real audio route,
@@ -234,3 +236,37 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
   Real Monaco CDN loading and human listening were not checked. Temporary test
   ZIPs/receipts were written under `/tmp`; the user's release directory was not
   replaced. Existing shared runtime/core artifacts and calibration were unchanged.
+
+## Scheduled note / Gate slice (2026-11-20)
+
+Implementation verified locally; no publication or remote CI implied.
+- [x] Add builder/scheduler noteOn/noteOff using the existing Synth envelope and
+  release. Add raw keyOn/keyOff for exact register Gate authoring/compilation.
+- [x] Track session + loop owner + reservation identity on the actual voice;
+  stale scheduled releases must not stop later keyboard/immediate/other-loop notes.
+- [x] Release only owned voices on clear/replacement, stopLoop and Stop, including
+  completed one-shot patterns whose last operation left a held note.
+- [x] Reject malformed/over-budget replacements before releasing any old voice.
+- [x] Preserve hardware-only compile semantics: soft noteOn/noteOff cannot be
+  compiled from register/RAM metadata alone (no software envelope/ownership state).
+  Reject such traces explicitly; use setNote + keyOn/keyOff for register analysis.
+- [x] Keep Voice PCM feeding out of this slice; reject scheduled CH2 noteOn in
+  Voice mode at admission and execution, while raw Gate operations remain hardware.
+- [x] Add Files example, types, actual WASM timing/ownership/release tests at
+  44.1/48 kHz and muted source/readable-ZIP browser checks.
+
+Verification: actual WASM at 44.1/48 kHz covers exact note/release frames,
+software-tail completion, stale releases after keyboard/immediate/other-pattern
+steals (including the same owner with a different reservation), completed
+one-shot clear/replacement, invalid replacement atomicity, raw Gate compile/live
+trace equality and admission/execution Voice-mode conflicts. The actual Code
+runtime additionally checks stopLoop owner isolation and later keyboard safety.
+
+Final checks: `npm run test:aswan-synth` passed 226 tests. The source and readable
+standalone ZIP each passed Chromium and WebKit browser checks with physical
+output muted before AudioContext startup, including the scheduled-notes example,
+release gaps, repeated playback and Stop. New Cassette seeds both example files;
+existing restored projects are not overwritten. Real Monaco CDN loading and
+human listening remain separate checks. Temporary package/receipts are under
+`/tmp/aswan-gates-*`; user release artifacts were not replaced. No shared core
+or DSP runtime/calibration change, npm publish, commit/push, tag or Tauri import.

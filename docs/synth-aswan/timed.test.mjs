@@ -25,7 +25,8 @@ test('ASWAN recorder is detached, synchronous and state-free; compilation reuses
   assert.equal(compile(build(b=>b.atSample(480).setNote(0,'C4'),{referenceSampleRate:48000}),reset())[0].offsetSeconds,.01);
   assert.throws(()=>build(async()=>{}),/synchronous/);
   assert.throws(()=>build(b=>b.atSeconds(.2).atSample(1)),/nondecreasing/);
-  assert.throws(()=>build(b=>b.noteOn(0,60)),/not a function/);
+  assert.throws(()=>compile(build(b=>b.noteOn(0,60)),reset()),/software envelopes/);
+  assert.throws(()=>compile(build(b=>b.noteOff(0)),reset()),/software envelopes/);
   assert.throws(()=>compile(build(b=>b.setVolume(0,16)),reset()),/0.*15/);
 });
 test('ASWAN packed control updates preserve gates, Voice mode and preceding same-time changes',()=>{

@@ -406,6 +406,41 @@ export class AswanInstrument {
 		}
 		return result ?? true;
 	}
+	// Timed Gate ownership belongs to the actual voice, so a later keyboard or
+	// immediate Code note replaces the token along with the old physical owner.
+	timedCode(session, operation, metadata) {
+		const {method, args} = operation;
+		if (!this.codeActive || session !== this.codeSession) throw aswanCodeCancelled();
+		if (!['noteOn','noteOff','keyOn','keyOff'].includes(method))
+			return this.code(session, method, args);
+		const channel = slot(args[0]);
+		if (method === 'noteOff' || method === 'keyOff') {
+			const voice = this.owners[channel], token = voice?.timedOwner;
+			if (voice?.session !== session || token?.owner !== metadata.owner ||
+				token?.reservation !== metadata.reservation) return false;
+			if (method === 'keyOff') { this._forget(voice); return true; }
+			return this.noteOff(voice.id);
+		}
+		if (method === 'keyOn') {
+			this.synth.keyOn(channel);
+			this._rawOwner(channel);
+		} else this.code(session, method, args);
+		this.owners[channel].timedOwner = {
+			owner: metadata.owner, reservation: metadata.reservation, pattern: metadata.pattern,
+		};
+		return true;
+	}
+	releaseTimed({owner, reservation, pattern} = {}) {
+		let released = false;
+		for (const voice of this.owners) {
+			const token = voice?.timedOwner;
+			if (!token || (owner !== undefined && token.owner !== owner) ||
+				(reservation !== undefined && token.reservation !== reservation) ||
+				(pattern !== undefined && token.pattern !== pattern)) continue;
+			released = this.noteOff(voice.id) || released;
+		}
+		return released;
+	}
 	read() {
 		this._open();
 		const state = this.synth._getState(),
