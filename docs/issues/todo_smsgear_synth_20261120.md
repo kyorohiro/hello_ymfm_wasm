@@ -8,6 +8,7 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 - [x] Adopt icon as `docs/tetorica_smsgear_synth.webp` (1254 × 1254).
 - [x] PSG-first `PSG / YM2413 / Mixer` tabs, compact keyboard, two Pitch controls and draggable numeric controls.
 - [x] PSG: three tone voices, Noise, attenuation, Game Gear stereo; Auto and physical CH selection.
+- [x] Keep physical CH button nodes stable during Live refresh so mouse/touch release and keyboard focus survive Play/Pause/Stop.
 - [x] YM2413: 15 built-in instruments, shared editable two-operator User patch, Rhythm and five drum keys; identify shared hardware state and software performance controls.
 - [x] Files working/saved, Auto apply, Save/Discard, Cassette, seeded examples and shared Code editor/runtime with persistent expanded view.
 - [x] Fix expanded Code hiding its entire input section; show the real Monaco editor beside Files, retain Master and restore Code after selecting chip tabs. Verify both Monaco and the offline textarea fallback.

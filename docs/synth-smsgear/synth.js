@@ -391,36 +391,48 @@ async function pressDrum(index, id) {
 	}
 }
 function renderChannels() {
-	const parent = $("channelTabs"),
-		count = section === "opll" ? 9 : 4;
-	parent.replaceChildren();
+	const parent = $("channelTabs");
 	parent.hidden = section === "mixer";
-	for (const value of [
-		"auto",
-		...Array.from({ length: count }, (_, i) => String(i)),
-	]) {
-		const button = document.createElement("button");
-		button.type = "button";
-		button.setAttribute("role", "tab");
-		button.dataset.channel = value;
-		button.textContent =
-			value === "auto"
-				? "Auto"
-				: section === "psg" && value === "3"
-					? "Noise"
-					: `CH${Number(value) + 1}`;
-		button.setAttribute("aria-selected", String(channel === value));
+	if (parent.hidden) return;
+	// Live polling must not replace a button between pointerdown and click.
+	// Only switching chips changes the physical channel list.
+	if (parent.dataset.chip !== section) {
+		const count = section === "opll" ? 9 : 4;
+		const buttons = [
+			"auto",
+			...Array.from({ length: count }, (_, i) => String(i)),
+		].map((value) => {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.setAttribute("role", "tab");
+			button.dataset.channel = value;
+			button.textContent =
+				value === "auto"
+					? "Auto"
+					: section === "psg" && value === "3"
+						? "Noise"
+						: `CH${Number(value) + 1}`;
+			button.addEventListener("click", () => {
+				channel = value;
+				render();
+			});
+			return button;
+		});
+		parent.replaceChildren(...buttons);
+		parent.dataset.chip = section;
+	}
+	for (const button of parent.children) {
+		button.setAttribute(
+			"aria-selected",
+			String(channel === button.dataset.channel),
+		);
 		button.disabled =
 			section === "opll" &&
 			display.opll.rhythm.enabled &&
-			Number(value) >= 6;
-		button.addEventListener("click", () => {
-			channel = value;
-			render();
-		});
-		parent.append(button);
+			Number(button.dataset.channel) >= 6;
 	}
 }
+
 function render(updateState = true) {
 	const source = songView() ? songDisplay() : liveState,
 		selectedKind = kind();

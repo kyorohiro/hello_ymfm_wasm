@@ -46,6 +46,20 @@ Screenshots/logs are local under `build/smsgear-check/`.
 
 ## Scope and follow-up
 
+### Follow-up: CH selection during Live refresh
+
+`renderChannels()` previously replaced all buttons every 150ms during Live
+inspection. A pointer press could lose its target before release, dropping the
+click; Playwright also reproduced the detached/unstable element. Buttons are
+now rebuilt only when switching chips; polling updates existing buttons' selected
+and disabled states. This also retains focus and pending native button actions.
+
+The muted browser regression holds the mouse down for 400ms across multiple
+Live updates, then selects a CH during Play, Pause and after Stop. It also checks
+the existing seek/mute/Code flows. Application unit tests remain 13/13.
+Logs: `build/smsgear-check/channel-before.log` and `channel-fixed*`.
+Rebuild the distribution ZIP to include this follow-up.
+
 ### Follow-up: seek and reference channel mute
 
 - Position bar now reconstructs native chip history in silent, bounded 1024-frame

@@ -296,6 +296,26 @@ function mute() {
 								JSON.stringify(errors),
 						);
 					});
+				const selectChannelAcrossRefresh = async (value) => {
+					const button = page.locator(
+						`#channelTabs [data-channel="${value}"]`,
+					);
+					await button.scrollIntoViewIfNeeded();
+					const box = await button.boundingBox();
+					await page.mouse.move(
+						box.x + box.width / 2,
+						box.y + box.height / 2,
+					);
+					await page.mouse.down();
+					await page.waitForTimeout(400); // Cross at least two Live refreshes.
+					await page.mouse.up();
+					assert.equal(
+						await button.getAttribute("aria-selected"),
+						"true",
+						"A CH click must survive Live refresh between pointer down/up",
+					);
+				};
+				await selectChannelAcrossRefresh("1");
 				await page.waitForTimeout(160);
 				await page.locator("#songPause").click();
 				await page.waitForFunction(
@@ -303,6 +323,7 @@ function mute() {
 						document.getElementById("songPause").textContent ===
 						"Resume",
 				);
+				await selectChannelAcrossRefresh("0");
 				const capture = () =>
 					page.evaluate(
 						() =>
@@ -382,8 +403,13 @@ function mute() {
 				);
 				assert.deepEqual(muted.opll, sought.opll);
 				assert.deepEqual(muted.psg, sought.psg);
-				await page.locator("#songChannelMutes").scrollIntoViewIfNeeded();
-				await page.screenshot({path: out.replace(/\.json$/, `-${engine}-mixer.png`), fullPage:false});
+				await page
+					.locator("#songChannelMutes")
+					.scrollIntoViewIfNeeded();
+				await page.screenshot({
+					path: out.replace(/\.json$/, `-${engine}-mixer.png`),
+					fullPage: false,
+				});
 				await page.locator("#psgTab").click();
 				await page.locator("#captureSound").click();
 				assert.equal(
@@ -405,7 +431,7 @@ function mute() {
 						document.getElementById("songPause").textContent ===
 						"Pause",
 				);
-				assert((await capture()).frame >= frozen.frame);
+				assert((await capture()).frame >= sought.frame);
 				const playingSeek = await seek(0.1);
 				assert.equal(playingSeek.playing, true);
 				assert(playingSeek.timeSamples < 22050);
@@ -433,6 +459,7 @@ function mute() {
 				await page.waitForFunction(
 					() => document.getElementById("songPause").disabled,
 				);
+				await selectChannelAcrossRefresh("2");
 				const before = await page.locator("#soundName").inputValue();
 				await page.locator("#vgmFileInput").setInputFiles({
 					name: "bad.vgm",
