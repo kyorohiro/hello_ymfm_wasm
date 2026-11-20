@@ -10,7 +10,7 @@ import {createItchBatchPlan, packageAllItch} from './package_itch_all.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const absent = async path => assert.rejects(stat(path), {code:'ENOENT'});
-const scripts = ['2a03_synth','aswan_synth','dmg_synth','fm2608_synth','huc6280_synth','scsp_synth','sid_synth',
+const scripts = ['2a03_synth','aswan_synth','dmg_synth','fm2608_synth','huc6280_synth','scsp_synth','smsgear_synth','sid_synth',
   'snes_synth','spu_synth','synth','vgm_analyzer','playground']
   .map(name => `package_itch_${name}.sh`).sort();
 
@@ -110,14 +110,14 @@ test('batch VERSION is explicit and rejects unsafe paths before running or creat
   }
 });
 
-test('one VERSION gives all twelve browser ZIPs distinct for_run names while keeping normal names',()=>{
+test('one VERSION gives all browser ZIPs distinct for_run names while keeping normal names',()=>{
   const normal=createItchBatchPlan({version:'v2.0.0'}), run=createItchBatchPlan({version:'v2.0.0',forRun:true});
-  assert.equal(normal.products.length,12);assert.equal(normal.archives.length,13);
+  assert.equal(normal.products.length,scripts.length);assert.equal(normal.archives.length,scripts.length+1);
   assert.deepEqual(normal.products.map(p=>basename(p.script)).sort(),scripts);
-  assert.equal(normal.selected.length,12);assert.equal(run.selected.length,12);
+  assert.equal(normal.selected.length,scripts.length);assert.equal(run.selected.length,scripts.length);
   assert(normal.archives.every(value=>value.name.includes('_v2.0.0_')));
   const normalNames=new Set(normal.selected.map(value=>value.name)), runNames=new Set(run.selected.map(value=>value.name));
-  assert.equal(normalNames.size,12);assert.equal(runNames.size,12);
+  assert.equal(normalNames.size,scripts.length);assert.equal(runNames.size,scripts.length);
   assert(normal.selected.every(value=>!value.name.endsWith('_for_run.zip')));
   assert(run.selected.every(value=>value.name.includes('_v2.0.0_')&&value.name.endsWith('_for_run.zip')));
   assert(run.selected.every(value=>!value.name.endsWith('_for_run_for_run.zip')));
@@ -140,17 +140,17 @@ test('a late output collision prevents all children and preserves existing ZIP b
 test('normal and browser collections share verified builds and preserve the exact ZIPs and checksums',async t=>{
   const f=await fixture(t);
   const normal=await packageAllItch({...f,runCommand:f.runner});
-  assert.equal(normal.reused,false);assert.equal(normal.version,f.version);assert.equal(normal.artifacts.length,12);
-  assert.equal(f.calls.length,12);assert.deepEqual(new Set(f.calls.map(call=>call.product)),new Set(f.plan.products.map(p=>p.id)));
+  assert.equal(normal.reused,false);assert.equal(normal.version,f.version);assert.equal(normal.artifacts.length,scripts.length);
+  assert.equal(f.calls.length,f.plan.products.length);assert.deepEqual(new Set(f.calls.map(call=>call.product)),new Set(f.plan.products.map(p=>p.id)));
   await verifyCollection(normal,f.plan);
   const runPlan=createItchBatchPlan({root:f.root,version:f.version,forRun:true});
   const run=await packageAllItch({...f,forRun:true,runCommand:f.runner});
-  assert.equal(run.reused,true);assert.equal(run.artifacts.length,12);assert.equal(f.calls.length,12);
+  assert.equal(run.reused,true);assert.equal(run.artifacts.length,scripts.length);assert.equal(f.calls.length,f.plan.products.length);
   assert.notEqual(run.collection,normal.collection);await verifyCollection(run,runPlan);
   const manifest=JSON.parse(await readFile(join(run.collection,'manifest.json'),'utf8'));
   assert.equal(manifest.schemaVersion,2);
   const reused=await packageAllItch({...f,forRun:true,runCommand:f.runner});
-  assert.equal(reused.reused,true);assert.equal(f.calls.length,12);
+  assert.equal(reused.reused,true);assert.equal(f.calls.length,f.plan.products.length);
   await verifyCollection(reused,runPlan);
   const receipt=JSON.parse(await readFile(join(f.root,'release',`itch_all_${f.version}.json`),'utf8'));
   assert.equal(receipt.version,f.version);
@@ -166,7 +166,7 @@ test('collection copies use canonical ZIPs even when a receipt injects an unrela
   receipt.artifacts[0].sourceName='../outside.zip';
   await writeFile(f.plan.receipt,JSON.stringify(receipt,null,2)+'\n');
   const normal=await packageAllItch({...f,runCommand:f.runner});
-  assert.equal(normal.reused,true);assert.equal(f.calls.length,12);
+  assert.equal(normal.reused,true);assert.equal(f.calls.length,f.plan.products.length);
   await verifyCollection(normal,f.plan);
   const manifest=JSON.parse(await readFile(join(normal.collection,'manifest.json'),'utf8'));
   assert(manifest.artifacts.every(artifact=>!Object.hasOwn(artifact,'sourceName')),'Normal manifest contains only canonical provenance');
@@ -192,7 +192,7 @@ test('an intact schema-1 browser collection migrates without rebuilding and keep
   const normalBefore=await collectionBytes(normal.collection), receiptBefore=await readFile(f.plan.receipt);
   const runPlan=await legacyBrowserCollection(f), legacyBefore=await collectionBytes(runPlan.collection);
   const migrated=await packageAllItch({...f,forRun:true,runCommand:f.runner});
-  assert.equal(migrated.reused,true);assert.equal(f.calls.length,12);
+  assert.equal(migrated.reused,true);assert.equal(f.calls.length,f.plan.products.length);
   await verifyCollection(migrated,runPlan);
   assert.deepEqual(await collectionBytes(runPlan.collection+'.before-for-run-names'),legacyBefore);
   assert.deepEqual(await collectionBytes(normal.collection),normalBefore);
@@ -200,7 +200,7 @@ test('an intact schema-1 browser collection migrates without rebuilding and keep
   const manifest=JSON.parse(await readFile(join(migrated.collection,'manifest.json'),'utf8'));
   assert.equal(manifest.schemaVersion,2);
   const again=await packageAllItch({...f,forRun:true,runCommand:f.runner});
-  assert.equal(again.reused,true);assert.equal(f.calls.length,12);
+  assert.equal(again.reused,true);assert.equal(f.calls.length,f.plan.products.length);
   await verifyCollection(again,runPlan);
   assert.deepEqual(await collectionBytes(runPlan.collection+'.before-for-run-names'),legacyBefore);
 });
@@ -212,7 +212,7 @@ test('an edited legacy browser ZIP is left intact instead of being renamed or re
   await appendFile(join(runPlan.collection,oldName),'local edit to legacy browser ZIP');
   const oldBytes=await collectionBytes(runPlan.collection), rootBefore=(await readdir(f.plan.release)).sort();
   await assert.rejects(packageAllItch({...f,forRun:true,runCommand:f.runner}));
-  assert.equal(f.calls.length,12);
+  assert.equal(f.calls.length,f.plan.products.length);
   assert.deepEqual(await collectionBytes(runPlan.collection),oldBytes);
   assert.deepEqual((await readdir(f.plan.release)).sort(),rootBefore);
   await absent(runPlan.collection+'.before-for-run-names');
@@ -244,7 +244,7 @@ test('reuse checks even the unselected full Playground ZIP and never overwrites 
   const full=f.plan.archives.find(a=>a.name.endsWith('_itch_playground.zip'));
   await appendFile(join(f.root,'release',full.name),'changed after packaging');
   await assert.rejects(packageAllItch({...f,forRun:true,runCommand:f.runner}));
-  assert.equal(f.calls.length,12);assert.deepEqual(await readFile(join(first.collection,'manifest.json')),manifest);
+  assert.equal(f.calls.length,f.plan.products.length);assert.deepEqual(await readFile(join(first.collection,'manifest.json')),manifest);
 });
 
 test('collection reuse refuses changed or missing checksums and guide instead of advertising an incomplete set',async t=>{
@@ -259,7 +259,7 @@ test('collection reuse refuses changed or missing checksums and guide instead of
   }
   await unlink(join(first.collection,'SHA256SUMS'));
   await assert.rejects(packageAllItch({...f,runCommand:f.runner}));
-  assert.equal(f.calls.length,12);
+  assert.equal(f.calls.length,f.plan.products.length);
   await absent(join(first.collection,'SHA256SUMS'));
   assert.deepEqual(await readFile(join(first.collection,'manifest.json')),manifest);
 });
@@ -273,7 +273,7 @@ test('a CRC-valid ZIP with a single-backslash member cannot create a success rec
       await writeFile(join(f.root,'release',name),tinyZip(target.id,f.version,name,'bad\\entry'));
     }
   }}),error=>{assert.match(String(error.stderr??error.message),/Unsafe ZIP name/);return true;});
-  assert.equal(f.calls.length,12);
+  assert.equal(f.calls.length,f.plan.products.length);
   await absent(join(f.root,'release',`itch_all_${f.version}.json`));
   await absent(join(f.root,'release',`itch_all_${f.version}`));
 });
@@ -290,7 +290,7 @@ test('concurrent normal and browser requests for one VERSION share an exclusive 
     await assert.rejects(packageAllItch({...f,forRun:true,runCommand:async()=>{secondCalls++;}}),/already being packaged|lock/i);
     assert.equal(secondCalls,0);assert.equal(f.calls.length,0);
     release();const result=await first;
-    assert.equal(result.reused,false);assert.equal(f.calls.length,12);
+    assert.equal(result.reused,false);assert.equal(f.calls.length,f.plan.products.length);
     await verifyCollection(result,f.plan);
   }finally{release();await first.catch(()=>{});}
 });

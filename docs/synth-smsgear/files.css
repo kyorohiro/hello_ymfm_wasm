@@ -1,0 +1,1011 @@
+@import url("../synth-spu/synth.css");
+
+:root {
+	--bg: #e8ebee;
+	--panel: #f4f5f6;
+	--ink: #292e33;
+	--muted: #616a72;
+	--accent: #bd4e0c;
+	--accent-dark: #9e3f09;
+	--line: #c5cbd0;
+	background: var(--bg);
+}
+body {
+	background: linear-gradient(150deg, #fff, var(--bg) 75%);
+}
+.synth-shell {
+	background: linear-gradient(145deg, #fff, var(--panel) 45%, #e7eaed);
+	border-color: #b2bac1;
+	box-shadow:
+		inset 0 1px #fff,
+		inset 0 0 0 5px #edf0f2,
+		0 15px 40px #30353b24;
+}
+h1 > .product-name {
+	color: #b7460a;
+	white-space: normal;
+}
+.primary {
+	background: linear-gradient(#db6a21, #b54c10);
+	border-color: #a3430d;
+}
+.primary:hover {
+	background: #c65b19;
+	border-color: #9c3d08;
+}
+button[aria-pressed="true"] {
+	background: #b85213;
+	border-color: #a3440d;
+}
+.engine-badge {
+	background: #353a3f;
+	border-color: #626b72;
+	letter-spacing: 0.035em;
+}
+.engine-badge span {
+	color: #f1b17b;
+}
+input[type="range"] {
+	accent-color: #458eb8;
+}
+#masterVolume[data-boosted="true"] {
+	accent-color: #e88630;
+}
+.smsgear-chip-tabs {
+	display: flex;
+	gap: 5px;
+	overflow-x: auto;
+	border-bottom: 1px solid var(--line);
+	margin: 12px 0 0;
+}
+.smsgear-chip-tabs > button {
+	flex: 0 0 auto;
+	border-radius: 10px 10px 0 0;
+	margin-bottom: -1px;
+	min-height: 38px;
+	padding: 8px 15px;
+}
+.smsgear-chip-tabs > button[aria-selected="true"] {
+	color: #fff;
+	background: #a34c15;
+	border-color: #874016;
+}
+.smsgear-channel-tabs {
+	display: flex;
+	flex: 1 1 330px;
+	gap: 4px;
+	min-width: 0;
+	max-width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: thin;
+}
+.smsgear-channel-tabs > button {
+	flex: none;
+	min-width: 41px;
+	min-height: 29px;
+	padding: 5px 9px;
+	border-radius: 7px 7px 0 0;
+	font-size: 0.73rem;
+	white-space: nowrap;
+}
+.smsgear-channel-tabs > button[aria-selected="true"] {
+	color: #fff;
+	background: #a34c15;
+	border-color: #874016;
+	box-shadow: inset 0 -2px #efaa65;
+}
+.smsgear-channel-tabs > button:focus-visible {
+	outline: 2px solid #bd4e0c;
+	outline-offset: -2px;
+}
+.smsgear-channel-controls #smsgearChannelStatus {
+	margin: 6px 0 0;
+	font-size: 0.71rem;
+	overflow-wrap: anywhere;
+}
+#smsgearChannelSelect[hidden] {
+	display: none;
+}
+.smsgear-monitor {
+	border-color: #555f67;
+}
+.visual-mode-controls button[aria-pressed="true"] {
+	background: #854415;
+	border-color: #efaa65;
+}
+#outputCanvas {
+	display: block;
+	width: 100%;
+	height: 190px;
+	border-radius: 8px;
+}
+.smsgear-vgm-import {
+	margin: 0 0 20px;
+}
+.smsgear-song-player {
+	margin: 0 0 12px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: #ffffff90;
+	min-width: 0;
+}
+.smsgear-song-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 7px 10px;
+}
+.smsgear-song-row label {
+	display: flex;
+	flex: 1 1 240px;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	color: var(--muted);
+	font-size: 0.76rem;
+}
+#smsgearSongSelect {
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+}
+.smsgear-song-row button {
+	min-height: 32px;
+	padding: 6px 12px;
+}
+#smsgearSongPosition {
+	color: var(--muted);
+	font-size: 0.73rem;
+	font-variant-numeric: tabular-nums;
+}
+#smsgearSongStatus {
+	margin: 7px 0 0;
+	font-size: 0.71rem;
+	overflow-wrap: anywhere;
+}
+#smsgearSongStatus[data-error="true"] {
+	color: #a02f31;
+}
+.smsgear-song-seek {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 7px 10px;
+	margin: 9px 0 0;
+}
+.smsgear-song-seek > input[type="range"] {
+	flex: 1 1 160px;
+	min-width: 0;
+	margin: 0;
+}
+#smsgearSongSeekPosition {
+	min-width: 62px;
+	color: var(--muted);
+	font-size: 0.73rem;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+#smsgearSongCancelSeek {
+	min-height: 30px;
+	padding: 5px 9px;
+	font-size: 0.7rem;
+}
+.smsgear-song-cache-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	color: var(--muted);
+	font-size: 0.73rem;
+}
+.smsgear-song-cache-toggle input {
+	margin: 0;
+}
+#smsgearSongClearCache {
+	min-height: 28px;
+	padding: 5px 9px;
+	font-size: 0.73rem;
+}
+
+#smsgearCodeLiveTools .spu-code-live-row {
+	gap: 7px 12px;
+}
+#smsgearSaveSelectedPreset {
+	min-height: 30px;
+	padding: 5px 9px;
+	font-size: 0.73rem;
+}
+.smsgear-song-channels {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	margin: 9px 0 0;
+}
+.smsgear-source-mixer .smsgear-song-channels {
+	padding-top: 12px;
+	border-top: 1px solid var(--line);
+}
+.smsgear-song-channels-label {
+	color: var(--muted);
+	font-size: 0.73rem;
+	margin-right: 4px;
+}
+.smsgear-song-channels > button {
+	min-height: 30px;
+	padding: 5px 9px;
+	font-size: 0.7rem;
+	font-variant-numeric: tabular-nums;
+}
+.smsgear-song-channels > button[aria-pressed="false"] {
+	color: var(--muted);
+	background: #e4e9ed;
+	box-shadow: none;
+}
+
+.smsgear-vgm-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	margin: 8px 0;
+	min-width: 0;
+}
+.smsgear-vgm-actions .subtext {
+	margin: 0;
+}
+.smsgear-vgm-option-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 7px 12px;
+	margin: 8px 0;
+	min-width: 0;
+}
+.smsgear-vgm-option {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 0.76rem;
+}
+.smsgear-inline-help {
+	margin: 0;
+	min-width: 0;
+}
+.smsgear-inline-help[open] {
+	flex-basis: 100%;
+}
+.smsgear-inline-help p {
+	overflow-wrap: anywhere;
+}
+#vgmFileName {
+	flex: 1 1 200px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	font-size: 0.76rem;
+}
+#vgmStatus[data-error="true"] {
+	color: #a02f31;
+}
+.smsgear-vgm-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 12px 0;
+}
+.smsgear-vgm-filters button {
+	border-radius: 999px;
+}
+.smsgear-vgm-voices {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+	gap: 7px;
+}
+.smsgear-vgm-voices button {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	align-items: start;
+	padding: 10px 12px;
+	text-align: left;
+	overflow-wrap: anywhere;
+}
+.smsgear-vgm-voices small {
+	font-size: 0.65rem;
+	font-weight: 400;
+}
+.smsgear-vgm-warnings {
+	overflow-wrap: anywhere;
+}
+.smsgear-workspace {
+	padding: 8px 0 0;
+}
+.smsgear-workspace .section-heading {
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+#voiceCapacity {
+	color: #9a4315;
+	font-weight: 650;
+}
+.smsgear-editor {
+	min-width: 0;
+}
+.smsgear-source-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px 20px;
+	margin: 0 0 14px;
+}
+.smsgear-source-bar .smsgear-field {
+	flex: 0 1 290px;
+}
+.smsgear-source-bar p {
+	flex: 1 1 260px;
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.73rem;
+	line-height: 1.6;
+}
+.smsgear-card {
+	min-width: 0;
+	margin: 12px 0;
+	border: 1px solid var(--line);
+	background: #fff;
+	border-radius: 10px;
+}
+.smsgear-card > summary {
+	padding: 14px 16px;
+	cursor: pointer;
+	color: #87451e;
+	font-size: 0.84rem;
+	font-weight: 750;
+	line-height: 1.5;
+}
+.smsgear-card[open] > summary {
+	border-bottom: 1px solid #e5e8ea;
+}
+.smsgear-card-content {
+	padding: 16px;
+}
+.smsgear-fields {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px 20px;
+	align-items: end;
+}
+.smsgear-field {
+	display: flex;
+	flex: 0 1 160px;
+	min-width: 0;
+	max-width: 100%;
+	flex-direction: column;
+	gap: 6px;
+	color: var(--muted);
+	font-size: 0.73rem;
+}
+.smsgear-choice-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	width: 100%;
+	min-width: 0;
+}
+.smsgear-choice {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 36px;
+	padding: 6px 10px;
+	border-radius: 999px;
+	white-space: normal;
+	font-size: 0.73rem;
+}
+.smsgear-choice[aria-checked="true"] {
+	color: #fff;
+	background: #b85213;
+	border-color: #9f420c;
+	box-shadow: inset 0 1px #ffffff24;
+}
+.smsgear-choice[aria-checked="true"]:hover {
+	background: #c45e1e;
+}
+.smsgear-choice-field[data-choice="lfoDepth"],
+.smsgear-choice-field[data-choice="lfoMode"] {
+	flex-basis: 280px;
+}
+.smsgear-choice-field[data-choice="ddaImportRate"] {
+	flex-basis: 600px;
+}
+.smsgear-dda-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+.smsgear-dda-info {
+	color: var(--muted);
+	font-size: 0.73rem;
+	line-height: 1.7;
+	overflow-wrap: anywhere;
+	margin: 14px 0 10px;
+	font-variant-numeric: tabular-nums;
+}
+#ddaLoadStatus[data-error="true"] {
+	color: #a02f31;
+}
+#ddaCanvas {
+	display: block;
+	width: 100%;
+	height: 180px;
+	border: 1px solid #5d666d;
+	border-radius: 8px;
+	background: #22272b;
+}
+.smsgear-stepper {
+	display: grid;
+	grid-template-columns: 34px minmax(24px, 1fr) 34px;
+	align-items: center;
+	width: 100%;
+	min-height: 38px;
+	border: 2px solid #7d8985;
+	border-radius: 999px;
+	background: linear-gradient(#3b4140, #303736);
+	color: #f7f7f4;
+	box-shadow: inset 0 1px #ffffff14;
+}
+.smsgear-stepper-button {
+	min-height: 32px;
+	padding: 0;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	font-size: 1.4rem;
+	line-height: 1;
+}
+.smsgear-stepper-button:hover {
+	border: 0;
+	background: #ffffff12;
+	color: #fff;
+}
+.smsgear-stepper-button:active {
+	background: #ffffff24;
+}
+.smsgear-field .smsgear-stepper-value {
+	display: block;
+	min-height: 26px;
+	line-height: 26px;
+	text-align: center;
+	color: inherit;
+	font-size: 1.02rem;
+	font-weight: 800;
+	user-select: none;
+	cursor: ew-resize;
+	touch-action: none;
+	border-radius: 5px;
+}
+.smsgear-stepper-value.is-dragging {
+	color: #ffc58c;
+}
+.smsgear-stepper[aria-disabled="true"] {
+	opacity: 0.5;
+}
+.smsgear-stepper[aria-disabled="true"] .smsgear-stepper-value {
+	cursor: default;
+}
+.smsgear-stepper-value:focus-visible {
+	outline: 2px solid #e99c55;
+	outline-offset: 3px;
+}
+.smsgear-check {
+	flex-direction: row;
+	align-items: center;
+	min-height: 38px;
+	flex: 0 1 210px;
+	gap: 9px;
+}
+.smsgear-check input {
+	flex: 0 0 auto;
+}
+.smsgear-field output {
+	min-height: 20px;
+}
+.smsgear-help {
+	color: var(--muted);
+	font-size: 0.71rem;
+	line-height: 1.65;
+	margin: 13px 0 0;
+	max-width: 90ch;
+}
+.smsgear-subsection {
+	margin-top: 18px;
+	padding-top: 15px;
+	border-top: 1px solid #e5e8ea;
+}
+.smsgear-subsection h4 {
+	margin: 0 0 12px;
+	color: #87451e;
+	font-size: 0.76rem;
+}
+.smsgear-wave-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+.smsgear-wave-targets,
+.smsgear-wave-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.smsgear-wave-heading button {
+	min-height: 32px;
+	padding: 6px 10px;
+	font-size: 0.73rem;
+}
+#waveCanvas {
+	display: block;
+	width: 100%;
+	height: 190px;
+	border: 1px solid #5d666d;
+	border-radius: 8px;
+	background: #22272b;
+	touch-action: none;
+	cursor: crosshair;
+}
+.smsgear-wave-readout {
+	margin: 8px 0 12px;
+	color: #626b73;
+	font-size: 0.68rem;
+	font-variant-numeric: tabular-nums;
+}
+#codeOutput {
+	flex: 1 0 100%;
+	width: 100%;
+	min-width: 0;
+	max-height: 300px;
+	padding: 12px;
+	border-radius: 8px;
+	border: 1px solid #9ba5ae;
+	background: #22272b;
+	color: #efddc3;
+	font:
+		12px/1.6 ui-monospace,
+		SFMono-Regular,
+		Consolas,
+		monospace;
+	tab-size: 2;
+}
+.keyboard-section {
+	margin-top: 20px;
+}
+.keyboard-toolbar p {
+	margin: 0;
+}
+.keyboard-mount {
+	flex: 1 1 0;
+	min-width: 0;
+}
+.keyboard-mount .active,
+.keyboard-mount .is-active,
+.keyboard-mount [aria-pressed="true"] {
+	background: linear-gradient(#f6c59a, #e8a56e);
+	border-color: #ad6c34;
+	color: #522b0f;
+	box-shadow: inset 0 -2px #cc8b55;
+}
+.keyboard-section .toolbar-button.is-selected {
+	background: #b85213;
+	border-color: #d9905d;
+}
+footer {
+	line-height: 1.65;
+}
+footer p {
+	flex: 1 1 600px;
+}
+footer div {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 5px;
+}
+.smsgear-files-heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+.smsgear-files-heading h2 {
+	margin: 0;
+	font-size: 0.78rem;
+	letter-spacing: 0.15em;
+}
+.smsgear-files-toolbar,
+.smsgear-files-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+}
+.smsgear-files-toolbar button,
+.smsgear-files-actions button {
+	min-height: 28px;
+	padding: 4px 7px;
+	font-size: 0.7rem;
+}
+.smsgear-files-actions {
+	padding-top: 9px;
+	margin-top: 8px;
+	border-top: 1px solid var(--line);
+}
+.smsgear-files-status {
+	margin: 8px 0 0;
+	font-size: 0.7rem;
+	overflow-wrap: anywhere;
+	color: var(--muted);
+}
+.smsgear-files-path {
+	display: none;
+}
+#smsgearFilesTree {
+	min-height: 80px;
+	max-height: 55vh;
+	overflow: auto;
+}
+#smsgearFilesTree .file-tree {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+#smsgearFilesTree .file-tree .file-tree {
+	padding-left: 12px;
+}
+#smsgearFilesTree summary {
+	cursor: pointer;
+	font-size: 0.75rem;
+	padding: 5px 2px;
+	overflow-wrap: anywhere;
+}
+#smsgearFilesTree .file-tree-root {
+	font-size: 0.7rem;
+	color: var(--muted);
+	margin: 0 0 6px;
+	padding: 5px;
+	border-bottom: 1px solid var(--line);
+}
+#smsgearFilesTree button {
+	display: block;
+	width: 100%;
+	text-align: left;
+	min-height: 0;
+	height: auto;
+	padding: 6px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--ink);
+	box-shadow: none;
+	font: inherit;
+	font-size: 0.74rem;
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+#smsgearFilesTree button[aria-selected="true"],
+#smsgearFilesTree button[aria-current="true"] {
+	background: #f2dfce;
+}
+#smsgearFilesTree button:hover,
+#smsgearFilesTree summary:hover {
+	background: #f1e6dc;
+}
+.smsgear-input-tabs > button[aria-selected="true"],
+.smsgear-code-workspace .spu-input-tabs > button[aria-selected="true"] {
+	background: #f2e4d7;
+	border-bottom-color: #f2e4d7;
+	color: #87451e;
+}
+#smsgearCodeLiveTools[hidden] {
+	display: none;
+}
+#smsgearChannelStatus,
+#smsgearChannelReadout {
+	margin: 7px 0;
+	font-size: 0.73rem;
+	overflow-wrap: anywhere;
+}
+#smsgearChannelSelect,
+#smsgearPresetSelect {
+	min-width: 0;
+	max-width: 100%;
+}
+.smsgear-editor[data-readonly="true"] #waveCanvas {
+	cursor: default;
+}
+.smsgear-editor [data-unknown="true"] {
+	opacity: 0.65;
+}
+.smsgear-editor[data-origin="VGM"]
+	#ddaSection
+	> .smsgear-card-content
+	> .smsgear-help {
+	display: none;
+}
+@media (max-width: 760px) {
+	#smsgearFilesTree {
+		max-height: 240px;
+	}
+}
+@media (max-width: 640px) {
+	h1 {
+		font-size: 1.68rem;
+	}
+	.smsgear-card > summary {
+		padding: 12px 11px;
+	}
+	.smsgear-card-content {
+		padding: 13px 11px;
+	}
+	.smsgear-fields {
+		gap: 12px;
+	}
+	.smsgear-field {
+		flex-basis: calc(50% - 6px);
+	}
+	.smsgear-choice-field[data-choice="lfoDepth"],
+	.smsgear-choice-field[data-choice="lfoMode"],
+	.smsgear-choice-field[data-choice="ddaImportRate"],
+	.smsgear-check {
+		flex-basis: 100%;
+	}
+	.smsgear-source-bar {
+		gap: 9px;
+	}
+	.smsgear-source-bar .smsgear-field,
+	.smsgear-source-bar p {
+		flex-basis: 100%;
+	}
+	#waveCanvas,
+	#outputCanvas,
+	#ddaCanvas {
+		height: 170px;
+	}
+}
+
+/* SMSGEAR's silver shell and blue controls match the adopted handheld artwork. */
+:root {
+	--accent: #276b94;
+	--accent-dark: #205674;
+}
+h1 > .product-name {
+	color: #246b99;
+}
+.primary {
+	background: linear-gradient(#438bb9, #28658c);
+	border-color: #265d7f;
+}
+.primary:hover {
+	background: #3479a6;
+	border-color: #265d7f;
+}
+button[aria-pressed="true"],
+.smsgear-choice[aria-checked="true"],
+.smsgear-chip-tabs > button[aria-selected="true"],
+.smsgear-channel-tabs > button[aria-selected="true"] {
+	background: #2d7098;
+	border-color: #295c7c;
+}
+.smsgear-wave-actions,
+.smsgear-fields {
+	gap: 12px;
+}
+.smsgear-fields > button {
+	min-height: 35px;
+}
+.smsgear-mix-volume {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 0.8rem;
+	margin: 20px 0;
+}
+.smsgear-mix-volume input {
+	flex: 1;
+	min-width: 0;
+}
+.smsgear-mix-volume output {
+	min-width: 45px;
+}
+#smsgearMixerPanel {
+	padding: 20px 0;
+}
+#smsgearChannelStatus {
+	margin: 8px 0 0;
+}
+#envelopeCanvas {
+	display: block;
+	width: 100%;
+	height: 190px;
+}
+[hidden] {
+	display: none !important;
+}
+@media (max-width: 640px) {
+	.smsgear-channel-tabs {
+		flex-basis: 100%;
+	}
+}
+
+.smsgear-card > summary,
+.smsgear-subsection h4 {
+	color: #285f82;
+}
+#voiceCapacity {
+	color: #285f82;
+}
+.engine-badge span {
+	color: #a6d5ed;
+}
+.smsgear-stepper-value.is-dragging {
+	color: #a0dcf5;
+}
+.smsgear-choice[aria-checked="true"]:hover {
+	background: #397fa8;
+}
+.visual-mode-controls button[aria-pressed="true"] {
+	background: #2d7098;
+	border-color: #79b7d8;
+}
+.smsgear-reference {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted);
+	font-size: 0.73rem;
+}
+.smsgear-reference select {
+	min-height: 30px;
+	padding: 3px 6px;
+}
+
+/* Display-only pulses reuse Live refreshes and never change control geometry. */
+.smsgear-editor [data-live-parameter].is-live-changed {
+	animation: synth-live-change 500ms ease-out;
+}
+@keyframes synth-live-change {
+	0%,
+	35% {
+		outline: 2px solid #bd8323;
+		outline-offset: 2px;
+		background-color: rgba(232, 181, 72, 0.19);
+	}
+	100% {
+		outline: 2px solid transparent;
+		outline-offset: 2px;
+		background-color: transparent;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.smsgear-editor [data-live-parameter].is-live-changed {
+		animation-timing-function: step-end;
+	}
+	@keyframes synth-live-change {
+		0%,
+		99% {
+			outline: 1px solid #bd8323;
+			outline-offset: 2px;
+			background-color: rgba(232, 181, 72, 0.1);
+		}
+		100% {
+			outline: 1px solid transparent;
+			outline-offset: 2px;
+			background-color: transparent;
+		}
+	}
+}
+
+.smsgear-files-auto {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0.6rem 0;
+}
+.smsgear-files-actions button {
+	white-space: nowrap;
+}
+#smsgearFilesTree [data-modified="true"] {
+	font-weight: 700;
+}
+
+/* Expanded Code uses the same controls and audio owners as the Synth layout. */
+.smsgear-workspace-switch {
+	display: inline-flex;
+}
+.smsgear-workspace-switch > button {
+	border-radius: 0;
+}
+.smsgear-workspace-switch > button:first-child {
+	border-radius: 999px 0 0 999px;
+}
+.smsgear-workspace-switch > button:last-child {
+	border-radius: 0 999px 999px 0;
+	margin-left: -1px;
+}
+.smsgear-workspace-switch > button[aria-pressed="true"] {
+	color: #fff;
+}
+.smsgear-code-workspace.is-code-expanded .smsgear-main {
+	display: block;
+}
+.smsgear-code-workspace #smsgearSynthEditor[hidden],
+.smsgear-code-workspace #synthExpandedTabsSlot[hidden],
+.smsgear-code-workspace #synthExpandedVolumeSlot[hidden],
+.smsgear-input-heading[hidden] {
+	display: none;
+}
+.smsgear-code-workspace .synth-expanded-heading {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin-bottom: 12px;
+	min-width: 0;
+}
+.smsgear-code-workspace .synth-expanded-heading .smsgear-chip-tabs {
+	flex: 1;
+	min-width: 0;
+	flex-wrap: wrap;
+	margin: 0;
+	overflow: visible;
+}
+.smsgear-code-workspace .synth-expanded-heading .smsgear-chip-tabs > button {
+	flex: 0 0 auto;
+	min-height: 34px;
+	padding: 7px 11px;
+	font-size: 0.77rem;
+}
+.smsgear-code-workspace .synth-expanded-heading .spu-code-expand {
+	flex: none;
+	padding: 5px 9px;
+}
+.smsgear-code-workspace #synthExpandedTabsSlot > .spu-code-toolbar {
+	margin-bottom: 12px;
+}
+.smsgear-code-workspace #synthExpandedCodeSlot {
+	grid-column: auto;
+}
+.smsgear-code-workspace.is-code-expanded .keyboard-section {
+	margin-top: 0;
+}
+#synthExpandedVolumeSlot {
+	display: flex;
+	justify-content: flex-end;
+	margin: 0 0 12px;
+}
+#synthExpandedVolumeSlot .master-control {
+	min-width: 0;
+	width: min(100%, 380px);
+}
+
+#smsgearNewCassetteDialog {
+	width: min(460px, 90vw);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--panel);
+	color: inherit;
+	padding: 18px;
+}
+.smsgear-new-cassette-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
+}

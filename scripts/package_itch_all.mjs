@@ -37,6 +37,7 @@ export function createItchBatchPlan({root = repository, version, forRun = false}
     ['fm2608', 'fm2608_synth', `tetorica_fm2608_synth_${version}_itch.zip`],
     ['huc6280', 'huc6280_synth', `tetorica_huc6280_synth_${version}_itch.zip`],
     ['scsp', 'scsp_synth', `tetorica_scsp_synth_${version}_itch.zip`],
+    ['smsgear', 'smsgear_synth', `tetorica_smsgear_synth_${version}_itch.zip`],
     ['sid', 'sid_synth', `tetorica_sid_synth_${version}_itch.zip`],
     ['snes', 'snes_synth', `tetorica_sdsp_synth_${version}_itch.zip`],
     ['spu', 'spu_synth', `tetorica_spu_synth_${version}_itch.zip`],

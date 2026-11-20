@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Tetorica SMSGEAR Synth · PSG + YM2413</title>
+		<meta
+			name="description"
+			content="Explore Master System and Game Gear sound: PSG, optional YM2413 FM, VGM reference performance and JavaScript."
+		/>
+		<link rel="icon" href="../tetorica_smsgear_synth.webp" />
+		<link rel="stylesheet" href="./synth.css" />
+	</head>
+	<body>
+		<main>
+			<nav class="masthead">
+				<a href="../index.html">Tetorica</a
+				><a href="../playground/index.html?mode=master-system"
+					>Open Playground</a
+				>
+			</nav>
+			<article class="synth-shell">
+				<header class="synth-heading">
+					<div class="title-row">
+						<img
+							class="product-icon"
+							src="../tetorica_smsgear_synth.webp"
+							width="128"
+							height="128"
+							alt=""
+						/>
+						<div>
+							<p class="eyebrow">
+								THREE TONES · NOISE · OPTIONAL FM
+							</p>
+							<h1>
+								Tetorica
+								<span class="product-name">SMSGEAR Synth</span>
+							</h1>
+							<p class="description">
+								Master System / Game Gear · Sega PSG + YM2413 FM
+							</p>
+						</div>
+					</div>
+					<div class="audio-toolbar">
+						<div class="transport-actions">
+							<details id="synthMenu" class="synth-menu">
+								<summary
+									class="synth-icon-button"
+									aria-label="Menu"
+								>
+									☰
+								</summary>
+								<div class="synth-menu-panel">
+									<section>
+										<h2>New</h2>
+										<div id="smsgearMenuProjectNew"></div>
+									</section>
+									<section>
+										<h2>Import</h2>
+										<button id="loadVgm" type="button">
+											VGM / VGZ…
+										</button>
+										<div
+											id="smsgearMenuProjectImport"
+										></div>
+										<div id="smsgearMenuFilesImport"></div>
+									</section>
+									<section>
+										<h2>Export</h2>
+										<div
+											id="smsgearMenuProjectExport"
+										></div>
+										<div id="smsgearMenuFileExport"></div>
+									</section>
+								</div>
+							</details>
+							<button
+								id="startAudio"
+								class="primary"
+								type="button"
+							>
+								Enable audio</button
+							><button id="stopAudio" type="button">
+								Stop all sound</button
+							><button
+								id="smsgearFilesToggle"
+								type="button"
+								aria-expanded="false"
+							>
+								Files
+							</button>
+							<div class="smsgear-workspace-switch">
+								<button
+									id="synthWorkspaceCodeButton"
+									type="button"
+									aria-pressed="false"
+								>
+									Code</button
+								><button
+									id="synthWorkspaceSynthButton"
+									type="button"
+									aria-pressed="true"
+								>
+									Synth
+								</button>
+							</div>
+						</div>
+						<label id="smsgearMasterControl" class="master-control"
+							><span>Master</span
+							><input
+								id="masterVolume"
+								type="range"
+								min="0"
+								max="3.8"
+								step=".01"
+								value=".7"
+							/><output id="masterVolumeValue">70%</output></label
+						>
+					</div>
+					<p id="audioStatus" role="status">
+						Enable audio, then play the keyboard. Editing does not
+						start audio.
+					</p>
+				</header>
+				<div
+					id="synthWorkspace"
+					class="spu-code-workspace smsgear-code-workspace"
+				>
+					<aside
+						id="smsgearFilesPanel"
+						class="spu-files-panel smsgear-files-panel"
+						aria-label="Project files"
+						hidden
+					></aside>
+					<div id="smsgearSynthMain" class="spu-main smsgear-main">
+						<div id="synthExpandedTabsSlot" hidden></div>
+						<section
+							class="reference-song"
+							aria-label="Reference song"
+						>
+							<div class="song-toolbar">
+								<label
+									>VGM
+									<select id="songSelect" disabled>
+										<option value="">
+											Import VGM / VGZ…
+										</option>
+									</select></label
+								><button id="songPlay" type="button" disabled>
+									Play</button
+								><button id="songPause" type="button" disabled>
+									Pause</button
+								><button id="songStop" type="button" disabled>
+									Stop</button
+								><output id="songTime">0:00 / 0:00</output>
+								<details class="inline-help">
+									<summary aria-label="About songs">
+										?
+									</summary>
+									<p>
+										Import a PSG-only, YM2413-only or
+										combined VGM/VGZ. Originals stay in
+										/vgm/; static sound presets appear in
+										/presets/. No game files are bundled.
+										Play is one pass. Live view inspects the
+										selected physical channel. Pause freezes
+										its registers and allows keyboard
+										audition on the Synth route. Capture
+										copies the selected static sound; it
+										does not reconstruct software
+										note/envelope automation. Direct song
+										register editing and seek are later
+										work.
+									</p>
+								</details>
+							</div>
+							<div class="song-view">
+								<label
+									>View
+									<select id="songView">
+										<option value="synth">
+											Your sound
+										</option>
+										<option value="song">
+											Song channels
+										</option>
+									</select></label
+								><label
+									><input
+										id="songLive"
+										type="checkbox"
+										checked
+									/>
+									Auto update</label
+								><button
+									id="captureSound"
+									type="button"
+									disabled
+								>
+									Capture to Synth</button
+								><span id="songReadout"
+									>No reference song loaded.</span
+								>
+							</div>
+						</section>
+						<section class="wave-monitor">
+							<div class="monitor-toolbar">
+								<div role="tablist" aria-label="Output monitor">
+									<button
+										type="button"
+										data-monitor="envelope"
+										aria-selected="true"
+									>
+										Envelope</button
+									><button
+										type="button"
+										data-monitor="waveform"
+										aria-selected="false"
+									>
+										Waveform</button
+									><button
+										type="button"
+										data-monitor="spectrum"
+										aria-selected="false"
+									>
+										Spectrum
+									</button>
+								</div>
+								<label class="monitor-pitch"
+									>Pitch
+									<input
+										id="pitchBend"
+										type="range"
+										min="-2"
+										max="2"
+										step=".01"
+										value="0"
+									/><output id="pitchBendValue"
+										>+0.00</output
+									></label
+								>
+							</div>
+							<canvas
+								id="outputCanvas"
+								width="1000"
+								height="180"
+								aria-label="Output monitor"
+							></canvas>
+						</section>
+						<div id="smsgearSynthEditor" class="synth-editor">
+							<div
+								id="chipTabs"
+								class="smsgear-tabs"
+								role="tablist"
+								aria-label="Sound chip"
+							>
+								<button
+									id="psgTab"
+									type="button"
+									role="tab"
+									data-chip="psg"
+									aria-selected="true"
+								>
+									PSG</button
+								><button
+									id="opllTab"
+									type="button"
+									role="tab"
+									data-chip="opll"
+									aria-selected="false"
+								>
+									YM2413</button
+								><button
+									id="mixerTab"
+									type="button"
+									role="tab"
+									data-chip="mixer"
+									aria-selected="false"
+								>
+									Mixer
+								</button>
+							</div>
+							<div
+								id="channelTabs"
+								class="channel-tabs"
+								role="tablist"
+								aria-label="Physical channel"
+							></div>
+							<p id="channelReadout" class="subtext">
+								Auto · three tone voices.
+							</p>
+							<section id="psgPanel" class="chip-panel">
+								<div class="panel-title">
+									<h2>Sega PSG</h2>
+									<details class="inline-help">
+										<summary aria-label="About PSG">
+											?
+										</summary>
+										<p>
+											Three fixed-duty square-wave tones
+											and one Noise channel. Attenuation 0
+											is loudest; 15 is silent. Noise rate
+											is shared with Tone 3 when selected.
+											Game Gear routes each voice
+											left/right with an 8-bit mask. Auto
+											allocation and musical tuning are
+											software controls.
+										</p>
+									</details>
+								</div>
+								<div class="controls-row">
+									<label
+										>Sound source
+										<select id="psgSource">
+											<option value="tone">
+												Tone · square
+											</option>
+											<option value="noise">Noise</option>
+										</select></label
+									>
+									<div id="psgAttenuation"></div>
+									<label
+										>Noise type
+										<select id="noiseType">
+											<option value="white">White</option>
+											<option value="periodic">
+												Periodic
+											</option>
+										</select></label
+									><label
+										>Noise rate
+										<select id="noiseRate">
+											<option value="low">Low</option>
+											<option value="medium">
+												Medium
+											</option>
+											<option value="high">High</option>
+											<option value="tone3">
+												Tone 3
+											</option>
+										</select></label
+									>
+								</div>
+								<h3>Game Gear stereo · shared routing mask</h3>
+								<div
+									id="stereoControls"
+									class="stereo-controls"
+								></div>
+								<p class="subtext">
+									Tone periods and output levels follow the
+									selected physical channel. Use Auto for
+									three-voice keyboard allocation.
+								</p>
+							</section>
+							<section id="opllPanel" class="chip-panel" hidden>
+								<div class="panel-title">
+									<h2>YM2413 · OPLL</h2>
+									<details class="inline-help">
+										<summary aria-label="About OPLL">
+											?
+										</summary>
+										<p>
+											Nine two-operator FM voices, or six
+											melody voices plus five percussion
+											instruments. Built-in sounds are
+											fixed. Every channel using
+											instrument 0 shares the one User
+											patch below. OPLL output is mono.
+											Rhythm occupies physical CH7–CH9.
+										</p>
+									</details>
+								</div>
+								<div class="controls-row">
+									<label
+										>Instrument
+										<select id="fmInstrument"></select
+									></label>
+									<div id="fmAttenuation"></div>
+									<div id="fmSustain"></div>
+									<div id="rhythmEnabled"></div>
+								</div>
+								<fieldset id="userPatch">
+									<legend>
+										Shared User patch · (OP1 → OP2) → Out
+									</legend>
+									<p id="userPatchNote" class="subtext">
+										Select User to hear these edits. All
+										instrument-0 channels share this patch.
+									</p>
+									<div id="feedback"></div>
+									<div
+										id="operatorControls"
+										class="operator-controls"
+									></div>
+								</fieldset>
+								<div
+									id="drumControls"
+									class="drum-controls"
+								></div>
+							</section>
+							<section id="mixerPanel" class="chip-panel" hidden>
+								<h2>Output Mixer</h2>
+								<p class="subtext">
+									Measured source gains, shared by keyboard,
+									Code and reference playback. These are
+									software output controls, independent of
+									hardware attenuation.
+								</p>
+								<div id="mixerControls"></div>
+							</section>
+							<section class="preset-bar">
+								<label
+									>Name
+									<input
+										id="soundName"
+										type="text"
+										value="SMS square"
+										maxlength="120" /></label
+								><label
+									>Saved sounds
+									<select id="smsgearPresetSelect">
+										<option value="">
+											No playable presets
+										</option>
+									</select></label
+								>
+							</section>
+						</div>
+						<section
+							id="synthInputSection"
+							class="keyboard-section smsgear-input-section"
+							data-input-mode="keyboard"
+						>
+							<div
+								class="smsgear-input-tabs"
+								role="tablist"
+								aria-label="Performance input"
+							>
+								<button
+									id="synthInputKeyboardTab"
+									type="button"
+									role="tab"
+									aria-selected="true"
+									aria-controls="synthKeyboardPanel"
+								>
+									Keyboard
+								</button>
+								<button
+									id="synthInputCodeTab"
+									type="button"
+									role="tab"
+									aria-selected="false"
+									aria-controls="synthCodePanel"
+									tabindex="-1"
+								>
+									Code
+								</button>
+								<button
+									id="synthCodeExpandButton"
+									class="smsgear-code-expand"
+									type="button"
+									aria-label="Maximize Code"
+									aria-pressed="false"
+									hidden
+								>
+									<svg
+										width="18"
+										height="18"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										aria-hidden="true"
+									>
+										<path
+											id="synthCodeExpandIcon"
+											d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"
+										/>
+									</svg>
+								</button>
+							</div>
+							<div
+								id="synthKeyboardPanel"
+								role="tabpanel"
+								aria-labelledby="synthInputKeyboardTab"
+							>
+								<div class="keyboard-toolbar">
+									<div class="octave-control">
+										<button
+											id="octaveDown"
+											type="button"
+											aria-label="Lower keyboard octave"
+										>
+											−</button
+										><span
+											>Octave
+											<output id="octaveValue"
+												>+0</output
+											></span
+										><button
+											id="octaveUp"
+											type="button"
+											aria-label="Raise keyboard octave"
+										>
+											+
+										</button>
+									</div>
+									<p id="keyboardHint" class="subtext">
+										Keyboard and Code share this PSG /
+										YM2413.
+									</p>
+								</div>
+								<div class="performance-keyboard">
+									<label
+										class="monitor-pitch keyboard-wheel"
+										for="keyboardPitchBend"
+										><span>Pitch</span
+										><input
+											id="keyboardPitchBend"
+											type="range"
+											min="-2"
+											max="2"
+											step="0.01"
+											value="0"
+											aria-label="Keyboard software pitch bend"
+										/><output id="keyboardPitchValue"
+											>+0.00</output
+										></label
+									>
+									<div
+										id="keyboard"
+										class="keyboard-mount"
+									></div>
+								</div>
+							</div>
+							<div
+								id="synthCodePanel"
+								class="smsgear-code-panel"
+								role="tabpanel"
+								aria-labelledby="synthInputCodeTab"
+								hidden
+							>
+								<div class="smsgear-code-toolbar">
+									<button
+										id="synthCodeRunButton"
+										class="primary"
+										type="button"
+									>
+										Run</button
+									><button
+										id="synthCodeApplyButton"
+										type="button"
+										disabled
+									>
+										Apply</button
+									><button
+										id="synthCodeStopButton"
+										type="button"
+										disabled
+									>
+										Stop</button
+									><span id="synthCodeState" role="status"
+										>Idle</span
+									>
+								</div>
+								<p class="subtext">
+									Software performance · same PSG / YM2413 as
+									the controls above. Run Ctrl/Cmd+Enter ·
+									Apply Ctrl/Cmd+Shift+Enter.
+								</p>
+								<div
+									id="synthCodeEditorHost"
+									class="smsgear-code-editor-host"
+								></div>
+								<textarea
+									id="synthCodeEditor"
+									class="smsgear-code-editor"
+									spellcheck="false"
+									aria-label="PSG / YM2413 performance JavaScript"
+									rows="12"
+									readonly
+								></textarea>
+								<p id="synthCodeEditorNote" class="subtext">
+									Code saves in Files.
+								</p>
+								<pre
+									id="synthCodeError"
+									class="smsgear-code-error"
+									role="alert"
+								></pre>
+								<details class="smsgear-code-console">
+									<summary>Console</summary>
+									<pre
+										id="synthCodeLog"
+										aria-live="polite"
+									></pre>
+								</details>
+								<details class="inline-help">
+									<summary aria-label="About Code">?</summary>
+									<p>
+										Use
+										<code
+											>const psg = await
+											useSoundChip("segapsg")</code
+										>
+										or
+										<code
+											>const fm = await
+											useSoundChip("ym2413")</code
+										>. Code addresses physical zero-based
+										CHs and shares the keyboard chips. Apply
+										retains context and named loops.
+										Keyboard input stays available in Code
+										view; click outside the editor to play.
+										liveFx, musical timing, Auto allocation
+										and Pitch are software controls.
+									</p>
+								</details>
+							</div>
+						</section>
+					</div>
+					<section
+						id="synthExpandedCodeSlot"
+						class="smsgear-expanded-code"
+						hidden
+					></section>
+					<div id="synthExpandedVolumeSlot" hidden></div>
+				</div>
+				<footer>
+					<p>
+						PSG is the primary voice. YM2413 adds optional FM. Auto,
+						Pitch and Code timing/FX are software controls.
+					</p>
+					<a href="./README.md">Guide and source</a> ·
+					<a href="../js/segapsgsynth.js">PSG API</a> ·
+					<a href="../js/ym2413synth.js">YM2413 API</a>
+				</footer>
+			</article>
+		</main>
+		<input
+			id="vgmFileInput"
+			type="file"
+			accept=".vgm,.vgz"
+			multiple
+			hidden
+		/>
+		<script type="module" src="./synth.js"></script>
+	</body>
+</html>
