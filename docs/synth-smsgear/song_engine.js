@@ -11,6 +11,7 @@ export async function createSmsGearSongEngine({
 	psgFactory,
 	opllBinary,
 	psgBinary,
+	seekCache = true,
 }) {
 	const engine = await Ym2413AudioEngine.create({
 		ym2413ModuleFactory: opllFactory,
@@ -86,9 +87,88 @@ export async function createSmsGearSongEngine({
 		}
 		return pcm;
 	};
+	// PSG-only checkpoints. YM2413 has no native state ABI yet: never pretend
+	// register snapshots contain its oscillator / Envelope / LFO history.
+	const hasFm = plan.events.some(
+		(value, index) => index % 4 === 1 && value === 1,
+	);
+	const cacheSupported = !hasFm && Boolean(engine.psg?.supportsState?.());
+	const checkpointFrames = Math.max(1, Math.round(sampleRate * 5));
+	const cacheLimit = 2 * 1024 * 1024,
+		entryLimit = 64;
+	const checkpoints = new Map();
+	let cacheEnabled = Boolean(seekCache),
+		cacheBytes = 0,
+		cleanHistory = true;
+	let seekStartFrame = 0,
+		restoredCheckpoints = 0;
+	const canCache = () => cacheEnabled && cacheSupported;
+	function clearCache() {
+		checkpoints.clear();
+		cacheBytes = 0;
+	}
+	function remember() {
+		if (
+			!canCache() ||
+			!cleanHistory ||
+			frame === 0 ||
+			frame % checkpointFrames ||
+			checkpoints.has(frame)
+		)
+			return;
+		const chip = engine.psg.saveState();
+		const bytes = chip.byteLength + 256;
+		if (bytes > cacheLimit) return;
+		while (
+			checkpoints.size >= entryLimit ||
+			cacheBytes + bytes > cacheLimit
+		) {
+			const key = checkpoints.keys().next().value;
+			cacheBytes -= checkpoints.get(key).bytes;
+			checkpoints.delete(key);
+		}
+		checkpoints.set(frame, {
+			chip,
+			bytes,
+			frame,
+			cursor,
+			stereo,
+			sourceLatch,
+			actualLatch,
+			decoder: shadow.saveState(),
+			remainder: engine.remainder,
+			lastSample: engine.lastSample,
+		});
+		cacheBytes += bytes;
+	}
+	function restoreClosest(target) {
+		if (!canCache()) return;
+		let best = null;
+		for (const entry of checkpoints.values())
+			if (entry.frame <= target && (!best || entry.frame > best.frame))
+				best = entry;
+		if (!best) return;
+		engine.psg.loadState(best.chip);
+		shadow.loadState(best.decoder);
+		({ frame, cursor, stereo, sourceLatch, actualLatch } = best);
+		engine.remainder = best.remainder;
+		engine.lastSample = best.lastSample;
+		// Output choices are session state, not historical song state.
+		channelMutes.segapsg.forEach((muted, ch) =>
+			engine.setPsgChannelMuted(ch, muted),
+		);
+		engine.psg.setStereo(stereo);
+		checkpoints.delete(best.frame);
+		checkpoints.set(best.frame, best);
+		seekStartFrame = frame;
+		restoredCheckpoints++;
+	}
+
 	function reset() {
 		playing = false;
 		seeking = null;
+		cleanHistory = true;
+		seekStartFrame = 0;
 		engine.reset();
 		setChannelMutes(channelMutes);
 		shadow.reset();
@@ -155,6 +235,7 @@ export async function createSmsGearSongEngine({
 		let offset = 0;
 		while (offset < left.length && playing) {
 			applyDue();
+			remember();
 			if (frame >= endFrame) {
 				playing = false;
 				break;
@@ -165,6 +246,9 @@ export async function createSmsGearSongEngine({
 					left.length - offset,
 					Math.max(0, next - frame),
 					endFrame - frame,
+					canCache() && cleanHistory
+						? checkpointFrames - (frame % checkpointFrames)
+						: Infinity,
 				);
 			if (!size) {
 				if (next < frame) throw Error("Timeline moves backwards");
@@ -190,6 +274,7 @@ export async function createSmsGearSongEngine({
 		const resume = playing,
 			target = Math.round(seconds * sampleRate);
 		reset();
+		restoreClosest(target);
 		seeking = { target, resume };
 		playing = true;
 	}
@@ -203,6 +288,7 @@ export async function createSmsGearSongEngine({
 		right.fill(0);
 		if (frame >= seeking.target) {
 			applyDue();
+			remember();
 			playing = seeking.resume && frame < endFrame;
 			seeking = null;
 		}
@@ -217,8 +303,15 @@ export async function createSmsGearSongEngine({
 			if (seeking) throw Error("Wait for seek to finish before editing");
 			const state = { opll: registers, psg: shadow.snapshot(), stereo };
 			const writes = resolveSongEdit(command, state);
+			if (writes.length) cleanHistory = false;
 			for (const [type, address, value] of writes)
 				apply(type, address, value, false);
+		},
+		setSeekCache(enabled) {
+			if (typeof enabled !== "boolean")
+				throw TypeError("Invalid seek cache toggle");
+			cacheEnabled = enabled;
+			if (!enabled) clearCache();
 		},
 		setChannelMutes,
 		get seeking() {
@@ -254,6 +347,23 @@ export async function createSmsGearSongEngine({
 		},
 		snapshot() {
 			return {
+				seekCache: {
+					enabled: cacheEnabled,
+					supported: cacheSupported,
+					reason: hasFm
+						? "YM2413 checkpoints need native state support"
+						: cacheSupported
+							? ""
+							: "Native PSG state is unavailable",
+					entries: checkpoints.size,
+					bytes: cacheBytes,
+					maxBytes: cacheLimit,
+					maxEntries: entryLimit,
+					intervalSeconds: 5,
+					seekStartFrame,
+					restoredCheckpoints,
+					cleanHistory,
+				},
 				frame,
 				timeSamples: Math.round((frame * 44100) / sampleRate),
 				totalSamples: plan.totalSamples,
@@ -274,6 +384,7 @@ export async function createSmsGearSongEngine({
 		},
 		dispose() {
 			playing = false;
+			clearCache();
 			engine.dispose();
 		},
 	};

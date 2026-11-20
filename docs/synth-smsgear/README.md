@@ -91,7 +91,18 @@ After Play, use the position bar to seek. Playing remains Playing, Pause remains
 paused, and Live registers update to the destination. Seek reconstructs the
 oscillator, Noise and FM-envelope history from the beginning in bounded silent
 AudioWorklet slices. Long jumps take time; progress is shown and Stop cancels.
-There is no checkpoint cache yet. Seeking to the end leaves the song ended.
+**Cache · PSG** (default On) retains original-history native PSG checkpoints
+in memory every five seconds. Later seeks can start from a nearby played or
+prepared section. The first long jump still needs history replay. Storage is
+bounded to 64 entries and a 2 MiB state budget; no cache is saved to Cassette or
+browser storage. Off clears it. Current mix/mutes are preserved on restore.
+Manual edits are never checkpointed; seeking restores original history.
+
+Cache currently supports songs with no YM2413 writes. FM-inclusive songs, or
+older PSG runtimes without state support, keep exact uncached reconstruction;
+the checkbox is disabled with an explanation. Full FM checkpoints need native
+oscillator/Envelope/LFO/Noise state, not just saved registers. Seeking to the
+end leaves the song ended.
 
 Mixer → **VGM channels · output mute** controls PSG CH1–3 / Noise and YM2413
 CH1–9 independently. These reference-only output masks leave original registers,
@@ -121,7 +132,7 @@ are bundled. Synthetic demonstration data in `fixtures.js` is original.
 
 ## Current limits
 
-Seek checkpoint caching, software PSG Envelope,
+FM-inclusive seek checkpoint caching, software PSG Envelope,
 Looper/Event Rec, timed operation recording and Tauri deployment remain later
 work. FM fixed patches are not exposed as editable ROM bytes; choose User to
 edit the shared patch. Captures are static sounds, not complete game-driver

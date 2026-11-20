@@ -926,6 +926,12 @@ for (const [name, label, count] of [
 	$("songChannelMutes").append(group);
 }
 function updateTransport() {
+	const cache = songState?.seekCache;
+	$("songCache").disabled = songBusy || Boolean(song && !cache?.supported);
+	$("songCacheLabel").title =
+		cache?.reason ||
+		"Keep original PSG-only checkpoints in memory. Later seeks reuse played/prepared sections; manual edits are not cached.";
+
 	const loaded = Boolean($("songSelect").value);
 	$("songPlay").disabled = !loaded || songBusy;
 	$("songPause").disabled = !song || songBusy;
@@ -992,6 +998,7 @@ async function playSong() {
 		songPath = path;
 		await song.setMix(mix);
 		await song.setChannelMutes(channelMutes);
+		await song.setSeekCache($("songCache").checked);
 		await song.play();
 		songMode = "playing";
 		$("songView").value = "song";
@@ -1008,6 +1015,19 @@ async function playSong() {
 	}
 }
 $("songPlay").addEventListener("click", () => void playSong());
+$("songCache").addEventListener("change", () => {
+	const player = song;
+	if (!player) return;
+	void player
+		.setSeekCache($("songCache").checked)
+		.then(() => player.snapshot())
+		.then((state) => {
+			if (player !== song) return;
+			songState = state;
+			updateTransport();
+		})
+		.catch(report);
+});
 $("songSeek").addEventListener("input", () => {
 	seekDraft = true;
 });

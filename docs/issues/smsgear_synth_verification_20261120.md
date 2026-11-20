@@ -301,3 +301,42 @@ Artifacts: `build/smsgear-check/direct-edit-unit.log`,
 Physical outputs remained behind permanent zero gain in browser tests. Human
 listening is still pending. Shared runtime/core, calibration, CI workflows,
 publication and Tauri were not changed; distribution ZIPs were not rebuilt.
+
+### Follow-up: bounded PSG-only seek checkpoints
+
+PSG-only reference songs now retain native PSG state every five seconds, with
+a 64-entry / 2 MiB state budget and per-song disposal. Entries also retain the
+PSG decoder, source/live latches, stereo mask, cursor/frame and resampler
+remainder/last sample. The FM core is unused by these plans; any song containing
+YM2413 writes continues with uncached history reconstruction because there is
+no native YM2413 state ABI. Registers alone are explicitly not used as FM
+checkpoints. No shared runtime, native SDK source, WASM or calibration change
+was made.
+
+Checkpoints contain only unedited song history. A successful manual sound edit
+stops new checkpoint creation until seek/reset reconstructs original history;
+existing clean checkpoints remain usable. Restore reapplies current output mute
+choices; output gains are not baked into cached PCM. Cache Off clears entries;
+old PSG WASM without state exports falls back without failing playback.
+The compact Cache · PSG checkbox is disabled for unsupported songs/runtimes.
+
+Validation:
+
+- 36 app/native-render tests pass. Cache hits produce exact PCM at 44.1/48 kHz
+  against uncached linear playback with white/periodic/Tone-3 Noise and stereo.
+- Tests cover forward/backward/boundary seeks, pause/play retention, reset
+  cancellation, manual-edit exclusion, current mix/mutes, disabled/fallback
+  behavior and bounded eviction after 330 seconds of prepared history.
+- The 60-file local game audit passes at both rates, including repeated warm
+  seeks compared against explicitly uncached reconstruction. 68 of 120 rate
+  checks reused PSG checkpoints; FM plans used the unchanged fallback. Game
+  files remain outside the repository and distribution.
+- Muted Chromium and WebKit flows pass. The optional real-game check imports
+  Phantasy Star Gaiden GG Title, seeks, reuses a checkpoint while paused,
+  disables/clears the cache and confirms the next seek starts from zero.
+
+Artifacts: `build/smsgear-check/cache-unit.log`, `cache-real-browser*`,
+`cache-real-vgm-audit.json` and `cache-real-vgm-audit.log`.
+Human listening remains separate. Distribution ZIPs were not rebuilt, and
+there was no commit/push, publication or SDK update. The full YM2413 state
+prerequisite remains in the TODO.

@@ -36,7 +36,8 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 - [ ] User listening and interaction check with actual SMS / Game Gear VGMs, including optional FM and Noise/Tone-3 use. Synthetic tests are not a hardware accuracy claim.
 - [x] Reference seek: replay chip history in bounded silent Worklet slices, keep Play/Pause, update Live registers at target, allow Stop during preparation.
 - [x] Mixer: reference-only PSG CH1–3 / Noise and YM2413 CH1–9 output mute, without changing registers. Preserve choices through seek and replacement.
-- [ ] Reference seek cache (separate follow-up; first implement correct history reconstruction).
+- [x] PSG-only reference seek cache, with bounded native checkpoints and an optional toggle.
+- [ ] YM2413-inclusive reference seek cache requires native FM state support (see prerequisites below).
 - [x] Direct selected-CH editing during reference playback / Pause; touched controls update the renderer without stopping the song. Capture keeps a separate static Synth copy.
 - [ ] Improve extraction of driver-dependent dynamic sounds and Rhythm scenes; current snapshots do not reconstruct software automation.
 - [ ] Consider a clearly labeled software PSG Envelope after hardware/basic interactions are confirmed.
@@ -61,3 +62,11 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 - [x] Send only changed parameters and resolve partial register edits against current renderer state; retain melody key/pitch, adjacent OPLL bits and original PSG stream latch semantics. Later VGM writes win normally.
 - [x] Identify chip-wide User patch / Rhythm / Noise / stereo controls; preserve ROM instrument limitations and reject edits during seek.
 - [x] Muted browser and native-render tests for direct edits, paused audition, untouched-state preservation and later original writes; keep human listening pending.
+
+## Current follow-up: seek checkpoints
+
+- [x] PSG-only songs: bounded in-memory checkpoints using the existing native PSG state API; retain decoder/latch/stereo/resampler timing and exact seek boundaries.
+- [x] Keep only original-history checkpoints. Manual edits stop checkpoint creation until a seek/reset reconstructs clean history. Preserve current output mix/mutes on restore.
+- [x] Optional Cache toggle, bounded memory, graceful fallback when native state is unavailable; clear per-song state on disposal.
+- [x] Verify cached/uncached PCM at 44.1/48 kHz (white/periodic/Tone-3 Noise, stereo), backward/forward seeks, cancellation, edits, output controls and bounded eviction; audit local PSG game VGMs.
+- [ ] FM-inclusive cache prerequisite: add YM2413 native save/restore (including phase/Envelope/LFO/Noise, interface timers and mute mask), adopt a pinned SDK source candidate and build receipt, then expose opaque same-instance JS state and resampler state. Verify exact PCM before enabling FM checkpoints; do not synthesize checkpoints from registers alone.

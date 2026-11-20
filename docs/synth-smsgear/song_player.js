@@ -121,6 +121,7 @@ export async function createSmsGearSongPlayer(
 		seek: (seconds) => request("seek", seconds),
 		snapshot: () => request("snapshot"),
 		editSound: (value) => request("editSound", value),
+		setSeekCache: (value) => request("seekCache", value),
 		setMix: (value) => request("mix", value),
 		setChannelMutes: (value) => request("channelMutes", value),
 		dispose,

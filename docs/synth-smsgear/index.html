@@ -178,6 +178,15 @@
 										disabled
 										aria-label="VGM playback position"
 									/>
+									<label
+										id="songCacheLabel"
+										title="Use in-memory checkpoints for PSG-only songs. YM2413 songs still rebuild full history."
+										><input
+											id="songCache"
+											type="checkbox"
+											checked
+										/>Cache · PSG</label
+									>
 									<details class="inline-help">
 										<summary aria-label="About songs">
 											?
@@ -199,8 +208,13 @@
 											Play/Pause; long jumps take time.
 											Stop cancels preparation. Mixer
 											channel mutes affect only this
-											reference. Direct song register
-											editing is later work.
+											reference. Sound controls edit the
+											selected song channel directly;
+											later VGM writes can overwrite
+											edits. Cache retains original
+											PSG-only history in memory, bounded
+											to 64 checkpoints / 2 MiB. YM2413
+											songs still rebuild from the start.
 										</p>
 									</details>
 								</div>

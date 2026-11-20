@@ -1297,6 +1297,31 @@ function mute() {
 						realState.opll.some((value) => value !== 0) ||
 							realState.psg.periods.some((value) => value !== 0),
 					);
+					if (realState.seekCache.supported) {
+						assert.equal(
+							await page.locator("#songCache").isDisabled(),
+							false,
+						);
+						const cached = await seek(5.1);
+						assert(
+							cached.seekCache.seekStartFrame > 0 &&
+								cached.seekCache.restoredCheckpoints > 0,
+							"real PSG seeks reuse native checkpoints",
+						);
+						assert.equal(cached.playing, false);
+						await page.locator("#songCache").uncheck();
+						await page.waitForTimeout(80);
+						assert.equal((await capture()).seekCache.entries, 0);
+						const cold = await seek(5.2);
+						assert.equal(cold.seekCache.seekStartFrame, 0);
+						await page.locator("#songCache").check();
+					} else {
+						assert.equal(
+							await page.locator("#songCache").isDisabled(),
+							true,
+						);
+					}
+
 					await page.locator("#songStop").click();
 				}
 

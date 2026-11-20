@@ -41,23 +41,25 @@ class SmsGearSongProcessor extends AudioWorkletProcessor {
 					return;
 				}
 				const value =
-					data.method === "editSound"
-						? this.engine.editSound(data.value)
-						: data.method === "snapshot"
-							? this.engine.snapshot()
-							: data.method === "play"
-								? this.engine.play()
-								: data.method === "pause"
-									? this.engine.pause()
-									: data.method === "reset"
-										? this.engine.reset()
-										: data.method === "mix"
-											? this.engine.setMix(data.value)
-											: data.method === "channelMutes"
-												? this.engine.setChannelMutes(
-														data.value,
-													)
-												: undefined;
+					data.method === "seekCache"
+						? this.engine.setSeekCache(data.value)
+						: data.method === "editSound"
+							? this.engine.editSound(data.value)
+							: data.method === "snapshot"
+								? this.engine.snapshot()
+								: data.method === "play"
+									? this.engine.play()
+									: data.method === "pause"
+										? this.engine.pause()
+										: data.method === "reset"
+											? this.engine.reset()
+											: data.method === "mix"
+												? this.engine.setMix(data.value)
+												: data.method === "channelMutes"
+													? this.engine.setChannelMutes(
+															data.value,
+														)
+													: undefined;
 				if (data.id !== undefined)
 					this.port.postMessage({ id: data.id, value });
 			} catch (error) {

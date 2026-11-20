@@ -70,17 +70,18 @@ for (const file of files.sort()) {
 			rates: [],
 		});
 		for (const sampleRate of [44100, 48000]) {
-			const make = () =>
+			const make = (seekCache) =>
 				createSmsGearSongEngine({
 					plan,
+					seekCache,
 					sampleRate,
 					opllFactory,
 					psgFactory,
 					opllBinary,
 					psgBinary,
 				});
-			const linear = await make(),
-				sought = await make();
+			const linear = await make(false),
+				sought = await make(true);
 			try {
 				const target = Math.min(10, result.seconds / 2),
 					frames = Math.round(target * sampleRate),
@@ -120,11 +121,34 @@ for (const file of files.sort()) {
 				const { revision: _a, ...psgA } = sought.snapshot().psg,
 					{ revision: _b, ...psgB } = linear.snapshot().psg;
 				assert.deepEqual(psgA, psgB);
+				// Repeat after warming the cache, against an explicitly uncached
+				// reconstruction. Both variants must produce identical PCM.
+				linear.pause();
+				sought.pause();
+				linear.beginSeek(target);
+				sought.beginSeek(target);
+				while (linear.seeking) linear.process(l, r);
+				while (sought.seeking) sought.process(a, b);
+				const cache = sought.snapshot().seekCache;
+				if (cache.supported && target >= 5)
+					assert(cache.restoredCheckpoints > 0);
+				linear.play();
+				sought.play();
+				for (let n = 0; n < 32; n++) {
+					linear.process(l, r);
+					sought.process(a, b);
+					assert.deepEqual(a, l);
+					assert.deepEqual(b, r);
+				}
+
 				result.rates.push({
 					sampleRate,
 					targetSeconds: target,
 					peak,
 					seekPcmExact: true,
+					cachedSeekPcmExact: true,
+					cacheRestores: cache.restoredCheckpoints,
+					cacheStartFrame: cache.seekStartFrame,
 				});
 			} finally {
 				linear.dispose();
