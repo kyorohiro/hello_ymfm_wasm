@@ -113,8 +113,12 @@
 							>
 								Files
 							</button>
+							<div class="aswan-workspace-switch" role="group" aria-label="Workspace layout">
+								<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot" title="Open Code beside Files">Code</button>
+								<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="aswanSynthEditor" title="Return to Synth without stopping the performance">Synth</button>
+							</div>
 						</div>
-						<label class="master-control" for="masterVolume"
+						<label id="aswanMasterControl" class="master-control" for="masterVolume"
 							><span>Master</span
 							><input
 								id="masterVolume"
@@ -139,6 +143,9 @@
 						hidden
 					></aside>
 					<div id="aswanSynthMain" class="spu-main aswan-main">
+						<div id="synthExpandedTabsSlot" hidden></div>
+						<div id="synthExpandedVolumeSlot" hidden></div>
+						<div id="aswanSynthEditor">
 						<section
 							id="aswanSongPlayer"
 							class="aswan-song-player"
@@ -531,6 +538,7 @@
 							class="keyboard-section"
 							data-input-mode="keyboard"
 						>
+							<div class="aswan-input-heading">
 							<div
 								class="spu-input-tabs"
 								role="tablist"
@@ -576,6 +584,7 @@
 										/>
 									</svg>
 								</button>
+							</div>
 							</div>
 							<div
 								id="synthKeyboardPanel"
@@ -680,8 +689,9 @@
 								</details>
 							</div>
 						</section>
+						</div>
+						<div id="synthExpandedCodeSlot" class="spu-expanded-code" hidden></div>
 					</div>
-					<div id="synthExpandedCodeSlot" class="spu-expanded-code" hidden></div>
 				</div>
 				<footer>
 					<p>

@@ -1,15 +1,16 @@
 /** Expanded workspace reuses the existing tabs and performance controls. */
 export function setupSynthExpandedTabs({codeControls,selectChip,elements={},getChipView=button=>button.dataset.synthChip}={}) {
   if(!codeControls||typeof selectChip!=='function'||['isCodeMode','isExpanded','setMode','setExpanded'].some(name=>typeof codeControls[name]!=='function'))throw TypeError('Expanded tabs need Code and chip view controls.');
-  if(!elements||typeof elements!=='object'||Array.isArray(elements)||Reflect.ownKeys(elements).some(key=>!['editor','chipTabs'].includes(key))||typeof getChipView!=='function')throw TypeError('Expanded tabs need valid element overrides and a chip view callback.');
+  if(!elements||typeof elements!=='object'||Array.isArray(elements)||Reflect.ownKeys(elements).some(key=>!['editor','chipTabs','volume'].includes(key))||typeof getChipView!=='function')throw TypeError('Expanded tabs need valid element overrides and a chip view callback.');
   const byId=id=>document.getElementById(id);
   const slot=byId('synthExpandedTabsSlot'),codeSlot=byId('synthExpandedCodeSlot');
-  const volumeSlot=byId('synthExpandedVolumeSlot'),volume=byId('masterVolumeRange')?.closest('.volume-control');
+  const volumeSlot=byId('synthExpandedVolumeSlot'),volume=Object.hasOwn(elements,'volume')?elements.volume:byId('masterVolumeRange')?.closest('.volume-control');
   const codeLayoutButton=byId('synthWorkspaceCodeButton'),synthLayoutButton=byId('synthWorkspaceSynthButton');
   const editor=Object.hasOwn(elements,'editor')?elements.editor:document.querySelector('#synthWorkspace .synth-editor');
   const codeTab=byId('synthInputCodeTab'),keyboardTab=byId('synthInputKeyboardTab');
   const chipTabs=Object.hasOwn(elements,'chipTabs')?elements.chipTabs:['synthChipTabYm2612','synthChipTabPsg','synthChipTabPcm','synthChipTabCdda','synthChipTabPwm','synthSongMixButton'].map(byId);
   const element=node=>Boolean(node?.parentNode&&typeof node.setAttribute==='function'&&typeof node.append==='function');
+  if(volume!=null&&!element(volume))throw TypeError('Expanded Master needs an attached control.');
   if(!element(editor)||!Array.isArray(chipTabs)||!chipTabs.length||new Set(chipTabs).size!==chipTabs.length||chipTabs.some(tab=>!element(tab)||tab.getAttribute('role')!=='tab'||tab===codeTab||tab===keyboardTab))throw TypeError('Expanded tabs need an attached editor and distinct chip tabs.');
   const tablist=chipTabs[0]?.parentNode,inputTablist=codeTab?.parentNode,inputHeading=inputTablist?.parentNode;
   const expand=byId('synthCodeExpandButton'),transport=byId('synthCodeRunButton')?.parentNode;

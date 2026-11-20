@@ -25,6 +25,7 @@ import {
 	setStringWindowIndex,
 	midiToNoteName,
 } from '../synth/synth_keyboard.js';
+import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js';
 import { SOUNDCHIP_MIXER_PRESETS } from '../js/soundchip_mixer_presets.js';
 
 const $ = (id) => document.getElementById(id);
@@ -53,6 +54,7 @@ let serial = 0,
 	displayed = null,
 	displaySignature = '',
 	polling = false;
+let expandedTabs = null;
 let codeHost = null,
 	songPlayer = null,
 	audition = null,
@@ -388,7 +390,7 @@ function highlightContext() {
 	if (
 		disposed ||
 		document.hidden ||
-		$('aswanChipPanel').hidden ||
+		$('aswanChipPanel').hidden || $('aswanSynthEditor').hidden ||
 		target === null ||
 		!$('aswanLiveEnabled').checked ||
 		!$('aswanHighlightEnabled').checked ||
@@ -1005,23 +1007,33 @@ for (const button of $('aswanMixerChannels').querySelectorAll('button'))
 		songPlayer.setChannelEnabled(ch, channelEnabled[ch]);
 		button.blur();
 	});
-for (const [id, panel] of [
-	['aswanChipTab', 'aswanChipPanel'],
-	['aswanMixerTab', 'aswanMixerPanel'],
-])
-	$(id).addEventListener('click', () => {
-		editor.highlightLive(null);
-		for (const [t, p] of [
-			['aswanChipTab', 'aswanChipPanel'],
-			['aswanMixerTab', 'aswanMixerPanel'],
-		]) {
-			$(t).setAttribute('aria-selected', String(t === id));
-			$(t).tabIndex = t === id ? 0 : -1;
-			$(p).hidden = p !== panel;
-		}
-		$(id).blur();
-		display();
+const chipTabs = [$('aswanChipTab'), $('aswanMixerTab')];
+function selectChip(tab) {
+	if (disposed || !chipTabs.includes(tab)) return false;
+	editor.highlightLive(null);
+	for (const button of chipTabs) {
+		const selected = button === tab;
+		button.setAttribute('aria-selected', String(selected));
+		button.tabIndex = selected ? 0 : -1;
+		$(button.getAttribute('aria-controls')).hidden = !selected;
+	}
+	expandedTabs?.showChip(tab);
+	display();
+	return true;
+}
+for (const tab of chipTabs) {
+	tab.addEventListener('click', () => {
+		tab.blur(); selectChip(tab);
+		if (codeHost?.controls.isExpanded()) tab.focus();
 	});
+	tab.addEventListener('keydown', event => {
+		if (event.ctrlKey || event.metaKey || event.altKey) return;
+		const index = chipTabs.indexOf(tab), next = event.key === 'Home' ? 0 : event.key === 'End' ? chipTabs.length - 1 :
+			event.key === 'ArrowRight' ? (index + 1) % chipTabs.length : event.key === 'ArrowLeft' ? (index + chipTabs.length - 1) % chipTabs.length : null;
+		if (next === null) return;
+		event.preventDefault(); event.stopPropagation(); selectChip(chipTabs[next]); chipTabs[next].focus();
+	});
+}
 for (const button of document.querySelectorAll('[data-visual-mode]'))
 	button.addEventListener('click', () => {
 		const mode = (visualMode = button.dataset.visualMode);
@@ -1147,7 +1159,14 @@ codeHost = setupAswanCodeHost({
 		invalidateCodeHighlight();
 	},
 	onActivity: codeActivity,
+	onViewChange: mode => { expandedTabs?.showInput(mode); if (!disposed) display(); },
+	onExpandedChange: value => { expandedTabs?.setExpanded(value); if (!disposed) display(); },
 	setStatus: status,
+});
+expandedTabs = setupSynthExpandedTabs({
+	codeControls: codeHost.controls, selectChip,
+	elements: {editor: $('aswanSynthEditor'), chipTabs, volume: $('aswanMasterControl')},
+	getChipView: tab => tab === $('aswanChipTab') ? 'aswan' : 'mixer',
 });
 const unsubscribeProject = codeHost.project.onDidChange(refreshSongFiles);
 function refreshSongFiles() {
@@ -1336,6 +1355,7 @@ window.addEventListener('pagehide', (event) => {
 	void codeHost.stop();
 	if (event.persisted) return;
 	disposed = true;
+	expandedTabs?.dispose();
 	clearInterval(poll);
 	unsubscribeProject();
 	monitorResize.disconnect();

@@ -479,6 +479,15 @@ async function check(browser, engine, origin, fixture) {
 		await clearEvents();
 		await page.click('#synthCodeRunButton');
 		await until(async () => (await state()).codeActive, 'Code highlight source runs');
+		// Top-level awaited setup writes are real changes too. Establish the
+		// initialized baseline before checking the loop's left-only motion;
+		// WebKit may deliver a poll between useSoundChip/setVolume/keyOn ACKs.
+		await until(async () => {
+			const current = await state();
+			return current.channels[0].active && current.channels[0].right === 15;
+		}, 'Code hardware initialization completes');
+		await until(async () => (await page.locator('#volumeRight').textContent()).trim() === '15', 'initialized Code baseline reaches Live controls');
+		await clearEvents();
 		await until(
 			async () =>
 				(await events()).some(
@@ -489,7 +498,7 @@ async function check(browser, engine, origin, fixture) {
 		seen = (await events()).filter((event) => event.origin === 'code');
 		assert(
 			seen.every((event) => event.key === 'volumeLeft'),
-			'new Code baseline does not flash unchanged source/right/Wave fields',
+			'steady Code stereo motion does not flash unchanged source/right/Wave fields: ' + JSON.stringify(seen),
 		);
 		await page.click('#synthInputKeyboardTab');
 		assert((await state()).codeActive, 'view tab does not stop the highlighted performance');
@@ -694,6 +703,51 @@ async function check(browser, engine, origin, fixture) {
 		await page.click('#synthCodeRunButton');
 		await until(async () => (await state()).codeActive, 'Code active');
 		await output();
+		step('expanded Code tabs preserve the session, Files and original Master controls');
+		const lease = (await state()).codeSession;
+		await page.evaluate(() => {
+			window.__aswanLayoutProbe = {master: document.getElementById('masterVolume'),
+				parent: document.getElementById('aswanMasterControl').parentNode,
+				run: document.getElementById('synthCodeRunButton'), value: document.getElementById('masterVolume').value};
+		});
+		await page.click('#synthCodeExpandButton');
+		await until(() => page.locator('#synthWorkspace').evaluate(node => node.classList.contains('is-code-expanded')), 'expanded Code workspace');
+		assert.deepEqual(await page.locator('#synthExpandedTabsSlot [role="tab"]').allTextContents().then(values => values.map(value => value.trim())), ['Code', 'ASWAN', 'Mixer', 'Keyboard']);
+		assert(await page.locator('#aswanFilesPanel').isVisible());
+		assert(await page.locator('#synthExpandedTabsSlot #synthCodeRunButton').isVisible());
+		assert(await page.locator('#synthExpandedVolumeSlot #masterVolume').isVisible());
+		await page.locator('#masterVolume').evaluate(node => { node.value = '1.8'; node.dispatchEvent(new Event('input', {bubbles:true})); });
+		assert.equal(await page.locator('#masterVolumeValue').textContent(), '180%');
+		assert.equal(await page.locator('#masterVolume').getAttribute('data-boosted'), 'true');
+		for (const [id, visible] of [['aswanChipTab', 'aswanChipPanel'], ['aswanMixerTab', 'aswanMixerPanel'], ['synthInputKeyboardTab', 'synthKeyboardPanel'], ['synthInputCodeTab', 'synthCodePanel']]) {
+			await page.click('#' + id);
+			await until(() => page.locator('#' + visible).isVisible(), 'expanded tab shows ' + visible);
+			assert(await page.locator('#synthWorkspace').evaluate(node => node.classList.contains('is-code-expanded')));
+			assert.equal((await state()).codeSession, lease);assert((await state()).codeActive);
+			assert(await page.locator('#masterVolume').isVisible());
+			assert(await page.locator('#synthCodeStopButton').isVisible());
+		}
+		await page.locator('#synthInputCodeTab').press('End');
+		await until(() => page.locator('#synthInputKeyboardTab').getAttribute('aria-selected').then(value => value === 'true'), 'expanded End selects Keyboard');
+		await page.locator('#synthInputKeyboardTab').press('ArrowRight');
+		await until(() => page.locator('#synthInputCodeTab').getAttribute('aria-selected').then(value => value === 'true'), 'expanded arrow wraps to Code');
+		const wideViewport=page.viewportSize();
+		await page.setViewportSize({width:390,height:844});
+		assert(await page.locator('#synthCodeEditor').isVisible());
+		assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), 'expanded workspace fits 390px');
+		await page.screenshot({path:path.join(config.screenshots,engine+'-expanded-mobile.png'),fullPage:true});
+		await page.setViewportSize(wideViewport);
+		await page.screenshot({path:path.join(config.screenshots,engine+'-expanded-desktop.png'),fullPage:true});
+		await page.click('#synthWorkspaceSynthButton');
+		await until(() => page.locator('#synthWorkspace').evaluate(node => !node.classList.contains('is-code-expanded')), 'header restores Synth');
+		assert(await page.evaluate(() => document.getElementById('masterVolume') === __aswanLayoutProbe.master && document.getElementById('aswanMasterControl').parentNode === __aswanLayoutProbe.parent && document.getElementById('synthCodeRunButton') === __aswanLayoutProbe.run));
+		assert.equal(await page.locator('#masterVolume').inputValue(), '1.8');
+		await page.locator('#masterVolume').evaluate(node => { node.value = __aswanLayoutProbe.value; node.dispatchEvent(new Event('input', {bubbles:true})); });
+		assert.equal((await state()).codeSession, lease);assert((await state()).codeActive);
+		assert(await page.locator('#aswanMixerPanel').isVisible(), 'restoring Synth keeps the last selected chip tab');
+		await page.click('#aswanChipTab');
+		checks.push('Code/ASWAN/Mixer/Keyboard keep expansion and the same Code lease; header Synth restores original controls; Master value/listeners and Run/Apply/Stop survive moves; arrow/End and 390px/desktop layouts work');
+
 		await page.click('#synthInputKeyboardTab');
 		assert((await state()).codeActive);
 		await page.click('[data-shape="triangle"]');
@@ -792,6 +846,18 @@ async function check(browser, engine, origin, fixture) {
 			'song playing',
 		);
 		await output();
+		await page.click('#synthWorkspaceCodeButton');
+		await until(() => page.locator('#synthCodePanel').isVisible(), 'header Code opens during VGM');
+		assert.equal(await page.locator('#aswanSongPlayer').getAttribute('data-state'), 'playing');
+		assert(!(await state()).codeActive, 'showing Code never starts it or replaces the VGM owner');
+		await page.click('#aswanMixerTab');
+		assert(await page.locator('#aswanMixerPanel').isVisible());
+		await page.click('#aswanChipTab');
+		assert(await page.locator('#aswanSongPlayer').isVisible());
+		assert.equal(await page.locator('#aswanSongPlayer').getAttribute('data-state'), 'playing');
+		await page.click('#synthWorkspaceSynthButton');
+		await until(() => page.locator('#synthWorkspace').evaluate(node => !node.classList.contains('is-code-expanded')), 'Synth restores while the VGM continues');
+		checks.push('Header Code and expanded ASWAN/Mixer views keep the reference VGM playing without starting Code');
 		await channel(0);
 		await until(
 			() =>

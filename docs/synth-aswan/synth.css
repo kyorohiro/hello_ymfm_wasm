@@ -918,3 +918,30 @@ button[aria-pressed='true'],
 }
 .aswan-files-actions button { white-space: nowrap; }
 #aswanFilesTree [data-modified="true"] { font-weight: 700; }
+
+/* Expanded Code uses the same controls and audio owners as the Synth layout. */
+.aswan-workspace-switch { display: inline-flex; }
+.aswan-workspace-switch > button { border-radius: 0; }
+.aswan-workspace-switch > button:first-child { border-radius: 999px 0 0 999px; }
+.aswan-workspace-switch > button:last-child { border-radius: 0 999px 999px 0; margin-left: -1px; }
+.aswan-workspace-switch > button[aria-pressed='true'] { color: #fff; }
+.aswan-code-workspace.is-code-expanded .aswan-main { display: block; }
+.aswan-code-workspace #aswanSynthEditor[hidden],
+.aswan-code-workspace #synthExpandedTabsSlot[hidden],
+.aswan-code-workspace #synthExpandedVolumeSlot[hidden],
+.aswan-input-heading[hidden] { display: none; }
+.aswan-code-workspace .synth-expanded-heading {
+	display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; min-width: 0;
+}
+.aswan-code-workspace .synth-expanded-heading .aswan-chip-tabs {
+	flex: 1; min-width: 0; flex-wrap: wrap; margin: 0; overflow: visible;
+}
+.aswan-code-workspace .synth-expanded-heading .aswan-chip-tabs > button {
+	flex: 0 0 auto; min-height: 34px; padding: 7px 11px; font-size: .77rem;
+}
+.aswan-code-workspace .synth-expanded-heading .spu-code-expand { flex: none; padding: 5px 9px; }
+.aswan-code-workspace #synthExpandedTabsSlot > .spu-code-toolbar { margin-bottom: 12px; }
+.aswan-code-workspace #synthExpandedCodeSlot { grid-column: auto; }
+.aswan-code-workspace.is-code-expanded .keyboard-section { margin-top: 0; }
+#synthExpandedVolumeSlot { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+#synthExpandedVolumeSlot .master-control { min-width: 0; width: min(100%, 380px); }

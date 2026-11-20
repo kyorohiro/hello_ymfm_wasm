@@ -51,6 +51,14 @@ not have focus. Editing settings or selecting a preset keeps Code running;
 Code and manual writes to the same channel can overwrite one another.
 Starting a VGM song stops Code; starting Code stops the song.
 
+Use **Code / Synth** beside Files to choose the workspace layout. Code opens
+beside Files with **Code / ASWAN / Mixer / Keyboard** tabs. Changing those tabs
+keeps the expanded layout and current performance; it does not run Code or stop
+a VGM song. Master and Run / Apply / Stop stay available in every expanded view.
+The maximize/restore button uses the same layout switch. **Synth** restores the
+normal layout and the last ASWAN/Mixer choice, retaining Master and editor
+contents. Left/Right arrows, Home and End move between the expanded tabs.
+
 **Run** starts fresh; **Apply** updates named loops while retaining `context`
 and `livePrepare`; **Stop** fades the software output, ends Code's lease and
 releases Code-owned notes. Raw register or Wave RAM edits made by Code remain

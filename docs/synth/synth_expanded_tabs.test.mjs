@@ -243,6 +243,7 @@ test('invalid overrides and chip view mappings reject before adding anchors or c
     const options={codeControls:f.codeControls,selectChip:f.selectChip,elements:{editor:f.editor,chipTabs:f.chipTabs},getChipView:tab=>tab.dataset.hucChipTab};
     for(const invalid of [
       {elements:null},{elements:[]},{elements:{unknown:f.editor}},
+      {elements:{...options.elements,volume:new Element('detached-master')}},{elements:{...options.elements,volume:{}}},
       {elements:{...options.elements,editor:null}},{elements:{...options.elements,editor:{parentNode:{}}}},
       {elements:{...options.elements,chipTabs:[]}},{elements:{...options.elements,chipTabs:[f.chipTabs[0],f.chipTabs[0]]}},
       {elements:{...options.elements,chipTabs:[new Element('detached')]}},{elements:{...options.elements,chipTabs:[f.code]}},
@@ -254,4 +255,27 @@ test('invalid overrides and chip view mappings reject before adding anchors or c
     }
     assert.deepEqual(f.calls.chips,[]);assert.deepEqual(f.calls.expansions,[]);assert.deepEqual(f.calls.modes,[]);
   }finally{f.cleanup();}
+});
+
+
+test('a host-specific Master element moves intact and restores without requiring the FM slider id',()=>{
+  const f=fixture();let controls;
+  try{
+    f.controls.dispose();
+    const lookup=document.getElementById;
+    document.getElementById=id=>id==='masterVolumeRange'?null:lookup(id);
+    const input=f.byId('masterVolumeRange');input.id='aswanMaster';input.value='0.7';
+    let changes=0;input.addEventListener('input',()=>changes++);
+    controls=setupSynthExpandedTabs({codeControls:f.codeControls,selectChip:f.selectChip,
+      elements:{editor:f.editor,chipTabs:f.chipTabs,volume:f.volume}});
+    controls.setExpanded(true);
+    assert.equal(f.volume.parentNode,f.byId('synthExpandedVolumeSlot'));
+    assert.equal(input.parentNode,f.volume);
+    input.value='1.8';input.fire('input');
+    controls.showChip(f.chipTabs[1]);
+    assert.equal(f.byId('synthExpandedVolumeSlot').hidden,false);
+    controls.setExpanded(false);
+    assert.equal(f.volume.parentNode,f.volumeRow);
+    assert.equal(input.value,'1.8');assert.equal(changes,1);
+  }finally{controls?.dispose();f.cleanup();}
 });

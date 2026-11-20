@@ -66,7 +66,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | working/saved, Auto apply, ●, Save/Save all/Discard, accepted Code, two-version Cassette | **Implemented.** Shared workspace, v1→v2 migration, Files Auto apply/●/Save/Discard, saved Code entry/modules/data and two-version Cassette export/import. |
 | Active instrument file linked to knob/wave/JSON editing | **Implemented for authored Auto.** Selecting a sound links its document; controls/waves/valid JSON follow Auto apply. First Auto edits create a document. Physical CH edits stay direct and do not rewrite the Auto sound file. Incomplete JSON is retained and protected from knob overwrites. |
 | Files Undo, New Cassette and replacement recovery | **Partial.** Validated imports and recovery exist; Capture transactionally keeps the previous and captured sounds. There is no general Files Undo history or New Cassette workflow in the adapter. |
-| Persistent expanded Code workspace, chip/Mixer/Keyboard tabs, header Code/Synth, visible Master | **Partial.** Keyboard/Code and maximize exist. [code_host.js](../synth-aswan/code_host.js) does not wire FM's persistent expanded tabs or header layout switch. |
+| Persistent expanded Code workspace, chip/Mixer/Keyboard tabs, header Code/Synth, visible Master | **Implemented.** Code/ASWAN/Mixer/Keyboard share the expanded workspace, header Code/Synth changes layout, and the original Master and transport remain available. Expansion is retained across tabs; no new reload preference is added. |
 | Brief Live changed-value highlights, default On and switchable | **Implemented.** [live_highlight.js](../synth-aswan/live_highlight.js), [synth.js](../synth-aswan/synth.js) and `aswanHighlightEnabled` in [index.html](../synth-aswan/index.html) follow VGM/Code, default On and retain a preference. Preserve this feature rather than adding a second highlighter. |
 | Output-only channel switches shared by Keyboard, Code and song | **Implemented.** `aswanMixerChannels` applies four output switches to the instrument endpoint and reference player; Code uses that same instrument. Chip volume and final Master are separate. |
 | PCM drawing and Start/Loop range editing | **Partial / software extension.** [editor.js](../synth-aswan/editor.js) already draws the 32-point 4-bit Wave RAM. Voice PCM has audio import, sample rate, Root and Loop, but no RF5C164-style full-sample draw/Start/Loop range editor. |
@@ -94,8 +94,38 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 
 ## Subsequent UI candidates and preservation
 
-- [ ] Adopt persistent expanded ASWAN/Mixer/Keyboard/Code tabs and a header
+### Expanded layout slice (2026-11-20)
+
+Reuse the existing shared expanded-tab controller for Code / ASWAN / Mixer /
+Keyboard. Keep expansion while choosing any view; add the header Code/Synth
+layout choice beside Files. Move the existing Master and Run/Apply/Stop into
+expanded workspace slots without recreating controls or changing audio owners.
+Restoring Synth returns controls to their original places. Add arrow/Home/End
+navigation and verify 390px/desktop layout, saved/draft files and running Code
+and VGM with physical output muted. Expansion persistence here means keeping
+the layout across tab changes, not adding a new browser-storage preference.
+Do not add New Cassette, timed APIs or recording in this slice.
+
+- [x] Adopt persistent expanded ASWAN/Mixer/Keyboard/Code tabs and a header
       Code/Synth switch, with Master and Run/Apply/Stop always reachable.
+
+Implementation reuses `setupSynthExpandedTabs` with attached ASWAN editor,
+chip tabs and Master element overrides. Existing default FM/SPU/HuC6280
+behavior is retained. The input-tab heading has its own wrapper so hiding the
+old heading does not hide the keyboard/Code section. Hidden expanded views
+clear Live highlights; switching views never runs Code or changes audio owners.
+
+Validation: **239 tests passed** (189 ASWAN/package and 50 shared Code/tab
+controls). Chromium and WebKit source checks passed with physical outputs
+muted: Code session identity, Master identity/value/listeners, tab order,
+arrow/End navigation, desktop/390px screenshots, restore to the last chip tab,
+saved/draft Files, and continuing VGM playback through header Code and chip
+views. Real Monaco loading and human listening were not part of these checks;
+the browser runner uses the textarea fallback. A readable standalone ZIP is
+also verified with the same browser suite. No release/push/npm/Tauri action.
+The Code highlight assertion first waits for awaited initialization writes to
+reach the hardware and Live controls, then checks the loop's left-only motion;
+an intermediate initialization poll is not an unchanged-field regression.
 - [ ] Regression-check the **existing** Live highlight preference across
       selection, pause/freeze, manual edits, project replacement and new layout.
 - [ ] Regression-check the **existing** shared four-channel output Mixer;
