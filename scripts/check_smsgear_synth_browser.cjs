@@ -6,6 +6,7 @@ const assert = require("node:assert/strict"),
 	path = require("node:path");
 const { chromium, webkit } = require("playwright");
 const args = process.argv.slice(2),
+	withMonaco = args.includes("--monaco"),
 	root = path.resolve(
 		args.find((a) => a.startsWith("--root="))?.slice(7) ?? "docs",
 	),
@@ -116,7 +117,7 @@ function mute() {
 					errors = [];
 				page.on("pageerror", (error) => errors.push(error.message));
 				await page.addInitScript(mute);
-				await page.route("https://**/*", (route) => route.abort());
+				if (!withMonaco) await page.route("https://**/*", (route) => route.abort());
 				await page.setViewportSize({ width: 1280, height: 1000 });
 				await page.goto(
 					`http://127.0.0.1:${server.address().port}${entry}`,
@@ -158,6 +159,14 @@ function mute() {
 				);
 				assert(await page.locator("#smsgearFilesPanel").innerText());
 				await page.locator("#synthInputCodeTab").click();
+				if (withMonaco) {
+					await page.waitForFunction(() => document.getElementById("synthCodeEditorHost").dataset.ready === "true", { timeout: 60000 });
+					const editor = page.locator("#synthCodeEditorHost .monaco-editor").first();
+					assert(await editor.isVisible(), "Monaco must be visible after initialization");
+					const bounds = await editor.boundingBox();
+					assert(bounds.height >= 200, "Monaco must have a usable height: " + JSON.stringify(bounds));
+					await page.waitForFunction(() => document.querySelector("#synthCodeEditorHost .view-lines")?.textContent.includes("useSoundChip"));
+				}
 				await page.waitForFunction(
 					() =>
 						!document.getElementById("synthCodeRunButton").disabled,
@@ -185,7 +194,16 @@ function mute() {
 						.getElementById("synthWorkspace")
 						.classList.contains("is-code-expanded"),
 				);
+				const expandedEditor = page.locator(withMonaco ? "#synthCodeEditorHost .monaco-editor" : "#synthCodeEditor").first();
+				await expandedEditor.scrollIntoViewIfNeeded();
+				const codeBounds = await expandedEditor.boundingBox(), filesBounds = await page.locator("#smsgearFilesPanel").boundingBox();
+				assert(codeBounds.width > 400 && codeBounds.x >= filesBounds.x + filesBounds.width, "Expanded Code must appear beside Files: " + JSON.stringify({codeBounds, filesBounds}));
 				await page.locator("#psgTab").click();
+				assert(await page.locator("#psgPanel").isVisible(), "Expanded chip tab reveals its controls");
+				assert(!(await expandedEditor.isVisible()), "Chip view hides Code without closing expanded mode");
+				await page.locator("#synthInputCodeTab").click();
+				assert(await expandedEditor.isVisible(), "Returning to Code restores its editor");
+				await page.screenshot({path: out.replace(/\.json$/, `-${engine}-expanded-code.png`), fullPage: false});
 				assert.equal(
 					await page
 						.locator("#synthWorkspace")

@@ -475,6 +475,7 @@ function selectSection(value) {
 	)
 		channel = "auto";
 	render();
+	expanded?.showChip($(value + "Tab"));
 }
 for (const name of ["psg", "opll", "mixer"])
 	$(name + "Tab").addEventListener("click", () => selectSection(name));
@@ -919,7 +920,7 @@ host = setupSmsGearCodeHost({
 });
 expanded = setupSynthExpandedTabs({
 	codeControls: host.controls,
-	selectChip: selectSection,
+	selectChip: (button) => selectSection(button.dataset.chip),
 	elements: {
 		editor: $("smsgearSynthEditor"),
 		chipTabs: [$("psgTab"), $("opllTab"), $("mixerTab")],

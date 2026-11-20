@@ -46,6 +46,20 @@ Screenshots/logs are local under `build/smsgear-check/`.
 
 ## Scope and follow-up
 
+### Follow-up: Monaco / expanded Code
+
+The initial browser checks blocked the CDN and did not catch expanded Code
+hiding the entire input section rather than its tab heading. The heading now
+has its own wrapper; the expanded editor and Master slots belong to the main
+pane beside Files. Chip-tab selection is also connected to the expanded view.
+
+`node scripts/check_smsgear_synth_browser.cjs --monaco` now checks the actual
+CDN-loaded Monaco widget, rendered source, usable dimensions, positioning
+beside Files and return from chip tabs in Chromium and WebKit (muted).
+Both engines pass; the application unit suite remains 11/11. Logs and
+screenshots are under `build/smsgear-check/monaco-fixed*`. The ZIP hash above
+records the earlier candidate; rebuild to include this follow-up.
+
 Test music is original synthetic register data; no game assets are bundled.
 Actual game-driver sound quality and human listening remain unverified.
 Reference seek/cache, direct song edits, software PSG Envelope and timed APIs

@@ -10,6 +10,7 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 - [x] PSG: three tone voices, Noise, attenuation, Game Gear stereo; Auto and physical CH selection.
 - [x] YM2413: 15 built-in instruments, shared editable two-operator User patch, Rhythm and five drum keys; identify shared hardware state and software performance controls.
 - [x] Files working/saved, Auto apply, Save/Discard, Cassette, seeded examples and shared Code editor/runtime with persistent expanded view.
+- [x] Fix expanded Code hiding its entire input section; show the real Monaco editor beside Files, retain Master and restore Code after selecting chip tabs. Verify both Monaco and the offline textarea fallback.
 - [x] Code and keyboard use the same PSG / OPLL instrument. Switching input views and selecting a sound do not stop Code.
 - [x] VGM/VGZ import: PSG-only, YM2413-only or both; preserve original files and extract static JSON presets.
 - [x] Reference Play/Pause/Resume/Stop, Live CH inspection, paused keyboard audition and static Capture to Synth while keeping reference transport.
