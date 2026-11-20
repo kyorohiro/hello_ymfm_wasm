@@ -391,6 +391,10 @@
 										<summary aria-label="About OPLL">
 											?
 										</summary>
+										<p
+											id="rhythmReadout"
+											class="subtext"
+										></p>
 										<p>
 											Nine two-operator FM voices, or six
 											melody voices plus five percussion
@@ -409,22 +413,18 @@
 									></label>
 									<div id="fmAttenuation"></div>
 									<div id="fmSustain"></div>
+									<div class="shared-rhythm-control">
+										<div id="rhythmEnabled"></div>
+									</div>
 									<button id="editUserPatch" type="button">
 										Select User to edit operators
 									</button>
-								</div>
-								<div class="shared-rhythm-control">
-									<div id="rhythmEnabled"></div>
-									<p id="rhythmReadout" class="subtext"></p>
 								</div>
 								<fieldset id="userPatch">
 									<legend>
 										Shared User patch · (OP1 → OP2) → Out
 									</legend>
-									<p id="userPatchNote" class="subtext">
-										Select User to hear these edits. All
-										instrument-0 channels share this patch.
-									</p>
+
 									<div id="feedback"></div>
 									<details class="inline-help">
 										<summary
@@ -432,15 +432,22 @@
 										>
 											?
 										</summary>
+										<p id="userPatchNote" class="subtext">
+											Select User to hear these edits. All
+											instrument-0 channels share this
+											patch.
+										</p>
 										<p class="subtext">
-											Choose OP1 / OP2, then drag A (AR),
-											D (DR), S (SL) or R (RR). Envelope
-											guides are schematic, before TL /
-											KSL, not measured milliseconds. EGT
-											holds SL; otherwise RR controls
-											decay while held. Channel Sustain
-											can override the key-off rate.
-											Choose User to edit.
+											Choose OP1 / OP2, then drag AT (AR /
+											level), DS (DR / SL) or R (RR). AT
+											edits AR / level. Envelope guides
+											are schematic, with level but
+											without KSL, not measured
+											milliseconds. EGT holds SL;
+											otherwise RR controls decay while
+											held. Channel Sustain can override
+											the key-off rate. Choose User to
+											edit.
 										</p>
 									</details>
 									<section
@@ -473,17 +480,12 @@
 												type="button"
 												data-envelope-handle="attack"
 											>
-												A</button
+												AT</button
 											><button
 												type="button"
 												data-envelope-handle="decay"
 											>
-												D</button
-											><button
-												type="button"
-												data-envelope-handle="sustain"
-											>
-												S</button
+												DS</button
 											><button
 												type="button"
 												data-envelope-handle="rate"

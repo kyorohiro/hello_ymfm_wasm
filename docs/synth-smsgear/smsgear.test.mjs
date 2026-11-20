@@ -369,12 +369,21 @@ test("OPLL Envelope handles roundtrip actual 4-bit rates and clamp edits; EGT an
 				opllEnvelopePatch(op, "attack", g.handles.attack),
 				{ ar: rate },
 			);
-			assert.deepEqual(opllEnvelopePatch(op, "decay", g.handles.decay), {
-				dr: rate,
-				sl: rate,
-			});
 			assert.deepEqual(
-				opllEnvelopePatch(op, "sustain", g.handles.sustain),
+				opllEnvelopePatch(op, "decay", {
+					x: g.decay,
+					y: g.top + (g.h * op.sl) / 15,
+				}),
+				{
+					dr: rate,
+					sl: rate,
+				},
+			);
+			assert.deepEqual(
+				opllEnvelopePatch(op, "sustain", {
+					x: g.handles.sustain.x,
+					y: g.top + (g.h * op.sl) / 15,
+				}),
 				{ sl: rate },
 			);
 			assert.deepEqual(opllEnvelopePatch(op, "rate", g.handles.rate), {
@@ -431,4 +440,75 @@ test("new FM voices start editable; existing fixed-ROM choices remain fixed", ()
 	assert.equal(p.opll.instrument, 0);
 	p.opll.instrument = 1;
 	assert.equal(readPreset(p).opll.instrument, 1);
+});
+
+test("all OPLL handles lie on the rendered polyline including inactive rates and Sustain overrides", () => {
+	for (const width of [280, 900])
+		for (const ar of [0, 15])
+			for (const dr of [0, 1, 15])
+				for (const sl of [0, 7, 15])
+					for (const rr of [0, 6, 15])
+						for (const egt of [false, true])
+							for (const sustain of [false, true]) {
+								const g = opllEnvelopeGeometry(
+									{ ar, dr, sl, rr, egt },
+									{ width, height: 220, sustain },
+								);
+								for (const [name, p] of Object.entries(
+									g.handles,
+								)) {
+									let distance = Infinity;
+									for (let i = 1; i < g.points.length; i++) {
+										const a = g.points[i - 1],
+											b = g.points[i],
+											dx = b[0] - a[0],
+											dy = b[1] - a[1],
+											length = dx * dx + dy * dy,
+											t = length
+												? Math.max(
+														0,
+														Math.min(
+															1,
+															((p.x - a[0]) * dx +
+																(p.y - a[1]) *
+																	dy) /
+																length,
+														),
+													)
+												: 0;
+										distance = Math.min(
+											distance,
+											Math.hypot(
+												p.x - a[0] - t * dx,
+												p.y - a[1] - t * dy,
+											),
+										);
+									}
+									assert(
+										distance < 1e-7,
+										JSON.stringify({
+											width,
+											ar,
+											dr,
+											sl,
+											rr,
+											egt,
+											sustain,
+											name,
+											distance,
+										}),
+									);
+								}
+							}
+});
+
+test("OPLL combined handle level guide reflects modulator TL and carrier attenuation", () => {
+	for (const tlMax of [15, 63]) {
+		const op = { ar: 15, dr: 5, sl: 7, rr: 7, egt: true, tl: 0, tlMax };
+		const loud = opllEnvelopeGeometry(op);
+		const quiet = opllEnvelopeGeometry({ ...op, tl: tlMax });
+		assert(quiet.handles.attack.y > loud.handles.attack.y);
+		assert.equal(quiet.handles.attack.x, loud.handles.attack.x);
+		assert.equal(op.tl, 0);
+	}
 });

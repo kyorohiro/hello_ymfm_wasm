@@ -5,6 +5,7 @@ import {
 	createFretboardState,
 } from "../synth/synth_keyboard.js";
 import { RHYTHM_KEYS, assignedDrums, keyboardAction } from "./performance.js";
+import { setupPerformanceSelects } from "./performance_select.js";
 import { createOpllEnvelopeEditor } from "./opll_envelope.js";
 import { createParamControl } from "../synth/synth_controls.js";
 import { createSynthOutputVisualizer } from "../synth/synth_output_visualizer.js";
@@ -326,7 +327,7 @@ function setPitch(value) {
 function editing(target) {
 	return Boolean(
 		target?.closest(
-			"dialog[open],.monaco-editor,#synthCodeEditorHost,textarea,input:not([type=range]):not([type=checkbox]),select,[contenteditable=true]",
+			"dialog[open],.monaco-editor,#synthCodeEditorHost,textarea,input:not([type=range]):not([type=checkbox]),[contenteditable=true]",
 		),
 	);
 }
@@ -664,7 +665,10 @@ function updateRhythmView() {
 envelopeEditors.push(
 	createOpllEnvelopeEditor({
 		root: $("opllEnvelope"),
-		getOperators: () => display.opll.userPatch.operators,
+		getOperators: () =>
+			display.opll.userPatch.operators.map((op, i) =>
+				i ? { ...op, tl: display.opll.attenuation, tlMax: 15 } : op,
+			),
 		getSustain: () => display.opll.sustain,
 		canEdit: () =>
 			section === "opll" &&
@@ -674,9 +678,14 @@ envelopeEditors.push(
 		getSelectionKey: () =>
 			`${section}:${channel}:${preset.name}:${songView() ? "song" : "synth"}`,
 		onEdit: (op, patch) =>
-			settingsEdit((value) =>
-				Object.assign(value.opll.userPatch.operators[op], patch),
-			),
+			settingsEdit((value) => {
+				const { tl, ...rest } = patch;
+				Object.assign(value.opll.userPatch.operators[op], rest);
+				if (tl !== undefined) {
+					if (op) value.opll.attenuation = tl;
+					else value.opll.userPatch.operators[op].tl = tl;
+				}
+			}),
 	}),
 );
 $("editUserPatch").addEventListener("click", () =>
@@ -685,17 +694,49 @@ $("editUserPatch").addEventListener("click", () =>
 	}),
 );
 
+const operatorHeadings = [
+	["OP", "Operator"],
+	["MULT", "Multiplier"],
+	["TL", "OP1 total level; carrier uses channel attenuation"],
+	["KSL", "Key scale level"],
+	["AR", "Attack rate"],
+	["DR", "Decay rate"],
+	["SL", "Sustain level"],
+	["RR", "Release rate"],
+	["AM", "Amplitude modulation"],
+	["VIB", "Vibrato"],
+	["EGT", "Envelope sustain"],
+	["KSR", "Key scale rate"],
+	["WAVE", "Half-sine waveform"],
+];
+const operatorHeader = document.createElement("div");
+operatorHeader.className = "operator-header";
+for (const [label, title] of operatorHeadings) {
+	const cell = document.createElement("span");
+	cell.textContent = label;
+	cell.title = title;
+	if (["AR", "DR", "SL", "RR", "EGT"].includes(label))
+		cell.className = "envelope-heading";
+	operatorHeader.append(cell);
+}
+$("operatorControls").append(operatorHeader);
 for (let op = 0; op < 2; op++) {
 	const card = document.createElement("section");
 	card.className = "operator-card";
+	card.dataset.operator = String(op);
+	card.setAttribute(
+		"aria-label",
+		`OP${op + 1} · ${op ? "Carrier" : "Modulator"}`,
+	);
 	const title = document.createElement("h3");
-	title.textContent = `OP${op + 1} · ${op ? "Carrier" : "Modulator"}`;
+	title.textContent = `OP${op + 1}`;
+	title.title = op ? "Carrier" : "Modulator";
 	const grid = document.createElement("div");
 	card.append(title, grid);
 	$("operatorControls").append(card);
 	const fields = [
 		["multi", "MULT", 15],
-		...(op ? [] : [["tl", "TL", 63]]),
+		["tl", "TL", 63],
 		["ksl", "KSL", 3],
 		["ar", "AR", 15],
 		["dr", "DR", 15],
@@ -712,6 +753,12 @@ for (let op = 0; op < 2; op++) {
 			mount = document.createElement("div");
 		mount.id = id;
 		grid.append(mount);
+		if (op === 1 && field === "tl") {
+			mount.className = "operator-level-placeholder";
+			mount.textContent = "—";
+			mount.title = "Carrier level uses channel Attenuation";
+			continue;
+		}
 		control(
 			id,
 			label,
@@ -1079,6 +1126,9 @@ $("startAudio").addEventListener(
 	() => void ensureAudio().catch(report),
 );
 $("stopAudio").addEventListener("click", () => void stopAll().catch(report));
+setupPerformanceSelects(
+	["psgSource", "noiseType", "noiseRate", "fmInstrument"].map($),
+);
 // Menus/selects release performance focus after pointer selection, as in the other Synths.
 document.addEventListener("change", (event) => {
 	if (event.target.matches("select,input[type=checkbox]"))

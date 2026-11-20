@@ -190,6 +190,57 @@ function mute() {
 						kind,
 					);
 				const inspectOpll = () => inspectChip("ym2413");
+				// Pointer menus stay in-page; performance key-down/up remains live
+				// even without a change event (reselecting the same option).
+				for (const [id, value] of [
+					["psgSource", "noise"],
+					["noiseType", "periodic"],
+					["noiseRate", "high"],
+					["noiseRate", "high"],
+				]) {
+					await page.locator("#" + id).focus();
+					await page.keyboard.down("a");
+					await page.waitForFunction(() =>
+						document
+							.querySelector('#keyboard [data-key="a"]')
+							.classList.contains("is-active"),
+					);
+					await page.locator("#" + id).click();
+					assert.equal(
+						await page.locator(".performance-select-menu").count(),
+						1,
+					);
+					await page.keyboard.up("a");
+					assert.equal(
+						await page.locator("#keyboard .key.is-active").count(),
+						0,
+					);
+					await page.keyboard.down("s");
+					await page
+						.locator(
+							`.performance-select-menu button[data-value="${value}"]`,
+						)
+						.click();
+					assert.equal(
+						await page.locator("#" + id).inputValue(),
+						value,
+					);
+					assert.equal(
+						await page
+							.locator('#keyboard [data-key="s"]')
+							.evaluate((n) => n.classList.contains("is-active")),
+						true,
+					);
+					await page.keyboard.up("s");
+					assert.equal(
+						await page.locator("#keyboard .key.is-active").count(),
+						0,
+					);
+				}
+				await page.locator("#psgSource").selectOption("tone");
+				await page.locator("#noiseType").selectOption("white");
+				await page.locator("#noiseRate").selectOption("low");
+
 				const bend = async (id, value) => {
 					await page.locator("#" + id).evaluate((node, value) => {
 						node.value = String(value);
@@ -363,6 +414,34 @@ function mute() {
 					1,
 					"One canvas holds both operators",
 				);
+				const rowLayout = await page.evaluate(() => {
+					const rows = [
+						...document.querySelectorAll(
+							"#operatorControls .operator-card",
+						),
+					].map((n) => n.getBoundingClientRect());
+					const controls = [
+						...document.querySelectorAll(
+							"#operatorControls .param-control",
+						),
+					].map((n) => n.getBoundingClientRect());
+					const ar = [0, 1].map((op) =>
+						document
+							.getElementById(`op${op}_ar`)
+							.getBoundingClientRect(),
+					);
+					return {
+						stacked: rows[1].top >= rows[0].bottom,
+						maxHeight: Math.max(...controls.map((r) => r.height)),
+						aligned: Math.abs(ar[0].left - ar[1].left) < 1,
+					};
+				});
+				assert(
+					rowLayout.stacked &&
+						rowLayout.aligned &&
+						rowLayout.maxHeight <= 30,
+					JSON.stringify(rowLayout),
+				);
 				const dragEnvelope = async (handle, dx, dy = 0) => {
 					const button = page.locator(
 						`#opllEnvelope [data-envelope-handle="${handle}"]`,
@@ -417,7 +496,7 @@ function mute() {
 					for (const [handle, field, dx, dy] of [
 						["attack", "ar", 35, 0],
 						["decay", "dr", 30, 0],
-						["sustain", "sl", 0, 20],
+						["decay", "sl", 0, 20],
 						["rate", "rr", 20, 0],
 					]) {
 						const value = page.locator(
@@ -452,7 +531,215 @@ function mute() {
 								"The other operator keeps its parameters",
 							);
 					}
+					const level = page.locator(
+						op
+							? "#fmAttenuation .param-value"
+							: "#op0_tl .param-value",
+					);
+					const beforeLevel = Number(await level.textContent());
+					await dragEnvelope(
+						"attack",
+						0,
+						beforeLevel > (op ? 7 : 31) ? -20 : 20,
+					);
+					const afterLevel = Number(await level.textContent());
+					assert.notEqual(
+						afterLevel,
+						beforeLevel,
+						"AT vertical drag edits TL / carrier attenuation",
+					);
+					const regs = (await inspectOpll()).registers;
+					assert.equal(
+						op ? regs[0x30] & 15 : regs[2] & 63,
+						afterLevel,
+					);
 				}
+
+				const setEnvelopeParam = async (field, target) => {
+					const control = page.locator(`#op0_${field} .param-value`);
+					await control.scrollIntoViewIfNeeded();
+					const before = Number(await control.textContent());
+					if (before === target) return;
+					const b = await control.boundingBox(),
+						x = b.x + b.width / 2,
+						y = b.y + b.height / 2;
+					await page.mouse.move(x, y);
+					await page.mouse.down();
+					await page.mouse.move(
+						x + ((target - before) * 160) / 15,
+						y,
+						{ steps: 2 },
+					);
+					await page.mouse.up();
+					await page.waitForTimeout(40);
+					assert.equal(Number(await control.textContent()), target);
+				};
+				const checkEnvelopeAlignment = async () => {
+					await page.waitForTimeout(70);
+					const result = await page.evaluate(async () => {
+						const { opllEnvelopeGeometry } = await import(
+							new URL(
+								"./opll_envelope.js",
+								document.querySelector(
+									'script[type="module"]',
+								).src,
+							)
+						);
+						const root = document.getElementById("opllEnvelope"),
+							op = Number(root.dataset.operator),
+							canvas = root.querySelector("canvas"),
+							r = canvas.getBoundingClientRect(),
+							style = getComputedStyle(canvas),
+							bl = parseFloat(style.borderLeftWidth) || 0,
+							br = parseFloat(style.borderRightWidth) || 0,
+							bt = parseFloat(style.borderTopWidth) || 0,
+							bb = parseFloat(style.borderBottomWidth) || 0;
+						const val = (f) =>
+								Number(
+									document.querySelector(
+										`#op${op}_${f} .param-value`,
+									).textContent,
+								),
+							g = opllEnvelopeGeometry(
+								{
+									ar: val("ar"),
+									dr: val("dr"),
+									sl: val("sl"),
+									rr: val("rr"),
+									tl: op
+										? Number(
+												document.querySelector(
+													"#fmAttenuation .param-value",
+												).textContent,
+											)
+										: val("tl"),
+									tlMax: op ? 15 : 63,
+									egt:
+										document.querySelector(
+											`#op${op}_egt .param-value`,
+										).textContent === "ON",
+								},
+								{
+									width: canvas.width,
+									height: canvas.height,
+									sustain:
+										document.querySelector(
+											"#fmSustain .param-value",
+										).textContent === "ON",
+								},
+							);
+						return [
+							...root.querySelectorAll("[data-envelope-handle]"),
+						].map((button) => {
+							const p = g.handles[button.dataset.envelopeHandle],
+								b = button.getBoundingClientRect();
+							return {
+								handle: button.dataset.envelopeHandle,
+								error: Math.hypot(
+									b.x +
+										b.width / 2 -
+										r.x -
+										bl -
+										(p.x / canvas.width) *
+											(r.width - bl - br),
+									b.y +
+										b.height / 2 -
+										r.y -
+										bt -
+										(p.y / canvas.height) *
+											(r.height - bt - bb),
+								),
+								width: b.width,
+								height: b.height,
+							};
+						});
+					});
+					assert(
+						result.every(
+							(point) =>
+								point.error < 1 &&
+								point.width <= 22.1 &&
+								point.height <= 18.1,
+						),
+						JSON.stringify(result),
+					);
+				};
+				await page
+					.locator('#opllEnvelope [data-envelope-operator="0"]')
+					.click();
+				for (const state of [
+					{ ar: 15, dr: 0, sl: 7, rr: 6 },
+					{ ar: 15, dr: 1, sl: 9, rr: 0 },
+					{ ar: 0, dr: 0, sl: 7, rr: 0 },
+				]) {
+					for (const [field, value] of Object.entries(state))
+						await setEnvelopeParam(field, value);
+					await checkEnvelopeAlignment();
+					if (state.dr === 0) {
+						await dragEnvelope("decay", 0, 12);
+						assert.equal(
+							Number(
+								await page
+									.locator("#op0_sl .param-value")
+									.textContent(),
+							),
+							8,
+							"Inactive SL adjusts relatively without jumping to 0/15",
+						);
+					}
+				}
+				await setEnvelopeParam("ar", 15);
+				await setEnvelopeParam("dr", 1);
+				await setEnvelopeParam("sl", 9);
+				await page.setViewportSize({ width: 390, height: 844 });
+				await page.locator("#opllEnvelope").scrollIntoViewIfNeeded();
+				await checkEnvelopeAlignment();
+				const mobileRows = await page
+					.locator("#operatorControls")
+					.evaluate((node) => {
+						const rect = node.getBoundingClientRect();
+						node.scrollLeft = 100;
+						const scrolls = node.scrollLeft > 0;
+						node.scrollLeft = 0;
+						return {
+							fits: rect.left >= 0 && rect.right <= innerWidth,
+							scrolls,
+							overflow: getComputedStyle(node).overflowX,
+						};
+					});
+				assert(
+					mobileRows.fits &&
+						mobileRows.scrolls &&
+						mobileRows.overflow === "auto",
+					"OP parameter strips must scroll locally on mobile: " +
+						JSON.stringify(mobileRows),
+				);
+				assert(
+					(
+						await page
+							.locator(
+								'#opllEnvelope [data-envelope-operator="0"]',
+							)
+							.boundingBox()
+					).height <= 26.5,
+				);
+				await page.screenshot({
+					path: out.replace(
+						/\.json$/,
+						`-${engine}-envelope-alignment-mobile.png`,
+					),
+					fullPage: false,
+				});
+				await page.setViewportSize({ width: 1280, height: 1000 });
+				await checkEnvelopeAlignment();
+				await page.screenshot({
+					path: out.replace(
+						/\.json$/,
+						`-${engine}-envelope-alignment.png`,
+					),
+					fullPage: false,
+				});
+
 				await page.locator("#fmInstrument").selectOption("1");
 				await page.waitForTimeout(60);
 				assert(
@@ -477,10 +764,13 @@ function mute() {
 						.isDisabled()),
 				);
 
+				await page
+					.locator("#operatorControls")
+					.scrollIntoViewIfNeeded();
 				await page.screenshot({
 					path: out.replace(
 						/\.json$/,
-						`-${engine}-opll-envelope.png`,
+						`-${engine}-operator-rows.png`,
 					),
 					fullPage: false,
 				});

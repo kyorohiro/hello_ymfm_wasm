@@ -16,7 +16,8 @@ export function opllEnvelopeGeometry(
 	const off = left + w * 0.78;
 	const rate = op.egt
 		? left + w * (0.82 + 0.14 * (1 - op.rr / 15))
-		: decay + w * (0.08 + 0.12 * (1 - op.rr / 15));
+		: decay + w * (0.15 + 0.07 * (1 - op.rr / 15));
+	const sustainX = decay + Math.max(18, w * 0.04);
 	const heldDecay = !op.egt && op.rr > 0 && op.dr > 0;
 	const offLevel = heldDecay ? bottom : level;
 	const effectiveRelease = sustain ? 5 : op.egt ? op.rr : 7;
@@ -28,7 +29,7 @@ export function opllEnvelopeGeometry(
 		[left, bottom],
 		[attack, top],
 		[decay, level],
-		[decay + w * 0.04, level],
+		[sustainX, level],
 	];
 	if (heldDecay) points.push([rate, bottom]);
 	points.push(
@@ -37,6 +38,26 @@ export function opllEnvelopeGeometry(
 		[left + w, effectiveRelease === 0 ? offLevel : bottom],
 	);
 	if (op.ar === 0) for (const point of points) point[1] = bottom;
+	const levelScale = 1 - ((op.tl ?? 0) / (op.tlMax ?? 63)) * 0.85;
+	for (const point of points)
+		point[1] = bottom - (bottom - point[1]) * levelScale;
+	// Inactive stages (AR/DR/RR=0 or a channel Sustain override) must not
+	// leave handles at a hypothetical SL/release point off the actual curve.
+	const onCurve = (x) => {
+		for (let i = 1; i < points.length; i++) {
+			const a = points[i - 1],
+				b = points[i];
+			if (x <= b[0])
+				return {
+					x,
+					y:
+						a[1] +
+						(b[1] - a[1]) *
+							(b[0] === a[0] ? 1 : (x - a[0]) / (b[0] - a[0])),
+				};
+		}
+		return { x, y: points.at(-1)[1] };
+	};
 	return {
 		left,
 		w,
@@ -48,19 +69,10 @@ export function opllEnvelopeGeometry(
 		off,
 		points,
 		handles: {
-			attack: { x: attack, y: op.ar === 0 ? bottom : top },
-			decay: { x: decay, y: top + (h * op.sl) / 15 },
-			sustain: { x: decay + w * 0.04, y: top + (h * op.sl) / 15 },
-			rate: {
-				x: rate,
-				y: op.egt
-					? effectiveRelease === 0
-						? offLevel
-						: bottom
-					: heldDecay
-						? bottom
-						: level,
-			},
+			attack: onCurve(attack),
+			decay: onCurve(decay),
+			sustain: onCurve(sustainX),
+			rate: onCurve(rate),
 		},
 	};
 }
@@ -82,7 +94,7 @@ export function opllEnvelopePatch(op, handle, { x, y }, size = {}) {
 					(1 -
 						(op.egt
 							? (unit - 0.82) / 0.14
-							: ((x - g.decay) / g.w - 0.08) / 0.12)),
+							: ((x - g.decay) / g.w - 0.15) / 0.07)),
 			),
 		};
 	if (handle === "sustain") return { sl: rate((15 * (y - g.top)) / g.h) };
@@ -111,6 +123,20 @@ export function createOpllEnvelopeEditor({
 		height: canvas.height,
 		sustain: getSustain(),
 	});
+	function canvasContent() {
+		const rect = canvas.getBoundingClientRect(),
+			style = getComputedStyle(canvas);
+		const left = parseFloat(style.borderLeftWidth) || 0,
+			right = parseFloat(style.borderRightWidth) || 0,
+			top = parseFloat(style.borderTopWidth) || 0,
+			bottom = parseFloat(style.borderBottomWidth) || 0;
+		return {
+			left: rect.left + left,
+			top: rect.top + top,
+			width: rect.width - left - right,
+			height: rect.height - top - bottom,
+		};
+	}
 	function cancel() {
 		const id = drag?.id;
 		drag = null;
@@ -165,25 +191,35 @@ export function createOpllEnvelopeEditor({
 				"aria-pressed",
 				String(Number(button.dataset.envelopeOperator) === selected),
 			);
+		const content = canvasContent(),
+			plot = canvas.parentElement.getBoundingClientRect();
 		for (const button of handles) {
 			const point = g.handles[button.dataset.envelopeHandle];
-			button.style.left = (point.x / canvas.width) * 100 + "%";
-			button.style.top = (point.y / canvas.height) * 100 + "%";
+			button.style.left =
+				content.left -
+				plot.left +
+				(point.x / canvas.width) * content.width +
+				"px";
+			button.style.top =
+				content.top -
+				plot.top +
+				(point.y / canvas.height) * content.height +
+				"px";
 			button.disabled = !canEdit();
 			button.setAttribute(
 				"aria-label",
-				`OP${selected + 1} ${button.dataset.envelopeHandle}`,
+				`OP${selected + 1} ${button.dataset.envelopeHandle === "attack" ? "AT: horizontal Attack, vertical " + (selected ? "channel attenuation" : "total level") : button.dataset.envelopeHandle === "decay" ? "DS: horizontal Decay, vertical Sustain level" : "Release rate"}`,
 			);
 		}
 		const op = values[selected];
 		root.querySelector("[data-envelope-readout]").textContent =
-			`OP${selected + 1} · AR ${op.ar} · DR ${op.dr} · SL ${op.sl} · RR ${op.rr} · ${op.egt ? "EG sustain: hold SL; RR controls release" : "Percussive: RR controls held decay; key-off uses fixed release"}${getSustain() ? " · channel Sustain overrides key-off rate" : ""}`;
+			`OP${selected + 1} · AR ${op.ar} · DR ${op.dr} · SL ${op.sl} · RR ${op.rr} · ${op.egt ? "EG sustain: hold SL; RR controls release" : "Percussive: RR controls held decay; key-off uses fixed release"}${op.ar === 0 ? " · AR 0: no attack" : op.dr === 0 ? " · DR 0: holds peak; SL inactive" : ""}${getSustain() ? " · channel Sustain overrides key-off rate" : ""}`;
 	}
 	const invalidate = () => {
 		if (!dead && frame === null) frame = requestAnimationFrame(draw);
 	};
 	const point = (event) => {
-		const rect = canvas.getBoundingClientRect();
+		const rect = canvasContent();
 		return {
 			x: ((event.clientX - rect.left) * canvas.width) / rect.width,
 			y: ((event.clientY - rect.top) * canvas.height) / rect.height,
@@ -220,6 +256,9 @@ export function createOpllEnvelopeEditor({
 				selection: getSelectionKey(),
 				dx: p.x - g.x,
 				dy: p.y - g.y,
+				startY: p.y,
+				sl: getOperators()[selected].sl,
+				tl: getOperators()[selected].tl ?? 0,
 			};
 			canvas.setPointerCapture(event.pointerId);
 		},
@@ -241,7 +280,28 @@ export function createOpllEnvelopeEditor({
 					{ x: p.x - drag.dx, y: p.y - drag.dy },
 					size(),
 				);
-			if (drag.handle === "decay") delete patch.sl;
+			if (drag.handle === "attack")
+				patch.tl = clamp(
+					Math.round(
+						drag.tl +
+							((p.y - drag.startY) *
+								(getOperators()[selected].tlMax ?? 63)) /
+								((canvas.height - 48) * 0.85),
+					),
+					0,
+					getOperators()[selected].tlMax ?? 63,
+				);
+			// SL can be stored but inactive at DR=0/AR=0. Use displacement
+			// from that value, rather than jumping to the projected curve level.
+			if (drag.handle === "sustain" || drag.handle === "decay")
+				patch.sl = clamp(
+					Math.round(
+						drag.sl +
+							((p.y - drag.startY) * 15) / (canvas.height - 48),
+					),
+					0,
+					15,
+				);
 			edit(patch);
 		},
 		{ signal: events.signal },
@@ -269,21 +329,34 @@ export function createOpllEnvelopeEditor({
 				return;
 			event.preventDefault();
 			event.stopPropagation();
-			const key = {
-				attack: "ar",
-				decay: "dr",
-				sustain: "sl",
-				rate: "rr",
-			}[handle];
+			const vertical =
+				event.key === "ArrowUp" || event.key === "ArrowDown";
+			const key =
+				vertical && handle === "attack"
+					? "tl"
+					: vertical && handle === "decay"
+						? "sl"
+						: {
+								attack: "ar",
+								decay: "dr",
+								sustain: "sl",
+								rate: "rr",
+							}[handle];
 			const sign =
-				key === "sl"
+				key === "sl" || key === "tl"
 					? event.key === "ArrowUp" || event.key === "ArrowLeft"
 						? -1
 						: 1
 					: event.key === "ArrowLeft" || event.key === "ArrowUp"
 						? 1
 						: -1;
-			edit({ [key]: clamp(getOperators()[selected][key] + sign, 0, 15) });
+			edit({
+				[key]: clamp(
+					(getOperators()[selected][key] ?? 0) + sign,
+					0,
+					key === "tl" ? (getOperators()[selected].tlMax ?? 63) : 15,
+				),
+			});
 		},
 		{ signal: events.signal },
 	);

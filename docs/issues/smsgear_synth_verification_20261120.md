@@ -46,6 +46,26 @@ Screenshots/logs are local under `build/smsgear-check/`.
 
 ## Scope and follow-up
 
+### Follow-up: Envelope handle alignment and compact buttons
+
+Removed the D/S CSS offsets. Handle positions now come from the rendered
+polyline, including AR/DR/RR zero rates and the channel Sustain override.
+Canvas border/content coordinates are used consistently for DOM placement and
+pointer conversion. S drag uses displacement from the stored SL so an inactive
+SL does not jump to the currently projected curve level. The readout identifies
+AR 0 / DR 0. OP selectors use a 26px height, handles 18px, with enough horizontal
+spacing to keep D/S independently reachable on narrow screens.
+
+- **19 application tests passed**. An independent point-to-segment check covers
+  every handle across 432 combinations of rates/levels/EGT/Sustain/width.
+- Muted Chromium/WebKit checks pass, including the reported DR=0 and RR=0
+  examples, AR=0, stored-SL dragging, desktop/mobile resize and restore. Actual
+  DOM handle centers match the canvas geometry within 1 CSS pixel; compact
+  selector/handle sizes are asserted. Existing native-register, Rhythm, Pitch,
+  transport and Code regressions also pass.
+- Logs/screenshots: `build/smsgear-check/envelope-alignment-*`.
+  No runtime/core/CI/publishing changes. Rebuild ZIPs for this follow-up.
+
 ### Follow-up: operator editing and combined Envelope
 
 The earlier default selected fixed ROM instrument 1 while showing the stored
@@ -176,3 +196,44 @@ Actual game-driver sound quality and human listening remain unverified.
 Seek checkpoint caching, direct song edits, software PSG Envelope and timed APIs
 remain in the [TODO](todo_smsgear_synth_20261120.md). There was no publication,
 commit/push/tag, shared runtime rebuild or Tauri work in this change.
+
+### Follow-up: compact operator parameter rows
+
+Replaced the two large operator cards with OP1/OP2 rows under shared headings.
+Numeric and toggle controls use compact pills; envelope fields retain their
+color. Carrier TL is a placeholder because its level uses channel attenuation.
+Narrow screens scroll within the operator parameter area.
+
+Validation: 19 application unit tests pass. Muted Chromium and WebKit browser
+checks pass, including row alignment, control heights, local horizontal scrolling,
+actual operator register changes and Envelope handle alignment. Artifacts:
+`build/smsgear-check/operator-rows-browser*` and `operator-rows-unit.log`.
+The source was checked; the previously recorded ZIP has not been rebuilt.
+
+### Follow-up: combined Envelope handles and compact OPLL header
+
+AT combines horizontal AR and vertical level (OP1 TL / OP2 channel attenuation);
+DS combines horizontal DR and vertical SL. R retains RR editing. Relative
+vertical movement preserves stored SL when a stage is inactive. Guides now
+include schematic level attenuation, without claiming calibrated timing or KSL.
+Instrument, Attenuation, Sustain and Rhythm share a compact row; Feedback and
+help use a compact line. Detailed patch/mode explanations live under help.
+
+20 unit tests pass. Muted Chromium and WebKit flows pass, including both axes
+of DS, AT level changes reaching native TL/attenuation registers, independent
+operator edits, inactive-stage alignment and mobile layout. Screenshots and
+logs: `build/smsgear-check/combined-browser*`, `combined-unit.log`.
+No shared runtime/core changes or distribution ZIP rebuild.
+
+### Follow-up: performance keyboard and sound menus
+
+Sound source, Noise type/rate and FM Instrument pointer choices use in-page
+menus, avoiding native popup capture of performance key-up events. Select
+focus no longer suppresses performance note keys. Unchanged selection closes
+the menu too. Text/Code editors remain typing targets.
+
+20 application tests pass. Muted Chromium and WebKit browser flows pass,
+including key-down on a focused select, key-up while its menu is open, holding
+a second note through selection, same-option reselect and final key release.
+Artifacts: `build/smsgear-check/select-focus-browser*`, `select-focus-unit.log`.
+Shared runtime/core and distribution ZIPs were not changed.

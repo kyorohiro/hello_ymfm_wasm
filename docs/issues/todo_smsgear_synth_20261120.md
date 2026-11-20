@@ -22,6 +22,10 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 
 ## Remaining / next steps
 
+- [x] Replace the two large OP parameter cards with compact horizontal parameter strips stacked as OP1/OP2 rows, matching FM2612; align shared headings and keep mobile overflow local.
+
+- [x] Align Envelope handles to the rendered curve for zero-rate/EGT/Sustain states and resize; remove marker CSS offsets and shrink selector/handle buttons.
+
 - [x] Start new FM sounds on User, clearly explain fixed-ROM editing limits and provide an explicit User switch; verify numeric +/- writes.
 - [x] Merge OP1/OP2 Envelope into one colored canvas with OP selection and independent A/DR/SL/RR handles; test all controls in both browser engines.
 
@@ -43,3 +47,7 @@ UI/reference base: FM2612 Synth. Reuse newer shared saving/editor adapters where
 needed rather than carrying Genesis PCM/DAC/32X-specific code into this app.
 Native cores and shared runtime APIs already exist and were not changed.
 No commit/push, tag, npm publication, itch upload or Tauri release was performed.
+
+- [x] Combine Envelope handles as AT (AR/level) and DS (DR/SL), and compact the upper OPLL controls.
+
+- [x] Keep keyboard performance active while changing sound-source / Noise / instrument selections; test focus and held-key release.

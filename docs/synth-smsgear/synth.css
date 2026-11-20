@@ -670,14 +670,14 @@ dialog {
 .opll-envelope [data-envelope-handle] {
 	position: absolute;
 	transform: translate(-50%, -50%);
-	width: 25px;
-	height: 25px;
-	min-height: 25px;
+	width: 18px;
+	height: 18px;
+	min-height: 18px;
 	padding: 0;
 	border-radius: 50%;
-	font-size: 11px;
+	font-size: 9px;
 	color: #fff;
-	border: 2px solid #f38d71;
+	border: 1px solid #f38d71;
 	background: #272e38;
 	touch-action: none;
 }
@@ -716,6 +716,12 @@ dialog {
 	gap: 6px;
 	margin-bottom: 8px;
 }
+.envelope-operator-tabs button {
+	min-height: 26px;
+	padding: 2px 7px;
+	font-size: 0.7rem;
+	border-radius: 4px;
+}
 .envelope-operator-tabs button[data-envelope-operator="0"] {
 	color: #f38d71;
 	border-color: #f38d71;
@@ -724,12 +730,172 @@ dialog {
 	color: #6db6ff;
 	border-color: #6db6ff;
 }
-#opllEnvelope [data-envelope-handle="decay"] {
-	transform: translate(-50%, -120%);
-}
-#opllEnvelope [data-envelope-handle="sustain"] {
-	transform: translate(-50%, 20%);
-}
 .envelope-operator-tabs button[aria-pressed="true"] {
 	color: #fff;
+}
+/* FM2612-style parameter strips: shared headings, then one row per OP. */
+#userPatch {
+	min-width: 0;
+}
+#operatorControls {
+	display: block;
+	min-width: 0;
+	max-width: 100%;
+	overflow-x: auto;
+	padding: 8px 0;
+}
+#operatorControls .operator-header,
+#operatorControls .operator-card {
+	display: grid;
+	grid-template-columns: 48px repeat(12, minmax(64px, 1fr));
+	gap: 4px;
+	align-items: center;
+	min-width: 900px;
+}
+#operatorControls .operator-header {
+	margin: 0 0 5px;
+	text-align: center;
+	font-size: 0.6rem;
+	font-weight: 700;
+	color: var(--muted);
+}
+#operatorControls .envelope-heading {
+	color: #ffbe73;
+}
+#operatorControls .operator-card {
+	margin: 0 0 7px;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+}
+#operatorControls .operator-card > div {
+	display: contents;
+}
+#operatorControls .operator-card h3 {
+	margin: 0;
+	font-size: 0.7rem;
+	text-align: center;
+}
+#operatorControls .operator-card[data-operator="0"] h3 {
+	color: #f38d71;
+}
+#operatorControls .operator-card[data-operator="1"] h3 {
+	color: #6db6ff;
+}
+#operatorControls .param-control {
+	width: 100%;
+	max-width: none;
+	min-width: 0;
+	padding: 1px;
+	grid-template-columns: 17px minmax(22px, 1fr) 17px;
+	border-radius: 999px;
+}
+#operatorControls .param-control.is-boolean {
+	grid-template-columns: 1fr;
+}
+#operatorControls .param-label {
+	display: none;
+}
+#operatorControls .param-control button {
+	min-height: 24px;
+	padding: 0;
+	font-size: 0.73rem;
+}
+#operatorControls .operator-level-placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 28px;
+	color: var(--muted);
+}
+#opllEnvelope .opll-envelope-plot {
+	overflow: hidden;
+	border-radius: 8px;
+}
+
+/* Compact OPLL channel and shared patch controls. */
+#opllPanel .panel-title h2 {
+	font-size: 1.15rem;
+	margin: 0;
+}
+#opllPanel .panel-title {
+	margin-bottom: 10px;
+}
+#melodyControls {
+	gap: 8px;
+	align-items: end;
+	margin-bottom: 10px;
+}
+#melodyControls > label {
+	font-size: 0.65rem;
+	gap: 2px;
+}
+#fmInstrument {
+	min-height: 28px;
+	padding: 3px 8px;
+	font-size: 0.75rem;
+}
+#opllPanel .shared-rhythm-control {
+	margin: 0;
+	gap: 4px;
+}
+
+#opllPanel .param-control:not(#operatorControls .param-control) {
+	padding: 1px;
+	border-radius: 999px;
+	width: 110px;
+}
+#opllPanel .param-control button {
+	min-height: 24px;
+	padding: 0;
+	font-size: 0.73rem;
+}
+#opllPanel .param-label {
+	font-size: 0.6rem;
+	margin-bottom: 1px;
+}
+#userPatch {
+	margin: 0;
+	padding: 8px 10px;
+}
+#userPatch legend {
+	font-size: 0.8rem;
+}
+#userPatch > #feedback,
+#userPatch > .inline-help {
+	display: inline-block;
+	vertical-align: middle;
+	margin: 0 6px 6px 0;
+}
+#opllEnvelope .envelope-operator-tabs {
+	margin-top: 0;
+}
+#opllEnvelope [data-envelope-handle] {
+	width: 22px;
+	border-radius: 999px;
+}
+
+.performance-select-menu {
+	position: fixed;
+	z-index: 1000;
+	overflow-y: auto;
+	padding: 4px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #17212d;
+	box-shadow: 0 6px 20px #0008;
+}
+.performance-select-menu button {
+	display: block;
+	width: 100%;
+	text-align: left;
+	font-size: 0.8rem;
+	min-height: 28px;
+	padding: 4px 8px;
+	border: 0;
+	border-radius: 4px;
+}
+.performance-select-menu button[aria-pressed="true"] {
+	background: #315c82;
+	color: white;
 }

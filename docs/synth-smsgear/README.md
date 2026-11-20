@@ -43,18 +43,24 @@ User to edit operators** switches to the stored User patch and does not copy
 the ROM instrument. Reference views require Capture to Synth before editing.
 
 OP1 (orange) and OP2 (blue) share one Envelope canvas. Select OP1 or OP2 above
-the graph to choose the editing target; both curves remain visible. **A** changes
-AR horizontally; **D** changes DR horizontally; **S** changes SL vertically;
-**R** changes RR horizontally. Values stay in the actual 0–15 range. The numeric
-+/− controls edit those same operator parameters. Arrow keys on a focused handle
+the graph to choose the editing target; both curves remain visible. **AT** changes
+AR horizontally and level vertically (OP1 TL, OP2 channel Attenuation).
+**DS** changes DR horizontally and SL vertically; **R** changes RR horizontally.
+Values stay in the actual 0–15 range. The numeric
++/− controls edit those same operator parameters. OP1 and OP2 use compact
+horizontal rows with shared headings, matching FM2612; narrow screens scroll
+inside the parameter area. Arrow keys on a focused handle
 also adjust the values. Changes use the same Files/Auto-apply path as the knobs.
 
-These are schematic control guides before TL/KSL, not measured milliseconds or
+These are schematic control guides including schematic level attenuation but without KSL, not measured milliseconds or
 a new software Envelope. AR 0 prevents attack; DR 0 holds the peak. With EG
 sustain (EGT) On, the envelope holds SL and RR controls key-off release. With
 EGT Off, RR controls the decay while held and key-off uses the chip's fixed
 release rate. Channel Sustain can override the key-off rate. Built-in patches,
 reference Live views and fixed percussion do not expose editable User envelopes.
+Handles stay on the visible curve when a stage is inactive. For example, with
+DR 0 the stored SL still changes when dragging S, but the guide keeps holding
+the peak until decay is enabled. The readout identifies this inactive stage.
 
 ## Code and Files
 
@@ -129,3 +135,8 @@ See `PACKAGE.md`, `js/RUNTIME.md` and `js/sources/` inside it. The application i
 BSD-3-Clause; included components retain their own notices. This is an
 independent Tetorica application, not an official Sega or SMS Power! product.
 Hardware references: [SMS Power! sound documentation](https://www.smspower.org/Development/Sound-Index).
+
+Pointer-operated Sound source, Noise type/rate and FM Instrument menus stay
+inside the page so performance key-down/up events continue while choosing an
+option. Reselecting the same option also returns focus. Text inputs and Code
+editors retain their normal typing behavior.
