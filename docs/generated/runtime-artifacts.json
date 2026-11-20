@@ -8,10 +8,9 @@
     "version": "0.1.8-fm2608-source-mixer",
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
     "archiveName": "tetorica-soundchip-native-0.1.8-fm2608-source-mixer-sources.zip",
-    "archiveSha256": "9527a31da7f6d4d13464661d8fb7c3342f1045e41906a90d6ca2029e360af76f",
-    "manifestSha256": "0d1b6ec6760de1d6dc412f041ad88c9dcd939f1ebc15bcfd2c55f3eba16921bd",
-    "fileCount": 484,
-    "unpublished": true,
+    "archiveSha256": "2664067b9c4e652ecc58bf9fdf5db2ee40d9ef4038403fcefb53a6964e7df34f",
+    "manifestSha256": "83c0adec744e8ddd04cbf733c6e83460bc5ff69eff39d7d772f4df454ca5f1cf",
+    "fileCount": 486,
     "localCandidate": {
       "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
       "changedPaths": [
@@ -22,6 +21,7 @@
         "catalog/source_inventory.json",
         "docs/huc6280-local-candidate.json",
         "docs/huc6280-state.md",
+        "docs/ym2413-state.md",
         "docs/ym2608-source-mixer.md",
         "native/CMakeLists.txt",
         "native/include/tetorica/huc6280.hpp",
@@ -29,9 +29,11 @@
         "native/tests/huc6280_state_fixture.cpp",
         "scripts/build_huc6280_wasm.sh",
         "scripts/build_spc_wasm.sh",
+        "scripts/build_ym2413_wasm.sh",
         "scripts/build_ym2608_wasm.sh",
         "sdk.json",
         "tests/huc6280_state_wasm_smoke.mjs",
+        "tests/ym2413_state_wasm_smoke.mjs",
         "tests/ym2608_output_gains_wasm_smoke.mjs",
         "tests/ym2608_source_gains_wasm_smoke.mjs",
         "vendor/mame-ay8910/README.md",
@@ -45,6 +47,7 @@
         "wasm/ay8910_wasm.cpp",
         "wasm/huc6280_wasm.cpp",
         "wasm/spc_wasm.cpp",
+        "wasm/ym2413_wasm.cpp",
         "wasm/ym2608_wasm.cpp"
       ]
     }
@@ -1032,8 +1035,8 @@
           "mirrors": [
             "docs/generated/ym2413_wasm.js"
           ],
-          "size": 32911,
-          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+          "size": 34740,
+          "sha256": "937cabb2dd182d96bca5c389c4986e3c27592fab7a8ae189e7940f307d917bff"
         },
         {
           "path": "ym2413_wasm.wasm",
@@ -1041,8 +1044,8 @@
           "mirrors": [
             "docs/generated/ym2413_wasm.wasm"
           ],
-          "size": 33469,
-          "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04"
+          "size": 41627,
+          "sha256": "59fdec7a39416da6c96c53fa180a046195493082484e4f05831f2de72afeb10a"
         }
       ],
       "sourceFiles": [
@@ -1795,7 +1798,7 @@
         "docs/generated/build-info.json"
       ],
       "size": 145466,
-      "sha256": "516ac600e5dea9c2cbeddc2ff50e603e56474792a138fea7777af1c256c50252"
+      "sha256": "a5c59cb580d68cec82334911ef227749d888718a86e49131dbfbd9ce0861c7f1"
     },
     {
       "path": "ps1_spu_build.json",
@@ -1803,8 +1806,8 @@
       "mirrors": [
         "docs/generated/ps1_spu_build.json"
       ],
-      "size": 5983,
-      "sha256": "dc0b80905a74796b6870eb7cd7eb64c658af77954f9b415cc2982146c6e4bf24"
+      "size": 6107,
+      "sha256": "83ba2206a72dd5f2e13ba2ba00b2d5da0418e32f93ee8a6ea5f379b81cfe89ba"
     }
   ]
 }

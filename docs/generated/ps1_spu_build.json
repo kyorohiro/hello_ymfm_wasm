@@ -12,8 +12,8 @@
       "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
     },
     "catalog/source_inventory.json": {
-      "bytes": 156996,
-      "sha256": "eff2b4df392917dc751b400c29e1a70395fba5af8ed5a36c6d6fceb6a95f4c2c"
+      "bytes": 157268,
+      "sha256": "fc055c2b3445afd9c102f9a6e750a480dc86eab3d19ebba60edb7a862f79b2c3"
     },
     "native/include/tetorica/ps1_spu.h": {
       "bytes": 260,
@@ -106,8 +106,8 @@
   },
   "sdk": {
     "archiveName": "tetorica-soundchip-native-0.1.8-fm2608-source-mixer-sources.zip",
-    "archiveSha256": "9527a31da7f6d4d13464661d8fb7c3342f1045e41906a90d6ca2029e360af76f",
-    "fileCount": 484,
+    "archiveSha256": "2664067b9c4e652ecc58bf9fdf5db2ee40d9ef4038403fcefb53a6964e7df34f",
+    "fileCount": 486,
     "localCandidate": {
       "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
       "changedPaths": [
@@ -118,6 +118,7 @@
         "catalog/source_inventory.json",
         "docs/huc6280-local-candidate.json",
         "docs/huc6280-state.md",
+        "docs/ym2413-state.md",
         "docs/ym2608-source-mixer.md",
         "native/CMakeLists.txt",
         "native/include/tetorica/huc6280.hpp",
@@ -125,9 +126,11 @@
         "native/tests/huc6280_state_fixture.cpp",
         "scripts/build_huc6280_wasm.sh",
         "scripts/build_spc_wasm.sh",
+        "scripts/build_ym2413_wasm.sh",
         "scripts/build_ym2608_wasm.sh",
         "sdk.json",
         "tests/huc6280_state_wasm_smoke.mjs",
+        "tests/ym2413_state_wasm_smoke.mjs",
         "tests/ym2608_output_gains_wasm_smoke.mjs",
         "tests/ym2608_source_gains_wasm_smoke.mjs",
         "vendor/mame-ay8910/README.md",
@@ -141,14 +144,14 @@
         "wasm/ay8910_wasm.cpp",
         "wasm/huc6280_wasm.cpp",
         "wasm/spc_wasm.cpp",
+        "wasm/ym2413_wasm.cpp",
         "wasm/ym2608_wasm.cpp"
       ]
     },
-    "manifestSha256": "0d1b6ec6760de1d6dc412f041ad88c9dcd939f1ebc15bcfd2c55f3eba16921bd",
+    "manifestSha256": "83c0adec744e8ddd04cbf733c6e83460bc5ff69eff39d7d772f4df454ca5f1cf",
     "name": "tetorica-soundchip-native",
     "schemaVersion": 1,
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-    "unpublished": true,
     "version": "0.1.8-fm2608-source-mixer"
   },
   "outputs": {

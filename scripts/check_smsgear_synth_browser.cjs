@@ -948,10 +948,28 @@ function mute() {
 					"../docs/synth-smsgear/fixtures.js"
 				);
 				await page.locator("#synthWorkspaceSynthButton").click();
+				// Give interactive browser controls a stable held-note window.
+				// Original-write precedence is tested deterministically by the
+				// native suite; do not race this assertion against a 1s KeyOff.
+				const shortDemo = createDemoVgm();
+				const offAt = shortDemo.findIndex(
+					(v, i) =>
+						i >= 0x100 && v === 0x50 && shortDemo[i + 1] === 0x9f,
+				);
+				assert(offAt > 0);
+				const longDemo = new Uint8Array([
+					...shortDemo.slice(0, offAt),
+					...Array(4).fill([0x61, 0xff, 0xff]).flat(),
+					...shortDemo.slice(offAt),
+				]);
+				const demoHeader = new DataView(longDemo.buffer);
+				demoHeader.setUint32(4, longDemo.length - 4, true);
+				demoHeader.setUint32(0x18, 88200 + 4 * 65535, true);
+
 				await page.locator("#vgmFileInput").setInputFiles({
 					name: "original-demo.vgm",
 					mimeType: "application/octet-stream",
-					buffer: Buffer.from(createDemoVgm()),
+					buffer: Buffer.from(longDemo),
 				});
 				await page.waitForFunction(
 					() => !document.getElementById("songPlay").disabled,
@@ -1306,7 +1324,7 @@ function mute() {
 						assert(
 							cached.seekCache.seekStartFrame > 0 &&
 								cached.seekCache.restoredCheckpoints > 0,
-							"real PSG seeks reuse native checkpoints",
+							"real VGM seeks reuse native checkpoints",
 						);
 						assert.equal(cached.playing, false);
 						await page.locator("#songCache").uncheck();

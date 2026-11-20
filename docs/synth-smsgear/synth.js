@@ -930,7 +930,7 @@ function updateTransport() {
 	$("songCache").disabled = songBusy || Boolean(song && !cache?.supported);
 	$("songCacheLabel").title =
 		cache?.reason ||
-		"Keep original PSG-only checkpoints in memory. Later seeks reuse played/prepared sections; manual edits are not cached.";
+		"Keep original native checkpoints in memory. Manual edits are not cached; Mixer changes clear FM checkpoints.";
 
 	const loaded = Boolean($("songSelect").value);
 	$("songPlay").disabled = !loaded || songBusy;

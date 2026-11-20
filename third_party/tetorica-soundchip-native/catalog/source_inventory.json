@@ -1297,7 +1297,9 @@
         {
           "path": "wasm/ym2413_wasm.cpp",
           "originPath": "wasm/ym2413_wasm.cpp",
-          "sha256": "e76d64214d86d7f57fded2e513f3fcfc807717ed0b9a7bd7591a4ef82b0af79e"
+          "sha256": "b51991f39ef90ccda9c0808014162da563e7f772d491cf138050b11e433c52a4",
+          "originalSha256": "e76d64214d86d7f57fded2e513f3fcfc807717ed0b9a7bd7591a4ef82b0af79e",
+          "modification": "Local SDK extension: opaque YM2413 save/restore via ymfm field serialization, interface timer/IRQ state and mute mask; existing PCM ABI unchanged."
         },
         {
           "path": "wasm/ym2608_wasm.cpp",

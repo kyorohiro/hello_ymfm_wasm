@@ -45,8 +45,8 @@
       "size": 52978
     },
     "catalog/source_inventory.json": {
-      "sha256": "eff2b4df392917dc751b400c29e1a70395fba5af8ed5a36c6d6fceb6a95f4c2c",
-      "size": 156996
+      "sha256": "fc055c2b3445afd9c102f9a6e750a480dc86eab3d19ebba60edb7a862f79b2c3",
+      "size": 157268
     },
     "docs/architecture.md": {
       "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda",
@@ -75,6 +75,10 @@
     "docs/verification.md": {
       "sha256": "78cdb20afecb63b2093f51e317913aa5a5f6834c41217cda803f4c3df57aa841",
       "size": 106852
+    },
+    "docs/ym2413-state.md": {
+      "sha256": "d7f708643cdde67566ec2965be75a39c4e61724424e4ab07c29900e65b289094",
+      "size": 1007
     },
     "docs/ym2608-source-mixer.md": {
       "sha256": "16fdb08e3d16a73d153a16f5f572643e056c5296895eb822fb2982aa41663d69",
@@ -801,8 +805,8 @@
       "size": 1251
     },
     "scripts/build_ym2413_wasm.sh": {
-      "sha256": "aa9c10b835fd43ffc2b6ea0a354fe806bbf82ae6faa1c5ac90baa9e147f9f589",
-      "size": 1067
+      "sha256": "d298b2ca4bbbee2a83d207904935671eb7e7360edd6156d325db14b631313408",
+      "size": 1109
     },
     "scripts/build_ym2608_wasm.sh": {
       "sha256": "ec793325b99032e35db9765dc6abe19601c83c8b9651f3dc3886334cff720f42",
@@ -939,6 +943,10 @@
     "tests/wonderswan_wasm_smoke.mjs": {
       "sha256": "dd2ceb3438e69d96fc392bebde29aeea712df9328d943a3516692dfe59851b04",
       "size": 11926
+    },
+    "tests/ym2413_state_wasm_smoke.mjs": {
+      "sha256": "bb892f2cb30903ce0f8b30e29bbdcc6cc869d5d7550326d540d9f6a00efc33ca",
+      "size": 1455
     },
     "tests/ym2608_output_gains_wasm_smoke.mjs": {
       "sha256": "d43692db04b2c96d25319a474b89b38da5eb7b34a48e5e180d3c1491c1507d58",
@@ -1897,8 +1905,8 @@
       "size": 2830
     },
     "wasm/ym2413_wasm.cpp": {
-      "sha256": "e76d64214d86d7f57fded2e513f3fcfc807717ed0b9a7bd7591a4ef82b0af79e",
-      "size": 2026
+      "sha256": "b51991f39ef90ccda9c0808014162da563e7f772d491cf138050b11e433c52a4",
+      "size": 2607
     },
     "wasm/ym2608_wasm.cpp": {
       "sha256": "88dcd408391a090284492054506afbe30cfdbbee6adb5f02fe6103b60b0c4946",

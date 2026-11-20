@@ -340,3 +340,64 @@ Artifacts: `build/smsgear-check/cache-unit.log`, `cache-real-browser*`,
 Human listening remains separate. Distribution ZIPs were not rebuilt, and
 there was no commit/push, publication or SDK update. The full YM2413 state
 prerequisite remains in the TODO.
+
+### Follow-up: YM2413 / combined seek checkpoints
+
+The pinned unpublished SDK candidate now includes native YM2413 state ABI
+(`ym2413_save_state` / `ym2413_load_state`). It uses existing ymfm field
+serialization plus interface timers/IRQ and mute mask, never pointer or raw
+heap snapshots. Native state is 340 bytes in this build. JS handles are opaque,
+owned by one instance; the Engine also saves resampler remainder/held sample.
+Its settings key prevents VgmPlayer from restoring old Mixer settings.
+
+FM-only and combined plans now use the existing 5-second / 64-entry / 2-MiB
+bounded clean-history cache. Registers and PSG source/live latches are retained
+with native state. Mixer changes invalidate FM checkpoints, and an exact-boundary
+change skips checkpointing until a native FM frame has replaced any held sample
+from the old gain/mute. Older runtimes retain uncached reconstruction.
+
+Evidence:
+
+- `ym2413_state_pcm_parity_01.json`: 1,284 old/new playback cases, 16,133,748
+  stereo output frames including continuation probes and reset/replay, maximum
+  difference zero. Only the two documented state exports extend the ABI.
+- `ym2413_state_checkpoint_validation_01.json`: 49 app/native tests, including
+  22.05/44.1/48/96-kHz native Engine state, nonstandard 3-MHz clock, opaque
+  ownership, pending address, Rhythm/Noise/LFO/Envelope, output compatibility,
+  clean cache restoration and exact-boundary Mixer changes. Type checks pass.
+- All 60 local game files pass at 44.1/48 kHz against uncached reconstruction.
+  106 of 120 bounded rate checks use actual native cache restores. No game
+  assets are committed or distributed.
+- Canonical artifacts / mirrors validate: 33 SDK builds, 68 outputs, 75 mirrors.
+  99 runtime/artifact/inspector tests and 28 SDK importer tests pass. The SPU
+  receipt was rebuilt only to bind the new SDK provenance; SPU PCM WASM bytes
+  are unchanged. The separate sibling Native SDK checkout was not modified.
+- Eight fresh complete muted matrices (raw + existing-policy verification for
+  PS1 / WonderSwan / POKEY / SCSP) pass. Existing Mixer gains, immutable
+  historical measurement reports and their source hashes are retained.
+  `ym2413_state_source_revision_01.json` authenticates the exact additive ABI
+  transition for historical freshness guards with the PCM proof and fresh
+  matrices; five new guard tests reject later source/evidence/SDK drift.
+- Current Playground and public Mixer policy `--check` commands pass.
+
+A final ZIP was generated and extracted, then tested in muted Chromium and
+WebKit with actual SMS FM Battle playback / seek / pause / cached restore and
+Cache Off. Archive (under ignored build output):
+`build/smsgear-fm-cache/package/tetorica_smsgear_synth_fm-cache-final_itch.zip`
+(4,028,233 bytes; SHA-256
+`cf56f6eefff2186efa5b5d0d1660b530b84176540051178e5094e1d1b63a8ddd`).
+Logs: `build/smsgear-fm-cache/zip-browser*`, `unit.log`, `state-guard-tests.log`,
+`runtime-tests.log`, `sdk-tests.log`, `types.log`, `real-vgm-audit.json`.
+The browser fixture holds its test note longer to avoid racing the real
+original-KeyOff while testing direct manual controls; native tests still verify
+original-write precedence explicitly.
+
+The broader historical proof suite has pre-existing failures: the exact baseline
+Git archive reproduces the same 157 failed test names (297 total / 140 pass) as
+the changed tree. Queue and SPU CSS fixture dependencies are recorded in
+`ym2413_state_baseline_test_comparison_01.json` and a separate TODO. These
+failures were not hidden by relaxing guards. New state guard tests and actual
+production packaging / policy checks pass independently.
+
+No commit/push, npm/SDK publication, itch upload or Tauri change was performed.
+Human listening remains separate.

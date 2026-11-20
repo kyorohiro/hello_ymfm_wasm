@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "scope": "ym2413-native-checkpoint-and-smsgear-cache-validation",
+  "passed": true,
+  "physicalOutputOpened": false,
+  "testCount": 49,
+  "failed": 0,
+  "nativeStateRates": [
+    22050,
+    44100,
+    48000,
+    96000
+  ],
+  "cacheRates": [
+    44100,
+    48000,
+    96000
+  ],
+  "nonstandardClockHz": 3000000,
+  "sourceCommit": "9db8f011eb2a61022dc185fa5ce164bf82241fd5",
+  "tests": {
+    "test/runtime/ym2413_state.test.mjs": {
+      "bytes": 4960,
+      "sha256": "95e187413b0331c23e332474727388aa760deab2286bdfd44112d617b53e0c49"
+    },
+    "test/runtime/ym2413_state.types.test.ts": {
+      "bytes": 813,
+      "sha256": "def7b4d0cd495312f9edf5d85c25470beb8b07cde53e77fcf0a766afd704daa5"
+    },
+    "docs/synth-smsgear/song_cache.test.mjs": {
+      "bytes": 11533,
+      "sha256": "aaaf6086e3447d9c9c26bf354f661a15549a102195b7819004e96fc1071770a0"
+    }
+  },
+  "commands": [
+    "node --test docs/synth-smsgear/*.test.mjs test/runtime/ym2413_state.test.mjs",
+    "node node_modules/typescript/bin/tsc --noEmit --strict --allowJs --skipLibCheck --module nodenext --moduleResolution nodenext --target es2022 test/runtime/ym2413_state.types.test.ts"
+  ],
+  "cases": [
+    "native pending bus address, Envelope/LFO/Noise/Rhythm and mute-mask continuation",
+    "opaque state ownership and invalid-length native rejection",
+    "resampler averaging/holding and output-setting compatibility",
+    "VgmPlayer retires checkpoints on Mixer changes",
+    "cached/linear PCM, manual-edit exclusion and current output settings",
+    "Mixer changes exactly at a checkpoint boundary"
+  ]
+}

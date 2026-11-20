@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "scope": "preexisting-calibration-history-failures",
+  "baseCommit": "9db8f011eb2a61022dc185fa5ce164bf82241fd5",
+  "method": "Extract exact git archive HEAD into an isolated build directory, link only node_modules, and run the identical calibration-history suite. No working source is substituted into the baseline.",
+  "command": "node --test scripts/mixer_calibration*.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs",
+  "baseline": {
+    "tests": 297,
+    "passed": 140,
+    "failed": 157
+  },
+  "changed": {
+    "tests": 297,
+    "passed": 140,
+    "failed": 157
+  },
+  "identicalFailingTestNames": true,
+  "observedExistingDependencyMismatches": [
+    "tetorica_src/runtime/playground_performance_queue.js",
+    "docs/synth-spu/synth.css"
+  ],
+  "followUp": "Repair archived historical proof inputs separately; do not relax production freshness guards. New YM2413 state guard tests pass independently."
+}

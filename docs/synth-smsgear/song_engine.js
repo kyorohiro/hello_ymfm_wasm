@@ -52,6 +52,10 @@ export async function createSmsGearSongEngine({
 			)
 				throw TypeError("Invalid reference channel mutes");
 		}
+		// FM resampler holds a post-output-gain sample. Keep only checkpoints
+		// made under the current output settings, including at >native rates.
+		if (hasFm && JSON.stringify(channelMutes) !== JSON.stringify(value))
+			invalidateFmOutputCache();
 		channelMutes = {
 			segapsg: value.segapsg.slice(),
 			ym2413: value.ym2413.slice(),
@@ -87,22 +91,32 @@ export async function createSmsGearSongEngine({
 		}
 		return pcm;
 	};
-	// PSG-only checkpoints. YM2413 has no native state ABI yet: never pretend
-	// register snapshots contain its oscillator / Envelope / LFO history.
+	// Native checkpoints, including oscillator / Envelope / LFO history.
+	// Older runtimes fall back to replay; registers alone are never sufficient.
 	const hasFm = plan.events.some(
 		(value, index) => index % 4 === 1 && value === 1,
 	);
-	const cacheSupported = !hasFm && Boolean(engine.psg?.supportsState?.());
+	const cacheSupported = hasFm
+		? engine.supportsState()
+		: Boolean(engine.psg?.supportsState?.());
 	const checkpointFrames = Math.max(1, Math.round(sampleRate * 5));
 	const cacheLimit = 2 * 1024 * 1024,
 		entryLimit = 64;
 	const checkpoints = new Map();
 	let cacheEnabled = Boolean(seekCache),
 		cacheBytes = 0,
-		cleanHistory = true;
+		cleanHistory = true,
+		cacheSafeAfterFrame = 0;
 	let seekStartFrame = 0,
 		restoredCheckpoints = 0;
 	const canCache = () => cacheEnabled && cacheSupported;
+	function invalidateFmOutputCache() {
+		clearCache();
+		// A checkpoint at this exact boundary must not retain a sample held
+		// from the previous Mixer settings before the next native FM frame.
+		cacheSafeAfterFrame =
+			frame + Math.ceil(sampleRate / engine.chipRate) + 1;
+	}
 	function clearCache() {
 		checkpoints.clear();
 		cacheBytes = 0;
@@ -112,11 +126,12 @@ export async function createSmsGearSongEngine({
 			!canCache() ||
 			!cleanHistory ||
 			frame === 0 ||
+			frame < cacheSafeAfterFrame ||
 			frame % checkpointFrames ||
 			checkpoints.has(frame)
 		)
 			return;
-		const chip = engine.psg.saveState();
+		const chip = hasFm ? engine.saveState() : engine.psg.saveState();
 		const bytes = chip.byteLength + 256;
 		if (bytes > cacheLimit) return;
 		while (
@@ -136,6 +151,7 @@ export async function createSmsGearSongEngine({
 			sourceLatch,
 			actualLatch,
 			decoder: shadow.saveState(),
+			registers: registers.slice(),
 			remainder: engine.remainder,
 			lastSample: engine.lastSample,
 		});
@@ -148,15 +164,18 @@ export async function createSmsGearSongEngine({
 			if (entry.frame <= target && (!best || entry.frame > best.frame))
 				best = entry;
 		if (!best) return;
-		engine.psg.loadState(best.chip);
+		if (hasFm) engine.loadState(best.chip);
+		else engine.psg.loadState(best.chip);
+		registers.set(best.registers);
 		shadow.loadState(best.decoder);
 		({ frame, cursor, stereo, sourceLatch, actualLatch } = best);
 		engine.remainder = best.remainder;
 		engine.lastSample = best.lastSample;
 		// Output choices are session state, not historical song state.
-		channelMutes.segapsg.forEach((muted, ch) =>
-			engine.setPsgChannelMuted(ch, muted),
-		);
+		if (!hasFm)
+			channelMutes.segapsg.forEach((muted, ch) =>
+				engine.setPsgChannelMuted(ch, muted),
+			);
 		engine.psg.setStereo(stereo);
 		checkpoints.delete(best.frame);
 		checkpoints.set(best.frame, best);
@@ -168,6 +187,7 @@ export async function createSmsGearSongEngine({
 		playing = false;
 		seeking = null;
 		cleanHistory = true;
+		cacheSafeAfterFrame = 0;
 		seekStartFrame = 0;
 		engine.reset();
 		setChannelMutes(channelMutes);
@@ -343,6 +363,8 @@ export async function createSmsGearSongEngine({
 					enabled: value[name].enabled,
 				};
 			}
+			if (hasFm && JSON.stringify(mix) !== JSON.stringify(next))
+				invalidateFmOutputCache();
 			mix = next;
 		},
 		snapshot() {
@@ -350,10 +372,10 @@ export async function createSmsGearSongEngine({
 				seekCache: {
 					enabled: cacheEnabled,
 					supported: cacheSupported,
-					reason: hasFm
-						? "YM2413 checkpoints need native state support"
-						: cacheSupported
-							? ""
+					reason: cacheSupported
+						? ""
+						: hasFm
+							? "Native YM2413 / PSG state is unavailable"
 							: "Native PSG state is unavailable",
 					entries: checkpoints.size,
 					bytes: cacheBytes,

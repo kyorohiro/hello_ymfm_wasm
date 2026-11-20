@@ -12,6 +12,7 @@ export const YM2413_CLOCK = 3579545;
  * Register writes program the chip; generateStereo() advances it to produce PCM.
  */
 export class Ym2413 {
+  #states = new WeakMap();
   /**
    * Wrap native resources allocated by create(); prefer the asynchronous factory.
    * @param {Object} module Initialized Emscripten module.
@@ -65,6 +66,39 @@ export class Ym2413 {
     const handle = api.create();
     return new Ym2413(module, handle, api);
   }
+
+  supportsState() { return !!this.handle && typeof this.module._ym2413_save_state === 'function' && typeof this.module._ym2413_load_state === 'function'; }
+
+  // Opaque, same-instance, same-build state. Output buffers and hooks are not state.
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
+  saveState() {
+    if (!this.supportsState()) throw new Error('State saving unavailable');
+    const size = this.module._ym2413_save_state(this.handle, 0);
+    const ptr = this.module._malloc(size);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      this.module._ym2413_save_state(this.handle, ptr);
+      const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
+      const state = Object.freeze({byteLength: size, muteMask: this.muteMask}); this.#states.set(state, bytes); return state;
+    } finally { this.module._free(ptr); }
+  }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
+  validateState(state) {
+    if (!this.supportsState() || !this.#states.has(state)) throw new Error('Invalid or foreign chip state');
+  }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
+  loadState(state) {
+    this.validateState(state);
+    const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
+      if (!this.module._ym2413_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
+      this.muteMask = state.muteMask;
+      this.#syncIrq();
+    } finally { this.module._free(ptr); }
+  }
+
 
   /**
    * Release native chip state and allocated WASM buffers. Do not use the chip afterward.

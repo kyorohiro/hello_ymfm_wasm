@@ -154,8 +154,8 @@ async function wrapperChecks(backend){
   const render=(actor,n)=>{frames+=n;return actor.ym2413?actor.processFrames(n):actor.generateStereo(n);};
   const makeEngine=async(outputRate,volume=1)=>{const engine=await Ym2413AudioEngine.create({ym2413ModuleFactory:()=>backend.module,outputSampleRate:outputRate,masterVolume:volume});actors.push(engine);return engine;};
   try{
-    for(const name of ['saveState','loadState','supportsState'])assert.equal(typeof chip[name],'undefined','No synthetic state API');
-    for(const name of ['_ym2413_save_state','_ym2413_load_state'])assert.equal(typeof backend.module[name],'undefined','No unsupported state exports');
+    for(const name of ['saveState','loadState','supportsState'])assert.equal(typeof chip[name],'function'); if(!chip.supportsState())assert.throws(()=>chip.saveState(),/unavailable/);
+
     const rates={};for(const clock of rateClocks){rates[clock]=chip.sampleRate(clock);assert.equal(rates[clock],Math.floor(clock/72));}
     chip.generateStereo(0);for(const n of [-1,.5,Infinity,0x1000001])assert.throws(()=>chip.generateStereo(n),RangeError);
     program(chip);program(other);sameBytes(render(chip,701).left,render(other,701).left,'Rate/zero/invalid frame queries do not advance synthesis');
@@ -194,12 +194,12 @@ async function wrapperChecks(backend){
     chip.setMuteMask(0x100);chip.reset();assert.equal(chip.muteMask,0x100);program(chip,{ch:8});assert(render(chip,701).left.every(v=>v===0),'Public reset reapplies mute mask');chip.setMuteMask(0);chip.reset();program(chip);render(chip,512);
     const owned=render(chip,17),held=owned.left.slice();assert(held.some(v=>v!==0));writeRegister(chip,0x10,0x5f);render(chip,17);sameBytes(owned.left,held,'Owned PCM survives same-buffer overwrite');const capacity=chip.bufferFrames;render(chip,capacity+1);assert(chip.bufferFrames>capacity);sameBytes(owned.left,held,'Owned PCM survives buffer growth');
     const up=await makeEngine(96000),average=await makeEngine(22050),half=await makeEngine(22050,.5);const engineChecks=[];
-    for(const actor of [up,average,half]){for(const name of ['saveState','loadState','supportsState'])assert.equal(typeof actor[name],'undefined');program(actor.ym2413);}
+    for(const actor of [up,average,half]){for(const name of ['saveState','loadState','supportsState'])assert.equal(typeof actor[name],'function');program(actor.ym2413);}
     for(const actor of [up,average]){let sourceFrames=0;const generate=actor.ym2413.generateStereo.bind(actor.ym2413);actor.ym2413.generateStereo=n=>{sourceFrames+=n;return generate(n);};const pcm=render(actor,1024);assert.equal(sourceFrames,Math.floor(1024*actor.chipRate/actor.outputRate));assert.equal(actor.remainder,(1024*actor.chipRate)%actor.outputRate);assert(pcm.left.some(v=>v!==0));engineChecks.push({outputRate:actor.outputRate,sourceFrames,outputFrames:1024,pcmSha256:pcmDigest(pcm)});}
     const halfPcm=render(half,1024);average.reset();program(average.ym2413);const fullPcm=render(average,1024);sameBytes(halfPcm.left,Float32Array.from(fullPcm.left,v=>v*.5),'Engine master gain applied once');
     for(const value of [NaN,Infinity,'bad'])assert.throws(()=>average.setMasterVolume(value),RangeError);average.setMasterVolume(99);assert.equal(average.volume,3.8);average.setMasterVolume(-1);assert.equal(average.volume,0);
     const before=timing(up);up.processFrames(0);for(const n of [-1,.5,Infinity,0x1000001])assert.throws(()=>up.processFrames(n),RangeError);assert.deepEqual(timing(up),before);
-    return {passed:true,stateApiAbsent:true,rates,builtIn,modulation,waveforms,sustain,rhythmGroups:groups,allNineMelodyMuteGroups:true,unknownMuteBitsIgnored:true,pendingAddressSurvivesGeneration:true,rawResetRetainsPendingAddress:true,rawResetDiffersFromPowerOn:true,publicResetRecreatesPowerOnRetainsMute:true,resetPcm:{raw:pcmDigest(rawReset),fresh:pcmDigest(fresh),public:pcmDigest(publicReset)},ownedPcmSurvivesOverwriteAndGrowth:true,engineChecks,totalOutputStereoFrames:frames,
+    return {passed:true,stateApiAvailabilityChecked:true,rates,builtIn,modulation,waveforms,sustain,rhythmGroups:groups,allNineMelodyMuteGroups:true,unknownMuteBitsIgnored:true,pendingAddressSurvivesGeneration:true,rawResetRetainsPendingAddress:true,rawResetDiffersFromPowerOn:true,publicResetRecreatesPowerOnRetainsMute:true,resetPcm:{raw:pcmDigest(rawReset),fresh:pcmDigest(fresh),public:pcmDigest(publicReset)},ownedPcmSurvivesOverwriteAndGrowth:true,engineChecks,totalOutputStereoFrames:frames,
       frameCountScope:'All raw/public chip and Engine output frames in bounded positive self-checks. Native source frames produced internally by Engine resampling are reported separately and not double-counted.'};
   }finally{for(const actor of actors){actor.dispose();actor.dispose();}}
 }
@@ -217,14 +217,14 @@ async function playerChecks(backend){
     const actualPlayerProcess=player.process.bind(player);player.process=(left,right,n,options)=>{requested+=n;processCalls++;const copied=actualPlayerProcess(left,right,n,options);delivered+=copied;return copied;};
     const read=(frames,layout)=>{const left=new Float32Array(frames),right=new Float32Array(frames);let offset=0,index=0;while(offset<frames){const n=Math.min(frames-offset,layout[index++%layout.length]);assert.equal(player.process(left.subarray(offset,offset+n),right.subarray(offset,offset+n),n),n,'Player must deliver every requested track frame');offset+=n;}return {left,right};};
     try{
-      player.load(fixture.bytes);assert.equal(player.supportsState(),false);assert.throws(()=>player.saveState(),/unavailable/);player.setPrefetchFactor(1);player.reset();player.play();
+      player.load(fixture.bytes);assert.equal(player.supportsState(),engine.supportsState());if(!player.supportsState())assert.throws(()=>player.saveState(),/unavailable/);player.setPrefetchFactor(1);player.reset();player.play();
       const total=Math.floor(fixture.samples*outputRate/44100),baseline=read(total,layouts.irregular);assert(baseline.left.some(v=>v!==0));sameBytes(baseline.left,baseline.right,'VGM mono reaches both sides');
       player.reset();player.play();const again=read(total,layouts.regular);sameBytes(again.left,baseline.left,'Real VgmPlayer reset/replay matches complete reference PCM');
       const seeks=[];for(const target of [0,1,701,1703,2345,5101]){
         const outputFrame=Math.floor(target*outputRate/44100),position=await seekPlayback(player,target,{yieldTask:async()=>{}});assert.equal(position,outputFrame*44100/outputRate);assert.equal(player.renderedPositionFrames(),outputFrame);assert.deepEqual(player.checkpointStats(),{count:0,bytes:0});
         player.resume();const pcm=read(257,[17,127,1,64]);sameBytes(pcm.left,baseline.left.subarray(outputFrame,outputFrame+257),'Seek replay from zero restores exact continuation');sameBytes(pcm.left,pcm.right,'Seek continuation mono');seeks.push({targetVgmSample:target,outputFrame,frames:257,pcmSha256:pcmDigest(pcm)});
       }
-      rows.push({clock,outputRate,fixtureBytes:fixture.bytes.length,fixtureSha256:sha256(fixture.bytes),fixtureVgmSamples:fixture.samples,completeOutputFrames:total,baselinePcmSha256:pcmDigest(baseline),seeks,noStateCheckpoints:true});
+      rows.push({clock,outputRate,fixtureBytes:fixture.bytes.length,fixtureSha256:sha256(fixture.bytes),fixtureVgmSamples:fixture.samples,completeOutputFrames:total,baselinePcmSha256:pcmDigest(baseline),seeks,seekReplayCompared:true});
     }finally{engine.dispose();}
   }
   return {passed:true,rows,generatedEngineOutputStereoFrames:generated,deliveredPlayerOutputStereoFrames:delivered,requestedPlayerOutputStereoFrames:requested,engineRenderExecutions:renders,playerProcessCalls:processCalls,
@@ -232,17 +232,17 @@ async function playerChecks(backend){
 }
 async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}
-  const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports,'Export surface unchanged');
-  assert(!sdk.metadata.exports.some(e=>/save_state|load_state/.test(e.name)),'No invented state exports');
+  const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);const stateNames=new Set(['ym2413_save_state','ym2413_load_state']); assert.deepEqual(sdk.metadata.exports.filter(e=>!stateNames.has(e.name)),legacy.metadata.exports.filter(e=>!stateNames.has(e.name)),'Existing export surface unchanged');
+  assert(sdk.metadata.exports.filter(e=>/save_state|load_state/.test(e.name)).every(e=>stateNames.has(e.name)),'Only the documented YM2413 state ABI may be added');
   const wrappers=['tetorica_src/runtime/ym2413.js','docs/js/ym2413.js','tetorica_src/runtime/ym2413audioengine.js','docs/js/ym2413audioengine.js'];
   const normalized=bytes=>bytes.toString().replace(/(\.\/(?:ym2413|soundchip|segapsg)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except import cache keys');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,layouts,probeFrames,
-    method:'Actual generated JS/WASM and unchanged synchronous Ym2413 wrapper/AudioEngine. Exact mono stereo PCM, explicit post-scenario PCM probes, rate/read/status/IRQ hooks, held resampler timing and public reset/replay. Actual VgmPlayer seek rebuilds from zero; no synthetic snapshot/state API, tolerance, mock, Mixer or device.',
+    method:'Actual generated JS/WASM and synchronous Ym2413 wrapper/AudioEngine with optional native state support. Exact mono stereo PCM, explicit post-scenario PCM probes, rate/read/status/IRQ hooks, held resampler timing and public reset/replay. Actual VgmPlayer seek rebuilds from zero; no register-derived snapshot, tolerance, mock, Mixer or device.',
     inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(['tetorica_src/runtime/ym2413synth.js','tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/ym2612vgm.js','docs/vgm_analyzer/seek_playback.js'].map(p=>inputFile(resolve(root,p))))},
     wrapperSync:'Byte-identical after removing only deployed ym2413.js/soundchip.js/segapsg.js import cache suffixes; actual hashes retained.',
     userPatch:{bytes:Array.from(userPatch),sha256:sha256(userPatch),origin:'Original synthetic authored user patch; built-in instruments are supplied by the existing core.'},wrapperChecks:{},playerChecks:{},cases:[],scenarioBodyOutputStereoFrames:0,postScenarioProbeOutputStereoFrames:0,totalOutputStereoFrames:0,resetReplayExecutions:0,maximumDifference:0,
     limits:['Native PCM runs at floor(clock/72). The wrapper sums melody and percussion mono outputs to both sides. Engine cases test averaging/holding at separate output rates, without optional Sega PSG.',
-      'No raw save/load exports or public state API exist for this wrapper/Engine. Internal state bytes are not inspected or claimed equivalent; continuation PCM probes, public reset/replay and VgmPlayer seek replay are compared instead.',
+      'Only the two native state exports may extend the ABI; existing PCM behavior, public reset/replay and VgmPlayer seek replay remain exact. Native checkpoint continuation has separate tests; serialized state bytes are not compared between builds.',
       'Raw reset preserves existing free-running counters and pending address; public reset recreates the native handle and reapplies the JS mute mask. Both existing paths are exercised without changing them.',
       'OPLL read/status compatibility APIs return zero and IRQ remains false; real hook notifications are compared at synchronous API/chunk boundaries.',
       'VgmPlayer seeks use the existing replay-from-zero helper. Actual rendered Engine frames include prefetch queues and are counted separately from delivered/discarded player frames.',

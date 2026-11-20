@@ -180,12 +180,12 @@
 									/>
 									<label
 										id="songCacheLabel"
-										title="Use in-memory checkpoints for PSG-only songs. YM2413 songs still rebuild full history."
+										title="Use bounded in-memory native checkpoints for PSG / YM2413 songs."
 										><input
 											id="songCache"
 											type="checkbox"
 											checked
-										/>Cache · PSG</label
+										/>Cache</label
 									>
 									<details class="inline-help">
 										<summary aria-label="About songs">
@@ -211,10 +211,12 @@
 											reference. Sound controls edit the
 											selected song channel directly;
 											later VGM writes can overwrite
-											edits. Cache retains original
-											PSG-only history in memory, bounded
-											to 64 checkpoints / 2 MiB. YM2413
-											songs still rebuild from the start.
+											edits. Cache retains original song
+											history in memory, bounded to 64
+											checkpoints / 2 MiB. Older runtimes
+											without native state support rebuild
+											from the start. Mixer changes clear
+											FM checkpoints.
 										</p>
 									</details>
 								</div>

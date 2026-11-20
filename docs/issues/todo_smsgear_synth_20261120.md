@@ -37,7 +37,7 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 - [x] Reference seek: replay chip history in bounded silent Worklet slices, keep Play/Pause, update Live registers at target, allow Stop during preparation.
 - [x] Mixer: reference-only PSG CH1–3 / Noise and YM2413 CH1–9 output mute, without changing registers. Preserve choices through seek and replacement.
 - [x] PSG-only reference seek cache, with bounded native checkpoints and an optional toggle.
-- [ ] YM2413-inclusive reference seek cache requires native FM state support (see prerequisites below).
+- [x] YM2413-only and combined reference seek cache using native FM state and resampler checkpoints.
 - [x] Direct selected-CH editing during reference playback / Pause; touched controls update the renderer without stopping the song. Capture keeps a separate static Synth copy.
 - [ ] Improve extraction of driver-dependent dynamic sounds and Rhythm scenes; current snapshots do not reconstruct software automation.
 - [ ] Consider a clearly labeled software PSG Envelope after hardware/basic interactions are confirmed.
@@ -69,4 +69,16 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 - [x] Keep only original-history checkpoints. Manual edits stop checkpoint creation until a seek/reset reconstructs clean history. Preserve current output mix/mutes on restore.
 - [x] Optional Cache toggle, bounded memory, graceful fallback when native state is unavailable; clear per-song state on disposal.
 - [x] Verify cached/uncached PCM at 44.1/48 kHz (white/periodic/Tone-3 Noise, stereo), backward/forward seeks, cancellation, edits, output controls and bounded eviction; audit local PSG game VGMs.
-- [ ] FM-inclusive cache prerequisite: add YM2413 native save/restore (including phase/Envelope/LFO/Noise, interface timers and mute mask), adopt a pinned SDK source candidate and build receipt, then expose opaque same-instance JS state and resampler state. Verify exact PCM before enabling FM checkpoints; do not synthesize checkpoints from registers alone.
+- [x] FM-inclusive cache prerequisite: add YM2413 native save/restore (including phase/Envelope/LFO/Noise, interface timers and mute mask), adopt a pinned SDK source candidate and build receipt, then expose opaque same-instance JS state and resampler state. Verify exact PCM before enabling FM checkpoints; do not synthesize checkpoints from registers alone.
+
+## Current follow-up: YM2413-inclusive checkpoints
+
+- [x] Isolated native YM2413 state ABI using ymfm field serialization plus interface timers/IRQ and mute mask; no raw heap/pointer snapshots. Verify normal PCM against previous WASM.
+- [x] Opaque same-instance JS chip and resampler snapshots; foreign/malformed state rejection and exact restore of melody, User patch, Rhythm, Envelope/LFO/Noise at 44.1/48 kHz.
+- [x] Adopt only the changed YM2413 recipe/source as an explicitly pinned unpublished SDK candidate; rebuild receipts/mirrors, preserve unrelated sibling SDK work, and validate source distributions.
+- [x] Extend existing bounded clean-history seek cache to FM/combined plans; retain current output mutes/mix and original PSG latch semantics. Keep fallback for older runtimes.
+- [x] Verify native/uncached/cached PCM, real game corpus and muted browsers; refresh any required calibration provenance before distribution.
+
+## Separate existing test maintenance
+
+- [ ] Repair archived historical calibration proof fixtures for the existing performance-queue / SPU CSS dependency changes without loosening production freshness guards. The broad suite has the same 157 failing test names before/after this feature (297 tests: 140 pass, 157 fail), confirmed using an isolated exact Git archive of the baseline commit. See `ym2413_state_baseline_test_comparison_01.json`. This is separate from the passing current-policy checks and the new native-state/cache tests.

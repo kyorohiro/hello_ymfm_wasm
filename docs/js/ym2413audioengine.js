@@ -14,6 +14,7 @@ import { SegaPSG } from './segapsg.js?v=audio-numeric-bindings-1';
  * Dispose the engine when done to release its underlying chips.
  */
 export class Ym2413AudioEngine {
+  #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
    * @param {{ym2413ModuleFactory: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, ym2413ModuleOptions?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleOptions, ym2413Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
@@ -102,6 +103,32 @@ export class Ym2413AudioEngine {
   reset() {
     this.ym2413.reset(); this.psg?.reset(); this.remainder = 0; this.lastSample = 0;
   }
+  supportsState() { return Boolean(this.ym2413.supportsState?.() && (!this.psg || this.psg.supportsState?.())); }
+  stateSettingsKey() { return JSON.stringify([this.chipRate,this.outputRate,this.volume,this.psgMuted,this.ym2413.muteMask,this.psg?.muteMask]); }
+  /** Opaque same-instance native/resampler snapshot. Current output settings must match.
+   * @returns {Readonly<{byteLength:number}>} */
+  saveState() {
+    if (!this.supportsState()) throw new Error('YM2413 state saving unavailable');
+    const fm = this.ym2413.saveState(), psg = this.psg?.saveState();
+    const state = Object.freeze({byteLength: fm.byteLength + (psg?.byteLength ?? 0) + 64});
+    this.#states.set(state, {fm, psg, chips:[this.ym2413,this.psg], rates:[this.chipRate,this.outputRate],
+      remainder:this.remainder,lastSample:this.lastSample,key:this.stateSettingsKey()});
+    return state;
+  }
+  /** @param {Readonly<{byteLength:number}>} state */
+  validateState(state) {
+    const saved=this.#states.get(state);
+    if (!this.supportsState() || !saved || saved.key!==this.stateSettingsKey() || saved.chips[0]!==this.ym2413 || saved.chips[1]!==this.psg ||
+      saved.rates[0]!==this.chipRate || saved.rates[1]!==this.outputRate) throw new Error('Invalid, foreign or incompatible YM2413 engine state');
+    this.ym2413.validateState(saved.fm); this.psg?.validateState(saved.psg);
+  }
+  /** @param {Readonly<{byteLength:number}>} state */
+  loadState(state) {
+    this.validateState(state); const saved=this.#states.get(state);
+    this.ym2413.loadState(saved.fm); this.psg?.loadState(saved.psg);
+    this.remainder=saved.remainder;this.lastSample=saved.lastSample;
+  }
+
   /**
    * Release the underlying chips and their resources. Do not render after disposal.
    * @returns {void}

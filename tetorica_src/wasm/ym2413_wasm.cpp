@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "opn_state.h"
 
 #include "ymfm_wasm_interface.h"
 #include "ymfm_opl.h"
@@ -10,6 +11,7 @@ struct ym2413_handle
 {
     ymfm_wasm_interface intf;
     ymfm::ym2413 chip;
+    uint32_t mute_mask = 0;
 
     ym2413_handle() : intf(), chip(intf)
     {
@@ -78,7 +80,9 @@ uint32_t ym2413_sample_rate(void *ptr, uint32_t clock)
 
 void ym2413_set_mute_mask(void *ptr, uint32_t mask)
 {
-    cast_handle(ptr)->chip.set_mute_mask(mask);
+    auto *h = cast_handle(ptr);
+    h->mute_mask = mask;
+    h->chip.set_mute_mask(mask);
 }
 
 void ym2413_generate(void *ptr, float *left, float *right, uint32_t frames)
@@ -96,6 +100,20 @@ void ym2413_generate(void *ptr, float *left, float *right, uint32_t frames)
             mix += output.data[out];
         left[index] = right[index] = normalize_sample(mix);
     }
+}
+
+// Opaque same-instance / same-build checkpoints: serialize fields, not pointers.
+uint32_t ym2413_save_state(void *ptr, uint8_t *out)
+{
+    auto *h = cast_handle(ptr);
+    return save_opn_state(h->chip, h->intf, {&h->mute_mask}, {}, out);
+}
+int ym2413_load_state(void *ptr, const uint8_t *data, uint32_t size)
+{
+    auto *h = cast_handle(ptr);
+    if (!load_opn_state(h->chip, h->intf, {&h->mute_mask}, {}, data, size)) return 0;
+    h->chip.set_mute_mask(h->mute_mask);
+    return 1;
 }
 
 }

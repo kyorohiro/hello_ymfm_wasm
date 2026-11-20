@@ -1,3 +1,4 @@
+import {restoreMixerCalibrationYm2413StateRevision} from './mixer_calibration_ym2413_state_revision.mjs';
 /** Freshness for calibration evidence, with narrowly scoped reviewed revisions.
  * Measurement reports retain every original raw source hash. A separately pinned
  * receipt allows only the version values at six exact UI resource imports to
@@ -378,6 +379,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const checkpointYm2413=restoreMixerCalibrationYm2413StateRevision(path,bytes),checkpointYm2413Revision=checkpointYm2413!==bytes;bytes=checkpointYm2413;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return checkpointYm2413Revision?'ym2413-native-checkpoint-api':'raw';
   const timedYm2612=restoreMixerCalibrationYm2612TimedRevision(path,bytes),timedYm2612Revision=timedYm2612!==bytes;bytes=timedYm2612;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return timedYm2612Revision?'ym2612-timed-operations-default-path-revision':'raw';
   const timedAy=restoreMixerCalibrationAyTimedRevision(path,bytes),timedAyRevision=timedAy!==bytes;bytes=timedAy;
