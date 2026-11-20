@@ -92,6 +92,12 @@ menu. Local project storage keeps drafts on this browser; export a Cassette
 for a portable copy. Restoring a project does not execute its code. Master,
 octave and transient playback state are host preferences.
 
+While a reference song is paused, select CH1–CH3 to edit its Tone, Noise,
+hardware envelope, periods and level for keyboard audition. Noise and envelope
+generators are shared. These temporary settings survive key release and channel
+selection; Capture to Synth saves the edited sound. Resume, seek or Stop clears
+them and resumes the original reference program without changing the saved Synth.
+
 ### Try the Sync-buzzer example
 
 Open **Files**, choose **`examples/sync-buzzer.js`**, switch to **Code**, and

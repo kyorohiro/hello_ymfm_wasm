@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ymSongLiveView,captureYmSongVoice} from './song_live.js';
+import {ymSongLiveView,captureYmSongVoice,editYmSongSnapshot} from './song_live.js';
 import {createYmCodeProject} from './code_project.js';
 import {ymMusicEntries,listYmMusic} from './music_files.js';
 function snapshot(){const registers=Array(16).fill(0);registers[0]=100;registers[2]=200;registers[4]=44;registers[5]=1;registers[6]=8;registers[7]=0x38;registers[8]=9;registers[9]=5;registers[10]=16;registers[11]=80;registers[13]=10;
@@ -35,4 +35,25 @@ test('music sources stay opaque and are routed collision-safely into VGM and mus
   const restored=createYmCodeProject();restored.restore(await restored.prepareImport(await project.exportProject()));
   assert.deepEqual(restored.fs.get('/music/demo.sndh').data,Uint8Array.of(5,6));
   assert.throws(()=>ymMusicEntries(project,[{name:'bad.txt',bytes:Uint8Array.of(1)}]));
+});
+
+test('paused edits preserve other mixer bits and original snapshots while shared settings reach every CH',()=>{
+ const source=snapshot(),before=structuredClone(source);
+ const next=editYmSongSnapshot(source,1,{voice:{tone:false,noise:true,envelope:true,volume:12,period:1234},noisePeriod:23,envelope:{period:4321,shape:8}});
+ assert.deepEqual(source,before);
+ assert.equal(next.registers[7],(source.registers[7]|2)&~16);
+ assert.equal(next.registers[9],28);
+ assert.equal(next.registers[8],source.registers[8]);
+ assert.equal(ymSongLiveView(next,1).preset.voices[1].period,1234);
+ assert.equal(ymSongLiveView(next,0).preset.noisePeriod,23);
+ assert.deepEqual(ymSongLiveView(next,2).preset.envelope,{period:4321,shape:8});
+ const captured=captureYmSongVoice(next,1);
+ assert(captured.voices.every(v=>!v.tone&&v.noise&&v.envelope&&v.volume===12));
+ assert.throws(()=>editYmSongSnapshot(next,1,{voice:{volume:16}}));
+ assert.throws(()=>editYmSongSnapshot(next,1,{envelope:{period:-1}}));
+ assert.deepEqual(source,before);
+ const muted=editYmSongSnapshot(next,1,{voice:{volume:0,envelope:false}});
+ assert.equal(ymSongLiveView(muted,1).canAudition,false);
+ const audible=editYmSongSnapshot(muted,1,{voice:{volume:9}});
+ assert.equal(ymSongLiveView(audible,1).canAudition,true);
 });

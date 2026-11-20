@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "unit": {
+    "passed": 186,
+    "total": 186,
+    "log": "build/st-paused-edit-suite.log"
+  },
+  "browser": {
+    "report": "build/st-paused-edit-browser.json",
+    "checkerSha256": "264c6b36e0649d8b45f344f540b7fccc48e65be7718127ac0e0f38ab0f26843c",
+    "cases": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "pausedEditing": {
+          "controlsEnabled": true,
+          "auditionUsesEdits": true,
+          "heldEditApplied": true,
+          "positionPreserved": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "pausedEditing": {
+          "controlsEnabled": true,
+          "auditionUsesEdits": true,
+          "heldEditApplied": true,
+          "positionPreserved": true
+        }
+      }
+    ]
+  },
+  "semantics": "Temporary paused audition snapshot; resume/seek/stop clear edits. Capture saves edits. Original song renderer and Synth preset retained."
+}

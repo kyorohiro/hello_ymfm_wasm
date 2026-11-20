@@ -306,6 +306,21 @@ async function check(browser,name,origin,fixture){
     const playingFrame=(await song()).positionFrames;for(const id of TAB_IDS){await choose(id);await assertTabs(id);assert((await song()).playing);assert.equal((await code()).running,false);}
     assert((await song()).positionFrames>playingFrame);await returnCode();await page.locator('#ymSongPause').click();await until(async()=>(await song()).paused,'Reference pauses from Code');
     const paused=await song();assert(paused.positionFrames>4410);assert.equal(await page.locator('#ymChannel2Tab').getAttribute('aria-selected'),'true');
+    await choose('ymChipTab');
+    for(const id of ['toneEnabled','noiseEnabled','envelopeEnabled','fixedVolume','noisePeriod','envelopePeriod','envelopeShape'])assert.equal(await page.locator('#'+id).isDisabled(),false,'Paused hardware control editable: '+id);
+    await page.locator('#noiseEnabled').check();
+    await page.locator('#envelopeEnabled').check();
+    await page.locator('#noisePeriod').evaluate(node=>{node.value='23';node.dispatchEvent(new Event('input',{bubbles:true}));});
+    assert.equal((await song()).positionFrames,paused.positionFrames);
+    await choose('synthInputKeyboardTab');await page.locator('#synthInputKeyboardTab').focus();await page.keyboard.down('a');
+    await until(()=>page.evaluate(()=>tetoricaYm2149StSynth.getState().activeChannels.includes(1)),'Paused edited audition');
+    let auditionState=await page.evaluate(()=>tetoricaYm2149StSynth.getState());
+    assert.equal(auditionState.preset.voices[1].noise,true);assert.equal(auditionState.preset.voices[1].envelope,true);assert.equal(auditionState.preset.noisePeriod,23);
+    await choose('ymChipTab');await page.locator('#toneEnabled').uncheck();
+    auditionState=await page.evaluate(()=>tetoricaYm2149StSynth.getState());assert.equal(auditionState.preset.voices[1].tone,false,'Held audition updates');
+    await page.keyboard.up('a');
+    await choose('ymChipTab');assert.equal(await page.locator('#noiseEnabled').isChecked(),true,'Edits survive release');
+    await returnCode();measurements.pausedEditing={controlsEnabled:true,auditionUsesEdits:true,heldEditApplied:true,positionPreserved:true};
     const pausedFoldBefore=await page.evaluate(()=>({commands:__ymWorkspaceAudit.commands().length,traffic:__ymWorkspaceAudit.traffic().length}));await referenceFold(false);
     for(const id of TAB_IDS){await choose(id);await assertTabs(id);const s=await song();assert(s.paused);assert.equal(s.positionFrames,paused.positionFrames);assert.equal(await page.locator('#ymChannel2Tab').getAttribute('aria-selected'),'true');assert.equal((await code()).running,false);}
     await page.locator('#synthWorkspaceSynthButton').click();assert.equal((await song()).positionFrames,paused.positionFrames);await page.locator('#synthWorkspaceCodeButton').click();await assertTabs('synthInputCodeTab');

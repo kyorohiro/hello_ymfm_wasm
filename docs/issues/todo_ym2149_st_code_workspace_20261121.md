@@ -1,5 +1,20 @@
 # ST YM2149 Code workspace alignment — 2026-11-21
 
+## Paused reference editing
+
+- [x] Enable selected-CH hardware controls while paused, keeping a separate
+      edited register snapshot for keyboard audition and capture.
+- [x] Preserve the song position and original Synth; discard temporary edits
+      on resume/seek/stop. Shared Noise/Envelope remain shared across channels.
+- [x] Verify register updates, audition and lifecycle isolation.
+
+186 ST tests passed. Muted Chromium/WebKit checks enable paused controls, edit
+Noise/Envelope, audition the edited CH, edit Tone while held and retain edits
+after release without moving the pause position. Existing layout, Instrument,
+folding and exclusive transport checks pass. Capture reads the edited snapshot;
+Resume/seek/Stop return to the original song. Evidence:
+[verification_ym2149_st_paused_edit_20261121.json](verification_ym2149_st_paused_edit_20261121.json).
+
 Authorized after the priority correction: finish timed APIs and Code / Synth
 workspace rollouts before more highlighting. ST already has the timed API;
 this slice aligns its layout while preserving that existing implementation.

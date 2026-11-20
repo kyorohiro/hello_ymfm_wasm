@@ -1,5 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createDefaultPreset,readPreset} from './preset.js';
+/** Edit a paused audition snapshot without changing the reference renderer. */
+export function editYmSongSnapshot(snapshot,channel,{voice={},noisePeriod,envelope}={}) {
+  const preset=ymSongLiveView(snapshot,channel).preset;
+  Object.assign(preset.voices[channel],voice);
+  if(noisePeriod!==undefined)preset.noisePeriod=noisePeriod;
+  if(envelope)Object.assign(preset.envelope,envelope);
+  const valid=readPreset(preset),v=valid.voices[channel];
+  const next={...snapshot,registers:[...snapshot.registers],registerKnown:[...(snapshot.registerKnown??Array(16).fill(0))]};
+  const write=(r,value)=>{next.registers[r]=value;next.registerKnown[r]=1;};
+  if(Object.hasOwn(voice,'period')){write(channel*2,v.period&255);write(channel*2+1,v.period>>8);}
+  let mixer=next.registers[7];
+  for(const [key,bit] of [['tone',1<<channel],['noise',8<<channel]])if(Object.hasOwn(voice,key))mixer=v[key]?mixer&~bit:mixer|bit;
+  if(Object.hasOwn(voice,'tone')||Object.hasOwn(voice,'noise'))write(7,mixer);
+  if(Object.hasOwn(voice,'volume')||Object.hasOwn(voice,'envelope'))write(8+channel,v.volume|(v.envelope?16:0));
+  if(noisePeriod!==undefined)write(6,valid.noisePeriod);
+  if(envelope&&Object.hasOwn(envelope,'period')){write(11,valid.envelope.period&255);write(12,valid.envelope.period>>8);}
+  if(envelope&&Object.hasOwn(envelope,'shape'))write(13,valid.envelope.shape);
+  return next;
+}
 export function ymSongLiveView(snapshot,channel) {
   if(!Number.isInteger(channel)||channel<0||channel>2)throw new RangeError('Choose CH1–CH3');
   const r=snapshot?.registers;
