@@ -410,6 +410,14 @@ export function createAswanCodeProject({
 			}
 		},
 		getCodeState: () => clone(state),
+		prepareNew() {
+			// Use the original starter, never the currently edited /index.js.
+			const fresh = createAswanCodeProject({starterCode: getStarterCode ? getStarterCode() : starterCode ?? ''});
+			fresh.select('/index.js');
+			fresh.setCodeState({mode: 'keyboard', path: '/index.js'});
+			fresh.setAutoApply(project.autoApply);
+			return fresh.snapshot();
+		},
 		snapshot() {
 			return {
 				format: ASWAN_PROJECT_FORMAT,

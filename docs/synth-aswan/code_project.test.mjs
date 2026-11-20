@@ -428,3 +428,26 @@ test('ASWAN Cassette restores active manual sound, saved settings and pending re
 	assert.deepEqual(legacy.savedSettings, draft);
 	assert.equal(legacy.activeSoundPath, null);
 });
+
+test('ASWAN prepareNew is detached, restores the original starter and accepts clean defaults in manual mode', () => {
+	let starter = '// original starter';
+	const p = createAswanCodeProject({getStarterCode: () => starter});
+	p.setAutoApply(false);
+	p.writeEditorText('/index.js', '// edited, not a template');
+	p.importSongSources([{name: 'old.vgz', bytes: Uint8Array.of(1, 255)}]);
+	const draft = {...p.settings, source: 'noise', left: 2}; p.setSettings(draft);
+	const before = p.snapshot(), fresh = createAswanCodeProject({snapshot: p.prepareNew()});
+	assert.deepEqual(p.snapshot(), before);
+	assert.equal(fresh.autoApply, false);
+	assert.deepEqual(fresh.settings, createDefaultPreset());
+	assert.deepEqual(fresh.savedSettings, createDefaultPreset());
+	assert.equal(fresh.fs.get('/index.js').data, '// original starter');
+	assert.equal(fresh.savedFs.get('/index.js').data, '// original starter');
+	assert.deepEqual(fresh.fs.list().map(file => file.path), ['/index.js']);
+	assert.equal(fresh.selectedPath, '/index.js');
+	assert.deepEqual(fresh.getCodeState(), {mode: 'keyboard', path: '/index.js'});
+	assert.deepEqual(fresh.getDirtyPaths(), []);
+	starter = 5;
+	assert.throws(() => p.prepareNew(), /Starter code/);
+	assert.deepEqual(p.snapshot(), before);
+});

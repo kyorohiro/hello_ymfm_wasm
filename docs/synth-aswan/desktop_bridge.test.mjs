@@ -208,7 +208,9 @@ test('stopping before Enable does not create an AudioContext; a closed bridge ca
 });
 
 function keyboard(f) {
+	f.main = {inert: false};
 	Object.assign(f.context, {
+		$: id => { assert.equal(id, 'aswanSynthMain'); return f.main; },
 		serial: 0,
 		songState: { busy: false },
 		codeHost: { getState: () => ({ busy: false }) },
@@ -314,4 +316,19 @@ test('a pending song load or Resume cannot restart playback after output switchi
 			false,
 		);
 	}
+});
+
+
+test('workspace replacement blocks new performance keys until the main controls are unlocked', async () => {
+	const f = fixture(); keyboard(f);
+	f.main.inert = true;
+	f.context.press('during-new', {key: 'a', midi: 60});
+	await f.getQueue();
+	assert.equal(f.notes.size, 0);
+	assert.equal(f.calls.some(call => call[0] === 'command'), false);
+	f.main.inert = false;
+	f.context.press('after-new', {key: 'a', midi: 60});
+	await f.getQueue();
+	assert.equal(f.notes.size, 1);
+	assert(f.calls.some(call => call[0] === 'command' && call[1] === 'noteOn'));
 });

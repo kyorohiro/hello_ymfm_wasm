@@ -945,3 +945,9 @@ button[aria-pressed='true'],
 .aswan-code-workspace.is-code-expanded .keyboard-section { margin-top: 0; }
 #synthExpandedVolumeSlot { display: flex; justify-content: flex-end; margin: 0 0 12px; }
 #synthExpandedVolumeSlot .master-control { min-width: 0; width: min(100%, 380px); }
+
+#aswanNewCassetteDialog {
+	width: min(460px, 90vw); border: 1px solid var(--line); border-radius: 10px;
+	background: var(--panel); color: inherit; padding: 18px;
+}
+.aswan-new-cassette-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }

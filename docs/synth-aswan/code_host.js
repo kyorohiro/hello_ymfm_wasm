@@ -36,6 +36,7 @@ export function setupAswanCodeHost({
 	beforeRun = async () => {},
 	prepareOutput = async () => {},
 	onActivity = () => {},
+	onNewProject = () => {},
 	onViewChange = () => {},
 	onExpandedChange = () => {},
 	setStatus = () => {},
@@ -76,14 +77,17 @@ export function setupAswanCodeHost({
 		getSettings,
 		applySettings,
 		setStatus,
+		onNewProject,
 		async onBeforeSoundApply() {
 			await beforeSoundApply();
 			if (!runtime?.getState().running) await stopKeyboard();
 		},
 		async onBeforeWorkspaceReplace() {
-			await stopSong();
-			await stop();
-			await stopKeyboard();
+			const failures = [];
+			for (const action of [stopSong, stop, stopKeyboard]) {
+				try { await action(); } catch (error) { failures.push(error); }
+			}
+			if (failures.length) throw failures[0];
 		},
 	});
 	function getRuntime() {

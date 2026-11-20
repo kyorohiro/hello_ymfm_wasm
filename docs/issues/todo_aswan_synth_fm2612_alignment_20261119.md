@@ -65,7 +65,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | --- | --- |
 | working/saved, Auto apply, ●, Save/Save all/Discard, accepted Code, two-version Cassette | **Implemented.** Shared workspace, v1→v2 migration, Files Auto apply/●/Save/Discard, saved Code entry/modules/data and two-version Cassette export/import. |
 | Active instrument file linked to knob/wave/JSON editing | **Implemented for authored Auto.** Selecting a sound links its document; controls/waves/valid JSON follow Auto apply. First Auto edits create a document. Physical CH edits stay direct and do not rewrite the Auto sound file. Incomplete JSON is retained and protected from knob overwrites. |
-| Files Undo, New Cassette and replacement recovery | **Partial.** Validated imports and recovery exist; Capture transactionally keeps the previous and captured sounds. There is no general Files Undo history or New Cassette workflow in the adapter. |
+| Files Undo, New Cassette and replacement recovery | **Partial.** Validated imports and recovery exist; Capture transactionally keeps the previous and captured sounds. New Cassette now has confirmation, optional dual-version backup and rollback. General Files Undo remains a separate follow-up. |
 | Persistent expanded Code workspace, chip/Mixer/Keyboard tabs, header Code/Synth, visible Master | **Implemented.** Code/ASWAN/Mixer/Keyboard share the expanded workspace, header Code/Synth changes layout, and the original Master and transport remain available. Expansion is retained across tabs; no new reload preference is added. |
 | Brief Live changed-value highlights, default On and switchable | **Implemented.** [live_highlight.js](../synth-aswan/live_highlight.js), [synth.js](../synth-aswan/synth.js) and `aswanHighlightEnabled` in [index.html](../synth-aswan/index.html) follow VGM/Code, default On and retain a preference. Preserve this feature rather than adding a second highlighter. |
 | Output-only channel switches shared by Keyboard, Code and song | **Implemented.** `aswanMixerChannels` applies four output switches to the instrument endpoint and reference player; Code uses that same instrument. Chip volume and final Master are separate. |
@@ -89,8 +89,38 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 - [x] Cassette export must include ordinary **saved** files and recoverable
       **working differences**, preserving mode and both versions on import.
       Do not duplicate unchanged PCM/source files.
-- [ ] Add bounded Files Undo and New Cassette with starter Code/examples.
+- [ ] Add bounded Files Undo (separate follow-up).
+- [x] Add New Cassette with the original starter Code and default sound.
       Preserve the existing two-sound Capture safety and never auto-run restored Code.
+
+### New Cassette slice (2026-11-20)
+
+Add Menu → New → Cassette · ZIP above Import. Offer Cancel, Export current &
+create, and Create without export. Prepare defaults before stopping anything;
+the backup contains saved files and working differences. Reset Files/VGM sources,
+sound selection and Code to a fresh `/index.js`, keeping the Auto apply preference
+and host Master/layout preferences. Stop Code/song/keys only after a requested
+backup succeeds. Failed/cancelled initialization restores the previous project,
+accepted sound, working draft, identity and editor selection; do not restart its
+performance automatically. Block duplicate requests and late/disposed commits.
+No general Undo, new examples, timed API, npm or release work in this slice.
+
+Implemented: detached `prepareNew()` uses the original starter and accepts a
+clean default project before any owner is retired. New uses a memory-only Code
+flush so a full browser store does not prevent an optional ZIP backup. Only a
+successful sound/editor replacement enables persistence for the fresh identity.
+Pending resets are single-flight; cancellation/disposal cannot publish a late
+starter or overwrite restored Code with a retired editor model. Dialog typing
+and locked main controls cannot acquire new keyboard notes. Successful New
+cancels old VGM imports and clears the temporary extracted-sound buttons too.
+
+Verification: `npm run test:aswan-synth` **206 passed**, including creation,
+dual-version/raw-source backup, backup rejection/cancellation, invalid starter,
+failed native/editor restoration, cancellation during Apply, storage failure,
+duplicate requests, disposal and keyboard locking. Source Chromium/WebKit New
+checks passed with physical outputs muted. A readable standalone ZIP passed
+the same suite, including 390px confirmation and creating before Enable
+without an AudioContext. No human listening, push, tag, npm or Tauri release.
 
 ## Subsequent UI candidates and preservation
 

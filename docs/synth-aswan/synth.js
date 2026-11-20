@@ -755,7 +755,7 @@ function renderKeyboard() {
 	$('octaveUp').disabled = octave >= 2;
 }
 function press(source, entry) {
-	if (disposed || switchingAudioOutput || notes.has(source) || codeHost?.getState()?.busy) return;
+	if (disposed || switchingAudioOutput || $('aswanSynthMain').inert || notes.has(source) || codeHost?.getState()?.busy) return;
 	if (songState.busy) {
 		status('Preparing the reference song…');
 		return;
@@ -1159,6 +1159,7 @@ codeHost = setupAswanCodeHost({
 		invalidateCodeHighlight();
 	},
 	onActivity: codeActivity,
+	onNewProject: () => { library.cancel(); renderSounds([]); },
 	onViewChange: mode => { expandedTabs?.showInput(mode); if (!disposed) display(); },
 	onExpandedChange: value => { expandedTabs?.setExpanded(value); if (!disposed) display(); },
 	setStatus: status,

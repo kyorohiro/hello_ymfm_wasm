@@ -1380,3 +1380,132 @@ test('ASWAN manual rename back to the saved name clears its pending move without
 	await f.files.discardCurrent();
 	assert.equal(f.project.fs.get('/index.js').data, '// kept');
 });
+
+test('ASWAN New Cassette confirms before stopping and restores defaults, original starter and fresh identity without running', async t => {
+	let committed = 0;
+	const f = fixture(t, {onNewProject: () => committed++}); await f.files.ready;
+	f.project.writeEditorText('/index.js', 'globalThis.mustNotRunNewAswan=true;');
+	f.project.importFiles([{path: '/data/old.bin', type: 'binary', data: Uint8Array.of(0,255)}]);
+	f.project.setCodeState({mode: 'code', path: '/index.js'}); f.project.select('/data/old.bin');
+	f.setSettings({...createDefaultPreset(), source: 'noise', left: 2});
+	const identity = f.files.workspaceId, states = []; let stopped = 0;
+	f.files.setCodeControls({setBusy() {}, flush: async () => true,
+		captureState: () => ({mode: 'code', path: '/index.js'}), workspaceReplaced: async () => stopped++,
+		restoreState: async state => states.push(state), run: () => assert.fail('New must not run Code')});
+	await f.doc.getElementById('aswanProjectNewButton').fire('click');
+	assert.equal(f.doc.getElementById('aswanNewCassetteDialog').open, true);
+	assert.equal(stopped, 0);
+	await f.doc.getElementById('aswanNewCassetteCancel').fire('click');
+	assert.equal(stopped, 0); assert(f.project.fs.has('/data/old.bin'));
+	assert.equal(await f.files.newProject(), true);
+	assert.equal(stopped, 1); assert.equal(committed, 1);
+	assert.notEqual(f.files.workspaceId, identity);
+	assert.deepEqual(f.project.settings, createDefaultPreset());
+	assert.deepEqual(f.project.fs.list().map(file => file.path), ['/index.js']);
+	assert.equal(f.project.savedFs.get('/index.js').data, '// kept');
+	assert.deepEqual(states, [{mode: 'keyboard', path: '/index.js'}]);
+	assert.equal(f.writes.at(-1).workspaceId, f.files.workspaceId);
+	assert.equal(globalThis.mustNotRunNewAswan, undefined);
+});
+
+test('ASWAN New exports both Code versions, opaque songs and the current draft before retiring the performance', async t => {
+	const downloads = [], order = [];
+	const f = fixture(t, {downloadFile: async (bytes, name, type) => { downloads.push({bytes,name,type}); order.push('export'); }});
+	await f.files.ready; await f.files.setAutoApply(false);
+	f.project.writeEditorText('/index.js', '// unsaved Code');
+	f.project.importFiles([{path: '/vgm/original.vgz', type: 'binary', data: Uint8Array.of(0,128,255)}]);
+	f.project.saveFiles(['/vgm/original.vgz']);
+	const draft = {...createDefaultPreset(), left: 1}; f.setSettings(draft); f.files.recordSoundEdit(draft);
+	f.files.setCodeControls({setBusy() {}, flush: async () => true, workspaceReplaced: async () => order.push('stop'), restoreState: async () => {}});
+	assert.equal(await f.files.newProject({exportCurrent: true}), true);
+	assert.deepEqual(order, ['export', 'stop']);
+	assert.match(downloads[0].name, /\.cassette\.zip$/); assert.equal(downloads[0].type, 'application/zip');
+	const backup = createAswanCodeProject({snapshot: await f.project.prepareImport(downloads[0].bytes)});
+	assert.equal(backup.fs.get('/index.js').data, '// unsaved Code');
+	assert.equal(backup.savedFs.get('/index.js').data, '// kept');
+	assert.deepEqual(backup.fs.get('/vgm/original.vgz').data, Uint8Array.of(0,128,255));
+	assert.equal(backup.settings.left, 1); assert.equal(backup.savedSettings.left, 9);
+	assert.equal(f.project.autoApply, false);
+	assert.deepEqual(f.project.getDirtyPaths(), []);
+});
+
+test('ASWAN failed or cancelled backup keeps the old project, identity and performance', async t => {
+	for (const outcome of ['throw','cancel']) await t.test(outcome, async t => {
+		const f = fixture(t, {downloadFile: async () => { if(outcome==='throw') throw Error('Backup unavailable'); return false; }});
+		await f.files.ready; const before=f.project.snapshot(), identity=f.files.workspaceId;
+		f.files.setCodeControls({setBusy() {}, flush: async()=>true, workspaceReplaced:()=>assert.fail('No retirement without backup')});
+		if(outcome==='throw') await assert.rejects(f.files.newProject({exportCurrent:true}), /Backup unavailable/);
+		else assert.equal(await f.files.newProject({exportCurrent:true}),false);
+		assert.deepEqual(f.project.snapshot(),before); assert.equal(f.files.workspaceId,identity);
+		assert.equal(f.calls.length,0);
+	});
+});
+
+test('ASWAN invalid defaults, cancelled flush and duplicate requests cannot retire owners or create late backups', async t => {
+	const gate=deferred(), started=deferred(); let downloads=0;
+	const f=fixture(t,{downloadFile:async()=>{downloads++;return true;}});await f.files.ready;
+	const before=f.project.snapshot(), prepare=f.project.prepareNew;
+	f.project.prepareNew=()=>{throw Error('Bad template');};
+	await assert.rejects(f.files.newProject(),/Bad template/);assert.deepEqual(f.project.snapshot(),before);
+	f.project.prepareNew=prepare;
+	f.files.setCodeControls({setBusy(){},flush:()=>{started.resolve();return gate.promise;},workspaceReplaced:()=>assert.fail('Cancelled')});
+	const pending=f.files.newProject({exportCurrent:true});await started.promise;
+	assert.equal(await f.files.newProject(),false);
+	await f.doc.getElementById('aswanNewCassetteDialog').fire('cancel');gate.resolve(true);
+	assert.equal(await pending,false);assert.equal(downloads,0);assert.deepEqual(f.project.snapshot(),before);
+});
+
+test('ASWAN rejected initialization and editor restore roll back both versions, linked sound and selection', async t => {
+	for(const phase of ['apply-false','apply-throw','editor-false','editor-throw','cleanup-false']) await t.test(phase, async t => {
+		let applications=0, restores=0;const states=[];
+		const f=fixture(t,{applySettings:async(value,options)=>{
+			f.setSettings(options.displayPreset??value);
+			if(++applications===1){if(phase==='apply-false')return false;if(phase==='apply-throw')throw Error('Apply failed');}
+		},onBeforeWorkspaceReplace:async()=>phase==='cleanup-false'?false:undefined});
+		await f.files.ready;await f.files.setAutoApply(false);
+		const draft={...createDefaultPreset(),left:2};f.setSettings(draft);f.files.recordSoundEdit(draft);
+		f.project.writeEditorText('/index.js','// unsaved');f.project.setCodeState({mode:'code',path:'/index.js'});
+		const before=f.project.snapshot(),identity=f.files.workspaceId;
+		f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,
+			restoreState:async state=>{states.push(state);if(++restores===1){if(phase==='editor-false')return false;if(phase==='editor-throw')throw Error('Editor failed');}}});
+		if(phase.endsWith('throw'))await assert.rejects(f.files.newProject(),/failed/);
+		else assert.equal(await f.files.newProject(),false);
+		assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);
+		assert.deepEqual(states.at(-1),before.codeState);
+		assert.equal(f.doc.querySelector('.aswan-main').inert,false);
+		if(phase!=='cleanup-false')assert.equal(applications,2);
+	});
+});
+
+test('ASWAN cancellation during native Apply restores the previous project and leaves Code stopped', async t => {
+	const gate=deferred(),started=deferred();let applications=0,retired=0;
+	const f=fixture(t,{applySettings:async()=>{if(++applications===1){started.resolve();await gate.promise;}}});
+	await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+	f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>retired++,restoreState:async()=>{}});
+	const pending=f.files.newProject();await started.promise;
+	await f.doc.getElementById('aswanNewCassetteCancel').fire('click');gate.resolve();
+	assert.equal(await pending,false);assert.equal(retired,1);assert.equal(applications,2);
+	assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);
+	assert.match(f.statuses.at(-1),/Performance remains stopped/);
+});
+
+test('ASWAN disposal during pending New cannot commit defaults or overwrite the restored source with a retired editor', async t => {
+	const gate=deferred(),started=deferred();let flushes=0;
+	const f=fixture(t,{applySettings:async()=>{started.resolve();await gate.promise;}});await f.files.ready;
+	f.project.writeEditorText('/index.js','// keep this Code');const before=f.project.snapshot();
+	f.files.setCodeControls({setBusy(){},flush:async()=>{if(++flushes>1)f.project.writeEditorText('/index.js','// stale model');return true;},workspaceReplaced:async()=>true,restoreState:async()=>{}});
+	const pending=f.files.newProject();await started.promise;
+	const disposing=f.files.dispose();gate.resolve();
+	assert.equal(await pending,false);await disposing;
+	assert.equal(flushes,1);assert.deepEqual(f.project.snapshot(),before);
+	assert.equal(f.doc.getElementById('aswanNewCassetteDialog'),undefined);
+	assert.equal(await f.files.newProject(),false);
+});
+
+test('ASWAN New retains exportable fresh files when browser storage fails', async t => {
+	const f=fixture(t,{store:{read:async()=>null,write:async()=>{throw Error('Quota exceeded');},close:async()=>{}}});
+	await f.files.ready;f.files.setCodeControls({setBusy(){},flush:async options=>options?.persist===false,workspaceReplaced:async()=>true,restoreState:async()=>{}});
+	assert.equal(await f.files.newProject(),true);assert.match(f.statuses.at(-1),/Local save unavailable/);
+	const copy=createAswanCodeProject({snapshot:await f.project.prepareImport(f.project.exportProject())});
+	assert.equal(copy.fs.get('/index.js').data,'// kept');
+});

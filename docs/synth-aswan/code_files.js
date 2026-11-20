@@ -121,8 +121,10 @@ export function setupAswanCodeFiles({
 	applySettings = async () => {},
 	onBeforeWorkspaceReplace = async () => {},
 	onBeforeSoundApply = async () => {},
+	onNewProject = () => {},
 	setStatus = () => {},
 	store = createAswanProjectStore(),
+	downloadFile,
 	document: doc = globalThis.document,
 } = {}) {
 	const panel = doc.getElementById('aswanFilesPanel'),
@@ -147,6 +149,9 @@ export function setupAswanCodeFiles({
 	let code = null,
 		busy = true,
 		disposed = false,
+		disposing = false,
+		pendingNewCassette = null,
+		newProjectTask = null,
 		restoring = false,
 		persistenceReady = false,
 		operation = 0,
@@ -179,6 +184,7 @@ export function setupAswanCodeFiles({
 	actions.setAttribute('aria-label', 'Selected file actions');
 	const buttons = new Map();
 	for (const [id, label] of [
+		['aswanProjectNewButton', 'Cassette · ZIP…'],
 		['aswanFileNewButton', '+ JS'],
 		['aswanFileSaveButton', 'Save'],
 		['aswanFileSaveAllButton', 'Save all'],
@@ -202,6 +208,7 @@ export function setupAswanCodeFiles({
 		if (id === 'aswanFileNewButton')
 			button.title = 'New JavaScript file; end the path with / to create a folder';
 		const destination = {
+			aswanProjectNewButton: ['aswanMenuProjectNew', 'Cassette · ZIP…'],
 			aswanProjectImportButton: ['aswanMenuProjectImport', 'Project · ZIP…'],
 			aswanProjectExportButton: ['aswanMenuProjectExport', 'Project · ZIP'],
 			aswanFileImportButton: ['aswanMenuFilesImport', 'Project files…'],
@@ -258,6 +265,20 @@ export function setupAswanCodeFiles({
 	form.append(label, nameInput, confirm, cancel);
 	dialog.append(form);
 	panel.append(heading, autoLabel, tree, actions, selected, info, fileInput, projectInput, dialog);
+	const newCassetteDialog = make('dialog', 'aswanNewCassetteDialog'),
+		newCassetteTitle = make('h2', 'aswanNewCassetteTitle', 'Create a new Cassette?'),
+		newCassetteDescription = make('p', null, 'This replaces the current project and stops its performance. Export first to keep saved files and unsaved edits. The new Cassette contains the default sound and starter Code. Code will not run automatically.'),
+		newCassetteActions = make('div'),
+		newCassetteCancel = make('button', 'aswanNewCassetteCancel', 'Cancel'),
+		newCassetteExport = make('button', 'aswanNewCassetteExport', 'Export current & create'),
+		newCassetteCreate = make('button', 'aswanNewCassetteCreate', 'Create without export');
+	newCassetteDialog.setAttribute('aria-labelledby', newCassetteTitle.id);
+	newCassetteDialog.setAttribute('role', 'dialog');
+	newCassetteActions.className = 'aswan-new-cassette-actions';
+	for (const button of [newCassetteCancel, newCassetteExport, newCassetteCreate]) button.type = 'button';
+	newCassetteActions.append(newCassetteCancel, newCassetteExport, newCassetteCreate);
+	newCassetteDialog.append(newCassetteTitle, newCassetteDescription, newCassetteActions);
+	doc.body.append(newCassetteDialog);
 	let dialogAction = null,
 		dialogPath = null;
 	const say = (message) => {
@@ -384,6 +405,7 @@ export function setupAswanCodeFiles({
 			buttons.get(id).disabled = busy || !(project.selectedPath && project.isFileModified(project.selectedPath));
 		for (const id of ['aswanFileSaveAllButton', 'aswanFileDiscardAllButton'])
 			buttons.get(id).disabled = busy || !project.getDirtyPaths().length;
+		newCassetteCreate.disabled = newCassetteExport.disabled = busy || disposing;
 		code?.setBusy?.(busy);
 		for (const button of tree.querySelectorAll('button')) button.disabled = busy;
 	}
@@ -422,8 +444,8 @@ export function setupAswanCodeFiles({
 		workspace.classList.toggle('has-files', Boolean(value));
 		toggle.setAttribute('aria-expanded', String(Boolean(value)));
 	}
-	async function flushCode() {
-		const result = await code?.flush?.();
+	async function flushCode(options) {
+		const result = await code?.flush?.(options);
 		await pendingSoundEdit;
 		return result;
 	}
@@ -827,6 +849,111 @@ export function setupAswanCodeFiles({
 		project.setSettings(getSettings());
 		return project.exportProject();
 	}
+	function cancelNewCassette() {
+		if (pendingNewCassette !== null) operation++;
+		newCassetteDialog.close();
+	}
+	function askNewCassette() {
+		if (disposed || disposing || busy || newProjectTask) return;
+		newCassetteDialog.showModal();
+		newCassetteCancel.focus();
+	}
+	function newProject(options = {}) {
+		if (disposed || disposing || busy || newProjectTask) return Promise.resolve(false);
+		const task = {promise: null, flushed: false};
+		newProjectTask = task;
+		task.promise = createNewProject(options, task).finally(() => {
+			if (newProjectTask === task) newProjectTask = null;
+		});
+		return task.promise;
+	}
+	async function createNewProject({exportCurrent = false} = {}, task) {
+		if (typeof exportCurrent !== 'boolean') throw TypeError('exportCurrent must be a boolean.');
+		await api.ready;
+		if (disposed || disposing || busy) return false;
+		const token = ++operation, current = () => !disposed && !disposing && token === operation;
+		const previousIdentity = identity, previousPersistence = persistenceReady;
+		let previous = null, retired = false, applyAttempted = false, committed = false;
+		pendingNewCassette = token;
+		clearTimeout(saveTimer);
+		setBusy(true);
+		try {
+			// Validate the fresh project before retiring any current performance.
+			const fresh = createAswanCodeProject({snapshot: project.prepareNew()});
+			if ((await flushCode({persist: false})) === false || !current()) return false;
+			task.flushed = true;
+			restoring = true;
+			previous = {...project.snapshot(), codeState: code?.captureState?.() ?? project.getCodeState()};
+			// Read authoring settings once for both backup and rollback. A failed
+			// refresh keeps the already validated cached draft and accepted sound.
+			try {
+				const sound = readAswanProjectSound(await getSettings());
+				if (!sound) throw Error('Expected an ASWAN instrument.');
+				previous.settings = sound;
+				if (project.autoApply) previous.savedSettings = sound;
+			} catch (error) {
+				if (!current()) return false;
+				say('Could not refresh the sound; using the cached sound. ' + error.message);
+			}
+			previous = createAswanCodeProject({snapshot: previous}).snapshot();
+			if (!current()) return false;
+			if (exportCurrent) {
+				const oldProject = createAswanCodeProject({snapshot: previous});
+				if ((await (downloadFile ?? download)(oldProject.exportProject(),
+					oldProject.cassetteName + '.cassette.zip', 'application/zip')) === false || !current()) return false;
+			}
+			if (!current()) return false;
+			// Save only after Files, sound and editor selection all commit.
+			persistenceReady = false;
+			retired = true;
+			if ((await code?.workspaceReplaced?.()) === false || !current()) return false;
+			if ((await onBeforeWorkspaceReplace({isCurrent: current})) === false || !current()) return false;
+			applyAttempted = true;
+			if ((await applySettings(fresh.savedSettings, {record: false, source: 'restore', load: true,
+				applyAudio: true, displayPreset: fresh.settings, isCurrent: current})) === false || !current()) return false;
+			project.restore(fresh.snapshot());
+			identity = workspaceId();
+			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
+			committed = true;
+			soundEditOperation++;
+			soundApplicationPending = false;
+			appliedPreset = null; presetCache.clear();
+			persistenceReady = true; restoring = false;
+			newCassetteDialog.close();
+			try { await onNewProject(); } catch (error) { report(error); }
+			const durable = await persistCode();
+			say('New ASWAN Cassette created. Code was not run.' +
+				(durable === false ? ' Local save unavailable; Export Cassette to keep this project.' : ' Saved locally.'));
+			return true;
+		} finally {
+			if (!committed) {
+				persistenceReady = previousPersistence;
+				if (previous && retired) {
+					project.restore(previous); identity = previousIdentity;
+					if (!disposed && !disposing) {
+						if (applyAttempted) {
+							try {
+								if ((await applySettings(previous.savedSettings, {record: false, source: 'restore', load: true,
+									applyAudio: true, displayPreset: previous.settings,
+									isCurrent: () => !disposed && !disposing && pendingNewCassette === token})) === false)
+									throw Error('Previous sound restoration was cancelled.');
+							} catch (error) { report(error); }
+						}
+						try { await code?.restoreState?.(previous.codeState); } catch (error) { report(error); }
+					}
+				}
+			}
+			restoring = false;
+			if (pendingNewCassette === token) {
+				pendingNewCassette = null;
+				if (!disposed && !disposing) {
+					setBusy(false);
+					if (!committed && persistenceReady) schedule();
+					if (!committed) say('New Cassette was not created; previous project kept.' + (retired ? ' Performance remains stopped.' : ''));
+				}
+			}
+		}
+	}
 	async function move(source, destination, copy = false) {
 		if (disposed || busy) return false;
 		const token = ++operation;
@@ -1184,6 +1311,10 @@ export function setupAswanCodeFiles({
 			.catch(report);
 	});
 	listen(cancel, 'click', () => dialog.close());
+	listen(newCassetteCancel, 'click', cancelNewCassette);
+	listen(newCassetteDialog, 'cancel', event => { event.preventDefault(); cancelNewCassette(); });
+	listen(newCassetteExport, 'click', () => void newProject({exportCurrent: true}).catch(report));
+	listen(newCassetteCreate, 'click', () => void newProject().catch(report));
 	listen(presetSelect, 'change', () => {
 		const choice = presetOptions.get(presetSelect.value);
 		presetSelect.blur();
@@ -1210,6 +1341,7 @@ export function setupAswanCodeFiles({
 			},
 		],
 		['aswanFileSaveSoundButton', () => void saveSound().catch(report)],
+		['aswanProjectNewButton', askNewCassette],
 		[
 			'aswanProjectExportButton',
 			() =>
@@ -1291,6 +1423,7 @@ export function setupAswanCodeFiles({
 		selectFile,
 		importFiles,
 		importProject,
+		newProject,
 		exportProject,
 		createFile,
 		move,
@@ -1316,10 +1449,18 @@ export function setupAswanCodeFiles({
 			return recordSoundEdit(value);
 		},
 		async dispose() {
-			if (disposed) return;
+			if (disposed || disposing) return;
+			disposing = true;
 			operation++;
+			setBusy(true);
+			newCassetteDialog.close();
+			const pending = newProjectTask;
+			if (pending) await pending.promise.catch(() => {});
+			newCassetteDialog.remove();
 			contextMenu.dispose();
-			await flushCode();
+			// A reset snapshot already includes the last editor flush. Reflushing
+			// the retired editor here could write a fresh starter into its rollback.
+			if (!pending?.flushed) await flushCode();
 			await persistCode();
 			disposed = true;
 			if (main) main.inert = false;

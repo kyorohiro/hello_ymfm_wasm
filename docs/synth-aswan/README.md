@@ -116,6 +116,17 @@ differences, avoiding duplicate unchanged VGM/PCM files. The active sound,
 accepted sound settings, pending renames and Auto apply mode are restored too.
 Restoring either format never starts Code or audio.
 
+**Menu → New → Cassette · ZIP…** opens a confirmation. **Cancel** keeps the
+current project and performance. **Export current & create** downloads a
+Cassette containing saved files and unsaved edits before replacing the project;
+**Create without export** skips that backup. The new project contains the
+original `/index.js` starter and default sound, clears imported VGM/sound
+lists, and never runs Code or enables audio automatically. Auto apply, Master
+and layout preferences are retained. Once creation begins, Code/song/keyboard
+performances stop. Failed initialization restores the previous Files, sound
+and editor selection; it does not restart the old performance automatically.
+If browser storage fails, keep the page open and Export the new Cassette.
+
 ## VGM reference songs and sounds
 
 Import a local WonderSwan **VGM / VGZ** through the menu or Files. The original
