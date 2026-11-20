@@ -303,6 +303,13 @@ async function check(browser,name,origin,fixture){
     const playingFoldBefore=await page.evaluate(()=>({commands:__ymWorkspaceAudit.commands().length,traffic:__ymWorkspaceAudit.traffic().length})),playingFoldFrame=(await song()).positionFrames;
     await referenceFold(false);await pause(85);assert((await song()).playing);assert((await song()).positionFrames>playingFoldFrame,'Reference continues while folded');await referenceFold(true);await assertTabs('synthInputCodeTab');await sameGraph(graph);
     const playingFoldAfter=await page.evaluate(()=>({commands:__ymWorkspaceAudit.commands().length,traffic:__ymWorkspaceAudit.traffic().length}));assert.deepEqual(playingFoldAfter,playingFoldBefore,'Playing disclosure sends no audio commands or lifecycle events');measurements.referenceFold.playingContinuesWithoutAudioCommands=true;
+    await choose('ymChipTab');
+    assert.equal(await page.locator('#noiseEnabled').isDisabled(),false,'Playing VGM controls editable');
+    await page.locator('#noiseEnabled').check();
+    await page.locator('#envelopeEnabled').check();
+    await page.locator('#noisePeriod').evaluate(node=>{node.value='23';node.dispatchEvent(new Event('input',{bubbles:true}));});
+    await until(async()=>{const s=await song();return s.playing&&!(s.liveState.registers[7]&16)&&(s.liveState.registers[9]&16)&&s.liveState.registers[6]===23;},'Manual writes reach the playing reference renderer and audible history');
+    measurements.liveEditing={playing:true,noise:true,envelope:true,noisePeriod:23};await returnCode();
     const playingFrame=(await song()).positionFrames;for(const id of TAB_IDS){await choose(id);await assertTabs(id);assert((await song()).playing);assert.equal((await code()).running,false);}
     assert((await song()).positionFrames>playingFrame);await returnCode();await page.locator('#ymSongPause').click();await until(async()=>(await song()).paused,'Reference pauses from Code');
     const paused=await song();assert(paused.positionFrames>4410);assert.equal(await page.locator('#ymChannel2Tab').getAttribute('aria-selected'),'true');

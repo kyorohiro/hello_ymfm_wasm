@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "unit": {
+    "passed": 188,
+    "total": 188,
+    "log": "build/st-live-edit-suite.log"
+  },
+  "browser": {
+    "report": "build/st-live-edit-browser.json",
+    "checkerSha256": "1db8a645a026e96e9e00be4ffeca93bf72a3741638f8cd9d4069663ceb34de3a",
+    "cases": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "liveEditing": {
+          "playing": true,
+          "noise": true,
+          "envelope": true,
+          "noisePeriod": 23
+        },
+        "pausedEditing": {
+          "controlsEnabled": true,
+          "auditionUsesEdits": true,
+          "heldEditApplied": true,
+          "positionPreserved": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "liveEditing": {
+          "playing": true,
+          "noise": true,
+          "envelope": true,
+          "noisePeriod": 23
+        },
+        "pausedEditing": {
+          "controlsEnabled": true,
+          "auditionUsesEdits": true,
+          "heldEditApplied": true,
+          "positionPreserved": true
+        }
+      }
+    ]
+  },
+  "scope": "VGM renderer live edits; SNDH/YM offer paused audition editing only",
+  "timing": "Next unrendered block, following existing audio lookahead; subsequent song writes win."
+}

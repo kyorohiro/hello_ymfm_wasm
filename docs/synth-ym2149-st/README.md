@@ -98,6 +98,13 @@ generators are shared. These temporary settings survive key release and channel
 selection; Capture to Synth saves the edited sound. Resume, seek or Stop clears
 them and resumes the original reference program without changing the saved Synth.
 
+During **VGM** playback these hardware controls edit the selected channel in
+the reference renderer directly. Writes reach the next render block after the
+short audio lookahead already queued for playback. Later song writes can replace
+them; shared Noise/Envelope affect all three channels. Code running on the Synth
+also permits manual controls, with the same last-write-wins behavior. SNDH/YM
+reference playback currently offers editing during Pause only.
+
 ### Try the Sync-buzzer example
 
 Open **Files**, choose **`examples/sync-buzzer.js`**, switch to **Code**, and

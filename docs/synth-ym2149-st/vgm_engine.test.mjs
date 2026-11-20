@@ -111,3 +111,18 @@ test('loading / rendering cancellation and zero-duration sources create no audio
   during.abort(); assert.throws(() => engine.processFrames(1), {name: 'AbortError'}); engine.dispose();
   await assert.rejects(createYmVgmEngine({}), /Prepare an AY/);
 });
+
+test('live channel edits affect native PCM and partial mixers until later VGM writes replace them',async()=>{
+ const bytes=createYmVgmFixture([...ayWrite(0,100),...ayWrite(1,0),...ayWrite(7,0x38),...ayWrite(8,10),...ayWait(2048),...ayWrite(8,10),...ayWait(2048),0x66]);
+ const source=await readYmVgmSource(bytes),engine=await createYmVgmEngine(source,{moduleFactory,wasmBinary});
+ try {
+  engine.processFrames(512);
+  engine.editChannel(0,{voice:{volume:0}});
+  assert.equal(engine.snapshot().registers[8],0);
+  const silent=engine.processFrames(512);assert(silent.left.every(value=>Math.abs(value)<1e-6));
+  engine.editChannel(0,{voice:{noise:true}});engine.editChannel(1,{voice:{tone:false}});
+  assert.equal(engine.snapshot().registers[7],(0x38&~8)|2);
+  engine.processFrames(1024);assert.equal(engine.snapshot().registers[8],10,'later song write wins');
+  const before=engine.snapshot();assert.throws(()=>engine.editChannel(0,{voice:{volume:99}}));assert.deepEqual(engine.snapshot(),before);
+ } finally {engine.dispose();}
+});

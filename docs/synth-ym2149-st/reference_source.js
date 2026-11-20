@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {readYmVgmSource} from './vgm_source.js';
-import {createYmVgmEngine} from './vgm_engine.js';
+import {createYmVgmEngine} from './vgm_engine.js?v=live-edit-1';
 import {readAtariSource,createAtariSongEngine} from './atari_engine.js';
 export async function prepareYmReference(bytes,options={}) {
   if(!(bytes instanceof Uint8Array)||bytes.length<4)throw new TypeError('Music file is too short');

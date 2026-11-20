@@ -2,6 +2,7 @@
 import factory from '../generated/ay8910_wasm.js';
 import {Ay8910AudioEngine} from '../js/ay8910audioengine.js';
 import {checkYmVgmAbort} from './vgm_source.js';
+import {editYmSongSnapshot} from './song_live.js?v=paused-edit-1';
 
 /** Synchronous native AY rendering with the existing Synth speaker centering.
  * The host applies its calibrated chip / master gains once, after this output.
@@ -22,9 +23,7 @@ export async function createYmVgmEngine(source, {signal, moduleFactory = factory
     if (disposed) throw new Error('YM VGM engine is disposed');
     checkYmVgmAbort(signal);
   };
-  const applyAtFrame = () => {
-    while (cursor < events.length && events[cursor].time <= frame) {
-      const {register, value} = events[cursor++];
+  const write = (register,value) => {
       chipEngine.writeAy8910(register, value);
       registers[register] = value;
       registerKnown[register] = 1;
@@ -35,6 +34,10 @@ export async function createYmVgmEngine(source, {signal, moduleFactory = factory
         const active = 3 - ((muteMask & 1) + ((muteMask >> 1) & 1) + ((muteMask >> 2) & 1));
         speakerOffset = centerSpeaker ? Math.fround(active * 0.125 / 3) : 0;
       }
+  };
+  const applyAtFrame = () => {
+    while (cursor < events.length && events[cursor].time <= frame) {
+      const {register,value}=events[cursor++];write(register,value);
     }
   };
   try {
@@ -46,6 +49,17 @@ export async function createYmVgmEngine(source, {signal, moduleFactory = factory
       sampleRate: () => 44100,
       get frame() { return frame; },
       get ended() { return frame >= source.durationFrames; },
+      editChannel(channel,patch) {
+        open();
+        const next=editYmSongSnapshot(api.snapshot(),channel,patch),voice=patch.voice??{},indices=[];
+        if(Object.hasOwn(voice,'period'))indices.push(channel*2,channel*2+1);
+        if(Object.hasOwn(voice,'tone')||Object.hasOwn(voice,'noise'))indices.push(7);
+        if(Object.hasOwn(voice,'volume')||Object.hasOwn(voice,'envelope'))indices.push(8+channel);
+        if(patch.noisePeriod!==undefined)indices.push(6);
+        if(patch.envelope&&Object.hasOwn(patch.envelope,'period'))indices.push(11,12);
+        if(patch.envelope&&Object.hasOwn(patch.envelope,'shape'))indices.push(13);
+        for(const reg of indices)write(reg,next.registers[reg]);
+      },
       processFrames(count) {
         open();
         if (!Number.isInteger(count) || count < 0 || count > 0x1000000) throw new RangeError('Invalid YM VGM frame count');

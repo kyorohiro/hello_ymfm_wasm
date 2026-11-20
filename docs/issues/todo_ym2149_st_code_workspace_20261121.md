@@ -1,5 +1,22 @@
 # ST YM2149 Code workspace alignment — 2026-11-21
 
+## Playing VGM direct editing
+
+- [x] Apply selected-channel operations to the actual VGM renderer at its next
+      render block, resolving shared-register partial updates there.
+- [x] Keep queued PCM/transport and Code ownership intact; later song writes
+      may overwrite manual edits. Report renderer capability explicitly.
+- [x] Verify native register/audio effects, ordering and browser controls.
+
+188 ST tests passed, including native-WASM PCM mute changes, later VGM
+overwrites, mixer partial-update ordering and queued-operation isolation.
+Muted Chromium/WebKit checks changed Noise, Envelope and Noise period while
+the song kept playing and verified the audible renderer's published registers.
+Code ownership, paused audition and existing layout/transport checks passed.
+Existing queued audio is retained, so edits follow the short playback lookahead.
+SNDH/YM renderers do not yet expose live writes; their paused editing is retained.
+Evidence: [verification_ym2149_st_live_edit_20261121.json](verification_ym2149_st_live_edit_20261121.json).
+
 ## Paused reference editing
 
 - [x] Enable selected-CH hardware controls while paused, keeping a separate

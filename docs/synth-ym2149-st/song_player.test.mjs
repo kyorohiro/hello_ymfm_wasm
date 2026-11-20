@@ -38,6 +38,7 @@ function setup(t, options = {}) {
         await options.snapshot?.(engine);
         return {frame, clock: selected.clock, registers, registerKnown};
       },
+      editChannel(channel,patch) { engine.edits??=[];engine.edits.push({channel,patch}); },
       mutateRegisters() { registers.fill(255); registerKnown.fill(false); },
       dispose() { engine.disposed = true; },
     };
@@ -386,4 +387,18 @@ test('missing song output is rejected without opening another context', async t 
   assert.match(f.player.read().error, /songInputNode/);
   assert.equal(f.engines.length, 0);
   assert.equal(f.graph.context.closes, 0);
+});
+
+test('live edits queue in order for future render blocks, without replacing or stopping the player',async t=>{
+ const f=setup(t);await f.player.load(source());await f.player.play();
+ const engine=f.engines[0],before=f.player.read().positionFrames;
+ assert.equal(f.player.read().canEdit,true);
+ const patch={voice:{noise:true}};
+ assert.equal(f.player.editChannel(0,patch),true);patch.voice.noise=false;
+ f.player.editChannel(1,{voice:{tone:false}});
+ assert.throws(()=>f.player.editChannel(0,{voice:{volume:99}}));
+ for(let i=0;i<12;i++){f.graph.tick(0.008);await flush();}
+ assert.deepEqual(engine.edits,[{channel:0,patch:{voice:{noise:true}}},{channel:1,patch:{voice:{tone:false}}}]);
+ assert(f.player.read().playing);assert(f.player.read().positionFrames>=before);assert.equal(f.engines.length,1);
+ f.player.pause();assert.equal(f.player.editChannel(0,{voice:{noise:false}}),false);
 });

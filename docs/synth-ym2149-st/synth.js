@@ -3,8 +3,8 @@ import {createAudio} from './audio.js';
 import {createDefaultPreset, readPreset} from './preset.js';
 import {setupYmCodeHost} from './code_host.js?v=ym-code-instrument-fold-1';
 import {setupNumberControls} from './controls.js';
-import {createYmSongPlayer} from './song_player.js';
-import {prepareYmReference,createYmReferenceEngine} from './reference_source.js';
+import {createYmSongPlayer} from './song_player.js?v=live-edit-1';
+import {prepareYmReference,createYmReferenceEngine} from './reference_source.js?v=live-edit-1';
 import {setupYmSongPanel} from './song_panel.js';
 import {ymSongLiveView,captureYmSongVoice,editYmSongSnapshot} from './song_live.js?v=paused-edit-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -48,6 +48,7 @@ function referenceView() {
 }
 function editPausedReference(patch) {
   const view=referenceView();
+  if(view&&songState.playing&&songState.canEdit)return songPlayer.editChannel(target,patch);
   if(!view||!songState.paused||songState.busy)return false;
   const snapshot=editYmSongSnapshot(referenceSnapshot(),target,patch);
   pausedEdit={source:songState.liveState,snapshot};
@@ -83,7 +84,7 @@ function render() {
   if(audio) {const state=audio.instrument.read(); if(!audition)preset=state.preset; target=state.selectedChannel; pitch=state.pitch;}
   const live=referenceView(),shown=live?.preset??preset,voice=shown.voices[target ?? 0];
   $('ymSynthMain').dataset.referenceView=String(Boolean(live));
-  for(const id of ['toneEnabled','noiseEnabled','envelopeEnabled','tonePeriod','fixedVolume','noisePeriod','envelopePeriod','envelopeShape','retriggerEnvelope'])$(id).disabled=Boolean(live&&(!songState.paused||songState.busy));
+  for(const id of ['toneEnabled','noiseEnabled','envelopeEnabled','tonePeriod','fixedVolume','noisePeriod','envelopePeriod','envelopeShape','retriggerEnvelope'])$(id).disabled=Boolean(live&&(!songState.paused&&!songState.canEdit||songState.busy));
   for(const id of ['presetName','savePreset'])$(id).disabled=Boolean(live);
   $('ymSongCapture').disabled=!songState.paused||songState.busy||!live?.canCapture;
   $('ymSongCapture').title=live?.reason||(!songState.paused?'Pause to capture the selected reference channel':'');
@@ -102,7 +103,7 @@ function render() {
   }
   $('voiceFrequency').textContent=`${((live?.clock??2000000)/(16*Math.max(1,voice.period))).toFixed(2)} Hz`;
   $('channelStatus').textContent=live
-    ? `${songState.paused?'Paused · editable audition · C4 plays this pitch; Resume returns to the song':'Live · Pause to audition'} · ${live.description}${live.reason?' · '+live.reason:''}`
+    ? `${songState.paused?'Paused · editable audition · C4 plays this pitch; Resume returns to the song':songState.canEdit?'Live · direct editing; later song writes may replace edits':'Live · Pause to audition'} · ${live.description}${live.reason?' · '+live.reason:''}`
     : target===null
     ? 'Auto · keyboard uses CH1–CH3 in turn. Edits affect all three; selecting Auto keeps their current settings.'
     : `CH${target+1} · display, controls and keyboard address this physical voice.`;

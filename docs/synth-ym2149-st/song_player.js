@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 const RATE = 44100;
+import {editYmSongSnapshot} from './song_live.js?v=paused-edit-1';
 const BLOCK = 512;
 const defaultSchedule = globalThis.setTimeout.bind(globalThis);
 const defaultCancel = globalThis.clearTimeout.bind(globalThis);
@@ -106,6 +107,7 @@ export function createYmSongPlayer({
       canPause: playback === 'playing', canResume: playback === 'paused' && !busy,
       canStop: busy || Boolean(active) || frame > 0,
       canSeek: Boolean(source) && !loading,
+      canEdit: playback==='playing'&&!busy&&typeof active?.engine.editChannel==='function',
     };
   }
   function emit() { try { onState(read()); } catch {} }
@@ -280,6 +282,7 @@ export function createYmSongPlayer({
           if ((run.renderedFrames - position(run)) / RATE >= lookaheadSeconds || (blocks && nowMs() >= deadline)) break;
           const requested = Math.min(BLOCK, duration() - run.renderedFrames);
           if (requested <= 0) { run.eof = true; break; }
+          for(const edit of run.pendingEdits?.splice(0)??[])run.engine.editChannel(edit.channel,edit.patch);
           const result = await waitFor(run.engine.processFrames(requested), run.controller.signal);
           if (run.released || active !== run) return;
           const frames = renderLength(result, requested);
@@ -460,7 +463,14 @@ export function createYmSongPlayer({
   const track = fn => (...args) => {
     const result = fn(...args); pending = Promise.resolve(result).catch(() => {}); return result;
   };
-  return {load: track(load), play: track(play), pause, resume: track(resume), stop,
+  function editChannel(channel,patch) {
+    open();
+    if(!read().canEdit)return false;
+    editYmSongSnapshot(liveState,channel,patch);
+    (active.pendingEdits??=[]).push({channel,patch:structuredClone(patch)});
+    return true;
+  }
+  return {load: track(load), play: track(play), pause, resume: track(resume), stop,editChannel,
     seek: track(seek), setSubsong, setLive, read, getState: read, setLiveEnabled: setLive,
     clear, unload: clear, whenIdle: () => pending, dispose};
 }
