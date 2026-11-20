@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Unpublished source-build example: npm 0.2.44 does not include two-bus routing.
+// Installed-package example: two-bus routing requires tetorica-fm2612 0.2.45+.
 import {readFile, realpath} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';

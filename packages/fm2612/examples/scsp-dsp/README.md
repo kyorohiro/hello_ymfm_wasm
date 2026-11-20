@@ -133,15 +133,13 @@ examples above keep their existing behavior. The Delay controls require Web
 Audio Main / Worker or a local owned `ScspSynth`; Native DSP transport rejects
 them explicitly with `NotSupportedError`.
 
-## Two input / output paths — unpublished source build
+## Two input / output paths — 0.2.45
 
-`routing.mjs` and `routing.html` use a new source-build routing extension.
-**The published npm 0.2.44 does not include it.** Build the repository package
-with `npm run build:fm2612`, then install that local `dist/fm2612` directory in
-a separate project:
+`routing.mjs` and `routing.html` require tetorica-fm2612 **0.2.45 or later**.
+Install the package in a separate project:
 
 ```sh
-npm install /path/to/hello_ymfm/dist/fm2612
+npm install tetorica-fm2612@^0.2.45
 node node_modules/tetorica-fm2612/examples/scsp-dsp/routing.mjs
 ```
 

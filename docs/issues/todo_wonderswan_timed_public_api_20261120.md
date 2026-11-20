@@ -100,3 +100,11 @@ registry publication. Tarball, install and muted browser evidence live under
   `client` can lag scheduled/native changes. Use `current` or a captured snapshot
   for authoritative comparison. Manual UI and human listening remain separate.
 - No commit, push, tag, npm publish, version bump, Tauri import or remote CI run.
+
+
+## Later publication (2026-11-20)
+
+The separate user-authorized publication task released **0.2.45**. The downloaded
+registry archive matches the validated candidate exactly and `latest` is 0.2.45.
+The earlier 0.2.44 candidate/no-publication statements describe the original
+implementation slice. See [publication evidence](npm_wonderswan_timed_release_20261120.md).

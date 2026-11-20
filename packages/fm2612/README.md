@@ -400,12 +400,12 @@ reservation unless `clearRam:true` clears the bank. Insufficient RAM or invalid
 settings reject without changing the existing sound. Arbitrary RAM layouts,
 extra effect programs and Native DSP transport remain outside this profile.
 
-### Two SCSP DSP paths (unpublished source build)
+### Two SCSP DSP paths (0.2.45)
 
-The current repository adds a bounded routing extension to `ScspSynth` and its
-acknowledged Main / Worker Web Audio client. **npm 0.2.44 does not include it.**
-See the [source-build routing examples](examples/scsp-dsp/README.md#two-input--output-paths--unpublished-source-build)
-for complete local-package Node / browser setups and readable field source.
+Version 0.2.45 adds a bounded routing extension to `ScspSynth` and its
+acknowledged Main / Worker Web Audio client.
+See the [routing examples](examples/scsp-dsp/README.md#two-input--output-paths--0245)
+for complete installed-package Node / browser setups and readable field source.
 
 `setPreset()` / `setMix()` accept `dspInput:0|1`, alongside the existing
 hardware `dspSend` level. New presets default to input 0; a partial `setMix()`
@@ -1225,7 +1225,7 @@ Initialize audio from a user gesture. Worklets, the logic Worker, native effects
 WASM, chip loader JS/WASM pairs and Tetorica's generated OPNA rhythm data are
 included. Website/editor pages and the Introduction/Ebook are separate consumers.
 
-### WonderSwan register-operation authoring (unpublished)
+### WonderSwan register-operation authoring (0.2.45)
 
 The WonderSwan Web Audio runtime now exposes `build`, `compile`, `captureState`,
 `schedule` and `clearSchedule` through the primary `ws`, independent chips and
@@ -1878,6 +1878,15 @@ MIT adaptation, BSD host code, readable rebuild sources and Rust toolchain
 notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
+
+`0.2.45` exposes WonderSwan hardware operation recording, compilation, reusable
+state snapshots and sample-clock scheduling through shared Playground / npm
+Main and Worker clients. It also includes the intervening HuC6280 and PS1 SPU
+timed APIs and SCSP two-input / two-output DSP routing, with readable modules,
+examples and checked declarations. WonderSwan software-Envelope notes remain
+Synth-specific; Wave RAM / Voice PCM recording and Native scheduling are not
+supported by its public recorder. Existing calibrated shared-source provenance
+was remeasured; this is not a new Synth listening-balance policy.
 
 `0.2.44` adds the managed SCSP hardware DSP Delay through local `ScspSynth` and
 acknowledged Main / Worker Web Audio clients. `setDspDelay()` reserves one
