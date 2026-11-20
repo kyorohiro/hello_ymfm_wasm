@@ -27,7 +27,8 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('DMG Code stopped','AbortError');
 export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,getSaveSoundSettings=getSettings,applySettings,stopKeyboard,
-  stopSong=async()=>{},beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
+  stopSong=async()=>{},beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},
+  onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createGameboyCodeProject({settings:getSettings(),getStarterCode:()=>GAMEBOY_STARTER_CODE});
   const audio=createGameboyCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -69,7 +70,7 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,getSaveSo
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
-    keepRunningOnKeyboard:true,
+    keepRunningOnKeyboard:true,persistentExpanded:true,
     allowTextFiles:true,maxTextLength:GAMEBOY_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'gameboy',transformDeclarations:selectGameboyCodeDeclarations,
     journalKey:'tetorica-dmg-synth-pending-code',getStarterCode:()=>GAMEBOY_STARTER_CODE,
@@ -77,7 +78,7 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,getSaveSo
     async onModeChange(){
       modeEpoch++;openOutput();
       onActivity();
-    },setStatus,
+    },onViewChange,onExpandedChange,setStatus,
   });
   return{project,files,controls,ready:controls.ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),

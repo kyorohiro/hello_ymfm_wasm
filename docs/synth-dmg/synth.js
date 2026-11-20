@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js?v=dmg-working-saved-1';
-import {setupGameboyCodeHost} from './code_host.js?v=dmg-working-saved-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-code-workspace-1';
 import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-vgm-manual-1';
 import {createEditor} from './editor.js?v=dmg-vgm-manual-1';
 import {createGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-vgm-manual-1';
 import {createGameboyChannelBank,readGameboyChannelBank,applyGameboyChannelEdit,updateGameboyChannelBank} from './channel_bank.js?v=dmg-vgm-manual-1';
 import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-vgm-manual-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {setupGameboySongControls} from './song_controls.js?v=dmg-vgm-manual-1';
 import {createGameboySongAudition} from './song_audition.js?v=dmg-vgm-manual-1';
 import {prepareGameboySongVoice} from './song_voice.js?v=dmg-vgm-manual-1';
@@ -28,6 +29,7 @@ let playbackPreset=readPreset(preset),playbackRevision=0;
 let channelBank=createGameboyChannelBank(preset),channelTarget='synth',autoUpdate=true,editorLive=null;
 let queue = Promise.resolve(), captureWork = null;
 let vgmImport = null, codeHost = null, codeLive = null, applySequence = 0, liveSignature = null, songControls = null, lastSongState = null, audition = null, auditionSelectionKey = null, pausedVoiceCache = null;
+let expandedTabs=null;
 const notes = new Map(), auditionNotes = new Map(), vgmNotes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -483,6 +485,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){void stopAll();return;}
+  expandedTabs?.dispose();
   disposed=true;songControls?.dispose();void audition?.dispose().catch(()=>{});epoch++;applySequence++;notes.clear();vgmNotes.clear();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmImport.dispose();
   const closing=audio;
   void Promise.resolve(codeHost?.dispose()).catch(()=>{}).finally(()=>closing?.dispose()).catch(()=>{});
@@ -664,7 +667,22 @@ codeHost=setupGameboyCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>re
     if(audio&&!codeHost?.isRunning())await audio.command('setPitch',[0]);
   },
   beforeSoundApply:async()=>{songControls?.cancelPendingCapture();await captureWork?.catch(()=>{});await songControls?.whenIdle();await stopAudition();},
+  onViewChange:mode=>{expandedTabs?.showInput(mode);renderChannelView();},
+  onExpandedChange:value=>{expandedTabs?.setExpanded(value);renderChannelView();},
   onActivity:syncCodeActivity,setStatus:status});
+const chipTab=$('dmgChipTab');
+function selectChip(tab){
+  if(disposed||tab!==chipTab)return false;
+  expandedTabs?.showChip(tab);
+  renderChannelView();visualizer.wake();return true;
+}
+chipTab.addEventListener('click',()=>{
+  selectChip(chipTab);
+  if(codeHost.controls.isExpanded())chipTab.focus();else chipTab.blur();
+});
+expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,selectChip,
+  elements:{editor:$('dmgSynthEditor'),chipTabs:[chipTab],volume:$('masterVolume').closest('.master-control')},
+  getChipView:tab=>tab.dataset.dmgChip});
 codeLive=createGameboyCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isRunning()),onUpdate:renderCodeLive,retainSnapshot:true});
 editorLive=createGameboyCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(audio&&channelContext()==='synth'),onUpdate:renderCodeLive,method:'observeEditor',retainSnapshot:true});
 $('dmgChannelSelect').addEventListener('change',()=>{const value=$('dmgChannelSelect').value;$('dmgChannelSelect').blur();void setChannelTarget(value).catch(report);});

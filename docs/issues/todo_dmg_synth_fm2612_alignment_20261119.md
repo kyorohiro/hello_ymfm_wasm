@@ -12,7 +12,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | working/saved and Save controls | Implemented 2026-11-20. Shared workspace with v1 migration, default-on Auto apply, dirty dots, Save / Save all / Discard / Discard all, Ctrl/Cmd+S and dual-version Cassette. Run/Apply resolves saved source, imports and local data. |
 | Active instrument file ↔ controls/JSON | Implemented for the authored Auto sound. Valid JSON, controls and CH3 Wave drawing share the active document; manual drafts do not reach audio until Save. Physical CH session edits stay independent and do not overwrite the document. Incomplete JSON retains the last valid working/accepted sound. |
 | Files Undo / New / import recovery | Implemented. Shared history/context menu (Undo has no extra toolbar button), New Cassette under Menu → New, cancelable backup before replacement, both-layer import/export and immediate Code/sound recovery. |
-| Persistent expanded Code workspace | Partial. Code maximize exists, but [code_host.js](../synth-dmg/code_host.js) does not install persistent expansion, unified navigation or header Code/Synth switching. Master should remain available during expansion. |
+| Persistent expanded Code workspace | Implemented 2026-11-20. Files-adjacent Code/Synth layout buttons, shared Code / DMG APU / Keyboard navigation, unchanged expansion across view switches, and the original Master moved into the expanded workspace. The editor, transport and performance stay shared. |
 | Live changed-value highlighting | Missing. Auto update and same-CH display/edit/keyboard already exist; these do not highlight changed values briefly. |
 | Shared channel output switches | Partial. Four software song switches exist in [song_preview.js](../synth-dmg/song_preview.js); keys intervening in a playing song share that reference APU's mute. Normal keyboard/Code APU output does not share these switches. Hardware stereo routing is separate. |
 | PCM drawing / Start / Loop range | Not applicable as RF5C164-style PCM editing. DMG CH3 is finite 32-nibble Wave RAM, already drawable. It is not a general variable-length sample bank, and CH4 Noise is not pitched PCM. |
@@ -35,7 +35,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
       recovery metadata contains working differences without redundant binaries.
 - [x] Add Files history and New Cassette rollback, keeping project replacement
       separate from ordinary sound/file editing and explicit Code Run/Apply.
-- [ ] Add persistent expanded Code / APU / Keyboard navigation and header
+- [x] Add persistent expanded Code / APU / Keyboard navigation and header
       Code/Synth controls. Design a Mixer tab only with its actual output policy;
       keep Master visible rather than copying Genesis-specific source tabs.
 - [ ] Add Live value-change highlighting with independent On/Off, default On.
@@ -71,8 +71,8 @@ Related history: [Code/Files](todo_dmg_synth_code_files_live_01.md),
 [song output switches](todo_dmg_synth_song_channels_01.md).
 
 Saving implementation and validation: [2026-11-20 record](todo_dmg_working_saved_20261120.md).
-Persistent expanded navigation, highlighting, common output switches and timed
-operations remain separate slices; completing saving does not implement them.
+Expanded navigation: [Code workspace record](todo_dmg_code_workspace_20261120.md).
+Highlighting, common output switches and timed operations remain separate slices.
 
 ## Timed register API follow-up
 
