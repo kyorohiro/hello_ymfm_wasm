@@ -151,7 +151,10 @@ test('execution-time invalidity retires only the failing reservation and reports
 });
 
 test('canonical timed modules match their browser mirrors',async()=>{
- for(const name of ['huc6280_timed_state.js','huc6280_timed_processor.js','huc6280_timed_client.js'])assert.deepEqual(await readFile(new URL(`../../docs/js/${name}`,import.meta.url)),await readFile(new URL(`../../tetorica_src/runtime/${name}`,import.meta.url)));
+ // The website generator adds cache versions to local ESM imports. Compare
+ // executable bodies without those generated tokens, retaining every path.
+ const imports=source=>source.replace(/(from\s+['"]\.\/[\w.-]+\.js)\?v=[\w.+-]+(['"])/g,'$1$2');
+ for(const name of ['huc6280_timed_state.js','huc6280_timed_processor.js','huc6280_timed_client.js'])assert.equal(imports(await readFile(new URL(`../../docs/js/${name}`,import.meta.url),'utf8')),await readFile(new URL(`../../tetorica_src/runtime/${name}`,import.meta.url),'utf8'));
 });
 
 test('explicit timed parameters update a held manual audition but stale releases leave its gate intact',async()=>{

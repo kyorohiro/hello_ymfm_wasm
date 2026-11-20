@@ -1,5 +1,5 @@
 import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js?v=pokey-vgm-1';
-import {WONDERSWAN_TIMELINE_MAX_HOST_BYTES} from '../js/wonderswan_timeline.js';
+import {WONDERSWAN_TIMELINE_MAX_HOST_BYTES} from '../js/wonderswan_timeline.js?v=pokey-prepare-1';
 
 // Bound both a hostile source and expansion of looping/high-rate DAC streams.
 // These are conversion limits, not new playback/scheduling capabilities.

@@ -9,6 +9,7 @@ import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
 import factory from '../../docs/generated/gameboy_apu_wasm.js';
 import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createGameboyTimedProcessor,gameboyTimedCommandCost} from '../../tetorica_src/runtime/gameboy_timed_processor.js';
 import {GameboyVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
 import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
@@ -16,7 +17,7 @@ for (const highLevel of [false, true]) test(`Game Boy ${highLevel ? 'Synth' : 'r
   let Processor, resolveReady;
   const ready = new Promise(resolve => { resolveReady = resolve; });
   const source = (await readFile(new URL('./playground_gameboy_worklet.js', runtimeDirectoryUrl), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {GameboyVoiceInspector,receiveChipInspector,CHIP_CLOCKS,GameboyApu, factory, sampleRate: 48000,
+  vm.runInNewContext(source, {createGameboyTimedProcessor,gameboyTimedCommandCost,GameboyVoiceInspector,receiveChipInspector,CHIP_CLOCKS,GameboyApu, factory, sampleRate: 48000,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: resolveReady}; } },
     registerProcessor: (_, value) => { Processor = value; },
@@ -55,7 +56,7 @@ test('primary and independent Game Boy clock setters acknowledge acceptance befo
  let Processor,resolveReady,frame=0;const replies=[];
  const ready=new Promise(resolve=>{resolveReady=resolve;});
  const source=(await readFile(new URL('./playground_gameboy_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
- vm.runInNewContext(source,{GameboyVoiceInspector,receiveChipInspector,GameboyApu,factory,sampleRate:48000,ChipClockResampler,CHIP_CLOCKS,validateChipClock,
+ vm.runInNewContext(source,{createGameboyTimedProcessor,gameboyTimedCommandCost,GameboyVoiceInspector,receiveChipInspector,GameboyApu,factory,sampleRate:48000,ChipClockResampler,CHIP_CLOCKS,validateChipClock,
   createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>frame}),
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:data=>{replies.push(data);if(data.ready)resolveReady();}};}},
   registerProcessor:(_,value)=>{Processor=value;},

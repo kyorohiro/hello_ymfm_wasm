@@ -11,7 +11,7 @@ import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stabilit
  * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
  */
 import ym2608ModuleFactory from "../generated/ym2608_wasm.js";
-import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js?v=ym2608-source-gains-1";
+import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js?v=audio-stability-2";
 
 class YM2608Processor extends AudioWorkletProcessor {
   constructor() {

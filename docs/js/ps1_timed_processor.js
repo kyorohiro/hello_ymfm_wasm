@@ -1,5 +1,5 @@
-import {validatePs1Operations, ps1OperationOffsetSeconds, createPs1OperationResolver, compilePs1Operations} from './ps1_operations.js';
-import {createPs1TimedSnapshot} from './ps1_timed_state.js';
+import {validatePs1Operations, ps1OperationOffsetSeconds, createPs1OperationResolver, compilePs1Operations} from './ps1_operations.js?v=ps1-deferred-release-1';
+import {createPs1TimedSnapshot} from './ps1_timed_state.js?v=ps1-deferred-release-1';
 
 const identity = (value, label) => {
   if (typeof value !== 'string' || !value.length || value.length > 256) throw new TypeError(`Invalid PS1 ${label}`);

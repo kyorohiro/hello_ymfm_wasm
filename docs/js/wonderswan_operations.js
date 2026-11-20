@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {WonderSwanSynth} from './wonderswansynth.js';
-import {WONDERSWAN_CLOCK} from './wonderswan.js';
+import {WonderSwanSynth} from './wonderswansynth.js?v=pokey-prepare-1';
+import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
 
 /** Register-only authoring calls supported by the WONDERSWAN operation recorder.
  * Validation and register conversion remain in WonderSwanSynth. */

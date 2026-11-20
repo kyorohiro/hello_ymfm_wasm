@@ -1,6 +1,6 @@
 import {noteToHz, opnPitchFromHz} from './soundchip_pitch.js';
 import {YM2612Dac, YM2612DacPlayer} from "./ym2612_dac.js";
-import {createYm2612OperationResetState, validateYm2612OperationState, observeYm2612OperationWrite} from './ym2612_operation_state.js';
+import {createYm2612OperationResetState, validateYm2612OperationState, observeYm2612OperationWrite} from './ym2612_operation_state.js?v=audio-stability-2';
 /**
  * @file ym2612synth.js
  * 実行環境: Browser / Node.js

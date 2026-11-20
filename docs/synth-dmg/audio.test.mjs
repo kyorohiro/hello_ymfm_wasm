@@ -6,6 +6,7 @@ import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
 import {createDefaultPreset,readPreset} from './preset.js';
 import {readGameboyCodeEdit} from './code_parameter_edit.js';
 import {createGameboyChannelBank} from './channel_bank.js';
+import {attachGameboyTimedClient} from '../../tetorica_src/runtime/gameboy_timed_client.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
@@ -56,7 +57,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
   }
   const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   const realm = {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController, DOMException, createGameboyCodeClient, gameboyCodeCancelled, readPreset, readGameboyCodeEdit,
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController, DOMException, createGameboyCodeClient, gameboyCodeCancelled, readPreset, readGameboyCodeEdit,attachGameboyTimedClient,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },

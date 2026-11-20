@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createGameboyTimedProcessor,gameboyTimedCommandCost} from '../../tetorica_src/runtime/gameboy_timed_processor.js';
 
 const source = await readFile(new URL('./processor.js', import.meta.url), 'utf8');
 function fixture() {
@@ -10,7 +12,12 @@ function fixture() {
   const messages = [], core = {disposed:0,dispose(){this.disposed++;}}, options = [];
   const initialization = new Promise((yes,no) => {resolve = yes; reject = no;});
   class Instrument {
-    constructor(chip) { this.chip = chip; this.calls = []; this.codeEpoch = 0; this.codeActive = false; this.stopCount = 0; }
+    constructor(chip) {
+      this.chip = chip; this.calls = []; this.codeEpoch = 0; this.codeActive = false; this.stopCount = 0;
+      const state={clock:4194304,initialized:true,registers:Array(48).fill(0),voice:Array(48).fill(0)};
+      state.registers[22]=state.voice[22]=128;
+      this.synth={clock:4194304,_getState:()=>structuredClone(state),_adoptState:value=>Object.assign(state,structuredClone(value))};
+    }
     read() { return {voices:[]}; }
     noteOn(...args) { this.calls.push(args); return {channel:0,stolenId:null}; }
     stop() {this.stopCount++;this.codeActive=false;this.codeEpoch++;return this.read();}
@@ -33,6 +40,7 @@ function fixture() {
   vm.runInNewContext(source.replace(/^import .*;\n/gm,''), {
     AudioWorkletProcessor:Processor, GameboyApu:{create:value => {options.push(value);return initialization;}},
     GameboyInstrument:Instrument, factory:()=>{}, sampleRate:48000, Set,
+    createProcessorPerformance,createGameboyTimedProcessor,gameboyTimedCommandCost,
     registerProcessor(name,value){assert.equal(name,'tetorica-gameboy-synth');Constructor = value;},
   });
   const processor = new Constructor({processorOptions:{wasmBinary:new Uint8Array([0])}});

@@ -1,6 +1,6 @@
-import moduleFactory from '../generated/spc_wasm.js?v=spc-voice-edit-1';
-import {SpcCore} from './spc.js?v=spc-voice-edit-1';
-import {SpcResampler} from './spc_resampler.js';
+import moduleFactory from '../generated/spc_wasm.js?v=spc-events-1';
+import {SpcCore} from './spc.js?v=spc-events-1';
+import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
 
 const NATIVE_RATE = 32000;
 function cancelledSeek() { const error = new Error('SPC seek cancelled'); error.name = 'AbortError'; return error; }

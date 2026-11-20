@@ -5,8 +5,7 @@
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=y8950-adpcm-ui-1";
-import { GameboySynth } from "./gameboysynth.js?v=audio-stability-2";
-import { attachChipClock, CHIP_CLOCKS } from "./playground_chip_clock.js?v=pokey-prepare-1";
+import { createGameboyClient } from "./playground_gameboy.js?v=gameboy-timed-1";
 
 /** @typedef {Pick<import('./megasynth.js?v=pokey-prepare-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string}} GameboyRuntimeSynthOptions */
 
@@ -18,7 +17,7 @@ const MAX_MASTER_VOLUME = 3.8;
 export class GameboyRuntimeSynth {
   /** @param {GameboyRuntimeSynthOptions|undefined} options */
   constructor(options = {}) {
-    const config = {chip:'gameboy', fmChannels:0, workletUrl:new URL('./playground_gameboy_worklet.js?v=rf5c164-notes-1',import.meta.url),
+    const config = {chip:'gameboy', fmChannels:0, workletUrl:new URL('./playground_gameboy_worklet.js?v=gameboy-timed-1',import.meta.url),
       wasmUrl:new URL('../generated/gameboy_apu_wasm.wasm',import.meta.url), processorName:'tetorica-gameboy', chipName:'Game Boy'};
     this.chip = config.chip;
     this.capabilities = Object.freeze({
@@ -185,12 +184,7 @@ export class GameboyRuntimeSynth {
     await ready;
     signal.throwIfAborted();
     const node = this.node;
-    const gameboy = new GameboySynth({transport:{
-      writeRegister(offset,value) { node.port.postMessage({method:'writeRegister',args:[offset,value]}); },
-      reset() { node.port.postMessage({method:'reset',args:[]}); },
-      dispose() { node.port.postMessage({method:'dispose',args:[]}); },
-    }});
-    attachChipClock(gameboy,node.port,CHIP_CLOCKS.gameboy,{primary:true});
+    const gameboy = createGameboyClient(node.port,{primary:true});
     gameboy._observe = event => { for (const listener of this.listeners) listener(event); };
     this.gameboy = gameboy;
     gameboy.initialize();

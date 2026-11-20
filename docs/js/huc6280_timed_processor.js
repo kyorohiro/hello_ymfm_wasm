@@ -1,5 +1,5 @@
-import {validateHuc6280Operations, huc6280OperationOffsetSeconds, createHuc6280OperationResolver, compileHuc6280Operations} from './huc6280_operations.js';
-import {createHuc6280TimedSnapshot} from './huc6280_timed_state.js';
+import {validateHuc6280Operations, huc6280OperationOffsetSeconds, createHuc6280OperationResolver, compileHuc6280Operations} from './huc6280_operations.js?v=audio-stability-2';
+import {createHuc6280TimedSnapshot} from './huc6280_timed_state.js?v=audio-stability-2';
 
 const gateMethods = new Set(['noteOn','keyOn','noteOff','keyOff','allNotesOff','writeRegister']);
 const identity = (value, label) => {

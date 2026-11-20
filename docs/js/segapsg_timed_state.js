@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { validatePsgOperationState } from "./segapsg_operations.js";
+import { validatePsgOperationState } from "./segapsg_operations.js?v=audio-numeric-bindings-1";
 
 export const PSG_TIMED_STATE_FORMAT = "tetorica-psg-state";
 export const PSG_TIMED_STATE_VERSION = 1;

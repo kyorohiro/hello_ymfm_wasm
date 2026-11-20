@@ -7,6 +7,7 @@ import {readFile} from 'node:fs/promises';
 import {GameboyVoiceInspector,NesVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
 import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createGameboyTimedProcessor,gameboyTimedCommandCost} from '../../tetorica_src/runtime/gameboy_timed_processor.js';
 import {CHIP_CLOCKS,ChipClockResampler,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
 import {GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
@@ -23,7 +24,7 @@ async function setup(kind){
   let Processor,frame=0;const messages=[];
   const port={postMessage:m=>messages.push(m)};
   const source=(await readFile(new URL(`./playground_${kind}_worklet.js`,runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
-  vm.runInNewContext(source,{GameboyVoiceInspector,NesVoiceInspector,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,validateChipClock,GameboyApu,NesApuWasm,factory:kind==='nes'?nesFactory:factory,sampleRate:RATE,
+  vm.runInNewContext(source,{createGameboyTimedProcessor,gameboyTimedCommandCost,GameboyVoiceInspector,NesVoiceInspector,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,validateChipClock,GameboyApu,NesApuWasm,factory:kind==='nes'?nesFactory:factory,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
   const processor=new Processor({processorOptions:{fds:true,wasmBinary:await readFile(new URL(`../../docs/generated/${kind==='nes'?'nesapu':'gameboy_apu'}_wasm.wasm`,runtimeDirectoryUrl))}});

@@ -1,16 +1,30 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
+import {attachGameboyTimedClient} from './gameboy_timed_client.js?v=gameboy-timed-1';
 /** Same immediate, ordered port writes for both raw and high-level APIs. */
 /** @param {MessagePort} port */
 export function createGameboyClient(port, options = {}, lifecycle = {}) {
   let disposed=false;
   const check=context=>{if(disposed||options.native&&lifecycle.isStopped?.(context))throw new Error('Game Boy disposed or Run stopped');};
-  const send=(method,args=[])=>{check(lifecycle.captureContext?.());port.postMessage({method,args});};
+  const send=(method,args=[],metadata={})=>{check(lifecycle.captureContext?.());port.postMessage({method,args,...metadata});};
   const client=attachChipClock(new GameboySynth({clock:options.clock??CHIP_CLOCKS.gameboy,transport: {
-    writeRegister(offset, value) { send('writeRegister',[offset,value]); },
+    writeRegister(offset, value) {
+      // The sent byte can differ from the configured voice (keyOff, trigger).
+      // Carry only this write's companion metadata, using the existing shadow.
+      const state=client._getState();
+      const keyIntent=[4,9,14,19].includes(offset)&&Boolean(value&128)||offset===22&&!(value&128)
+        ||offset===10&&!(value&128)||[2,7,17].includes(offset)&&!(value&0xf8);
+      send('writeRegister',[offset,value],options.native?{}:{gameboyState:{voiceValue:state.voice[offset],initialized:state.initialized},keyIntent});
+    },
     reset() { send('reset'); },
     dispose() { if(disposed)return;port.postMessage({method:'dispose',args:[]});disposed=true;port.close(); },
-  }}), port, options.clock??CHIP_CLOCKS.gameboy);
+  }}), port, options.clock??CHIP_CLOCKS.gameboy,{primary:options.primary===true});
+  const adopt=client.adoptRegisterState.bind(client);
+  client.adoptRegisterState=()=>{
+    const result=adopt();
+    if(!options.native)send('adoptRegisterState');
+    return result;
+  };
   if(options.native){
     Object.defineProperties(client,{
       _stopVoices:{value:()=>client._requestControl('stopVoices')},
@@ -31,7 +45,7 @@ export function createGameboyClient(port, options = {}, lifecycle = {}) {
     const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
     client.setClock=hz=>{const context=lifecycle.captureContext?.();check(context);return setClock(hz).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
   }
-  return client;
+  return attachGameboyTimedClient(client,options,port);
 }
 
 /** Safe builtin controls borrow the primary device, whose lifetime belongs to the runtime. */
@@ -42,6 +56,10 @@ export function createPrimaryGameboyApi(raw) {
     api[method] = (...args) => raw[method](...args);
   }
   api.setClock = (...args) => raw.setClock(...args);
+  if(raw._timedOperations){
+    for(const method of ['build','compile','captureState','schedule','clearSchedule'])api[method]=(...args)=>raw[method](...args);
+    Object.defineProperty(api,'_timedOperations',{get:()=>raw._timedOperations});
+  }
   Object.defineProperties(api, {
     id:{value:'gameboy', enumerable:true},
     clock:{get:() => raw.clock, enumerable:true},

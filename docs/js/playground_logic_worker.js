@@ -26,7 +26,7 @@ import {createSoundChipRegistry} from './playground_soundchips.js?v=scsp-fm-1';
 import {validateSoundChipOptions} from './playground_soundchip_options.js?v=pokey-mode-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=ps1-pcm-waveform-1';
-import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
+import {createGameboyClient} from './playground_gameboy.js?v=gameboy-timed-1';
 import {createYm2608Client} from './playground_ym2608.js?v=rf5c164-notes-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=rf5c164-notes-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
@@ -41,7 +41,7 @@ import {serializeLogError,formatLogTable} from './playground_log.js?v=console-ta
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=rf5c164-notes-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=gameboy-timed-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';

@@ -1,4 +1,4 @@
-import {mixerDefaults} from './playback_mixer.js?v=opna-source-mixer-1';
+import {mixerDefaults} from './playback_mixer.js?v=pokey-vgm-1';
 import {YM2608_SOURCE_LABELS, ym2608SourceDefaults} from './ym2608_source_mix.js?v=opna-source-mixer-1';
 
 const names = {pokey:'POKEY 1','pokey:2':'POKEY 2',wonderswan: 'WonderSwan', psg: 'Sega PSG', gameBoyDmg: 'Game Boy', segaPcm: 'Sega PCM', nesApu: 'NES APU',

@@ -17,7 +17,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | Shared channel output switches | Partial. Four software song switches exist in [song_preview.js](../synth-dmg/song_preview.js); keys intervening in a playing song share that reference APU's mute. Normal keyboard/Code APU output does not share these switches. Hardware stereo routing is separate. |
 | PCM drawing / Start / Loop range | Not applicable as RF5C164-style PCM editing. DMG CH3 is finite 32-nibble Wave RAM, already drawable. It is not a general variable-length sample bank, and CH4 Noise is not pitched PCM. |
 | Looper / Event Rec | Missing; optional backlog. Previous DMG Code/song work explicitly excluded these. |
-| Timed build/schedule/compile/snapshots | Missing the YM2612-style timed-operation API. Existing immediate APU APIs/live loops are present; any timed API is a separate chip-level design. |
+| Timed build/schedule/compile/snapshots | Implemented for Pulse / Wave / Noise and raw Gates in Synth and shared Web Audio clients. See [verification and backend limits](todo_dmg_timed_register_api_20261120.md). |
 
 ## Proposed implementation phases
 
@@ -47,7 +47,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
       Envelope, Sweep, Wave RAM or Noise sequence.
 - [ ] Consider Looper/Event Rec separately; avoid adding a sequencer as an
       assumed part of this alignment.
-- [ ] Consider timed operations separately, including Wave RAM constraints,
+- [x] Implement timed operations separately, including Wave RAM constraints,
       packed register companions and trigger writes. Keep raw trigger/keyOff
       behavior and ordinary immediate methods unchanged.
 
@@ -72,14 +72,18 @@ Related history: [Code/Files](todo_dmg_synth_code_files_live_01.md),
 
 Saving implementation and validation: [2026-11-20 record](todo_dmg_working_saved_20261120.md).
 Expanded navigation: [Code workspace record](todo_dmg_code_workspace_20261120.md).
-Highlighting, common output switches and timed operations remain separate slices.
+Highlighting and common output switches remain separate slices. Timed operations were implemented in the follow-up below.
 
 ## Timed register API follow-up
 
-Not implemented; separate chip-level API work from Files/UI alignment.
+Implemented 2026-11-20 as separate chip-level work from Files/UI alignment.
+See [the implementation record](todo_dmg_timed_register_api_20261120.md) and
+[editable examples and API limits](../synth-dmg/README.md#inspect-and-schedule-register-operations).
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
-- [ ] Resolve packed Tone/Sweep/Envelope/Noise/routing fields and preserve repeated trigger writes, channel power and shared APU state.
-- [ ] Define Wave RAM access restrictions and state needed for resolution; distinguish the hardware frame sequencer from host reservations.
-- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
-  and 44.1/48 kHz verification checklist to this chip when the work is authorized.
+- [x] Resolve packed Tone/Sweep/Envelope/Noise/routing fields and preserve repeated trigger writes, channel power and shared APU state.
+- [x] Define Wave RAM access restrictions and state needed for resolution; distinguish the hardware frame sequencer from host reservations.
+- [x] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to the Web Audio implementation.
+- [ ] Native timed execution and authoritative captures remain unsupported; no timer fallback.
+- [ ] Publish the additive shared modules in a later npm release when requested.

@@ -15,8 +15,8 @@ import {
   YM2612WorkletTransport,
 } from "./ym2612synth.js?v=audio-stability-2";
 import { YM2612_CLOCK } from "./ym2612.js?v=audio-numeric-bindings-1";
-import {attachYm2612TimedClient} from './ym2612_timed_client.js';
-import {validateYm2612Engine} from './playground_soundchip_options.js';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js?v=pokey-prepare-1';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=pokey-mode-1';
 import { createSegaPsgApi } from "./segapsg_api.js?v=audio-numeric-bindings-1";
 import { createRf5c164Audio } from "./playground_rf5c164_audio.js?v=rf5c164-notes-1";
 import { createRf5c164Client } from "./playground_rf5c164.js?v=rf5c164-notes-1";
@@ -352,11 +352,11 @@ export class MegaSynth {
     this.pwm = null; this.pwmDevice = null;
     this.segaPsgWasmUrl = options.segaPsgWasmUrl !== undefined
       ? options.segaPsgWasmUrl
-      : this.megaCD ? resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'segapsg_wasm.wasm') : null;
+      : this.megaCD ? resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'segapsg_wasm.wasm?v=audio-numeric-bindings-1') : null;
     this.rf5c164WasmUrl = options.rf5c164WasmUrl ??
       resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'rf5c164_wasm.wasm');
     this.rf5c164WorkletUrl = options.rf5c164WorkletUrl ??
-      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js');
+      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=rf5c164-notes-1');
     this.rf5c164Fetch = options.rf5c164Fetch;
     /** RF5C164 API after start() when megaCD is enabled; transport methods return promises, while setRootNote is synchronous.
      * @type {(ReturnType<typeof createRf5c164Client> & {readonly id: string}) | null} */

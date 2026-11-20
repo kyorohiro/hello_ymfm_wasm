@@ -1,8 +1,8 @@
-import {YM2612Synth} from './ym2612synth.js';
-import {createYm2612OperationResetState, validateYm2612OperationState, observeYm2612OperationWrite, adoptYm2612OperationState} from './ym2612_operation_state.js';
-export {createYm2612OperationResetState, validateYm2612OperationState, observeYm2612OperationWrite} from './ym2612_operation_state.js';
+import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
+import {createYm2612OperationResetState, validateYm2612OperationState, observeYm2612OperationWrite, adoptYm2612OperationState} from './ym2612_operation_state.js?v=audio-stability-2';
+export {createYm2612OperationResetState, validateYm2612OperationState, observeYm2612OperationWrite} from './ym2612_operation_state.js?v=audio-stability-2';
 
-/** @typedef {import('./ym2612_operation_state.js').YM2612OperationState} YM2612OperationState */
+/** @typedef {import('./ym2612_operation_state.js?v=audio-stability-2').YM2612OperationState} YM2612OperationState */
 /** @typedef {'write'|'rawWrite'|'setPreset'|'setOperator'|'setOperators'|'setAlgo'|'setPan'|'setLfo'|'setChannel3SpecialMode'|'setChannel3SpecialFrequency'|'setFrequency'|'setNote'|'setBlockFnum'|'keyOn'|'keyOff'|'noteOn'|'noteOnRaw'|'noteOff'|'setDacEnabled'|'writeDac'} YM2612RecordedMethod */
 /** @typedef {{unit:'sample'|'seconds',value:number}} YM2612OperationTime */
 /** @typedef {{time:YM2612OperationTime,order:number,method:YM2612RecordedMethod,args:unknown[]}} YM2612TimedOperation */

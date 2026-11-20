@@ -1,4 +1,4 @@
-import {attachOpllTimedClient} from './ym2413_timed_client.js';
+import {attachOpllTimedClient} from './ym2413_timed_client.js?v=pokey-mode-1';
 import {createYm2413RegisterClient} from './playground_ym2413.js?v=pokey-prepare-1';
 import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=ps1-deferred-release-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';

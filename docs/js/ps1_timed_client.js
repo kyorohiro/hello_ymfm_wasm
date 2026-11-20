@@ -1,8 +1,8 @@
 import {
   buildPs1Operations, validatePs1Operations, compilePs1Operations,
   createPs1OperationResetState, validatePs1OperationState, ps1OperationOffsetSeconds,
-} from './ps1_operations.js';
-import {validatePs1TimedSnapshot} from './ps1_timed_state.js';
+} from './ps1_operations.js?v=ps1-deferred-release-1';
+import {validatePs1TimedSnapshot} from './ps1_timed_state.js?v=ps1-deferred-release-1';
 
 function options(value, allowed, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||

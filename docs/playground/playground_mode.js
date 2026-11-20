@@ -104,7 +104,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
     wasmUrl:new URL('sid/sid.wasm',generated).href,
     segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   if (mode.chip === 'scsp') return {chip:'scsp',
-    workletUrl:new URL('./playground_scsp_worklet.js?v=scsp-dsp-routing-1',base).href,
+    workletUrl:new URL('./playground_scsp_worklet.js?v=rf5c164-notes-1',base).href,
     wasmUrl:new URL('scsp_wasm.wasm',generated).href,
     segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   if (mode.chip === 'ps1') return {chip:'ps1',
@@ -162,7 +162,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   }
   if (mode.chip === 'gameboy') return {
     chip:mode.chip,
-    workletUrl:new URL('./playground_gameboy_worklet.js?v=rf5c164-notes-1', base).href,
+    workletUrl:new URL('./playground_gameboy_worklet.js?v=gameboy-timed-1', base).href,
     wasmUrl:new URL('gameboy_apu_wasm.wasm', generated).href,
     segaPsgWasmUrl:null,
     megaCD:false,

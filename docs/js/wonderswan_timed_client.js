@@ -2,8 +2,8 @@
 import {
   buildWonderSwanOperations, validateWonderSwanOperations, compileWonderSwanOperations,
   createWonderSwanOperationResetState, validateWonderSwanOperationState, wonderswanOperationOffsetSeconds,
-} from './wonderswan_operations.js';
-import {validateWonderSwanTimedSnapshot} from './wonderswan_timed_state.js';
+} from './wonderswan_operations.js?v=pokey-prepare-1';
+import {validateWonderSwanTimedSnapshot} from './wonderswan_timed_state.js?v=pokey-prepare-1';
 
 function options(value, allowed, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||

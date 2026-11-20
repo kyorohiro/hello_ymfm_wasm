@@ -41,8 +41,8 @@ import {validateSoundChipOptions} from './playground_soundchip_options.js?v=poke
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=ps1-pcm-waveform-1';
 import {createGameboyAudio} from './playground_gameboy_audio.js?v=rf5c164-notes-1';
-import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
-import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
+import {createPrimaryGameboyApi} from './playground_gameboy.js?v=gameboy-timed-1';
+import {createGameboyClient} from './playground_gameboy.js?v=gameboy-timed-1';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=scsp-fm-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=rf5c164-notes-1';
 import {createCddaAudio} from './cdda_audio.js?v=cdda-pcm-1';
@@ -74,7 +74,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=rf5c164-notes-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=rf5c164-notes-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=gameboy-timed-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -184,7 +184,7 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','ps1','scsp','x68000','huc6280','pokey','sid','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=rf5c164-notes-1', import.meta.url).href
+        (['nes','snes','ps1','scsp','x68000','huc6280','pokey','sid','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=gameboy-timed-1', import.meta.url).href
           : options.chip === 'ym2203' ? './ym2203-worklet.js?v=rf5c164-notes-1'
           : options.chip === 'ym2608' ? './ym2608-worklet.js?v=rf5c164-notes-1'
           : ['ym2610','ym2610b'].includes(options.chip)
@@ -282,7 +282,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=scsp-dsp-routing-1",
+      "./playground_logic_worker.js?v=gameboy-timed-1",
       import.meta.url
     );
   const logicWorkerUrl =

@@ -1,5 +1,5 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=scsp-dsp-execution-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=scsp-dsp-execution-1";
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=ps1-vab-api-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=ps1-vab-api-1";
 import {selectPlaygroundDeclarations} from './playground_declarations.js?v=ps1-vab-api-1';
 // Asset loading must remain trusted while user liveLoop callbacks install the
 // execution guard over global fetch. Loading Monaco itself is still lazy.

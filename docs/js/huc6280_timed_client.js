@@ -1,8 +1,8 @@
 import {
   buildHuc6280Operations, validateHuc6280Operations, compileHuc6280Operations,
   createHuc6280OperationResetState, validateHuc6280OperationState, huc6280OperationOffsetSeconds,
-} from './huc6280_operations.js';
-import {validateHuc6280TimedSnapshot} from './huc6280_timed_state.js';
+} from './huc6280_operations.js?v=audio-stability-2';
+import {validateHuc6280TimedSnapshot} from './huc6280_timed_state.js?v=audio-stability-2';
 
 function options(value, allowed, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||

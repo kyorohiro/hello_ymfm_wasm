@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {validateWonderSwanOperations, wonderswanOperationOffsetSeconds, createWonderSwanOperationResolver, compileWonderSwanOperations, validateWonderSwanParameterPlan} from './wonderswan_operations.js';
-import {createWonderSwanTimedSnapshot} from './wonderswan_timed_state.js';
+import {validateWonderSwanOperations, wonderswanOperationOffsetSeconds, createWonderSwanOperationResolver, compileWonderSwanOperations, validateWonderSwanParameterPlan} from './wonderswan_operations.js?v=pokey-prepare-1';
+import {createWonderSwanTimedSnapshot} from './wonderswan_timed_state.js?v=pokey-prepare-1';
 
 const identity = (value, label) => {
   if (typeof value !== 'string' || !value.length || value.length > 256) throw new TypeError(`Invalid WONDERSWAN ${label}`);

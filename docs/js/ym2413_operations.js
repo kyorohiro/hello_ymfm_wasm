@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { YM2413Synth } from "./ym2413synth.js";
-import { YM2413_CLOCK } from "./ym2413.js";
+import { YM2413Synth } from "./ym2413synth.js?v=pokey-mode-1";
+import { YM2413_CLOCK } from "./ym2413.js?v=audio-stability-2";
 
 /** Register-only authoring calls supported by the OPLL operation recorder.
  * Validation and command-byte conversion remain in YM2413Synth. */

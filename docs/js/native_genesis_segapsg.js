@@ -1,4 +1,4 @@
-import {attachPsgTimedClient} from './segapsg_timed_client.js';
+import {attachPsgTimedClient} from './segapsg_timed_client.js?v=audio-numeric-bindings-1';
 /** Shared Sega PSG authoring / inspection for Native Master System and Game Gear. */
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 import {PsgInspectorState} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';

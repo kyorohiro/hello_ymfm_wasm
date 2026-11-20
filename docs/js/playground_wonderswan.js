@@ -1,8 +1,8 @@
-import {attachWonderSwanTimedClient} from './wonderswan_timed_client.js';
-import {validateWonderSwanOperationState} from './wonderswan_operations.js';
-import {attachChipClock} from './playground_chip_clock.js';
-import {WonderSwanSynth, WONDERSWAN_CLOCK} from './wonderswansynth.js';
-import {prepareWonderSwanTimeline} from './wonderswan_timeline.js';
+import {attachWonderSwanTimedClient} from './wonderswan_timed_client.js?v=pokey-prepare-1';
+import {validateWonderSwanOperationState} from './wonderswan_operations.js?v=pokey-prepare-1';
+import {attachChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
+import {WonderSwanSynth, WONDERSWAN_CLOCK} from './wonderswansynth.js?v=pokey-prepare-1';
+import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=pokey-prepare-1';
 
 /** Immediate, ordered register/RAM commands shared by Main and Worker runtimes.
  * This client keeps authored state; it does not read advancing core registers.

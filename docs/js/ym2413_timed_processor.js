@@ -4,8 +4,8 @@ import {
 	opllOperationOffsetSeconds,
 	createOpllOperationResolver,
 	compileOpllOperations,
-} from "./ym2413_operations.js";
-import { createOpllTimedSnapshot } from "./ym2413_timed_state.js";
+} from "./ym2413_operations.js?v=pokey-mode-1";
+import { createOpllTimedSnapshot } from "./ym2413_timed_state.js?v=pokey-mode-1";
 
 const identity = (value, label) => {
 	if (typeof value !== "string" || !value.length || value.length > 256)

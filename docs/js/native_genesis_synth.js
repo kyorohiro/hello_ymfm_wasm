@@ -13,7 +13,7 @@ import {createNativeGenesisExtraWonderSwan} from './native_genesis_extra_wonders
 import {createNativeGenesisExtraHuc6280,EXTRA_HUC6280_CLOCK_HELD_ERROR} from './native_genesis_extra_huc6280.js?v=ps1-deferred-release-1';
 import {createNativeGenesisExtraNes,EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR,EXTRA_NES_ADMISSION_ERRORS} from './native_genesis_extra_nes.js?v=ps1-deferred-release-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {attachYm2612TimedClient} from './ym2612_timed_client.js';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js?v=pokey-prepare-1';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=y8950-adpcm-ui-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';

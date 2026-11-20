@@ -53,7 +53,7 @@ export function observeYm2612OperationWrite(state, port, register, value) {
 
 /** Decode the shadow into the existing high-level resolver. Register conversion
  * remains in YM2612Synth; this function performs no writes or live adoption.
- * @param {import('./ym2612synth.js').YM2612Synth} synth
+ * @param {import('./ym2612synth.js?v=audio-stability-2').YM2612Synth} synth
  * @param {YM2612OperationState} state @returns {void} */
 export function adoptYm2612OperationState(synth, state) {
   const r0 = state.registers[0], slots = [0, 8, 4, 12];

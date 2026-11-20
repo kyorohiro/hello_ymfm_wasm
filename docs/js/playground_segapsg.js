@@ -1,4 +1,4 @@
-import {attachPsgTimedClient} from './segapsg_timed_client.js';
+import {attachPsgTimedClient} from './segapsg_timed_client.js?v=audio-numeric-bindings-1';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 /** Immediate ordered commands, shared by main-thread and Worker runtimes.

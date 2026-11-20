@@ -5,7 +5,7 @@ import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {YM2203Synth} from './ym2203synth.js?v=rf5c164-notes-1';
 import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=rf5c164-notes-1';
 import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-ui-1';
-import {attachYm2612TimedClient} from './ym2612_timed_client.js';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js?v=pokey-prepare-1';
 
 /**
  * Create a high-level OPN synth backed by ordered Worklet port commands.

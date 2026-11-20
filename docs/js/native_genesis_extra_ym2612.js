@@ -1,5 +1,5 @@
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {attachYm2612TimedClient} from './ym2612_timed_client.js';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js?v=pokey-prepare-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';

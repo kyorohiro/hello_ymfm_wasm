@@ -4,6 +4,67 @@ import {basename} from 'node:path';
 // Supply missing destructured-option shapes during declaration inference.
 // Restore the original staged JavaScript when TypeScript finishes or fails.
 const annotations = {
+  'gameboy_operations.js': [
+    ['export function buildGameboyOperations(', String.raw`/**
+ * @typedef {Object} GameboyOperationRecorder
+ * @property {(offset:number)=>GameboyOperationRecorder} atSample
+ * @property {(offset:number)=>GameboyOperationRecorder} atSeconds
+ * @property {(register:number,value:number)=>GameboyOperationRecorder} writeRegister
+ * @property {(channel:0|1|2,hz:number)=>GameboyOperationRecorder} setFrequency
+ * @property {(channel:0|1|2,note:string|number)=>GameboyOperationRecorder} setNote
+ * @property {(channel:0|1|2,note:string|number)=>GameboyOperationRecorder} noteOn
+ * @property {(channel:0|1|2|3)=>GameboyOperationRecorder} keyOn
+ * @property {(channel:0|1|2|3)=>GameboyOperationRecorder} keyOff
+ * @property {(channel:0|1|2|3,left:boolean,right:boolean)=>GameboyOperationRecorder} setPan
+ * @property {(left:number,right:number)=>GameboyOperationRecorder} setMasterVolume
+ * @property {{setVoice:(channel:0|1,voice:import('./gameboysynth.js').GameboyPulseVoice)=>GameboyOperationRecorder,setDuty:(channel:0|1,duty:0.125|0.25|0.5|0.75)=>GameboyOperationRecorder,setEnvelope:(channel:0|1,options:import('./gameboysynth.js').GameboyEnvelopeSettings)=>GameboyOperationRecorder,setSweep:(options:import('./gameboysynth.js').GameboySweep)=>GameboyOperationRecorder,setFrequency:(channel:0|1,hz:number)=>GameboyOperationRecorder,setNote:(channel:0|1,note:string|number)=>GameboyOperationRecorder,noteOn:(channel:0|1,note:string|number)=>GameboyOperationRecorder,keyOn:(channel:0|1)=>GameboyOperationRecorder,keyOff:(channel:0|1)=>GameboyOperationRecorder}} pulse
+ * @property {{setWaveform:(samples:readonly number[]|Uint8Array)=>GameboyOperationRecorder,stopAndSetWaveform:(samples:readonly number[]|Uint8Array)=>GameboyOperationRecorder,setLevel:(level:0|0.25|0.5|1)=>GameboyOperationRecorder,setFrequency:(hz:number)=>GameboyOperationRecorder,setNote:(note:string|number)=>GameboyOperationRecorder,noteOn:(note:string|number)=>GameboyOperationRecorder,keyOn:()=>GameboyOperationRecorder,keyOff:()=>GameboyOperationRecorder}} wave
+ * @property {{setVoice:(voice:import('./gameboysynth.js').GameboyNoiseVoice)=>GameboyOperationRecorder,setEnvelope:(options:import('./gameboysynth.js').GameboyEnvelopeSettings)=>GameboyOperationRecorder,setParameters:(options:Pick<import('./gameboysynth.js').GameboyNoiseVoice,'divisor'|'shift'|'width'>)=>GameboyOperationRecorder,keyOn:()=>GameboyOperationRecorder,keyOff:()=>GameboyOperationRecorder}} noise
+ */
+/** @template Result
+ * @param {(builder:GameboyOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown)} callback
+ * @param {{referenceSampleRate?:number}} [options]
+ * @returns {Readonly<{version:1,chip:'gameboy',referenceSampleRate:number,operations:ReadonlyArray<{time:{unit:'sample'|'seconds',value:number},order:number,method:string,args:ReadonlyArray<unknown>}>}>}
+ */`],
+    ['export function compileGameboyOperations(', String.raw`/**
+ * @param {ReturnType<typeof buildGameboyOperations>} plan
+ * @param {any} state
+ * @param {{clock?:number}} [options]
+ * @returns {Array<{offsetSeconds:number,register:number,value:number,operationIndex:number,writeIndex:number}>}
+ */`],
+  ],
+  'gameboy_timed_state.js': [
+    ['export function createGameboyTimedSnapshot(', String.raw`/** @param {any} state
+ * @param {{instanceId:string|number,frame:number,sampleRate:number}} [options]
+ * @returns {Readonly<{format:'tetorica-gameboy-state',version:1,instanceId:string|number,frame:number,sampleRate:number,state:Readonly<{clock:number,initialized:boolean,registers:readonly number[],voice:readonly number[]}>}>}
+ */`],
+  ],
+  'gameboy_timed_client.js': [
+    ['export function attachGameboyTimedClient(', String.raw`/**
+ * @typedef {Object} GameboyTimedApi
+ * @property {typeof import('./gameboy_operations.js').buildGameboyOperations} build
+ * @property {()=>Promise<ReturnType<typeof import('./gameboy_timed_state.js').createGameboyTimedSnapshot>>} captureState
+ * @property {(operations:ReturnType<GameboyTimedApi['build']>,options?:{initialState?:'current'|'client'|'reset'|Awaited<ReturnType<GameboyTimedApi['captureState']>>})=>Promise<ReturnType<typeof import('./gameboy_operations.js').compileGameboyOperations>>} compile
+ * @property {(operations:ReturnType<GameboyTimedApi['build']>,options:{name:string,repeatSeconds?:number})=>Promise<{name:string,entries:number,sampleRate:number,startFrame?:number,repeatSeconds?:number,staged?:boolean}>} schedule
+ * @property {(name:string)=>Promise<boolean>} clearSchedule
+ */
+/** @template T
+ * @param {T} api
+ * @param {{instanceId?:string|number,native?:boolean,getClientState?:()=>any,validatePlan?:(program:any,state:any)=>unknown}} [configuration]
+ * @param {any} [port]
+ * @returns {T & GameboyTimedApi}
+ */`],
+  ],
+  'playground_gameboy.js': [
+    ['export function createGameboyClient(', String.raw`/** @param {any} port
+ * @param {{clock?:number,instanceId?:string|number,native?:boolean,primary?:boolean}} [options]
+ * @param {any} [lifecycle]
+ * @returns {import('./gameboysynth.js').GameboySynth & import('./gameboy_timed_client.js').GameboyTimedApi & {setClock(hz:number):Promise<unknown>}}
+ */`],
+    ['export function createPrimaryGameboyApi(', String.raw`/** @param {any} raw
+ * @returns {Omit<ReturnType<typeof createGameboyClient>,'dispose'> & {readonly id:string}}
+ */`],
+  ],
   'segapsg_operations.js': [
     ['export function buildPsgOperations(', String.raw`/**
  * @typedef {Object} PsgOperationRecorder

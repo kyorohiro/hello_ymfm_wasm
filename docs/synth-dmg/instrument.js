@@ -16,6 +16,10 @@ export class GameboyInstrument {
     if (!core || typeof core.generateStereo !== 'function' || typeof core.writeRegister !== 'function') throw new TypeError('Expected a Game Boy APU');
     this.core = core;
     this.synth = new GameboySynth({transport: new GameboyDirectTransport(core)});
+    this.onRegisterWrite=null;this.silentRegisterWrites=0;
+    this.synth._observe=event=>{
+      if(!this.silentRegisterWrites&&event.method==='writeRegister')this.onRegisterWrite?.(...event.args);
+    };
     this.synth.initialize();
     this.preset = createDefaultPreset();
     this.channelPresets=createGameboyChannelBank(this.preset);
@@ -130,11 +134,17 @@ export class GameboyInstrument {
     if((edit||common)&&!shadow.initialized)throw new Error('Initialize the Game Boy APU before editing Code channel parameters');
     const voices=new Map(this.voices),slots=this.slots.slice(),owners=this.gateOwners.slice(),cursor=this.cursor;
     try {
-      this.core.loadState(checkpoint.native); this.synth._adoptState(checkpoint.synth);
-      this.slots=Array(4).fill(null);
-      this._applyBank(null,bank);
-      for (let channel = 0; channel < 4; channel++) this.synth.keyOff(channel);
-      const restored = {native:this.core.saveState(),synth:this.synth._getState(),pitch:0};
+      let restored;
+      // Preparing Stop's author checkpoint is virtual work. Only writes to
+      // the live machine may replace a timed/manual Gate ownership token.
+      this.silentRegisterWrites++;
+      try{
+        this.core.loadState(checkpoint.native); this.synth._adoptState(checkpoint.synth);
+        this.slots=Array(4).fill(null);
+        this._applyBank(null,bank);
+        for (let channel = 0; channel < 4; channel++) this.synth.keyOff(channel);
+        restored = {native:this.core.saveState(),synth:this.synth._getState(),pitch:0};
+      }finally{this.silentRegisterWrites--;}
       this.core.loadState(native); this.synth._adoptState(shadow);
       this.slots=slots.slice();
       if(edit||common){

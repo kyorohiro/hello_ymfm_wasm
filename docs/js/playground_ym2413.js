@@ -1,4 +1,4 @@
-import {attachOpllTimedClient} from './ym2413_timed_client.js';
+import {attachOpllTimedClient} from './ym2413_timed_client.js?v=pokey-mode-1';
 import {YM2413Synth} from './ym2413synth.js?v=pokey-mode-1';
 import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 /** Register-authoring controls shared by Main and Worker. Adoption never writes audio.

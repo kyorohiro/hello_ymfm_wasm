@@ -1,10 +1,10 @@
-import {createPs1TimedProcessor,ps1TimedCommandCost} from './ps1_timed_processor.js';
-import {capturePs1OperationState} from './ps1_operations.js';
+import {createPs1TimedProcessor,ps1TimedCommandCost} from './ps1_timed_processor.js?v=ps1-deferred-release-1';
+import {capturePs1OperationState} from './ps1_operations.js?v=ps1-deferred-release-1';
 import factory from '../generated/ps1_spu_wasm.js?v=ps1-deferred-release-1';
 import {Ps1Spu} from './ps1_spu.js?v=ps1-deferred-release-1';
 import {Ps1Synth,createPs1InitSample} from './ps1synth.js?v=ps1-deferred-release-1';
 import {Ps1Resampler} from './ps1_resampler.js?v=scsp-fm-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=gameboy-timed-1';
 import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 const METHODS=new Set(['loadADPCM','setPreset','setChannel','setEnvelope','setReverb','setNoiseEnabled','setNoiseClock','setPmonEnabled','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','getPreset','snapshot','dispose']);

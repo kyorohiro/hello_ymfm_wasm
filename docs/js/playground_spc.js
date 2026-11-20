@@ -1,6 +1,6 @@
 import {validateSpcVoiceEdit} from './spc_voice_edit.js';
 /** Full SPC file playback, independent of musical BPM and Worker lookahead. */
-import {createSpcEventDecoder} from './spc_events.js';
+import {createSpcEventDecoder} from './spc_events.js?v=spc-events-1';
 const abortError = () => new DOMException('SPC player disposed or operation cancelled', 'AbortError');
 const TIMEOUT_MS = 15000;
 export function createSpcClient(port, initial = {}, {

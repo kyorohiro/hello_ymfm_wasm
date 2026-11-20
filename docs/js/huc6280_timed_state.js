@@ -1,4 +1,4 @@
-import {validateHuc6280OperationState} from './huc6280_operations.js';
+import {validateHuc6280OperationState} from './huc6280_operations.js?v=audio-stability-2';
 
 export const HUC6280_TIMED_STATE_FORMAT = 'tetorica-huc6280-state';
 export const HUC6280_TIMED_STATE_VERSION = 1;

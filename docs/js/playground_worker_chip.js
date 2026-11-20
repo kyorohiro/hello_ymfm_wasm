@@ -3,9 +3,9 @@ import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-p
  * No DOM, AudioNode or main-thread RPC. Observers are fire-and-forget.
  */
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
-import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
+import {createPrimaryGameboyApi} from './playground_gameboy.js?v=gameboy-timed-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {attachYm2612TimedClient} from './ym2612_timed_client.js';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js?v=pokey-prepare-1';
 import {YM2203Synth} from './ym2203synth.js?v=rf5c164-notes-1';
 import {OPNFMSynth} from './opn_fm_synth.js?v=audio-stability-2';
 import {YM2608Synth} from './ym2608synth.js?v=rf5c164-notes-1';
@@ -14,7 +14,7 @@ import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 /**
  * Create Worker-side primary controls that send ordered writes to a Worklet port.
  * Stop cancels outstanding DAC requests and mutes hardware; resume permits new work.
- * @param {{port: MessagePort, capabilities: {backend?:string,engine?:'ymfm'|'nuked',chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number,engine?:'ymfm'|'nuked',timedState?:import('./ym2612_operations.js').YM2612OperationState, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
+ * @param {{port: MessagePort, capabilities: {backend?:string,engine?:'ymfm'|'nuked',chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number,engine?:'ymfm'|'nuked',timedState?:import('./ym2612_operations.js?v=audio-stability-2').YM2612OperationState, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
  * @returns Selected primary controls, raw synth state, write sender and lifecycle methods.
  */
 export function createWorkerChip({port,capabilities,state,observe=()=>{}}){

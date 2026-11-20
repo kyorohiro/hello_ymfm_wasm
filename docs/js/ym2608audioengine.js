@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js?v=ym2608-source-gains-1";
+import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js?v=audio-stability-2";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
@@ -39,7 +39,7 @@ export class Ym2608AudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number, outputGains?:import('./ym2608.js?v=ym2608-source-gains-1').Ym2608OutputGainPatch,sourceGains?:import('./ym2608.js?v=ym2608-source-gains-1').Ym2608SourceGainPatch}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number, outputGains?:import('./ym2608.js?v=audio-stability-2').Ym2608OutputGainPatch,sourceGains?:import('./ym2608.js?v=audio-stability-2').Ym2608SourceGainPatch}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2608AudioEngine>} Initialized engine owned by the caller.
@@ -150,15 +150,15 @@ export class Ym2608AudioEngine {
 
   /** Host gains are applied to the native FM-side and SSG outputs before mixing.
    * FM includes Rhythm and ADPCM-B. Changing gains invalidates cached engine states.
-   * @param {import('./ym2608.js?v=ym2608-source-gains-1').Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
-   * @returns {import('./ym2608.js?v=ym2608-source-gains-1').Ym2608OutputGains} Accepted gains.
+   * @param {import('./ym2608.js?v=audio-stability-2').Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
+   * @returns {import('./ym2608.js?v=audio-stability-2').Ym2608OutputGains} Accepted gains.
    */
   setOutputGains(gains) { return this.ym2608.setOutputGains(gains); }
 
-  /** @returns {import('./ym2608.js?v=ym2608-source-gains-1').Ym2608OutputGains} Detached output gains. */
+  /** @returns {import('./ym2608.js?v=audio-stability-2').Ym2608OutputGains} Detached output gains. */
   getOutputGains() { return this.ym2608.getOutputGains?.() ?? {fm:1,ssg:1}; }
 
-  /** @param {import('./ym2608.js?v=ym2608-source-gains-1').Ym2608SourceGainPatch} gains Independent source gains. */
+  /** @param {import('./ym2608.js?v=audio-stability-2').Ym2608SourceGainPatch} gains Independent source gains. */
   setSourceGains(gains) {
     if (this.ym2608.setSourceGains) return this.ym2608.setSourceGains(gains);
     const next = normalizeYm2608SourceGains(gains,this.getSourceGains());
@@ -166,7 +166,7 @@ export class Ym2608AudioEngine {
     return next;
   }
 
-  /** @returns {import('./ym2608.js?v=ym2608-source-gains-1').Ym2608SourceGains} Detached independent source gains. */
+  /** @returns {import('./ym2608.js?v=audio-stability-2').Ym2608SourceGains} Detached independent source gains. */
   getSourceGains() { return this.ym2608.getSourceGains?.() ?? {fm:1,ssg:1,rhythm:1,adpcm:1}; }
 
   /**

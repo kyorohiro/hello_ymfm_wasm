@@ -1,4 +1,4 @@
-import {createYm2612TimedProcessor, observeYm2612TimedChip} from './ym2612_timed_processor.js';
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from './ym2612_timed_processor.js?v=audio-stability-2';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';

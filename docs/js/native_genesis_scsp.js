@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Only authored controls and owned PCM copies live here. DSP runs in Native.
-import {ScspSynth,createScspInitSample} from './scspsynth.js';
-import {SCSP_CONTROLS,SCSP_DSP_METHODS,assertNativeScspControl,scspCommandArgs,createScspValidation} from './playground_scsp.js';
-import {ScspVoiceInspector} from './playground_scsp_inspector.js';
-import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js';
+import {ScspSynth,createScspInitSample} from './scspsynth.js?v=scsp-fm-1';
+import {SCSP_CONTROLS,SCSP_DSP_METHODS,assertNativeScspControl,scspCommandArgs,createScspValidation} from './playground_scsp.js?v=scsp-fm-1';
+import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-fm-1';
+import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
 export const SCSP_MEMORY_HELD_ERROR='Stop SCSP voices before replacing protected sample RAM or state';
 export const SCSP_ADMISSION_ERRORS=['Native SCSP note exceeds supported PCM RAM or loop bounds',SCSP_MEMORY_HELD_ERROR,'Native SCSP pending command limit reached (8 MiB)','Duplicate pending Native SCSP command ID','Native SCSP command was cancelled before it applied','Native SCSP state changed while reading; retry','Native SCSP command was not applied within 100 ms'];
 const clone=structuredClone,abort=()=>new DOMException('Native SCSP operation was cancelled','AbortError');

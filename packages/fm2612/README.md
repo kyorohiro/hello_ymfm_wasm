@@ -42,6 +42,7 @@ entry points, rather than every internal Worker or Worklet module.
 | YM2413 OPLL | `tetorica-fm2612/ym2413synth.js` | `YM2413Synth`, `YM2413DirectTransport`, `YM2413_INSTRUMENTS`, `YM2413_USER_PRESETS` |
 | AY-3-8910 PSG | `tetorica-fm2612/ay8910synth.js` | `AY8910Synth`, `AY8910DirectTransport`, `AY8910WorkletTransport` |
 | Game Boy pulse, wave and noise | `tetorica-fm2612/gameboysynth.js` | `GameboySynth`, `GameboyDirectTransport` |
+| Game Boy recorded register operations (unreleased) | `tetorica-fm2612/gameboy_operations.js`, `tetorica-fm2612/playground_gameboy.js` | Pure `buildGameboyOperations` / `compileGameboyOperations`; shared Web Audio client's `build` / `schedule` / `compile` / `captureState`. See [usage and limits](../../docs/synth-dmg/README.md#inspect-and-schedule-register-operations). |
 | NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
 | PC Engine wavetable, noise and DDA | `tetorica-fm2612/huc6280synth.js` | `Huc6280Synth`, `Huc6280DirectTransport` |

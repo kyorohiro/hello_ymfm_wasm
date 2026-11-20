@@ -27,6 +27,26 @@ const state=await gb.getState();const source:'pulse'|'wave'|'noise'=state.editor
 await livePrepare('state',async api=>{const chip=await api.useSoundChip('gameboy');return chip;});
 liveLoop('notes',async()=>{await gb.pulse.noteOn(CH2,choose(scale('E3','minorPentatonic',2)));await beat(.5);await gb.pulse.keyOff(CH2);});
 await tween({seconds:2},async value=>{await gb.pulse.setDuty(CH1,value>.5?.25:.5);});pg.log(source);await gb.dispose();
+const operations=gb.build(b=>{
+  b.pulse.setEnvelope(CH1,{volume:9,period:2});
+  b.atSample(441).pulse.noteOn(CH1,'E4');
+  b.atSeconds(.25).wave.setWaveform(new Uint8Array(32));
+  b.wave.noteOn('E3');b.atSeconds(.5).keyOff(CH1);
+},{referenceSampleRate:44100});
+const snapshot=await gb.captureState();
+for(const initialState of ['current','client','reset',snapshot] as const){
+  const writes=await gb.compile(operations,{initialState});
+  const offset:number=writes[0].offsetSeconds;const reg:number=writes[0].register;
+}
+await gb.schedule(operations,{name:'pulse',repeatSeconds:1});await gb.clearSchedule('pulse');
+// @ts-expect-error build callbacks run once synchronously
+gb.build(async b=>b.keyOff(CH1));
+// @ts-expect-error lifecycle operations are immediate only
+gb.build(b=>b.initialize());
+// @ts-expect-error no Pulse on Noise channel
+gb.build(b=>b.pulse.noteOn(CH4,'E4'));
+// @ts-expect-error captures are immutable
+snapshot.state.voice[0]=0;
 // @ts-expect-error only DMG is borrowed
 await useSoundChip('sid');
 // @ts-expect-error Noise has no per-note pitch

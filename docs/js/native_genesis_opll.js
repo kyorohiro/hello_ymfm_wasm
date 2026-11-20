@@ -1,4 +1,4 @@
-import {attachOpllTimedClient} from './ym2413_timed_client.js';
+import {attachOpllTimedClient} from './ym2413_timed_client.js?v=pokey-mode-1';
 /** Shared YM2413 authoring / inspection for Native Master System and MSX. */
 import {YM2413Synth} from './ym2413synth.js?v=pokey-mode-1';
 import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=ps1-deferred-release-1';

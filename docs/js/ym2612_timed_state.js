@@ -1,6 +1,6 @@
-import {validateYm2612OperationState} from './ym2612_operation_state.js';
+import {validateYm2612OperationState} from './ym2612_operation_state.js?v=audio-stability-2';
 
-/** @typedef {import('./ym2612_operation_state.js').YM2612OperationState} YM2612OperationState */
+/** @typedef {import('./ym2612_operation_state.js?v=audio-stability-2').YM2612OperationState} YM2612OperationState */
 /** @typedef {{instanceId:string|number,clock:number,engine?:'ymfm'|'nuked',frame:number,sampleRate:number}} YM2612SnapshotConfiguration */
 /** @typedef {Readonly<YM2612OperationState & {format:'tetorica-ym2612-state',version:1,instanceId:string|number,clock:number,engine:'ymfm'|'nuked',frame:number,sampleRate:number}>} YM2612TimedSnapshot */
 

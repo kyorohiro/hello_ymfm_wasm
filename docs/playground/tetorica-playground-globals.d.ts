@@ -1575,7 +1575,78 @@ declare function createSoundChip(name: 'rf5c164', options?: PlaygroundCreateSoun
 type GameboyNote = string | number;
 interface GameboyEnvelope { direction?: 'up' | 'down'; period?: number; }
 interface GameboyPulseVoice { duty?: 0.125 | 0.25 | 0.5 | 0.75; volume?: number; envelope?: GameboyEnvelope; }
+/** A bounded Game Boy operation program. Building does not read or change the APU. */
+interface PlaygroundGameboyRecordedOperation {
+  readonly time: {readonly unit:'sample'|'seconds'; readonly value:number};
+  readonly order:number;
+  readonly method:string;
+  readonly args:readonly unknown[];
+}
+interface PlaygroundGameboyOperationProgram {
+  readonly version:1;
+  readonly chip:'gameboy';
+  readonly referenceSampleRate:number;
+  readonly operations:readonly PlaygroundGameboyRecordedOperation[];
+}
+type PlaygroundGameboyRecordedCalls<T> = {
+  readonly [K in keyof T]: T[K] extends (...args:infer A)=>unknown ? (...args:A)=>PlaygroundGameboyOperationRecorder : never;
+};
+/** Absolute offsets from reservation start; all setters return this root recorder.
+ * Lifecycle reset/initialize/clock changes and disposal are immediate APIs only. */
+interface PlaygroundGameboyOperationRecorder extends PlaygroundGameboyRecordedCalls<Pick<PlaygroundGameboy,
+  'writeRegister'|'setFrequency'|'setNote'|'noteOn'|'keyOn'|'keyOff'|'setPan'|'setMasterVolume'>> {
+  atSample(offset:number):PlaygroundGameboyOperationRecorder;
+  atSeconds(offset:number):PlaygroundGameboyOperationRecorder;
+  readonly pulse:PlaygroundGameboyRecordedCalls<PlaygroundGameboy['pulse']>;
+  readonly wave:PlaygroundGameboyRecordedCalls<Omit<PlaygroundGameboy['wave'],'setWaveform'|'stopAndSetWaveform'>> & {
+    /** Exactly 32 four-bit samples; stops CH3 DAC and does not retrigger it. */
+    setWaveform(samples:readonly number[]|Uint8Array):PlaygroundGameboyOperationRecorder;
+    stopAndSetWaveform(samples:readonly number[]|Uint8Array):PlaygroundGameboyOperationRecorder;
+  };
+  readonly noise:PlaygroundGameboyRecordedCalls<PlaygroundGameboy['noise']>;
+}
+interface PlaygroundGameboyCompiledWrite {
+  readonly offsetSeconds:number;
+  readonly register:number;
+  readonly value:number;
+  readonly operationIndex:number;
+  readonly writeIndex:number;
+}
+/** Resolver metadata: sent bytes and configured voices differ after keyOff.
+ * Does not snapshot oscillator phase, frame sequencer or an audio save state. */
+interface PlaygroundGameboyOperationState {
+  readonly clock:number;
+  readonly initialized:boolean;
+  readonly registers:readonly number[];
+  readonly voice:readonly number[];
+}
+interface PlaygroundGameboyStateSnapshot {
+  readonly format:'tetorica-gameboy-state';
+  readonly version:1;
+  readonly instanceId:string|number;
+  readonly frame:number;
+  readonly sampleRate:number;
+  readonly state:PlaygroundGameboyOperationState;
+}
+interface PlaygroundGameboyCompileOptions {
+  /** current captures renderer state; client uses local authored state without a request.
+   * reset is powered-off hardware state. Supplied captures are reusable and immutable. */
+  initialState?:'current'|'client'|'reset'|PlaygroundGameboyStateSnapshot;
+}
+interface PlaygroundGameboyScheduleOptions {name:string;repeatSeconds?:number;}
+interface PlaygroundGameboyScheduleReceipt {
+  name:string;entries:number;sampleRate:number;startFrame?:number;repeatSeconds?:number;staged?:boolean;
+}
 interface PlaygroundGameboy {
+  /** Record existing register operations once, without capturing live state. */
+  build<Result>(callback:(builder:PlaygroundGameboyOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown), options?:{referenceSampleRate?:number}):PlaygroundGameboyOperationProgram;
+  /** Coherent Web Audio renderer state. Does not stop audio; Native capture is unavailable. */
+  captureState():Promise<PlaygroundGameboyStateSnapshot>;
+  /** Predict register writes without applying them. A prediction is not a playback history. */
+  compile(operations:PlaygroundGameboyOperationProgram, options?:PlaygroundGameboyCompileOptions):Promise<PlaygroundGameboyCompiledWrite[]>;
+  /** AudioWorklet sample-clock execution; named replacements reject atomically. Native is unavailable. */
+  schedule(operations:PlaygroundGameboyOperationProgram, options:PlaygroundGameboyScheduleOptions):Promise<PlaygroundGameboyScheduleReceipt>;
+  clearSchedule(name:string):Promise<boolean>;
   /** Tone channels 0/1=pulse, 2=wave. Requires initialize() or adoptRegisterState(). */
   setFrequency(ch: 0 | 1 | 2, hz: number): number;
   setNote(ch: 0 | 1 | 2, note: GameboyNote): number;

@@ -3,13 +3,14 @@
 import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
 import {readPreset} from './preset.js';
 import {readGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-unified-channel-1';
+import {attachGameboyTimedClient} from '../js/gameboy_timed_client.js';
 
 const nativeSetTimer = globalThis.setTimeout.bind(globalThis);
 const nativeClearTimer = globalThis.clearTimeout.bind(globalThis);
 
 export const GAMEBOY_SYNTH_BALANCE = .28;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'observeCode', 'observeEditor', 'setPreset', 'loadPreset', 'loadChannelBank', 'applyChannelEdit', 'applyCodePreset', 'applyCodeEdit', 'releaseKeyboard', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'observeEditor', 'setPreset', 'loadPreset', 'loadChannelBank', 'applyChannelEdit', 'applyCodePreset', 'applyCodeEdit', 'releaseKeyboard', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code', 'codeTimed']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('Game Boy Master must be from 0 to 3.8');
@@ -29,7 +30,10 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
   const controller = new AbortController(), pending = new Map();
   let node = null, balance = null, codeFade = null, master = null, songInput = null, disposed = false, closing = null;
   let codeGeneration = 0, codeOwner = null;
-  const invalidateCode = () => { codeGeneration++; codeOwner = null; };
+  const invalidateCode = () => {
+    const retired=codeOwner;codeGeneration++;codeOwner=null;
+    retired?.client?._timedOperations.detach?.();
+  };
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   // A fatal error can also occur after startup has returned to the UI.
@@ -97,7 +101,7 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
         if (!response.ok) throw new Error(`Game Boy WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?v=dmg-working-saved-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=dmg-timed-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();
@@ -159,7 +163,7 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
       owner.promise = command('beginCode').then(metadata => {
         check();
         owner.session = metadata.session;
-        return createGameboyCodeClient({metadata,isCurrent:current,
+        const client=createGameboyCodeClient({metadata,isCurrent:current,
           ownsOutput:()=>current() || !disposed&&!fatalError&&codeOwner===null&&owner.releasedGeneration===codeGeneration,
           invoke(method,args) {check(); return command('code',[metadata.session,method,args]);},
           dispose() {
@@ -171,6 +175,11 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
             return owner.ending;
           },
         });
+        Object.defineProperty(client,'_requestControl',{value:(method,args)=>{
+          check();if(method!=='gameboyTimed'||!Array.isArray(args)||args.length!==1)throw new TypeError('Invalid DMG timed control request');
+          return command('codeTimed',[metadata.session,args[0]]).then(value=>{check();return value;});
+        }});
+        return owner.client=attachGameboyTimedClient(client,{instanceId:metadata.instanceId},node.port);
       }).catch(error => {if (codeOwner === owner) codeOwner = null;throw error;});
       return owner.promise;
     }

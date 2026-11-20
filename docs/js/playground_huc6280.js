@@ -1,7 +1,7 @@
 import {attachChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {Huc6280Synth, HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
-import {attachHuc6280TimedClient} from './huc6280_timed_client.js';
-import {validateHuc6280OperationState,validateHuc6280RegisterOnlyPlan} from './huc6280_operations.js';
+import {attachHuc6280TimedClient} from './huc6280_timed_client.js?v=audio-stability-2';
+import {validateHuc6280OperationState,validateHuc6280RegisterOnlyPlan} from './huc6280_operations.js?v=audio-stability-2';
 
 /** Immediate, ordered register commands shared by Main and Worker runtimes.
  * @param {MessagePort} port

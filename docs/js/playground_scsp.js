@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {ScspSynth} from './scspsynth.js';
+import {ScspSynth} from './scspsynth.js?v=scsp-fm-1';
 export const SCSP_CONTROLS=Object.freeze(['setPreset','setEnvelope','setLfo','setModulation','setFrequency','setNote','setMix','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset']);
 export const SCSP_DSP_METHODS=Object.freeze(['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setDspDelay']);
 export function assertNativeScspControl(method,args=[]) {

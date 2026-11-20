@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import factory from '../generated/scsp_wasm.js';
-import {Scsp} from './scsp.js';
-import {ScspSynth,createScspInitSample} from './scspsynth.js';
-import {Pcm44100Resampler} from './pcm_44100_resampler.js';
-import {SCSP_CONTROLS,SCSP_DSP_METHODS,createScspValidation,scspCommandArgs,validateScspDspCommand} from './playground_scsp.js';
-import {createProcessorPerformance} from './playground_performance_processor.js';
-import {ScspVoiceInspector} from './playground_scsp_inspector.js';
-import {receiveChipInspector} from './playground_chip_inspector_state.js';
+import {Scsp} from './scsp.js?v=scsp-fm-1';
+import {ScspSynth,createScspInitSample} from './scspsynth.js?v=scsp-fm-1';
+import {Pcm44100Resampler} from './pcm_44100_resampler.js?v=scsp-fm-1';
+import {SCSP_CONTROLS,SCSP_DSP_METHODS,createScspValidation,scspCommandArgs,validateScspDspCommand} from './playground_scsp.js?v=scsp-fm-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=gameboy-timed-1';
+import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-fm-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 const METHODS=new Set([...SCSP_CONTROLS,...SCSP_DSP_METHODS,'loadPCM','getState']);
 export class ScspInstrumentProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}) {

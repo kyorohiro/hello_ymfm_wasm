@@ -163,6 +163,66 @@ repeatedly, the latest write wins.
 `liveLoop`, `beat`, `tween`, `context`, scheduling and `liveFx`
 are software facilities, separate from APU Envelope / Sweep.
 
+### Inspect and schedule register operations
+
+Files includes editable `examples/timed-pulse.js`, `timed-noise.js` and
+`timed-wave.js`. Open one in Code and Run it. Existing edited files are kept;
+**Menu → New → Cassette** also includes these examples.
+
+```js
+const gb = await useSoundChip("gameboy");
+const operations = gb.build(b => {
+  b.pulse.setEnvelope(CH1, {volume: 9, direction: "down", period: 2});
+  b.pulse.noteOn(CH1, "E4");
+  b.atSample(4410).pulse.setDuty(CH1, 0.25);
+  b.atSeconds(0.25).pulse.keyOff(CH1);
+});
+
+const snapshot = await gb.captureState();
+console.table(await gb.compile(operations, {initialState: snapshot}));
+await gb.schedule(operations, {name: "pulse", repeatSeconds: 0.5});
+// await gb.clearSchedule("pulse");
+```
+
+`build()` calls its synchronous callback once and records serializable operations.
+It does not read or change live registers. Offsets are absolute from reservation
+start. `atSample()` uses a reference rate of 44100 Hz, configurable with
+`build(callback, {referenceSampleRate: 48000})`; it is independent of the output
+device rate. These offsets and `repeatSeconds` do not follow BPM. Use existing
+`beat()` loops for music that should follow `setBpm()`.
+
+`schedule()` resolves each operation against the actual register/configured-voice
+state when it executes in the AudioWorklet. Partial updates preserve other fields;
+same-time operations and repeated trigger writes keep their order. Named patterns
+remain compact and can be replaced or canceled. Invalid requests keep the old
+pattern. Run / Apply / Stop and named-loop ownership use the shared runtime rules;
+a later keyboard note is not released by an old reservation. Manual edits still
+compete in actual write order. There is no JavaScript timer fallback.
+
+`compile()` predicts writes without changing the chip. Its default `initialState:
+"current"` requests coherent renderer state without stopping audio. A detached
+`captureState()` result can be reused to compare programs against the same state.
+The rows contain `offsetSeconds`, `register` (offset from `0xFF10`), `value`,
+`operationIndex` and `writeIndex`. They describe a prediction, not a recording of
+other edits that happen during playback. Captures include the sent registers,
+configured voice bytes, initialized flag and clock; they are not oscillator-phase
+or full APU save states. Incompatible chip-instance/clock snapshots are rejected.
+
+`initialState: "reset"` uses powered-off hardware state locally. It supports raw
+register traces; high-level notes require an initialized state and reject that
+baseline. `initialState: "client"` uses an existing complete JavaScript shadow
+without a request in the shared Playground client. This borrowed Synth facade has
+no complete client shadow, so it explicitly rejects `"client"`; use a supplied
+snapshot for a local comparison. No new continuous state synchronization is added.
+
+Timed operations cover the existing root, Pulse, Wave and Noise register/note/Gate
+controls. Wave uploads require exactly 32 four-bit samples, stop the DAC and do
+not retrigger it: schedule `wave.noteOn()` or `wave.keyOn()` explicitly afterward.
+Hardware Envelope/Sweep side effects remain unchanged. Reset, initialize, clock
+changes and disposal remain immediate operations, outside the recorder. Native
+timed execution and authoritative capture are unavailable; the existing immediate
+APIs remain available. The bare `GameboySynth` register API is also unchanged.
+
 **Files** opens the project tree. Add code, local modules or data; right-click
 for Duplicate, Rename, Delete and new JavaScript / sound / folder. Use
 **Menu → Import / Export** for external files and project ZIPs.

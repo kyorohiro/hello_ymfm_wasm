@@ -1,4 +1,4 @@
-import {validatePs1OperationState} from './ps1_operations.js';
+import {validatePs1OperationState} from './ps1_operations.js?v=ps1-deferred-release-1';
 
 export const PS1_TIMED_STATE_FORMAT = 'tetorica-ps1-state';
 export const PS1_TIMED_STATE_VERSION = 1;

@@ -10,7 +10,7 @@ Later API-port order is not implied by the Files/UI rollout.
 | YM2149 ST | Present; preserve and verify: [TODO](todo_ym2149_st_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | HuC6280 / PC Engine | Present: [TODO](todo_huc6280_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | PS1 SPU | Existing-sample note/pitch/ADSR/reverb plus hardware Noise/PMON implemented in Web Audio; see [verification](todo_spu_timed_register_api_20261120.md). Remaining scope: [TODO](todo_spu_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
-| DMG | Planned: [TODO](todo_dmg_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
+| DMG | Pulse / Wave / Noise register operations, notes and raw Gates implemented in Synth and shared Web Audio Main/Worker clients; Wave uploads preserve DAC-stop semantics. Native execution/capture remain unsupported and npm publication is pending: [verification](todo_dmg_timed_register_api_20261120.md), [TODO](todo_dmg_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up). |
 | SID | Planned: [TODO](todo_sid_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | FM2608 / PC-98 | Planned: [TODO](todo_fm2608_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | 2A03 / NES + FDS | Planned: [TODO](todo_2a03_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |

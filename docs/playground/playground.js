@@ -13,7 +13,7 @@ import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
   installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=rf5c164-notes-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=scsp-dsp-routing-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=scsp-fm-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-pcm-timeline-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mega-cd-cdda-1';
 let desktopAutosave = null;
@@ -51,7 +51,7 @@ import {
 } from "../js/megasynth.js?v=rf5c164-notes-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=rf5c164-notes-1";
+} from "../js/tetorica_synth.js?v=gameboy-timed-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -65,8 +65,8 @@ import {
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=ps1-mode-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=pokey-prepare-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=scsp-cycle2-examples-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=scsp-dsp-routing-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=ps1-vab-api-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=ps1-vab-api-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -97,7 +97,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=scsp-dsp-routing-1";
+} from "../js/playground_runtime.js?v=gameboy-timed-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=scsp-fm-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";

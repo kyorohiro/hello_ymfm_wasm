@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=dmg-working-saved-1';
-import {setupGameboyCodeHost} from './code_host.js?v=dmg-code-workspace-1';
+import {createAudio} from './audio.js?v=dmg-timed-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-timed-1';
 import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-vgm-manual-1';
 import {createEditor} from './editor.js?v=dmg-vgm-manual-1';
 import {createGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-vgm-manual-1';

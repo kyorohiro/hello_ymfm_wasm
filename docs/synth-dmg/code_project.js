@@ -138,7 +138,11 @@ function expandManifestSettings(value){
   }
   return result;
 }
-export function createGameboyCodeProject({settings=createDefaultPreset(),snapshot,starterCode,getStarterCode}={}){
+export function createGameboyCodeProject({settings=createDefaultPreset(),snapshot,starterCode,getStarterCode,starterFiles={}}={}){
+  const examples=Object.entries(starterFiles).map(([path,data])=>{
+    path=pathForUser(path);if(!isGameboyCodePath(path)||typeof data!=='string')throw TypeError('Starter examples must be JavaScript text files.');
+    return{path,type:'text',data};
+  });
   const workspace=createVirtualFileWorkspace(),fs=workspace.working,savedFs=workspace.saved,listeners=new Set();let entryCache=null;
   let current=readPreset(settings),accepted=readPreset(settings),activeSound=null,moves=[],selected=null,state={mode:'keyboard',path:null},projectName='Tetorica DMG',restoring=false;
   const notify=()=>{if(!restoring)for(const listener of listeners)listener();};
@@ -173,9 +177,17 @@ export function createGameboyCodeProject({settings=createDefaultPreset(),snapsho
       fs.writeText(path,source);
     },
     setCodeState(value){const next=codeState(value,fs);if(next.mode!==state.mode||next.path!==state.path){state=next;notify();}},getCodeState:()=>clone(state),
+    ensureStarterFiles(){
+      const occupied=(target,path)=>target.has(path)||target.listDirectories().includes(path);
+      const missing=examples.filter(file=>!occupied(fs,file.path)&&!occupied(savedFs,file.path));
+      if(!missing.length)return[];
+      const candidate=createGameboyCodeProject({snapshot:project.snapshot()});
+      const paths=candidate.importFiles(missing);candidate.saveFiles(paths);
+      project.restore(candidate.snapshot());return paths;
+    },
     prepareNew(){
       // Prepare defaults separately, using the original starter rather than edited Code.
-      const fresh=createGameboyCodeProject({starterCode:getStarterCode?getStarterCode():starterCode??''});
+      const fresh=createGameboyCodeProject({starterCode:getStarterCode?getStarterCode():starterCode??'',starterFiles});
       fresh.select('/index.js');fresh.setCodeState({mode:'keyboard',path:'/index.js'});
       fresh.setAutoApply(project.autoApply);
       return fresh.snapshot();
@@ -234,6 +246,7 @@ export function createGameboyCodeProject({settings=createDefaultPreset(),snapsho
   if(starterCode===undefined&&!snapshot&&getStarterCode)starterCode=getStarterCode();
   if(starterCode!==undefined){if(typeof starterCode!=='string')throw TypeError('Starter code must be text.');fs.writeText('/index.js',starterCode);}
   if(snapshot)project.restore(snapshot);
+  else project.ensureStarterFiles();
   return project;
 }
 

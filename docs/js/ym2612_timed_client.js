@@ -1,17 +1,17 @@
-import {validateChipClock} from './playground_chip_clock.js';
-import {validateYm2612Engine} from './playground_soundchip_options.js';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=pokey-mode-1';
 import {
   buildYm2612Operations, validateYm2612Operations, compileYm2612Operations,
   createYm2612OperationResetState, validateYm2612OperationState, ym2612OperationOffsetSeconds,
-} from './ym2612_operations.js';
-import {validateYm2612TimedSnapshot} from './ym2612_timed_state.js';
+} from './ym2612_operations.js?v=audio-stability-2';
+import {validateYm2612TimedSnapshot} from './ym2612_timed_state.js?v=audio-stability-2';
 
 /**
- * @typedef {import('./ym2612_operations.js').YM2612OperationRecorder} YM2612OperationRecorder
- * @typedef {import('./ym2612_operations.js').YM2612OperationProgram} YM2612OperationProgram
- * @typedef {import('./ym2612_operations.js').YM2612BuildOptions} YM2612BuildOptions
- * @typedef {import('./ym2612_operations.js').YM2612CompiledWrite} YM2612CompiledWrite
- * @typedef {import('./ym2612_timed_state.js').YM2612TimedSnapshot} YM2612StateSnapshot
+ * @typedef {import('./ym2612_operations.js?v=audio-stability-2').YM2612OperationRecorder} YM2612OperationRecorder
+ * @typedef {import('./ym2612_operations.js?v=audio-stability-2').YM2612OperationProgram} YM2612OperationProgram
+ * @typedef {import('./ym2612_operations.js?v=audio-stability-2').YM2612BuildOptions} YM2612BuildOptions
+ * @typedef {import('./ym2612_operations.js?v=audio-stability-2').YM2612CompiledWrite} YM2612CompiledWrite
+ * @typedef {import('./ym2612_timed_state.js?v=audio-stability-2').YM2612TimedSnapshot} YM2612StateSnapshot
  * @typedef {{initialState?:'current'|'client'|'reset'|YM2612StateSnapshot}} YM2612CompileOptions
  * @typedef {{name:string,repeatSeconds?:number}} YM2612ScheduleOptions
  * @typedef {{name:string,startFrame?:number,sampleRate:number,entries:number,repeatSeconds?:number,staged?:boolean}} YM2612ScheduleReceipt

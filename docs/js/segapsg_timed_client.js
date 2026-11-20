@@ -6,8 +6,8 @@ import {
 	createPsgOperationResetState,
 	validatePsgOperationState,
 	psgOperationOffsetSeconds,
-} from "./segapsg_operations.js";
-import { validatePsgTimedSnapshot } from "./segapsg_timed_state.js";
+} from "./segapsg_operations.js?v=audio-numeric-bindings-1";
+import { validatePsgTimedSnapshot } from "./segapsg_timed_state.js?v=audio-numeric-bindings-1";
 
 function options(value, allowed, label) {
 	if (

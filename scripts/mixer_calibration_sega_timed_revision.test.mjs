@@ -4,14 +4,20 @@ import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {
-  restoreMixerCalibrationSegaTimedRevision as restore, createSegaTimedRevisionReadContext,
+  restoreMixerCalibrationSegaTimedRevision as restoreSega, createSegaTimedRevisionReadContext as createSegaContext,
   SEGA_TIMED_REVISION_BASE_COMMIT as base, SEGA_TIMED_REVISION_PATHS as paths,
   SEGA_TIMED_REVISION_RECEIPT as receiptPath, SEGA_TIMED_REVISION_PIN as pin,
   SEGA_TIMED_REVISION_REPORTS as reports,
 } from './mixer_calibration_sega_timed_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+import {createGameboyTimedRevisionReadContext} from './mixer_calibration_gameboy_timed_revision.mjs';
 
-const read = name => readFileSync(new URL('../' + name, import.meta.url));
+// This historical audit still checks its original bytes. Remove the separately
+// authenticated later DMG promotion before exercising its own strict guards.
+const gameboyContext=createGameboyTimedRevisionReadContext();
+const read = name => gameboyContext.readSource(new URL('../' + name, import.meta.url));
+const restore=(path,bytes,options={})=>restoreSega(path,bytes,{read,...options});
+const createSegaTimedRevisionReadContext=()=>createSegaContext(gameboyContext.readSource);
 const sha = value => createHash('sha256').update(value).digest('hex');
 const receipt = JSON.parse(read(receiptPath));
 

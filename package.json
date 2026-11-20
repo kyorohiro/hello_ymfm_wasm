@@ -97,6 +97,8 @@
     "test:spu-synth:live-presets-browser": "node scripts/check_spu_synth_live_presets_browser.cjs",
     "test:spu-synth:parameters-keyboard-browser": "node scripts/check_spu_synth_parameters_keyboard_browser.cjs",
     "pack:spu-synth": "sh scripts/package_itch_spu_synth.sh",
+    "test:dmg-timed": "node --test test/runtime/gameboy_operations.test.mjs test/runtime/gameboy_timed_*.test.mjs test/runtime/playground_gameboy.test.mjs test/runtime/gameboy_runtime_synth.test.mjs docs/synth-dmg/timed_processor.test.mjs docs/synth-dmg/code_examples.test.mjs docs/synth-dmg/code_declarations.test.mjs docs/playground/playground_gameboy_timed_declarations.test.mjs",
+    "test:dmg-timed:browser": "node scripts/check_dmg_timed_browser.cjs",
     "test:dmg-synth": "node --test docs/synth-dmg/*.test.mjs scripts/package_itch_dmg_synth.test.mjs",
     "test:gameboy-synth": "npm run test:dmg-synth",
     "test:dmg-synth:browser": "node scripts/check_dmg_synth_browser.cjs",

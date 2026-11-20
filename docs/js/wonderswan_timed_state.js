@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {validateWonderSwanOperationState} from './wonderswan_operations.js';
+import {validateWonderSwanOperationState} from './wonderswan_operations.js?v=pokey-prepare-1';
 
 export const WONDERSWAN_TIMED_STATE_FORMAT = 'tetorica-wonderswan-state';
 export const WONDERSWAN_TIMED_STATE_VERSION = 1;

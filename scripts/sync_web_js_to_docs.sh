@@ -343,6 +343,10 @@ segapcm.js
 segapcmaudioengine.js
 gameboyapu.js
 gameboysynth.js
+gameboy_operations.js
+gameboy_timed_state.js
+gameboy_timed_client.js
+gameboy_timed_processor.js
 gameboyapuaudioengine.js
 multichipaudioengine.js
 msxaudioengine.js

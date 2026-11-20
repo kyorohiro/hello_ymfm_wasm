@@ -311,6 +311,10 @@ playground_segapsg_worklet.js
 playground_gameboy.js
 gameboysynth.js
 gameboy_runtime_synth.js
+gameboy_operations.js
+gameboy_timed_state.js
+gameboy_timed_client.js
+gameboy_timed_processor.js
 native_runtime_synth.js
 playground_native_primary.js
 gameboyapu.js

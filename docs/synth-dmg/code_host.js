@@ -4,8 +4,9 @@ import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=huc-working-saved-1';
 import {selectGameboyCodeDeclarations} from './code_declarations.js';
 import {createGameboyCodeAudio} from './code_audio.js';
-import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js?v=dmg-working-saved-1';
-import {setupGameboyCodeFiles} from './code_files.js?v=dmg-working-saved-1';
+import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js?v=dmg-timed-1';
+import {setupGameboyCodeFiles} from './code_files.js?v=dmg-timed-1';
+import {DMG_TIMED_EXAMPLES} from './code_examples.js';
 
 export const GAMEBOY_STARTER_CODE=`const gb = await useSoundChip("gameboy");
 setBpm(120);
@@ -30,7 +31,7 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,getSaveSo
   stopSong=async()=>{},beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},
   onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
-  const project=createGameboyCodeProject({settings:getSettings(),getStarterCode:()=>GAMEBOY_STARTER_CODE});
+  const project=createGameboyCodeProject({settings:getSettings(),getStarterCode:()=>GAMEBOY_STARTER_CODE,starterFiles:DMG_TIMED_EXAMPLES});
   const audio=createGameboyCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
   function openOutput(){
@@ -80,7 +81,10 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,getSaveSo
       onActivity();
     },onViewChange,onExpandedChange,setStatus,
   });
-  return{project,files,controls,ready:controls.ready,
+  const ready=controls.ready.then(()=>{
+    if(!disposed)try{project.ensureStarterFiles();}catch(error){setStatus(`Examples were not added: ${error.message}`);}
+  });
+  return{project,files,controls,ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),
     getState:()=>runtime?.getState()??{state:'idle',running:false},stop,openOutput,markSoundDirty:(value)=>files.markSoundDirty(value),
     async dispose(){if(disposed)return;await stop();disposed=true;epoch++;controls.dispose();await files.dispose();await audio.dispose();},

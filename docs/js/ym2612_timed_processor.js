@@ -1,6 +1,6 @@
 import {validateYm2612Operations, ym2612OperationOffsetSeconds, createYm2612OperationResolver,
-  createYm2612OperationResetState, observeYm2612OperationWrite} from './ym2612_operations.js';
-import {createYm2612TimedSnapshot} from './ym2612_timed_state.js';
+  createYm2612OperationResetState, observeYm2612OperationWrite} from './ym2612_operations.js?v=audio-stability-2';
+import {createYm2612TimedSnapshot} from './ym2612_timed_state.js?v=audio-stability-2';
 
 const identity = (value, label) => {
   if (typeof value !== 'string' || !value.length || value.length > 256) throw new TypeError(`Invalid YM2612 ${label}`);

@@ -4,8 +4,8 @@ import {
 	psgOperationOffsetSeconds,
 	createPsgOperationResolver,
 	compilePsgOperations,
-} from "./segapsg_operations.js";
-import { createPsgTimedSnapshot } from "./segapsg_timed_state.js";
+} from "./segapsg_operations.js?v=audio-numeric-bindings-1";
+import { createPsgTimedSnapshot } from "./segapsg_timed_state.js?v=audio-numeric-bindings-1";
 
 const identity = (value, label) => {
 	if (typeof value !== "string" || !value.length || value.length > 256)

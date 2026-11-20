@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import {noteToHz} from './soundchip_pitch.js';
-import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js';
+import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js?v=scsp-fm-1';
 import {ScspDspProgram} from './scsp_dsp.js';
 import {SCSP_DSP_DELAY_RAM_BYTES, SCSP_DSP_DELAY_ALIGNMENT,
   resolveScspDspDelay, validateScspDspDelayRam} from './scsp_dsp_delay.js';

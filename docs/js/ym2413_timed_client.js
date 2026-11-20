@@ -6,8 +6,8 @@ import {
 	createOpllOperationResetState,
 	validateOpllOperationState,
 	opllOperationOffsetSeconds,
-} from "./ym2413_operations.js";
-import { validateOpllTimedSnapshot } from "./ym2413_timed_state.js";
+} from "./ym2413_operations.js?v=pokey-mode-1";
+import { validateOpllTimedSnapshot } from "./ym2413_timed_state.js?v=pokey-mode-1";
 
 function options(value, allowed, label) {
 	if (

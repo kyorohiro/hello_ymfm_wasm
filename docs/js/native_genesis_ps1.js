@@ -1,4 +1,4 @@
-import {attachPs1TimedClient} from './ps1_timed_client.js';
+import {attachPs1TimedClient} from './ps1_timed_client.js?v=ps1-deferred-release-1';
 // SPDX-License-Identifier: BSD-3-Clause
 /** PS1 register authoring and instrument metadata stay in JavaScript. The SPU,
  * sample RAM, envelopes, reverb and resampling execute on the Native callback. */

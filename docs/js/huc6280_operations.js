@@ -1,4 +1,4 @@
-import {Huc6280Synth, HUC6280_CLOCK} from './huc6280synth.js';
+import {Huc6280Synth, HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 
 /** Register-only authoring calls supported by the HuC6280 operation recorder.
  * Validation and register conversion remain in Huc6280Synth. */

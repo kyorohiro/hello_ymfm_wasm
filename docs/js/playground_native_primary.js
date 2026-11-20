@@ -14,7 +14,7 @@ import {createOki6258Client} from './playground_okim6258.js?v=pokey-prepare-1';
 import {createYm2413Client} from './playground_ym2413.js?v=pokey-prepare-1';
 import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=pokey-prepare-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
-import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
+import {createGameboyClient} from './playground_gameboy.js?v=gameboy-timed-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true, settle = result => result) {

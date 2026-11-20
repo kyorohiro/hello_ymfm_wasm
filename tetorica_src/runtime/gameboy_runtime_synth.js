@@ -5,8 +5,7 @@
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js";
-import { GameboySynth } from "./gameboysynth.js";
-import { attachChipClock, CHIP_CLOCKS } from "./playground_chip_clock.js";
+import { createGameboyClient } from "./playground_gameboy.js";
 
 /** @typedef {Pick<import('./megasynth.js').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string}} GameboyRuntimeSynthOptions */
 
@@ -185,12 +184,7 @@ export class GameboyRuntimeSynth {
     await ready;
     signal.throwIfAborted();
     const node = this.node;
-    const gameboy = new GameboySynth({transport:{
-      writeRegister(offset,value) { node.port.postMessage({method:'writeRegister',args:[offset,value]}); },
-      reset() { node.port.postMessage({method:'reset',args:[]}); },
-      dispose() { node.port.postMessage({method:'dispose',args:[]}); },
-    }});
-    attachChipClock(gameboy,node.port,CHIP_CLOCKS.gameboy,{primary:true});
+    const gameboy = createGameboyClient(node.port,{primary:true});
     gameboy._observe = event => { for (const listener of this.listeners) listener(event); };
     this.gameboy = gameboy;
     gameboy.initialize();

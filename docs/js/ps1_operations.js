@@ -1,4 +1,4 @@
-import {Ps1Synth} from './ps1synth.js';
+import {Ps1Synth} from './ps1synth.js?v=ps1-deferred-release-1';
 
 /** Register-only authoring calls supported by the PS1 operation recorder.
  * Validation and register conversion remain in Ps1Synth. */

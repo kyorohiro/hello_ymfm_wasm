@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { validateOpllOperationState } from "./ym2413_operations.js";
+import { validateOpllOperationState } from "./ym2413_operations.js?v=pokey-mode-1";
 
 export const OPLL_TIMED_STATE_FORMAT = "tetorica-opll-state";
 export const OPLL_TIMED_STATE_VERSION = 1;
