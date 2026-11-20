@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {
+	buildKeyboard as buildSharedKeyboard,
+	createFretboardLayout,
+	createFretboardState,
+} from "../synth/synth_keyboard.js";
+import { RHYTHM_KEYS, assignedDrums, keyboardAction } from "./performance.js";
+import { createOpllEnvelopeEditor } from "./opll_envelope.js";
 import { createParamControl } from "../synth/synth_controls.js";
 import { createSynthOutputVisualizer } from "../synth/synth_output_visualizer.js";
 import { setupSynthExpandedTabs } from "../synth/synth_expanded_tabs.js";
@@ -41,9 +48,11 @@ let monitor = "envelope",
 	envelopeAnalyser = null;
 const rmsSamples = new Float32Array(512),
 	rmsHistory = [];
+const envelopeEditors = [];
+const fretboard = createFretboardState();
+let keyboardLayout;
 const visualizer = createSynthOutputVisualizer(),
 	keys = new Map(),
-	pointers = new Map(),
 	controls = new Map(),
 	panControls = [];
 const mix = {
@@ -63,21 +72,7 @@ const songView = () => $("songView").value === "song" && songState;
 const songDisplay = () => frozenSongState ?? songState;
 const selected = () => (channel === "auto" ? 0 : Number(channel));
 const kind = () => (section === "opll" ? "opll" : "psg");
-const numberNames = [
-	"C",
-	"C♯",
-	"D",
-	"D♯",
-	"E",
-	"F",
-	"F♯",
-	"G",
-	"G♯",
-	"A",
-	"A♯",
-	"B",
-];
-const noteName = (midi) => numberNames[midi % 12] + (Math.floor(midi / 12) - 1);
+
 function control(
 	id,
 	label,
@@ -179,7 +174,6 @@ async function ensureAudio() {
 function allKeyboardOff() {
 	for (const item of keys.values()) audio?.noteOff(item.voice);
 	keys.clear();
-	pointers.clear();
 	paintKeyboard();
 }
 async function stopSong() {
@@ -244,7 +238,8 @@ async function press(id, midi) {
 		request.voice = audio.noteOn(
 			selectedSection === "psg" ? "segapsg" : "ym2413",
 			target,
-			midi + pitch,
+			midi,
+			pitch,
 		);
 		paintKeyboard();
 	} catch (error) {
@@ -260,71 +255,65 @@ function release(id) {
 	audio?.noteOff(held.voice);
 	paintKeyboard();
 }
+function keyAction(key) {
+	return keyboardAction(key, {
+		section,
+		channel,
+		rhythm: display.opll.rhythm.enabled,
+		entries: keyboardLayout?.entries ?? [],
+	});
+}
+function playKeyboardEntry(id, entry) {
+	const action = keyAction(entry.key);
+	if (action?.kind === "drum") return pressDrum(action.index, id);
+	if (action?.kind === "note") return press(id, action.midi);
+}
 function paintKeyboard() {
-	for (const button of $("keyboard").querySelectorAll("[data-midi]"))
+	for (const button of $("keyboard").querySelectorAll("[data-key]")) {
+		const entry = keyboardLayout.entries.find(
+				(value) => value.key === button.dataset.key,
+			),
+			action = keyAction(entry.key);
+		button.disabled = !action;
+		button.querySelector("span").textContent =
+			action?.kind === "drum"
+				? RHYTHM_KEYS[action.index].short
+				: action
+					? entry.noteName
+					: "—";
+		button.setAttribute(
+			"aria-label",
+			`${entry.label} · ${action?.kind === "drum" ? RHYTHM_KEYS[action.index].label : action ? entry.noteName : "Not assigned on this Rhythm channel"}`,
+		);
 		button.classList.toggle(
-			"held",
-			[...keys.values()].some(
-				(item) => item.midi === Number(button.dataset.midi),
+			"is-active",
+			[...keys.values()].some((item) =>
+				action?.kind === "drum"
+					? item.voice?.channel === action.drum
+					: action?.kind === "note" && item.midi === entry.midi,
 			),
 		);
+	}
 }
-const KEYMAP = [
-	"a",
-	"w",
-	"s",
-	"e",
-	"d",
-	"f",
-	"t",
-	"g",
-	"y",
-	"h",
-	"u",
-	"j",
-	"k",
-	"o",
-	"l",
-	"p",
-	";",
-];
 function buildKeyboard() {
 	allKeyboardOff();
-	$("keyboard").replaceChildren();
-	const start = 48 + octave * 12;
-	for (let i = 0; i < 36; i++) {
-		const midi = start + i,
-			button = document.createElement("button");
-		button.type = "button";
-		button.className =
-			"piano-key" +
-			([1, 3, 6, 8, 10].includes(midi % 12) ? " black" : "");
-		button.dataset.midi = String(midi);
-		button.title = `${noteName(midi)}${KEYMAP[i] ? " · " + KEYMAP[i].toUpperCase() : ""}`;
-		button.setAttribute("aria-label", noteName(midi));
-		const label = document.createElement("span");
-		label.textContent =
-			KEYMAP[i]?.toUpperCase() ?? (midi % 12 === 0 ? noteName(midi) : "");
-		button.append(label);
-		button.addEventListener("pointerdown", (event) => {
-			event.preventDefault();
-			button.setPointerCapture(event.pointerId);
-			pointers.set(event.pointerId, "pointer:" + event.pointerId);
-			void press("pointer:" + event.pointerId, midi);
-		});
-		for (const event of [
-			"pointerup",
-			"pointercancel",
-			"lostpointercapture",
-		])
-			button.addEventListener(event, (e) => {
-				release("pointer:" + e.pointerId);
-				pointers.delete(e.pointerId);
-			});
-		$("keyboard").append(button);
-	}
+	keyboardLayout = createFretboardLayout({ state: fretboard, octave });
+	buildSharedKeyboard({
+		root: $("keyboard"),
+		rowDefs: keyboardLayout.rowDefs,
+		layoutEntries: keyboardLayout.entries,
+		showPitch: false,
+		onPointerDown: (event, entry) =>
+			Promise.resolve(
+				playKeyboardEntry("pointer:" + event.pointerId, entry),
+			).catch(report),
+		onPointerUp: (event) => release("pointer:" + event.pointerId),
+		onPointerCancel: (event) => release("pointer:" + event.pointerId),
+	});
 	$("octaveValue").textContent = (octave >= 0 ? "+" : "") + octave;
+	paintKeyboard();
 }
+
 function setPitch(value) {
 	pitch = Number(value);
 	for (const id of ["pitchBend", "keyboardPitchBend"])
@@ -332,14 +321,7 @@ function setPitch(value) {
 	for (const id of ["pitchBendValue", "keyboardPitchValue"])
 		$(id).textContent = (pitch >= 0 ? "+" : "") + pitch.toFixed(2);
 	for (const item of keys.values())
-		if (
-			item.voice &&
-			typeof item.voice.channel === "number" &&
-			!(item.voice.name === "segapsg" && item.voice.channel === 3)
-		)
-			audio
-				.getChip(item.voice.name)
-				.setNote(item.voice.channel, item.midi + pitch);
+		audio?.retune(item.voice, item.midi, pitch);
 }
 function editing(target) {
 	return Boolean(
@@ -358,23 +340,13 @@ document.addEventListener("keydown", (event) => {
 	)
 		return;
 	const key = event.key.toLowerCase();
-	if (
-		section === "opll" &&
-		display.opll.rhythm.enabled &&
-		/^[1-5]$/.test(key)
-	) {
-		event.preventDefault();
-		void pressDrum(Number(key) - 1, "drum-key:" + key);
-		return;
-	}
-	const index = KEYMAP.indexOf(key);
-	if (index < 0) return;
+	const entry = keyboardLayout?.entries.find((value) => value.key === key);
+	if (!entry) return;
 	event.preventDefault();
-	void press("key:" + key, 48 + octave * 12 + index);
+	void Promise.resolve(playKeyboardEntry("key:" + key, entry)).catch(report);
 });
 document.addEventListener("keyup", (event) => {
 	release("key:" + event.key.toLowerCase());
-	release("drum-key:" + event.key);
 });
 window.addEventListener("blur", allKeyboardOff);
 async function pressDrum(index, id) {
@@ -384,7 +356,29 @@ async function pressDrum(index, id) {
 	try {
 		await ensureAudio();
 		if (keys.get(id) !== request) return;
+		if (songView() && song && songMode === "paused") {
+			const captured = presetFromRegisters(
+				"opll",
+				RHYTHM_KEYS[index].channel,
+				songDisplay(),
+			);
+			audio.applySettings(captured, {
+				section: "opll",
+				channel: RHYTHM_KEYS[index].channel,
+			});
+			// HH/Cymbal and the other drums use the shared physical oscillators.
+			for (const ch of [6, 7, 8]) {
+				const voice = songDisplay().fm.channels[ch];
+				if (
+					songDisplay().fm.clock === audio.opll.clock ||
+					!voice.frequency
+				)
+					audio.opll.setPitch(ch, voice.fnum, voice.block);
+				else audio.opll.setFrequency(ch, voice.frequency);
+			}
+		}
 		request.voice = audio.noteOn("ym2413", DRUMS[index], 60);
+		paintKeyboard();
 	} catch (error) {
 		keys.delete(id);
 		report(error);
@@ -426,10 +420,14 @@ function renderChannels() {
 			"aria-selected",
 			String(channel === button.dataset.channel),
 		);
-		button.disabled =
-			section === "opll" &&
-			display.opll.rhythm.enabled &&
-			Number(button.dataset.channel) >= 6;
+		button.disabled = false;
+		const value = button.dataset.channel;
+		if (section === "opll" && Number(value) >= 6)
+			button.textContent = display.opll.rhythm.enabled
+				? `CH${Number(value) + 1} · ${assignedDrums(value)
+						.map((d) => d.short)
+						.join(" / ")}`
+				: `CH${Number(value) + 1}`;
 	}
 }
 
@@ -446,6 +444,8 @@ function render(updateState = true) {
 		$(name + "Tab").setAttribute("aria-selected", String(section === name));
 	}
 	renderChannels();
+	if (keyboardLayout) paintKeyboard();
+	for (const editor of envelopeEditors) editor.invalidate();
 	$("psgSource").value = display.psg.source;
 	$("noiseType").value = display.psg.noiseType;
 	$("noiseRate").value = display.psg.noiseRate;
@@ -462,14 +462,22 @@ function render(updateState = true) {
 	}
 	for (const id of ["noiseType", "noiseRate", "fmInstrument"])
 		$(id).disabled = !!songView();
-	for (const button of $("userPatch").querySelectorAll("button"))
-		button.disabled = display.opll.instrument !== 0 || !!songView();
+	for (const button of $("userPatch").querySelectorAll(
+		".param-control button",
+	))
+		button.disabled =
+			display.opll.instrument !== 0 || !!songView() || rhythmChannel();
 	for (const button of $("drumControls").querySelectorAll("[data-drum]"))
 		button.disabled = !display.opll.rhythm.enabled;
-	$("userPatchNote").textContent =
-		display.opll.instrument === 0
+	$("editUserPatch").hidden = display.opll.instrument === 0;
+	$("editUserPatch").disabled = !!songView() || rhythmChannel();
+	$("userPatchNote").textContent = songView()
+		? "Song view is read-only. Capture to Synth to edit the stored User patch."
+		: display.opll.instrument === 0
 			? "Editing the one shared hardware patch. Every instrument-0 voice changes."
-			: "Built-in instruments are fixed. Choose User to hear the editable patch.";
+			: "Fixed ROM instrument: operators cannot be edited. Select User to edit the stored User patch (the fixed ROM sound is not copied).";
+
+	updateRhythmView();
 	const ch =
 		channel === "auto"
 			? "Auto"
@@ -480,19 +488,27 @@ function render(updateState = true) {
 		voice = state?.channels?.[selected()];
 	$("channelReadout").textContent =
 		`${ch} · ${songView() ? "Song registers · Capture to edit" : channel === "auto" ? "software keyboard allocation; select a CH to inspect Code" : "physical channel · direct editing"}${voice ? ` · ${voice.active ? "On" : "Off"} · ${Math.round(voice.frequencyHz ?? voice.frequency ?? 0)} Hz` : ""}`;
+	if (rhythmChannel())
+		$("channelReadout").textContent = `${ch} · Rhythm · ${assignedDrums(
+			channel,
+		)
+			.map(
+				(d) =>
+					d.label +
+					(source?.fm?.rhythm
+						? source.fm.rhythm[d.name]
+							? " On"
+							: " Off"
+						: ""),
+			)
+			.join(" / ")}`;
 	if (document.activeElement !== $("soundName"))
 		$("soundName").value = preset.name;
 	$("captureSound").disabled = !songState || section === "mixer" || songBusy;
 }
 function selectSection(value) {
 	section = value;
-	if (
-		channel !== "auto" &&
-		((value === "psg" && Number(channel) > 3) ||
-			(value === "opll" &&
-				display.opll.rhythm.enabled &&
-				Number(channel) >= 6))
-	)
+	if (channel !== "auto" && value === "psg" && Number(channel) > 3)
 		channel = "auto";
 	render();
 	expanded?.showChip($(value + "Tab"));
@@ -569,11 +585,11 @@ control(
 );
 control(
 	"rhythmEnabled",
-	"Hardware Rhythm",
+	"Shared Rhythm · CH7–9",
 	1,
 	() => display.opll.rhythm.enabled,
 	(value) => {
-		if (value && Number(channel) >= 6) channel = "auto";
+		allKeyboardOff();
 		settingsEdit((v) => {
 			v.opll.rhythm.enabled = Boolean(value);
 		});
@@ -614,6 +630,61 @@ for (let ch = 0; ch < 4; ch++) {
 	}
 	$("stereoControls").append(box);
 }
+function rhythmChannel() {
+	return (
+		section === "opll" &&
+		display.opll.rhythm.enabled &&
+		channel !== "auto" &&
+		Number(channel) >= 6
+	);
+}
+function updateRhythmView() {
+	$("melodyControls").hidden = rhythmChannel();
+	$("userPatch").hidden = rhythmChannel();
+	const assigned = assignedDrums(channel);
+	$("rhythmReadout").textContent =
+		channel === "auto"
+			? `Shared chip mode · ${display.opll.rhythm.enabled ? "6 melody voices + 5 drums (keys 1–5)" : "9 melody voices; Rhythm Off"}`
+			: Number(channel) >= 6
+				? `CH${Number(channel) + 1} · ${assigned.map((d) => d.label + " (" + d.key + ")").join(" / ")} · ${display.opll.rhythm.enabled ? "Rhythm voices" : "Rhythm Off: melody channel"}`
+				: "Shared Rhythm mode reserves CH7–9; this channel stays melodic.";
+	for (const box of $("drumControls").children) {
+		box.hidden = !(
+			channel === "auto" ||
+			assigned.some((d) => d.name === box.dataset.drumGroup)
+		);
+		for (const button of box.querySelectorAll(".param-control button"))
+			button.disabled = !display.opll.rhythm.enabled || !!songView();
+	}
+	for (const id of ["fmAttenuation", "fmSustain"])
+		for (const button of $(id).querySelectorAll("button"))
+			button.disabled = !!songView() || rhythmChannel();
+	$("fmInstrument").disabled = !!songView() || rhythmChannel();
+}
+envelopeEditors.push(
+	createOpllEnvelopeEditor({
+		root: $("opllEnvelope"),
+		getOperators: () => display.opll.userPatch.operators,
+		getSustain: () => display.opll.sustain,
+		canEdit: () =>
+			section === "opll" &&
+			display.opll.instrument === 0 &&
+			!songView() &&
+			!rhythmChannel(),
+		getSelectionKey: () =>
+			`${section}:${channel}:${preset.name}:${songView() ? "song" : "synth"}`,
+		onEdit: (op, patch) =>
+			settingsEdit((value) =>
+				Object.assign(value.opll.userPatch.operators[op], patch),
+			),
+	}),
+);
+$("editUserPatch").addEventListener("click", () =>
+	settingsEdit((value) => {
+		value.opll.instrument = 0;
+	}),
+);
+
 for (let op = 0; op < 2; op++) {
 	const card = document.createElement("section");
 	card.className = "operator-card";
@@ -674,8 +745,9 @@ DRUMS.forEach((name, index) => {
 		mount = document.createElement("div");
 	button.type = "button";
 	button.dataset.drum = name;
-	button.textContent = `${name} (${index + 1})`;
+	button.textContent = `${RHYTHM_KEYS[index].label} (${index + 1})`;
 	mount.id = "drum_" + name;
+	box.dataset.drumGroup = name;
 	box.append(button, mount);
 	$("drumControls").append(box);
 	button.addEventListener("pointerdown", (event) => {
@@ -1111,6 +1183,7 @@ function draw() {
 draw();
 window.addEventListener("pagehide", () => {
 	allKeyboardOff();
+	for (const editor of envelopeEditors) editor.dispose();
 	songAbort?.abort();
 	song?.dispose();
 	void host.dispose();

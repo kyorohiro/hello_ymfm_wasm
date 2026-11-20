@@ -269,7 +269,11 @@ for (const sampleRate of [44100, 48000])
 				engine.process(left, right);
 				assert.deepEqual(left, expectedL);
 				assert.deepEqual(right, expectedR);
-				if (seconds === .13) assert(right.some(value => Math.abs(value) > .0001), "Noise contributes to the history comparison");
+				if (seconds === 0.13)
+					assert(
+						right.some((value) => Math.abs(value) > 0.0001),
+						"Noise contributes to the history comparison",
+					);
 			} finally {
 				oracle.dispose();
 			}
@@ -318,3 +322,113 @@ for (const sampleRate of [44100, 48000])
 			oracle.dispose();
 		}
 	});
+
+const { RHYTHM_KEYS, assignedDrums, keyboardAction, keyboardFrequency } =
+	await import("./performance.js");
+const { opllEnvelopeGeometry, opllEnvelopePatch } = await import(
+	"./opll_envelope.js"
+);
+test("new instruments enable shared Rhythm while saved Off remains Off", () => {
+	const p = createDefaultPreset();
+	assert.equal(p.opll.rhythm.enabled, true);
+	p.opll.rhythm.enabled = false;
+	assert.equal(readPreset(p).opll.rhythm.enabled, false);
+});
+test("Rhythm keyboard maps Auto 1–5 and restricts CH7–9 without taking keys from melodic CHs or PSG", () => {
+	const entries = Array.from(
+		"1234567890qwertyuiopasdfghjklzxcvbnm",
+		(key, i) => ({ key, midi: 40 + i }),
+	);
+	const action = (key, channel = "auto", section = "opll", rhythm = true) =>
+		keyboardAction(key, { entries, channel, section, rhythm });
+	for (const drum of RHYTHM_KEYS)
+		assert.equal(action(drum.key).drum, drum.name);
+	assert.equal(action("a").kind, "note");
+	assert.equal(action("1", "0").kind, "note");
+	assert.equal(action("1", "auto", "psg").kind, "note");
+	assert.equal(action("1", "auto", "opll", false).kind, "note");
+	for (const ch of ["6", "7", "8"])
+		for (const entry of entries) {
+			const drum = assignedDrums(ch).find((d) => d.key === entry.key);
+			assert.equal(
+				action(entry.key, ch)?.drum ?? null,
+				drum?.name ?? null,
+			);
+		}
+	assert.deepEqual(
+		assignedDrums("7").map((d) => d.name),
+		["snare", "hiHat"],
+	);
+});
+test("OPLL Envelope handles roundtrip actual 4-bit rates and clamp edits; EGT and zero rates are represented", () => {
+	for (const egt of [false, true])
+		for (const rate of [0, 7, 15]) {
+			const op = { ar: rate, dr: rate, sl: rate, rr: rate, egt };
+			const g = opllEnvelopeGeometry(op);
+			assert.deepEqual(
+				opllEnvelopePatch(op, "attack", g.handles.attack),
+				{ ar: rate },
+			);
+			assert.deepEqual(opllEnvelopePatch(op, "decay", g.handles.decay), {
+				dr: rate,
+				sl: rate,
+			});
+			assert.deepEqual(
+				opllEnvelopePatch(op, "sustain", g.handles.sustain),
+				{ sl: rate },
+			);
+			assert.deepEqual(opllEnvelopePatch(op, "rate", g.handles.rate), {
+				rr: rate,
+			});
+			assert(
+				g.points.every(
+					([x, y]) => Number.isFinite(x) && Number.isFinite(y),
+				),
+			);
+			for (let i = 1; i < g.points.length; i++)
+				assert(g.points[i][0] >= g.points[i - 1][0]);
+			if (rate === 0) assert(g.points.every((p) => p[1] === g.bottom));
+			for (const handle of ["attack", "decay", "sustain", "rate"])
+				for (const pos of [
+					{ x: -100, y: -100 },
+					{ x: 10000, y: 10000 },
+				])
+					for (const value of Object.values(
+						opllEnvelopePatch(op, handle, pos),
+					))
+						assert(
+							value >= 0 &&
+								value <= 15 &&
+								Number.isInteger(value),
+						);
+		}
+	const op = { ar: 15, dr: 10, sl: 7, rr: 9, egt: true };
+	const g = opllEnvelopeGeometry(op);
+	assert.equal(
+		g.points.at(-3)[1],
+		g.points[2][1],
+		"EGT holds SL until key-off",
+	);
+});
+
+test("keyboard bend converts the base note to frequency without fractional MIDI API calls", () => {
+	assert.equal(keyboardFrequency("A4"), 440);
+	assert(
+		Math.abs(keyboardFrequency(69, 0.5) / 440 - 2 ** (0.5 / 12)) < 1e-12,
+	);
+	assert(
+		Math.abs(keyboardFrequency(69, -0.37) / 440 - 2 ** (-0.37 / 12)) <
+			1e-12,
+	);
+	assert(keyboardFrequency(0, -2) > 0);
+	assert(keyboardFrequency(127, 2) > 0);
+	assert.throws(() => keyboardFrequency(69, NaN));
+	assert.throws(() => keyboardFrequency(69.5));
+});
+
+test("new FM voices start editable; existing fixed-ROM choices remain fixed", () => {
+	const p = createDefaultPreset();
+	assert.equal(p.opll.instrument, 0);
+	p.opll.instrument = 1;
+	assert.equal(readPreset(p).opll.instrument, 1);
+});

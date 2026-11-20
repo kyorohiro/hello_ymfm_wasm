@@ -402,14 +402,20 @@
 										</p>
 									</details>
 								</div>
-								<div class="controls-row">
+								<div id="melodyControls" class="controls-row">
 									<label
 										>Instrument
 										<select id="fmInstrument"></select
 									></label>
 									<div id="fmAttenuation"></div>
 									<div id="fmSustain"></div>
+									<button id="editUserPatch" type="button">
+										Select User to edit operators
+									</button>
+								</div>
+								<div class="shared-rhythm-control">
 									<div id="rhythmEnabled"></div>
+									<p id="rhythmReadout" class="subtext"></p>
 								</div>
 								<fieldset id="userPatch">
 									<legend>
@@ -420,6 +426,73 @@
 										instrument-0 channels share this patch.
 									</p>
 									<div id="feedback"></div>
+									<details class="inline-help">
+										<summary
+											aria-label="About User Envelope editing"
+										>
+											?
+										</summary>
+										<p class="subtext">
+											Choose OP1 / OP2, then drag A (AR),
+											D (DR), S (SL) or R (RR). Envelope
+											guides are schematic, before TL /
+											KSL, not measured milliseconds. EGT
+											holds SL; otherwise RR controls
+											decay while held. Channel Sustain
+											can override the key-off rate.
+											Choose User to edit.
+										</p>
+									</details>
+									<section
+										id="opllEnvelope"
+										class="opll-envelope"
+										aria-label="Shared User Envelope editor"
+									>
+										<div class="envelope-operator-tabs">
+											<button
+												type="button"
+												data-envelope-operator="0"
+												aria-pressed="true"
+											>
+												OP1 · Modulator</button
+											><button
+												type="button"
+												data-envelope-operator="1"
+												aria-pressed="false"
+											>
+												OP2 · Carrier
+											</button>
+										</div>
+										<div class="opll-envelope-plot">
+											<canvas
+												width="900"
+												height="220"
+												aria-label="OP1 and OP2 User Envelopes"
+											></canvas
+											><button
+												type="button"
+												data-envelope-handle="attack"
+											>
+												A</button
+											><button
+												type="button"
+												data-envelope-handle="decay"
+											>
+												D</button
+											><button
+												type="button"
+												data-envelope-handle="sustain"
+											>
+												S</button
+											><button
+												type="button"
+												data-envelope-handle="rate"
+											>
+												R
+											</button>
+										</div>
+										<p data-envelope-readout></p>
+									</section>
 									<div
 										id="operatorControls"
 										class="operator-controls"

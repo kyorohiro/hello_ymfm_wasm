@@ -46,6 +46,76 @@ Screenshots/logs are local under `build/smsgear-check/`.
 
 ## Scope and follow-up
 
+### Follow-up: operator editing and combined Envelope
+
+The earlier default selected fixed ROM instrument 1 while showing the stored
+User patch as disabled controls. New FM presets now select User (0); existing
+fixed selections remain intact. A visible **Select User to edit operators**
+action and context-specific status distinguish fixed ROM and reference read-only
+views. The action selects the stored User patch; it does not copy ROM operators.
+
+OP1/OP2 now share one canvas, with colored curves and operator selector buttons.
+Separate A/DR/SL/RR handles edit the selected operator. D and S labels are
+separated vertically on small screens, and pointer offsets prevent parameter
+jumps when starting a drag. Numeric OP controls retain their existing write path.
+
+- **18 application checks / 32 including batch packaging passed**.
+- Actual muted Chromium/WebKit checks against the standalone ZIP verify both
+  +/- buttons, all four graph handles for each OP and their native register
+  nibbles. The other OP keeps its parameters. Fixed-ROM disable/User action,
+  Monaco, Rhythm, fractional Pitch, CH clicks and seek/mute regressions pass.
+- ZIP: `build/smsgear-check/package/tetorica_smsgear_synth_operator-editor_itch.zip`,
+  4,011,636 bytes, SHA-256
+  `a15d1af0884982448e465b5b2ee186c8a94f23abb2c04a204827b31643ad269f`.
+  ZIP CRCs and 182 readable-module hashes were checked against authored files.
+- Logs/screenshots: `build/smsgear-check/operator-*`. No shared chip API, native
+  runtime, publication or commit/index changes were needed.
+
+### Follow-up: fractional keyboard Pitch
+
+The Synth previously passed `midi + pitch` to note-name/integer-MIDI chip APIs,
+raising RangeError for fractional bends. The consumer now converts the base note
+to Hz, applies the semitone ratio, then uses `setFrequency` for note start and
+held-note retuning. Current note leases guard retunes; drum keys are excluded.
+Tone-3 Noise retunes its shared oscillator. Shared chip APIs were not modified.
+The keyboard wheel is placed on the left.
+
+Application tests: **17 passed**. Muted Chromium/WebKit tests pass for PSG/OPLL
+fractional bends on held/new notes, both wheel values, Tone-3 Noise and left-side
+layout, along with existing Rhythm/Envelope/transport/Code checks.
+Logs: `build/smsgear-check/pitch-*`. Rebuild ZIPs to include this follow-up.
+
+### Follow-up: physical Rhythm CHs, common keyboard and User Envelope
+
+- CH7–CH9 remain selectable in Rhythm mode, showing only assigned percussion
+  (BD; SD/HH; TOM/CYM). The shared Rhythm switch stays visible. Fixed percussion
+  hides melodic/User controls; Rhythm Off restores nine melodic channels.
+- Reused FM2612's `synth_keyboard.js` four-row layout. Auto Rhythm maps 1–5 to
+  BD/SD/TOM/CYM/HH; melodic CH1–6 retain normal number keys, while reserved CHs
+  enable only their assigned drum keys. New presets default Rhythm On, saved
+  Off stays Off. Startup percussion oscillator tuning is a Synth default.
+- Added two colored, draggable User Envelope guides with actual 4-bit OPLL
+  parameters. EGT and channel Sustain are represented; the curves are schematic,
+  before TL/KSL, not a measured output/ADSR simulator. Fixed and reference views
+  are read-only. Editing uses existing working/saved and Auto-apply behavior.
+- Rhythm levels are written only while Rhythm is enabled, avoiding accidental
+  CH8/CH9 instrument overwrites through the shared register nibbles while Off.
+- **16 application tests / 30 including batch tests passed**. Pure tests cover
+  keyboard roles, default/persisted mode, Envelope geometry and 0–15 edits.
+- Chromium/WebKit passed source fallback and extracted ZIP / real Monaco checks,
+  muted throughout. Tests read actual OPLL registers: drum gates and output,
+  physical CH assignment, melodic number keys, Rhythm Off instrument edits, and
+  OP1/OP2 graph drag → numeric value → native AR nibble. Existing transport,
+  CH-click, seek/mute, Files and Code checks also pass.
+- ZIP: `build/smsgear-check/package/tetorica_smsgear_synth_rhythm-envelope_itch.zip`,
+  4,010,251 bytes, SHA-256
+  `b7219cd9cd7e4d8f1ae7f08a9fb90432e2fb00f5193bd04851228f6f51eec3cc`.
+  ZIP integrity and all 182 readable source-module hashes match the working tree.
+  Logs/screenshots: `build/smsgear-check/rhythm-*`.
+
+No shared runtime, native core, npm release, commit/push, Actions run or Tauri
+change was needed. Human listening with actual songs remains a follow-up.
+
 ### Follow-up: CH selection during Live refresh
 
 `renderChannels()` previously replaced all buttons every 150ms during Live

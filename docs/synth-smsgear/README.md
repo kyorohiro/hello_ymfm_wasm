@@ -8,14 +8,53 @@ Open `docs/synth-smsgear/index.html` through your local HTTP server.
 - **YM2413** offers 15 fixed instruments plus one shared User patch. User edits
   affect every instrument-0 voice. OP1 is the modulator, OP2 the carrier;
   Envelope fields use hardware codes. Rhythm uses physical CH7–CH9 and replaces
-  those melody voices with five percussion instruments. Drum keys are 1–5.
+  those melody voices with five percussion instruments. The mode switch is
+  shared by the whole chip. New Cassettes start with Rhythm On; existing saved
+  presets retain their On/Off choice.
 - **Auto** allocates keyboard notes in software; physical CH selection aligns
   the controls and keyboard target. Selecting a channel makes no writes.
-- Keyboard: A/W/S/E…; pointer keys also work. Octave and Pitch are software
+- Keyboard: the same four compact computer-key rows as FM2612 (1… / Q… / A… /
+  Z…). Pointer keys use the same mapping. Octave and Pitch are software
   performance controls. Code view keeps keyboard input active outside the editor.
+  Pitch sits to the left of the keyboard and stays synchronized with the upper
+  control. Fractional bends use frequency writes; the chip APIs keep their
+  existing integer-MIDI/name contract. This also applies when a new key is
+  pressed with Pitch already moved. Fixed-rate Noise and percussion are not
+  retuned by this wheel; Tone-3 Noise follows its oscillator.
 - **Mixer** source gains use Tetorica's calibrated output units. These software
   faders are separate from chip attenuation. Master permits 0–380%; boosting
   above 100% turns the bar orange and can overdrive the output.
+
+In YM2413 Auto with Rhythm On, keys **1 / 2 / 3 / 4 / 5** trigger **Bass drum /
+Snare / Tom / Cymbal / Hi-hat**; other keys play the six melodic channels.
+CH1–6 keep all keys melodic. Selecting CH7 shows Bass drum (1), CH8 Snare (2)
+and Hi-hat (5), CH9 Tom (3) and Cymbal (4). Those reserved CH views disable
+unassigned keys and show their drum levels instead of melodic/User controls.
+With Rhythm Off all nine CHs are melodic. Drum level writes are not sent while
+Off, because the same register nibbles then select melodic instruments.
+New audio sessions initialize the drum oscillators to C2 / C3 / G3 as software
+startup tuning. Paused reference audition uses the song's oscillator tuning.
+
+## User Envelope editing
+
+New Cassettes start FM on **0 · User**, ready for operator editing. Existing
+fixed-ROM selections are kept. Fixed instruments cannot be edited; **Select
+User to edit operators** switches to the stored User patch and does not copy
+the ROM instrument. Reference views require Capture to Synth before editing.
+
+OP1 (orange) and OP2 (blue) share one Envelope canvas. Select OP1 or OP2 above
+the graph to choose the editing target; both curves remain visible. **A** changes
+AR horizontally; **D** changes DR horizontally; **S** changes SL vertically;
+**R** changes RR horizontally. Values stay in the actual 0–15 range. The numeric
++/− controls edit those same operator parameters. Arrow keys on a focused handle
+also adjust the values. Changes use the same Files/Auto-apply path as the knobs.
+
+These are schematic control guides before TL/KSL, not measured milliseconds or
+a new software Envelope. AR 0 prevents attack; DR 0 holds the peak. With EG
+sustain (EGT) On, the envelope holds SL and RR controls key-off release. With
+EGT Off, RR controls the decay while held and key-off uses the chip's fixed
+release rate. Channel Sustain can override the key-off rate. Built-in patches,
+reference Live views and fixed percussion do not expose editable User envelopes.
 
 ## Code and Files
 

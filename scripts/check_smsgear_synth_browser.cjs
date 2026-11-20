@@ -146,11 +146,375 @@ function mute() {
 				await page.keyboard.down("a");
 				await page.waitForFunction(() => __smsAudit.peak > 0.0001);
 				await page.keyboard.up("a");
+				const inspectChip = (kind) =>
+					page.evaluate(
+						(kind) =>
+							new Promise((resolve, reject) => {
+								const node = __smsAudit.nodes.find(
+										(item) =>
+											item.name === "tetorica-" + kind,
+									).node,
+									id = "pitch-ui:" + Math.random();
+								const timeout = setTimeout(
+									() =>
+										reject(
+											Error("Chip inspection timeout"),
+										),
+									3000,
+								);
+								const listener = ({ data }) => {
+									if (
+										data.type !== "chip-inspector-result" ||
+										data.id !== id
+									)
+										return;
+									clearTimeout(timeout);
+									node.port.removeEventListener(
+										"message",
+										listener,
+									);
+									data.error
+										? reject(Error(data.error))
+										: resolve(data.value);
+								};
+								node.port.addEventListener("message", listener);
+								node.port.start();
+								node.port.postMessage({
+									type: "chip-inspector",
+									id,
+									inspectorKind: kind,
+									action: "read",
+									args: [],
+								});
+							}),
+						kind,
+					);
+				const inspectOpll = () => inspectChip("ym2413");
+				const bend = async (id, value) => {
+					await page.locator("#" + id).evaluate((node, value) => {
+						node.value = String(value);
+						node.dispatchEvent(
+							new Event("input", { bubbles: true }),
+						);
+					}, value);
+					await page.waitForTimeout(70);
+				};
+				await page.keyboard.down("1");
+				await page.waitForTimeout(70);
+				const psgBefore = (await inspectChip("segapsg")).channels.find(
+					(c) => c.active,
+				).frequency;
+				await bend("pitchBend", 0.5);
+				assert(
+					(await inspectChip("segapsg")).channels.find(
+						(c) => c.active,
+					).frequency > psgBefore,
+				);
+				assert.equal(
+					Number(
+						await page.locator("#keyboardPitchBend").inputValue(),
+					),
+					0.5,
+				);
+				await page.keyboard.up("1");
+				await page.keyboard.down("1");
+				await page.waitForTimeout(70);
+				assert(
+					(await inspectChip("segapsg")).channels.some(
+						(c) => c.active,
+					),
+					"Nonzero bend also works on a new note",
+				);
+				await bend("keyboardPitchBend", -0.5);
+				assert(
+					(await inspectChip("segapsg")).channels.find(
+						(c) => c.active,
+					).frequency < psgBefore,
+				);
+				assert.equal(
+					Number(await page.locator("#pitchBend").inputValue()),
+					-0.5,
+				);
+				await page.keyboard.up("1");
+				await page.locator("#psgSource").selectOption("noise");
+				await page.locator("#noiseRate").selectOption("tone3");
+				await page.keyboard.down("1");
+				await page.waitForTimeout(70);
+				assert((await inspectChip("segapsg")).noise.active);
+				await bend("pitchBend", 0.25);
+				assert(
+					(await inspectChip("segapsg")).channels[2].frequency > 0,
+				);
+				await page.keyboard.up("1");
+				await page.locator("#psgSource").selectOption("tone");
+				await bend("pitchBend", 0);
+				const wheel = await page
+						.locator(".keyboard-wheel")
+						.boundingBox(),
+					keyboard = await page.locator("#keyboard").boundingBox();
+				assert(
+					wheel.x + wheel.width <= keyboard.x,
+					"Keyboard Pitch stays on the left",
+				);
+
+				assert.equal(
+					await page.locator("#keyboard .key-row").count(),
+					4,
+				);
 				await page.screenshot({
 					path: out.replace(/\.json$/, `-${engine}-desktop.png`),
 					fullPage: false,
 				});
 				await page.locator("#opllTab").click();
+				await bend("pitchBend", 0.37);
+				await page.keyboard.down("q");
+				await page.waitForTimeout(70);
+				const fmBefore = (await inspectOpll()).channels.find(
+					(c) => c.active,
+				).frequency;
+				await bend("keyboardPitchBend", -0.37);
+				assert(
+					(await inspectOpll()).channels.find((c) => c.active)
+						.frequency < fmBefore,
+				);
+				await page.keyboard.up("q");
+				await bend("pitchBend", 0);
+
+				assert.equal(
+					(await inspectOpll()).rhythm.enabled,
+					true,
+					"New instruments default to shared Rhythm On",
+				);
+				assert.equal(
+					await page
+						.locator('#keyboard [data-key="1"] span')
+						.textContent(),
+					"BD",
+				);
+				await page.locator("#stopAudio").click();
+				await page.waitForTimeout(150);
+				await page.evaluate(() => {
+					__smsAudit.peak = 0;
+				});
+				await page.keyboard.down("1");
+				await page.waitForTimeout(100);
+				assert(
+					(await inspectOpll()).rhythm.bassDrum,
+					"Key 1 triggers actual OPLL Bass drum",
+				);
+				assert(
+					await page.evaluate(() => __smsAudit.peak > 0.0001),
+					"Default percussion tuning produces audio",
+				);
+				await page.keyboard.up("1");
+				await page.waitForTimeout(50);
+				assert.equal((await inspectOpll()).rhythm.bassDrum, false);
+				for (const [channel, drums, keys] of [
+					["6", ["bassDrum"], ["1"]],
+					["7", ["snare", "hiHat"], ["2", "5"]],
+					["8", ["tom", "cymbal"], ["3", "4"]],
+				]) {
+					await page
+						.locator(`#channelTabs [data-channel="${channel}"]`)
+						.click();
+					assert.deepEqual(
+						await page
+							.locator(
+								"#drumControls>div:not([hidden]) [data-drum]",
+							)
+							.evaluateAll((nodes) =>
+								nodes.map((n) => n.dataset.drum),
+							),
+						drums,
+					);
+					assert(
+						await page.locator("#userPatch").isHidden(),
+						"Fixed percussion is not an editable User patch",
+					);
+					assert.equal(
+						await page
+							.locator("#keyboard .key:not(:disabled)")
+							.count(),
+						keys.length,
+					);
+					for (const key of keys)
+						assert(
+							!(await page
+								.locator(`#keyboard [data-key="${key}"]`)
+								.isDisabled()),
+						);
+				}
+				await page.locator('#channelTabs [data-channel="7"]').click();
+				await page.keyboard.down("2");
+				await page.waitForTimeout(100);
+				assert((await inspectOpll()).rhythm.snare);
+				await page.keyboard.up("2");
+				await page.locator("#keyboard").scrollIntoViewIfNeeded();
+				await page.screenshot({
+					path: out.replace(/\.json$/, `-${engine}-rhythm-ch.png`),
+					fullPage: false,
+				});
+				await page
+					.locator('#channelTabs [data-channel="auto"]')
+					.click();
+				await page.locator("#fmInstrument").selectOption("0");
+				assert.equal(
+					await page.locator("#opllEnvelope canvas").count(),
+					1,
+					"One canvas holds both operators",
+				);
+				const dragEnvelope = async (handle, dx, dy = 0) => {
+					const button = page.locator(
+						`#opllEnvelope [data-envelope-handle="${handle}"]`,
+					);
+					await button.scrollIntoViewIfNeeded();
+					await page.waitForTimeout(60);
+					const box = await button.boundingBox();
+					const x = box.x + box.width / 2,
+						y = box.y + box.height / 2;
+					await page.mouse.move(x, y);
+					await page.mouse.down();
+					await page.mouse.move(x + dx, y + dy, { steps: 8 });
+					await page.mouse.up();
+					await page.waitForTimeout(60);
+				};
+				for (const op of [0, 1]) {
+					await page
+						.locator(
+							`#opllEnvelope [data-envelope-operator="${op}"]`,
+						)
+						.click();
+					await page.waitForTimeout(50);
+					const mult = page.locator(`#op${op}_multi .param-value`),
+						original = Number(await mult.textContent());
+					await page
+						.locator(`#op${op}_multi .param-button`)
+						.last()
+						.click();
+					assert.equal(
+						Number(await mult.textContent()),
+						original + 1,
+					);
+					await page.waitForTimeout(60);
+					assert.equal(
+						(await inspectOpll()).registers[op] & 15,
+						original + 1,
+						"+ updates the actual operator multiplier",
+					);
+					await page
+						.locator(`#op${op}_multi .param-button`)
+						.first()
+						.click();
+					assert.equal(Number(await mult.textContent()), original);
+					await page.waitForTimeout(60);
+					assert.equal(
+						(await inspectOpll()).registers[op] & 15,
+						original,
+						"- updates the actual operator multiplier",
+					);
+					const other = 1 - op,
+						priorOther = (await inspectOpll()).registers;
+					for (const [handle, field, dx, dy] of [
+						["attack", "ar", 35, 0],
+						["decay", "dr", 30, 0],
+						["sustain", "sl", 0, 20],
+						["rate", "rr", 20, 0],
+					]) {
+						const value = page.locator(
+								`#op${op}_${field} .param-value`,
+							),
+							before = Number(await value.textContent());
+						await dragEnvelope(handle, dx, dy);
+						const after = Number(await value.textContent());
+						assert.notEqual(
+							after,
+							before,
+							`${handle} edits OP${op + 1} ${field}`,
+						);
+						const registers = (await inspectOpll()).registers,
+							packed =
+								field === "ar"
+									? registers[4 + op] >> 4
+									: field === "dr"
+										? registers[4 + op] & 15
+										: field === "sl"
+											? registers[6 + op] >> 4
+											: registers[6 + op] & 15;
+						assert.equal(
+							packed,
+							after,
+							"Graph edits reach native registers",
+						);
+						for (const reg of [other, 4 + other, 6 + other])
+							assert.equal(
+								registers[reg],
+								priorOther[reg],
+								"The other operator keeps its parameters",
+							);
+					}
+				}
+				await page.locator("#fmInstrument").selectOption("1");
+				await page.waitForTimeout(60);
+				assert(
+					await page.locator("#op0_multi .param-value").isDisabled(),
+				);
+				assert(
+					await page
+						.locator(
+							'#opllEnvelope [data-envelope-handle="attack"]',
+						)
+						.isDisabled(),
+				);
+				assert(await page.locator("#editUserPatch").isVisible());
+				await page.locator("#editUserPatch").click();
+				assert.equal(
+					await page.locator("#fmInstrument").inputValue(),
+					"0",
+				);
+				assert(
+					!(await page
+						.locator("#op0_multi .param-value")
+						.isDisabled()),
+				);
+
+				await page.screenshot({
+					path: out.replace(
+						/\.json$/,
+						`-${engine}-opll-envelope.png`,
+					),
+					fullPage: false,
+				});
+				await page.locator('#channelTabs [data-channel="0"]').click();
+				await page.keyboard.down("1");
+				await page.waitForTimeout(80);
+				assert(
+					(await inspectOpll()).channels[0].active,
+					"Numbers stay melodic on CH1–6",
+				);
+				assert.equal((await inspectOpll()).rhythm.bassDrum, false);
+				await page.keyboard.up("1");
+				await page.locator("#rhythmEnabled .param-value").click();
+				await page.waitForTimeout(100);
+				assert.equal((await inspectOpll()).rhythm.enabled, false);
+				await page.locator('#channelTabs [data-channel="8"]').click();
+				await page.locator("#fmInstrument").selectOption("0");
+				await page.waitForTimeout(100);
+				assert.equal(
+					(await inspectOpll()).registers[0x38] >> 4,
+					0,
+					"Rhythm Off must not overwrite the CH9 melodic instrument with Tom level",
+				);
+				assert(await page.locator("#melodyControls").isVisible());
+				assert.equal(
+					await page.locator("#keyboard .key:not(:disabled)").count(),
+					36,
+				);
+				await page.locator("#rhythmEnabled .param-value").click();
+				await page.waitForTimeout(100);
+				assert((await inspectOpll()).rhythm.enabled);
+				await page
+					.locator('#channelTabs [data-channel="auto"]')
+					.click();
 				await page.keyboard.down("a");
 				await page.waitForTimeout(250);
 				await page.keyboard.up("a");

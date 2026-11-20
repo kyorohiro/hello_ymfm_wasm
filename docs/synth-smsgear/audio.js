@@ -5,6 +5,7 @@ import { SoundChipMixer } from "../js/soundchip_mixer.js";
 import { SOUNDCHIP_MIXER_PRESETS } from "../js/soundchip_mixer_presets.js";
 import { createChipInspector } from "../js/playground_chip_inspector.js";
 import { readPreset } from "./preset.js";
+import { keyboardFrequency } from "./performance.js";
 export const DRUMS = ["bassDrum", "snare", "tom", "cymbal", "hiHat"];
 export const SOURCE_GAINS = Object.freeze(
 	Object.fromEntries(
@@ -50,6 +51,14 @@ export async function createSmsGearAudio({
 		opll = synth.opll;
 	psg.allNotesOff();
 	opll.initialize();
+	// Useful Synth tuning for the physical drum oscillators; source captures
+	// and Code can replace these frequencies. These are not ROM parameters.
+	for (const [ch, note] of [
+		[6, "C2"],
+		[7, "C3"],
+		[8, "G3"],
+	])
+		opll.setNote(ch, note);
 	const inspector = createChipInspector({
 		endpoints: () =>
 			synth.primaryEndpoints.map((item) => ({
@@ -123,29 +132,50 @@ export async function createSmsGearAudio({
 						sustain: o.sustain,
 					});
 			const { enabled, ...levels } = o.rhythm;
-			opll.setRhythmLevels(levels);
+			// These nibbles are melodic instrument numbers when Rhythm is Off.
+			if (enabled) opll.setRhythmLevels(levels);
 		}
 	}
-	function noteOn(name, channel, note) {
+	function retune(voice, note, bend = 0) {
+		if (
+			disposed ||
+			!voice ||
+			leases.get(voice.name + ":" + voice.channel) !== voice.token ||
+			typeof voice.channel !== "number"
+		)
+			return;
+		if (voice.name === "segapsg" && voice.channel === 3) {
+			if (settings.psg.noiseRate === "tone3")
+				psg.setFrequency(2, keyboardFrequency(note, bend));
+		} else
+			raw[voice.name].setFrequency(
+				voice.channel,
+				keyboardFrequency(note, bend),
+			);
+	}
+	function noteOn(name, channel, note, bend = 0) {
 		if (disposed) throw Error("Audio closed");
 		const token = own(name, channel);
 		if (name === "segapsg") {
 			if (channel === 3) {
-				if (settings.psg.noiseRate === "tone3") psg.setNote(2, note);
+				if (settings.psg.noiseRate === "tone3")
+					psg.setFrequency(2, keyboardFrequency(note, bend));
 				psg.noise({
 					type: settings.psg.noiseType,
 					rate: settings.psg.noiseRate,
 					attenuation: settings.psg.attenuation,
 				});
 			} else {
-				psg.noteOn(channel, note);
+				psg.setFrequency(channel, keyboardFrequency(note, bend));
+				psg.keyOn(channel);
 			}
 		} else if (typeof channel === "string") {
 			opll.setRhythm({ enabled: true, [channel]: false });
 			opll.setRhythm({ [channel]: true });
 		} else {
 			opll.keyOff(channel);
-			opll.noteOn(channel, note);
+			opll.setFrequency(channel, keyboardFrequency(note, bend));
+			opll.keyOn(channel);
 		}
 		return { name, channel, token };
 	}
@@ -224,6 +254,7 @@ export async function createSmsGearAudio({
 		borrowed,
 		applySettings,
 		noteOn,
+		retune,
 		noteOff,
 		async readState() {
 			const [p, f] = await Promise.all([

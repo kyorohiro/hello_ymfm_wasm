@@ -26,12 +26,12 @@ export function createDefaultPreset() {
 			stereo: 255,
 		},
 		opll: {
-			instrument: 1,
+			instrument: 0,
 			attenuation: 4,
 			sustain: false,
 			userPatch: structuredClone(YM2413_USER_PRESETS.bell),
 			rhythm: {
-				enabled: false,
+				enabled: true,
 				bassDrum: 4,
 				snare: 5,
 				tom: 4,

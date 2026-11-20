@@ -7,6 +7,7 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 
 - [x] Adopt icon as `docs/tetorica_smsgear_synth.webp` (1254 × 1254).
 - [x] PSG-first `PSG / YM2413 / Mixer` tabs, compact keyboard, two Pitch controls and draggable numeric controls.
+- [x] Fractional keyboard Pitch uses frequency writes for held and newly started PSG/OPLL notes (including Tone-3 Noise), without passing fractional MIDI to chip APIs. Keyboard Pitch stays on the left.
 - [x] PSG: three tone voices, Noise, attenuation, Game Gear stereo; Auto and physical CH selection.
 - [x] Keep physical CH button nodes stable during Live refresh so mouse/touch release and keyboard focus survive Play/Pause/Stop.
 - [x] YM2413: 15 built-in instruments, shared editable two-operator User patch, Rhythm and five drum keys; identify shared hardware state and software performance controls.
@@ -20,6 +21,13 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 - [x] Local unit/render checks, muted Chromium/WebKit checks and actual ZIP extraction/browser checks. See [verification](smsgear_synth_verification_20261120.md).
 
 ## Remaining / next steps
+
+- [x] Start new FM sounds on User, clearly explain fixed-ROM editing limits and provide an explicit User switch; verify numeric +/- writes.
+- [x] Merge OP1/OP2 Envelope into one colored canvas with OP selection and independent A/DR/SL/RR handles; test all controls in both browser engines.
+
+- [x] Show CH7 Bass drum / CH8 Snare + Hi-hat / CH9 Tom + Cymbal and allow selecting those physical CHs in Rhythm mode; identify the shared mode switch.
+- [x] Match FM2612's compact four-row computer keyboard. Auto Rhythm uses keys 1–5; reserved CHs expose only their assigned percussion. New Cassette defaults Rhythm On; retain saved choices.
+- [x] Two editable OP1/OP2 User Envelope diagrams, using actual YM2413 AR/DR/SL/RR/EGT ranges (schematic timing, no invented D2R). Preserve fixed-patch and reference-view read-only behavior.
 
 - [ ] User listening and interaction check with actual SMS / Game Gear VGMs, including optional FM and Noise/Tone-3 use. Synthetic tests are not a hardware accuracy claim.
 - [x] Reference seek: replay chip history in bounded silent Worklet slices, keep Play/Pause, update Live registers at target, allow Stop during preparation.

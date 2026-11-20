@@ -607,3 +607,129 @@ dialog {
 	border-color: #ba7584;
 	color: #ffd3dc;
 }
+/* Same compact computer-key layout as FM2612. Labels follow the active role. */
+.performance-keyboard #keyboard {
+	display: grid;
+	flex: 1;
+	gap: 5px;
+	height: auto;
+	min-width: 0;
+}
+#keyboard .key-row {
+	display: grid;
+	grid-template-columns: repeat(var(--keys, 10), minmax(0, 1fr));
+	gap: 4px;
+}
+#keyboard .key-row[data-count="9"] {
+	--keys: 9;
+	padding-inline: 3%;
+}
+#keyboard .key-row[data-count="7"] {
+	--keys: 7;
+	padding-inline: 9%;
+}
+#keyboard .key {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+	min-height: 42px;
+	padding: 5px 1px;
+	font-size: 0.73rem;
+}
+#keyboard .key span {
+	font-size: 0.58rem;
+	color: var(--muted);
+}
+#keyboard .key.is-active {
+	background: #3487ff;
+	color: white;
+}
+#keyboard .key.is-active span {
+	color: white;
+}
+.operator-card {
+	min-width: 0;
+}
+.operator-card > .opll-envelope {
+	display: block;
+	margin: 10px 0 14px;
+}
+.opll-envelope-plot {
+	position: relative;
+}
+.opll-envelope canvas {
+	display: block;
+	width: 100%;
+	height: 170px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	touch-action: none;
+}
+.opll-envelope [data-envelope-handle] {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	width: 25px;
+	height: 25px;
+	min-height: 25px;
+	padding: 0;
+	border-radius: 50%;
+	font-size: 11px;
+	color: #fff;
+	border: 2px solid #f38d71;
+	background: #272e38;
+	touch-action: none;
+}
+.opll-envelope[data-operator="1"] [data-envelope-handle] {
+	border-color: #6db6ff;
+}
+.opll-envelope [data-envelope-readout] {
+	font-size: 0.65rem;
+	line-height: 1.5;
+	color: var(--muted);
+	min-height: 3em;
+}
+#melodyControls[hidden],
+#userPatch[hidden] {
+	display: none;
+}
+.shared-rhythm-control {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 12px;
+}
+.keyboard-wheel {
+	order: -1;
+}
+#opllEnvelope {
+	margin: 12px 0;
+}
+#opllEnvelope canvas {
+	height: 220px;
+}
+.envelope-operator-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 8px;
+}
+.envelope-operator-tabs button[data-envelope-operator="0"] {
+	color: #f38d71;
+	border-color: #f38d71;
+}
+.envelope-operator-tabs button[data-envelope-operator="1"] {
+	color: #6db6ff;
+	border-color: #6db6ff;
+}
+#opllEnvelope [data-envelope-handle="decay"] {
+	transform: translate(-50%, -120%);
+}
+#opllEnvelope [data-envelope-handle="sustain"] {
+	transform: translate(-50%, 20%);
+}
+.envelope-operator-tabs button[aria-pressed="true"] {
+	color: #fff;
+}
