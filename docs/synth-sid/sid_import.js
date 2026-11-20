@@ -70,7 +70,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     return clone({selection:publicSelection(),modelSelection:modelChoice,busy,loading:!!loading,
       starting:!!starting,playing,paused,pausing:transport?.kind==='pause',resuming:transport?.kind==='resume',choosingFile,applying,capturing:captureState.busy,voice:captureState.voice,
       snapshot:captureState.snapshot,selected:captureState.selected,message,error,
-      liveEnabled,liveVoice,liveState,liveSource,liveActive:canObserve()&&liveFresh&&!liveError,
+      liveEpoch:playSerial,liveEnabled,liveVoice,liveState,liveSource,liveActive:canObserve()&&liveFresh&&!liveError,
       liveWaiting:canObserve()&&!liveFresh&&!liveError,liveMessage,liveError,
       manualReady:canManual(),manualVoices:manualState?.manualVoices??[],manualPitch:manualState?.manualPitch??0,
       captureMessage:captureState.message,canPlay:!!selection&&!busy&&!playing&&!paused,

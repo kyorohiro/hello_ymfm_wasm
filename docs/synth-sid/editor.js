@@ -8,12 +8,25 @@ const ratioText=value=>{const display=Number(value.toPrecision(6));return displa
 
 /** Passive patch editor. It never creates or resumes an audio device. */
 export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=()=>{}}) {
-  const doc=root.ownerDocument, cleanups=[], controls=[], helpPanels=new Map();
+  const doc=root.ownerDocument, cleanups=[], controls=[], helpPanels=new Map(), highlightControls=[];
   let preset=createDefaultPreset(), display=preset, observation=null, observing=false, editable=false, disposed=false;
   const make=(tag,className,text)=>{const node=doc.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,event,handler,options)=>{node.addEventListener(event,handler,options);cleanups.push(()=>node.removeEventListener(event,handler,options));};
   const report=error=>{if(!disposed)onError(error);};
   const locked=()=>observing&&(!editable||!observation);
+  // References and scalar readers are recorded once while building the editor.
+  // Follow the displayed registers, including dimmed Pulse/ratio values, without
+  // scanning DOM, comparing arrays or reading layout during a Live update.
+  function highlight(element,read){
+    element.classList.add('sid-live-value');
+    highlightControls.push({element,read,available(){
+      if(disposed||!observing||!observation||element.contains(doc.activeElement))return false;
+      for(let node=element;node;node=node.parentElement){
+        if(node.hidden||node.tagName?.toLowerCase()==='details'&&!node.open)return false;
+      }
+      return true;
+    }});
+  }
   function commit(change) {
     if(disposed)return;
     // Performance edits send touched fields, never a whole observed preset.
@@ -48,8 +61,8 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
   }
   const fields=parent=>{const node=make('div','sid-fields');parent.append(node);return node;};
   const help=(parent,text)=>{const node=make('p','sid-help',text);(helpPanels.get(parent)??parent).append(node);return node;};
-  // Preserve each node, fold and help disclosure across samples. Color marks
-  // changes in place; it does not insert extra labels or move the controls.
+  // Preserve each node, fold and help disclosure across samples. These scalar
+  // diagnostics remain separate from the optional, bounded highlight pulse.
   function markChanged(node,value){const next=String(value);node.dataset.changed=String(observing&&node.dataset.observedValue!==undefined&&node.dataset.observedValue!==next);node.dataset.observedValue=next;}
   function field(parent,label,id,className='') {
     const node=make('div',`sid-field ${className}`),title=make('span','',label);title.id=`${id}Label`;node.append(title);parent.append(node);return node;
@@ -78,6 +91,7 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
   function toggle(parent,label,id,get,set) {
     const row=make('label','sid-field sid-check'),input=make('input');input.type='checkbox';input.id=id;row.append(input,make('span','',label));parent.append(row);
     listen(input,'change',()=>{commit(next=>set(next,input.checked));input.blur();});
+    highlight(row,()=>Boolean(get(display)));
     controls.push(()=>{input.checked=Boolean(get(display));input.disabled=locked();markChanged(input,input.checked);});return input;
   }
   function waveforms(parent){
@@ -92,6 +106,7 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
         const active=Boolean(bits&bit);button.disabled=locked();button.tabIndex=locked()?-1:0;button.setAttribute('aria-pressed',String(active));markChanged(button,active);
       });
       buttons.push(button);group.append(button);
+      highlight(button,()=>Boolean((observing&&observation?observation.waveformMask>>4:waveformBits(display.voice.waveform))&bit));
     }
     listen(group,'keydown',event=>{
       if(locked()){event.preventDefault();event.stopPropagation();return;}
@@ -112,6 +127,7 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
         next.filter.mode=filterModeFromBits(bits);next.filter.enabled=bits!==0;
       }));
       controls.push(()=>{const active=observing&&observation?Boolean(observation.filter.modeMask&bit):preset.filter.enabled&&!!(filterModeBits(preset.filter.mode)&bit);button.setAttribute('aria-pressed',String(active));button.disabled=locked();markChanged(button,active);});
+      highlight(button,()=>Boolean((observing&&observation?observation.filter.modeMask:filterModeBits(display.filter.mode))&bit));
       group.append(button);
     }
   }
@@ -122,6 +138,7 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
     const [minus,value,plus]=control.element.children;value.id=id;value.setAttribute('role','spinbutton');value.setAttribute('aria-labelledby',`${id}Label`);value.setAttribute('aria-valuemin',String(min));value.setAttribute('aria-valuemax',String(max));
     for(const [button,delta] of [[minus,-1],[plus,1]]){button.dataset.stepperFor=id;button.dataset.stepperDelta=String(delta);button.setAttribute('aria-label',`${delta<0?'Decrease':'Increase'} ${label}`);pointerFocus(button);}
     pointerFocus(value);row.append(control.element);
+    highlight(row,()=>get(display)??undefined);
     const keyAdjust=event=>{
       if(locked()||!enabled(display)){event.preventDefault();event.stopPropagation();render();return;}
       const current=get(display);let next;
@@ -220,6 +237,7 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
     update(value){if(disposed)return;preset=readPreset(value);render();},
     observe(value,{active=value!==null,editable:canEdit=false}={}){if(disposed)return;editable=Boolean(canEdit);if(value!==null)observation=value;observing=Boolean(active);if(!observing)observation=null;render();},
     getPreset:()=>readPreset(preset),
+    getLiveHighlightControls:()=>highlightControls,
     dispose(){if(disposed)return;disposed=true;for(const cleanup of cleanups)cleanup();},
   };
 }

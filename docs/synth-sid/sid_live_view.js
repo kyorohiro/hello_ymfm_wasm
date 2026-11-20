@@ -221,7 +221,15 @@ export function createSidLiveView({root}) {
     setField('position', o.positionFrames, `${o.timeSeconds.toFixed(3)} s · frame ${o.positionFrames}`);
     return observation;
   }
-  return {update, dispose() {
+  const highlightControls=[
+    ['frequencyHz',o=>o.frequencyHz],['frequencyRegister',o=>o.frequencyRegister],
+    ['gate',o=>o.gate],['envelope',o=>o.envelope??undefined],
+    ['source',o=>o.source.ratio??undefined],['voice3off',o=>o.filter.voice3off],
+  ].map(([key,read])=>{
+    const element=fields.get(key);element.className='sid-live-value';
+    return {element,read,available:()=>!disposed&&!root.hidden};
+  });
+  return {update,getLiveHighlightControls:()=>highlightControls, dispose() {
     if (disposed) return;
     disposed = true;
     helpSummary.removeEventListener('click', blurHelp);

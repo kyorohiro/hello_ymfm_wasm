@@ -111,12 +111,14 @@ async function check(browser,name,origin){
       await page.locator('#modulationCard').evaluate(node=>{node.open=true;});
       await page.locator('#voiceCard').evaluate(node=>{node.open=true;});
       await page.evaluate(()=>{window.__sidCodeLiveNodes=[...document.getElementById('voiceEditor').querySelectorAll('*')];});
-      step(model+': Code register mutations are shown in the same read-only controls without applying a preset');
+      step(model+': Code register mutations are shown in the same editable controls without applying a preset');
       await source(page,CODE);await execute(page);
       assert(await page.locator('#sidLiveEnabled').isChecked(),'Code Live defaults to On independently of song-follow');
       assert.match(await page.locator('#sidLiveEnabledLabel').textContent(),/Live.*Code/i);
       await observed(page,0,{pulseWidth:513,attack:3,decay:4,sustain:5,release:6,filterCutoff:888,filterResonance:9,chipVolume:7});
-      assert(await page.locator('#attack').isDisabled());assert(await page.locator('#filterCutoffRange').isDisabled());
+      // Code Live gained direct selected-CH editing after this checker was
+      // written. Observation remains passive; the existing controls are editable.
+      assert(await page.locator('#attack').isEnabled());assert(await page.locator('#filterCutoffRange').isEnabled());
       assert.equal(await page.locator('[data-choice-for="waveform"][data-value="pulse"]').getAttribute('aria-pressed'),'true');
       assert(await page.locator('[data-sid-live-voice="round-robin"]').isHidden());
       assert.deepEqual(await savedSetup(page),baseline,'observations never replace any authored CH or target');
@@ -130,9 +132,9 @@ async function check(browser,name,origin){
       assert.deepEqual(await savedSetup(page),baseline);assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
       if(model==='8580')assert.match(await page.locator('[data-live-field="envelope"]').textContent(),/Unavailable/i);
       await page.locator('[data-sid-live-voice="0"]').click();await observed(page,0);
-      await page.evaluate(()=>{window.__sidPulseHighlighted=false;const target=document.getElementById('pulseWidth');
-        window.__sidPulseHighlightObserver?.disconnect();window.__sidPulseHighlightObserver=new MutationObserver(()=>{if(target.dataset.changed==='true')__sidPulseHighlighted=true;});
-        __sidPulseHighlightObserver.observe(target,{attributes:true,attributeFilter:['data-changed']});});
+      await page.evaluate(()=>{window.__sidPulseHighlighted=false;const target=document.getElementById('pulseWidth').closest('.sid-live-value');
+        window.__sidPulseHighlightObserver?.disconnect();window.__sidPulseHighlightObserver=new MutationObserver(()=>{if(target.classList.contains('is-live-changed'))__sidPulseHighlighted=true;});
+        __sidPulseHighlightObserver.observe(target,{attributes:true,attributeFilter:['class']});});
       await page.evaluate(async()=>__sidCodeLiveHandle.setVoice(0,{pulseWidth:1977,attack:6}));
       await observed(page,0,{pulseWidth:1977,attack:6});
       assert(await page.evaluate(()=>__sidPulseHighlighted),'changed values are highlighted in place');
@@ -158,11 +160,14 @@ async function check(browser,name,origin){
       const stopped=await page.evaluate(()=>__sidCodeLiveAudit.read());assert([0,1,2].every(channel=>!(stopped.registers[channel*7+4]&1)));
       models.push({model,pollingSamplesIn250ms:polls,authoredSetupPreserved:true,staleResponseRetired:true});
     }
-    step('Apply and returning to Keyboard preserve live state ownership and stop observing');
+    step('Apply and returning to Keyboard preserve the running Code and its Live observation');
     await source(page,CODE);await execute(page);await observed(page,0,{pulseWidth:513});
     await page.locator('#synthCodeEditor').fill(CODE.replace('pulseWidth:513','pulseWidth:999'));await execute(page,true);await observed(page,0,{pulseWidth:999});
-    await page.locator('#synthInputKeyboardTab').click();await editable(page);await wait(100);const stoppedCount=await observeCount(page);await wait(160);assert.equal(await observeCount(page),stoppedCount);
-    assert(await page.locator('[data-sid-live-voice="round-robin"]').isVisible());
+    await page.locator('#synthInputKeyboardTab').click();await observed(page,0,{pulseWidth:999});
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    const keyboardCount=await observeCount(page);await wait(250);const keyboardPolls=await observeCount(page)-keyboardCount;
+    assert(keyboardPolls>0&&keyboardPolls<=8,'Keyboard keeps the same bounded Code observation');
+    assert(await page.locator('[data-sid-live-voice="round-robin"]').isHidden());
     await fs.mkdir(config.screenshots,{recursive:true});
     await source(page,CODE);await execute(page);await observed(page,0,{pulseWidth:513});
     for(const width of [1240,390]){await page.setViewportSize({width,height:1050});await wait(80);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'layout fits '+width);await page.screenshot({path:path.join(config.screenshots,name+'-code-live-'+width+'.png'),fullPage:true});}

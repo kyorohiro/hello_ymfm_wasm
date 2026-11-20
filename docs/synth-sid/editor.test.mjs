@@ -18,7 +18,7 @@ class Element {
     const classes=new Set();this.classList={add:(...names)=>names.forEach(name=>classes.add(name)),remove:(...names)=>names.forEach(name=>classes.delete(name)),toggle:(name,on)=>{if(on??!classes.has(name))classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)};
   }
   append(...nodes){for(const node of nodes)this.appendChild(node);}
-  appendChild(node){this.children.push(node);return node;}
+  appendChild(node){this.children.push(node);node.parentElement=this;node.parentNode=this;return node;}
   setAttribute(key,value){this.attributes[key]=String(value);}
   removeAttribute(key){delete this.attributes[key];}
   getAttribute(key){return this.attributes[key];}
@@ -189,6 +189,44 @@ function liveObservation({waveformMask=0x70,frequency=0x1200,sourceFrequency=0x2
   return readSidLiveVoice({model:'6581',clockHz:985248,sampleRate:48000,positionFrames:9600,registers,voices:[{envelope:77},{envelope:88},{envelope:99}]},voice);
 }
 
+test('Live highlight bindings read scalar values from the existing displayed controls without adopting the observation',t=>{
+  const f=editorFixture(t),saved=f.editor.getPreset(),nodes=walk(f.root),bindings=f.editor.getLiveHighlightControls();
+  const binding=node=>{const result=bindings.find(item=>item.element===node||item.element.contains(node));assert(result,'highlight binding for '+(node.id??node.dataset.value));return result;};
+  assert.equal(f.editor.getLiveHighlightControls(),bindings,'bindings are cached rather than rebuilding DOM references on each sample');
+  assert.equal(new Set(bindings.map(item=>item.element)).size,bindings.length,'each value owns a single animation');
+  f.editor.observe(liveObservation(),{active:true,editable:true});
+  for(const[id,value]of [['pulseWidth',0xa34],['attack',9],['decay',8],['sustain',7],['release',6],['filterCutoff',1500],['filterResonance',11],['chipVolume',13],['modulationRatio',2]])
+    assert.equal(binding(find(f.root,id)).read(),value,id+' reads its displayed hardware value');
+  for(const[id,value]of [['filterEnabled',true],['syncEnabled',true],['ringEnabled',true],['oscillatorTest',true],['filterLowpass',true],['filterBandpass',false],['filterHighpass',true]])
+    assert.equal(binding(find(f.root,id)).read(),value,id+' scalar');
+  for(const[name,value]of [['triangle',true],['saw',true],['pulse',true],['noise',false]])
+    assert.equal(binding(choice(f.root,'waveform',name)).read(),value,'waveform '+name);
+  assert(bindings.length>=18);assert(bindings.every(item=>['number','boolean','string','undefined'].includes(typeof item.read())||item.read()===null));
+  f.editor.observe(liveObservation({waveformMask:0x10,frequency:0x400,sourceFrequency:0x1000,modeMask:2,sync:false,ring:false}));
+  assert.equal(binding(choice(f.root,'waveform','pulse')).read(),false);assert.equal(binding(find(f.root,'modulationRatio')).read(),4);
+  assert.equal(binding(find(f.root,'filterBandpass')).read(),true);assert.equal(binding(find(f.root,'syncEnabled')).read(),false);
+  assert.deepEqual(walk(f.root),nodes);assert.deepEqual(f.editor.getPreset(),saved);assert.equal(f.changes.length,0);assert.equal(f.errors.length,0);
+  f.editor.dispose();
+});
+
+test('Live highlight availability follows folded/hidden/focused controls and keeps inactive visible values observable',t=>{
+  const f=editorFixture(t),bindings=f.editor.getLiveHighlightControls();
+  const binding=id=>{const node=find(f.root,id),result=bindings.find(item=>item.element===node||item.element.contains(node));assert(result,'binding for '+id);return result;};
+  f.editor.observe(liveObservation({waveformMask:0x10,sync:false,ring:false}),{active:true,editable:true});
+  const width=binding('pulseWidth'),attack=binding('attack'),ratio=binding('modulationRatio');
+  assert.equal(find(f.root,'pulseWidth').disabled,true);assert.equal(width.available(),true,'inactive Pulse still displays a real register value');
+  assert.equal(ratio.available(),false,'a folded modulation card is not visible');
+  find(f.root,'modulationCard').open=true;assert.equal(ratio.available(),true,'inactive but visible observed ratio remains inspectable');
+  f.editor.observe(liveObservation({waveformMask:0x40,sync:false,ring:false}),{active:true,editable:true});
+  find(f.root,'pulseWidthRange').focus();assert.equal(width.available(),false,'focused slider suppresses its containing value highlight');
+  find(f.root,'pulseWidthRange').blur();assert.equal(width.available(),true);
+  find(f.root,'voiceCard').open=false;assert.equal(width.available(),false);assert.equal(attack.available(),false);
+  find(f.root,'voiceCard').open=true;assert.equal(attack.available(),true);
+  f.root.hidden=true;assert.equal(attack.available(),false);f.root.hidden=false;assert.equal(attack.available(),true);
+  f.editor.observe(null);assert.equal(attack.available(),false,'authored controls are outside Live highlighting');
+  f.editor.dispose();assert.equal(attack.available(),false);
+});
+
 test('Live samples update the same controls and folds while preserving the authored preset beneath them',t=>{
   const f=editorFixture(t),before=f.editor.getPreset(),nodes=walk(f.root);
   find(f.root,'voiceCard').open=false;find(f.root,'modulationCard').open=true;
@@ -303,13 +341,14 @@ test('question-mark help starts closed, toggles independently, preserves focus/f
 });
 
 const appSource=(await readFile(new URL('./synth.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?from\s*['"][^'"]+['"];\n/gm,'');
-function appFixture({stall=false,desktop=false,codeStop=async()=>{},files}={}){
+function appFixture({stall=false,desktop=false,codeStop=async()=>{},files,storage=new Map(),storageFails=false}={}){
   const ids=new Map(),doc=new Element(null,'document');doc.ownerDocument=doc;doc.activeElement=null;doc.hidden=false;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>{if(!ids.has(id)){const node=new Element(doc);node.id=id;ids.set(id,node);}return ids.get(id);};
   for(const id of ['masterVolume','pitchBend','keyboardPitchBend'])doc.getElementById(id).value=id==='masterVolume'?'.7':'0';
   const masterControl=new Element(doc);masterControl.className='master-control';
   masterControl.append(doc.getElementById('masterVolume'),doc.getElementById('masterVolumeValue'));
   doc.getElementById('masterVolume').closest=selector=>selector==='.master-control'?masterControl:null;
   doc.getElementById('codeOutput').hidden=true;
+  doc.getElementById('sidLiveHighlightToggle').checked=true;
   doc.getElementById('spuFileContextMenu').hidden=true;
   doc.getElementById('sidFileContextMenu').hidden=true;
   const menuPanel=new Element(doc);menuPanel.className='synth-menu-panel';doc.getElementById('synthMenu').append(menuPanel);
@@ -319,7 +358,7 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{},files}={}){
   doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:selector==='[data-sid-live-voice]'?channels:selector==='[data-sid-keyboard-mode]'?keyboardModes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
   const visualEvents=[];
   const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(value){visualEvents.push(['running',value]);},connect(){},disconnect(){},stop(){visualEvents.push(['stop']);},wake(){},dispose(){}};
-  const desktopEvents=[],code={mode:false,running:false,stops:0,dirty:0},observations=[],editorHooks={};
+  const desktopEvents=[],code={mode:false,running:false,stops:0,dirty:0},observations=[],editorHooks={},highlights={views:[],enabled:[],clears:0,disposed:false,options:null};
   const codeLive={state:{liveKind:'code',liveEnabled:true,liveVoice:0,liveActive:false,liveWaiting:false,liveState:null},
     read(){return {...this.state};},
     sync(){if(!this.hooks.isRunning())Object.assign(this.state,{liveState:null,liveActive:false,liveWaiting:false});},
@@ -366,17 +405,18 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{},files}={}){
   // These tests exercise sound/ownership, not DOM layout. The actual shared
   // expanded helper and attached SID element contract have their own suite.
   const setupSynthExpandedTabs=()=>({setExpanded(){},showInput(){},showChip(){},dispose(){}});
-  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,setupSynthMenu,setupSynthExpandedTabs,applySidDocumentChanges,
+  const context=vm.createContext({document:doc,window:win,localStorage:{getItem(key){if(storageFails)throw Error('Storage unavailable');return storage.get(key)??null;},setItem(key,value){if(storageFails)throw Error('Storage unavailable');storage.set(key,String(value));}},createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,setupSynthMenu,setupSynthExpandedTabs,applySidDocumentChanges,
+    createSidLiveHighlighter(options){highlights.options=options;return{update(view){highlights.views.push(view);},setEnabled(value){highlights.enabled.push(value);},clear(){highlights.clears++;},dispose(){highlights.disposed=true;}};},
     setupSidCodeHost:hooks=>{code.hooks=hooks;code.activity=hooks.onActivity;return{files,project:createSidCodeProject({settings:hooks.getSettings()}),ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,getState:()=>({busy:Boolean(code.busy),running:code.running}),
       async stop(){code.running=false;code.stops++;code.activity();await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}};},
     createSidCodeLive:hooks=>{codeLive.hooks=hooks;return codeLive;},
-    createEditor:hooks=>{Object.assign(editorHooks,hooks);return{update(value){editorUpdates.push(readPreset(value));},observe(value,options){observations.push({value,active:options?.active,editable:options?.editable});},dispose(){}};},
+    createEditor:hooks=>{Object.assign(editorHooks,hooks);return{update(value){editorUpdates.push(readPreset(value));},observe(value,options){observations.push({value,active:options?.active,editable:options?.editable});},getLiveHighlightControls(){return[];},dispose(){}};},
     createSidImport:hooks=>{importer.hooks={...hooks,onUpdate(state){Object.assign(importState,{playing:false,starting:false,paused:false,pausing:false,resuming:false,manualReady:false},state);hooks.onUpdate({...importState});}};return importer;},createSidImportPanel:hooks=>{importer.panelHooks=hooks;return{update(){},dispose(){}};},createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,Event,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,JSON,console});
   vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,chooseKeyboardMode,press,release,setPitch,updateKeys,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
-  return{ui:context.testUi,doc,window:win,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,code,codeLive,observations,editorHooks,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
+  return{ui:context.testUi,doc,window:win,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,code,codeLive,observations,editorHooks,highlights,storage,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
 }
 
 test('Code Live selects only an observed physical channel and never adopts its raw settings into the authored sound',async()=>{
@@ -395,6 +435,44 @@ test('Code Live selects only an observed physical channel and never adopts its r
   f.code.running=false;f.code.activity();assert.equal(f.doc.getElementById('sidLiveEnabledLabel').textContent,'Auto update from song');
   assert.equal(f.doc.getElementById('sidLiveChannelLabel').textContent,'Edit & play');assert.equal(f.observations.at(-1).active,false);
   assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.importer.panelHooks.onLiveChange(true),false);
+});
+
+test('highlight preference defaults On, persists Off independently of Live and never writes sound or stops Code',async()=>{
+  const f=appFixture(),toggle=f.doc.getElementById('sidLiveHighlightToggle');
+  assert.equal(toggle.checked,true);assert.equal(f.highlights.options.enabled,true);assert.equal(f.audioOptions.length,0);
+  await f.ui.ensureAudio();f.code.running=true;f.code.activity();
+  f.codeLive.emit({liveEpoch:17,liveVoice:1,liveState:autoState(),liveActive:true,liveWaiting:false});
+  const before=readChannelSettings(f.ui.getSettings()),calls=f.calls.length,dirty=f.code.dirty,importCalls=f.importer.calls.length,live=f.observations.at(-1);
+  toggle.checked=false;toggle.focus();await toggle.fire('change');
+  assert.equal(f.highlights.enabled.at(-1),false);assert.equal(f.code.running,true);assert.equal(f.code.stops,0);
+  assert.equal(f.codeLive.state.liveEnabled,true);assert.equal(f.importer.state.liveEnabled,true);
+  assert.equal(f.observations.at(-1).active,live.active);assert.equal(f.doc.activeElement,null,'mouse toggle leaves performance keys available');
+  assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.calls.length,calls);assert.equal(f.code.dirty,dirty);assert.equal(f.importer.calls.length,importCalls);
+  assert.equal(f.storage.get('tetorica-sid-synth-live-highlight'),'off');
+  const reloaded=appFixture({storage:f.storage});assert.equal(reloaded.doc.getElementById('sidLiveHighlightToggle').checked,false);assert.equal(reloaded.highlights.options.enabled,false);
+  toggle.checked=true;await toggle.fire('change');assert.equal(f.highlights.enabled.at(-1),true);assert.equal(f.storage.get('tetorica-sid-synth-live-highlight'),'on');
+  assert.equal(f.calls.length,calls);assert.equal(f.code.stops,0);
+  const unavailable=appFixture({storageFails:true});assert.equal(unavailable.highlights.options.enabled,true);
+  unavailable.doc.getElementById('sidLiveHighlightToggle').checked=false;await unavailable.doc.getElementById('sidLiveHighlightToggle').fire('change');
+  assert.equal(unavailable.highlights.enabled.at(-1),false,'storage failure does not prevent local Off');assert.equal(unavailable.audioOptions.length,0);
+});
+
+test('the host supplies existing Code/song observation scopes and lifecycle states to the passive highlighter',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.code.running=true;f.code.activity();
+  const raw=autoState();f.codeLive.emit({liveEpoch:17,liveVoice:1,liveState:raw,liveActive:true,liveWaiting:false});
+  const view=f.highlights.views.at(-1);assert.equal(view.origin,'code');assert.equal(view.epoch,17);assert.equal(view.channel,1);
+  assert.equal(view.snapshot.voice,1);assert.equal(view.snapshot.positionFrames,raw.positionFrames);assert.equal(view.following,true);assert.equal(view.visible,true);assert.equal(view.paused,false);
+  const calls=f.calls.length,reads=f.engines[0].reads;
+  f.codeLive.emit({liveEpoch:17,liveVoice:2,liveWaiting:true});assert.equal(f.highlights.views.at(-1).waiting,true);
+  f.codeLive.emit({liveWaiting:false,liveError:true});assert.equal(f.highlights.views.at(-1).error,true);
+  f.codeLive.emit({liveError:false,liveEnabled:false});assert.equal(f.highlights.views.at(-1).following,false);
+  assert.equal(f.calls.length,calls);assert.equal(f.engines[0].reads,reads,'highlight updates do not add register reads');assert.equal(f.code.stops,0);
+  f.code.running=false;f.code.activity();
+  f.importer.hooks.onUpdate({playing:true,liveActive:true,liveEnabled:true,liveEpoch:29,liveVoice:2,liveState:raw,liveSource:{name:'Scope tune',subtune:1}});
+  const song=f.highlights.views.at(-1);assert.equal(song.origin,'song');assert.equal(song.epoch,29);assert.equal(song.channel,2);assert.equal(song.following,true);assert.notEqual(song.owner,view.owner);
+  f.importer.hooks.onUpdate({playing:false,paused:true,liveActive:false});assert.equal(f.highlights.views.at(-1).paused,true);
+  f.importer.hooks.onUpdate({paused:false,resuming:true});assert.equal(f.highlights.views.at(-1).paused,true);
+  assert.equal(f.importer.calls.length,0,'display transitions do not stop/resume the song');assert.equal(f.importer.manualCalls.length,0);
 });
 
 test('Code view accepts manual notes on the selected live channel and blur leaves its program running',async()=>{

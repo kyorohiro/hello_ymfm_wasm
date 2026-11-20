@@ -10,7 +10,7 @@ export function createSidCodeLive({getAudio,isRunning,onUpdate=()=>{},schedule=n
   if(!Number.isFinite(intervalMs)||intervalMs<50)throw new RangeError('SID Code Live interval must be at least 50 ms');
   let disposed=false,enabled=true,voice=0,epoch=0,owner=null,running=false,timer=null,inFlight=null;
   let snapshot=null,error='',waiting=false;
-  const read=()=>({liveKind:'code',liveEnabled:enabled,liveVoice:voice,liveActive:Boolean(running&&enabled&&snapshot&&!error),
+  const read=()=>({liveKind:'code',liveEpoch:epoch,liveEnabled:enabled,liveVoice:voice,liveActive:Boolean(running&&enabled&&snapshot&&!error),
     liveWaiting:Boolean(running&&enabled&&waiting),liveState:copy(snapshot),liveError:Boolean(error),liveMessage:error,
     liveSource:{name:'Code'},playing:running,paused:false});
   const notify=()=>{if(!disposed)onUpdate(read());};

@@ -12,7 +12,7 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
 | Active instrument file ↔ controls/JSON | Implemented: linked portable voice / three-channel setup documents, role-preserving serialization, shared Code text/JSON editor without a forced view switch, accepted versus working controls and sparse physical-bank acceptance. |
 | Files Undo / New / import recovery | Implemented: compact Files controls, right-click basic actions and Undo, New Cassette, validated replacement with native backup cancellation, both-version journal/quota recovery and saved-source execution. |
 | Persistent expanded Code workspace | Implemented: Files-adjacent Code/Synth layout buttons, persistent Code / SID / Keyboard tabs, shared transport and one original Master. No new Mixer policy. See [verification](todo_sid_code_workspace_20261121.md). |
-| Live changed-value highlighting | Missing. Live/Auto update already follows the selected physical CH and uses the existing sound controls; short value-change flashes with On/Off are separate. |
+| Live changed-value highlighting | Implemented: bounded scalar pulses over the same song/Code controls and readouts, default On with a separate persistent Off preference. See [verification](todo_sid_live_highlight_20261121.md). |
 | Shared channel output switches | Missing as a common output-only policy for keyboard, Code and SID playback. Hardware voice-3 exclusion and filter routing are sound settings, not equivalent independent listening mutes. |
 | PCM drawing / Start / Loop range | Not applicable. This SID Synth is oscillator/register based, with no RF5C164-like PCM sample editor. Keep waveform combinations, Pulse width, Sync and Ring controls rather than inventing sample RAM. |
 | Looper / Event Rec | **Explicitly deferred by the user.** Do not include them in the next implementation automatically ([existing decision](todo_sid_synth_code_files_01.md)). |
@@ -40,7 +40,7 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
       existing FM2612-style Duplicate/right-click basic file actions.
 - [x] Add persistent expanded Code/SID/Keyboard navigation, header Code/Synth
       switching and visible Master; introduce Mixer only with an agreed policy.
-- [ ] Add Live value-change highlighting, default On with an Off option, while
+- [x] Add Live value-change highlighting, default On with an Off option, while
       retaining the same controls and distinct Live following state.
 
 ## Later decisions, not automatic implementation
@@ -86,4 +86,4 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
 
 Working/saved implementation and verification: [2026-11-20 record](todo_sid_working_saved_20261120.md).
 Expanded navigation: [2026-11-21 implementation record](todo_sid_code_workspace_20261121.md).
-Live highlighting and output switches remain separate work. Timed APIs are published in npm 0.2.46. Native execution requires separate authorization. Looper / Event Rec remain deferred.
+Live highlighting is implemented in its [separate record](todo_sid_live_highlight_20261121.md). Output switches remain separate work. Timed APIs are published in npm 0.2.46. Native execution requires separate authorization. Looper / Event Rec remain deferred.

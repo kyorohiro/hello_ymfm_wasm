@@ -317,7 +317,16 @@ selecting a captured Voice, remains the explicit import operation.
 
 Live and editing use the **same controls in the same positions**: waveform
 buttons, Pulse width, ADSR, filter and modulation controls update in place.
-Changes are highlighted without replacing control nodes or folded sections.
+**Highlight changes** is On by default and briefly pulses changed values
+without replacing control nodes or folded sections. Its separate preference
+survives reload. Turn it Off to keep Live following without the pulses.
+The CSS pulse lasts 420 ms (1 ms with reduced motion); rapid changes share
+one bounded pulse. First display, CH/model/session changes, Pause, hidden
+or folded controls and Live Off establish fresh comparison baselines.
+The feature reuses the existing observations, up to 20 updates/s. It does not
+show every intermediate register write, compare waveform arrays, add polling
+or send audio commands. Frequency/Gate/observable Envelope readouts use the
+same optional pulse; the continuously advancing position is not highlighted.
 Model selection is locked in the song controls; choose the playback model in
 **Sounds from SID**. Paused song controls remain read-only.
 Long explanations are behind each section's **?** button, closed by default.
