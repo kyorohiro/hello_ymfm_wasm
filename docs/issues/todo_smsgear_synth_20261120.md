@@ -82,3 +82,9 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 ## Separate existing test maintenance
 
 - [ ] Repair archived historical calibration proof fixtures for the existing performance-queue / SPU CSS dependency changes without loosening production freshness guards. The broad suite has the same 157 failing test names before/after this feature (297 tests: 140 pass, 157 fail), confirmed using an isolated exact Git archive of the baseline commit. See `ym2413_state_baseline_test_comparison_01.json`. This is separate from the passing current-policy checks and the new native-state/cache tests.
+
+## Pause audition / Stop follow-up
+
+- [x] Apply paused selected-channel edits to the keyboard audition instrument as well as the frozen reference; keep reference time frozen.
+- [x] Display configured PSG attenuation separately from hardware release mute (15); Stop returns to the editing Synth instead of displaying the idle audition registers.
+- [x] Verify held-key edits, release/retrigger and Stop in muted Chromium / WebKit.

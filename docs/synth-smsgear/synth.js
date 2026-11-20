@@ -117,6 +117,11 @@ function settingsEdit(change) {
 		const command = buildSongEdit(kind(), selected(), display, valid);
 		if (!command.changes.length) return;
 		display = valid;
+		if (songMode === "paused")
+			audio?.applySettings(valid, {
+				section: kind(),
+				channel: selected(),
+			});
 		render(false);
 		void player
 			.editSound(command)
@@ -208,6 +213,7 @@ function allKeyboardOff() {
 	paintKeyboard();
 }
 async function stopSong() {
+	const wasSongView = Boolean(songView());
 	songEpoch++;
 	songAbort?.abort();
 	songAbort = null;
@@ -221,6 +227,12 @@ async function stopSong() {
 	$("songTime").textContent = "0:00 / 0:00";
 	$("songReadout").textContent = "No reference song loaded.";
 	$("songView").value = "synth";
+	if (wasSongView) {
+		allKeyboardOff();
+		audio?.applySettings(accepted);
+		channel = "auto";
+		liveState = null;
+	}
 	updateTransport();
 	render();
 }
@@ -259,7 +271,7 @@ async function press(id, midi) {
 			const captured = presetFromRegisters(
 				selectedSection,
 				target,
-				songState,
+				songDisplay(),
 			);
 			audio.applySettings(captured, {
 				section: selectedSection,

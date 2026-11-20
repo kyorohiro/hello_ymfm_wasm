@@ -512,3 +512,26 @@ test("OPLL combined handle level guide reflects modulator TL and carrier attenua
 		assert.equal(op.tl, 0);
 	}
 });
+
+// The renderer register is silent after keyOff; the Synth next-note level is not.
+test("PSG Synth configured level survives hardware release mute; reference snapshots stay raw", () => {
+	const state = {
+		psg: {
+			configuredAttenuations: [3, 4, 5, 6],
+			channels: [
+				{ attenuation: 15 },
+				{ attenuation: 15 },
+				{ attenuation: 15 },
+				{ attenuation: 15, noiseType: "periodic", noiseRate: "low" },
+			],
+		},
+		stereo: 255,
+	};
+	for (let ch = 0; ch < 4; ch++)
+		assert.equal(
+			presetFromRegisters("psg", ch, state).psg.attenuation,
+			ch + 3,
+		);
+	delete state.psg.configuredAttenuations;
+	assert.equal(presetFromRegisters("psg", 0, state).psg.attenuation, 15);
+});

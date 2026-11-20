@@ -264,6 +264,8 @@ export async function createSmsGearAudio({
 			return {
 				psg: {
 					...p,
+					// Key release writes 15 to hardware but preserves the next-note level.
+					configuredAttenuations: psg._getState().attenuations,
 					channels: [
 						...p.channels,
 						{

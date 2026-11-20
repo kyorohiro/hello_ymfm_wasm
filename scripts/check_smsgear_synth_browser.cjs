@@ -1073,7 +1073,75 @@ function mute() {
 						await page.locator(`#${id} .param-value`).textContent(),
 					);
 				};
+				const auditionPsg = () =>
+					page.evaluate(
+						() =>
+							new Promise((resolve, reject) => {
+								const node = __smsAudit.nodes.find((n) =>
+									n.name.includes("segapsg"),
+								).node;
+								const id = "audition:" + Math.random();
+								const timer = setTimeout(
+									() =>
+										reject(
+											Error("audition snapshot timeout"),
+										),
+									3000,
+								);
+								const listener = ({ data }) => {
+									if (data.id !== id) return;
+									clearTimeout(timer);
+									node.port.removeEventListener(
+										"message",
+										listener,
+									);
+									data.error
+										? reject(Error(data.error))
+										: resolve(data.value);
+								};
+								node.port.addEventListener("message", listener);
+								node.port.postMessage({
+									type: "chip-inspector",
+									id,
+									inspectorKind: "segapsg",
+									action: "read",
+								});
+							}),
+					);
+				// Editing while a paused audition key is held must affect that instrument,
+				// not only the silent reference Worklet.
+				await page.keyboard.down("a");
+				await page.waitForTimeout(100);
 				const level = await adjust("psgAttenuation");
+				assert.equal(
+					(await auditionPsg()).channels[0].attenuation,
+					level,
+					"paused control edit reaches the held keyboard audition",
+				);
+				await page.keyboard.up("a");
+				await page.waitForTimeout(80);
+				assert.equal(
+					(await auditionPsg()).channels[0].attenuation,
+					15,
+					"release still silences audition hardware",
+				);
+				assert.equal(
+					Number(
+						await page
+							.locator("#psgAttenuation .param-value")
+							.textContent(),
+					),
+					level,
+					"release does not replace the edited level with its hardware mute",
+				);
+				await page.keyboard.down("a");
+				await page.waitForTimeout(100);
+				assert.equal(
+					(await auditionPsg()).channels[0].attenuation,
+					level,
+					"next audition uses the edited level",
+				);
+				await page.keyboard.up("a");
 				assert.equal(
 					(await capture()).psg.attenuations[0],
 					level,
@@ -1220,6 +1288,41 @@ function mute() {
 				await page.locator("#songStop").click();
 				await page.waitForFunction(
 					() => document.getElementById("songPause").disabled,
+				);
+				assert.equal(
+					await page
+						.locator('#channelTabs [aria-selected="true"]')
+						.getAttribute("data-channel"),
+					"auto",
+					"Stop returns to the editing Synth instead of idle audition CH registers",
+				);
+				await selectChannelAcrossRefresh("0");
+				const idleLevel = await adjust("psgAttenuation");
+				await page.waitForTimeout(350);
+				assert.equal(
+					Number(
+						await page
+							.locator("#psgAttenuation .param-value")
+							.textContent(),
+					),
+					idleLevel,
+					"idle physical CH retains configured attenuation across polling",
+				);
+				await page.keyboard.down("a");
+				await page.waitForTimeout(100);
+				assert.equal(
+					(await auditionPsg()).channels[0].attenuation,
+					idleLevel,
+				);
+				await page.keyboard.up("a");
+				await page.waitForTimeout(350);
+				assert.equal(
+					Number(
+						await page
+							.locator("#psgAttenuation .param-value")
+							.textContent(),
+					),
+					idleLevel,
 				);
 				await selectChannelAcrossRefresh("2");
 				const before = await page.locator("#soundName").inputValue();

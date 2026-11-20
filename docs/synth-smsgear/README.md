@@ -121,7 +121,11 @@ Noise channel; Game Gear stereo controls edit the shared routing bits. Seek
 rebuilds original history and clears manual edits. Edits do not modify the VGM
 file or saved Synth preset. Capture to Synth copies its static parameters while
 preserving reference transport. Paused keyboard audition uses the Synth route;
-it does not overwrite the frozen reference chip. The curves above are output
+it does not overwrite the frozen reference chip. Controls changed during Pause
+also update the held keyboard audition and subsequent notes. Pause itself stays
+silent; use the keyboard to hear a channel with a playable pitch. Stop returns
+to the editing Synth. Its PSG attenuation shows the configured next-note level,
+not the temporary hardware value 15 used for key release. The curves above are output
 RMS, waveform and spectrum after Master, not hardware ADSR reconstruction.
 
 Supported events: Sega PSG writes, Game Gear stereo, YM2413 writes and VGM waits.

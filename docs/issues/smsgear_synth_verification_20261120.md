@@ -401,3 +401,13 @@ production packaging / policy checks pass independently.
 
 No commit/push, npm/SDK publication, itch upload or Tauri change was performed.
 Human listening remains separate.
+
+## Pause audition / PSG attenuation follow-up
+
+- Paused selected-CH edits now update the keyboard audition route as well as the reference chip; held keys hear the change without advancing the reference timeline.
+- Keyboard audition uses the displayed frozen state when Auto update is disabled.
+- Synth inspection carries configured PSG attenuation separately from effective hardware release mute. Idle and released physical channels no longer jump to 15 in the control; the actual chip still silences on release.
+- Stop from Song view releases audition keys, restores the accepted editing Synth and selects Auto. This avoids showing leftover muted audition registers as the saved instrument.
+- A 0-Hz reference CH has no playable stored pitch; changing attenuation alone does not resume a paused song. Use the keyboard for a pitched audition.
+- Validation: `node --test docs/synth-smsgear/*.test.mjs`: 44 passed. `node scripts/check_smsgear_synth_browser.cjs --out=build/smsgear-pause-fix/browser.json`: Chromium / WebKit passed with permanently muted physical output. Added held-key attenuation, release, retrigger, idle polling and Stop assertions. `git diff --check` passed.
+- No shared runtime or native core changes; no distribution ZIP rebuilt or published in this follow-up.

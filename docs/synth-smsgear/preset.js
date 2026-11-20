@@ -97,7 +97,8 @@ export function presetFromRegisters(kind, channel, state) {
 	preset.name = `${kind === "psg" ? "PSG" : "FM"} CH${channel + 1}`;
 	if (kind === "psg") {
 		const voice = state.psg.channels[channel];
-		preset.psg.attenuation = voice.attenuation;
+		preset.psg.attenuation =
+			state.psg.configuredAttenuations?.[channel] ?? voice.attenuation;
 		preset.psg.source = channel === 3 ? "noise" : "tone";
 		preset.psg.noiseType = state.psg.channels[3].noiseType;
 		preset.psg.noiseRate = state.psg.channels[3].noiseRate;
