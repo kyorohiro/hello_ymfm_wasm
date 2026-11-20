@@ -14,7 +14,7 @@ import {createChipInspector} from './playground_chip_inspector.js?v=ps1-pcm-wave
 import {createPerformanceHost} from './playground_performance_host.js?v=ps1-mode-1';
 import {createAyTimedLifecycle} from './playground_ay_timed_lifecycle.js';
 import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=scsp-fm-1';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=sid-timed-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=gameboy-public-timed-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNesAudio} from './playground_nes_audio.js?v=rf5c164-notes-1';
@@ -282,7 +282,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=sid-timed-1",
+      "./playground_logic_worker.js?v=gameboy-public-timed-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -2407,7 +2407,7 @@ export function createPlaygroundRuntime(
     }
     const fm = keyboardApi(ayTimedLifecycle.wrap(sharedFm));
     const nativeApis = Object.fromEntries(Object.entries(nativePrimaryApis()).map(([name,api])=>[name,keyboardApi(api)]));
-    const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
+    const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(ayTimedLifecycle.wrap(sharedGameboy)) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
     const msm5205Api=Object.fromEntries(['loadMemory','loadSample','play','stop','reset','writeRegister','getState'].map(method=>[method,async(...args)=>{
       if(runToken!==currentRunToken)throw new Error('Run stopped');

@@ -12,10 +12,12 @@ import {
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
 import {createGameboyTimedRevisionReadContext} from './mixer_calibration_gameboy_timed_revision.mjs';
 import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
+import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
+import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
 
 // This historical audit still checks its original bytes. Remove the separately
 // authenticated later SID and DMG promotions before its own strict guards.
-const sidContext=createSidTimedRevisionReadContext();
+const metadata=createNpmReleaseMetadataReadContext(),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sidContext=createSidTimedRevisionReadContext(connection.readSource);
 const gameboyContext=createGameboyTimedRevisionReadContext(sidContext.readSource);
 const read = name => gameboyContext.readSource(new URL('../' + name, import.meta.url));
 const restore=(path,bytes,options={})=>restoreSega(path,bytes,{read,...options});

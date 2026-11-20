@@ -86,4 +86,4 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
 
 Working/saved implementation and verification: [2026-11-20 record](todo_sid_working_saved_20261120.md).
 Expanded navigation: [2026-11-21 implementation record](todo_sid_code_workspace_20261121.md).
-Live highlighting and output switches remain separate work. Timed API publication and Native execution require separate authorization. Looper / Event Rec remain deferred.
+Live highlighting and output switches remain separate work. Timed APIs are published in npm 0.2.46. Native execution requires separate authorization. Looper / Event Rec remain deferred.

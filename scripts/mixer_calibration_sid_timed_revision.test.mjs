@@ -3,10 +3,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationSidTimedRevision as restore,createSidTimedRevisionReadContext,
+import {restoreMixerCalibrationSidTimedRevision as restoreSid,createSidTimedRevisionReadContext as createSidContext,
  SID_TIMED_REVISION_RECEIPT,SID_TIMED_PCM_REPORT} from './mixer_calibration_sid_timed_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
-const root=new URL('../',import.meta.url),read=name=>readFileSync(new URL(name,root));
+import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
+import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
+const root=new URL('../',import.meta.url),metadata=createNpmReleaseMetadataReadContext(),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource);
+const read=name=>connection.readSource(new URL(name,root));
+const restore=(path,bytes,options={})=>restoreSid(path,bytes,{read,...options});
+const createSidTimedRevisionReadContext=()=>createSidContext(connection.readSource);
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(SID_TIMED_REVISION_RECEIPT));
 

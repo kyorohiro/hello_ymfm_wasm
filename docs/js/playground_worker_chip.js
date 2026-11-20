@@ -3,6 +3,7 @@ import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-p
  * No DOM, AudioNode or main-thread RPC. Observers are fire-and-forget.
  */
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
+import {attachGameboyTimedClient} from './gameboy_timed_client.js?v=gameboy-timed-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=gameboy-timed-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {attachYm2612TimedClient} from './ym2612_timed_client.js?v=pokey-prepare-1';
@@ -153,7 +154,12 @@ function createWorkerGameboy({port,state,observe}) {
  let enabled=false, notification=false;
  const send=command=>{if(enabled)port.postMessage([command]);};
  const raw=new GameboySynth({transport:{
-  writeRegister(offset,value){send({method:'writeRegister',args:[offset,value]});},
+  writeRegister(offset,value){
+   const state=raw._getState();
+   const keyIntent=[4,9,14,19].includes(offset)&&Boolean(value&128)||offset===22&&!(value&128)
+    ||offset===10&&!(value&128)||[2,7,17].includes(offset)&&!(value&0xf8);
+   send({method:'writeRegister',args:[offset,value],gameboyState:{voiceValue:state.voice[offset],initialized:state.initialized},keyIntent});
+  },
   reset(){send({method:'reset',args:[]});},
  }});
  attachChipClock(raw,port,state?.clock??CHIP_CLOCKS.gameboy,{primary:true,batch:true,
@@ -164,6 +170,7 @@ function createWorkerGameboy({port,state,observe}) {
   queueMicrotask(()=>{notification=false;observe({method:'gameboyState',args:[raw._getState()]});});
  };
  if(state)raw._adoptState(state);else raw.initialize();
+ attachGameboyTimedClient(raw,{},port);
  enabled=true;
  const gameboy=createPrimaryGameboyApi(raw);
  return {gameboy,raw,send,adoptState:state=>raw._adoptState(state),resume(){},

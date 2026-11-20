@@ -6,8 +6,10 @@ import {createHash} from 'node:crypto';
 import {restoreMixerCalibrationGameboyTimedRevision as restoreGameboy,createGameboyTimedRevisionReadContext as createGameboyContext,
  GAMEBOY_TIMED_REVISION_RECEIPT,GAMEBOY_TIMED_PCM_REPORT} from './mixer_calibration_gameboy_timed_revision.mjs';
 import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
+import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
+import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
-const root=new URL('../',import.meta.url),sidContext=createSidTimedRevisionReadContext();
+const root=new URL('../',import.meta.url),metadata=createNpmReleaseMetadataReadContext(),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sidContext=createSidTimedRevisionReadContext(connection.readSource);
 // Authenticate and remove the later SID promotion before testing this older
 // receipt against its own unchanged strict source/dependency identities.
 const read=name=>sidContext.readSource(new URL(name,root));

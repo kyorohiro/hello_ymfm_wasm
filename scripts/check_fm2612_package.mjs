@@ -24,6 +24,10 @@ try {
   assertSidPackageFiles(packedPaths);
   assertScspDspPackageFiles(packedPaths);
   assertSegaTimedPackageFiles(packedPaths);
+  for(const name of ['gameboy_operations','gameboy_timed_state','gameboy_timed_client','gameboy_timed_processor'])
+    for(const extension of ['js','d.ts'])assert(packedPaths.has(name+'.'+extension),'DMG timed package payload missing '+name+'.'+extension);
+  for(const name of ['dmg-sid.html','dmg-sid.js','compile-dmg-sid.mjs'])
+    assert(packedPaths.has('examples/timed-registers/'+name),'DMG/SID timed example missing '+name);
   for (const file of ['adpcm_a_sample.js','adpcm_a_sample.d.ts']) {
     assert.ok(packedPaths.has(file), `ADPCM-A encoder payload missing ${file}`);
   }
@@ -123,6 +127,7 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  execFileSync(process.execPath,[join(installed,'examples/timed-registers/compile-dmg-sid.mjs')],{cwd:consumer,stdio:'inherit'});
   await checkInstalledScspDspNode(consumer);
   await checkInstalledSegaTimedNode(consumer);
   await writeFile(join(consumer,'ym2612-timed-check.mjs'),`

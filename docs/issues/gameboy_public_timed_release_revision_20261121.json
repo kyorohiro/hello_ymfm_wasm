@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "scope": "gameboy-main-worker-timed-api-connection",
+  "baseCommit": "33f71b326bdc51bc6d6be4e7f1394d5dc4f362e3",
+  "reason": "Expose the existing Game Boy timed capability through Main primary and transferred Worker clients; send gameboyTimed as an acknowledged control RPC with one performance timestamp; retain configured voice/initialization metadata and Gate intent on Worker raw writes. The four connection changes are validated exactly, with cache-token-only browser mirrors and one exact cache-version tool extension. No Worklet renderer, operation resolver, performance clock/queue, core, WASM, mixer gain or old PCM proof is changed.",
+  "verification": [
+    "Six actual Main/Worker routing tests cover atomic entry/Apply/Stop and ownership; installed-candidate browser verification is recorded separately by the authorized npm publication task."
+  ],
+  "sources": {
+    "docs/js/playground_logic_worker.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 60813,
+        "sha256": "17bce2bf1855a29b64c2a2fd628b7401c8156d86c0cc72a5ad3ef4b4c6d500fe"
+      },
+      "after": {
+        "bytes": 60872,
+        "sha256": "982c509474a94afed834918b406c0b6980dff385d99a872034a018d9a48bf0f5"
+      },
+      "hunks": [
+        {
+          "afterOffset": 522,
+          "afterBytes": 101,
+          "beforeBase64": "aW1wb3J0IHtjcmVhdGVQZXJmb3JtYW5jZVNlbmRlcn0gZnJvbSAnLi9wbGF5Z3JvdW5kX3BlcmZvcm1hbmNlX3NlbmRlci5qcz92PXNpZC10aW1lZC0xJzsK"
+        },
+        {
+          "afterOffset": 3367,
+          "afterBytes": 87,
+          "beforeBase64": "aW1wb3J0IHtjcmVhdGVXb3JrZXJDaGlwfSBmcm9tICcuL3BsYXlncm91bmRfd29ya2VyX2NoaXAuanM/dj1zaWQtdGltZWQtMSc7Cg=="
+        },
+        {
+          "afterOffset": 21406,
+          "afterBytes": 135,
+          "beforeBase64": "ICBjb25zdCBnYW1lYm95ID0gaXNHYW1lYm95ID8gbmF0aXZlLmFwaXMuZ2FtZWJveSA/PyBrZXlib2FyZEFwaShjaGlwPy5nYW1lYm95ID8/IG5ldyBQcm94eSh7fSwgewo="
+        }
+      ]
+    },
+    "docs/js/playground_performance_host.js": {
+      "kind": "import-cache-only",
+      "before": {
+        "bytes": 3831,
+        "sha256": "0fd96b72a1b9a083349abb18a6b7d36d716aff961b2184f342087b084d167bd7"
+      },
+      "after": {
+        "bytes": 3842,
+        "sha256": "f64dfa8a6bf3541587a88a277b40536afaf3e21df968396eefa34e87468ca438"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 101,
+          "beforeBase64": "aW1wb3J0IHt2YWxpZGF0ZVdvcmtlckxvb2thaGVhZH0gZnJvbSAnLi9wbGF5Z3JvdW5kX3BlcmZvcm1hbmNlX3NlbmRlci5qcz92PXNpZC10aW1lZC0xJzsK"
+        }
+      ]
+    },
+    "docs/js/playground_performance_sender.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 9896,
+        "sha256": "3f94ca2efd157c365ff89f3d7e421cd65c3e1df69982094139ba024e850ccb05"
+      },
+      "after": {
+        "bytes": 9911,
+        "sha256": "8e55df298de997ae4ad3f114d316190f33589e6e7f4c8df02b8067c3284fae8e"
+      },
+      "hunks": [
+        {
+          "afterOffset": 5474,
+          "afterBytes": 173,
+          "beforeBase64": "ICAgIGlmKCFBcnJheS5pc0FycmF5KGRhdGEpJiZbJ2F5VGltZWQnLCd5bTI2MTJUaW1lZCcsJ2h1YzYyODBUaW1lZCcsJ3BzMVRpbWVkJywnd29uZGVyc3dhblRpbWVkJywncHNnVGltZWQnLCdvcGxsVGltZWQnLCdzaWRUaW1lZCddLmluY2x1ZGVzKGRhdGE/Lm1ldGhvZCkpewo="
+        }
+      ]
+    },
+    "docs/js/playground_runtime.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 165388,
+        "sha256": "afa1f0af5a65a79dcbf1b3067dc36799dcc034944766c829022806d8b1189d35"
+      },
+      "after": {
+        "bytes": 165433,
+        "sha256": "a8c392cf38420a1d403953e0f0cb076eb81b149de6f2ddbd4ee9628c95547421"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1242,
+          "afterBytes": 135,
+          "beforeBase64": "aW1wb3J0IHtERUZBVUxUX1dPUktFUl9MT09LQUhFQURfU0VDT05EUywgdmFsaWRhdGVXb3JrZXJMb29rYWhlYWR9IGZyb20gJy4vcGxheWdyb3VuZF9wZXJmb3JtYW5jZV9zZW5kZXIuanM/dj1zaWQtdGltZWQtMSc7Cg=="
+        },
+        {
+          "afterOffset": 15171,
+          "afterBytes": 63,
+          "beforeBase64": "ICAgICAgIi4vcGxheWdyb3VuZF9sb2dpY193b3JrZXIuanM/dj1zaWQtdGltZWQtMSIsCg=="
+        },
+        {
+          "afterOffset": 121293,
+          "afterBytes": 117,
+          "beforeBase64": "ICAgIGNvbnN0IGdhbWVib3kgPSBpc0dhbWVib3kgPyBuYXRpdmVBcGlzLmdhbWVib3kgPz8ga2V5Ym9hcmRBcGkoc2hhcmVkR2FtZWJveSkgOiB1bmRlZmluZWQ7Cg=="
+        }
+      ]
+    },
+    "docs/js/playground_worker_chip.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 11174,
+        "sha256": "68b8be613d8f8eb8bf69813dabb99571032baa1308237a94dbfef8f5c8ce3b6b"
+      },
+      "after": {
+        "bytes": 11595,
+        "sha256": "1925c9a82d416192f541e5a095aa2f70361fe485d9f12479d95579e7450d2daf"
+      },
+      "hunks": [
+        {
+          "afterOffset": 312,
+          "afterBytes": 86,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 10374,
+          "afterBytes": 379,
+          "beforeBase64": "ICB3cml0ZVJlZ2lzdGVyKG9mZnNldCx2YWx1ZSl7c2VuZCh7bWV0aG9kOid3cml0ZVJlZ2lzdGVyJyxhcmdzOltvZmZzZXQsdmFsdWVdfSk7fSwK"
+        },
+        {
+          "afterOffset": 11216,
+          "afterBytes": 40,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/playground/audio-check.html": {
+      "kind": "import-cache-only",
+      "before": {
+        "bytes": 7823,
+        "sha256": "f9b82a9e3e47bc28fffa550bb52b14d8b30f1ee0d5ed3084c0c8603931307dd6"
+      },
+      "after": {
+        "bytes": 7834,
+        "sha256": "6274eb77f8899edc1e5b914742daec84542d25225ac39d1d502fe005e8bdf1d7"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1771,
+          "afterBytes": 94,
+          "beforeBase64": "aW1wb3J0IHtjcmVhdGVQbGF5Z3JvdW5kUnVudGltZX0gZnJvbSAnLi4vanMvcGxheWdyb3VuZF9ydW50aW1lLmpzP3Y9c2lkLXRpbWVkLTEnOwo="
+        }
+      ]
+    },
+    "docs/playground/playground.js": {
+      "kind": "import-cache-only",
+      "before": {
+        "bytes": 124881,
+        "sha256": "046dbe7639049d3bb755aa72875f057d8553af5136e3338605f67a1da757a4cf"
+      },
+      "after": {
+        "bytes": 124903,
+        "sha256": "6ce4e844033735344e6889446c95c2b21fe4f1e572f5e33e8bd7d9afefdfbb88"
+      },
+      "hunks": [
+        {
+          "afterOffset": 5511,
+          "afterBytes": 177,
+          "beforeBase64": "fSBmcm9tICIuLi9qcy9wbGF5Z3JvdW5kX3J1bnRpbWUuanM/dj1zaWQtdGltZWQtMSI7CmltcG9ydCB7REVGQVVMVF9XT1JLRVJfTE9PS0FIRUFEX1NFQ09ORFN9IGZyb20gJy4uL2pzL3BsYXlncm91bmRfcGVyZm9ybWFuY2Vfc2VuZGVyLmpzP3Y9c2lkLXRpbWVkLTEnOwo="
+        }
+      ]
+    },
+    "scripts/version_playground_runtime.mjs": {
+      "kind": "public-api-cache-version-tool",
+      "before": {
+        "bytes": 43896,
+        "sha256": "c78386febe6362267ad29dc71d7ea793b2f95f9690b36dfb294f60c340aeac60"
+      },
+      "after": {
+        "bytes": 44143,
+        "sha256": "fd4b59adb1ca60a0f91bc53d3b31a33d7dc6507414ec04c1ea445f212f3260d9"
+      },
+      "hunks": [
+        {
+          "afterOffset": 37379,
+          "afterBytes": 1281,
+          "beforeBase64": "Y29uc3QgcmV2aXNpb25Gb3I9bmFtZT0+c2lkVGltZWRGaWxlcy5oYXMobmFtZSk/J3NpZC10aW1lZC0xJzpnYW1lYm95VGltZWRGaWxlcy5oYXMobmFtZSk/J2dhbWVib3ktdGltZWQtMSc6dmFiQXBpRmlsZXMuaGFzKG5hbWUpPydwczEtdmFiLWFwaS0xJzpuYW1lPT09J3BsYXlncm91bmRfbW9uYWNvX2RlZmluaXRpb25zLmpzJz8nc3ludGgtY29kZS10eXBlcy0xJzpyZk5vdGVGaWxlcy5oYXMobmFtZSk/J3JmNWMxNjQtbm90ZXMtMSc6KHNjc3BGaWxlcy5oYXMobmFtZSl8fG5hbWU9PT0ncGxheWdyb3VuZF93b3JrYmVuY2guanMnKSYmbmFtZSE9PSdwbGF5Z3JvdW5kX21peGVyX2RlZmF1bHRzLmpzJz8nc2NzcC1mbS0xJzpbJ3BsYXlncm91bmQuanMnLCdwbGF5Z3JvdW5kX21peGVyX2RlZmF1bHRzLmpzJ10uaW5jbHVkZXMobmFtZSk/J3Njc3AtY2FsaWJyYXRpb24tMSc6c2NzcEVkaXRvckZpbGVzLmhhcyhuYW1lKT8nc2NzcC1lZGl0b3ItMSc6WydwbGF5Z3JvdW5kLmpzJywncGxheWdyb3VuZF93b3JrYmVuY2guanMnXS5pbmNsdWRlcyhuYW1lKT8nc2NzcC1sYXlvdXQtMSc6c2NzcEZpbGVzLmhhcyhuYW1lKT8nc2NzcC1wbGF5Z3JvdW5kLTEnOnBzMUxpdmVGaWxlcy5oYXMobmFtZSk/cHMxTGl2ZVZlcnNpb246cHMxRW52ZWxvcGVGaWxlcy5oYXMobmFtZSk/J3BzMS1lbnZlbG9wZS1kcmFnLTEnOlsncGxheWdyb3VuZC5qcycsJ3BsYXlncm91bmRfbWl4ZXJfZGVmYXVsdHMuanMnXS5pbmNsdWRlcyhuYW1lKT8ncG9rZXktbWl4ZXItY2FsaWJyYXRpb24tMSc6cHMxTmF0aXZlRmlsZXMuaGFzKG5hbWUpPydwczEtbmF0aXZlLTEnOnBzMVdhdmVGaWxlcy5oYXMobmFtZSk/J3BzMS1wY20td2F2ZWZvcm0tMSc6cHMxVm9pY2VGaWxlcy5oYXMobmFtZSk/J3BzMS12b2ljZS1lZGl0b3ItMSc6cHMxU2FtcGxlRmlsZXMuaGFzKG5hbWUpPydwczEtc2FtcGxlLWVkaXRvci0xJzpwczFFbmNvZGVyRmlsZXMuaGFzKG5hbWUpPydwczEtYWRwY20tZW5jb2Rlci0xJzpwczFNb2RlRmlsZXMuaGFzKG5hbWUpPydwczEtbW9kZS0xJzpwcmV2aW91c1JldmlzaW9uRm9yKG5hbWUpOwo="
+        },
+        {
+          "afterOffset": 38688,
+          "afterBytes": 30,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_logic_worker.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 60363,
+        "sha256": "e0c312b569e99c7ddc693ad489f94b258a255497b1f72b8050420789f3f4383f"
+      },
+      "after": {
+        "bytes": 60400,
+        "sha256": "de368c51152ab888de66dbb282a6ee4d2b4623bddb76530d98f60f5dd673ad42"
+      },
+      "hunks": [
+        {
+          "afterOffset": 20934,
+          "afterBytes": 135,
+          "beforeBase64": "ICBjb25zdCBnYW1lYm95ID0gaXNHYW1lYm95ID8gbmF0aXZlLmFwaXMuZ2FtZWJveSA/PyBrZXlib2FyZEFwaShjaGlwPy5nYW1lYm95ID8/IG5ldyBQcm94eSh7fSwgewo="
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_sender.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 9896,
+        "sha256": "3f94ca2efd157c365ff89f3d7e421cd65c3e1df69982094139ba024e850ccb05"
+      },
+      "after": {
+        "bytes": 9911,
+        "sha256": "8e55df298de997ae4ad3f114d316190f33589e6e7f4c8df02b8067c3284fae8e"
+      },
+      "hunks": [
+        {
+          "afterOffset": 5474,
+          "afterBytes": 173,
+          "beforeBase64": "ICAgIGlmKCFBcnJheS5pc0FycmF5KGRhdGEpJiZbJ2F5VGltZWQnLCd5bTI2MTJUaW1lZCcsJ2h1YzYyODBUaW1lZCcsJ3BzMVRpbWVkJywnd29uZGVyc3dhblRpbWVkJywncHNnVGltZWQnLCdvcGxsVGltZWQnLCdzaWRUaW1lZCddLmluY2x1ZGVzKGRhdGE/Lm1ldGhvZCkpewo="
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_runtime.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 164228,
+        "sha256": "21235faa39c1e5868c3447528600dc52467d7259711b56a429e1566195a73f16"
+      },
+      "after": {
+        "bytes": 164251,
+        "sha256": "5f6877e425adeae0546c606e687508bbcc77d00f92e9fdef7325bccdd1882211"
+      },
+      "hunks": [
+        {
+          "afterOffset": 120111,
+          "afterBytes": 117,
+          "beforeBase64": "ICAgIGNvbnN0IGdhbWVib3kgPSBpc0dhbWVib3kgPyBuYXRpdmVBcGlzLmdhbWVib3kgPz8ga2V5Ym9hcmRBcGkoc2hhcmVkR2FtZWJveSkgOiB1bmRlZmluZWQ7Cg=="
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_worker_chip.js": {
+      "kind": "gameboy-public-timed-connection",
+      "before": {
+        "bytes": 10959,
+        "sha256": "e758a3e244dcc5f789de4b13fbe9b99d4df7b1b473f5ad954c4b2be1ad48f00c"
+      },
+      "after": {
+        "bytes": 11362,
+        "sha256": "76f6eee154cf0d0c36cc41dd5f6ccc5d8143acb221d84401a38721ea3fbd314b"
+      },
+      "hunks": [
+        {
+          "afterOffset": 274,
+          "afterBytes": 68,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 10141,
+          "afterBytes": 379,
+          "beforeBase64": "ICB3cml0ZVJlZ2lzdGVyKG9mZnNldCx2YWx1ZSl7c2VuZCh7bWV0aG9kOid3cml0ZVJlZ2lzdGVyJyxhcmdzOltvZmZzZXQsdmFsdWVdfSk7fSwK"
+        },
+        {
+          "afterOffset": 10983,
+          "afterBytes": 40,
+          "beforeBase64": ""
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "tetorica_src/runtime/gameboy_timed_client.js": {
+      "bytes": 10065,
+      "sha256": "6623676fca1a34c1dafb7bc31fbd3d5279f042df43d92f2bb56a58f231b037f8"
+    },
+    "tetorica_src/runtime/gameboy_operations.js": {
+      "bytes": 14001,
+      "sha256": "312bc1469f93598667f14ef8b8f7df25bba464df6fc302ea79d2b861994ed6fa"
+    },
+    "tetorica_src/runtime/gameboy_timed_state.js": {
+      "bytes": 2226,
+      "sha256": "f3a91ea30d600857b90a2879c4b97560a338eebdd12ec57ce9f253594a2d36e5"
+    },
+    "tetorica_src/runtime/gameboy_timed_processor.js": {
+      "bytes": 12254,
+      "sha256": "b06204a16d65b9dd2ba7a3fe892c2bcc2dffa6158ff0967e6386bdc4728eb69b"
+    },
+    "tetorica_src/runtime/gameboysynth.js": {
+      "bytes": 13903,
+      "sha256": "762e227143aa264208d239479ed6376ab39d3b5fb6cdb05d7ad1f8ac6f9dfcf4"
+    },
+    "tetorica_src/runtime/gameboy_runtime_synth.js": {
+      "bytes": 9233,
+      "sha256": "7a14f36302a78dc16df515cdc654a912ff43b9d0782c2e260c27d7359da554fc"
+    },
+    "tetorica_src/runtime/playground_gameboy.js": {
+      "bytes": 4669,
+      "sha256": "5430a68d9b79e77ef37b3432072f82ccaf42d1c0d9578334017b5b5828cce14e"
+    },
+    "tetorica_src/runtime/playground_gameboy_worklet.js": {
+      "bytes": 10355,
+      "sha256": "b9af8e5f13b379907f4a472a32a3201a9ce154c7b034ec70d831bdc767088e7e"
+    },
+    "tetorica_src/runtime/playground_performance_processor.js": {
+      "bytes": 31505,
+      "sha256": "2b1ed0ab695f86247f908ff855b3130efa00db2e1dad7f57a29c7382a0786ba1"
+    },
+    "tetorica_src/runtime/playground_performance_queue.js": {
+      "bytes": 24368,
+      "sha256": "5cb51d73ea0b9448a0991e81560101d1a0924248e08fa5bb572ff2b7713964f6"
+    },
+    "tetorica_src/runtime/playground_ay_timed_lifecycle.js": {
+      "bytes": 9043,
+      "sha256": "d208dca6228bbc0c6793c5cd5804504f286a2215e865be0af0e1103bf3a38401"
+    },
+    "tetorica_src/runtime/playground_chip_clock.js": {
+      "bytes": 5244,
+      "sha256": "3802e15503424667324c4f6e067d5cae3ff4ad1b2adf81d780e8a47aa922ca2d"
+    },
+    "tetorica_src/runtime/generated/gameboy_apu_wasm.js": {
+      "bytes": 11497,
+      "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+    },
+    "tetorica_src/runtime/generated/gameboy_apu_wasm.wasm": {
+      "bytes": 13782,
+      "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "38887acc235d3c26a88c1d84ef1190e97038715e818786d68f4ccf7a930741da"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13459,
+      "sha256": "0128f62a47cee8663469557dddf515201d56674a795fcb4fc294b4c14f9cad10"
+    }
+  }
+}

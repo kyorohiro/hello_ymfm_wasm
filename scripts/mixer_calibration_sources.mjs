@@ -1,4 +1,6 @@
 import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
+import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
+import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
 import {createSegaTimedRevisionReadContext} from './mixer_calibration_sega_timed_revision.mjs';
 import {createGameboyTimedRevisionReadContext} from './mixer_calibration_gameboy_timed_revision.mjs';
 import {restoreMixerCalibrationYm2413StateRevision} from './mixer_calibration_ym2413_state_revision.mjs';
@@ -382,7 +384,11 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
-  const sidContext=createSidTimedRevisionReadContext(),sidTimed=sidContext.restore(path,bytes),sidTimedRevision=sidTimed!==bytes;bytes=sidTimed;
+  const metadataContext=createNpmReleaseMetadataReadContext(),metadataBytes=metadataContext.restore(path,bytes),metadataRevision=metadataBytes!==bytes;bytes=metadataBytes;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return metadataRevision?'npm-release-metadata':'raw';
+  const connectionContext=createGameboyPublicTimedRevisionReadContext(metadataContext.readSource),connectionBytes=connectionContext.restore(path,bytes),connectionRevision=connectionBytes!==bytes;bytes=connectionBytes;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return connectionRevision?'gameboy-public-timed-connection':'raw';
+  const sidContext=createSidTimedRevisionReadContext(connectionContext.readSource),sidTimed=sidContext.restore(path,bytes),sidTimedRevision=sidTimed!==bytes;bytes=sidTimed;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return sidTimedRevision?'sid-timed-default-pcm-parity':'raw';
   const gameboyContext=createGameboyTimedRevisionReadContext(sidContext.readSource),gameboyTimed=gameboyContext.restore(path,bytes),gameboyRevision=gameboyTimed!==bytes;bytes=gameboyTimed;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return gameboyRevision?'gameboy-timed-default-pcm-parity':'raw';
@@ -546,7 +552,9 @@ export function restoreMixerCalibrationPs1StarterRevision({path,bytes,report,rep
   if(path!==MIXER_CALIBRATION_PS1_STARTER_PATH)fail('unsupported PS1 starter revision path: '+path);
   // A later exact import-only review must be removed before deciding whether
   // this older starter-factory exception is needed for a newer raw report.
-  const sid=createSidTimedRevisionReadContext(),sidRestored=sid.restore(path,bytes);
+  const metadata=createNpmReleaseMetadataReadContext();bytes=metadata.restore(path,bytes);
+  const connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource);bytes=connection.restore(path,bytes);
+  const sid=createSidTimedRevisionReadContext(connection.readSource),sidRestored=sid.restore(path,bytes);
   const gameboy=createGameboyTimedRevisionReadContext(sid.readSource),restored=gameboy.restore(path,sidRestored),originalRecord=report?.sources?.[path];
   if(restored!==bytes&&originalRecord&&restored.length===originalRecord.bytes&&sha(restored)===originalRecord.sha256)return restored;
   bytes=restored;

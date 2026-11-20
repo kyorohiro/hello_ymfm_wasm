@@ -2407,7 +2407,7 @@ export function createPlaygroundRuntime(
     }
     const fm = keyboardApi(ayTimedLifecycle.wrap(sharedFm));
     const nativeApis = Object.fromEntries(Object.entries(nativePrimaryApis()).map(([name,api])=>[name,keyboardApi(api)]));
-    const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
+    const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(ayTimedLifecycle.wrap(sharedGameboy)) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
     const msm5205Api=Object.fromEntries(['loadMemory','loadSample','play','stop','reset','writeRegister','getState'].map(method=>[method,async(...args)=>{
       if(runToken!==currentRunToken)throw new Error('Run stopped');

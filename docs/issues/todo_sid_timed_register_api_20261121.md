@@ -106,3 +106,12 @@ its root/entry/editor options can target an extracted standalone ZIP.
   generator and the new/preceding source-revision guard tests pass.
 
 No commit, push, tag, npm publication, remote CI or Tauri import was performed.
+
+
+## Public package follow-up — 2026-11-21
+
+The separately authorized [0.2.46 publication](npm_dmg_sid_timed_release_20261121.md)
+released this API together with DMG. Official registry bytes match the validated
+candidate; `latest` is 0.2.46. The installed package's Main/logic Worker clients
+for both models pass Chromium/WebKit at 44.1/48 kHz. Native execution/capture,
+Tauri import and human listening remain separate work.

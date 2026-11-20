@@ -451,7 +451,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
   }),chip?.fm?._timedOperations));
   const isGameboy = capabilities.chip === 'gameboy';
-  const gameboy = isGameboy ? native.apis.gameboy ?? keyboardApi(chip?.gameboy ?? new Proxy({}, {
+  const gameboy = isGameboy ? native.apis.gameboy ?? keyboardApi(chip?.gameboy ? ayTimedLifecycle.wrap(chip.gameboy) : new Proxy({}, {
     get(_target, method) {
       if (method === 'then') return undefined;
       if (method === 'id') return 'gameboy';

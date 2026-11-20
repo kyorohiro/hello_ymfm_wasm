@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tetorica timed DMG / SID example</title>
+<style>
+body{font:16px system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;background:#192128;color:#edf5fa}
+button,select{font:inherit;margin:.25rem;padding:.6rem 1rem}pre{max-height:65vh;overflow:auto;border:1px solid #526779;padding:1rem}
+a{color:#9dcff7}
+</style>
+<h1>Timed DMG / SID writes</h1>
+<p>Record operations, compare writes from one snapshot, then execute a compact repeating pattern.</p>
+<label for="chip">Sound chip</label>
+<select id="chip"><option value="gameboy">DMG / Game Boy</option><option value="6581">SID 6581</option><option value="8580">SID 8580 Preview</option></select>
+<button id="start">Start pattern</button><button id="stop" disabled>Stop</button>
+<p id="status">Audio starts only after Start pattern. Stop closes the owned runtime.</p>
+<pre id="trace">Compiled writes appear here.</pre>
+<p><a href="README.md">README</a> · <a href="dmg-sid.js">Browser source</a> · <a href="compile-dmg-sid.mjs">Offline compiler source</a></p>
+<script type="importmap">{"imports":{"tetorica-fm2612/":"../../"}}</script>
+<script type="module" src="./dmg-sid.js"></script>
+</html>

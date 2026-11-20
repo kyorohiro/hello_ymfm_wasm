@@ -5,7 +5,7 @@ import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
 import {encodePs1Adpcm} from './ps1_adpcm_encoder.js?v=ps1-adpcm-encoder-1';
 import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from './ps1_vab.js';
 import {assembleScspDsp, disassembleScspDsp} from './scsp_dsp_assembler.js';
-import {createPerformanceSender} from './playground_performance_sender.js?v=sid-timed-1';
+import {createPerformanceSender} from './playground_performance_sender.js?v=gameboy-public-timed-1';
 import {createAyTimedLifecycle} from './playground_ay_timed_lifecycle.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
@@ -41,7 +41,7 @@ import {serializeLogError,formatLogTable} from './playground_log.js?v=console-ta
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=sid-timed-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=gameboy-public-timed-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -451,7 +451,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
   }),chip?.fm?._timedOperations));
   const isGameboy = capabilities.chip === 'gameboy';
-  const gameboy = isGameboy ? native.apis.gameboy ?? keyboardApi(chip?.gameboy ?? new Proxy({}, {
+  const gameboy = isGameboy ? native.apis.gameboy ?? keyboardApi(chip?.gameboy ? ayTimedLifecycle.wrap(chip.gameboy) : new Proxy({}, {
     get(_target, method) {
       if (method === 'then') return undefined;
       if (method === 'id') return 'gameboy';

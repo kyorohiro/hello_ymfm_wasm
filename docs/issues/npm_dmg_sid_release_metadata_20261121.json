@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "scope": "npm-0.2.46-non-renderer-release-metadata",
+  "baseCommit": "33f71b326bdc51bc6d6be4e7f1394d5dc4f362e3",
+  "fromVersion": "0.2.45",
+  "toVersion": "0.2.46",
+  "reason": "The npm release updates its package version, two README API/example/release guides and additional payload-presence assertions in the package checker. These four non-renderer files are pinned completely. Exact predecessor bytes keep earlier calibration dependency receipts checkable; no runtime, WASM, sound generation or gain edit is authorized by this metadata view.",
+  "sources": {
+    "packages/fm2612/package.json": {
+      "before": {
+        "bytes": 2583,
+        "sha256": "2e7433c085c9a9e079b30aa12f0662d77c9f54e22ee82fef854579a94f5e4389"
+      },
+      "after": {
+        "bytes": 2583,
+        "sha256": "d491f22ba0e300cbdc679bf0625e476274211e99f2e71ed9f8c241ceede3ff3c"
+      },
+      "hunks": [
+        {
+          "afterOffset": 31,
+          "afterBytes": 23,
+          "beforeBase64": "ICAidmVyc2lvbiI6ICIwLjIuNDUiLAo="
+        }
+      ]
+    },
+    "packages/fm2612/README.md": {
+      "before": {
+        "bytes": 135130,
+        "sha256": "c8e8e7c6fb1481adef216c746d817ac74e25a1e6c3973707ea8f909152315842"
+      },
+      "after": {
+        "bytes": 139100,
+        "sha256": "e9c8bcf294b1ecf3411cf455d4d67a84b234ecefb88769b9b93fb4bdf95523cf"
+      },
+      "hunks": [
+        {
+          "afterOffset": 2835,
+          "afterBytes": 329,
+          "beforeBase64": "fCBHYW1lIEJveSByZWNvcmRlZCByZWdpc3RlciBvcGVyYXRpb25zICh1bnJlbGVhc2VkKSB8IGB0ZXRvcmljYS1mbTI2MTIvZ2FtZWJveV9vcGVyYXRpb25zLmpzYCwgYHRldG9yaWNhLWZtMjYxMi9wbGF5Z3JvdW5kX2dhbWVib3kuanNgIHwgUHVyZSBgYnVpbGRHYW1lYm95T3BlcmF0aW9uc2AgLyBgY29tcGlsZUdhbWVib3lPcGVyYXRpb25zYDsgc2hhcmVkIFdlYiBBdWRpbyBjbGllbnQncyBgYnVpbGRgIC8gYHNjaGVkdWxlYCAvIGBjb21waWxlYCAvIGBjYXB0dXJlU3RhdGVgLiBTZWUgW3VzYWdlIGFuZCBsaW1pdHNdKC4uLy4uL2RvY3Mvc3ludGgtZG1nL1JFQURNRS5tZCNpbnNwZWN0LWFuZC1zY2hlZHVsZS1yZWdpc3Rlci1vcGVyYXRpb25zKS4gfAo="
+        },
+        {
+          "afterOffset": 6144,
+          "afterBytes": 286,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 78616,
+          "afterBytes": 2785,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 107578,
+          "afterBytes": 944,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "packages/fm2612/examples/timed-registers/README.md": {
+      "before": {
+        "bytes": 3146,
+        "sha256": "ed8720ace3f35967bd68356d184954adba754cf41e7260b28b471fc238d2a634"
+      },
+      "after": {
+        "bytes": 6355,
+        "sha256": "fb37a6f17dd785a4d4cf5abda1c8ceab2f3bc1949d007ee50c1f473894b470dd"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 28,
+          "beforeBase64": "IyBUaW1lZCBTZWdhIFBTRyAvIFlNMjQxMyByZWdpc3RlciBvcGVyYXRpb25zCg=="
+        },
+        {
+          "afterOffset": 101,
+          "afterBytes": 83,
+          "beforeBase64": "b3BlcmF0aW9uIGNvbXBpbGVycy4gUGFja2FnZSBwdWJsaWNhdGlvbiBpcyBzZXBhcmF0ZSBmcm9tIHRoaXMgc291cmNlIGNoYW5nZS4K"
+        },
+        {
+          "afterOffset": 344,
+          "afterBytes": 79,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 700,
+          "afterBytes": 394,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 2085,
+          "afterBytes": 2749,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "scripts/check_fm2612_package.mjs": {
+      "before": {
+        "bytes": 79851,
+        "sha256": "556422a5e431082947316e3409ebeece643d286febb13fdc52804adcd9066342"
+      },
+      "after": {
+        "bytes": 80412,
+        "sha256": "05263b212cd2d92b629994372569700aa44ef0943fb8315ec4d6ada6a672520c"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1839,
+          "afterBytes": 431,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 11697,
+          "afterBytes": 130,
+          "beforeBase64": ""
+        }
+      ]
+    }
+  }
+}

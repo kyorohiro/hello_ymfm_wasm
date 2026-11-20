@@ -109,8 +109,18 @@ DMG tracking: [alignment TODO](todo_dmg_synth_fm2612_alignment_20261119.md).
 
 - [ ] Human listening to Pulse / Wave / Noise examples and manual performance.
 - [ ] Native sample-clock execution and authoritative captures, if requested.
-- [ ] Publish the new package APIs in a later npm release, if requested.
+- [x] Published in npm **0.2.46** by the separately authorized [publication task](npm_dmg_sid_timed_release_20261121.md).
 - [ ] Looper / Event Rec, highlighting and common output-only channel switches
   remain the separate alignment backlog; they are not part of this port.
 
 No commit, push, tag, publication, remote CI or Tauri import was performed.
+
+
+## Public package follow-up — 2026-11-21
+
+The separately authorized 0.2.46 publication adds the DMG Main/Worker lifecycle
+connections found missing by the installed-package browser checks. Actual Main
+primary/create/use and logic Worker primary/independent route tests pass; failed
+Apply retains accepted reservations. The published archive's bytes match the
+candidate verified across both browsers and both output rates. This follow-up
+changed only the public API connections, not the APU/Worklet renderer or gains.

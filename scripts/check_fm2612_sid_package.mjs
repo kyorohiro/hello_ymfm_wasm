@@ -5,11 +5,13 @@ import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 export const SID_REQUIRED_PACKAGE_FILES=Object.freeze([
-  ...['sid','sid8580','sid_soundchip','sidsynth','sid_waveforms','playground_sid','playground_sid_audio','playground_sid_worklet','playground_sid_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),
+  ...['sid','sid8580','sid_soundchip','sidsynth','sid_waveforms','playground_sid','playground_sid_audio','playground_sid_worklet','playground_sid_inspector',
+    'sid_operations','sid_timed_state','sid_timed_client','sid_timed_processor'].flatMap(name=>[name+'.js',name+'.d.ts']),
   'generated/sid/sid.wasm','generated/sid/sid-build.json',
   'generated/sid8580-machine/sid8580-endpoint.wasm','generated/sid8580-machine/sid8580-machine.wasm','generated/sid8580-machine/sid8580-machine-build.json',
   'sources/SID.md','sources/SID8580.md','sources/sid/README.md','sources/sid/scripts/build_sid_wasm.sh',
   'sources/sid/tetorica_src/wasm/sid_core.h','sources/sid/tetorica_src/wasm/sid_wasm.cpp',
+  ...['sid_operations.js','sid_timed_state.js','sid_timed_client.js','sid_timed_client.d.ts','sid_timed_processor.js'].map(name=>'sources/sid/tetorica_src/runtime/'+name),
   'sources/sid/third_party/chips-m6581/upstream/m6581.h','sources/sid/third_party/chips-m6581/m6581.h',
   'licenses/chips-m6581/LICENSE','licenses/chips-m6581/README.md','licenses/chips-m6581/PATCHES.md',
   'sources/sid8580-machine/source-kit.json','sources/sid8580-machine/sid8580-machine-build.json',
