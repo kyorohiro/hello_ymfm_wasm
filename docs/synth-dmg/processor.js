@@ -2,7 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 import factory from '../generated/gameboy_apu_wasm.js';
 import {GameboyApu} from '../js/gameboyapu.js';
-import {GameboyInstrument} from './instrument.js?v=dmg-unified-channel-1';
+import {GameboyInstrument} from './instrument.js?v=dmg-working-saved-1';
 
 const COMMANDS = new Set(['read', 'observeCode', 'observeEditor', 'setPreset', 'loadPreset', 'loadChannelBank', 'applyChannelEdit', 'applyCodePreset', 'applyCodeEdit', 'releaseKeyboard', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
 const cancelled = () => {const error = new Error('Game Boy command cancelled by Stop or a newer Code session');error.name='AbortError';return error;};

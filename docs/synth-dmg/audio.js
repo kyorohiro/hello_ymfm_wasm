@@ -97,7 +97,7 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
         if (!response.ok) throw new Error(`Game Boy WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?v=dmg-unified-channel-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=dmg-working-saved-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();

@@ -94,6 +94,17 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .dmg-files-toolbar,.dmg-files-actions { display:flex; flex-wrap:wrap; gap:5px; }
 .dmg-files-toolbar button,.dmg-files-actions button { min-height:28px; padding:4px 7px; font-size:.7rem; }
 .dmg-files-actions { padding-top:9px; margin-top:8px; border-top:1px solid var(--line); }
+.dmg-files-save-controls { display:flex; flex-wrap:wrap; align-items:center; gap:5px; padding:8px 0 10px; margin-bottom:9px; border-bottom:1px solid var(--line); }
+.dmg-files-save-controls label { display:flex; align-items:center; gap:5px; flex-basis:100%; font-size:.73rem; }
+.dmg-files-save-controls input { margin:0; }
+.dmg-files-save-controls button { min-height:28px; padding:4px 7px; font-size:.7rem; }
+.dmg-file-unsaved { margin-left:5px; color:#875080; font-size:.85em; }
+.dmg-new-cassette-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+.dmg-files-panel button { border-radius:999px; box-shadow:none; }
+.spu-file-context-menu { z-index:1000; display:grid; gap:3px; min-width:180px; padding:7px; border:1px solid var(--line); border-radius:10px; background:#eeece7; color:var(--ink); box-shadow:0 8px 28px #26344135; }
+.spu-file-context-menu button { min-height:32px; width:100%; padding:6px 12px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--ink); text-align:left; font-size:.78rem; font-weight:500; box-shadow:none; }
+.spu-file-context-menu button:hover:not(:disabled),.spu-file-context-menu button:focus-visible { background:#e4daec; border-color:var(--accent); }
+.spu-file-context-menu button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .dmg-files-status { margin:8px 0 0; font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
 #dmgFilesTree { min-height:80px; max-height:55vh; overflow:auto; }
 #dmgFilesTree .file-tree { list-style:none; margin:0; padding:0; }

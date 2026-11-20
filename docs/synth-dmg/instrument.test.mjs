@@ -142,3 +142,18 @@ test('preset reload stops held notes, restores all sources and detaches exported
   const tail = instrument.generateStereo(2048); assert(tail.left.every(value => Math.abs(value) < 0.0001));
   instrument.dispose(); assert.equal(core.handle, 0); assert.throws(() => instrument.read(), /disposed/);
 });
+
+test('saving Wave RAM retires only CH3 and preserves held Pulse/Noise notes at both output rates',async t=>{
+  for(const rate of [44100,48000]){
+    const {instrument,writes}=await fixture(t,rate);
+    for(const [channel,midi]of [[0,60],[1,64],[2,67],[3,60]])instrument.noteOn(`held-${channel}`,midi,{channel});
+    audible(instrument.generateStereo(1024));
+    const before=instrument.read(),next=before.preset;next.wave.samples=waveShape('square');writes.length=0;
+    instrument.setPreset(next);
+    assert.deepEqual(instrument.read().voices,before.voices.filter(voice=>voice.channel!==2));
+    assert(!writes.some(([offset])=>[2,4,7,9,17,19].includes(offset)),'no Pulse/Noise Gate, Envelope or trigger writes');
+    assert.equal(instrument.noteOff('held-2'),false,'replaced Wave owner is retired');
+    assert.equal(instrument.noteOff('held-0'),true);assert.equal(instrument.noteOff('held-1'),true);
+    audible(instrument.generateStereo(1024));assert.equal(instrument.noteOff('held-3'),true);
+  }
+});

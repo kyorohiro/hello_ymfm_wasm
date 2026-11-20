@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {setupGameboyCodeFiles} from './code_files.js';
+import {setupGameboyCodeFiles,GAMEBOY_SOUND_JOURNAL_KEY} from './code_files.js';
 import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js';
 import {createDefaultPreset,readPreset} from './preset.js';
 
@@ -9,31 +9,31 @@ class Element{
   append(...nodes){for(const node of nodes){node.parentNode=this;this.children.push(node);}}appendChild(node){this.append(node);return node;}replaceChildren(...nodes){for(const node of this.children)node.parentNode=null;this.children=[];this.append(...nodes);}remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(node=>node!==this);this.parentNode=null;}
   setAttribute(key,value){this.attributes[key]=String(value);}getAttribute(key){return this.attributes[key]??null;}
   addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(fn);}removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);}
-  querySelectorAll(selector){return walk(this).filter(node=>selector==='button'&&node.tagName==='BUTTON');}
+  querySelectorAll(selector){return walk(this).filter(node=>selector==='button'?node.tagName==='BUTTON':selector==='[data-file-path]'?node.getAttribute('data-file-path')!==null:false);}
   focus(){this.ownerDocument.activeElement=this;}blur(){if(this.ownerDocument.activeElement===this)this.ownerDocument.activeElement=null;}select(){}showModal(){this.open=true;}close(){this.open=false;}
   async fire(type,extra={}){const event={target:this,preventDefault(){},stopPropagation(){},...extra};for(const fn of this.listeners.get(type)??[])await fn(event);}
 }
 const walk=node=>[node,...node.children.flatMap(walk)],deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 function fixture(t,options={}){
   const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
-  const main=new Element(doc);doc.append(main);doc.querySelector=selector=>selector==='.dmg-main'?main:null;
+  const main=new Element(doc);doc.append(main);doc.querySelector=selector=>selector==='.dmg-main'?main:selector==='dialog[open]'?walk(doc).find(node=>node.tagName==='DIALOG'&&node.open)??null:null;
   for(const id of ['dmgFilesPanel','dmgFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='dmgFilesPanel';doc.append(node);}
   const select=new Element(doc,'select');select.id='dmgPresetSelect';doc.append(select);
   const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
   let settings=readPreset(options.settings??createDefaultPreset());const project=options.project??createGameboyCodeProject({settings,starterCode:'// kept'}),writes=[],calls=[],opened=[],statuses=[];
   const store=options.store??{read:async()=>null,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}};
-  const files=setupGameboyCodeFiles({project,document:doc,store,getSettings:()=>settings,applySettings:async value=>{calls.push(['apply',value]);settings=readPreset(value);},onBeforeSoundApply:async()=>calls.push(['sound']),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
+  const files=setupGameboyCodeFiles({project,document:doc,store,storage:null,getSettings:()=>settings,applySettings:async value=>{calls.push(['apply',value]);settings=readPreset(value);},onBeforeSoundApply:async()=>calls.push(['sound']),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
   files.setCodeControls({flush:async()=>true,openFile:async(path,options)=>{opened.push({path,options});return true;},setBusy(){}});
   t.after(()=>files.dispose());return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};
 }
 
-test('DMG saves named presets without acquiring audio, applying or changing Code mode/focus',async t=>{
+test('DMG saves and adopts named presets without changing Code mode/focus or retiring performance',async t=>{
   const f=fixture(t);await f.files.ready;let flushes=0;
   f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>false,setBusy(){},flush:async()=>{flushes++;return true;},openFile:async(path,options)=>f.opened.push({path,options}),stop:()=>assert.fail('Save never stops'),workspaceReplaced:()=>assert.fail('Save never replaces')});
   const one=await f.files.saveSound();assert.equal(one,'/presets/Pulse.dmg.json');assert.deepEqual(JSON.parse(f.project.fs.get(one).data),createDefaultPreset());
   f.project.fs.mkdir('/presets/PULSE (2).dmg.json');const two=await f.files.saveSound();assert.equal(two,'/presets/Pulse (3).dmg.json');
-  assert.deepEqual(f.opened,[one,two].map(path=>({path,options:{show:false}})));assert.deepEqual(f.calls,[]);assert.equal(f.doc.getElementById('dmgFilesPanel').hidden,false);
-  assert.equal(f.doc.getElementById('dmgFileTextEditor'),undefined);assert.equal(f.doc.getElementById('dmgPresetSelect').value,'','Saving does not imply a preset was loaded');
+  assert.deepEqual(f.opened,[one,two].map(path=>({path,options:{show:false}})));assert.deepEqual(f.calls.map(call=>call[0]),['apply','apply']);assert.equal(f.doc.getElementById('dmgFilesPanel').hidden,false);
+  assert.equal(f.doc.getElementById('dmgFileTextEditor'),undefined);assert.equal(f.doc.getElementById('dmgPresetSelect').value,two,'An explicitly saved instrument becomes the linked sound document');assert.equal(f.project.activeSoundPath,two);
 });
 
 test('DMG file selection preserves mode, text edits do not apply, explicit valid preset selection does',async t=>{
@@ -77,7 +77,7 @@ test('DMG duplicate/rename/delete preserve binary data and stop only the execute
   let stops=0;const changes=[];f.files.setCodeControls({activePath:'/notes.json',executionPath:'/folder/code.js',flush:async()=>true,isCodeMode:()=>false,openFile:async()=>true,pathChanged:(...args)=>changes.push(args),stop:async()=>{stops++;},setBusy(){}});
   const copy=await f.files.duplicate('/folder');assert.equal(copy,'/folder-copy');assert.deepEqual(f.project.fs.get('/folder-copy/raw.bin').data,Uint8Array.of(0,255));assert.equal(stops,0);
   await f.files.move('/folder-copy/code.js','/folder-copy/code.json');assert.equal(stops,0);await f.files.remove('/folder-copy');assert.equal(stops,0);
-  await f.files.move('/folder/code.js','/folder/code.json');assert.equal(stops,1);assert.deepEqual(changes.at(-1),['/folder/code.js','/folder/code.json']);
+  await f.files.move('/folder/code.js','/folder/code.json');assert.equal(stops,1);assert.deepEqual(changes.at(-1),['/folder/code.js','/folder/code.json',{preserveExecution:false}]);
 });
 
 test('DMG local restore and project import apply detached settings but never execute source',async t=>{
@@ -192,7 +192,7 @@ test('DMG Load VGM and Add files retain exact sources under unique /vgm paths wi
   assert.equal(path,'/vgm/Original.VGZ');assert.deepEqual(f.project.fs.get(path).data,data);assert.equal(f.project.selectedPath,path);
   const paths=await f.files.importFiles([{name:'Original.VGZ',size:data.length,arrayBuffer:async()=>data.buffer},{name:'invalid.vgm',size:1,arrayBuffer:async()=>Uint8Array.of(0).buffer}]);
   assert.deepEqual(paths,['/vgm/Original-2.VGZ','/vgm/invalid.vgm']);assert.equal(f.project.selectedPath,'/vgm/invalid.vgm');
-  assert.equal(await f.files.selectFile(path),true);assert.match(f.statuses.at(-1),/Press Play.*instrument is kept/);assert.deepEqual(f.calls,[]);assert(flushes>=3);
+  assert.equal(await f.files.selectFile(path),true);assert.match(f.statuses.at(-1),/Press Play.*instrument and Code are kept/);assert.deepEqual(f.calls,[]);assert(flushes>=3);
 });
 
 test('DMG song save preflights total capacity after flushing and rejects stale/disposed requests',async t=>{
@@ -310,4 +310,212 @@ test('zero extracted DMG voices and plain JSON import remain passive without cho
   const bytes=new TextEncoder().encode(JSON.stringify(createDefaultPreset()));
   assert.deepEqual(await f.files.importFiles([{name:'imported.dmg.json',size:bytes.length,arrayBuffer:async()=>bytes.buffer}]),['/imported.dmg.json']);
   assert.equal(f.project.selectedPath,before.selectedPath);assert.deepEqual(f.calls,[]);assert.deepEqual(f.project.settings,before.settings);assert.match(f.statuses.at(-1),/Code was not run/);
+});
+
+const settle=async()=>{for(let index=0;index<8;index++)await Promise.resolve();};
+const editedWave=()=>{const sound=createDefaultPreset();sound.source='wave';sound.wave.samples[0]=3;return sound;};
+const memoryStorage=()=>{const values=new Map();return{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)};};
+
+test('DMG Auto apply defaults on; manual source Save accepts text without executing or changing view',async t=>{
+  const f=fixture(t);await f.files.ready;assert.equal(f.project.autoApply,true);assert.equal(f.doc.getElementById('dmgAutoApplyToggle').checked,true);
+  assert.equal(f.doc.getElementById('dmgFileUndoButton'),undefined,'Basic Files has no extra Undo toolbar');
+  let runs=0;f.files.setCodeControls({activePath:'/index.js',isCodeMode:()=>false,flush:async()=>true,setBusy(){},run:()=>runs++,apply:()=>runs++,openFile:async(path,options)=>f.opened.push({path,options})});
+  await f.files.setAutoApply(false);await f.files.selectFile('/index.js');f.project.writeEditorText('/index.js','// working DMG source');
+  assert.equal(f.project.savedFs.get('/index.js').data,'// kept');
+  const entry=f.doc.getElementById('dmgFilesTree').querySelectorAll('[data-file-path]').find(node=>node.getAttribute('data-file-path')==='/index.js');
+  assert.equal(entry.dataset.unsaved,'true');assert(entry.children.some(child=>child.textContent===' ●'));
+  assert.equal(await f.files.saveCurrent(),true);assert.equal(f.project.savedFs.get('/index.js').data,'// working DMG source');assert.equal(f.project.isFileModified('/index.js'),false);
+  assert.equal(runs,0);assert.deepEqual(f.opened,[{path:'/index.js',options:{show:false}}]);
+});
+
+test('DMG controls edit their linked JSON while manual mode retains accepted sound until Save',async t=>{
+  const options=[],f=fixture(t,{applySettings:async(value,context)=>{options.push({value:readPreset(value),...context});}});await f.files.ready;
+  const path=await f.files.saveSound();await f.files.setAutoApply(false);const accepted=f.project.savedSettings,sound=editedWave();
+  assert.equal(f.files.markSoundDirty(sound),path);assert.deepEqual(f.project.settings,sound);assert.deepEqual(JSON.parse(f.project.fs.get(path).data),sound);
+  assert.deepEqual(f.project.savedSettings,accepted);assert.deepEqual(JSON.parse(f.project.savedFs.get(path).data),accepted);assert.equal(f.project.isFileModified(path),true);
+  await f.files.persistCode();assert.deepEqual(f.project.savedSettings,accepted,'background persistence never accepts a preview');
+  assert.equal(await f.files.saveCurrent(),true);assert.deepEqual(f.project.savedSettings,sound);assert.deepEqual(JSON.parse(f.project.savedFs.get(path).data),sound);
+  assert.equal(options.at(-1).source,'save');assert.equal(options.at(-1).applyAudio,true);assert.deepEqual(options.at(-1).displayPreset,sound);
+});
+
+test('DMG valid active JSON previews controls in manual mode and invalid pending JSON keeps its last sound',async t=>{
+  const options=[],f=fixture(t,{applySettings:async(value,context)=>options.push({value:readPreset(value),...context})});await f.files.ready;
+  const path=await f.files.saveSound();await f.files.setAutoApply(false);const accepted=f.project.savedSettings,sound=editedWave();
+  f.project.writeEditorText(path,JSON.stringify(sound));await f.files.codeEdited(path);
+  assert.deepEqual(f.files.getWorkingSound(),sound);assert.deepEqual(f.files.getAcceptedSound(),accepted);assert.equal(options.at(-1).applyAudio,false);assert.equal(options.at(-1).source,'json');
+  const count=options.length;f.project.writeEditorText(path,'{"format":');await f.files.codeEdited(path);await f.files.persistCode();
+  assert.equal(options.length,count);assert.deepEqual(f.project.settings,sound);assert.deepEqual(f.project.savedSettings,accepted);assert.match(f.statuses.at(-1),/JSON not applied; current sound kept/);
+  assert.throws(()=>f.files.canEditSound(),/Finish or Discard/);assert.equal(f.project.fs.get(path).data,'{"format":');
+  await f.files.saveCurrent();assert.equal(f.project.savedFs.get(path).data,'{"format":');assert.deepEqual(f.project.savedSettings,accepted,'invalid source is saved without replacing playable sound');
+  f.project.writeEditorText(path,JSON.stringify(sound));await f.files.codeEdited(path);await f.files.discardCurrent();
+  assert.equal(f.project.fs.get(path).data,'{"format":');assert.deepEqual(f.project.settings,accepted,'Discard to invalid source retains a valid playable cache');
+});
+
+test('DMG Auto apply accepts valid JSON and pending valid update survives a later incomplete edit',async t=>{
+  const gate=deferred(),options=[],f=fixture(t,{applySettings:async(value,context)=>{options.push({value:readPreset(value),...context});if(context.source==='json')await gate.promise;return context.isCurrent?.()??true;}});await f.files.ready;
+  const path=await f.files.saveSound(),sound=editedWave();f.project.writeEditorText(path,JSON.stringify(sound));const valid=f.files.codeEdited(path);await settle();
+  f.project.writeEditorText(path,'{incomplete');await f.files.codeEdited(path);gate.resolve();await valid;
+  assert.deepEqual(f.project.settings,sound);assert.deepEqual(f.project.savedSettings,sound);assert.equal(f.project.savedFs.get(path).data,'{incomplete');
+  assert.equal(options.at(-1).applyAudio,true);assert.equal(options.at(-1).isCurrent(),true);assert.match(f.statuses.at(-1),/JSON not applied/);
+});
+
+test('DMG Save all and Discard all cover creations, deletions, binary sources and renamed linked sounds',async t=>{
+  const f=fixture(t);await f.files.ready;const path=await f.files.saveSound();const raw=Uint8Array.of(0,255,128);f.project.importSongSources([{name:'kept.vgz',bytes:raw}]);
+  await f.files.setAutoApply(false);f.project.writeEditorText('/index.js','// draft');await f.files.createFile('/new.js');await f.files.move(path,'/presets/Renamed.dmg.json');
+  assert.equal(f.project.activeSoundPath,'/presets/Renamed.dmg.json');assert(f.project.savedFs.has(path));
+  await f.files.discardAll();assert.equal(f.project.activeSoundPath,path);assert.equal(f.project.fs.get('/index.js').data,'// kept');assert(!f.project.fs.has('/new.js'));assert(f.project.fs.has(path));assert.deepEqual(f.project.fs.get('/vgm/kept.vgz').data,raw);
+  await f.files.move(path,'/presets/Accepted.dmg.json');await f.files.remove('/vgm/kept.vgz');await f.files.saveAll();
+  assert.deepEqual(f.project.getDirtyPaths(),[]);assert(!f.project.savedFs.has(path));assert(f.project.savedFs.has('/presets/Accepted.dmg.json'));assert(!f.project.savedFs.has('/vgm/kept.vgz'));assert.deepEqual(f.project.getPendingMoves(),[]);
+});
+
+test('DMG manual rename preserves saved execution identity and selected Save accepts the entire rename',async t=>{
+  const f=fixture(t);await f.files.ready;await f.files.setAutoApply(false);let stopped=0;const changed=[];
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',flush:async()=>true,setBusy(){},pathChanged:(...args)=>changed.push(args),stop:async()=>stopped++});
+  await f.files.move('/index.js','/renamed.json');assert.equal(stopped,0);assert.deepEqual(changed.at(-1),['/index.js','/renamed.json',{preserveExecution:true}]);
+  assert.equal(await f.project.readSavedFile('/index.js'),'// kept');assert(!f.project.savedFs.has('/renamed.json'));
+  f.project.select('/renamed.json');await f.files.saveCurrent();assert(!f.project.savedFs.has('/index.js'));assert.equal(f.project.savedFs.get('/renamed.json').data,'// kept');assert.deepEqual(f.project.getPendingMoves(),[]);
+});
+
+test('DMG keyboard Save accepts the focused file and ignores modifier variants and open dialogs',async t=>{
+  const f=fixture(t);await f.files.ready;await f.files.setAutoApply(false);f.project.select('/index.js');f.project.writeEditorText('/index.js','// keyboard save');let prevented=0;
+  await f.doc.fire('keydown',{key:'s',ctrlKey:true,preventDefault:()=>prevented++});await settle();assert.equal(f.project.savedFs.get('/index.js').data,'// keyboard save');assert.equal(prevented,1);
+  f.project.writeEditorText('/index.js','// keep pending');await f.doc.fire('keydown',{key:'S',metaKey:true,shiftKey:true});await settle();assert.equal(f.project.savedFs.get('/index.js').data,'// keyboard save');
+  const dialog=f.doc.getElementById('dmgFileNameDialog');dialog.showModal();await f.doc.fire('keydown',{key:'s',metaKey:true});await settle();assert.equal(f.project.savedFs.get('/index.js').data,'// keyboard save');dialog.close();
+  await f.doc.fire('keydown',{key:'S',metaKey:true});await settle();assert.equal(f.project.savedFs.get('/index.js').data,'// keep pending');
+});
+
+test('DMG undo restores both author versions without running saved or working Code',async t=>{
+  const f=fixture(t);await f.files.ready;await f.files.setAutoApply(false);f.project.writeEditorText('/index.js','// pending first');const before=f.project.snapshot();let retired=0;
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},workspaceReplaced:async()=>retired++,restoreState:async()=>true,run:()=>assert.fail('Undo never runs')});
+  await f.files.createFile('/second.js');assert(f.project.fs.has('/second.js'));assert.equal(await f.files.undo(),true);assert(!f.project.fs.has('/second.js'));
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(retired,1);assert.equal(f.project.savedFs.get('/index.js').data,'// kept');assert.equal(f.project.fs.get('/index.js').data,'// pending first');
+});
+
+test('DMG New Cassette backup awaits native cancellation and keeps both versions and all owners',async t=>{
+  const f=fixture(t);await f.files.ready;await f.files.setAutoApply(false);f.project.writeEditorText('/index.js','// precious draft');const before=f.project.snapshot(),identity=f.files.workspaceId,gate=deferred();let retired=0,savedBytes;
+  f.doc.defaultView.tetoricaSynthSave=async bytes=>{savedBytes=bytes;return gate.promise;};
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},workspaceReplaced:async()=>retired++,restoreState:async()=>true});
+  const creating=f.files.newProject({exportCurrent:true});await settle();assert(savedBytes instanceof Uint8Array);assert.equal(retired,0);assert.deepEqual(f.project.snapshot(),before);
+  const backup=createGameboyCodeProject({snapshot:await f.project.prepareImport(savedBytes)});assert.equal(backup.fs.get('/index.js').data,'// precious draft');assert.equal(backup.savedFs.get('/index.js').data,'// kept');
+  gate.resolve(false);assert.equal(await creating,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(retired,0);
+});
+
+test('DMG Import backup cancellation and editor failure keep both old layers; valid import never runs',async t=>{
+  const gate=deferred(),f=fixture(t,{downloadFile:async()=>gate.promise});await f.files.ready;await f.files.setAutoApply(false);f.project.writeEditorText('/index.js','// old draft');const before=f.project.snapshot(),incoming=createGameboyCodeProject({starterCode:'// incoming'});let retired=0,fail=false;
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},workspaceReplaced:async()=>retired++,restoreState:async()=>!fail,run:()=>assert.fail('Import never runs')});
+  const importing=f.files.importProject(incoming.exportProject(),{exportCurrent:true});await settle();assert.equal(retired,0);gate.resolve(false);assert.equal(await importing,false);assert.deepEqual(f.project.snapshot(),before);
+  fail=true;assert.equal(await f.files.importProject(incoming.exportProject()),false);assert.deepEqual(f.project.snapshot(),before);
+  fail=false;assert.equal(await f.files.importProject(incoming.exportProject()),true);assert.equal(f.project.fs.get('/index.js').data,'// incoming');assert.equal(f.project.savedFs.get('/index.js').data,'// incoming');
+});
+
+test('DMG immediate journal restores incomplete JSON plus valid working and accepted sound caches without Code execution',async t=>{
+  const storage=memoryStorage(),f=fixture(t,{storage,store:{read:async()=>null,write:async()=>false,close:async()=>{}}});await f.files.ready;
+  const path=await f.files.saveSound();await f.files.setAutoApply(false);const accepted=f.project.savedSettings,durable={...f.project.snapshot(),workspaceId:f.files.workspaceId,soundGeneration:0},sound=editedWave();
+  f.files.markSoundDirty(sound);f.project.writeEditorText(path,'{pending');await f.files.codeEdited(path);const journal=storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY);assert(journal);await f.files.dispose();
+  const applied=[],restored=fixture(t,{storage,store:{read:async()=>durable,write:async()=>false,close:async()=>{}},applySettings:async(value,options)=>applied.push({value,...options})});
+  restored.files.setCodeControls({setBusy(){},restoreState:()=>assert.fail('Restore never auto-runs or opens Code'),flush:async()=>true});await restored.files.ready;
+  assert.equal(restored.project.fs.get(path).data,'{pending');assert.deepEqual(restored.project.settings,sound);assert.deepEqual(restored.project.savedSettings,accepted);assert.equal(restored.project.autoApply,false);
+  assert.equal(applied.at(-1).source,'restore');assert.deepEqual(applied.at(-1).value,accepted);assert.deepEqual(applied.at(-1).displayPreset,sound);assert.equal(storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY),journal);
+});
+
+test('DMG a successful matching draft write clears only its own immediate sound journal',async t=>{
+  const storage=memoryStorage(),gate=deferred();let block=false;
+  const f=fixture(t,{storage,store:{read:async()=>null,write:async()=>{if(block)await gate.promise;return true;},close:async()=>{}}});await f.files.ready;await f.files.saveSound();await f.files.setAutoApply(false);
+  f.files.markSoundDirty(editedWave());const first=storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY);assert(first);block=true;const writing=f.files.persistCode();await settle();
+  const newer=editedWave();newer.wave.samples[1]=9;f.files.markSoundDirty(newer);assert.notEqual(storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY),first);gate.resolve();await writing;
+  assert(storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY),'older persistence must not clear newer recovery');block=false;await f.files.persistCode();assert.equal(storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY),null);
+});
+
+test('DMG New Cassette resets to starter and default Pulse; history restores pending old Code and sound',async t=>{
+  const f=fixture(t);await f.files.ready;const path=await f.files.saveSound();await f.files.setAutoApply(false);f.files.markSoundDirty(editedWave());f.project.writeEditorText('/index.js','// pending old code');
+  const before=f.project.snapshot(),identity=f.files.workspaceId;let runs=0;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async()=>true,run:()=>runs++});
+  assert.equal(await f.files.newProject(),true);assert.equal(f.project.autoApply,false);assert.deepEqual(f.project.settings,createDefaultPreset());assert.equal(f.project.fs.get('/index.js').data,'// kept');assert.equal(f.project.savedFs.get('/index.js').data,'// kept');assert(!f.project.fs.has(path));assert.notEqual(f.files.workspaceId,identity);assert.equal(runs,0);
+  assert.equal(await f.files.undo(),true);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.project.fs.get('/index.js').data,'// pending old code');assert.equal(f.project.savedFs.get('/index.js').data,'// kept');assert.equal(runs,0);
+});
+
+test('DMG legacy local projects recover equal versions with opaque song bytes and never execute Code',async t=>{
+  const old=createGameboyCodeProject({starterCode:'// legacy source',settings:editedWave()});old.importSongSources([{name:'legacy.vgm',bytes:Uint8Array.of(0,255,17)}]);
+  const snapshot=old.snapshot(),legacy={format:snapshot.format,version:1,name:snapshot.name,settings:snapshot.settings,selectedPath:'/index.js',codeState:{mode:'code',path:'/index.js'},filesystem:snapshot.filesystem};
+  const applied=[],f=fixture(t,{store:{read:async()=>legacy,write:async()=>true,close:async()=>{}},applySettings:async(value,context)=>applied.push({value,...context})});
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,restoreState:()=>assert.fail('local restore must not run or open Code'),run:()=>assert.fail('legacy source must not run')});await f.files.ready;
+  assert.equal(f.project.autoApply,true);assert.deepEqual(f.project.getDirtyPaths(),[]);assert.equal(f.project.savedFs.get('/index.js').data,'// legacy source');assert.deepEqual(f.project.fs.get('/vgm/legacy.vgm').data,Uint8Array.of(0,255,17));assert.deepEqual(f.project.savedSettings,editedWave());assert.equal(applied.at(-1).source,'restore');
+});
+
+test('DMG corrupt journals are ignored without replacing a valid local project or starting Code',async t=>{
+  const storage=memoryStorage();storage.setItem(GAMEBOY_SOUND_JOURNAL_KEY,'{"version":1,"path":"/../outside.json"}');const old=createGameboyCodeProject({starterCode:'// safe durable'});
+  const f=fixture(t,{storage,store:{read:async()=>old.snapshot(),write:async()=>true,close:async()=>{}}});await f.files.ready;
+  assert.equal(f.project.fs.get('/index.js').data,'// safe durable');assert.deepEqual(f.project.getDirtyPaths(),[]);assert(f.statuses.some(message=>message.includes('Could not restore the last sound edit')));assert.equal(await f.files.persistCode(),true);
+});
+
+test('DMG sound preflight shares capacity policy and never mutates files, caches, selection or recovery',async t=>{
+  const storage=memoryStorage(),f=fixture(t,{storage});await f.files.ready;await f.files.saveSound();
+  const sound=editedWave();sound.name='Boundary DMG sound '+ 'x'.repeat(50);
+  const size=f.project.listEntries().reduce((sum,file)=>sum+file.size,0);f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(GAMEBOY_PROJECT_FILE_BYTES-size)}]);
+  const before=f.project.snapshot(),journal=storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY),history=f.files.getUndoState();
+  assert.throws(()=>f.files.validateSoundEdit(sound),/linked JSON was kept/);assert.throws(()=>f.files.recordSoundEdit(sound),/linked JSON was kept/);
+  assert.equal(f.files.validateSoundEdit(sound,{allowExternal:true}),true,'explicit external-sound policy is shared without adopting it');
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(storage.getItem(GAMEBOY_SOUND_JOURNAL_KEY),journal);assert.deepEqual(f.files.getUndoState(),history);
+  await f.files.setAutoApply(false);const manual=f.project.snapshot();assert.throws(()=>f.files.validateSoundEdit(sound,{allowExternal:true}),/controls were not changed/);assert.deepEqual(f.project.snapshot(),manual);
+});
+
+test('DMG manual Save keeps the pending source and accepted caches on rejected, cancelled or failed native apply',async t=>{
+  let result=true;const options=[],f=fixture(t,{applySettings:async(value,context)=>{options.push(context);if(context.source==='save'){if(result instanceof Error)throw result;return result;}return true;}});await f.files.ready;
+  const path=await f.files.saveSound();await f.files.setAutoApply(false);const sound=editedWave();f.files.markSoundDirty(sound);
+  const before=f.project.snapshot(),history=f.files.getUndoState();result=false;assert.equal(await f.files.saveCurrent(),false);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.files.getUndoState(),history);
+  result=Error('native apply failed');await assert.rejects(f.files.saveCurrent(),/native apply failed/);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.files.getUndoState(),history);
+  assert.equal(f.project.isFileModified(path),true);assert.deepEqual(f.project.settings,sound);assert.deepEqual(f.project.savedSettings,createDefaultPreset());
+  result=true;assert.equal(await f.files.saveCurrent(),true);assert.deepEqual(f.project.savedSettings,sound);assert.equal(f.project.isFileModified(path),false);assert.equal(options.at(-1).source,'save');
+});
+
+test('DMG pending Save never publishes tentative acceptance through background persistence',async t=>{
+  const gate=deferred();let saving=false,block=false;
+  const f=fixture(t,{applySettings:async(value,context)=>{if(context.source==='save'&&block){saving=true;await gate.promise;return false;}return true;}});await f.files.ready;
+  const path=await f.files.saveSound();await f.files.setAutoApply(false);f.files.markSoundDirty(editedWave());const before=f.project.snapshot();
+  block=true;const save=f.files.saveAll();while(!saving)await Promise.resolve();await f.files.persistCode();
+  assert.deepEqual(f.writes.at(-1).workspace.saved,before.workspace.saved);assert.deepEqual(f.writes.at(-1).savedSettings,before.savedSettings);assert.equal(f.project.isFileModified(path),true);
+  gate.resolve();assert.equal(await save,false);assert.deepEqual(f.project.snapshot(),before);
+});
+
+test('DMG rejected Auto apply keeps manual preference, both layers, pending moves and accepted sound',async t=>{
+  let result=true;const f=fixture(t,{applySettings:async(value,options)=>{if(options.source==='auto'&&options.applyAudio){if(result instanceof Error)throw result;return result;}return true;}});await f.files.ready;
+  const path=await f.files.saveSound();await f.files.setAutoApply(false);f.files.markSoundDirty(editedWave());await f.files.move(path,'/presets/Still-pending.dmg.json');f.project.writeEditorText('/index.js','// pending auto source');
+  const before=f.project.snapshot(),history=f.files.getUndoState();result=false;assert.equal(await f.files.setAutoApply(true),false);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.files.getUndoState(),history);assert.equal(f.doc.getElementById('dmgAutoApplyToggle').checked,false);
+  result=Error('Auto apply native failure');await assert.rejects(f.files.setAutoApply(true),/Auto apply native failure/);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.files.getUndoState(),history);
+  result=true;assert.equal(await f.files.setAutoApply(true),true);assert.equal(f.project.autoApply,true);assert.deepEqual(f.project.getDirtyPaths(),[]);assert.deepEqual(f.project.getPendingMoves(),[]);assert.deepEqual(f.project.savedSettings,editedWave());assert(!f.project.savedFs.has(path));
+});
+
+test('DMG pending Auto apply does not persist its tentative preference or accepted sound',async t=>{
+  const gate=deferred();let pending=false;const f=fixture(t,{applySettings:async(value,options)=>{if(options.source==='auto'&&options.applyAudio){pending=true;await gate.promise;return false;}return true;}});await f.files.ready;
+  await f.files.saveSound();await f.files.setAutoApply(false);f.files.markSoundDirty(editedWave());const before=f.project.snapshot();
+  const toggling=f.files.setAutoApply(true);while(!pending)await Promise.resolve();await f.files.persistCode();assert.equal(f.writes.at(-1).workspace.autoSave,false);assert.deepEqual(f.writes.at(-1).workspace.saved,before.workspace.saved);assert.deepEqual(f.writes.at(-1).savedSettings,before.savedSettings);
+  gate.resolve();assert.equal(await toggling,false);assert.deepEqual(f.project.snapshot(),before);
+});
+
+test('DMG explicit manual new sound Save publishes nothing when native acceptance fails or cancels',async t=>{
+  let result=true;const f=fixture(t,{applySettings:async(value,options)=>{if(options.source==='save'){if(result instanceof Error)throw result;return result;}return true;}});await f.files.ready;
+  const originalPath=await f.files.saveSound();await f.files.setAutoApply(false);f.files.markSoundDirty(editedWave());f.project.writeEditorText('/index.js','// pending source');
+  const sound=editedWave();sound.name='Attempt';const before=f.project.snapshot(),history=f.files.getUndoState(),opened=f.opened.length;result=false;
+  assert.equal(await f.files.saveSound({sound}),false);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.files.getUndoState(),history);assert.equal(f.opened.length,opened);assert.equal(f.project.activeSoundPath,originalPath);
+  result=Error('New sound apply failed');await assert.rejects(f.files.saveSound({sound}),/New sound apply failed/);assert.deepEqual(f.project.snapshot(),before);assert(!f.project.fs.has('/presets/Attempt.dmg.json'));
+  result=true;assert.equal(await f.files.saveSound({sound}),'/presets/Attempt.dmg.json');assert.equal(f.project.activeSoundPath,'/presets/Attempt.dmg.json');assert.deepEqual(f.project.settings,sound);assert.deepEqual(f.project.savedSettings,sound);assert(f.project.savedFs.has('/presets/Attempt.dmg.json'));assert.equal(f.project.fs.get(originalPath).data,before.filesystem.files.find(file=>file.path===originalPath).data);assert.equal(f.project.savedFs.get('/index.js').data,'// kept');
+});
+
+test('DMG pending new sound Save persists only the previous linked sound and its two versions',async t=>{
+  const gate=deferred();let pending=false,block=false;const f=fixture(t,{applySettings:async(value,options)=>{if(options.source==='save'&&block){pending=true;await gate.promise;return false;}return true;}});await f.files.ready;
+  await f.files.saveSound();await f.files.setAutoApply(false);f.files.markSoundDirty(editedWave());const before=f.project.snapshot(),sound=editedWave();sound.name='Uncommitted';
+  block=true;const saving=f.files.saveSound({sound});while(!pending)await Promise.resolve();await f.files.persistCode();assert.equal(f.writes.at(-1).activeSoundPath,before.activeSoundPath);assert.deepEqual(f.writes.at(-1).workspace,before.workspace);assert.deepEqual(f.writes.at(-1).savedSettings,before.savedSettings);assert(!f.project.fs.has('/presets/Uncommitted.dmg.json'));
+  gate.resolve();assert.equal(await saving,false);assert.deepEqual(f.project.snapshot(),before);
+});
+
+test('DMG explicit new instrument snapshots the selected channel and adopts it with Auto apply on',async t=>{
+  const author=createDefaultPreset(),physical=editedWave();physical.name='Physical CH';const gate=deferred(),applied=[];let reads=0,block=true;
+  const f=fixture(t,{getSettings:()=>author,getSaveSoundSettings:()=>{reads++;return physical;},applySettings:async(value,options)=>{applied.push({value:readPreset(value),...options});if(block)await gate.promise;return true;}});await f.files.ready;
+  const saving=f.files.saveSound();while(!applied.length)await Promise.resolve();assert.equal(f.project.autoApply,true);assert.deepEqual(f.project.settings,author);assert.equal(f.project.activeSoundPath,null);assert(!f.project.fs.has('/presets/Physical CH.dmg.json'));
+  gate.resolve();assert.equal(await saving,'/presets/Physical CH.dmg.json');assert.equal(reads,1);assert.deepEqual(JSON.parse(f.project.fs.get('/presets/Physical CH.dmg.json').data),physical);assert.deepEqual(f.project.settings,physical);assert.deepEqual(f.project.savedSettings,physical);
+  assert.equal(applied[0].source,'save');assert.equal(applied[0].record,false);assert.equal(applied[0].load,false);assert.equal(applied[0].applyAudio,true);assert.deepEqual(applied[0].displayPreset,physical);assert.deepEqual(f.calls,[],'Adoption preserves the running owner and does not call the selection retirement hook');
+  block=false;const provided=createDefaultPreset();provided.source='noise';provided.name='Provided';
+  assert.equal(await f.files.saveSound({sound:provided}),'/presets/Provided.dmg.json');assert.equal(reads,1,'an explicit sound takes precedence over the selected-channel snapshot');assert.deepEqual(f.project.settings,provided);assert.deepEqual(applied.at(-1).value,provided);
+  const active=f.project.activeSoundPath,before=f.project.settings,count=applied.length,detached=editedWave();detached.name='Detached';
+  assert.equal(await f.files.saveSound({sound:detached,select:false}),'/presets/Detached.dmg.json');assert.equal(reads,1);assert.equal(applied.length,count,'detached saves do not adopt or apply');assert.equal(f.project.activeSoundPath,active);assert.deepEqual(f.project.settings,before);assert.deepEqual(f.project.savedSettings,before);assert(f.project.savedFs.has('/presets/Detached.dmg.json'));
 });

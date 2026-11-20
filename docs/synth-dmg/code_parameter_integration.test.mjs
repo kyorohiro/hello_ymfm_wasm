@@ -12,13 +12,13 @@ const start=source.indexOf('async function applyEditorChange('),end=source.index
 assert(start>=0&&end>start);
 const implementation=source.slice(start,end);
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
-function fixture({gate=Promise.resolve(),afterCommit=async()=>{}}={}){
+function fixture({audio=true,gate=Promise.resolve(),afterCommit=async()=>{}}={}){
   let backend=createDefaultPreset(),bank=createGameboyChannelBank(backend),owner={current:true},running=true,queue=gate;
   const calls=[],saved=[],client=()=>{const selected=owner;return Promise.resolve({isCurrent:()=>selected.current});};
   const engine={getGameboyClient:client,
     async applyCodeEdit(edit,{isCurrent}){assert(isCurrent());calls.push(edit);backend=applyGameboyCodeEdit(backend,edit);bank=applyGameboyChannelEdit(bank,edit);await afterCommit();if(!isCurrent())throw Object.assign(Error('retired'),{name:'AbortError'});return {preset:readPreset(backend),channelPresets:readGameboyChannelBank(bank)};},
     async read(){return {preset:readPreset(backend),channelPresets:readGameboyChannelBank(bank)};}};
-  const context=vm.createContext({audio:engine,disposed:false,applySequence:0,preset:createDefaultPreset(),revision:0,autoUpdate:true,
+  const context=vm.createContext({audio:audio?engine:null,disposed:false,applySequence:0,preset:createDefaultPreset(),playbackPreset:createDefaultPreset(),playbackRevision:0,revision:0,autoUpdate:true,
     createGameboyCodeEdit,applyGameboyCodeEdit,applyGameboyChannelEdit,channelBank:createGameboyChannelBank(createDefaultPreset()),channelContext:()=>running?'code':'synth',readPreset,codeHost:{isRunning:()=>running,markSoundDirty(){saved.push(readGameboyChannelBank(context.channelBank));}},
     enqueue(fn){const task=queue.then(fn);queue=task.catch(()=>{});return task;},
     codeLive:null,editorLive:null,renderChannelView(){},readVoices(state){context.channelBank=readGameboyChannelBank(state.channelPresets);},visualizer:{wake(){}},status(){},updatePresetUi(){},applyPreset(){assert.fail('Live edits must not apply a whole instrument');}});
@@ -31,7 +31,8 @@ test('two quick field edits are queued independently and neither drops the other
   const gate=deferred(),f=fixture({gate:gate.promise}),a=createDefaultPreset(),b=readPreset(a),c=readPreset(a);b.pulse.volume=11;c.pulse.volume=11;c.pulse.duty=.25;
   const first=f.run(b,a),second=f.run(c,b);gate.resolve();assert.equal(await first,true);assert.equal(await second,true);
   assert.equal(f.calls.length,2);assert.equal(f.read().pulse.volume,11);assert.equal(f.read().pulse.duty,.25);
-  assert.equal(f.saved.at(-1)[0].pulse.volume,11);assert.equal(f.saved.at(-1)[0].pulse.duty,.25);
+  assert.equal(f.context.channelBank[0].pulse.volume,11);assert.equal(f.context.channelBank[0].pulse.duty,.25);
+  assert.deepEqual(f.context.preset,createDefaultPreset());assert.deepEqual(f.context.playbackPreset,createDefaultPreset());assert.equal(f.saved.length,0);
 });
 test('a newer whole-instrument intent cancels a queued sparse edit before any DSP write',async()=>{
   const gate=deferred(),f=fixture({gate:gate.promise}),before=createDefaultPreset(),next=readPreset(before);next.pulse.volume=11;
@@ -41,10 +42,10 @@ test('a new Run cannot receive an edit pinned to the previous client',async()=>{
   const gate=deferred(),f=fixture({gate:gate.promise}),before=createDefaultPreset(),next=readPreset(before);next.pulse.volume=11;
   const pending=f.run(next,before);f.restart();gate.resolve();assert.equal(await pending,false);assert.equal(f.calls.length,0);
 });
-test('Stop after a native commit reconciles its latest authored field without restarting Code',async()=>{
+test('Stop after a native commit reconciles the session bank while keeping the working author unchanged',async()=>{
   let f;f=fixture({afterCommit:async()=>f.stop()});const before=createDefaultPreset(),next=readPreset(before);next.pulse.duty=.25;
-  assert.equal(await f.run(next,before),false);assert.equal(f.read().pulse.duty,.25);assert.equal(f.context.preset.pulse.duty,.25);assert.equal(f.context.codeHost.isRunning(),false);
-  assert.equal(f.context.channelBank[0].pulse.duty,.25);assert.equal(f.saved.at(-1)[0].pulse.duty,.25,'Save receives the committed CH bank after a late Stop');
+  assert.equal(await f.run(next,before),false);assert.equal(f.read().pulse.duty,.25);assert.deepEqual(f.context.preset,createDefaultPreset());assert.deepEqual(f.context.playbackPreset,createDefaultPreset());assert.equal(f.context.codeHost.isRunning(),false);
+  assert.equal(f.context.channelBank[0].pulse.duty,.25);assert.equal(f.saved.length,0,'A session CH commit never records or dirties author JSON');
 });
 
 test('a playing VGM CH edit writes only the sparse reference fields and keeps the author bank for Stop and Save',async()=>{
@@ -53,4 +54,12 @@ test('a playing VGM CH edit writes only the sparse reference fields and keeps th
   assert.equal(await f.run(next,before),true);assert.equal(edits.length,1);assert.deepEqual(edits[0],{channel:0,changes:{'pulse.duty':.25}});
   assert.equal(f.calls.length,0);assert.equal(f.saved.length,0);assert.deepEqual(f.context.channelBank,createGameboyChannelBank(before));
   f.context.lastSongState={playing:false,paused:true,canInteract:false};assert.equal(await f.run(next,before),false);assert.equal(edits.length,1);
+});
+
+test('cold physical CH editing updates its session bank without accepting or overwriting a pending author document',async()=>{
+  const f=fixture({audio:false}),before=createDefaultPreset(),next=readPreset(before),draft=createDefaultPreset();
+  draft.name='Unsaved Noise';draft.source='noise';draft.noise.shift=9;f.context.preset=draft;next.pulse.duty=.25;
+  assert.equal(await f.run(next,before),true);assert.equal(f.context.channelBank[0].pulse.duty,.25);
+  assert.deepEqual(f.context.preset,draft);assert.deepEqual(f.context.playbackPreset,createDefaultPreset());assert.equal(f.context.playbackRevision,1);
+  assert.equal(f.context.revision,0);assert.equal(f.calls.length,0);assert.equal(f.saved.length,0);
 });

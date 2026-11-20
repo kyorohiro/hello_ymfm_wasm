@@ -1,0 +1,81 @@
+# v0.0.1: Game Gear & Master System Synth — PSG, YM2413 and JavaScript
+
+Introducing Tetorica SMSGEAR Synth v0.0.1: a hands-on synthesizer for Sega Master System and Game Gear sound.
+
+Play the keyboard, shape PSG and FM sounds, watch the waveform, or write your own JavaScript performance. The aim is to make the sound hardware behind these games easier to hear, understand and use in new work.
+
+## Game Gear and Master System: Sega PSG
+
+The Sega PSG is an SN76489-compatible sound generator with three square-wave tone channels and one Noise channel. A small set of controls produces a surprisingly wide range of chiptune sounds.
+
+Try tone frequency and attenuation, switch between white and periodic Noise, or use Tone 3 as the Noise clock. Game Gear-style stereo lets you route each channel to the left, right or both sides.
+
+Choose Auto for keyboard voice allocation, or select a physical channel to inspect, edit and play it directly. Waveform and Spectrum help you connect the controls with the sound you hear.
+
+## Master System FM: Yamaha YM2413 / OPLL
+
+The optional FM section explores Yamaha's YM2413, also known as OPLL: the chip behind the Sega Mark III FM Sound Unit and FM-equipped Japanese Master System models.
+
+Choose from 15 built-in instruments or edit the shared User patch. Its two operators, Modulator and Carrier, appear together in an editable Envelope view. Adjust the parameters while playing and hear how they interact.
+
+Use nine melodic voices, or switch to Rhythm mode for six melodic voices accompanied by five drums: Bass drum, Snare, Tom, Cymbal and Hi-hat. The UI shows which physical channels are shared with percussion.
+
+## Write a performance in JavaScript
+
+Code controls the same chips as the keyboard and knobs. For example:
+
+const lead = await useSoundChip("segapsg");
+setBpm(120);
+
+liveLoop("melody", async () => {
+  const notes = scale("E3", "minorPentatonic", 2);
+  lead.noteOn(CH1, choose(notes));
+  await beat(0.4);
+  lead.off(CH1);
+  await beat(0.1);
+});
+
+Change setBpm() to hear the phrase speed up or slow down. Keep the loop running while adjusting the sound by hand. Apply updates your code while preserving named loops and prepared state.
+
+Use useSoundChip("ym2413") for FM. Both chips also support build(), compile() and schedule(): record operations, inspect their concrete register writes, and schedule a pattern on the audio sample clock.
+
+Keyboard allocation, Pitch, Code timing and liveFx are software tools. They sit alongside the chip's own tone, Noise, stereo, FM and Rhythm controls.
+
+## Use a VGM as a reference performance
+
+Import a supported Master System or Game Gear VGM / VGZ from Menu, then press Play.
+
+Select a PSG or YM2413 channel and enable Auto update to follow the song through the same controls used for editing. Pause, audition a channel on the keyboard, or Capture to Synth to experiment with its sound settings.
+
+Recorded instruments are also extracted into presets in Files. These are static settings; the original song retains its later parameter changes. No game ROMs or music files are bundled.
+
+## For SMS Power! readers
+
+If you have been reading about Master System PSG, SN76489, YM2413 FM or Game Gear stereo on SMS Power! (smspower.org), Tetorica offers a place to try those ideas with a keyboard and JavaScript.
+
+Sound hardware references:
+https://www.smspower.org/Development/SN76489
+https://www.smspower.org/Development/YM2413
+https://www.smspower.org/Development/GameGearStereo
+
+## Take the code further
+
+Tetorica is about playing, understanding, then making something of your own.
+
+The Web package contains readable JavaScript and CSS, matching WASM, source code, licenses and rebuild instructions. The Tauri desktop version uses the same Web Synth and includes matching sound-chip and effect source kits.
+
+Explore the code yourself, reuse the APIs in a game or instrument, or bring the project to your own Codex and modify it.
+
+Synth source and guide:
+https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/docs/synth-smsgear
+
+Tauri desktop source:
+https://github.com/kyorohiro/tetorica-smsgear-ym2413-synth-tauri
+
+Reusable JavaScript / WASM toolkit:
+https://github.com/kyorohiro/hello_ymfm_wasm
+
+Native sound-chip sources and build instructions:
+https://github.com/kyorohiro/tetorica-soundchip-native
+
+Have fun exploring Master System and Game Gear sound!

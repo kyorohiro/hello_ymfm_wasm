@@ -1,6 +1,6 @@
 # DMG Synth: FM2612 interaction alignment
 
-Audit date: 2026-11-19. Documentation and planning only; optional rows are not
+Audit date: 2026-11-19; saving/document slice implemented 2026-11-20. Optional rows are not
 blanket implementation approval. User order: **HuC6280 → SPU → DMG → SID**.
 DMG is third. `synth-gameboy` is an alias, not another independent Synth TODO.
 Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261119.md).
@@ -9,9 +9,9 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 
 | Comparison item | DMG status and evidence |
 | --- | --- |
-| working/saved and Save controls | Missing. [code_project.js](../synth-dmg/code_project.js) retains one filesystem and current settings in a v1 snapshot. Existing Code flush/Ctrl+S is not accepted-content Save. No Auto apply, Files dots, Save all/Discard or dual-version Cassette. |
-| Active instrument file ↔ controls/JSON | Partial. JSON selection applies a sound and can open in Code without forcing the input view. `markSoundDirty()` updates current settings and clears the applied preset; `saveSound()` creates a new unique `.dmg.json` ([code_files.js](../synth-dmg/code_files.js)). Controls do not update the selected instrument document. |
-| Files Undo / New / import recovery | Partial. Import/export, local recovery and validated replacement exist. No FM2612-style Files Undo/history or New Cassette workflow was found in `code_files.js` / [index.html](../synth-dmg/index.html). |
+| working/saved and Save controls | Implemented 2026-11-20. Shared workspace with v1 migration, default-on Auto apply, dirty dots, Save / Save all / Discard / Discard all, Ctrl/Cmd+S and dual-version Cassette. Run/Apply resolves saved source, imports and local data. |
+| Active instrument file ↔ controls/JSON | Implemented for the authored Auto sound. Valid JSON, controls and CH3 Wave drawing share the active document; manual drafts do not reach audio until Save. Physical CH session edits stay independent and do not overwrite the document. Incomplete JSON retains the last valid working/accepted sound. |
+| Files Undo / New / import recovery | Implemented. Shared history/context menu (Undo has no extra toolbar button), New Cassette under Menu → New, cancelable backup before replacement, both-layer import/export and immediate Code/sound recovery. |
 | Persistent expanded Code workspace | Partial. Code maximize exists, but [code_host.js](../synth-dmg/code_host.js) does not install persistent expansion, unified navigation or header Code/Synth switching. Master should remain available during expansion. |
 | Live changed-value highlighting | Missing. Auto update and same-CH display/edit/keyboard already exist; these do not highlight changed values briefly. |
 | Shared channel output switches | Partial. Four software song switches exist in [song_preview.js](../synth-dmg/song_preview.js); keys intervening in a playing song share that reference APU's mute. Normal keyboard/Code APU output does not share these switches. Hardware stereo routing is separate. |
@@ -21,19 +21,19 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 
 ## Proposed implementation phases
 
-- [ ] Migrate to the shared working/saved workspace while retaining v1 projects,
+- [x] Migrate to the shared working/saved workspace while retaining v1 projects,
       source VGM/VGZ, original JSON bytes, unrelated text and opaque files.
-- [ ] Add Auto apply (default On), Files **●**, Save / Save all / Discard and
+- [x] Add Auto apply (default On), Files **●**, Save / Save all / Discard and
       Ctrl/Cmd+S; distinguish accepted buffers from successful local storage.
-- [ ] Link the selected editable preset to knobs and CH3 Wave drawing. Preserve
+- [x] Link the selected editable preset to knobs and CH3 Wave drawing. Preserve
       existing per-CH session settings; selecting Auto alone must not unify them.
-- [ ] Define valid JSON application without losing unfinished edits. With Auto
+- [x] Define valid JSON application without losing unfinished edits. With Auto
       apply Off, working edits do not change the sound until Save. Save never
       runs Code; explicit Run/Apply reads saved source, imports and local data.
-- [ ] Save/restore both versions through file selection, rename/delete, Undo,
+- [x] Save/restore both versions through file selection, rename/delete, Undo,
       New, import and reload. Cassette normal files contain saved content and
       recovery metadata contains working differences without redundant binaries.
-- [ ] Add Files history and New Cassette rollback, keeping project replacement
+- [x] Add Files history and New Cassette rollback, keeping project replacement
       separate from ordinary sound/file editing and explicit Code Run/Apply.
 - [ ] Add persistent expanded Code / APU / Keyboard navigation and header
       Code/Synth controls. Design a Mixer tab only with its actual output policy;
@@ -53,15 +53,15 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 
 ## Required verification when implementation starts
 
-- [ ] Test Pulse, CH1 Sweep, CH3 Wave, Noise and mixed physical-CH settings.
+- [x] Test Pulse, CH1 Sweep, CH3 Wave, Noise and mixed physical-CH settings.
       Hardware sweep must retain its CH1 allocation rules.
-- [ ] Test active document edits, invalid JSON and legacy presets, simultaneous
+- [x] Test active document edits, invalid JSON and legacy presets, simultaneous
       manual/Code or manual/VGM use, later-write ownership and view changes.
       Keep Code and song execution mutually exclusive.
-- [ ] Test dirty markers, shortcuts, current/all/discard, Undo/New, both versions
+- [x] Test dirty markers, shortcuts, current/all/discard, Undo/New, both versions
       through local journal/quota recovery and Cassette roundtrips; restoration
       must not run Code or start audio.
-- [ ] Verify source and readable ZIP with muted Chromium/WebKit, fallback and
+- [x] Verify source and readable ZIP with muted Chromium/WebKit, fallback and
       real Monaco, mobile/desktop resize and expanded navigation. Use measured
       output; do not alter the existing mixer/gain policy without evidence.
 
@@ -69,6 +69,10 @@ Related history: [Code/Files](todo_dmg_synth_code_files_live_01.md),
 [unified CH controls](todo_dmg_synth_unified_channel_01.md),
 [manual VGM interaction](todo_dmg_synth_vgm_manual_01.md),
 [song output switches](todo_dmg_synth_song_channels_01.md).
+
+Saving implementation and validation: [2026-11-20 record](todo_dmg_working_saved_20261120.md).
+Persistent expanded navigation, highlighting, common output switches and timed
+operations remain separate slices; completing saving does not implement them.
 
 ## Timed register API follow-up
 

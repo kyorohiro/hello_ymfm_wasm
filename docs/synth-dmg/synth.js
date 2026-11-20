@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=dmg-vgm-manual-1';
-import {setupGameboyCodeHost} from './code_host.js?v=draft-reconnect-1';
+import {createAudio} from './audio.js?v=dmg-working-saved-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-working-saved-1';
 import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-vgm-manual-1';
 import {createEditor} from './editor.js?v=dmg-vgm-manual-1';
-import {createGameboyCodeEdit,applyGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-vgm-manual-1';
+import {createGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-vgm-manual-1';
 import {createGameboyChannelBank,readGameboyChannelBank,applyGameboyChannelEdit,updateGameboyChannelBank} from './channel_bank.js?v=dmg-vgm-manual-1';
 import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-vgm-manual-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -11,6 +11,7 @@ import {setupGameboySongControls} from './song_controls.js?v=dmg-vgm-manual-1';
 import {createGameboySongAudition} from './song_audition.js?v=dmg-vgm-manual-1';
 import {prepareGameboySongVoice} from './song_voice.js?v=dmg-vgm-manual-1';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
+import {applyGameboyDocumentChanges} from './instrument_document_edit.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
   setInstrument, setFretPosition, setStringWindowIndex, midiToNoteName} from '../synth/synth_keyboard.js';
@@ -23,6 +24,7 @@ const status = (text, error = false) => {
 const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
+let playbackPreset=readPreset(preset),playbackRevision=0;
 let channelBank=createGameboyChannelBank(preset),channelTarget='synth',autoUpdate=true,editorLive=null;
 let queue = Promise.resolve(), captureWork = null;
 let vgmImport = null, codeHost = null, codeLive = null, applySequence = 0, liveSignature = null, songControls = null, lastSongState = null, audition = null, auditionSelectionKey = null, pausedVoiceCache = null;
@@ -35,7 +37,7 @@ const enqueue = action => {
   queue = task.catch(report);
   return task;
 };
-const capacity = () => channelTarget!=='synth'?1:preset.source === 'pulse' && !channelBank[0].pulse.sweep.enabled ? 2 : 1;
+const capacity = () => channelTarget!=='synth'?1:playbackPreset.source === 'pulse' && !channelBank[0].pulse.sweep.enabled ? 2 : 1;
 function updateKeys() {
   const keys = new Set([...notes.values(),...auditionNotes.values(),...vgmNotes.values()].map(note => note.key));
   for (const button of $('keyboard').querySelectorAll('.key')) {
@@ -78,8 +80,8 @@ function updateCapacity() {
     $('dmgKeyboardHint').textContent='Display, controls and keyboard use this physical channel. Selecting it does not copy settings.';
     return;
   }
-  const description = preset.source === 'pulse' ? preset.pulse.sweep.enabled ? 'Pulse · CH1 Sweep' : 'Pulse · CH1 / CH2'
-    : preset.source === 'wave' ? 'Wave · CH3' : 'Noise · CH4 · keys trigger the same noise';
+  const description = playbackPreset.source === 'pulse' ? channelBank[0].pulse.sweep.enabled ? 'Pulse · CH1 Sweep' : 'Pulse · CH1 / CH2'
+    : playbackPreset.source === 'wave' ? 'Wave · CH3' : 'Noise · CH4 · keys trigger the same noise';
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
 }
 function updatePresetUi() {
@@ -110,14 +112,15 @@ async function ensureAudio() {
     opening = (async () => {
       const engine = await createAudio({volume: Number($('masterVolume').value), onError: audioFailed});
       try {
-        // Source edits remain available while WASM loads. Adopt the latest draft.
+        // Manual drafts remain visible while WASM loads, but only accepted
+        // settings and the existing physical-channel bank may reach the APU.
         let applied, appliedPitch;
         do {
-          applied = revision; appliedPitch = pitch;
-          await engine.command('loadPreset', [readPreset(preset)]);
+          applied = playbackRevision; appliedPitch = pitch;
+          await engine.command('loadPreset', [readPreset(playbackPreset)]);
           await engine.command('loadChannelBank',[readGameboyChannelBank(channelBank)]);
           await engine.command('setPitch', [appliedPitch]);
-        } while (applied !== revision || appliedPitch !== pitch);
+        } while (applied !== playbackRevision || appliedPitch !== pitch);
         if (disposed) throw new Error('DMG Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
         audio = engine;
@@ -133,64 +136,87 @@ async function ensureAudio() {
   await engine.resume();
   return engine;
 }
-async function applyPreset(value, {load = false, message, isCurrent = () => true, keepSongPaused = false} = {}) {
-  const next = readPreset(value), request=++applySequence;
-  if(!isCurrent())return false;
+async function applyPreset(value, {load=false,message,isCurrent=()=>true,keepSongPaused=false,
+  record=true,applyAudio,displayPreset}={}) {
+  const next=readPreset(value),shown=readPreset(displayPreset??next),files=codeHost?.files;
+  if(disposed||!isCurrent())return false;
+  const audible=applyAudio??(record?files?.isAutoApply?.()!==false:true);
+  try{if(record){files?.canEditSound?.();files?.validateSoundEdit?.(shown);}}
+  catch(error){liveSignature=null;updatePresetUi();throw error;}
+  // Selecting an author document shows its working version in Auto. Physical
+  // CH selection itself never copies settings into this document.
+  if(load&&channelTarget!=='synth'){
+    channelTarget='synth';liveSignature=null;songControls?.setView?.('synth',{notify:false});syncChannelObservers();
+  }
+  if(!audible){
+    if(record)files?.recordSoundEdit?.(shown);
+    preset=shown;revision++;updatePresetUi();
+    status(message??'Unsaved sound changes · Save in Files to apply.');
+    return true;
+  }
+  const request=++applySequence,displayRevision=revision;
   const retainPause=Boolean(lastSongState?.paused),retainSong=Boolean(lastSongState?.playing);
   const interactionRun=retainSong?lastSongState.interaction?.runId:null;
   if(isSongActive()&&!retainPause&&!retainSong&&!keepSongPaused)songControls?.stop();
   if(audition?.isRunning())await stopAudition();
   if(disposed||request!==applySequence||!isCurrent())return false;
-  // Sound selection changes the existing Code chip. Only workspace/song/Stop
-  // actions retire its runtime; retain this lease across the queued edit.
   const engineAtSelection=audio,keepCode=Boolean(engineAtSelection&&codeHost?.isRunning());
   const codeClient=keepCode?engineAtSelection.getGameboyClient():null;
   void codeClient?.catch(()=>{});
-  const previous = preset;
-  const replacesVoices = load || previous.source !== next.source || previous.pulse.sweep.enabled !== next.pulse.sweep.enabled
-    || JSON.stringify(previous.wave.samples) !== JSON.stringify(next.wave.samples);
-  // A rejected atomic Code edit leaves its keyboard leases alive. Keep their
-  // key-up IDs until the acknowledged native state says they were retired.
-  if (replacesVoices&&!keepCode) {epoch++;notes.clear();updateKeys();}
-  let editRevision=revision;
-  function publish(value,bank){
-    channelBank=bank?readGameboyChannelBank(bank):updateGameboyChannelBank(channelBank,preset,value,{replace:load});
-    preset=readPreset(value);revision++;editRevision=revision;
-    if(load||previous.source!==preset.source)setPitchUi(0);
-    updatePresetUi();codeHost?.markSoundDirty();
+  const previous=playbackPreset;
+  const replacesVoices=load||previous.source!==next.source||previous.pulse.sweep.enabled!==next.pulse.sweep.enabled;
+  function publish(){
+    // Do not replace a newer manual JSON/drawing that arrived during the reply.
+    if(revision===displayRevision){
+      if(record)files?.recordSoundEdit?.(shown);
+      preset=readPreset(shown);revision++;
+    }
+    updatePresetUi();
   }
-  // During initial audio preparation ensureAudio adopts this latest draft.
-  // An existing Code lease publishes only after its atomic sound commit.
-  if(!keepCode)publish(next);
-  if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return true;}
-  return enqueue(async () => {
-    const engine = audio;
-    let client;
-    const selected=()=>!disposed&&request===applySequence&&isCurrent()&&audio===engine&&revision===editRevision;
-    const current=()=>!disposed&&request===applySequence&&isCurrent()&&audio===engine&&revision===editRevision
+  if(!audio){
+    publish();channelBank=updateGameboyChannelBank(channelBank,previous,next,{replace:load});
+    playbackPreset=next;playbackRevision++;
+    if(load||previous.source!==next.source)setPitchUi(0);
+    status(message??'Instrument updated · enable audio, then play.');return true;
+  }
+  return enqueue(async()=>{
+    const engine=audio;let client,accepted;
+    const current=()=>!disposed&&request===applySequence&&isCurrent()&&audio===engine
       &&(keepCode?engine===engineAtSelection&&codeHost?.isRunning()&&client?.isCurrent():!codeHost?.isRunning());
     async function reconcile(){
-      if(!engine||!selected())return;
+      if(!accepted||disposed||request!==applySequence||!isCurrent()||audio!==engine)return;
       const state=await engine.read();
-      if(selected()){publish(state.preset,state.channelPresets);readVoices(state);}
+      if(disposed||request!==applySequence||!isCurrent()||audio!==engine)return;
+      // A Stop may arrive after native acceptance but before its reply. The
+      // checkpoint already contains this edit; keep its accepted author cache
+      // aligned without replacing a later working draft or a newer selection.
+      if(JSON.stringify(state.preset)===JSON.stringify(accepted)){
+        if(revision===displayRevision)publish();
+        playbackPreset=next;playbackRevision++;readVoices(state);
+      }
     }
-    try {
+    try{
       client=codeClient?await codeClient:null;
-      if (!engine||!current()) return false;
-      if(keepCode)await engine.applyCodePreset(next,{isCurrent:current,replace:load});
-      else await engine.command(load ? 'loadPreset' : 'setPreset', [next]);
-      if(!current()){if(keepCode)await reconcile();return false;}
-      if(keepCode)publish(next);
-      if (!keepCode&&(load || previous.source !== next.source)) await engine.command('setPitch', [0]);
+      if(!engine||!current())return false;
+      // Session CH edits must survive an unrelated Save. The native common edit
+      // also compares only these fields, preserving Code notes, gates and pan.
+      const stateBefore=await engine.read();if(!current())return false;
+      accepted=load?next:applyGameboyDocumentChanges(stateBefore.preset,previous,next);
+      if(record){files?.canEditSound?.();files?.validateSoundEdit?.(shown);}
+      if(keepCode)await engine.applyCodePreset(accepted,{isCurrent:current,replace:load});
+      else await engine.command(load?'loadPreset':'setPreset',[accepted]);
+      if(!current()){await reconcile();return false;}
+      publish();playbackPreset=next;playbackRevision++;
+      if(replacesVoices&&!keepCode){epoch++;notes.clear();updateKeys();}
+      if(!keepCode&&(load||previous.source!==next.source)){setPitchUi(0);await engine.command('setPitch',[0]);}
       if(!current())return false;
-      const state = await engine.read();
-      if (!current()) return false;
+      const state=await engine.read();if(!current())return false;
       readVoices(state);
       if(retainSong&&interactionRun!==null&&interactionRun!==undefined)songControls?.applyPreset(next,{previous,replace:load,runId:interactionRun});
       visualizer.wake();
-      status(message ?? (retainSong?'Instrument updated · VGM continues; later song writes can change it again.':'Instrument updated · play a new note to hear envelope and Sweep edits.'));
+      status(message??(retainSong?'Instrument updated · VGM continues; later song writes can change it again.':'Instrument updated · play a new note to hear Envelope and Sweep edits.'));
       return true;
-    } catch (error) {
+    }catch(error){
       await reconcile();
       if(error.name==='AbortError')return false;
       throw error;
@@ -206,8 +232,8 @@ async function applyEditorChange(value,{previous,channel,origin}={}) {
     songControls.applyEdit(edit);visualizer.wake();status(`VGM CH ${channel+1} updated · playback continues.`);return true;
   }
   if(!audio){
-    channelBank=applyGameboyChannelEdit(channelBank,edit);preset=applyGameboyCodeEdit(preset,edit);revision++;
-    codeHost?.markSoundDirty();renderChannelView();return true;
+    channelBank=applyGameboyChannelEdit(channelBank,edit);playbackRevision++;
+    renderChannelView();return true;
   }
   // Keep successive knob edits in order; a later whole-instrument load may
   // cancel them, but a second field edit must not discard the first field.
@@ -221,7 +247,7 @@ async function applyEditorChange(value,{previous,channel,origin}={}) {
       if(!current())return false;
       const state=code?await engine.applyCodeEdit(edit,{isCurrent:current}):await engine.applyChannelEdit(edit,{isCurrent:current});
       if(disposed||audio!==engine||request!==applySequence)return false;
-      preset=readPreset(state.preset);revision++;readVoices(state);codeHost.markSoundDirty();
+      readVoices(state);
       visualizer.wake();
       status(`CH ${channel+1} updated${code?' · Code continues':''}.`);
       const observer=code?codeLive:editorLive;
@@ -232,7 +258,7 @@ async function applyEditorChange(value,{previous,channel,origin}={}) {
       // A Stop can win after the native edit commits but before its reply.
       if(!disposed&&audio===engine&&request===applySequence){
         const state=await engine.read();
-        if(!disposed&&audio===engine&&request===applySequence){preset=readPreset(state.preset);revision++;readVoices(state);codeHost.markSoundDirty();updatePresetUi();}
+        if(!disposed&&audio===engine&&request===applySequence){readVoices(state);updatePresetUi();}
       }
       if(error.name==='AbortError')return false;
       throw error;
@@ -296,7 +322,7 @@ function canPlay(midi) {
 }
 function keyboardTarget(){
   const channel=channelTarget==='synth'?null:channelTarget;
-  return {channel,source:channel===null?preset.source:channel<2?'pulse':channel===2?'wave':'noise'};
+  return {channel,source:channel===null?playbackPreset.source:channel<2?'pulse':channel===2?'wave':'noise'};
 }
 function pressVgm(source,entry){
   if(switchingAudioOutput||vgmNotes.has(source)||!canPlay(entry.midi))return;
@@ -594,12 +620,12 @@ function captureSongVoice(payload,options) {
   return work;
 }
 async function performCaptureSongVoice(payload,{isCurrent=()=>true}={}) {
-  const original=readPreset(preset),originalBank=readGameboyChannelBank(channelBank),captured=readPreset(payload.preset);
+  const original=readPreset(preset),originalAccepted=readPreset(playbackPreset),originalBank=readGameboyChannelBank(channelBank),captured=readPreset(payload.preset);
   let applied=false;
   const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
   async function rollback(){
     if(disposed||!applied||!same(preset,captured))return;
-    const restoring=applyPreset(original,{load:true,keepSongPaused:true,message:'Capture cancelled · original instrument kept.'});
+    const restoring=applyPreset(originalAccepted,{record:false,applyAudio:true,displayPreset:original,load:true,keepSongPaused:true,message:'Capture cancelled · original instrument kept.'});
     const request=applySequence;
     if(await restoring===false||disposed||request!==applySequence)return;
     channelBank=originalBank;revision++;
@@ -610,7 +636,7 @@ async function performCaptureSongVoice(payload,{isCurrent=()=>true}={}) {
   try{
     await stopAudition();if(!isCurrent()||disposed)return false;
     const saved=await codeHost.files.saveCapturedSound(captured,{isCurrent,
-      apply:async(value,options)=>{applied=true;return applyPreset(value,{...options,load:true,keepSongPaused:true,message:'Captured VGM sound · song remains paused.'});}});
+      apply:async(value,options)=>{applied=true;return applyPreset(value,{...options,record:false,applyAudio:true,load:true,keepSongPaused:true,message:'Captured VGM sound · song remains paused.'});}});
     if(!saved){await rollback();return false;}
     return saved;
   }catch(error){await rollback();throw error;}
@@ -628,8 +654,8 @@ function syncSongActivity(state){
   syncAuditionSelection();syncChannelObservers();renderChannelView();
 }
 function syncCodeActivity(){if(disposed)return;syncChannelObservers();renderChannelView();}
-codeHost=setupGameboyCodeHost({ensureAudio,getAudio:()=>audio,getSettings:selectedPreset,
-  applySettings:(value,options={})=>applyPreset(value,{load:true,message:'DMG preset loaded from Files.',...options}),
+codeHost=setupGameboyCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),getSaveSoundSettings:selectedPreset,
+  applySettings:(value,options={})=>applyPreset(value,{load:true,...options}),
   stopKeyboard:()=>stopNotes(),stopSong:async()=>{songControls?.stop();await songControls?.whenIdle();await captureWork?.catch(()=>{});await stopAudition();},beforeRun:async()=>{
     await queue;
     setPitchUi(0);

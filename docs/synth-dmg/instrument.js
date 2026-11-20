@@ -101,10 +101,11 @@ export class GameboyInstrument {
     this._open();
     const next = readPreset(value), previous = this.preset,bank=updateGameboyChannelBank(this.channelPresets,previous,next);
     if (this.codeActive) this.stop();
-    const clear = previous.source !== next.source || !equal(poolFor(previous,this.channelPresets), poolFor(next,bank)) || !equal(this.channelPresets[2].wave.samples, bank[2].wave.samples);
+    const clear = previous.source !== next.source || !equal(poolFor(previous,this.channelPresets), poolFor(next,bank));
     if (clear) this.stop();
-    this._applyBank(this.channelPresets,bank);this.channelPresets=bank;this.preset = next;
-    return this.read();
+    // A Wave RAM upload retires CH3, while the other three voices retain
+    // their gates and positions. A saved drawing is not a global Key Off.
+    return this._commitAuthorBank(bank,next);
   }
   loadPreset(value) {
     this._open();

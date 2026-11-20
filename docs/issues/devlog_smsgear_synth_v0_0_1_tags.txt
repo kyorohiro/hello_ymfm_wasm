@@ -1,0 +1,1 @@
+master-system,game-gear,psg,sn76489,ym2413,opll,javascript,chiptune,synthesizer,smspower
