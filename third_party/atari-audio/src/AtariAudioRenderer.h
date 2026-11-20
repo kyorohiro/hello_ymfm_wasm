@@ -91,6 +91,7 @@ public:
 
 	// Local read-only API used by the isolated browser reference player.
 	virtual uint8_t GetYmRegister(unsigned reg) const = 0;
+	virtual void WriteYmRegister(unsigned reg, uint8_t value) = 0;
 	virtual bool IsReplayValid() const { return true; }
 
 protected:

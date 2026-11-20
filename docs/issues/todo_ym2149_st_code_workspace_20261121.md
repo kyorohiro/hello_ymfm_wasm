@@ -197,3 +197,24 @@ Readable ZIP: **205 files / 2,494,089 bytes**, SHA-256
 All 180 original-input receipts match this revision. No publication,
 commit/push or remote CI was performed. Evidence:
 [verification_ym2149_st_workspace_alignment_20261121.json](verification_ym2149_st_workspace_alignment_20261121.json).
+
+## SNDH/YM live editing follow-up
+
+- [x] Add native register writes without changing the emulated CPU register latch.
+- [x] Resolve operations inside the Worker, serialize edits with rendering and expose live-edit capability.
+- [x] Rebuild/verify source receipts and test native/Worker and browser playback.
+
+SNDH/YM direct writes now resolve partial operations in the serialized Worker,
+using the native chip state immediately before application. The direct native
+register path preserves the 68000-selected address latch. Awaited operations
+retain ordering with renders and abort correctly on transport teardown.
+
+190 ST tests passed, including a real SNDH CPU data-port latch regression and
+production YM/SNDH Worker partial updates. Chromium/WebKit both played the user
+file `ww/Treasure_Search.sndh` with physical output muted: Tone, Noise and
+hardware-envelope controls were enabled; each request's native response had the
+expected register bits, and playback continued. The vendored upstream pin is
+unchanged; the local patch reproduces all patched files and the rebuilt WASM
+matches its updated source receipt. Human listening was not performed.
+
+Evidence: [verification_ym2149_st_sndh_live_edit_20261121.json](verification_ym2149_st_sndh_live_edit_20261121.json).

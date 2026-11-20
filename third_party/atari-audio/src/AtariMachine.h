@@ -45,6 +45,7 @@ public:
 	void 			IllegalCb(void);
 	void 			MuteVoices(uint32_t muteMask);
 	uint8_t GetYmRegister(unsigned reg) const { return m_ym2149.GetRegister(reg); }
+	void WriteYmRegister(unsigned reg, uint8_t value) { m_ym2149.WriteRegister(reg, value); }
 
 private:
 	static	const	uint32_t	RTE_INSTRUCTION_ADDR = 0x500;

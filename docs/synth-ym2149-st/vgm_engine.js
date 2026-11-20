@@ -2,7 +2,7 @@
 import factory from '../generated/ay8910_wasm.js';
 import {Ay8910AudioEngine} from '../js/ay8910audioengine.js';
 import {checkYmVgmAbort} from './vgm_source.js';
-import {editYmSongSnapshot} from './song_live.js?v=paused-edit-1';
+import {ymSongEditWrites} from './song_live.js?v=live-edit-2';
 
 /** Synchronous native AY rendering with the existing Synth speaker centering.
  * The host applies its calibrated chip / master gains once, after this output.
@@ -51,14 +51,7 @@ export async function createYmVgmEngine(source, {signal, moduleFactory = factory
       get ended() { return frame >= source.durationFrames; },
       editChannel(channel,patch) {
         open();
-        const next=editYmSongSnapshot(api.snapshot(),channel,patch),voice=patch.voice??{},indices=[];
-        if(Object.hasOwn(voice,'period'))indices.push(channel*2,channel*2+1);
-        if(Object.hasOwn(voice,'tone')||Object.hasOwn(voice,'noise'))indices.push(7);
-        if(Object.hasOwn(voice,'volume')||Object.hasOwn(voice,'envelope'))indices.push(8+channel);
-        if(patch.noisePeriod!==undefined)indices.push(6);
-        if(patch.envelope&&Object.hasOwn(patch.envelope,'period'))indices.push(11,12);
-        if(patch.envelope&&Object.hasOwn(patch.envelope,'shape'))indices.push(13);
-        for(const reg of indices)write(reg,next.registers[reg]);
+        for(const {register,value} of ymSongEditWrites(api.snapshot(),channel,patch))write(register,value);
       },
       processFrames(count) {
         open();

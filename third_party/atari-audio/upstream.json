@@ -18,7 +18,7 @@
     {
       "path": "src/AtariAudioRenderer.h",
       "upstreamSha256": "2fece86341725d2f878004ef88525feeb2b328c033e2d5fa7f311bf9f1894555",
-      "sha256": "0aca1c0ae90240f971ad77c14f129bde95279c3952939507fccd5903fe65a3d5"
+      "sha256": "97c18bbd5eff35a2b87e5d6358beb9dc8349850d634ea937399bb58b152e2c77"
     },
     {
       "path": "src/AtariMachine.cpp",
@@ -28,7 +28,7 @@
     {
       "path": "src/AtariMachine.h",
       "upstreamSha256": "763c83241f5983ac5b0bfc28ec81269f087d3a5c4df93e77916765d1f45543ec",
-      "sha256": "5ac65da71fa8ace2f61eccc51359dab8c3737e6fb358028dcb811fa3daa53542"
+      "sha256": "2be762e07bcaa3b78d3bb5d796dceca199d6896f301300d677bc93f066486048"
     },
     {
       "path": "src/Blitter.cpp",
@@ -58,7 +58,7 @@
     {
       "path": "src/SndhRenderer.h",
       "upstreamSha256": "585bbec2c116e3b84611f2fe229bbcbbb7646d2b37d59581e9605859ef4c7f56",
-      "sha256": "88857598a23d45e8dc694c90e46a388ac061ffb7916406e4f99607c23d2fcc5b"
+      "sha256": "f998585490abc22895779a5436868785483596513870881fe8b8bad3f03dc2f3"
     },
     {
       "path": "src/SteDac.cpp",
@@ -78,7 +78,7 @@
     {
       "path": "src/YmRenderer.h",
       "upstreamSha256": "d0fa8dbad17a82cf2cd027bf1cf0aea955ccaed36f41a5578e30a7c11f643708",
-      "sha256": "5dee61bd2e575829c573d0c07b2c1459e44074b2e08212c300b198f4a43e18ad"
+      "sha256": "d040df00b7ec3ffc35ff408aa41d557966db0212fddb623608e6e8a62ad676f6"
     },
     {
       "path": "src/external/Musashi/history.txt",
@@ -178,7 +178,7 @@
     {
       "path": "src/ym2149c.h",
       "upstreamSha256": "6375a08628655588cd3ece22c5c920e1becd5e3adf249b66d49940bfdffada73",
-      "sha256": "9121922c938fe7ff507a1be71c717c254b578bc9a6d3888f3e5fb14a857d0c94"
+      "sha256": "df2ceeb4bb4858aface6ddd82c853e16945dbfcd04d9b726ea2e03a1b01527cd"
     },
     {
       "path": "src/ym2data.h",

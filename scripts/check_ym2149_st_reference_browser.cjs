@@ -5,7 +5,7 @@ const path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('n
 const {chromium,webkit}=require('playwright');
 const root=path.resolve(__dirname,'..');
 const config={root:path.join(root,'docs'),entry:'/synth-ym2149-st/index.html',engines:'chromium,webkit',out:path.join(os.tmpdir(),'ym2149-st-reference.json'),screenshots:path.join(os.tmpdir(),'ym2149-st-reference')};
-for(const argument of process.argv.slice(2)){const m=/^--(root|entry|engines|out|screenshots)=(.+)$/.exec(argument);assert(m,argument);config[m[1]]=m[2];}
+for(const argument of process.argv.slice(2)){const m=/^--(root|entry|engines|out|screenshots|music)=(.+)$/.exec(argument);assert(m,argument);config[m[1]]=m[2];}
 config.root=path.resolve(config.root);
 const mime={'.js':'text/javascript','.html':'text/html','.css':'text/css','.wasm':'application/wasm','.json':'application/json','.webp':'image/webp','.ts':'text/plain'};
 const server=http.createServer(async(req,res)=>{
@@ -19,7 +19,7 @@ function installSilentAudit(){
   const audit=window.__referenceAudit={contexts:[],meters:[],workers:[]};
   window.AudioContext=class extends Context{constructor(...args){super(...args);audit.contexts.push(this);}};
   if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext;
-  window.Worker=class extends NativeWorker{constructor(...args){super(...args);this.auditRecord={url:String(args[0]),closed:false};audit.workers.push(this.auditRecord);}terminate(){this.auditRecord.closed=true;return super.terminate();}};
+  window.Worker=class extends NativeWorker{constructor(...args){super(...args);this.auditRecord={url:String(args[0]),closed:false,edits:[]};this.editRequests=new Map();this.addEventListener('message',e=>{const request=this.editRequests.get(e.data.id);if(request){this.auditRecord.edits.push({request,result:e.data.result,error:e.data.error});this.editRequests.delete(e.data.id);}});audit.workers.push(this.auditRecord);}postMessage(message,...args){if(message.operation==='edit')this.editRequests.set(message.id,structuredClone(message.payload));return super.postMessage(message,...args);}terminate(){this.auditRecord.closed=true;return super.terminate();}};
   AudioNode.prototype.connect=function(destination,...args){
     if(destination!==this.context.destination)return connect.call(this,destination,...args);
     const analyser=this.context.createAnalyser(),mute=this.context.createGain();analyser.fftSize=4096;mute.gain.value=0;
@@ -63,7 +63,7 @@ async function main(){
       });
       await page.waitForFunction(()=>__referenceAudit.level().rms>0.0001);
       const vgmPCM=await page.evaluate(()=>__referenceAudit.level());
-      assert.equal(await page.locator('#tonePeriod').inputValue(),'100');assert.equal(await page.locator('#tonePeriod').isDisabled(),true);
+      assert.equal(await page.locator('#tonePeriod').inputValue(),'100');assert.equal(await page.locator('#tonePeriod').isDisabled(),false);
       await page.locator('#ymSongPause').click();await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().paused);
       const paused=(await state()).positionFrames;await page.waitForTimeout(160);assert.equal((await state()).positionFrames,paused);
       await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.down('z');
@@ -106,6 +106,10 @@ async function main(){
       assert(durations[1]>durations[0]);
       await page.locator('#ymSongPlay').click();await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().positionFrames>4410);
       await page.waitForFunction(()=>__referenceAudit.level().rms>0.0001);const sndhPCM=await page.evaluate(()=>__referenceAudit.level());
+      await page.locator('#ymChannel1Tab').click();
+      for(const id of ['toneEnabled','noiseEnabled','envelopeEnabled'])assert.equal(await page.locator('#'+id).isDisabled(),false,'SNDH live controls enabled');
+      await page.locator('#noiseEnabled').check();await page.locator('#envelopeEnabled').check();
+      await page.waitForFunction(()=>{const r=tetoricaYm2149StSynth.getSongState().liveState.registers;return !(r[7]&8)&&(r[8]&16);});
       const beforeBad=await settings(),goodName=(await state()).name;
       await page.locator('#ymMusicInput').setInputFiles({name:'broken.sndh',mimeType:'application/octet-stream',buffer:Buffer.alloc(40,0x71)});
       await page.waitForFunction(()=>document.getElementById('ymSongPanel').dataset.error==='true');
@@ -119,7 +123,7 @@ async function main(){
       assert.equal(await page.evaluate(()=>tetoricaYm2149StSynth.getCodeState().running),false,'reference stops Code');
       await page.locator('#ymSongPause').click();
       await page.locator('#ymSongLive').uncheck();await page.waitForFunction(()=>!document.getElementById('tonePeriod').disabled);
-      await page.locator('#ymSongLive').check();await page.waitForFunction(()=>document.getElementById('tonePeriod').disabled);
+      await page.locator('#ymSongLive').check();await page.waitForFunction(()=>!document.getElementById('tonePeriod').disabled);
       await page.locator('#ymSongStop').click();await page.waitForTimeout(160);
       await page.waitForFunction(()=>__referenceAudit.workers.every(worker=>worker.closed));
       assert((await page.evaluate(()=>__referenceAudit.level())).rms<1e-6);
@@ -127,7 +131,23 @@ async function main(){
       const audit=await page.evaluate(()=>({contexts:__referenceAudit.contexts.length,speakerRoutes:__referenceAudit.meters.length,allPhysicalOutputsMuted:__referenceAudit.meters.every(m=>m.mute.gain.value===0),workers:__referenceAudit.workers}));
       assert.equal(audit.contexts,1);assert.equal(audit.speakerRoutes,1);assert(audit.allPhysicalOutputsMuted);
       assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
-      results.push({engine,passed:true,vgmPCM,singleOutputPCM,singleOutputPauseResume:true,ymPCM,sndhPCM,pausedFrame:paused,pausedAudition:true,capturePreservesPause:true,subsongDurations:true,seek:true,codeExclusive:true,invalidImportKeepsSong:true,audit,errors,missing});
+      let actualMusic=null;
+      if(config.music){
+        const bytes=await fs.readFile(config.music);await page.locator('#ymMusicInput').setInputFiles({name:'user-music.sndh',mimeType:'application/octet-stream',buffer:bytes});
+        await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().format==='sndh'&&!tetoricaYm2149StSynth.getSongState().busy);
+        await page.locator('#ymSongPlay').click();await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().playing&&tetoricaYm2149StSynth.getSongState().positionFrames>4410);
+        await page.locator('#ymChannel1Tab').click();
+        for(const id of ['toneEnabled','noiseEnabled','envelopeEnabled'])assert.equal(await page.locator('#'+id).isDisabled(),false,'Real SNDH live control '+id);
+        const frame=(await state()).positionFrames;await page.evaluate(()=>__referenceAudit.workers.forEach(w=>w.edits=[]));
+        for(const id of ['toneEnabled','noiseEnabled','envelopeEnabled'])await page.locator('#'+id).click();
+        await page.waitForFunction(()=>__referenceAudit.workers.some(w=>w.edits.length>=3));
+        const writes=await page.evaluate(()=>__referenceAudit.workers.flatMap(w=>w.edits));
+        assert(writes.filter(e=>e.result&&!e.error).length>=3);
+        for(const e of writes){const v=e.request.patch.voice,r=e.result.registers,ch=e.request.channel;if(v.tone!==undefined)assert.equal(!(r[7]&(1<<ch)),v.tone);if(v.noise!==undefined)assert.equal(!(r[7]&(8<<ch)),v.noise);if(v.envelope!==undefined)assert.equal(Boolean(r[8+ch]&16),v.envelope);}assert((await state()).playing);assert((await state()).positionFrames>=frame);
+        actualMusic={name:path.basename(config.music),format:'sndh',controlsEnabled:true,nativeEdits:writes.map(e=>({request:e.request,registers:e.result?.registers,error:e.error})),positionAdvanced:true};
+        await page.locator('#ymSongPause').click();assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
+      }
+      results.push({engine,passed:true,actualMusic,vgmPCM,singleOutputPCM,singleOutputPauseResume:true,ymPCM,sndhPCM,pausedFrame:paused,pausedAudition:true,capturePreservesPause:true,subsongDurations:true,seek:true,codeExclusive:true,invalidImportKeepsSong:true,audit,errors,missing});
       await context.close();
     }finally{await browser.close();}
   }

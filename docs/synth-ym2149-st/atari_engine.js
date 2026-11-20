@@ -18,7 +18,7 @@ class AtariWorkerClient {
     if (signal?.aborted) throw abortError();
     if (typeof Worker !== 'function') throw new Error('Atari replay requires browser Worker support');
     if (workerCount >= ATARI_PLAYER_LIMITS.maximumWorkers) throw new Error('Too many active Atari replay Workers');
-    this.worker = new Worker(new URL('./atari_worker.js', import.meta.url), { type: 'module', name: 'ym2149-atari-reference' });
+    this.worker = new Worker(new URL('./atari_worker.js?v=live-edit-2', import.meta.url), { type: 'module', name: 'ym2149-atari-reference' });
     ++workerCount;
     this.pending = new Map();
     this.nextId = 1;
@@ -122,6 +122,7 @@ export async function createAtariSongEngine(source, { subsong = source?.defaultS
       return block;
     },
     snapshot: () => client.request('snapshot'),
+    editChannel: (channel,patch) => client.request('edit',{channel,patch}),
     dispose: () => client.close(),
   };
 }

@@ -303,6 +303,11 @@ EMSCRIPTEN_KEEPALIVE const char* atari_text(unsigned field) {
     }
 }
 EMSCRIPTEN_KEEPALIVE uint32_t atari_register(unsigned reg) { return renderer && initialized && reg < 14 ? renderer->GetYmRegister(reg) : 0; }
+EMSCRIPTEN_KEEPALIVE int atari_write_register(unsigned reg, unsigned value) {
+    if (!renderer || !initialized || reg >= 14 || value > 255) return 0;
+    renderer->WriteYmRegister(reg, static_cast<uint8_t>(value));
+    return 1;
+}
 EMSCRIPTEN_KEEPALIVE const int16_t* atari_output() { return output; }
 EMSCRIPTEN_KEEPALIVE int atari_render(uint32_t count) {
     if (!renderer || !initialized) { fail("Atari player is not initialized"); return -1; }

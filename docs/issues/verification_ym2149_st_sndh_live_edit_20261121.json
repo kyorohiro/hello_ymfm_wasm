@@ -1,0 +1,213 @@
+{
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "unit": {
+    "passed": 190,
+    "total": 190,
+    "log": "build/st-sndh-live-suite.log"
+  },
+  "nativeBuildReceipt": "docs/generated/atari-audio-player/atari-audio-player-build.json",
+  "localPatchReproducesSource": true,
+  "browser": {
+    "report": "build/st-sndh-live-browser.json",
+    "cases": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "actualMusic": {
+          "name": "Treasure_Search.sndh",
+          "format": "sndh",
+          "controlsEnabled": true,
+          "nativeEdits": [
+            {
+              "request": {
+                "channel": 0,
+                "patch": {
+                  "voice": {
+                    "tone": false
+                  }
+                }
+              },
+              "registers": [
+                142,
+                0,
+                142,
+                0,
+                112,
+                4,
+                0,
+                57,
+                10,
+                13,
+                10,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "request": {
+                "channel": 0,
+                "patch": {
+                  "voice": {
+                    "noise": true
+                  }
+                }
+              },
+              "registers": [
+                142,
+                0,
+                142,
+                0,
+                112,
+                4,
+                0,
+                49,
+                10,
+                13,
+                10,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "request": {
+                "channel": 0,
+                "patch": {
+                  "voice": {
+                    "envelope": true
+                  }
+                }
+              },
+              "registers": [
+                142,
+                0,
+                142,
+                0,
+                112,
+                4,
+                0,
+                49,
+                28,
+                15,
+                14,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ],
+          "positionAdvanced": true
+        },
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "actualMusic": {
+          "name": "Treasure_Search.sndh",
+          "format": "sndh",
+          "controlsEnabled": true,
+          "nativeEdits": [
+            {
+              "request": {
+                "channel": 0,
+                "patch": {
+                  "voice": {
+                    "tone": false
+                  }
+                }
+              },
+              "registers": [
+                142,
+                0,
+                142,
+                0,
+                112,
+                4,
+                0,
+                57,
+                10,
+                13,
+                10,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "request": {
+                "channel": 0,
+                "patch": {
+                  "voice": {
+                    "noise": true
+                  }
+                }
+              },
+              "registers": [
+                142,
+                0,
+                142,
+                0,
+                112,
+                4,
+                0,
+                49,
+                10,
+                13,
+                10,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "request": {
+                "channel": 0,
+                "patch": {
+                  "voice": {
+                    "envelope": true
+                  }
+                }
+              },
+              "registers": [
+                142,
+                0,
+                142,
+                0,
+                112,
+                4,
+                0,
+                49,
+                28,
+                15,
+                14,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ],
+          "positionAdvanced": true
+        },
+        "errors": [],
+        "missing": []
+      }
+    ]
+  }
+}

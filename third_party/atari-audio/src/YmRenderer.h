@@ -23,6 +23,7 @@ public:
 	void AudioRenderWithVisualInfos(int16_t* buffer, uint32_t sampleCount, uint32_t* pVisualSamples);
 	void MuteVoices(uint32_t muteVoiceMask);
 	uint8_t GetYmRegister(unsigned reg) const { return m_ym2149.GetRegister(reg); }
+	void WriteYmRegister(unsigned reg, uint8_t value) { m_ym2149.WriteRegister(reg, value); }
 
 private:
 

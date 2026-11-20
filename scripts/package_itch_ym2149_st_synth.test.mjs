@@ -274,8 +274,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 	assert.deepEqual(await readFile(join(a.stage, 'js/playground_ay8910_worklet.js')), await readFile(new URL('../docs/js/playground_ay8910_worklet.js', import.meta.url)));
 	assert.match(await readFile(join(a.stage, 'js/playground_ay8910_worklet.js'), 'utf8'), /import factory from '\.\.\/generated\/ay8910_wasm\.js'/);
 	assert.deepEqual(await readFile(join(a.stage, 'synth-ym2149-st/atari_worker.js')), await readFile(new URL('../docs/synth-ym2149-st/atari_worker.js', import.meta.url)));
-	assert.match(await readFile(join(a.stage, 'synth-ym2149-st/atari_worker.js'), 'utf8'), /new URL\('\.\.\/generated\/atari-audio-player\/atari-audio-player\.wasm', import\.meta\.url\)/);
-	assert.match(await readFile(join(a.stage, 'synth-ym2149-st/atari_engine.js'), 'utf8'), /new Worker\(new URL\('\.\/atari_worker\.js', import\.meta\.url\)/);
+	assert.match(await readFile(join(a.stage, 'synth-ym2149-st/atari_worker.js'), 'utf8'), /new URL\('\.\.\/generated\/atari-audio-player\/atari-audio-player\.wasm\?v=live-edit-2', import\.meta\.url\)/);
+	assert.match(await readFile(join(a.stage, 'synth-ym2149-st/atari_engine.js'), 'utf8'), /new Worker\(new URL\('\.\/atari_worker\.js\?v=live-edit-2', import\.meta\.url\)/);
 	const original = await readFile(a.archive);
 	await assert.rejects(
 		packageYm2149StSynth({ version: 'test', releaseDir: join(directory, 'a') }),

@@ -57,3 +57,15 @@ export function captureYmSongVoice(snapshot,channel,{name=`Reference CH${channel
   result.name=name.slice(0,120);
   return readPreset(result);
 }
+
+/** Resolve partial operations at the renderer's current register state. */
+export function ymSongEditWrites(snapshot,channel,patch) {
+  const next=editYmSongSnapshot(snapshot,channel,patch),voice=patch.voice??{},indices=[];
+  if(Object.hasOwn(voice,'period'))indices.push(channel*2,channel*2+1);
+  if(Object.hasOwn(voice,'tone')||Object.hasOwn(voice,'noise'))indices.push(7);
+  if(Object.hasOwn(voice,'volume')||Object.hasOwn(voice,'envelope'))indices.push(8+channel);
+  if(patch.noisePeriod!==undefined)indices.push(6);
+  if(patch.envelope&&Object.hasOwn(patch.envelope,'period'))indices.push(11,12);
+  if(patch.envelope&&Object.hasOwn(patch.envelope,'shape'))indices.push(13);
+  return indices.map(register=>({register,value:next.registers[register]}));
+}

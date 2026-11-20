@@ -241,3 +241,35 @@
  	void MuteVoices(uint32_t muteMask);
  	int16_t		dcAdjust(int16_t v);
  
+
+diff --git a/src/AtariAudioRenderer.h b/src/AtariAudioRenderer.h
+index 17958498..e14853ee 100644
+--- a/src/AtariAudioRenderer.h
++++ b/src/AtariAudioRenderer.h
+@@ -93,0 +94 @@ public:
++	virtual void WriteYmRegister(unsigned reg, uint8_t value) = 0;
+diff --git a/src/AtariMachine.h b/src/AtariMachine.h
+index 3e3debf5..7d438f9d 100644
+--- a/src/AtariMachine.h
++++ b/src/AtariMachine.h
+@@ -47,0 +48 @@ public:
++	void WriteYmRegister(unsigned reg, uint8_t value) { m_ym2149.WriteRegister(reg, value); }
+diff --git a/src/SndhRenderer.h b/src/SndhRenderer.h
+index 915b7e90..2ae429e6 100644
+--- a/src/SndhRenderer.h
++++ b/src/SndhRenderer.h
+@@ -24,0 +25 @@ public:
++	void WriteYmRegister(unsigned reg, uint8_t value) { m_atariMachine.WriteYmRegister(reg, value); }
+diff --git a/src/YmRenderer.h b/src/YmRenderer.h
+index 0ad8940d..eb3b3426 100644
+--- a/src/YmRenderer.h
++++ b/src/YmRenderer.h
+@@ -25,0 +26 @@ public:
++	void WriteYmRegister(unsigned reg, uint8_t value) { m_ym2149.WriteRegister(reg, value); }
+diff --git a/src/ym2149c.h b/src/ym2149c.h
+index ef79f196..c2642d3d 100644
+--- a/src/ym2149c.h
++++ b/src/ym2149c.h
+@@ -24,0 +25,2 @@ public:
++	// Host writes preserve the CPU-selected address latch.
++	void WriteRegister(unsigned reg, uint8_t value) { if (reg < 14) WriteReg(reg, value); }

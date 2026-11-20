@@ -15,3 +15,5 @@ Build with `sh scripts/build_atari_audio_player_wasm.sh`. Pass an output directo
 ## Included notices
 
 AtariAudio uses the MIT license in `LICENSE`, copyright 2026 Arnaud Carré. Musashi retains Karl Stenerud's permissive license in `src/external/Musashi/m68k.h` and its other source headers. The ICE source records its public-domain dedication by Hans Wessels in 2007. LZH source credits Haruhiko Okumura (1991) and Kerwin F. Medina (1996). The upstream credits also identify Benjamin Gerard and the SNDH Community for the timing database, and Paulo Simoes for the real-hardware YM volume table. The upstream example music files are omitted.
+
+Live editing adds `WriteYmRegister` forwarding to the native YM chip. The direct `WriteReg` path preserves the CPU address latch and performs normal register masking and Envelope retrigger side effects. The Worker serializes edits with rendering; later replay-program writes may replace host edits.

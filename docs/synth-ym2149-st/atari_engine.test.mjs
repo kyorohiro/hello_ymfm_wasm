@@ -215,3 +215,38 @@ test('Worker cancellation and request deadlines terminate native work', async ()
     globalThis.setTimeout = previousTimeout;
   }
 });
+
+test('native live writes preserve the SNDH CPU address latch and validate bounds',async()=>{
+ const native=await nativeCore(),bytes=makeSndhFixture();
+ // Leave R0 selected in Init. Play writes only the data port, without reselecting.
+ bytes.set([0x13,0xfc,0,0,0,0xff,0x88,0,0x4e,0x75],192);
+ bytes.set([0x13,0xfc,0,0x90,0,0xff,0x88,2,0x4e,0x75],256);
+ assert.equal(native.open(bytes).result,1);
+ assert.equal(native.core.atari_write_register(7,0x3f),1);
+ assert.equal(native.core.atari_write_register(14,1),0);
+ assert.equal(native.core.atari_write_register(7,256),0);
+ assert.equal(native.core.atari_render(1024),1024);
+ assert.equal(native.core.atari_register(0),0x90,'CPU data write still addresses R0');
+ assert.equal(native.core.atari_register(7),0x3f,'host write did not redirect the CPU data write');
+ native.core.atari_close();assert.equal(native.core.atari_write_register(7,0),0);
+});
+
+test('production YM/SNDH Worker resolves partial edits against native state in request order',async()=>{
+ const previous=globalThis.Worker;globalThis.Worker=BrowserWorker;
+ try {
+  for(const bytes of [makeYm5Fixture({ticks:100}),makeSndhFixture()]) {
+   const source=await readAtariSource(bytes),engine=await createAtariSongEngine(source);
+   try {
+    const before=await engine.snapshot();
+    await engine.editChannel(0,{voice:{noise:true,envelope:true},noisePeriod:23,envelope:{period:1234,shape:8}});
+    await engine.editChannel(1,{voice:{tone:false}});
+    const after=await engine.snapshot();
+    assert.equal(after.frame,before.frame);
+    assert.equal(after.registers[7],(before.registers[7]&~8)|2);
+    assert.equal(after.registers[8],(before.registers[8]&15)|16);assert.equal(after.registers[6],23);
+    assert.equal(after.registers[11],210);assert.equal(after.registers[12],4);assert.equal(after.registers[13],8);
+    const block=await engine.processFrames(512);assert(block.left.every(Number.isFinite));assert.equal(engine.frame,512);
+   } finally {engine.dispose();}
+  }
+ } finally {globalThis.Worker=previous;}
+});

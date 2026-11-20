@@ -1,6 +1,7 @@
+import {ymSongEditWrites} from './song_live.js?v=live-edit-2';
 // SPDX-License-Identifier: BSD-3-Clause
 // All native parsing and 68000 execution occur in this disposable module Worker.
-const wasmUrl = new URL('../generated/atari-audio-player/atari-audio-player.wasm', import.meta.url);
+const wasmUrl = new URL('../generated/atari-audio-player/atari-audio-player.wasm?v=live-edit-2', import.meta.url);
 const maximumFileBytes = 8 * 1024 * 1024;
 let nativePromise;
 let native;
@@ -98,6 +99,14 @@ async function handle(operation, payload) {
     return { ...information(), ...(active ? { snapshot: snapshot() } : {}) };
   }
   if (operation === 'snapshot') return snapshot();
+  if (operation === 'edit') {
+    const writes=ymSongEditWrites(snapshot(),payload.channel,payload.patch);
+    for(const {register,value} of writes) {
+      if(!native.atari_write_register(register,value))throw new Error('Atari register write rejected');
+    }
+    return snapshot();
+  }
+
   if (operation === 'render') {
     if (!active) throw new Error('Atari player is not initialized');
     if (!Number.isInteger(payload.frames) || payload.frames < 1 || payload.frames > 4096) throw new Error('Render request must contain 1..4096 frames');

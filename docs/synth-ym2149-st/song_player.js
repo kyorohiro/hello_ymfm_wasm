@@ -282,7 +282,8 @@ export function createYmSongPlayer({
           if ((run.renderedFrames - position(run)) / RATE >= lookaheadSeconds || (blocks && nowMs() >= deadline)) break;
           const requested = Math.min(BLOCK, duration() - run.renderedFrames);
           if (requested <= 0) { run.eof = true; break; }
-          for(const edit of run.pendingEdits?.splice(0)??[])run.engine.editChannel(edit.channel,edit.patch);
+          for(const edit of run.pendingEdits?.splice(0)??[])await waitFor(run.engine.editChannel(edit.channel,edit.patch),run.controller.signal);
+          if(run.released||active!==run)return;
           const result = await waitFor(run.engine.processFrames(requested), run.controller.signal);
           if (run.released || active !== run) return;
           const frames = renderLength(result, requested);

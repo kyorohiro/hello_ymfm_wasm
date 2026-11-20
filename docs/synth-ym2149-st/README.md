@@ -98,12 +98,11 @@ generators are shared. These temporary settings survive key release and channel
 selection; Capture to Synth saves the edited sound. Resume, seek or Stop clears
 them and resumes the original reference program without changing the saved Synth.
 
-During **VGM** playback these hardware controls edit the selected channel in
+During **VGM / SNDH / YM** playback these hardware controls edit the selected channel in
 the reference renderer directly. Writes reach the next render block after the
 short audio lookahead already queued for playback. Later song writes can replace
 them; shared Noise/Envelope affect all three channels. Code running on the Synth
-also permits manual controls, with the same last-write-wins behavior. SNDH/YM
-reference playback currently offers editing during Pause only.
+also permits manual controls, with the same last-write-wins behavior.
 
 ### Try the Sync-buzzer example
 
@@ -314,8 +313,9 @@ player and visualizer share one AudioContext and post-Master output.
 
 **Auto update** is on by default. Select **CH1–CH3** to see the heard song's
 tone/noise gates, period, volume and shared envelope in the existing controls.
-These reference fields are read-only. Select **Auto**, or turn Auto update off,
-to return to the editable Synth. **Code and reference playback are exclusive**:
+These hardware fields directly edit the playing reference channel; the song
+can overwrite them later. During Pause they edit a temporary keyboard audition.
+Select **Auto**, or turn Auto update off, to return to the editable Synth. **Code and reference playback are exclusive**:
 starting either stops the other.
 
 While paused, the keyboard auditions a sounding selected channel without

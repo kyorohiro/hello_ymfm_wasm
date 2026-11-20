@@ -22,6 +22,8 @@ public:
 
 	// Local read-only observability API. Registers 14/15 are not emulated.
 	uint8_t GetRegister(unsigned reg) const { return reg < 14 ? m_regs[reg] : 0; }
+	// Host writes preserve the CPU-selected address latch.
+	void WriteRegister(unsigned reg, uint8_t value) { if (reg < 14) WriteReg(reg, value); }
 	void MuteVoices(uint32_t muteMask);
 	int16_t		dcAdjust(int16_t v);
 
