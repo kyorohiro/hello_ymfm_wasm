@@ -119,6 +119,26 @@ button[aria-pressed='true'] { background: #2c5dbb; border-color: #234fa7; }
 .ym-code-workspace .spu-input-tabs > button[aria-selected='true'] { color: #284f99; background: #e1eafb; border-bottom-color: #e1eafb; }
 .ym-code-workspace [data-code-transport='shared'] { margin-bottom: 12px; }
 
+/* The same Code, chip controls and Master stay mounted in both layouts. */
+.ym-workspace-switch { display: inline-flex; }
+.ym-workspace-switch > button { border-radius: 0; }
+.ym-workspace-switch > button:first-child { border-radius: 999px 0 0 999px; }
+.ym-workspace-switch > button:last-child { border-radius: 0 999px 999px 0; margin-left: -1px; }
+.ym-workspace-switch > button[aria-pressed='true'] { color: #fff; }
+#ymSynthEditor, .ym-input-heading, #synthExpandedTabsSlot, #synthExpandedCodeSlot { min-width: 0; }
+.ym-code-workspace.is-code-expanded .ym-main { display: block; }
+.ym-main #synthExpandedCodeSlot { grid-column: auto; }
+.ym-code-workspace.is-code-expanded .keyboard-section { margin-top: 0; padding-top: 0; border-top: 0; }
+.ym-code-workspace .synth-expanded-heading { display: flex; align-items: flex-start; gap: 8px; min-width: 0; margin-bottom: 12px; }
+.ym-code-workspace .synth-expanded-heading .ym-chip-tabs { flex: 1; flex-wrap: wrap; min-width: 0; margin: 0; }
+.ym-code-workspace .synth-expanded-heading .ym-chip-tabs > button { flex: 0 0 auto; min-height: 34px; padding: 7px 11px; font-size: .77rem; }
+.ym-code-workspace .synth-expanded-heading .ym-chip-tabs > button:focus-visible { outline-offset: -2px; }
+.ym-code-workspace .synth-expanded-heading .spu-code-expand { flex: none; min-height: 34px; padding: 5px 9px; }
+.ym-code-workspace #synthExpandedTabsSlot > .spu-code-toolbar { margin-bottom: 12px; }
+#synthExpandedVolumeSlot { display: flex; justify-content: flex-end; min-width: 0; margin-bottom: 10px; }
+#synthExpandedVolumeSlot .master-control { max-width: 100%; color: #526582; }
+#synthExpandedVolumeSlot .master-control output { color: var(--ink); }
+
 .ym-files-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .ym-files-heading h2 { margin: 0; font-size: .78rem; letter-spacing: .15em; }
 .ym-files-toolbar, .ym-files-actions { display: flex; flex-wrap: wrap; gap: 5px; }

@@ -8,6 +8,43 @@ The comparison baseline is the current
 An absent feature is a comparison result, not approval to implement every row.
 Preserve the identity and hardware constraints of each chip.
 
+## Current priority — user correction, 2026-11-21
+
+Finish the incomplete **timed operation API** and **Code / Synth workspace**
+rollouts before adding more Live highlighting. Treating DMG highlights as the
+next task was the wrong priority; its TODO remains a deferred follow-up.
+
+- [ ] Complete Code / Synth header controls, persistent expanded chip/Code/
+      Keyboard tabs and the original visible Master on the remaining Synths.
+- [ ] Complete the scoped `build()` / `compile()` / `schedule()` /
+      `captureState()` ports recorded in the [timed API index](todo_synth_timed_register_api_20261119.md).
+      Ordinary liveLoop/Code playback or DSP assembly does not satisfy this API.
+- [ ] Retain existing Files/working-saved behavior, running performances,
+      ownership and chip-specific hardware semantics during those ports.
+- [ ] Resume [DMG Live highlighting](todo_dmg_live_highlight_20261121.md) after
+      these higher-priority rollouts, unless the user changes the order.
+
+The original HuC6280 → SPU → DMG → SID sequence below records the first group;
+it does not mean all other Synths are aligned. The order of the remaining
+targets is still undecided. This correction does not add recording, channel
+monitoring, RAM/DSP transfer or Native scheduling to the scope.
+
+Source recheck on 2026-11-21 (this priority update performs no implementation):
+
+| Remaining comparison target | Code / Synth + persistent expanded tabs | Timed API surface |
+|---|---|---|
+| YM2149 ST | Implemented 2026-11-21: [workspace record](todo_ym2149_st_code_workspace_20261121.md) | Present; 91 existing AY tests and live reservation continuity passed during the UI port |
+| FM2608 | Port needed | Port needed |
+| 2A03 | Port needed | Port needed |
+| S-DSP | Port needed | Port needed |
+| SCSP | Port needed | Port needed; DSP assembly is separate |
+| ASWAN | Present | Scoped implementation present; retain documented exclusions |
+| SMSGEAR / YM2413 | Present | Sega PSG / YM2413 shared clients and borrowed Synth wiring present |
+
+The four remaining workspaces (FM2608, 2A03, S-DSP and SCSP) do not yet use the
+persistent-expanded helper/header buttons. Source inspection is not a new
+claim of backend/audio validation or full completion of every optional row.
+
 ## Agreed order
 
 | Order | Synth | Individual audit and TODO |
@@ -29,6 +66,7 @@ decided. Their presence here does not extend the next implementation request.
 | SCSP / Saturn | [SCSP](todo_scsp_synth_fm2612_alignment_20261119.md) |
 | ASWAN / WonderSwan | [ASWAN](todo_aswan_synth_fm2612_alignment_20261119.md) |
 | YM2149 / Atari ST | [YM2149 ST](todo_ym2149_st_synth_fm2612_alignment_20261119.md) |
+| SMSGEAR / YM2413 | [Existing Synth implementation TODO](todo_smsgear_synth_20261120.md) |
 
 `docs/synth-gameboy/` redirects to DMG; `docs/synth-nes/` redirects to 2A03.
 They do not require duplicate implementations or independent TODOs.
@@ -74,7 +112,9 @@ They do not require duplicate implementations or independent TODOs.
 
 - [x] Record a source-based audit and individual TODO for every current canonical Synth.
 - [x] Start the authorized [HuC6280 saving/document-editing phase](todo_huc6280_working_saved_20261119.md); implementation and [verification](verification_huc6280_working_saved_20261119.json) complete.
-- [ ] Continue with SPU, DMG and SID in the agreed order, updating their audits at that time.
+- [x] Complete the initial SPU, DMG and SID saving/document and expanded-Code
+      slices; see their individual implementation records. Other Synth ports
+      remain open under the current priority above.
 - [ ] Reassess layout, highlighting, common channel monitoring and PCM editing as separate slices.
 
 Looper/Event Rec and timed-register ports remain proposals, not prerequisites
@@ -92,6 +132,8 @@ describe numeric measurements as human listening or long-duration testing.
 
 The [per-Synth timed register API rollout](todo_synth_timed_register_api_20261119.md)
 now makes build/schedule/compile and reusable snapshots explicit in every
-individual checklist. YM2612 and YM2149 ST remain supported references; HuC6280
-is the next planned candidate. This records follow-up work without authorizing
-runtime implementation or changing the separate Files/UI rollout order.
+individual checklist. YM2612 and YM2149 ST are supported references; HuC6280,
+SPU, DMG, SID and the scoped ASWAN port have implementation records in that
+index. Remaining chip ports and the Code / Synth workspace rollout take
+priority over further highlights. Individual scopes and backend limits remain
+separate; this record does not start runtime implementation automatically.

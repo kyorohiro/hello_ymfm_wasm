@@ -1,9 +1,9 @@
 # ST YM2149 Synth — FM2612 interaction alignment
 
-Recorded: 2026-11-19. Documentation/source audit only; no implementation or new
-verification has been performed for this list. This Synth is not yet ordered:
-the user's chosen sequence is HuC6280 → SPU → DMG → SID. Optional candidates
-are listed for consideration, not treated as approved requirements.
+Recorded: 2026-11-19; Code workspace slice implemented 2026-11-21.
+After the initial HuC6280 → SPU → DMG → SID group, the user prioritized timed
+APIs and Code / Synth workspaces over further highlighting. This ST layout
+slice is authorized; missing Files/optional rows below remain separate work.
 
 ## Current comparison
 
@@ -12,7 +12,7 @@ are listed for consideration, not treated as approved requirements.
 | Working/saved with explicit Save | **Missing.** [code_project.js](../synth-ym2149-st/code_project.js) retains a single filesystem/v1 snapshot. [code_files.js](../synth-ym2149-st/code_files.js) has autosaved local edits and Ctrl/Cmd+S, but no separate accepted version, Auto apply, dirty dots, Save all/Discard, saved-only Run/Apply or dual-version Cassette. |
 | Selected instrument file and controls | **Partial.** Readable JSON instruments can be selected/edited in Code. `markSoundDirty()` updates current project settings and clears preset selection; `saveSound()` writes a new preset path rather than maintaining a working version of the selected sound document. |
 | Undo files and project replacement | **Partial.** New Project with defaults/examples, cancel/export/rollback and project import exist; successful operations have no FM2612 Files Undo history. Preserve [completed New Project work](todo_ym2149_st_synth_20261116.md). |
-| Persistent expanded Code workspace | **Partial.** Maximize exists, but [code_host.js](../synth-ym2149-st/code_host.js) does not enable FM2612's persistent expansion, combined Code/YM2149/Mixer/Keyboard row or header Code–Synth toggle. |
+| Persistent expanded Code workspace | **Implemented 2026-11-21.** Header Code / Synth controls, persistent Code/YM2149/Mixer/Keyboard tabs, one original Master/editor/transport and retained performances. See [verification](todo_ym2149_st_code_workspace_20261121.md). |
 | Live changed-value highlight | **Missing.** Auto update/reference observation exists, but no FM2612-style bounded changed-value flash and On/Off preference are wired in [synth.js](../synth-ym2149-st/synth.js). |
 | Shared output mixer channel switches | **Partial.** [index.html](../synth-ym2149-st/index.html) has YM2149 chip gain and Master. It lacks independent output-only CH1–3 switches shared by Keyboard/Code/reference. Hardware Tone/Noise gates and fixed/envelope volume are not substitutes. |
 | PCM editor / Start / Loop ranges | **Not applicable to the base hardware.** YM2149 has no PCM sample RAM. The existing volume-register sample example is software-timed register playback, not an absent PCM instrument editor. |
@@ -35,7 +35,7 @@ are listed for consideration, not treated as approved requirements.
 - [ ] Export normal saved files plus versioned working differences and mode;
       preserve both through storage journals, reload, rename, import/New and
       Files Undo. Storage failure must not erase accepted or working content.
-- [ ] Add persistent Code/YM2149/Mixer/Keyboard navigation with header Code–Synth
+- [x] Add persistent Code/YM2149/Mixer/Keyboard navigation with header Code–Synth
       and visible Master, preserving the currently running reservations and FX.
 - [ ] Add bounded changed-value highlighting, default On and switchable Off;
       distinguish this display preference from Auto update and chip operation.
@@ -64,7 +64,8 @@ are listed for consideration, not treated as approved requirements.
       any future listening or long-duration session.
 
 References: [ST Synth and completed timed examples](todo_ym2149_st_synth_20261116.md),
-[FM2612 saving baseline](todo_fm2612_working_saved_20261119.md).
+[FM2612 saving baseline](todo_fm2612_working_saved_20261119.md),
+[implemented Code workspace](todo_ym2149_st_code_workspace_20261121.md).
 No publication, Tauri import, commit, push or tag is part of this checklist.
 
 ## Timed register API follow-up
@@ -73,7 +74,7 @@ YM2149 ST already provides the reference API; do not reimplement it.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
 - [x] Existing timed API recorded as supported; this is not a new verification run.
-- [ ] Preserve build/schedule/compile/captureState/clearSchedule and current/client/reset/reused snapshot behavior.
-- [ ] Keep R7 Tone/Noise partial updates and repeated R13 envelope triggers correct; retain buzzer and volume-sample examples through Files/UI changes.
+- [x] Preserve build/schedule/compile/captureState/clearSchedule during the workspace port. Existing AY timed regression tests passed 91/91; live moving reservations and snapshot compilation were checked through the new views.
+- [x] Retain existing R7/R13 resolver semantics and buzzer/volume examples during the layout port; no chip/runtime timing code changed. Future Files migrations must keep these checks.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.

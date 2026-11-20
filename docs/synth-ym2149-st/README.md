@@ -39,6 +39,18 @@ performance tools.
 
 ## JavaScript and Files
 
+The **Code / Synth** buttons beside Files select the workspace layout.
+**Code** opens the existing editor beside Files, with a combined
+**Code / YM2149 / Mixer / Keyboard** tab row. Changing tabs retains expansion;
+**Synth** or Restore returns to the normal layout. These actions do not Run
+or Apply source, stop playback or cancel named register reservations.
+
+The same Master slider and Run / Apply / Stop controls remain available in
+every expanded view. No second editor, audio context or output gain is created.
+Selected files and editor models stay attached while the controls move between
+their normal and expanded positions. Keyboard navigation of expanded tabs uses
+arrows, Home and End; computer keys still play outside text fields.
+
 **Keyboard / Code** switch views without stopping Code. Manual controls and
 keyboard notes stay available during a performance; writes to the same channel
 or shared generator can replace one another. Click outside a text field or

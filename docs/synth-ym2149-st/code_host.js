@@ -35,6 +35,8 @@ export function setupYmCodeHost({
 	onBeforeNewProject = async () => {},
 	downloadFile,
 	onActivity = () => {},
+	onViewChange = () => {},
+	onExpandedChange = () => {},
 	setStatus = () => {},
 } = {}) {
 	let disposed = false,
@@ -141,6 +143,7 @@ export function setupYmCodeHost({
 		files,
 		getRuntime,
 		keepRunningOnKeyboard: true,
+		persistentExpanded: true,
 		allowTextFiles: true,
 		maxTextLength: YM_PROJECT_FILE_BYTES,
 		writeText: (path, source) => project.writeEditorText(path, source),
@@ -159,6 +162,8 @@ export function setupYmCodeHost({
 			openOutput();
 			onActivity();
 		},
+		onViewChange,
+		onExpandedChange,
 		setStatus,
 	});
 	return {

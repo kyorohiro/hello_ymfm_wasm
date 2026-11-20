@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js';
 import {createDefaultPreset, readPreset} from './preset.js';
-import {setupYmCodeHost} from './code_host.js?v=ym-envelope-melody-1';
+import {setupYmCodeHost} from './code_host.js?v=ym-code-workspace-1';
 import {setupNumberControls} from './controls.js';
 import {createYmSongPlayer} from './song_player.js';
 import {prepareYmReference,createYmReferenceEngine} from './reference_source.js';
 import {setupYmSongPanel} from './song_panel.js';
 import {ymSongLiveView,captureYmSongVoice} from './song_live.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls,
   buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -16,7 +17,7 @@ const $ = id => document.getElementById(id);
 const localDesktop=window.top===window && typeof window.__TAURI_INTERNALS__?.invoke==='function' &&
   ((location.protocol==='tauri:' && location.hostname==='localhost') ||
   (['http:','https:'].includes(location.protocol) && location.hostname==='tauri.localhost'));
-let audio = null, opening = null, disposed = false, codeHost = null;
+let audio = null, opening = null, disposed = false, codeHost = null, expandedTabs = null;
 let switchingAudioOutput = false;
 let preset = createDefaultPreset(), target = null, pitch = 0, octave = 0;
 let serial = 0, revision = 0, renderFrame = null;
@@ -200,12 +201,19 @@ for(const button of document.querySelectorAll('[data-channel]')) {
     event.preventDefault(); event.stopPropagation(); buttons[next].click(); buttons[next].focus();
   });
 }
-for(const button of document.querySelectorAll('[data-chip-tab]')) button.addEventListener('click',()=>{
+const chipTabs=[...document.querySelectorAll('[data-chip-tab]')];
+function selectChip(button){
+  if(disposed||!chipTabs.includes(button))return false;
   const selected=button.dataset.chipTab;
-  for(const tab of document.querySelectorAll('[data-chip-tab]')) {
+  for(const tab of chipTabs) {
     const on=tab===button;tab.setAttribute('aria-selected',String(on));tab.tabIndex=on?0:-1;
   }
   $('ymChipPanel').hidden=selected!=='ym2149';$('ymMixerPanel').hidden=selected!=='mixer';
+  expandedTabs?.showChip(button);requestRender();return true;
+}
+for(const button of chipTabs) button.addEventListener('click',()=>{
+  selectChip(button);
+  if(codeHost?.controls.isExpanded())button.focus();else button.blur();
 });
 for(const button of document.querySelectorAll('[data-visual-mode]')) button.addEventListener('click',()=>{
   visualMode=button.dataset.visualMode;
@@ -296,6 +304,8 @@ document.addEventListener('pointerup',event=>{if(event.target.matches('input[typ
 codeHost=setupYmCodeHost({ensureAudio:ensurePerformanceAudio,getAudio:()=>audio,getSettings,applySettings,stopKeyboard,
   downloadFile:localDesktop && typeof window.tetoricaSynthSave==='function' ? window.tetoricaSynthSave : undefined,
   stopSong:()=>{stopKeyboard();songPlayer?.stop();},onActivity:requestRender,setStatus:status,
+  onViewChange:mode=>{expandedTabs?.showInput(mode);requestRender();},
+  onExpandedChange:value=>{expandedTabs?.setExpanded(value);requestRender();},
   onBeforeNewProject({isCurrent=()=>true}={}) {
     if(!isCurrent())return false;
     songPanel?.reset();stopKeyboard();audio?.stop();
@@ -303,6 +313,9 @@ codeHost=setupYmCodeHost({ensureAudio:ensurePerformanceAudio,getAudio:()=>audio,
     audio?.instrument.selectChannel(null);audio?.instrument.setPitch(0);
     renderKeyboard();render();
   }});
+expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,selectChip,
+  elements:{editor:$('ymSynthEditor'),chipTabs,volume:$('masterVolume').closest('.master-control')},
+  getChipView:button=>button.dataset.chipTab});
 songPlayer=createYmSongPlayer({getAudio:()=>audio,prepareSource:prepareYmReference,createEngine:createYmReferenceEngine,
   beforePlay:async()=>{
     stopKeyboard();await codeHost.stop();await ensurePerformanceAudio();audio.stop();
@@ -327,7 +340,7 @@ listen('ymSongCapture','click',async()=>{
 void codeHost.ready.catch(report);
 renderKeyboard();render();
 window.addEventListener('pagehide',()=>{
-  disposed=true;stopKeyboard();songPanel.dispose();songPlayer.dispose();resize.disconnect();visualizer.dispose();numbers.dispose();
+  expandedTabs?.dispose();disposed=true;stopKeyboard();songPanel.dispose();songPlayer.dispose();resize.disconnect();visualizer.dispose();numbers.dispose();
   if(renderFrame!==null)cancelAnimationFrame(renderFrame);
   void codeHost.dispose().finally(()=>audio?.dispose()).catch(()=>{});
 },{once:true});

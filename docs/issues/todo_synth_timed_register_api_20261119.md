@@ -4,6 +4,12 @@ Recorded: 2026-11-19; implementation status updated 2026-11-21.
 YM2149 ST and YM2612 provide the reference implementation. HuC6280 is implemented; SPU now has its first register-operation slice.
 Later API-port order is not implied by the Files/UI rollout.
 
+Priority correction (2026-11-21): the user explicitly prioritizes finishing
+this timed API rollout and the remaining Code / Synth expanded workspaces over
+additional Live highlights. Keep partial ports/backend exclusions explicit;
+do not mistake ordinary Code playback or DSP compilation for timed operations.
+See the [current alignment priority](todo_synth_fm2612_alignment_20261119.md#current-priority--user-correction-2026-11-21).
+
 | Synth | Status / individual TODO |
 |---|---|
 | FM2612 / Genesis | YM2612 present; other chips separate: [TODO](todo_fm2612_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
@@ -17,6 +23,7 @@ Later API-port order is not implied by the Files/UI rollout.
 | S-DSP / SNES | Planned: [TODO](todo_snes_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | SCSP / Saturn | Planned; distinct from DSP assembly: [TODO](todo_scsp_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | ASWAN | Synth Web Audio parameters, owned Synth notes and raw Gates implemented. Shared Playground/npm 0.2.45 supports hardware parameters and raw Gates; software Envelope notes remain Synth-only, RAM/PCM and Native scheduling remain separate: [public rollout](todo_wonderswan_timed_public_api_20261120.md), [Synth TODO](todo_aswan_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
+| SMSGEAR / YM2413 | Source recheck 2026-11-21: Sega PSG / YM2413 shared timed clients are connected to borrowed Synth Code clients; preserve their existing scopes and backend exclusions. See [Synth TODO](todo_smsgear_synth_20261120.md). This records existing code, not new validation. |
 
 ## Shared acceptance contract for each port
 
