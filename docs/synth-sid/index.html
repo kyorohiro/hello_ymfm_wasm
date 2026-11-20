@@ -33,7 +33,7 @@
             <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
             <div id="synthMenuPanel" class="synth-menu-panel">
               <section class="synth-menu-section"><h2>New</h2><div id="sidMenuProjectNew" class="synth-menu-actions"></div></section>
-              <section class="synth-menu-section"><h2>Import</h2><div class="synth-menu-actions"><div id="sidMenuProjectImport"></div><div id="sidMenuFilesImport"></div></div></section>
+              <section class="synth-menu-section"><h2>Import</h2><div class="synth-menu-actions"><button id="loadSidSound" type="button" data-close-synth-menu>Load SID…</button><div id="sidMenuProjectImport"></div><div id="sidMenuFilesImport"></div></div></section>
               <section class="synth-menu-section"><h2>Export</h2><div class="synth-menu-actions"><div id="sidMenuProjectExport"></div><div id="sidMenuFileExport"></div></div></section>
             </div>
           </details>
@@ -59,9 +59,9 @@
       </div>
     <details id="sidImportTools" class="sid-card sid-import-tools" open><summary>Sounds from SID</summary>
       <div class="sid-card-content">
-        <div class="sid-import-actions"><button id="loadSidSound" class="primary" type="button">Load SID…</button><button id="sidImportPlay" type="button" disabled>Play song</button><button id="sidImportPause" type="button" disabled>Pause</button><button id="sidImportStop" type="button" disabled>Stop song</button><button id="sidImportCapture" type="button" disabled>Capture voices</button></div>
+        <div class="sid-import-actions"><button id="sidImportPlay" type="button" disabled>Play song</button><button id="sidImportPause" type="button" disabled>Pause</button><button id="sidImportStop" type="button" disabled>Stop song</button><button id="sidImportCapture" type="button" disabled>Capture voices</button></div>
         <input id="sidSoundFileInput" class="file-input" type="file" accept=".sid,audio/prs.sid,application/octet-stream" aria-label="Choose a SID song for voice capture">
-        <p id="sidImportInfo" class="sid-help">Open a SID file, play the song, then capture a voice for this keyboard.</p>
+        <p id="sidImportInfo" class="sid-help">Choose Menu → Import → Load SID…, play the song, then capture a voice for this keyboard.</p>
         <div class="sid-import-options">
           <div class="sid-import-subtune" role="group" aria-label="SID subtune"><span>Subtune</span><button id="sidImportSubtuneDown" type="button" aria-label="Previous SID subtune" disabled>−</button><output id="sidImportSubtuneValue">—</output><button id="sidImportSubtuneUp" type="button" aria-label="Next SID subtune" disabled>+</button></div>
           <div class="sid-choice-group sid-import-models" role="group" aria-label="SID song model"><button type="button" data-sid-import-model="auto" aria-pressed="true">Auto · file</button><button type="button" data-sid-import-model="6581" aria-pressed="false">6581</button><button type="button" data-sid-import-model="8580" aria-pressed="false">8580 · Preview</button></div>
@@ -160,6 +160,6 @@
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>
-<script type="module" src="./synth.js?sid-transport=3&amp;sid-song-manual=1&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2&amp;sid-code-keyboard=1&amp;draft-reconnect=1&amp;v=sid-live-highlight-1"></script>
+<script type="module" src="./synth.js?sid-transport=3&amp;sid-song-manual=1&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2&amp;sid-code-keyboard=1&amp;draft-reconnect=1&amp;v=sid-import-menu-1"></script>
 </body>
 </html>

@@ -210,7 +210,7 @@ Code. Both offer a backup; canceling its native save keeps the current project
 and performance. Only a committed project replacement retires the old Code/song
 owner. Neither importing nor restoring automatically runs Code or plays a song.
 Original v1 SID projects migrate to this two-version form without rewriting
-source files. Imported `.sid` data remains opaque; **Load SID…** is still the
+source files. Imported `.sid` data remains opaque; **Menu → Import → Load SID…** is still the
 explicit song-preview action.
 
 Local recovery uses a SID-only IndexedDB store, a compact pending-edit journal
@@ -224,7 +224,7 @@ sources and definition-navigation declarations remain local in the ZIP.
 Open a local `.sid` directly in **Sounds from SID**, without visiting a separate
 Player page:
 
-1. Choose **Load SID…**. Loading checks a disposable C64 candidate and keeps
+1. Choose **Menu → Import → Load SID…**. Loading checks a disposable C64 candidate and keeps
    your keyboard instrument; it does not start audio.
 2. Choose a subtune with the − / + buttons and press **Play song**.
 3. When you hear the sound you want, press **Capture voices**, or **Pause** to

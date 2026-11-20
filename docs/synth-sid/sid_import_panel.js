@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // DOM-only view for the owned SID preview/capture controller.
-export function createSidImportPanel({root,liveRoot,getController,onLiveChange=()=>false}) {
+export function createSidImportPanel({root,liveRoot,loadButton=root.querySelector('#loadSidSound'),getController,onLiveChange=()=>false}) {
   let selectionToken=null;
   const $=id=>root.querySelector('#'+id),listeners=[];
   const listen=(node,event,fn)=>{node.addEventListener(event,fn);listeners.push(()=>node.removeEventListener(event,fn));};
@@ -12,7 +12,7 @@ export function createSidImportPanel({root,liveRoot,getController,onLiveChange=(
     node.blur();try{Promise.resolve(callback()).catch(error=>message(error?.message??String(error),true));}
     catch(error){message(error?.message??String(error),true);}
   });
-  act($('loadSidSound'),()=>{selectionToken=getController().beginFileSelection();$('sidSoundFileInput').click();});
+  act(loadButton,()=>{selectionToken=getController().beginFileSelection();$('sidSoundFileInput').click();});
   listen($('sidSoundFileInput'),'cancel',()=>{const token=selectionToken;selectionToken=null;$('sidSoundFileInput').blur();getController().cancelFileSelection(token??undefined);});
   listen($('sidSoundFileInput'),'change',()=>{
     const file=$('sidSoundFileInput').files?.[0],token=selectionToken;selectionToken=null;$('sidSoundFileInput').value='';$('sidSoundFileInput').blur();
@@ -48,7 +48,7 @@ export function createSidImportPanel({root,liveRoot,getController,onLiveChange=(
       label($('sidImportCaptureInfo'),captureInfo);
       label($('sidImportInfo'),selection
         ?`${selection.name} · ${selection.title||selection.name} · ${selection.format} · ${selection.timing} · PAL / ${selection.model}${selection.model==='8580'?' Preview':''}`
-        :'Open a SID file, play the song, then capture a voice for this keyboard.');
+        :'Choose Menu → Import → Load SID…, play the song, then capture a voice for this keyboard.');
       message(state.message??'Choose a local SID file.',Boolean(state.error));
       $('sidImportStatus').dataset.state=state.error?'error':state.loading?'loading':state.starting?'starting':state.pausing?'pausing':state.resuming?'resuming':state.paused?'paused':state.playing?'playing':state.snapshot?'captured':selection?'ready':'idle';
       for(const button of root.querySelectorAll('[data-sid-import-model]')){

@@ -7,7 +7,7 @@ import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectCh
 import {captureSidVoices} from '../sid-player/voice_snapshot.js?sid-waves=1';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js?sid-waves=1';
 import {createSidImport} from './sid_import.js?sid-song-manual=1&sid-highlight=1';
-import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
+import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1&sid-menu-import=1';
 import {createSidLiveView} from './sid_live_view.js?sid-song-manual=1&sid-highlight=1';
 import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -314,7 +314,7 @@ codeLive=createSidCodeLive({getAudio:()=>audio,
   isRunning:()=>Boolean(codeHost?.isRunning()&&!document.hidden),
   onUpdate:()=>updateLiveDisplay(),
 });
-const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),liveRoot:$('sidLiveTools'),getController:()=>sidImporter,
+const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),liveRoot:$('sidLiveTools'),loadButton:$('loadSidSound'),getController:()=>sidImporter,
   onLiveChange(enabled){if(!codeHost?.isRunning())return false;codeLive.setEnabled(enabled);return true;},
 });
 sidImporter=createSidImport({
