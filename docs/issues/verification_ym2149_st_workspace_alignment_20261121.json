@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "scope": "Align Files heading and expanded workspace tabs beneath one shared status/reference/Master row",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "remoteCiRun": false,
+  "npmPublished": false,
+  "checker": {
+    "path": "scripts/check_ym2149_code_workspace_browser.cjs",
+    "sha256": "50088dc47176809ca357f6dd84a14e573ab453a6e77c13e0ad33c643654c0167"
+  },
+  "unit": {
+    "command": "npm run test:ym2149-st-synth",
+    "total": 185,
+    "passed": 185,
+    "log": "build/st-code-row-alignment-synth-20261121.log"
+  },
+  "browser": {
+    "cases": 8,
+    "stageChecks": 56,
+    "reports": [
+      {
+        "path": "build/st-code-row-alignment-20261121/source-fallback.json",
+        "sha256": "3172aac553d4bd96b91d5e3166ef6bc0903b92036965c02ba8a0ba0c9f2e446c",
+        "entry": "/synth-ym2149-st/index.html",
+        "editor": "fallback",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 24960,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 24960,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 22961,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 22961,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      },
+      {
+        "path": "build/st-code-row-alignment-20261121/source-monaco.json",
+        "sha256": "7f41b07ff0f5c8ea3817c2646529ec2b68e47dee21a313511e47ac349ae7ce47",
+        "entry": "/synth-ym2149-st/index.html",
+        "editor": "monaco",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 26607,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 26607,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 23784,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 23784,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      },
+      {
+        "path": "build/st-code-row-alignment-20261121/zip-fallback.json",
+        "sha256": "50e774273614bfbcbfe308d9433e6a9c95742b13af62ccb55fc8bf32a7a650a8",
+        "entry": "/index.html",
+        "editor": "fallback",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 24960,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 24960,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 23667,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 23667,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      },
+      {
+        "path": "build/st-code-row-alignment-20261121/zip-monaco.json",
+        "sha256": "c689c336151f6176a79a304d2d1b9120a84b0e071c62f4b200b7edd12d821c54",
+        "entry": "/index.html",
+        "editor": "monaco",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 26607,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 26607,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "geometry": {
+              "desktopSamples": 18,
+              "maxHeadingTabTopDelta": 0,
+              "maxHeadingTabCenterDelta": 0,
+              "referenceOpenStates": [
+                true,
+                false
+              ],
+              "referenceAndMasterAboveColumns": true
+            },
+            "instrumentViewPreserved": true,
+            "referenceFold": {
+              "defaultExpanded": true,
+              "coldAudioContexts": 0,
+              "foldPreservedAcrossViews": true,
+              "keyboardToggle": true,
+              "codeContinuesWithSameOwner": true,
+              "playingContinuesWithoutAudioCommands": true,
+              "pausedFrame": 27547,
+              "pausedPositionPreservedWithoutAudioCommands": true
+            },
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 27547,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "distribution": {
+    "passed": true,
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/st-code-row-alignment-20261121/package/tetorica_ym2149_st_synth_code-row-alignment-20261121_itch.zip",
+    "files": 205,
+    "bytes": 2494089,
+    "sha256": "4939441ac5d9a535b6cb7fec4af374e50dc10de95713433903e318ebd36c27c1",
+    "originalInputsVerified": 180,
+    "readableWorkspaceModulesMatch": true,
+    "htmlOnlyDocumentedNavigationAndAssetRebasing": true
+  },
+  "sourceChanges": [
+    {
+      "path": "docs/synth-ym2149-st/index.html",
+      "sha256": "169bbb359591b469ca3409460f343a5808113828b4e900e52ce6c09db7a5742d"
+    },
+    {
+      "path": "docs/synth-ym2149-st/synth.css",
+      "sha256": "b373ff00a1d34587d65a64a13d255f93ae1890128631134a50faa91b9c0a2d34"
+    },
+    {
+      "path": "docs/synth-ym2149-st/code_workspace.test.mjs",
+      "sha256": "f18df26a934fe5b96f21c7b5192e95ee5b13a740868262429d8be5c7925d71e2"
+    },
+    {
+      "path": "docs/synth-ym2149-st/README.md",
+      "sha256": "050d0e18d38f54ff09fc5c0a372d560bcffbb03069c8eab918b74afcdcbb082d"
+    }
+  ]
+}

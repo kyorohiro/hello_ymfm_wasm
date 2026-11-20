@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "scope": "ST reference transport remains visible and usable in Code and Keyboard workspaces",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "remoteCiRun": false,
+  "npmPublished": false,
+  "checker": {
+    "path": "scripts/check_ym2149_code_workspace_browser.cjs",
+    "sha256": "3dc11d8d454a6090dcf764c9e49819d8949384ac3ca3d089d08459d9e4d4a077"
+  },
+  "unit": {
+    "command": "npm run test:ym2149-st-synth",
+    "total": 181,
+    "passed": 181,
+    "log": "build/st-code-player-visible-synth-20261121.log"
+  },
+  "browser": {
+    "cases": 8,
+    "stageChecks": 48,
+    "reports": [
+      {
+        "report": "build/st-code-player-visible-20261121/source-fallback.json",
+        "sha256": "4bba5db830bb3514adbce343743bcc9e8193ceecd8d7dd06b7d1284b2407bd05",
+        "entry": "/synth-ym2149-st/index.html",
+        "editor": "fallback",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 16023,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 15552,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      },
+      {
+        "report": "build/st-code-player-visible-20261121/source-monaco.json",
+        "sha256": "d9cf35f0531d599242ca09b6c3fb24439a992649df7c278ef2c4106c13c3f0ac",
+        "entry": "/synth-ym2149-st/index.html",
+        "editor": "monaco",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 18375,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 18727,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      },
+      {
+        "report": "build/st-code-player-visible-20261121/zip-fallback.json",
+        "sha256": "698874f118ffcd56876c47e774535a1447b21cff1e456dd34f1b35121d1e63c0",
+        "entry": "/index.html",
+        "editor": "fallback",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 16963,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 14729,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      },
+      {
+        "report": "build/st-code-player-visible-20261121/zip-monaco.json",
+        "sha256": "4c949157a14bd1a52825d4d0fc7bb7e411ad8773ba33c7f4ee2533c7d3d040c1",
+        "entry": "/index.html",
+        "editor": "monaco",
+        "physicalOutputMuted": true,
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 16258,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "Header Code opens persistent Code / YM2149 / Mixer / Keyboard views with original Master, transport, File tree and editor; layout alone creates no audio",
+              "Arrow keys, Home/End, header Synth and maximize/restore retain expansion, focus and the original Master placement",
+              "One AudioContext and chip keep the same loop/context/client/livePrepare identities, compiled R8 pattern and native reservation moving across all four views; Master gain remains live",
+              "Keyboard and Code background performance share selected CH2 without changing the loop owner; typing is silent and JSON/text drafts and Monaco models survive file/view selection",
+              "1360px and 390px layouts, Files open/closed and restoration fit with visible reference controls, nonzero Monaco and no page overflow, while named schedules retain their owner without UI reset/cancel",
+              "The original reference player is visible in every view; actual VGM Play/Pause/Resume/Stop work directly in Code, exact paused frames survive navigation, and explicit Code/song transports stay exclusive"
+            ],
+            "reference": {
+              "format": "vgm",
+              "pausedFrames": 16258,
+              "selectedChannel": 1,
+              "controlsVisibleIn": [
+                "synthInputCodeTab",
+                "ymChipTab",
+                "ymMixerTab",
+                "synthInputKeyboardTab"
+              ],
+              "playPauseResumeStopView": "code",
+              "importPreservesCode": true,
+              "referencePlayStopsCode": true,
+              "codeRunStopsReference": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "distribution": {
+    "passed": true,
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/st-code-player-visible-20261121/package/tetorica_ym2149_st_synth_code-player-visible-20261121_itch.zip",
+    "files": 205,
+    "bytes": 2492721,
+    "sha256": "e32f87da3a459ba9e248c17efa33af7fa42e066cf6e67d8ff5002c8c23004b58",
+    "originalInputsVerified": 180,
+    "readableWorkspaceModulesMatch": true,
+    "htmlOnlyDocumentedNavigationAndAssetRebasing": true
+  },
+  "sourceChanges": [
+    {
+      "path": "docs/synth-ym2149-st/index.html",
+      "sha256": "ad8171bd313f2e668af795e633ecca53a7c1fb7f61a35d38292c610c62f42556"
+    },
+    {
+      "path": "docs/synth-ym2149-st/README.md",
+      "sha256": "7304b56eb7da384bf4155a7ffafc2ba594b88b1a02b636add8e08f5bf4ffae82"
+    },
+    {
+      "path": "docs/synth-ym2149-st/code_workspace.test.mjs",
+      "sha256": "32675f217909507a447ab29f1fcbe47ed2b8527ce0036f3be9a921a890d9793c"
+    }
+  ]
+}

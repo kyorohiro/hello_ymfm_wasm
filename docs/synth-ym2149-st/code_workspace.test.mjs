@@ -195,12 +195,24 @@ const selected = tabs => tabs.filter(tab => tab.getAttribute('aria-selected') ==
 
 test('actual YM2149 ST markup creates one persistent Code / YM2149 / Mixer / Keyboard workspace', async t => {
   const f = fixture(t), all = [f.code, f.ym, f.mixer, f.keyboard], main = f.byId('ymSynthMain');
+  const meta = f.byId('ymWorkspaceMeta'), reference = f.byId('ymReferenceControls');
   assert(f.heading.classList.contains('ym-input-heading'));
-  for (const id of ['synthExpandedTabsSlot', 'synthExpandedVolumeSlot', 'synthExpandedCodeSlot']) assert.equal(f.byId(id).parentNode, main, id + ' remains outside the hidden editor');
+  assert.equal(meta.parentNode, f.byId('synthWorkspace'));
+  assert.equal(f.byId('synthWorkspace').firstChild, meta, 'shared status/player row precedes Files and the workspace');
+  assert.equal(f.byId('audioStatus').parentNode, meta);
+  assert.equal(reference.parentNode, meta);
+  assert.equal(f.byId('synthExpandedVolumeSlot').parentNode, reference, 'Master shares the upper row rather than pushing only the right column down');
+  for (const id of ['synthExpandedTabsSlot', 'synthExpandedCodeSlot']) assert.equal(f.byId(id).parentNode, main, id + ' remains outside the hidden editor');
   assert.equal(f.editor.parentNode, main);
   assert.equal(f.section.parentNode, main);
   assert(main.children.indexOf(f.byId('synthExpandedCodeSlot')) > main.children.indexOf(f.section));
-  for (const id of ['ymSongPanel', 'outputCanvas', 'envelopeCanvas', 'ymPresetSelect', 'presetName', 'ymChipPanel', 'ymMixerPanel']) assert(walk(f.editor).includes(f.byId(id)), id + ' belongs to the existing Synth editor');
+  assert.equal(f.byId('ymSongPanel').parentNode, reference, 'reference transport remains above Files and outside the hidden Synth editor');
+  assert.equal(f.byId('ymSongPanel').tagName, 'details');
+  assert.equal(f.byId('ymSongPanel').getAttribute('open'), '', 'reference controls start expanded');
+  assert.equal(f.byId('ymSongToggle').tagName, 'summary');
+  assert.equal(f.byId('ymSongToggle').parentNode, f.byId('ymSongPanel'));
+  assert.equal(f.byId('ymSongBody').parentNode, f.byId('ymSongPanel'));
+  for (const id of ['outputCanvas', 'envelopeCanvas', 'ymPresetSelect', 'presetName', 'ymChipPanel', 'ymMixerPanel']) assert(walk(f.editor).includes(f.byId(id)), id + ' belongs to the existing Synth editor');
   assert.equal(f.ym.dataset.chipTab, 'ym2149');
   assert.equal(f.mixer.dataset.chipTab, 'mixer');
   f.byId('synthWorkspaceCodeButton').fire('click');
@@ -220,6 +232,11 @@ test('actual YM2149 ST markup creates one persistent Code / YM2149 / Mixer / Key
     assert.equal(f.transport.parentNode, f.byId('synthExpandedTabsSlot'));
     assert.equal(f.master.parentNode, f.byId('synthExpandedVolumeSlot'));
     assert.equal(f.byId('synthExpandedVolumeSlot').hidden, false);
+    for (const id of ['ymSongSelect', 'ymSongPlay', 'ymSongPause', 'ymSongStop', 'ymSongSeek', 'ymSongPosition']) {
+      for (let node = f.byId(id); node; node = node.parentNode) {
+        assert.equal(node.hidden, false, id + ' has no hidden ancestor in ' + view + ' view');
+      }
+    }
     assert.deepEqual(selected(all), [tab]);
     assert.deepEqual(all.filter(button => button.tabIndex === 0), [tab]);
     assert.equal(f.byId('synthWorkspaceCodeButton').getAttribute('aria-pressed'), 'true');

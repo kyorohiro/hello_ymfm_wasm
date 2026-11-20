@@ -47,6 +47,14 @@ or Apply source, stop playback or cancel named register reservations.
 
 The same Master slider and Run / Apply / Stop controls remain available in
 every expanded view. No second editor, audio context or output gain is created.
+The Song selector and reference Play / Pause / Stop also remain available in
+Code and Keyboard views. Click **Reference playback** to fold or expand the
+panel without changing playback. It starts expanded. Code and reference playback
+keep their existing exclusion: starting one stops the other, independently of
+the displayed tab.
+Reference playback sits above the Files and workspace columns. In expanded
+view, Master shares this upper area so the Files heading and workspace tabs
+start at the same height on desktop.
 Selected files and editor models stay attached while the controls move between
 their normal and expanded positions. Keyboard navigation of expanded tabs uses
 arrows, Home and End; computer keys still play outside text fields.
@@ -77,7 +85,9 @@ running. **Stop all sound** is the main performance stop.
 
 **Files** holds JavaScript, local modules, text and readable preset JSON.
 **Save sound** keeps an instrument in `/presets/`; selecting a valid preset
-loads its settings. Import and export files or **Cassette** projects from the
+from **Instrument** loads its settings without changing the workspace tab or
+opening its JSON in Code. Choose a file in **Files** to edit its contents.
+Import and export files or **Cassette** projects from the
 menu. Local project storage keeps drafts on this browser; export a Cassette
 for a portable copy. Restoring a project does not execute its code. Master,
 octave and transient playback state are host preferences.

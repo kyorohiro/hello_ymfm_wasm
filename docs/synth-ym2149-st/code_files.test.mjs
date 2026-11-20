@@ -1232,6 +1232,68 @@ test('YM2149 ST preset selection leaves running Code active and preserves Keyboa
  assert.equal(f.doc.getElementById('ymPresetSelect').value,'/presets/Shared.ym2149-st.json');
 });
 
+test('YM2149 ST Instrument picker applies sound without revealing Code or replacing the selected editor file', async t => {
+ for (const mode of ['keyboard', 'code']) await t.test(mode, async t => {
+  const f=fixture(t);await f.files.ready;
+  const sound=createDefaultPreset(),path='/presets/Instrument.ym2149-st.json';
+  sound.name='Instrument';sound.voices[0].period=530;sound.noisePeriod=23;
+  sound.envelope={period:1234,shape:12};
+  f.project.importFiles([{path,data:JSON.stringify(sound)}]);
+  f.project.select('/index.js');f.project.setCodeState({mode,path:'/index.js'});
+  const selection=f.project.selectedPath,state=f.project.getCodeState();
+  const source='// editor draft flushed before applying an instrument';
+  f.files.setCodeControls({
+   activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>mode==='code',setBusy(){},
+   flush:async()=>{f.project.writeEditorText('/index.js',source);return true;},
+   openFile:()=>assert.fail('Instrument selection must not reveal Code or change its model'),
+   stop:()=>assert.fail('Instrument selection keeps running Code'),
+   workspaceReplaced:()=>assert.fail('Instrument selection keeps the workspace'),
+  });
+  const picker=f.doc.getElementById('ymPresetSelect');picker.value=path;picker.focus();
+  await picker.fire('change');
+  assert.deepEqual(f.project.settings,sound);
+  assert.equal(picker.value,path);
+  assert.equal(f.project.selectedPath,selection);
+  assert.deepEqual(f.project.getCodeState(),state);
+  assert.equal(f.project.fs.get('/index.js').data,source);
+  assert.deepEqual(f.calls.map(call=>call[0]),['sound','apply']);
+  assert.deepEqual(f.opened,[]);
+  assert.notEqual(f.doc.activeElement,picker,'the picker releases performance keys');
+  // Explicit Files selection still opens the JSON using the current input mode.
+  f.files.setCodeControls({isCodeMode:()=>mode==='code',setBusy(){},flush:async()=>true,
+   openFile:async(path,options)=>f.opened.push({path,options})});
+  assert.equal(await f.files.selectFile(path),true);
+  assert.equal(f.project.selectedPath,path);
+  assert.deepEqual(f.opened,[{path,options:{show:mode==='code'}}]);
+ });
+});
+
+test('YM2149 ST rejected Instrument apply keeps the previous sound, picker and editor selection', async t => {
+ let result=true,settings=createDefaultPreset();
+ const f=fixture(t,{getSettings:()=>settings,applySettings:async value=>{
+  if(result instanceof Error)throw result;
+  if(result)settings=value;
+  return result;
+ }});
+ await f.files.ready;
+ const first=createDefaultPreset(),next=createDefaultPreset();
+ first.name='First instrument';next.name='Rejected instrument';next.noisePeriod=25;
+ const firstPath='/presets/First.ym2149-st.json',nextPath='/presets/Rejected.ym2149-st.json';
+ f.project.importFiles([{path:firstPath,data:JSON.stringify(first)},{path:nextPath,data:JSON.stringify(next)}]);
+ const selection=f.project.selectedPath;
+ f.files.setCodeControls({isCodeMode:()=>true,setBusy(){},flush:async()=>true,
+  openFile:()=>assert.fail('The Instrument picker must not open the editor')});
+ const picker=f.doc.getElementById('ymPresetSelect');picker.value=firstPath;await picker.fire('change');
+ assert.deepEqual(settings,first);assert.equal(picker.value,firstPath);
+ for(result of [false,Error('upload failed')]) {
+  picker.value=nextPath;await picker.fire('change');
+  assert.deepEqual(settings,first);assert.deepEqual(f.project.settings,first);
+  assert.equal(picker.value,firstPath);assert.equal(f.project.selectedPath,selection);
+  assert.equal(f.doc.querySelector('.ym-main').inert,false);
+ }
+ assert.match(f.statuses.at(-1),/upload failed/);
+});
+
 test('YM2149 ST Files imports opaque binary files without song parsing or applying',async t=>{
  const f=fixture(t);await f.files.ready;
  const bytes=Uint8Array.of(0,255,17);

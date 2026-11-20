@@ -397,7 +397,7 @@ export function setupYmCodeFiles({
 		for (let directory = dirname(path); directory !== '/'; directory = dirname(directory))
 			expanded.set(directory, true);
 	}
-	async function selectFile(path) {
+	async function selectFile(path, { openEditor = true } = {}) {
 		if (!disposed && !busy) code?.cancelPendingExecution?.();
 		await api.ready;
 		if (disposed || busy) return false;
@@ -407,7 +407,7 @@ export function setupYmCodeFiles({
 		path = normalizeVirtualPath(path);
 		const file = project.fs.get(path);
 		if (!file) throw Error('Choose a file.');
-		if (isYmCodePath(path)) {
+		if (openEditor && isYmCodePath(path)) {
 			project.select(path);
 			render();
 			return await openInCurrentMode(path);
@@ -421,6 +421,10 @@ export function setupYmCodeFiles({
 				soundError = error;
 			}
 		}
+		// The Instrument picker applies sound only. Opening its JSON would
+		// reveal Code even when the persistent workspace is showing YM2149.
+		if (!openEditor && !sound)
+			throw soundError ?? Error('Choose a playable YM2149 ST sound.');
 		if (sound) {
 			setBusy(true);
 			try {
@@ -445,14 +449,16 @@ export function setupYmCodeFiles({
 			project.setSettings(sound);
 			appliedPreset = { kind: 'json', path, data: file.data };
 		}
-		project.select(path);
+		if (openEditor) project.select(path);
 		render();
 		schedule();
-		if (file.type === 'text') await openInCurrentMode(path);
+		if (openEditor && file.type === 'text') await openInCurrentMode(path);
 		if (disposed || token !== operation) return false;
 		say(
 			sound
-				? 'YM2149 ST sound loaded. Edit its JSON in Code; select it again to apply changes.'
+				? openEditor
+					? 'YM2149 ST sound loaded. Edit its JSON in Code; select it again to apply changes.'
+					: 'YM2149 ST instrument loaded.'
 				: soundError
 					? `JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`
 					: file.type === 'text'
@@ -997,7 +1003,7 @@ export function setupYmCodeFiles({
 	listen(presetSelect, 'change', () => {
 		const choice = presetOptions.get(presetSelect.value);
 		presetSelect.blur();
-		if (choice) void selectFile(choice.path).catch(report);
+		if (choice) return selectFile(choice.path, { openEditor: false }).catch(report);
 	});
 	for (const [id, fn] of [
 		['ymProjectNewButton', askNewProject],
