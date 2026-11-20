@@ -38,6 +38,30 @@ export const ASWAN_CODE_GLOBALS = Object.freeze([
 	'pg',
 ]);
 const TYPES = `
+interface AswanOperationBuilder {
+  /** Absolute offset from reservation start; default reference rate is 44100 Hz. */
+  atSample(offset:number):AswanOperationBuilder;
+  atSeconds(offset:number):AswanOperationBuilder;
+  setVolume(channel:PlaygroundWonderSwanChannel,left:number,right?:number):AswanOperationBuilder;
+  setPan(channel:PlaygroundWonderSwanChannel,left:number,right?:number):AswanOperationBuilder;
+  setFrequency(channel:PlaygroundWonderSwanChannel,hz:number):AswanOperationBuilder;
+  setNote(channel:PlaygroundWonderSwanChannel,note:string|number):AswanOperationBuilder;
+  setNoise(options:{enabled:boolean;type?:number;reset?:boolean}):AswanOperationBuilder;
+  setSweep(options:{enabled:boolean;step?:number;time?:number}):AswanOperationBuilder;
+}
+interface AswanOperations {
+  version:1;chip:'wonderswan';referenceSampleRate:number;
+  operations:Array<{time:{unit:'sample'|'seconds';value:number};order:number;method:string;args:unknown[]}>;
+}
+interface AswanTimedSnapshot {
+  readonly format:'tetorica-wonderswan-state';readonly version:1;readonly instanceId:string;
+  readonly frame:number;readonly sampleRate:number;
+  readonly state:{readonly clock:number;readonly initialized:boolean;readonly registers:readonly number[];readonly memory:readonly number[]};
+}
+interface AswanTimedReceipt {
+  name:string;entries:number;sampleRate:number;startFrame?:number;repeatSeconds?:number;staged?:boolean;
+}
+
 interface AswanCodePreset {
   format:'tetorica-aswan-voice';version:1;name:string;source:'wave'|'noise'|'pcm';
   wave:number[];left:number;right:number;
@@ -62,6 +86,15 @@ type AswanCodeClient = Pick<PlaygroundWonderSwan,
   'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'allNotesOff'|'setNoise'|'setSweep'|'setVoiceMode'|'writeVoice'> & {
   readonly id:string;readonly chip:'wonderswan';readonly channels:4;readonly channelCount:4;readonly clock:3072000;
   getState():Promise<AswanCodeState>;
+  /** Record once without reading or changing live state. Parameter operations only. */
+  build(callback:(builder:AswanOperationBuilder)=>void,options?:{referenceSampleRate?:number}):AswanOperations;
+  /** Detached sent-register metadata, not oscillator/LFSR/Sweep phase. */
+  captureState():Promise<AswanTimedSnapshot>;
+  /** Predict writes without changing audio. Incomplete client shadow is explicitly rejected. */
+  compile(operations:AswanOperations,options?:{initialState?:'current'|'reset'|'client'|AswanTimedSnapshot}):Promise<Array<{offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number}>>;
+  /** Sample-clock parameter reservation. Apply replaces names; Stop cancels owners. */
+  schedule(operations:AswanOperations,options:{name:string;repeatSeconds?:number}):Promise<AswanTimedReceipt>;
+  clearSchedule(name:string):Promise<boolean>;
   /** Release the selected physical channel, using the current software release setting. */
   noteOff(channel:PlaygroundWonderSwanChannel):Promise<void>;
   /** End this Code lease without closing the editor's AudioContext. */

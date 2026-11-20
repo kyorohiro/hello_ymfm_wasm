@@ -215,6 +215,62 @@ can still be extracted through Sounds from VGM. Paused audition currently
 requires the normal **3,072,000 Hz** clock; other clocks keep reference playback
 and complete static sound extraction without an inaccurate preview.
 
+## Timed parameter operations in Synth Code
+
+`useSoundChip("wonderswan")` now also provides `build`, `schedule`,
+`clearSchedule`, `captureState` and `compile` in this Synth's Web Audio Code
+endpoint. Immediate methods keep their existing meaning. The initial scope is
+`setVolume`, `setPan`, `setFrequency`, `setNote`, `setNoise` and `setSweep`.
+Wave RAM, Voice PCM feeding and scheduled note/gate ownership are separate work.
+In Voice mode, CH2's volume register becomes the DAC byte, so timed CH2
+volume/pan is explicitly rejected rather than treating it as stereo gain.
+
+```javascript
+const ws = await useSoundChip("wonderswan");
+const operations = ws.build(b => {
+  b.atSample(0).setVolume(CH1, 12, 4);
+  b.atSeconds(0.25).setVolume(CH1, 4, 12);
+});
+console.table(await ws.compile(operations));
+await ws.schedule(operations, { name: "pan", repeatSeconds: 0.5 });
+// Play with ordinary ws.noteOn / ws.noteOff or the keyboard.
+// await ws.clearSchedule("pan");
+```
+
+Offsets are absolute from reservation start. `atSample()` uses a configurable
+reference rate (`build(callback, {referenceSampleRate:44100})`), independent of
+the device rate. The existing bounded Performance Queue executes on the
+AudioWorklet sample clock; repeats stay compact. Noise/Sweep update shared R90
+from the state at execution, preserving other channel gates and mode bits.
+Repeated writes, including Noise resets, are kept. Another manual/Code write
+can subsequently overwrite these parameters in normal application order.
+
+`compile()` predicts one pass using the same WonderSwanSynth register conversion;
+it does not change the live chip or stop audio. Rows contain `offsetSeconds`,
+`register` (hardware address 0x80–0x9f), `value`, `operationIndex` and `writeIndex`.
+The default `initialState:"current"` captures coherent renderer authoring metadata
+asynchronously. `"reset"` uses zero hardware registers without initializing the
+live chip. A snapshot from `await ws.captureState()` can be reused in
+`compile(operations, {initialState:snapshot})` without another round trip.
+Snapshots are detached, instance/session/clock checked, and contain register/RAM
+metadata rather than oscillator, Noise LFSR or Sweep phase. `"client"` is an
+explicit error here because the Synth proxy has no complete local register/RAM
+mirror. A forecast cannot include later manual writes or rendered hardware phase.
+
+Run/Apply uses the shared Code transaction/loop lifecycle: a valid Apply replaces
+named reservations together, a failed evaluation keeps the previous ones,
+`stopLoop` cancels its own reservations and Stop ends the Code lease. Parameter
+operations do not acquire or steal note ownership. A runtime mode conflict, such
+as CH2 changing to Voice mode before a scheduled stereo edit, cancels the failing
+pattern and reports a recoverable error without retiring the audio engine.
+
+Fresh projects and Menu → New → Cassette include
+`examples/timed-motion.js` in Files. Existing restored projects are not silently
+modified; New offers a backup before replacing them. Select the example in Code
+and Run it for an independent hardware Sweep/pan clock over a beat-based melody.
+The general Playground/npm and direct Native APIs have not yet gained this
+Synth-scoped endpoint; it does not claim parity for those backends.
+
 ## Reuse and standalone package
 
 The [public WonderSwan JavaScript implementation](../js/wonderswansynth.js),

@@ -167,8 +167,8 @@ an intermediate initialization poll is not an unchanged-field regression.
       a software tool supplying the CH2 DAC; it must not imply extra hardware
       polyphony, HyperVoice, DMA or FM2612/RF5C164 register compatibility.
 - [ ] Decide whether Looper/Event Rec is useful before adding recording.
-- [ ] Design timed operations separately, keeping immediate calls intact and
-      using sample-clock execution rather than JavaScript timeout emulation.
+- [x] Implement the bounded timed parameter slice below, keeping immediate calls
+      intact and using sample-clock execution rather than JS timeout emulation.
 
 ## Completion checks for a future implementation
 
@@ -185,10 +185,52 @@ an intermediate initialization poll is not an unchanged-field regression.
 
 ## Timed register API follow-up
 
-Not implemented; separate chip-level API work from Files/UI alignment.
+Implemented (2026-11-20): first ASWAN Synth Web Audio parameter slice.
+- [x] Record/compile/capture/schedule `setVolume`, `setPan`, `setFrequency`,
+      `setNote`, `setNoise`, `setSweep`; retain immediate melody/key calls.
+- [x] Reuse WonderSwanSynth conversion, Performance Queue and Code transactions;
+      resolve packed R90 updates at execution, preserve voices and manual edits.
+- [x] Verify atomic replace/cancel, Stop/Apply/loop ownership, snapshot reuse,
+      actual 44.1/48 kHz rendering, declarations and a Files example.
+- [x] Verify muted source/readable-ZIP browsers and document backend limits.
+
+Later scope (not implied by this first slice): scheduled gate operations with
+software-envelope ownership, Playground/npm factory integration, direct Native
+API, Wave RAM transfer and Voice PCM feeding.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
-- [ ] Resolve per-channel Wave/volume/frequency and shared Sweep/Noise/routing controls with hardware event ordering.
+- [x] Resolve stereo volume/pan, frequency/note and shared Sweep/Noise controls
+      with execution-time R90 merges and hardware event ordering.
+- [ ] Extend scheduled gate/note operations with explicit software-envelope and
+      per-loop note ownership; then evaluate general Playground/npm integration.
 - [ ] Scope Wave RAM transfer and software Voice PCM feeding explicitly; keep reservation execution independent from JS timers.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
-  and 44.1/48 kHz verification checklist to this chip when the work is authorized.
+  and 44.1/48 kHz verification checklist to future expanded scopes as well.
+
+### First-slice verification
+
+- `npm run test:aswan-synth`: 218 tests passed, including actual WASM at 44.1/48
+  kHz, mixed second/sample offsets, fractional-period repeats without cumulative
+  rounding drift, shared-register preservation, compile/live trace agreement,
+  detached reusable snapshots and explicit incomplete-client rejection.
+- Actual Code runtime: Run/Apply stages and commits, failed Apply retains the
+  old reservation, loop cancellation leaves another loop running, Stop/new
+  leases clear reservations and reject stale requests. Existing held voice and
+  software-envelope ownership are retained by parameter edits.
+- CH2 volume/pan rejects Voice mode because R89 becomes a DAC byte; a mode
+  conflict discovered after admission reports a recoverable pattern error.
+- Compilation uses one scratch WonderSwanSynth per pass; it does not copy
+  16 KiB of RAM for every operation or reproduce high-level register math.
+- Fresh app projects and New Cassette seed `examples/timed-motion.js`; restored
+  projects and deliberately removed files are left alone. Declarations cover
+  the six supported operation methods and reject out-of-scope gates/RAM.
+- Public factory/npm, direct Native API, scheduled gates, Wave RAM and PCM
+  feeding are not completed by this Synth-scoped slice. Human listening remains
+  separate. No npm publication, release, commit, push or Tauri import performed.
+- Source and readable standalone ZIP both passed the muted Chromium/WebKit
+  runner, including scheduled stereo changes through the real audio route,
+  same-lease Apply replacement, Stop cancellation and the fresh Files example.
+  All physical destinations were forced through zero gain before audio startup.
+  Real Monaco CDN loading and human listening were not checked. Temporary test
+  ZIPs/receipts were written under `/tmp`; the user's release directory was not
+  replaced. Existing shared runtime/core artifacts and calibration were unchanged.

@@ -679,6 +679,36 @@ async function check(browser, engine, origin, fixture) {
 			'Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output',
 		);
 
+
+        step('sample-clock ASWAN parameter schedules run and replace through Code, then stop cleanly');
+        await choose('source', 'wave');
+        await page.click('#synthInputCodeTab');
+        const timedBefore = await state();
+        const timedCode = `const ws=await useSoundChip("wonderswan");
+const plan=ws.build(b=>{b.atSample(0).setVolume(CH1,4,9);b.atSeconds(.15).setVolume(CH1,12,9);});
+const snapshot=await ws.captureState();
+const rows=await ws.compile(plan,{initialState:snapshot});
+if(rows.length!==2||rows[0].register!==0x88)throw Error("Unexpected register trace");
+await ws.noteOn(CH1,"E3");
+await ws.schedule(plan,{name:"browser-motion",repeatSeconds:.3});`;
+        await page.locator('#synthCodeEditor').fill(timedCode);
+        await page.click('#synthCodeRunButton');
+        await until(async()=>(await state()).channels[0].baseLeft===4,'first scheduled stereo level');
+        await until(async()=>(await state()).channels[0].baseLeft===12,'second scheduled stereo level');
+        const timedSession=(await state()).codeSession;
+        await page.locator('#synthCodeEditor').fill(`const ws=await useSoundChip("wonderswan");
+const plan=ws.build(b=>b.setVolume(CH1,7,9));
+await ws.schedule(plan,{name:"browser-motion",repeatSeconds:.1});`);
+        await page.click('#synthCodeApplyButton');
+        await until(async()=>(await state()).channels[0].baseLeft===7,'Apply replaces named schedule');
+        assert.equal((await state()).codeSession,timedSession,'Apply preserves the Code lease');
+        await page.click('#synthCodeStopButton');
+        await until(async()=>!(await state()).codeActive,'Stop ends the schedule lease');
+        await page.evaluate(preset=>__aswanAudit.request('setPreset',[preset]),timedBefore.preset);
+        await wait(350);
+        assert.equal((await state()).channels[0].baseLeft,timedBefore.preset.left,'Stop prevents old repeated writes');
+        checks.push('Code build/capture/compile executes locally scoped parameter reservations; scheduled stereo changes reach WASM, Apply replaces the name without restarting the lease, and Stop prevents later repeats');
+
 		step('Code and manual edits share the chip across tabs and preset selection');
 		await choose('source', 'wave');
 		await page.click('#synthInputCodeTab');
@@ -1778,7 +1808,8 @@ async function check(browser, engine, origin, fixture) {
 		assert.equal(await page.locator('#aswanSongSelect option').count(),1);
 		assert.equal(await page.locator('#aswanSongPlayButton').isDisabled(),true);
 		assert.equal(await page.locator('#vgmLibrary button').count(),0);
-		assert.equal(await page.locator('#aswanFilesTree button[data-file-path]').count(),1);
+		assert.equal(await page.locator('#aswanFilesTree button[data-file-path]').count(),2);
+        assert.equal(await page.locator('[data-file-path="/examples/timed-motion.js"]').count(),1);
 		assert.equal(await page.locator('#aswanFilesAutoApply').isChecked(),false);
 		await page.click('#synthInputCodeTab');
 		assert.match(await page.locator('#synthCodeEditor').inputValue(),/useSoundChip\("wonderswan"\)/);

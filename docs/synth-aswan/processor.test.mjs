@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createPerformanceQueue } from '../js/playground_performance_queue.js';
+import { createAswanTimedProcessor, aswanTimedCommandCost } from './timed_processor.js';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import factory from '../generated/wonderswan_wasm.js';
@@ -24,6 +26,7 @@ async function make(t, rate) {
 			return factory(options);
 		},
 		Float32Array,
+        createPerformanceQueue, createAswanTimedProcessor, aswanTimedCommandCost,
 		WonderSwanAudioEngine,
 		AswanInstrument,
 		validateAswanCommand,
@@ -278,4 +281,102 @@ test('malformed host commands do not stop a running native owner or overwrite it
 		assert(f.messages.at(-1).error);
 		assert.deepEqual(await f.command('read'), before);
 	}
+});
+
+// Real WASM Worklet execution, with exact register write frames recorded at the
+// core boundary. No AudioContext or speaker output is created by these tests.
+for (const rate of [44100,48000]) test(`ASWAN timed execution preserves partial controls and matches compilation at ${rate} Hz`,async t=>{
+  const {buildAswanOperations:build,compileAswanOperations:compile}=await import('./operations.js');
+  const f=await make(t,rate), {session}=await f.command('beginCode');
+  await f.command('code',[session,'noteOn',[0,60]]);
+  const voice=f.p.instrument.owners[0];
+  const plan=build(b=>{b.atSample(441).setNoise({enabled:true,type:2,reset:true});b.atSeconds(.01).setSweep({enabled:true,step:1,time:3});});
+  const receipt=await f.command('timed',[session,{action:'schedule',operations:plan,options:{name:'motion'}}]);
+  await f.command('code',[session,'setVoiceMode',[true]]);
+  const initial=f.p.instrument.synth._getState(), expected=compile(plan,initial), writes=[];
+  const core=f.p.instrument.core, original=core.writeWonderSwan.bind(core);
+  core.writeWonderSwan=(register,value)=>{writes.push({frame:f.p.renderedFrames,register:register+0x80,value});return original(register,value);};
+  f.render(receipt.startFrame+Math.round(rate*.01));
+  assert.equal(writes.filter(w=>w.register===0x8e).length,0,'event at end belongs to next render');
+  f.render(1);
+  const rows=writes.filter(w=>[0x8e,0x8c,0x8d,0x90].includes(w.register));
+  assert.deepEqual(rows.map(({register,value})=>({register,value})),expected.map(({register,value})=>({register,value})));
+  assert(rows.every(w=>w.frame===receipt.startFrame+Math.round(rate*.01)));
+  assert.equal(f.p.instrument.owners[0],voice,'parameter writes retain note ownership');
+  assert(f.p.instrument.synth._getState().registers[16]&0x21,'manual Voice mode and gate preserved');
+});
+test('ASWAN timed reservations reject atomically, stage Apply transactions, replace names and fence Stop / stale leases',async t=>{
+  const {buildAswanOperations:build}=await import('./operations.js');
+  const f=await make(t,48000),{session}=await f.command('beginCode');
+  const plan=build(b=>b.setVolume(0,4,6)),payload={action:'schedule',operations:plan,options:{name:'motion',repeatSeconds:.1}};
+  await f.command('timed',[session,payload]);
+  const count=()=>f.p.timeline.getStats().patternCount;
+  assert.equal(count(),1);
+  await failure(f,'timed',[session,{...payload,operations:build(b=>b.setVolume(0,99))}]);assert.equal(count(),1);
+  await failure(f,'timed',[session,{...payload,options:{name:'motion',repeatSeconds:1e-9}}]);assert.equal(count(),1);
+  await f.command('timed',[session,{action:'stage',transactionId:1,owner:'loop:a',method:'schedule',args:[plan,{name:'second'}]}]);assert.equal(count(),1);
+  await f.command('timed',[session,{action:'abort',transactionId:1,owner:'loop:a'}]);assert.equal(count(),1);
+  await f.command('timed',[session,{action:'stage',transactionId:2,owner:'loop:a',method:'schedule',args:[plan,{name:'second',repeatSeconds:.1}]}]);
+  await f.command('timed',[session,{action:'commit',transactionId:2,owner:'loop:a'}]);assert.equal(count(),2);
+  await f.command('timed',[session,{action:'cancelOwner',owner:'loop:a'}]);assert.equal(count(),1);
+  await f.command('timed',[session,{...payload,operations:build(b=>b.setVolume(0,9))}]);assert.equal(count(),1);
+  const old=await f.command('timed',[session,{action:'capture'}]);
+  await f.command('stop');assert.equal(count(),0);f.render(20000);
+  const next=await f.command('beginCode');
+  await failure(f,'timed',[session,payload]);assert.equal(count(),0);
+  const snapshot=await f.command('timed',[next.session,{action:'capture'}]);assert.notEqual(old.instanceId,snapshot.instanceId);
+  await f.command('timed',[next.session,payload]);await failure(f,'endCode',[session]);assert.equal(count(),1,'stale end cannot clear newer reservations');
+  await f.command('code',[next.session,'initialize',[]]);assert.equal(count(),0);
+});
+for (const rate of [44100,48000]) test(`ASWAN repeating offsets do not accumulate rounding drift at ${rate} Hz`,async t=>{
+  const {buildAswanOperations:build}=await import('./operations.js');
+  const f=await make(t,rate),{session}=await f.command('beginCode'),frames=[];
+  const core=f.p.instrument.core, original=core.writeWonderSwan.bind(core);
+  core.writeWonderSwan=(register,value)=>{if(register===14)frames.push(f.p.renderedFrames);return original(register,value);};
+  const receipt=await f.command('timed',[session,{action:'schedule',operations:build(b=>b.atSample(1).setNoise({enabled:true,reset:true})),options:{name:'reset-noise',repeatSeconds:1/110}}]);
+  const count=40, end=receipt.startFrame+Math.round(((count-1)/110+1/44100)*rate)+1;
+  for(let at=0;at<end;){const n=Math.min(127,end-at);f.render(n);at+=n;}
+  assert.deepEqual(frames,Array.from({length:count},(_,i)=>receipt.startFrame+Math.round((i/110+1/44100)*rate)));
+  await f.command('timed',[session,{action:'clear',name:'reset-noise'}]);f.render(2000);assert.equal(frames.length,count);
+});
+
+test('real Code runtime stages ASWAN Apply and cancels per-loop reservations without cancelling another loop',async t=>{
+  const {createPlaygroundCodeRuntime}=await import('../js/playground_code_runtime.js');
+  const {createAswanCodeClient}=await import('./code_endpoint.js');
+  const f=await make(t,48000), metadata=await f.command('beginCode');let current=true;
+  const client=createAswanCodeClient({metadata,invoke:(method,args)=>f.command('code',[metadata.session,method,args]),
+    isCurrent:()=>current,dispose(){current=false;},requestControl:payload=>f.command('timed',[metadata.session,payload])});
+  const logs=[];
+  const runtime=createPlaygroundCodeRuntime({ensureReady:async()=>{},now:()=>performance.now()/1000,
+    supportedSoundChips:['wonderswan'],useSoundChip:async()=>client,stopSoundChips:async()=>{},
+    guardExecution:false,createTaskChannel:()=>null,onLog:line=>logs.push(line)});
+  t.after(()=>runtime.stop());
+  const source=`const ws=await useSoundChip('wonderswan');const plan=ws.build(b=>b.setVolume(CH1,4,5));
+    await ws.schedule(plan,{name:'entry',repeatSeconds:.1});`;
+  await runtime.run(source);assert.equal(f.p.timeline.getStats().patternCount,1);
+  await runtime.apply(source+`throw Error('reject this evaluation');`).catch(()=>{});
+  assert.equal(f.p.timeline.getStats().patternCount,1);
+  await runtime.apply(source+`
+    context.cancel=()=>stopLoop('one');
+    liveLoop('one',async()=>{await ws.schedule(plan,{name:'one',repeatSeconds:.1});await beat(100);});
+    liveLoop('two',async()=>{await ws.schedule(plan,{name:'two',repeatSeconds:.1});await beat(100);});`);
+  for(let i=0;i<100&&f.p.timeline.getStats().patternCount!==3;i++)await new Promise(r=>setTimeout(r,1));
+  assert.equal(f.p.timeline.getStats().patternCount,3,logs.join('\n'));
+  runtime.getContext().cancel();
+  for(let i=0;i<100&&f.p.timeline.getStats().patternCount!==2;i++)await new Promise(r=>setTimeout(r,1));
+  assert.equal(f.p.timeline.getStats().patternCount,2);
+  await runtime.stop();assert.equal(f.p.timeline.getStats().patternCount,0);
+});
+test('a later CH2 Voice-mode conflict cancels only the offending reservation and leaves audio usable',async t=>{
+  const {buildAswanOperations:build}=await import('./operations.js');
+  const f=await make(t,48000),{session}=await f.command('beginCode');
+  await f.command('timed',[session,{action:'schedule',operations:build(b=>b.setVolume(1,4,5)),options:{name:'stereo',repeatSeconds:.1}}]);
+  await f.command('code',[session,'setVoiceMode',[true]]);
+  f.render(129);
+  assert.equal(f.p.timeline.getStats().patternCount,0);
+  assert(f.messages.some(message=>message.type==='aswan-timed-error'&&/Voice PCM feeding/.test(message.message)));
+  assert(!f.messages.some(message=>message.fatal));
+  assert.equal((await f.command('read')).codeActive,true);
+  await f.command('code',[session,'noteOn',[0,60]]);
+  assert(f.render(1024).left.some(value=>value!==0),'unrelated Wave channel still plays');
 });

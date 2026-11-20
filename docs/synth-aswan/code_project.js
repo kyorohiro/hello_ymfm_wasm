@@ -11,6 +11,7 @@ import {
 } from '../playground/playground_cassette.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js?v=huc-working-saved-1';
 import { createSynthProjectStore } from '../synth/synth_project_store.js?v=draft-reconnect-1';
+import { ASWAN_TIMED_EXAMPLE } from './code_examples.js';
 import { readPreset, createDefaultPreset } from './preset.js';
 
 export const ASWAN_PROJECT_FORMAT = 'tetorica-aswan-code-project';
@@ -275,6 +276,7 @@ export function createAswanCodeProject({
 	snapshot,
 	starterCode,
 	getStarterCode,
+	includeExamples = false,
 } = {}) {
 	const workspace = createVirtualFileWorkspace(),
 		fs = workspace.working,
@@ -412,7 +414,7 @@ export function createAswanCodeProject({
 		getCodeState: () => clone(state),
 		prepareNew() {
 			// Use the original starter, never the currently edited /index.js.
-			const fresh = createAswanCodeProject({starterCode: getStarterCode ? getStarterCode() : starterCode ?? ''});
+			const fresh = createAswanCodeProject({includeExamples, starterCode: getStarterCode ? getStarterCode() : starterCode ?? ''});
 			fresh.select('/index.js');
 			fresh.setCodeState({mode: 'keyboard', path: '/index.js'});
 			fresh.setAutoApply(project.autoApply);
@@ -579,6 +581,7 @@ export function createAswanCodeProject({
 	if (starterCode !== undefined) {
 		if (typeof starterCode !== 'string') throw TypeError('Starter code must be text.');
 		fs.writeText('/index.js', starterCode);
+		if (!snapshot && includeExamples) fs.writeText('/examples/timed-motion.js', ASWAN_TIMED_EXAMPLE);
 	}
 	if (snapshot) project.restore(snapshot);
 	return project;

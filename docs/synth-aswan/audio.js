@@ -193,6 +193,8 @@ export async function createAudio({ volume = 0.6, onError = () => {} } = {}) {
 					if (!current()) throw aswanCodeCancelled();
 					return (next.client = createAswanCodeClient({
 						metadata,
+						port: node.port,
+						requestControl: payload => command('timed', [metadata.session, payload]),
 						isCurrent: current,
 						invoke: (method, args) => {
 							if (!current()) throw aswanCodeCancelled();

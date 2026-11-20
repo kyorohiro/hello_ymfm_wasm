@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { attachAswanTimedClient } from './timed_client.js';
 import { readPreset } from './preset.js';
 import { noteToHz } from '../js/soundchip_pitch.js';
 export function aswanAuditionCancelled() {
@@ -96,6 +97,7 @@ export function validateAswanCommand(method, args) {
 		stop: [0],
 		beginCode: [0],
 		code: [3],
+		timed: [2],
 		endCode: [1],
 		loadAudition: [2],
 		invokeAudition: [3],
@@ -151,7 +153,7 @@ export function validateAswanCodeCall(method, args) {
 	)
 		throw new RangeError('ASWAN physical channel must be 0..3');
 }
-export function createAswanCodeClient({ metadata, invoke, isCurrent, dispose } = {}) {
+export function createAswanCodeClient({ metadata, invoke, isCurrent, dispose, requestControl, port } = {}) {
 	if (
 		!Number.isSafeInteger(metadata?.session) ||
 		metadata.session < 1 ||
@@ -189,5 +191,6 @@ export function createAswanCodeClient({ metadata, invoke, isCurrent, dispose } =
 		closed = true;
 		return (closing = Promise.resolve(dispose()));
 	};
-	return client;
+	if (requestControl) client._requestControl = (_method, args) => { check(); return requestControl(args[0]); };
+	return attachAswanTimedClient(client, {instanceId: metadata.instanceId}, port);
 }

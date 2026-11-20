@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ASWAN_CODE_GLOBALS, selectAswanCodeDeclarations } from './code_declarations.js';
+import { ASWAN_TIMED_EXAMPLE } from './code_examples.js';
 import { ASWAN_STARTER_CODE } from './code_host.js';
 import { definitionSource, sourcePosition } from '../playground/playground_monaco_definitions.js';
 const shared = await readFile(
@@ -32,6 +33,7 @@ test('ASWAN async controls, valid source types and channel limits typecheck, inc
 	try {
 		await writeFile(join(work, 'globals.d.ts'), selected);
 		await writeFile(join(work, 'starter.js'), 'export {};\n' + ASWAN_STARTER_CODE);
+        await writeFile(join(work, 'timed.js'), 'export {};\n' + ASWAN_TIMED_EXAMPLE);
 		await writeFile(
 			join(work, 'entry.ts'),
 			`export {};
@@ -41,6 +43,14 @@ const write:Promise<void>=ws.setWaveform(CH1,new Uint8Array(32));await write;
 await ws.setSweep({enabled:true,step:-9,time:3});await ws.setNoise({enabled:true,type:7,reset:true});
 await ws.setVolume(CH4,8,7);await ws.setVoiceMode(true);await ws.writeVoice(128);await ws.writeRegister(0x90,1);
 await ws.loadMemory(new Uint8Array(32),0x2000);await ws.noteOn(CH2,60);await ws.noteOff(CH2);await ws.keyOff(CH4);
+const plan=ws.build(b=>{b.atSample(20).setNote(CH1,'C4');b.setNoise({enabled:true,reset:true});},{referenceSampleRate:48000});
+const snapshot=await ws.captureState();
+await ws.compile(plan,{initialState:snapshot});await ws.compile(plan,{initialState:'reset'});
+await ws.schedule(plan,{name:'test',repeatSeconds:.1});await ws.clearSchedule('test');
+// @ts-expect-error gates are immediate, outside this bounded recorder
+ws.build(b=>b.noteOn(CH1,'C4'));
+// @ts-expect-error RAM transfers are outside timed parameter operations
+ws.build(b=>b.setWaveform(CH1,[0,1]));
 const state=await ws.getState();const source:'wave'|'noise'|'pcm'=state.editorSource;state.registers[0];state.memory[0];state.channels[0];
 await livePrepare('state',async api=>api.useSoundChip('wonderswan'));pg.log(source);await ws.dispose();
 // @ts-expect-error the Synth borrows one ASWAN
@@ -81,6 +91,7 @@ play('C4');
 				join(work, 'globals.d.ts'),
 				join(work, 'entry.ts'),
 				join(work, 'starter.js'),
+                join(work, 'timed.js'),
 			],
 			{ stdio: 'pipe' },
 		);

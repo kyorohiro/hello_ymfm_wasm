@@ -8,10 +8,15 @@ import {
 	validateAswanAuditionCall,
 	aswanAuditionCancelled,
 } from './code_endpoint.js';
+import { createPerformanceQueue } from '../js/playground_performance_queue.js';
+import { createAswanTimedProcessor, aswanTimedCommandCost } from './timed_processor.js';
+let instanceSerial = 0;
 class AswanProcessor extends AudioWorkletProcessor {
 	constructor({ processorOptions = {} } = {}) {
 		super();
 		this.dead = false;
+	this.renderedFrames = 0;
+	this.instanceId = `aswan:${Date.now()}:${++instanceSerial}:${Math.random().toString(36).slice(2)}`;
 		this.audition = null;
 		this.auditionLoading = null;
 		this.auditionToken = null;
@@ -31,12 +36,32 @@ class AswanProcessor extends AudioWorkletProcessor {
 					return;
 				}
 				this.instrument = new AswanInstrument(core);
+				this.timeline = createPerformanceQueue({
+					sampleRate,
+					nowFrame: () => this.renderedFrames,
+					patternCommandCost: aswanTimedCommandCost,
+					apply: (command, reply, frame, metadata) =>
+						this.timed.apply(command.operation, this.port, frame, metadata),
+				});
+				this.timed = createAswanTimedProcessor({
+					performance: this.timeline,
+					sampleRate,
+					nowFrame: () => this.renderedFrames,
+					getState: () => this.instrument.synth._getState(),
+					getConfig: () => ({
+						clock: this.instrument.synth.clock,
+						instanceId: `${this.instanceId}:${this.instrument.codeSession}`,
+					}),
+					dispatch: operation => this.instrument.code(
+						this.instrument.codeSession, operation.method, operation.args),
+				});
 				this.port.postMessage({ ready: true, state: this.instrument.read() });
 			})
 			.catch((error) => this.port.postMessage({ fatal: true, error: error.message }));
 		this.port.onmessage = ({ data }) => {
 			if (data.method === 'dispose') {
 				this.dead = true;
+				this.clearTimed();
 				this.invalidateAudition();
 				this.audition?.dispose();
 				this.instrument?.dispose();
@@ -60,6 +85,7 @@ class AswanProcessor extends AudioWorkletProcessor {
 					}
 				} else if (data.method === 'stop' || data.method === 'beginCode')
 					this.invalidateAudition();
+				if (data.method === 'stop' || data.method === 'beginCode') this.clearTimed();
 			} catch (error) {
 				this.port.postMessage({ id: data.id, error: error.message, name: error.name });
 				return;
@@ -68,7 +94,13 @@ class AswanProcessor extends AudioWorkletProcessor {
 				if (this.dead) return;
 				try {
 					let value;
-					if (data.method === 'loadAudition') {
+					if (data.method === 'timed') {
+						const [session, payload] = data.args;
+						if (!this.instrument.codeActive || session !== this.instrument.codeSession)
+							throw aswanAuditionCancelled();
+						this.timed.receive({id: data.id, method: 'aswanTimed', args: [payload]}, this.port);
+						return;
+					} else if (data.method === 'loadAudition') {
 						const audition = await this.ensureAudition();
 						if (
 							this.dead ||
@@ -133,6 +165,10 @@ class AswanProcessor extends AudioWorkletProcessor {
 						}
 					} else {
 						value = this.instrument[data.method](...(data.args ?? []));
+						if (data.method === 'stop' || data.method === 'beginCode' ||
+							(data.method === 'endCode' && !this.instrument.codeActive) ||
+							(data.method === 'code' && data.args[1] === 'initialize')) this.clearTimed();
+						if (data.method === 'beginCode') value = {...value, instanceId:`${this.instanceId}:${value.session}`};
 						if (data.method === 'setPitch') this.audition?.setPitch(data.args[0]);
 						if (data.method === 'setChannelEnabled')
 							this.audition?.setChannelEnabled(...data.args);
@@ -143,6 +179,11 @@ class AswanProcessor extends AudioWorkletProcessor {
 				}
 			});
 		};
+	}
+	clearTimed() {
+		const stats = this.timeline?.getStats();
+		if (stats?.activeSession) this.timeline.receive({type:'performance-stop', session:stats.activeSession}, () => {});
+		this.timed?.clear();
 	}
 	invalidateAudition() {
 		++this.auditionGeneration;
@@ -188,11 +229,22 @@ class AswanProcessor extends AudioWorkletProcessor {
 		if (this.dead) return false;
 		const [left, right] = outputs[0] ?? [];
 		if (left && right) {
-			if (this.instrument) this.instrument.process(left, right, left.length);
-			else {
+			const endFrame = this.renderedFrames + left.length;
+			if (this.instrument) {
+				const start = this.renderedFrames, end = start + left.length;
+				let frame = start;
+				while (frame < end) {
+					this.renderedFrames = frame;
+					this.timeline.advance(frame);
+					const next = Math.min(end, this.timeline.nextFrame());
+					this.instrument.process(left.subarray(frame-start,next-start), right.subarray(frame-start,next-start), next-frame);
+					frame = next;
+				}
+			} else {
 				left.fill(0);
 				right.fill(0);
 			}
+			this.renderedFrames = endFrame;
 			if (this.auditionToken && this.audition?.voices.size) {
 				if (left.length > this.auditionLeft.length) {
 					const size = 2 ** Math.ceil(Math.log2(left.length));

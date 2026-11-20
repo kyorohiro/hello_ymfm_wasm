@@ -50,6 +50,7 @@ export function setupAswanCodeHost({
 	const project = createAswanCodeProject({
 		settings: getSettings(),
 		getStarterCode: () => ASWAN_STARTER_CODE,
+		includeExamples: true,
 	});
 	const audio = createAswanCodeAudio({
 		ensureReady: ensureAudio,
@@ -154,6 +155,7 @@ export function setupAswanCodeHost({
 		transformDeclarations: selectAswanCodeDeclarations,
 		journalKey: 'tetorica-aswan-synth-pending-code',
 		getStarterCode: () => ASWAN_STARTER_CODE,
+		includeExamples: true,
 		async onBeforeRun() {
 			modeEpoch++;
 			await stopSong();

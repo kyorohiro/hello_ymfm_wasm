@@ -451,3 +451,15 @@ test('ASWAN prepareNew is detached, restores the original starter and accepts cl
 	assert.throws(() => p.prepareNew(), /Starter code/);
 	assert.deepEqual(p.snapshot(), before);
 });
+
+
+test('ASWAN app examples seed only a fresh project / New and keep restored or deliberately removed files intact',()=>{
+  const project=createAswanCodeProject({starterCode:'// starter',includeExamples:true});
+  assert.match(project.fs.get('/examples/timed-motion.js').data,/ws.schedule/);
+  assert.equal(project.savedFs.get('/examples/timed-motion.js').data,project.fs.get('/examples/timed-motion.js').data);
+  project.fs.delete('/examples/timed-motion.js');
+  const restored=createAswanCodeProject({snapshot:project.snapshot(),includeExamples:true});
+  assert(!restored.fs.get('/examples/timed-motion.js'));
+  const fresh=createAswanCodeProject({snapshot:project.prepareNew()});
+  assert.match(fresh.fs.get('/examples/timed-motion.js').data,/ws.captureState/);
+});
