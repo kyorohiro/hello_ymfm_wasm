@@ -140,3 +140,6 @@ Pointer-operated Sound source, Noise type/rate and FM Instrument menus stay
 inside the page so performance key-down/up events continue while choosing an
 option. Reselecting the same option also returns focus. Text inputs and Code
 editors retain their normal typing behavior.
+
+The output monitor Pitch wheel sits vertically to the right of the display,
+matching FM2612: up raises pitch, down lowers it. Both Pitch wheels stay linked.

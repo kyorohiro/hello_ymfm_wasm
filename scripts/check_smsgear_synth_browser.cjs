@@ -135,6 +135,36 @@ function mute() {
 					await page.evaluate(() => __smsAudit.contexts.length),
 					0,
 				);
+				const monitorWheel = await page
+					.locator("#pitchBend")
+					.evaluate((node) => {
+						const wheel = node.getBoundingClientRect(),
+							canvas = document
+								.querySelector("#outputCanvas")
+								.getBoundingClientRect(),
+							css = getComputedStyle(node);
+						return {
+							right: wheel.left >= canvas.right,
+							vertical: wheel.height > wheel.width,
+							mode: css.writingMode,
+							direction: css.direction,
+						};
+					});
+				assert.deepEqual(monitorWheel, {
+					right: true,
+					vertical: true,
+					mode: "vertical-lr",
+					direction: "rtl",
+				});
+				await page
+					.locator(".wave-monitor")
+					.screenshot({
+						path: out.replace(
+							/\.json$/,
+							`-${engine}-monitor-pitch.png`,
+						),
+					});
+
 				await page.locator("#startAudio").click();
 				await page.waitForFunction(
 					() =>

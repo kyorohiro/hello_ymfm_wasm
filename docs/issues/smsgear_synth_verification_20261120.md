@@ -237,3 +237,13 @@ including key-down on a focused select, key-up while its menu is open, holding
 a second note through selection, same-option reselect and final key release.
 Artifacts: `build/smsgear-check/select-focus-browser*`, `select-focus-unit.log`.
 Shared runtime/core and distribution ZIPs were not changed.
+
+### Follow-up: monitor Pitch wheel
+
+Moved the monitor Pitch control from the tab toolbar to the right of the
+canvas. It uses FM2612's vertical-lr / rtl direction (up raises pitch). The
+existing range, spring return and linked keyboard wheel logic are retained.
+Muted Chromium and WebKit browser flows pass, including wheel placement,
+orientation and existing held-note pitch / linked-wheel checks. Screenshots:
+`build/smsgear-check/monitor-pitch-browser-*-monitor-pitch.png`.
+No shared runtime changes or ZIP rebuild.

@@ -51,3 +51,5 @@ No commit/push, tag, npm publication, itch upload or Tauri release was performed
 - [x] Combine Envelope handles as AT (AR/level) and DS (DR/SL), and compact the upper OPLL controls.
 
 - [x] Keep keyboard performance active while changing sound-source / Noise / instrument selections; test focus and held-key release.
+
+- [x] Match FM2612 monitor Pitch position and direction: vertical wheel to the right of the display.

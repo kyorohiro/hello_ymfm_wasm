@@ -259,8 +259,16 @@
 											Spectrum
 										</button>
 									</div>
-									<label class="monitor-pitch"
-										>Pitch
+								</div>
+								<div class="monitor-display">
+									<canvas
+										id="outputCanvas"
+										width="1000"
+										height="180"
+										aria-label="Output monitor"
+									></canvas
+									><label class="monitor-pitch monitor-wheel"
+										><span>Pitch</span>
 										<input
 											id="pitchBend"
 											type="range"
@@ -273,12 +281,6 @@
 										></label
 									>
 								</div>
-								<canvas
-									id="outputCanvas"
-									width="1000"
-									height="180"
-									aria-label="Output monitor"
-								></canvas>
 							</section>
 							<div
 								id="chipTabs"

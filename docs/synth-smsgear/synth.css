@@ -510,21 +510,6 @@ dialog {
 .master-control {
 	color: var(--muted);
 }
-.monitor-toolbar > .monitor-pitch {
-	flex: 0 1 auto;
-	flex-direction: row;
-	padding: 5px 8px;
-	border-radius: 8px;
-	cursor: default;
-}
-.monitor-toolbar > .monitor-pitch input {
-	writing-mode: horizontal-tb;
-	direction: ltr;
-	width: 100px;
-	height: auto;
-	min-height: 0;
-	flex: none;
-}
 .param-control {
 	display: grid;
 	grid-template-columns: 25px minmax(28px, 1fr) 25px;
@@ -898,4 +883,37 @@ dialog {
 .performance-select-menu button[aria-pressed="true"] {
 	background: #315c82;
 	color: white;
+}
+
+.monitor-display {
+	display: flex;
+	gap: 10px;
+	align-items: stretch;
+}
+.monitor-display #outputCanvas {
+	flex: 1;
+	min-width: 0;
+	width: 0;
+}
+.monitor-display .monitor-wheel {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 0 0 36px;
+	width: 36px;
+	padding: 4px 2px;
+	gap: 4px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: #101b24;
+	font-size: 0.68rem;
+}
+.monitor-display .monitor-wheel input {
+	writing-mode: vertical-lr;
+	direction: rtl;
+	width: 30px;
+	height: 60px;
+	min-height: 60px;
+	flex: 1;
+	cursor: ns-resize;
 }
