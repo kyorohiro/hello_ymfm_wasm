@@ -293,7 +293,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     if(!auditions.size)return false;
     // Explicit timed chip edits follow actual application order. Note ownership
     // below still protects newer manual Gates from an old scheduled release.
-    if(['ay8910','huc6280'].includes(chipName())&&metadata?.timedOperation)return false;
+    if(['ay8910','huc6280','wonderswan'].includes(chipName())&&metadata?.timedOperation)return false;
     // PSG noise rate 3 uses tone channel 3's divider. A held noise key owns
     // that divider as well, while the tone channel's volume remains editable.
     if(chipName()==='segapsg'&&command.method==='write'&&auditions.has(3)&&(getPsgMode?.()&3)===3){
@@ -344,6 +344,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     if(!mask)return command;return {...command,args:[8,(command.args[1]&~mask)|(getOplRegisters()[8]&mask),...(command.args.length>2?[command.args[2]]:[])]};
   }
   function protectWonderSwanControl(command,metadata){
+    if(metadata?.timedOperation)return command;
     if(!auditions.size||chipName()!=='wonderswan'||command.method!=='writeRegister'||command.args[0]!==0x90)return command;
     let mask=0;for(const [channel,owner]of auditions)if(owner!==metadata?.owner)mask|=(1<<channel)|([0,0x20,0x40,0x80][channel]??0);
     const controlMask=(command.controlMask??255)&~mask;
@@ -467,6 +468,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     schedulePattern:queue.schedulePattern,
     validatePattern:queue.validatePattern,
     clearPattern:queue.clearPattern,
+    clearPatterns:queue.clearPatterns,
     commitPatterns:queue.commitPatterns,
     cancelPatternOwner:queue.cancelPatternOwner,
     cancelOwner:queue.cancelOwner,

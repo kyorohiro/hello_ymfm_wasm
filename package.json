@@ -136,6 +136,8 @@
     "test:ym2612-timed:browser": "node scripts/check_ym2612_timed_browser.cjs",
     "test:ym2149-st-synth:browser": "node scripts/check_ym2149_st_synth_browser.cjs",
     "pack:ym2149-st-synth": "sh scripts/package_itch_ym2149_st_synth.sh",
+    "test:wonderswan-timed": "node --test test/runtime/wonderswan_timed.test.mjs test/runtime/playground_wonderswan*.test.mjs docs/playground/playground_wonderswan_timed_declarations.test.mjs",
+    "test:wonderswan-timed:browser": "node scripts/check_wonderswan_timed_endpoints_browser.cjs",
     "test:huc6280-timed": "node --test test/runtime/huc6280_operations.test.mjs test/runtime/huc6280_timed_processor.test.mjs test/runtime/playground_huc6280*.test.mjs test/runtime/playground_ay_timed_lifecycle.test.mjs test/runtime/playground_performance_sender.test.mjs docs/playground/playground_huc6280_timed_declarations.test.mjs docs/playground/playground_examples.test.mjs",
     "test:huc6280-timed:browser": "node scripts/check_huc6280_timed_endpoints_browser.cjs",
     "test:huc6280-synth": "node --test docs/synth-huc6280/*.test.mjs test/runtime/huc6280_state.test.mjs test/runtime/huc6280_operations.test.mjs test/runtime/huc6280_timed_processor.test.mjs scripts/package_itch_huc6280_synth.test.mjs",

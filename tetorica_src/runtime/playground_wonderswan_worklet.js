@@ -1,3 +1,4 @@
+import {createWonderSwanTimedProcessor,wonderswanTimedCommandCost} from './wonderswan_timed_processor.js';
 import {WonderSwan,WONDERSWAN_CLOCK} from './wonderswan.js';
 import factory from './generated/wonderswan_wasm.js';
 import {ChipClockResampler,validateChipClock} from './playground_chip_clock.js';
@@ -8,13 +9,14 @@ import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor} from './wonder
 
 class Processor extends AudioWorkletProcessor {
   constructor({processorOptions:{clock=WONDERSWAN_CLOCK,wasmBinary}}){
-    super();this.baseClock=this.clock=validateChipClock(clock);this.dead=false;this.chip=null;this.authorGates=0;this.resampler=new ChipClockResampler();this.pendingClocks=new Set();this.clockSequence=0;
+    super();this.instanceId=`wonderswan:${Date.now()}:${Math.random().toString(36).slice(2)}`;this.baseClock=this.clock=validateChipClock(clock);this.dead=false;this.chip=null;this.authorGates=0;this.resampler=new ChipClockResampler();this.pendingClocks=new Set();this.clockSequence=0;
     this.speakerPhase=0;this.speakerLeft=this.speakerRight=this.targetLeft=this.targetRight=0;this.engineRate=Math.floor(clock/128);
     this.targetChannelLeft=new Float64Array(4);this.targetChannelRight=new Float64Array(4);this.waveReady=new Uint8Array(4);this.coldWavePosition=new Uint16Array(4);
     this.timelineData=null;this.timelineCursor=null;this.timelineCompletion=null;this.timelineStarts=new Map();this.timelineSequence=0;this.timelineRevision=0;this.renderedFrame=0;
     this.reserveTimelineFrames(128);this.applyTimelineWrite=this.applyTimelineWrite.bind(this);
-    this.performance=createProcessorPerformance({chip:'wonderswan',getWonderSwanRegisters:()=>this.inspector?.registers,releaseNote:key=>({method:'keyOff',args:[key]}),
+    this.performance=createProcessorPerformance({chip:'wonderswan',patternCommandCost:wonderswanTimedCommandCost,getWonderSwanRegisters:()=>this.inspector?.registers,releaseNote:key=>({method:'keyOff',args:[key]}),
       prepare:(data,port)=>{
+        if(data.method==='reset'){this.timed?.clear();data={...data,timedResetPrepared:true};}
         if(['stopVoices','prepareTimeline','stopTimeline'].includes(data.method)){this.apply(data,port);return null;}
         if(data.method==='playTimeline'){
           try{
@@ -34,7 +36,7 @@ class Processor extends AudioWorkletProcessor {
           }catch(error){this.pendingClocks.delete(reservation);if(data.id!==undefined)port.postMessage({type:data.type==='chip-clock'?'chip-clock-result':undefined,id:data.id,error:error.message});return null;}
         }
         if(data.id===undefined)return data;const {id,...command}=data;port.postMessage({id,value:true});return command;
-      },onDiscard:data=>{this.pendingClocks.delete(data.clockReservation);this.abortTimelineStart(data.timelineReservation,'WonderSwan timeline start cancelled');},onBlocked:(data,port)=>{this.pendingClocks.delete(data.clockReservation);if(data.timelineReservation!==undefined)this.abortTimelineStart(data.timelineReservation,'WonderSwan timeline blocked by manual audition');else if(data.id!==undefined)port.postMessage({id:data.id,value:true});},apply:(...args)=>this.apply(...args)});
+      },onDiscard:(data,metadata)=>{if(data.method==='applyWonderSwanTimedOperation')this.timed?.discard(data,metadata);this.pendingClocks.delete(data.clockReservation);this.abortTimelineStart(data.timelineReservation,'WonderSwan timeline start cancelled');},onBlocked:(data,port)=>{this.pendingClocks.delete(data.clockReservation);if(data.timelineReservation!==undefined)this.abortTimelineStart(data.timelineReservation,'WonderSwan timeline blocked by manual audition');else if(data.id!==undefined)port.postMessage({id:data.id,value:true});},apply:(...args)=>this.apply(...args)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage=({data})=>{
       if(data.primaryWorker){this.workerRemote?.close();this.workerRemote=null;if(data.port){if(this.dead){data.port.close();return;}const remote=this.workerRemote=data.port;remote.onmessage=event=>{if(this.workerRemote===remote)this.receive(event.data,remote);};remote.start();}return;}
@@ -47,26 +49,38 @@ class Processor extends AudioWorkletProcessor {
       // Reserve the full allowed external clock ratio for a 128-frame quantum.
       chip.reserveFrames(Math.ceil(128*100000000/this.baseClock));
       this.inspector=new WonderSwanVoiceInspector({clock:()=>this.clock,sampleRate,dispatch:(command,owner,metadata)=>this.performance.applyImmediate(command,this.port,{owner,...metadata}),beginAudition:(ch,owner)=>{if(this.timelineCursor||this.timelineStarts.size)throw new Error('Stop the WonderSwan timeline before manual audition');if(this.pendingClocks.size)throw new Error('WonderSwan clock change is scheduled; audition after it is applied');this.performance.beginAudition(ch,owner);},endAudition:(ch,owner)=>this.performance.endAudition(ch,owner)});
+      this.timed=createWonderSwanTimedProcessor({performance:this.performance,
+        getState:()=>({clock:this.clock,initialized:true,registers:Array.from(this.inspector.registers),memory:Array.from(this.inspector.memory)}),
+        getConfig:()=>({instanceId:this.instanceId,clock:this.clock}),
+        dispatch:(command,port,_frame,metadata)=>this.performance.applyImmediate(command,port,metadata),
+        nowFrame:this.performance.nowFrame,sampleRate,
+        validatePlan:()=>{if(this.timelineCursor||this.timelineStarts.size)throw new Error('Stop the WonderSwan timeline before scheduling register operations');if(this.pendingClocks.size)throw new Error('Wait for the pending WonderSwan clock change before scheduling');},
+      });
       this.port.postMessage({ready:true});
     }).catch(error=>{this.dispose();this.port.postMessage({error:error.message});});
   }
-  dispose(){if(this.dead)return;this.cancelTimeline('WonderSwan instance disposed');this.abortTimelineStarts('WonderSwan instance disposed');this.inspector?.resetAuditions();this.performance.clear();this.dead=true;this.chip?.dispose();this.chip=null;this.remote?.close();this.workerRemote?.close();}
-  retireRemote(){this.remote?.close();this.remote=null;const session=this.performance.getStats().activeSession;if(session)this.receive({type:'performance-stop',session});else{this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();}}
+  dispose(){if(this.dead)return;this.timed?.clear();this.cancelTimeline('WonderSwan instance disposed');this.abortTimelineStarts('WonderSwan instance disposed');this.inspector?.resetAuditions();this.performance.clear();this.dead=true;this.chip?.dispose();this.chip=null;this.remote?.close();this.workerRemote?.close();}
+  retireRemote(){this.timed?.clear();this.remote?.close();this.remote=null;const session=this.performance.getStats().activeSession;if(session)this.receive({type:'performance-stop',session});else{this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();}}
   publishState(){const registers=Array.from(this.inspector.registers);registers[16]=(registers[16]&240)|this.authorGates;this.port.postMessage({type:'wonderswan-state',state:{clock:this.clock,initialized:true,registers,memory:Array.from(this.inspector.memory)}});}
   receive(data,port=this.port){
     if(Array.isArray(data)){for(const command of data)this.receive(command,port);return;}
+    if(data?.method==='wonderswanTimed'){
+      if(!this.timed){port.postMessage({id:data.id,error:'WonderSwan timed API is not ready'});return;}
+      this.timed.receive(data,port);return;
+    }
     if(data?.type==='chip-inspector'){receiveChipInspector(data,port,this.inspector?(action,method,args)=>{if(action!=='read'&&(this.timelineCursor||this.timelineStarts.size))throw new Error('Stop the WonderSwan timeline before editing its voices');const value=action==='read'?this.inspector.read():this.inspector.invoke(method,args);if(action!=='read'&&!method.startsWith('audition'))this.publishState();return value;}:null);return;}
     if((data?.method==='clock'||data?.type==='chip-clock')&&this.inspector?.auditions.size){if(data.id!==undefined)port.postMessage({type:data.type==='chip-clock'?'chip-clock-result':undefined,id:data.id,error:'WonderSwan is held by a manual audition'});return;}
     const stopping=data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession;
     const replacing=data?.type==='performance-start'&&Number.isSafeInteger(data.session)&&data.session>this.performance.getStats().latestSession;
     const cancelling=data?.type==='performance-cancel-owner'&&this.timelineCompletion?.metadata?.session===data.session&&this.timelineCompletion?.metadata?.owner===data.owner;
+    if(stopping||replacing)this.timed?.clear();
     if(stopping||replacing||cancelling)this.cancelTimeline('WonderSwan performance stopped');
     if(stopping||data?.method==='stopVoices')this.inspector?.invoke('auditionAllOff');
     if(this.performance.receive(data,port)){if(stopping){this.stopVoices();this.performance.clear();}return;}this.apply(data,port);
   }
   writeRegister(address,value,controlMask,metadata){
     if(address===0x90&&controlMask!==undefined){if(!Number.isInteger(controlMask)||controlMask<0||controlMask>255)throw new RangeError('WonderSwan control mask must be 0..255');value=(this.inspector.registers[16]&~controlMask)|(value&controlMask);}
-    this.chip.writeRegister(address,value);this.inspector.observeWrite(address,value);
+    this.chip.writeRegister(address,value);this.inspector.observeWrite(address,value);this.timed?.observeWrite(address,value,controlMask,metadata,this.port);
     if(address===0x90&&!metadata?.owner?.startsWith('voice-editor:')){
       let mask=(controlMask??255)&15;
       // An applied byte also contains untouched/manual gates. Adopt only the
@@ -112,6 +126,7 @@ class Processor extends AudioWorkletProcessor {
   applyTimelineWrite(kind,address,value){if(kind===0)this.writeRegister(address,value,undefined,this.timelineCompletion?.metadata);else{this.chip.writeMemory(address,value);this.inspector.observeMemory(address,value);this.updateSpeakerCenter();}}
   reserveTimelineFrames(frames){if(frames<=this.timelineCapacity)return;this.timelineCapacity=frames;const left=new Float32Array(frames),right=new Float32Array(frames);this.timelineLeft=Array.from({length:frames+1},(_,size)=>left.subarray(0,size));this.timelineRight=Array.from({length:frames+1},(_,size)=>right.subarray(0,size));}
   apply(data,port=this.port,frame,metadata){
+    if(data.method==='applyWonderSwanTimedOperation')return this.timed.apply(data,port,frame,metadata);
     try{
       if(data.method==='dispose'){this.dispose();return;}if(!this.chip)throw new Error('WonderSwan not ready');
       if(data.method==='prepareTimeline'){
@@ -122,7 +137,7 @@ class Processor extends AudioWorkletProcessor {
       }
       if(data.method==='playTimeline'){
         if(data.timelineReservation!==undefined){const pending=this.timelineStarts.get(data.timelineReservation);if(!pending)return;this.timelineStarts.delete(data.timelineReservation);if(pending.revision!==this.timelineRevision)throw new Error('WonderSwan timeline preparation replaced');}
-        this.checkTimelineStart();this.cancelTimeline('WonderSwan timeline replaced');this.abortTimelineStarts('WonderSwan timeline start replaced');this.performance.clear();
+        this.checkTimelineStart();this.cancelTimeline('WonderSwan timeline replaced');this.abortTimelineStarts('WonderSwan timeline start replaced');this.timed?.clear();this.performance.clear();
         this.clock=this.timelineData.clock;this.resampler.setClock(this.clock,this.baseClock);this.resetHardware();
         this.timelineStartFrame=frame??(Number.isSafeInteger(globalThis.currentFrame)?globalThis.currentFrame:this.renderedFrame);this.timelineCursor=createWonderSwanTimelineCursor(this.timelineData,sampleRate);this.timelineEndFrame=this.timelineStartFrame+this.timelineCursor.durationFrames;this.timelinePositionSamples=0;this.timelineCompletion={id:data.id,port,metadata};
         return;
@@ -130,8 +145,8 @@ class Processor extends AudioWorkletProcessor {
       if(data.method==='stopTimeline'){this.stopVoices();if(data.id!==undefined)port.postMessage({id:data.id,value:this.timelineState()});return;}
       if((this.timelineCursor||this.timelineStarts.size)&&!['stopVoices','allNotesOff','reset'].includes(data.method)&&data.type!=='clear-scheduled-writes')throw new Error('Stop/reset the WonderSwan timeline before editing its voices');
       if(data.method==='clock'||data.type==='chip-clock'){if(!data.performanceAcknowledged&&this.inspector.auditions.size)throw new Error('WonderSwan is held by a manual audition');this.clock=validateChipClock(data.clock??data.args[0]);this.resampler.setClock(this.clock,this.baseClock);}
-      else if(data.method==='stopVoices'){this.inspector.invoke('auditionAllOff');this.performance.clear();this.stopVoices();}
-      else if(data.method==='reset'){this.cancelTimeline('WonderSwan timeline reset');this.abortTimelineStarts('WonderSwan timeline reset');this.timelineData=null;this.timelineRevision++;this.resetHardware();}
+      else if(data.method==='stopVoices'){this.timed?.clear();this.inspector.invoke('auditionAllOff');this.performance.clear();this.stopVoices();}
+      else if(data.method==='reset'){if(!data.timedResetPrepared)this.timed?.clear();this.cancelTimeline('WonderSwan timeline reset');this.abortTimelineStarts('WonderSwan timeline reset');this.timelineData=null;this.timelineRevision++;this.resetHardware();}
       else if(data.method==='writeRegister')this.writeRegister(...data.args,data.controlMask,metadata);
       else if(data.method==='writeMemory'){this.chip.writeMemory(...data.args);this.inspector.observeMemory(...data.args);this.updateSpeakerCenter();}
       else if(data.method==='keyOff'){const ch=data.args[0];if(!Number.isInteger(ch)||ch<0||ch>3)throw new RangeError('WonderSwan channel must be 0..3');this.writeRegister(0x90,this.inspector.registers[16]&~(1<<ch),1<<ch,metadata);if(!(this.inspector.registers[16]&15))this.resampler.left=this.resampler.right=0;}

@@ -2935,14 +2935,48 @@ interface PlaygroundWonderSwanTimeline {
   pcmData:Uint8Array;
 }
 interface PlaygroundWonderSwanTimelineBuilder extends Omit<PlaygroundWonderSwan,
-  'chip'|'dispose'|'createTimeline'|'prepareTimeline'|'playTimeline'|'stopTimeline'> {
+  'chip'|'dispose'|'createTimeline'|'prepareTimeline'|'playTimeline'|'stopTimeline'|'build'|'compile'|'captureState'|'schedule'|'clearSchedule'> {
   /** Absolute 44100 Hz source sample position; must not move backwards. */
   at(sample:number):this;
   /** Packed unsigned delta varuint + original byte, first delta zero. */
   pcm(offset:number,length:number,count:number,endSample:number):this;
   finish(durationSamples?:number):PlaygroundWonderSwanTimeline;
 }
+interface PlaygroundWonderSwanOperationProgram {
+  readonly version:1;readonly chip:'wonderswan';readonly referenceSampleRate:number;
+  readonly operations:ReadonlyArray<{readonly time:{readonly unit:'sample'|'seconds';readonly value:number};readonly order:number;readonly method:string;readonly args:ReadonlyArray<unknown>}>;
+}
+interface PlaygroundWonderSwanOperationRecorder {
+  atSample(offset:number):PlaygroundWonderSwanOperationRecorder;
+  atSeconds(offset:number):PlaygroundWonderSwanOperationRecorder;
+  setVolume(channel:PlaygroundWonderSwanChannel,left:number,right?:number):PlaygroundWonderSwanOperationRecorder;
+  setPan(channel:PlaygroundWonderSwanChannel,left:number,right?:number):PlaygroundWonderSwanOperationRecorder;
+  setFrequency(channel:PlaygroundWonderSwanChannel,hz:number):PlaygroundWonderSwanOperationRecorder;
+  setNote(channel:PlaygroundWonderSwanChannel,note:string|number):PlaygroundWonderSwanOperationRecorder;
+  setNoise(options:{enabled:boolean;type?:0|1|2|3|4|5|6|7;reset?:boolean}):PlaygroundWonderSwanOperationRecorder;
+  setSweep(options:{enabled:boolean;step?:number;time?:number}):PlaygroundWonderSwanOperationRecorder;
+  keyOn(channel:PlaygroundWonderSwanChannel):PlaygroundWonderSwanOperationRecorder;
+  keyOff(channel:PlaygroundWonderSwanChannel):PlaygroundWonderSwanOperationRecorder;
+}
+interface PlaygroundWonderSwanStateSnapshot {
+  readonly format:'tetorica-wonderswan-state';readonly version:1;readonly instanceId:string|number;
+  readonly frame:number;readonly sampleRate:number;
+  readonly state:{readonly clock:number;readonly initialized:boolean;readonly registers:readonly number[];readonly memory:readonly number[]};
+}
+interface PlaygroundWonderSwanCompiledWrite {
+  offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;channel?:number;controlMask?:number;
+}
 interface PlaygroundWonderSwan {
+  /** Record hardware parameter/Gate operations once. RAM/PCM and Synth software notes are separate. */
+  build<Result>(callback:(builder:PlaygroundWonderSwanOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundWonderSwanOperationProgram;
+  /** Coherent AudioWorklet authoring metadata, not a full oscillator/Sweep/LFSR save state. Native rejects. */
+  captureState():Promise<PlaygroundWonderSwanStateSnapshot>;
+  /** client uses a known-complete local shadow and may lag scheduled/other writers. reset and snapshots need no RPC. */
+  compile(operations:PlaygroundWonderSwanOperationProgram,options?:{initialState?:'current'|'client'|'reset'|PlaygroundWonderSwanStateSnapshot}):Promise<PlaygroundWonderSwanCompiledWrite[]>;
+  /** Compact sample-clock reservation. Cannot run concurrently with prepared VGM playback; Native rejects. */
+  schedule(operations:PlaygroundWonderSwanOperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;entries:number;sampleRate:number;startFrame?:number;repeatSeconds?:number;staged?:boolean}>;
+  clearSchedule(name:string):Promise<boolean>;
+
   readonly chip:'wonderswan';
   initialize():void;
   reset():void;

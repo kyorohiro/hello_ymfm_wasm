@@ -243,6 +243,13 @@ export function createPerformanceQueue({
     checkPatternCapacity([prepared], removed);
     return installPatterns([prepared], removed, reply)[0];
   }
+  // Reset a chip's register reservations without dropping ordinary commands
+  // already ordered after a queued initialize/reset operation.
+  function clearPatterns() {
+    const removed = new Set(patterns.values());
+    for (const pattern of removed) discardPattern(pattern);
+    if (removed.size) rebuildWithout(removed);
+  }
   function clearPattern(name, {session, owner} = {}) {
     if (!validName(name)) throw new TypeError('Invalid performance pattern name');
     if (session !== undefined && !validSession(session)) throw new TypeError('Invalid performance session');
@@ -446,6 +453,7 @@ export function createPerformanceQueue({
     validatePattern,
     schedulePattern,
     clearPattern,
+    clearPatterns,
     commitPatterns,
     cancelPatternOwner,
     clear,

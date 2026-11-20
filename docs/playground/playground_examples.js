@@ -753,6 +753,11 @@ export const EXAMPLE_FILES = [
     "path": "/examples/wonderswan/ws-stereo.js",
     "name": "ws-stereo",
     "data": "// Each voice has independent left/right four-bit levels, from 0 to 15.\nconst wave = Array.from({length: 32}, (_, i) => i < 16 ? 15 : 0);\nws.setWaveform(0, wave);\nws.setWaveform(1, wave);\nws.setVolume(0, 8, 0);\nws.setVolume(1, 0, 8);\nsetBpm(120);\nliveLoop('left-and-right', async () => {\n  for (const [left, right] of [['C4', 'G4'], ['E4', 'B4'], ['G4', 'D5'], ['B4', 'F#5']]) {\n    ws.noteOn(0, left);\n    ws.noteOn(1, right);\n    await beat(0.75);\n    ws.allNotesOff();\n    await beat(0.25);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/wonderswan/ws-timed-registers.js",
+    "name": "ws-timed-registers",
+    "data": "// Hardware register operations: sample-clock Sweep/pan and raw Gate.\n// Web Audio only for schedule/capture. Native supports local build/compile.\nconst chip = await useSoundChip('wonderswan');\nchip.setVolume(CH3, 9, 9);\nconst phrase = chip.build(b => {\n  b.setNote(CH3, 'E3').keyOn(CH3);\n  b.setSweep({enabled:true,step:1,time:8});\n  b.atSeconds(0.25).setPan(CH3, 12, 4);\n  b.atSeconds(0.5).setSweep({enabled:true,step:-1,time:8});\n  b.atSeconds(0.75).setPan(CH3, 4, 12);\n  b.atSeconds(0.9).keyOff(CH3);\n});\nconst snapshot = await chip.captureState();\nconsole.table(await chip.compile(phrase, {initialState:snapshot}));\nawait chip.schedule(phrase, {name:'sweep-pan-gate',repeatSeconds:1});\n// Apply atomically replaces this name. Stop cancels its owned Gate.\n// await chip.clearSchedule('sweep-pan-gate');\n// Offsets are fixed seconds/reference samples, independent of later BPM changes.\n// Raw keyOff is immediate hardware Gate off, with no Synth software Release.\n// RAM transfers, Voice PCM feeding and Synth noteOn/noteOff are not recorded here.\n"
   }
 ];
 export const EXAMPLES = Object.fromEntries(EXAMPLE_FILES.map(file => [file.name, file.data]));
@@ -819,7 +824,8 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/dx7/dx7-keyboard.js",
     "/examples/dx7/dx7-live-parameters.js",
     "/examples/dx7/dx7-object-preset.js",
-    "/examples/snes/snes-brr-melody.js"
+    "/examples/snes/snes-brr-melody.js",
+    "/examples/wonderswan/ws-stereo.js"
   ],
   "mega-cd": [
     "/examples/mega-cd/megacd-four-sources.js",
@@ -864,8 +870,8 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/neogeo/neogeo-adpcm-a-drums.js"
   ],
   "wonderswan": [
+    "/examples/wonderswan/ws-timed-registers.js",
     "/examples/wonderswan/ws-four-voices.js",
-    "/examples/wonderswan/ws-stereo.js",
     "/examples/wonderswan/ws-noise-sweep.js"
   ],
   "c64": [
@@ -1038,6 +1044,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/dx7/dx7-keyboard.js",
     "/examples/dx7/dx7-live-parameters.js",
     "/examples/dx7/dx7-object-preset.js",
-    "/examples/snes/snes-brr-melody.js"
+    "/examples/snes/snes-brr-melody.js",
+    "/examples/wonderswan/ws-stereo.js"
   ]
 }).map(([id, paths]) => [id, paths.map(path => exampleByPath.get(path))]));

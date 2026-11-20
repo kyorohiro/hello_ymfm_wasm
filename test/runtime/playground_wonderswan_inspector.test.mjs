@@ -1,3 +1,4 @@
+import {createWonderSwanTimedProcessor,wonderswanTimedCommandCost} from '../../tetorica_src/runtime/wonderswan_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
@@ -17,7 +18,7 @@ const triangle=Array.from({length:32},(_,i)=>i<16?i:31-i);
 async function setup({rate=48000,clock=WONDERSWAN_CLOCK}={}){
   let Processor,frame=0,resolveReady;const messages=[],ready=new Promise(resolve=>resolveReady=resolve),port={postMessage:data=>{messages.push(data);if(data.ready||data.error)resolveReady(data);}};
   const source=(await readFile(new URL('./playground_wonderswan_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
-  vm.runInNewContext(source,{WonderSwan,WONDERSWAN_CLOCK,factory,WonderSwanVoiceInspector,ChipClockResampler,validateChipClock,receiveChipInspector,sampleRate:rate,
+  vm.runInNewContext(source,{createWonderSwanTimedProcessor,wonderswanTimedCommandCost,WonderSwan,WONDERSWAN_CLOCK,factory,WonderSwanVoiceInspector,ChipClockResampler,validateChipClock,receiveChipInspector,sampleRate:rate,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
   const processor=new Processor({processorOptions:{clock,wasmBinary:await readFile(new URL('../../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await ready).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createWonderSwanClient(clientPort,{clock});client.initialize();

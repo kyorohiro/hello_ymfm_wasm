@@ -71,7 +71,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | Output-only channel switches shared by Keyboard, Code and song | **Implemented.** `aswanMixerChannels` applies four output switches to the instrument endpoint and reference player; Code uses that same instrument. Chip volume and final Master are separate. |
 | PCM drawing and Start/Loop range editing | **Partial / software extension.** [editor.js](../synth-aswan/editor.js) already draws the 32-point 4-bit Wave RAM. Voice PCM has audio import, sample rate, Root and Loop, but no RF5C164-style full-sample draw/Start/Loop range editor. |
 | Looper / Event Rec | **Not implemented; optional.** No equivalent recording UI is present; not required for the initial saving/layout rollout. |
-| Timed build/schedule/compile/capture-state API | **Separate proposal.** Not wired through the ASWAN Code host. Existing hardware sweep/noise and software Voice PCM supply are not this reservation API. |
+| Timed build/schedule/compile/capture-state API | **Implemented for Synth Web Audio; shared public hardware slice verified locally.** Parameters and raw Gates are available in Playground/npm candidate; owned software Envelope notes remain Synth-specific. Native scheduling, Wave RAM transfer and Voice PCM feeding remain separate. See the later verification records. |
 
 ## First implementation candidate: saving and Files
 
@@ -203,7 +203,7 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
       with execution-time R90 merges and hardware event ordering.
 - [x] Extend scheduled gate/note operations with explicit software-envelope and
       per-loop note ownership (follow-up below).
-- [ ] Evaluate general Playground/npm integration separately.
+- [x] Evaluate general Playground/npm integration separately; add the hardware-only slice described in the public rollout record below.
 - [ ] Scope Wave RAM transfer and software Voice PCM feeding explicitly; keep reservation execution independent from JS timers.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to future expanded scopes as well.
@@ -270,3 +270,15 @@ existing restored projects are not overwritten. Real Monaco CDN loading and
 human listening remain separate checks. Temporary package/receipts are under
 `/tmp/aswan-gates-*`; user release artifacts were not replaced. No shared core
 or DSP runtime/calibration change, npm publish, commit/push, tag or Tauri import.
+
+
+## Shared hardware API rollout (2026-11-20)
+
+The later [public rollout](todo_wonderswan_timed_public_api_20261120.md) adds
+hardware parameters and raw Gates to shared Playground Main/Worker and an
+unpublished npm candidate, with typed/source navigation and an editable example.
+The earlier scope statements above describe those earlier Synth-only slices;
+they are not the current public hardware status. Software Envelope notes still
+belong to the Synth layer. Wave RAM/PCM feeding and Native scheduling remain
+separate. Shared input changes were remeasured for source provenance; Synth
+local execution and balance were left unchanged while the user tests it.

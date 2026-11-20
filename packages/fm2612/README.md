@@ -1225,6 +1225,61 @@ Initialize audio from a user gesture. Worklets, the logic Worker, native effects
 WASM, chip loader JS/WASM pairs and Tetorica's generated OPNA rhythm data are
 included. Website/editor pages and the Introduction/Ebook are separate consumers.
 
+### WonderSwan register-operation authoring (unpublished)
+
+The WonderSwan Web Audio runtime now exposes `build`, `compile`, `captureState`,
+`schedule` and `clearSchedule` through the primary `ws`, independent chips and
+Main/Worker Playground clients. The low-level `createSoundChip('wonderswan')`
+core stays unchanged. For a standalone browser host, initialize from a click:
+
+```js
+import {createTetoricaSynth} from 'tetorica-fm2612/tetorica_synth.js';
+const synth = createTetoricaSynth({chip:'wonderswan'});
+// Inside a user gesture:
+await synth.start();
+const ws = synth.ws;
+const operations = ws.build(b => {
+  b.setNote(0, 'E3').keyOn(0);
+  b.atSeconds(0.25).setPan(0, 12, 4);
+  b.atSeconds(0.5).keyOff(0);
+});
+console.table(await ws.compile(operations));
+await ws.schedule(operations, {name:'phrase',repeatSeconds:1});
+// await ws.clearSchedule('phrase');
+```
+
+The public recorder supports volume/pan, frequency/note, Noise/Sweep and raw
+keyOn/keyOff. Synth software-Envelope noteOn/noteOff, Wave RAM transfer and Voice
+PCM feeding are separate; the ASWAN Synth keeps its existing richer endpoint.
+CH2 volume/pan rejects Voice mode because R89 is the DAC byte there.
+Raw Gate off has no software release fade. The scope is physical CH0–CH3.
+
+Offsets are absolute seconds or reference samples (default 44100 Hz, configurable
+with `build(callback,{referenceSampleRate})`), independent of the output device.
+Partial R90 updates resolve at execution. Repeated Noise-reset writes remain in
+the trace. A later writer to a Gate retires the previous reservation token, so
+stale releases/cancellation cannot silence its replacement. Named patterns,
+atomic admission, Run/Apply/Stop and loop ownership follow the existing queue.
+A prepared/playing VGM timeline and register reservations cannot play together;
+stop the timeline before scheduling. Reset/port retirement clears reservations.
+Explicit reset/stop side effects are not rolled back by a failed Apply.
+
+`compile` is a forecast, not a playback log. It preserves hardware addresses,
+values, operation/write indices, offsets and optional channel/controlMask fields.
+Default `initialState:'current'` captures coherent applied Worklet metadata;
+`'reset'` is local; `'client'` uses the complete local authoring shadow only after
+reset/full adoption and can lag other writers; incomplete mirrors reject.
+A captured snapshot can be reused without communication and is instance/clock
+checked. Snapshots exclude oscillator, Sweep and Noise LFSR phase. Native
+execution/capture rejects explicitly; local build/reset/client compilation is
+available without a timer fallback.
+
+Pure Node/offline inspection can import `buildWonderSwanOperations`,
+`compileWonderSwanOperations` and `createWonderSwanOperationResetState` from
+`tetorica-fm2612/wonderswan_operations.js`. The readable client, snapshot and
+processor modules and declarations are packaged alongside it. Playground Files
+contains `examples/wonderswan/ws-timed-registers.js`.
+
 ### Native configurations and host integration (0.2.21)
 
 The shared runtime supports Game Boy, NES + FDS, SNES, X68000

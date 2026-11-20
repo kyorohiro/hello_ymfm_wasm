@@ -1,9 +1,10 @@
-import {WonderSwanSynth,WONDERSWAN_CLOCK} from './wonderswansynth.js?v=pokey-prepare-1';
-import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=pokey-prepare-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-fm-1';
-import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as bytes} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
-import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=pokey-prepare-1';
+import {attachWonderSwanTimedClient} from './wonderswan_timed_client.js';
+import {WonderSwanSynth,WONDERSWAN_CLOCK} from './wonderswansynth.js';
+import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js';
+import {nativeVoiceChannel} from './playground_performance_processor.js';
+import {validateChipClock} from './playground_chip_clock.js';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as bytes} from './native_genesis_voice_endpoint.js';
+import {prepareWonderSwanTimeline} from './wonderswan_timeline.js';
 
 export const WONDERSWAN_CLOCK_HELD_ERROR='Release the manually held WonderSwan voices before changing the clock';
 export const WONDERSWAN_CLOCK_PENDING_ERROR='WonderSwan clock change is scheduled; audition after it is applied';
@@ -189,6 +190,8 @@ export function createNativeGenesisWonderSwan(synth,{extra=false,clock:initialCl
       return value;
     });serial=result.catch(()=>{});return result;
   }
+  Object.defineProperty(client,'_timedClientStateComplete',{get:()=>client._getState().initialized});
+  attachWonderSwanTimedClient(client,{native:true});
   return {client,dispatch,read,invoke,
     cancelOwner:(performance,owner)=>cancel(operation=>operation.performance===performance&&operation.owner===owner),
     cancelPerformance:performance=>cancel(operation=>operation.performance!==undefined&&(performance===null||operation.performance===performance)),

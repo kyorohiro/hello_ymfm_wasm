@@ -1,14 +1,16 @@
+import {attachWonderSwanTimedClient} from './wonderswan_timed_client.js';
+import {validateWonderSwanOperationState} from './wonderswan_operations.js';
 import {attachChipClock} from './playground_chip_clock.js';
 import {WonderSwanSynth, WONDERSWAN_CLOCK} from './wonderswansynth.js';
 import {prepareWonderSwanTimeline} from './wonderswan_timeline.js';
 
 /** Immediate, ordered register/RAM commands shared by Main and Worker runtimes.
  * This client keeps authored state; it does not read advancing core registers.
- * @param {MessagePort} port @param {{clock?:number}} [options]
+ * @param {MessagePort} port @param {{clock?:number,instanceId?:string|number,native?:boolean}} [options]
  */
 export function createWonderSwanClient(port, options = {}, lifecycle = {}) {
   const {clock = WONDERSWAN_CLOCK} = options;
-  let disposed = false, controlled, preparedTimeline = null, timelineRevision = 0;
+  let completeState = false, disposed = false, controlled, preparedTimeline = null, timelineRevision = 0;
   const check = context => {
     if (disposed || options.native && lifecycle.isStopped?.(context)) throw new Error('WonderSwan disposed or Run stopped');
   };
@@ -36,6 +38,12 @@ export function createWonderSwanClient(port, options = {}, lifecycle = {}) {
     dispose() { if (disposed) return; disposed = true; try { port.postMessage({method:'dispose', args:[]}); } finally { port.close(); } },
   }});
   controlled = attachChipClock(synth, port, clock);
+  const reset = synth.reset.bind(synth), adopt = synth._adoptState.bind(synth);
+  synth.reset = () => { const result=reset();completeState=true;return result; };
+  Object.defineProperties(synth,{
+    _timedClientStateComplete:{get:()=>completeState},
+    _adoptState:{value:state=>{let complete=false;try{validateWonderSwanOperationState(state);complete=true;}catch{}adopt(state);completeState=complete;}},
+  });
   function timelineRequest(method, args = []) {
     const context = lifecycle.captureContext?.(); check(context);
     const result = controlled._requestControl(method, args).catch(error => {
@@ -57,7 +65,7 @@ export function createWonderSwanClient(port, options = {}, lifecycle = {}) {
     const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
     controlled.setClock=hz=>{const context=lifecycle.captureContext?.();check(context);return setClock(hz).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
   }
-  return controlled;
+  return attachWonderSwanTimedClient(controlled,options,port);
 }
 
 /** Builtin controls borrow the primary device; the runtime owns its lifetime. */
@@ -68,6 +76,10 @@ export function createPrimaryWonderSwanApi(raw) {
     api[method] = (...args) => raw[method](...args);
   }
   api.setClock = (...args) => raw.setClock(...args);
+  if(raw._timedOperations){
+    for(const method of ['build','compile','captureState','schedule','clearSchedule'])api[method]=(...args)=>raw[method](...args);
+    Object.defineProperty(api,'_timedOperations',{get:()=>raw._timedOperations});
+  }
   Object.defineProperties(api, {
     id:{value:'wonderswan', enumerable:true},
     clock:{get:() => raw.clock, enumerable:true},

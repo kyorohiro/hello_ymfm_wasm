@@ -103,7 +103,7 @@ try {
     'playground_keyboard', 'playground_sample_edit', 'playground_sample_instrument',
     'playground_chip_inspector', 'playground_chip_inspector_state', 'playground_native_voice_inspector',
     ...['pokey','wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
-    'pokey','pokeysynth','pokeyaudioengine','pokey_timeline','pokey_timeline_upload','pokey_timeline_builder','wonderswan','wonderswansynth','huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
+    'pokey','pokeysynth','pokeyaudioengine','pokey_timeline','pokey_timeline_upload','pokey_timeline_builder','wonderswan','wonderswansynth','wonderswan_operations','wonderswan_timed_state','wonderswan_timed_client','wonderswan_timed_processor','huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
     'playground_opl','playground_opl_audio','playground_opl_worklet','playground_opl_inspector'];
   for (const name of nativeModules) for (const extension of ['js','d.ts']) {
     assert.ok(packedPaths.has(name + '.' + extension), `Native voice/sample package payload missing ${name}.${extension}`);
@@ -530,6 +530,23 @@ import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonders
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 import ym2612ModuleFactory from 'tetorica-fm2612/generated/ym2612_wasm.js';
 import wonderswanModuleFactory from 'tetorica-fm2612/generated/wonderswan_wasm.js';
+import {buildWonderSwanOperations,compileWonderSwanOperations,createWonderSwanOperationResetState} from 'tetorica-fm2612/wonderswan_operations.js';
+import {createWonderSwanClient,createPrimaryWonderSwanApi} from 'tetorica-fm2612/playground_wonderswan';
+{
+  const recorded=buildWonderSwanOperations(b=>{b.setNote(0,'C4').keyOn(0);b.atSample(4410).keyOff(0);});
+  const baseline=createWonderSwanOperationResetState();
+  const trace=compileWonderSwanOperations(recorded,baseline);
+  assert.equal(trace.length,4);assert.equal(trace.at(-1).offsetSeconds,.1);assert.equal(trace.at(-1).register,0x90);
+  assert.equal(baseline.registers[16],0);
+  const client=createWonderSwanClient({postMessage(){},close(){}});
+  client.initialize();
+  const primary=createPrimaryWonderSwanApi(client);assert(primary.build&&primary.schedule&&primary.captureState);
+  assert.equal(primary.dispose,undefined);
+  assert.deepEqual(await client.compile(recorded,{initialState:'client'}),trace);
+  assert.throws(()=>client.build(b=>b.noteOn(0,'C4')),/Unsupported|not a function/);
+  client.dispose();
+}
+
 assert.equal(SOUNDCHIP_MIXER_PRESETS, subpathPresets);
 assert.equal(SOUNDCHIP_MIXER_PRESETS, extensionlessPresets);
 const calibratedPreset = SOUNDCHIP_MIXER_PRESETS.calibrated;

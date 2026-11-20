@@ -77,6 +77,11 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (/^Playground(?:Primary)?Scsp/.test(owner)) return {file:'scspsynth.js',symbol:owner==='PlaygroundScsp'&&!/^Playground/.test(symbol)?'ScspSynth.'+symbol:'ScspSynth'};
   if (/^PlaygroundNes$/.test(owner)) return {file:'nesapusynth.js', symbol};
   if (/^PlaygroundGameboy$/.test(owner)) return {file:'gameboysynth.js', symbol};
+  if(owner==='PlaygroundWonderSwanOperationRecorder'||owner==='PlaygroundWonderSwanOperationProgram')return {file:'wonderswan_operations.js',symbol:'buildWonderSwanOperations'};
+  if(owner==='PlaygroundWonderSwanStateSnapshot')return {file:'wonderswan_timed_state.js',symbol:'createWonderSwanTimedSnapshot'};
+  if(owner==='PlaygroundWonderSwanCompiledWrite')return {file:'wonderswan_operations.js',symbol:'compileWonderSwanOperations'};
+  if(['PlaygroundWonderSwan','PlaygroundPrimaryWonderSwan'].includes(owner)&&['build','compile','captureState','schedule','clearSchedule'].includes(symbol))
+    return symbol==='build'?{file:'wonderswan_operations.js',symbol:'buildWonderSwanOperations'}:{file:'wonderswan_timed_client.js',symbol:'attachWonderSwanTimedClient'};
   if (/^Playground(?:Primary)?WonderSwan(?:TimelineBuilder)?$/.test(owner)) return {file:'wonderswansynth.js',symbol:/^Playground/.test(symbol)?'WonderSwanSynth':symbol};
   if(/^PlaygroundHuc6280(?:OperationRecorder|RecordedMethod|OperationTime|RecordedOperation|OperationProgram)$/.test(owner))
     return {file:'huc6280_operations.js',symbol:'buildHuc6280Operations'};
