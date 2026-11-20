@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createDefaultPreset, readPreset, readFmPreset, FM_PRESETS, RHYTHM_NAMES, waveShape, decodeAdpcm, decodeBase64} from './preset.js?v=opna-sine-release-2';
 import {createFm2608Audio} from './audio.js?v=fm2608-source-mixer-1';
-import {setupFm2608CodeHost} from './code_host.js?v=opna-output-menu-1';
+import {setupFm2608CodeHost} from './code_host.js?v=opna-workspace-1';
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {setupFm2608SongControls} from './song_controls.js?v=fm2608-source-mixer-1';
 import {createParamControl, buildHeader, buildOperatorControls} from '../synth/synth_controls.js';
 import {createOperatorEnvelopeView} from '../synth/synth_operator_envelope.js';
@@ -39,7 +40,8 @@ const algorithmDescriptions = [
 ];
 
 let settings = createDefaultPreset(), section = 'fm', audio = null, audioPending = null;
-let host = null, songs = null, octave = 0, layout, pitch = 0, master = .7, visualMode = 'envelope';
+let lastSoundSection = 'fm';
+let host = null, expandedTabs = null, songs = null, octave = 0, layout, pitch = 0, master = .7, visualMode = 'envelope';
 let generation = 0, editQueue = Promise.resolve(), disposed = false, lastLive = 0;
 let sampleData = '', sampleRange = '', referenceSampleKey = '', decodedSample = new Float32Array(), referenceSamples = new Float32Array();
 let waveDraft = null, wavePointer = null, previousWavePoint = null;
@@ -649,6 +651,7 @@ function renderChannelTabs() {
 function selectSection(value,{releaseNotes = true} = {}) {
   if (releaseNotes) releaseKeyboard();
   section = value;
+  if(value!=='mixer')lastSoundSection=value;
   for (const button of byId('chipTabs').querySelectorAll('[data-section]')) {
     const selected = button.dataset.section === section;
     button.setAttribute('aria-selected',String(selected));
@@ -661,6 +664,7 @@ function selectSection(value,{releaseNotes = true} = {}) {
   if (section === 'ssg') drawSsgEnvelope();
   if (section === 'adpcm') renderSample();
   songs?.refresh();
+  expandedTabs?.showChip(byId('tab-'+value));
 }
 function installTabKeys(root) {
   root.addEventListener('keydown',event => {
@@ -1175,7 +1179,7 @@ for (const id of ['pitchBend','keyboardPitchBend']) {
 }
 byId('octaveDown').addEventListener('click',() => { releaseKeyboard(); octave = Math.max(-2,octave - 1); renderKeyboard(); });
 byId('octaveUp').addEventListener('click',() => { releaseKeyboard(); octave = Math.min(2,octave + 1); renderKeyboard(); });
-for (const button of byId('chipTabs').querySelectorAll('[data-section]')) button.addEventListener('click',() => selectSection(button.dataset.section));
+for (const button of byId('chipTabs').querySelectorAll('[data-section]')) button.addEventListener('click',() => selectSection(button.dataset.section,{releaseNotes:!host?.controls.isExpanded()}));
 installTabKeys(byId('chipTabs'));
 installTabKeys(byId('channelTabs'));
 byId('liveUpdate').addEventListener('change',event => {
@@ -1280,8 +1284,17 @@ byId('synthMenu').addEventListener('click',event => {
 
 host = setupFm2608CodeHost({ensureAudio,getAudio:() => audio,getSettings,applySettings,
   stopKeyboard:releaseKeyboard,onActivity:updateReadout,setStatus:status,
+  onViewChange:mode => {
+    if(mode==='keyboard'&&host?.controls.isExpanded()&&section==='mixer')selectSection(lastSoundSection,{releaseNotes:false});
+    expandedTabs?.showInput(mode);
+  },
+  onExpandedChange:value => expandedTabs?.setExpanded(value),
   onSelectSong:file => songs.selectFile(file),onWorkspaceReplace:() => songs?.reset(),
   onBeforeRun:async () => { await songs?.stop(); }});
+expandedTabs = setupSynthExpandedTabs({codeControls:host.controls,
+  selectChip:button => {selectSection(button.dataset.section,{releaseNotes:false});return true;},
+  elements:{editor:byId('opnaSynthEditor'),chipTabs:[...byId('chipTabs').querySelectorAll('[data-section]')],volume:byId('masterVolume').closest('.master-control')},
+  getChipView:button => button.dataset.section});
 songs = setupFm2608SongControls({project:host.project,files:host.files,ensureAudio,getAudio:() => audio,getSettings,
   beforePlay:async () => { releaseKeyboard(); await host.stop(); },beforeTransport:releaseKeyboard,
   getSelection:() => ({section,channel:currentChannel()}),setStatus:status,
@@ -1323,6 +1336,7 @@ monitorFrame = requestAnimationFrame(drawOutput);
 window.addEventListener('pagehide',event => {
   releaseKeyboard();
   if (event.persisted) return;
+  expandedTabs?.dispose();
   disposed = true;
   generation++;
   cancelAnimationFrame(monitorFrame);

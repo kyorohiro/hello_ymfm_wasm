@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "npmPublished": false,
+  "remoteCiRun": false,
+  "unit": {
+    "passed": 212,
+    "total": 212,
+    "log": "build/fm2608-workspace-unit.log"
+  },
+  "browser": {
+    "total": 8,
+    "reports": [
+      {
+        "report": "build/fm2608-workspace-browser.json",
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "operator envelope draws on view and edits without creating audio",
+              "FM keyboard produces actual PCM and releases",
+              "SSG keyboard and live parameter editing",
+              "synthetic hardware rhythm ROM produces PCM",
+              "Rhythm pad key labels match all six actual voices, Octave and fixed-channel keyboard input",
+              "ADPCM keyboard and held-sample drawing preserve length/root",
+              "ADPCM base-rate editing preserves a transposed held note",
+              "audio import encodes a complete sample and WAV export retains it",
+              "saves full OPNA settings to Files presets",
+              "preset selection preserves Keyboard mode",
+              "Code shares OPNA; controls/preset/Keyboard view keep loops running",
+              "persistent seven-tab workspace preserves Code owner, Instrument view, Master, reference controls and desktop/mobile layout",
+              "Code Stop is silent and keyboard can restart",
+              "software output Mixer scales FM and SSG independently and YM2203 mode preserves running Code notes",
+              "raw FM/LFO writes and ADPCM performance tuning are captured in saved settings",
+              "Live SSG/Rhythm/ADPCM editing can return to saved values while Code runs",
+              "Mixer mute gates current/future notes and restores latest level",
+              "choosing Auto preserves separate channel sounds",
+              "operator Gates, special CH3 and Timer A CSM work through the UI",
+              "Code-loaded ADPCM memory and selected address range export through the UI",
+              "VGM imports archive all four sound sections in presets, preserving Code and supporting normal picker audition",
+              "VGM Files, Live controls, paused FM/SSG/ADPCM audition and Capture preserve song position",
+              "reference Seek, focused progress and channel Mixer operate on the song output",
+              "VGZ and S98 reference files play using the shared OPNA core",
+              "YM2203 compatibility keeps source bytes and supports Live, paused FM/SSG, Seek and Capture",
+              "removing the selected reference file clears its automatic mixer profile",
+              "YM2203 VGZ and S98 use only the OPNA core and native OPNA playback remains selectable",
+              "Code and reference-song transports hand off without closing audio",
+              "stopped song view and naturally ended channels remain editable, with the first audition key preserved",
+              "380 percent Master and expanded Code match existing Synth conventions",
+              "desktop and mobile layout"
+            ]
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "operator envelope draws on view and edits without creating audio",
+              "FM keyboard produces actual PCM and releases",
+              "SSG keyboard and live parameter editing",
+              "synthetic hardware rhythm ROM produces PCM",
+              "Rhythm pad key labels match all six actual voices, Octave and fixed-channel keyboard input",
+              "ADPCM keyboard and held-sample drawing preserve length/root",
+              "ADPCM base-rate editing preserves a transposed held note",
+              "audio import encodes a complete sample and WAV export retains it",
+              "saves full OPNA settings to Files presets",
+              "preset selection preserves Keyboard mode",
+              "Code shares OPNA; controls/preset/Keyboard view keep loops running",
+              "persistent seven-tab workspace preserves Code owner, Instrument view, Master, reference controls and desktop/mobile layout",
+              "Code Stop is silent and keyboard can restart",
+              "software output Mixer scales FM and SSG independently and YM2203 mode preserves running Code notes",
+              "raw FM/LFO writes and ADPCM performance tuning are captured in saved settings",
+              "Live SSG/Rhythm/ADPCM editing can return to saved values while Code runs",
+              "Mixer mute gates current/future notes and restores latest level",
+              "choosing Auto preserves separate channel sounds",
+              "operator Gates, special CH3 and Timer A CSM work through the UI",
+              "Code-loaded ADPCM memory and selected address range export through the UI",
+              "VGM imports archive all four sound sections in presets, preserving Code and supporting normal picker audition",
+              "VGM Files, Live controls, paused FM/SSG/ADPCM audition and Capture preserve song position",
+              "reference Seek, focused progress and channel Mixer operate on the song output",
+              "VGZ and S98 reference files play using the shared OPNA core",
+              "YM2203 compatibility keeps source bytes and supports Live, paused FM/SSG, Seek and Capture",
+              "removing the selected reference file clears its automatic mixer profile",
+              "YM2203 VGZ and S98 use only the OPNA core and native OPNA playback remains selectable",
+              "Code and reference-song transports hand off without closing audio",
+              "stopped song view and naturally ended channels remain editable, with the first audition key preserved",
+              "380 percent Master and expanded Code match existing Synth conventions",
+              "desktop and mobile layout"
+            ]
+          }
+        ]
+      },
+      {
+        "report": "build/fm2608-workspace-monaco.json",
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "actual Monaco is visible and its worker accepts all four OPNA sections",
+              "ADPCM completion opens the correct readable implementation",
+              "CSM and portable capture navigate to their Synth implementation",
+              "actual Monaco expands beside Files and fits mobile",
+              "actual Monaco model and running Code survive seven-tab workspace, desktop/mobile and header restoration"
+            ]
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "actual Monaco is visible and its worker accepts all four OPNA sections",
+              "ADPCM completion opens the correct readable implementation",
+              "CSM and portable capture navigate to their Synth implementation",
+              "actual Monaco expands beside Files and fits mobile",
+              "actual Monaco model and running Code survive seven-tab workspace, desktop/mobile and header restoration"
+            ]
+          }
+        ]
+      },
+      {
+        "report": "build/fm2608-workspace-zip.json",
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "operator envelope draws on view and edits without creating audio",
+              "FM keyboard produces actual PCM and releases",
+              "SSG keyboard and live parameter editing",
+              "synthetic hardware rhythm ROM produces PCM",
+              "Rhythm pad key labels match all six actual voices, Octave and fixed-channel keyboard input",
+              "ADPCM keyboard and held-sample drawing preserve length/root",
+              "ADPCM base-rate editing preserves a transposed held note",
+              "audio import encodes a complete sample and WAV export retains it",
+              "saves full OPNA settings to Files presets",
+              "preset selection preserves Keyboard mode",
+              "Code shares OPNA; controls/preset/Keyboard view keep loops running",
+              "persistent seven-tab workspace preserves Code owner, Instrument view, Master, reference controls and desktop/mobile layout",
+              "Code Stop is silent and keyboard can restart",
+              "software output Mixer scales FM and SSG independently and YM2203 mode preserves running Code notes",
+              "raw FM/LFO writes and ADPCM performance tuning are captured in saved settings",
+              "Live SSG/Rhythm/ADPCM editing can return to saved values while Code runs",
+              "Mixer mute gates current/future notes and restores latest level",
+              "choosing Auto preserves separate channel sounds",
+              "operator Gates, special CH3 and Timer A CSM work through the UI",
+              "Code-loaded ADPCM memory and selected address range export through the UI",
+              "VGM imports archive all four sound sections in presets, preserving Code and supporting normal picker audition",
+              "VGM Files, Live controls, paused FM/SSG/ADPCM audition and Capture preserve song position",
+              "reference Seek, focused progress and channel Mixer operate on the song output",
+              "VGZ and S98 reference files play using the shared OPNA core",
+              "YM2203 compatibility keeps source bytes and supports Live, paused FM/SSG, Seek and Capture",
+              "removing the selected reference file clears its automatic mixer profile",
+              "YM2203 VGZ and S98 use only the OPNA core and native OPNA playback remains selectable",
+              "Code and reference-song transports hand off without closing audio",
+              "stopped song view and naturally ended channels remain editable, with the first audition key preserved",
+              "380 percent Master and expanded Code match existing Synth conventions",
+              "desktop and mobile layout"
+            ]
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "operator envelope draws on view and edits without creating audio",
+              "FM keyboard produces actual PCM and releases",
+              "SSG keyboard and live parameter editing",
+              "synthetic hardware rhythm ROM produces PCM",
+              "Rhythm pad key labels match all six actual voices, Octave and fixed-channel keyboard input",
+              "ADPCM keyboard and held-sample drawing preserve length/root",
+              "ADPCM base-rate editing preserves a transposed held note",
+              "audio import encodes a complete sample and WAV export retains it",
+              "saves full OPNA settings to Files presets",
+              "preset selection preserves Keyboard mode",
+              "Code shares OPNA; controls/preset/Keyboard view keep loops running",
+              "persistent seven-tab workspace preserves Code owner, Instrument view, Master, reference controls and desktop/mobile layout",
+              "Code Stop is silent and keyboard can restart",
+              "software output Mixer scales FM and SSG independently and YM2203 mode preserves running Code notes",
+              "raw FM/LFO writes and ADPCM performance tuning are captured in saved settings",
+              "Live SSG/Rhythm/ADPCM editing can return to saved values while Code runs",
+              "Mixer mute gates current/future notes and restores latest level",
+              "choosing Auto preserves separate channel sounds",
+              "operator Gates, special CH3 and Timer A CSM work through the UI",
+              "Code-loaded ADPCM memory and selected address range export through the UI",
+              "VGM imports archive all four sound sections in presets, preserving Code and supporting normal picker audition",
+              "VGM Files, Live controls, paused FM/SSG/ADPCM audition and Capture preserve song position",
+              "reference Seek, focused progress and channel Mixer operate on the song output",
+              "VGZ and S98 reference files play using the shared OPNA core",
+              "YM2203 compatibility keeps source bytes and supports Live, paused FM/SSG, Seek and Capture",
+              "removing the selected reference file clears its automatic mixer profile",
+              "YM2203 VGZ and S98 use only the OPNA core and native OPNA playback remains selectable",
+              "Code and reference-song transports hand off without closing audio",
+              "stopped song view and naturally ended channels remain editable, with the first audition key preserved",
+              "380 percent Master and expanded Code match existing Synth conventions",
+              "desktop and mobile layout"
+            ]
+          }
+        ]
+      },
+      {
+        "report": "build/fm2608-workspace-zip-monaco.json",
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "actual Monaco is visible and its worker accepts all four OPNA sections",
+              "ADPCM completion opens the correct readable implementation",
+              "CSM and portable capture navigate to their Synth implementation",
+              "actual Monaco expands beside Files and fits mobile",
+              "actual Monaco model and running Code survive seven-tab workspace, desktop/mobile and header restoration"
+            ]
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "loads without audio and Files is ready",
+              "all eight ALGO routings, matched OP colors and envelope parameter colors update without audio",
+              "actual Monaco is visible and its worker accepts all four OPNA sections",
+              "ADPCM completion opens the correct readable implementation",
+              "CSM and portable capture navigate to their Synth implementation",
+              "actual Monaco expands beside Files and fits mobile",
+              "actual Monaco model and running Code survive seven-tab workspace, desktop/mobile and header restoration"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "distribution": {
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/fm2608-workspace-package/tetorica_fm2608_synth_workspace-20261121_itch.zip",
+    "bytes": 1985108,
+    "sha256": "c0a51e87509de934d24b8bd67ac526fc7710ec12ef46d4d3a352810dc94a1d9f",
+    "files": 188,
+    "originalInputsVerified": 186
+  },
+  "scope": "Persistent Code/Synth workspace only; working/saved and timed APIs remain separate."
+}

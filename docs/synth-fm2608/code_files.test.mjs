@@ -288,3 +288,13 @@ test('PC-98 New Cassette storage failure keeps the fresh files exportable and re
   const copy=createFm2608CodeProject();copy.restore(await copy.prepareImport(f.project.exportProject()));assert.equal(copy.fs.get('/index.js').data,'// kept');
   await f.files.dispose();assert.equal(f.doc.getElementById('opnaNewCassetteDialog'),undefined);assert.equal(await f.files.newProject(),false);
 });
+
+test('Instrument picker applies OPNA without opening Code or selecting its JSON',async t=>{
+ const f=fixture(t);await f.files.ready;
+ const sound=createDefaultPreset();sound.name='Workspace instrument';sound.ssg.noisePeriod=23;
+ const path='/presets/Workspace.opna.json';f.project.importFiles([{path,data:JSON.stringify(sound)}]);
+ f.project.select('/index.js');const before=f.project.selectedPath;
+ const picker=f.doc.getElementById('opnaPresetSelect');picker.value=path;await picker.fire('change');
+ assert.equal(f.project.settings.name,sound.name);assert.equal(f.project.selectedPath,before);assert.deepEqual(f.opened,[]);
+ assert.equal(await f.files.selectFile(path),true);assert.equal(f.project.selectedPath,path);assert.equal(f.opened.at(-1).path,path);
+});

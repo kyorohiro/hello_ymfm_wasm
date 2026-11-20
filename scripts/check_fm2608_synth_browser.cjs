@@ -12,7 +12,7 @@ const config = {root:path.resolve(__dirname,'../docs'),entry:'/synth-fm2608/inde
   engines:'chromium,webkit',editor:'fallback',song:'',out:path.resolve(__dirname,'../build/fm2608-synth-browser.json'),
   screenshots:path.resolve(__dirname,'../build/fm2608-synth-browser')};
 for (const argument of process.argv.slice(2)) {
-  const match = /^--(root|entry|engines|editor|song|out|screenshots)=(.+)$/.exec(argument);
+  const match = /^--(root|entry|engines|editor|song|out|screenshots|monaco-root)=(.+)$/.exec(argument);
   assert(match,'Unknown argument ' + argument);
   config[match[1]] = match[2];
 }
@@ -150,10 +150,17 @@ async function checkEngine(name,origin) {
     page.on('pageerror',error => errors.push(error.message));
     page.on('response',response => { if (response.status() >= 400) failures.push(response.url()); });
     page.on('request',request => { if (/ym2203_wasm\.(?:js|wasm)(?:\?|$)/.test(request.url())) ym2203Assets.push(request.url()); });
-    await page.route('**/*',route => {
+    await page.route('**/*',async route => {
       const url = new URL(route.request().url());
       const editorAsset = config.editor === 'monaco' && url.href.startsWith('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/');
-      return url.origin === origin || ['data:','blob:'].includes(url.protocol) || editorAsset ? route.continue() : route.abort();
+      if(editorAsset){
+        const prefix='https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/';
+        const directory=path.resolve(config['monaco-root']??path.join(__dirname,'../build/dmg-working-saved-20261120/monaco/package/min/vs'));
+        const file=path.resolve(directory,decodeURIComponent(url.href.slice(prefix.length).split('?')[0]));assert(file.startsWith(directory+path.sep));
+        let body;try{body=await fs.readFile(file);}catch(error){if(error.code!=='ENOENT'||!file.endsWith('.min.js'))throw error;body=await fs.readFile(file.replace(/\.min\.js$/,'.js'));}
+        return route.fulfill({status:200,contentType:mime[path.extname(file)]??'application/octet-stream',body});
+      }
+      return url.origin === origin || ['data:','blob:'].includes(url.protocol) ? route.continue() : route.abort();
     });
     await page.addInitScript(installAudit);
     await page.goto(origin + config.entry);
@@ -274,9 +281,35 @@ async function checkEngine(name,origin) {
       await page.screenshot({path:path.join(config.screenshots,name + '-monaco.png'),fullPage:true});
       check('actual Monaco expands beside Files and fits mobile');
       assert.equal(await page.evaluate(() => __opnaAudit.contexts.length),0);
+      await page.evaluate(()=>{
+        const host=document.querySelector('#synthCodeEditorHost'),editor=monaco.editor.getEditors().find(e=>host.contains(e.getDomNode()));
+        globalThis.__opnaWorkspaceModel=editor.getModel();
+        editor.setValue('const opna=await useSoundChip("ym2608"); globalThis.__monacoWorkspace={context,opna}; liveLoop("workspace",async()=>{context.ticks=(context.ticks||0)+1;opna.noteOn(CH1,"C4");await beat(0.25);opna.noteOff(CH1);await beat(0.25);});');
+      });
+      await page.locator('#synthCodeRunButton').click();await page.waitForFunction(()=>globalThis.__monacoWorkspace?.context.ticks>0);
+      await page.evaluate(()=>globalThis.__monacoWorkspaceOwner=__monacoWorkspace);
+      const tabs=['synthInputCodeTab','tab-fm','tab-ssg','tab-rhythm','tab-adpcm','tab-mixer','synthInputKeyboardTab'];
+      for(const width of [1180,390]){
+        await page.setViewportSize({width,height:1000});
+        for(const id of tabs){
+          await page.locator('#'+id).click();await page.waitForFunction(id=>document.getElementById(id).getAttribute('aria-selected')==='true',id);
+          assert(await page.locator('#synthWorkspace').evaluate(n=>n.classList.contains('is-code-expanded')));
+          assert(await page.locator('#masterVolume').isVisible());assert(await page.locator('#referenceSong').isVisible());
+          assert(await page.evaluate(()=>__monacoWorkspaceOwner===__monacoWorkspace&&monaco.editor.getEditors().some(e=>e.getModel()===__opnaWorkspaceModel)));
+          assert.match(await page.locator('#synthCodeState').textContent(),/Playing|Running/);
+          assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
+        }
+      }
+      const ticks=await page.evaluate(()=>__monacoWorkspace.context.ticks);await page.waitForFunction(n=>__monacoWorkspace.context.ticks>n,ticks);
+      await page.locator('#synthWorkspaceSynthButton').click();await page.locator('#synthWorkspaceCodeButton').click();
+      await page.waitForFunction(()=>document.querySelector('#synthInputCodeTab').getAttribute('aria-selected')==='true');
+      assert(await page.evaluate(()=>__monacoWorkspace===__monacoWorkspaceOwner));
+      await page.screenshot({path:path.join(config.screenshots,name+'-monaco-workspace-running.png'),fullPage:true});
+      await page.locator('#synthCodeStopButton').click();
+      check('actual Monaco model and running Code survive seven-tab workspace, desktop/mobile and header restoration');
       assert.deepEqual(errors,[]);
       assert.deepEqual(failures,[]);
-      return {engine:name,passed:true,checks,diagnostics,audioContexts:0,errors};
+      return {engine:name,passed:true,checks,diagnostics,audioContexts:1,errors};
     }
 
     await page.locator('[data-operator-envelope]').scrollIntoViewIfNeeded();
@@ -415,7 +448,7 @@ async function checkEngine(name,origin) {
     await page.locator('#opnaFilesTree button[data-file-path="/index.js"]').click();
     await page.locator('#synthInputCodeTab').click();
     await page.locator('#synthCodeEditor').waitFor({state:'visible'});
-    const code = 'const opna = await useSoundChip("ym2608");\nsetBpm(120);\nliveLoop("melody", async () => {\n  context.count = (context.count || 0) + 1;\n  opna.noteOn(CH1, "A3");\n  await beat(0.8);\n  opna.noteOff(CH1);\n  await beat(0.2);\n});\n';
+    const code = 'const opna = await useSoundChip("ym2608");\nsetBpm(120);\nglobalThis.__workspaceProbe={context,opna};\nliveLoop("melody", async () => {\n  context.count = (context.count || 0) + 1;\n  opna.noteOn(CH1, "A3");\n  await beat(0.8);\n  opna.noteOff(CH1);\n  await beat(0.2);\n});\n';
     await page.locator('#synthCodeEditor').fill(code);
     await page.locator('#synthCodeRunButton').click();
     await page.waitForFunction(() => /Playing|Running/.test(document.querySelector('#synthCodeState').textContent));
@@ -429,6 +462,38 @@ async function checkEngine(name,origin) {
     await page.waitForTimeout(180);
     await audible();
     check('Code shares OPNA; controls/preset/Keyboard view keep loops running');
+    await page.evaluate(()=>globalThis.__workspaceIdentity=__workspaceProbe);
+    await page.locator('#synthWorkspaceCodeButton').click();
+    const workspaceTabs=['synthInputCodeTab','tab-fm','tab-ssg','tab-rhythm','tab-adpcm','tab-mixer','synthInputKeyboardTab'];
+    for(const id of workspaceTabs){
+      await page.locator('#'+id).click();
+      assert.equal(await page.locator('#synthWorkspace').evaluate(n=>n.classList.contains('is-code-expanded')),true);
+      assert.deepEqual(await page.locator('#chipTabs > [role="tab"]').evaluateAll(nodes=>nodes.map(n=>n.id)),workspaceTabs);
+      await page.waitForFunction(id=>document.getElementById(id).getAttribute('aria-selected')==='true',id);
+      assert(await page.locator('#masterVolume').isVisible());assert(await page.locator('#referenceSong').isVisible());
+      assert(await page.evaluate(()=>__workspaceProbe.context===__workspaceIdentity.context&&__workspaceProbe.opna===__workspaceIdentity.opna));
+      assert.match(await page.locator('#synthCodeState').textContent(),/Playing|Running/);
+    }
+    await page.locator('#tab-fm').click();
+    await page.locator('#opnaPresetSelect').selectOption('/presets/Browser sound.opna.json');
+    assert.equal(await page.locator('#tab-fm').getAttribute('aria-selected'),'true');
+    await page.locator('#synthInputCodeTab').click();
+    await page.locator('#referenceSong > summary').click();
+    await page.screenshot({path:path.join(config.screenshots,name+'-workspace-folded.png'),fullPage:true});
+    const rows=await page.evaluate(()=>({file:document.querySelector('.opna-files-heading').getBoundingClientRect().top,tab:document.querySelector('#synthInputCodeTab').getBoundingClientRect().top}));
+    assert(Math.abs(rows.file-rows.tab)<3,'Files and workspace tabs align '+JSON.stringify(rows));
+    const count=await page.evaluate(()=>__workspaceProbe.context.count);await page.waitForFunction(n=>__workspaceProbe.context.count>n,count);
+    await page.setViewportSize({width:390,height:1000});
+    for(const id of workspaceTabs){await page.locator('#'+id).click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'narrow '+id);}
+    await page.screenshot({path:path.join(config.screenshots,name+'-workspace-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1180,height:1000});
+    await page.locator('#referenceSong > summary').click();
+    await page.locator('#tab-fm').click();
+    await page.locator('#synthWorkspaceSynthButton').click();
+    assert.equal(await page.locator('#synthWorkspace').evaluate(n=>n.classList.contains('is-code-expanded')),false);
+    await page.locator('#synthInputKeyboardTab').click();
+    check('persistent seven-tab workspace preserves Code owner, Instrument view, Master, reference controls and desktop/mobile layout');
+
 
     await page.locator('#synthCodeStopButton').click();
     await page.waitForFunction(() => /Stopped|Idle/.test(document.querySelector('#synthCodeState').textContent));

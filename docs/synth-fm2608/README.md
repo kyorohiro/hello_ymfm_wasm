@@ -246,3 +246,18 @@ tracked separately in the project TODO.
 - [FM2608 Synth source](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/docs/synth-fm2608)
 - [Native sound-chip SDK](https://github.com/kyorohiro/tetorica-soundchip-native)
 - [Tetorica license](../../LICENSE)
+
+## Code / Synth workspace
+
+Code beside Files opens one persistent workspace with Code / FM / SSG / Rhythm /
+ADPCM / Mixer / Keyboard tabs. Selecting a tab keeps the layout expanded and
+preserves running Code and its context. Synth or Restore returns the existing
+controls to their normal positions. Mixer → Keyboard returns to the last sound
+section. The original Master and foldable Reference playback panel remain above
+both columns; Files and workspace tab headings align on desktop.
+
+Saved sounds applies the selected instrument without opening its JSON or changing
+the current editor file. Select that JSON in Files when you want to edit it.
+Reference playback and Code remain exclusive; changing the displayed view alone
+does not start or stop either performance. This layout does not add timed APIs,
+working/saved Files or scheduled-performance Live polling.

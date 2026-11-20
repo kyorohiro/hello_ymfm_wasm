@@ -155,7 +155,7 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   const executionPath=()=>code?.executionPath??(isFm2608CodePath(code?.activePath)?code.activePath:null);
   const openInCurrentMode=path=>code?.openFile?.(path,{show:Boolean(code?.isCodeMode?.())});
   function reveal(path){for(let directory=dirname(path);directory!=='/';directory=dirname(directory))expanded.set(directory,true);}
-  async function selectFile(path){
+  async function selectFile(path,{openEditor=true}={}){
     if(!disposed&&!busy)code?.cancelPendingExecution?.();
     await api.ready;if(disposed||busy)return false;const token=++operation;
     await code?.flush?.();if(disposed||token!==operation)return false;
@@ -172,6 +172,7 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
         if(candidate){selection=importedVoiceSelection(value.importedVoice);sound=candidate;}
       }catch(error){soundError=error;}
     }
+    if(!openEditor&&!sound)throw soundError??Error('Choose a playable OPNA sound.');
     if(sound){
       setBusy(true);
       try{
@@ -189,8 +190,8 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
       }
     }
     if(sound){project.setSettings(getSettings());appliedPreset={kind:'json',path,data:file.data};}
-    project.select(path);render();schedule();
-    if(file.type==='text')await openInCurrentMode(path);
+    if(openEditor)project.select(path);render();schedule();
+    if(openEditor&&file.type==='text')await openInCurrentMode(path);
     if(disposed||token!==operation)return false;
     say(sound?'OPNA sound loaded. Edit its JSON in Code; select it again to apply changes.':soundError?`JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`:file.type==='text'?'Text edits save to Files from Code; select a OPNA sound JSON again to apply it.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
   }
@@ -475,7 +476,7 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   listen(newCassetteDialog,'cancel',event=>{event.preventDefault();cancelNewCassette();});
   listen(newCassetteExport,'click',()=>void newProject({exportCurrent:true}).catch(report));
   listen(newCassetteCreate,'click',()=>void newProject().catch(report));
-  listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(selectFile(choice.path)).catch(report);});
+  listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)return selectFile(choice.path,{openEditor:false}).catch(report);});
   for(const[id,fn]of [['opnaProjectNewButton',askNewCassette],['opnaFileNewButton',()=>ask('new')],['opnaFileRenameButton',()=>ask('rename')],['opnaFileDeleteButton',()=>ask('delete')],['opnaFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['opnaProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['opnaFileSaveSoundButton',()=>void saveSound().catch(report)],['opnaProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['opnaFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});

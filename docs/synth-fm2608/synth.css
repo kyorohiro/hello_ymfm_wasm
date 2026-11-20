@@ -182,3 +182,33 @@ footer p { margin:0; max-width:80ch; } footer div { display:flex; gap:12px; flex
 }
 @media(max-width:800px) { .opna-code-workspace.has-files { grid-template-columns:minmax(0,1fr); }.opna-code-workspace.has-files.is-code-expanded .opna-expanded-code { grid-column:1; }#opnaFilesTree { max-height:240px; } }
 @media(max-width:600px) { main { padding:12px 8px 20px; }.synth-shell { padding:15px 11px; }.product-icon { width:76px; height:76px; border-radius:17px; }.title-row,.product-identity { gap:10px; }.description { font-size:.72rem; }h1 { font-size:1.65rem; }.masthead nav { gap:8px; }.laboratory-link span { display:none; }.opna-tabs > button { padding:8px 11px; }.monitor-master input { width:85px; }.opna-rhythm-pads { grid-template-columns:repeat(2,minmax(0,1fr)); }.param-control { width:104px; }.keyboard-mount .key { padding:7px 1px; }.keyboard-wheel { flex-basis:42px; }.master-control input { width:110px; } }
+
+/* Persistent expanded workspace; metadata precedes both Files and editor. */
+.opna-workspace-switch {display:inline-flex;}
+.opna-workspace-switch button {border-radius:0;}
+.opna-workspace-switch button:first-child {border-radius:99px 0 0 99px;}
+.opna-workspace-switch button:last-child {border-radius:0 99px 99px 0;}
+.opna-workspace-switch button[aria-pressed="true"] {background:var(--accent);color:white;}
+.opna-workspace-meta {grid-column:1/-1;display:grid;gap:12px 16px;min-width:0;align-items:start;}
+.opna-workspace-meta .audio-status {margin:0;padding-top:10px;}
+.opna-reference-row {display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;min-width:0;}
+.opna-reference-row .opna-reference {flex:1 1 280px;margin:0;min-width:0;}
+.opna-reference-row .opna-reference[open] {flex-basis:100%;}
+.opna-reference > summary {font-size:.76rem;font-weight:650;cursor:pointer;}
+.opna-reference[open] > summary {margin-bottom:10px;}
+#synthExpandedVolumeSlot {margin-left:auto;min-width:0;max-width:100%;}
+#synthExpandedVolumeSlot .master-control {max-width:100%;}
+.opna-code-workspace.is-code-expanded .opna-main {display:block;}
+.opna-main #synthExpandedCodeSlot {grid-column:auto;}
+#opnaSynthEditor,#synthExpandedTabsSlot,.opna-input-heading {min-width:0;}
+.opna-code-workspace.is-code-expanded .opna-input-section {margin-top:0;padding-top:0;border-top:0;}
+.opna-code-workspace .synth-expanded-heading {display:flex;align-items:flex-start;gap:8px;min-width:0;margin-bottom:12px;}
+.opna-code-workspace .synth-expanded-heading .opna-tabs {flex:1;flex-wrap:wrap;min-width:0;margin:0;}
+.opna-code-workspace .synth-expanded-heading .opna-tabs > button {min-height:34px;padding:7px 10px;flex:0 0 auto;}
+.opna-code-workspace .synth-expanded-heading .opna-code-expand {flex:none;padding:7px;min-height:34px;}
+#synthExpandedTabsSlot > .opna-code-toolbar {margin-bottom:12px;}
+@media(min-width:801px) {
+ .opna-code-workspace.has-files > .opna-workspace-meta {grid-template-columns:230px minmax(0,1fr);}
+ .opna-code-workspace.has-files.is-code-expanded > .opna-main {padding-top:13px;}
+ .opna-code-workspace.has-files.is-code-expanded .opna-files-heading {min-height:34px;}
+}

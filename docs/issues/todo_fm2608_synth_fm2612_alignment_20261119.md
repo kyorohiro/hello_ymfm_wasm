@@ -1,5 +1,18 @@
 # FM2608 Synth — FM2612 interaction alignment
 
+## Active slice — persistent workspace (2026-11-21)
+
+- [x] Add header Code/Synth switch and persistent Code/FM/SSG/Rhythm/ADPCM/
+      Mixer/Keyboard tabs using the existing shared helper.
+- [x] Keep reference transport and Master visible above both Files/editor
+      columns; retain existing controls, editor model and running performance.
+- [x] Keep Instrument selection on its view instead of opening its JSON.
+- [x] Verify navigation, restore, focus, reference transport, running Code and
+      desktop/narrow layouts with muted browsers and existing OPNA tests.
+
+Working/saved, timed API implementation and scheduled Live polling remain
+separate phases. No npm publication, Tauri import or remote CI in this slice.
+
 Recorded: 2026-11-19. Documentation and source audit only; no runtime changes or
 new test results are claimed here. This Synth is not yet ordered in the rollout.
 The user's selected order is HuC6280 → SPU → DMG → SID. Missing items below are
@@ -12,7 +25,7 @@ candidates, not a commitment to implement every FM2612 feature.
 | Working/saved versions and explicit Save | **Missing.** [code_project.js](../synth-fm2608/code_project.js) uses one filesystem and a v1 settings/files snapshot. [code_files.js](../synth-fm2608/code_files.js) persists edits and supports Ctrl/Cmd+S, but has no Auto apply, file dots, Save all/Discard, saved-only execution or dual-version Cassette recovery. |
 | Active instrument file linked to controls | **Partial.** JSON instruments and TFI/VGI import/export exist. `markSoundDirty()` updates project settings; `saveSound()` creates a new JSON path. Knob/sample edits are not a working version of the selected preset file. |
 | Files Undo and project replacement | **Partial.** New/import preparation, validation, replacement and failure rollback exist; a user-visible Files Undo history for successful operations/New/import is absent. See [code_files.js](../synth-fm2608/code_files.js). |
-| Persistent expanded Code workspace | **Partial.** Keyboard/Code and maximize exist; [code_host.js](../synth-fm2608/code_host.js) does not enable persistent expansion or the FM2612 combined expanded tab row/header Code–Synth switch. Master visibility needs checking when adopting that layout. |
+| Persistent expanded Code workspace | **Present (2026-11-21).** Header Code/Synth and persistent Code/FM/SSG/Rhythm/ADPCM/Mixer/Keyboard use the shared expanded helper. Reference transport and Master stay above Files/main, and layout changes preserve running Code and the editor model. |
 | Live changed-value highlighting | **Missing.** Auto update follows selected channels, but no change-flash preference/highlighter is wired in [synth.js](../synth-fm2608/synth.js). Live following and highlighting are separate features. |
 | Shared output mixer and channel switches | **Present.** FM/SSG/Rhythm/ADPCM have four independent faders and 6/3/6/1 channel switches shared by Keyboard, Code and reference playback. Preserve the recent [four-source mixer](todo_fm2608_four_source_mixer_20261119.md), YM2203 correction and VGM gain entries. |
 | PCM drawing and playback-range editing | **Partial / chip-specific.** ADPCM-B drawing, WAV loading/export, Root/Rate/Repeat and software release already exist. The preset retains aligned Start/End addresses, but visible ADPCM controls lack the RF5C164-style range editor. ADPCM-B Repeat uses its selected range, not an independent RF5C164 Loop Start. See [index.html](../synth-fm2608/index.html), [preset.js](../synth-fm2608/preset.js). |
@@ -36,7 +49,7 @@ candidates, not a commitment to implement every FM2612 feature.
 - [ ] Preserve both layers through reload, recovery journals, selection,
       rename, import/New and reversible Files operations; distinguish accepted
       in-memory Save from durable browser storage.
-- [ ] Add the persistent Code/FM/SSG/Rhythm/ADPCM/Mixer/Keyboard workspace and
+- [x] Add the persistent Code/FM/SSG/Rhythm/ADPCM/Mixer/Keyboard workspace and
       header Code–Synth switch without stopping playback; keep Master available.
 - [ ] Add bounded changed-value highlighting, default On with an Off preference,
       using the existing channel display rather than changing the sound.
@@ -76,3 +89,23 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
 - [ ] Scope ADPCM memory transfer separately and keep YM2203-compatible playback/mixer modes distinct from the timed API.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.
+
+## Workspace validation — 2026-11-21
+
+212 OPNA tests passed, including Instrument selection without editor navigation.
+Source and safely extracted readable ZIP passed Chromium/WebKit with fallback
+and pinned local Monaco: 8 cases. The expanded seven-tab row, header restore,
+Files heading alignment, Master/reference visibility, mobile width and ongoing
+Code/context/client/Monaco model were verified. Existing fallback audio/song
+checks passed, including YM2203 balance, four-source mixing, channel editing,
+ADPCM release and Code/reference transport exclusion. Physical output was muted;
+human listening and device testing were not performed.
+
+Readable ZIP: 188 files, 1,985,108 bytes, SHA-256
+`c0a51e87509de934d24b8bd67ac526fc7710ec12ef46d4d3a352810dc94a1d9f`.
+All 186 original input receipts match source. No npm/Tauri update, commit/push,
+tag or remote CI was performed. Evidence:
+[verification_fm2608_code_workspace_20261121.json](verification_fm2608_code_workspace_20261121.json).
+
+Next: implement the scoped FM/SSG timed API separately; do not mistake this
+workspace work for build/schedule/compile support or working/saved Files.

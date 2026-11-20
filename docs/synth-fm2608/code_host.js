@@ -4,7 +4,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=sdsp-cod
 import {selectFm2608CodeDeclarations} from './code_declarations.js?v=opna-pcm-release-1';
 import {createFm2608CodeAudio} from './code_audio.js?v=opna-pcm-release-1';
 import {createFm2608CodeProject, FM2608_PROJECT_FILE_BYTES} from './code_project.js?v=opna-output-menu-1';
-import {setupFm2608CodeFiles} from './code_files.js?v=opna-output-menu-1';
+import {setupFm2608CodeFiles} from './code_files.js?v=opna-workspace-1';
 import {resolveFm2608CodeNoteTarget} from './code_client.js?v=opna-pcm-release-1';
 
 export const FM2608_STARTER_CODE = `const opna = await useSoundChip("ym2608");
@@ -23,6 +23,7 @@ const aborted = () => new DOMException('FM2608 Code stopped', 'AbortError');
 
 export function setupFm2608CodeHost({ensureAudio, getAudio, getSettings, applySettings,
   stopKeyboard = () => {}, onBeforeRun = async () => {}, onActivity = () => {},
+  onViewChange = () => {}, onExpandedChange = () => {},
   onSelectSong = async () => {}, onWorkspaceReplace = async () => {}, setStatus = () => {}} = {}) {
   let disposed = false, epoch = 0, modeEpoch = 0, runtime = null, controls = null;
   const project = createFm2608CodeProject({settings:getSettings(), getStarterCode:() => FM2608_STARTER_CODE});
@@ -88,7 +89,7 @@ export function setupFm2608CodeHost({ensureAudio, getAudio, getSettings, applySe
   }
 
   controls = setupSynthCodeControls({project, files, getRuntime,
-    keepRunningOnKeyboard:true, allowTextFiles:true, maxTextLength:FM2608_PROJECT_FILE_BYTES,
+    keepRunningOnKeyboard:true, persistentExpanded:true, onViewChange, onExpandedChange, allowTextFiles:true, maxTextLength:FM2608_PROJECT_FILE_BYTES,
     writeText:(path, source) => project.writeEditorText(path, source),
     editorChip:'ym2608', transformDeclarations:selectFm2608CodeDeclarations,
     journalKey:'tetorica-fm2608-synth-pending-code', getStarterCode:() => FM2608_STARTER_CODE,
