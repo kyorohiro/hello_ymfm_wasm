@@ -117,7 +117,8 @@ function mute() {
 					errors = [];
 				page.on("pageerror", (error) => errors.push(error.message));
 				await page.addInitScript(mute);
-				if (!withMonaco) await page.route("https://**/*", (route) => route.abort());
+				if (!withMonaco)
+					await page.route("https://**/*", (route) => route.abort());
 				await page.setViewportSize({ width: 1280, height: 1000 });
 				await page.goto(
 					`http://127.0.0.1:${server.address().port}${entry}`,
@@ -160,12 +161,30 @@ function mute() {
 				assert(await page.locator("#smsgearFilesPanel").innerText());
 				await page.locator("#synthInputCodeTab").click();
 				if (withMonaco) {
-					await page.waitForFunction(() => document.getElementById("synthCodeEditorHost").dataset.ready === "true", { timeout: 60000 });
-					const editor = page.locator("#synthCodeEditorHost .monaco-editor").first();
-					assert(await editor.isVisible(), "Monaco must be visible after initialization");
+					await page.waitForFunction(
+						() =>
+							document.getElementById("synthCodeEditorHost")
+								.dataset.ready === "true",
+						{ timeout: 60000 },
+					);
+					const editor = page
+						.locator("#synthCodeEditorHost .monaco-editor")
+						.first();
+					assert(
+						await editor.isVisible(),
+						"Monaco must be visible after initialization",
+					);
 					const bounds = await editor.boundingBox();
-					assert(bounds.height >= 200, "Monaco must have a usable height: " + JSON.stringify(bounds));
-					await page.waitForFunction(() => document.querySelector("#synthCodeEditorHost .view-lines")?.textContent.includes("useSoundChip"));
+					assert(
+						bounds.height >= 200,
+						"Monaco must have a usable height: " +
+							JSON.stringify(bounds),
+					);
+					await page.waitForFunction(() =>
+						document
+							.querySelector("#synthCodeEditorHost .view-lines")
+							?.textContent.includes("useSoundChip"),
+					);
 				}
 				await page.waitForFunction(
 					() =>
@@ -194,16 +213,45 @@ function mute() {
 						.getElementById("synthWorkspace")
 						.classList.contains("is-code-expanded"),
 				);
-				const expandedEditor = page.locator(withMonaco ? "#synthCodeEditorHost .monaco-editor" : "#synthCodeEditor").first();
+				const expandedEditor = page
+					.locator(
+						withMonaco
+							? "#synthCodeEditorHost .monaco-editor"
+							: "#synthCodeEditor",
+					)
+					.first();
 				await expandedEditor.scrollIntoViewIfNeeded();
-				const codeBounds = await expandedEditor.boundingBox(), filesBounds = await page.locator("#smsgearFilesPanel").boundingBox();
-				assert(codeBounds.width > 400 && codeBounds.x >= filesBounds.x + filesBounds.width, "Expanded Code must appear beside Files: " + JSON.stringify({codeBounds, filesBounds}));
+				const codeBounds = await expandedEditor.boundingBox(),
+					filesBounds = await page
+						.locator("#smsgearFilesPanel")
+						.boundingBox();
+				assert(
+					codeBounds.width > 400 &&
+						codeBounds.x >= filesBounds.x + filesBounds.width,
+					"Expanded Code must appear beside Files: " +
+						JSON.stringify({ codeBounds, filesBounds }),
+				);
 				await page.locator("#psgTab").click();
-				assert(await page.locator("#psgPanel").isVisible(), "Expanded chip tab reveals its controls");
-				assert(!(await expandedEditor.isVisible()), "Chip view hides Code without closing expanded mode");
+				assert(
+					await page.locator("#psgPanel").isVisible(),
+					"Expanded chip tab reveals its controls",
+				);
+				assert(
+					!(await expandedEditor.isVisible()),
+					"Chip view hides Code without closing expanded mode",
+				);
 				await page.locator("#synthInputCodeTab").click();
-				assert(await expandedEditor.isVisible(), "Returning to Code restores its editor");
-				await page.screenshot({path: out.replace(/\.json$/, `-${engine}-expanded-code.png`), fullPage: false});
+				assert(
+					await expandedEditor.isVisible(),
+					"Returning to Code restores its editor",
+				);
+				await page.screenshot({
+					path: out.replace(
+						/\.json$/,
+						`-${engine}-expanded-code.png`,
+					),
+					fullPage: false,
+				});
 				assert.equal(
 					await page
 						.locator("#synthWorkspace")
@@ -218,13 +266,11 @@ function mute() {
 					"../docs/synth-smsgear/fixtures.js"
 				);
 				await page.locator("#synthWorkspaceSynthButton").click();
-				await page
-					.locator("#vgmFileInput")
-					.setInputFiles({
-						name: "original-demo.vgm",
-						mimeType: "application/octet-stream",
-						buffer: Buffer.from(createDemoVgm()),
-					});
+				await page.locator("#vgmFileInput").setInputFiles({
+					name: "original-demo.vgm",
+					mimeType: "application/octet-stream",
+					buffer: Buffer.from(createDemoVgm()),
+				});
 				await page.waitForFunction(
 					() => !document.getElementById("songPlay").disabled,
 				);
@@ -235,9 +281,21 @@ function mute() {
 				);
 				await page.locator("#psgTab").click();
 				await page.locator("#songPlay").click();
-				await page.waitForFunction(
-					() => !document.getElementById("songPause").disabled,
-				);
+				await page
+					.waitForFunction(
+						() => !document.getElementById("songPause").disabled,
+					)
+					.catch(async (error) => {
+						throw Error(
+							error.message +
+								"\nSong status: " +
+								(await page
+									.locator("#audioStatus")
+									.textContent()) +
+								"\nPage errors: " +
+								JSON.stringify(errors),
+						);
+					});
 				await page.waitForTimeout(160);
 				await page.locator("#songPause").click();
 				await page.waitForFunction(
@@ -295,6 +353,38 @@ function mute() {
 					frozen.frame,
 					"Paused audition does not advance reference",
 				);
+				const seek = async (seconds) => {
+					await page.locator("#songSeek").evaluate((node, value) => {
+						node.value = String(value);
+						node.dispatchEvent(
+							new Event("input", { bubbles: true }),
+						);
+						node.dispatchEvent(
+							new Event("change", { bubbles: true }),
+						);
+					}, seconds);
+					await page.waitForFunction(
+						() => !document.getElementById("songSeek").disabled,
+					);
+					return capture();
+				};
+				const sought = await seek(0.5);
+				assert.equal(sought.timeSamples, 22050);
+				assert.equal(sought.playing, false);
+				assert.equal(sought.stereo, 1);
+				await page.locator("#mixerTab").click();
+				await page.locator("#songMute_segapsg_0").click();
+				await page.locator("#songMute_ym2413_0").click();
+				const muted = await capture();
+				assert(
+					muted.channelMutes.segapsg[0] &&
+						muted.channelMutes.ym2413[0],
+				);
+				assert.deepEqual(muted.opll, sought.opll);
+				assert.deepEqual(muted.psg, sought.psg);
+				await page.locator("#songChannelMutes").scrollIntoViewIfNeeded();
+				await page.screenshot({path: out.replace(/\.json$/, `-${engine}-mixer.png`), fullPage:false});
+				await page.locator("#psgTab").click();
 				await page.locator("#captureSound").click();
 				assert.equal(
 					await page.locator("#songPause").textContent(),
@@ -316,18 +406,39 @@ function mute() {
 						"Pause",
 				);
 				assert((await capture()).frame >= frozen.frame);
+				const playingSeek = await seek(0.1);
+				assert.equal(playingSeek.playing, true);
+				assert(playingSeek.timeSamples < 22050);
+				assert(playingSeek.channelMutes.segapsg[0]);
+				await page.evaluate(() => {
+					const seek = document.getElementById("songSeek");
+					seek.value = "1.8";
+					seek.dispatchEvent(new Event("change", { bubbles: true }));
+					document.getElementById("songStop").click();
+				});
+				await page.waitForTimeout(250);
+				assert(
+					await page.locator("#songSeek").isDisabled(),
+					"Stop cancels pending seek and never resumes it",
+				);
+				await page.locator("#songPlay").click();
+				await page.waitForFunction(
+					() => !document.getElementById("songPause").disabled,
+				);
+				assert(
+					(await capture()).channelMutes.ym2413[0],
+					"Mute choices survive reference replacement",
+				);
 				await page.locator("#songStop").click();
 				await page.waitForFunction(
 					() => document.getElementById("songPause").disabled,
 				);
 				const before = await page.locator("#soundName").inputValue();
-				await page
-					.locator("#vgmFileInput")
-					.setInputFiles({
-						name: "bad.vgm",
-						mimeType: "application/octet-stream",
-						buffer: Buffer.from("not a VGM"),
-					});
+				await page.locator("#vgmFileInput").setInputFiles({
+					name: "bad.vgm",
+					mimeType: "application/octet-stream",
+					buffer: Buffer.from("not a VGM"),
+				});
 				await page.waitForFunction(
 					() =>
 						document.getElementById("audioStatus").textContent !==

@@ -21,7 +21,9 @@ Use the adopted black/blue/red handheld icon and FM2612 interaction patterns.
 ## Remaining / next steps
 
 - [ ] User listening and interaction check with actual SMS / Game Gear VGMs, including optional FM and Noise/Tone-3 use. Synthetic tests are not a hardware accuracy claim.
-- [ ] Reference seek/cache and per-channel output mute, following the FM2612 design.
+- [x] Reference seek: replay chip history in bounded silent Worklet slices, keep Play/Pause, update Live registers at target, allow Stop during preparation.
+- [x] Mixer: reference-only PSG CH1–3 / Noise and YM2413 CH1–9 output mute, without changing registers. Preserve choices through seek and replacement.
+- [ ] Reference seek cache (separate follow-up; first implement correct history reconstruction).
 - [ ] Direct selected-CH editing during reference playback; currently song view is read-only and Capture copies a static sound into the editable Synth route.
 - [ ] Improve extraction of driver-dependent dynamic sounds and Rhythm scenes; current snapshots do not reconstruct software automation.
 - [ ] Consider a clearly labeled software PSG Envelope after hardware/basic interactions are confirmed.

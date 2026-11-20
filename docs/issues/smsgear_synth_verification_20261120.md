@@ -46,6 +46,33 @@ Screenshots/logs are local under `build/smsgear-check/`.
 
 ## Scope and follow-up
 
+### Follow-up: seek and reference channel mute
+
+- Position bar now reconstructs native chip history in silent, bounded 1024-frame
+  Worklet slices. Play/Pause is retained, boundary-time writes are visible at the
+  destination, seeking to EOF ends playback, and Stop disposes pending work.
+- Reference-only PSG CH1–3 / Noise and YM2413 CH1–9 output masks live in Mixer.
+  They retain registers and chip phase; masks survive seeks and replacement.
+  YM2413 Rhythm percussion shares its physical CH7–CH9 masks.
+- Application tests: **13 passed**; including batch packaging: **27 passed**.
+  At 44,100 / 48,000 Hz, post-seek PCM matches independent continuous rendering,
+  including active Noise. Mute/unmute also preserves subsequent PCM exactly.
+- Chromium and WebKit passed source fallback tests, then actual Monaco tests
+  against the extracted ZIP. UI checks include paused/playing seeks, unchanged
+  registers while muted, replacement retaining masks and Stop during seek.
+  Physical outputs were muted throughout.
+- Worklet code no longer depends on `structuredClone`, which is unavailable
+  in the tested audio rendering scope; defensive array/object copies are used.
+- Candidate: `build/smsgear-check/package/tetorica_smsgear_synth_seek-mute_itch.zip`,
+  4,000,977 bytes, SHA-256
+  `b36b21fdfa3b653f7e4630d82dd4cbfd3bcd176b3043d1d538b0cac1c287b9c5`.
+  ZIP CRCs and all 179 readable-module hashes match the authored source.
+  Logs/screenshots: `build/smsgear-check/seek-*`.
+
+Checkpoint caching is still pending. Long jumps rebuild from the beginning and
+can take time; the UI shows progress and allows Stop. No shared runtime/core,
+calibration policy, CI workflow or publication changes were made.
+
 ### Follow-up: Monaco / expanded Code
 
 The initial browser checks blocked the CDN and did not catch expanded Code
@@ -62,6 +89,6 @@ records the earlier candidate; rebuild to include this follow-up.
 
 Test music is original synthetic register data; no game assets are bundled.
 Actual game-driver sound quality and human listening remain unverified.
-Reference seek/cache, direct song edits, software PSG Envelope and timed APIs
+Seek checkpoint caching, direct song edits, software PSG Envelope and timed APIs
 remain in the [TODO](todo_smsgear_synth_20261120.md). There was no publication,
 commit/push/tag, shared runtime rebuild or Tauri work in this change.

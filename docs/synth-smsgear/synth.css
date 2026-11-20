@@ -526,43 +526,84 @@ dialog {
 	flex: none;
 }
 .param-control {
-  display: grid;
-  grid-template-columns: 25px minmax(28px, 1fr) 25px;
-  align-items: center;
-  width: 116px;
-  max-width: 100%;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+	display: grid;
+	grid-template-columns: 25px minmax(28px, 1fr) 25px;
+	align-items: center;
+	width: 116px;
+	max-width: 100%;
+	padding: 4px;
+	border: 1px solid var(--line);
+	border-radius: 14px;
 }
 .param-control .param-label {
-  grid-column: 1 / -1;
-  text-align: center;
-  font-size: .66rem;
-  line-height: 1.3;
-  margin-bottom: 4px;
+	grid-column: 1 / -1;
+	text-align: center;
+	font-size: 0.66rem;
+	line-height: 1.3;
+	margin-bottom: 4px;
 }
 .param-control button {
-  padding: 2px;
-  min-width: 0;
-  min-height: 28px;
-  border: 0;
-  border-radius: 999px;
+	padding: 2px;
+	min-width: 0;
+	min-height: 28px;
+	border: 0;
+	border-radius: 999px;
 }
 .param-control .param-value {
-  font-weight: 800;
-  cursor: ew-resize;
-  touch-action: none;
-  user-select: none;
+	font-weight: 800;
+	cursor: ew-resize;
+	touch-action: none;
+	user-select: none;
 }
-.param-control.is-boolean { grid-template-columns: 1fr; }
-.param-control .is-on { color: #8dd9ff; }
-.operator-card .param-control { width: 100%; }
-.param-category-envelope { border-color: #bd8a60; }
+.param-control.is-boolean {
+	grid-template-columns: 1fr;
+}
+.param-control .is-on {
+	color: #8dd9ff;
+}
+.operator-card .param-control {
+	width: 100%;
+}
+.param-category-envelope {
+	border-color: #bd8a60;
+}
 #smsgearFilesTree button[aria-selected="true"],
 #smsgearFilesTree button[aria-current="true"] {
-  background: #294b78;
-  color: #fff;
+	background: #294b78;
+	color: #fff;
 }
 #smsgearFilesTree button:hover,
-#smsgearFilesTree summary:hover { background: #34425a; }
+#smsgearFilesTree summary:hover {
+	background: #34425a;
+}
+#songSeek {
+	flex: 1 1 100px;
+	min-width: 70px;
+	max-width: 240px;
+}
+#songChannelMutes {
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	margin-top: 15px;
+	min-width: 0;
+}
+.song-mute-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 10px 0;
+	align-items: center;
+}
+.song-mute-group strong {
+	width: 100%;
+}
+.song-mute-group button {
+	font-size: 0.72rem;
+	padding: 5px 8px;
+	min-height: 28px;
+}
+.song-mute-group button[aria-pressed="true"] {
+	background: #463740;
+	border-color: #ba7584;
+	color: #ffd3dc;
+}

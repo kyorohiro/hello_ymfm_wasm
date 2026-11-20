@@ -29,6 +29,36 @@ export async function createSmsGearSongEngine({
 		cursor = 0,
 		frame = 0,
 		playing = false;
+	let seeking = null;
+	const seekLeft = new Float32Array(1024),
+		seekRight = new Float32Array(1024);
+	let channelMutes = {
+		segapsg: [false, false, false, false],
+		ym2413: Array(9).fill(false),
+	};
+	function setChannelMutes(value) {
+		for (const [name, count] of [
+			["segapsg", 4],
+			["ym2413", 9],
+		]) {
+			if (
+				!Array.isArray(value?.[name]) ||
+				value[name].length !== count ||
+				value[name].some((v) => typeof v !== "boolean")
+			)
+				throw TypeError("Invalid reference channel mutes");
+		}
+		channelMutes = {
+			segapsg: value.segapsg.slice(),
+			ym2413: value.ym2413.slice(),
+		};
+		channelMutes.segapsg.forEach((muted, ch) =>
+			engine.setPsgChannelMuted(ch, muted),
+		);
+		channelMutes.ym2413.forEach((muted, ch) =>
+			engine.setChannelMuted(ch, muted),
+		);
+	}
 	let mix = {
 		segapsg: { volume: 0.35, enabled: true },
 		ym2413: { volume: 1, enabled: true },
@@ -54,7 +84,10 @@ export async function createSmsGearSongEngine({
 		return pcm;
 	};
 	function reset() {
+		playing = false;
+		seeking = null;
 		engine.reset();
+		setChannelMutes(channelMutes);
 		shadow.reset();
 		registers.fill(0);
 		stereo = 255;
@@ -77,20 +110,23 @@ export async function createSmsGearSongEngine({
 	const eventFrame = (offset) =>
 			Math.round((plan.events[offset] * sampleRate) / 44100),
 		endFrame = Math.round((plan.totalSamples * sampleRate) / 44100);
-	function process(left, right) {
+	function applyDue() {
+		while (cursor < plan.events.length && eventFrame(cursor) <= frame) {
+			apply(
+				plan.events[cursor + 1],
+				plan.events[cursor + 2],
+				plan.events[cursor + 3],
+			);
+			cursor += 4;
+		}
+	}
+	function render(left, right) {
 		left.fill(0);
 		right.fill(0);
 		if (!playing) return;
 		let offset = 0;
 		while (offset < left.length && playing) {
-			while (cursor < plan.events.length && eventFrame(cursor) <= frame) {
-				apply(
-					plan.events[cursor + 1],
-					plan.events[cursor + 2],
-					plan.events[cursor + 3],
-				);
-				cursor += 4;
-			}
+			applyDue();
 			if (frame >= endFrame) {
 				playing = false;
 				break;
@@ -115,29 +151,86 @@ export async function createSmsGearSongEngine({
 			frame += size;
 		}
 	}
+	function beginSeek(seconds) {
+		if (
+			!Number.isFinite(seconds) ||
+			seconds < 0 ||
+			seconds > plan.totalSamples / 44100
+		)
+			throw RangeError("Invalid seek position");
+		if (seeking) throw Error("A seek is already running");
+		const resume = playing,
+			target = Math.round(seconds * sampleRate);
+		reset();
+		seeking = { target, resume };
+		playing = true;
+	}
+	function process(left, right) {
+		if (!seeking) return render(left, right);
+		// Bounded work per audio callback: never replay a whole song in one task.
+		const count = Math.min(seekLeft.length, seeking.target - frame);
+		if (count)
+			render(seekLeft.subarray(0, count), seekRight.subarray(0, count));
+		left.fill(0);
+		right.fill(0);
+		if (frame >= seeking.target) {
+			applyDue();
+			playing = seeking.resume && frame < endFrame;
+			seeking = null;
+		}
+	}
 	reset();
 	return {
 		engine,
 		process,
 		reset,
+		beginSeek,
+		setChannelMutes,
+		get seeking() {
+			return Boolean(seeking);
+		},
 		play() {
+			if (seeking) throw Error("Seek is still preparing");
 			playing = true;
 		},
 		pause() {
-			playing = false;
+			if (seeking) seeking.resume = false;
+			else playing = false;
 		},
 		get playing() {
 			return playing;
 		},
 		setMix(value) {
-			mix = structuredClone(value);
+			const next = {};
+			for (const name of ["segapsg", "ym2413"]) {
+				if (
+					!Number.isFinite(value?.[name]?.volume) ||
+					value[name].volume < 0 ||
+					value[name].volume > 2 ||
+					typeof value[name].enabled !== "boolean"
+				)
+					throw TypeError("Invalid source output mix");
+				next[name] = {
+					volume: value[name].volume,
+					enabled: value[name].enabled,
+				};
+			}
+			mix = next;
 		},
 		snapshot() {
 			return {
 				frame,
 				timeSamples: Math.round((frame * 44100) / sampleRate),
 				totalSamples: plan.totalSamples,
-				playing,
+				playing: playing && !seeking,
+				seeking: Boolean(seeking),
+				seekTargetSamples: seeking
+					? Math.round((seeking.target * 44100) / sampleRate)
+					: null,
+				channelMutes: {
+					segapsg: channelMutes.segapsg.slice(),
+					ym2413: channelMutes.ym2413.slice(),
+				},
 				stereo,
 				psg: shadow.snapshot(frame),
 				opll: Array.from(registers),

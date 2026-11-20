@@ -41,6 +41,18 @@ Original bytes stay in `/vgm/`; up to 512 static sounds are extracted under
 Select the song, then Play. Pause/Resume retains chip state and position exactly;
 Stop closes the reference player. Each song plays one pass.
 
+After Play, use the position bar to seek. Playing remains Playing, Pause remains
+paused, and Live registers update to the destination. Seek reconstructs the
+oscillator, Noise and FM-envelope history from the beginning in bounded silent
+AudioWorklet slices. Long jumps take time; progress is shown and Stop cancels.
+There is no checkpoint cache yet. Seeking to the end leaves the song ended.
+
+Mixer → **VGM channels · output mute** controls PSG CH1–3 / Noise and YM2413
+CH1–9 independently. These reference-only output masks leave original registers,
+chip timing and the separate keyboard/Code instrument unchanged. Choices survive
+seeks and song replacement within the session. In Rhythm mode CH7 mutes Bass
+drum, CH8 Hi-hat/Snare, and CH9 Tom/Cymbal together.
+
 Song view displays the selected physical CH from applied registers. Auto update
 can freeze this display. Capture to Synth copies its static parameters while
 preserving reference transport. Paused keyboard audition uses the Synth route;
@@ -55,7 +67,7 @@ are bundled. Synthetic demonstration data in `fixtures.js` is original.
 
 ## Current limits
 
-Direct reference-song editing, reference seek/cache, software PSG Envelope,
+Direct reference-song editing, seek checkpoint caching, software PSG Envelope,
 Looper/Event Rec, timed operation recording and Tauri deployment remain later
 work. FM fixed patches are not exposed as editable ROM bytes; choose User to
 edit the shared patch. Captures are static sounds, not complete game-driver

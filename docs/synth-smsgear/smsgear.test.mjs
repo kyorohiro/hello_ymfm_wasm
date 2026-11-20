@@ -48,22 +48,31 @@ test("working/saved Cassette retains accepted source and unsaved edits", async (
 test("YM2413-only reference produces finite audio and its output mute keeps chip time running", async () => {
 	const plan = await readSmsGearVgm(createDemoVgm({ psg: false }));
 	const engine = await createSmsGearSongEngine({
-		plan, opllFactory, psgFactory,
-		opllBinary: await binary("ym2413"), psgBinary: await binary("segapsg"),
+		plan,
+		opllFactory,
+		psgFactory,
+		opllBinary: await binary("ym2413"),
+		psgBinary: await binary("segapsg"),
 	});
 	try {
 		engine.play();
-		const left = new Float32Array(4096), right = new Float32Array(4096);
+		const left = new Float32Array(4096),
+			right = new Float32Array(4096);
 		engine.process(left, right);
 		assert(left.every(Number.isFinite));
-		assert(left.some(value => Math.abs(value) > 0.001));
+		assert(left.some((value) => Math.abs(value) > 0.001));
 		assert.deepEqual(left, right, "YM2413 is mono");
 		const frame = engine.snapshot().frame;
-		engine.setMix({ segapsg: { volume: 0, enabled: false }, ym2413: { volume: 1, enabled: false } });
+		engine.setMix({
+			segapsg: { volume: 0, enabled: false },
+			ym2413: { volume: 1, enabled: false },
+		});
 		engine.process(left, right);
-		assert(left.every(value => value === 0));
+		assert(left.every((value) => value === 0));
 		assert(engine.snapshot().frame > frame);
-	} finally { engine.dispose(); }
+	} finally {
+		engine.dispose();
+	}
 });
 test("capture keeps the selected tone pan across Auto voices without changing Live registers", async () => {
 	const plan = await readSmsGearVgm(createDemoVgm({ fm: false }));
@@ -189,3 +198,123 @@ test("Code declarations expose only the shared PSG/OPLL API and use typed client
 		/declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>/,
 	);
 });
+
+for (const sampleRate of [44100, 48000])
+	test(`seek ${sampleRate}: exact history, boundary writes, Pause and output mutes`, async (t) => {
+		const plan = await readSmsGearVgm(createDemoVgm());
+		const events = Array.from(plan.events);
+		for (let i = 0; i < events.length; i += 4)
+			if (events[i + 1] === 2) events[i + 3] |= 0x88;
+		plan.events = new Uint32Array([
+			0,
+			0,
+			0,
+			0xe4,
+			0,
+			0,
+			0,
+			0xf4,
+			...events,
+		]);
+		const make = () =>
+			createSmsGearSongEngine({
+				plan,
+				sampleRate,
+				opllFactory,
+				psgFactory,
+			});
+		const engine = await make();
+		t.after(() => engine.dispose());
+		const left = new Float32Array(128),
+			right = new Float32Array(128);
+		const masks = {
+			segapsg: Array(4).fill(false),
+			ym2413: Array(9).fill(false),
+		};
+		engine.setChannelMutes(masks);
+		for (const seconds of [0.7, 0.5, 0.13, 0, 2]) {
+			engine.pause();
+			engine.beginSeek(seconds);
+			let count = 0;
+			while (engine.seeking) {
+				engine.process(left, right);
+				assert(left.every((x) => x === 0));
+				assert(++count < 1000);
+			}
+			const state = engine.snapshot();
+			assert.equal(state.frame, Math.round(seconds * sampleRate));
+			assert.equal(state.playing, false);
+			if (seconds === 0.5)
+				assert.equal(
+					state.stereo,
+					0x89,
+					"boundary write is visible while paused",
+				);
+			const oracle = await make();
+			try {
+				oracle.play();
+				let remaining = Math.round(seconds * sampleRate);
+				while (remaining) {
+					const size = Math.min(remaining, 128);
+					oracle.process(
+						left.subarray(0, size),
+						right.subarray(0, size),
+					);
+					remaining -= size;
+				}
+				const expectedL = new Float32Array(128),
+					expectedR = new Float32Array(128);
+				oracle.process(expectedL, expectedR);
+				engine.play();
+				engine.process(left, right);
+				assert.deepEqual(left, expectedL);
+				assert.deepEqual(right, expectedR);
+				if (seconds === .13) assert(right.some(value => Math.abs(value) > .0001), "Noise contributes to the history comparison");
+			} finally {
+				oracle.dispose();
+			}
+		}
+		engine.play();
+		engine.beginSeek(0.25);
+		assert.throws(() => engine.beginSeek(0.5), /already/);
+		while (engine.seeking) engine.process(left, right);
+		assert.equal(engine.snapshot().playing, true, "seek preserves Playing");
+		const before = engine.snapshot();
+		assert.throws(() => engine.beginSeek(NaN), /Invalid/);
+		assert.deepEqual(engine.snapshot(), before);
+		engine.pause();
+		masks.segapsg[0] = true;
+		masks.segapsg[3] = true;
+		masks.ym2413[0] = true;
+		engine.setChannelMutes(masks);
+		engine.beginSeek(0.25);
+		while (engine.seeking) engine.process(left, right);
+		assert.deepEqual(engine.snapshot().channelMutes, masks);
+		engine.play();
+		engine.process(left, right);
+		assert(left.every((x) => x === 0));
+		const registers = engine.snapshot().opll;
+		engine.setChannelMutes({
+			segapsg: Array(4).fill(false),
+			ym2413: Array(9).fill(false),
+		});
+		assert.deepEqual(engine.snapshot().opll, registers);
+		const oracle = await make();
+		try {
+			oracle.play();
+			let remaining = Math.round(0.25 * sampleRate) + 128;
+			while (remaining) {
+				const n = Math.min(remaining, 128);
+				oracle.process(left.subarray(0, n), right.subarray(0, n));
+				remaining -= n;
+			}
+			const expectedL = new Float32Array(128),
+				expectedR = new Float32Array(128);
+			oracle.process(expectedL, expectedR);
+			engine.process(left, right);
+			assert.deepEqual(left, expectedL);
+			assert.deepEqual(right, expectedR);
+		} finally {
+			oracle.dispose();
+		}
+	});

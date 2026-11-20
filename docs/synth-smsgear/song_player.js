@@ -62,8 +62,14 @@ export async function createSmsGearSongPlayer(
 				: request.resolve(data.value);
 		} else if (data.error) readyReject(Error(data.error));
 	};
-	node.onprocessorerror = () =>
+	node.onprocessorerror = () => {
 		readyReject(Error("SMSGEAR song processor failed"));
+		for (const request of pending.values()) {
+			clearTimeout(request.timeout);
+			request.reject(Error("SMSGEAR song processor failed"));
+		}
+		pending.clear();
+	};
 	const dispose = () => {
 		if (closed) return;
 		closed = true;
@@ -97,10 +103,13 @@ export async function createSmsGearSongPlayer(
 				return;
 			}
 			const id = ++sequence,
-				timeout = setTimeout(() => {
-					pending.delete(id);
-					reject(Error("Song control timed out"));
-				}, 5000);
+				timeout =
+					method === "seek"
+						? null
+						: setTimeout(() => {
+								pending.delete(id);
+								reject(Error("Song control timed out"));
+							}, 5000);
 			pending.set(id, { resolve, reject, timeout });
 			node.port.postMessage({ id, method, value });
 		});
@@ -109,8 +118,10 @@ export async function createSmsGearSongPlayer(
 		play: () => request("play"),
 		pause: () => request("pause"),
 		stop: () => request("reset"),
+		seek: (seconds) => request("seek", seconds),
 		snapshot: () => request("snapshot"),
 		setMix: (value) => request("mix", value),
+		setChannelMutes: (value) => request("channelMutes", value),
 		dispose,
 	};
 }

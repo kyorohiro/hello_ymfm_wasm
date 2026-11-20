@@ -50,6 +50,11 @@ const mix = {
 	segapsg: { volume: SOURCE_GAINS.segapsg, enabled: true },
 	ym2413: { volume: SOURCE_GAINS.ym2413, enabled: true },
 };
+const channelMutes = {
+	segapsg: Array(4).fill(false),
+	ym2413: Array(9).fill(false),
+};
+let seekDraft = false;
 const report = (error) => status(error?.message ?? String(error));
 function status(message) {
 	$("audioStatus").textContent = message;
@@ -187,6 +192,9 @@ async function stopSong() {
 	songMode = "stopped";
 	songState = null;
 	frozenSongState = null;
+	seekDraft = false;
+	$("songTime").textContent = "0:00 / 0:00";
+	$("songReadout").textContent = "No reference song loaded.";
 	$("songView").value = "synth";
 	updateTransport();
 	render();
@@ -462,7 +470,7 @@ function render(updateState = true) {
 		`${ch} · ${songView() ? "Song registers · Capture to edit" : channel === "auto" ? "software keyboard allocation; select a CH to inspect Code" : "physical channel · direct editing"}${voice ? ` · ${voice.active ? "On" : "Off"} · ${Math.round(voice.frequencyHz ?? voice.frequency ?? 0)} Hz` : ""}`;
 	if (document.activeElement !== $("soundName"))
 		$("soundName").value = preset.name;
-	$("captureSound").disabled = !songState || section === "mixer";
+	$("captureSound").disabled = !songState || section === "mixer" || songBusy;
 }
 function selectSection(value) {
 	section = value;
@@ -717,11 +725,52 @@ for (const [name, label] of [
 	row.append(text, enabled, slider, value);
 	$("mixerControls").append(row);
 }
+for (const [name, label, count] of [
+	["segapsg", "PSG", 4],
+	["ym2413", "YM2413", 9],
+]) {
+	const group = document.createElement("div");
+	group.className = "song-mute-group";
+	const heading = document.createElement("strong");
+	heading.textContent = label;
+	group.append(heading);
+	for (let ch = 0; ch < count; ch++) {
+		const button = document.createElement("button"),
+			channelName =
+				name === "segapsg" && ch === 3 ? "Noise" : `CH${ch + 1}`;
+		button.type = "button";
+		button.id = `songMute_${name}_${ch}`;
+		const update = () => {
+			const muted = channelMutes[name][ch];
+			button.textContent = `${channelName} · ${muted ? "Muted" : "On"}`;
+			button.setAttribute("aria-pressed", String(muted));
+			button.setAttribute(
+				"aria-label",
+				`${muted ? "Unmute" : "Mute"} VGM ${label} ${channelName}`,
+			);
+		};
+		button.addEventListener("click", () => {
+			channelMutes[name][ch] = !channelMutes[name][ch];
+			update();
+			void song?.setChannelMutes(channelMutes).catch(report);
+		});
+		update();
+		group.append(button);
+	}
+	$("songChannelMutes").append(group);
+}
 function updateTransport() {
 	const loaded = Boolean($("songSelect").value);
 	$("songPlay").disabled = !loaded || songBusy;
 	$("songPause").disabled = !song || songBusy;
-	$("songStop").disabled = !song || songBusy;
+	$("songStop").disabled = !song;
+	$("songSeek").disabled = !song || songBusy;
+	$("songSeek").max = String((songState?.totalSamples ?? 0) / 44100);
+	if (!seekDraft)
+		$("songSeek").value = String(
+			(songState?.seekTargetSamples ?? songState?.timeSamples ?? 0) /
+				44100,
+		);
 	$("songPause").textContent = songMode === "paused" ? "Resume" : "Pause";
 	if (songState && songState.timeSamples >= songState.totalSamples)
 		$("songPause").disabled = true;
@@ -776,6 +825,7 @@ async function playSong() {
 		frozenSongState = null;
 		songPath = path;
 		await song.setMix(mix);
+		await song.setChannelMutes(channelMutes);
 		await song.play();
 		songMode = "playing";
 		$("songView").value = "song";
@@ -792,6 +842,50 @@ async function playSong() {
 	}
 }
 $("songPlay").addEventListener("click", () => void playSong());
+$("songSeek").addEventListener("input", () => {
+	seekDraft = true;
+});
+$("songSeek").addEventListener("pointercancel", () => {
+	seekDraft = false;
+	updateTransport();
+});
+$("songSeek").addEventListener(
+	"change",
+	() =>
+		void (async () => {
+			const seconds = Number($("songSeek").value),
+				player = song;
+			seekDraft = false;
+			if (!player || songBusy) {
+				updateTransport();
+				return;
+			}
+			songBusy = true;
+			songMode = "seeking";
+			allKeyboardOff();
+			updateTransport();
+			render();
+			try {
+				const result = await player.seek(seconds);
+				if (song !== player) return;
+				songState = result;
+				frozenSongState = $("songLive").checked ? null : clone(result);
+				songMode = result.playing
+					? "playing"
+					: result.timeSamples >= result.totalSamples
+						? "ended"
+						: "paused";
+			} catch (error) {
+				if (song === player) report(error);
+			} finally {
+				if (song === player) {
+					songBusy = false;
+					updateTransport();
+					render();
+				}
+			}
+		})(),
+);
 $("songPause").addEventListener(
 	"click",
 	() =>
@@ -953,7 +1047,7 @@ async function poll() {
 					`${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`;
 				$("songTime").textContent = fmt(seconds) + " / " + fmt(total);
 				$("songReadout").textContent =
-					`${songState.playing ? "Playing" : "Paused / ended"} · ${songPath?.split("/").pop() ?? ""}`;
+					`${songState.seeking ? `Seeking to ${fmt(songState.seekTargetSamples / 44100)} · ${fmt(seconds)} prepared…` : songState.playing ? "Playing" : "Paused / ended"} · ${songPath?.split("/").pop() ?? ""}`;
 				updateTransport();
 			}
 			if (channel !== "auto" || songView()) render();

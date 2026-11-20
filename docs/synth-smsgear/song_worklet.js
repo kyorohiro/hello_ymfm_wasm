@@ -7,6 +7,7 @@ class SmsGearSongProcessor extends AudioWorkletProcessor {
 		super();
 		this.engine = null;
 		this.dead = false;
+		this.seekId = null;
 		const { plan, opllBinary, psgBinary } = options.processorOptions;
 		createSmsGearSongEngine({
 			plan,
@@ -34,6 +35,11 @@ class SmsGearSongProcessor extends AudioWorkletProcessor {
 					return;
 				}
 				if (!this.engine) throw Error("Song is not ready");
+				if (data.method === "seek") {
+					this.engine.beginSeek(data.value);
+					this.seekId = data.id;
+					return;
+				}
 				const value =
 					data.method === "snapshot"
 						? this.engine.snapshot()
@@ -45,7 +51,11 @@ class SmsGearSongProcessor extends AudioWorkletProcessor {
 									? this.engine.reset()
 									: data.method === "mix"
 										? this.engine.setMix(data.value)
-										: undefined;
+										: data.method === "channelMutes"
+											? this.engine.setChannelMutes(
+													data.value,
+												)
+											: undefined;
 				if (data.id !== undefined)
 					this.port.postMessage({ id: data.id, value });
 			} catch (error) {
@@ -56,8 +66,16 @@ class SmsGearSongProcessor extends AudioWorkletProcessor {
 	process(_inputs, outputs) {
 		if (this.dead) return false;
 		const [left, right] = outputs[0];
-		if (this.engine) this.engine.process(left, right);
-		else {
+		if (this.engine) {
+			this.engine.process(left, right);
+			if (this.seekId !== null && !this.engine.seeking) {
+				this.port.postMessage({
+					id: this.seekId,
+					value: this.engine.snapshot(),
+				});
+				this.seekId = null;
+			}
+		} else {
 			left.fill(0);
 			right.fill(0);
 		}
