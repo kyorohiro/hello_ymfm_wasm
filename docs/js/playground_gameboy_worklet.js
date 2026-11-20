@@ -1,7 +1,7 @@
 import {ChipClockResampler, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
 import factory from '../generated/gameboy_apu_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=gameboy-timed-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=sid-timed-1';
 import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {createGameboyTimedProcessor,gameboyTimedCommandCost} from './gameboy_timed_processor.js?v=gameboy-timed-1';

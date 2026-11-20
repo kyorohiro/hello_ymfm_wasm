@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1&sid-live-preset=2&sid-code-keyboard=1';
+import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1&sid-live-preset=2&sid-code-keyboard=1&sid-timed=1';
 import {createEditor} from './editor.js?sid-song-manual=1';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js?sid-waves=1';
 import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
@@ -10,7 +10,7 @@ import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-cod
 import {createSidLiveView} from './sid_live_view.js?sid-song-manual=1';
 import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
-import {setupSidCodeHost} from './code_host.js?v=sid-code-workspace-1';
+import {setupSidCodeHost} from './code_host.js?v=sid-timed-1';
 import {applySidDocumentChanges} from './document_settings.js?v=sid-working-saved-1';
 import {createSidCodeLive} from './code_live.js?sid-code-live=1&sid-code-keyboard=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';

@@ -2,7 +2,7 @@ import {createWonderSwanTimedProcessor,wonderswanTimedCommandCost} from './wonde
 import {WonderSwan,WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
 import factory from '../generated/wonderswan_wasm.js?v=wonderswan-pcm-timeline-1';
 import {ChipClockResampler,validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=gameboy-timed-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=sid-timed-1';
 import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=pokey-prepare-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor} from './wonderswan_timeline.js?v=pokey-prepare-1';

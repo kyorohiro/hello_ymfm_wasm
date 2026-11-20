@@ -1,3 +1,4 @@
+import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
 import {createSegaTimedRevisionReadContext} from './mixer_calibration_sega_timed_revision.mjs';
 import {createGameboyTimedRevisionReadContext} from './mixer_calibration_gameboy_timed_revision.mjs';
 import {restoreMixerCalibrationYm2413StateRevision} from './mixer_calibration_ym2413_state_revision.mjs';
@@ -381,7 +382,9 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
-  const gameboyContext=createGameboyTimedRevisionReadContext(),gameboyTimed=gameboyContext.restore(path,bytes),gameboyRevision=gameboyTimed!==bytes;bytes=gameboyTimed;
+  const sidContext=createSidTimedRevisionReadContext(),sidTimed=sidContext.restore(path,bytes),sidTimedRevision=sidTimed!==bytes;bytes=sidTimed;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return sidTimedRevision?'sid-timed-default-pcm-parity':'raw';
+  const gameboyContext=createGameboyTimedRevisionReadContext(sidContext.readSource),gameboyTimed=gameboyContext.restore(path,bytes),gameboyRevision=gameboyTimed!==bytes;bytes=gameboyTimed;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return gameboyRevision?'gameboy-timed-default-pcm-parity':'raw';
   const segaContext=createSegaTimedRevisionReadContext(gameboyContext.readSource),segaTimed=segaContext.restore(path,bytes),segaRevision=segaTimed!==bytes;bytes=segaTimed;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return segaRevision?'sega-shared-timed-api':'raw';
@@ -543,7 +546,8 @@ export function restoreMixerCalibrationPs1StarterRevision({path,bytes,report,rep
   if(path!==MIXER_CALIBRATION_PS1_STARTER_PATH)fail('unsupported PS1 starter revision path: '+path);
   // A later exact import-only review must be removed before deciding whether
   // this older starter-factory exception is needed for a newer raw report.
-  const gameboy=createGameboyTimedRevisionReadContext(),restored=gameboy.restore(path,bytes),originalRecord=report?.sources?.[path];
+  const sid=createSidTimedRevisionReadContext(),sidRestored=sid.restore(path,bytes);
+  const gameboy=createGameboyTimedRevisionReadContext(sid.readSource),restored=gameboy.restore(path,sidRestored),originalRecord=report?.sources?.[path];
   if(restored!==bytes&&originalRecord&&restored.length===originalRecord.bytes&&sha(restored)===originalRecord.sha256)return restored;
   bytes=restored;
   if(!digest(receiptObjectSha256)||mixerCalibrationReceiptObjectSha256(receipt)!==receiptObjectSha256)fail('PS1 starter receipt does not match its independently pinned SHA');

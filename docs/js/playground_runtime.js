@@ -14,7 +14,7 @@ import {createChipInspector} from './playground_chip_inspector.js?v=ps1-pcm-wave
 import {createPerformanceHost} from './playground_performance_host.js?v=ps1-mode-1';
 import {createAyTimedLifecycle} from './playground_ay_timed_lifecycle.js';
 import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=scsp-fm-1';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=scsp-fm-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=sid-timed-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNesAudio} from './playground_nes_audio.js?v=rf5c164-notes-1';
@@ -74,7 +74,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=rf5c164-notes-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=gameboy-timed-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=sid-timed-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -282,7 +282,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=gameboy-timed-1",
+      "./playground_logic_worker.js?v=sid-timed-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -614,6 +614,7 @@ export function createPlaygroundRuntime(
     raw._beforeWrite=(register,value)=>{
       const loop=currentLoopContext;
       if(loop?.stopped)return false;
+      if(raw._sidParameterWrite)return true;
       if(![4,11,18].includes(register))return true;
       const channel=(register-4)/7,on=!!(value&1);
       if(!on&&loop&&owners.has(channel)&&owners.get(channel)!==voiceOwner(loop))return false;
@@ -2626,7 +2627,7 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):ayTimedLifecycle.wrap(client));
+        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):name==='wonderswan'?wonderSwanExtraApi(client):name==='sid'?ayTimedLifecycle.wrap(wonderSwanExtraApi(client)):ayTimedLifecycle.wrap(client));
         if(client._timedOperations){currentLoopContext=callerLoop;if(callerLoop?.stopped){device.dispose();throw new DOMException('Run stopped','AbortError');}}
         if(ownsMainScope)return resumeNativeExtraCaller(callerLoop,()=>api).catch(error=>{device.dispose();throw error;});
         return api;

@@ -3,10 +3,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationGameboyTimedRevision as restore,createGameboyTimedRevisionReadContext,
+import {restoreMixerCalibrationGameboyTimedRevision as restoreGameboy,createGameboyTimedRevisionReadContext as createGameboyContext,
  GAMEBOY_TIMED_REVISION_RECEIPT,GAMEBOY_TIMED_PCM_REPORT} from './mixer_calibration_gameboy_timed_revision.mjs';
+import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
-const root=new URL('../',import.meta.url),read=name=>readFileSync(new URL(name,root));
+const root=new URL('../',import.meta.url),sidContext=createSidTimedRevisionReadContext();
+// Authenticate and remove the later SID promotion before testing this older
+// receipt against its own unchanged strict source/dependency identities.
+const read=name=>sidContext.readSource(new URL(name,root));
+const restore=(path,bytes,options={})=>restoreGameboy(path,bytes,{read,...options});
+const createGameboyTimedRevisionReadContext=()=>createGameboyContext(sidContext.readSource);
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(GAMEBOY_TIMED_REVISION_RECEIPT));
 

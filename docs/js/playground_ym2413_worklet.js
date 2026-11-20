@@ -9,7 +9,7 @@ import factory from "../generated/ym2413_wasm.js";
 import {
 	createProcessorPerformance,
 	performanceNoteRelease,
-} from "./playground_performance_processor.js?v=gameboy-timed-1";
+} from "./playground_performance_processor.js?v=sid-timed-1";
 import { Ym2413VoiceInspector } from "./playground_ym2413_inspector.js?v=ps1-deferred-release-1";
 import { receiveChipInspector } from "./playground_chip_inspector_state.js?v=rf5c164-notes-1";
 const PHYSICAL = [6, 7, 8, 8, 7],

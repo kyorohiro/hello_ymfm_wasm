@@ -11,10 +11,12 @@ import {
 } from './mixer_calibration_sega_timed_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
 import {createGameboyTimedRevisionReadContext} from './mixer_calibration_gameboy_timed_revision.mjs';
+import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
 
 // This historical audit still checks its original bytes. Remove the separately
-// authenticated later DMG promotion before exercising its own strict guards.
-const gameboyContext=createGameboyTimedRevisionReadContext();
+// authenticated later SID and DMG promotions before its own strict guards.
+const sidContext=createSidTimedRevisionReadContext();
+const gameboyContext=createGameboyTimedRevisionReadContext(sidContext.readSource);
 const read = name => gameboyContext.readSource(new URL('../' + name, import.meta.url));
 const restore=(path,bytes,options={})=>restoreSega(path,bytes,{read,...options});
 const createSegaTimedRevisionReadContext=()=>createSegaContext(gameboyContext.readSource);

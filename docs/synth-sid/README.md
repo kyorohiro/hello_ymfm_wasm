@@ -102,6 +102,42 @@ text/number inputs, selects and dialogs keep their keys. Musical waits use
 `beat()` and follow `setBpm()`; the default modulation's `tween()` periods
 deliberately remain in seconds. Existing saved scripts are kept.
 
+### Timed register operations
+
+Files includes `examples/timed-voice.js`, `examples/timed-filter.js` and
+`examples/compare-register-writes.js`. Select one, open Code, then Run.
+`sid.build(b => ...)` records the existing voice, filter, frequency, note and
+raw register calls once, without touching the chip. `atSeconds()` and
+`atSample()` set absolute offsets; samples use a 44100 Hz reference by default,
+independent of the output device and BPM.
+
+`await sid.schedule(operations, {name, repeatSeconds})` executes on the
+AudioWorklet sample clock. Apply replaces a named reservation atomically;
+`await sid.clearSchedule(name)` cancels it. An invalid or failed Apply keeps
+the earlier reservation. Stop and loop cleanup retire their reservations.
+Partial control/filter edits resolve against actual registers when applied,
+so they preserve intervening changes to other bits. A later manual Gate owns
+its channel; an older reservation's Off/cancel cannot release that newer note.
+
+`await sid.compile(operations)` returns structured register-write rows from
+one coherent renderer state, without changing sound. Reuse a detached
+`await sid.captureState()` with `{initialState: snapshot}` to compare programs
+from exactly the same baseline. `{initialState: "reset"}` uses uninitialized
+hardware reset state; high-level methods still require initialization, so use
+raw writes for a reset-baseline trace. These snapshots are operation-resolution
+state, not oscillator/envelope or C64 save states. Actual playback may differ
+when another writer intervenes.
+
+Shared Playground/npm clients additionally support `{initialState: "client"}`
+from their local register shadow; it can lag scheduled/other-writer operations.
+The borrowed Synth deliberately rejects that mode because it has no complete
+client shadow. Current capture is asynchronous while audio keeps running;
+reset/supplied-snapshot compilation needs no renderer request. Snapshots from
+another chip instance, model or clock are rejected. A successful 6581/8580
+replacement cancels old reservations and retains the same Code client; a
+failed model preparation retains the previous performance. Timed SID execution
+requires Web Audio; no JavaScript timer or Native fallback is provided.
+
 Selecting a sound JSON in **Files**, loading a preset or changing its voice
 settings keeps the current Run, loops, `context`, preparations and software FX.
 The shared SID adopts the new authored settings; loads and topology changes

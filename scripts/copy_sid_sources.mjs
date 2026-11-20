@@ -9,6 +9,10 @@ export async function copySidSources(stage) {
   await syncSidArtifacts({check: true});
   await mkdir(join(stage, 'sources'), {recursive: true});
   await cp(join(root, 'docs/sources/sid'), join(stage, 'sources/sid'), {recursive: true});
+  // Register-operation helpers extend the readable browser API; they are not
+  // compilation inputs of the unchanged SID WASM/native core.
+  for (const file of ['sid_operations.js','sid_timed_state.js','sid_timed_client.js','sid_timed_client.d.ts','sid_timed_processor.js'])
+    await cp(join(root,'tetorica_src/runtime',file),join(stage,'sources/sid/tetorica_src/runtime',file));
   await mkdir(join(stage, 'licenses/chips-m6581'), {recursive: true});
   for (const file of ['LICENSE', 'README.md', 'PATCHES.md'])
     await cp(join(root, 'third_party/chips-m6581', file), join(stage, 'licenses/chips-m6581', file));

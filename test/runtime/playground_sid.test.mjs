@@ -8,6 +8,7 @@ import {SidSynth, validateSidClock, SID_PAL_CLOCK, sidWaveformFromBits} from '..
 import {SidVoiceInspector, receiveSidInspector} from '../../tetorica_src/runtime/playground_sid_inspector.js';
 import {createSidClient, createSidRegisterClient} from '../../tetorica_src/runtime/playground_sid.js';
 import {createProcessorPerformance, performanceNoteRelease} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createSidTimedProcessor,sidTimedCommandCost} from '../../tetorica_src/runtime/sid_timed_processor.js';
 
 const wasmBinary = await readFile(new URL('../../tetorica_src/runtime/generated/sid/sid.wasm', import.meta.url));
 const previewBinary = await readFile(new URL('../../docs/generated/sid8580-machine/sid8580-endpoint.wasm', import.meta.url));
@@ -17,7 +18,7 @@ async function setup(t, {rate = 48000, clock = SID_PAL_CLOCK, model='6581'} = {}
   let Processor, frame = 0, resolveReady; const messages = [], commands = [];
   const ready = new Promise(resolve => { resolveReady = resolve; });
   const port = {postMessage(message) { messages.push(message); if (message.ready || message.error) resolveReady(message); }};
-  vm.runInNewContext(source, {SidCore, Sid8580Core, SidSynth, validateSidClock, SID_PAL_CLOCK, SidVoiceInspector, receiveSidInspector, performanceNoteRelease, sampleRate: rate,
+  vm.runInNewContext(source, {SidCore, Sid8580Core, SidSynth, validateSidClock, SID_PAL_CLOCK, SidVoiceInspector, receiveSidInspector, performanceNoteRelease, createSidTimedProcessor, sidTimedCommandCost, sampleRate: rate,
     createProcessorPerformance: options => createProcessorPerformance({...options, rate, nowFrame: () => frame}),
     AudioWorkletProcessor: class { constructor() { this.port = port; } }, registerProcessor(name, Type) { assert.equal(name, 'tetorica-sid'); Processor = Type; }});
   const processor = new Processor({processorOptions: {clock, model, wasmBinary:model==='8580'?previewBinary:wasmBinary}}); assert.equal((await ready).ready, true, JSON.stringify(messages));

@@ -333,6 +333,11 @@ sid8580.js
 sid8580.d.ts
 sid_waveforms.js
 sidsynth.js
+sid_operations.js
+sid_timed_state.js
+sid_timed_client.js
+sid_timed_client.d.ts
+sid_timed_processor.js
 sidsynth.d.ts
 playground_sid.d.ts
 playground_sid_inspector.d.ts

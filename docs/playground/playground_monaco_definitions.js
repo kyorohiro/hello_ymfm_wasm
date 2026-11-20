@@ -48,6 +48,12 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
     if(['parseNoteName','toPitch','midiToNoteName','lerp','choose','rand','rrange','randInt'].includes(symbol))return {file:'playground_music.js',symbol};
     if(symbol==='hzToBlockFnum')return {file:'soundchip_pitch.js',symbol:'opnPitchFromHz'};
   }
+  if(/^PlaygroundSid(?:OperationRecorder|OperationProgram|RecordedOperation|RecordedCalls)$/.test(owner))return {file:'sid_operations.js',symbol:'buildSidOperations'};
+  if(/^PlaygroundSid(?:StateSnapshot|OperationState)$/.test(owner))return {file:'sid_timed_state.js',symbol:'createSidTimedSnapshot'};
+  if(owner==='PlaygroundSidCompiledWrite')return {file:'sid_operations.js',symbol:'compileSidOperations'};
+  if(/^PlaygroundSid(?:CompileOptions|ScheduleOptions|ScheduleReceipt)$/.test(owner)||
+      ['PlaygroundSid','PlaygroundPrimarySid'].includes(owner)&&['build','compile','captureState','schedule','clearSchedule'].includes(symbol))
+    return symbol==='build'?{file:'sid_operations.js',symbol:'buildSidOperations'}:{file:'sid_timed_client.js',symbol:'attachSidTimedClient'};
   if (symbol === 'sid') return {file:'playground_sid.js',symbol:'createSidClient'};
   if (/^Playground(?:Primary)?Sid$/.test(owner) && ['readRegister','getState','setClock'].includes(symbol)) return {file:'playground_sid.js',symbol:'createSidRegisterClient'};
   if (/^Playground(?:Primary)?Sid/.test(owner)) return {file:'sidsynth.js',symbol:/^Playground/.test(symbol)?'SidSynth':symbol};

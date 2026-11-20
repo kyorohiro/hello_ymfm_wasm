@@ -15,6 +15,7 @@ try {
   await cp(join(root, 'test/types/fm2612.mts'), join(scratch, 'consumer.mts'));
   await cp(join(root, 'test/types/fm2612-browser.mts'), join(scratch, 'browser.mts'));
   await cp(join(root, 'test/types/fm2612-sid.mts'), join(scratch, 'sid.mts'));
+  await cp(join(root, 'test/types/fm2612-sid-timed.mts'), join(scratch, 'sid-timed.mts'));
   await cp(join(root, 'test/types/fm2612-vab.mts'), join(scratch, 'vab.mts'));
   await cp(join(root, 'test/types/fm2612-timed.mts'), join(scratch, 'timed.mts'));
   await cp(join(root, 'test/types/fm2612-wonderswan-timed.mts'), join(scratch, 'wonderswan-timed.mts'));
@@ -26,13 +27,13 @@ try {
       strict: true, noEmit: true, skipLibCheck: false, target: 'ES2022',
       module: resolution === 'NodeNext' ? 'NodeNext' : 'ESNext', moduleResolution: resolution,
       types: ['node'], typeRoots: [join(root, 'node_modules/@types')],
-    }, files: ['consumer.mts','sid.mts','vab.mts','timed.mts','wonderswan-timed.mts','gameboy-timed.mts','scsp-dsp.mts','scsp-dsp-node.mts']}));
+    }, files: ['consumer.mts','sid.mts','sid-timed.mts','vab.mts','timed.mts','wonderswan-timed.mts','gameboy-timed.mts','scsp-dsp.mts','scsp-dsp-node.mts']}));
     execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(scratch, 'tsconfig.json')], {stdio: 'inherit'});
   }
   await writeFile(join(scratch, 'tsconfig.json'), JSON.stringify({compilerOptions: {
     strict: true, noEmit: true, skipLibCheck: false, target: 'ES2022',
     module: 'ESNext', moduleResolution: 'Bundler', lib: ['ES2022', 'DOM'], types: [],
-  }, files: ['browser.mts','sid.mts','vab.mts','timed.mts','wonderswan-timed.mts','gameboy-timed.mts','scsp-dsp.mts']}));
+  }, files: ['browser.mts','sid.mts','sid-timed.mts','vab.mts','timed.mts','wonderswan-timed.mts','gameboy-timed.mts','scsp-dsp.mts']}));
   execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(scratch, 'tsconfig.json')], {stdio: 'inherit'});
   console.log('PASS: installed declarations, NodeNext/Bundler, positive/negative types and browser without Node ambient types.');
 } finally {await rm(scratch, {recursive: true, force: true});}

@@ -11,6 +11,7 @@ walk(root);
 for(const file of ['tetorica-playground-c64.d.ts','defaults/c64/index.js','playground_sid_voice_panel.js',
   'examples/c64/sid-triad.js','examples/c64/sid-filter-sweep.js',
   'js/sid.js','js/sidsynth.js','js/playground_sid.js','js/playground_sid_audio.js',
+  'js/sid_operations.js','js/sid_timed_state.js','js/sid_timed_client.js','js/sid_timed_client.d.ts','js/sid_timed_processor.js',
   'js/playground_sid_worklet.js','js/playground_sid_inspector.js',
   'generated/sid/sid.wasm','generated/sid/sid-build.json','licenses/chips-m6581/LICENSE',
   'sources/SID.md','sources/sid/third_party/chips-m6581/upstream/m6581.h',

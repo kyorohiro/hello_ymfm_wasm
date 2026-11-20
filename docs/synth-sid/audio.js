@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {sidFrequency} from '../js/sid.js';
+import {attachSidTimedClient} from '../js/sid_timed_client.js?v=sid-timed-1';
 // Capture host deadlines before user Code installs its timer guards.
 const nativeSetTimer=globalThis.setTimeout.bind(globalThis);
 const nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
 export const SID_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'releaseKeyboard', 'editCodeVoice', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'releaseKeyboard', 'editCodeVoice', 'setPitch', 'stop', 'beginCode', 'code', 'codeTimed']);
 const CODE_METHODS=['setNote','setFrequency','noteOn','noteOff','keyOn','keyOff','allNotesOff',
   'setVoice','setFilter','writeRegister','readRegister','getRegisterSnapshot','getState','initialize','reset','setClock'];
 const codeCancelled=()=>new DOMException('SID Code session was stopped or its instrument changed','AbortError');
@@ -29,7 +30,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
   const context = new Context({latencyHint: 'interactive'}), controller = new AbortController(), pending = new Map();
   let node = null, balance = null, master = null, codeFade = null, disposed = false, closing = null, fatalError = null;
   let codeGeneration=0,codeOwner=null;
-  const invalidateCode=()=>{codeGeneration++;codeOwner=null;};
+  const invalidateCode=()=>{codeGeneration++;const retired=codeOwner;codeOwner=null;retired?.client?._timedOperations.detach?.();};
   let nextId = 0, startupTimer, rejectStartup, resolveReady;
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   void startupFailure.catch(() => {});
@@ -90,7 +91,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
         if (!response.ok) throw new Error(`SID 8580 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1&sid-code-keyboard=1', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1&sid-code-keyboard=1&sid-timed=1', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });
@@ -164,7 +165,19 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
         // The shared core/context belong to the editor. A Code client can
         // release its sound, but cannot destroy that borrowed resource.
         client.dispose=(...args)=>client.initialize(...args);
-        return client;
+        client._requestControl=(method,args)=>{
+          check();if(method!=='sidTimed'||!Array.isArray(args)||args.length!==1)throw new TypeError('Invalid SID timed control request');
+          return command('codeTimed',[metadata.session,args[0]]).then(value=>{check();return value;});
+        };
+        const restoreBorrowed=client.dispose;
+        owner.client=attachSidTimedClient(client,{
+          instanceId:metadata.instanceId,getConfig:()=>({clock:metadata.clock,model:metadata.model}),
+          getClientState(){throw new Error('Incomplete SID client state: use current, reset or a captured snapshot');},
+        },node.port);
+        // This pre-existing borrowed dispose is a patch restore, not lease
+        // disposal. Host Stop owns detach; an immediate reset remains reusable.
+        owner.client.dispose=restoreBorrowed;
+        return owner.client;
       }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
       return owner.promise;
     }

@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {sidFrequency} from '../js/sid.js';
+import {attachSidTimedClient} from '../../tetorica_src/runtime/sid_timed_client.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -41,7 +42,7 @@ function fixture({resumeError = false, fetchFailure = false, failedModel, stalle
         queueMicrotask(() => {
           if (mode === 'error') this.port.onmessage?.({data: {id: message.id, error: 'Invalid preset', name: 'RangeError'}});
           else this.port.onmessage?.({data: {id: message.id, value: message.method==='beginCode'
-            ?{session:++codeSession,clock:985248,model:options.processorOptions.model,channels:3}
+            ?{session:++codeSession,clock:985248,model:options.processorOptions.model,channels:3,sampleRate:rate,instanceId:'sid-audio-test:'+codeSession}
             :{method: message.method, args: message.args,...(['6581','8580'].includes(message.args?.[0]?.model)?{model:message.args[0].model}:{})}}});
         });
       }, close() { this.closed = true; }};
@@ -52,7 +53,7 @@ function fixture({resumeError = false, fetchFailure = false, failedModel, stalle
   }
   const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   const realm={
-    AudioContext: Context, AudioWorkletNode: Node, URL, AbortController, DOMException,noteToHz,sidFrequency,
+    AudioContext: Context, AudioWorkletNode: Node, URL, AbortController, DOMException,noteToHz,sidFrequency,attachSidTimedClient,
     fetch: async (url, options) => {
       events.push('fetch'); fetchSignals.push(options.signal);fetchUrls.push(String(url));
       if (stalledFetch) return new Promise(resolve => { releases.push(() => resolve({ok: true, arrayBuffer: async () => new ArrayBuffer(0)})); });
@@ -127,7 +128,7 @@ test('Code observation RPC stays passive and does not acquire or invalidate a ph
 
 test('channel settings use the paired processor revision and preserve FIFO request data',async()=>{
   const f=fixture(),audio=await f.create(),setup={format:'tetorica-sid-channels',version:1,target:2,channels:[1,2,3]};
-  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1&sid-code-keyboard=1'));
+  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1&sid-code-keyboard=1&sid-timed=1'));
   const begin=f.messages.length;
   const replies=await Promise.all([audio.command('loadChannelSettings',[setup]),audio.command('setChannelSettings',[setup]),audio.read()]);
   assert.deepEqual(f.messages.slice(begin).map(value=>value.method),['loadChannelSettings','setChannelSettings','read']);
@@ -236,4 +237,16 @@ test('Code Live patch and keyboard release retain the same client, with Stop fen
   f.node.port.onmessage({data:{id:old.id,value:{}}});await rejected;await fresh.keyOn(0);
   await assert.rejects(audio.editCodeVoice(0,{voice:{attack:1}},{isCurrent:()=>false}),{name:'AbortError'});
   await audio.dispose();
+});
+
+test('borrowed SID dispose keeps its patch-restore semantics; only host Stop retires timed capabilities',async()=>{
+  const f=fixture(),audio=await f.create(),sid=await audio.getSidClient();
+  await sid.dispose();
+  assert.equal(await audio.getSidClient(),sid);
+  const plan=sid.build(b=>b.writeRegister(4,0x20));
+  assert.equal((await sid.compile(plan,{initialState:'reset'})).length,1);
+  await assert.rejects(sid.compile(plan,{initialState:'client'}),/Incomplete SID client state/);
+  await sid.noteOn(0,'C4');await audio.command('stop');
+  assert.throws(()=>sid.build(b=>b.keyOn(0)),{name:'AbortError'});
+  const fresh=await audio.getSidClient();assert.notEqual(fresh,sid);await audio.dispose();
 });

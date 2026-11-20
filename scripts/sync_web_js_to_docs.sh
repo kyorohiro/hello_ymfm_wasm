@@ -116,6 +116,11 @@ sid.js
 sid_soundchip.js
 sid_test_instrument.js
 sidsynth.js
+sid_operations.js
+sid_timed_state.js
+sid_timed_client.js
+sid_timed_client.d.ts
+sid_timed_processor.js
 playground_sid.js
 playground_sid_audio.js
 playground_sid_worklet.js

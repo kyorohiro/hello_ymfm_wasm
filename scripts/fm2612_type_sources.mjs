@@ -4,6 +4,25 @@ import {basename} from 'node:path';
 // Supply missing destructured-option shapes during declaration inference.
 // Restore the original staged JavaScript when TypeScript finishes or fails.
 const annotations = {
+  'sid_operations.js': [
+    ['export function buildSidOperations(', String.raw`/** @template Result
+ * @param {(builder:import('./sid_timed_client.js').SidOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown)} callback
+ * @param {{referenceSampleRate?:number}} [options]
+ * @returns {import('./sid_timed_client.js').SidOperationProgram}
+ */`],
+    ['export function compileSidOperations(', String.raw`/**
+ * @param {import('./sid_timed_client.js').SidOperationProgram} plan
+ * @param {any} state
+ * @param {{clock?:number,model?:'6581'|'8580'}} [options]
+ * @returns {import('./sid_timed_client.js').SidCompiledWrite[]}
+ */`],
+  ],
+  'sid_timed_state.js': [
+    ['export function createSidTimedSnapshot(', String.raw`/** @param {any} state
+ * @param {{instanceId:string|number,frame:number,sampleRate:number}} [options]
+ * @returns {import('./sid_timed_client.js').SidStateSnapshot}
+ */`],
+  ],
   'gameboy_operations.js': [
     ['export function buildGameboyOperations(', String.raw`/**
  * @typedef {Object} GameboyOperationRecorder

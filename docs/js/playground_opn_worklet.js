@@ -11,7 +11,7 @@ import nukedFactory from '../generated/nuked_opn2_wasm.js';
 import {validateYm2612Engine} from './playground_soundchip_options.js?v=pokey-mode-1';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=gameboy-timed-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=sid-timed-1';
 
 const timedInstanceNonce = Math.random().toString(36).slice(2);
 let timedInstanceSequence = 0;

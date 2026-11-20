@@ -285,7 +285,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     command=protectWonderSwanControl(command,metadata);
     // Editor parameter patches retain a script's note owner even when a banked
     // control register repeats its existing gate bit. Triggers/releases do not.
-    if(!metadata?.preserveOwner&&!note(command,port,metadata))return false;
+    if(!metadata?.preserveOwner&&!(chipName()==='sid'&&command.preserveOwner===true)&&!note(command,port,metadata))return false;
     apply(command,port,frame,metadata); observePsgLatch(command);
     return true;
   }
@@ -293,7 +293,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     if(!auditions.size)return false;
     // Explicit timed chip edits follow actual application order. Note ownership
     // below still protects newer manual Gates from an old scheduled release.
-    if(['ay8910','huc6280','wonderswan','gameboy'].includes(chipName())&&metadata?.timedOperation)return false;
+    if(['ay8910','huc6280','wonderswan','gameboy','sid'].includes(chipName())&&metadata?.timedOperation)return false;
     // PSG noise rate 3 uses tone channel 3's divider. A held noise key owns
     // that divider as well, while the tone channel's volume remains editable.
     if(chipName()==='segapsg'&&command.method==='write'&&auditions.has(3)&&(getPsgMode?.()&3)===3){
@@ -373,7 +373,8 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     // A newly acquired editor lease may release the old physical key before
     // retriggering it. Other owners still cannot send a stale release.
     const manualOwner=manualNoteOwner(event.key,metadata);
-    if(!event.on&&metadata&&previous&&previous.owner!==metadata.owner&&!manualOwner)return false;
+    if(!event.on&&metadata&&previous&&previous.owner!==metadata.owner&&!manualOwner&&
+      !(chipName()==='sid'&&metadata.timedOperation&&metadata.sidReleaseAllowed===true))return false;
     if(event.on)owners.set(event.key,{owner:metadata?.owner??null,port});else owners.delete(event.key);
     return true;
   }

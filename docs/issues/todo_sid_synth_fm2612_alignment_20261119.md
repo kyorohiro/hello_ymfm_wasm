@@ -16,7 +16,7 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
 | Shared channel output switches | Missing as a common output-only policy for keyboard, Code and SID playback. Hardware voice-3 exclusion and filter routing are sound settings, not equivalent independent listening mutes. |
 | PCM drawing / Start / Loop range | Not applicable. This SID Synth is oscillator/register based, with no RF5C164-like PCM sample editor. Keep waveform combinations, Pulse width, Sync and Ring controls rather than inventing sample RAM. |
 | Looper / Event Rec | **Explicitly deferred by the user.** Do not include them in the next implementation automatically ([existing decision](todo_sid_synth_code_files_01.md)). |
-| Timed build/schedule/compile/snapshots | Missing the YM2612-style operation recorder/compiler/scheduler. Existing immediate SID APIs and liveLoop/liveFx are present; a timed SID API requires a separate proposal. |
+| Timed build/schedule/compile/snapshots | Implemented for existing SID register operations, 6581/8580, borrowed Synth and shared Web Audio Main/Worker; no Native timing. See [verification](todo_sid_timed_register_api_20261121.md). |
 
 ## Proposed implementation phases
 
@@ -49,7 +49,7 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
       must not change oscillator/Gate/filter registers or break Sync/Ring source
       oscillators. Document interaction with the one shared hardware filter.
 - [ ] Keep Looper/Event Rec deferred until the user explicitly revisits them.
-- [ ] Treat timed operations as separate API work: resolve packed control bits
+- [x] Treat timed operations as separate API work: resolve packed control bits
       at execution, preserve meaningful repeated writes and existing immediate
       methods, and audit coherent state capture rather than implying a complete
       C64 song snapshot from a JS register shadow.
@@ -76,14 +76,14 @@ Related history: [Code/Files and deferral](todo_sid_synth_code_files_01.md),
 
 ## Timed register API follow-up
 
-Not implemented; separate chip-level API work from Files/UI alignment.
+Implemented on 2026-11-21; [implementation and verification](todo_sid_timed_register_api_20261121.md). Separate chip-level API work from Files/UI alignment.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
-- [ ] Resolve packed waveform/Gate/Sync/Ring/Test fields and shared filter/volume/routing state using the selected 6581/8580 configuration.
-- [ ] Preserve repeated control writes and ordering; capture resolver state without claiming a full C64 song/emulator snapshot.
-- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+- [x] Resolve packed waveform/Gate/Sync/Ring/Test fields and shared filter/volume/routing state using the selected 6581/8580 configuration.
+- [x] Preserve repeated control writes and ordering; capture resolver state without claiming a full C64 song/emulator snapshot.
+- [x] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.
 
 Working/saved implementation and verification: [2026-11-20 record](todo_sid_working_saved_20261120.md).
 Expanded navigation: [2026-11-21 implementation record](todo_sid_code_workspace_20261121.md).
-Live highlighting, output switches and timed register APIs remain separate work. Looper / Event Rec remain deferred.
+Live highlighting and output switches remain separate work. Timed API publication and Native execution require separate authorization. Looper / Event Rec remain deferred.

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createSidTimedProcessor,sidTimedCommandCost} from '../../tetorica_src/runtime/sid_timed_processor.js';
 
 const source = await readFile(new URL('./processor.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -49,7 +51,7 @@ function fixture({model='6581'}={}) {
       const previous=settings.channels[settings.target==='round-robin'?0:settings.target];
       return {...settings,channels:settings.channels.map((old,index)=>settings.target==='round-robin'
         ?{...old,model:preset.model,...(preset.value!==previous.value?{value:preset.value}:{})}:index===settings.target?preset:{...old,model:preset.model})};
-    },sampleRate: 48000,
+    },sampleRate: 48000,createProcessorPerformance,createSidTimedProcessor,sidTimedCommandCost,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: value => messages.push(value)}; } },
     registerProcessor(name, value) { assert.equal(name, 'tetorica-sid-synth'); Constructor = value; },
   });

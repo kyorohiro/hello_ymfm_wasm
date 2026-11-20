@@ -3494,7 +3494,69 @@ interface PlaygroundSidState {
   readonly channels:readonly PlaygroundSidVoiceState[];
   readonly filter:Required<Readonly<Omit<PlaygroundSidFilterOptions,'mode'>>> & {readonly mode:PlaygroundSidFilterMode|'combined';readonly modeBits:number};
 }
+interface PlaygroundSidRecordedOperation {
+  readonly time:{readonly unit:'sample'|'seconds';readonly value:number};
+  readonly order:number;
+  readonly method:string;
+  readonly args:readonly unknown[];
+}
+/** Serializable operations, without a captured SID state or JavaScript callback. */
+interface PlaygroundSidOperationProgram {
+  readonly version:1;
+  readonly chip:'sid';
+  readonly referenceSampleRate:number;
+  readonly operations:readonly PlaygroundSidRecordedOperation[];
+}
+type PlaygroundSidRecordedCalls<T>={readonly [K in keyof T]:T[K] extends (...args:infer A)=>unknown?(...args:A)=>PlaygroundSidOperationRecorder:never};
+/** Absolute offsets from reservation start. Lifecycle methods remain immediate. */
+interface PlaygroundSidOperationRecorder extends PlaygroundSidRecordedCalls<Pick<PlaygroundSid,
+  'writeRegister'|'setVoice'|'setFilter'|'setFrequency'|'setNote'|'noteOn'|'keyOn'|'keyOff'|'noteOff'|'allNotesOff'>> {
+  atSample(offset:number):PlaygroundSidOperationRecorder;
+  atSeconds(offset:number):PlaygroundSidOperationRecorder;
+}
+interface PlaygroundSidCompiledWrite {
+  readonly offsetSeconds:number;
+  readonly register:number;
+  readonly value:number;
+  readonly operationIndex:number;
+  readonly writeIndex:number;
+}
+/** Write-side resolver metadata, not oscillator/envelope/C64 machine save state. */
+interface PlaygroundSidOperationState {
+  readonly clock:number;
+  readonly model:'6581'|'8580';
+  readonly initialized:boolean;
+  readonly registers:readonly number[];
+}
+interface PlaygroundSidStateSnapshot {
+  readonly format:'tetorica-sid-state';
+  readonly version:1;
+  readonly instanceId:string|number;
+  readonly frame:number;
+  readonly sampleRate:number;
+  readonly state:PlaygroundSidOperationState;
+}
+interface PlaygroundSidCompileOptions {
+  /** current captures the renderer; client uses the authored shadow without RPC
+   * and excludes later scheduled/renderer edits. reset is uninitialized hardware
+   * state. A supplied snapshot is reusable and must match this instance/model. */
+  initialState?:'current'|'client'|'reset'|PlaygroundSidStateSnapshot;
+}
+interface PlaygroundSidScheduleOptions {name:string;repeatSeconds?:number;}
+interface PlaygroundSidScheduleReceipt {
+  name:string;entries:number;sampleRate:number;startFrame?:number;repeatSeconds?:number;staged?:boolean;
+}
 interface PlaygroundSid {
+  /** Run the callback once to record data; no SID reads, writes or scheduling. */
+  build<Result>(callback:(builder:PlaygroundSidOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundSidOperationProgram;
+  /** Coherent renderer resolver state without stopping audio. Web Audio only. */
+  captureState():Promise<PlaygroundSidStateSnapshot>;
+  /** Generate predicted writes on isolated state; this is not a playback trace. */
+  compile(operations:PlaygroundSidOperationProgram,options?:PlaygroundSidCompileOptions):Promise<PlaygroundSidCompiledWrite[]>;
+  /** Execute on the AudioWorklet sample clock; reject invalid replacement atomically. */
+  schedule(operations:PlaygroundSidOperationProgram,options:PlaygroundSidScheduleOptions):Promise<PlaygroundSidScheduleReceipt>;
+  clearSchedule(name:string):Promise<boolean>;
+
   readonly chip:'sid';
   readonly channels:3;
   readonly id:string;

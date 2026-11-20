@@ -1,4 +1,5 @@
 import {createPsgTimedProcessor,psgTimedCommandCost} from '../../tetorica_src/runtime/segapsg_timed_processor.js';
+import {createGameboyTimedProcessor,gameboyTimedCommandCost} from '../../tetorica_src/runtime/gameboy_timed_processor.js';
 import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
@@ -32,7 +33,7 @@ async function setup(file) {
     process(left,right){left.fill(chip.value);right.fill(chip.value);}};
   class SyncChip {constructor(){return chip;}static async create(){return chip;}}
   class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;},renderInto(left,right){left.fill(this.value);right.fill(this.value);}});}static async create(){return new Playback();}}
-  const scope={createPsgTimedProcessor:options=>createPsgTimedProcessor({...options,getState:()=>structuredClone(options.getState())}),psgTimedCommandCost,createYm2612TimedProcessor,observeYm2612TimedChip,validateYm2612Engine,OpnKeyboardInspector,createOpnAuditionGuard,Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
+  const scope={createGameboyTimedProcessor,gameboyTimedCommandCost,createPsgTimedProcessor:options=>createPsgTimedProcessor({...options,getState:()=>structuredClone(options.getState())}),psgTimedCommandCost,createYm2612TimedProcessor,observeYm2612TimedChip,validateYm2612Engine,OpnKeyboardInspector,createOpnAuditionGuard,Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
     NesApuWasm:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,Ay8910:SyncChip,Ym2413:SyncChip,Ym3526:SyncChip,Ym3812:SyncChip,Y8950:SyncChip,Ymf262:SyncChip,WonderSwan:SyncChip,Pokey:SyncChip,
     WonderSwanAudioEngine:SyncChip,PokeyAudioEngine:SyncChip,
     Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},pwmFactory:{},nesFactory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},ay8910Factory:{},ym2413Factory:{},ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},gameboyFactory:{},psgFactory:{},wonderswanFactory:{},pokeyFactory:{},

@@ -32,9 +32,14 @@ export class SidInstrument{
     this.core=core;this.synth=new SidSynth({core});this.preset=createDefaultPreset({model:core.model});
     this.disposed=false;this.pitch=0;this.cursor=0;this.sequence=0;this.voices=new Map();this.slots=Array(3).fill(null);
     this.codeEpoch=0;this.codeActive=false;this.codeFrames=0;this.gateOwners=Array(3).fill(null);
+    this.synth._observe=event=>{if(event.method==='writeRegister')this.onRegisterWrite?.(...event.args,this.registerMetadata??{preserveOwner:true});};
     this._replace(createChannelSettings(this.preset));
   }
   _open(){if(this.disposed)throw new Error('SID instrument is disposed');}
+  _gate(channel,on){
+    const previous=this.registerMetadata;this.registerMetadata={preserveOwner:false};
+    try{return this.synth[on?'keyOn':'keyOff'](channel);}finally{this.registerMetadata=previous;}
+  }
   _legato(){return this.channelSettings.target!=='round-robin'&&this.channelSettings.keyboardMode==='legato';}
   _channels(){return channelPlaybackPlan(this.channelSettings).channels;}
   _voice(settings,channel,plan){
@@ -132,10 +137,10 @@ export class SidInstrument{
     const tuning=this._tuning(midi,this.channelSettings.channels[channel]);
     const previous=this.slots[channel],overlap=this._legato()&&previous&&!previous.released&&this.voices.get(previous.id)===previous;
     const stolenId=previous&&!previous.released&&!overlap?previous.id:null;
-    if(!overlap&&(this.codeActive||previous&&!previous.released))this.synth.keyOff(channel);
+    if(!overlap&&(this.codeActive||previous&&!previous.released))this._gate(channel,false);
     this.synth.setFrequency(channel,tuning.carrier);
     if(tuning.source!==null)this.synth.setFrequency(plan.source,tuning.source);
-    if(!overlap)this.synth.keyOn(channel);
+    if(!overlap)this._gate(channel,true);
     this.gateOwners[channel]={kind:'keyboard',id};
     if(previous&&!overlap&&this.voices.get(previous.id)===previous)this.voices.delete(previous.id);
     const voice={id,midi,channel,order:++this.sequence,released:false};this.slots[channel]=voice;this.voices.set(id,voice);this.cursor=(channels.indexOf(channel)+1)%channels.length;
@@ -157,7 +162,7 @@ export class SidInstrument{
       }
     }
     if(this.slots[voice.channel]!==voice)return false;
-    this.synth.keyOff(voice.channel);this.voices.delete(id);voice.released=true;return true;
+    this._gate(voice.channel,false);this.voices.delete(id);voice.released=true;return true;
   }
   releaseKeyboard(){this._open();for(const id of [...this.voices.keys()])this.noteOff(id);return this.read();}
   /** Edit only touched fields of the displayed Code channel. Frequencies,
@@ -237,13 +242,31 @@ export class SidInstrument{
       if(args.length)throw new TypeError('SID Code reset takes no arguments');
       this._replace(this.channelSettings,true);return;
     }
-    if(method==='allNotesOff'){this.gateOwners.fill({kind:'code'});this.voices.clear();this.slots.fill(null);return this.synth.allNotesOff();}
+    if(method==='allNotesOff'){
+      this.gateOwners.fill({kind:'code'});this.voices.clear();this.slots.fill(null);
+      const previous=this.registerMetadata;this.registerMetadata={preserveOwner:false};
+      try{return this.synth.allNotesOff();}finally{this.registerMetadata=previous;}
+    }
     let channel=args[0],on=method==='noteOn'||method==='keyOn',off=method==='noteOff'||method==='keyOff';
     const rawGate=method==='writeRegister'&&[4,11,18].includes(args[0]);
     if(rawGate){channel=(args[0]-4)/7;on=Boolean(args[1]&1);off=!on;}
     if(off&&!rawGate&&this.gateOwners[channel]?.kind==='keyboard')return false;
-    const result=this.synth[method](...args);
+    const previous=this.registerMetadata;this.registerMetadata={preserveOwner:!rawGate&&!on&&!off};
+    let result;
+    try{result=this.synth[method](...args);}finally{this.registerMetadata=previous;}
     if(on||rawGate){this.gateOwners[channel]={kind:'code'};this.slots[channel]=null;for(const [id,voice]of this.voices)if(voice.channel===channel)this.voices.delete(id);}
+    return result;
+  }
+  /** Resolver output is already validated. Keep parameter writes distinct from
+   * Gate events even though both share a SID control register. */
+  timedWrite(command,metadata){
+    this._open();if(!this.codeActive)throw codeCancelled();
+    const [register,value]=command.args;
+    const result=this.synth.writeRegister(register,value);
+    if([4,11,18].includes(register)&&!metadata?.preserveOwner){
+      const channel=(register-4)/7;this.gateOwners[channel]={kind:'code'};this.slots[channel]=null;
+      for(const [id,voice] of this.voices)if(voice.channel===channel)this.voices.delete(id);
+    }
     return result;
   }
   stop(){this._open();this._replace(this.channelSettings);return this.read();}

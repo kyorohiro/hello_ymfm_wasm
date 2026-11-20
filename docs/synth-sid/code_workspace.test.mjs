@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+import {SID_TIMED_EXAMPLES} from './code_examples.js';
 import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js';
 import {createSidCodeProject,SID_PROJECT_FILE_BYTES} from './code_project.js';
 import {createChannelSettings} from './channel_settings.js';
@@ -150,7 +151,7 @@ test('SID restore and disposal return attached controls and remove only workspac
 test('SID host opts into persistent layout notifications without opening audio or retiring its running Code',async()=>{
   const events=[],files={ready:Promise.resolve(),markSoundDirty(){}},audio={fx:{},open:()=>events.push('open'),prepare:async()=>events.push('prepare'),beforeStop(){},stop:async()=>events.push('audio-stop'),dispose:async()=>{}};
   let options,runtimeOptions,running=true;
-  const context=vm.createContext({createSidCodeProject,SID_PROJECT_FILE_BYTES,
+  const context=vm.createContext({createSidCodeProject,SID_PROJECT_FILE_BYTES,SID_TIMED_EXAMPLES,
     createSidCodeAudio:()=>audio,setupSidCodeFiles:()=>files,
     setupSynthCodeControls:value=>{options=value;return{ready:files.ready,isCodeMode:()=>true,stop:async()=>events.push('controls-stop'),dispose(){},appendLog(){}};},
     createPlaygroundCodeRuntime:value=>{runtimeOptions=value;return{getState:()=>({running}),stop:async()=>events.push('runtime-stop')};},

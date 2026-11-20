@@ -614,6 +614,7 @@ export function createPlaygroundRuntime(
     raw._beforeWrite=(register,value)=>{
       const loop=currentLoopContext;
       if(loop?.stopped)return false;
+      if(raw._sidParameterWrite)return true;
       if(![4,11,18].includes(register))return true;
       const channel=(register-4)/7,on=!!(value&1);
       if(!on&&loop&&owners.has(channel)&&owners.get(channel)!==voiceOwner(loop))return false;
@@ -2626,7 +2627,7 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):ayTimedLifecycle.wrap(client));
+        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):name==='wonderswan'?wonderSwanExtraApi(client):name==='sid'?ayTimedLifecycle.wrap(wonderSwanExtraApi(client)):ayTimedLifecycle.wrap(client));
         if(client._timedOperations){currentLoopContext=callerLoop;if(callerLoop?.stopped){device.dispose();throw new DOMException('Run stopped','AbortError');}}
         if(ownsMainScope)return resumeNativeExtraCaller(callerLoop,()=>api).catch(error=>{device.dispose();throw error;});
         return api;

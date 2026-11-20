@@ -6,6 +6,7 @@ import {selectSidCodeDeclarations} from './code_declarations.js?sid-code=1';
 import {createSidCodeAudio} from './code_audio.js?sid-code=1';
 import {createSidCodeProject,SID_PROJECT_FILE_BYTES} from './code_project.js?v=sid-working-saved-1';
 import {setupSidCodeFiles} from './code_files.js?v=sid-working-saved-1';
+import {SID_TIMED_EXAMPLES} from './code_examples.js';
 
 export const SID_STARTER_CODE=`const sid = await useSoundChip("sid");
 setBpm(120);
@@ -77,7 +78,7 @@ const aborted=()=>new DOMException('SID Code stopped','AbortError');
 export function setupSidCodeHost({ensureAudio,getAudio,getSettings,getSaveSoundSettings=getSettings,applySettings,stopKeyboard,stopSong,
   beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
-  const project=createSidCodeProject({settings:getSettings(),getStarterCode:()=>SID_STARTER_CODE});
+  const project=createSidCodeProject({settings:getSettings(),getStarterCode:()=>SID_STARTER_CODE,starterFiles:SID_TIMED_EXAMPLES});
   const audio=createSidCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
   function openOutput(){
@@ -139,7 +140,10 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,getSaveSoundS
       onActivity();
     },onViewChange,onExpandedChange,setStatus,
   });
-  return {project,files,controls,ready:controls.ready,
+  const ready=controls.ready.then(()=>{
+    if(!disposed)try{project.ensureStarterFiles();}catch(error){setStatus(`Examples were not added: ${error.message}`);}
+  });
+  return {project,files,controls,ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),
     getState:()=>runtime?.getState()??{state:'idle',running:false},
     stop,openOutput,markSoundDirty:(value)=>files.markSoundDirty(value),

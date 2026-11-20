@@ -13,7 +13,7 @@ import {
 } from "./playground_chip_inspector_state.js?v=rf5c164-notes-1";
 import { SegaPSG } from "./segapsg.js?v=audio-numeric-bindings-1";
 import factory from "../generated/segapsg_wasm.js?v=audio-numeric-bindings-1";
-import { createProcessorPerformance } from "./playground_performance_processor.js?v=gameboy-timed-1";
+import { createProcessorPerformance } from "./playground_performance_processor.js?v=sid-timed-1";
 class Processor extends AudioWorkletProcessor {
 	constructor(options) {
 		super();

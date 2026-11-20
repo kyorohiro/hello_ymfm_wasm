@@ -1,4 +1,5 @@
 import type {SidChannel,SidState,SidSynth} from './sidsynth.js';
+import type {SidTimedApi} from './sid_timed_client.js';
 
 export interface SidClientLifecycle {
   captureContext?():unknown;
@@ -20,7 +21,7 @@ export interface SidRegisterClientOptions {
   lifecycle?:SidClientLifecycle;
 }
 /** Main/Worker authoring client; read-side operations are ordered and asynchronous. */
-export type SidClient = Omit<SidSynth,'readRegister'> & {
+export type SidRegisterClient = Omit<SidSynth,'readRegister'> & {
   readRegister(register:number):Promise<number>;
   getState():Promise<SidState>;
   _forceKeyOff(channel:SidChannel):void;
@@ -28,8 +29,10 @@ export type SidClient = Omit<SidSynth,'readRegister'> & {
   _setLifecycle(hooks:SidClientLifecycle):void;
   _requestControl(method:string,args?:unknown[],transfer?:Transferable[]):Promise<unknown>;
 };
+/** Additive sample-clock operations on the acknowledged Web Audio client. */
+export type SidClient = SidRegisterClient & SidTimedApi;
 export function createSidRegisterClient(
-  send:(method:string,args:unknown[],channel?:SidChannel)=>void,
+  send:(method:string,args:unknown[],channel?:SidChannel,metadata?:{preserveOwner?:boolean;sidMask?:number})=>void,
   options?:SidRegisterClientOptions,
-):SidClient;
+):SidRegisterClient;
 export function createSidClient(port:MessagePort,options?:SidClientOptions,lifecycle?:SidClientLifecycle):SidClient;

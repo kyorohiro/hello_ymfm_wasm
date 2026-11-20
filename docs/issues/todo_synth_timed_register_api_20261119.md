@@ -1,6 +1,6 @@
 # Synth timed register API rollout
 
-Recorded: 2026-11-19; implementation status updated 2026-11-20.
+Recorded: 2026-11-19; implementation status updated 2026-11-21.
 YM2149 ST and YM2612 provide the reference implementation. HuC6280 is implemented; SPU now has its first register-operation slice.
 Later API-port order is not implied by the Files/UI rollout.
 
@@ -11,7 +11,7 @@ Later API-port order is not implied by the Files/UI rollout.
 | HuC6280 / PC Engine | Present: [TODO](todo_huc6280_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | PS1 SPU | Existing-sample note/pitch/ADSR/reverb plus hardware Noise/PMON implemented in Web Audio; see [verification](todo_spu_timed_register_api_20261120.md). Remaining scope: [TODO](todo_spu_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | DMG | Pulse / Wave / Noise register operations, notes and raw Gates implemented in Synth and shared Web Audio Main/Worker clients; Wave uploads preserve DAC-stop semantics. Native execution/capture remain unsupported and npm publication is pending: [verification](todo_dmg_timed_register_api_20261120.md), [TODO](todo_dmg_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up). |
-| SID | Planned: [TODO](todo_sid_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
+| SID | 6581/8580 register-operation recorder/compiler, reusable snapshots and Web Audio sample-clock scheduling implemented in Synth and shared Main/Worker clients. Native execution/capture and npm publication remain separate: [verification](todo_sid_timed_register_api_20261121.md). |
 | FM2608 / PC-98 | Planned: [TODO](todo_fm2608_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | 2A03 / NES + FDS | Planned: [TODO](todo_2a03_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | S-DSP / SNES | Planned: [TODO](todo_snes_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
