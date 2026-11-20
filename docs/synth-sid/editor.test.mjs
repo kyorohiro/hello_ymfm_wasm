@@ -306,6 +306,9 @@ const appSource=(await readFile(new URL('./synth.js',import.meta.url),'utf8')).r
 function appFixture({stall=false,desktop=false,codeStop=async()=>{},files}={}){
   const ids=new Map(),doc=new Element(null,'document');doc.ownerDocument=doc;doc.activeElement=null;doc.hidden=false;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>{if(!ids.has(id)){const node=new Element(doc);node.id=id;ids.set(id,node);}return ids.get(id);};
   for(const id of ['masterVolume','pitchBend','keyboardPitchBend'])doc.getElementById(id).value=id==='masterVolume'?'.7':'0';
+  const masterControl=new Element(doc);masterControl.className='master-control';
+  masterControl.append(doc.getElementById('masterVolume'),doc.getElementById('masterVolumeValue'));
+  doc.getElementById('masterVolume').closest=selector=>selector==='.master-control'?masterControl:null;
   doc.getElementById('codeOutput').hidden=true;
   doc.getElementById('spuFileContextMenu').hidden=true;
   doc.getElementById('sidFileContextMenu').hidden=true;
@@ -360,7 +363,10 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{},files}={}){
     setLiveVoice(voice){importState.liveVoice=voice;importer.hooks.onUpdate(importer.read());},
     setLiveEnabled(value){importState.liveEnabled=value;importer.hooks.onUpdate(importer.read());},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
-  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,setupSynthMenu,applySidDocumentChanges,
+  // These tests exercise sound/ownership, not DOM layout. The actual shared
+  // expanded helper and attached SID element contract have their own suite.
+  const setupSynthExpandedTabs=()=>({setExpanded(){},showInput(){},showChip(){},dispose(){}});
+  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,setupSynthMenu,setupSynthExpandedTabs,applySidDocumentChanges,
     setupSidCodeHost:hooks=>{code.hooks=hooks;code.activity=hooks.onActivity;return{files,project:createSidCodeProject({settings:hooks.getSettings()}),ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,getState:()=>({busy:Boolean(code.busy),running:code.running}),
       async stop(){code.running=false;code.stops++;code.activity();await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}};},
     createSidCodeLive:hooks=>{codeLive.hooks=hooks;return codeLive;},

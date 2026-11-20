@@ -85,7 +85,16 @@ the keyboard. The Code tab supports
 after the chip in host software. There is no implicit `play()` or independent
 chip factory here; acquire the SID through `useSoundChip("sid")` and await its
 acknowledged controls. Existing **Copy JavaScript** still targets the full C64
-Playground separately. Maximize Code places the same editor beside Files.
+Playground separately.
+
+The **Code / Synth** layout buttons beside Files open or restore the workspace.
+Expanded tabs are **Code / SID / Keyboard**. Switching between them retains the
+expanded layout and the same performance; **Synth** or **Restore Code** returns
+to the normal layout. The original Master and shared Run / Apply / Stop row stay
+accessible in every expanded view. The same editor/model, controls and output
+route move between their anchors; no second instrument is created. Showing Code
+alone never starts it, and changing layout preserves working/saved Files and SID
+Play/Pause position. Arrow keys / Home / End navigate the expanded tabs.
 
 Choosing Code keeps focus on the tab, so computer-key performance remains
 available outside the editor and after Stop. Click inside the editor to type;

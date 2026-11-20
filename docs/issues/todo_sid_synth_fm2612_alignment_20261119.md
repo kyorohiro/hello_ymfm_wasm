@@ -1,6 +1,6 @@
 # SID Synth: FM2612 interaction alignment
 
-Audit date: 2026-11-19; Files implementation updated 2026-11-20.
+Audit date: 2026-11-19; Files implementation updated 2026-11-20; expanded workspace 2026-11-21.
 Completed work is recorded below; remaining items are planning, not release approval. User order: **HuC6280 → SPU → DMG → SID**.
 SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261119.md).
 
@@ -11,7 +11,7 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
 | working/saved and Save controls | Implemented: shared two-version workspace, default-on Auto apply, dots, Save / Save all / Discard / Discard all, Ctrl/Cmd+S and v2 Cassette recovery with v1 migration. See [verification](todo_sid_working_saved_20261120.md). |
 | Active instrument file ↔ controls/JSON | Implemented: linked portable voice / three-channel setup documents, role-preserving serialization, shared Code text/JSON editor without a forced view switch, accepted versus working controls and sparse physical-bank acceptance. |
 | Files Undo / New / import recovery | Implemented: compact Files controls, right-click basic actions and Undo, New Cassette, validated replacement with native backup cancellation, both-version journal/quota recovery and saved-source execution. |
-| Persistent expanded Code workspace | Partial. Code maximize already exists. [code_host.js](../synth-sid/code_host.js) does not install persistent expansion, unified Code/SID/Keyboard/Mixer navigation or header Code/Synth controls. |
+| Persistent expanded Code workspace | Implemented: Files-adjacent Code/Synth layout buttons, persistent Code / SID / Keyboard tabs, shared transport and one original Master. No new Mixer policy. See [verification](todo_sid_code_workspace_20261121.md). |
 | Live changed-value highlighting | Missing. Live/Auto update already follows the selected physical CH and uses the existing sound controls; short value-change flashes with On/Off are separate. |
 | Shared channel output switches | Missing as a common output-only policy for keyboard, Code and SID playback. Hardware voice-3 exclusion and filter routing are sound settings, not equivalent independent listening mutes. |
 | PCM drawing / Start / Loop range | Not applicable. This SID Synth is oscillator/register based, with no RF5C164-like PCM sample editor. Keep waveform combinations, Pulse width, Sync and Ring controls rather than inventing sample RAM. |
@@ -38,7 +38,7 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
 - [x] Add Files history and New Cassette rollback with explicit retirement of
       the old Code/song owner only when replacing the project. Include the
       existing FM2612-style Duplicate/right-click basic file actions.
-- [ ] Add persistent expanded Code/SID/Keyboard navigation, header Code/Synth
+- [x] Add persistent expanded Code/SID/Keyboard navigation, header Code/Synth
       switching and visible Master; introduce Mixer only with an agreed policy.
 - [ ] Add Live value-change highlighting, default On with an Off option, while
       retaining the same controls and distinct Live following state.
@@ -68,7 +68,7 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
 - [x] Verify source and readable ZIP in muted Chromium/WebKit, fallback and
       real Monaco, narrow/resized layouts and keyboard focus. Preserve measured
       gains; numeric tests do not constitute human listening. Persistent expanded
-      navigation and its verification remain the next separate slice.
+      navigation is verified in its [separate record](todo_sid_code_workspace_20261121.md).
 
 Related history: [Code/Files and deferral](todo_sid_synth_code_files_01.md),
 [Code Live](todo_sid_synth_code_live_01.md),
@@ -85,5 +85,5 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.
 
 Working/saved implementation and verification: [2026-11-20 record](todo_sid_working_saved_20261120.md).
-Persistent expanded navigation, Live highlighting, output switches and timed
-register APIs remain separate work. Looper / Event Rec remain deferred.
+Expanded navigation: [2026-11-21 implementation record](todo_sid_code_workspace_20261121.md).
+Live highlighting, output switches and timed register APIs remain separate work. Looper / Event Rec remain deferred.

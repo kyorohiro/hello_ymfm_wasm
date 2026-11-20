@@ -8,8 +8,9 @@ import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.j
 import {createSidImport} from './sid_import.js?sid-song-manual=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
 import {createSidLiveView} from './sid_live_view.js?sid-song-manual=1';
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js?v=huc-code-workspace-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
-import {setupSidCodeHost} from './code_host.js?v=sid-working-saved-1';
+import {setupSidCodeHost} from './code_host.js?v=sid-code-workspace-1';
 import {applySidDocumentChanges} from './document_settings.js?v=sid-working-saved-1';
 import {createSidCodeLive} from './code_live.js?sid-code-live=1&sid-code-keyboard=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
@@ -27,7 +28,7 @@ let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
 let sidImporter=null,previewEngine=null;
 let switchingAudioOutput=false,desktopOutputHandler=null;
 let songTarget=0,pausedKeyboard=false,lastSongPaused=false;
-let codeHost=null,codeLive=null;
+let codeHost=null,codeLive=null,expandedTabs=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
 setupSynthMenu({document,window});
@@ -527,7 +528,7 @@ $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();try{const code=channelSettingsToCode(channelSettings);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){void stopPerformances().catch(report);return;}codeLive.dispose();void codeHost?.dispose().catch(()=>{});disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
+  if(event.persisted){void stopPerformances().catch(report);return;}expandedTabs?.dispose();codeLive.dispose();void codeHost?.dispose().catch(()=>{});disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
 });
 function receivePlayerSnapshot(){
   const fragment=window.location?.hash;
@@ -558,8 +559,22 @@ codeHost=setupSidCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readCh
   },
   stopKeyboard:()=>stopNotes(),stopSong:()=>stopSongForKeyboard(),beforeRun:()=>queue,
   prepareOutput:(engine,isCurrent)=>prepareDesktopOutput(engine,isCurrent),
+  onViewChange:mode=>{expandedTabs?.showInput(mode);codeActivity();},
+  onExpandedChange:value=>{expandedTabs?.setExpanded(value);codeActivity();},
   onActivity:codeActivity,setStatus:message=>status(message),
 });
+const chipTab=$('sidChipTab');
+function selectChip(tab){
+  if(disposed||tab!==chipTab)return false;
+  expandedTabs?.showChip(tab);updateLiveDisplay();visualizer.wake();return true;
+}
+chipTab.addEventListener('click',()=>{
+  selectChip(chipTab);
+  if(codeHost.controls.isExpanded())chipTab.focus();else chipTab.blur();
+});
+expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,selectChip,
+  elements:{editor:$('sidSynthEditor'),chipTabs:[chipTab],volume:$('masterVolume').closest('.master-control')},
+  getChipView:tab=>tab.dataset.sidChip});
 void codeHost.ready.then(()=>{if(!disposed)receivePlayerSnapshot();}).catch(report);
 
 // Desktop adapters select the final Master output before a keyboard attack or

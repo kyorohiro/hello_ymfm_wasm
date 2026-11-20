@@ -75,7 +75,7 @@ liveLoop("filter", async () => {
 `;
 const aborted=()=>new DOMException('SID Code stopped','AbortError');
 export function setupSidCodeHost({ensureAudio,getAudio,getSettings,getSaveSoundSettings=getSettings,applySettings,stopKeyboard,stopSong,
-  beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}) {
+  beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSidCodeProject({settings:getSettings(),getStarterCode:()=>SID_STARTER_CODE});
   const audio=createSidCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -125,7 +125,7 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,getSaveSoundS
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
-    keepRunningOnKeyboard:true,
+    keepRunningOnKeyboard:true,persistentExpanded:true,
     allowTextFiles:true,maxTextLength:SID_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'c64',transformDeclarations:selectSidCodeDeclarations,
     journalKey:'tetorica-sid-synth-pending-code',getStarterCode:()=>SID_STARTER_CODE,
@@ -137,7 +137,7 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,getSaveSoundS
     async onModeChange(){
       modeEpoch++;openOutput();
       onActivity();
-    },setStatus,
+    },onViewChange,onExpandedChange,setStatus,
   });
   return {project,files,controls,ready:controls.ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),
