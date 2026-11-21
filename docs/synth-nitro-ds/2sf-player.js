@@ -10,7 +10,7 @@ const MONITOR_BLOCK_LIMIT = 48;
 const MONITOR_SNAPSHOT_LIMIT = 128;
 
 function openWorker() {
-	const worker = new Worker(new URL('./2sf-worker.js?v=nds-adpcm-cache-1', import.meta.url), { type: 'module' });
+	const worker = new Worker(new URL('./2sf-worker.js?v=nds-shared-renderer-1', import.meta.url), { type: 'module' });
 	let pending = null, id = 0, closed = false;
 	function close(error = new DOMException('Playback stopped', 'AbortError')) {
 		if (closed) return;

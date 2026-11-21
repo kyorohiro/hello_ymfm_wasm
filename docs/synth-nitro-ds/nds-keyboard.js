@@ -234,7 +234,9 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 			previous = voices.get(channel);
 			note.channel = channel;
 			voices.set(channel, note);
-			const { token, timer } = await chip.noteOn(channel, entry.midi, noteSettings);
+			const request = chip.beginNote(channel, entry.midi, noteSettings);
+			note.pendingToken = request.token;
+			const { token, timer } = await request.ready;
 			note.token = token;
 			note.timer = timer;
 			if (previous && held.get(previous.id) === previous) held.delete(previous.id);
@@ -258,10 +260,11 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 				if (range !== original.sample.range && range.loop === note.sampleLoop) setNoteSampleRange(note, range);
 			}
 		} catch (error) {
-			if (voices.get(note.channel) === note && previous && held.get(previous.id) === previous)
+			if ((!voices.has(note.channel) || voices.get(note.channel) === note) &&
+				previous && held.get(previous.id) === previous)
 				voices.set(note.channel, previous);
 			if (held.get(id) === note) release(id);
-			onError(error);
+			if (error.name !== 'AbortError') onError(error);
 		}
 	}
 
@@ -270,7 +273,8 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 		if (!note) return;
 		held.delete(id);
 		if (note.voices.get(note.channel) === note) note.voices.delete(note.channel);
-		if (note.token !== null) void note.chip.noteOff(note.channel, note.token).catch(onError);
+		const token = note.token ?? note.pendingToken;
+		if (token !== undefined) void note.chip.noteOff(note.channel, token).catch(onError);
 		renderHeld();
 	}
 

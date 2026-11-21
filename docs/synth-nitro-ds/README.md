@@ -9,9 +9,12 @@ is stopped. All 16 support
 PCM8, PCM16 and IMA-ADPCM. Pulse is available on CH9–CH14, and Noise on
 CH15–CH16. Code names CH1–CH16 correspond to hardware channels 0–15.
 
-The CPU-free AudioWorklet runs original BSD-3-Clause JavaScript. The voice
-settings follow the DS timer, volume, pan, pulse, and word-addressed sample
-controls. Sine, Triangle, Saw and Square are built-in software samples.
+Keyboard, Code, paused audition and 2SF playback use the same MIT SkyEmu sound
+renderer in WebAssembly. The Synth and paused audition drive the DS sound
+registers directly from an AudioWorklet at 48 kHz. The browser handles any
+conversion to the output device rate. The voice settings follow the DS timer,
+volume, pan, pulse, and word-addressed sample controls. Sine, Triangle, Saw and
+Square are built-in software samples.
 The sample preview decodes the selected PCM16, PCM8 or IMA-ADPCM data and
 shows its size. Pulse shows its duty control. Noise shows its generator and
 clock, while PCM sample controls appear in the three sample modes.
@@ -75,7 +78,8 @@ Release to keep the new range or press **Escape** to restore it. For a
 one-shot, edit **End** to change where the sample stops. If playback ends
 during the edit, play a new note to hear it again. Format and root note
 changes apply on the next note. Each converted sample can use up to 1 MiB
-of encoded data.
+of encoded data. The first note on a large sample waits for its data to be
+prepared in small steps while notes on other channels continue.
 
 Choose **Draw** on the same canvas to edit a built-in, imported or captured
 waveform. The stroke previews while you drag. Release to encode the edit into
@@ -120,8 +124,9 @@ so far. **Load as sample** puts the mono take into the current Synth sound as
 a one-shot, with C4 at the starting capture rate. Use **Save sound as…** to keep
 it in the Cassette.
 
-Capture reads the Synth mixer after the channel strips and before Master. A new take applies the selected
-rate to the shared channel timer. A later write to that timer changes the rate
+Tetorica's Sound Capture reads the Synth mixer after the channel strips and
+before Master. A new take applies the selected rate to the shared channel timer.
+A later write to that timer changes the rate
 during recording, and the panel flags the change. For a fixed-rate take, play
 on a channel other than the capture unit's timer channel. This preview samples
 the mixer at the browser's audio render rate and holds its value between
@@ -171,8 +176,9 @@ The 2SF reference collection uses its own folder and file pickers.
 
 ## Reference playback
 
-The local preview also plays 2SF and mini2SF recordings through the Nintendo DS
-core from SkyEmu. Import an album with **Menu → Import → 2SF folder…**. Use
+For 2SF and mini2SF playback, the SkyEmu DS core runs the original song driver
+in a separate Worker and feeds its writes to the shared sound renderer.
+Import an album with **Menu → Import → 2SF folder…**. Use
 **2SF / mini2SF files…** for a standalone track or a song and its libraries
 from the same directory. Choose a song, then press **Play song**. The same
 transport provides **Pause / Resume** and **Stop**, with a waveform display
@@ -210,19 +216,25 @@ it to `presets/`. Code can load that sound via `loadPreset()`.
 
 ## Build the local preview
 
-Building the browser preview requires Python 3.11+ and Emscripten. The script
-downloads and verifies the pinned SkyEmu archive on the first build.
+Serve the `docs/` directory to use the included browser preview.
 
 ```sh
-sh scripts/nds-2sf/build_skyemu_wasm.sh --preview
 python3 -m http.server 8787 --bind 127.0.0.1 --directory docs
 ```
 
-Open `http://127.0.0.1:8787/synth-nitro-ds/index.html`. The preview binary and
-its source notices are installed under `generated/` and ignored by Git. The
-build uses the pinned MIT SkyEmu DS sources, MIT ROM database and BSD-2-Clause
-DS FreeBIOS. See the [2SF experiment](../../scripts/nds-2sf/README.md) for
-source provenance and test commands.
+Open `http://127.0.0.1:8787/synth-nitro-ds/index.html`. The shared WebAssembly
+renderer and its source notices are in `generated/`. To rebuild it after
+changing the renderer, install Python 3.11+ and Emscripten and run the command
+below. The script downloads and verifies the pinned SkyEmu archive on the first
+build.
+
+```sh
+sh scripts/nds-2sf/build_skyemu_wasm.sh --preview
+```
+
+The build uses the pinned MIT SkyEmu DS sources, MIT ROM database and
+BSD-2-Clause DS FreeBIOS. See the [renderer guide](../../scripts/nds-2sf/README.md)
+for source provenance and test commands.
 
 The 2SF player supports ROM-boot sets with standard timing. It applies song
 length and fade tags, with a three-minute fallback when length is missing.
@@ -239,7 +251,7 @@ sh scripts/package_itch_nitro_ds_synth.sh 0.0.1
 ```
 
 Use the version you intend to distribute. The ZIP is written to
-`release/tetorica_nitro_ds_synth_0.0.1_itch.zip`. It includes the 2SF WASM,
+`release/tetorica_nitro_ds_synth_0.0.1_itch.zip`. It includes the shared DS WASM,
 its build inputs and notices, and editable browser modules. The archive opens
 at `index.html` when served over HTTPS or localhost. With no version argument
 the script uses `dev`. An existing ZIP with the same name is preserved.

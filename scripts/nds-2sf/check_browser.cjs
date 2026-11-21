@@ -29,8 +29,9 @@ const contentTypes = {
 
 function silentAudit() {
 	const Context = window.AudioContext ?? window.webkitAudioContext;
+	const WorkletNode = window.AudioWorkletNode;
 	const connect = AudioNode.prototype.connect;
-	const contexts = [], monitored = [];
+	const contexts = [], monitored = [], synthRenderers = [];
 	const AuditContext = class extends Context {
 		constructor(...args) {
 			super(...args);
@@ -39,6 +40,21 @@ function silentAudit() {
 	};
 	window.AudioContext = AuditContext;
 	if (window.webkitAudioContext) window.webkitAudioContext = AuditContext;
+	window.AudioWorkletNode = class extends WorkletNode {
+		constructor(context, name, options) {
+			super(context, name, options);
+			if (name !== 'tetorica-nds-synth') return;
+			const renderer = {
+				sampleRate: context.sampleRate,
+				wasm: options?.processorOptions?.module instanceof WebAssembly.Module,
+				ready: false,
+			};
+			synthRenderers.push(renderer);
+			this.port.addEventListener('message', ({ data }) => {
+				if (data?.value === 'skyemu') renderer.ready = true;
+			});
+		}
+	};
 	AudioNode.prototype.connect = function (destination, ...args) {
 		if (destination !== this.context.destination) return connect.call(this, destination, ...args);
 		const splitter = this.context.createChannelSplitter(2);
@@ -82,10 +98,17 @@ function silentAudit() {
 		outputs: monitored.length,
 		muted: monitored.every(({ mute }) => mute.gain.value === 0),
 		channels: monitored.at(index)?.meters.map(measure) ?? [],
+		synthRenderers,
 	});
 }
 
 const output = (page, index = -1) => page.evaluate(index => window.twoSfAudit(index), index);
+async function assertSynthRenderer(page) {
+	const { synthRenderers } = await output(page);
+	assert(synthRenderers.length > 0, 'Expected a production Synth AudioWorklet');
+	for (const renderer of synthRenderers)
+		assert.deepEqual(renderer, { sampleRate: 48000, wasm: true, ready: true }, 'Synth AudioWorklet should use the SkyEmu module');
+}
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(read, predicate, label, timeoutMs = 15000) {
 	const deadline = Date.now() + timeoutMs;
@@ -200,6 +223,7 @@ async function checkPausedAudition(page, frozenPosition, frozenClock) {
 	await until(() => page.locator('#ndsSampleStatus').textContent(), value => /32 decoded frames/.test(value) && /64 PCM bytes/.test(value),
 		'Paused 2SF should show its actual decoded sample in the Synth waveform panel');
 	await holdC4(page, () => measureSide(page, 0, 440, 1));
+	await assertSynthRenderer(page);
 	await until(() => output(page, 1), silent, 'Releasing the key should silence the frozen sample');
 	await verifySongFrozen();
 
@@ -1259,8 +1283,11 @@ async function checkHeldRange(page) {
 			assert.equal(await end.inputValue(), String(frames));
 			await tone();
 		});
+		await until(() => output(page), ({ channels }) => channels.length === 2 &&
+			channels.every(({ peak }) => peak < 1e-7), `${mode} should reach silence after releasing the long loop`);
 	}
-	return 'PCM8, PCM16 and long IMA-ADPCM update a held loop during drag, restore it on Escape and keep the range on pointer-up';
+	await assertSynthRenderer(page);
+	return 'SkyEmu PCM8, PCM16 and long IMA-ADPCM update held loops during drag, restore on Escape, retain edits on pointer-up and release to silence';
 }
 
 const directSoundWorklet = `
@@ -1471,10 +1498,12 @@ async function check(name, origin, fixture) {
 		const audit = await output(page);
 		assert(audit.muted && audit.outputs > 0);
 		const synthModes = await checkSynth(page);
+		await assertSynthRenderer(page);
 		const workspace = await checkWorkspace(page, fixture, name);
 		const sample = await checkSample(page, fixture, name);
 		const referenceFiles = await checkReferenceFiles(page, fixture, name);
 		const soundCapture = await checkSoundCapture(page);
+		await assertSynthRenderer(page);
 		const fixedTimer = await checkFixedTimer(page);
 		const mixer = await checkMixer(page, fixture);
 		const drawPcm = await checkDrawPcm(page);

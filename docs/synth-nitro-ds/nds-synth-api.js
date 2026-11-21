@@ -93,7 +93,12 @@ export class NdsSynth {
 		return voice?.owner === this.#owner && (token === undefined || token === voice.token);
 	}
 	async noteOn(channel, note, settings = {}) {
-		return this.#request('noteOn', [channel, noteToHz(note), settings, this.#owner, ++this.#token.next]);
+		return this.beginNote(channel, note, settings).ready;
+	}
+	beginNote(channel, note, settings = {}) {
+		const frequency = noteToHz(note);
+		const token = ++this.#token.next;
+		return { token, ready: this.#request('noteOn', [channel, frequency, settings, this.#owner, token]) };
 	}
 	async noteOff(channel, token) {
 		return this.#request('noteOff', [channel, this.#owner, token]);

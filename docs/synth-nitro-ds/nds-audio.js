@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { SoundChipMixer } from '../js/soundchip_mixer.js';
-import { NdsSynth } from './nds-synth-api.js?v=nds-range-live-1';
+import { NdsSynth } from './nds-synth-api.js?v=nds-shared-renderer-1';
+import { loadSkyEmuModule, SKYEMU_SAMPLE_RATE } from './nds-skyemu-wasm.js?v=nds-shared-renderer-1';
 
 const TIMEOUT = 12000;
 const MAX_OUTSTANDING = 256;
@@ -26,7 +27,7 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 	mixer.set('nds', outputMix);
 	const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
 	if (!Context) throw new Error('Web Audio is unavailable.');
-	const context = new Context({ latencyHint: 'interactive' });
+	const context = new Context({ latencyHint: 'interactive', sampleRate: SKYEMU_SAMPLE_RATE });
 	const requests = new Map(), owners = Array(16).fill(null);
 	let worklet, master, analyser, releaseOutput, closed = false, closing, nextId = 0;
 
@@ -78,12 +79,13 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 
 	try {
 		if (!context.audioWorklet) throw new Error('DS Synth requires AudioWorklet over HTTPS or localhost.');
-		await deadline(Promise.all([
+		const [module] = await deadline(Promise.all([
+			loadSkyEmuModule(),
 			context.resume(),
-			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-range-live-1', import.meta.url)),
+			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-shared-renderer-1', import.meta.url)),
 		]), 'DS audio could not start. Check audio permission and try again.');
 		worklet = new AudioWorkletNode(context, 'tetorica-nds-synth', {
-			numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
+			numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { module },
 		});
 		worklet.onprocessorerror = () => fail(new Error('The DS audio processor failed.'));
 		worklet.port.onmessageerror = () => fail(new Error('The DS audio processor reply could not be read.'));

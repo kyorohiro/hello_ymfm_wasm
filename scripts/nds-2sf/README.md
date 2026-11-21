@@ -57,8 +57,9 @@ BSD-3-Clause code.
 
 With the verified SkyEmu archive in place, build the DS-only WASM and install
 it for the [local Reference playback page](../../docs/synth-nitro-ds/README.md).
-The browser shares the 2SF assembler with the CLI and loads the DS-only core
-in a Worker. Its source closure uses MIT SkyEmu, the MIT ROM database, and
+The browser shares the 2SF assembler with the CLI. The same DS-only module
+runs in a Worker for 2SF and in an AudioWorklet for Keyboard, Code and paused
+audition. Its source closure uses MIT SkyEmu, the MIT ROM database, and
 BSD-2-Clause DS FreeBIOS. The build writes their notices alongside the WASM.
 
 ```sh
@@ -79,8 +80,9 @@ The WASM also exposes a CPU-free direct sound session. The parity checker
 opens the same WASM in direct mode, copies the fixtures' PCM into main RAM
 and writes their sound-channel registers. It compares the repeating stereo
 sample values and the timing of each transition with the rendered 2SF and
-checks that a pan write takes effect on the running channel. This is the
-verification path for sharing the sound renderer with the Synth.
+checks that a pan write takes effect on the running channel. Production Synth
+rendering uses the direct session's floating-point output with Tetorica's
+software channel gain, note release and mixer Capture.
 The browser check also loads the same WASM into an AudioWorklet at 48 kHz
 and measures a note and a live pan change from host register writes.
 The direct session can read channel registers and the running sample position.
@@ -104,6 +106,12 @@ playback and preparation of a 1 MiB sample:
 node scripts/nds-2sf/check_skyemu_audio_budget.mjs --blocks=1000
 ```
 
+The Synth stages its own uploads in 16 KiB chunks, prepares up to 16,384
+ADPCM frames per step and keeps every fourth predictor state. Lookups decode
+up to three further samples. This fits sixteen 1 MiB playing samples and a
+staged replacement in 34 MiB of decoder tables. The checker reports timings
+for the same adapter and its floating-point output.
+
 Pass `--wasm=PATH` to repeat the measurement with a baseline build. Pass
 `--song=PATH` with its library accessible from `--set-root=DIR` to measure
 2SF worker-size blocks. Timing is reported per machine rather than used as
@@ -118,5 +126,5 @@ output paths and leave the source set in place.
 
 The format and compatibility notes are in the
 [2SF author notes](https://github.com/soltune/procyon2sf/blob/main/docs/TECHNICAL.md).
-The [Synth TODO](../../docs/issues/todo_nds_synth_20261121.md) tracks the
-browser player and the migration of Keyboard and Code to the shared renderer.
+The [Synth TODO](../../docs/issues/todo_nds_synth_20261121.md) tracks
+verification and the remaining Native and 2SF compatibility work.

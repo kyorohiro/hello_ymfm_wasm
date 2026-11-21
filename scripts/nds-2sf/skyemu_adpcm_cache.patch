@@ -1,6 +1,15 @@
 --- src/nds.h
 +++ src/nds.h
-@@ -6856,0 +6857,34 @@
+@@ -5140,0 +5141,5 @@
++// Host Synth reads and output use this same audio unit and an independent sample bank.
++static uint8_t tetorica_synth_read8(nds_t *nds, uint32_t address);
++static uint16_t tetorica_synth_read16(nds_t *nds, uint32_t address);
++static uint32_t tetorica_synth_read32(nds_t *nds, uint32_t address);
++
+@@ -5148 +5153 @@
+-    uint32_t header = nds7_read32(nds,sad);
++    uint32_t header = tetorica_synth_read32(nds,sad);
+@@ -6856,0 +6862,39 @@
 +static FORCE_INLINE void nds_adpcm_decode_code(int32_t *sample, int32_t *index, uint8_t data){
 +  static const int16_t adpcm_table[89] ={
 +    0x0007, 0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E,
@@ -35,10 +44,32 @@
 +static bool tetorica_synth_advance_adpcm(nds_t *nds, int channel, uint32_t cnt,
 +                                        uint32_t sad, uint32_t timer, uint32_t pnt, uint32_t end);
 +
-@@ -6919,0 +6954,2 @@
++static bool tetorica_synth_mix(nds_t *nds, unsigned channel, uint32_t *cnt,
++                               float value, uint32_t volume, float divider, uint32_t pan,
++                               float *left, float *right);
++static bool tetorica_synth_append_float(float left, float right);
++
+@@ -6892,2 +6936,2 @@
+-          case 0: v= ((int8_t)nds7_read8(nds,sad+audio->channel[c].sample))/128.;break;
+-          case 1: v= ((int16_t)nds7_read16(nds,sad+audio->channel[c].sample*2))/32768.;break;
++          case 0: v= ((int8_t)tetorica_synth_read8(nds,sad+audio->channel[c].sample))/128.;break;
++          case 1: v= ((int16_t)tetorica_synth_read16(nds,sad+audio->channel[c].sample*2))/32768.;break;
+@@ -6914,4 +6958,7 @@
+-        v*=vol_mul*div_table[vol_div]/128.;
+-        emu->audio_channel_output[c] = emu->audio_channel_output[c]*lowpass_coef + fabs(v)*(1.0-lowpass_coef);
+-        r+=v*pan/128.;
+-        l+=v*(128-pan)/128.;
++        if(!tetorica_synth_mix(nds,c,&cnt,v,vol_mul,div_table[vol_div],pan,&l,&r)){
++          v*=vol_mul*div_table[vol_div]/128.;
++          emu->audio_channel_output[c] = emu->audio_channel_output[c]*lowpass_coef + fabs(v)*(1.0-lowpass_coef);
++          r+=v*pan/128.;
++          l+=v*(128-pan)/128.;
++        }
++        if(!(cnt>>31)) continue;
+@@ -6919,0 +6967,2 @@
 +      if(format==2 && audio->channel[c].timer>0x1ffff &&
 +         tetorica_synth_advance_adpcm(nds,c,cnt,sad,tmr,pnt,tot_samps)) continue;
-@@ -6955,15 +6990,0 @@
+@@ -6955,15 +7003,0 @@
 -            static const int16_t adpcm_table[89] ={
 -              0x0007, 0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E,
 -              0x0010, 0x0011, 0x0013, 0x0015, 0x0017, 0x0019, 0x001C, 0x001F,
@@ -54,7 +85,13 @@
 -              0x7FFF
 -            };
 -            static const int adpcm_indextable[8]={ -1, -1, -1, -1, 2, 4, 6, 8 };
-@@ -6979,14 +7000 @@
+@@ -6971 +7005 @@
+-              uint32_t header = nds7_read32(nds,sad);
++              uint32_t header = tetorica_synth_read32(nds,sad);
+@@ -6976 +7010 @@
+-              uint8_t data = nds7_read8(nds,sad+audio->channel[c].sample/2);
++              uint8_t data = tetorica_synth_read8(nds,sad+audio->channel[c].sample/2);
+@@ -6979,14 +7013 @@
 -              int16_t entry = adpcm_table[audio->channel[c].adpcm_index];
 -              int16_t diff = entry >> 3;
 -              if (data & 1) diff += entry >> 2;
@@ -70,3 +107,5 @@
 -              if(new_index<0)new_index=0;
 -              audio->channel[c].adpcm_index =new_index;
 +              nds_adpcm_decode_code(&audio->channel[c].adpcm_sample, &audio->channel[c].adpcm_index, data);
+@@ -6996,0 +7018 @@
++    if(tetorica_synth_append_float(l,r)) continue;

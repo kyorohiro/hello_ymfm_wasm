@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { makeNdsSample, NdsSynth, ndsTimerForFrequency } from './nds-synth-api.js';
-import { NdsSoundCore } from './nds-core.js';
+import { NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
 
+const wasmModule = await WebAssembly.compile(await readFile(
+	new URL('./generated/skyemu-2sf.wasm', import.meta.url),
+));
 let Processor;
 globalThis.AudioWorkletProcessor = class { port = { postMessage() {} }; };
 globalThis.registerProcessor = (name, implementation) => {
@@ -17,57 +21,83 @@ try {
 	delete globalThis.registerProcessor;
 }
 
-function endpoint() {
+function endpoint(testContext, onRender) {
 	let worklet;
 	globalThis.sampleRate = 48000;
 	try {
-		worklet = new Processor();
+		worklet = new Processor({ processorOptions: { module: wasmModule } });
 	} finally {
 		delete globalThis.sampleRate;
 	}
 	const owners = Array(16).fill(null), pending = new Map();
-	let id = 0;
+	const channels = [new Float32Array(128), new Float32Array(128)];
+	let id = 0, pump, blocks = 0;
+	testContext.after(() => {
+		clearImmediate(pump);
+		worklet.port.onmessage({ data: { method: 'dispose' } });
+	});
+	function processPending() {
+		pump = undefined;
+		if (pending.size === 0) {
+			blocks = 0;
+			return;
+		}
+		try {
+			assert(++blocks <= 2048, 'DS commands should complete after bounded processing');
+			worklet.process([], [channels]);
+			onRender?.(...channels);
+		} catch (error) {
+			for (const { reject } of pending.values()) reject(error);
+			pending.clear();
+		}
+		pump = setImmediate(processPending);
+	}
 	worklet.port.postMessage = (message) => {
 		const { id, owners: next, value, error, name } = structuredClone(message);
-		const { resolve, reject } = pending.get(id);
+		const request = pending.get(id);
+		if (!request) return;
 		pending.delete(id);
 		if (next) owners.splice(0, owners.length, ...next);
 		if (error) {
 			const failure = new Error(error);
 			failure.name = name;
-			reject(failure);
-		} else resolve(value);
+			request.reject(failure);
+		} else request.resolve(value);
 	};
 	function request(method, args = []) {
 		const message = structuredClone({ id: ++id, method, args });
 		return new Promise((resolve, reject) => {
 			pending.set(id, { resolve, reject });
-			queueMicrotask(() => worklet.port.onmessage({ data: message }));
+			queueMicrotask(() => {
+				worklet.port.onmessage({ data: message });
+				if (!pump && pending.size > 0) pump = setImmediate(processPending);
+			});
 		});
 	}
-	return { chip: new NdsSynth(request, { owners }), worklet };
+	return { chip: new NdsSynth(request, { owners }), request, worklet };
 }
 
-test('built-in DS sample formats and shapes load as word-aligned loops', () => {
-	const core = new NdsSoundCore(48000);
+test('built-in DS sample formats and shapes sound as word-aligned loops in SkyEmu', async (t) => {
+	const { chip, worklet } = endpoint(t);
+	const left = new Float32Array(512), right = new Float32Array(512);
 	for (const mode of ['pcm8', 'pcm16', 'adpcm']) {
 		for (const shape of ['sine', 'triangle', 'saw', 'square']) {
 			const { frames, ...sample } = makeNdsSample(mode, shape);
 			assert.equal(frames, 64);
 			assert.equal((sample.loopStartWords + sample.lengthWords) * 4, sample.bytes.length);
 			if (mode === 'adpcm') assert.equal(sample.loopStartWords, 1);
-			core.configure(0, { ...sample, mode, timer: ndsTimerForFrequency(440, frames).timer });
-			core.keyOn(0);
-			const left = new Float32Array(4096), right = new Float32Array(4096);
-			core.render(left, right);
-			assert(left.some((sample) => sample > .025));
-			assert(left.some((sample) => sample < -.025));
+			await chip.noteOn(0, 'A4', { ...sample, mode, frames, pan: 0 });
+			worklet.process([], [[left, right]]);
+			assert(left.some((value) => value > .025), `${mode} ${shape} positive signal`);
+			assert(left.some((value) => value < -.025), `${mode} ${shape} negative signal`);
+			assert(right.every((value) => value === 0), `${mode} ${shape} hard left pan`);
 		}
 	}
 });
 
-test('DS Worklet tunes loaded samples and exposes zero-based physical channels', async () => {
-	const { chip } = endpoint();
+test('DS Worklet uses SkyEmu and exposes zero-based physical channels', async (t) => {
+	const { chip, request } = endpoint(t);
+	assert.equal(await request('ready'), 'skyemu');
 	const initial = await chip.getState();
 	assert.equal(initial.length, 16);
 	assert(initial.every((row, channel) => row.channel === channel && !row.active && row.mode === 'pcm16'));
@@ -84,8 +114,8 @@ test('DS Worklet tunes loaded samples and exposes zero-based physical channels',
 	await assert.rejects(chip.setFrequency(0, undefined), /positive finite Hz/);
 });
 
-test('Imported sample pitch follows source rate and root independently of loop length', async () => {
-	const { chip } = endpoint();
+test('Imported sample pitch follows source rate and root independently of loop length', async (t) => {
+	const { chip } = endpoint(t);
 	const { bytes } = makeNdsSample('pcm16');
 	const sound = { mode: 'pcm16', bytes, sampleRate: 32000, rootNote: 69, loopStartWords: 4, lengthWords: 13 };
 	const root = await chip.noteOn(0, 'A4', sound);
@@ -120,8 +150,8 @@ test('Imported sample pitch follows source rate and root independently of loop l
 	await assert.rejects(chip.configure(0, { rootNote: 'A3', sampleRate: 44100 }), /requires imported/);
 });
 
-test('Identical imported ADPCM bytes are reused across explicit range changes on retrigger', async () => {
-	const { chip, worklet } = endpoint();
+test('Identical imported ADPCM bytes are reused across explicit range changes on retrigger', async (t) => {
+	const { chip, worklet } = endpoint(t);
 	const { bytes, loopStartWords, lengthWords } = makeNdsSample('adpcm');
 	const sound = { mode: 'adpcm', bytes, loop: true, loopStartWords, lengthWords, rootNote: 'C4', sampleRate: 22050 };
 	const configure = worklet.core.configure.bind(worklet.core);
@@ -144,8 +174,8 @@ test('Identical imported ADPCM bytes are reused across explicit range changes on
 	assert.equal((await chip.getState(0)).loopStartWords, loopStartWords);
 });
 
-test('DS owner-scoped releases and live edits cannot change a replaced voice', async () => {
-	const { chip, worklet } = endpoint();
+test('DS owner-scoped releases and live edits cannot change a replaced voice', async (t) => {
+	const { chip, worklet } = endpoint(t);
 	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
 	assert.equal(chip.forOwner('code'), code);
 	const original = await keyboard.noteOn(0, 'A4', { volume: 100 });
@@ -174,8 +204,8 @@ test('DS owner-scoped releases and live edits cannot change a replaced voice', a
 	assert.equal((await code.getState(0)).active, false);
 });
 
-test('DS owned timer changes and key tracking reuse the held PCM sample and preserve ownership', async () => {
-	const { chip } = endpoint();
+test('DS owned timer changes and key tracking reuse the held PCM sample and preserve ownership', async (t) => {
+	const { chip } = endpoint(t);
 	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
 	const { bytes } = makeNdsSample('pcm16');
 	const sample = { mode: 'pcm16', bytes, sampleRate: 32000, rootNote: 'C4', loopStartWords: 0, lengthWords: 32 };
@@ -194,8 +224,8 @@ test('DS owned timer changes and key tracking reuse the held PCM sample and pres
 	assert.equal((await code.getState(0)).timer, replacement.timer);
 });
 
-test('DS held sample range updates preserve the playing note and reject a stale owner', async () => {
-	const { chip, worklet } = endpoint();
+test('DS held sample range updates preserve the playing note and reject a stale owner', async (t) => {
+	const { chip, worklet } = endpoint(t);
 	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
 	const bytes = new Uint8Array(32);
 	bytes.fill(127, 16);
@@ -218,8 +248,81 @@ test('DS held sample range updates preserve the playing note and reject a stale 
 	assert(code.owns(0, replacement.token));
 });
 
-test('DS worklet channel mix persists across note owners and physical register edits', async () => {
-	const { chip } = endpoint();
+test('Preparing maximum-size ADPCM keeps existing SkyEmu audio and Capture running', async (t) => {
+	const recorded = [];
+	let preparing = false;
+	const { chip, worklet } = endpoint(t, (left, right) => {
+		if (preparing) recorded.push({ min: Math.min(...left), maxRight: Math.max(...right.map(Math.abs)) });
+	});
+	const timer = ndsTimerForFrequency(48000, 1).timer;
+	const leftSample = new Uint8Array(32).fill(64);
+	await chip.noteOn(0, 'C4', { mode: 'pcm8', bytes: leftSample, loop: true, timer, volume: 127, pan: 0 });
+	const left = new Float32Array(128), right = new Float32Array(128);
+	worklet.process([], [[left, right]]);
+	await chip.startCapture(0, { format: 'pcm16', lengthWords: 32, timer });
+
+	const bytes = new Uint8Array(NDS_MAX_SAMPLE_BYTES);
+	new DataView(bytes.buffer).setInt16(0, 8192, true);
+	preparing = true;
+	const note = await chip.noteOn(2, 'C4', { mode: 'adpcm', bytes, loop: true, timer, volume: 127, pan: 127 });
+	preparing = false;
+	assert(recorded.length > 1, 'Long ADPCM preparation must yield across audio blocks');
+	assert(recorded.every(({ min, maxRight }) => min > .1 && maxRight === 0),
+		'The left note must continue uninterrupted while the new right note is being prepared');
+	const capture = await chip.readCapture(0);
+	assert.equal(capture.active, false);
+	assert.equal(capture.recordedFrames, 64);
+	const samples = new DataView(capture.bytes.buffer, capture.bytes.byteOffset, capture.bytes.byteLength);
+	for (let byte = 0; byte < samples.byteLength; byte += 2)
+		assert(samples.getInt16(byte, true) > 12000, 'Capture must continue to record the left note during preparation');
+	assert(chip.owns(2, note.token));
+	worklet.process([], [[left, right]]);
+	assert(right.some((value) => value > .04), 'The prepared ADPCM should play on the right');
+
+	await chip.noteOff(2, note.token);
+	const release = [new Float32Array(512), new Float32Array(512)];
+	worklet.process([], [release]);
+	assert(release[1][0] > .04 && release[1][383] < .001);
+	assert(release[1].slice(384).every((value) => value === 0), 'The ADPCM release must reach silence');
+	assert(release[0].every((value) => value > .1), 'The other channel must keep playing during the release');
+});
+
+test('Stopping queued ADPCM owned by Code leaves the keyboard voice on the same channel', async (t) => {
+	let renderedBlock;
+	const { chip, worklet } = endpoint(t, () => renderedBlock?.());
+	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
+	const original = await keyboard.noteOn(0, 'C4', { mode: 'pcm16', shape: 'sine', pan: 0 });
+	const preparing = new Promise((resolve) => { renderedBlock = resolve; });
+	const attack = assert.rejects(code.noteOn(0, 'A4', {
+		mode: 'adpcm', bytes: new Uint8Array(NDS_MAX_SAMPLE_BYTES), loop: true, pan: 127,
+	}), { name: 'AbortError' });
+	await preparing;
+	await code.stopOwned();
+	await attack;
+
+	const state = await keyboard.getState(0);
+	assert.equal(state.token, original.token);
+	assert(state.active && !state.releasing);
+	assert(keyboard.owns(0, original.token));
+	const left = new Float32Array(384), right = new Float32Array(384);
+	worklet.process([], [[left, right]]);
+	assert(left.some((value) => Math.abs(value) > .025));
+	assert(right.every((value) => value === 0));
+
+	const replacing = new Promise((resolve) => { renderedBlock = resolve; });
+	const replacement = assert.rejects(code.noteOn(0, 'B4', {
+		mode: 'adpcm', bytes: new Uint8Array(NDS_MAX_SAMPLE_BYTES), loop: true, pan: 127,
+	}), { name: 'AbortError' });
+	await replacing;
+	assert.equal(await keyboard.noteOff(0, original.token), true);
+	await code.stopOwned();
+	await replacement;
+	worklet.process([], [[left, right]]);
+	assert.equal((await chip.getState(0)).active, false, 'Key-up during preparation must still release the sounding note');
+});
+
+test('DS worklet channel mix persists across note owners and physical register edits', async (t) => {
+	const { chip, worklet } = endpoint(t);
 	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
 	const note = await keyboard.noteOn(0, 'A4', { volume: 90, pan: 64 });
 	const mix = { volume: .4, pan: -.25, muted: true };
@@ -230,9 +333,34 @@ test('DS worklet channel mix persists across note owners and physical register e
 	assert.equal((await chip.getState(0)).volume, 113);
 	assert.equal((await chip.getState(0)).pan, 127);
 	assert.deepEqual(await chip.getChannelMix(0), mix);
+	const left = new Float32Array(512), right = new Float32Array(512);
+	worklet.process([], [[left, right]]);
+	assert(right.every((value) => value === 0), 'An instrument write must not undo the software mute');
+	await chip.setChannelMix(0, { muted: false });
+	worklet.process([], [[left, right]]);
+	assert(right.some((value) => value > .01), 'Unmuting must restore the held note in the audio output');
 	const rows = await chip.getChannelMix();
 	assert.equal(rows.length, 16);
-	assert.deepEqual(rows[0], mix);
+	assert.deepEqual(rows[0], { ...mix, muted: false });
 	assert.deepEqual(rows[1], { volume: 1, pan: 0, muted: false });
 	await assert.rejects(chip.setChannelMix(16, { volume: .5 }), /DS channel/);
+});
+
+test('Every channel can prepare a long ADPCM replacement while the other channels play', async (t) => {
+	const { chip, worklet } = endpoint(t);
+	async function playAll(pan, predictor) {
+		const bytes = new Uint8Array(NDS_MAX_SAMPLE_BYTES);
+		new DataView(bytes.buffer).setInt16(0, predictor, true);
+		return Promise.all(Array.from({ length: 16 }, (_, channel) => chip.noteOn(channel, 'C4', {
+			mode: 'adpcm', bytes, loop: true, pan, timer: 65535, volume: 24,
+		})));
+	}
+	await playAll(0, 4096);
+	const notes = await playAll(127, 8192);
+	assert.equal(notes.length, 16);
+	for (const { channel, token } of notes) assert(chip.owns(channel, token));
+	const left = new Float32Array(128), right = new Float32Array(128);
+	worklet.process([], [[left, right]]);
+	assert(left.every(value => value === 0));
+	assert(right.some(value => value > .1));
 });

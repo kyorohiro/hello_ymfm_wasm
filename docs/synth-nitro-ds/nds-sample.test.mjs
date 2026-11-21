@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { encodeSampleWav } from '../js/playground_sample_edit.js';
-import { NDS_AUDIO_CLOCK, NDS_MAX_SAMPLE_BYTES, NdsSoundCore } from './nds-core.js';
+import { NDS_AUDIO_CLOCK, NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
+import { NdsSoundCore } from '../../test/runtime/nds_sound_reference.mjs';
 import {
 	NDS_MAX_WAV_BYTES, encodeNdsSample, getNdsSampleLayout, normalizeNdsSampleRange,
 	readNdsSample, readNdsSampleRange, readNdsWav,

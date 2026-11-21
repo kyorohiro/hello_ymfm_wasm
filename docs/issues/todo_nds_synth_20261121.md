@@ -110,8 +110,8 @@ register documentation. The existing SkyEmu player remains the song source.
 ## 2SF / mini2SF reference path
 
 - [x] Build the pinned SkyEmu WASM with MIT and BSD notices. Verify the
-      original fixtures against Native. Keep the generated binary local to
-      the preview while preparing the redistribution source set.
+      original fixtures against Native. Include the WASM and notices in the
+      hosted Synth and the editable ZIP, with its source kit in the ZIP.
 - [x] Connect folder selection and Play, Pause / Resume and Stop on the
       local Reference playback page. Keep user files in memory and run the
       emulator in a dedicated Worker. Verify the preview in Chromium and WebKit.
@@ -185,29 +185,34 @@ needed to drive the sound hardware.
 - [x] Open that WASM from a browser AudioWorklet and measure a live note.
       Expose register and decoder readback and an atomic PCM range edit for
       the Synth adapter.
-- [ ] Preserve existing Synth behavior on the shared audio path. Check
-      PCM8, PCM16, IMA-ADPCM, pulse, Noise, live Range edits, software note
-      release and the two Sound Capture units. Compare the hardware timer,
-      channel levels and stereo routing on fixtures. The pinned SkyEmu
-      routine currently needs Sound Capture and DS output routing support.
+- [x] Preserve the five source modes, live Range edits, the 8 ms software
+      release and both Tetorica Sound Capture units on the shared audio path.
+      Check timer, channel levels, stereo routing and preset playback with
+      deterministic PCM and muted Chromium/WebKit. The Synth uses the mixer
+      tap before Master for capture.
 - [x] Bound high-rate ADPCM work in the common renderer's direct session.
       A local stress test with 16 sustained ADPCM channels at timer 65535
       went from p95 3.07 ms to 0.021 ms per 128 frames at 48 kHz on Apple M2
       (1,000 measured direct-render blocks, 2.67 ms budget). Keep 2SF
       decoding against live RAM. Validate state and PCM with the cache on
       and off, including range edits and sample rewrites.
-- [ ] Use preparation steps before the first Key On for a long ADPCM sample
-      in the Synth adapter. In the local 1 MiB test the eager Key On cost
-      p95 5.68 ms. Preparing up to 16,384 frames per call cost p95 0.051 ms
-      per step, and the following Key On took p95 under 0.001 ms. Measure the
-      complete host route on slower hardware, including sample upload.
-- [ ] Route Keyboard, Code, paused audition and 2SF through the shared
-      renderer. Keep Pause at the same song position and verify that Stop,
-      source replacement and note ownership still work.
-- [ ] Use 2SF to verify the shared renderer on authored fixtures and the
-      local Chrono Trigger set, then verify the standalone ZIP in Chromium
-      and WebKit. Retain the existing permissive-license source kit and its
-      reproducible WASM build.
+- [x] Prepare long samples in the Worklet before the first Key On. Stage
+      uploads in 16 KiB chunks and decode up to 16,384 frames per step. Cache
+      every fourth ADPCM predictor step in up to 34 MiB for sixteen voices
+      and one staged replacement. On Apple M2, the Synth adapter took about
+      0.11 ms p95 per 128 frames for sixteen distinct 1 MiB ADPCM samples at
+      maximum timer rate (1,000 measured blocks, 2.67 ms budget).
+- [x] Route Keyboard, Code, paused audition and 2SF through the shared
+      renderer. Keep the frozen 2SF position and verify that Stop, source
+      replacement and note ownership work during sample preparation too.
+- [x] Verify the shared renderer with authored 2SF fixtures and the local
+      Chrono Trigger set. The first eight seconds of all 71 tracks still
+      match the Native renderer bit for bit. Chromium and WebKit pass from
+      the extracted ZIP. Its source kit rebuilds the shipped WASM byte for byte.
+- [ ] Measure complete host playback on older hardware, including large WAV
+      uploads and listening for audible dropouts. Verify DS hardware capture
+      and alternate routing separately. Reuse the renderer for Native after
+      the web build is confirmed.
 
 SDAT/SSEQ/SBNK/SWAR/SWAV import is an optional additional path. The agreed
 reference-playback direction is 2SF/mini2SF, not an SDAT sequencer prerequisite.

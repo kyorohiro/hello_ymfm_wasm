@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
 import { listSavedTwoSfSets } from './2sf-project.js';
-import { createTwoSfPlayer } from './2sf-player.js?v=nds-adpcm-cache-1';
+import { createTwoSfPlayer } from './2sf-player.js?v=nds-shared-renderer-1';
 import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-unified-channels-1';
 import { setupNdsChannelPicker } from './nds-channel-picker.js?v=nds-unified-channels-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
-import { createNdsAudio } from './nds-audio.js?v=nds-output-mix-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-range-live-1';
+import { createNdsAudio } from './nds-audio.js?v=nds-shared-renderer-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-shared-renderer-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-source-controls-1';
 import { setupNdsSoundCapture } from './nds-sound-capture.js?v=nds-pcm-draw-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';

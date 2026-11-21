@@ -6,6 +6,7 @@ import { cpus } from 'node:os';
 import { basename } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { parseArgs } from 'node:util';
+import { NdsSkyEmuCore } from '../../docs/synth-nitro-ds/nds-skyemu-core.js';
 import { instantiateSkyEmu, SKYEMU_SAMPLE_RATE } from '../../docs/synth-nitro-ds/nds-skyemu-wasm.js';
 import { makeNdsSample } from '../../docs/synth-nitro-ds/nds-synth-api.js';
 import { assembleTwoSf } from './assemble.mjs';
@@ -178,6 +179,42 @@ function measureColdAdpcmKeyOn(cache) {
 	}
 }
 
+function measureSynthAdapter(byteLength) {
+	const core = new NdsSkyEmuCore(wasm, SKYEMU_SAMPLE_RATE);
+	const frames = 128;
+	const left = new Float32Array(frames), right = new Float32Array(frames);
+	const preparation = [];
+	try {
+		const template = makeNdsSample('adpcm').bytes;
+		for (let channel = 0; channel < 16; channel++) {
+			const bytes = new Uint8Array(byteLength);
+			for (let offset = 0; offset < bytes.length; offset += template.length)
+				bytes.set(template.subarray(0, bytes.length - offset), offset);
+			bytes[2] = channel; // Give each decoder its own initial ADPCM step index.
+			core.configure(channel, { mode: 'adpcm', bytes, loop: true, timer: maxTimer, volume: 24 });
+			let ready;
+			do {
+				const start = performance.now();
+				ready = core.prepareKeyOn(channel);
+				preparation.push(performance.now() - start);
+			} while (!ready);
+			core.keyOn(channel);
+		}
+		const timing = measure(() => {
+			core.render(left, right);
+			return left.length;
+		}, frames, blockCount ?? 1000, 150);
+		assert(left.some(value => value !== 0), 'Expected an audible ADPCM mix');
+		return {
+			kind: 'synth-adapter', channels: 16, bytesPerChannel: byteLength, timer: maxTimer,
+			preparation: { steps: preparation.length, ...latencyStats(new Float64Array(preparation)) },
+			...timing,
+		};
+	} finally {
+		core.close();
+	}
+}
+
 async function measureSong(entry) {
 	const { rom } = await assembleTwoSf(entry, { setRoot: values['set-root'] });
 	const core = instantiateSkyEmu(wasm);
@@ -211,4 +248,8 @@ for (const format of ['pcm8', 'pcm16', 'adpcm']) {
 console.log(JSON.stringify(measureColdAdpcmKeyOn(supportsAdpcmCache ? 'default' : 'legacy')));
 if (supportsAdpcmCache) console.log(JSON.stringify(measureColdAdpcmKeyOn('disabled')));
 if (wasmExports.has('nds_synth_prepare_adpcm')) console.log(JSON.stringify(measureColdAdpcmKeyOn('preprepared')));
+if (wasmExports.has('nds_synth_cancel_voice_adpcm')) {
+	console.log(JSON.stringify(measureSynthAdapter(32 * 1024)));
+	console.log(JSON.stringify(measureSynthAdapter(1024 * 1024)));
+}
 for (const song of values.song ?? []) console.log(JSON.stringify(await measureSong(song)));

@@ -3,7 +3,7 @@ import { assembleTwoSf } from './2sf_source.js';
 import { parseScspSsfTime } from '../synth-scsp/ssf_source.js';
 import { readTwoSfSnapshots } from './2sf-channel-monitor.js?v=nds-2sf-audition-1';
 import { NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
-import { instantiateSkyEmu, loadSkyEmuModule, SKYEMU_SAMPLE_RATE as RATE } from './nds-skyemu-wasm.js?v=nds-adpcm-cache-1';
+import { instantiateSkyEmu, loadSkyEmuModule, SKYEMU_SAMPLE_RATE as RATE } from './nds-skyemu-wasm.js?v=nds-shared-renderer-1';
 
 const BLOCK_FRAMES = 2048;
 const MAX_ROM_BYTES = 64 * 1024 * 1024;

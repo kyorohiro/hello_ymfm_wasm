@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { NDS_AUDIO_CLOCK, NdsSoundCore } from '../../docs/synth-nitro-ds/nds-core.js';
+import { NDS_AUDIO_CLOCK } from '../../docs/synth-nitro-ds/nds-core.js';
+import { NdsSoundCore } from './nds_sound_reference.mjs';
 
 const rate = 48000;
 const stepPerFrame = 65536 - Math.floor(NDS_AUDIO_CLOCK / rate);

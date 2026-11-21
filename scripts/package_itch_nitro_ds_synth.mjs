@@ -89,7 +89,7 @@ try {
 		'the page to try your changes. Monaco can load from its CDN, with a local text',
 		'editor available when the CDN is unavailable.',
 		'',
-		'## Rebuild the 2SF renderer',
+		'## Rebuild the shared DS sound renderer',
 		'',
 		'Install Emscripten, then run from the unpacked ZIP:',
 		'',

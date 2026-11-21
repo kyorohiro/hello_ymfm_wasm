@@ -40,7 +40,12 @@ enum {
 	CAPTURE_TICKS = 48,
 	CAPTURE_SLOTS = CAPTURE_TICKS * CHANNELS,
 	MAX_SAMPLE_BYTES = 1024 * 1024,
-	MAX_SYNTH_ADPCM_CACHE_BYTES = 32 * MAX_SAMPLE_BYTES,
+	SYNTH_VOICE_RAM_BASE = 0x08000000,
+	SYNTH_VOICE_SLOTS = 2 * CHANNELS,
+	// Allow a staging cache in addition to sixteen playing host slots.
+	SYNTH_ADPCM_CACHE_SLOTS = CHANNELS + 1,
+	HOST_ADPCM_STEP_SHIFT = 2,
+	MAX_SYNTH_ADPCM_CACHE_BYTES = 2 * SYNTH_ADPCM_CACHE_SLOTS * MAX_SAMPLE_BYTES,
 	MAX_ADPCM_PREPARE_FRAMES = 16384,
 	MAX_CAPTURE_BYTES = 8 * MAX_SAMPLE_BYTES,
 	CAPTURE_MISSING = -1,
@@ -68,18 +73,114 @@ typedef struct {
 	uint32_t address;
 	uint32_t frames;
 	uint32_t decoded;
+	unsigned step_shift;
 } SynthAdpcmCache;
 
-static SynthAdpcmCache synth_adpcm_cache[CHANNELS];
+static SynthAdpcmCache synth_adpcm_cache[SYNTH_ADPCM_CACHE_SLOTS];
 static SynthAdpcmCache *synth_adpcm_voice[CHANNELS];
 static size_t synth_adpcm_bytes;
 static bool synth_adpcm_enabled;
+
+typedef struct {
+	uint8_t *data;
+	size_t size;
+	size_t capacity;
+} SynthVoiceSlot;
+
+typedef struct {
+	float left;
+	float right;
+	unsigned release_frames;
+	unsigned release_remaining;
+} SynthMix;
+
+static SynthVoiceSlot synth_voice_slots[SYNTH_VOICE_SLOTS];
+static SynthMix synth_mix[CHANNELS];
+static float *synth_float_output;
+static unsigned synth_float_remaining;
+
+static bool synth_voice_address(uint32_t address) {
+	return address - (uint32_t)SYNTH_VOICE_RAM_BASE < SYNTH_VOICE_SLOTS * MAX_SAMPLE_BYTES;
+}
+
+static const uint8_t *synth_sample_bytes(uint32_t address, size_t size) {
+	if (synth_voice_address(address)) {
+		const uint32_t slot_address = address - SYNTH_VOICE_RAM_BASE;
+		const SynthVoiceSlot *slot = &synth_voice_slots[slot_address / MAX_SAMPLE_BYTES];
+		const size_t offset = slot_address % MAX_SAMPLE_BYTES;
+		if (offset >= slot->size || size > slot->size - offset) return NULL;
+		return slot->data + offset;
+	}
+	const uint32_t offset = address - (uint32_t)SYNTH_RAM_BASE;
+	if (offset >= sizeof console.mem.ram || size > sizeof console.mem.ram - offset) return NULL;
+	return console.mem.ram + offset;
+}
+
+static uint8_t tetorica_synth_read8(nds_t *nds, uint32_t address) {
+	if (!synth_open || !synth_voice_address(address)) return nds7_read8(nds, address);
+	const uint8_t *bytes = synth_sample_bytes(address, 1);
+	return bytes ? bytes[0] : 0;
+}
+
+static uint16_t tetorica_synth_read16(nds_t *nds, uint32_t address) {
+	if (!synth_open || !synth_voice_address(address)) return nds7_read16(nds, address);
+	const uint8_t *bytes = synth_sample_bytes(address, 2);
+	return bytes ? bytes[0] | ((uint16_t)bytes[1] << 8) : 0;
+}
+
+static uint32_t tetorica_synth_read32(nds_t *nds, uint32_t address) {
+	if (!synth_open || !synth_voice_address(address)) return nds7_read32(nds, address);
+	const uint8_t *bytes = synth_sample_bytes(address, 4);
+	return bytes ? bytes[0] | ((uint32_t)bytes[1] << 8) |
+	               ((uint32_t)bytes[2] << 16) | ((uint32_t)bytes[3] << 24) : 0;
+}
+
+static void stop_synth_voice(nds_t *nds, unsigned channel, uint32_t cnt) {
+	nds7_io_store32(nds, NDS7_SOUND0_CNT + channel * 16, cnt & 0x7fffffffu);
+	synth_adpcm_voice[channel] = NULL;
+	synth_mix[channel].release_remaining = 0;
+}
+
+static bool tetorica_synth_mix(nds_t *nds, unsigned channel, uint32_t *cnt,
+                              float value, uint32_t volume, float divider, uint32_t pan,
+                              float *left, float *right) {
+	if (!synth_open) return false;
+	SynthMix *mix = &synth_mix[channel];
+	const bool floating = synth_float_output != NULL;
+	if (!floating && mix->left == 1 && mix->right == 1 && !mix->release_remaining) return false;
+	float envelope = 1;
+	if (mix->release_remaining) {
+		--mix->release_remaining;
+		envelope = mix->release_frames > 1 ?
+			(float)mix->release_remaining / (mix->release_frames - 1) : 0;
+		if (!mix->release_remaining) {
+			*cnt &= 0x7fffffffu;
+			stop_synth_voice(nds, channel, *cnt);
+		}
+	}
+	const float level = floating && volume == 127 ? 1.0f : volume / 128.0f;
+	const float balance = floating && pan == 127 ? 1.0f : pan / 128.0f;
+	const float scaled = value * level * divider * envelope;
+	*left += scaled * (1 - balance) * mix->left;
+	*right += scaled * balance * mix->right;
+	return true;
+}
+
+static bool tetorica_synth_append_float(float left, float right) {
+	if (!synth_float_output) return false;
+	if (synth_float_remaining) {
+		*synth_float_output++ = left * 0.25f;
+		*synth_float_output++ = right * 0.25f;
+		--synth_float_remaining;
+	}
+	return true;
+}
 
 static void discard_synth_adpcm(SynthAdpcmCache *cache) {
 	for (unsigned channel = 0; channel < CHANNELS; ++channel) {
 		if (synth_adpcm_voice[channel] == cache) synth_adpcm_voice[channel] = NULL;
 	}
-	synth_adpcm_bytes -= cache->frames * sizeof(*cache->steps);
+	synth_adpcm_bytes -= (cache->frames >> cache->step_shift) * sizeof(*cache->steps);
 	free(cache->steps);
 	*cache = (SynthAdpcmCache){0};
 }
@@ -90,44 +191,74 @@ static bool synth_adpcm_in_use(const SynthAdpcmCache *cache) {
 	return false;
 }
 
-static SynthAdpcmCache *reserve_synth_adpcm(uint32_t address, uint32_t frames) {
-	const size_t size = frames * sizeof(SynthAdpcmStep);
+static SynthAdpcmCache *reserve_synth_adpcm(uint32_t address, uint32_t frames, bool *pending) {
+	const uint8_t *bytes = synth_sample_bytes(address, frames / 2);
+	if (!bytes) return NULL;
+	const unsigned step_shift = synth_voice_address(address) ? HOST_ADPCM_STEP_SHIFT : 0;
+	const size_t size = (frames >> step_shift) * sizeof(SynthAdpcmStep);
 	SynthAdpcmCache *slot = NULL;
-	for (unsigned index = 0; index < CHANNELS; ++index) {
+	for (unsigned index = 0; index < SYNTH_ADPCM_CACHE_SLOTS; ++index) {
 		SynthAdpcmCache *cache = &synth_adpcm_cache[index];
 		if (cache->address == address && cache->frames >= frames) return cache;
 		if (!cache->steps && !slot) slot = cache;
 	}
-	for (unsigned index = 0; index < CHANNELS &&
+	for (unsigned index = 0; index < SYNTH_ADPCM_CACHE_SLOTS &&
 	     (!slot || size > MAX_SYNTH_ADPCM_CACHE_BYTES - synth_adpcm_bytes); ++index) {
 		SynthAdpcmCache *cache = &synth_adpcm_cache[index];
-		if (!cache->steps || synth_adpcm_in_use(cache)) continue;
+		// Partial host work is interleaved with other pending attacks.
+		// Evicting it here could prevent multiple preparations from finishing.
+		const bool preparing = synth_voice_address(cache->address) && cache->decoded < cache->frames;
+		if (!cache->steps || preparing || synth_adpcm_in_use(cache)) continue;
 		discard_synth_adpcm(cache);
 		if (!slot) slot = cache;
 	}
-	if (!slot || size > MAX_SYNTH_ADPCM_CACHE_BYTES - synth_adpcm_bytes) return NULL;
+	if (!slot || size > MAX_SYNTH_ADPCM_CACHE_BYTES - synth_adpcm_bytes) {
+		if (pending) *pending = true;
+		return NULL;
+	}
 	SynthAdpcmStep *steps = malloc(size);
 	if (!steps) return NULL;
-	const uint8_t *bytes = console.mem.ram + (address - SYNTH_RAM_BASE);
 	const int16_t sample = (int16_t)(bytes[0] | (bytes[1] << 8));
 	uint8_t index = bytes[2] & 127;
 	if (index > 88) index = 88;
-	for (unsigned position = 0; position < 8; ++position)
+	for (unsigned position = 0; position < (8u >> step_shift); ++position)
 		steps[position] = (SynthAdpcmStep){sample, index};
-	*slot = (SynthAdpcmCache){.steps = steps, .address = address, .frames = frames, .decoded = 8};
+	*slot = (SynthAdpcmCache){
+		.steps = steps, .address = address, .frames = frames, .decoded = 8, .step_shift = step_shift,
+	};
 	synth_adpcm_bytes += size;
 	return slot;
 }
 
+static uint8_t synth_adpcm_code(const uint8_t *bytes, uint32_t position) {
+	return (bytes[position / 2] >> ((position & 1) * 4)) & 15;
+}
+
+static SynthAdpcmStep synth_adpcm_step_at(const SynthAdpcmCache *cache, uint32_t position) {
+	const uint32_t checkpoint = position >> cache->step_shift;
+	const SynthAdpcmStep step = cache->steps[checkpoint];
+	const uint32_t base = checkpoint << cache->step_shift;
+	if (position == base || position < 8) return step;
+
+	// The host bank keeps every fourth predictor state, so even a timer
+	// advancing hundreds of samples needs at most three decode steps here.
+	const uint8_t *bytes = synth_sample_bytes(cache->address, cache->frames / 2);
+	int32_t sample = step.sample, index = step.index;
+	for (uint32_t current = base + 1; current <= position; ++current)
+		nds_adpcm_decode_code(&sample, &index, synth_adpcm_code(bytes, current));
+	return (SynthAdpcmStep){sample, index};
+}
+
 static void decode_synth_adpcm(SynthAdpcmCache *cache, uint32_t end) {
 	if (end <= cache->decoded) return;
-	const uint8_t *bytes = console.mem.ram + (cache->address - SYNTH_RAM_BASE);
-	const SynthAdpcmStep last = cache->steps[cache->decoded - 1];
+	const uint8_t *bytes = synth_sample_bytes(cache->address, cache->frames / 2);
+	const SynthAdpcmStep last = synth_adpcm_step_at(cache, cache->decoded - 1);
+	const unsigned step_mask = (1u << cache->step_shift) - 1;
 	int32_t sample = last.sample, index = last.index;
 	for (uint32_t position = cache->decoded; position < end; ++position) {
-		const uint8_t code = (bytes[position / 2] >> ((position & 1) * 4)) & 15;
-		nds_adpcm_decode_code(&sample, &index, code);
-		cache->steps[position] = (SynthAdpcmStep){sample, index};
+		nds_adpcm_decode_code(&sample, &index, synth_adpcm_code(bytes, position));
+		if (!(position & step_mask))
+			cache->steps[position >> cache->step_shift] = (SynthAdpcmStep){sample, index};
 	}
 	cache->decoded = end;
 }
@@ -136,7 +267,19 @@ static void prepare_synth_adpcm(unsigned channel, uint32_t address, uint32_t wor
 	synth_adpcm_voice[channel] = NULL;
 	if (!synth_adpcm_enabled || words > MAX_SAMPLE_BYTES / 4 || (loop && !pnt)) return;
 	const uint32_t frames = words * 8;
-	SynthAdpcmCache *cache = reserve_synth_adpcm(address, frames);
+	if (synth_voice_address(address)) {
+		// Host slots are prepared in bounded chunks before key-on. If no
+		// decoded copy is available, use SkyEmu's incremental decoder.
+		for (unsigned index = 0; index < SYNTH_ADPCM_CACHE_SLOTS; ++index) {
+			SynthAdpcmCache *cache = &synth_adpcm_cache[index];
+			if (cache->address == address && cache->decoded >= frames) {
+				synth_adpcm_voice[channel] = cache;
+				return;
+			}
+		}
+		return;
+	}
+	SynthAdpcmCache *cache = reserve_synth_adpcm(address, frames, NULL);
 	if (!cache) return;
 	decode_synth_adpcm(cache, frames);
 	synth_adpcm_voice[channel] = cache;
@@ -159,7 +302,7 @@ static bool tetorica_synth_advance_adpcm(nds_t *nds, int channel, uint32_t cnt,
 	const uint32_t overflow = voice->timer - 0x20000;
 	uint32_t position = voice->sample + 1 + overflow / period;
 	if (pnt && voice->sample < pnt && position >= pnt) {
-		const SynthAdpcmStep latch = cache->steps[pnt - 1];
+		const SynthAdpcmStep latch = synth_adpcm_step_at(cache, pnt - 1);
 		voice->adpcm_sample_latch = latch.sample;
 		voice->adpcm_index_latch = latch.index;
 	}
@@ -168,7 +311,7 @@ static bool tetorica_synth_advance_adpcm(nds_t *nds, int channel, uint32_t cnt,
 		// remaining timer overflows in this output sample.
 		voice->timer -= (end - voice->sample) * period;
 		voice->sample = 0;
-		const SynthAdpcmStep last = cache->steps[end - 1];
+		const SynthAdpcmStep last = synth_adpcm_step_at(cache, end - 1);
 		voice->adpcm_sample = last.sample;
 		voice->adpcm_index = last.index;
 		synth_adpcm_voice[channel] = NULL;
@@ -176,7 +319,7 @@ static bool tetorica_synth_advance_adpcm(nds_t *nds, int channel, uint32_t cnt,
 		return true;
 	}
 	if (position >= end) position = pnt + (position - end) % (end - pnt);
-	const SynthAdpcmStep step = cache->steps[position];
+	const SynthAdpcmStep step = synth_adpcm_step_at(cache, position);
 	voice->sample = position;
 	voice->timer = timer + overflow % period;
 	voice->adpcm_sample = step.sample;
@@ -420,6 +563,8 @@ int nds_synth_open(void) {
 	memset(&console, 0, sizeof console);
 	synth_open = true;
 	synth_adpcm_enabled = true;
+	for (unsigned channel = 0; channel < CHANNELS; ++channel)
+		synth_mix[channel] = (SynthMix){.left = 1, .right = 1};
 	return 1;
 }
 
@@ -427,39 +572,85 @@ int nds_synth_set_adpcm_cache(unsigned enabled) {
 	if (!synth_open || enabled > 1) return 0;
 	synth_adpcm_enabled = enabled != 0;
 	if (!enabled) {
-		for (unsigned index = 0; index < CHANNELS; ++index)
+		for (unsigned index = 0; index < SYNTH_ADPCM_CACHE_SLOTS; ++index)
 			discard_synth_adpcm(&synth_adpcm_cache[index]);
 	}
 	return 1;
+}
+
+static void invalidate_synth_adpcm(uint32_t address, size_t size) {
+	for (unsigned index = 0; index < SYNTH_ADPCM_CACHE_SLOTS; ++index) {
+		SynthAdpcmCache *cache = &synth_adpcm_cache[index];
+		if (!cache->steps) continue;
+		if (address < cache->address + cache->frames / 2 && cache->address < address + size)
+			discard_synth_adpcm(cache);
+	}
 }
 
 int nds_synth_upload(size_t offset, const uint8_t *data, size_t size) {
 	if (!synth_open || !data || !size || offset >= sizeof console.mem.ram ||
 	    size > sizeof console.mem.ram - offset) return 0;
 	memmove(console.mem.ram + offset, data, size);
-	for (unsigned index = 0; index < CHANNELS; ++index) {
-		SynthAdpcmCache *cache = &synth_adpcm_cache[index];
-		if (!cache->steps) continue;
-		const size_t start = cache->address - SYNTH_RAM_BASE;
-		if (offset < start + cache->frames / 2 && start < offset + size)
-			discard_synth_adpcm(cache);
-	}
+	invalidate_synth_adpcm(SYNTH_RAM_BASE + offset, size);
 	return 1;
 }
 
-// Prepare part of a previously uploaded sample before its first note.
-// Returns 1 once ready, 2 while decoding and 0 on an invalid or uncacheable range.
-int nds_synth_prepare_adpcm(size_t offset, size_t size, uint32_t budget_frames) {
-	if (!synth_open || !synth_adpcm_enabled || (offset & 3) || (size & 3) ||
-	    size < 16 || size > MAX_SAMPLE_BYTES || offset >= sizeof console.mem.ram ||
-	    size > sizeof console.mem.ram - offset || !budget_frames || budget_frames > MAX_ADPCM_PREPARE_FRAMES)
-		return 0;
+int nds_synth_upload_voice(unsigned slot, size_t offset, const uint8_t *data, size_t size) {
+	if (!synth_open || slot >= SYNTH_VOICE_SLOTS || !data || !size ||
+	    offset >= MAX_SAMPLE_BYTES || size > MAX_SAMPLE_BYTES - offset) return 0;
+	SynthVoiceSlot *voice = &synth_voice_slots[slot];
+	const size_t end = offset + size;
+	if (end > voice->capacity) {
+		size_t capacity = voice->capacity ? voice->capacity : 16;
+		while (capacity < end) capacity *= 2;
+		uint8_t *storage = realloc(voice->data, capacity);
+		if (!storage) return 0;
+		memset(storage + voice->capacity, 0, capacity - voice->capacity);
+		voice->data = storage;
+		voice->capacity = capacity;
+	}
+	memmove(voice->data + offset, data, size);
+	if (end > voice->size) voice->size = end;
+	invalidate_synth_adpcm(SYNTH_VOICE_RAM_BASE + slot * MAX_SAMPLE_BYTES + offset, size);
+	return 1;
+}
+
+// Returns 1 when ready, 2 while staging is occupied or decoding, 0 for invalid input, and
+// -1 when this sample must use the incremental decoder.
+static int prepare_synth_adpcm_range(uint32_t address, size_t size, uint32_t budget_frames) {
+	if (!synth_open || (address & 3) || (size & 3) || size < 16 || size > MAX_SAMPLE_BYTES ||
+	    !budget_frames || budget_frames > MAX_ADPCM_PREPARE_FRAMES ||
+	    !synth_sample_bytes(address, size)) return 0;
+	if (!synth_adpcm_enabled) return -1;
 	const uint32_t frames = size * 2;
-	SynthAdpcmCache *cache = reserve_synth_adpcm(SYNTH_RAM_BASE + offset, frames);
-	if (!cache) return 0;
+	bool pending = false;
+	SynthAdpcmCache *cache = reserve_synth_adpcm(address, frames, &pending);
+	if (!cache) return pending && synth_voice_address(address) ? 2 : -1;
 	const uint32_t end = cache->decoded + budget_frames;
 	decode_synth_adpcm(cache, end < frames ? end : frames);
 	return cache->decoded >= frames ? 1 : 2;
+}
+
+int nds_synth_prepare_adpcm(size_t offset, size_t size, uint32_t budget_frames) {
+	if (offset >= sizeof console.mem.ram || size > sizeof console.mem.ram - offset) return 0;
+	const int result = prepare_synth_adpcm_range(SYNTH_RAM_BASE + offset, size, budget_frames);
+	return result < 0 ? 0 : result;
+}
+
+int nds_synth_prepare_voice_adpcm(unsigned slot, size_t size, uint32_t budget_frames) {
+	if (slot >= SYNTH_VOICE_SLOTS) return 0;
+	return prepare_synth_adpcm_range(SYNTH_VOICE_RAM_BASE + slot * MAX_SAMPLE_BYTES, size, budget_frames);
+}
+
+int nds_synth_cancel_voice_adpcm(unsigned slot) {
+	if (!synth_open || slot >= SYNTH_VOICE_SLOTS) return 0;
+	const uint32_t address = SYNTH_VOICE_RAM_BASE + slot * MAX_SAMPLE_BYTES;
+	for (unsigned index = 0; index < SYNTH_ADPCM_CACHE_SLOTS; ++index) {
+		SynthAdpcmCache *cache = &synth_adpcm_cache[index];
+		if (cache->address == address && cache->decoded < cache->frames)
+			discard_synth_adpcm(cache);
+	}
+	return 1;
 }
 
 static bool synth_register_offset(unsigned offset) {
@@ -467,14 +658,13 @@ static bool synth_register_offset(unsigned offset) {
 }
 
 static bool synth_sample_address(uint32_t address) {
-	return !(address & 3) && address >= SYNTH_RAM_BASE &&
-	       address - SYNTH_RAM_BASE < sizeof console.mem.ram;
+	return !(address & 3) &&
+	       (address - (uint32_t)SYNTH_RAM_BASE < sizeof console.mem.ram || synth_voice_address(address));
 }
 
 static bool synth_sample_range(uint32_t address, uint32_t pnt, uint32_t len) {
 	const size_t size = (pnt + len) * (size_t)4;
-	return synth_sample_address(address) && len && size >= 16 &&
-	       size <= sizeof console.mem.ram - (address - SYNTH_RAM_BASE);
+	return synth_sample_address(address) && len && size >= 16 && synth_sample_bytes(address, size);
 }
 
 uint32_t nds_synth_read(unsigned offset) {
@@ -502,6 +692,8 @@ int nds_synth_write(unsigned offset, uint32_t value) {
 	nds7_write32(&console, NDS7_SOUND0_CNT + offset, value);
 	const unsigned channel = offset / 16;
 	if (field == 0) {
+		if (!(cnt >> 31) || !(previous >> 31))
+			synth_mix[channel].release_remaining = 0;
 		if (!(previous >> 31) && (cnt >> 31) && ((cnt >> 29) & 3) == 2) {
 			const uint32_t pnt = tmr_pnt >> 16;
 			prepare_synth_adpcm(channel, sad, pnt + len, ((cnt >> 27) & 3) == 1, pnt);
@@ -551,11 +743,11 @@ int nds_synth_range(unsigned channel, uint32_t pnt, uint32_t len) {
 		if (!can_restore_adpcm || stop) {
 			synth_adpcm_voice[channel] = NULL;
 		} else {
-			const SynthAdpcmStep step = cache->steps[*position];
+			const SynthAdpcmStep step = synth_adpcm_step_at(cache, *position);
 			voice->adpcm_sample = step.sample;
 			voice->adpcm_index = step.index;
 			if (pnt) {
-				const SynthAdpcmStep latch = cache->steps[pnt * frames_per_word[format] - 1];
+				const SynthAdpcmStep latch = synth_adpcm_step_at(cache, pnt * frames_per_word[format] - 1);
 				voice->adpcm_sample_latch = latch.sample;
 				voice->adpcm_index_latch = latch.index;
 			}
@@ -564,14 +756,44 @@ int nds_synth_range(unsigned channel, uint32_t pnt, uint32_t len) {
 	return 1;
 }
 
-unsigned nds_synth_render(int16_t *output, unsigned frames) {
-	if (!synth_open || !output || !frames || frames > MAX_RENDER_FRAMES) return 0;
+int nds_synth_set_mix(unsigned channel, float left, float right) {
+	if (!synth_open || channel >= CHANNELS || !isfinite(left) || !isfinite(right) ||
+	    left < 0 || right < 0 || left > 2 || right > 2) return 0;
+	synth_mix[channel].left = left;
+	synth_mix[channel].right = right;
+	return 1;
+}
+
+int nds_synth_release(unsigned channel, unsigned frames) {
+	if (!synth_open || channel >= CHANNELS || frames > SE_AUDIO_SAMPLE_RATE) return 0;
+	const uint32_t cnt = nds7_io_read32(&console, NDS7_SOUND0_CNT + channel * 16);
+	if (!(cnt >> 31)) return 1;
+	SynthMix *mix = &synth_mix[channel];
+	if (!frames) stop_synth_voice(&console, channel, cnt);
+	else if (!mix->release_remaining) {
+		mix->release_frames = frames;
+		mix->release_remaining = frames;
+	}
+	return 1;
+}
+
+int nds_synth_releasing(unsigned channel) {
+	return synth_open && channel < CHANNELS && synth_mix[channel].release_remaining &&
+	       (nds7_io_read32(&console, NDS7_SOUND0_CNT + channel * 16) >> 31);
+}
+
+static void render_synth_audio(unsigned frames) {
 	// nds_tick_audio() emits the pending sample before current_clock.
 	// Advance to the first whole clock strictly after the requested last sample.
 	const uint64_t last_sample_time =
 		console.audio.current_sample_generated_time + (uint64_t)(frames - 1) * AUDIO_CYCLES_64;
 	console.current_clock = last_sample_time / 64 + 1;
 	nds_tick_audio(&console, &emu);
+}
+
+unsigned nds_synth_render(int16_t *output, unsigned frames) {
+	if (!synth_open || !output || !frames || frames > MAX_RENDER_FRAMES) return 0;
+	render_synth_audio(frames);
 	sb_ring_buffer_t *ring = &emu.audio_ring_buff;
 	const unsigned samples = frames * 2;
 	if (sb_ring_buffer_size(ring) != samples) return 0;
@@ -580,9 +802,22 @@ unsigned nds_synth_render(int16_t *output, unsigned frames) {
 	return frames;
 }
 
+unsigned nds_synth_render_float(float *output, unsigned frames) {
+	if (!synth_open || !output || !frames || frames > MAX_RENDER_FRAMES) return 0;
+	synth_float_output = output;
+	synth_float_remaining = frames;
+	render_synth_audio(frames);
+	synth_float_output = NULL;
+	return frames - synth_float_remaining;
+}
+
 void nds_synth_close(void) {
 	if (!synth_open) return;
-	for (unsigned index = 0; index < CHANNELS; ++index)
+	for (unsigned index = 0; index < SYNTH_ADPCM_CACHE_SLOTS; ++index)
 		discard_synth_adpcm(&synth_adpcm_cache[index]);
+	for (unsigned slot = 0; slot < SYNTH_VOICE_SLOTS; ++slot) {
+		free(synth_voice_slots[slot].data);
+		synth_voice_slots[slot] = (SynthVoiceSlot){0};
+	}
 	synth_open = false;
 }
