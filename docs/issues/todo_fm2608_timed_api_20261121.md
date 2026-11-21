@@ -90,3 +90,22 @@ passed physically muted Chromium/WebKit checks. Native execution, ADPCM timed
 operations and scheduled-state Live UI remain separate; human listening is pending.
 Fresh Cassettes include `examples/timed-rhythm.js`; restored user Cassettes are
 not modified. [Evidence](verification_fm2608_rhythm_timed_20261121.json).
+
+## Completed follow-up — timed ADPCM-B (2026-11-21)
+
+- [x] Record `adpcm.setSample / setDeltaN / setPlaybackRate / setVolume / setPan / keyOn / keyOff` using the immediate converter. No PCM/ROM upload or reset operations in the recorder.
+- [x] Adopt detached ADPCM register metadata for partial updates; preserve physical register snapshots and current/client/reset/reused compilation baselines.
+- [x] Protect newer manual/scheduled playback from stale Off and owner cancellation across Standalone, RuntimeSynth and Main/Worker endpoints.
+- [x] Integrate standalone mixer mute with audio-thread authored ADPCM levels; keep hardware keyOff immediate and preserve the existing keyboard/software noteOff release.
+- [x] Add types, completion and a loaded-sample example; validate actual ADPCM memory/audio, timing at 44.1/48 kHz, atomic replacement, Stop and readable ZIP with physical browser output muted.
+
+Verification: 64 timed/monitor/review tests, 220 OPNA regressions, 72 shared
+processor/inspector/calibration checks and 102 YM2612 timed checks passed.
+Actual uploaded ADPCM data covers all three audio endpoints at 44.1/48 kHz;
+compile parity, raw-stop timing, stale ownership, failed replacement, mute/unmute
+and software release cancellation are verified. Immediate ADPCM and keyboard
+release PCM match the exact pre-change source (4096 stereo frames; max difference
+zero). Source and readable ZIP pass physically muted Chromium/WebKit, including
+the fresh-Cassette `examples/timed-adpcm.js`. The npm build checks 472 declarations.
+Human listening is pending. Memory transfer, Native execution and scheduled-state
+Live UI remain separate. [Evidence](verification_fm2608_adpcm_timed_20261121.json).

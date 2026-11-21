@@ -22,6 +22,7 @@ class Processor extends AudioWorkletProcessor {
       getState:()=>{if(!this.timedChip)throw new Error('YM2608 timed API not ready');return this.timedChip.getState();},
       getConfig:()=>({instanceId:this.instanceId,clock:this.clock??8000000,engine:'ymfm'}),
       dispatch:(data,port,frame,metadata)=>{
+        if(data.port===1&&data.register===0&&(data.value&0xc1)!==0x80&&this.opnInspector?.held.has('adpcm-b:0'))return;
         if(data.port===0&&data.register===0x10&&(data.value&128)){
           let mask=data.value&63;
           for(const id of this.opnInspector?.held.keys()??[])if(id.startsWith('rhythm:'))mask&=~(1<<Number(id.slice(7)));
@@ -71,7 +72,7 @@ class Processor extends AudioWorkletProcessor {
       if(data.method==='ym2608Retained'){const [ch,level]=args;if(Number.isInteger(ch)&&ch>=0&&ch<3&&Number.isInteger(level)&&level>=0&&level<=31)this.timedChip.getState().ssgLevels[ch]=level;return;}
       switch (data.method) {
         case 'write':
-          if(metadata?.timedOperation&&args[0]===0&&args[1]===0x10)this.opnInspector.writeTimedRegister(args[1],args[2],args[0]);
+          if(metadata?.timedOperation&&(args[0]===0&&args[1]===0x10||args[0]===1&&args[1]<16))this.opnInspector.writeTimedRegister(args[1],args[2],args[0]);
           else this.engine.writeYm2608(...args); break;
         case 'clear-auditions': this.opnInspector?.clear(); break;
         // Synth reset preserves uploaded ADPCM-B memory, like DirectTransport.

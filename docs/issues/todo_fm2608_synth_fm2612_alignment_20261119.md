@@ -30,7 +30,7 @@ candidates, not a commitment to implement every FM2612 feature.
 | Shared output mixer and channel switches | **Present.** FM/SSG/Rhythm/ADPCM have four independent faders and 6/3/6/1 channel switches shared by Keyboard, Code and reference playback. Preserve the recent [four-source mixer](todo_fm2608_four_source_mixer_20261119.md), YM2203 correction and VGM gain entries. |
 | PCM drawing and playback-range editing | **Partial / chip-specific.** ADPCM-B drawing, WAV loading/export, Root/Rate/Repeat and software release already exist. The preset retains aligned Start/End addresses, but visible ADPCM controls lack the RF5C164-style range editor. ADPCM-B Repeat uses its selected range, not an independent RF5C164 Loop Start. See [index.html](../synth-fm2608/index.html), [preset.js](../synth-fm2608/preset.js). |
 | Looper / Event Rec | **Deferred candidate.** Neither UI exists; the [guide](../synth-fm2608/README.md) explicitly defers recording. Do not add it as a prerequisite for Files/UI alignment. |
-| Timed build/schedule/compile/capture API | **Present for FM/SSG/Rhythm (2026-11-21).** Shared recorder/compiler, detached snapshots and AudioWorklet scheduling preserve chip-specific registers and packed updates. ADPCM and Native execution remain separate. |
+| Timed build/schedule/compile/capture API | **Present for FM/SSG/Rhythm/ADPCM-B playback (2026-11-21).** Shared recorder/compiler, detached snapshots and AudioWorklet scheduling preserve chip-specific registers and packed updates. Memory transfer and Native execution remain separate. |
 
 ## Proposed implementation stages
 
@@ -82,11 +82,11 @@ No publication, Tauri import, commit, push or tag is authorized by this checklis
 
 ## Timed register API follow-up
 
-FM/SSG/Rhythm chip-level support is implemented in source; see [verification and remaining scope](todo_fm2608_timed_api_20261121.md). ADPCM remains separate from this slice and from Files/UI alignment.
+FM/SSG/Rhythm/ADPCM-B playback support is implemented in source; see [verification and remaining scope](todo_fm2608_timed_api_20261121.md). ADPCM memory transfer remains separate from timed playback and Files/UI alignment.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
 - [x] Preserve FM operator packed fields and key events, shared SSG Tone/Noise/envelope state and Rhythm triggers.
-- [ ] Add ADPCM-B timed operations while preserving its register/port semantics.
+- [x] Add ADPCM-B timed playback operations while preserving its register/port semantics.
 - [ ] Scope ADPCM memory transfer separately and keep YM2203-compatible playback/mixer modes distinct from the timed API.
 - [x] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.
@@ -133,3 +133,12 @@ Standalone mutes preserve authored pan/level metadata while snapshots retain
 physical register bytes. Fresh Cassettes include `examples/timed-rhythm.js`.
 ROM transfer/reset, ADPCM, Native execution and scheduled-state Live UI remain
 separate. [Verification](verification_fm2608_rhythm_timed_20261121.json).
+
+Follow-up 2026-11-21: loaded-sample ADPCM-B playback joins FM/SSG/Rhythm in
+`build/schedule/compile`. Range/rate/pan/level/start/stop reuse the immediate
+converter. All three audio endpoints preserve the newer playback owner.
+Standalone mute uses latest audio-thread authored levels and preserves the
+existing keyboard release; hardware `keyOff` stays immediate. A fresh-Cassette
+example shows a software fade as timed volume writes. Memory transfer, Native
+execution and continuous scheduled-state UI remain separate.
+[Verification](verification_fm2608_adpcm_timed_20261121.json).

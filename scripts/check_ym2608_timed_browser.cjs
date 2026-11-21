@@ -132,6 +132,22 @@ async function rhythmFlow(page){
  assert.equal((await page.evaluate(()=>__fmTimedAudit.capture())).registers[0][0x10],0xbf);
  return {before,muted,restored,stopped,partialPanAndVolumePreserved:true,failedApplyPreserved:true};
 }
+async function adpcmFlow(page){
+ const goCode=async()=>{await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});};
+ const mute=async()=>{await page.locator('#tab-mixer').click();await page.locator('[data-mixer-section="adpcm"][data-mixer-channel="0"]').click();await page.waitForTimeout(180);};
+ const phrase=(volume,tag)=>`const fm=await useSoundChip('ym2608');await fm.schedule(fm.build(b=>{b.adpcm.setVolume(${volume});b.adpcm.setPan(true,true);b.adpcm.setDeltaN(20000);b.adpcm.keyOn({repeat:true});}),{name:'adpcm-browser',repeatSeconds:.1});console.log('${tag}');`;
+ await goCode();await execute(page,phrase(160,'ADPCM_READY'),'Run','ADPCM_READY');
+ const before=await level(page,x=>x>.001,'ADPCM sample plays');await mute();const muted=await level(page,x=>x<.0001,'ADPCM muted');
+ await goCode();await execute(page,phrase(100,'ADPCM_CHANGED'),'Apply','ADPCM_CHANGED');await page.waitForTimeout(180);
+ let state=await page.evaluate(()=>__fmTimedAudit.capture());assert.equal(state.registers[1][11],0);assert.equal(state.adpcmRegisters[11],100);assert.equal(state.adpcmRegisters[1]&0xc0,0xc0);
+ await mute();const restored=await level(page,x=>x>.0005,'latest ADPCM level restored');
+ await goCode();await page.locator('#synthCodeEditor').fill(phrase(220,'ADPCM_STAGED')+"throw Error('EXPECTED_ADPCM_FAILURE');");await page.locator('#synthCodeApplyButton').click();
+ await page.waitForFunction(()=>document.getElementById('synthCodeError').textContent.includes('EXPECTED_ADPCM_FAILURE'));await page.waitForTimeout(180);
+ state=await page.evaluate(()=>__fmTimedAudit.capture());assert.equal(state.adpcmRegisters[11],100,'failed Apply retains accepted sample pattern');
+ await page.locator('#synthCodeStopButton').click();const stopped=await level(page,x=>x<.0001,'ADPCM Stop');
+ await page.waitForFunction(async()=>{const s=await __fmTimedAudit.capture();return s.registers[1][0]===1;});
+ return {before,muted,restored,stopped,latestAuthoredLevelPreserved:true,failedApplyPreserved:true};
+}
 async function run(browserName,origin){
  const browser=await {chromium,webkit}[browserName].launch({headless:true});const context=await browser.newContext({viewport:{width:1280,height:900}});let page;
  try{
@@ -152,14 +168,17 @@ async function run(browserName,origin){
   const stopped=await page.evaluate(()=>__fmTimedAudit.capture());assert.equal(stopped.keyMasks[0],0);assert.equal(stopped.registers[0][8],0);
   const monitor=await monitorFlow(page);
   const rhythm=await rhythmFlow(page);
+  const adpcm=await adpcmFlow(page);
   // Run the same example distributed in each new Cassette.
   const example=await page.evaluate(async()=>{const m=await import('./synth-fm2608/code_examples.js'.replace('./synth-fm2608/',location.pathname.includes('/synth-fm2608/')?'./':'./synth-fm2608/'));return m.FM2608_TIMED_EXAMPLE;});
   await execute(page,example+"\nconsole.log('EXAMPLE_READY');",'Run','EXAMPLE_READY');await page.waitForTimeout(100);
   await page.locator('#synthCodeStopButton').click();await page.waitForTimeout(180);
   const drumExample=await page.evaluate(async()=>{const m=await import('./synth-fm2608/code_examples.js'.replace('./synth-fm2608/',location.pathname.includes('/synth-fm2608/')?'./':'./synth-fm2608/'));return m.FM2608_RHYTHM_EXAMPLE;});
   await execute(page,drumExample+"\nconsole.log('RHYTHM_EXAMPLE_READY');",'Run','RHYTHM_EXAMPLE_READY');await level(page,x=>x>.001,'distributed Rhythm example');await page.locator('#synthCodeStopButton').click();
+  const sampleExample=await page.evaluate(async()=>{const m=await import('./synth-fm2608/code_examples.js'.replace('./synth-fm2608/',location.pathname.includes('/synth-fm2608/')?'./':'./synth-fm2608/'));return m.FM2608_ADPCM_EXAMPLE;});
+  await execute(page,sampleExample+"\nconsole.log('ADPCM_EXAMPLE_READY');",'Run','ADPCM_EXAMPLE_READY');await level(page,x=>x>.0005,'distributed ADPCM example');await page.locator('#synthCodeStopButton').click();
   const audit=await page.evaluate(()=>({contexts:__fmTimedAudit.contexts.length,nodes:__fmTimedAudit.nodes.length,muted:__fmTimedAudit.routes.length>0&&__fmTimedAudit.routes.every(x=>x.mute.gain.value===0)}));
-  assert(audit.muted);assert.deepEqual(errors,[]);return {browser:browserName,passed:true,initial,applied,rolledBack,stoppedFrame:stopped.frame,monitor,rhythm,audit};
+  assert(audit.muted);assert.deepEqual(errors,[]);return {browser:browserName,passed:true,initial,applied,rolledBack,stoppedFrame:stopped.frame,monitor,rhythm,adpcm,audit};
  }catch(error){if(page)console.error(await page.evaluate(()=>({status:document.getElementById('audioStatus')?.textContent,error:document.getElementById('synthCodeError')?.textContent,log:document.getElementById('synthCodeLog')?.textContent,commands:__fmTimedAudit.commands.filter(x=>x.method!=='ym2608Timed'||x.args[0].action!=='capture').slice(-22)})));throw error;}
  finally{await context.close();await browser.close();}
 }

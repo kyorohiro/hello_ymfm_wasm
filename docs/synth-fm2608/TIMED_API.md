@@ -1,4 +1,4 @@
-# Timed FM / SSG / Rhythm operations
+# Timed FM / SSG / Rhythm / ADPCM-B operations
 
 Open `examples/timed-fm-ssg.js` in Files, choose Code and Run. It is included
 in fresh projects (Menu → New → Cassette). Restoring an existing Cassette does
@@ -65,7 +65,7 @@ Available on shared Web Audio Main/Worker clients, the primary Worker client and
 `YM2608RuntimeSynth.fm`, borrowed by this Synth. Immediate methods are unchanged.
 Native authoritative capture/execution, ROM/ADPCM transfers, timers/CSM
 and nonstandard prescaler authoring are outside this slice. Raw timed writes are
-restricted to FM/SSG/Rhythm registers; SSG I/O ports are excluded. This source change is
+restricted to FM/SSG/Rhythm and ADPCM-B playback registers; SSG I/O ports are excluded. This source change is
 not an npm publication. Continuous scheduled-state UI display is deferred to the
 [shared visible-panel plan](../issues/todo_synth_scheduled_live_view_20261121.md).
 
@@ -94,4 +94,38 @@ Rhythm voice defaults (both pans, maximum level); the optimistic client baseline
 also retains its existing immediate helper state.
 The audio-thread Rhythm monitor restores the latest authored pan/volume on
 unmute, without introducing a UI poll or replaying old Main-thread values.
-`loadRom` and `reset` are not recorded methods. ADPCM remains separate.
+`loadRom` and `reset` are not recorded methods. ADPCM-B playback is described below.
+
+## Loaded-sample ADPCM-B
+
+Fresh Cassettes include `examples/timed-adpcm.js`. It uses the sample already
+loaded in the Synth, changes its speed, and demonstrates a short software fade
+as timed volume writes before raw hardware `keyOff`. It never transfers memory.
+`keyOff()` remains immediate; the separate keyboard/software `noteOff()` release
+is unchanged and is not a recorded operation.
+
+The recorder exposes `adpcm.setSample({start,end})`, `setDeltaN(1..65535)`,
+`setPlaybackRate(samplesPerSecond)`, `setVolume(0..255)`, `setPan(left,right)`,
+`keyOn({repeat})` and `keyOff()`. `setSample` uses an exclusive byte end; both
+boundaries must be 32-byte aligned, within 2 MiB. Set the range while stopped.
+The data must have been loaded separately before execution. Neither compilation
+nor snapshots include audio memory, validate its contents, or allocate samples.
+Changing playback rate changes both speed and pitch; there is one sample voice.
+
+Port 1 `0x01` contains pan and memory-mode bits. Partial operations use the
+current state at execution; compilation uses its selected detached baseline.
+`setSample` selects 8-bit DRAM mode and limit `0xFFFF`, preserving pan;
+`setPan` preserves the memory-mode bits. The reset baseline includes the core's
+`0x0C/0x0D = 0xFF` limit defaults. Snapshots include detached `adpcmRegisters`
+authoring metadata so temporary mute/release levels do not become new authored
+levels. `registers` remains physical. Old v1 snapshots without that metadata
+fall back to their captured physical port-1 `0x00..0x0F` bytes.
+
+Standalone mute retains the latest audio-thread authored level; unmute restores
+it. New playback cancels an older software release tail. Stale scheduled Offs
+and owner cancellation cannot stop a newer manual or scheduled Gate. Native
+execution and continuous scheduled-state Live UI remain outside this work.
+Raw timed ADPCM writes admit only playback registers: `0x00..0x05`, `0x09..0x0D`.
+Control writes are limited to stop/clear (`0`, `1`) and external-memory playback
+(`0xA0`, `0xB0`); raw `0x01` must select 8-bit DRAM mode. CPU data/recording,
+`loadMemory`, `loadSample` and reset remain outside the recorder.

@@ -20,7 +20,7 @@ test('record once, clone arguments, defer validation and never touch live state'
  assert.throws(()=>compile(build(b=>b.setOperator(0,0,{ar:32})),reset()),/ar/);
  assert.throws(()=>build(async b=>b.keyOn(0)),/synchronous/);
  assert.throws(()=>build(b=>b.atSeconds(.2).atSample(1)),/nondecreasing/);
- for(const [port,reg]of [[0,0x27],[0,0x2e],[1,0],[0,14]])assert.throws(()=>compile(build(b=>b.write(port,reg,0)),reset()),/only/);
+ for(const [port,reg]of [[0,0x27],[0,0x2e],[1,8],[0,14]])assert.throws(()=>compile(build(b=>b.write(port,reg,0)),reset()),/only/);
  assert.throws(()=>compile(build(b=>b.ssg.write(14,0)),reset()),/I\/O/);
 });
 
@@ -279,4 +279,60 @@ test('Rhythm reset compilation uses native pan defaults; client compilation reta
   await assert.rejects(chip.compile(plan,{initialState:{}}));
   assert.throws(()=>compile(plan,{...reset(),rhythmLevels:null}),/six Rhythm/);
  }finally{chip.dispose();}
+});
+
+test('ADPCM-B compile uses detached packed state, repeated controls and aligned loaded ranges; transfers reject',async()=>{
+ const s=reset();s.registers[1][1]=s.adpcmRegisters[1]=0x42;const before=structuredClone(s);
+ const plan=build(b=>{b.adpcm.setSample({start:32,end:96});b.adpcm.setPan(true,false);b.adpcm.setPlaybackRate(16000);b.adpcm.setVolume(120);b.adpcm.keyOn({repeat:true});b.adpcm.keyOn({repeat:true});b.atSample(441).adpcm.setDeltaN(12345);b.atSeconds(.02).adpcm.keyOff();});
+ const out=compile(plan,s);assert.deepEqual(bytes(out).slice(0,8),[[1,1,0x42],[1,2,1],[1,3,0],[1,4,2],[1,5,0],[1,12,255],[1,13,255],[1,1,0x82]]);
+ assert.deepEqual(bytes(out).filter(x=>x[1]===0),[[1,0,0xb0],[1,0,0xb0],[1,0,1]]);assert.deepEqual(s,before);
+ const older=structuredClone(s);delete older.adpcmRegisters;assert.equal(compile(build(b=>b.adpcm.setPan(true,true)),older)[0].value,0xc2);
+ for(const call of [b=>b.adpcm.setSample({start:1,end:32}),b=>b.adpcm.setDeltaN(0),b=>b.adpcm.setVolume(256),b=>b.adpcm.setPan(1,true),b=>b.adpcm.keyOn({repeat:1}),b=>b.write(1,8,0),b=>b.write(1,0,0xe0),b=>b.write(1,1,0xc1)])assert.throws(()=>compile(build(call),s));
+ assert.throws(()=>build(b=>b.adpcm.loadMemory(new Uint8Array(32))));
+ const client=new YM2608Synth({transport:{write(){}}});const {attachYm2608TimedClient}=await import('../../tetorica_src/runtime/ym2608_timed_client.js');client._requestControl=async()=>createYm2608TimedSnapshot(s,{instanceId:'adpcm',clock:8000000,frame:0,sampleRate:48000});attachYm2608TimedClient(client);
+ client.adpcm.setPan(false,true);const op=client.build(b=>b.adpcm.setSample({start:0,end:32}));assert.equal((await client.compile(op,{initialState:'client'}))[0].value,0x42);assert.equal((await client.compile(op,{initialState:'reset'}))[0].value,2);
+ const snapshot=await client.captureState(),copy=structuredClone(snapshot);assert.equal((await client.compile(op,{initialState:snapshot}))[0].value,0x42);assert.deepEqual(snapshot,copy);
+});
+function loadTestAdpcm(p){p.chip.loadAdpcmBMemory(Uint8Array.from({length:64},(_,i)=>i*73&255),0);p.synth.adpcm.setSample({start:0,end:64});p.synth.adpcm.setPan(true,true);p.synth.adpcm.setPlaybackRate(16000);p.synth.adpcm.setVolume(160);}
+for(const file of ['ym2608-worklet.js','playground_ym2608_worklet.js','../../docs/synth-fm2608/audio_worklet.js'])for(const rate of [44100,48000])test(`${file} ${rate}: loaded ADPCM timing, compile parity, atomic replacement and owned Stop`,async()=>{
+ const p=await setup(file,rate);try{
+  loadTestAdpcm(p);const plan=build(b=>{b.adpcm.keyOn({repeat:true});b.atSample(441).adpcm.setVolume(100);b.adpcm.setPan(false,true);b.atSeconds(.03).adpcm.keyOff();});
+  const expected=compile(plan,p.rpc({action:'capture'}));const receipt=p.rpc({action:'schedule',operations:plan,options:{name:'sample'},owner:'sample'});
+  const sound=p.render(receipt.startFrame+Math.round(.03*rate)+1);assert(sound.left.some(x=>Math.abs(x)>.001));assert.deepEqual(bytes(p.writes),bytes(expected));assert.equal(p.writes.at(-1).frame,receipt.startFrame+Math.round(.03*rate));
+  p.rpc({action:'schedule',operations:build(b=>b.adpcm.keyOn({repeat:true})),options:{name:'repeat',repeatSeconds:.1},owner:'repeat'});p.render(300);
+  const broken=build(b=>b.adpcm.setDeltaN(0));assert.throws(()=>p.rpc({action:'schedule',operations:broken,options:{name:'repeat',repeatSeconds:.1},owner:'repeat'}),/positive/);p.render(Math.round(.11*rate));assert(p.writes.filter(x=>x.port===1&&x.register===0&&x.value===0xb0).length>=3);
+  p.rpc({action:'releaseOwner',owner:'repeat'});assert.equal(p.rpc({action:'capture'}).registers[1][0],1);
+ }finally{p.close();}
+});
+for(const file of ['ym2608-worklet.js','playground_ym2608_worklet.js','../../docs/synth-fm2608/audio_worklet.js'])test(`${file}: ADPCM stale Off/cancel cannot stop newer manual or scheduled Gate`,async()=>{
+ const p=await setup(file,48000);try{
+  loadTestAdpcm(p);const r=p.rpc({action:'schedule',operations:build(b=>{b.adpcm.keyOn({repeat:true});b.atSeconds(.02).adpcm.keyOff();}),options:{name:'old'},owner:'old'});p.render(r.startFrame+1);
+  p.synth.adpcm.keyOn({repeat:true});const n=p.physical.length;p.render(1100);assert(!p.physical.slice(n).some(x=>x.port===1&&x.register===0&&x.value===1));p.rpc({action:'releaseOwner',owner:'old'});assert.equal(p.rpc({action:'capture'}).registers[1][0],0xb0);
+  const a=p.rpc({action:'schedule',operations:build(b=>{b.adpcm.keyOn({repeat:true});b.atSeconds(.01).adpcm.keyOff();}),options:{name:'audition'},owner:'audition'});p.render(a.startFrame-p.frame()+1);
+  p.processor.opnInspector.invoke('auditionOn',['adpcm-b:0',60,'manual']);const k=p.physical.length;p.render(700);assert(!p.physical.slice(k).some(x=>x.port===1&&x.register===0&&x.value===1));
+  p.rpc({action:'schedule',operations:build(b=>b.adpcm.keyOn({repeat:true})),options:{name:'claim'},owner:'new'});p.render(300);const count=p.physical.length;p.processor.opnInspector.invoke('auditionOff',['adpcm-b:0','manual']);assert.equal(p.physical.length,count);
+  p.rpc({action:'releaseOwner',owner:'audition'});assert.equal(p.rpc({action:'capture'}).registers[1][0],0xb0);
+ }finally{p.close();}
+});
+for(const rate of [44100,48000])test(`standalone ${rate}: ADPCM mute retains levels/pan, release stays software-only and a newer Gate cancels its tail`,async()=>{
+ const p=await setup('../../docs/synth-fm2608/audio_worklet.js',rate);try{
+  loadTestAdpcm(p);p.send({type:'synth-fm-ssg-monitor',action:'mute',section:'adpcm',channel:0,value:true});
+  p.rpc({action:'schedule',operations:build(b=>{b.adpcm.setVolume(120);b.adpcm.setPan(false,true);b.adpcm.keyOn({repeat:true});}),options:{name:'sample'},owner:'sample'});assert(p.render(800).left.every(x=>x===0));
+  let s=p.rpc({action:'capture'});assert.equal(s.registers[1][11],0);assert.equal(s.adpcmRegisters[11],120);assert.equal(s.adpcmRegisters[1],0x42);
+  p.send({type:'synth-fm-ssg-monitor',action:'mute',section:'adpcm',channel:0,value:false});assert(p.render(300).right.some(x=>Math.abs(x)>.001));
+  p.send({type:'synth-adpcm-release',action:'release',owner:'keyboard'});p.render(100);s=p.rpc({action:'capture'});assert(s.registers[1][11]<120);assert.equal(s.adpcmRegisters[11],120);
+  p.rpc({action:'schedule',operations:build(b=>b.adpcm.keyOn({repeat:true})),options:{name:'new'},owner:'new'});p.render(900);s=p.rpc({action:'capture'});assert.equal(s.registers[1][0],0xb0);assert.equal(s.registers[1][11],120);assert.equal(p.processor.adpcmRelease.getState().active,false);
+  p.rpc({action:'releaseOwner',owner:'sample'});assert.equal(p.rpc({action:'capture'}).registers[1][0],0xb0);p.rpc({action:'releaseOwner',owner:'new'});assert.equal(p.rpc({action:'capture'}).registers[1][0],1);
+ }finally{p.close();}
+});
+
+for(const rate of [44100,48000])test(`standalone ${rate}: immediate ADPCM and keyboard release PCM match authenticated pre-ADPCM scheduling source`,async()=>{
+ const {readYm2608AdpcmPredecessor}=await import('../../scripts/mixer_calibration_ym2608_adpcm_revision.mjs');
+ const file='../../docs/synth-fm2608/audio_worklet.js';const old=await setup(file,rate,readYm2608AdpcmPredecessor('docs/synth-fm2608/audio_worklet.js')),current=await setup(file,rate);
+ try{
+  for(const p of [old,current]){loadTestAdpcm(p);p.synth.adpcm.keyOn({repeat:true});}
+  let a=old.render(1024),b=current.render(1024);assert.deepEqual(a.left,b.left);assert.deepEqual(a.right,b.right);
+  for(const p of [old,current])p.send({type:'synth-adpcm-release',action:'release',owner:'keyboard-parity'});
+  a=old.render(1024);b=current.render(1024);assert.deepEqual(a.left,b.left);assert.deepEqual(a.right,b.right);assert.equal(current.rpc({action:'capture'}).registers[1][0],1);
+ }finally{old.close();current.close();}
 });

@@ -29,12 +29,12 @@ class YM2608Processor extends AudioWorkletProcessor {
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
     this.outputGains = {fm:1,ssg:1};
     this.sourceGains = {fm:1,ssg:1,rhythm:1,adpcm:1};
-    this.rhythmActiveMask = 0;
+    this.rhythmActiveMask = 0; this.adpcmActive = false;
     this.sectionOwners = {ssg: new Array(3).fill(null), rhythm: new Array(6).fill(null), adpcm: null};
     // Standalone Synth opt-in only. The raw chip and Playground keyOff path
     // stay immediate; a musical release runs entirely on the audio clock.
     this.adpcmRelease = createYm2608AdpcmRelease({sampleRate, nowFrame:() => Math.max(currentFrame,this.renderFrame ?? currentFrame),
-      writePhysical:(register,value) => this.chip?.writeRegister(register,value,1),
+      writePhysical:(register,value) => this.writeAdpcmPhysical?.(register,value),
       onStop:() => { this.sectionOwners.adpcm = null; }});
     this.performanceOwnership = createPerformanceChipOwnership({
       writeFm: (register, value, port) => this.chip?.writeRegister(register, value, port),
@@ -72,6 +72,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         return;
       }
       if(performance?.timedOperation&&data.type==='write'){
+        if(data.port===1&&data.register===0&&(data.value&0xc1)!==0x80&&this.adpcmActive&&this.sectionOwners.adpcm!==performance.owner)return;
         if(data.port===0&&data.register===0x10&&(data.value&0x80)){
           let mask=data.value&63;
           for(let ch=0;ch<6;ch++)if((this.rhythmActiveMask&(1<<ch))&&this.sectionOwners.rhythm[ch]!==performance.owner)mask&=~(1<<ch);
@@ -149,12 +150,21 @@ class YM2608Processor extends AudioWorkletProcessor {
         moduleFactory: ym2608ModuleFactory,
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
-      this.timedChip=observeYm2608TimedChip(this.chip,{onRhythmGate:value => this.observeRhythmGate(value)});
+      this.timedChip=observeYm2608TimedChip(this.chip,{onRhythmGate:value => this.observeRhythmGate(value),onAdpcmControl:value => this.observeAdpcmControl(value)});
       const writeRegister = this.chip.writeRegister?.bind(this.chip) ?? ((register,value,port = 0) => {
         this.chip.write(port * 2,register); this.chip.write(port * 2 + 1,value);
       });
+      this.writeAdpcmPhysical=(register,value)=>{
+        // Release levels are physical monitoring, not new authored levels.
+        const authored=this.timedChip.getState().adpcmRegisters[register];
+        const result=writeRegister(register,value,1);
+        if(register===11)this.timedChip.getState().adpcmRegisters[register]=authored;
+        return result;
+      };
       this.fmSsgMonitor = createFm2608FmSsgMonitor({
         writePhysical:(port,register,value) => writeRegister(register,value,port),
+        filterAdpcmWrite:(port,register,value)=>this.adpcmRelease.filterWrite(port,register,value),
+        onAdpcmRegister:(register,value)=>{this.timedChip.getState().adpcmRegisters[register]=value;},
         onRhythmLevel:(register,value) => {this.timedChip.getState().rhythmLevels[register-0x18]=value;},
       });
       this.chip.writeRegister = (register,value,port = 0) => this.fmSsgMonitor.write(port,register,value);
@@ -178,7 +188,12 @@ class YM2608Processor extends AudioWorkletProcessor {
 
   write(port, register, value, performance) {
     const previous=this.rhythmWriteOwner;this.rhythmWriteOwner=performance?.owner??null;
-    try { this.chip.writeRegister(register, this.adpcmRelease.filterWrite(port,register,value), port); } finally {this.rhythmWriteOwner=previous;}
+    try { this.chip.writeRegister(register, value, port); } finally {this.rhythmWriteOwner=previous;}
+  }
+
+  observeAdpcmControl(value) {
+    this.adpcmActive=(value&0xc1)===0x80;
+    this.sectionOwners.adpcm=this.adpcmActive?(this.rhythmWriteOwner??null):null;
   }
 
   observeRhythmGate(value) {
@@ -196,9 +211,6 @@ class YM2608Processor extends AudioWorkletProcessor {
     if ((data.port ?? 0) === 0) {
       if (register >= 8 && register <= 10) this.sectionOwners.ssg[register - 8] = value & 31 ? owner : null;
 
-    } else if (data.port === 1 && register === 0) {
-      if (value & 0x80) this.sectionOwners.adpcm = owner;
-      else if (value & 1) this.sectionOwners.adpcm = null;
     }
   }
 

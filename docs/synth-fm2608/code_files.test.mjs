@@ -215,7 +215,7 @@ test('PC-98 New Cassette resets sound, files and Code mode with a fresh identity
   assert.equal(await f.files.newProject(),true);assert.equal(retired,1);assert.notEqual(f.files.workspaceId,identity);
   assert.equal(f.project.fs.get('/index.js').data,'// kept');assert(!f.project.fs.has('/keep.bin'));assert.deepEqual(f.project.settings,createDefaultPreset());
   assert.deepEqual(restored,[{mode:'keyboard',path:'/index.js'}]);assert.equal(f.project.selectedPath,'/index.js');
-  assert.deepEqual(f.project.fs.list().map(file=>file.path),['/index.js','/examples/timed-fm-ssg.js','/examples/timed-rhythm.js']);
+  assert.deepEqual(f.project.fs.list().map(file=>file.path),['/index.js','/examples/timed-fm-ssg.js','/examples/timed-rhythm.js','/examples/timed-adpcm.js']);
   assert.equal(f.writes.at(-1).workspaceId,f.files.workspaceId);assert.match(f.statuses.at(-1),/created.*not run.*Saved locally/);
   assert.equal(globalThis.newCassetteMustNotRun,undefined);
 });

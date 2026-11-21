@@ -77,7 +77,7 @@ test('PC-98 New Cassette preparation uses original starter and defaults without 
   assert.deepEqual(project.snapshot(),before);assert.equal(reads,2);assert.deepEqual(fresh.settings,createDefaultPreset());
   assert.equal(fresh.fs.get('/index.js').data,'// Original starter');assert(!fresh.fs.has('/keep.txt'));
   assert.deepEqual(fresh.getCodeState(),{mode:'keyboard',path:'/index.js'});assert.equal(fresh.selectedPath,'/index.js');
-  assert.deepEqual(fresh.fs.list().map(file=>file.path),['/index.js','/examples/timed-fm-ssg.js','/examples/timed-rhythm.js']);
+  assert.deepEqual(fresh.fs.list().map(file=>file.path),['/index.js','/examples/timed-fm-ssg.js','/examples/timed-rhythm.js','/examples/timed-adpcm.js']);
   assert.equal(globalThis.newCassetteMustNotRun,undefined);
 });
 

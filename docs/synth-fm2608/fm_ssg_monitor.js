@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Standalone Synth FM/SSG/Rhythm output monitoring, applied on the audio clock. Not chip API.
+// Standalone Synth FM/SSG/Rhythm/ADPCM output monitoring, applied on the audio clock. Not chip API.
 const slots = [0, 8, 4, 12];
 const keyChannels = [0, 1, 2, -1, 3, 4, 5, -1];
 const fmLevel = (port, register) => register >= 0x40 && register <= 0x4e && (register & 3) < 3
@@ -9,11 +9,11 @@ const fmLevel = (port, register) => register >= 0x40 && register <= 0x4e && (reg
  * The native register observer continues to capture physical monitored bytes;
  * this private cache retains the authored levels for unmute / the next Gate.
  */
-export function createFm2608FmSsgMonitor({writePhysical, onRhythmLevel = () => {}}) {
+export function createFm2608FmSsgMonitor({writePhysical, onRhythmLevel = () => {}, onAdpcmRegister = () => {}, filterAdpcmWrite = (_port,_register,value) => value}) {
   const registers = [new Uint8Array(256), new Uint8Array(256)];
-  const muted = {fm:Array(6).fill(false), ssg:Array(3).fill(false),rhythm:Array(6).fill(false)};
+  const muted = {fm:Array(6).fill(false), ssg:Array(3).fill(false),rhythm:Array(6).fill(false),adpcm:[false]};
   const stopped = Array(6).fill(false);
-  registers[0].fill(0xdf,0x18,0x1e);
+  registers[0].fill(0xdf,0x18,0x1e);registers[1][12]=registers[1][13]=255;
   function restoreFm(channel) {
     const port = channel >= 3 ? 1 : 0;
     for (const slot of slots) {
@@ -44,6 +44,12 @@ export function createFm2608FmSsgMonitor({writePhysical, onRhythmLevel = () => {
       const result=writePhysical(port,register,muted.rhythm[register-0x18]?value&63:value);
       onRhythmLevel(register,value);return result;
     }
+    if(port===1&&register<16){
+      registers[1][register]=value;
+      const monitored=register===11&&muted.adpcm[0]?0:value;
+      const result=writePhysical(port,register,filterAdpcmWrite(port,register,monitored));
+      onAdpcmRegister(register,value);return result;
+    }
     return writePhysical(port, register, value);
   }
   function setMute(section, channel, value) {
@@ -51,7 +57,8 @@ export function createFm2608FmSsgMonitor({writePhysical, onRhythmLevel = () => {
       throw new TypeError('Invalid Synth monitor mute');
     }
     muted[section][channel] = value;
-    if (section === 'fm') restoreFm(channel);
+    if (section === 'adpcm') write(1,11,registers[1][11]);
+    else if (section === 'fm') restoreFm(channel);
     else if(section==='rhythm'){
       const register=0x18+channel,authored=registers[0][register];
       writePhysical(0,register,value?authored&63:authored);onRhythmLevel(register,authored);
@@ -66,7 +73,7 @@ export function createFm2608FmSsgMonitor({writePhysical, onRhythmLevel = () => {
     stopFm() { for (let channel = 0; channel < 6; channel++) { stopped[channel] = true; restoreFm(channel); } },
     // Whole-chip reset retains UI mute choices, just as the host monitor does.
     reset() {
-      registers.forEach(row => row.fill(0));registers[0].fill(0xdf,0x18,0x1e);stopped.fill(false);
+      registers.forEach(row => row.fill(0));registers[0].fill(0xdf,0x18,0x1e);registers[1][12]=registers[1][13]=255;stopped.fill(false);
       for(let ch=0;ch<6;ch++)if(muted.rhythm[ch]){
         writePhysical(0,0x18+ch,31);onRhythmLevel(0x18+ch,0xdf);
       }
@@ -78,6 +85,6 @@ export function createFm2608FmSsgMonitor({writePhysical, onRhythmLevel = () => {
       else throw new TypeError('Unknown FM/SSG monitor action');
       return true;
     },
-    getState() { return {registers:registers.map(row => Array.from(row)),muted:{fm:[...muted.fm],ssg:[...muted.ssg],rhythm:[...muted.rhythm]},stopped:[...stopped]}; },
+    getState() { return {registers:registers.map(row => Array.from(row)),muted:{fm:[...muted.fm],ssg:[...muted.ssg],rhythm:[...muted.rhythm],adpcm:[...muted.adpcm]},stopped:[...stopped]}; },
   };
 }

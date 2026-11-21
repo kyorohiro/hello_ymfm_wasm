@@ -39,6 +39,9 @@ opna.ssg.setMixer(0,{tone:true,noise:true});
 opna.ssg.setEnvelope({period:512,shape:10});
 opna.ssg.noteOn(0,'C4');opna.ssg.keyOff(0);
 opna.rhythm.keyOn(['bassDrum','snare']);
+opna.build(b=>{b.adpcm.setSample({start:0,end:32});b.adpcm.setPan(true,false);b.adpcm.setDeltaN(16000);b.adpcm.setPlaybackRate(16000);b.adpcm.setVolume(120);b.adpcm.keyOn();b.atSeconds(.1).adpcm.keyOff();});
+// @ts-expect-error transfers are not timed register operations
+opna.build(b=>b.adpcm.loadMemory(new Uint8Array(32)));
 opna.adpcm.setSample({start:0,end:32});
 opna.adpcm.setPlaybackRate(16000);opna.adpcm.keyOn({repeat:true});
 opna.adpcm.noteOff();opna.adpcm.keyOff();

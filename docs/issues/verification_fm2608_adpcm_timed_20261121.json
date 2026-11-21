@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "scope": "YM2608 loaded-sample ADPCM-B timed playback and standalone mixer integration",
+  "tests": {
+    "timedWasmMonitorAndExactReviews": 64,
+    "standaloneOpna": 220,
+    "sharedProcessorInspectorCalibration": 72,
+    "ym2612Timed": 102,
+    "npmBuild": "409 modules; 472 generated and checked declarations",
+    "runtimeMirrors": "9 canonical/public module pairs plus SID source-kit shared processor checked"
+  },
+  "audio": {
+    "endpoints": [
+      "YM2608RuntimeSynth",
+      "shared Web Audio Main/Worker",
+      "standalone FM2608 Synth"
+    ],
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "loadedAdpcmMemory": true,
+    "compileAndExecutionWriteParity": true,
+    "atomicReplacementAndStaleOwnershipChecked": true,
+    "immediateAdpcmAndKeyboardReleasePcmParity": {
+      "reference": "exact authenticated pre-ADPCM scheduling standalone processor",
+      "stereoFramesCompared": 4096,
+      "maximumDifference": 0
+    },
+    "physicalBrowserOutputMuted": true,
+    "humanListening": "pending"
+  },
+  "sourceBrowser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 11264,
+        "applied": 14592,
+        "rolledBack": 21504,
+        "stoppedFrame": 35840,
+        "monitor": {
+          "fmBefore": 0.010894775390625,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01832885667681694,
+          "ssgBefore": 0.056577615439891815,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.014868163503706455,
+          "muted": 0,
+          "restored": 0.0205078125,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "adpcm": {
+          "before": 0.13114318251609802,
+          "muted": 0,
+          "restored": 0.08241576701402664,
+          "stopped": 0,
+          "latestAuthoredLevelPreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 10240,
+        "applied": 12672,
+        "rolledBack": 18944,
+        "stoppedFrame": 33024,
+        "monitor": {
+          "fmBefore": 0.010916137136518955,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01767396181821823,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.03349609300494194,
+          "muted": 0,
+          "restored": 0.0205078125,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "adpcm": {
+          "before": 0.13114318251609802,
+          "muted": 0,
+          "restored": 0.08241576701402664,
+          "stopped": 0,
+          "latestAuthoredLevelPreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "readableZipBrowser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 11520,
+        "applied": 14592,
+        "rolledBack": 21760,
+        "stoppedFrame": 35584,
+        "monitor": {
+          "fmBefore": 0.010894775390625,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.014868163503706455,
+          "muted": 0,
+          "restored": 0.0205078125,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "adpcm": {
+          "before": 0.13114318251609802,
+          "muted": 0,
+          "restored": 0.08241576701402664,
+          "stopped": 0,
+          "latestAuthoredLevelPreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 11264,
+        "applied": 14080,
+        "rolledBack": 20224,
+        "stoppedFrame": 34432,
+        "monitor": {
+          "fmBefore": 0.010916137136518955,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.014868163503706455,
+          "muted": 0,
+          "restored": 0.0205078125,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "adpcm": {
+          "before": 0.13189086318016052,
+          "muted": 0,
+          "restored": 0.08241576701402664,
+          "stopped": 0,
+          "latestAuthoredLevelPreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "archive": {
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/fm2608-adpcm/tetorica_fm2608_synth_adpcm-verified-20261121_itch.zip",
+    "files": 197,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 2032610,
+      "sha256": "497f4a9b0a9cae9c3d5986ca615efa53cfd96f33616c0ad96bf79162f014a0a6"
+    },
+    "sourceCheck": {
+      "inputs": 38,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "sourceSha256": {
+    "tetorica_src/runtime/ym2608_operations.js": "4050980ec7ada9de3eed0d686065ec20cca7567c6e11e31d81d0f8bd685c1db8",
+    "tetorica_src/runtime/ym2608_operation_state.js": "65255fc061a3653b46270fde01c51c03bd8029d810a816128d919389b697c0ee",
+    "tetorica_src/runtime/ym2608_timed_processor.js": "7f75ab778e19a2ccac59dae1315d24380f392101c14f8156abb6d8058f5dca2d",
+    "tetorica_src/runtime/ym2608_timed_state.js": "0538745f2c2223f2635e43a37e9d16348647fcba08222831270fdee57310087f",
+    "tetorica_src/runtime/ym2608synth.js": "6fd495cdb96dbbd10a35b6294449b32f6110eaaad4762935ce3a72b3dca89cd7",
+    "tetorica_src/runtime/playground_performance_processor.js": "19a080aea765675c4edc6c451c5ca7c19532697cbed5bcdba56445377965a895",
+    "tetorica_src/runtime/playground_opn_inspector.js": "1cc0c88322958692410b1b28345503ed18650572e182ed14a7249fd2edca2aa1",
+    "tetorica_src/runtime/playground_ym2608_worklet.js": "35b6ba206d008f168b50f22a53003c83003b0821da6d04ea59110e93446e3560",
+    "tetorica_src/runtime/ym2608-worklet.js": "066c6648a6578511d236ee4ae7a9fe6556dfeda39c4b2c56a07de26464079531",
+    "docs/synth-fm2608/audio_worklet.js": "da50dbb792272558a2f7b9a4503ecdafa644a9c328c2b9fdde30cc8354ad79d5",
+    "docs/synth-fm2608/fm_ssg_monitor.js": "23bb191f6ba1080b5fbcec3efef111cb5c5100ac2be231103ef5dc24abfa95ba",
+    "docs/synth-fm2608/code_examples.js": "09e10553e86d79c3091f7d89f0b668f474edbea536864632a1a1d738b769973c"
+  },
+  "scopeLimits": [
+    "Snapshots do not include sample memory or decoder/oscillator phase",
+    "No recorded memory transfers, ROM loading, reset or CPU recording/data writes",
+    "keyOff remains immediate; keyboard software noteOff release is not a recorded method",
+    "Native timed capture/execution and continuous scheduled-state UI remain deferred",
+    "No npm publication, Tauri update, commit, push, tag or remote CI"
+  ]
+}

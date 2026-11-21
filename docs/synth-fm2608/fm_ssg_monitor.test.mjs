@@ -25,7 +25,7 @@ test('reset clears levels/Stop while keeping chosen mutes; unsupported messages 
  const {monitor,writes}=fixture();monitor.setMute('fm',4,true);monitor.stopFm();monitor.reset();assert.deepEqual(monitor.getState().stopped,Array(6).fill(false));
  monitor.write(1,0x41,20);assert.equal(writes.at(-1)[2],127);
  const before=monitor.getState(),n=writes.length;
- for(const change of [{section:'adpcm',channel:0,value:true},{section:'fm',channel:6,value:true},{section:'ssg',channel:0,value:1}])assert.throws(()=>monitor.receive({type:'synth-fm-ssg-monitor',action:'mute',...change}));
+ for(const change of [{section:'adpcm',channel:1,value:true},{section:'fm',channel:6,value:true},{section:'ssg',channel:0,value:1}])assert.throws(()=>monitor.receive({type:'synth-fm-ssg-monitor',action:'mute',...change}));
  assert.throws(()=>monitor.receive({type:'synth-fm-ssg-monitor',action:'unknown'}));assert.deepEqual(monitor.getState(),before);assert.equal(writes.length,n);
  assert.equal(monitor.receive({type:'write'}),false);
 });
@@ -42,5 +42,5 @@ test('delegated host monitor leaves FM/SSG bytes authored, without stale restore
  monitor.stopFm();assert.equal(writes.filter(x=>x[1]>=0x40&&x[1]<=0x4e).length,1,'host does not send stale TL overrides');assert.equal(commands.at(-1),'stop');
  writes.length=0;chip.noteOn(0,'C4');assert(!writes.some(x=>x[1]>=0x40&&x[1]<=0x4e));
  monitor.setMute('rhythm',0,true);chip.rhythm.setVoice(0,{left:true,right:true,volume:7});assert.equal(writes.at(-1)[2],0xc7);
- monitor.setMute('adpcm',0,true);chip.adpcm.setVolume(100);assert.equal(writes.at(-1)[2],0);
+ monitor.setMute('adpcm',0,true);chip.adpcm.setVolume(100);assert.equal(writes.at(-1)[2],100);
 });

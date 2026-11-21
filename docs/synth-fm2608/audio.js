@@ -63,7 +63,7 @@ export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () =
     if (!fmSsgBackend && fm >= 0 && (muted.fm[fm] || stopped[fm])) return 127;
     if (!fmSsgBackend && port === 0 && register >= 8 && register <= 10 && muted.ssg[register - 8]) return 0;
     if (!fmSsgBackend && port === 0 && register >= 0x18 && register <= 0x1d && muted.rhythm[register - 0x18]) return value & 0x3f;
-    if (port === 1 && register === 11) return filterAdpcmVolume(muted.adpcm[0] ? 0 : value);
+    if (!fmSsgBackend && port === 1 && register === 11) return filterAdpcmVolume(muted.adpcm[0] ? 0 : value);
     return value;
   }
   transport.write = (port,register,value) => {
@@ -81,7 +81,7 @@ export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () =
     channelIndex(section,channel);
     if (typeof value !== 'boolean') throw new TypeError('Mute must be boolean');
     muted[section][channel] = value;
-    if (fmSsgBackend && (section === 'fm' || section === 'ssg' || section === 'rhythm')) fmSsgBackend.setMute(section,channel,value);
+    if (fmSsgBackend && (section === 'fm' || section === 'ssg' || section === 'rhythm' || section === 'adpcm')) fmSsgBackend.setMute(section,channel,value);
     else if (section === 'fm') restoreFm(channel);
     else {
       const port = section === 'adpcm' ? 1 : 0;

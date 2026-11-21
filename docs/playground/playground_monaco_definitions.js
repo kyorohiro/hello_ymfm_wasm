@@ -125,7 +125,7 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   }
   if (/^(?:PlaygroundSegaPsg|PSGApi)$/.test(owner)) return {file:'segapsgsynth.js', symbol};
   if (/^Playground(?:Primary)?(?:Opll|Ym2413)/.test(owner)) return {file:'ym2413synth.js',symbol:/^Playground/.test(symbol) ? 'YM2413Synth' : symbol};
-  if (owner === 'PlaygroundYm2608RhythmRecorder') return {file:'ym2608synth.js',symbol};
+  if (owner === 'PlaygroundYm2608RhythmRecorder' || owner === 'PlaygroundYm2608AdpcmRecorder') return {file:'ym2608synth.js',symbol};
   if (owner === 'PlaygroundYm2608SsgRecorder') return {file:'ssgsynth.js',symbol};
   if (owner === 'PlaygroundYm2608OperationRecorder' || /^PlaygroundYm2608(?:BuildOptions|OperationProgram)$/.test(owner))
     return {file:'ym2608_operations.js',symbol:'buildYm2608Operations'};

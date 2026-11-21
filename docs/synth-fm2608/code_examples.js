@@ -49,3 +49,31 @@ await opna.schedule(drums, { name: "rhythm", repeatSeconds: step * 4 });
 // You can add FM and SSG operations to the very same builder/time cursor.
 // Apply atomically replaces this pattern. Stop cancels it and releases its drums.
 `;
+
+export const FM2608_ADPCM_EXAMPLE = `const opna = await useSoundChip("ym2608");
+const bpm = 120;
+setBpm(bpm);
+const step = 60 / bpm;
+
+// Uses the ADPCM-B sample already loaded by this Synth. No transfer is recorded.
+// Speed changes both pitch and duration; this is one physical sample voice.
+const snapshot = await opna.captureState();
+const r = snapshot.adpcmRegisters;
+const delta = (r[9] | r[10] << 8) || 18000;
+const sample = opna.build(b => {
+  b.adpcm.setVolume(160);
+  b.adpcm.setPan(true, true);
+  b.adpcm.setDeltaN(delta);
+  b.adpcm.keyOn({ repeat: true });
+  b.atSeconds(step / 2).adpcm.setDeltaN(Math.min(65535, Math.round(delta * 1.5)));
+  // Software fade expressed as timed level writes, followed by raw hardware Off.
+  // keyOff itself is immediate; the keyboard's musical release is separate.
+  for (let i = 1; i <= 8; i++) {
+    b.atSeconds(step - 0.020 + i * 0.0015).adpcm.setVolume(Math.round(160 * (1 - i / 8)));
+  }
+  b.adpcm.keyOff();
+});
+console.table(await opna.compile(sample, { initialState: snapshot }));
+await opna.schedule(sample, { name: "sample", repeatSeconds: step });
+// Apply replaces this name atomically; Stop releases only its owned playback.
+`;

@@ -77,6 +77,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     const v=type==='write'?value:method==='write'?args[2]:args[1];
     const bank=type==='write'?registerPort:method==='write'?args[0]:args[2]??0;
     if(bank===0&&reg===0x28)return {key:[0,1,2,4,5,6].indexOf(v&7),on:!!(v&0xf0)};
+    if(chip==='ym2608'&&bank===1&&reg===0)return {key:'adpcmB',on:(v&0xc1)===0x80};
     if(chip==='ym2608'&&bank===0&&reg===0x10)return {events:Array.from({length:6},(_,channel)=>channel).filter(channel=>v&(1<<channel)).map(channel=>({key:`rhythm:${channel}`,on:!(v&128)}))};
     if(chip==='ym2608'&&bank===0&&reg>=8&&reg<=10)return {key:`ssg:${reg-8}`,on:!!(v&31)};
     if(['ym2610','ym2610b'].includes(chip)){
@@ -89,6 +90,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   return null;
 }
 export function performanceNoteRelease(chip,key) {
+  if(chip==='ym2608'&&key==='adpcmB')return {method:'write',args:[1,0,1]};
   if(chip==='ym2608'&&typeof key==='string'&&key.startsWith('rhythm:'))return {method:'write',args:[0,0x10,128|(1<<Number(key.slice(7)))]};
   if(chip==='ym2608'&&typeof key==='string'&&key.startsWith('ssg:'))return {method:'write',args:[0,8+Number(key.slice(4)),0]};
   if(['ym2610','ym2610b'].includes(chip)){
