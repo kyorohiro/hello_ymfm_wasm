@@ -34,14 +34,14 @@ Source recheck on 2026-11-21 (this priority update performs no implementation):
 | Remaining comparison target | Code / Synth + persistent expanded tabs | Timed API surface |
 |---|---|---|
 | YM2149 ST | Implemented 2026-11-21: [workspace record](todo_ym2149_st_code_workspace_20261121.md) | Present; 91 existing AY tests and live reservation continuity passed during the UI port |
-| FM2608 | Implemented 2026-11-21: [verification](verification_fm2608_code_workspace_20261121.json) | Port needed |
-| 2A03 | Port needed | Port needed |
+| FM2608 | Implemented 2026-11-21: [verification](verification_fm2608_code_workspace_20261121.json) | FM/SSG/Rhythm/loaded-sample ADPCM-B implemented; memory transfer/Native/UI following remain separate |
+| 2A03 | Implemented 2026-11-21: [verification](verification_2a03_code_workspace_20261121.json) | Port needed |
 | S-DSP | Port needed | Port needed |
 | SCSP | Port needed | Port needed; DSP assembly is separate |
 | ASWAN | Present | Scoped implementation present; retain documented exclusions |
 | SMSGEAR / YM2413 | Present | Sega PSG / YM2413 shared clients and borrowed Synth wiring present |
 
-The three remaining workspaces (2A03, S-DSP and SCSP) do not yet use the
+The two remaining workspaces (S-DSP and SCSP) do not yet use the
 persistent-expanded helper/header buttons. Source inspection is not a new
 claim of backend/audio validation or full completion of every optional row.
 

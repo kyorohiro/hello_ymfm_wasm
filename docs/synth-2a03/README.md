@@ -15,6 +15,19 @@ table, hear how the controls interact, and take the instrument away as a preset
 or JavaScript. The keyboard, two Pitch wheels, output monitor and file workflow
 follow Tetorica's FM2612, DMG and SPU Synths.
 
+## Code workspace
+
+The header **Code / Synth** switch changes the workspace layout. Code opens
+beside Files with persistent **Code / 2A03 + FDS / Keyboard** tabs; choosing
+another tab does not stop a running script or restore the compact layout.
+Synth restores the original instrument view. The original Master slider and
+collapsible Reference playback remain available above Files and the workspace.
+Run / Apply / Stop stay visible in each expanded view. Selecting an instrument
+continues to apply its sound without forcing Code navigation.
+
+This layout uses the existing immediate NES/FDS Code API. It does not yet add
+`build / schedule / compile`; that chip-specific API is tracked separately.
+
 ## Play
 
 Select **Enable audio**, then click a key or play the displayed computer keys.

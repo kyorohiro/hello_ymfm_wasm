@@ -245,16 +245,40 @@ async function check(browser,name,origin,loadCassette){
     assert.match(await page.locator('#synthCodeEditor').inputValue(),/after reconnect/);
     assert.equal((await page.evaluate(()=>__nesCodeAudit.graph())).contexts,0,'saved projects restore without audio');
 
-    step('Expanded Code stays visible beside Files at desktop and narrow widths');
+    step('Persistent workspace preserves running Code, Master, song controls and channel editing');
+    await source(page,MOTION);await execute(page);
+    await until(()=>page.evaluate(()=>__nesMotion.motion.ticks>0),'workspace running');
+    await page.evaluate(()=>globalThis.__nesWorkspaceIdentity=__nesMotion);
+    const owner=(await read(page)).codeSession;
+    await page.locator('#synthWorkspaceCodeButton').click();
+    const tabs=['synthInputCodeTab','nesChipTab','synthInputKeyboardTab'];
     for(const width of [1240,390]){
-      await page.setViewportSize({width,height:1050});await page.locator('#synthCodeExpandButton').click();
+      await page.setViewportSize({width,height:1050});
+      for(const id of tabs){
+        await page.locator('#'+id).click();
+        assert(await page.locator('#synthWorkspace').evaluate(node=>node.classList.contains('is-code-expanded')));
+        assert.deepEqual(await page.locator('#nesChipTabs > [role="tab"]').evaluateAll(nodes=>nodes.map(n=>n.id)),tabs);
+        assert(await page.locator('#masterVolume').isVisible());assert(await page.locator('#nesSongSelect').isVisible());
+        assert(await page.locator('#synthCodeStopButton').isVisible());
+        assert.equal((await read(page)).codeSession,owner);
+        assert(await page.evaluate(()=>__nesWorkspaceIdentity.nes===__nesMotion.nes&&__nesWorkspaceIdentity.context===__nesMotion.context));
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'workspace width '+width+' '+id);
+      }
+      await page.locator('#nesReferencePlayback > summary').click();
+      assert(!await page.locator('#nesSongSelect').isVisible());assert(await page.locator('#masterVolume').isVisible());
+      if(width===1240){const rows=await page.evaluate(()=>({files:document.querySelector('.nes-files-heading').getBoundingClientRect().top,tabs:document.querySelector('#nesChipTabs').getBoundingClientRect().top}));assert(Math.abs(rows.files-rows.tabs)<3,JSON.stringify(rows));}
+      await page.locator('#synthInputCodeTab').click();
       assert(await page.locator('#synthExpandedCodeSlot #synthCodeEditor').isVisible());
-      assert(await page.locator('#nesFilesPanel').isVisible());
-      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'expanded width '+width);
-      await fs.mkdir(config.screenshots,{recursive:true});
-      await page.screenshot({path:path.join(config.screenshots,name+'-'+width+'.png'),fullPage:true});
-      await page.locator('#synthCodeExpandButton').click();
+      await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,name+'-'+width+'.png'),fullPage:true});
+      await page.locator('#nesReferencePlayback > summary').click();
     }
+    const workspaceTicks=await page.evaluate(()=>__nesMotion.motion.ticks);await until(()=>page.evaluate(value=>__nesMotion.motion.ticks>value,workspaceTicks),'workspace kept advancing');
+    await page.locator('#nesChipTab').click();await page.locator('[data-nes-channel="0"]').click();
+    await page.locator('#synthWorkspaceSynthButton').click();
+    assert(!await page.locator('#synthWorkspace').evaluate(node=>node.classList.contains('is-code-expanded')));
+    assert(await page.locator('#masterVolume').isVisible());assert(await page.locator('#nesChannelTabs').isVisible());
+    assert.equal((await read(page)).codeSession,owner);
+    await page.locator('#synthInputCodeTab').click();await stop(page);
     assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
     return{browser:name,passed:true,checks,measurements,graph:await page.evaluate(()=>__nesCodeAudit.graph()),pageErrors:errors,missing};
   }catch(error){

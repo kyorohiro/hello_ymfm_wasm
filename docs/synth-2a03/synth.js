@@ -6,6 +6,7 @@ import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createHardwareMonitor} from './hardware_monitor.js';
 import {createStateObserver} from './state_observer.js';
 import {createPanelLayout} from './panel_layout.js';
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js';
 import {setupNesCodeHost} from './code_host.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createNesSongSnapshot, captureNesSongPreset} from './song_state.js';
@@ -24,7 +25,7 @@ let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, imp
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let autoPreset = readPreset(preset), selectedChannel = null, channelRevision = 0;
 let lastChipState = null, lastManualEdit = 0, editorPointer = false, pendingChannelEdits = 0;
-let codeHost = null, songControls = null;
+let codeHost = null, songControls = null, expandedTabs = null;
 let songState = null;
 const channelDrafts = new Map();
 let clickGuardEnabled = $('clickGuardEnabled').checked;
@@ -56,8 +57,9 @@ const hardwareObserver = createStateObserver({
 let observedContext = null;
 function syncHardwareMonitor() {
   const visible = !document.hidden, running = audio?.context.state === 'running';
-  const panelVisible = $('sourcePanel').open && $('hardwarePanel').open;
-  const observeCode = codeHost?.isRunning() && (selectedChannel !== null && $('nesAutoUpdate').checked || panelVisible);
+  const editorVisible = !$('nesSynthEditor').hidden;
+  const panelVisible = editorVisible && $('sourcePanel').open && $('hardwarePanel').open;
+  const observeCode = editorVisible && codeHost?.isRunning() && (selectedChannel !== null && $('nesAutoUpdate').checked || panelVisible);
   const active = Boolean(!disposed && visible && running && !switchingAudioOutput && !songIsActive()
     && (observeCode || panelVisible && preset.source !== 'dmc' && [...notes.values()].some(note => note.started)));
   hardwareObserver.update({engine:audio, active});
@@ -78,7 +80,7 @@ const capacity = () => preset.source === 'pulse' ? 2 : 1;
 const channelSources = ['pulse', 'pulse', 'triangle', 'noise', 'dmc', 'fds'];
 const songIsActive = () => Boolean(songState?.playing || songState?.paused || songState?.playback === 'ended');
 function syncActivity() {
-  visualizer.setRunning(Boolean((notes.size || codeHost?.isRunning() || songState?.playing) && $('monitorPanel').open));
+  visualizer.setRunning(Boolean((notes.size || codeHost?.isRunning() || songState?.playing) && $('monitorPanel').open && !$('nesSynthEditor').hidden));
   syncHardwareMonitor();
 }
 function updateKeys() {
@@ -525,8 +527,15 @@ codeHost = setupNesCodeHost({
   stopSong:async () => {await songControls?.stop(); await songControls?.whenIdle();},
   onSelectSong:(file, options) => songControls.selectFile({path:options?.path ?? file.path, data:file.data}),
   onActivity() {syncActivity(); syncChannelUi();},
+  onViewChange(mode) {expandedTabs?.showInput(mode);syncActivity();},
+  onExpandedChange(value) {expandedTabs?.setExpanded(value);syncActivity();},
   setStatus:(message,error=false) => status(message,error),
 });
+expandedTabs = setupSynthExpandedTabs({codeControls:codeHost.controls,
+  selectChip:button=>{expandedTabs.showChip(button);syncActivity();return true;},
+  elements:{editor:$('nesSynthEditor'),chipTabs:[$('nesChipTab')],volume:$('masterVolume').closest('.master-control')},
+});
+$('nesChipTab').addEventListener('click',()=>{expandedTabs.showChip($('nesChipTab'));syncActivity();});
 songControls = setupNesSongControls({
   project:codeHost.project, ensureAudio, getAudio:() => audio,
   getClickGuard:() => clickGuardEnabled,
@@ -581,7 +590,7 @@ window.addEventListener('pointerup', () => {editorPointer = false;});
 window.addEventListener('pointercancel', () => {editorPointer = false;});
 window.addEventListener('pagehide',event=>{
   if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();panelLayout?.dispose();hardwareObserver.dispose();watchHardwareContext(null);hardwareMonitor.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();songControls?.dispose();
+  disposed=true;epoch++;notes.clear();expandedTabs?.dispose();panelLayout?.dispose();hardwareObserver.dispose();watchHardwareContext(null);hardwareMonitor.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();songControls?.dispose();
   const owner=audio;audio=null;
   void codeHost?.dispose().finally(() => owner?.dispose());
 });

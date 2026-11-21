@@ -22,7 +22,7 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('2A03 Code stopped','AbortError');
 export function setupNesCodeHost({ensureAudio,getAudio,getSettings,applySettings,stopKeyboard,
-  stopSong=async()=>{},beforeSoundApply=async()=>{},beforeRun=async()=>{},onBeforeRun=beforeRun,onSelectSong=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
+  stopSong=async()=>{},beforeSoundApply=async()=>{},beforeRun=async()=>{},onBeforeRun=beforeRun,onSelectSong=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createNesCodeProject({settings:getSettings(),getStarterCode:()=>NES_STARTER_CODE});
   const audio=createNesCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -64,7 +64,7 @@ export function setupNesCodeHost({ensureAudio,getAudio,getSettings,applySettings
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
-    keepRunningOnKeyboard:true,
+    keepRunningOnKeyboard:true,persistentExpanded:true,onViewChange,onExpandedChange,
     allowTextFiles:true,maxTextLength:NES_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'nes',transformDeclarations:selectNesCodeDeclarations,
     journalKey:'tetorica-2a03-synth-pending-code',getStarterCode:()=>NES_STARTER_CODE,

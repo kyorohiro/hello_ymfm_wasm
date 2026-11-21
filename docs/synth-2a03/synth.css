@@ -239,3 +239,36 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .nes-file-context-menu button { width:100%; min-height:32px; padding:6px 12px; text-align:left; font-size:.8rem; box-shadow:none; }
 .nes-file-context-menu button:hover:not(:disabled),.nes-file-context-menu button:focus-visible { background:#e7d9d9; }
 @media(max-width:760px) { .nes-code-workspace.has-files { grid-template-columns:minmax(0,1fr); }.nes-code-workspace.has-files.is-code-expanded .nes-expanded-code { grid-column:1; }#nesFilesTree { max-height:240px; }.nes-code-editor { font-size:12px; } }
+
+/* Persistent Code workspace shares the existing controls and live APU. */
+.nes-workspace-switch {display:inline-flex;}
+.nes-workspace-switch button {border-radius:0;}
+.nes-workspace-switch button:first-child {border-radius:99px 0 0 99px;}
+.nes-workspace-switch button:last-child {border-radius:0 99px 99px 0;}
+.nes-workspace-switch button[aria-pressed="true"] {background:var(--accent);color:white;}
+.nes-workspace-meta {grid-column:1/-1;display:grid;gap:12px 16px;min-width:0;align-items:start;}
+.nes-workspace-meta .audio-status {margin:0;padding-top:10px;}
+.nes-reference-row {display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0;}
+.nes-reference {flex:1 1 280px;min-width:0;border:1px solid var(--line);border-radius:10px;padding:12px;background:#e8e7e0;}
+.nes-reference[open] {flex-basis:100%;}
+.nes-reference > summary {font-size:.76rem;font-weight:650;cursor:pointer;}
+.nes-reference[open] > summary {margin-bottom:10px;}
+.nes-reference .nes-song-player {padding:0;border:0;margin:0;background:none;}
+#synthExpandedVolumeSlot {margin-left:auto;min-width:0;max-width:100%;}
+#synthExpandedVolumeSlot .master-control {max-width:100%;}
+.nes-code-workspace.is-code-expanded .nes-main {display:block;}
+.nes-main #synthExpandedCodeSlot {grid-column:auto;}
+#nesSynthEditor,#synthExpandedTabsSlot,.nes-input-heading {min-width:0;}
+#nesSynthEditor[hidden],#synthExpandedTabsSlot[hidden],#synthExpandedVolumeSlot[hidden] {display:none;}
+.nes-code-workspace.is-code-expanded #keyboardPanel {display:none;}
+.nes-code-workspace .synth-expanded-heading {display:flex;align-items:flex-start;gap:8px;min-width:0;margin-bottom:12px;}
+.nes-code-workspace .synth-expanded-heading .nes-chip-tabs {flex:1;flex-wrap:wrap;min-width:0;margin:0;}
+.nes-code-workspace .synth-expanded-heading .nes-chip-tabs > button {min-height:34px;padding:7px 10px;flex:0 0 auto;}
+.nes-code-workspace .synth-expanded-heading .nes-code-expand {flex:none;padding:7px;min-height:34px;}
+#synthExpandedTabsSlot > .nes-code-toolbar {margin-bottom:12px;}
+.nes-code-workspace.is-code-expanded .nes-input-section {padding:0;border:0;margin:0;}
+@media(min-width:761px) {
+ .nes-code-workspace.has-files > .nes-workspace-meta {grid-template-columns:230px minmax(0,1fr);}
+ .nes-code-workspace.has-files.is-code-expanded > .nes-main {padding-top:13px;}
+ .nes-code-workspace.has-files.is-code-expanded .nes-files-heading {min-height:34px;}
+}

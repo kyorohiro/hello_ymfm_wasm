@@ -1,0 +1,2085 @@
+{
+  "schemaVersion": 1,
+  "scope": "2A03 + FDS persistent expanded Code workspace",
+  "tests": {
+    "nesSynth": 273,
+    "sharedExpandedTabs": 11
+  },
+  "browsers": {
+    "sourceCode": {
+      "schemaVersion": 1,
+      "passed": true,
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+      "entry": "/synth-2a03/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.31704503297805786,
+              "rms": 0.07802343284103057,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              380,
+              379.7999999523163
+            ]
+          },
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true
+          },
+          "pageErrors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.3974970877170563,
+              "rms": 0.07607001495094375,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              378,
+              378
+            ]
+          },
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true
+          },
+          "pageErrors": [],
+          "missing": []
+        }
+      ]
+    },
+    "sourceMonaco": {
+      "passed": true,
+      "status": "passed",
+      "infrastructureFailure": false,
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+      "entry": "/synth-2a03/index.html",
+      "userCodeExecuted": false,
+      "listeningPerformed": false,
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "viewport": {
+            "width": 1240,
+            "height": 1100
+          },
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "initialLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "const\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip(\"nes\");setBpm(120);//\u00a0Follow\u00a0the\u00a0selected\u00a0sound\u00a0on\u00a0the\u00a0next\u00a0note,\u00a0using\u00a0physical\u00a0channels.liveLoop(\"melody\",\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0const\u00a0source\u00a0=\u00a0(await\u00a0nes.getState()).preset.source;\u00a0\u00a0const\u00a0channel\u00a0=\u00a0{pulse:\u00a0CH1,\u00a0triangle:\u00a0CH3,\u00a0noise:\u00a0CH4,\u00a0dmc:\u00a0CH5,\u00a0fds:\u00a0CH6}[source];\u00a0\u00a0await\u00a0nes.noteOn(channel,\u00a0choose(scale(\"E3\",\u00a0\"minorPentatonic\",\u00a02)));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.noteOff(channel);\u00a0\u00a0await\u00a0beat(0.25);});",
+            "source": "const nes = await useSoundChip(\"nes\");\nsetBpm(120);\n\n// Follow the selected sound on the next note, using physical channels.\nliveLoop(\"melody\", async () => {\n  const source = (await nes.getState()).preset.source;\n  const channel = {pulse: CH1, triangle: CH3, noise: CH4, dmc: CH5, fds: CH6}[source];\n  await nes.noteOn(channel, choose(scale(\"E3\", \"minorPentatonic\", 2)));\n  await beat(0.5);\n  await nes.noteOff(channel);\n  await beat(0.25);\n});\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "declarations": [
+            {
+              "path": "/tetorica-playground-globals.d.ts",
+              "bytes": 20866,
+              "unavailableGlobals": false
+            }
+          ],
+          "good": {
+            "syntax": [],
+            "semantic": []
+          },
+          "returnedLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+            "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "layouts": [
+            {
+              "width": 1240,
+              "expanded": true,
+              "host": {
+                "width": 900,
+                "height": 715
+              },
+              "editor": {
+                "width": 898,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();context.marker\u00a0=\u00a0state.registers[0];context.source\u00a0=\u00a0state.preset.source;context.sweep\u00a0=\u00a0state.preset.pulse.sweep.shift;const\u00a0prepared\u00a0=\u00a0await\u00a0livePrepare('voice',\u00a0async\u00a0api\u00a0=>\u00a0{\u00a0\u00a0const\u00a0voice\u00a0=\u00a0await\u00a0api.useSoundChip('nes');\u00a0\u00a0return\u00a0{voice,\u00a0count:\u00a00};});prepared.count\u00a0+=\u00a01;liveLoop('phrase',\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0await\u00a0nes.pulse.noteOn(CH1,\u00a0choose(scale('C4',\u00a0'minor')));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.pulse.noteOff(CH1);\u00a0\u00a0await\u00a0beat(0.25);});liveFx('gain',\u00a0{context:\u00a0{gain:\u00a00.5},\u00a0process(input,\u00a0output,\u00a0state,\u00a0ctx)\u00a0{",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 1240,
+              "expanded": false,
+              "host": {
+                "width": 864,
+                "height": 320
+              },
+              "editor": {
+                "width": 862,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": true,
+              "host": {
+                "width": 344,
+                "height": 715
+              },
+              "editor": {
+                "width": 342,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": false,
+              "host": {
+                "width": 308,
+                "height": 320
+              },
+              "editor": {
+                "width": 306,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            }
+          ],
+          "bad": {
+            "syntax": [],
+            "semantic": [
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 32,
+                "line": 2,
+                "message": "Argument of type '\"ym2612\"' is not assignable to parameter of type '\"nes\"'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 47,
+                "line": 3,
+                "message": "Cannot find name 'CH7'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 53,
+                "line": 4,
+                "message": "Cannot find name 'createSoundChip'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 83,
+                "line": 5,
+                "message": "Cannot find name 'play'."
+              },
+              {
+                "code": 2339,
+                "category": 1,
+                "start": 104,
+                "line": 6,
+                "message": "Property 'play' does not exist on type 'NesCodeAPI'."
+              },
+              {
+                "code": 2322,
+                "category": 1,
+                "start": 186,
+                "line": 8,
+                "message": "Type '0.3' is not assignable to type '0.125 | 0.25 | 0.5 | 0.75'."
+              },
+              {
+                "code": 2554,
+                "category": 1,
+                "start": 222,
+                "line": 9,
+                "message": "Expected 0 arguments, but got 1."
+              },
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 246,
+                "line": 10,
+                "message": "Argument of type '6' is not assignable to parameter of type 'NesCodeChannel'."
+              }
+            ]
+          },
+          "chipCompletions": [
+            "nes"
+          ],
+          "implementations": [
+            {
+              "file": "playground_code_runtime.js",
+              "symbol": "useSoundChip",
+              "bytes": 29907,
+              "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b",
+              "line": 384,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "nesapusynth.js",
+              "symbol": "setVoice",
+              "bytes": 15155,
+              "sha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e",
+              "line": 54,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "noteOn",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "getState",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            }
+          ],
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          },
+          "screenshot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-workspace-monaco-chromium.png",
+          "cdnFailures": [],
+          "passed": true,
+          "fallback": {
+            "browser": "chromium",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "viewport": {
+            "width": 1240,
+            "height": 1100
+          },
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "initialLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "const\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip(\"nes\");setBpm(120);//\u00a0Follow\u00a0the\u00a0selected\u00a0sound\u00a0on\u00a0the\u00a0next\u00a0note,\u00a0using\u00a0physical\u00a0channels.liveLoop(\"melody\",\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0const\u00a0source\u00a0=\u00a0(await\u00a0nes.getState()).preset.source;\u00a0\u00a0const\u00a0channel\u00a0=\u00a0{pulse:\u00a0CH1,\u00a0triangle:\u00a0CH3,\u00a0noise:\u00a0CH4,\u00a0dmc:\u00a0CH5,\u00a0fds:\u00a0CH6}[source];\u00a0\u00a0await\u00a0nes.noteOn(channel,\u00a0choose(scale(\"E3\",\u00a0\"minorPentatonic\",\u00a02)));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.noteOff(channel);\u00a0\u00a0await\u00a0beat(0.25);});",
+            "source": "const nes = await useSoundChip(\"nes\");\nsetBpm(120);\n\n// Follow the selected sound on the next note, using physical channels.\nliveLoop(\"melody\", async () => {\n  const source = (await nes.getState()).preset.source;\n  const channel = {pulse: CH1, triangle: CH3, noise: CH4, dmc: CH5, fds: CH6}[source];\n  await nes.noteOn(channel, choose(scale(\"E3\", \"minorPentatonic\", 2)));\n  await beat(0.5);\n  await nes.noteOff(channel);\n  await beat(0.25);\n});\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "declarations": [
+            {
+              "path": "/tetorica-playground-globals.d.ts",
+              "bytes": 20866,
+              "unavailableGlobals": false
+            }
+          ],
+          "good": {
+            "syntax": [],
+            "semantic": []
+          },
+          "returnedLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+            "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "layouts": [
+            {
+              "width": 1240,
+              "expanded": true,
+              "host": {
+                "width": 900,
+                "height": 715
+              },
+              "editor": {
+                "width": 898,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();context.marker\u00a0=\u00a0state.registers[0];context.source\u00a0=\u00a0state.preset.source;context.sweep\u00a0=\u00a0state.preset.pulse.sweep.shift;const\u00a0prepared\u00a0=\u00a0await\u00a0livePrepare('voice',\u00a0async\u00a0api\u00a0=>\u00a0{\u00a0\u00a0const\u00a0voice\u00a0=\u00a0await\u00a0api.useSoundChip('nes');\u00a0\u00a0return\u00a0{voice,\u00a0count:\u00a00};});prepared.count\u00a0+=\u00a01;liveLoop('phrase',\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0await\u00a0nes.pulse.noteOn(CH1,\u00a0choose(scale('C4',\u00a0'minor')));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.pulse.noteOff(CH1);\u00a0\u00a0await\u00a0beat(0.25);});liveFx('gain',\u00a0{context:\u00a0{gain:\u00a00.5},\u00a0process(input,\u00a0output,\u00a0state,\u00a0ctx)\u00a0{",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 1240,
+              "expanded": false,
+              "host": {
+                "width": 864,
+                "height": 320
+              },
+              "editor": {
+                "width": 862,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": true,
+              "host": {
+                "width": 344,
+                "height": 715
+              },
+              "editor": {
+                "width": 342,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": false,
+              "host": {
+                "width": 308,
+                "height": 320
+              },
+              "editor": {
+                "width": 306,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            }
+          ],
+          "bad": {
+            "syntax": [],
+            "semantic": [
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 32,
+                "line": 2,
+                "message": "Argument of type '\"ym2612\"' is not assignable to parameter of type '\"nes\"'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 47,
+                "line": 3,
+                "message": "Cannot find name 'CH7'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 53,
+                "line": 4,
+                "message": "Cannot find name 'createSoundChip'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 83,
+                "line": 5,
+                "message": "Cannot find name 'play'."
+              },
+              {
+                "code": 2339,
+                "category": 1,
+                "start": 104,
+                "line": 6,
+                "message": "Property 'play' does not exist on type 'NesCodeAPI'."
+              },
+              {
+                "code": 2322,
+                "category": 1,
+                "start": 186,
+                "line": 8,
+                "message": "Type '0.3' is not assignable to type '0.125 | 0.25 | 0.5 | 0.75'."
+              },
+              {
+                "code": 2554,
+                "category": 1,
+                "start": 222,
+                "line": 9,
+                "message": "Expected 0 arguments, but got 1."
+              },
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 246,
+                "line": 10,
+                "message": "Argument of type '6' is not assignable to parameter of type 'NesCodeChannel'."
+              }
+            ]
+          },
+          "chipCompletions": [
+            "nes"
+          ],
+          "implementations": [
+            {
+              "file": "playground_code_runtime.js",
+              "symbol": "useSoundChip",
+              "bytes": 29907,
+              "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b",
+              "line": 384,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "nesapusynth.js",
+              "symbol": "setVoice",
+              "bytes": 15155,
+              "sha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e",
+              "line": 54,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "noteOn",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "getState",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            }
+          ],
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          },
+          "screenshot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-workspace-monaco-webkit.png",
+          "cdnFailures": [],
+          "passed": true,
+          "fallback": {
+            "browser": "webkit",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        }
+      ],
+      "missing": [],
+      "blocked": [],
+      "cdn": {
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/browser/ui/codicons/codicon/codicon.ttf": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/worker/workerMain.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/javascript/javascript.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/typescript/typescript.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsMode.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsWorker.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js": {
+          "status": 200
+        }
+      },
+      "assets": {
+        "js/chip_worklet_transport.js": {
+          "bytes": 15514,
+          "sha256": "4adcc8a58773fb970700a9846e628fcfea20e5d16b43778ea80d0e083b630a7b"
+        },
+        "js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_sample.js": {
+          "bytes": 3645,
+          "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+        },
+        "js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "js/nesapu_wasm.js": {
+          "bytes": 9324,
+          "sha256": "0bc07cab4c52cef9d62041f1ab532610c4e6158ae48e7c854178107138a45e2b"
+        },
+        "js/nesapu.js": {
+          "bytes": 4116,
+          "sha256": "0b3c5187f2630ea675636b1da600f9ab1358a176208e111052676f7e1003e80d"
+        },
+        "js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "js/nesapusynth.js": {
+          "bytes": 15155,
+          "sha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e"
+        },
+        "js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "js/pitch.js": {
+          "bytes": 1888,
+          "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+        },
+        "js/playground_async_tasks.js": {
+          "bytes": 2223,
+          "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+        },
+        "js/playground_clock.js": {
+          "bytes": 19367,
+          "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+        },
+        "js/playground_code_runtime.js": {
+          "bytes": 29907,
+          "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b"
+        },
+        "js/playground_duration.js": {
+          "bytes": 2009,
+          "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+        },
+        "js/playground_execution.js": {
+          "bytes": 8875,
+          "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+        },
+        "js/playground_live.js": {
+          "bytes": 14734,
+          "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+        },
+        "js/playground_log.js": {
+          "bytes": 2169,
+          "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+        },
+        "js/playground_music.js": {
+          "bytes": 11300,
+          "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+        },
+        "js/ps1_parameters.js": {
+          "bytes": 6237,
+          "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+        },
+        "js/ps1_spu.js": {
+          "bytes": 10862,
+          "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+        },
+        "js/ps1_vab.js": {
+          "bytes": 14976,
+          "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+        },
+        "js/ps1synth.js": {
+          "bytes": 23398,
+          "sha256": "8d1d9f604d5f94ce140c4202d75ed0e0087921848c0c6590e0cd609e16fa8e7d"
+        },
+        "js/scsp_dsp_assembler.js": {
+          "bytes": 8081,
+          "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/tetorica_virtual_files/filesystem_internal.js": {
+          "bytes": 997,
+          "sha256": "e95dcc6999942de8ef81c8f2578c346f87a655fb353d8840ae5b975104e7416b"
+        },
+        "js/tetorica_virtual_files/filesystem.js": {
+          "bytes": 20639,
+          "sha256": "c74e0072c09884917896bd7af4b487799e34f83ffb5cda40896b22acf510434b"
+        },
+        "js/tetorica_virtual_files/path.js": {
+          "bytes": 1112,
+          "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+        },
+        "js/tetorica_virtual_files/reader.js": {
+          "bytes": 1404,
+          "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+        },
+        "js/tetorica_virtual_files/sync.js": {
+          "bytes": 5701,
+          "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "js/vgmplayer.js": {
+          "bytes": 24207,
+          "sha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3"
+        },
+        "js/ym2612vgm.js": {
+          "bytes": 117637,
+          "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+        },
+        "playground/playground_cassette.js": {
+          "bytes": 14751,
+          "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+        },
+        "playground/playground_declarations.js": {
+          "bytes": 2945,
+          "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+        },
+        "playground/playground_example_order.js": {
+          "bytes": 315,
+          "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+        },
+        "playground/playground_file_tree.js": {
+          "bytes": 4862,
+          "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+        },
+        "playground/playground_monaco_completion.js": {
+          "bytes": 45033,
+          "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+        },
+        "playground/playground_monaco_definitions.js": {
+          "bytes": 31710,
+          "sha256": "62a0c5c4916ca8c339f3bb24025872327d91dd632ad3a8487c587e4f7ef609a0"
+        },
+        "playground/playground_monaco.js": {
+          "bytes": 23109,
+          "sha256": "f3ca7d8ed7b1e080d969b9cf6910d0219d6e94e9dfde8c665a5d839237fe84ea"
+        },
+        "playground/playground_virtual_files.js": {
+          "bytes": 5205,
+          "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+        },
+        "playground/tetorica-playground-globals.d.ts": {
+          "bytes": 197809,
+          "sha256": "2a17a1484c34534f7ae92b583b347d89d44e236771da8e8d0d9d886e1f8df38a"
+        },
+        "playground/vendor/fflate.js": {
+          "bytes": 90922,
+          "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+        },
+        "synth-2a03/audio.js": {
+          "bytes": 9204,
+          "sha256": "cfaa7b833c40b789aff6ff1ebba28626cb4170f12d56c75957772ce86f3a6647"
+        },
+        "synth-2a03/click_guard.js": {
+          "bytes": 3651,
+          "sha256": "b27c8a8e576f1f71dbf5a2e3a935cc602f854f1053b05a0ff0af34287638f16b"
+        },
+        "synth-2a03/code_audio.js": {
+          "bytes": 5788,
+          "sha256": "552c48bd9cac00df575295f1857d70393a9ab1f5dc95fc31b547a871cc93e2ef"
+        },
+        "synth-2a03/code_declarations.js": {
+          "bytes": 4134,
+          "sha256": "61c1da83252e1b3b0479ac05673fe2ef75cf3d950eb21dfb5a07542791d362a7"
+        },
+        "synth-2a03/code_endpoint.js": {
+          "bytes": 5568,
+          "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14"
+        },
+        "synth-2a03/code_files.js": {
+          "bytes": 32501,
+          "sha256": "a95a3835f22c75933a1fed45a0be23dcc95fbc67608fcfe2d427bf49a29fd817"
+        },
+        "synth-2a03/code_host.js": {
+          "bytes": 4730,
+          "sha256": "8c3a6d672660ad6f8c3e886aea772fd5c240c37456741059f7d4cb501dff895f"
+        },
+        "synth-2a03/code_project.js": {
+          "bytes": 11073,
+          "sha256": "d155f1aded3d8627b1c1c22294d4349c56a118a8b9edd6305ebbe9dc642a94f8"
+        },
+        "synth-2a03/dmc_decode.js": {
+          "bytes": 2878,
+          "sha256": "ae3c95c8b2ef7b51679ad766e7fa46da1ede799caa024c48724c2a3c841a7b4c"
+        },
+        "synth-2a03/dmc_draw.js": {
+          "bytes": 3331,
+          "sha256": "24fff41f6eea60163ef8bcc9bd6a90800ad3b9a2518b9e3d38ec00705fb0a6a1"
+        },
+        "synth-2a03/dmc_editor.js": {
+          "bytes": 28751,
+          "sha256": "8dab3338ad1e7dc7acfe6b2699b285df1cbcc43bbf8606389c4f690ce25ac08d"
+        },
+        "synth-2a03/dmc_fit.js": {
+          "bytes": 9430,
+          "sha256": "bdcc6e01b040c6ad74a323074def716dd4a715a7675ab75bdb527db916aca71c"
+        },
+        "synth-2a03/dmc_history.js": {
+          "bytes": 2751,
+          "sha256": "bf03b5cce4cb459091cd5d054d747cb74d47ecf5611354a83d408180a2ca33d6"
+        },
+        "synth-2a03/editor.js": {
+          "bytes": 42245,
+          "sha256": "ec965fe9339031996d11fb497a6875306548e241b318588a30c673920f0e31ce"
+        },
+        "synth-2a03/fds_depth_controls.js": {
+          "bytes": 2413,
+          "sha256": "0e169ae89f748a84082404759362d3eb46fec486f8041c54e40ad9e13ae1c5b7"
+        },
+        "synth-2a03/hardware_monitor.js": {
+          "bytes": 4954,
+          "sha256": "96f0a543f3ac6703366ded167b32eba870fb13336b1af23d612bd65795b6c8a0"
+        },
+        "synth-2a03/hardware_state.js": {
+          "bytes": 5340,
+          "sha256": "e3ade64bbfee52702f7c9a0d00f567c6b6b8ccf63aa71627e863ae0b4350e39e"
+        },
+        "synth-2a03/index.html": {
+          "bytes": 19777,
+          "sha256": "3f16516cccff1d3526fa7029c52162d1008176abb4fa85e3989394a795a5784b"
+        },
+        "synth-2a03/instrument.js": {
+          "bytes": 26630,
+          "sha256": "3c9b9fe9282385619032d8e6bfaa5add729a51544118143885197f95b3ebf71f"
+        },
+        "synth-2a03/panel_layout.js": {
+          "bytes": 2709,
+          "sha256": "df3b3a6676d83de07f293853958950896334c2ef6f53fb9d1b5a16bd6da386b0"
+        },
+        "synth-2a03/preset.js": {
+          "bytes": 16093,
+          "sha256": "8d5ae97dd70ef3b818da598646a037b30aa8c897ceb2c44cd309d426b016479c"
+        },
+        "synth-2a03/song_controls.js": {
+          "bytes": 7185,
+          "sha256": "27ae03cd8802e43a2bcd861d64d82c89d8cd82b3ea778fc8cd1f4b0811b45319"
+        },
+        "synth-2a03/song_engine.js": {
+          "bytes": 9601,
+          "sha256": "ba658f311fb074cd7c94110b2ac837d31306304cfdf1a959a494bef381c89c35"
+        },
+        "synth-2a03/song_player.js": {
+          "bytes": 18503,
+          "sha256": "9e6624ce949a78ee685f9a6c95c880ddc6b2a44475c82e7b075ba6fdd14b547d"
+        },
+        "synth-2a03/song_source.js": {
+          "bytes": 9986,
+          "sha256": "8e760736471431e35acc43427ec04e1feadf0749a10a5e77c44f289123dcfdba"
+        },
+        "synth-2a03/song_state.js": {
+          "bytes": 13719,
+          "sha256": "55f337119844221e6a33b0f4d9f51133becaf8f897955292a798c4f94660d687"
+        },
+        "synth-2a03/state_observer.js": {
+          "bytes": 3794,
+          "sha256": "8c74bb2c41eca685061aac707445c20d17f962131c8b14cca1a8771119fa33bd"
+        },
+        "synth-2a03/synth.css": {
+          "bytes": 23467,
+          "sha256": "979af0b4a9943ba0a17c715c8308c58f90ac7f1f37ba07b3d0b2a2925936f0cb"
+        },
+        "synth-2a03/synth.js": {
+          "bytes": 33010,
+          "sha256": "2b67666a8080560520de4af4c581bd03b3b6a5347af19b0c0626a60f2ef1b062"
+        },
+        "synth-2a03/vgm_dmc.js": {
+          "bytes": 7247,
+          "sha256": "2afaf0472fd194692eeed63f729c2a97f0784930283509ca4a8322b52ecd534f"
+        },
+        "synth-2a03/vgm_import.js": {
+          "bytes": 22287,
+          "sha256": "1e5bfb0cef248dcfc4f51994c2779d343e045fdf082f67409bc0d85efd58d741"
+        },
+        "synth-2a03/vgm_library.js": {
+          "bytes": 6344,
+          "sha256": "65c317b15832b852d04563751029bf908d26634e3e1e26a4911ab5559cbecb38"
+        },
+        "synth-spu/file_context_menu.js": {
+          "bytes": 6313,
+          "sha256": "246c5bc3108826c68c85c3539c45bafa939e1ef99d69dd84cf81b416e40786c3"
+        },
+        "synth-spu/spu_synth_visualizer.js": {
+          "bytes": 10421,
+          "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+        },
+        "synth-spu/synth.css": {
+          "bytes": 38847,
+          "sha256": "52d9006e25c3866d425c3005e81a8de20810a101d6253a97e3aa7f4b87c5e466"
+        },
+        "synth/synth_code_controls.js": {
+          "bytes": 24393,
+          "sha256": "bd40ee193e0c2d97e7f427fcd84f1194115aff1d157040c294402c6f1f324f80"
+        },
+        "synth/synth_code_declarations.js": {
+          "bytes": 8299,
+          "sha256": "120562264e16dbe764955516da37bd44eee03855fe39fbbde3a04761afe1ead0"
+        },
+        "synth/synth_code_output.js": {
+          "bytes": 4973,
+          "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+        },
+        "synth/synth_code_project.js": {
+          "bytes": 2161,
+          "sha256": "1fc9a746649eb98ad9dfaca8a82dd7bdb2087f4e601575e17c32b6c46c812077"
+        },
+        "synth/synth_draft_store.js": {
+          "bytes": 3656,
+          "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+        },
+        "synth/synth_expanded_tabs.js": {
+          "bytes": 8863,
+          "sha256": "27e4c37e7d65ff695c84a885cf0d8dfccced65f122690cf03ab7e820e089de64"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 10010,
+          "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+        },
+        "synth/synth_menu.js": {
+          "bytes": 1808,
+          "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+        },
+        "synth/synth_project_store.js": {
+          "bytes": 1835,
+          "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+        },
+        "tetorica_2a03_synth.webp": {
+          "bytes": 422778,
+          "sha256": "3f53c2e3435254b674e90e66cbf545dfe0b02e1a5455d971b25e5df14a93bbfc"
+        }
+      }
+    },
+    "zipCode": {
+      "schemaVersion": 1,
+      "passed": true,
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-workspace/itch_2a03_synth_workspace-final-20261121-5gd9Pv",
+      "entry": "/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.3904167115688324,
+              "rms": 0.0822706703960803,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              379.69999998807907,
+              379.30000001192093
+            ]
+          },
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true
+          },
+          "pageErrors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.36853229999542236,
+              "rms": 0.07630227217009325,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              380,
+              377
+            ]
+          },
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true
+          },
+          "pageErrors": [],
+          "missing": []
+        }
+      ]
+    },
+    "zipMonaco": {
+      "passed": true,
+      "status": "passed",
+      "infrastructureFailure": false,
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-workspace/itch_2a03_synth_workspace-final-20261121-5gd9Pv",
+      "entry": "/index.html",
+      "userCodeExecuted": false,
+      "listeningPerformed": false,
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "viewport": {
+            "width": 1240,
+            "height": 1100
+          },
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "initialLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "const\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip(\"nes\");setBpm(120);//\u00a0Follow\u00a0the\u00a0selected\u00a0sound\u00a0on\u00a0the\u00a0next\u00a0note,\u00a0using\u00a0physical\u00a0channels.liveLoop(\"melody\",\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0const\u00a0source\u00a0=\u00a0(await\u00a0nes.getState()).preset.source;\u00a0\u00a0const\u00a0channel\u00a0=\u00a0{pulse:\u00a0CH1,\u00a0triangle:\u00a0CH3,\u00a0noise:\u00a0CH4,\u00a0dmc:\u00a0CH5,\u00a0fds:\u00a0CH6}[source];\u00a0\u00a0await\u00a0nes.noteOn(channel,\u00a0choose(scale(\"E3\",\u00a0\"minorPentatonic\",\u00a02)));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.noteOff(channel);\u00a0\u00a0await\u00a0beat(0.25);});",
+            "source": "const nes = await useSoundChip(\"nes\");\nsetBpm(120);\n\n// Follow the selected sound on the next note, using physical channels.\nliveLoop(\"melody\", async () => {\n  const source = (await nes.getState()).preset.source;\n  const channel = {pulse: CH1, triangle: CH3, noise: CH4, dmc: CH5, fds: CH6}[source];\n  await nes.noteOn(channel, choose(scale(\"E3\", \"minorPentatonic\", 2)));\n  await beat(0.5);\n  await nes.noteOff(channel);\n  await beat(0.25);\n});\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "declarations": [
+            {
+              "path": "/tetorica-playground-globals.d.ts",
+              "bytes": 20866,
+              "unavailableGlobals": false
+            }
+          ],
+          "good": {
+            "syntax": [],
+            "semantic": []
+          },
+          "returnedLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+            "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "layouts": [
+            {
+              "width": 1240,
+              "expanded": true,
+              "host": {
+                "width": 900,
+                "height": 715
+              },
+              "editor": {
+                "width": 898,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();context.marker\u00a0=\u00a0state.registers[0];context.source\u00a0=\u00a0state.preset.source;context.sweep\u00a0=\u00a0state.preset.pulse.sweep.shift;const\u00a0prepared\u00a0=\u00a0await\u00a0livePrepare('voice',\u00a0async\u00a0api\u00a0=>\u00a0{\u00a0\u00a0const\u00a0voice\u00a0=\u00a0await\u00a0api.useSoundChip('nes');\u00a0\u00a0return\u00a0{voice,\u00a0count:\u00a00};});prepared.count\u00a0+=\u00a01;liveLoop('phrase',\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0await\u00a0nes.pulse.noteOn(CH1,\u00a0choose(scale('C4',\u00a0'minor')));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.pulse.noteOff(CH1);\u00a0\u00a0await\u00a0beat(0.25);});liveFx('gain',\u00a0{context:\u00a0{gain:\u00a00.5},\u00a0process(input,\u00a0output,\u00a0state,\u00a0ctx)\u00a0{",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 1240,
+              "expanded": false,
+              "host": {
+                "width": 864,
+                "height": 320
+              },
+              "editor": {
+                "width": 862,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": true,
+              "host": {
+                "width": 344,
+                "height": 715
+              },
+              "editor": {
+                "width": 342,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": false,
+              "host": {
+                "width": 308,
+                "height": 320
+              },
+              "editor": {
+                "width": 306,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            }
+          ],
+          "bad": {
+            "syntax": [],
+            "semantic": [
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 32,
+                "line": 2,
+                "message": "Argument of type '\"ym2612\"' is not assignable to parameter of type '\"nes\"'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 47,
+                "line": 3,
+                "message": "Cannot find name 'CH7'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 53,
+                "line": 4,
+                "message": "Cannot find name 'createSoundChip'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 83,
+                "line": 5,
+                "message": "Cannot find name 'play'."
+              },
+              {
+                "code": 2339,
+                "category": 1,
+                "start": 104,
+                "line": 6,
+                "message": "Property 'play' does not exist on type 'NesCodeAPI'."
+              },
+              {
+                "code": 2322,
+                "category": 1,
+                "start": 186,
+                "line": 8,
+                "message": "Type '0.3' is not assignable to type '0.125 | 0.25 | 0.5 | 0.75'."
+              },
+              {
+                "code": 2554,
+                "category": 1,
+                "start": 222,
+                "line": 9,
+                "message": "Expected 0 arguments, but got 1."
+              },
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 246,
+                "line": 10,
+                "message": "Argument of type '6' is not assignable to parameter of type 'NesCodeChannel'."
+              }
+            ]
+          },
+          "chipCompletions": [
+            "nes"
+          ],
+          "implementations": [
+            {
+              "file": "playground_code_runtime.js",
+              "symbol": "useSoundChip",
+              "bytes": 29907,
+              "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b",
+              "line": 384,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "nesapusynth.js",
+              "symbol": "setVoice",
+              "bytes": 15155,
+              "sha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e",
+              "line": 54,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "noteOn",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "getState",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            }
+          ],
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          },
+          "screenshot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-workspace-zip-monaco-chromium.png",
+          "cdnFailures": [],
+          "passed": true,
+          "fallback": {
+            "browser": "chromium",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "viewport": {
+            "width": 1240,
+            "height": 1100
+          },
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "initialLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "const\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip(\"nes\");setBpm(120);//\u00a0Follow\u00a0the\u00a0selected\u00a0sound\u00a0on\u00a0the\u00a0next\u00a0note,\u00a0using\u00a0physical\u00a0channels.liveLoop(\"melody\",\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0const\u00a0source\u00a0=\u00a0(await\u00a0nes.getState()).preset.source;\u00a0\u00a0const\u00a0channel\u00a0=\u00a0{pulse:\u00a0CH1,\u00a0triangle:\u00a0CH3,\u00a0noise:\u00a0CH4,\u00a0dmc:\u00a0CH5,\u00a0fds:\u00a0CH6}[source];\u00a0\u00a0await\u00a0nes.noteOn(channel,\u00a0choose(scale(\"E3\",\u00a0\"minorPentatonic\",\u00a02)));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.noteOff(channel);\u00a0\u00a0await\u00a0beat(0.25);});",
+            "source": "const nes = await useSoundChip(\"nes\");\nsetBpm(120);\n\n// Follow the selected sound on the next note, using physical channels.\nliveLoop(\"melody\", async () => {\n  const source = (await nes.getState()).preset.source;\n  const channel = {pulse: CH1, triangle: CH3, noise: CH4, dmc: CH5, fds: CH6}[source];\n  await nes.noteOn(channel, choose(scale(\"E3\", \"minorPentatonic\", 2)));\n  await beat(0.5);\n  await nes.noteOff(channel);\n  await beat(0.25);\n});\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "declarations": [
+            {
+              "path": "/tetorica-playground-globals.d.ts",
+              "bytes": 20866,
+              "unavailableGlobals": false
+            }
+          ],
+          "good": {
+            "syntax": [],
+            "semantic": []
+          },
+          "returnedLayout": {
+            "host": {
+              "width": 1110,
+              "height": 320
+            },
+            "editor": {
+              "width": 1108,
+              "height": 318
+            },
+            "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+            "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+            "hidden": false,
+            "display": "block"
+          },
+          "layouts": [
+            {
+              "width": 1240,
+              "expanded": true,
+              "host": {
+                "width": 900,
+                "height": 715
+              },
+              "editor": {
+                "width": 898,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();context.marker\u00a0=\u00a0state.registers[0];context.source\u00a0=\u00a0state.preset.source;context.sweep\u00a0=\u00a0state.preset.pulse.sweep.shift;const\u00a0prepared\u00a0=\u00a0await\u00a0livePrepare('voice',\u00a0async\u00a0api\u00a0=>\u00a0{\u00a0\u00a0const\u00a0voice\u00a0=\u00a0await\u00a0api.useSoundChip('nes');\u00a0\u00a0return\u00a0{voice,\u00a0count:\u00a00};});prepared.count\u00a0+=\u00a01;liveLoop('phrase',\u00a0async\u00a0()\u00a0=>\u00a0{\u00a0\u00a0await\u00a0nes.pulse.noteOn(CH1,\u00a0choose(scale('C4',\u00a0'minor')));\u00a0\u00a0await\u00a0beat(0.5);\u00a0\u00a0await\u00a0nes.pulse.noteOff(CH1);\u00a0\u00a0await\u00a0beat(0.25);});liveFx('gain',\u00a0{context:\u00a0{gain:\u00a00.5},\u00a0process(input,\u00a0output,\u00a0state,\u00a0ctx)\u00a0{",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 1240,
+              "expanded": false,
+              "host": {
+                "width": 864,
+                "height": 320
+              },
+              "editor": {
+                "width": 862,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": true,
+              "host": {
+                "width": 344,
+                "height": 715
+              },
+              "editor": {
+                "width": 342,
+                "height": 713
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice({volume:\u00a04,\u00a0period:\u00a06,\u00a0shortMode:\u00a0false});await\u00a0nes.noteOn(CH4,\u00a0'C4');await\u00a0nes.dmc.loadSample(new\u00a0Uint8Array(257).fill(0xaa));await\u00a0nes.dmc.play({rate:\u00a015,\u00a0loop:\u00a0true,\u00a0level:\u00a064});await\u00a0nes.noteOn(CH5,\u00a0'C4');await\u00a0nes.fds.setWave(Array.from({length:\u00a064},\u00a0(_,\u00a0i)\u00a0=>\u00a0i));await\u00a0nes.fds.setVolume(16);await\u00a0nes.fds.setModulation({table:\u00a0Array(32).fill(0),\u00a0rate:\u00a0256,\u00a0depth:\u00a016,\u00a0enabled:\u00a0true});await\u00a0nes.noteOn(CH6,\u00a0'A3');await\u00a0nes.noteOff(CH1);await\u00a0nes.keyOff(CH2);const\u00a0state\u00a0=\u00a0await\u00a0nes.getState();",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            },
+            {
+              "width": 390,
+              "expanded": false,
+              "host": {
+                "width": 308,
+                "height": 320
+              },
+              "editor": {
+                "width": 306,
+                "height": 318
+              },
+              "renderedText": "//\u00a0@ts-checkconst\u00a0nes\u00a0=\u00a0await\u00a0useSoundChip('nes');await\u00a0nes.pulse.setVoice(CH1,\u00a0{duty:\u00a00.25,\u00a0volume:\u00a08,\u00a0envelope:\u00a0{period:\u00a02,\u00a0loop:\u00a0true}});await\u00a0nes.pulse.setFrequency(CH1,\u00a0220);await\u00a0nes.noteOn(CH1,\u00a0'A3');await\u00a0nes.pulse.noteOn(CH2,\u00a0'C4');await\u00a0nes.triangle.noteOn('E4');await\u00a0nes.noise.setVoice",
+              "source": "// @ts-check\nconst nes = await useSoundChip('nes');\nawait nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});\nawait nes.pulse.setFrequency(CH1, 220);\nawait nes.noteOn(CH1, 'A3');\nawait nes.pulse.noteOn(CH2, 'C4');\nawait nes.triangle.noteOn('E4');\nawait nes.noise.setVoice({volume: 4, period: 6, shortMode: false});\nawait nes.noteOn(CH4, 'C4');\nawait nes.dmc.loadSample(new Uint8Array(257).fill(0xaa));\nawait nes.dmc.play({rate: 15, loop: true, level: 64});\nawait nes.noteOn(CH5, 'C4');\nawait nes.fds.setWave(Array.from({length: 64}, (_, i) => i));\nawait nes.fds.setVolume(16);\nawait nes.fds.setModulation({table: Array(32).fill(0), rate: 256, depth: 16, enabled: true});\nawait nes.noteOn(CH6, 'A3');\nawait nes.noteOff(CH1);\nawait nes.keyOff(CH2);\nconst state = await nes.getState();\ncontext.marker = state.registers[0];\ncontext.source = state.preset.source;\ncontext.sweep = state.preset.pulse.sweep.shift;\nconst prepared = await livePrepare('voice', async api => {\n  const voice = await api.useSoundChip('nes');\n  return {voice, count: 0};\n});\nprepared.count += 1;\nliveLoop('phrase', async () => {\n  await nes.pulse.noteOn(CH1, choose(scale('C4', 'minor')));\n  await beat(0.5);\n  await nes.pulse.noteOff(CH1);\n  await beat(0.25);\n});\nliveFx('gain', {context: {gain: 0.5}, process(input, output, state, ctx) {\n  for (let i = 0; i < output[0].length; i++) output[0][i] = input[0][i] * ctx.gain;\n}});\npg.log('ready', prepared.count);\n",
+              "hidden": false,
+              "display": "block"
+            }
+          ],
+          "bad": {
+            "syntax": [],
+            "semantic": [
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 32,
+                "line": 2,
+                "message": "Argument of type '\"ym2612\"' is not assignable to parameter of type '\"nes\"'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 47,
+                "line": 3,
+                "message": "Cannot find name 'CH7'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 53,
+                "line": 4,
+                "message": "Cannot find name 'createSoundChip'."
+              },
+              {
+                "code": 2304,
+                "category": 1,
+                "start": 83,
+                "line": 5,
+                "message": "Cannot find name 'play'."
+              },
+              {
+                "code": 2339,
+                "category": 1,
+                "start": 104,
+                "line": 6,
+                "message": "Property 'play' does not exist on type 'NesCodeAPI'."
+              },
+              {
+                "code": 2322,
+                "category": 1,
+                "start": 186,
+                "line": 8,
+                "message": "Type '0.3' is not assignable to type '0.125 | 0.25 | 0.5 | 0.75'."
+              },
+              {
+                "code": 2554,
+                "category": 1,
+                "start": 222,
+                "line": 9,
+                "message": "Expected 0 arguments, but got 1."
+              },
+              {
+                "code": 2345,
+                "category": 1,
+                "start": 246,
+                "line": 10,
+                "message": "Argument of type '6' is not assignable to parameter of type 'NesCodeChannel'."
+              }
+            ]
+          },
+          "chipCompletions": [
+            "nes"
+          ],
+          "implementations": [
+            {
+              "file": "playground_code_runtime.js",
+              "symbol": "useSoundChip",
+              "bytes": 29907,
+              "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b",
+              "line": 384,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "nesapusynth.js",
+              "symbol": "setVoice",
+              "bytes": 15155,
+              "sha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e",
+              "line": 54,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "noteOn",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "synth-2a03/code_endpoint.js",
+              "symbol": "getState",
+              "bytes": 5568,
+              "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14",
+              "line": 76,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            }
+          ],
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          },
+          "screenshot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-workspace-zip-monaco-webkit.png",
+          "cdnFailures": [],
+          "passed": true,
+          "fallback": {
+            "browser": "webkit",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        }
+      ],
+      "missing": [],
+      "blocked": [],
+      "cdn": {
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/browser/ui/codicons/codicon/codicon.ttf": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/worker/workerMain.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/javascript/javascript.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/typescript/typescript.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsMode.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsWorker.js": {
+          "status": 200
+        },
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js": {
+          "status": 200
+        }
+      },
+      "assets": {
+        "index.html": {
+          "bytes": 20112,
+          "sha256": "63dffeb87fa11f5967c74288a177363a36012f2e8f4c5df610510b41711f6b2e"
+        },
+        "js/chip_worklet_transport.js": {
+          "bytes": 15514,
+          "sha256": "4adcc8a58773fb970700a9846e628fcfea20e5d16b43778ea80d0e083b630a7b"
+        },
+        "js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_sample.js": {
+          "bytes": 3645,
+          "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+        },
+        "js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "js/nesapu_wasm.js": {
+          "bytes": 9324,
+          "sha256": "0bc07cab4c52cef9d62041f1ab532610c4e6158ae48e7c854178107138a45e2b"
+        },
+        "js/nesapu.js": {
+          "bytes": 4116,
+          "sha256": "0b3c5187f2630ea675636b1da600f9ab1358a176208e111052676f7e1003e80d"
+        },
+        "js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "js/nesapusynth.js": {
+          "bytes": 15155,
+          "sha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e"
+        },
+        "js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "js/pitch.js": {
+          "bytes": 1888,
+          "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+        },
+        "js/playground_async_tasks.js": {
+          "bytes": 2223,
+          "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+        },
+        "js/playground_clock.js": {
+          "bytes": 19367,
+          "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+        },
+        "js/playground_code_runtime.js": {
+          "bytes": 29907,
+          "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b"
+        },
+        "js/playground_duration.js": {
+          "bytes": 2009,
+          "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+        },
+        "js/playground_execution.js": {
+          "bytes": 8875,
+          "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+        },
+        "js/playground_live.js": {
+          "bytes": 14734,
+          "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+        },
+        "js/playground_log.js": {
+          "bytes": 2169,
+          "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+        },
+        "js/playground_music.js": {
+          "bytes": 11300,
+          "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+        },
+        "js/ps1_parameters.js": {
+          "bytes": 6237,
+          "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+        },
+        "js/ps1_spu.js": {
+          "bytes": 10862,
+          "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+        },
+        "js/ps1_vab.js": {
+          "bytes": 14976,
+          "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+        },
+        "js/ps1synth.js": {
+          "bytes": 23398,
+          "sha256": "8d1d9f604d5f94ce140c4202d75ed0e0087921848c0c6590e0cd609e16fa8e7d"
+        },
+        "js/scsp_dsp_assembler.js": {
+          "bytes": 8081,
+          "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/tetorica_virtual_files/filesystem_internal.js": {
+          "bytes": 997,
+          "sha256": "e95dcc6999942de8ef81c8f2578c346f87a655fb353d8840ae5b975104e7416b"
+        },
+        "js/tetorica_virtual_files/filesystem.js": {
+          "bytes": 20639,
+          "sha256": "c74e0072c09884917896bd7af4b487799e34f83ffb5cda40896b22acf510434b"
+        },
+        "js/tetorica_virtual_files/path.js": {
+          "bytes": 1112,
+          "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+        },
+        "js/tetorica_virtual_files/reader.js": {
+          "bytes": 1404,
+          "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+        },
+        "js/tetorica_virtual_files/sync.js": {
+          "bytes": 5701,
+          "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "js/vgmplayer.js": {
+          "bytes": 24207,
+          "sha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3"
+        },
+        "js/ym2612vgm.js": {
+          "bytes": 117637,
+          "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+        },
+        "playground/playground_cassette.js": {
+          "bytes": 14751,
+          "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+        },
+        "playground/playground_declarations.js": {
+          "bytes": 2945,
+          "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+        },
+        "playground/playground_example_order.js": {
+          "bytes": 315,
+          "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+        },
+        "playground/playground_file_tree.js": {
+          "bytes": 4862,
+          "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+        },
+        "playground/playground_monaco_completion.js": {
+          "bytes": 45033,
+          "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+        },
+        "playground/playground_monaco_definitions.js": {
+          "bytes": 31710,
+          "sha256": "62a0c5c4916ca8c339f3bb24025872327d91dd632ad3a8487c587e4f7ef609a0"
+        },
+        "playground/playground_monaco.js": {
+          "bytes": 23109,
+          "sha256": "f3ca7d8ed7b1e080d969b9cf6910d0219d6e94e9dfde8c665a5d839237fe84ea"
+        },
+        "playground/playground_virtual_files.js": {
+          "bytes": 5205,
+          "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+        },
+        "playground/tetorica-playground-globals.d.ts": {
+          "bytes": 197809,
+          "sha256": "2a17a1484c34534f7ae92b583b347d89d44e236771da8e8d0d9d886e1f8df38a"
+        },
+        "playground/vendor/fflate.js": {
+          "bytes": 90922,
+          "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+        },
+        "synth-2a03/audio.js": {
+          "bytes": 9204,
+          "sha256": "cfaa7b833c40b789aff6ff1ebba28626cb4170f12d56c75957772ce86f3a6647"
+        },
+        "synth-2a03/click_guard.js": {
+          "bytes": 3651,
+          "sha256": "b27c8a8e576f1f71dbf5a2e3a935cc602f854f1053b05a0ff0af34287638f16b"
+        },
+        "synth-2a03/code_audio.js": {
+          "bytes": 5788,
+          "sha256": "552c48bd9cac00df575295f1857d70393a9ab1f5dc95fc31b547a871cc93e2ef"
+        },
+        "synth-2a03/code_declarations.js": {
+          "bytes": 4134,
+          "sha256": "61c1da83252e1b3b0479ac05673fe2ef75cf3d950eb21dfb5a07542791d362a7"
+        },
+        "synth-2a03/code_endpoint.js": {
+          "bytes": 5568,
+          "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14"
+        },
+        "synth-2a03/code_files.js": {
+          "bytes": 32501,
+          "sha256": "a95a3835f22c75933a1fed45a0be23dcc95fbc67608fcfe2d427bf49a29fd817"
+        },
+        "synth-2a03/code_host.js": {
+          "bytes": 4730,
+          "sha256": "8c3a6d672660ad6f8c3e886aea772fd5c240c37456741059f7d4cb501dff895f"
+        },
+        "synth-2a03/code_project.js": {
+          "bytes": 11073,
+          "sha256": "d155f1aded3d8627b1c1c22294d4349c56a118a8b9edd6305ebbe9dc642a94f8"
+        },
+        "synth-2a03/dmc_decode.js": {
+          "bytes": 2878,
+          "sha256": "ae3c95c8b2ef7b51679ad766e7fa46da1ede799caa024c48724c2a3c841a7b4c"
+        },
+        "synth-2a03/dmc_draw.js": {
+          "bytes": 3331,
+          "sha256": "24fff41f6eea60163ef8bcc9bd6a90800ad3b9a2518b9e3d38ec00705fb0a6a1"
+        },
+        "synth-2a03/dmc_editor.js": {
+          "bytes": 28751,
+          "sha256": "8dab3338ad1e7dc7acfe6b2699b285df1cbcc43bbf8606389c4f690ce25ac08d"
+        },
+        "synth-2a03/dmc_fit.js": {
+          "bytes": 9430,
+          "sha256": "bdcc6e01b040c6ad74a323074def716dd4a715a7675ab75bdb527db916aca71c"
+        },
+        "synth-2a03/dmc_history.js": {
+          "bytes": 2751,
+          "sha256": "bf03b5cce4cb459091cd5d054d747cb74d47ecf5611354a83d408180a2ca33d6"
+        },
+        "synth-2a03/editor.js": {
+          "bytes": 42245,
+          "sha256": "ec965fe9339031996d11fb497a6875306548e241b318588a30c673920f0e31ce"
+        },
+        "synth-2a03/fds_depth_controls.js": {
+          "bytes": 2413,
+          "sha256": "0e169ae89f748a84082404759362d3eb46fec486f8041c54e40ad9e13ae1c5b7"
+        },
+        "synth-2a03/hardware_monitor.js": {
+          "bytes": 4954,
+          "sha256": "96f0a543f3ac6703366ded167b32eba870fb13336b1af23d612bd65795b6c8a0"
+        },
+        "synth-2a03/hardware_state.js": {
+          "bytes": 5340,
+          "sha256": "e3ade64bbfee52702f7c9a0d00f567c6b6b8ccf63aa71627e863ae0b4350e39e"
+        },
+        "synth-2a03/instrument.js": {
+          "bytes": 26630,
+          "sha256": "3c9b9fe9282385619032d8e6bfaa5add729a51544118143885197f95b3ebf71f"
+        },
+        "synth-2a03/panel_layout.js": {
+          "bytes": 2709,
+          "sha256": "df3b3a6676d83de07f293853958950896334c2ef6f53fb9d1b5a16bd6da386b0"
+        },
+        "synth-2a03/preset.js": {
+          "bytes": 16093,
+          "sha256": "8d5ae97dd70ef3b818da598646a037b30aa8c897ceb2c44cd309d426b016479c"
+        },
+        "synth-2a03/song_controls.js": {
+          "bytes": 7185,
+          "sha256": "27ae03cd8802e43a2bcd861d64d82c89d8cd82b3ea778fc8cd1f4b0811b45319"
+        },
+        "synth-2a03/song_engine.js": {
+          "bytes": 9601,
+          "sha256": "ba658f311fb074cd7c94110b2ac837d31306304cfdf1a959a494bef381c89c35"
+        },
+        "synth-2a03/song_player.js": {
+          "bytes": 18503,
+          "sha256": "9e6624ce949a78ee685f9a6c95c880ddc6b2a44475c82e7b075ba6fdd14b547d"
+        },
+        "synth-2a03/song_source.js": {
+          "bytes": 9986,
+          "sha256": "8e760736471431e35acc43427ec04e1feadf0749a10a5e77c44f289123dcfdba"
+        },
+        "synth-2a03/song_state.js": {
+          "bytes": 13719,
+          "sha256": "55f337119844221e6a33b0f4d9f51133becaf8f897955292a798c4f94660d687"
+        },
+        "synth-2a03/state_observer.js": {
+          "bytes": 3794,
+          "sha256": "8c74bb2c41eca685061aac707445c20d17f962131c8b14cca1a8771119fa33bd"
+        },
+        "synth-2a03/synth.css": {
+          "bytes": 23467,
+          "sha256": "979af0b4a9943ba0a17c715c8308c58f90ac7f1f37ba07b3d0b2a2925936f0cb"
+        },
+        "synth-2a03/synth.js": {
+          "bytes": 33010,
+          "sha256": "2b67666a8080560520de4af4c581bd03b3b6a5347af19b0c0626a60f2ef1b062"
+        },
+        "synth-2a03/vgm_dmc.js": {
+          "bytes": 7247,
+          "sha256": "2afaf0472fd194692eeed63f729c2a97f0784930283509ca4a8322b52ecd534f"
+        },
+        "synth-2a03/vgm_import.js": {
+          "bytes": 22287,
+          "sha256": "1e5bfb0cef248dcfc4f51994c2779d343e045fdf082f67409bc0d85efd58d741"
+        },
+        "synth-2a03/vgm_library.js": {
+          "bytes": 6344,
+          "sha256": "65c317b15832b852d04563751029bf908d26634e3e1e26a4911ab5559cbecb38"
+        },
+        "synth-spu/file_context_menu.js": {
+          "bytes": 6313,
+          "sha256": "246c5bc3108826c68c85c3539c45bafa939e1ef99d69dd84cf81b416e40786c3"
+        },
+        "synth-spu/spu_synth_visualizer.js": {
+          "bytes": 10421,
+          "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+        },
+        "synth-spu/synth.css": {
+          "bytes": 38847,
+          "sha256": "52d9006e25c3866d425c3005e81a8de20810a101d6253a97e3aa7f4b87c5e466"
+        },
+        "synth/synth_code_controls.js": {
+          "bytes": 24393,
+          "sha256": "bd40ee193e0c2d97e7f427fcd84f1194115aff1d157040c294402c6f1f324f80"
+        },
+        "synth/synth_code_declarations.js": {
+          "bytes": 8299,
+          "sha256": "120562264e16dbe764955516da37bd44eee03855fe39fbbde3a04761afe1ead0"
+        },
+        "synth/synth_code_output.js": {
+          "bytes": 4973,
+          "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+        },
+        "synth/synth_code_project.js": {
+          "bytes": 2161,
+          "sha256": "1fc9a746649eb98ad9dfaca8a82dd7bdb2087f4e601575e17c32b6c46c812077"
+        },
+        "synth/synth_draft_store.js": {
+          "bytes": 3656,
+          "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+        },
+        "synth/synth_expanded_tabs.js": {
+          "bytes": 8863,
+          "sha256": "27e4c37e7d65ff695c84a885cf0d8dfccced65f122690cf03ab7e820e089de64"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 10010,
+          "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+        },
+        "synth/synth_menu.js": {
+          "bytes": 1808,
+          "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+        },
+        "synth/synth_project_store.js": {
+          "bytes": 1835,
+          "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+        },
+        "tetorica_2a03_synth.webp": {
+          "bytes": 422778,
+          "sha256": "3f53c2e3435254b674e90e66cbf545dfe0b02e1a5455d971b25e5df14a93bbfc"
+        }
+      }
+    }
+  },
+  "archive": {
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-workspace/tetorica_2a03_synth_workspace-final-20261121_itch.zip",
+    "files": 154,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 1940480,
+      "sha256": "d5bfa977673805adf02069b29819ad50219bed94a6ccd62e12b23ce0ccdd905e"
+    },
+    "sourceCheck": {
+      "inputs": 27,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "sourceSha256": {
+    "docs/synth-2a03/code_host.js": "8c3a6d672660ad6f8c3e886aea772fd5c240c37456741059f7d4cb501dff895f",
+    "docs/synth-2a03/synth.js": "2b67666a8080560520de4af4c581bd03b3b6a5347af19b0c0626a60f2ef1b062",
+    "docs/synth-2a03/synth.css": "979af0b4a9943ba0a17c715c8308c58f90ac7f1f37ba07b3d0b2a2925936f0cb",
+    "docs/synth-2a03/index.html": "3f16516cccff1d3526fa7029c52162d1008176abb4fa85e3989394a795a5784b",
+    "docs/synth/synth_expanded_tabs.js": "27e4c37e7d65ff695c84a885cf0d8dfccced65f122690cf03ab7e820e089de64"
+  },
+  "verified": [
+    "Header Code/Synth switch; persistent Code / 2A03 + FDS / Keyboard tab order",
+    "Running Code client, context, session and notes survive layout/tab/viewport changes",
+    "Original Master, reference controls and Run/Apply/Stop remain available",
+    "Reference playback can collapse without hiding Master",
+    "Files and expanded tabs align at desktop; 390px fits without horizontal overflow",
+    "Six-channel Code, manual notes/parameters and preset selection retain their existing behavior",
+    "Cassette restore and IndexedDB reconnect; no automatic execution on reload",
+    "Actual Monaco model, typed completion and readable-source navigation survive tabs and resize",
+    "Physical speaker routes are muted; desktop/mobile screenshots inspected"
+  ],
+  "deferred": [
+    "NES/FDS build/schedule/compile/captureState implementation is next; current Code remains immediate",
+    "Files working/saved migration, shared mixer, Looper/Event Rec and Live highlighting are separate",
+    "No npm publication, Tauri update, remote CI, commit/push or tag",
+    "Human listening and physical device tests not performed"
+  ]
+}
