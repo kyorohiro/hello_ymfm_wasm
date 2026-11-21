@@ -4,25 +4,27 @@ set -eu
 
 case "${1:-}" in
 	''|--preview) [ "$#" -le 1 ] || exit 2 ;;
-	*) printf '%s\n' 'Usage: sh scripts/nds-2sf/build_skyemu_wasm.sh [--preview]' >&2; exit 2 ;;
+	--release-kit) [ "$#" -eq 3 ] || exit 2 ;;
+	*) printf '%s\n' 'Usage: sh scripts/nds-2sf/build_skyemu_wasm.sh [--preview | --release-kit SOURCE_DIR OUTPUT_DIR]' >&2; exit 2 ;;
 esac
 
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
-output="$repo/build/nds-2sf"
+cache="$repo/build/nds-2sf"
 revision=b64903f0fde8104d0796546b96859e9f682311b7
-archive="$output/skyemu-$revision.tar.gz"
+archive="$cache/skyemu-$revision.tar.gz"
 archive_sha256=219841cf0239ad219d7d1d5b4b1d177dfbdd2e82ecf056dc57dfb3a7a4886a7e
 
-if [ ! -f "$archive" ]; then
-	printf '%s\n' "SkyEmu archive missing. Run sh scripts/nds-2sf/build_skyemu.sh first." >&2
-	exit 1
-fi
-
-stage=$(mktemp -d "$output/.skyemu-wasm.XXXXXX")
+mkdir -p "$cache"
+stage=$(mktemp -d "$cache/.skyemu-wasm.XXXXXX")
 trap 'rm -rf "$stage"' 0
+source_archive=$archive
+if [ ! -f "$source_archive" ]; then
+	source_archive="$stage/skyemu-source.tar.gz"
+	curl -fsSL --retry 2 "https://codeload.github.com/skylersaleh/SkyEmu/tar.gz/$revision" -o "$source_archive"
+fi
 # Extract the exact DS source closure and licenses. Other bundled SkyEmu
 # frontends and dependencies are outside this build.
-python3 - "$archive" "$archive_sha256" "$revision" "$stage" <<'PY'
+python3 - "$source_archive" "$archive_sha256" "$revision" "$stage" <<'PY'
 import hashlib
 from pathlib import Path
 import sys
@@ -62,12 +64,21 @@ notices = (
 (stage / 'skyemu-2sf-notices.txt').write_text(notices, encoding='utf-8')
 PY
 
-"${EMCC:-emcc}" "$repo/scripts/nds-2sf/skyemu_2sf.c" -I "$stage/src" \
-	-std=gnu11 -O3 -DNDEBUG -fwrapv -fno-strict-aliasing -ffp-contract=off \
-	-s STANDALONE_WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=33554432 \
-	-s MAXIMUM_MEMORY=167772160 -s STACK_SIZE=262144 -s FILESYSTEM=0 \
-	-s 'EXPORTED_FUNCTIONS=["_malloc","_free","_nds_2sf_open","_nds_2sf_render","_nds_2sf_close"]' \
-	--no-entry -o "$stage/skyemu-2sf.wasm"
+[ "$source_archive" = "$archive" ] || mv -f "$source_archive" "$archive"
+cp "$repo/scripts/nds-2sf/skyemu_2sf.c" "$stage/"
+cp "$repo/scripts/nds-2sf/compile_skyemu_wasm.sh" "$stage/rebuild.sh"
+sh "$stage/rebuild.sh" "$stage/skyemu-2sf.wasm"
+
+output=$cache
+case "${1:-}" in
+	--release-kit)
+		mkdir -p "$2"
+		cp -R "$stage/src" "$2/"
+		cp "$stage/LICENSE" "$stage/skyemu-2sf-notices.txt" "$stage/skyemu_2sf.c" "$stage/rebuild.sh" "$2/"
+		output=$3
+		;;
+esac
+mkdir -p "$output"
 mv -f "$stage/skyemu-2sf.wasm" "$stage/skyemu-2sf-notices.txt" "$output/"
 
 if [ "${1:-}" = --preview ]; then

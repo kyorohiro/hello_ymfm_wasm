@@ -106,12 +106,10 @@ If a new song cannot start, the previous session remains available.
 
 ## Build the local preview
 
-Build the native experiment first if the pinned SkyEmu source archive is
-missing. The native build downloads and verifies that archive. Building the
-browser preview from a verified archive uses Python 3.11+ and Emscripten.
+Building the browser preview requires Python 3.11+ and Emscripten. The script
+downloads and verifies the pinned SkyEmu archive on the first build.
 
 ```sh
-sh scripts/nds-2sf/build_skyemu.sh
 sh scripts/nds-2sf/build_skyemu_wasm.sh --preview
 python3 -m http.server 8787 --bind 127.0.0.1 --directory docs
 ```
@@ -127,3 +125,17 @@ length and fade tags, with a three-minute fallback when length is missing.
 The assembled cartridge is limited to 64 MiB. Legacy emulator save states and
 timing overrides report an error. The [DS Synth TODO](../issues/todo_nds_synth_20261121.md)
 tracks hardware sound capture, support for more source formats and release packaging.
+
+## Build the itch.io ZIP
+
+From the repository root, with the locked npm dependencies installed:
+
+```sh
+sh scripts/package_itch_nitro_ds_synth.sh 0.0.1
+```
+
+Use the version you intend to distribute. The ZIP is written to
+`release/tetorica_nitro_ds_synth_0.0.1_itch.zip`. It includes the 2SF WASM,
+its build inputs and notices, and editable browser modules. The archive opens
+at `index.html` when served over HTTPS or localhost. With no version argument
+the script uses `dev`. An existing ZIP with the same name is preserved.

@@ -126,7 +126,11 @@ register documentation. The existing SkyEmu player remains the song source.
 - [ ] Validate format decoding, looping/timing, tuning, panning and channel limits
       using deterministic fixtures and actual WASM PCM with physical output muted.
 - [ ] Test dependency failures, cancellation, replacement atomicity, keyboard
-      ownership, Code continuity, persistence and readable standalone ZIPs.
+      ownership, Code continuity and persistence.
+- [x] List Nitro DS Synth on the English Tetorica homepage and package the
+      standalone itch.io ZIP. Its editable JS/CSS and 2SF renderer passed
+      Chromium and WebKit checks from the extracted ZIP. Rebuilding the renderer
+      from the included SkyEmu sources reproduced the shipped WASM byte for byte.
 - [ ] Verify Chromium/WebKit, Monaco/fallback, desktop/narrow layouts; distinguish
       automated evidence from human listening and real-hardware comparisons.
 - [ ] Decide Native/npm/Tauri/release scope after the web prototype is verified.

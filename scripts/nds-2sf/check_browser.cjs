@@ -10,11 +10,14 @@ const { parseArgs } = require('node:util');
 const { chromium, webkit } = require('playwright');
 
 const root = path.resolve(__dirname, '../..');
-const docs = path.join(root, 'docs');
 const { values: options } = parseArgs({ options: {
 	engines: { type: 'string', default: 'chromium,webkit' },
 	'real-folder': { type: 'string' },
+	'web-root': { type: 'string', default: path.join(root, 'docs') },
+	entry: { type: 'string', default: '/synth-nitro-ds/index.html' },
 } });
+const webRoot = path.resolve(options['web-root']);
+assert(/^\/(?!\/)/.test(options.entry) && !options.entry.includes('\\'), 'Use an entry URL path such as /index.html');
 const engines = { chromium, webkit };
 const browsers = options.engines.split(',');
 assert(browsers.every((name) => Object.hasOwn(engines, name)), 'Select chromium and/or webkit');
@@ -439,7 +442,7 @@ async function check(name, origin, fixture) {
 				source: '// legacy DS draft\nconst nds = await useSoundChip("nds");\n',
 			}));
 		});
-		await page.goto(`${origin}/synth-nitro-ds/index.html`);
+		await page.goto(`${origin}${options.entry}`);
 
 		await importFiles(page, '#loadTwoSfFolder', fixture);
 		const choices = await until(() => tracks(page), (entries) => entries.length === 2, 'Two original tracks expected');
@@ -518,8 +521,8 @@ async function main() {
 		try {
 			const requested = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
 			if (requested === '/favicon.ico') return response.writeHead(204).end();
-			const file = path.resolve(docs, `.${requested}`);
-			assert(file.startsWith(docs + path.sep));
+			const file = path.resolve(webRoot, `.${requested}`);
+			assert(file.startsWith(webRoot + path.sep));
 			response.setHeader('Content-Type', contentTypes[path.extname(file)] ?? 'application/octet-stream');
 			response.end(await fs.readFile(file));
 		} catch {
