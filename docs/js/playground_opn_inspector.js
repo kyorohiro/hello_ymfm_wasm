@@ -1,5 +1,5 @@
 import {opnPitchFromHz} from './soundchip_pitch.js';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=scsp-fm-1';
+import {keyboardChannels} from './playground_keyboard_channels.js';
 
 const integer=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`${label} must be 0..${max}`);return value;};
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>256)throw new TypeError('Audition identity must contain 1..256 characters');return value;};
@@ -12,7 +12,7 @@ const fmMap=kind=>kind==='ym2610'?[1,2,4,5]:Array.from({length:kind==='ym2203'?3
 export class OpnKeyboardInspector {
   /** @param {{writeRegister:(register:number,value:number,port?:number)=>unknown,reset:(...args:any[])=>unknown}} chip
    * @param {{kind:'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b',
-   * guard:ReturnType<typeof import('./playground_audition_guard.js?v=audio-numeric-bindings-1').createOpnAuditionGuard>,
+   * guard:ReturnType<typeof import('./playground_audition_guard.js').createOpnAuditionGuard>,
    * clock:()=>number,sampleRate:number}} options */
   constructor(chip,{kind,guard,clock,sampleRate}) {
     if(!['ym2612','ym2203','ym2608','ym2610','ym2610b'].includes(kind))throw new Error('Unsupported OPN inspector');
@@ -47,6 +47,7 @@ export class OpnKeyboardInspector {
   writeTimedRegister(register,value,port=0) {
     if(!this.guard.writeTimedRegister(register,value,port))return false;
     this.observe(register,value,port);
+    if(this.kind==='ym2608'&&port===0&&register===0x10&&!(value&128))for(let ch=0;ch<6;ch++)if(value&(1<<ch))this.held.delete(`rhythm:${ch}`);
     if(port===0&&register===0x28&&(value&0xf0)){
       const code=value&7,physical=(code&3)+(code&4?3:0),logical=this.fm.indexOf(physical);
       if((code&3)!==3&&logical>=0)this.held.delete(`fm:${logical}`);

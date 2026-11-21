@@ -752,7 +752,7 @@ interface PlaygroundYm2612TimedApi {
   clearSchedule(name:string):Promise<boolean>;
 }
 
-/** YM2608 FM/SSG only: no Rhythm, ADPCM transfer, timers or prescaler changes.
+/** YM2608 FM/SSG/Rhythm register operations: no ROM/ADPCM transfer, timers or prescaler changes.
  * Uses a standard prescaler. Each SSG operation returns the common time cursor. */
 type PlaygroundYm2608SsgRecordedMethod = 'write'|'tone'|'noise'|'setMixer'|'setVolume'|'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'off';
 interface PlaygroundYm2608SsgRecorder {
@@ -769,6 +769,15 @@ interface PlaygroundYm2608SsgRecorder {
   keyOff(channel:0|1|2):PlaygroundYm2608OperationRecorder;
   off(channel:0|1|2):PlaygroundYm2608OperationRecorder;
   noteOn(channel:0|1|2,note:string|number):PlaygroundYm2608OperationRecorder;
+}
+interface PlaygroundYm2608RhythmRecorder {
+  /** Larger codes are louder. Global hardware level 0..63. */
+  setVolume(volume:number):PlaygroundYm2608OperationRecorder;
+  /** Physical voice 0..5 or its name. Omitted pan/level fields are preserved. */
+  setVoice(voice:number|string,options?:{volume?:number;left?:boolean;right?:boolean}):PlaygroundYm2608OperationRecorder;
+  /** R10 event writes always retrigger, including same-value writes. */
+  keyOn(voices:number|string|Array<number|string>):PlaygroundYm2608OperationRecorder;
+  keyOff(voices:number|string|Array<number|string>):PlaygroundYm2608OperationRecorder;
 }
 interface PlaygroundYm2608OperationRecorder {
   /** Absolute seconds from the reservation start; offsets are nondecreasing. */
@@ -798,6 +807,7 @@ interface PlaygroundYm2608OperationRecorder {
   noteOff(channel:YM2612Channel):PlaygroundYm2608OperationRecorder;
   setModulation(channel:YM2612Channel,ams:YM2612Ams,pms:YM2612Pms):PlaygroundYm2608OperationRecorder;
   readonly ssg:PlaygroundYm2608SsgRecorder;
+  readonly rhythm:PlaygroundYm2608RhythmRecorder;
 }
 interface PlaygroundYm2608BuildOptions { referenceSampleRate?:number; }
 interface PlaygroundYm2608OperationProgram {
@@ -814,6 +824,7 @@ interface PlaygroundYm2608StateSnapshot {
   readonly clock:number;
   readonly engine:'ymfm';
   readonly ssgLevels:readonly number[];
+  readonly rhythmLevels:readonly number[];
   readonly prescaler:6;
   readonly registers:readonly (readonly number[])[];
   readonly frequencyLatches:readonly number[];

@@ -29,9 +29,9 @@ test('reset clears levels/Stop while keeping chosen mutes; unsupported messages 
  assert.throws(()=>monitor.receive({type:'synth-fm-ssg-monitor',action:'unknown'}));assert.deepEqual(monitor.getState(),before);assert.equal(writes.length,n);
  assert.equal(monitor.receive({type:'write'}),false);
 });
-test('non-level registers, Rhythm and ADPCM pass through without monitoring or altered bytes',()=>{
+test('non-level registers and ADPCM pass through; unmuted Rhythm keeps its exact bytes',()=>{
  const {monitor,writes}=fixture();for(const row of [[0,7,0xe1],[0,13,8],[0,0x18,0xc4],[1,11,192],[1,0,0xb0]])monitor.write(...row);
- assert.deepEqual(writes,[[0,7,0xe1],[0,13,8],[0,0x18,0xc4],[1,11,192],[1,0,0xb0]]);assert(monitor.getState().registers.flat().every(value=>value===0));
+ assert.deepEqual(writes,[[0,7,0xe1],[0,13,8],[0,0x18,0xc4],[1,11,192],[1,0,0xb0]]);assert.equal(monitor.getState().registers[0][0x18],0xc4);
 });
 test('delegated host monitor leaves FM/SSG bytes authored, without stale restores; other sections retain their guard',()=>{
  const writes=[],commands=[];const chip=new YM2608Synth({transport:{write:(p,r,v)=>writes.push([p,r,v]),reset(){}}});
@@ -41,6 +41,6 @@ test('delegated host monitor leaves FM/SSG bytes authored, without stale restore
  chip.setOperator(0,0,{tl:24});chip.ssg.setVolume(1,11);assert.deepEqual(writes,[[0,0x40,24],[0,9,11]]);
  monitor.stopFm();assert.equal(writes.filter(x=>x[1]>=0x40&&x[1]<=0x4e).length,1,'host does not send stale TL overrides');assert.equal(commands.at(-1),'stop');
  writes.length=0;chip.noteOn(0,'C4');assert(!writes.some(x=>x[1]>=0x40&&x[1]<=0x4e));
- monitor.setMute('rhythm',0,true);chip.rhythm.setVoice(0,{left:true,right:true,volume:7});assert.equal(writes.at(-1)[2],7);
+ monitor.setMute('rhythm',0,true);chip.rhythm.setVoice(0,{left:true,right:true,volume:7});assert.equal(writes.at(-1)[2],0xc7);
  monitor.setMute('adpcm',0,true);chip.adpcm.setVolume(100);assert.equal(writes.at(-1)[2],0);
 });

@@ -29,6 +29,7 @@ class YM2608Processor extends AudioWorkletProcessor {
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
     this.outputGains = {fm:1,ssg:1};
     this.sourceGains = {fm:1,ssg:1,rhythm:1,adpcm:1};
+    this.rhythmActiveMask = 0;
     this.sectionOwners = {ssg: new Array(3).fill(null), rhythm: new Array(6).fill(null), adpcm: null};
     // Standalone Synth opt-in only. The raw chip and Playground keyOff path
     // stay immediate; a musical release runs entirely on the audio clock.
@@ -71,13 +72,22 @@ class YM2608Processor extends AudioWorkletProcessor {
         return;
       }
       if(performance?.timedOperation&&data.type==='write'){
+        if(data.port===0&&data.register===0x10&&(data.value&0x80)){
+          let mask=data.value&63;
+          for(let ch=0;ch<6;ch++)if((this.rhythmActiveMask&(1<<ch))&&this.sectionOwners.rhythm[ch]!==performance.owner)mask&=~(1<<ch);
+          if((data.value&63)&&!mask)return;
+          if(mask!==(data.value&63))data={...data,value:(data.value&0xc0)|mask};
+        }
         if(!this.performanceOwnership.canApplyTimed(data,performance))return;
         if(data.port===0&&data.register>=8&&data.register<=10&&!(data.value&31)){
           const owner=this.sectionOwners.ssg[data.register-8];
           if(owner!==null&&owner!==performance.owner)return;
         }
-        if(this.opnInspector&&!this.opnInspector.writeTimedRegister(data.register,data.value,data.port))return;
-        if(!this.opnInspector)this.write(data.port,data.register,data.value);
+        const previous=this.rhythmWriteOwner;this.rhythmWriteOwner=performance?.owner??null;
+        try {
+          if(this.opnInspector&&!this.opnInspector.writeTimedRegister(data.register,data.value,data.port))return;
+          if(!this.opnInspector)this.write(data.port,data.register,data.value,performance);
+        }finally{this.rhythmWriteOwner=previous;}
         this.performanceOwnership.observe(data,performance);this.observeSectionOwnership(data,performance);return;
       }
       if (this.adpcmRelease.receive(data)) return;
@@ -123,7 +133,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         }
         return;
       }
-      if (data.type === "write" && this.chip) this.write(data.port, data.register, data.value);
+      if (data.type === "write" && this.chip) this.write(data.port, data.register, data.value, performance);
       if (data.type === "reset") { this.adpcmRelease.reset(); this.chip?.reset(); this.fmSsgMonitor?.reset(); }
     };
     this.port.onmessage = ({data}) => {
@@ -139,12 +149,13 @@ class YM2608Processor extends AudioWorkletProcessor {
         moduleFactory: ym2608ModuleFactory,
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
-      this.timedChip=observeYm2608TimedChip(this.chip);
+      this.timedChip=observeYm2608TimedChip(this.chip,{onRhythmGate:value => this.observeRhythmGate(value)});
       const writeRegister = this.chip.writeRegister?.bind(this.chip) ?? ((register,value,port = 0) => {
         this.chip.write(port * 2,register); this.chip.write(port * 2 + 1,value);
       });
       this.fmSsgMonitor = createFm2608FmSsgMonitor({
         writePhysical:(port,register,value) => writeRegister(register,value,port),
+        onRhythmLevel:(register,value) => {this.timedChip.getState().rhythmLevels[register-0x18]=value;},
       });
       this.chip.writeRegister = (register,value,port = 0) => this.fmSsgMonitor.write(port,register,value);
       this.chip.setOutputGains(this.outputGains);
@@ -165,8 +176,16 @@ class YM2608Processor extends AudioWorkletProcessor {
     }
   }
 
-  write(port, register, value) {
-    this.chip.writeRegister(register, this.adpcmRelease.filterWrite(port,register,value), port);
+  write(port, register, value, performance) {
+    const previous=this.rhythmWriteOwner;this.rhythmWriteOwner=performance?.owner??null;
+    try { this.chip.writeRegister(register, this.adpcmRelease.filterWrite(port,register,value), port); } finally {this.rhythmWriteOwner=previous;}
+  }
+
+  observeRhythmGate(value) {
+    for(let ch=0;ch<6;ch++)if(value&(1<<ch)){
+      if(value&0x80){this.rhythmActiveMask&=~(1<<ch);this.sectionOwners.rhythm[ch]=null;}
+      else {this.rhythmActiveMask|=1<<ch;this.sectionOwners.rhythm[ch]=this.rhythmWriteOwner??null;}
+    }
   }
 
   observeSectionOwnership(data, performance) {
@@ -176,9 +195,7 @@ class YM2608Processor extends AudioWorkletProcessor {
     const {register, value} = data;
     if ((data.port ?? 0) === 0) {
       if (register >= 8 && register <= 10) this.sectionOwners.ssg[register - 8] = value & 31 ? owner : null;
-      if (register === 0x10) for (let ch = 0; ch < 6; ch++) {
-        if (value & (1 << ch)) this.sectionOwners.rhythm[ch] = value & 0x80 ? null : owner;
-      }
+
     } else if (data.port === 1 && register === 0) {
       if (value & 0x80) this.sectionOwners.adpcm = owner;
       else if (value & 1) this.sectionOwners.adpcm = null;

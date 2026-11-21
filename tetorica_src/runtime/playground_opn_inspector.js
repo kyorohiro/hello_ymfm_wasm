@@ -47,6 +47,7 @@ export class OpnKeyboardInspector {
   writeTimedRegister(register,value,port=0) {
     if(!this.guard.writeTimedRegister(register,value,port))return false;
     this.observe(register,value,port);
+    if(this.kind==='ym2608'&&port===0&&register===0x10&&!(value&128))for(let ch=0;ch<6;ch++)if(value&(1<<ch))this.held.delete(`rhythm:${ch}`);
     if(port===0&&register===0x28&&(value&0xf0)){
       const code=value&7,physical=(code&3)+(code&4?3:0),logical=this.fm.indexOf(physical);
       if((code&3)!==3&&logical>=0)this.held.delete(`fm:${logical}`);

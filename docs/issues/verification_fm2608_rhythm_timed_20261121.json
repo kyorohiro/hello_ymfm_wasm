@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "scope": "YM2608 fixed-ROM Rhythm build/schedule/compile and standalone Mixer integration",
+  "tests": {
+    "realWasmTimedAndMonitor": 46,
+    "standaloneOpna": 220,
+    "sharedProcessorInspectorAndCalibrationChain": 70,
+    "ym2612TimedRegressions": 102,
+    "npmBuild": "409 modules; 472 generated and checked declarations",
+    "runtimeMirrors": "9 canonical/public modules match intended URL layouts"
+  },
+  "audio": {
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "compileAndScheduledWritesMatch": true,
+    "repeatedTriggersPreserved": true,
+    "perDrumOwnershipAndStaleMultiOffVerified": true,
+    "defaultMixedFmSsgImmediateRhythmPcmParity": {
+      "reference": "authenticated pre-Rhythm standalone processor",
+      "stereoFramesCompared": 4096,
+      "maximumDifference": 0
+    },
+    "physicalBrowserOutputMuted": true,
+    "humanListening": "pending"
+  },
+  "sourceBrowser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 12032,
+        "applied": 15360,
+        "rolledBack": 22528,
+        "stoppedFrame": 36352,
+        "monitor": {
+          "fmBefore": 0.010894775390625,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.014868163503706455,
+          "muted": 0,
+          "restored": 0.0205078125,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 10624,
+        "applied": 13056,
+        "rolledBack": 19200,
+        "stoppedFrame": 33408,
+        "monitor": {
+          "fmBefore": 0.010916137136518955,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.014868163503706455,
+          "muted": 0,
+          "restored": 0.0205078125,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "readableZipBrowser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 11776,
+        "applied": 14848,
+        "rolledBack": 22016,
+        "stoppedFrame": 36096,
+        "monitor": {
+          "fmBefore": 0.010894775390625,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01832885667681694,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.03349609300494194,
+          "muted": 0,
+          "restored": 0.014697265811264515,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 9600,
+        "applied": 11904,
+        "rolledBack": 18176,
+        "stoppedFrame": 32384,
+        "monitor": {
+          "fmBefore": 0.010539289563894272,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "rhythm": {
+          "before": 0.014868163503706455,
+          "muted": 0,
+          "restored": 0.0205078125,
+          "stopped": 0,
+          "partialPanAndVolumePreserved": true,
+          "failedApplyPreserved": true
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "archive": {
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/fm2608-rhythm/tetorica_fm2608_synth_rhythm-verified-20261121_itch.zip",
+    "files": 197,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 2029821,
+      "sha256": "5022d6074a8544a187d8b63c8a9265be3a3ea323c806490c2426e1d49a325691"
+    },
+    "sourceCheck": {
+      "inputs": 38,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "sourceSha256": {
+    "tetorica_src/runtime/ym2608_operations.js": "fa9c535f47029b513bab92c25e03c2c924de671837e05f922ef895b7d5c849b6",
+    "tetorica_src/runtime/ym2608_operation_state.js": "2cfd510d29de2676fa90e6520f8230101e4ecffd9ea51624807b527960b5e8e4",
+    "tetorica_src/runtime/ym2608_timed_processor.js": "23b9f1a29e30904b3acc88c28f11b8d8aa5d6bf11681374d16f7a06d2ada6ed5",
+    "tetorica_src/runtime/ym2608_timed_state.js": "e1720240c04803e6b892ad4442e756836adef7f8f198eb6c074cd15e467611a9",
+    "tetorica_src/runtime/ym2608synth.js": "e024c27bac47cee66f3a73fd4165df40ba5b947b489370dc951e0ebed3abaedd",
+    "tetorica_src/runtime/playground_performance_processor.js": "9890e136a6bc88c0ccd6879b05bb7bb55b958b4f88e64933b977d34f9397051c",
+    "tetorica_src/runtime/playground_opn_inspector.js": "6ccf0a12e5296b29ed55377d473d57720ac4650f7b9d2682b6a3ecbc611a7d7c",
+    "tetorica_src/runtime/playground_ym2608_worklet.js": "a5964287dec503a50df175a2e57c01a9cc6bf76b58443a6c6d83e9e7e2c4a295",
+    "tetorica_src/runtime/ym2608-worklet.js": "e58e5da0ada1a89bdcdd5a4bfc9004a3829e0ef14eafffcec303221afda74076",
+    "docs/synth-fm2608/audio_worklet.js": "901d223967963a11fe5efc2712fd2851863b91edb996d410cda8a2a1f1305a81",
+    "docs/synth-fm2608/fm_ssg_monitor.js": "fcd05b2c92f03d98149e1ffb111c128e5dcbebaa8c7eebf1f5b761c4f0c456e3",
+    "docs/synth-fm2608/code_examples.js": "b0137095c65d565c3764274a072794a8ee4ea05bc583e5985c86ec60ec569664"
+  },
+  "scopeLimits": [
+    "ROM load/reset are not recorded",
+    "ADPCM timed operations remain deferred",
+    "Native execution remains unsupported",
+    "Continuous scheduled-state Live UI remains deferred",
+    "No npm publication, Tauri update, commit, push, tag or remote CI"
+  ]
+}

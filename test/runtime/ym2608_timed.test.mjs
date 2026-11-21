@@ -81,7 +81,7 @@ async function setup(file,rate,sourceOverride){
  }
  if(context.createProcessorPerformance){const make=context.createProcessorPerformance;context.createProcessorPerformance=opts=>make({...opts,rate,nowFrame:()=>frame});}
  vm.runInNewContext(source,context);
- const initialized=new Promise(resolve=>ready=resolve),wasmBinary=await readFile(new URL('generated/ym2608_wasm.wasm',runtime)),rom=new Uint8Array(8192);
+ const initialized=new Promise(resolve=>ready=resolve),wasmBinary=await readFile(new URL('generated/ym2608_wasm.wasm',runtime)),rom=new Uint8Array(await readFile(new URL('tetorica_ym2608_adpcm_rom.bin',runtime)));
  const generic=file==='playground_ym2608_worklet.js';
  const processor=new Type({processorOptions:{wasmBinary,rom}});
  if(!generic)processor.port.onmessage({data:{type:'initialize',wasmBinary,rhythmRom:rom}});
@@ -203,4 +203,80 @@ for(const rate of [44100,48000])test(`standalone ${rate}: default mixed FM/SSG/A
   }
   const a=old.render(2048),b=current.render(2048);assert.deepEqual(b.left,a.left);assert.deepEqual(b.right,a.right);assert(b.left.some(x=>Math.abs(x)>.01));
  }finally{old.close();current.close();}
+});
+
+
+test('Rhythm build/compile preserves packed pan/volume, repeated triggers and mixed cursors without side effects',()=>{
+ const state=reset();state.registers[0][0x19]=0xc7;state.rhythmLevels[1]=0xc7;
+ const before=structuredClone(state);const plan=build(b=>{
+  b.rhythm.setVolume(48);b.rhythm.setVoice('snare',{volume:13});b.rhythm.setVoice(1,{left:false});
+  b.rhythm.keyOn(['bassDrum','snare']);b.rhythm.keyOn(['bassDrum','snare']);
+  b.atSample(441).setOperator(3,0,{multi:2});b.ssg.setVolume(0,8);
+  b.atSeconds(.02).rhythm.keyOff([0,1]);
+ });
+ const rows=bytes(compile(plan,state));assert.deepEqual(rows.slice(0,5),[[0,0x11,48],[0,0x19,0xcd],[0,0x19,0x4d],[0,0x10,3],[0,0x10,3]]);assert.deepEqual(rows.at(-1),[0,0x10,0x83]);assert.deepEqual(state,before);
+ assert.equal(plan.operations.at(-1).time.value,.02);assert.equal(plan.operations[5].time.value,441);
+ for(const operation of [b=>b.rhythm.setVolume(64),b=>b.rhythm.setVoice(6,{volume:1}),b=>b.rhythm.setVoice(0,{volume:32}),b=>b.rhythm.keyOn('unknown')])assert.throws(()=>compile(build(operation),state));
+ const raw=compile(build(b=>{b.write(0,0x18,0xd2);b.rhythm.setVoice(0,{right:false});}),reset());assert.deepEqual(bytes(raw),[[0,0x18,0xd2],[0,0x18,0x92]]);
+ const oldSnapshot=reset();delete oldSnapshot.rhythmLevels;oldSnapshot.registers[0][0x19]=0xc7;assert.equal(compile(build(b=>b.rhythm.setVoice(1,{volume:9})),oldSnapshot)[0].value,0xc9);
+});
+for(const file of ['ym2608-worklet.js','playground_ym2608_worklet.js','../../docs/synth-fm2608/audio_worklet.js'])for(const rate of [44100,48000])test(`${file} ${rate}: real ROM Rhythm timing, repeated triggers, mixed compile parity and owned Stop`,async()=>{
+ const p=await setup(file,rate);try{
+  p.synth.rhythm.setVoice('snare',{volume:7,left:true,right:true});
+  const plan=build(b=>{b.rhythm.setVolume(48);b.rhythm.setVoice('snare',{volume:24});b.rhythm.keyOn(['bassDrum','snare']);b.rhythm.keyOn(['bassDrum','snare']);b.atSample(441).ssg.setVolume(0,5);b.atSeconds(.01).rhythm.setVoice(1,{left:false});b.atSeconds(.03).rhythm.keyOff([0,1]);});
+  const expected=compile(plan,p.rpc({action:'capture'}));const receipt=p.rpc({action:'schedule',operations:plan,options:{name:'drums'},owner:'drummer'});
+  p.render(receipt.startFrame+Math.round(.03*rate)+1);assert.deepEqual(bytes(p.writes),bytes(expected));
+  assert.equal(p.writes.at(-1).frame,receipt.startFrame+Math.round(.03*rate));assert.equal(p.writes.filter(x=>x.register===0x10&&x.value===3).length,2);
+  const repeat=build(b=>{b.rhythm.keyOn([0,1]);});p.rpc({action:'schedule',operations:repeat,options:{name:'repeat',repeatSeconds:.05},owner:'drummer2'});p.render(300);
+  const n=p.physical.length;p.rpc({action:'releaseOwner',owner:'drummer2'});assert(p.physical.slice(n).some(x=>x.register===0x10&&(x.value&0x83)===0x83)||p.physical.slice(n).filter(x=>x.register===0x10&&(x.value&128)).length===2);
+ }finally{p.close();}
+});
+for(const file of ['ym2608-worklet.js','playground_ym2608_worklet.js','../../docs/synth-fm2608/audio_worklet.js'])test(`${file}: per-drum stale Off filtering and inspector Gate ownership`,async()=>{
+ const p=await setup(file,48000);try{
+  p.synth.rhythm.setVolume(48);p.synth.rhythm.setVoice(0,{volume:24,left:true,right:true});p.synth.rhythm.setVoice(1,{volume:24,left:true,right:true});
+  const plan=build(b=>{b.rhythm.keyOn([0,1]);b.atSeconds(.02).rhythm.keyOff([0,1]);});const original=structuredClone(plan);
+  const receipt=p.rpc({action:'schedule',operations:plan,options:{name:'pair'},owner:'first'});p.render(receipt.startFrame+1);
+  p.synth.rhythm.keyOn(1);p.render(1000);assert.equal(p.writes.findLast(x=>x.register===0x10).value,0x81,'stale snare Off excluded without dropping owned bass-drum Off');assert.deepEqual(plan,original);
+  const next=p.rpc({action:'schedule',operations:build(b=>{b.rhythm.keyOn(1);b.atSeconds(.01).rhythm.keyOff(1);}),options:{name:'inspector'},owner:'next'});p.render(next.startFrame-p.frame()+1);
+  p.processor.opnInspector.invoke('auditionOn',['rhythm:1',60,'manual']);const before=p.physical.length;p.render(700);assert(!p.physical.slice(before).some(x=>x.register===0x10&&(x.value&0x82)===0x82),'old scheduled Off cannot stop a new inspector key');
+  p.rpc({action:'schedule',operations:build(b=>b.rhythm.keyOn(1)),options:{name:'claim'},owner:'new'});p.render(300);const count=p.physical.length;p.processor.opnInspector.invoke('auditionOff',['rhythm:1','manual']);assert.equal(p.physical.length,count,'new timed Gate retires old manual key-up token');
+ }finally{p.close();}
+});
+for(const rate of [44100,48000])test(`standalone ${rate}: muted Rhythm keeps authored pan during partial edits and restores latest sound`,async()=>{
+ const p=await setup('../../docs/synth-fm2608/audio_worklet.js',rate);try{
+  p.synth.rhythm.setVolume(48);p.synth.rhythm.setVoice(1,{volume:24,left:true,right:true});
+  p.send({type:'synth-fm-ssg-monitor',action:'mute',section:'rhythm',channel:1,value:true});
+  const snapshot=p.rpc({action:'capture'});assert.equal(snapshot.registers[0][0x19],24);assert.equal(snapshot.rhythmLevels[1],0xd8);
+  const plan=build(b=>{b.rhythm.setVoice(1,{volume:20});b.rhythm.keyOn(1);});assert.equal(compile(plan,snapshot)[0].value,0xd4);
+  p.rpc({action:'schedule',operations:plan,options:{name:'muted',repeatSeconds:.05},owner:'drum'});const silent=p.render(2000);assert(silent.left.every(x=>x===0)&&silent.right.every(x=>x===0));
+  p.send({type:'synth-fm-ssg-monitor',action:'mute',section:'rhythm',channel:1,value:false});assert.equal(p.physical.findLast(x=>x.register===0x19).value,0xd4);
+  assert(p.render(4000).left.some(x=>Math.abs(x)>.001));
+ }finally{p.close();}
+});
+
+for(const rate of [44100,48000])test(`standalone ${rate}: immediate Rhythm and mixed default PCM match the authenticated pre-Rhythm processor`,async()=>{
+ const {readYm2608RhythmPredecessor}=await import('../../scripts/mixer_calibration_ym2608_rhythm_revision.mjs');
+ const file='../../docs/synth-fm2608/audio_worklet.js';
+ const old=await setup(file,rate,readYm2608RhythmPredecessor('docs/synth-fm2608/audio_worklet.js')),current=await setup(file,rate);
+ try{
+  for(const p of [old,current]){
+   p.synth.setAlgo(0,7);p.synth.setPan(0,true,true);for(let op=0;op<4;op++)p.synth.setOperator(0,op,{multi:1,tl:op?127:24,ar:31,rr:8});p.synth.noteOn(0,'C4');p.synth.ssg.tone(1,{frequency:330,volume:8});
+   p.synth.rhythm.setVolume(48);p.synth.rhythm.setVoice(0,{volume:24,left:true,right:true});p.synth.rhythm.setVoice(1,{volume:20,left:true,right:false});p.synth.rhythm.keyOn([0,1]);
+  }
+  const a=old.render(2048),b=current.render(2048);assert.deepEqual(b.left,a.left);assert.deepEqual(b.right,a.right);assert(b.left.some(x=>Math.abs(x)>.01));
+ }finally{old.close();current.close();}
+});
+
+test('Rhythm reset compilation uses native pan defaults; client compilation retains its immediate helper state',async()=>{
+ const {attachYm2608TimedClient}=await import('../../tetorica_src/runtime/ym2608_timed_client.js');
+ const chip=attachYm2608TimedClient(new YM2608Synth({transport:{write(){},reset(){}}}));
+ try{
+  const plan=chip.build(b=>b.rhythm.setVoice(0,{volume:20}));
+  assert.equal((await chip.compile(plan,{initialState:'reset'}))[0].value,0xd4);
+  assert.equal((await chip.compile(plan,{initialState:'client'}))[0].value,0x14);
+  const state=reset();state.rhythmLevels[0]=0x91;chip._adoptTimedState(state);
+  assert.equal((await chip.compile(plan,{initialState:'client'}))[0].value,0x94);
+  await assert.rejects(chip.compile(plan,{initialState:{}}));
+  assert.throws(()=>compile(plan,{...reset(),rhythmLevels:null}),/six Rhythm/);
+ }finally{chip.dispose();}
 });

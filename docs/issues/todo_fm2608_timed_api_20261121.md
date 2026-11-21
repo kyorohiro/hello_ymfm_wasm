@@ -69,3 +69,24 @@ FM/SSG muted peaks were zero and unmute / Key On-only Run used the latest levels
 `captureState()` remains a physical register snapshot; authored monitor levels
 are private and no continuous UI synchronization was introduced.
 [Evidence](verification_fm2608_timed_monitor_20261121.json).
+
+## Completed follow-up — timed Rhythm (2026-11-21)
+
+- [x] Record `rhythm.setVolume / setVoice / keyOn / keyOff` in the shared
+      FM/SSG operation timeline; reuse the immediate register conversion.
+- [x] Preserve packed per-voice pan/level fields, repeated R10 triggers and
+      simultaneous masks. ROM uploads/reset and ADPCM remain outside recording.
+- [x] Preserve per-drum ownership on replacement, cancellation and Stop,
+      including stale multi-drum Offs after a newer manual/replacement Gate.
+- [x] Integrate Rhythm with the standalone audio-thread monitor so mute does
+      not lose authored pan/level; keep snapshots' register bytes physical.
+- [x] Add types/completion, a fresh-Cassette example, real-ROM/WASM 44.1/48 kHz
+      timing/parity tests and physically muted browser / readable ZIP checks.
+
+Verification: 46 targeted real-WASM/monitor checks, 220 OPNA tests, 70 shared
+processor/inspector/calibration checks and 102 YM2612 timed regressions passed.
+The npm build generated and checked 472 declarations. Source and readable ZIP
+passed physically muted Chromium/WebKit checks. Native execution, ADPCM timed
+operations and scheduled-state Live UI remain separate; human listening is pending.
+Fresh Cassettes include `examples/timed-rhythm.js`; restored user Cassettes are
+not modified. [Evidence](verification_fm2608_rhythm_timed_20261121.json).

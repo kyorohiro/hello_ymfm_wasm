@@ -1,22 +1,22 @@
-import {attachYm2608TimedClient} from './ym2608_timed_client.js?v=rf5c164-notes-1';
-import {createYm2608OperationResetState,validateYm2608OperationState,observeYm2608OperationWrite} from './ym2608_operation_state.js?v=audio-stability-2';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-ui-1';
+import {attachYm2608TimedClient} from './ym2608_timed_client.js';
+import {createYm2608OperationResetState,validateYm2608OperationState,observeYm2608OperationWrite} from './ym2608_operation_state.js';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js';
 /**
  * @file ym2608synth.js
  * 実行環境: Browser / Node.js（クラスにより異なる）
  * 依存: 低レベル Synth / DirectTransport は注入したチップで動作し、Node.js でも使用可能。
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
-import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js?v=audio-stability-2";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=y8950-adpcm-ui-1";
-import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
-import { YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js?v=audio-stability-2";
+import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
+import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
+import { YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js";
 import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
 
 /** Direct transport for YM2608 register operations. */
-/** @extends {OPNDirectTransport<import('./ym2608.js?v=audio-stability-2').Ym2608>} */
+/** @extends {OPNDirectTransport<import('./ym2608.js').Ym2608>} */
 export class YM2608DirectTransport extends OPNDirectTransport {
-  /** @param {import('./ym2608.js?v=audio-stability-2').Ym2608} chip */
+  /** @param {import('./ym2608.js').Ym2608} chip */
   constructor(chip) {
     super(chip, { chipName: "YM2608", portCount: 2 });
   }
@@ -27,7 +27,7 @@ export class YM2608DirectTransport extends OPNDirectTransport {
 }
 
 export class YM2608WorkletTransport extends OPNWorkletTransport {
-  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=pokey-prepare-1').WorkletSoundChip} endpoint */
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js').WorkletSoundChip} endpoint */
   constructor(endpoint) {super(endpoint, {chipName: 'YM2608', portCount: 2});}
 }
 
@@ -228,7 +228,7 @@ export class YM2608AdpcmSynth {
 
 /** Six-channel FM (including CH3 special), three-channel SSG, fixed-ROM rhythm and ADPCM-B playback. */
 export class YM2608Synth extends OPNFMSynth {
-  /** @param {{transport: import('./opn_fm_synth.js?v=audio-stability-2').OPNTransport, clock?: number}} options
+  /** @param {{transport: import('./opn_fm_synth.js').OPNTransport, clock?: number}} options
    * clock is the master clock in Hz. SSG frequency helpers assume standard prescaling.
    */
   constructor({ transport, clock = YM2608_CLOCK } = {}) {
@@ -289,8 +289,8 @@ export class YM2608Synth extends OPNFMSynth {
     Object.defineProperties(this,{
       _timedClientStateComplete:{get:()=>timedComplete},
       _invalidateTimedState:{value:()=>{timedComplete=false;}},
-      _adoptTimedState:{value:state=>{timedState=validateYm2608OperationState(state);timedComplete=true;}},
-      _getTimedState:{value:()=>({...structuredClone(timedState),ssgLevels:this.ssg._getState().levels.map(v=>v&31)})},
+      _adoptTimedState:{value:state=>{timedState=validateYm2608OperationState(state);this.rhythm.levels.set(timedState.rhythmLevels);timedComplete=true;}},
+      _getTimedState:{value:()=>({...structuredClone(timedState),ssgLevels:this.ssg._getState().levels.map(v=>v&31),rhythmLevels:Array.from(this.rhythm.levels)})},
     });
   }
 
@@ -317,7 +317,7 @@ export class YM2608Synth extends OPNFMSynth {
 
 /** Browser-hosted YM2608 FM synth with shared Tetorica audio services. */
 export class YM2608RuntimeSynth extends OPNRuntimeSynth {
-  /** @param {import('./opn_runtime_synth.js?v=y8950-adpcm-ui-1').OPNRuntimeSynthOptions & {outputGains?:import('./ym2608.js?v=audio-stability-2').Ym2608OutputGainPatch,sourceGains?:import('./ym2608.js?v=audio-stability-2').Ym2608SourceGainPatch}} [options] */
+  /** @param {import('./opn_runtime_synth.js').OPNRuntimeSynthOptions & {outputGains?:import('./ym2608.js').Ym2608OutputGainPatch,sourceGains?:import('./ym2608.js').Ym2608SourceGainPatch}} [options] */
   constructor(options = {}) {
     const outputGains = normalizeYm2608OutputGains(options.outputGains ?? {});
     const sourceGains = normalizeYm2608SourceGains(options.sourceGains ?? {});
@@ -327,7 +327,7 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 6,
       portCount: 2,
       processorName: "ym2608-processor",
-      workletUrl: "./ym2608-worklet.js?v=rf5c164-notes-1",
+      workletUrl: "./ym2608-worklet.js",
       wasmUrl: "../generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),
@@ -352,8 +352,8 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
 
   /** Configure host software gains before the native outputs are combined.
    * FM includes Rhythm and ADPCM-B. Settings survive close/restart and reset.
-   * @param {import('./ym2608.js?v=audio-stability-2').Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
-   * @returns {import('./ym2608.js?v=audio-stability-2').Ym2608OutputGains} Accepted gains.
+   * @param {import('./ym2608.js').Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
+   * @returns {import('./ym2608.js').Ym2608OutputGains} Accepted gains.
    */
   setOutputGains(gains) {
     this.outputGains = normalizeYm2608OutputGains(gains,this.outputGains);
@@ -361,12 +361,12 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
     return this.getOutputGains();
   }
 
-  /** @returns {import('./ym2608.js?v=audio-stability-2').Ym2608OutputGains} Detached linear gains. */
+  /** @returns {import('./ym2608.js').Ym2608OutputGains} Detached linear gains. */
   getOutputGains() { return {...this.outputGains}; }
 
   /** Configure independent host gains without changing chip registers.
-   * @param {import('./ym2608.js?v=audio-stability-2').Ym2608SourceGainPatch} gains Partial linear gains, each 0..1024.
-   * @returns {import('./ym2608.js?v=audio-stability-2').Ym2608SourceGains} Accepted gains.
+   * @param {import('./ym2608.js').Ym2608SourceGainPatch} gains Partial linear gains, each 0..1024.
+   * @returns {import('./ym2608.js').Ym2608SourceGains} Accepted gains.
    */
   setSourceGains(gains) {
     this.sourceGains = normalizeYm2608SourceGains(gains,this.sourceGains);
@@ -374,6 +374,6 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
     return this.getSourceGains();
   }
 
-  /** @returns {import('./ym2608.js?v=audio-stability-2').Ym2608SourceGains} Detached independent source gains. */
+  /** @returns {import('./ym2608.js').Ym2608SourceGains} Detached independent source gains. */
   getSourceGains() { return {...this.sourceGains}; }
 }

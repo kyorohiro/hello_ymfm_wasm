@@ -289,8 +289,8 @@ export class YM2608Synth extends OPNFMSynth {
     Object.defineProperties(this,{
       _timedClientStateComplete:{get:()=>timedComplete},
       _invalidateTimedState:{value:()=>{timedComplete=false;}},
-      _adoptTimedState:{value:state=>{timedState=validateYm2608OperationState(state);timedComplete=true;}},
-      _getTimedState:{value:()=>({...structuredClone(timedState),ssgLevels:this.ssg._getState().levels.map(v=>v&31)})},
+      _adoptTimedState:{value:state=>{timedState=validateYm2608OperationState(state);this.rhythm.levels.set(timedState.rhythmLevels);timedComplete=true;}},
+      _getTimedState:{value:()=>({...structuredClone(timedState),ssgLevels:this.ssg._getState().levels.map(v=>v&31),rhythmLevels:Array.from(this.rhythm.levels)})},
     });
   }
 

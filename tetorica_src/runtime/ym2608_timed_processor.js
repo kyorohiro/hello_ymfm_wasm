@@ -133,9 +133,10 @@ export function createYm2608TimedProcessor({performance: timeline, getState, get
       const result = resolver.resolve(operation, getState());
       for (const {port:registerPort,register,value} of result.writes) {
         dispatch({type:'write',port:registerPort,register,value}, port, frame,
-          {...metadata,timedOperation:true,preserveOwner:!(registerPort===0&&(register===0x28||register>=8&&register<=10))});
+          {...metadata,timedOperation:true,preserveOwner:!(registerPort===0&&(register===0x28||register===0x10||register>=8&&register<=10))});
       }
       getState().ssgLevels=[...result.state.ssgLevels];
+      getState().rhythmLevels=[...result.state.rhythmLevels];
     },
     clear() { staged.clear(); },
   };
@@ -143,8 +144,9 @@ export function createYm2608TimedProcessor({performance: timeline, getState, get
 
 /** Observe the accepted native bus below keyboard guards and inspectors. This
  * includes direct register pairs, raw address/data calls and legacy writes.
- * No write is added or removed and no PCM generation is performed here. */
-export function observeYm2608TimedChip(chip) {
+ * No write is added or removed and no PCM generation is performed here.
+ * @param {any} chip @param {{onRhythmGate?:(value:number)=>void}} [options] */
+export function observeYm2608TimedChip(chip, {onRhythmGate} = {}) {
   let state = createYm2608OperationResetState(), address = 0;
   const write = chip.write.bind(chip), reset = chip.reset.bind(chip);
   chip.write = (offset, value) => {
@@ -153,12 +155,13 @@ export function observeYm2608TimedChip(chip) {
     if (!(bus & 1)) {address = ((bus & 2) << 7) | byte;if(bus===0&&[0x2d,0x2e,0x2f].includes(byte))state.prescaler=byte===0x2d?6:byte===0x2e?3:2;}
     else if ((address >> 8) === (bus >> 1)) {
       observeYm2608OperationWrite(state,address >> 8,address & 255,byte);
+      if(address===0x10)onRhythmGate?.(byte);
     }
     return result;
   };
   chip.reset = (...args) => {
     const result = reset(...args);
-    state = createYm2608OperationResetState(); address = 0;
+    state = createYm2608OperationResetState(); address = 0; onRhythmGate?.(0xbf);
     return result;
   };
   return {getState: () => state};

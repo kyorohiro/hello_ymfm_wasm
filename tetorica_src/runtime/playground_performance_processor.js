@@ -77,6 +77,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     const v=type==='write'?value:method==='write'?args[2]:args[1];
     const bank=type==='write'?registerPort:method==='write'?args[0]:args[2]??0;
     if(bank===0&&reg===0x28)return {key:[0,1,2,4,5,6].indexOf(v&7),on:!!(v&0xf0)};
+    if(chip==='ym2608'&&bank===0&&reg===0x10)return {events:Array.from({length:6},(_,channel)=>channel).filter(channel=>v&(1<<channel)).map(channel=>({key:`rhythm:${channel}`,on:!(v&128)}))};
     if(chip==='ym2608'&&bank===0&&reg>=8&&reg<=10)return {key:`ssg:${reg-8}`,on:!!(v&31)};
     if(['ym2610','ym2610b'].includes(chip)){
       if(bank===0&&reg>=8&&reg<=10)return {key:`ssg:${reg-8}`,on:!!(v&31)};
@@ -88,6 +89,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   return null;
 }
 export function performanceNoteRelease(chip,key) {
+  if(chip==='ym2608'&&typeof key==='string'&&key.startsWith('rhythm:'))return {method:'write',args:[0,0x10,128|(1<<Number(key.slice(7)))]};
   if(chip==='ym2608'&&typeof key==='string'&&key.startsWith('ssg:'))return {method:'write',args:[0,8+Number(key.slice(4)),0]};
   if(['ym2610','ym2610b'].includes(chip)){
     if(typeof key==='string'&&key.startsWith('ssg:'))return {method:'write',args:[0,8+Number(key.slice(4)),0]};
@@ -365,6 +367,11 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     if(!event)return true;
     if(event.allOff){owners.clear();return true;}
     if(event.events){
+      if(chipName()==='ym2608'&&metadata?.timedOperation&&command.method==='write'&&command.args?.[0]===0&&command.args[1]===0x10&&(command.args[2]&128)){
+        const allowed=event.events.filter(entry=>!owners.has(entry.key)||owners.get(entry.key).owner===metadata.owner||manualNoteOwner(entry.key,metadata));
+        if(event.events.length&&!allowed.length)return false;
+        if(allowed.length!==event.events.length){command.args[2]=(command.args[2]&0xc0)|allowed.reduce((mask,entry)=>mask|(1<<Number(entry.key.slice(7))),0);event.events=allowed;}
+      }
       if(event.events.some(event=>!event.on&&metadata&&owners.has(event.key)&&owners.get(event.key).owner!==metadata.owner&&!manualNoteOwner(event.key,metadata)))return false;
       for(const entry of event.events){
         if(entry.on)owners.set(entry.key,{owner:metadata?.owner??null,port});else owners.delete(entry.key);

@@ -38,12 +38,12 @@ export function createYm2608TimedSnapshot(state, {instanceId, clock, engine = 'y
 export function validateYm2608TimedSnapshot(snapshot, expected = {}) {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw new TypeError('Expected a YM2608 compilation state snapshot');
   const allowed = ['format', 'version', 'instanceId', 'clock', 'engine', 'registers',
-    'frequencyLatches', 'pitches', 'specialPitches', 'keyMasks', 'ssgLevels', 'prescaler', 'frame', 'sampleRate'];
+    'frequencyLatches', 'pitches', 'specialPitches', 'keyMasks', 'ssgLevels', 'rhythmLevels', 'prescaler', 'frame', 'sampleRate'];
   for (const key of Reflect.ownKeys(snapshot)) {
     const descriptor = Object.getOwnPropertyDescriptor(snapshot, key);
     if (typeof key !== 'string' || !allowed.includes(key) || !Object.hasOwn(descriptor, 'value')) throw new TypeError('Invalid YM2608 state snapshot fields');
   }
-  if (allowed.some(key => !Object.hasOwn(snapshot, key))) throw new TypeError('Incomplete YM2608 state snapshot');
+  if (allowed.some(key => key!=='rhythmLevels'&&!Object.hasOwn(snapshot, key))) throw new TypeError('Incomplete YM2608 state snapshot');
   if (snapshot.format !== YM2608_TIMED_STATE_FORMAT || snapshot.version !== YM2608_TIMED_STATE_VERSION) throw new TypeError('Unsupported YM2608 state snapshot format or version');
   const copy = createYm2608TimedSnapshot(snapshot, snapshot);
   for (const key of ['instanceId', 'clock', 'engine']) {

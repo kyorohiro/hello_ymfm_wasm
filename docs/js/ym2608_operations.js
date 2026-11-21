@@ -12,10 +12,12 @@ export {createYm2608OperationResetState, validateYm2608OperationState, observeYm
 /** @typedef {YM2608RegisterWrite & {offsetSeconds:number,operationIndex:number,writeIndex:number}} YM2608CompiledWrite */
 /** @typedef {'write'|'rawWrite'|'setPreset'|'setOperator'|'setOperators'|'setAlgo'|'setPan'|'setLfo'|'setChannel3SpecialMode'|'setChannel3SpecialFrequency'|'setFrequency'|'setNote'|'setBlockFnum'|'keyOn'|'keyOff'|'noteOn'|'noteOnRaw'|'noteOff'|'setModulation'} YM2608FmRecordedMethod */
 /** @typedef {'write'|'tone'|'noise'|'setMixer'|'setVolume'|'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'off'} YM2608SsgRecordedMethod */
+/** @typedef {{[K in 'setVolume'|'setVoice'|'keyOn'|'keyOff']:(...args:Parameters<YM2608Synth['rhythm'][K]>)=>YM2608OperationRecorder}} YM2608RhythmRecorder */
 /** @typedef {{[K in YM2608SsgRecordedMethod]:(...args:Parameters<YM2608Synth['ssg'][K]>)=>YM2608OperationRecorder}} YM2608SsgRecorder */
 /** @typedef {{[K in YM2608FmRecordedMethod]:(...args:Parameters<YM2608Synth[K]>)=>YM2608OperationRecorder} & {
  * atSample(value:number):YM2608OperationRecorder,
  * atSeconds(value:number):YM2608OperationRecorder,
+ * rhythm:YM2608RhythmRecorder,
  * ssg:YM2608SsgRecorder
  * }} YM2608OperationRecorder */
 
@@ -29,6 +31,7 @@ const arity = Object.freeze({
   setBlockFnum: [3, 3], keyOn: [1, 2], keyOff: [1, 1],
   noteOn: [2, 3], noteOnRaw: [3, 3], noteOff: [1, 1],
   setModulation:[3,3],
+  'rhythm.setVolume':[1,1], 'rhythm.setVoice':[1,2], 'rhythm.keyOn':[1,1], 'rhythm.keyOff':[1,1],
   'ssg.write':[2,2], 'ssg.tone':[1,2], 'ssg.noise':[1,2],
   'ssg.setMixer':[2,2], 'ssg.setVolume':[2,3], 'ssg.setEnvelope':[1,1],
   'ssg.setTonePeriod':[2,2],
@@ -176,7 +179,8 @@ export function buildYm2608Operations(callback, options = {}) {
     return builder;
   };
   builder.ssg=Object.create(null);
-  for (const method of YM2608_OPERATION_METHODS) (method.startsWith('ssg.')?builder.ssg:builder)[method.split('.').at(-1)] = (...args) => {
+  builder.rhythm=Object.create(null);
+  for (const method of YM2608_OPERATION_METHODS) (method.includes('.')?builder[method.split('.')[0]]:builder)[method.split('.').at(-1)] = (...args) => {
     check();
     if (operations.length >= MAX_YM2608_OPERATIONS) throw new RangeError(`YM2608 programs support at most ${MAX_YM2608_OPERATIONS} operations`);
     const call = copyCall({method, args});
@@ -211,10 +215,10 @@ export function createYm2608OperationResolver({clock = 8000000} = {}) {
       writes = [];
       if(['write','rawWrite'].includes(call.method)){
         const [port,reg]=call.args;
-        if(!(port===0&&reg>=0&&reg<=13||(port===0||port===1)&&reg>=0x30&&reg<=0xb6||port===0&&[0x22,0x28,0x29].includes(reg)))throw new Error('YM2608 timed raw writes support FM/SSG registers only');
+        if(!(port===0&&reg>=0&&reg<=13||(port===0||port===1)&&reg>=0x30&&reg<=0xb6||port===0&&([0x10,0x11,0x22,0x28,0x29].includes(reg)||reg>=0x18&&reg<=0x1d)))throw new Error('YM2608 timed raw writes support FM/SSG/Rhythm registers only');
       }
       if(call.method==='ssg.write'&&(call.args[0]<0||call.args[0]>13))throw new Error('YM2608 timed SSG writes exclude I/O ports');
-      const section=call.method.startsWith('ssg.')?synth.ssg:synth;
+      const section=call.method.includes('.')?synth[call.method.split('.')[0]]:synth;
       section[call.method.split('.').at(-1)](...call.args);
       for (const write of writes) observeYm2608OperationWrite(input, write.port, write.register, write.value);
       input.ssgLevels=synth.ssg._getState().levels.map(value=>value&31);

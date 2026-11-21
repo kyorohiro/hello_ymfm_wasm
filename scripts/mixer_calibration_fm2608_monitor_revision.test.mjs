@@ -1,3 +1,4 @@
+import {createYm2608RhythmRevisionReadContext} from './mixer_calibration_ym2608_rhythm_revision.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -6,9 +7,9 @@ import {createFm2608MonitorRevisionReadContext,FM2608_MONITOR_RECEIPT,FM2608_MON
 const root=new URL('../',import.meta.url),sha=b=>createHash('sha256').update(b).digest('hex');
 test('standalone monitor review restores complete predecessors and leaves all unreviewed edits visible',()=>{
  const bytes=readFileSync(new URL(FM2608_MONITOR_RECEIPT,root));assert.equal(sha(bytes),FM2608_MONITOR_PIN);
- const receipt=JSON.parse(bytes),context=createFm2608MonitorRevisionReadContext();
+ const latest=createYm2608RhythmRevisionReadContext(),receipt=JSON.parse(bytes),context=createFm2608MonitorRevisionReadContext();
  for(const [name,entry]of Object.entries(receipt.sources)){
-  const current=readFileSync(new URL(name,root));assert.equal(sha(current),entry.after.sha256);
+  const current=latest.restore(name,readFileSync(new URL(name,root)));assert.equal(sha(current),entry.after.sha256);
   assert.equal(sha(context.restore(name,current)),entry.before.sha256);assert.equal(sha(context.readSource(new URL(name,root))),entry.before.sha256);
   const changed=Buffer.concat([current,Buffer.from('\n// future')]);assert.equal(context.restore(name,changed),changed);
  }

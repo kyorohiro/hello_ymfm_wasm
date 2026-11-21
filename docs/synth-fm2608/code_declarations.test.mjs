@@ -16,6 +16,10 @@ test('OPNA Code completion exposes the borrowed four-section API and rejects abs
     await writeFile(join(work, 'globals.d.ts'), declarations);
     await writeFile(join(work, 'entry.ts'), `export {};
 const opna = await useSoundChip('ym2608');
+const drums=opna.build(b=>{b.rhythm.setVolume(48);b.rhythm.setVoice('snare',{volume:20,left:true});b.atSample(100).rhythm.keyOn(['snare',3]);b.atSeconds(.2).rhythm.keyOff('snare');});
+await opna.compile(drums);await opna.schedule(drums,{name:'drums',repeatSeconds:1});
+// @ts-expect-error ROM transfer is not a recorded register operation
+opna.build(b=>b.rhythm.loadRom(new Uint8Array(8192)));
 const phrase=opna.build(b=>{b.atSample(0).setOperator(CH1,OP1,{multi:3});b.ssg.noteOn(CH1,'E4');b.atSeconds(.1).ssg.keyOff(CH1);});
 const trace=await opna.compile(phrase,{initialState:await opna.captureState()});
 await opna.compile(phrase,{initialState:'client'});await opna.schedule(phrase,{name:'test',repeatSeconds:.5});await opna.clearSchedule('test');

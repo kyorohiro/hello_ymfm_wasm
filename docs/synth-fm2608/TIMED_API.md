@@ -1,4 +1,4 @@
-# Timed FM / SSG operations
+# Timed FM / SSG / Rhythm operations
 
 Open `examples/timed-fm-ssg.js` in Files, choose Code and Run. It is included
 in fresh projects (Menu → New → Cassette). Restoring an existing Cassette does
@@ -21,7 +21,7 @@ await opna.schedule(phrase, {name: 'phrase', repeatSeconds: 0.5});
 `build` runs its synchronous callback once and records serializable operations.
 It does not inspect or alter a chip. Seconds and reference samples are absolute
 reservation offsets; offsets must not decrease. `referenceSampleRate` defaults
-to 44100, independent of the output device. `b.ssg` shares the parent cursor.
+to 44100, independent of the output device. `b.ssg` and `b.rhythm` share the parent cursor.
 
 `compile` returns `{offsetSeconds, port, register, value, operationIndex,
 writeIndex}` rows, preserving order and repeated writes. It virtually applies
@@ -63,8 +63,35 @@ Master/source gains and scheduled-state UI remain separate from compilation.
 
 Available on shared Web Audio Main/Worker clients, the primary Worker client and
 `YM2608RuntimeSynth.fm`, borrowed by this Synth. Immediate methods are unchanged.
-Native authoritative capture/execution, Rhythm, ADPCM transfers, timers/CSM
+Native authoritative capture/execution, ROM/ADPCM transfers, timers/CSM
 and nonstandard prescaler authoring are outside this slice. Raw timed writes are
-restricted to FM/SSG registers; SSG I/O ports are excluded. This source change is
+restricted to FM/SSG/Rhythm registers; SSG I/O ports are excluded. This source change is
 not an npm publication. Continuous scheduled-state UI display is deferred to the
 [shared visible-panel plan](../issues/todo_synth_scheduled_live_view_20261121.md).
+
+
+## Fixed-ROM Rhythm
+
+Fresh Cassettes also include `examples/timed-rhythm.js`. The Synth already loads
+its standard replacement Rhythm ROM. `build` and `compile` never fetch or upload
+a ROM; other hosts must load theirs before playing. Recorded methods are
+`rhythm.setVolume(0..63)`, `rhythm.setVoice(voice,{volume:0..31,left,right})`,
+`rhythm.keyOn(voiceOrArray)` and `rhythm.keyOff(voiceOrArray)`. Physical voices
+are 0 bassDrum, 1 snare, 2 cymbal, 3 hiHat, 4 tom, 5 rimShot. Either numbers or
+those names are accepted. These drum indices are independent of FM/SSG CHs.
+
+Rhythm global volume writes `0x11`; individual pan/level writes `0x18..0x1D`; trigger
+and stop masks write `0x10` (stop adds bit 7). Repeated same-value triggers are
+retained. A simultaneous event remains one register write unless playback must
+exclude a stale Off for a voice acquired by someone else. Stop/owner cancellation
+releases only that owner's drums; ordinary non-timed APIs retain their behavior.
+
+Snapshots now include detached `rhythmLevels` authoring metadata so a partial
+volume edit preserves pan even while the standalone monitor physically clears
+its stereo gates. `registers` still contains the physical bytes. Older v1
+snapshots without this metadata use their captured physical `0x18..0x1D` values. The reset baseline uses the core’s `0xDF`
+Rhythm voice defaults (both pans, maximum level); the optimistic client baseline
+also retains its existing immediate helper state.
+The audio-thread Rhythm monitor restores the latest authored pan/volume on
+unmute, without introducing a UI poll or replaying old Main-thread values.
+`loadRom` and `reset` are not recorded methods. ADPCM remains separate.

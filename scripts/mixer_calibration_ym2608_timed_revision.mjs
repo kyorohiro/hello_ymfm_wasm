@@ -48,7 +48,7 @@ export function createYm2608TimedRevisionReadContext(readSource=readFileSync){
 }
 /** Test-only authenticated pre-feature Worklet; never used for live playback. */
 export function readHistoricalYm2608TimedWorklet(path){
- const {sources}=evidence(),entry=sources[path],bytes=readFileSync(new URL(path,root));
+ const {sources}=evidence(),entry=sources[path],bytes=createFm2608MonitorRevisionReadContext().restore(path,readFileSync(new URL(path,root)));
  if(!entry||!matches(bytes,entry.after))throw Error('Unreviewed YM2608 Worklet bytes');
  return previous(bytes,entry).toString('utf8');
 }
