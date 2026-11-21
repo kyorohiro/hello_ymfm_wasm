@@ -129,7 +129,7 @@ async function ensureAudio() {
         engine.setVolume(Number($('masterVolume').value));
         let client=null;
         engine.getSnesClient=async()=>{
-          if(!client)client=createSnesCodeClient({command:(...args)=>engine.command(...args),
+          if(!client)client=createSnesCodeClient({timedPort:engine.timedPort,command:(...args)=>engine.command(...args),
             isCurrent:()=>audio===engine&&!disposed,onActivity:result=>{if(result?.stolenId)for(const [source,note]of notes)if(note.id===result.stolenId)notes.delete(source);updateKeys();visualizer.wake();}});
           return client;
         };

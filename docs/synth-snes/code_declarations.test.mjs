@@ -19,6 +19,10 @@ await snes.noteOn(7,60);const state:SnesCodeState=await snes.getState();
 const active:boolean=state.pmon.active;
 liveLoop('melody',async()=>{await snes.noteOn(CH2,choose(scale('C4','minor')));await beat(.25);await snes.noteOff(CH2);});
 await livePrepare('chip',async api=>api.useSoundChip('snes'));
+const phrase=snes.build(b=>{b.setChannel(CH1,{gain:80});b.noteOn(CH1,'C4');b.atSample(441).noteOff(CH1);});
+const snap=await snes.captureState();await snes.compile(phrase,{initialState:snap});await snes.schedule(phrase,{name:'voice',repeatSeconds:.5});await snes.clearSchedule('voice');
+// @ts-expect-error RAM upload is not a recorded operation
+snes.build(b=>b.loadBRR(new Uint8Array(9),{rootNote:'C4'}));
 await pg.useSoundChip('snes');await snes.allNotesOff();await snes.dispose();
 // @ts-expect-error unsupported borrowed chip
 await useSoundChip('ym2612');

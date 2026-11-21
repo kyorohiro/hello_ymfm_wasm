@@ -29,19 +29,19 @@ it does not mean all other Synths are aligned. The order of the remaining
 targets is still undecided. This correction does not add recording, channel
 monitoring, RAM/DSP transfer or Native scheduling to the scope.
 
-Source recheck on 2026-11-21 (this priority update performs no implementation):
+Status updated through the 2026-11-21 workspace and timed-API ports:
 
 | Remaining comparison target | Code / Synth + persistent expanded tabs | Timed API surface |
 |---|---|---|
 | YM2149 ST | Implemented 2026-11-21: [workspace record](todo_ym2149_st_code_workspace_20261121.md) | Present; 91 existing AY tests and live reservation continuity passed during the UI port |
 | FM2608 | Implemented 2026-11-21: [verification](verification_fm2608_code_workspace_20261121.json) | FM/SSG/Rhythm/loaded-sample ADPCM-B implemented; memory transfer/Native/UI following remain separate |
 | 2A03 | Implemented 2026-11-21: [verification](verification_2a03_code_workspace_20261121.json) | Pulse/Triangle/Noise, prepared DMC and FDS controls implemented; [FDS RAM/memory/Native follow-ups](todo_2a03_timed_register_api_20261121.md) |
-| S-DSP | Port needed | Port needed |
+| S-DSP | Implemented: [workspace verification](verification_snes_code_workspace_20261121.json) | Physical voice/pitch/gate/DSP controls and prepared Echo implemented: [verification](verification_snes_timed_api_20261121.json) |
 | SCSP | Port needed | Port needed; DSP assembly is separate |
 | ASWAN | Present | Scoped implementation present; retain documented exclusions |
 | SMSGEAR / YM2413 | Present | Sega PSG / YM2413 shared clients and borrowed Synth wiring present |
 
-The two remaining workspaces (S-DSP and SCSP) do not yet use the
+The remaining SCSP workspace does not yet use the
 persistent-expanded helper/header buttons. Source inspection is not a new
 claim of backend/audio validation or full completion of every optional row.
 

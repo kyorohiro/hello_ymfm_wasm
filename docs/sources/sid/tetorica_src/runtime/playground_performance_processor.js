@@ -304,7 +304,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     if(!auditions.size)return false;
     // Explicit timed chip edits follow actual application order. Note ownership
     // below still protects newer manual Gates from an old scheduled release.
-    if(['ay8910','huc6280','wonderswan','gameboy','sid','ym2608','nes'].includes(chipName())&&metadata?.timedOperation)return false;
+    if(['ay8910','huc6280','wonderswan','gameboy','sid','ym2608','nes','snes'].includes(chipName())&&metadata?.timedOperation)return false;
     // PSG noise rate 3 uses tone channel 3's divider. A held noise key owns
     // that divider as well, while the tone channel's volume remains editable.
     if(chipName()==='segapsg'&&command.method==='write'&&auditions.has(3)&&(getPsgMode?.()&3)===3){

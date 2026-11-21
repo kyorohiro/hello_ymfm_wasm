@@ -21,7 +21,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | Output-only channel switches shared by Keyboard, Code and song | **Implemented.** [mixer.js](../synth-snes/mixer.js) applies source volume and an eight-channel mute mask to the instrument and SPC player. Muted modulators continue driving PMON. |
 | PCM drawing and Start/Loop range editing | **Partial / chip-specific.** [editor.js](../synth-snes/editor.js) draws 128-point waves for carrier/modulator. Imported BRR has a read-only decoded overview and editable Root/base PITCH/Loop start. Arbitrary BRR sample drawing and RF5C164-style Start/End trimming are absent. |
 | Looper / Event Rec | **Looper implemented; Event Rec optional/missing.** [index.html](../synth-snes/index.html) and [README](../synth-snes/README.md#software-looper) describe independent audio layers, release/Echo wrapping, Undo/Clear and Code ownership. Do not duplicate that recorder. |
-| Timed build/schedule/compile/capture-state API | **Separate proposal.** Not wired through the S-DSP Code host; hardware ADSR/GAIN, PMON and Echo are not a replacement for register-operation reservations. |
+| Timed build/schedule/compile/capture-state API | **Present (2026-11-21).** Physical voice/pitch/gate/DSP controls, prepared Echo, detached snapshots and audio-clock reservations are connected through shared Main/Worker clients and Synth Code. BRR/first Echo reservation/Native/Live UI remain separate. |
 
 ## First implementation candidate: saving and Files
 
@@ -77,7 +77,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 
 ## Timed register API follow-up
 
-Not implemented; separate chip-level API work from Files/UI alignment.
+The first timed slice is implemented; keep remaining RAM/Native/UI work separate from Files alignment.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
 - [ ] Resolve voice/global DSP registers, KON/KOFF event masks, ADSR/GAIN, PMON, Noise and shared Echo/FIR settings with their original side effects.
@@ -99,3 +99,18 @@ expanded-tab checks pass. Source and readable ZIP pass physically muted
 Chromium/WebKit with fallback and real Monaco at desktop/390px widths.
 Human listening remains pending; timed APIs are the next task.
 [Evidence](verification_snes_code_workspace_20261121.json).
+
+
+## Completed timed API slice — 2026-11-21
+
+- [x] Record/compile voice preset patches, pitch, gates and bounded raw DSP controls using the existing converter.
+- [x] Capture reusable renderer/client/reset snapshots with sample tuning, KON/KOFF bookkeeping and instance identity; no RAM/decoder state.
+- [x] AudioWorklet sample-clock scheduling and Code Run/Apply/Stop ownership.
+- [x] Keep BRR upload and first Echo reservation outside scheduling; existing immediate APIs unchanged.
+- [x] Actual WASM, 44.1/48 kHz, Main/Worker, Synth and muted readable ZIP verification.
+
+Timed verification: 203 S-DSP tests (14 timed/actual-WASM/client/parity checks
+and two exact revision checks included), 89 shared/calibration checks,
+419 runtime modules / 482 generated declarations. Readable ZIP passes physically
+muted Chromium/WebKit performance and real Monaco. Human listening remains
+pending. [Evidence](verification_snes_timed_api_20261121.json).

@@ -617,3 +617,10 @@ Pause to audition a playable CH snapshot on the existing authored S-DSP. Auditio
 Mixer provides one S-DSP source gain (0–380%) and eight physical channel On / Off switches shared by the authored instrument, Code and SPC. Muting does not inject Key Off or stop envelopes; a muted PMON modulator can still modulate its carrier. Gain is after the Code output chain and before the final Master. Context recreation, source replacement and bank replacement reapply the session's mixer settings. No extra speaker route or Tauri menu is created. Mixer values remain session controls, outside instrument presets.
 
 SPC imports automatically add available initial voice presets and the original SPC to Files, preserving the current Auto sound. Invalid or oversized batches leave prior Files intact. Unsupported voices are skipped. Reopen a stored SPC through the source selector / Files without extracting another batch. Portable JSON preset imports also add a copy to `/presets` before applying it to Auto. Cassette ZIP includes the original SPC and extracted presets. Importing a project or choosing a saved source never starts audio or Code automatically.
+
+## Timed register operations
+
+`build` / `compile` / `schedule` record and inspect physical-voice operations on
+the AudioWorklet sample clock. Fresh Cassettes include `examples/timed-sdsp.js`.
+Immediate Synth performance lanes retain their allocator. BRR and first Echo
+reservation stay outside recording. See [the timed API](TIMED_API.md).

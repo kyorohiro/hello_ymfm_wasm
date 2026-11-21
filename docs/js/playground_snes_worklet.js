@@ -1,10 +1,12 @@
-import factory from '../generated/spc_wasm.js?v=spc-events-1';
-import {SnesDspCore} from './spc.js?v=spc-events-1';
-import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
-import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=sid-timed-1';
-import {SnesVoiceInspector} from './playground_snes_inspector.js?v=y8950-adpcm-ui-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
+import {captureSnesOperationState} from './snes_operation_state.js';
+import {createSnesTimedProcessor} from './snes_timed_processor.js';
+import factory from '../generated/spc_wasm.js';
+import {SnesDspCore} from './spc.js';
+import {SnesSynth} from './snessynth.js';
+import {SpcResampler} from './spc_resampler.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
+import {SnesVoiceInspector} from './playground_snes_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 const METHODS=new Set(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','loadBRR','setEcho','getEcho','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
 const RESOURCE_METHODS=new Set(['prepareTimeline','stopTimeline','getTimelineState','loadBRR','setEcho','getEcho','readDsp','getState','getPreset','snapshot']);
 export class SnesInstrumentProcessor extends AudioWorkletProcessor {
@@ -12,17 +14,20 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
     super();this.synth=null;this.dead=false;this.remote=null;this.timelineCompletion=null;
     this.validation=new SnesSynth({core:{reset(){},loadRam(){},writeDsp(){},dispose(){}}});
     this.renderSegment=this.renderSegment.bind(this);
-    this.performance=createProcessorPerformance({chip:'snes',apply:(data,port)=>this.apply(data,port,true),
+    this.performance=createProcessorPerformance({chip:'snes',patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,apply:(data,port,frame,metadata)=>{if(data.method==='applyTimedOperation')this.timed.apply(data.operation,port,frame,metadata);else this.apply(data,port,true,metadata);},
       prepare:(data,port)=>{
         if(RESOURCE_METHODS.has(data.method)){this.apply(data,port);return null;}
         if(data.method==='playTimeline'||data.id===undefined)return data;
         const {id,...command}=data;port.postMessage({id,value:true});return command;
       },validate:({method,args=[]})=>{
+        if(method==='applyTimedOperation')return;
         if(!METHODS.has(method))throw new Error('Unknown SNES method');
         if(['prepareTimeline','playTimeline','stopTimeline','getTimelineState'].includes(method))return;
         if(method==='dispose'||['getState','getEcho','snapshot','readDsp','getPreset'].includes(method))return;
         if(!['loadBRR','setEcho'].includes(method))this.validation[method](...args);
       }});
+    this.instanceId='snes:'+Math.random().toString(36).slice(2);
+    this.timed=createSnesTimedProcessor({performance:this.performance,getState:()=>captureSnesOperationState(this.synth),getConfig:()=>({instanceId:this.instanceId,clock:32000,engine:'snes-wasm'}),dispatch:(command,port,frame,metadata)=>this.performance.applyImmediate(command,port,metadata),nowFrame:()=>currentFrame,sampleRate});
     this.port.onmessage=({data})=>{
       if(data?.primaryWorker){
         this.workerRemote?.close();this.workerRemote=null;
@@ -57,6 +62,7 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
       if(this.synth?.timeline)this.resampler.reset(this.synth.core.nativeFrames);
       this.finishTimeline('SNES performance stopped');
     }
+    if(this.timed.receive(data,port))return;
     if(this.performance.receive(data,port))return;this.apply(data,port);
   }
   stopVoices(){
@@ -69,13 +75,18 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
     for(let register=0;register<128;register++)if(![0x4c,0x5c].includes(register)&&(register&15)!==8&&(register&15)!==9)this.synth.core.writeDsp(register,dsp[register]);
     this.synth.pendingKon=0;this.synth.koff=255;this.synth.konFrame=-1;this.inspector.gates=0;this.synth.core.writeDsp(0x4c,0);this.synth.core.writeDsp(0x5c,255);this.resampler.reset(this.synth.core.nativeFrames);
   }
-  apply({method,args=[],id},port,queued=false) {
+  apply({method,args=[],id},port,queued=false,metadata) {
     try {
       if(method==='dispose'){this.dispose();return;}
       if(this.dead||!this.synth)throw new Error('SNES instrument is not ready');
       if(!METHODS.has(method))throw new Error('Unknown SNES method');
       if(['prepareTimeline','playTimeline','stopTimeline','reset'].includes(method)){
         this.synth.stopTimeline();this.finishTimeline('SNES timeline stopped or replaced');
+      }
+      if(metadata?.snesState)this.synth.channels=metadata.snesState.channels.map(p=>({...p}));
+      if(metadata?.timedOperation){
+        const channels=['keyOn','noteOn'].includes(method)?[args[0]]:method==='writeDsp'&&args[0]===0x4c?Array.from({length:8},(_,ch)=>ch).filter(ch=>args[1]&(1<<ch)):[];
+        for(const ch of channels){const id=this.inspector.auditions.get(ch);if(id!==undefined){this.inspector.auditions.delete(ch);this.performance.endAudition(ch,'voice-editor:'+id);}}
       }
       const beforeReserved=this.synth.echoReserved;
       const value=this.synth[method](...args);
@@ -102,7 +113,7 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
     else pending.port.postMessage({id:pending.id,value:this.synth.getTimelineState()});
   }
   fail(error){if(this.dead)return;const message={fatal:true,error:String(error.message??error)};this.port.postMessage(message);this.remote?.postMessage(message);this.workerRemote?.postMessage(message);this.dispose();}
-  dispose(){if(this.dead)return;this.dead=true;this.inspector?.resetAuditions();this.finishTimeline('SNES instance disposed');this.performance.clear();this.synth?.dispose();this.synth=null;this.remote?.close();this.workerRemote?.close();}
+  dispose(){if(this.dead)return;this.dead=true;this.inspector?.resetAuditions();this.finishTimeline('SNES instance disposed');this.performance.clear();this.timed.clear();this.synth?.dispose();this.synth=null;this.remote?.close();this.workerRemote?.close();}
   renderSegment(left,right){
     if(!this.synth){left.fill(0);right.fill(0);return;}this.resampler.render(left,right);
     if(this.timelineCompletion){

@@ -1,3 +1,4 @@
+import {attachSnesTimedClient} from './snes_timed_client.js';
 /** Ordered Main/logic-Worker client for a CPU-free SNES DSP AudioWorklet. */
 import {SnesSynth,prepareSnesBRR} from './snessynth.js';
 import {prepareSpcTimeline} from './spc.js';
@@ -72,5 +73,6 @@ export function createSnesClient(port,initial={},lifecycle={}) {
     for(const method of ['loadBRR','setEcho','getEcho','prepareTimeline','playTimeline','stopTimeline','getTimelineState','readDsp','getState','getPreset','snapshot']){const original=client[method].bind(client);client[method]=(...args)=>{const context=lifecycle.captureContext?.();check(context);return original(...args).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};}
   }
   if(initial.state)client._adoptState(initial.state);
-  return client;
+  Object.defineProperty(client,'_requestControl',{value:(method,args)=>request(method,args)});
+  return attachSnesTimedClient(client,{native:!!initial.native},port);
 }

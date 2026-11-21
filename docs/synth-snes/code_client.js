@@ -1,3 +1,4 @@
+import {attachSnesTimedClient} from '../js/snes_timed_client.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {noteToHz} from '../js/soundchip_pitch.js';
 const cancelled=()=>new DOMException('S-DSP Code session stopped','AbortError');
@@ -5,7 +6,7 @@ let sequence=0;
 /** Synth performance lanes share the keyboard's allocator and current patch.
  * Lanes are not raw DSP channels: PMON still allocates adjacent voice pairs.
  * Retiring a client releases only its own note identities, never manual keys. */
-export function createSnesCodeClient({command,isCurrent=()=>true,onActivity=()=>{}}={}) {
+export function createSnesCodeClient({command,isCurrent=()=>true,onActivity=()=>{},timedPort}={}) {
   if(typeof command!=='function')throw TypeError('S-DSP Code needs a command callback');
   const session=++sequence,notes=new Map();let closed=false,queue=Promise.resolve();
   const check=()=>{if(closed||!isCurrent())throw cancelled();};
@@ -36,5 +37,6 @@ export function createSnesCodeClient({command,isCurrent=()=>true,onActivity=()=>
     allNotesOff(){check();return enqueue(releaseAll);},
     dispose(){if(closed)return queue;closed=true;return enqueue(releaseAll);},
   };
-  return client;
+  Object.defineProperty(client,'_requestControl',{value:(method,args)=>{check();return command(method,args);}});
+  return attachSnesTimedClient(client,{},timedPort);
 }

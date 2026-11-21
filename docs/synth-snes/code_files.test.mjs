@@ -84,7 +84,7 @@ test('S-DSP duplicate/rename/delete preserve binary data and stop only the execu
 test('S-DSP malformed imports and capacity failure leave Files atomic',async t=>{
   const gate=deferred();const f=fixture(t,{store:{read:async()=>{await gate.promise;return null;},write:async()=>true,close:async()=>{}}});
   gate.resolve();await f.files.ready;const before=f.project.snapshot();await assert.rejects(f.files.importProject(Uint8Array.of(1,2,3)));assert.deepEqual(f.project.snapshot(),before);
-  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(SNES_PROJECT_FILE_BYTES-100)}]);const full=f.project.snapshot();await assert.rejects(f.files.saveSound(),/16 MiB/);assert.deepEqual(f.project.snapshot(),full);assert.equal(f.doc.querySelector('.snes-main').inert,false);
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(SNES_PROJECT_FILE_BYTES-100-f.project.fs.list().reduce((total,file)=>total+new TextEncoder().encode(file.data).length,0))}]);const full=f.project.snapshot();await assert.rejects(f.files.saveSound(),/16 MiB/);assert.deepEqual(f.project.snapshot(),full);assert.equal(f.doc.querySelector('.snes-main').inert,false);
 });
 
 test('late S-DSP file reads cannot overwrite a newer edit or a disposed workspace',async t=>{
@@ -155,8 +155,8 @@ test('invalid sound names leave files, selection and active sound intact',async 
  assert.equal(f.doc.getElementById('snesSaveSoundAs').disabled,false);
 });
 test('Save sound as dialog freezes its source at open and Cancel adds no file',async t=>{
- const f=fixture(t);await f.files.ready;const button=f.doc.getElementById('snesSaveSoundAs');await button.fire('click');const dialog=f.doc.getElementById('snesFileNameDialog'),input=f.doc.getElementById('snesFileNameInput');assert.equal(dialog.open,true);assert.equal(input.value,'Sine');
- await f.doc.getElementById('snesFileNameCancel').fire('click');assert.equal(f.project.fs.list().length,1);
+ const f=fixture(t);await f.files.ready;const count=f.project.fs.list().length;const button=f.doc.getElementById('snesSaveSoundAs');await button.fire('click');const dialog=f.doc.getElementById('snesFileNameDialog'),input=f.doc.getElementById('snesFileNameInput');assert.equal(dialog.open,true);assert.equal(input.value,'Sine');
+ await f.doc.getElementById('snesFileNameCancel').fire('click');assert.equal(f.project.fs.list().length,count);
  await button.fire('click');const changed=createDefaultPreset();changed.source='noise';changed.noise.clock=12;f.setSettings(changed);f.files.markSoundDirty();input.value='Captured before later edit';await dialog.children[0].fire('submit');await new Promise(r=>setImmediate(r));const saved=JSON.parse(f.project.fs.get('/presets/Captured before later edit.sdsp.json').data);assert.equal(saved.source,'wave');assert.equal(saved.name,'Captured before later edit');assert.deepEqual(f.project.settings,changed);assert.deepEqual(f.calls,[]);
 });
 

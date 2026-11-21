@@ -1,0 +1,510 @@
+{
+  "schemaVersion": 1,
+  "scope": "snes-timed-operations",
+  "baseCommit": "b5f3097f3ab3e45b3cb328ca58579a6819fcfbfc",
+  "reason": "Add S-DSP physical-voice/control recording, predicted register compilation, detached snapshots and AudioWorklet reservations through shared Main/Worker clients and borrowed Synth Code. Reuse SnesSynth conversion, preserve raw writes/partial updates, KON/KOFF and manual ownership; exclude BRR upload and first Echo reservation. Core/WASM, mixer gains and historical measurements are unchanged; manual stereo PCM matches the authenticated predecessor.",
+  "sources": {
+    "docs/js/playground_performance_processor.js": {
+      "before": {
+        "bytes": 33870,
+        "sha256": "5c3e79b4b35d97713607adb0102900892917871b7362a667b79fb9e28c1b5dec"
+      },
+      "after": {
+        "bytes": 33877,
+        "sha256": "11af41172d2f8b4ea04ee768b1f3b0f95c42d3faae626ced1b2553254da87e80"
+      },
+      "hunks": [
+        {
+          "afterOffset": 20330,
+          "afterBytes": 140,
+          "beforeBase64": "ICAgIGlmKFsnYXk4OTEwJywnaHVjNjI4MCcsJ3dvbmRlcnN3YW4nLCdnYW1lYm95Jywnc2lkJywneW0yNjA4JywnbmVzJ10uaW5jbHVkZXMoY2hpcE5hbWUoKSkmJm1ldGFkYXRhPy50aW1lZE9wZXJhdGlvbilyZXR1cm4gZmFsc2U7Cg=="
+        }
+      ]
+    },
+    "docs/js/playground_snes.js": {
+      "before": {
+        "bytes": 9197,
+        "sha256": "d6392d9825e00d4f0c43d32e88eb773e2c90b799a4418076f01c435c6afe3862"
+      },
+      "after": {
+        "bytes": 9234,
+        "sha256": "627ad7aa23348c0b686a6a9f94172871c64ffca1dd40fb4017ad8b421193d271"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 62,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 140,
+          "afterBytes": 102,
+          "beforeBase64": "aW1wb3J0IHtTbmVzU3ludGgscHJlcGFyZVNuZXNCUlJ9IGZyb20gJy4vc25lc3N5bnRoLmpzP3Y9c3BjLXNvbmctanMtMSc7CmltcG9ydCB7cHJlcGFyZVNwY1RpbWVsaW5lfSBmcm9tICcuL3NwYy5qcz92PXNwYy1ldmVudHMtMSc7Cg=="
+        },
+        {
+          "afterOffset": 3548,
+          "afterBytes": 174,
+          "beforeBase64": "ICAgIC8qKiBAcGFyYW0ge0FycmF5QnVmZmVyfEFycmF5QnVmZmVyVmlld30gaW5wdXQgQHBhcmFtIHtpbXBvcnQoJy4vc25lc3N5bnRoLmpzP3Y9c3BjLXNvbmctanMtMScpLlNuZXNCUlJPcHRpb25zfSBvcHRpb25zCiAgICAgKiBAcmV0dXJucyB7UHJvbWlzZTxpbXBvcnQoJy4vc25lc3N5bnRoLmpzP3Y9c3BjLXNvbmctanMtMScpLlNuZXNTYW1wbGU+fSAqLwo="
+        },
+        {
+          "afterOffset": 4380,
+          "afterBytes": 145,
+          "beforeBase64": "ICAgICAqIEBwYXJhbSB7UGFydGlhbDxpbXBvcnQoJy4vc25lc3N5bnRoLmpzP3Y9c3BjLXNvbmctanMtMScpLlNuZXNFY2hvT3B0aW9ucz59IFtvcHRpb25zXQogICAgICogQHJldHVybnMge1Byb21pc2U8aW1wb3J0KCcuL3NuZXNzeW50aC5qcz92PXNwYy1zb25nLWpzLTEnKS5TbmVzRWNob1N0YXRlPn0gKi8K"
+        },
+        {
+          "afterOffset": 4797,
+          "afterBytes": 69,
+          "beforeBase64": "ICAgICAqIEByZXR1cm5zIHtQcm9taXNlPGltcG9ydCgnLi9zbmVzc3ludGguanM/dj1zcGMtc29uZy1qcy0xJykuU25lc0VjaG9TdGF0ZT59ICovCg=="
+        },
+        {
+          "afterOffset": 5012,
+          "afterBytes": 56,
+          "beforeBase64": "ICAgICAqIEBwYXJhbSB7aW1wb3J0KCcuL3NwYy5qcz92PXNwYy1ldmVudHMtMScpLlNwY1RpbWVsaW5lfSB0cmFjZSAqLwo="
+        },
+        {
+          "afterOffset": 6037,
+          "afterBytes": 82,
+          "beforeBase64": "ICAgIC8qKiBAcGFyYW0ge251bWJlcn0gY2ggQHBhcmFtIHtpbXBvcnQoJy4vc25lc3N5bnRoLmpzP3Y9c3BjLXNvbmctanMtMScpLlNuZXNQcmVzZXR9IHByZXNldCAqLwo="
+        },
+        {
+          "afterOffset": 6197,
+          "afterBytes": 82,
+          "beforeBase64": "ICAgIC8qKiBAcGFyYW0ge251bWJlcn0gY2ggQHBhcmFtIHtpbXBvcnQoJy4vc25lc3N5bnRoLmpzP3Y9c3BjLXNvbmctanMtMScpLlNuZXNQcmVzZXR9IHBhcmFtcyAqLwo="
+        },
+        {
+          "afterOffset": 7638,
+          "afterBytes": 182,
+          "beforeBase64": "ICAgIC8qKiBAcGFyYW0ge251bWJlcn0gY2ggQHJldHVybnMge1Byb21pc2U8aW1wb3J0KCcuL3NuZXNzeW50aC5qcz92PXNwYy1zb25nLWpzLTEnKS5TbmVzVm9pY2VTdGF0ZT59ICovIGdldFByZXNldChjaCl7aW5zdHJ1bWVudE9ubHkoKTt2YWxpZGF0aW9uLmdldFByZXNldChjaCk7cmV0dXJuIHJlcXVlc3QoJ2dldFByZXNldCcsW2NoXSk7fSwK"
+        },
+        {
+          "afterOffset": 9066,
+          "afterBytes": 166,
+          "beforeBase64": "ICByZXR1cm4gY2xpZW50Owo="
+        }
+      ]
+    },
+    "docs/js/playground_snes_worklet.js": {
+      "before": {
+        "bytes": 8462,
+        "sha256": "a2aca4568ad41204bd19cbdc38091b838a2eff2cdb64c490b4d49543e65bfa36"
+      },
+      "after": {
+        "bytes": 9697,
+        "sha256": "f21750c523cfc30f327163a14de7962b48173a95efc02b5da2af438f60f0d954"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 538,
+          "beforeBase64": "aW1wb3J0IGZhY3RvcnkgZnJvbSAnLi4vZ2VuZXJhdGVkL3NwY193YXNtLmpzP3Y9c3BjLWV2ZW50cy0xJzsKaW1wb3J0IHtTbmVzRHNwQ29yZX0gZnJvbSAnLi9zcGMuanM/dj1zcGMtZXZlbnRzLTEnOwppbXBvcnQge1NuZXNTeW50aH0gZnJvbSAnLi9zbmVzc3ludGguanM/dj1zcGMtc29uZy1qcy0xJzsKaW1wb3J0IHtTcGNSZXNhbXBsZXJ9IGZyb20gJy4vc3BjX3Jlc2FtcGxlci5qcz92PWNoaXAtdGFicy0yJzsKaW1wb3J0IHtjcmVhdGVQcm9jZXNzb3JQZXJmb3JtYW5jZX0gZnJvbSAnLi9wbGF5Z3JvdW5kX3BlcmZvcm1hbmNlX3Byb2Nlc3Nvci5qcz92PXNpZC10aW1lZC0xJzsKaW1wb3J0IHtTbmVzVm9pY2VJbnNwZWN0b3J9IGZyb20gJy4vcGxheWdyb3VuZF9zbmVzX2luc3BlY3Rvci5qcz92PXk4OTUwLWFkcGNtLXVpLTEnOwppbXBvcnQge3JlY2VpdmVDaGlwSW5zcGVjdG9yfSBmcm9tICcuL3BsYXlncm91bmRfY2hpcF9pbnNwZWN0b3Jfc3RhdGUuanM/dj1yZjVjMTY0LW5vdGVzLTEnOwo="
+        },
+        {
+          "afterOffset": 1354,
+          "afterBytes": 301,
+          "beforeBase64": "ICAgIHRoaXMucGVyZm9ybWFuY2U9Y3JlYXRlUHJvY2Vzc29yUGVyZm9ybWFuY2Uoe2NoaXA6J3NuZXMnLGFwcGx5OihkYXRhLHBvcnQpPT50aGlzLmFwcGx5KGRhdGEscG9ydCx0cnVlKSwK"
+        },
+        {
+          "afterOffset": 1964,
+          "afterBytes": 50,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 2399,
+          "afterBytes": 397,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 5151,
+          "afterBytes": 45,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 6229,
+          "afterBytes": 58,
+          "beforeBase64": "ICBhcHBseSh7bWV0aG9kLGFyZ3M9W10saWR9LHBvcnQscXVldWVkPWZhbHNlKSB7Cg=="
+        },
+        {
+          "afterOffset": 6679,
+          "afterBytes": 496,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 8787,
+          "afterBytes": 258,
+          "beforeBase64": "ICBkaXNwb3NlKCl7aWYodGhpcy5kZWFkKXJldHVybjt0aGlzLmRlYWQ9dHJ1ZTt0aGlzLmluc3BlY3Rvcj8ucmVzZXRBdWRpdGlvbnMoKTt0aGlzLmZpbmlzaFRpbWVsaW5lKCdTTkVTIGluc3RhbmNlIGRpc3Bvc2VkJyk7dGhpcy5wZXJmb3JtYW5jZS5jbGVhcigpO3RoaXMuc3ludGg/LmRpc3Bvc2UoKTt0aGlzLnN5bnRoPW51bGw7dGhpcy5yZW1vdGU/LmNsb3NlKCk7dGhpcy53b3JrZXJSZW1vdGU/LmNsb3NlKCk7fQo="
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 200639,
+        "sha256": "0c199eaaa488f73d353d7810d633e10351da939b11e8342738afde9f429f1272"
+      },
+      "after": {
+        "bytes": 202300,
+        "sha256": "5e4f2836a70bdb325aa260b1e5901de9d8a6fe87041d5ff06ac15233f555fd83"
+      },
+      "hunks": [
+        {
+          "afterOffset": 106267,
+          "afterBytes": 1091,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 107385,
+          "afterBytes": 570,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/sources/sid/tetorica_src/runtime/playground_performance_processor.js": {
+      "before": {
+        "bytes": 33870,
+        "sha256": "5c3e79b4b35d97713607adb0102900892917871b7362a667b79fb9e28c1b5dec"
+      },
+      "after": {
+        "bytes": 33877,
+        "sha256": "11af41172d2f8b4ea04ee768b1f3b0f95c42d3faae626ced1b2553254da87e80"
+      },
+      "hunks": [
+        {
+          "afterOffset": 20330,
+          "afterBytes": 140,
+          "beforeBase64": "ICAgIGlmKFsnYXk4OTEwJywnaHVjNjI4MCcsJ3dvbmRlcnN3YW4nLCdnYW1lYm95Jywnc2lkJywneW0yNjA4JywnbmVzJ10uaW5jbHVkZXMoY2hpcE5hbWUoKSkmJm1ldGFkYXRhPy50aW1lZE9wZXJhdGlvbilyZXR1cm4gZmFsc2U7Cg=="
+        }
+      ]
+    },
+    "docs/synth-snes/README.md": {
+      "before": {
+        "bytes": 45750,
+        "sha256": "2c5b51d5b2b5ff3dbdc22838645211722616ff67b5cb9c49b0331cc34dd101ed"
+      },
+      "after": {
+        "bytes": 46091,
+        "sha256": "918f35afd5eabbc3d189e652f4d53f635158d7cd099f54ff7256b1de8368ae46"
+      },
+      "hunks": [
+        {
+          "afterOffset": 45750,
+          "afterBytes": 341,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/synth-snes/audio.js": {
+      "before": {
+        "bytes": 10008,
+        "sha256": "595300c91773ca54a6ef8a0197734376581d69a4082ec33bc834c4f20e596aea"
+      },
+      "after": {
+        "bytes": 10041,
+        "sha256": "331adfcd462a9aa5c2c32794c39d9d6b4c57411b1e5439e65653c2ce003ed1ca"
+      },
+      "hunks": [
+        {
+          "afterOffset": 139,
+          "afterBytes": 131,
+          "beforeBase64": "Y29uc3QgQ09NTUFORFMgPSBuZXcgU2V0KFsncmVhZCcsICdzZXRQcmVzZXQnLCAnbG9hZFByZXNldCcsICdub3RlT24nLCAnbm90ZU9mZicsICdzZXRQaXRjaCcsICdzZXRNdXRlTWFzaycsICdzdG9wJ10pOwo="
+        },
+        {
+          "afterOffset": 8913,
+          "afterBytes": 188,
+          "beforeBase64": "ICAgICAgY29udGV4dCwgb3V0cHV0Tm9kZTptYXN0ZXIsIHNvbmdJbnB1dE5vZGU6c29uZ0lucHV0LCBjb2RlSW5wdXROb2RlOmNvZGVJbnB1dCxjb2RlT3V0cHV0Tm9kZTpjb2RlRmFkZSxjb2RlRmFkZU5vZGU6Y29kZUZhZGUsIGNvbW1hbmQsIHJlYWQ6KCkgPT4gY29tbWFuZCgncmVhZCcpLAo="
+        }
+      ]
+    },
+    "docs/synth-snes/code_client.js": {
+      "before": {
+        "bytes": 2448,
+        "sha256": "f725aae190260d2b74737e9a5f55917d45fb0d150c067e71a55f15e4c5ca115d"
+      },
+      "after": {
+        "bytes": 2673,
+        "sha256": "7d242e4eb3ea67f6bc8b41044d9912e59b5c91c15e7cb9953b1c0cefde2a30cd"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 66,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 493,
+          "afterBytes": 100,
+          "beforeBase64": "ZXhwb3J0IGZ1bmN0aW9uIGNyZWF0ZVNuZXNDb2RlQ2xpZW50KHtjb21tYW5kLGlzQ3VycmVudD0oKT0+dHJ1ZSxvbkFjdGl2aXR5PSgpPT57fX09e30pIHsK"
+        },
+        {
+          "afterOffset": 2505,
+          "afterBytes": 166,
+          "beforeBase64": "ICByZXR1cm4gY2xpZW50Owo="
+        }
+      ]
+    },
+    "docs/synth-snes/code_declarations.js": {
+      "before": {
+        "bytes": 1960,
+        "sha256": "54daf60bcd037a7edc6dce612a0032d22cc4a711f14cdb23dea3e8fca1372089"
+      },
+      "after": {
+        "bytes": 2061,
+        "sha256": "a7ca0cf47f91f53ff6c0d58594cadd25dc5e09206330047fdea38cbf8f386bb3"
+      },
+      "hunks": [
+        {
+          "afterOffset": 102,
+          "afterBytes": 367,
+          "beforeBase64": "Y29uc3QgZ2xvYmFscz1bJ2NvbnRleHQnLCdmeCcsJ0NIMScsJ0NIMicsJ0NIMycsJ0NINCcsJ0NINScsJ0NINicsJ2NvbnNvbGUnLCdsb2cnLCd1c2VTb3VuZENoaXAnLCdmaWxlJywnc2V0QnBtJywnYmVhdCcsJ25leHRCZWF0Jywnc2xlZXAnLCdzbGVlcFNhbXBsZXMnLCd0d2VlbicsJ2xpdmVMb29wJywnbGl2ZVByZXBhcmUnLCdsaXZlRngnLCdzdG9wTG9vcCcsJ3N0b3BBbGxMb29wcycsJ2xpdmVDbGVhbnVwJywndHJhY2tBc3luYycsJ3BhcnNlTm90ZU5hbWUnLCdtaWRpVG9Ob3RlTmFtZScsJ3NjYWxlJywnY2hvcmQnLCdsZXJwJywnY2hvb3NlJywnY3ljbGUnLCdyYW5kJywncnJhbmdlJywncmFuZEludCcsJ3BnJ107Cg=="
+        },
+        {
+          "afterOffset": 1031,
+          "afterBytes": 116,
+          "beforeBase64": "aW50ZXJmYWNlIFNuZXNDb2RlQ2xpZW50IHsK"
+        }
+      ]
+    },
+    "docs/synth-snes/code_project.js": {
+      "before": {
+        "bytes": 9449,
+        "sha256": "3ea727d7eb1638f90efbf5596402378a73c169b0ad5b591d4919686e1f0d8a73"
+      },
+      "after": {
+        "bytes": 9595,
+        "sha256": "436fae3fd3737bf35e236683263f87e63187df35346016faf9886b84fade7b5f"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 55,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 8702,
+          "afterBytes": 132,
+          "beforeBase64": "ICBpZihzbmFwc2hvdClwcm9qZWN0LnJlc3RvcmUoc25hcHNob3QpOwo="
+        }
+      ]
+    },
+    "docs/synth-snes/processor.js": {
+      "before": {
+        "bytes": 4128,
+        "sha256": "496805da0c689dfe3941c6c7112a76ce3a5c0619e5c66415c7ad706b0c6bff1e"
+      },
+      "after": {
+        "bytes": 7081,
+        "sha256": "e8b6d58073b817b068bc0fb0b910a72d1bcbddd77b8b83d3f15ec20583ae862f"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 223,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 784,
+          "afterBytes": 1004,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 2319,
+          "afterBytes": 212,
+          "beforeBase64": "ICBkaXNwb3NlKCl7aWYodGhpcy5kZWFkKXJldHVybjt0aGlzLmRlYWQ9dHJ1ZTt0aGlzLmluc3RydW1lbnQ/LmRpc3Bvc2UoKTt0aGlzLmluc3RydW1lbnQ9bnVsbDt0aGlzLnJlc2FtcGxlcj1udWxsO3RoaXMuYWNjZXB0ZWRCcnJEYXRhPScnO3RoaXMuYWNjZXB0ZWRNb2RCcnJEYXRhPScnO30K"
+        },
+        {
+          "afterOffset": 2823,
+          "afterBytes": 54,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 3981,
+          "afterBytes": 391,
+          "beforeBase64": "ICAgICAgICBpZihiZWZvcmUhPT10aGlzLmluc3RydW1lbnQuZ2VuZXJhdGlvbil0aGlzLnJlc2FtcGxlci5yZXNldCgpOwo="
+        },
+        {
+          "afterOffset": 5321,
+          "afterBytes": 1018,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 6560,
+          "afterBytes": 377,
+          "beforeBase64": "ICAgIHRyeXt0aGlzLnJlc2FtcGxlci5yZW5kZXIobGVmdCxyaWdodD8/bmV3IEZsb2F0MzJBcnJheShsZWZ0Lmxlbmd0aCkpO3JldHVybiB0cnVlO30K"
+        }
+      ]
+    },
+    "docs/synth-snes/synth.js": {
+      "before": {
+        "bytes": 34141,
+        "sha256": "b4fcbcdb8ed0281bcc76427fcac39ec3e918bbfdca1e7253866e0d21c7339113"
+      },
+      "after": {
+        "bytes": 34168,
+        "sha256": "7404987e1d154c003616c66e93607aa46e74a64ad606acacd50b31a4351b2653"
+      },
+      "hunks": [
+        {
+          "afterOffset": 7866,
+          "afterBytes": 121,
+          "beforeBase64": "ICAgICAgICAgIGlmKCFjbGllbnQpY2xpZW50PWNyZWF0ZVNuZXNDb2RlQ2xpZW50KHtjb21tYW5kOiguLi5hcmdzKT0+ZW5naW5lLmNvbW1hbmQoLi4uYXJncyksCg=="
+        }
+      ]
+    },
+    "package.json": {
+      "before": {
+        "bytes": 15869,
+        "sha256": "6d0df8e2e0a5d1cfa6ce8aa028bcb26c5663dec50bf44f909322829d45295793"
+      },
+      "after": {
+        "bytes": 15957,
+        "sha256": "d66d3c87546bb01423330a64c88eca4d35eb022598c667ed7f485a4a84f68065"
+      },
+      "hunks": [
+        {
+          "afterOffset": 14640,
+          "afterBytes": 194,
+          "beforeBase64": "ICAgICJ0ZXN0OnNuZXMtc3ludGgiOiAibm9kZSAtLXRlc3QgZG9jcy9zeW50aC1zbmVzLyoudGVzdC5tanMgc2NyaXB0cy9wYWNrYWdlX2l0Y2hfc25lc19zeW50aC50ZXN0Lm1qcyIsCg=="
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_processor.js": {
+      "before": {
+        "bytes": 33870,
+        "sha256": "5c3e79b4b35d97713607adb0102900892917871b7362a667b79fb9e28c1b5dec"
+      },
+      "after": {
+        "bytes": 33877,
+        "sha256": "11af41172d2f8b4ea04ee768b1f3b0f95c42d3faae626ced1b2553254da87e80"
+      },
+      "hunks": [
+        {
+          "afterOffset": 20330,
+          "afterBytes": 140,
+          "beforeBase64": "ICAgIGlmKFsnYXk4OTEwJywnaHVjNjI4MCcsJ3dvbmRlcnN3YW4nLCdnYW1lYm95Jywnc2lkJywneW0yNjA4JywnbmVzJ10uaW5jbHVkZXMoY2hpcE5hbWUoKSkmJm1ldGFkYXRhPy50aW1lZE9wZXJhdGlvbilyZXR1cm4gZmFsc2U7Cg=="
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_snes.js": {
+      "before": {
+        "bytes": 9023,
+        "sha256": "abe0eb7d3cc06289707e1224217ef4533fcc31b6e166c0bac31e645bad813948"
+      },
+      "after": {
+        "bytes": 9234,
+        "sha256": "627ad7aa23348c0b686a6a9f94172871c64ffca1dd40fb4017ad8b421193d271"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 62,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 9066,
+          "afterBytes": 166,
+          "beforeBase64": "ICByZXR1cm4gY2xpZW50Owo="
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_snes_worklet.js": {
+      "before": {
+        "bytes": 8350,
+        "sha256": "1a8f98cdba9008db237a2e4686944242153174018275764b961f33a1fb75a74e"
+      },
+      "after": {
+        "bytes": 9696,
+        "sha256": "7ca76f893d84bb294d927d14c1aeb52fafd03ba93a390481f749573ce935c872"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 137,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 1353,
+          "afterBytes": 301,
+          "beforeBase64": "ICAgIHRoaXMucGVyZm9ybWFuY2U9Y3JlYXRlUHJvY2Vzc29yUGVyZm9ybWFuY2Uoe2NoaXA6J3NuZXMnLGFwcGx5OihkYXRhLHBvcnQpPT50aGlzLmFwcGx5KGRhdGEscG9ydCx0cnVlKSwK"
+        },
+        {
+          "afterOffset": 1963,
+          "afterBytes": 50,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 2398,
+          "afterBytes": 397,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 5150,
+          "afterBytes": 45,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 6228,
+          "afterBytes": 58,
+          "beforeBase64": "ICBhcHBseSh7bWV0aG9kLGFyZ3M9W10saWR9LHBvcnQscXVldWVkPWZhbHNlKSB7Cg=="
+        },
+        {
+          "afterOffset": 6678,
+          "afterBytes": 496,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 8786,
+          "afterBytes": 258,
+          "beforeBase64": "ICBkaXNwb3NlKCl7aWYodGhpcy5kZWFkKXJldHVybjt0aGlzLmRlYWQ9dHJ1ZTt0aGlzLmluc3BlY3Rvcj8ucmVzZXRBdWRpdGlvbnMoKTt0aGlzLmZpbmlzaFRpbWVsaW5lKCdTTkVTIGluc3RhbmNlIGRpc3Bvc2VkJyk7dGhpcy5wZXJmb3JtYW5jZS5jbGVhcigpO3RoaXMuc3ludGg/LmRpc3Bvc2UoKTt0aGlzLnN5bnRoPW51bGw7dGhpcy5yZW1vdGU/LmNsb3NlKCk7dGhpcy53b3JrZXJSZW1vdGU/LmNsb3NlKCk7fQo="
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "docs/js/snes_operation_state.js": {
+      "bytes": 4636,
+      "sha256": "685b6f22e093289912948800dcf186ebeeb4242c610d3c01a09ee77fb9f45dd5"
+    },
+    "docs/js/snes_operations.js": {
+      "bytes": 13102,
+      "sha256": "47a3213ef9bb404165d49f6ed340831d25b0135c0e0f2c8d62c445f2bb4a57ff"
+    },
+    "docs/js/snes_timed_client.js": {
+      "bytes": 11789,
+      "sha256": "52e49547817a2a6e6ecce6124018ac015e66e072a87c350d88416d44aa568132"
+    },
+    "docs/js/snes_timed_processor.js": {
+      "bytes": 8386,
+      "sha256": "4ee7c5962580a6ca1f9f68a50640d361ca039f6c95cd3e0b66509e8a0e2b507e"
+    },
+    "docs/js/snes_timed_state.js": {
+      "bytes": 3638,
+      "sha256": "86b298d2a7ccb20fe760359b20dfbe7cc4a0a35a43ce22eff596f2209a4b9e98"
+    },
+    "docs/synth-snes/TIMED_API.md": {
+      "bytes": 4391,
+      "sha256": "f5d57a05d7ede2464d80d67dccdb40a9b363a8dc82406bb8acc623e827fc5cfa"
+    },
+    "docs/synth-snes/code_examples.js": {
+      "bytes": 726,
+      "sha256": "0d126b736b6b91f008104a7b3c60378eb434c7a422245115a9115c5c6101fc12"
+    },
+    "tetorica_src/runtime/snes_operation_state.js": {
+      "bytes": 4636,
+      "sha256": "685b6f22e093289912948800dcf186ebeeb4242c610d3c01a09ee77fb9f45dd5"
+    },
+    "tetorica_src/runtime/snes_operations.js": {
+      "bytes": 13102,
+      "sha256": "47a3213ef9bb404165d49f6ed340831d25b0135c0e0f2c8d62c445f2bb4a57ff"
+    },
+    "tetorica_src/runtime/snes_timed_client.js": {
+      "bytes": 11789,
+      "sha256": "52e49547817a2a6e6ecce6124018ac015e66e072a87c350d88416d44aa568132"
+    },
+    "tetorica_src/runtime/snes_timed_processor.js": {
+      "bytes": 8386,
+      "sha256": "4ee7c5962580a6ca1f9f68a50640d361ca039f6c95cd3e0b66509e8a0e2b507e"
+    },
+    "tetorica_src/runtime/snes_timed_state.js": {
+      "bytes": 3638,
+      "sha256": "86b298d2a7ccb20fe760359b20dfbe7cc4a0a35a43ce22eff596f2209a4b9e98"
+    }
+  }
+}

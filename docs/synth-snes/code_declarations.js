@@ -1,5 +1,5 @@
 import {selectCodeHostDeclarations} from '../synth/synth_code_declarations.js?v=shared-code-hosts-1';
-const globals=['context','fx','CH1','CH2','CH3','CH4','CH5','CH6','console','log','useSoundChip','file','setBpm','beat','nextBeat','sleep','sleepSamples','tween','liveLoop','livePrepare','liveFx','stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','midiToNoteName','scale','chord','lerp','choose','cycle','rand','rrange','randInt','pg'];
+const globals=['context','fx','CH1','CH2','CH3','CH4','CH5','CH6','CH7','CH8','console','log','useSoundChip','file','setBpm','beat','nextBeat','sleep','sleepSamples','tween','liveLoop','livePrepare','liveFx','stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','midiToNoteName','scale','chord','lerp','choose','cycle','rand','rrange','randInt','pg'];
 const types=`
 type SnesCodeLane = 0|1|2|3|4|5|6|7;
 interface SnesCodeState {
@@ -11,7 +11,7 @@ interface SnesCodeState {
 }
 /** Borrow the editor's current sound and shared eight-voice allocator.
  * Lanes 0..7 own notes, not fixed DSP voices. PMON has four-note capacity. */
-interface SnesCodeClient {
+interface SnesCodeClient extends Pick<PlaygroundSnes,'build'|'captureState'|'compile'|'schedule'|'clearSchedule'> {
   readonly id:string;readonly chip:'snes';
   noteOn(lane:SnesCodeLane,note:string|number):Promise<{channel:number;stolenId:string|null}>;
   noteOff(lane:SnesCodeLane):Promise<void>;

@@ -3,7 +3,7 @@
 
 export const SDSP_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'setMuteMask', 'stop']);
+const COMMANDS = new Set(['snesTimed','read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'setMuteMask', 'stop']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('S-DSP Master must be from 0 to 3.8');
@@ -159,7 +159,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       });
     }
     return {
-      context, outputNode:master, songInputNode:songInput, codeInputNode:codeInput,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),
+      context, timedPort:node.port, outputNode:master, songInputNode:songInput, codeInputNode:codeInput,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); }

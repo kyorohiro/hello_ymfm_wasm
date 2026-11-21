@@ -2272,7 +2272,17 @@ interface PlaygroundSnesTimelineState {
  * Worker performance commands follow Worker lookahead; STOP disposes this instance.
  * Echo writes are off by default. Raw DSP edits must respect sample/directory RAM.
  */
+/** Serializable recorder; physical S-DSP channels, not Synth performance lanes. */
+type PlaygroundSnesOperationRecorder = {atSample(value:number):PlaygroundSnesOperationRecorder;atSeconds(value:number):PlaygroundSnesOperationRecorder} & {[K in 'setPreset'|'setChannel'|'setPitch'|'setFrequency'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff'|'setEcho'|'writeDsp']:(...args:Parameters<PlaygroundSnes[K]>)=>PlaygroundSnesOperationRecorder};
+interface PlaygroundSnesOperationProgram {version:1;chip:'snes';referenceSampleRate:number;operations:readonly {time:{unit:'seconds'|'sample';value:number};order:number;method:string;args:readonly unknown[]}[];}
+type PlaygroundSnesTimedSnapshot = Readonly<Omit<PlaygroundSnesState,'sampleRate'> & {format:'tetorica-snes-state';version:1;instanceId:string|number;clock:32000;engine:'snes-wasm';registers:readonly number[];nativeFrames:number;pendingKon:number;konFrame:number;koff:number;frame:number;sampleRate:number}>;
+interface PlaygroundSnesCompiledWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
 interface PlaygroundSnes {
+  build(callback:(builder:PlaygroundSnesOperationRecorder)=>void,options?:{referenceSampleRate?:number}):PlaygroundSnesOperationProgram;
+  captureState():Promise<PlaygroundSnesTimedSnapshot>;
+  compile(operations:PlaygroundSnesOperationProgram,options?:{initialState?:'current'|'reset'|'client'|PlaygroundSnesTimedSnapshot}):Promise<PlaygroundSnesCompiledWrite[]>;
+  schedule(operations:PlaygroundSnesOperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;startFrame:number;sampleRate:number}>;
+  clearSchedule(name:string):Promise<boolean>;
   /** AudioContext output sample rate in Hz, independent of nativeSampleRate. */
   readonly sampleRate:number;
   readonly nativeSampleRate:32000;

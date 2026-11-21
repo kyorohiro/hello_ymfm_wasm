@@ -1,3 +1,4 @@
+import {SNES_TIMED_EXAMPLE} from './code_examples.js';
 // S-DSP Code project data. Restoring Files never creates audio or runs Code.
 import {createVirtualFileSystem,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
@@ -97,7 +98,7 @@ export function createSnesCodeProject({settings=createDefaultPreset(),snapshot,s
   Object.assign(project,createSynthCodeProject(project));
   if(starterCode===undefined&&!snapshot&&getStarterCode)starterCode=getStarterCode();
   if(starterCode!==undefined){if(typeof starterCode!=='string')throw TypeError('Starter code must be text.');fs.writeText('/index.js',starterCode);}
-  if(snapshot)project.restore(snapshot);
+  if(snapshot)project.restore(snapshot);else if(starterCode!==undefined)fs.writeText('/examples/timed-sdsp.js',SNES_TIMED_EXAMPLE);
   return project;
 }
 

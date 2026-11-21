@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-21",
+  "scope": "S-DSP timed physical-voice/control operations",
+  "tests": {
+    "snesRegressionsAndPackaging": 203,
+    "timedActualWasmClientAndParityIncluded": 14,
+    "exactSourceReviewIncluded": 2,
+    "sharedProcessorSenderAndCalibrationChain": 89,
+    "buildModules": 419,
+    "checkedDeclarations": 482
+  },
+  "timing": {
+    "outputRates": [
+      44100,
+      48000
+    ],
+    "referenceSampleRateDefault": 44100,
+    "nativeSampleRate": 32000,
+    "actualDspWriteOrderAndFramesMatchCompiledFixture": true,
+    "sameNativeFrameKonAndPriorFrameKonCovered": true
+  },
+  "verified": [
+    "Build is detached/serializable and uses existing SnesSynth conversion",
+    "Current/reset/reused snapshots without live mutation; incomplete client/Native reject explicitly",
+    "Raw voice writes feed subsequent partial preset resolution",
+    "Prepared Echo/FIR retains RAM reservation and converter behavior",
+    "KON/KOFF, named replacement failure and cancellation retain companions/newer manual Gate",
+    "New timed Gate retires stale manual key release",
+    "Real MessagePorts exercise Main/logic Worker and primary Worker routes",
+    "Code schedule/compile, Apply, failed Apply keeps gain/pattern, Stop and shipped example run in muted browsers",
+    "Existing immediate performance-lane allocator and PMON/Echo UI behavior retained"
+  ],
+  "pcmParity": {
+    "reference": "exact authenticated pre-timed standalone source",
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "stereoFramesCompared": 8192,
+    "maximumDifference": 0
+  },
+  "package": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/snes-timed/itch_sdsp_synth_timed-20261121-WJYmU2",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/snes-timed/tetorica_sdsp_synth_timed-20261121_itch.zip",
+    "files": 159,
+    "bundles": 6,
+    "archiveRecord": {
+      "bytes": 1663520,
+      "sha256": "1b989a0ba425d7485b42f4809983303c16e8d81a983f7641ce9ff068105e40b0"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "browsers": {
+    "performance": {
+      "passed": true,
+      "path": "build/snes-timed-zip-browser.json",
+      "sha256": "d6f5f795f4a1f052f890980434433e58b20ae6689af0072a738f916af28fa48a",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "monaco": {
+      "passed": true,
+      "path": "build/snes-timed-zip-monaco.json",
+      "sha256": "ec7391996d7050998574fd47807fe3860bdb0eff9ab31e4649d256467bac1d05",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    }
+  },
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "limits": [
+    "Timed Synth channels are physical voices; immediate Synth notes retain the allocator",
+    "Snapshots exclude RAM, elapsed DSP envelopes, decoder state and resampler phase",
+    "compile is a predicted single pass; sub-native-tick coalescing/external writes can change real traces",
+    "BRR transfer, first Echo reservation, captured timeline mode, Native scheduling and scheduled-state UI remain separate",
+    "Existing Cassettes unchanged; fresh Cassettes seed examples/timed-sdsp.js"
+  ],
+  "npmPublished": false,
+  "tauriUpdated": false,
+  "remoteCiRun": false,
+  "commitOrPushPerformed": false
+}

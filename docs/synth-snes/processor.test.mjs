@@ -1,3 +1,6 @@
+import {createPerformanceQueue} from '../../tetorica_src/runtime/playground_performance_queue.js';
+import {createSnesTimedProcessor} from '../../tetorica_src/runtime/snes_timed_processor.js';
+import {captureSnesOperationState} from '../../tetorica_src/runtime/snes_operation_state.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +27,7 @@ function setup({delay=false}={}) {
   }
   const create=()=>{const core={disposed:false,dispose(){this.disposed=true;}};cores.push(core);return core;};
   const core={create:()=>delay?new Promise(resolve=>{release=()=>resolve(create());}):Promise.resolve(create())};
-  vm.runInNewContext(source,{AudioWorkletProcessor:Base,SnesDspCore:core,SnesInstrument:Instrument,SpcResampler:Resampler,
+  vm.runInNewContext(source,{createPerformanceQueue,createSnesTimedProcessor,captureSnesOperationState,AudioWorkletProcessor:Base,SnesDspCore:core,SnesInstrument:Instrument,SpcResampler:Resampler,
     factory:()=>{},sampleRate:48000,Float32Array,Set,Object,Error,TypeError,registerProcessor(name,ctor){assert.equal(name,'tetorica-sdsp-synth');Processor=ctor;}});
   const processor=new Processor({processorOptions:{wasmBinary:new ArrayBuffer(4)}});
   const command=async(method,args=[],extra={})=>{const id=replies.length+100;processor.receive({id,method,args,...extra});await processor.ready;await Promise.resolve();return replies.find(reply=>reply.id===id);};

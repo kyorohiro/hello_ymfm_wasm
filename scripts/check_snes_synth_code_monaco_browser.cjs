@@ -169,6 +169,10 @@ await beat(.5);
 await snes.noteOff(CH1);
 const state = await snes.getState();
 context.pmon = state.pmon.active;
+const plan=snes.build(b=>{b.setPitch(CH1,4096);b.atSample(441).writeDsp(7,80);});
+const snapshot=await snes.captureState();
+const writes=await snes.compile(plan,{initialState:snapshot});
+const value= writes[0].value;
 await livePrepare('chip',async api=>api.useSoundChip('snes'));
 `;
 const BAD_SOURCE=`// @ts-check

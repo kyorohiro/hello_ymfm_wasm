@@ -1,6 +1,7 @@
+import {attachSnesTimedClient} from './snes_timed_client.js';
 /** Ordered Main/logic-Worker client for a CPU-free SNES DSP AudioWorklet. */
-import {SnesSynth,prepareSnesBRR} from './snessynth.js?v=spc-song-js-1';
-import {prepareSpcTimeline} from './spc.js?v=spc-events-1';
+import {SnesSynth,prepareSnesBRR} from './snessynth.js';
+import {prepareSpcTimeline} from './spc.js';
 const TIMEOUT_MS=15000;
 /** @param {MessagePort} port
  * @param {{sampleRate?:number,nativeSampleRate?:number}} [initial] */
@@ -21,18 +22,18 @@ export function createSnesClient(port,initial={},lifecycle={}) {
     _adoptState(state){if(!state)return;if(initial.native&&(state.stateRevision??0)<stateRevision)return false;stateRevision=state.stateRevision??stateRevision;validation.samples=structuredClone(state.samples??[]);validation.channels=structuredClone(state.channels??validation.channels);validation.nextAddress=state.nextAddress??0x400;if(state.echo){const {reserved,startAddress,byteLength,...echo}=structuredClone(state.echo);validation.echo=echo;validation.echoReserved=reserved;validation.echoConfigured=true;validation.directoryAddress=state.directoryAddress??(reserved?0x7800:0);}if(initial.native&&!pendingPreparations)timelinePrepared=state.timeline?.loaded===true;},
     _applyAuthorEdit(edit){if(edit.samples){for(const sample of edit.samples)validation.samples[sample.id]=structuredClone(sample);validation.nextAddress=edit.nextAddress;}if(edit.preset)Object.assign(validation.channels[edit.channel],structuredClone(edit.preset));},
     sampleRate:initial.sampleRate??48000,nativeSampleRate:32000,
-    /** @param {ArrayBuffer|ArrayBufferView} input @param {import('./snessynth.js?v=spc-song-js-1').SnesBRROptions} options
-     * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesSample>} */
+    /** @param {ArrayBuffer|ArrayBufferView} input @param {import('./snessynth.js').SnesBRROptions} options
+     * @returns {Promise<import('./snessynth.js').SnesSample>} */
     async loadBRR(input,options){assertOpen();instrumentOnly();const prepared=prepareSnesBRR(input,options);const data=prepared.brr,validationBytes=data.slice(),savedOptions=structuredClone(options);const sample=await request('loadBRR',[data,savedOptions],[data.buffer]);assertOpen();if(initial.native){validation.samples[sample.id]=structuredClone(sample);validation.sampleBytes[sample.id]=validationBytes;validation.nextAddress=Math.max(validation.nextAddress,sample.startAddress+sample.byteLength);}else validation.loadBRR(validationBytes,savedOptions);return sample;},
     /** Real shared Echo/FIR. First enable relocates sample RAM and releases voices.
-     * @param {Partial<import('./snessynth.js?v=spc-song-js-1').SnesEchoOptions>} [options]
-     * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesEchoState>} */
+     * @param {Partial<import('./snessynth.js').SnesEchoOptions>} [options]
+     * @returns {Promise<import('./snessynth.js').SnesEchoState>} */
     async setEcho(options={}){assertOpen();instrumentOnly();const saved=structuredClone(options);const value=await request('setEcho',[saved]);assertOpen();validation.setEcho(saved);return value;},
     /** Authored settings and RAM reservation, not raw timeline registers.
-     * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesEchoState>} */
+     * @returns {Promise<import('./snessynth.js').SnesEchoState>} */
     getEcho(){assertOpen();instrumentOnly();return request('getEcho');},
     /** Resource upload; clocks are 1,024,000 Hz, not native PCM frames.
-     * @param {import('./spc.js?v=spc-events-1').SpcTimeline} trace */
+     * @param {import('./spc.js').SpcTimeline} trace */
     async prepareTimeline(trace){
       assertOpen();const data=prepareSpcTimeline(trace),previous=timelinePrepared,revision=++timelineRevision;timelinePrepared=true;pendingPreparations++;
       try{const state=await request('prepareTimeline',[data],[data.initialState.ram.buffer,data.initialState.dsp.buffer,data.events.buffer]);assertOpen();if(revision!==timelineRevision)throw new DOMException('SNES timeline preparation cancelled','AbortError');return state;}
@@ -42,9 +43,9 @@ export function createSnesClient(port,initial={},lifecycle={}) {
     playTimeline(){assertOpen();if(!timelinePrepared)throw new Error('Prepare an SNES timeline before playback');return request('playTimeline',[],[],0);},
     stopTimeline(){timelineRevision++;return request('stopTimeline');},
     getTimelineState(){return request('getTimelineState');},
-    /** @param {number} ch @param {import('./snessynth.js?v=spc-song-js-1').SnesPreset} preset */
+    /** @param {number} ch @param {import('./snessynth.js').SnesPreset} preset */
     setPreset(ch,preset){control('setPreset',[ch,structuredClone(preset)]);},
-    /** @param {number} ch @param {import('./snessynth.js?v=spc-song-js-1').SnesPreset} params */
+    /** @param {number} ch @param {import('./snessynth.js').SnesPreset} params */
     setChannel(ch,params){control('setChannel',[ch,structuredClone(params)]);},
     /** @param {number} ch @param {number} pitch */
     setPitch(ch,pitch){control('setPitch',[ch,pitch]);},
@@ -62,7 +63,7 @@ export function createSnesClient(port,initial={},lifecycle={}) {
     /** @param {number} register @returns {Promise<number>} */ readDsp(register){assertOpen();if(!Number.isInteger(register)||register<0||register>127)throw new RangeError('DSP register must be0..127');return request('readDsp',[register]);},
     /** Applied audio state; queued future changes may not yet be audible.
      * @returns {Promise<ReturnType<SnesSynth['getState']>>} */ getState(){return request('getState');},
-    /** @param {number} ch @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesVoiceState>} */ getPreset(ch){instrumentOnly();validation.getPreset(ch);return request('getPreset',[ch]);},
+    /** @param {number} ch @returns {Promise<import('./snessynth.js').SnesVoiceState>} */ getPreset(ch){instrumentOnly();validation.getPreset(ch);return request('getPreset',[ch]);},
     /** @returns {Promise<ReturnType<SnesSynth['snapshot']>>} */ snapshot(){return request('snapshot');},
     dispose(){if(disposed)return;disposed=true;timelineRevision++;try{port.postMessage({method:'dispose',args:[]});}catch{}finally{for(const p of pending.values()){clearTimeout(p.timer);p.reject(new DOMException('SNES instance is disposed','AbortError'));}pending.clear();port.onmessage=null;port.onmessageerror=null;port.close();}},
   };
@@ -72,5 +73,6 @@ export function createSnesClient(port,initial={},lifecycle={}) {
     for(const method of ['loadBRR','setEcho','getEcho','prepareTimeline','playTimeline','stopTimeline','getTimelineState','readDsp','getState','getPreset','snapshot']){const original=client[method].bind(client);client[method]=(...args)=>{const context=lifecycle.captureContext?.();check(context);return original(...args).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};}
   }
   if(initial.state)client._adoptState(initial.state);
-  return client;
+  Object.defineProperty(client,'_requestControl',{value:(method,args)=>request(method,args)});
+  return attachSnesTimedClient(client,{native:!!initial.native},port);
 }

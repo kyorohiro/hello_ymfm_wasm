@@ -160,7 +160,7 @@
     "test:huc6280-synth:seek-browser": "node scripts/check_huc6280_synth_seek_browser.cjs",
     "test:huc6280-synth:cache-browser": "node scripts/check_huc6280_synth_cache_browser.cjs",
     "pack:huc6280-synth": "sh scripts/package_itch_huc6280_synth.sh",
-    "test:snes-synth": "node --test docs/synth-snes/*.test.mjs scripts/package_itch_snes_synth.test.mjs",
+    "test:snes-synth": "node --test test/runtime/snes_timed.test.mjs scripts/mixer_calibration_snes_timed_revision.test.mjs docs/synth-snes/*.test.mjs scripts/package_itch_snes_synth.test.mjs",
     "test:snes-synth:browser": "node scripts/check_snes_synth_browser.cjs",
     "pack:snes-synth": "sh scripts/package_itch_snes_synth.sh",
     "test:ym2608-timed:browser": "node scripts/check_ym2608_timed_browser.cjs",
