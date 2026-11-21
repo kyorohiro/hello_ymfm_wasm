@@ -68,6 +68,28 @@ test('NDS ADPCM decodes low nibble first and restores predictor history at a wor
 	assert.deepEqual([...render(core, 13).left.slice(11)], [-17714, -32767].map(pcm16Level));
 });
 
+test('Live ADPCM ranges can expand past the starting End and keep the sounding sample', () => {
+	const core = new NdsSoundCore(rate);
+	const bytes = new Uint8Array(32).fill(0x21, 4);
+	new DataView(bytes.buffer).setInt16(0, 1000, true);
+	const settings = { ...allLeft, mode: 'adpcm', loopStartWords: 1, lengthWords: 3, loop: true };
+	core.configure(0, { ...settings, bytes });
+	core.keyOn(0);
+	render(core, 11 + 19);
+	assert.equal(core.getState(0).position, 19);
+
+	// Updating the next note's sample leaves the held note on its original source.
+	core.configure(0, { ...settings, bytes: new Uint8Array(32) });
+	assert.equal(core.setPlayingSampleRange(0, { loopStartWords: 3, lengthWords: 2 }), true);
+	assert.equal(core.getState(0).position, 19);
+	const result = render(core, 17).left;
+	const expected = [1040, 1041, 1044, 1045, 1048, 1049, 1052,
+		1053, 1056, 1057, 1060, 1061, 1064, 1033, 1036, 1037, 1040];
+	assert.deepEqual([...result], expected.map(pcm16Level));
+	assert.equal(core.getState(0).lengthWords, 3);
+	assert.equal(core.getState(0).active, true);
+});
+
 test('pulse and noise use their physical channels, correct duty and a seeded 15-bit sequence', () => {
 	const core = new NdsSoundCore(rate);
 	assert.throws(() => core.configure(7, { mode: 'pulse' }), /8–13/);

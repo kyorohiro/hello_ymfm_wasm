@@ -3,7 +3,7 @@ import { buildKeyboard, createFretboardLayout, createFretboardState } from '../s
 import { noteToHz } from '../js/soundchip_pitch.js';
 import { NDS_AUDIO_CLOCK } from './nds-core.js?v=nds-sound-capture-1';
 import { ndsTimerForFrequency, NDS_SOFTWARE_WAVE_FRAMES } from './nds-synth-api.js?v=nds-timer-1';
-import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-channel-view-1';
+import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-range-live-1';
 
 const CHANNELS = Array.from({ length: 16 }, (_, channel) => channel);
 const AUTO = -1;
@@ -45,7 +45,7 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 	const getSound = () => settings[selection + 1];
 	const getDisplayedSound = () => channelView ? channelView.state ?? {} : getSound();
 	const canEditChannel = () => channelView?.kind === 'code' && channelView.state != null && Boolean(channelView.onEdit);
-	const sampleEditor = setupNdsSampleEditor({ getSound, updateSound, getTarget: () => selection, onRangeCommit: applySampleRange, onError });
+	const sampleEditor = setupNdsSampleEditor({ getSound, updateSound, getTarget: () => selection, onRangeChange: applySampleRange, onError });
 	const sampleActions = node('ndsLoadWav').closest('.sample-actions');
 	const rangeControls = [fields.volume, fields.pan, fields.duty, rateSlider];
 	const draggedControls = new Set();
@@ -65,12 +65,14 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 		renderSettings();
 	}
 
-	function applySampleRange(sound) {
-		const { asset, range: { loopStartWords, lengthWords } } = sound.sample;
+	function setNoteSampleRange(note, { loopStartWords, lengthWords }) {
+		void note.chip.setOwnedSampleRange(note.channel, note.token, { loopStartWords, lengthWords }).catch(onError);
+	}
+
+	function applySampleRange(target, asset, range) {
 		for (const note of occupied.values()) {
-			if (note.target === selection && note.sampleAsset === asset && note.mode === sound.mode &&
-				note.sampleLoop === sound.loop && note.token !== null)
-				void note.chip.setOwnedSampleRange(note.channel, note.token, { loopStartWords, lengthWords }).catch(onError);
+			if (note.target === target && note.sampleAsset === asset && note.sampleLoop === range.loop && note.token !== null)
+				setNoteSampleRange(note, range);
 		}
 	}
 
@@ -250,11 +252,10 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 					void retuneHeldNote(note, edited.timer, patch).catch(onError);
 				else if (Object.keys(patch).length)
 					void chip.configureOwned(channel, token, patch).catch(onError);
-				if (edited.sample && edited.sample.asset === note.sampleAsset && edited.sample.range !== original.sample.range &&
-					edited.loop === note.sampleLoop && edited.mode === note.mode) {
-					const { loopStartWords, lengthWords } = edited.sample.range;
-					void chip.setOwnedSampleRange(channel, token, { loopStartWords, lengthWords }).catch(onError);
-				}
+			}
+			if (!source && edited.sample && edited.sample.asset === note.sampleAsset && edited.mode === note.mode) {
+				const range = sampleEditor.getRangePreview(target, note.sampleAsset) ?? edited.sample.range;
+				if (range !== original.sample.range && range.loop === note.sampleLoop) setNoteSampleRange(note, range);
 			}
 		} catch (error) {
 			if (voices.get(note.channel) === note && previous && held.get(previous.id) === previous)

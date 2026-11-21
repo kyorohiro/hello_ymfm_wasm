@@ -71,10 +71,12 @@ plays at that rate. New WAVs start as one-shots.
 Turn on **Repeat sample** to loop the shaded range. Drag either waveform marker
 or edit **Loop start · frame** and **End · frame**. The end is exclusive. The
 editor aligns both points to whole DS words and shows the resulting PNT and LEN
-codes. The new range applies to a held keyboard note using that sample when
-you release the marker or commit the number. For a one-shot, edit **End** to
-change where the sample stops. Format and root note changes apply on the next
-note. Each converted sample can use up to 1 MiB of encoded data.
+codes. You can hear the new range on held notes while dragging a marker.
+Release to keep the new range or press **Escape** to restore it. For a
+one-shot, edit **End** to change where the sample stops. If playback ends
+during the edit, play a new note to hear it again. Format and root note
+changes apply on the next note. Each converted sample can use up to 1 MiB
+of encoded data.
 
 Choose **Draw** on the same canvas to edit a built-in, imported or captured
 waveform. The stroke previews while you drag. Release to encode the edit into

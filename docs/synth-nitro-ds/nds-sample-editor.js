@@ -41,7 +41,7 @@ export function editNdsSound(sound, key, value) {
 		range: normalizeNdsSampleRange(converted, { ...range, loop: next.loop }) } };
 }
 
-export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRangeCommit, onError }) {
+export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRangeChange, onError }) {
 	const node = id => document.getElementById(id);
 	const panel = node('ndsSampleEditor'), wavInput = node('ndsWavInput'), load = node('ndsLoadWav');
 	const rangeFields = node('ndsSampleRangeFields'), title = node('ndsSampleTitle');
@@ -126,10 +126,22 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 		}
 	}
 
-	function endGesture() {
-		const pointer = gesture?.pointer;
+	const sameRange = (a, b) => a.loopStartWords === b.loopStartWords && a.lengthWords === b.lengthWords;
+
+	function restorePlayingRange(stroke) {
+		if (!sameRange(stroke.appliedRange, stroke.sample.range))
+			onRangeChange?.(stroke.target, stroke.asset, stroke.sample.range);
+	}
+
+	function endGesture(restoreRange = true) {
+		if (!gesture) return;
+		const stroke = gesture;
 		gesture = null;
-		if (pointer !== undefined && canvas.hasPointerCapture(pointer)) canvas.releasePointerCapture(pointer);
+		if (stroke.tool === 'range') {
+			if (stroke.frame !== null) cancelAnimationFrame(stroke.frame);
+			if (restoreRange) restorePlayingRange(stroke);
+		}
+		if (canvas.hasPointerCapture(stroke.pointer)) canvas.releasePointerCapture(stroke.pointer);
 	}
 
 	function ownsGesture(stroke, sound, asset) {
@@ -221,7 +233,7 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 		end.min = range.startFrame + asset.framesPerWord;
 		end.max = asset.frames;
 		const rangeInfo = `${sound.loop ? 'Repeat' : 'One shot'} · PNT ${range.loopStartWords} · LEN ${range.lengthWords} words.`;
-		status.textContent = `${rangeInfo} ${tool === 'draw' ? drawHint : 'Range applies on release or when you enter a frame.'}`;
+		status.textContent = `${rangeInfo} ${tool === 'draw' ? drawHint : 'Range updates held notes as you drag.'}`;
 		draw(asset, range, sound.loop, stroke);
 	}
 
@@ -232,12 +244,22 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 		return normalizeNdsSampleRange(asset, { ...range, [key]: limit, loop });
 	}
 
-	function commitRange(sound, range) {
+	function commitRange(sound, range, appliedRange = sound.sample.range) {
 		const { sample } = sound;
-		if (range.loopStartWords === sample.range.loopStartWords && range.lengthWords === sample.range.lengthWords) return;
-		const next = { ...sound, sample: { ...sample, range } };
-		updateSound(next);
-		onRangeCommit?.(next);
+		if (!sameRange(sample.range, range)) updateSound({ ...sound, sample: { ...sample, range } });
+		if (!sameRange(appliedRange, range)) onRangeChange?.(getTarget(), sample.asset, range);
+	}
+
+	function previewRange(stroke, range) {
+		stroke.range = range;
+		if (stroke.frame !== null || sameRange(range, stroke.appliedRange)) return;
+		stroke.frame = requestAnimationFrame(() => {
+			stroke.frame = null;
+			if (gesture !== stroke || sameRange(stroke.range, stroke.appliedRange)) return;
+			stroke.appliedRange = stroke.range;
+			onRangeChange?.(stroke.target, stroke.asset, stroke.appliedRange);
+			render();
+		});
 	}
 
 	load.addEventListener('click', () => wavInput.click());
@@ -337,16 +359,15 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 		}
 		const frame = rangePoint(event), { startFrame, endFrame } = sound.sample.range;
 		const key = sound.loop && Math.abs(frame - startFrame) < Math.abs(frame - endFrame) ? 'startFrame' : 'endFrame';
-		const { sample } = sound, range = moveRange(sample, sound.loop, key, frame);
-		gesture = { tool, pointer, key, target, sample, asset: sample.asset, range };
-		render();
+		const { sample } = sound;
+		gesture = { tool, pointer, key, target, sample, asset: sample.asset, appliedRange: sample.range, frame: null };
+		previewRange(gesture, moveRange(sample, sound.loop, key, frame));
 	});
 	canvas.addEventListener('pointermove', event => {
 		if (gesture?.pointer !== event.pointerId || gesture.target !== getTarget()) return;
 		const sound = getSound();
 		if (gesture.tool === 'range') {
-			gesture.range = moveRange(gesture.sample, sound.loop, gesture.key, rangePoint(event));
-			render();
+			previewRange(gesture, moveRange(gesture.sample, sound.loop, gesture.key, rangePoint(event)));
 			return;
 		}
 		paint(event, gesture);
@@ -355,21 +376,23 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 	canvas.addEventListener('pointerup', event => {
 		if (gesture?.pointer !== event.pointerId) return;
 		const stroke = gesture, sound = getSound();
-		endGesture();
 		const sample = sound.sample, current = sample?.asset ?? (isNdsSampleMode(sound.mode) ? builtinAsset(sound.mode, sound.shape) : null);
-		if (!ownsGesture(stroke, sound, current)) { render(); return; }
+		if (!ownsGesture(stroke, sound, current)) { cancelGesture(); return; }
 		try {
 			if (stroke.tool === 'range') {
-				commitRange(sound, moveRange(sample, sound.loop, stroke.key, rangePoint(event)));
+				const range = moveRange(sample, sound.loop, stroke.key, rangePoint(event));
+				endGesture(false);
+				commitRange(sound, range, stroke.appliedRange);
 				render();
 				return;
 			}
+			endGesture();
 			paint(event, stroke);
 			const source = stroke.source;
 			const asset = encodeNdsSample(source, stroke.asset.sampleRate, sound.mode);
 			const range = sample?.range ?? normalizeNdsSampleRange(asset, { loop: sound.loop });
 			updateSound({ ...sound, sample: { asset, source, rootNote: sample?.rootNote ?? 60, range } });
-		} catch (error) { render(); onError(error); }
+		} catch (error) { cancelGesture(); render(); onError(error); }
 	});
 	for (const type of ['pointercancel', 'lostpointercapture']) canvas.addEventListener(type, event => {
 		if (gesture?.pointer === event.pointerId) cancelGesture();
@@ -379,5 +402,13 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 		event.preventDefault();
 		cancelGesture();
 	});
-	return { render, setChannelView, cancelPending() { request++; cancelGesture(); } };
+	return {
+		render, setChannelView,
+		getRangePreview(target, asset) {
+			if (gesture?.tool === 'range' && gesture.target === target && gesture.asset === asset)
+				return gesture.appliedRange;
+			return null;
+		},
+		cancelPending() { request++; cancelGesture(); },
+	};
 }

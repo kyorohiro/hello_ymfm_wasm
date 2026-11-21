@@ -120,7 +120,7 @@ test('Imported sample pitch follows source rate and root independently of loop l
 	await assert.rejects(chip.configure(0, { rootNote: 'A3', sampleRate: 44100 }), /requires imported/);
 });
 
-test('Identical imported ADPCM retriggers reuse prepared bytes until the data or range changes', async () => {
+test('Identical imported ADPCM bytes are reused across explicit range changes on retrigger', async () => {
 	const { chip, worklet } = endpoint();
 	const { bytes, loopStartWords, lengthWords } = makeNdsSample('adpcm');
 	const sound = { mode: 'adpcm', bytes, loop: true, loopStartWords, lengthWords, rootNote: 'C4', sampleRate: 22050 };
@@ -140,7 +140,7 @@ test('Identical imported ADPCM retriggers reuse prepared bytes until the data or
 	assert.equal((await chip.getState(0)).loopStartWords, loopStartWords + 1);
 	const { loopStartWords: _start, lengthWords: _length, ...soundWithoutRange } = sound;
 	await chip.noteOn(0, 'C4', soundWithoutRange);
-	assert.deepEqual(updates, [true, false, true, true, true]);
+	assert.deepEqual(updates, [true, false, true, false, true]);
 	assert.equal((await chip.getState(0)).loopStartWords, loopStartWords);
 });
 

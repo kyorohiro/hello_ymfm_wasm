@@ -32,19 +32,34 @@ function editorFixture(t, initial) {
 	const oldDocument = globalThis.document;
 	globalThis.document = Object.assign(new EventTarget(), { getElementById: get });
 	t.after(() => { globalThis.document = oldDocument; });
+	const frames = new Map();
+	let nextFrame = 0;
+	const { requestAnimationFrame, cancelAnimationFrame } = globalThis;
+	globalThis.requestAnimationFrame = callback => {
+		frames.set(++nextFrame, callback);
+		return nextFrame;
+	};
+	globalThis.cancelAnimationFrame = id => frames.delete(id);
+	t.after(() => Object.assign(globalThis, { requestAnimationFrame, cancelAnimationFrame }));
 	let sound = initial, target = 0;
-	const errors = [], rangeCommits = [];
+	const errors = [], rangeChanges = [];
 	const editor = setupNdsSampleEditor({ getSound: () => sound, getTarget: () => target,
 		updateSound(next) { sound = next; editor.render(); }, onError: error => errors.push(error),
-		onRangeCommit: sound => rangeCommits.push(sound.sample.range),
+		onRangeChange: (target, asset, range) => rangeChanges.push({ target, asset, range }),
 	});
 	editor.render();
 	draw.dispatchEvent(new Event('click'));
 	return {
-		get sound() { return sound; }, waveform, errors, rangeCommits, field: get,
+		get sound() { return sound; }, waveform, errors, rangeChanges, field: get,
 		useRange() { range.dispatchEvent(new Event('click')); },
 		setChannelView: editor.setChannelView,
 		replace(next) { sound = next; target++; editor.render(); },
+		tick() {
+			for (const [id, callback] of [...frames]) {
+				frames.delete(id);
+				callback();
+			}
+		},
 		pointer(type, x, y) {
 			canvas.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), {
 				button: 0, pointerId: 1, clientX: x, clientY: y,
@@ -106,7 +121,7 @@ test('DS PCM editor discards an unfinished gesture on cancellation or target cha
 	assert.deepEqual(f.errors, []);
 });
 
-test('DS Range commits a drag once and keeps one-shot loop start when editing its end', t => {
+test('DS Range previews the latest word-aligned point once per frame and commits it on release', t => {
 	const wave = makeNdsSample('pcm16', 'sine');
 	const preset = { ...builtin, sample: { ...wave, rootNote: 60, sampleRate: 32000,
 		loopStartWords: 2, lengthWords: wave.lengthWords - 2 } };
@@ -115,12 +130,34 @@ test('DS Range commits a drag once and keeps one-shot loop start when editing it
 	f.useRange();
 	f.pointer('pointerdown', 96, 0);
 	f.pointer('pointermove', 60, 0);
+	f.pointer('pointermove', 72, 0);
 	assert.equal(f.sound, original);
-	assert.deepEqual(f.rangeCommits, []);
+	assert.deepEqual(f.rangeChanges, []);
+	f.tick();
+	assert.equal(f.rangeChanges.length, 1);
+	assert.equal(f.rangeChanges[0].range.endFrame, 48);
+	assert.equal(f.sound, original);
 	f.pointer('pointerup', 72, 0);
 	assert.equal(f.sound.sample.asset, original.sample.asset);
-	assert.deepEqual(f.rangeCommits, [f.sound.sample.range]);
+	assert.deepEqual(f.rangeChanges.map(edit => edit.range), [f.sound.sample.range]);
 	assert.equal(f.sound.sample.range.endFrame, 48);
+
+	f.pointer('pointerdown', 72, 0);
+	f.pointer('pointermove', 84, 0);
+	f.tick();
+	f.pointer('pointermove', 90, 0);
+	f.pointer('pointercancel', 90, 0);
+	f.tick();
+	assert.deepEqual(f.rangeChanges.map(edit => edit.range.endFrame), [48, 56, 48]);
+	assert.equal(f.sound.sample.range.endFrame, 48);
+
+	f.pointer('pointerdown', 6, 0);
+	f.pointer('pointermove', 18, 0);
+	f.pointer('pointerup', 24, 0);
+	f.tick();
+	assert.equal(f.rangeChanges.length, 4, 'Only the final loop start applies when release comes before the next frame');
+	assert.equal(f.sound.sample.range.startFrame, 16);
+	assert.deepEqual(f.rangeChanges.at(-1).range, f.sound.sample.range);
 
 	f.replace(restoreNdsSound({ ...preset, loop: false }));
 	assert.equal(f.field('ndsSampleStart').disabled, true);
@@ -129,7 +166,7 @@ test('DS Range commits a drag once and keeps one-shot loop start when editing it
 	end.dispatchEvent(new Event('change'));
 	assert.equal(f.sound.sample.range.loopStartWords, 2);
 	assert.equal(f.sound.sample.range.endFrame, 40);
-	assert.deepEqual(f.rangeCommits[1], f.sound.sample.range);
+	assert.deepEqual(f.rangeChanges.at(-1).range, f.sound.sample.range);
 	assert.deepEqual(f.errors, []);
 });
 

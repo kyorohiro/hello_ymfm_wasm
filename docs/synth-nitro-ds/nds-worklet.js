@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js?v=nds-live-channel-1';
-import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-live-channel-1';
+import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js?v=nds-range-live-1';
+import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-range-live-1';
 
 const DEFAULT_SAMPLE = makeNdsSample('pcm16');
 const PCM_MODES = new Set(['pcm8', 'pcm16', 'adpcm']);
@@ -113,12 +113,11 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 		}
 		if (!tuning) reusableBytes = null;
 		if (tuning && suppliedBytes) {
-			// The incoming bytes were already copied by MessagePort. Keep that
-			// snapshot and reuse an identical, explicitly delimited sample on a
-			// retrigger, so a long ADPCM buffer does not decode at each key-on.
+			// MessagePort already copied the incoming bytes. An explicit range
+			// can reuse that source even when the bounds have changed.
 			const received = patch.bytes?.buffer instanceof ArrayBuffer ? patch.bytes : null;
-			if (mode === state.mode && patch.loopStartWords === state.loopStartWords && patch.lengthWords === state.lengthWords &&
-				(patch.loop ?? state.loop) === state.loop && sameSampleBytes(reusableBytes, received)) delete patch.bytes;
+			if (mode === state.mode && Number.isInteger(patch.loopStartWords) && Number.isInteger(patch.lengthWords) &&
+				sameSampleBytes(reusableBytes, received)) delete patch.bytes;
 			else reusableBytes = received;
 		}
 		this.core.configure(channel, patch);

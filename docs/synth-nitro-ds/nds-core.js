@@ -91,33 +91,33 @@ function quantizeCapture(output, pcm8) {
 	return (fixed >> shift) + correction;
 }
 
-function prepareSample({ mode, bytes, loopStartWords, lengthWords, loop }) {
+function sampleReader(mode, bytes) {
+	if (mode === 'pcm8') return frame => ((bytes[frame] << 24) >> 24) / 128;
+	if (mode === 'pcm16') {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		return frame => view.getInt16(frame * 2, true) / 32768;
+	}
+	// The complete decode preserves predictor history at each loop point.
+	// Keep it for later changes to either boundary of this sample.
+	const decoded = decodeNdsAdpcm(bytes);
+	return frame => decoded[frame] / 32768;
+}
+
+function prepareSample({ mode, bytes, loopStartWords, lengthWords, loop }, read) {
 	if (!bytes || mode === 'pulse' || mode === 'noise') return null;
 	const availableWords = bytes.length / 4;
 	const length = lengthWords ?? (availableWords - loopStartWords);
 	const end = loopStartWords + length;
 	if (length < 1 || end < 4 || end > availableWords)
 		throw new RangeError('The sample range must use at least four words inside its data');
-	if (mode === 'pcm8') {
-		return {
-			read: (frame) => ((bytes[frame] << 24) >> 24) / 128,
-			start: loopStartWords * 4, end: end * 4, lengthWords: length,
-		};
-	}
-	if (mode === 'pcm16') {
-		const view = new DataView(bytes.buffer, bytes.byteOffset, end * 4);
-		return {
-			read: (frame) => view.getInt16(frame * 2, true) / 32768,
-			start: loopStartWords * 2, end: end * 2, lengthWords: length,
-		};
-	}
-	if (loop && loopStartWords === 0) throw new RangeError('An ADPCM loop must start after its header word');
-	// Decode from the header even when the loop has a lead-in. Reading from the
-	// decoded loop start restores the same predictor and index on every repeat.
-	const decoded = decodeNdsAdpcm(bytes.subarray(0, end * 4));
+	const headerWords = mode === 'adpcm' ? 1 : 0;
+	if (loop && loopStartWords < headerWords) throw new RangeError('An ADPCM loop must start after its header word');
+	const framesPerWord = mode === 'adpcm' ? 8 : mode === 'pcm8' ? 4 : 2;
 	return {
-		read: (frame) => decoded[frame] / 32768,
-		start: Math.max(0, (loopStartWords - 1) * 8), end: decoded.length, lengthWords: length,
+		read: read ?? sampleReader(mode, bytes),
+		start: Math.max(0, loopStartWords - headerWords) * framesPerWord,
+		end: (end - headerWords) * framesPerWord,
+		lengthWords: length,
 	};
 }
 
@@ -176,7 +176,8 @@ export class NdsSoundCore {
 		const old = channel.config;
 		const sampleChanged = next.mode !== old.mode || replacing || next.loopStartWords !== old.loopStartWords
 			|| next.lengthWords !== old.lengthWords || next.loop !== old.loop;
-		const sample = sampleChanged ? prepareSample(next) : channel.sample;
+		const read = !replacing && next.mode === old.mode ? channel.sample?.read : undefined;
+		const sample = sampleChanged ? prepareSample(next, read) : channel.sample;
 		const voice = channel.voice;
 		if (old.timer !== next.timer) {
 			const oldPeriod = this.#period(old.timer);
@@ -264,7 +265,7 @@ export class NdsSoundCore {
 		if (!voice?.sample || voice.releaseFrames) return false;
 		integer(loopStartWords, 0, 65535, 'DS loop start in words');
 		integer(lengthWords, 1, 0x3fffff, 'DS sample length in words');
-		const sample = prepareSample({ mode: voice.mode, bytes: voice.bytes, loop: voice.loop, loopStartWords, lengthWords });
+		const sample = prepareSample({ mode: voice.mode, bytes: voice.bytes, loop: voice.loop, loopStartWords, lengthWords }, voice.sample.read);
 		if (voice.position >= sample.end) {
 			if (!voice.loop) {
 				this.release(index);

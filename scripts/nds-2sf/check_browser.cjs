@@ -1173,33 +1173,64 @@ await nds.noteOn(CH1, "A4", { mode: "pcm8", shape: "sine", pan: 0, volume: 80, l
 async function checkHeldRange(page) {
 	await page.reload();
 	await channelButton(page, 0).click();
-	await page.locator('#ndsMode').selectOption('pcm16');
 	const { encodeWav } = await import('../../docs/js/wav.js');
-	const sampleRate = 24000, half = 3840;
-	const wave = Float32Array.from({ length: half * 2 }, (_, frame) =>
-		frame < half ? 0 : .7 * Math.sin(frame * Math.PI * 2 / 80));
-	await importFiles(page, '#ndsLoadWav', {
-		name: 'Range check.wav', mimeType: 'audio/wav', buffer: Buffer.from(encodeWav({ sampleRate, channels: [wave] })),
-	});
-	await page.locator('#ndsSampleRangeFields').waitFor();
-	await page.locator('#ndsLoop').check();
-	const end = page.locator('#ndsSampleEnd');
-	const tone = () => until(() => output(page), ({ channels }) => channels.some(({ rms }) => rms > .012),
-		'The held loop should sound when its range includes the tone');
-	const changeEnd = async value => {
-		await end.fill(String(value));
-		await end.press('Tab');
-		assert.equal(await end.inputValue(), String(value));
-	};
-	await holdC4(page, async () => {
-		await tone();
-		await changeEnd(half);
-		await wait(500); // Let both the previous playback window and the analyzer history pass.
-		assert((await output(page)).channels.every(({ rms }) => rms < 1e-5), 'The held loop should use the narrowed, silent range');
-		await changeEnd(half * 2);
-		await tone();
-	});
-	return 'Changing End on a held key removes and restores the audible part of the sample loop';
+	const sampleRate = 48000;
+	const end = page.locator('#ndsSampleEnd'), canvas = page.locator('#ndsSampleCanvas');
+	for (const [mode, frames] of [['pcm8', 15360], ['pcm16', 15360], ['adpcm', 262144]]) {
+		const name = `Range ${mode}`;
+		const quietFrames = frames / 6;
+		const wave = Float32Array.from({ length: frames }, (_, frame) =>
+			frame < quietFrames ? 0 : .7 * Math.sin(frame * Math.PI * 2 / 160));
+		await page.locator('#ndsMode').selectOption(mode);
+		await importFiles(page, '#ndsLoadWav', {
+			name: name + '.wav', mimeType: 'audio/wav', buffer: Buffer.from(encodeWav({ sampleRate, channels: [wave] })),
+		});
+		await until(() => page.locator('#ndsSampleInfo').textContent(), text => text.includes(name), `${name} should load`);
+		await page.locator('#ndsLoop').check();
+		await canvas.scrollIntoViewIfNeeded();
+		const { x, y, width, height } = await canvas.boundingBox();
+		const drag = async (ratio, check) => {
+			await page.mouse.move(x + width * .99, y + height / 2);
+			await page.mouse.down();
+			try {
+				await page.mouse.move(x + width * ratio, y + height / 2, { steps: 6 });
+				await until(() => end.inputValue(), value => Number(value) <= quietFrames,
+					`${mode} end marker should move into the silent lead-in`);
+				await check();
+			} finally { await page.mouse.up(); }
+		};
+		const tone = () => until(() => output(page), ({ channels }) => channels.some(({ rms }) => rms > .012),
+			`${mode} held loop should sound when its range includes the tone`, 3000);
+		const quiet = label => {
+			let since;
+			return until(() => output(page), ({ currentTime, channels }) => {
+				if (channels.length !== 2 || channels.some(({ rms }) => rms >= .001)) {
+					since = undefined;
+					return false;
+				}
+				since ??= currentTime;
+				// The shorter unedited loops have only 53 ms of natural silence.
+				// The long ADPCM loop cannot return to its lead-in within this timeout.
+				return currentTime - since >= .18;
+			}, `${mode} ${label}`, 2500);
+		};
+		await holdC4(page, async () => {
+			await tone();
+			await drag(.125, async () => {
+				await quiet('should apply the silent preview before pointer-up');
+				await page.keyboard.press('Escape');
+				assert.equal(await end.inputValue(), String(frames), 'Escape should restore the original End');
+				await tone();
+			});
+			await drag(.125, () => quiet('should preview the new drag'));
+			await quiet('should keep the narrowed loop after pointer-up');
+			await end.fill(String(frames));
+			await end.press('Tab');
+			assert.equal(await end.inputValue(), String(frames));
+			await tone();
+		});
+	}
+	return 'PCM8, PCM16 and long IMA-ADPCM update a held loop during drag, restore it on Escape and keep the range on pointer-up';
 }
 
 async function check(name, origin, fixture) {
