@@ -67,7 +67,7 @@ test('primary Worker exposes timed capability and rejects incomplete optimistic 
 });
 
 async function setup(file,rate,sourceOverride){
- let frame=0,Type,ready;const messages=[],writes=[];
+ let frame=0,Type,ready;const messages=[],writes=[],physical=[];
  const port={postMessage(message){messages.push(message);if(message.ready||message.type==='ready'||message.error||message.type==='error')ready?.(message);}};
  const context={sampleRate:rate,console,Uint8Array,Float32Array,AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor(_n,type){Type=type;}};
  Object.defineProperty(context,'currentFrame',{get:()=>frame});
@@ -88,12 +88,12 @@ async function setup(file,rate,sourceOverride){
  const result=await initialized;assert(result.ready||result.type==='ready',JSON.stringify(result));
  const chip=generic?processor.engine.ym2608:processor.chip;
  let address=0,eventFrame=null;
- chip.hooks.onWrite=({offset,data})=>{if(!(offset&1))address=((offset&2)<<7)|data;else if(eventFrame!==null&&address>>8===offset>>1)writes.push({frame:eventFrame,port:address>>8,register:address&255,value:data});};
+ chip.hooks.onWrite=({offset,data})=>{if(!(offset&1))address=((offset&2)<<7)|data;else if(address>>8===offset>>1){const row={frame:eventFrame??frame,port:address>>8,register:address&255,value:data};physical.push(row);if(eventFrame!==null)writes.push(row);}};
  if(processor.timed){const apply=processor.timed.apply.bind(processor.timed);processor.timed.apply=(op,p,f,m)=>{eventFrame=f;try{return apply(op,p,f,m);}finally{eventFrame=null;}};}
  const send=data=>generic?processor.receive(data,port):port.onmessage({data});let id=0;
  const rpc=payload=>{const n=++id;send({method:'ym2608Timed',id:n,args:[payload]});const reply=messages.find(x=>x.id===n);assert(reply,'immediate control acknowledgement');if(reply.error)throw Error(reply.error);return reply.value;};
  const synth=new YM2608Synth({transport:{write:(port,register,value)=>send(generic?{method:'write',args:[port,register,value]}:{type:'write',port,register,value}),reset:()=>send(generic?{method:'reset'}:{type:'reset'})}});
- return {processor,synth,send,rpc,writes,messages,chip,frame:()=>frame,
+ return {processor,synth,send,rpc,writes,physical,messages,chip,frame:()=>frame,
  render(count){const left=new Float32Array(count),right=new Float32Array(count);for(let i=0;i<count;){const size=Math.min(113,count-i);processor.process([],[[left.subarray(i,i+size),right.subarray(i,i+size)]]);i+=size;frame+=size;}assert(left.every(Number.isFinite));return {left,right};},
  close(){chip.dispose();}};
 }
@@ -160,4 +160,47 @@ for(const [file,path]of [['ym2608-worklet.js','tetorica_src/runtime/ym2608-workl
 test('every advertised recorder method reuses a real immediate FM/SSG method',()=>{
  const synth=new YM2608Synth({transport:{write(){}}});
  for(const name of YM2608_OPERATION_METHODS){const [section,method]=name.split('.');assert.equal(typeof(method?synth[section][method]:synth[section]),'function',name);}
+});
+
+for(const rate of [44100,48000])test(`standalone ${rate}: timed and immediate levels share monitor state, Stop restores on exact Gate frame`,async()=>{
+ const p=await setup('../../docs/synth-fm2608/audio_worklet.js',rate);try{
+  p.synth.setAlgo(0,7);p.synth.setPan(0,true,true);
+  for(let op=0;op<4;op++)p.synth.setOperator(0,op,{multi:1,tl:op?127:24,ar:31,d1r:0,d2r:0,sl:0,rr:8});
+  const mute=(section,channel,value)=>p.send({type:'synth-fm-ssg-monitor',action:'mute',section,channel,value});
+  mute('fm',0,true);mute('ssg',1,true);
+  const phrase=build(b=>{b.setOperator(0,0,{tl:18});b.noteOn(0,'C4');b.ssg.setVolume(1,13);});
+  p.rpc({action:'schedule',operations:phrase,options:{name:'level'},owner:'code'});p.render(400);
+  assert.equal(p.physical.findLast(x=>x.port===0&&x.register===0x40).value,127);
+  assert.equal(p.physical.findLast(x=>x.port===0&&x.register===9).value,0);
+  assert.equal(p.rpc({action:'capture'}).registers[0][0x40],127,'current captures physical monitor output');
+  assert.equal(p.rpc({action:'capture'}).registers[0][9],0);
+  assert.equal(p.processor.fmSsgMonitor.getState().registers[0][0x40],18,'private monitor retains the authored level');
+  mute('fm',0,false);mute('ssg',1,false);
+  assert.equal(p.physical.findLast(x=>x.port===0&&x.register===0x40).value,18);assert.equal(p.physical.findLast(x=>x.port===0&&x.register===9).value,13);
+  p.synth.setOperator(0,0,{tl:21});mute('fm',0,true);mute('fm',0,false);assert.equal(p.physical.findLast(x=>x.port===0&&x.register===0x40).value,21);
+  p.rpc({action:'releaseOwner',owner:'code'});p.synth.keyOff(0);p.synth.ssg.keyOff(1);p.send({type:'synth-fm-ssg-monitor',action:'stop-fm'});
+  mute('fm',0,false);assert.equal(p.physical.findLast(x=>x.port===0&&x.register===0x40).value,127,'unmute must not resume a stopped tail');
+  const receipt=p.rpc({action:'schedule',operations:build(b=>{b.noteOn(0,'E3');b.ssg.keyOn(1);}),options:{name:'rerun'},owner:'next'});
+  p.writes.length=0;p.render(receipt.startFrame-p.frame()+300);
+  const levels=p.writes.filter(x=>x.register===0x40),gate=p.writes.find(x=>x.register===0x28);
+  assert.equal(levels[0].value,21);assert.equal(levels[0].frame,receipt.startFrame);assert.equal(gate.frame,receipt.startFrame);
+  assert.equal(p.rpc({action:'capture'}).registers[0][9],13,'SSG retained volume survives Stop and timed keyOn');
+  assert(p.render(500).left.some(x=>Math.abs(x)>0),'a Key On-only rerun is audible');
+ }finally{p.close();}
+});
+
+for(const rate of [44100,48000])test(`standalone ${rate}: default mixed FM/SSG/ADPCM PCM matches its authenticated pre-monitor processor`,async()=>{
+ const {readFm2608MonitorPredecessor}=await import('../../scripts/mixer_calibration_fm2608_monitor_revision.mjs');
+ const file='../../docs/synth-fm2608/audio_worklet.js';
+ const old=await setup(file,rate,readFm2608MonitorPredecessor('docs/synth-fm2608/audio_worklet.js')),current=await setup(file,rate);
+ try{
+  for(const p of [old,current]){
+   p.synth.reset();p.synth.setAlgo(0,7);p.synth.setPan(0,true,true);
+   for(let op=0;op<4;op++)p.synth.setOperator(0,op,{multi:op+1,tl:op?127:24,ar:31,d1r:5,d2r:3,sl:7,rr:8});
+   p.synth.noteOn(0,'C4');p.synth.ssg.tone(1,{frequency:330,volume:8});
+   p.send({type:'loadAdpcmMemory',bytes:Uint8Array.from({length:64},(_,i)=>i*73&255),address:0});
+   p.synth.adpcm.setSample({start:0,end:64});p.synth.adpcm.setVolume(192);p.synth.adpcm.setPan(true,true);p.synth.adpcm.setPlaybackRate(16000);p.synth.adpcm.keyOn({repeat:true});
+  }
+  const a=old.render(2048),b=current.render(2048);assert.deepEqual(b.left,a.left);assert.deepEqual(b.right,a.right);assert(b.left.some(x=>Math.abs(x)>.01));
+ }finally{old.close();current.close();}
 });

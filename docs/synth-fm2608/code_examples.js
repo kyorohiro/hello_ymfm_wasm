@@ -6,11 +6,7 @@ setBpm(bpm);
 // Use the current FM patch. One reservation shares the FM and SSG clock.
 opna.ssg.setMixer(CH1, { tone: true, noise: false });
 opna.ssg.setVolume(CH1, 10);
-const patch = opna.capturePreset().fm[CH1];
 const phrase = opna.build(b => {
-  // Apply the authored patch, including levels, after a previous Synth Stop.
-  b.setPreset(CH1, { algorithm: patch.algorithm, feedback: patch.feedback,
-    ams: patch.ams, pms: patch.pms, operators: patch.operators });
   b.atSample(0).noteOn(CH1, "E3");
   b.ssg.noteOn(CH1, "E4");
   b.atSeconds(0.15).setOperator(CH1, OP4, { tl: 30 });

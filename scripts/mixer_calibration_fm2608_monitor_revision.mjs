@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Standalone-only monitor review. No historical source hashes are rewritten.
+import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {relative} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=new URL('../',import.meta.url);
+export const FM2608_MONITOR_RECEIPT='docs/issues/fm2608_timed_monitor_revision_20261121.json';
+export const FM2608_MONITOR_PIN='01aab1f939665a88ea4bf01bfac0b10347c1333ea913a48834c0743db29fce15';
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const matches=(bytes,record)=>bytes.length===record?.bytes&&sha(bytes)===record?.sha256;
+function evidence(read){
+ const bytes=read(new URL(FM2608_MONITOR_RECEIPT,root));
+ if(sha(bytes)!==FM2608_MONITOR_PIN)throw Error('FM2608 monitor review receipt identity changed');
+ const data=JSON.parse(bytes);
+ if(data.schemaVersion!==1||data.scope!=='fm2608-standalone-timed-monitor')throw Error('Invalid FM2608 monitor review');
+ return data;
+}
+function predecessor(bytes,entry){
+ const parts=[];let cursor=0;
+ for(const hunk of entry.hunks){
+  if(!Number.isSafeInteger(hunk.afterOffset)||hunk.afterOffset<cursor||!Number.isSafeInteger(hunk.afterBytes)||hunk.afterBytes<0||hunk.afterOffset+hunk.afterBytes>bytes.length)throw Error('Invalid FM2608 monitor hunk');
+  const old=Buffer.from(hunk.beforeBase64,'base64');if(old.toString('base64')!==hunk.beforeBase64)throw Error('Invalid FM2608 monitor hunk encoding');
+  parts.push(bytes.subarray(cursor,hunk.afterOffset),old);cursor=hunk.afterOffset+hunk.afterBytes;
+ }
+ parts.push(bytes.subarray(cursor));const result=Buffer.concat(parts);
+ if(!matches(result,entry.before))throw Error('FM2608 monitor predecessor identity changed');
+ return result;
+}
+export function createFm2608MonitorRevisionReadContext(read=readFileSync){
+ const {sources,dependencies}=evidence(read);let checked=false;
+ const check=()=>{if(checked)return;for(const [name,record]of Object.entries(dependencies)){
+  if(!matches(read(new URL(name,root)),record))throw Error('Unreviewed FM2608 monitor dependency: '+name);
+ }checked=true;};
+ function restore(path,bytes){
+  const name=Object.hasOwn(sources,path)?path:'docs/'+path,entry=sources[name];
+  if(!entry||!matches(bytes,entry.after))return bytes;
+  check();return predecessor(Buffer.from(bytes),entry);
+ }
+ return {restore,readSource(url){const bytes=read(url);return url instanceof URL&&url.protocol==='file:'?restore(relative(fileURLToPath(root),fileURLToPath(url)).replaceAll('\\','/'),bytes):bytes;}};
+}
+export function readFm2608MonitorPredecessor(path){
+ const bytes=readFileSync(new URL(path,root)),data=evidence(readFileSync),entry=data.sources[path];
+ if(!entry||!matches(bytes,entry.after))throw Error('Unreviewed standalone FM2608 predecessor source');
+ return createFm2608MonitorRevisionReadContext().restore(path,bytes).toString('utf8');
+}

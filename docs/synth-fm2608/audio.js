@@ -30,7 +30,7 @@ function checkVolume(volume) {
 /** Host software monitor mutes retain every original register write, including
  * Code writes. The chip client's own shadows keep the unmuted parameter values.
  */
-export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () => {},onReset = () => {},filterAdpcmVolume = value => value} = {}) {
+export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () => {},onReset = () => {},filterAdpcmVolume = value => value, fmSsgBackend} = {}) {
   const transport = chip.transport, registers = [new Uint8Array(256),new Uint8Array(256)];
   const fmState = createYm2612RegisterState(chip.clock);
   const muted = {fm:Array(6).fill(false),ssg:Array(3).fill(false),rhythm:Array(6).fill(false),adpcm:[false]};
@@ -53,15 +53,15 @@ export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () =
     onWrite(port,register,value);
     if (port === 0 && register === 0x27) {
       chip._modeRegister = value;
-      if ((value & 0xc1) === 0x81 && stopped[2]) { stopped[2] = false; restoreFm(2); }
+      if ((value & 0xc1) === 0x81 && stopped[2]) { stopped[2] = false; if (!fmSsgBackend) restoreFm(2); }
     }
     if (port === 0 && register === 0x28 && value & 0xf0) {
       const channel = KEY_CHANNELS[value & 7];
-      if (channel >= 0 && stopped[channel]) { stopped[channel] = false; restoreFm(channel); }
+      if (channel >= 0 && stopped[channel]) { stopped[channel] = false; if (!fmSsgBackend) restoreFm(channel); }
     }
     const fm = fmLevel(port,register);
-    if (fm >= 0 && (muted.fm[fm] || stopped[fm])) return 127;
-    if (port === 0 && register >= 8 && register <= 10 && muted.ssg[register - 8]) return 0;
+    if (!fmSsgBackend && fm >= 0 && (muted.fm[fm] || stopped[fm])) return 127;
+    if (!fmSsgBackend && port === 0 && register >= 8 && register <= 10 && muted.ssg[register - 8]) return 0;
     if (port === 0 && register >= 0x18 && register <= 0x1d && muted.rhythm[register - 0x18]) return value & 0x3f;
     if (port === 1 && register === 11) return filterAdpcmVolume(muted.adpcm[0] ? 0 : value);
     return value;
@@ -81,7 +81,8 @@ export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () =
     channelIndex(section,channel);
     if (typeof value !== 'boolean') throw new TypeError('Mute must be boolean');
     muted[section][channel] = value;
-    if (section === 'fm') restoreFm(channel);
+    if (fmSsgBackend && (section === 'fm' || section === 'ssg')) fmSsgBackend.setMute(section,channel,value);
+    else if (section === 'fm') restoreFm(channel);
     else {
       const port = section === 'adpcm' ? 1 : 0;
       const register = section === 'ssg' ? 8 + channel : section === 'rhythm' ? 0x18 + channel : 11;
@@ -91,8 +92,9 @@ export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () =
   }
   function stopFm() {
     for (let channel = 0; channel < 6; channel++) {
-      chip.keyOff(channel); stopped[channel] = true; restoreFm(channel);
+      chip.keyOff(channel); stopped[channel] = true; if (!fmSsgBackend) restoreFm(channel);
     }
+    fmSsgBackend?.stopFm();
   }
   function getState() { return structuredClone(muted); }
   return {setMute,getState,stopFm,registers,getFmState:() => fmState.snapshot()};
@@ -376,7 +378,12 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     chip = runtime.fm; memory = observeAdpcmMemory(chip);
     const physicalWrite = chip.transport.write.bind(chip.transport);
     const physicalBatch = chip.transport.writeBatch?.bind(chip.transport);
-    monitor = installMonitorMutes(chip,{onWrite:(port,register,value) => {
+    const monitorPort = chip._timedOperations && runtime.node?.port;
+    const fmSsgBackend = monitorPort?.postMessage ? {
+      setMute:(section,channel,value) => monitorPort.postMessage({type:'synth-fm-ssg-monitor',action:'mute',section,channel,value}),
+      stopFm:() => monitorPort.postMessage({type:'synth-fm-ssg-monitor',action:'stop-fm'}),
+    } : undefined;
+    monitor = installMonitorMutes(chip,{fmSsgBackend,onWrite:(port,register,value) => {
       memory.observeWrite(port,register,value);
       if (port === 1 && (register === 9 || register === 10) && !writingKeyboardRate) keyboardAdpcmRate = null;
       if (port === 1 && register === 11) adpcmGuard?.volumeChanged();

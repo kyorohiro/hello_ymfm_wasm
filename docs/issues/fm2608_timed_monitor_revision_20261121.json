@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "scope": "fm2608-standalone-timed-monitor",
+  "baseCommit": "5934a70efe5a32482072473e138257e894186a10",
+  "reason": "Move standalone FM TL and SSG level software Mute/Stop monitoring to one audio-thread authority for immediate, timed and inspector writes. Preserve authored levels, ownership and the ADPCM release path. Native chip cores, gains, shared runtime processors and historical calibration reports are unchanged. Exact predecessor restoration is separate from audible verification.",
+  "sources": {
+    "docs/synth-fm2608/audio.js": {
+      "before": {
+        "bytes": 24607,
+        "sha256": "d7307c1044078f312b0550bc1ef62571cf335550ab3a51bd77badd00a15b2087"
+      },
+      "after": {
+        "bytes": 25235,
+        "sha256": "ac1988c2eb686371bf32b97ac3a2e29eb3220983a5cdba23ac178b0cbe9ac9cf"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1746,
+          "afterBytes": 162,
+          "beforeBase64": "ZXhwb3J0IGZ1bmN0aW9uIGluc3RhbGxNb25pdG9yTXV0ZXMoY2hpcCx7b25Xcml0ZSA9ICgpID0+IHt9LG9uQWZ0ZXJXcml0ZSA9ICgpID0+IHt9LG9uUmVzZXQgPSAoKSA9PiB7fSxmaWx0ZXJBZHBjbVZvbHVtZSA9IHZhbHVlID0+IHZhbHVlfSA9IHt9KSB7Cg=="
+        },
+        {
+          "afterOffset": 3065,
+          "afterBytes": 106,
+          "beforeBase64": "ICAgICAgaWYgKCh2YWx1ZSAmIDB4YzEpID09PSAweDgxICYmIHN0b3BwZWRbMl0pIHsgc3RvcHBlZFsyXSA9IGZhbHNlOyByZXN0b3JlRm0oMik7IH0K"
+        },
+        {
+          "afterOffset": 3283,
+          "afterBytes": 113,
+          "beforeBase64": "ICAgICAgaWYgKGNoYW5uZWwgPj0gMCAmJiBzdG9wcGVkW2NoYW5uZWxdKSB7IHN0b3BwZWRbY2hhbm5lbF0gPSBmYWxzZTsgcmVzdG9yZUZtKGNoYW5uZWwpOyB9Cg=="
+        },
+        {
+          "afterOffset": 3441,
+          "afterBytes": 188,
+          "beforeBase64": "ICAgIGlmIChmbSA+PSAwICYmIChtdXRlZC5mbVtmbV0gfHwgc3RvcHBlZFtmbV0pKSByZXR1cm4gMTI3OwogICAgaWYgKHBvcnQgPT09IDAgJiYgcmVnaXN0ZXIgPj0gOCAmJiByZWdpc3RlciA8PSAxMCAmJiBtdXRlZC5zc2dbcmVnaXN0ZXIgLSA4XSkgcmV0dXJuIDA7Cg=="
+        },
+        {
+          "afterOffset": 4635,
+          "afterBytes": 161,
+          "beforeBase64": "ICAgIGlmIChzZWN0aW9uID09PSAnZm0nKSByZXN0b3JlRm0oY2hhbm5lbCk7Cg=="
+        },
+        {
+          "afterOffset": 5139,
+          "afterBytes": 92,
+          "beforeBase64": "ICAgICAgY2hpcC5rZXlPZmYoY2hhbm5lbCk7IHN0b3BwZWRbY2hhbm5lbF0gPSB0cnVlOyByZXN0b3JlRm0oY2hhbm5lbCk7Cg=="
+        },
+        {
+          "afterOffset": 5237,
+          "afterBytes": 28,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 21736,
+          "afterBytes": 455,
+          "beforeBase64": "ICAgIG1vbml0b3IgPSBpbnN0YWxsTW9uaXRvck11dGVzKGNoaXAse29uV3JpdGU6KHBvcnQscmVnaXN0ZXIsdmFsdWUpID0+IHsK"
+        }
+      ]
+    },
+    "docs/synth-fm2608/audio_worklet.js": {
+      "before": {
+        "bytes": 13062,
+        "sha256": "4aaf5a412355adc3e62af2735767b2c5b922fe5098207d6db3874702132e622b"
+      },
+      "after": {
+        "bytes": 13652,
+        "sha256": "c54baf61c33c17e16720365b92ebe1bcdc80bf3db71ca187a402f73cc88ae846"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1398,
+          "afterBytes": 62,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 4620,
+          "afterBytes": 52,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 8228,
+          "afterBytes": 112,
+          "beforeBase64": "ICAgICAgaWYgKGRhdGEudHlwZSA9PT0gInJlc2V0IikgeyB0aGlzLmFkcGNtUmVsZWFzZS5yZXNldCgpOyB0aGlzLmNoaXA/LnJlc2V0KCk7IH0K"
+        },
+        {
+          "afterOffset": 9025,
+          "afterBytes": 448,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/synth-fm2608/code_examples.js": {
+      "before": {
+        "bytes": 1415,
+        "sha256": "422e4838bca6466b389b986871ed2631f0e8be949636a687ef5b3c6013dcebee"
+      },
+      "after": {
+        "bytes": 1151,
+        "sha256": "1ca52c6702c6f128a9ca59799b71ea356ac6ff7b0072e55b7d4e9a63912af900"
+      },
+      "hunks": [
+        {
+          "afterOffset": 335,
+          "afterBytes": 0,
+          "beforeBase64": "Y29uc3QgcGF0Y2ggPSBvcG5hLmNhcHR1cmVQcmVzZXQoKS5mbVtDSDFdOwo="
+        },
+        {
+          "afterOffset": 368,
+          "afterBytes": 0,
+          "beforeBase64": "ICAvLyBBcHBseSB0aGUgYXV0aG9yZWQgcGF0Y2gsIGluY2x1ZGluZyBsZXZlbHMsIGFmdGVyIGEgcHJldmlvdXMgU3ludGggU3RvcC4KICBiLnNldFByZXNldChDSDEsIHsgYWxnb3JpdGhtOiBwYXRjaC5hbGdvcml0aG0sIGZlZWRiYWNrOiBwYXRjaC5mZWVkYmFjaywKICAgIGFtczogcGF0Y2guYW1zLCBwbXM6IHBhdGNoLnBtcywgb3BlcmF0b3JzOiBwYXRjaC5vcGVyYXRvcnMgfSk7Cg=="
+        }
+      ]
+    },
+    "docs/synth-fm2608/TIMED_API.md": {
+      "before": {
+        "bytes": 3629,
+        "sha256": "f470294a133803ae995c9ab8149980cd8b1374b74df363b7da94fc5201f0e2f6"
+      },
+      "after": {
+        "bytes": 4026,
+        "sha256": "0149b60839807fdfdcd0c315aff169b97eed52a012b1df57f6c2d46244f5a297"
+      },
+      "hunks": [
+        {
+          "afterOffset": 2678,
+          "afterBytes": 781,
+          "beforeBase64": "VGhlIHN0YW5kYWxvbmUgU3ludGggcmV0YWlucyBpdHMgc29mdHdhcmUgU3RvcC9taXhlciBsYXllci4gQSBjaGlwLWxldmVsIEtleSBPbgphbG9uZSBkb2VzIG5vdCByZWJ1aWxkIGEgcGF0Y2ggbXV0ZWQgYnkgYSBwcmV2aW91cyBTeW50aCBTdG9wLiBUaGUgaW5jbHVkZWQKZXhhbXBsZSBleHBsaWNpdGx5IHJlY29yZHMgdGhlIGF1dGhvcmVkIEZNIHBhdGNoIGJlZm9yZSBwbGF5aW5nIGl0LiBQZXItY2hhbm5lbAptb25pdG9yLW11dGUgaW50ZXJhY3Rpb24gd2l0aCByZXNlcnZlZCB3cml0ZXMgc3RpbGwgbmVlZHMgYSBkZWRpY2F0ZWQgZm9sbG93LXVwOwpGTS9TU0cgc291cmNlIGdhaW5zIGFuZCBNYXN0ZXIgcmVtYWluIGFwcGxpZWQgYnkgdGhlIGF1ZGlvIGVuZ2luZS4K"
+        }
+      ]
+    },
+    "scripts/check_ym2608_timed_browser.cjs": {
+      "before": {
+        "bytes": 8809,
+        "sha256": "512ac002477139c52fd084c60481b5979c452dad0b1178f68b0d39e887f9239f"
+      },
+      "after": {
+        "bytes": 12915,
+        "sha256": "1e33efdf7fe2c31b44122f655952d8f1de5472b4d0de096744ac54fdab3752e7"
+      },
+      "hunks": [
+        {
+          "afterOffset": 5176,
+          "afterBytes": 4057,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 11109,
+          "afterBytes": 41,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 11823,
+          "afterBytes": 160,
+          "beforeBase64": "ICBhc3NlcnQoYXVkaXQubXV0ZWQpO2Fzc2VydC5kZWVwRXF1YWwoZXJyb3JzLFtdKTtyZXR1cm4ge2Jyb3dzZXI6YnJvd3Nlck5hbWUscGFzc2VkOnRydWUsaW5pdGlhbCxhcHBsaWVkLHJvbGxlZEJhY2ssc3RvcHBlZEZyYW1lOnN0b3BwZWQuZnJhbWUsYXVkaXR9Owo="
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "docs/synth-fm2608/fm_ssg_monitor.js": {
+      "bytes": 3253,
+      "sha256": "a5278f4297a8e54fe5869cb564ddc53258b46f9a983e43aa04964c171d559df8"
+    }
+  }
+}

@@ -19,9 +19,9 @@ unsupported paths must fail explicitly. No npm publication or release requested.
 
 ## Follow-ups
 
-- [ ] Extend standalone Synth per-channel monitor mutes and Stop-level restoration
-      coherently to reserved writes. Until then use the included explicit patch
-      setup; do not claim all UI software helpers are identical to chip APIs.
+- [x] Standalone FM/SSG monitor mutes and Stop-level restoration now apply to
+      reserved writes on the audio thread; the demo no longer needs a preset
+      rebuild workaround. See the follow-up verification below.
 - [ ] Consider Rhythm / ADPCM register scheduling separately, retaining memory
       upload admission and decoder/ROM semantics; Native remains separate.
 - [ ] Scheduled-state UI polling belongs to the shared visible-panel plan.
@@ -45,3 +45,27 @@ WASM, not an audio-device recording. No npm/Tauri/release/commit/push performed.
 - The exact reversible review preserves historical calibration reports and
   rejects later source/dependency changes; calibration data/gains are unchanged.
 - [Evidence](verification_fm2608_timed_api_20261121.json).
+
+## Completed follow-up — timed Mixer / Stop (2026-11-21)
+
+- [x] Make the standalone audio thread the authority for FM TL / SSG level
+      monitoring, retaining authored levels separately from software mute/Stop.
+- [x] Apply the same monitor to immediate, timed and inspector writes; restore
+      current authored FM levels at the next Key On on the audio clock.
+- [x] Delegate FM/SSG UI mutes without replaying stale Main-thread levels;
+      preserve Rhythm/ADPCM filtering and the existing ADPCM release guard.
+- [x] Verify muted edits, unmute, Stop/Run, replacement ownership, both FM ports,
+      SSG retained levels, source gains and default PCM parity at 44.1/48 kHz.
+- [x] Check the real Code/Mixer flow in physically muted browsers and retain
+      exact calibration review rather than changing historical gain reports.
+
+
+Verification: 35 targeted monitor/timed/review checks, 220 OPNA tests and
+28 calibration-chain checks passed. The npm build generated/checked 472 types.
+Real WASM tests cover both FM banks, retained SSG levels, 44.1/48 kHz Gate-frame
+restoration and exact default mixed FM/SSG/ADPCM PCM parity (4096 stereo frames).
+Source and readable ZIP passed Chromium/WebKit with physical output muted;
+FM/SSG muted peaks were zero and unmute / Key On-only Run used the latest levels.
+`captureState()` remains a physical register snapshot; authored monitor levels
+are private and no continuous UI synchronization was introduced.
+[Evidence](verification_fm2608_timed_monitor_20261121.json).

@@ -84,6 +84,37 @@ async function stable(page,value){
  let state;for(let i=0;i<60;i++){state=await page.evaluate(()=>__fmTimedAudit.capture());if(state.registers[0][0x30]===value)return state.frame;await page.waitForTimeout(20);}
  assert.equal(state.registers[0][0x30],value);
 }
+async function level(page,predicate,label){
+ let peak=0;for(let i=0;i<60;i++){peak=await page.evaluate(()=>__fmTimedAudit.level());if(predicate(peak))return peak;await page.waitForTimeout(30);}assert.fail(`${label}: last peak ${peak}`);
+}
+async function monitorFlow(page){
+ const goCode=async()=>{await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});};
+ const mute=async(section,expected)=>{await page.locator('#tab-mixer').click();const button=page.locator(`[data-mixer-section="${section}"][data-mixer-channel="0"]`);await button.click();assert.equal(await button.getAttribute('aria-pressed'),String(!expected));await page.waitForTimeout(160);};
+ const setup=`const fm=await useSoundChip('ym2608');
+fm.setAlgo(CH1,7);fm.setPan(CH1,true,true);fm.setLfo(false,0);
+for(let op=0;op<4;op++)fm.setOperator(CH1,op,{multi:1,tl:op?127:24,ar:31,d1r:0,d2r:0,sl:0,rr:8});
+for(let ch=0;ch<3;ch++)fm.ssg.keyOff(ch);`;
+ const fmPhrase=(tl,tag)=>`const fm=await useSoundChip('ym2608');await fm.schedule(fm.build(b=>{b.setOperator(CH1,OP1,{tl:${tl}});b.noteOn(CH1,'A3');}),{name:'monitor-fm',repeatSeconds:.05});console.log('${tag}');`;
+ await goCode();await execute(page,setup+fmPhrase(24,'MONITOR_FM').replace("const fm=await useSoundChip('ym2608');",''),'Run','MONITOR_FM');
+ const fmBefore=await level(page,x=>x>.003,'FM starts');await mute('fm',true);const fmMuted=await level(page,x=>x<.0001,'FM muted');
+ await goCode();await execute(page,fmPhrase(18,'MONITOR_FM_CHANGED'),'Apply','MONITOR_FM_CHANGED');await page.waitForTimeout(160);
+ assert((await page.evaluate(()=>__fmTimedAudit.capture())).keyMasks[0]>0);assert(await page.evaluate(()=>__fmTimedAudit.level())<.0001);
+ await mute('fm',false);const fmAfter=await level(page,x=>x>fmBefore*1.25,'latest timed FM level restored');
+ await goCode();await page.locator('#synthCodeStopButton').click();await level(page,x=>x<.0001,'FM Stop');await page.waitForTimeout(180);
+ await execute(page,`const fm=await useSoundChip('ym2608');await fm.schedule(fm.build(b=>b.noteOn(CH1,'A3')),{name:'gate-only',repeatSeconds:.05});console.log('FM_GATE_ONLY');`,'Run','FM_GATE_ONLY');
+ const fmRerun=await level(page,x=>x>fmBefore*1.25,'Key On-only FM rerun');assert.equal((await page.evaluate(()=>__fmTimedAudit.capture())).registers[0][0x40],18);
+ await page.locator('#synthCodeStopButton').click();await level(page,x=>x<.0001,'FM stopped before SSG');await page.waitForTimeout(180);
+ const ssgPhrase=(volume,tag)=>`const fm=await useSoundChip('ym2608');await fm.schedule(fm.build(b=>{b.ssg.setVolume(CH1,${volume});b.ssg.noteOn(CH1,'A4');}),{name:'monitor-ssg',repeatSeconds:.05});console.log('${tag}');`;
+ await execute(page,`const fm=await useSoundChip('ym2608');fm.ssg.setMixer(CH1,{tone:true,noise:false});`+ssgPhrase(12,'MONITOR_SSG').replace("const fm=await useSoundChip('ym2608');",''),'Run','MONITOR_SSG');
+ const ssgBefore=await level(page,x=>x>.003,'SSG starts');await mute('ssg',true);const ssgMuted=await level(page,x=>x<.0001,'SSG muted');
+ await goCode();await execute(page,ssgPhrase(5,'MONITOR_SSG_CHANGED'),'Apply','MONITOR_SSG_CHANGED');await page.waitForTimeout(160);assert(await page.evaluate(()=>__fmTimedAudit.level())<.0001);
+ await mute('ssg',false);const ssgAfter=await level(page,x=>x>.0003&&x<ssgBefore*.7,'latest timed SSG level restored');
+ await goCode();await page.locator('#synthCodeStopButton').click();await level(page,x=>x<.0001,'SSG Stop');await page.waitForTimeout(180);
+ await execute(page,`const fm=await useSoundChip('ym2608');await fm.schedule(fm.build(b=>b.ssg.noteOn(CH1,'A4')),{name:'ssg-gate-only',repeatSeconds:.05});console.log('SSG_GATE_ONLY');`,'Run','SSG_GATE_ONLY');
+ const ssgRerun=await level(page,x=>x>.0003&&x<ssgBefore*.7,'Key On-only SSG rerun');assert.equal((await page.evaluate(()=>__fmTimedAudit.capture())).registers[0][8],5);
+ await page.locator('#synthCodeStopButton').click();await level(page,x=>x<.0001,'final Stop');
+ return {fmBefore,fmMuted,fmAfter,fmRerun,ssgBefore,ssgMuted,ssgAfter,ssgRerun};
+}
 async function run(browserName,origin){
  const browser=await {chromium,webkit}[browserName].launch({headless:true});const context=await browser.newContext({viewport:{width:1280,height:900}});let page;
  try{
@@ -102,12 +133,13 @@ async function run(browserName,origin){
   await page.waitForTimeout(250);
   await page.waitForFunction(async()=>{const s=await __fmTimedAudit.capture();return s.keyMasks[0]===0&&s.registers[0][8]===0;});
   const stopped=await page.evaluate(()=>__fmTimedAudit.capture());assert.equal(stopped.keyMasks[0],0);assert.equal(stopped.registers[0][8],0);
+  const monitor=await monitorFlow(page);
   // Run the same example distributed in each new Cassette.
   const example=await page.evaluate(async()=>{const m=await import('./synth-fm2608/code_examples.js'.replace('./synth-fm2608/',location.pathname.includes('/synth-fm2608/')?'./':'./synth-fm2608/'));return m.FM2608_TIMED_EXAMPLE;});
   await execute(page,example+"\nconsole.log('EXAMPLE_READY');",'Run','EXAMPLE_READY');await page.waitForTimeout(100);
   await page.locator('#synthCodeStopButton').click();
   const audit=await page.evaluate(()=>({contexts:__fmTimedAudit.contexts.length,nodes:__fmTimedAudit.nodes.length,muted:__fmTimedAudit.routes.length>0&&__fmTimedAudit.routes.every(x=>x.mute.gain.value===0)}));
-  assert(audit.muted);assert.deepEqual(errors,[]);return {browser:browserName,passed:true,initial,applied,rolledBack,stoppedFrame:stopped.frame,audit};
+  assert(audit.muted);assert.deepEqual(errors,[]);return {browser:browserName,passed:true,initial,applied,rolledBack,stoppedFrame:stopped.frame,monitor,audit};
  }catch(error){if(page)console.error(await page.evaluate(()=>({status:document.getElementById('audioStatus')?.textContent,error:document.getElementById('synthCodeError')?.textContent,log:document.getElementById('synthCodeLog')?.textContent,commands:__fmTimedAudit.commands.filter(x=>x.method!=='ym2608Timed'||x.args[0].action!=='capture').slice(-22)})));throw error;}
  finally{await context.close();await browser.close();}
 }

@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "scope": "Standalone FM2608 FM/SSG timed Mixer and Stop integration",
+  "tests": {
+    "monitorAndTimedAndExactReviews": 35,
+    "standaloneOpna": 220,
+    "calibrationReviewChain": 28,
+    "npmBuild": "409 modules; 472 generated and checked declarations"
+  },
+  "audio": {
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "restoreAtExactScheduledGateFrame": true,
+    "defaultMixedFmSsgAdpcmPcmParity": {
+      "reference": "authenticated pre-monitor standalone processor",
+      "stereoFramesCompared": 4096,
+      "maximumDifference": 0
+    },
+    "physicalBrowserOutputMuted": true
+  },
+  "sourceBrowser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 11264,
+        "applied": 14336,
+        "rolledBack": 21504,
+        "stoppedFrame": 35584,
+        "monitor": {
+          "fmBefore": 0.010916137136518955,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 12544,
+        "applied": 14848,
+        "rolledBack": 21120,
+        "stoppedFrame": 35200,
+        "monitor": {
+          "fmBefore": 0.010916137136518955,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "zipBrowser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 12800,
+        "applied": 16640,
+        "rolledBack": 23808,
+        "stoppedFrame": 37888,
+        "monitor": {
+          "fmBefore": 0.010894775390625,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 12672,
+        "applied": 16512,
+        "rolledBack": 24192,
+        "stoppedFrame": 38272,
+        "monitor": {
+          "fmBefore": 0.010916137136518955,
+          "fmMuted": 0,
+          "fmAfter": 0.01835021935403347,
+          "fmRerun": 0.01835021935403347,
+          "ssgBefore": 0.08553466945886612,
+          "ssgMuted": 0,
+          "ssgAfter": 0.008331298828125,
+          "ssgRerun": 0.008331298828125
+        },
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "archive": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/fm2608-timed-monitor/itch_fm2608_synth_timed-monitor-verified-20261121-GntPGw",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/fm2608-timed-monitor/tetorica_fm2608_synth_timed-monitor-verified-20261121_itch.zip",
+    "files": 197,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 2027222,
+      "sha256": "e3dfac0e9b1ef08464695491306408a03963a9c3c144e2214cb549b485dc8d3a"
+    },
+    "sourceCheck": {
+      "inputs": 38,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "semantics": {
+    "privateAuthoredLevels": "Audio thread, common to immediate/timed/inspector writes",
+    "captureState": "Physical register bytes including monitor mutes; no synthetic register substitution",
+    "compilation": "Chip operations only, excluding extra Synth software monitor writes",
+    "liveUiPolling": "Deferred, no new periodic Main/UI synchronization"
+  },
+  "sources": {
+    "docs/synth-fm2608/audio.js": {
+      "bytes": 25235,
+      "sha256": "ac1988c2eb686371bf32b97ac3a2e29eb3220983a5cdba23ac178b0cbe9ac9cf"
+    },
+    "docs/synth-fm2608/audio_worklet.js": {
+      "bytes": 13652,
+      "sha256": "c54baf61c33c17e16720365b92ebe1bcdc80bf3db71ca187a402f73cc88ae846"
+    },
+    "docs/synth-fm2608/fm_ssg_monitor.js": {
+      "bytes": 3253,
+      "sha256": "a5278f4297a8e54fe5869cb564ddc53258b46f9a983e43aa04964c171d559df8"
+    },
+    "docs/synth-fm2608/code_examples.js": {
+      "bytes": 1151,
+      "sha256": "1ca52c6702c6f128a9ca59799b71ea356ac6ff7b0072e55b7d4e9a63912af900"
+    },
+    "scripts/check_ym2608_timed_browser.cjs": {
+      "bytes": 12915,
+      "sha256": "1e33efdf7fe2c31b44122f655952d8f1de5472b4d0de096744ac54fdab3752e7"
+    }
+  },
+  "noPublication": true,
+  "noCommitPushOrRemoteCi": true
+}

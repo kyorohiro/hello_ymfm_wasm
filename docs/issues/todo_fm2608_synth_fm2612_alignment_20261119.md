@@ -116,3 +116,11 @@ Timed FM/SSG implementation (2026-11-21): lightweight `build`, asynchronous
 reservations and shared Code lifecycle are connected. Types and the fresh-Cassette
 example are included. Do not infer Rhythm/ADPCM, Native execution, monitor-mute
 parity or live scheduled-state UI from this work. See the scoped verification above.
+
+
+Follow-up 2026-11-21: standalone FM/SSG channel mutes and Stop-level restoration
+now share one audio-thread authority for immediate, reserved and keyboard writes.
+Mute retains the latest authored levels; Key On restores stopped FM levels at
+its scheduled frame. Current snapshots remain physical register observations.
+See [verification](verification_fm2608_timed_monitor_20261121.json). Rhythm/ADPCM
+scheduling and visible-panel scheduled-state UI remain separate.

@@ -1,3 +1,4 @@
+import {createFm2608MonitorRevisionReadContext} from './mixer_calibration_fm2608_monitor_revision.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 // Exact, reversible FM/SSG connection review. Historical measurements stay intact.
 import {createHash} from 'node:crypto';
@@ -27,12 +28,14 @@ function previous(bytes,entry){
  return result;
 }
 export function createYm2608TimedRevisionReadContext(readSource=readFileSync){
+ const latest=createFm2608MonitorRevisionReadContext(readSource);readSource=latest.readSource;
  const {sources,dependencies}=evidence();
  let checked=false;
  const check=()=>{if(checked)return;for(const [name,record]of Object.entries(dependencies)){
    if(!matches(readSource(new URL(name,root)),record))throw Error('Unreviewed YM2608 timed dependency: '+name);
  }checked=true;};
  function restore(path,bytes){
+  bytes=latest.restore(path,bytes);
   const name=Object.hasOwn(sources,path)?path:'docs/'+path,entry=sources[name];
   if(!entry||!matches(bytes,entry.after))return bytes;
   check();return previous(Buffer.from(bytes),entry);

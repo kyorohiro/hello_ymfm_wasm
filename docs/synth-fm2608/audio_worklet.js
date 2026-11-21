@@ -17,6 +17,7 @@ import {createChipPortReceiver} from "../js/playground_chip_port.js?v=audio-stab
 import ym2608ModuleFactory from "../generated/ym2608_wasm.js?v=fm2608-source-mixer-1";
 import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "../js/ym2608.js?v=ym2608-source-gains-1";
 
+import {createFm2608FmSsgMonitor} from './fm_ssg_monitor.js';
 import {createYm2608AdpcmRelease} from './adpcm_audio_receiver.js?v=audio-owned-release-1';
 
 class YM2608Processor extends AudioWorkletProcessor {
@@ -61,6 +62,7 @@ class YM2608Processor extends AudioWorkletProcessor {
       dispatch:(data,port,frame,metadata)=>handle(data,m=>port.postMessage(m),metadata),nowFrame:()=>currentFrame,sampleRate});
     const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply), undefined, {performanceQueue: this.performanceQueue,receiveControl:(data,reply)=>{if(data?.method==='ym2608Timed')return this.timed.receive(data,{postMessage:reply});if(data?.method==='ym2608Retained'){handle(data,reply);return true;}return false;}});
     const handle = (data, reply = message => this.port.postMessage(message), performance, frame = currentFrame) => {
+      if (this.fmSsgMonitor?.receive(data)) return;
       if(data.method==='ym2608Timed'){this.timed.receive(data,{postMessage:reply});return;}
       if(data.method==='applyTimedOperation'){this.timed.apply(data.operation,{postMessage:reply},frame,performance);return;}
       if(data.method==='ym2608Retained'){
@@ -122,7 +124,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "write" && this.chip) this.write(data.port, data.register, data.value);
-      if (data.type === "reset") { this.adpcmRelease.reset(); this.chip?.reset(); }
+      if (data.type === "reset") { this.adpcmRelease.reset(); this.chip?.reset(); this.fmSsgMonitor?.reset(); }
     };
     this.port.onmessage = ({data}) => {
       if(data?.type==='chip-inspector'&&receiveChipInspector(data,this.port,this.opnInspector?(action,method,args)=>action==='read'?this.opnInspector.read():this.opnInspector.invoke(method,args):null))return;
@@ -138,6 +140,13 @@ class YM2608Processor extends AudioWorkletProcessor {
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
       this.timedChip=observeYm2608TimedChip(this.chip);
+      const writeRegister = this.chip.writeRegister?.bind(this.chip) ?? ((register,value,port = 0) => {
+        this.chip.write(port * 2,register); this.chip.write(port * 2 + 1,value);
+      });
+      this.fmSsgMonitor = createFm2608FmSsgMonitor({
+        writePhysical:(port,register,value) => writeRegister(register,value,port),
+      });
+      this.chip.writeRegister = (register,value,port = 0) => this.fmSsgMonitor.write(port,register,value);
       this.chip.setOutputGains(this.outputGains);
       if (Object.values(this.sourceGains).some(value => value !== 1)) this.chip.setSourceGains(this.sourceGains);
       this.auditions = createOpnAuditionGuard(this.chip, 6);

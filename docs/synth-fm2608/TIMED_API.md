@@ -49,11 +49,17 @@ No user callback or JavaScript audio timer runs on the audio thread. Run/Apply
 stage reservations; failed Apply preserves accepted reservations; Stop cancels
 Code reservations. A stale scheduled key-off cannot release a newer manual note.
 
-The standalone Synth retains its software Stop/mixer layer. A chip-level Key On
-alone does not rebuild a patch muted by a previous Synth Stop. The included
-example explicitly records the authored FM patch before playing it. Per-channel
-monitor-mute interaction with reserved writes still needs a dedicated follow-up;
-FM/SSG source gains and Master remain applied by the audio engine.
+The standalone Synth's FM/SSG monitor runs on the same audio thread for immediate,
+reserved and keyboard writes. Channel Mute keeps the latest authored levels;
+unmute restores those levels, and Stop suppresses FM tails until the next Gate.
+A new reserved Key On restores its authored FM levels at that exact audio frame.
+A Key On-only Run after Stop therefore needs no explicit preset rebuild.
+
+This is software monitoring, not a hardware feature. `captureState()` / current
+compilation still see the physical register bytes (FM TL=127 or SSG level=0
+while muted). The monitor's private authored-level cache is separate. Compiled
+chip operations do not include the Synth's extra mute/restoration writes;
+Master/source gains and scheduled-state UI remain separate from compilation.
 
 Available on shared Web Audio Main/Worker clients, the primary Worker client and
 `YM2608RuntimeSynth.fm`, borrowed by this Synth. Immediate methods are unchanged.
