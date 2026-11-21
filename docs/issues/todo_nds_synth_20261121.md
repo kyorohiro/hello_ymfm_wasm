@@ -47,21 +47,35 @@ a product hypothesis, not a measured demographic claim.
 
 ## Bounded initial implementation
 
-- [x] Prototype PCM8/PCM16/IMA-ADPCM and the restricted PSG/Noise channels.
+The original keyboard prototype is archived with the GPL engine. This phase
+restores the direct Synth with original BSD-3-Clause code, using the DS sound
+register documentation. The existing SkyEmu player remains the song source.
+
+- [x] Implement the CPU-free sound core and check raw channel configuration,
+      timer, looping, pan and IMA-ADPCM decoding at 44.1 and 48 kHz.
+- [x] Expose the core through AudioWorklet, the shared Keyboard and Code with
+      `useSoundChip("nds")`. Keep direct key-off available alongside software
+      release smoothing. Check both uses against the same physical voices.
+- [x] Prototype PCM8/PCM16/IMA-ADPCM and the restricted PSG/Noise channels in
+      the archived experiment.
       All 16 physical channels support sample playback; hardware channels 8–13
       additionally support square waves, and 14–15 additionally support Noise.
       These modes share the physical voices, not independent extra voice pools.
-- [x] Add the browser Keyboard screen, output Envelope/Waveform/Spectrum,
-      Auto/physical CH, hardware mode controls and Master. Reuse the FM2612
-      keyboard and SPU monitor with the Nitro DS icon palette.
+- [x] Restore the browser Keyboard screen, output Envelope/Waveform/Spectrum,
+      Auto/physical CH, and hardware controls with the Nitro DS icon palette.
 - [ ] Add Code and Files/Cassette, New/Import/Export and persistent expanded
       workspace following the existing Synth UI patterns.
 - [ ] Explain hardware controls separately from driver/software ADSR, modulation,
       allocation and any software click mitigation. Scope hardware sound capture
       and capture-based effects as later work rather than silently omitting them.
-- [ ] Add direct JavaScript sound-core operations, declarations/completion,
+- [x] Add direct JavaScript sound-core operations, declarations/completion,
       readable examples and Run/Apply/Stop. Timed-operation APIs are not an
       automatic prerequisite for the first DS prototype.
+- [x] Check all five sound modes through a muted AudioWorklet in Chromium and
+      WebKit at 44.1 and 48 kHz. Check live pan, direct channel restrictions,
+      Keyboard and Code operating together, and release ownership in both
+      browsers. Verify Monaco completion and local script recovery in both.
+      Listening and comparison against DS hardware remain open.
 
 ## 2SF / mini2SF reference path
 
@@ -77,8 +91,8 @@ a product hypothesis, not a measured demographic claim.
 - [x] Compare Native and WASM on the first eight seconds of each supplied
       Chrono Trigger track. All 27,264,000 stereo frames across 71 tracks
       matched bit for bit at 48 kHz. Human listening remains open.
-- [ ] Restore the CPU-free Keyboard and Code Synth with a permissive DS sound
-      core and integrate the reference player into its workspace.
+- [x] Restore the CPU-free Keyboard and Code Synth with a permissive DS sound
+      core and keep the existing reference player available on the same page.
 - [ ] Read a folder containing .2sf/.mini2sf and referenced .2sflib dependencies;
       resolve PSF-style library chains safely, retain originals in Files, and
       report missing dependencies without replacing the current playable sound.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Browser 2SF verification. The test always mutes the physical destination.
+// Nitro DS Synth and 2SF verification. The physical destination stays muted.
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs/promises');
@@ -121,6 +121,72 @@ async function measureSide(page, side, pitch) {
 	return channels;
 }
 
+async function checkSynth(page) {
+	await page.reload();
+	const noteStatus = page.locator('#ndsNoteStatus');
+	const mode = page.locator('#ndsMode');
+	const quiet = () => until(() => output(page), state => state.channels.length === 2 &&
+		state.channels.every(({ peak }) => peak < 1e-7), 'Synth output should reach silence');
+	const tone = () => until(() => output(page), state => state.muted &&
+		state.channels.some(({ rms, pitch }) => rms > .001 && Math.abs(pitch - 261.626) < 5), 'Expected C4 from the DS Synth');
+	const synthModes = [];
+	for (const source of ['pcm16', 'pcm8', 'adpcm', 'pulse', 'noise']) {
+		await mode.selectOption(source);
+		await page.keyboard.down('6');
+		try {
+			if (source === 'noise') await until(() => output(page), state => state.channels.some(({ rms }) => rms > .001), 'DS noise should sound');
+			else await tone();
+			const message = await noteStatus.textContent();
+			if (source === 'pulse') assert.match(message, /CH (?:9|1[0-4]) · Timer 0x/);
+			else if (source === 'noise') assert.match(message, /CH 1[56] · Timer 0x/);
+			synthModes.push(source);
+		} finally { await page.keyboard.up('6'); }
+		await quiet();
+	}
+	await page.locator('#ndsChannel').selectOption('0');
+	assert(await mode.locator('option[value="pulse"]').evaluate(option => option.disabled));
+	assert(await mode.locator('option[value="noise"]').evaluate(option => option.disabled));
+	const key = page.locator('.key[data-key="6"]');
+	await key.hover();
+	await page.mouse.down();
+	try {
+		await tone();
+		await page.locator('#ndsPan').evaluate(input => {
+			input.value = '127';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		await measureSide(page, 1, 261.626);
+	} finally { await page.mouse.up(); }
+	await quiet();
+	await page.locator('#synthInputCodeTab').click();
+	const editor = page.locator('#synthCodeEditor');
+	await until(() => editor.inputValue(), value => value.includes('useSoundChip("nds")'), 'DS starter JavaScript');
+	await editor.fill(`const nds = await useSoundChip("nds");
+liveLoop("test", async () => {
+  await nds.noteOn(CH16, "A4", {mode: "pcm16", pan: 0});
+  await beat(1);
+});`);
+	await page.locator('#synthCodeRunButton').click();
+	await measureSide(page, 0, 440);
+	await page.locator('#synthInputKeyboardTab').click();
+	await measureSide(page, 0, 440);
+	await page.keyboard.down('6');
+	try {
+		await until(() => output(page), state => state.muted &&
+			state.channels[0]?.rms > .001 && Math.abs(state.channels[0].pitch - 440) < 4 &&
+			state.channels[1]?.rms > .001 && Math.abs(state.channels[1].pitch - 261.626) < 5,
+		'Code and keyboard should sound together on separate channels');
+		await page.locator('#synthCodeStopButton').click();
+		await measureSide(page, 1, 261.626);
+	} finally { await page.keyboard.up('6'); }
+	await quiet();
+	assert.equal((await output(page)).contexts, 1, 'Code and keyboard should use one Synth context');
+
+	await page.setViewportSize({ width: 375, height: 780 });
+	assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+	return synthModes;
+}
+
 async function check(name, origin, fixture) {
 	const browser = await engines[name].launch({ headless: true,
 		...(name === 'chromium' ? { args: ['--mute-audio'] } : {}),
@@ -199,9 +265,10 @@ async function check(name, origin, fixture) {
 		}
 		const audit = await output(page);
 		assert(audit.muted && audit.outputs > 0);
+		const synthModes = await checkSynth(page);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, physicalOutputMuted: true };
+		return { browser: name, left, right, realSongs, synthModes, physicalOutputMuted: true };
 	} finally {
 		await browser.close();
 	}
