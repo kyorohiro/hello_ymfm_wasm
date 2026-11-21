@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { createNdsCodeRuntime, NDS_STARTER_CODE } from './nds-code.js';
+import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
+import { createNdsCodeRuntime, NDS_STARTER_CODE, NDS_STARTER_FILES } from './nds-code.js';
 import { selectNdsCodeDeclarations } from './nds-code-declarations.js';
 
 test('DS Code handles all physical channels and stops only Code notes', async () => {
@@ -37,6 +38,43 @@ test('DS Code handles all physical channels and stops only Code notes', async ()
 	assert(owners.every((owner) => owner === 'code'));
 });
 
+test('Run and Apply read the saved entry, imported module, and project file', async () => {
+	const acceptedSource = (label) => `
+		const { value } = await import('./part.js');
+		log('${label}', value, await file('./sample.txt'));
+	`;
+	const workspace = createVirtualFileWorkspace([
+		{ path: '/examples/test.js', data: acceptedSource('baseline') },
+		{ path: '/examples/part.js', data: 'export const value = 1;' },
+		{ path: '/examples/sample.txt', data: 'C4' },
+	]);
+	const project = { savedFs: workspace.saved };
+	const audio = { context: { currentTime: 0 }, chip: { forOwner: () => ({ stopOwned() {} }) } };
+	const log = [];
+	const runtime = createNdsCodeRuntime({
+		project, ensureAudio: async () => audio, onLog: (line) => log.push(line),
+	});
+	workspace.setAutoSave(false);
+	workspace.working.writeText('/examples/test.js', acceptedSource('changed'));
+	workspace.working.writeText('/examples/part.js', 'export const value = 2;');
+	workspace.working.writeText('/examples/sample.txt', 'E4');
+	const runOptions = { path: '/examples/test.js' };
+	const workingSource = workspace.working.get(runOptions.path).data;
+	await runtime.run(workingSource, runOptions);
+	await runtime.apply(workingSource, runOptions);
+	assert.deepEqual(log, ['baseline 1 C4', 'baseline 1 C4']);
+
+	workspace.saveAll();
+	await runtime.apply(workingSource, runOptions);
+	assert.equal(log.at(-1), 'changed 2 E4');
+	workspace.working.writeText('/examples/unsaved.js', 'log("unsaved")');
+	await assert.rejects(
+		() => runtime.apply('log("unsaved")', { path: '/examples/unsaved.js' }),
+		/Save \/examples\/unsaved\.js before running Code/,
+	);
+	await runtime.stop();
+});
+
 test('DS editor declarations describe the default runtime and physical channels', async () => {
 	const source = await readFile(new URL('../playground/tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
 	const declarations = selectNdsCodeDeclarations(source);
@@ -46,4 +84,9 @@ test('DS editor declarations describe the default runtime and physical channels'
 	assert.doesNotMatch(declarations, /declare function liveFx\b|interface YM2612FMApi\b/);
 	assert.match(NDS_STARTER_CODE, /await nds\.noteOn\(CH1/);
 	assert.match(NDS_STARTER_CODE, /await beat\(/);
+	for (const { path, data } of NDS_STARTER_FILES) {
+		assert.match(path, /^\/examples\/[\w-]+\.js$/);
+		assert.match(data, /await useSoundChip\("nds"\)/);
+		assert.match(data, /await beat\(/);
+	}
 });

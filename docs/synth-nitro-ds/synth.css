@@ -52,6 +52,9 @@ h2 { font-size: 1rem; }
 	box-shadow: 0 6px 24px #24212c25;
 }
 .menu-panel button { text-align: left; }
+.menu-section { display: grid; gap: .4rem; }
+.menu-section + .menu-section { border-top: 1px solid #d8d2dd; padding-top: .5rem; }
+.menu-section strong { font-size: .82rem; color: #565766; }
 .reference, .monitor { border-radius: .9rem; padding: 1rem; }
 .reference { background: #f8f7fb; border: 1px solid #ccc8d2; }
 .reference h2 { margin-bottom: .65rem; }
@@ -75,6 +78,35 @@ h2 { font-size: 1rem; }
 #masterValue { min-width: 2.9rem; text-align: right; }
 .monitor-canvas { display: block; width: 100%; height: auto; min-height: 90px; border-radius: .55rem; background: #151823; }
 .instrument, .workspace { margin-top: 1rem; border: 1px solid #ccc8d2; border-radius: .9rem; background: #f8f7fb; padding: .85rem 1rem; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
+.workspace.has-files { grid-template-columns: minmax(11.5rem, 15rem) minmax(0, 1fr); }
+#synthInputSection, #synthExpandedCodeSlot { min-width: 0; }
+#ndsFilesToggle[aria-expanded="true"] { background: #f4d5e0; border-color: #b97d96; }
+#ndsFilesPanel { min-width: 0; border: 1px solid #d0c7d2; border-radius: .75rem; padding: .65rem; background: #f1edf5; }
+.nds-files-heading, .nds-files-toolbar { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.nds-files-heading h2 { margin-right: auto; }
+.nds-files-toolbar { margin-block: .45rem; }
+#ndsFilesPanel button { min-height: 1.8rem; padding: .22rem .48rem; font-size: .8rem; }
+#ndsFilesPanel label, .nds-files-status, .file-tree-root { font-size: .78rem; color: #565766; }
+.nds-files-status { overflow-wrap: anywhere; }
+#ndsFilesTree { min-height: 3rem; max-height: 25rem; overflow: auto; margin-block: .55rem; }
+#ndsFilesTree ul { list-style: none; margin: .15rem 0; padding: 0; }
+#ndsFilesTree details > ul { padding-left: .65rem; }
+.file-tree-root { border-bottom: 1px solid #d7cedb; padding: .2rem .45rem .45rem; }
+#ndsFilesTree button, #ndsFilesTree summary { width: 100%; min-width: 0; text-align: left; line-height: 1.25; overflow-wrap: anywhere; }
+#ndsFilesTree summary { cursor: pointer; padding: .3rem .45rem; font-size: .82rem; }
+#ndsFilesTree .file-entry { border: 1px solid transparent; background: transparent; font-weight: 550; }
+#ndsFilesTree .file-entry[data-deleted="true"] { color: #6b6173; text-decoration: line-through; }
+#ndsFilesTree .file-entry[aria-current="true"], #ndsFilesTree summary[aria-current="true"] { background: #f3d8e1; border-color: #c58ba2; border-radius: .5rem; }
+#ndsFilesTree .file-drop-target { outline: 2px solid #b03d65; outline-offset: -2px; }
+.nds-file-unsaved { color: #a52c58; }
+.spu-file-context-menu { z-index: 1000; display: grid; gap: .25rem; min-width: 12rem; padding: .45rem; border: 1px solid #c3bdc7; border-radius: .6rem; background: #faf9fc; box-shadow: 0 6px 24px #24212c25; }
+.spu-file-context-menu button { min-height: 2rem; padding: .3rem .6rem; text-align: left; font-size: .82rem; }
+.nds-file-dialog { width: min(30rem, calc(100% - 2rem)); border: 1px solid #c3bdc7; border-radius: .75rem; padding: 1rem; color: inherit; background: #faf9fc; }
+.nds-file-dialog::backdrop { background: #221c2a55; }
+.nds-file-dialog input { max-width: 100%; }
+.nds-file-dialog p { margin: .55rem 0; }
+.nds-file-dialog button { min-height: 2rem; margin: .3rem .25rem 0 0; }
 .instrument-heading { display: flex; align-items: baseline; gap: .6rem; }
 .sound-help { color: #565766; font-size: .83rem; }
 .sound-help summary { cursor: pointer; }
@@ -111,6 +143,10 @@ h2 { font-size: 1rem; }
 .help { margin: .85rem .2rem; color: #565766; font-size: .9rem; }
 .help summary { cursor: pointer; }
 .help p { margin-top: .45rem; }
+@media (max-width: 680px) {
+	.workspace.has-files { grid-template-columns: minmax(0, 1fr); }
+	#synthCodeEditorHost { overflow-x: clip; }
+}
 @media (max-width: 480px) {
 	.shell { margin-top: 1rem; }
 	.keyboard .key-row { gap: .2rem; }

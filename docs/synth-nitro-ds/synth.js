@@ -4,7 +4,9 @@ import { createTwoSfPlayer } from './2sf-player.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createNdsAudio } from './nds-audio.js';
 import { setupNdsKeyboard } from './nds-keyboard.js';
-import { setupNdsCode } from './nds-code.js';
+import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-files-1';
+import { createNdsProject } from './nds-project.js';
+import { setupNdsFiles } from './nds-files.js';
 
 const node = (id) => document.getElementById(id);
 const song = node('songSelect'), play = node('play'), pause = node('pause'), stop = node('stop');
@@ -143,7 +145,12 @@ for (const button of monitorButtons) button.addEventListener('click', () => {
 
 const getAudio = () => audio;
 keyboard = setupNdsKeyboard({ ensureAudio, getAudio, onActivity: syncMonitor, onError: report });
-code = setupNdsCode({ ensureAudio, getAudio, setStatus: message => { status.textContent = message; }, onActivity: syncMonitor });
+const setStatus = message => { if (!disposing) status.textContent = message; };
+const project = createNdsProject({ starterCode: NDS_STARTER_CODE, starterFiles: NDS_STARTER_FILES });
+const projectFiles = setupNdsFiles({ project, setStatus, onBeforeWorkspaceReplace: () => keyboard.stop() });
+code = setupNdsCode({
+	project, files: projectFiles, ensureAudio, getAudio, setStatus, onActivity: syncMonitor,
+});
 void code.ready?.catch(report);
 node('enableAudio').addEventListener('click', () => void ensureAudio().catch(report));
 node('stopAll').addEventListener('click', async event => {
@@ -161,12 +168,16 @@ node('stopAll').addEventListener('click', async event => {
 window.addEventListener('pagehide', event => {
 	player.stop();
 	if (event.persisted) {
+		void code.controls.flush().catch(report);
 		void keyboard.stop().catch(report);
 		void code.stop().catch(report);
 		return;
 	}
 	disposing = true;
 	visualizer.dispose();
-	void code.dispose().catch(() => {});
-	void audio?.dispose().catch(() => {});
+	void (async () => {
+		await code.controls.flush().catch(() => {});
+		await code.dispose().catch(() => {});
+		await Promise.allSettled([projectFiles.dispose(), audio?.dispose()]);
+	})();
 });

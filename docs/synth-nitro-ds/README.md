@@ -38,6 +38,25 @@ and optional word-aligned PCM or ADPCM bytes. `getState()` reads physical
 channel settings. The output monitor offers Envelope (measured RMS history),
 Waveform and Spectrum. Master controls the Synth and 2SF playback levels.
 
+## Files and Cassette
+
+Open **Files** to select `index.js`, browse the scripts in `examples/`, or add
+your own files. Right-click a file or folder to duplicate, rename, delete or
+create an item. Selecting a file keeps the current Keyboard or Code view.
+Maximize Code to use a taller editor beside Files.
+
+**Auto apply** is on by default. When it is off, a dot marks working changes.
+Use **Save** (Ctrl/Cmd+S) or **Save all** to make them available to Run and
+Apply. **Discard** and **Discard all** return to the saved versions.
+In manual mode, **Save all** and **Discard all** include both paths in a rename.
+
+Use **Menu → New → Cassette · ZIP** to start with the default files. The
+confirmation allows you to export the current project first. **Import** and
+**Export** under the same menu open and save portable Cassette ZIPs, including
+both saved files and working edits. Opening a Cassette leaves Code stopped.
+The expanded Cassette limit is 16 MiB.
+The 2SF reference collection uses its own folder and file pickers.
+
 ## Reference playback
 
 The local preview also plays 2SF and mini2SF recordings through the Nintendo DS
@@ -70,5 +89,4 @@ The 2SF player supports ROM-boot sets with standard timing. It applies song
 length and fade tags, with a three-minute fallback when length is missing.
 The assembled cartridge is limited to 64 MiB. Legacy emulator save states and
 timing overrides report an error. The [DS Synth TODO](../issues/todo_nds_synth_20261121.md)
-tracks the Files/Cassette workspace, sample loading UI, hardware sound capture
-and release packaging.
+tracks the sample loading UI, hardware sound capture and release packaging.

@@ -63,8 +63,13 @@ register documentation. The existing SkyEmu player remains the song source.
       These modes share the physical voices, not independent extra voice pools.
 - [x] Restore the browser Keyboard screen, output Envelope/Waveform/Spectrum,
       Auto/physical CH, and hardware controls with the Nitro DS icon palette.
-- [ ] Add Code and Files/Cassette, New/Import/Export and persistent expanded
-      workspace following the existing Synth UI patterns.
+- [x] Add Files/Cassette and New/Import/Export. Keep the Code workspace
+      expanded when switching between Keyboard and Code.
+      Keep authored files and their saved versions together in the Cassette.
+      Seed `index.js` and `examples/`, and migrate the previous local Code edit.
+      The 2SF picker stays available for loading the source collection.
+- [x] Verify Cassette round trips, rejected ZIPs, the prior Code draft, and
+      saving, discarding and restoring a local project in Chromium and WebKit.
 - [ ] Explain hardware controls separately from driver/software ADSR, modulation,
       allocation and any software click mitigation. Scope hardware sound capture
       and capture-based effects as later work rather than silently omitting them.

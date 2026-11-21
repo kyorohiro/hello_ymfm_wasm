@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-direct-1" />
-		<script type="module" src="synth.js?v=nds-direct-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-files-1" />
+		<script type="module" src="synth.js?v=nds-files-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -21,15 +21,27 @@
 				<details class="menu">
 					<summary id="menu" aria-label="Menu">☰</summary>
 					<div class="menu-panel">
-						<strong>Import</strong>
-						<button id="loadTwoSfFolder" type="button">2SF folder…</button>
-						<button id="loadTwoSfFiles" type="button">2SF / mini2SF files…</button>
+						<section class="menu-section" aria-label="New">
+							<strong>New</strong>
+							<button id="ndsNewCassette" type="button" disabled>Cassette · ZIP</button>
+						</section>
+						<section class="menu-section" aria-label="Import">
+							<strong>Import</strong>
+							<button id="ndsImportCassette" type="button" disabled>Cassette · ZIP…</button>
+							<button id="loadTwoSfFolder" type="button">2SF folder…</button>
+							<button id="loadTwoSfFiles" type="button">2SF / mini2SF files…</button>
+						</section>
+						<section class="menu-section" aria-label="Export">
+							<strong>Export</strong>
+							<button id="ndsExportCassette" type="button" disabled>Cassette · ZIP</button>
+						</section>
 					</div>
 				</details>
 				<input id="twoSfFolder" type="file" webkitdirectory multiple hidden />
 				<input id="twoSfFiles" type="file" accept=".2sf,.mini2sf,.2sflib" multiple hidden />
 				<button id="enableAudio" type="button">Enable audio</button>
 				<button id="stopAll" type="button" aria-label="Stop all sound">Stop all sound</button>
+				<button id="ndsFilesToggle" type="button" aria-expanded="false" aria-controls="ndsFilesPanel">Files</button>
 				<p id="status" role="status">Import a 2SF folder or select the song and its library together.</p>
 			</div>
 			<section class="reference" aria-labelledby="referenceTitle">
@@ -97,7 +109,8 @@
 				<p id="ndsNoteStatus" class="note-status" aria-live="polite"></p>
 			</section>
 			<div id="synthWorkspace" class="workspace">
-				<div id="synthExpandedCodeSlot"></div>
+				<aside id="ndsFilesPanel" aria-label="Project files" hidden></aside>
+				<div id="synthExpandedCodeSlot" hidden></div>
 				<section id="synthInputSection" data-input-mode="keyboard" aria-label="Performance input">
 					<div class="performance-tabs" role="tablist" aria-label="Performance input">
 						<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
@@ -121,10 +134,10 @@
 							<button id="synthCodeStopButton" type="button" disabled>Stop</button>
 							<span id="synthCodeState" role="status">Stopped</span>
 						</div>
-					<div id="synthCodeEditorHost" aria-label="JavaScript editor"></div>
+						<div id="synthCodeEditorHost" aria-label="JavaScript editor"></div>
 						<textarea id="synthCodeEditor" aria-label="JavaScript source" spellcheck="false"></textarea>
 						<p id="synthCodeEditorNote" class="editor-note"></p>
-					<pre id="synthCodeError" class="code-error" role="alert"></pre>
+						<pre id="synthCodeError" class="code-error" role="alert"></pre>
 						<details class="code-console"><summary>Console</summary><pre id="synthCodeLog"></pre></details>
 					</div>
 				</section>

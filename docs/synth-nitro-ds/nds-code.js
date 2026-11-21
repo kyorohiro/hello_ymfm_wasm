@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
-import { createVirtualFileSystem } from '../js/tetorica_virtual_files/filesystem.js';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
 import { selectNdsCodeDeclarations } from './nds-code-declarations.js';
 
-const INDEX = '/index.js';
 const extraChannels = Array.from({ length: 10 }, (_, index) => ['CH' + (index + 7), index + 6]);
 // The common Code runtime already injects the first six channels.
 const channelBindings = 'const ' + extraChannels.map(([name, value]) => name + '=' + value).join(', ') +
@@ -23,15 +21,64 @@ liveLoop("melody", async () => {
 });
 `;
 
+export const NDS_STARTER_FILES = Object.freeze([
+	{
+		path: '/examples/pcm-shapes.js',
+		data: `const nds = await useSoundChip("nds");
+setBpm(112);
+
+// Use the same pitch to hear three sample formats and their software templates.
+/** @type {NdsCodeVoiceSettings[]} */
+const samples = [
+  { mode: "pcm8", shape: "triangle" },
+  { mode: "pcm16", shape: "sine" },
+  { mode: "adpcm", shape: "saw" },
+];
+liveLoop("sample-formats", async () => {
+  const sample = cycle(samples);
+  await nds.noteOn(CH1, "C4", sample);
+  await beat(0.75);
+  await nds.noteOff(CH1);
+  await beat(0.25);
+});
+`,
+	},
+	{
+		path: '/examples/pulse-and-noise.js',
+		data: `const nds = await useSoundChip("nds");
+setBpm(124);
+
+// Pulse is available on CH9–CH14. CH15 and CH16 can play hardware Noise.
+const notes = ["C4", "G4", "Bb4", "Eb5"];
+await nds.configure(CH15, { mode: "noise", volume: 37 });
+await nds.setFrequency(CH15, 6000);
+
+liveLoop("pulse", async () => {
+  await nds.noteOn(CH9, cycle(notes), { mode: "pulse", duty: 2, volume: 76 });
+  await beat(0.32);
+  await nds.noteOff(CH9);
+  await beat(0.18);
+});
+
+liveLoop("noise", async () => {
+  await nds.keyOn(CH15);
+  await beat(0.05);
+  await nds.noteOff(CH15);
+  await beat(0.95);
+});
+`,
+	},
+]);
+
 /** Run a local script against the physical channels shared with the keyboard. */
 export function createNdsCodeRuntime({
+	project,
 	ensureAudio,
 	getAudio = () => null,
 	onLog,
 	onState,
-	readFile,
-	prepareSource = (source) => source,
 }) {
+	const savedCode = project && createSynthCodeProject(project, { version: 'saved' });
 	let audio = null, owner = null, revision = 0;
 	const client = {
 		configure: (...args) => owner.configure(...args),
@@ -55,9 +102,9 @@ export function createNdsCodeRuntime({
 		},
 		now: () => audio?.context.currentTime ?? 0,
 		useSoundChip: () => client,
-		readFile,
-		async prepareSource(source, options) {
-			return channelBindings + await prepareSource(source, options);
+		readFile: savedCode?.readFile,
+		prepareSource(source, options) {
+			return channelBindings + (savedCode ? savedCode.prepareSource(source, options) : source);
 		},
 		onLog,
 		onState,
@@ -72,27 +119,20 @@ export function createNdsCodeRuntime({
 }
 
 export function setupNdsCode({
+	project,
+	files,
 	ensureAudio,
 	getAudio,
 	setStatus,
 	onActivity = () => {},
 	onViewChange,
+	onExpandedChange,
 }) {
-	const fs = createVirtualFileSystem([{ path: INDEX, data: NDS_STARTER_CODE }]);
-	const project = { fs, onDidChange: fs.onDidChange };
-	const { readFile, prepareSource } = createSynthCodeProject(project);
 	let controls = null, runtime = null;
-	// The common editor's local recovery journal is the persistent copy of this
-	// single document. Restore the document on load and leave the keyboard open.
-	const files = {
-		workspaceId: 'tetorica-nitro-ds',
-		getCodeState: () => ({ mode: 'keyboard', path: INDEX }),
-	};
 	const getRuntime = () => (runtime ??= createNdsCodeRuntime({
+		project,
 		ensureAudio,
 		getAudio,
-		readFile,
-		prepareSource,
 		onLog: (line) => controls?.appendLog(line),
 		onState(state) {
 			controls?.setRuntimeState(state);
@@ -104,11 +144,19 @@ export function setupNdsCode({
 		files,
 		getRuntime,
 		keepRunningOnKeyboard: true,
+		persistentExpanded: true,
+		allowTextFiles: true,
+		writeText: (path, source) => project.writeEditorText(path, source),
+		onBeforeRun() {
+			const path = controls.activePath;
+			if (!project.savedFs.has(path)) throw new Error(`Save ${path} before running Code.`);
+		},
 		editorChip: 'nds',
 		getStarterCode: () => NDS_STARTER_CODE,
 		transformDeclarations: selectNdsCodeDeclarations,
 		journalKey: 'tetorica-nitro-ds-code-v1',
 		onViewChange,
+		onExpandedChange,
 		setStatus,
 	});
 	return {

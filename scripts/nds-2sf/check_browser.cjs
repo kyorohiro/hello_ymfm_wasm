@@ -136,9 +136,8 @@ async function checkSynth(page) {
 		try {
 			if (source === 'noise') await until(() => output(page), state => state.channels.some(({ rms }) => rms > .001), 'DS noise should sound');
 			else await tone();
-			const message = await noteStatus.textContent();
-			if (source === 'pulse') assert.match(message, /CH (?:9|1[0-4]) · Timer 0x/);
-			else if (source === 'noise') assert.match(message, /CH 1[56] · Timer 0x/);
+			const channel = { pulse: /CH (?:9|1[0-4]) · Timer 0x/, noise: /CH 1[56] · Timer 0x/ }[source];
+			if (channel) await until(() => noteStatus.textContent(), message => channel.test(message), `Expected ${source} on a compatible channel`);
 			synthModes.push(source);
 		} finally { await page.keyboard.up('6'); }
 		await quiet();
@@ -151,6 +150,7 @@ async function checkSynth(page) {
 	await page.mouse.down();
 	try {
 		await tone();
+		await until(() => noteStatus.textContent(), value => value.includes('CH 1 · Timer 0x'), 'Physical note should be acknowledged before changing pan');
 		await page.locator('#ndsPan').evaluate(input => {
 			input.value = '127';
 			input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -160,7 +160,7 @@ async function checkSynth(page) {
 	await quiet();
 	await page.locator('#synthInputCodeTab').click();
 	const editor = page.locator('#synthCodeEditor');
-	await until(() => editor.inputValue(), value => value.includes('useSoundChip("nds")'), 'DS starter JavaScript');
+	await until(() => editor.inputValue(), value => value.includes('legacy DS draft'), 'Previous single-file draft should survive migration');
 	await editor.fill(`const nds = await useSoundChip("nds");
 liveLoop("test", async () => {
   await nds.noteOn(CH16, "A4", {mode: "pcm16", pan: 0});
@@ -187,6 +187,114 @@ liveLoop("test", async () => {
 	return synthModes;
 }
 
+async function checkWorkspace(page, fixture, name) {
+	await page.setViewportSize({ width: 1200, height: 900 });
+	const panel = page.locator('#ndsFilesPanel');
+	const row = (file) => panel.locator(`button[data-file-path="${file}"]`);
+	if (!(await panel.isVisible())) await page.locator('#ndsFilesToggle').click();
+	const keyboard = page.locator('#synthKeyboardPanel');
+	const editor = page.locator('#synthCodeEditor');
+	const example = panel.locator('button[data-file-path^="/examples/"][data-file-path$=".js"]').first();
+	await example.click();
+	assert(await keyboard.isVisible(), 'Choosing a file should keep the keyboard view');
+	await page.locator('#synthInputCodeTab').click();
+	await until(() => editor.inputValue(), value => value.includes('useSoundChip("nds")'), 'Starter example should be editable');
+	await page.locator('#synthCodeExpandButton').click();
+	assert(await page.locator('#synthExpandedCodeSlot').isVisible());
+	const sidebar = await panel.boundingBox(), expanded = await page.locator('#synthExpandedCodeSlot').boundingBox();
+	assert(expanded.x >= sidebar.x + sidebar.width && Math.abs(expanded.y - sidebar.y) < 3);
+	await page.locator('#synthInputKeyboardTab').click();
+	assert(await page.locator('#synthExpandedCodeSlot').isVisible());
+	await page.locator('#synthInputCodeTab').click();
+	await page.locator('#synthCodeExpandButton').click();
+
+	const index = row('/index.js');
+	await index.click();
+	await until(() => editor.inputValue(), value => value.includes('liveLoop("test"'), 'Index file should be open before editing');
+	const saved = 'console.log("nds-saved-baseline");\n';
+	const working = 'console.log("nds-working-draft");\n';
+	await editor.fill(saved);
+	await page.locator('#ndsAutoApply').uncheck();
+	await editor.fill(working);
+	await index.getByLabel('Unsaved changes').waitFor();
+	const run = page.locator('#synthCodeRunButton');
+	const log = page.locator('#synthCodeLog');
+	await run.click();
+	await until(() => page.evaluate(() => ({ log: document.getElementById('synthCodeLog').textContent,
+		state: document.getElementById('synthCodeState').textContent, error: document.getElementById('synthCodeError').textContent })),
+	value => value.log.includes('nds-saved-baseline'), 'Run should use saved JavaScript with Auto apply off');
+	assert(!(await log.textContent()).includes('nds-working-draft'));
+	await example.click();
+	await until(() => editor.inputValue(), value => value.includes('useSoundChip("nds")'), 'Example should open while Code keeps running');
+	assert.match(await page.locator('#synthCodeState').textContent(), /Running|Playing/);
+	await index.click();
+	await until(() => editor.inputValue(), value => value === working, 'Index working edit should remain visible');
+	await importFiles(page, '#ndsImportCassette', {
+		name: 'invalid.cassette.zip', mimeType: 'application/zip', buffer: Buffer.from('Invalid Cassette test file'),
+	});
+	await until(() => page.locator('#ndsFilesStatus').textContent(), value => value.startsWith('Files:'), 'Invalid ZIP should report an error');
+	assert.match(await page.locator('#synthCodeState').textContent(), /Running|Playing/);
+	assert.equal(await editor.inputValue(), working);
+
+	const pathToCassette = path.join(fixture, `${name}-draft.cassette.zip`);
+	await page.locator('#menu').click();
+	const downloaded = page.waitForEvent('download');
+	await page.locator('#ndsExportCassette').click();
+	await (await downloaded).saveAs(pathToCassette);
+
+	await page.locator('#menu').click();
+	await page.locator('#ndsNewCassette').click();
+	await page.locator('#ndsNewCassetteDialog').getByRole('button', { name: /create without export/i }).click();
+	await page.locator('#ndsNewCassetteDialog').waitFor({ state: 'hidden' });
+	if (!(await editor.isVisible())) await page.locator('#synthInputCodeTab').click();
+	await until(() => editor.inputValue(), value => value.includes('liveLoop("melody"'), 'New Cassette should have starter code');
+	assert.match(await page.locator('#synthCodeState').textContent(), /Idle|Stopped/);
+
+	await importFiles(page, '#ndsImportCassette', pathToCassette);
+	await index.getByLabel('Unsaved changes').waitFor();
+	if (!(await editor.isVisible())) await page.locator('#synthInputCodeTab').click();
+	await index.click();
+	await until(() => editor.inputValue(), value => value === working, 'Imported working edit should be visible');
+	assert.equal(await page.locator('#ndsAutoApply').isChecked(), false);
+	assert.match(await page.locator('#synthCodeState').textContent(), /Idle|Stopped/);
+	await page.locator('#ndsDiscardFile').click();
+	await until(() => editor.inputValue(), value => value === saved, 'Discard should restore the saved code from the Cassette');
+	await index.getByLabel('Unsaved changes').waitFor({ state: 'hidden' });
+	await editor.fill(working);
+	await index.getByLabel('Unsaved changes').waitFor();
+	await editor.press('Control+s');
+	await index.getByLabel('Unsaved changes').waitFor({ state: 'hidden' });
+	await until(() => page.locator('#ndsFilesStatus').textContent(), value => value === 'Files saved.', 'Manual save should reach local storage');
+	await page.reload();
+	if (!(await editor.isVisible())) await page.locator('#synthInputCodeTab').click();
+	await until(() => editor.inputValue(), value => value === working, 'Saved Code should survive a page reload');
+	assert.equal(await index.getByLabel('Unsaved changes').count(), 0);
+	assert.equal((await output(page)).contexts, 0, 'Workspace restore should not start audio');
+	await run.click();
+	await until(() => log.textContent(), value => value.includes('nds-working-draft'), 'Reload should retain the new saved baseline');
+	await page.locator('#synthCodeStopButton').click();
+
+	const examplePath = await example.getAttribute('data-file-path');
+	const copy = row(examplePath.replace(/\.js$/, '-copy.js'));
+	const fileMenu = page.locator('#spuFileContextMenu');
+	await example.click({ button: 'right' });
+	await fileMenu.getByRole('menuitem', { name: 'Duplicate' }).click();
+	await copy.getByLabel('Unsaved changes').waitFor();
+	await copy.click({ button: 'right' });
+	await fileMenu.getByRole('menuitem', { name: 'Rename…' }).click();
+	await page.locator('#ndsFileName').fill('/examples/temporary-edition.js');
+	await page.locator('#ndsFileNameConfirm').click();
+	const renamed = row('/examples/temporary-edition.js');
+	await renamed.getByLabel('Unsaved changes').waitFor();
+	await page.locator('#ndsDiscardAll').click();
+	await renamed.waitFor({ state: 'hidden' });
+	assert(await example.isVisible());
+
+	await page.setViewportSize({ width: 375, height: 780 });
+	assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+	return 'legacy draft, file actions, saved and working views, New and ZIP round trip';
+}
+
 async function check(name, origin, fixture) {
 	const browser = await engines[name].launch({ headless: true,
 		...(name === 'chromium' ? { args: ['--mute-audio'] } : {}),
@@ -203,6 +311,14 @@ async function check(name, origin, fixture) {
 			? route.continue()
 			: route.abort());
 		await page.addInitScript(silentAudit);
+		await page.addInitScript(() => {
+			if (sessionStorage.getItem('nds-test-seeded')) return;
+			sessionStorage.setItem('nds-test-seeded', 'true');
+			localStorage.setItem('tetorica-nitro-ds-code-v1', JSON.stringify({
+				workspaceId: 'tetorica-nitro-ds', path: '/index.js',
+				source: '// legacy DS draft\nconst nds = await useSoundChip("nds");\n',
+			}));
+		});
 		await page.goto(`${origin}/synth-nitro-ds/index.html`);
 
 		await importFiles(page, '#loadTwoSfFolder', fixture);
@@ -266,9 +382,10 @@ async function check(name, origin, fixture) {
 		const audit = await output(page);
 		assert(audit.muted && audit.outputs > 0);
 		const synthModes = await checkSynth(page);
+		const workspace = await checkWorkspace(page, fixture, name);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, synthModes, physicalOutputMuted: true };
+		return { browser: name, left, right, realSongs, synthModes, workspace, physicalOutputMuted: true };
 	} finally {
 		await browser.close();
 	}
