@@ -381,6 +381,12 @@ ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+ym2612_operation_state.js
+ym2608_operation_state.js
+ym2608_operations.js
+ym2608_timed_client.js
+ym2608_timed_state.js
+ym2608_timed_processor.js
 adpcm_b_sample.js
 adpcm_a_sample.js
 y8950_adpcm.js

@@ -2,12 +2,13 @@
  * The callback executes existing chip commands; it never asks the UI for audio work.
  * @param {(command: Record<string, unknown>, reply?: (message: unknown) => void) => void} apply Processor command dispatcher.
  * @param {() => number} [now] Current audio time in seconds; defaults to currentFrame/sampleRate in a Worklet.
- * @param {{performanceQueue?: ReturnType<typeof import('./playground_performance_queue.js').createPerformanceQueue>}} [options] Optional Worker audio reservations.
+ * @param {{performanceQueue?: ReturnType<typeof import('./playground_performance_queue.js').createPerformanceQueue>,receiveControl?:(command:any,reply?:(message:any)=>void)=>boolean}} [options] Optional Worker audio reservations.
  * @returns {(data: {type: string, port?: MessagePort}) => boolean} Attach/detach handler; true means the message was handled.
  */
-export function createChipPortReceiver(apply, now = () => currentFrame / sampleRate, {performanceQueue} = {}) {
+export function createChipPortReceiver(apply, now = () => currentFrame / sampleRate, {performanceQueue, receiveControl} = {}) {
  let port=null, origin=null;
  const dispatch=(command, reply)=>{
+  if(receiveControl?.(command,reply))return;
   if(performanceQueue?.receive(command,reply))return;
   if(command.type==='reset-sample-schedule'){origin=null;return;}
   if(command.type==='begin-sample-schedule'){origin ??= now()+Math.max(0,Number(command.lookaheadSeconds)||0);return;}
@@ -33,6 +34,7 @@ export function createChipPortReceiver(apply, now = () => currentFrame / sampleR
    const next=data.port;port=next;origin=null;
    next.onmessage=({data:commands})=>{
     if(port!==next)return;
+    if(receiveControl?.(commands,reply=>next.postMessage(reply)))return;
     if(performanceQueue?.receive(commands,reply=>next.postMessage(reply)))return;
     if(!Array.isArray(commands)||commands.length>4096)return;
     for(const command of commands)dispatch(command, reply => next.postMessage(reply));

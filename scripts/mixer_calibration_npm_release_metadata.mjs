@@ -1,3 +1,4 @@
+import {createYm2608TimedRevisionReadContext} from './mixer_calibration_ym2608_timed_revision.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 // Only reviewed npm 0.2.46 READMEs, version and payload-checker edits restore.
 // Runtime, binary, measured gain and historical evidence bytes are untouched.
@@ -34,6 +35,7 @@ function predecessor(bytes,entry){
  * accepted sources are exact pre-release bytes or this exact reviewed release;
  * neither arbitrary versions nor future README changes get a hash exemption. */
 export function createNpmReleaseMetadataReadContext(readSource=url=>readFileSync(url)){
+  const latest=createYm2608TimedRevisionReadContext(readSource);readSource=latest.readSource;
   let receipt;const restored=new Map();
   function evidence(){
     if(receipt)return receipt;
@@ -45,6 +47,7 @@ export function createNpmReleaseMetadataReadContext(readSource=url=>readFileSync
     receipt=value;return value;
   }
   function restore(name,bytes){
+    bytes=latest.restore(name,bytes);
     if(!NPM_RELEASE_METADATA_PATHS.includes(name))return bytes;
     const entry=evidence().sources[name];
     if(matches(bytes,entry.before))return bytes;

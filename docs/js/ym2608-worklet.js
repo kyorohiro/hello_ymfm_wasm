@@ -1,3 +1,4 @@
+import {createYm2608TimedProcessor,observeYm2608TimedChip} from './ym2608_timed_processor.js?v=rf5c164-notes-1';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
@@ -28,9 +29,10 @@ class YM2608Processor extends AudioWorkletProcessor {
       channelCount: 6,
     });
     this.performanceQueue = createPerformanceQueue({
-      apply: (data, reply, _frame, performance) => handle(data, reply, performance),
+      apply: (data, reply, _frame, performance) => handle(data, reply, performance, _frame),
       onCancelOwner: owner => { this.performanceOwnership.cancel(owner); this.cancelSectionOwner(owner); },
       nowFrame: () => currentFrame, sampleRate,
+      patternCommandCost:command=>command.method==='applyTimedOperation'?command.writeCost:1,
       prepare: (data, reply) => {
         if (data.type === 'loadRhythmRom' || data.type === 'loadAdpcmMemory') { handle(data, reply); return null; }
         if (data.type !== 'chip-clock') return data;
@@ -42,8 +44,30 @@ class YM2608Processor extends AudioWorkletProcessor {
         } catch (error) { reply?.({type: 'chip-clock-result', id: data.id, error: error.message}); return null; }
       },
     });
-    const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply), undefined, {performanceQueue: this.performanceQueue});
-    const handle = (data, reply = message => this.port.postMessage(message), performance) => {
+    this.instanceId='ym2608:'+Math.random().toString(36).slice(2);
+    this.timed=createYm2608TimedProcessor({performance:{...this.performanceQueue,receive:(data,port)=>this.performanceQueue.receive(data,message=>port.postMessage(message))},
+      getState:()=>{if(!this.timedChip)throw new Error('YM2608 timed API not ready');return this.timedChip.getState();},
+      getConfig:()=>({instanceId:this.instanceId,clock:this.clock??8000000,engine:'ymfm'}),
+      dispatch:(data,port,frame,metadata)=>handle(data,m=>port.postMessage(m),metadata),nowFrame:()=>currentFrame,sampleRate});
+    const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply), undefined, {performanceQueue: this.performanceQueue,receiveControl:(data,reply)=>{if(data?.method==='ym2608Timed')return this.timed.receive(data,{postMessage:reply});if(data?.method==='ym2608Retained'){handle(data,reply);return true;}return false;}});
+    const handle = (data, reply = message => this.port.postMessage(message), performance, frame = currentFrame) => {
+      if(data.method==='ym2608Timed'){this.timed.receive(data,{postMessage:reply});return;}
+      if(data.method==='applyTimedOperation'){this.timed.apply(data.operation,{postMessage:reply},frame,performance);return;}
+      if(data.method==='ym2608Retained'){
+        const [channel,level]=data.args??[];
+        if(Number.isInteger(channel)&&channel>=0&&channel<3&&Number.isInteger(level)&&level>=0&&level<=31&&this.timedChip)this.timedChip.getState().ssgLevels[channel]=level;
+        return;
+      }
+      if(performance?.timedOperation&&data.type==='write'){
+        if(!this.performanceOwnership.canApplyTimed(data,performance))return;
+        if(data.port===0&&data.register>=8&&data.register<=10&&!(data.value&31)){
+          const owner=this.sectionOwners.ssg[data.register-8];
+          if(owner!==null&&owner!==performance.owner)return;
+        }
+        if(this.opnInspector&&!this.opnInspector.writeTimedRegister(data.register,data.value,data.port))return;
+        if(!this.opnInspector)this.write(data.port,data.register,data.value);
+        this.performanceOwnership.observe(data,performance);this.observeSectionOwnership(data,performance);return;
+      }
       this.performanceOwnership.observe(data, performance);
       this.observeSectionOwnership(data, performance);
       if(data.type==='clear-auditions')this.opnInspector?.clear();
@@ -98,6 +122,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         moduleFactory: ym2608ModuleFactory,
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
+      this.timedChip=observeYm2608TimedChip(this.chip);
       this.chip.setOutputGains(this.outputGains);
       if (Object.values(this.sourceGains).some(value => value !== 1)) this.chip.setSourceGains(this.sourceGains);
       this.auditions = createOpnAuditionGuard(this.chip, 6);

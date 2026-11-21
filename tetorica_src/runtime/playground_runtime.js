@@ -922,7 +922,7 @@ export function createPlaygroundRuntime(
     }
     return {...core?.getState?.(), clock:sharedFm?.clock ?? core?.clock,
       ...(capabilities.chip==='ym2612'?{engine:core?.engine??megaDrive.engine??'ymfm'}:{}),
-      ...(capabilities.chip==='ym2612'&&core?._timedClientStateComplete?{timedState:core._getTimedState()}:{}), ...sections};
+      ...(['ym2612','ym2608'].includes(capabilities.chip)&&core?._timedClientStateComplete?{timedState:core._getTimedState()}:{}), ...sections};
   }
   // UI notes share the chip and its output gain, but own their channel until
   // released. The worklet arbitrates against Main and direct Worker writes.

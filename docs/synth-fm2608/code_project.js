@@ -1,3 +1,4 @@
+import {FM2608_TIMED_EXAMPLE} from './code_examples.js';
 // OPNA Code project data. Restoring Files never creates audio or runs Code.
 import {createVirtualFileSystem,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
@@ -103,6 +104,7 @@ export function createFm2608CodeProject({settings=createDefaultPreset(),snapshot
   Object.assign(project,createSynthCodeProject(project));
   if(starterCode===undefined&&!snapshot&&getStarterCode)starterCode=getStarterCode();
   if(starterCode!==undefined){if(typeof starterCode!=='string')throw TypeError('Starter code must be text.');fs.writeText('/index.js',starterCode);}
+  if(!snapshot)fs.writeText('/examples/timed-fm-ssg.js',FM2608_TIMED_EXAMPLE);
   if(snapshot)project.restore(snapshot);
   return project;
 }

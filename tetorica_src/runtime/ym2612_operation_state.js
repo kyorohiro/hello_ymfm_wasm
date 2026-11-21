@@ -59,8 +59,7 @@ export function adoptYm2612OperationState(synth, state) {
   const r0 = state.registers[0], slots = [0, 8, 4, 12];
   synth._modeRegister = r0[0x27];
   synth.lfo = {enabled: !!(r0[0x22] & 8), frequency: r0[0x22] & 7};
-  synth.dac.enabled = !!(r0[0x2b] & 128);
-  synth.dac.value = r0[0x2a];
+  if(synth.dac){synth.dac.enabled = !!(r0[0x2b] & 128); synth.dac.value = r0[0x2a];}
   for (let ch = 0; ch < 6; ch++) {
     const r = state.registers[ch < 3 ? 0 : 1], n = ch % 3;
     const c = synth.channels[ch], pitch = state.pitches[ch], pan = r[0xb4 + n];

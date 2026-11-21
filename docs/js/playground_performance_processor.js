@@ -77,6 +77,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     const v=type==='write'?value:method==='write'?args[2]:args[1];
     const bank=type==='write'?registerPort:method==='write'?args[0]:args[2]??0;
     if(bank===0&&reg===0x28)return {key:[0,1,2,4,5,6].indexOf(v&7),on:!!(v&0xf0)};
+    if(chip==='ym2608'&&bank===0&&reg>=8&&reg<=10)return {key:`ssg:${reg-8}`,on:!!(v&31)};
     if(['ym2610','ym2610b'].includes(chip)){
       if(bank===0&&reg>=8&&reg<=10)return {key:`ssg:${reg-8}`,on:!!(v&31)};
       if(bank===0&&reg===0x10)return {key:'adpcmB',on:(v&0xc1)===0x80};
@@ -87,6 +88,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   return null;
 }
 export function performanceNoteRelease(chip,key) {
+  if(chip==='ym2608'&&typeof key==='string'&&key.startsWith('ssg:'))return {method:'write',args:[0,8+Number(key.slice(4)),0]};
   if(['ym2610','ym2610b'].includes(chip)){
     if(typeof key==='string'&&key.startsWith('ssg:'))return {method:'write',args:[0,8+Number(key.slice(4)),0]};
     if(typeof key==='string'&&key.startsWith('adpcmA:'))return {method:'write',args:[1,0,128|(1<<Number(key.slice(7)))]};
@@ -293,7 +295,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     if(!auditions.size)return false;
     // Explicit timed chip edits follow actual application order. Note ownership
     // below still protects newer manual Gates from an old scheduled release.
-    if(['ay8910','huc6280','wonderswan','gameboy','sid'].includes(chipName())&&metadata?.timedOperation)return false;
+    if(['ay8910','huc6280','wonderswan','gameboy','sid','ym2608'].includes(chipName())&&metadata?.timedOperation)return false;
     // PSG noise rate 3 uses tone channel 3's divider. A held noise key owns
     // that divider as well, while the tone channel's volume remains editable.
     if(chipName()==='segapsg'&&command.method==='write'&&auditions.has(3)&&(getPsgMode?.()&3)===3){

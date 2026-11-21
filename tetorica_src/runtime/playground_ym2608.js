@@ -1,3 +1,5 @@
+import {createYm2608OperationResetState} from './ym2608_operation_state.js';
+import {attachYm2608TimedClient} from './ym2608_timed_client.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
 import {YM2608Synth,YM2608AdpcmSynth} from './ym2608synth.js';
@@ -36,10 +38,10 @@ export function createYm2608Client(port, options = {}, lifecycle = {}) {
     loadAdpcmMemory: (bytes, offset) => transfer('memory', [bytes, offset]),
   }});
   constructing=false;
-  if(options.native)trackSsgRetainedLevels(synth,(channel,level)=>send('setRetainedLevel',[channel,level]));
+  trackSsgRetainedLevels(synth,(channel,level)=>send(options.native?'setRetainedLevel':'ym2608Retained',[channel,level]));
   // VGM supplies its own setup, including the extended-channel mode register.
   synth.resetRegisters = () => {
-    send('reset'); synth.ssg.resetState(); synth.rhythm.resetState(); synth.adpcm.resetState();
+    send('reset'); synth._adoptTimedState(createYm2608OperationResetState()); synth.ssg.resetState(); synth.rhythm.resetState(); synth.adpcm.resetState();
   };
   synth.prepareTimeline = (events, blocks, durationSamples) => transfer('prepareTimeline', [events, blocks, durationSamples]);
   synth.playTimeline = () => transfer('playTimeline', []);
@@ -53,7 +55,7 @@ export function createYm2608Client(port, options = {}, lifecycle = {}) {
   if(options.native){
     Object.defineProperties(client,{
       _getState:{value:()=>({...client.getState(),clock:client.clock,ssg:client.ssg._getState(),rhythm:{levels:Array.from(client.rhythm.levels)},adpcm:{registers:Array.from(client.adpcm.registers)}})},
-      _adoptState:{value:state=>{if(!state)return;if(state.clock!==undefined)client._adoptClock(state.clock);if(state.channels)client.channels=structuredClone(state.channels);if(state.modeRegister!==undefined)client._modeRegister=state.modeRegister;if(state.lfo)client.lfo=structuredClone(state.lfo);if(state.ssg?.registers)client.ssg._adoptState(state.ssg);if(state.rhythm?.levels)client.rhythm.levels.set(state.rhythm.levels);if(state.adpcm?.registers)client.adpcm.registers.set(state.adpcm.registers);}},
+      _adoptState:{value:state=>{if(!state)return;state.timedState?client._adoptTimedState(state.timedState):client._invalidateTimedState();if(state.clock!==undefined)client._adoptClock(state.clock);if(state.channels)client.channels=structuredClone(state.channels);if(state.modeRegister!==undefined)client._modeRegister=state.modeRegister;if(state.lfo)client.lfo=structuredClone(state.lfo);if(state.ssg?.registers)client.ssg._adoptState(state.ssg);if(state.rhythm?.levels)client.rhythm.levels.set(state.rhythm.levels);if(state.adpcm?.registers)client.adpcm.registers.set(state.adpcm.registers);}},
     });
     client._adoptState(options.state);
     client.read=offset=>client._requestControl('read',[offset]);client.readStatus=()=>client._requestControl('readStatus');client.getIrq=()=>client._requestControl('getIrq');
@@ -69,5 +71,5 @@ export function createYm2608Client(port, options = {}, lifecycle = {}) {
       check();sampleOptions.signal?.throwIfAborted();client.adpcm.registers.set(staged.registers);return result;
     };
   }
-  return client;
+  return attachYm2608TimedClient(client,{native:options.native,engine:'ymfm'},port);
 }

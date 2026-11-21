@@ -752,9 +752,119 @@ interface PlaygroundYm2612TimedApi {
   clearSchedule(name:string):Promise<boolean>;
 }
 
+/** YM2608 FM/SSG only: no Rhythm, ADPCM transfer, timers or prescaler changes.
+ * Uses a standard prescaler. Each SSG operation returns the common time cursor. */
+type PlaygroundYm2608SsgRecordedMethod = 'write'|'tone'|'noise'|'setMixer'|'setVolume'|'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'off';
+interface PlaygroundYm2608SsgRecorder {
+  write(register:number,value:number):PlaygroundYm2608OperationRecorder;
+  tone(channel:0|1|2,options?:{frequency?:number;period?:number;volume?:number;envelope?:boolean}):PlaygroundYm2608OperationRecorder;
+  noise(channel:0|1|2,options?:{period?:number;volume?:number;envelope?:boolean}):PlaygroundYm2608OperationRecorder;
+  setMixer(channel:0|1|2,options:{tone:boolean;noise:boolean}):PlaygroundYm2608OperationRecorder;
+  setVolume(channel:0|1|2,volume:number,envelope?:boolean):PlaygroundYm2608OperationRecorder;
+  setEnvelope(options:{period:number;shape:number}):PlaygroundYm2608OperationRecorder;
+  setTonePeriod(channel:0|1|2,period:number):PlaygroundYm2608OperationRecorder;
+  setFrequency(channel:0|1|2,hz:number):PlaygroundYm2608OperationRecorder;
+  setNote(channel:0|1|2,note:string|number):PlaygroundYm2608OperationRecorder;
+  keyOn(channel:0|1|2):PlaygroundYm2608OperationRecorder;
+  keyOff(channel:0|1|2):PlaygroundYm2608OperationRecorder;
+  off(channel:0|1|2):PlaygroundYm2608OperationRecorder;
+  noteOn(channel:0|1|2,note:string|number):PlaygroundYm2608OperationRecorder;
+}
+interface PlaygroundYm2608OperationRecorder {
+  /** Absolute seconds from the reservation start; offsets are nondecreasing. */
+  atSeconds(seconds:number):PlaygroundYm2608OperationRecorder;
+  /** Absolute reference-sample offset. Default reference rate is 44100 Hz. */
+  atSample(sample:number):PlaygroundYm2608OperationRecorder;
+  write(port:0|1,register:number,value:number):PlaygroundYm2608OperationRecorder;
+  rawWrite(port:0|1,register:number,value:number):PlaygroundYm2608OperationRecorder;
+  setPreset(channel:YM2612Channel,preset:YM2612Preset):PlaygroundYm2608OperationRecorder;
+  /** Unspecified fields resolve from applied chip state at execution. */
+  setOperator(channel:YM2612Channel,operator:YM2612Operator,params:YM2612OperatorParams):PlaygroundYm2608OperationRecorder;
+  setOperators(channel:YM2612Channel,entries:Array<[YM2612Operator,YM2612OperatorParams]>):PlaygroundYm2608OperationRecorder;
+  setAlgo(channel:YM2612Channel,algorithm:YM2612Algorithm,feedback?:YM2612Feedback):PlaygroundYm2608OperationRecorder;
+  setPan(channel:YM2612Channel,left:boolean,right:boolean,ams?:YM2612Ams,pms?:YM2612Pms):PlaygroundYm2608OperationRecorder;
+  setLfo(enabled:boolean,frequency:number):PlaygroundYm2608OperationRecorder;
+  setChannel3SpecialMode(enabled:boolean):PlaygroundYm2608OperationRecorder;
+  setChannel3SpecialFrequency(operator:YM2612Operator,block:number,fnum:number):PlaygroundYm2608OperationRecorder;
+  setFrequency(channel:YM2612Channel,hz:number):PlaygroundYm2608OperationRecorder;
+  setFrequency(channel:YM2612Channel,block:number,fnum:number):PlaygroundYm2608OperationRecorder;
+  setNote(channel:YM2612Channel,note:string|number):PlaygroundYm2608OperationRecorder;
+  setBlockFnum(channel:YM2612Channel,block:number,fnum:number):PlaygroundYm2608OperationRecorder;
+  keyOn(channel:YM2612Channel,operators?:YM2612Operator[]):PlaygroundYm2608OperationRecorder;
+  keyOff(channel:YM2612Channel):PlaygroundYm2608OperationRecorder;
+  noteOn(channel:YM2612Channel,note:string|number):PlaygroundYm2608OperationRecorder;
+  noteOn(channel:YM2612Channel,block:number,fnum:number):PlaygroundYm2608OperationRecorder;
+  noteOnRaw(channel:YM2612Channel,block:number,fnum:number):PlaygroundYm2608OperationRecorder;
+  noteOff(channel:YM2612Channel):PlaygroundYm2608OperationRecorder;
+  setModulation(channel:YM2612Channel,ams:YM2612Ams,pms:YM2612Pms):PlaygroundYm2608OperationRecorder;
+  readonly ssg:PlaygroundYm2608SsgRecorder;
+}
+interface PlaygroundYm2608BuildOptions { referenceSampleRate?:number; }
+interface PlaygroundYm2608OperationProgram {
+  readonly version:1;
+  readonly chip:'ym2608';
+  readonly referenceSampleRate:number;
+  readonly operations:readonly {time:{unit:'sample'|'seconds';value:number};order:number;method:string;args:readonly unknown[]}[];
+}
+/** Detached operation-resolution state; not an engine phase/envelope save state. */
+interface PlaygroundYm2608StateSnapshot {
+  readonly format:'tetorica-ym2608-state';
+  readonly version:1;
+  readonly instanceId:string|number;
+  readonly clock:number;
+  readonly engine:'ymfm';
+  readonly ssgLevels:readonly number[];
+  readonly prescaler:6;
+  readonly registers:readonly (readonly number[])[];
+  readonly frequencyLatches:readonly number[];
+  readonly pitches:readonly number[];
+  readonly specialPitches:readonly number[];
+  readonly keyMasks:readonly number[];
+  readonly frame:number;
+  readonly sampleRate:number;
+}
+interface PlaygroundYm2608CompiledWrite {
+  offsetSeconds:number;
+  port:0|1;
+  register:number;
+  value:number;
+  operationIndex:number;
+  writeIndex:number;
+}
+interface PlaygroundYm2608CompileOptions {
+  /** current captures applied renderer state asynchronously. client uses the
+   * complete optimistic JS shadow, excluding later scheduled/native edits.
+   * reset and captured snapshots require no renderer communication. */
+  initialState?:'current'|'client'|'reset'|PlaygroundYm2608StateSnapshot;
+}
+interface PlaygroundYm2608ScheduleOptions { name:string; repeatSeconds?:number; }
+interface PlaygroundYm2608ScheduleReceipt {
+  name:string;
+  startFrame?:number;
+  sampleRate:number;
+  entries:number;
+  repeatSeconds?:number;
+  staged?:boolean;
+}
+interface PlaygroundYm2608TimedApi {
+  /** Record once without changing registers or copying live state. */
+  build(callback:(recorder:PlaygroundYm2608OperationRecorder)=>void|PlaygroundYm2608OperationRecorder,options?:PlaygroundYm2608BuildOptions):PlaygroundYm2608OperationProgram;
+  /** Resolve one virtual pass. Repeated writes and their order are preserved.
+   * A compiled trace excludes unrelated operations that may execute at playback. */
+  compile(operations:PlaygroundYm2608OperationProgram,options?:PlaygroundYm2608CompileOptions):Promise<PlaygroundYm2608CompiledWrite[]>;
+  /** Capture a coherent register/control snapshot while audio continues.
+   * Authoritative capture and scheduling require an AudioWorklet, not Native. */
+  captureState():Promise<PlaygroundYm2608StateSnapshot>;
+  /** Sample-timed software reservation. Resolves on acceptance; named replacement
+   * is atomic. Limits: 4096 operations/pattern, 128 names and 48000 repeated
+   * operations/second; queued commands and patterns share a 65536 entry limit. */
+  schedule(operations:PlaygroundYm2608OperationProgram,options:PlaygroundYm2608ScheduleOptions):Promise<PlaygroundYm2608ScheduleReceipt>;
+  clearSchedule(name:string):Promise<boolean>;
+}
+
 interface YM2612FMApi extends FMApi, PlaygroundYm2612TimedApi {}
 interface YM2203FMApi extends PlaygroundOPNFm<0 | 1 | 2, false> {}
-interface YM2608FMApi extends PlaygroundOPNFm<OPNFmChannel> {}
+interface YM2608FMApi extends PlaygroundOPNFm<OPNFmChannel>, PlaygroundYm2608TimedApi {}
 interface YM2610FMApi extends PlaygroundOPNFm<0 | 1 | 2 | 3> {
   ssg: PlaygroundCreatedYm2610['ssg'];
   adpcm: PlaygroundCreatedYm2610['adpcm'];
@@ -1709,10 +1819,11 @@ type PlaygroundPrimaryGameboy = Omit<PlaygroundGameboy, 'dispose'> & PlaygroundC
 /** Native: independent pulse 2CH / wave / noise at 4,194,304 Hz, with private Wave RAM and power/routing state. Call initialize() before high-level operations. Shares the 16-instance / 64 MiB additional rack. */
 declare function createSoundChip(name: 'gameboy', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundGameboy & PlaygroundChipClock & {readonly id: string}>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
-type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
+type PlaygroundYm2608 = PlaygroundYm2608TimedApi & {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
   write(port: number, register: number, value: number): void;
   dispose(): void;
   ssg: {
+    write(register:number,value:number):void;
     /** Pitch setters preserve volume and mixer. Configure setVolume before keyOn. */
     setFrequency(ch: number, hz: number): number;
     setNote(ch: number, note: string | number): number;
@@ -2548,7 +2659,7 @@ interface PlaygroundAy8910BuildOptions {
 /** Supported register operations recorded by build(). */
 type PlaygroundAy8910RecordedMethod =
   | 'writeRegister'|'setVoice'|'tone'|'setTone'|'noise'|'setMixer'|'setVolume'
-  | 'setEnvelope'|'setNoisePeriod'|'setTonePeriod'|'setFrequency'|'setNote'
+  | 'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'
   | 'keyOn'|'keyOff'|'noteOn'|'noteOff'|'off'|'allNotesOff';
 interface PlaygroundAy8910OperationTime {
   readonly unit:'sample'|'seconds';

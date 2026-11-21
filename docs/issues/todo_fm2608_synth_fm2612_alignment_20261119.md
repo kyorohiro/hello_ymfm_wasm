@@ -82,7 +82,7 @@ No publication, Tauri import, commit, push or tag is authorized by this checklis
 
 ## Timed register API follow-up
 
-Not implemented; separate chip-level API work from Files/UI alignment.
+FM/SSG chip-level support is implemented in source; see [verification and remaining scope](todo_fm2608_timed_api_20261121.md). Rhythm/ADPCM remain separate from this slice and from Files/UI alignment.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
 - [ ] Preserve FM operator packed fields and key events, shared SSG Tone/Noise/envelope state, Rhythm triggers and ADPCM-B register/port semantics.
@@ -109,3 +109,10 @@ tag or remote CI was performed. Evidence:
 
 Next: implement the scoped FM/SSG timed API separately; do not mistake this
 workspace work for build/schedule/compile support or working/saved Files.
+
+
+Timed FM/SSG implementation (2026-11-21): lightweight `build`, asynchronous
+`compile` with current/client/reset/reusable snapshots, compact named AudioWorklet
+reservations and shared Code lifecycle are connected. Types and the fresh-Cassette
+example are included. Do not infer Rhythm/ADPCM, Native execution, monitor-mute
+parity or live scheduled-state UI from this work. See the scoped verification above.

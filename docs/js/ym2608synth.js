@@ -1,3 +1,6 @@
+import {attachYm2608TimedClient} from './ym2608_timed_client.js?v=rf5c164-notes-1';
+import {createYm2608OperationResetState,validateYm2608OperationState,observeYm2608OperationWrite} from './ym2608_operation_state.js?v=audio-stability-2';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-ui-1';
 /**
  * @file ym2608synth.js
  * 実行環境: Browser / Node.js（クラスにより異なる）
@@ -229,6 +232,31 @@ export class YM2608Synth extends OPNFMSynth {
    * clock is the master clock in Hz. SSG frequency helpers assume standard prescaling.
    */
   constructor({ transport, clock = YM2608_CLOCK } = {}) {
+    if (!transport || typeof transport.write !== 'function') throw new TypeError('YM2608 requires a write transport');
+    let timedState = createYm2608OperationResetState(), timedComplete = true;
+    const originalTransport = transport;
+    const observe = (port, register, value) => {
+      observeYm2608OperationWrite(timedState, port, register, value);
+      if (port === 0 && [0x2d, 0x2e, 0x2f].includes(register)) {
+        timedState.prescaler = register === 0x2d ? 6 : register === 0x2e ? 3 : 2;
+      }
+    };
+    transport = Object.create(originalTransport);
+    transport.write = (port, register, value) => {
+      const result = originalTransport.write(port, register, value);
+      observe(port, register, value);
+      return result;
+    };
+    transport.reset = () => {
+      const result = originalTransport.reset?.();
+      timedState = createYm2608OperationResetState(); timedComplete = true;
+      return result;
+    };
+    if (originalTransport.writeBatch) transport.writeBatch = writes => {
+      const result = originalTransport.writeBatch(writes);
+      for (const {port, register, value} of writes) observe(port, register, value);
+      return result;
+    };
     super({
       transport,
       clock,
@@ -257,6 +285,12 @@ export class YM2608Synth extends OPNFMSynth {
     this.ssg = new SSGSynth({
       transport: { write: (register, value) => this.write(0, register, value) },
       clock: clock / 4,
+    });
+    Object.defineProperties(this,{
+      _timedClientStateComplete:{get:()=>timedComplete},
+      _invalidateTimedState:{value:()=>{timedComplete=false;}},
+      _adoptTimedState:{value:state=>{timedState=validateYm2608OperationState(state);timedComplete=true;}},
+      _getTimedState:{value:()=>({...structuredClone(timedState),ssgLevels:this.ssg._getState().levels.map(v=>v&31)})},
     });
   }
 
@@ -304,10 +338,17 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
 
   async start() {
     await super.start();
+    if(!this.fm._timedOperations){
+      const port=this.node.port;
+      trackSsgRetainedLevels(this.fm,(channel,level)=>port.postMessage({method:'ym2608Retained',args:[channel,level]}));
+      attachYm2608TimedClient(this.fm,{engine:'ymfm'},port);
+    }
     this.node.port.postMessage({type:'output-gains',gains:this.getOutputGains()});
     if (Object.values(this.sourceGains).some(value => value !== 1)) this.node.port.postMessage({type:'source-gains',gains:this.getSourceGains()});
     return this;
   }
+
+  close() { this.fm?.dispose?.(); return super.close(); }
 
   /** Configure host software gains before the native outputs are combined.
    * FM includes Rhythm and ADPCM-B. Settings survive close/restart and reset.

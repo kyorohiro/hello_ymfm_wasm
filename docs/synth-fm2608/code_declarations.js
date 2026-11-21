@@ -30,7 +30,7 @@ interface Fm2608Preset {
 /** The same physical YM2608 as the upper controls. FM CH1..CH6 are 0..5.
  * SSG channels are 0..2, Rhythm voices are 0..5, and ADPCM-B has one voice.
  * dispose/allNotesOff release this Code client's notes while the editor stays open. */
-interface Fm2608CodeClient extends Fm2608CodeFm {
+interface Fm2608CodeClient extends Fm2608CodeFm, PlaygroundYm2608TimedApi {
   readonly id:'ym2608';
   readonly chip:'ym2608';
   readonly clock:number;
@@ -47,6 +47,7 @@ interface Fm2608CodeClient extends Fm2608CodeFm {
   allNotesOff():void;
   dispose():void;
   ssg:{
+    write(register:number,value:number):void;
     setFrequency(channel:0|1|2,hz:number):number;
     setNote(channel:0|1|2,note:string|number):number;
     noteOn(channel:0|1|2,note:string|number):void;

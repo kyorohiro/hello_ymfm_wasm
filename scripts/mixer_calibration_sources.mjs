@@ -1,3 +1,4 @@
+import {createYm2608TimedRevisionReadContext} from './mixer_calibration_ym2608_timed_revision.mjs';
 import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
 import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
 import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
@@ -384,7 +385,9 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
-  const metadataContext=createNpmReleaseMetadataReadContext(),metadataBytes=metadataContext.restore(path,bytes),metadataRevision=metadataBytes!==bytes;bytes=metadataBytes;
+  const ym2608Context=createYm2608TimedRevisionReadContext(),ym2608Bytes=ym2608Context.restore(path,bytes);bytes=ym2608Bytes;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'ym2608-timed-connection';
+  const metadataContext=createNpmReleaseMetadataReadContext(ym2608Context.readSource),metadataBytes=metadataContext.restore(path,bytes),metadataRevision=metadataBytes!==bytes;bytes=metadataBytes;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return metadataRevision?'npm-release-metadata':'raw';
   const connectionContext=createGameboyPublicTimedRevisionReadContext(metadataContext.readSource),connectionBytes=connectionContext.restore(path,bytes),connectionRevision=connectionBytes!==bytes;bytes=connectionBytes;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return connectionRevision?'gameboy-public-timed-connection':'raw';

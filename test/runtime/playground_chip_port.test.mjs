@@ -101,7 +101,7 @@ test('selected YM2608 exposes full sections and preserves seeded register shadow
   worker.fm.reset();
   assert.equal(worker.raw.ssg.registers[7], 0); assert.equal(worker.raw.rhythm.levels[0], 0);
   assert.equal(worker.raw.adpcm.registers[1], 0); assert.equal(worker.raw.adpcm.registers[12], 255);
-  assert.deepEqual(commands.at(-1), {type: 'write', port: 0, register: 0x29, value: 0x9f});
+  assert.deepEqual(commands.filter(command=>command.type==='write').at(-1), {type: 'write', port: 0, register: 0x29, value: 0x9f});
 });
 
 test('YM2608 memory/ROM uploads use typed acknowledgements and Stop rejects both outstanding requests', async () => {

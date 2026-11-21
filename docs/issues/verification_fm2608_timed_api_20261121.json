@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "scope": "YM2608 FM/SSG timed operations",
+  "physicalOutputMuted": true,
+  "audioDeviceOpenedByNativeTests": false,
+  "tests": {
+    "apiAndPinnedReview": 21,
+    "existingOpna": 212,
+    "existingYm2612Timed": 102,
+    "sharedConnectionsAndDefinitions": 88,
+    "priorCalibrationReviews": 24,
+    "typescript": "passed",
+    "npmBuild": "409 modules / 472 generated and checked declarations; not published"
+  },
+  "native": {
+    "worklets": [
+      "standalone Synth",
+      "YM2608RuntimeSynth",
+      "shared Playground"
+    ],
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "compileScheduleWriteParity": true,
+    "partialUpdatesAfterManualWrites": true,
+    "atomicReplacementAndAbort": true,
+    "ownerRelease": true,
+    "defaultPcmComparedAgainstAuthenticatedPredecessor": {
+      "frames": 4096,
+      "maximumDifference": 0
+    }
+  },
+  "browser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 1024,
+        "applied": 4608,
+        "rolledBack": 11776,
+        "stoppedFrame": 25600,
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 11392,
+        "applied": 13824,
+        "rolledBack": 20224,
+        "stoppedFrame": 34176,
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "zipBrowser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "initial": 10496,
+        "applied": 13824,
+        "rolledBack": 20992,
+        "stoppedFrame": 34816,
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "initial": 10112,
+        "applied": 12416,
+        "rolledBack": 18816,
+        "stoppedFrame": 32896,
+        "audit": {
+          "contexts": 1,
+          "nodes": 1,
+          "muted": true
+        }
+      }
+    ]
+  },
+  "archive": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/fm2608-timed-package/itch_fm2608_synth_timed-20261121-verified-XRfuSa",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/fm2608-timed-package/tetorica_fm2608_synth_timed-20261121-verified_itch.zip",
+    "files": 196,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 2024112,
+      "sha256": "f3d9142e6c590fb5b3502c52ed6ff154b460800f17e4e70098e8beb587983b1c"
+    },
+    "sourceCheck": {
+      "inputs": 38,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "sources": {
+    "tetorica_src/runtime/ym2608synth.js": {
+      "bytes": 18587,
+      "sha256": "4cc24d42af4a544d9bc55763b8a9bc079c083f76c16c60052241c4f0e34f9f23"
+    },
+    "tetorica_src/runtime/ym2608_operations.js": {
+      "bytes": 13979,
+      "sha256": "e51fa64c49e9b2bbd5a041132fe98becbb83395b9c3a18f7d481093ca1fd7a0a"
+    },
+    "tetorica_src/runtime/ym2608_operation_state.js": {
+      "bytes": 1294,
+      "sha256": "ec5963ff25651131a84013a1f31fa1ef49ea62eb011f90d8ecc25241e0010d34"
+    },
+    "tetorica_src/runtime/ym2608_timed_processor.js": {
+      "bytes": 9624,
+      "sha256": "41851ab43dbfef2cb74e94f608a7e20f5a00c09ea104370dcdcc4ed628361a53"
+    },
+    "tetorica_src/runtime/ym2608_timed_client.js": {
+      "bytes": 11929,
+      "sha256": "7ca48fcf936878399aa86112789022aedcd280ca251f5bdc4c63a26978a2bfec"
+    },
+    "tetorica_src/runtime/ym2608_timed_state.js": {
+      "bytes": 3606,
+      "sha256": "44eec85a052b95322d210ff3f4c4ab5662b79184466b6ee7ab6e9f9025c10c69"
+    },
+    "tetorica_src/runtime/ym2608-worklet.js": {
+      "bytes": 11616,
+      "sha256": "918f05499d35ae98f52fffe7db28b9bd8f2cdc4687d4e575b08ed1386947a1a3"
+    },
+    "tetorica_src/runtime/playground_ym2608.js": {
+      "bytes": 5484,
+      "sha256": "ca9d4f8704923bf7d375882b76b8120ab742278e04fd39e82068c75153b38f5c"
+    },
+    "tetorica_src/runtime/playground_ym2608_worklet.js": {
+      "bytes": 5874,
+      "sha256": "7ec4c91ac2cfca7866f63c45863945b79d78311905481422ab24519774f0d083"
+    },
+    "docs/synth-fm2608/audio_worklet.js": {
+      "bytes": 13062,
+      "sha256": "4aaf5a412355adc3e62af2735767b2c5b922fe5098207d6db3874702132e622b"
+    },
+    "docs/synth-fm2608/code_examples.js": {
+      "bytes": 1415,
+      "sha256": "422e4838bca6466b389b986871ed2631f0e8be949636a687ef5b3c6013dcebee"
+    }
+  },
+  "remaining": [
+    "Standalone per-channel monitor mute/Stop-level integration with timed writes",
+    "Rhythm/ADPCM timed authoring",
+    "Native timed execution/capture",
+    "Visible-panel scheduled state UI"
+  ],
+  "noPublication": true,
+  "noRemoteCi": true
+}

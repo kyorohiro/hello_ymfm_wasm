@@ -1,0 +1,53 @@
+import {validateYm2608OperationState} from './ym2608_operation_state.js';
+
+/** @typedef {import('./ym2608_operation_state.js').YM2608OperationState} YM2608OperationState */
+/** @typedef {{instanceId:string|number,clock:number,engine?:'ymfm',frame:number,sampleRate:number}} YM2608SnapshotConfiguration */
+/** @typedef {Readonly<YM2608OperationState & {format:'tetorica-ym2608-state',version:1,instanceId:string|number,clock:number,engine:'ymfm',frame:number,sampleRate:number}>} YM2608TimedSnapshot */
+
+export const YM2608_TIMED_STATE_FORMAT = 'tetorica-ym2608-state';
+export const YM2608_TIMED_STATE_VERSION = 1;
+
+function identity(value) {
+  if ((typeof value === 'string' && value.length > 0 && value.length <= 256) ||
+      (Number.isSafeInteger(value) && value > 0)) return value;
+  throw new TypeError('YM2608 state snapshot requires a chip instance identity');
+}
+
+/** Detached operation-resolution state. It does not restore oscillator phases,
+ * envelopes or an audio engine; capture and compilation never stop playback.
+ * @param {YM2608OperationState} state
+ * @param {YM2608SnapshotConfiguration} configuration
+ * @returns {YM2608TimedSnapshot} */
+export function createYm2608TimedSnapshot(state, {instanceId, clock, engine = 'ymfm', frame, sampleRate} = {}) {
+  const data = validateYm2608OperationState(state);
+  identity(instanceId);
+  if (!Number.isFinite(clock) || clock <= 0) throw new RangeError('YM2608 state snapshot clock must be positive finite Hz');
+  if (!['ymfm'].includes(engine)) throw new TypeError('Unsupported YM2608 state snapshot engine');
+  if (!Number.isSafeInteger(frame) || frame < 0) throw new RangeError('YM2608 state snapshot frame must be a nonnegative safe integer');
+  if (!Number.isInteger(sampleRate) || sampleRate <= 0) throw new RangeError('YM2608 state snapshot sample rate is required');
+  for (const row of data.registers) Object.freeze(row);
+  for (const value of Object.values(data)) Object.freeze(value);
+  return Object.freeze({format: YM2608_TIMED_STATE_FORMAT, version: YM2608_TIMED_STATE_VERSION,
+    instanceId, clock, engine, ...data, frame, sampleRate});
+}
+
+/** Reject incompatible provenance/configuration and return independent data.
+ * @param {unknown} snapshot
+ * @param {{instanceId?:string|number,clock?:number,engine?:'ymfm'}} [expected]
+ * @returns {YM2608TimedSnapshot} */
+export function validateYm2608TimedSnapshot(snapshot, expected = {}) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw new TypeError('Expected a YM2608 compilation state snapshot');
+  const allowed = ['format', 'version', 'instanceId', 'clock', 'engine', 'registers',
+    'frequencyLatches', 'pitches', 'specialPitches', 'keyMasks', 'ssgLevels', 'prescaler', 'frame', 'sampleRate'];
+  for (const key of Reflect.ownKeys(snapshot)) {
+    const descriptor = Object.getOwnPropertyDescriptor(snapshot, key);
+    if (typeof key !== 'string' || !allowed.includes(key) || !Object.hasOwn(descriptor, 'value')) throw new TypeError('Invalid YM2608 state snapshot fields');
+  }
+  if (allowed.some(key => !Object.hasOwn(snapshot, key))) throw new TypeError('Incomplete YM2608 state snapshot');
+  if (snapshot.format !== YM2608_TIMED_STATE_FORMAT || snapshot.version !== YM2608_TIMED_STATE_VERSION) throw new TypeError('Unsupported YM2608 state snapshot format or version');
+  const copy = createYm2608TimedSnapshot(snapshot, snapshot);
+  for (const key of ['instanceId', 'clock', 'engine']) {
+    if (expected[key] !== undefined && copy[key] !== expected[key]) throw new Error(`Incompatible YM2608 state snapshot ${key}`);
+  }
+  return copy;
+}

@@ -163,6 +163,8 @@
     "test:snes-synth": "node --test docs/synth-snes/*.test.mjs scripts/package_itch_snes_synth.test.mjs",
     "test:snes-synth:browser": "node scripts/check_snes_synth_browser.cjs",
     "pack:snes-synth": "sh scripts/package_itch_snes_synth.sh",
+    "test:ym2608-timed:browser": "node scripts/check_ym2608_timed_browser.cjs",
+    "test:ym2608-timed": "node --test test/runtime/ym2608_timed.test.mjs scripts/mixer_calibration_ym2608_timed_revision.test.mjs",
     "test:fm2608-synth": "node --test docs/synth-fm2608/*.test.mjs scripts/package_itch_fm2608_synth.test.mjs",
     "test:fm2608-synth:browser": "node scripts/check_fm2608_synth_browser.cjs",
     "pack:fm2608-synth": "sh scripts/package_itch_fm2608_synth.sh",

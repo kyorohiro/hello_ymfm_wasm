@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createYm2608TimedRevisionReadContext} from './mixer_calibration_ym2608_timed_revision.mjs';
 import {createGameboyPublicTimedRevisionReadContext,GAMEBOY_PUBLIC_TIMED_RECEIPT,GAMEBOY_PUBLIC_TIMED_PIN} from './mixer_calibration_gameboy_public_timed_revision.mjs';
 import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
@@ -16,11 +17,12 @@ function context(changes=new Map()){
 }
 test('public Game Boy review restores every exact predecessor without touching live source or calibration bytes',()=>{
   assert.equal(sha(JSON.stringify(receipt)),GAMEBOY_PUBLIC_TIMED_PIN);
+  const latest=createYm2608TimedRevisionReadContext();
   const ctx=context();assert.equal(Object.keys(receipt.sources).length,12);
   for(const [name,entry]of Object.entries(receipt.sources)){
-    const current=read(name),before=ctx.restore(name,current);
+    const rawCurrent=read(name),current=latest.restore(name,rawCurrent),before=ctx.restore(name,current);
     assert.equal(sha(current),entry.after.sha256);assert.equal(sha(before),entry.before.sha256);assert.equal(before.length,entry.before.bytes);
-    assert.deepEqual(ctx.readSource(new URL(name,root)),before);assert.deepEqual(read(name),current);
+    assert.deepEqual(ctx.readSource(new URL(name,root)),before);assert.deepEqual(read(name),rawCurrent);
     if(name.startsWith('docs/'))assert.deepEqual(ctx.restore(name.slice(5),current),before,'historical path aliases use the same exact source view');
   }
   const name='docs/js/playground_logic_worker.js',entry=receipt.sources[name];

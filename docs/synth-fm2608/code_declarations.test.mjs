@@ -16,6 +16,11 @@ test('OPNA Code completion exposes the borrowed four-section API and rejects abs
     await writeFile(join(work, 'globals.d.ts'), declarations);
     await writeFile(join(work, 'entry.ts'), `export {};
 const opna = await useSoundChip('ym2608');
+const phrase=opna.build(b=>{b.atSample(0).setOperator(CH1,OP1,{multi:3});b.ssg.noteOn(CH1,'E4');b.atSeconds(.1).ssg.keyOff(CH1);});
+const trace=await opna.compile(phrase,{initialState:await opna.captureState()});
+await opna.compile(phrase,{initialState:'client'});await opna.schedule(phrase,{name:'test',repeatSeconds:.5});await opna.clearSchedule('test');
+// @ts-expect-error sample transfers are not recordable
+opna.build(b=>b.adpcm.loadMemory(new Uint8Array()));
 opna.noteOn(CH1,'E3');await beat(.5);opna.noteOff(CH1);
 opna.setFrequency(CH2,440);opna.setFrequency(CH2,4,700);
 opna.setNote(CH2,69);opna.setBlockFnum(CH3,4,700);
