@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "component": "scsp-ssf",
+  "compiler": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git",
+  "upstream": {
+    "scsp": {
+      "mameRevision": "a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "sdkVersion": "0.1.8-fm2608-source-mixer",
+      "sdkSourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+      "license": "BSD-3-Clause"
+    },
+    "musashi": {
+      "repository": "https://github.com/arnaud-carre/AtariAudio",
+      "revision": "1dd9fca810a4f00b4b5e6a5348872ac0a21d88fb",
+      "version": "1.31",
+      "license": "MIT"
+    }
+  },
+  "sampleRate": 44100,
+  "channels": 2,
+  "soundRamBytes": 524288,
+  "maximumWasmMemoryBytes": 67108864,
+  "inputs": {
+    "LICENSE": {
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    "scripts/build_scsp_ssf_wasm.sh": {
+      "bytes": 1384,
+      "sha256": "61bd63d57825cd14834bbddc50abeb63be6097896b871de456fec4e05df2693e"
+    },
+    "scripts/scsp_ssf_artifacts.mjs": {
+      "bytes": 7548,
+      "sha256": "8f08960ec964cf825f0f5aba4acfcaa8275ed0bfefc95140a57957008d078cd5"
+    },
+    "tetorica_src/native/scsp_ssf/scsp_ssf.cpp": {
+      "bytes": 12956,
+      "sha256": "5edf7b097847399c8912b601042c8f65731ab1c95b59f555cd798e98b3c7d094"
+    },
+    "tetorica_src/native/scsp_ssf/scsp_ssf.h": {
+      "bytes": 973,
+      "sha256": "61cb182159601cb8ff4ee1cc862c098ed8522908060a49977851c01b9ee75ffd"
+    },
+    "third_party/atari-audio/LICENSE": {
+      "bytes": 1070,
+      "sha256": "3969bd71fd2a8b1ffa92b174aace1d338265270fe150335d8571f1358d319c8d"
+    },
+    "third_party/atari-audio/src/external/Musashi/history.txt": {
+      "bytes": 5872,
+      "sha256": "d47d536cc229bbb07518c09c4fd64b450c2bd789954feabf4a91759ea7154c98"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68k.cpp": {
+      "bytes": 32197,
+      "sha256": "69897d2ba8d6236b9023cc69ee592bb19d68e8b46967ffa8a625327e385adc4f"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68k.h": {
+      "bytes": 5380,
+      "sha256": "ad51f003e16b9a9aa805e61b1210b41f0cd44a99bcbbc0aacf9c5508d63cc219"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68k_func.inc": {
+      "bytes": 55618,
+      "sha256": "9b40808214744b6e2750152b92140b7f12aee1b77001f563cfb823f5547bd869"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kconf.h": {
+      "bytes": 10045,
+      "sha256": "979cd6a4fb15abeca61cc388858cc58ce1f13b4b6a0790ec5037d40d2a906f54"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kcpu.cpp": {
+      "bytes": 31252,
+      "sha256": "35015f3aec0e81cba1585c779effcc45c9c199fa468e33e78843479bffb55850"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kcpu.h": {
+      "bytes": 28254,
+      "sha256": "4016c5d9e10cbdae5e4f670f03d3ac0ce27bccadef14648d569407b0c2234470"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kops.cpp": {
+      "bytes": 744217,
+      "sha256": "a962c15e046e59fe7839bb8f4b1f7fd88d12b5f8777a1387f1ef85bdb4bd44b6"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kops.h": {
+      "bytes": 8384,
+      "sha256": "dcb628e08b39cee615e0f609b53f028db4768dbfedda656dedcbbeb9a51d2d54"
+    },
+    "third_party/atari-audio/src/external/Musashi/readme.txt": {
+      "bytes": 12586,
+      "sha256": "a1906bb4ab8089abf68555bd6035735ad1c0933ab15a2683d55d9356e41c6a2f"
+    },
+    "third_party/atari-audio/upstream.json": {
+      "bytes": 8815,
+      "sha256": "f02488a97d8da4a520ec7260dc48433b06500c2bd198c2541845af40314aed8b"
+    },
+    "third_party/soundchip-sdk.json": {
+      "bytes": 1845,
+      "sha256": "b2c97fa6b743d2b3e55493bb2ae6a2f189db2df566194b94b5802f6bdf05f1bc"
+    },
+    "third_party/tetorica-soundchip-native/RELEASE-MANIFEST.json": {
+      "bytes": 73659,
+      "sha256": "83c0adec744e8ddd04cbf733c6e83460bc5ff69eff39d7d772f4df454ca5f1cf"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/LICENSE": {
+      "bytes": 1593,
+      "sha256": "fa63b17d27ea6c4ff5fbc5c772fba27dc3989dedf9caa9223368eb0576ddc61e"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.cpp": {
+      "bytes": 27097,
+      "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.h": {
+      "bytes": 2976,
+      "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp_instrument.cpp": {
+      "bytes": 2474,
+      "sha256": "05f9597c523db69c2003bcc5084c6d1e6c83ceece3d6907acc365eb4258774cd"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp_instrument.h": {
+      "bytes": 1860,
+      "sha256": "1e263c7b5542ebc762a9afb66e70129306f266d1f8486f0ca1ab5d34344e082c"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scspdsp.cpp": {
+      "bytes": 5882,
+      "sha256": "4b0872ceb850397960a154cc1ac83e07f66821fa1a676b00924539ca2e0bf822"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scspdsp.h": {
+      "bytes": 852,
+      "sha256": "4250050bba5c763314144b638e38deb3cc0a5363456ca924277702d53df2281f"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/standalone_support.h": {
+      "bytes": 1637,
+      "sha256": "95789c7277f3eb8842f508ea4c9c3fe4d13de8b4271d76d41587cabd50bfabe7"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/upstream/REVISION": {
+      "bytes": 41,
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b"
+    }
+  },
+  "output": {
+    "bytes": 249729,
+    "sha256": "c41bba223355105d903cefbdd72845f78434eb3144a4c4119fa7d0a0218bb00e"
+  },
+  "notices": {
+    "bytes": 5438,
+    "sha256": "73d00b520cd366b8d757acb6c4d04f57a196a8d14785ea0b7c7bb999920ffcb2"
+  }
+}

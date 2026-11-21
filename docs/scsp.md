@@ -244,10 +244,10 @@ and default register levels are unchanged. The npm Mixer calibrated preset also
 includes the measured SCSP fallback; it remains opt-in.
 See [measurement and verification](issues/scsp_calibration_01.md) and the
 [Native integration record](issues/native_scsp_transport_01.md) for the current measurements.
-The standalone [SCSP Synth](synth-scsp/README.md) also provides SSF / 68000 song
-playback, Live inspection, paused PCM audition / Capture and an experimental
-fixed DSP Delay. These are application features, separate from the raw
-Playground chip API. Slot modulation is described below.
+The standalone [SCSP Synth](synth-scsp/README.md) provides SSF / MiniSSF
+reference playback with a dedicated 68000 sound board, VGM reference playback,
+and an experimental DSP editor. These are application features. Slot
+modulation is described below.
 
 ### Desktop Native Audio
 
@@ -485,7 +485,7 @@ EG／PCMは次の発音、Pitch／ratio／depth／mix／LFOは発音中とreleas
 Output以外はdirect出力を消し、TLで変調量を調整する。mode／接続変更は検証成功後に全音停止する。
 **Stop** は即時消音し、発音元のRAM参照を解放して編集pageを再利用できるようにする。通常の離鍵はreleaseを維持する。
 描画／音声変換／接続プリセット／group単位の割当・guard配置／preset保存はソフト側の機能。
-slot FM／EG／LFOはSCSP core側。自由なgraph／FM feedback／汎用DSP編集／SSFは後続。
+slot FM／EG／LFOはSCSP core側。単体の[SCSP Synth](synth-scsp/README.md)ではSSF／MiniSSFの模範演奏も試せます。
 **SCSP DSP · Delay**：Enableで有効化し、Time（20〜700ms）／Feedback（0〜0.85）／Send／Return（0〜7）を操作する。
 固定core内で独自mono Delay microprogramを実行する。Web Audio DelayNodeは使用しない。
 共有mono effectへ送るのは接続のOutput operatorのみ。各operatorのDirect levelを0にすればwetだけでも鳴らせる。

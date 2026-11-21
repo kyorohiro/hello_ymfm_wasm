@@ -93,7 +93,7 @@ These are representative systems, not a guarantee that every game's music or ins
 | PC Engine / CD-ROM² | HuC6280, MSM5205 ADPCM and CD-DA APIs; supported VGM playback / analysis. |
 | Super Famicom / SNES | SPC song playback, BRR instruments, experimental note analysis / editable JavaScript. |
 | PlayStation 1 | SPU instruments, local PSF1 / MiniPSF song preview in SPU Synth, and separate static VAB extraction from PSF sets. Compatibility depends on the music driver. |
-| Sega Saturn | Experimental SCSP instruments / register APIs; **no SSF song playback or 68000 execution**. |
+| Sega Saturn | Experimental SCSP instruments and register APIs. [SCSP Synth](docs/synth-scsp/README.md) previews local SSF / MiniSSF recordings with a separate 68000 and SCSP. |
 | Commodore 64 | npm 0.2.37+: `SidCore`, `Sid8580Core` and `SidSynth` ([examples](packages/fm2612/README.md#c64-sid-6581-and-8580-preview)). Experimental 6581 / PAL 8580 Preview instruments, shared filter and Main / Worker APIs. Playground's primary SID defaults to 6581; 8580 uses an independent instance. The [browser SID Player](docs/sid-player/README.md) runs PAL, single-SID PSID VBI / CIA and RSID v2 with **6581 / 8580 Preview** selection. Direct VBI is a 6581 option; the unchanged [reference CLI](docs/sid-reference.md) writes comparison WAVs. NTSC / multi-SID and accurate volume-DAC digi remain outside Player coverage. ROM-dependent / BASIC startup needs user firmware and further compatibility checks; no C64 ROM is bundled. |
 | Atari 8-bit, WonderSwan | POKEY and WonderSwan sound cores; see the Analyzer table for file / analysis limits. |
 

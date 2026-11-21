@@ -7,7 +7,7 @@ import { readPatch, writePatch } from './patch.js?v=scsp-cycle2-presets-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-cycle2-code-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
 import { setupScspCodeHost } from './code_host.js?v=scsp-output-menu-1';
-import { setupScspSongControls, isScspSongPath } from './song_controls.js?v=scsp-vgm-only-1';
+import { setupScspSongControls, isScspSongPath } from './song_controls.js?v=scsp-ssf-1';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
@@ -1325,23 +1325,30 @@ songControls = setupScspSongControls({
 	setStatus: status,
 });
 void codeHost.ready.then(() => songControls.refresh()).catch(report);
-$('loadVgm').addEventListener('click', () => $('vgmFileInput').click());
-$('vgmFileInput').addEventListener('change', async () => {
-	const files = [...$('vgmFileInput').files];
-	$('vgmFileInput').value = '';
-	if (!files.length) return;
-	try {
-		await codeHost.ready;
-		const paths = await codeHost.files.importFiles(files);
-		const path = paths.find((value) => /\/vgm\/.*\.(?:vgm|vgz)$/i.test(value));
-		if (path)
-			await songControls.selectFile(codeHost.project.fs.get(path), {
-				path,
-			});
-	} catch (error) {
-		report(error);
-	}
-});
+let songImportRevision = 0;
+function connectSongPicker(buttonId, inputId, { ssfOnly = false } = {}) {
+	const input = $(inputId);
+	$(buttonId).addEventListener('click', () => input.click());
+	input.addEventListener('change', async () => {
+		const files = [...input.files];
+		input.value = '';
+		if (!files.length) return;
+		const revision = ++songImportRevision;
+		const isCurrent = () => !disposed && revision === songImportRevision;
+		try {
+			await codeHost.ready;
+			const paths = await codeHost.files.importFiles(files, { ssfOnly, isCurrent });
+			if (!isCurrent() || !paths.length) return;
+			const path = paths.find(isScspSongPath);
+			if (path) await songControls.selectFile(path, { isCurrent });
+		} catch (error) {
+			if (isCurrent() && error?.name !== 'AbortError') report(error);
+		}
+	});
+}
+connectSongPicker('loadVgm', 'vgmFileInput');
+connectSongPicker('loadSsfFolder', 'ssfFolderInput', { ssfOnly: true });
+connectSongPicker('loadSsfFiles', 'ssfFileInput', { ssfOnly: true });
 window.addEventListener('pagehide', (event) => {
 	if (event.persisted) {
 		void stopKeyboard();

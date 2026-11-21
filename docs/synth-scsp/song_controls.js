@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { createScspSongPlayer } from './song_player.js?v=scsp-vgm-only-1';
+import { createScspSongPlayer } from './song_player.js?v=scsp-ssf-1';
 import { buildScspSongDemo } from './song_source.js';
+import { SCSP_SSF_FILES } from './ssf_source.js';
 
-export const isScspSongPath = (path) => typeof path === 'string' && /^\/vgm\/.*\.(?:vgm|vgz)$/i.test(path);
+const isSsfSetPath = (path) =>
+	typeof path === 'string' && path.startsWith('/ssf/') && SCSP_SSF_FILES.test(path);
+const isSsfSongPath = (path) => isSsfSetPath(path) && !/\.ssflib$/i.test(path);
+export const isScspSongPath = (path) =>
+	isSsfSongPath(path) || (typeof path === 'string' && /^\/vgm\/.*\.(?:vgm|vgz)$/i.test(path));
 const timeLabel = (seconds) => {
 	const value = Math.max(0, Math.floor(seconds || 0));
 	return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
@@ -29,7 +34,7 @@ export function setupScspSongControls({
 	const node = (id) => doc.getElementById(id),
 		listeners = [];
 	let selectedPath = '',
-		sourceData = null,
+		sourceFiles = new Map(),
 		operation = 0,
 		loading = false,
 		disposed = false,
@@ -67,7 +72,7 @@ export function setupScspSongControls({
 	function render() {
 		if (disposed) return;
 		const current = currentState(),
-			loaded = Boolean(selectedPath && sourceData);
+			loaded = Boolean(selectedPath);
 		const play = node('scspSongPlay'),
 			pause = node('scspSongPause'),
 			stop = node('scspSongStop'),
@@ -101,11 +106,11 @@ export function setupScspSongControls({
 							? current.paused
 								? 'Paused'
 								: current.playing
-									? 'Playing · SCSP reference'
+									? 'Playing · ' + (current.kind === 'ssf' ? current.format : 'SCSP') + ' reference'
 									: current.playback === 'ended'
 										? 'Ended'
 										: 'Ready · ' + selectedPath
-						: 'Import a SCSP VGM / VGZ, or load the demo.');
+						: 'Import a SCSP VGM / VGZ or SSF folder, or load the demo.');
 		const status = node('scspSongStatus');
 		if (status) {
 			status.textContent =
@@ -116,19 +121,21 @@ export function setupScspSongControls({
 	}
 	function refresh() {
 		if (disposed) return;
-		const entries = project.fs
+		const files = project.fs
 			.list()
-			.filter((file) => file.type === 'binary' && isScspSongPath(file.path));
-		const nextSignature = JSON.stringify(entries.map((file) => [file.path, file.revision]));
+			.filter((file) => file.type === 'binary' &&
+				(isScspSongPath(file.path) || isSsfSetPath(file.path)));
+		const nextSignature = JSON.stringify(files.map((file) => [file.path, file.revision]));
 		if (nextSignature === signature) return;
 		signature = nextSignature;
+		const entries = files.filter((file) => isScspSongPath(file.path));
 		const select = node('scspSongSelect');
 		if (select) {
 			const placeholder = doc.createElement('option');
 			placeholder.value = '';
 			placeholder.textContent = entries.length
 				? 'Choose a SCSP song…'
-				: 'Import a SCSP VGM / VGZ…';
+				: 'Import a SCSP VGM / VGZ or SSF…';
 			const options = entries.map((file) => {
 				const option = doc.createElement('option');
 				option.value = file.path;
@@ -139,16 +146,14 @@ export function setupScspSongControls({
 			select.replaceChildren(placeholder, ...options);
 			select.disabled = !entries.length;
 		}
-		const selected = entries.find((file) => file.path === selectedPath);
-		if (
-			selectedPath &&
-			selectedPath !== 'Original SCSP demo' &&
-			(!selected || !sameBytes(sourceData, selected.data))
-		) {
+		const latest = new Map(files.map(({ path, data }) => [path, data]));
+		if ([...sourceFiles].some(([path, data]) => !sameBytes(data, latest.get(path)))) {
 			operation++;
 			loadController?.abort();
+			loading = false;
+			loadController = null;
 			selectedPath = '';
-			sourceData = null;
+			sourceFiles.clear();
 			player.clear();
 		}
 		if (select) select.value = isScspSongPath(selectedPath) ? selectedPath : '';
@@ -160,8 +165,8 @@ export function setupScspSongControls({
 		const path = explicitPath ?? (typeof value === 'string' ? value : value?.path),
 			data = file?.data;
 		if (!isScspSongPath(path) || !(data instanceof Uint8Array))
-			throw new Error('Choose a VGM / VGZ in /vgm');
-		if (selectedPath === path && sameBytes(sourceData, data)) return true;
+			throw new Error('Choose a VGM / VGZ in /vgm or a song in /ssf');
+		if (selectedPath === path && sameBytes(sourceFiles.get(path), data)) return true;
 		const ticket = ++operation,
 			controller = new AbortController();
 		loadController?.abort();
@@ -170,15 +175,25 @@ export function setupScspSongControls({
 		render();
 		try {
 			const sourceBytes = data.slice();
-			await player.load(sourceBytes, path.split('/').pop(), {
+			const entries = isSsfSongPath(path)
+				? project.fs.list().filter((file) => file.type === 'binary' && isSsfSetPath(file.path))
+				: [{ path, data: sourceBytes }];
+			const snapshots = new Map(entries.map(({ path, data }) => [path, data]));
+			const options = {
 				signal: controller.signal,
-				isCurrent: () => !disposed && ticket === operation && isCurrent() &&
-					sameBytes(sourceBytes, project.fs.get(path)?.data),
-			});
+				isCurrent: (source) => !disposed && ticket === operation && isCurrent() &&
+					sameBytes(sourceBytes, project.fs.get(path)?.data) &&
+					(source?.loadedFiles ?? []).every((dependency) =>
+						sameBytes(snapshots.get(dependency), project.fs.get(dependency)?.data)),
+			};
+			if (isSsfSongPath(path)) await player.loadSsf(entries, path, options);
+			else await player.load(sourceBytes, path.split('/').pop(), options);
 			if (disposed || ticket !== operation || !isCurrent()) return false;
 			selectedPath = path;
-			sourceData = sourceBytes;
 			state = player.getState();
+			sourceFiles = new Map([[path, sourceBytes]]);
+			for (const dependency of state.loadedFiles ?? [])
+				sourceFiles.set(dependency, snapshots.get(dependency));
 			const select = node('scspSongSelect');
 			if (select) select.value = path;
 			setStatus('SCSP reference song loaded · ' + path);
@@ -208,7 +223,7 @@ export function setupScspSongControls({
 			await player.load(data, 'Original SCSP demo', { signal: controller.signal });
 			if (disposed || ticket !== operation) return false;
 			selectedPath = 'Original SCSP demo';
-			sourceData = data;
+			sourceFiles.clear();
 			state = player.getState();
 			const select = node('scspSongSelect');
 			if (select) select.value = '';

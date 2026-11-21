@@ -62,7 +62,12 @@
 											class="file-input"
 											type="file"
 											accept=".vgm,.vgz,application/gzip,application/octet-stream"
-										/><button
+										/>
+										<button id="loadSsfFolder" type="button" data-close-synth-menu>SSF folder…</button>
+										<input id="ssfFolderInput" class="file-input" type="file" webkitdirectory multiple />
+										<button id="loadSsfFiles" type="button" data-close-synth-menu>SSF / MiniSSF files…</button>
+										<input id="ssfFileInput" class="file-input" type="file" multiple accept=".ssf,.minissf,.ssflib" />
+										<button
 											id="loadPreset"
 											type="button"
 											data-close-synth-menu
@@ -171,8 +176,8 @@
 									<summary aria-label="About SCSP recordings">?</summary>
 									<p>
 										SCSP VGM / VGZ contains recorded register writes and sound RAM.
-										Files retains the original recordings. The Demo is a
-										self-authored register log.
+										For SSF or MiniSSF, open the folder containing the songs and their SSFLib files.
+										Files retains the original recordings. The Demo is a self-authored register log.
 									</p>
 								</details>
 							</div>
@@ -189,7 +194,7 @@
 								/><output id="scspSongPosition" for="scspSongSeek">0:00 / —</output>
 							</div>
 							<p id="scspSongStatus" role="status">
-								Import a SCSP VGM / VGZ from Menu, or try Demo.
+								Import a SCSP VGM / VGZ or SSF folder from Menu, or try Demo.
 							</p>
 						</section></details><div id="synthExpandedVolumeSlot" hidden></div></div></div>
 					<aside
@@ -959,6 +964,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-vgm-only-1"></script>
+		<script type="module" src="synth.js?v=scsp-ssf-1"></script>
 	</body>
 </html>

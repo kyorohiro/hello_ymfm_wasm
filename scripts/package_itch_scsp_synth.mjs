@@ -11,6 +11,7 @@ import { version as esbuildVersion } from 'esbuild';
 import { copyReadableModules } from './copy_readable_modules.mjs';
 import { copyScspSources } from './copy_scsp_sources.mjs';
 import { checkRuntimeArtifacts, copyRuntimeArtifacts } from './runtime_artifacts.mjs';
+import { checkScspSsfBuild, SCSP_SSF_BUILD_INPUTS } from './scsp_ssf_artifacts.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const ssfPlayerPath = /(?:^|\/)(?:ssf[-_]player|ssfplay(?:_tools)?|ssf_renderer|build_ssf_player|mednafen)(?:[/.]|$)/i;
 function assertNoSsfPlayer(paths) {
@@ -66,6 +67,7 @@ export async function packageScspSynth({
 } = {}) {
 	validateScspSynthVersion(version);
 	await checkRuntimeArtifacts({ root, ids: ['scsp'], mirrors: true });
+	await checkScspSsfBuild({ root });
 	releaseDir = resolve(releaseDir);
 	await mkdir(releaseDir, { recursive: true });
 	const archive = join(releaseDir, `tetorica_scsp_synth_${version}_itch.zip`);
@@ -84,6 +86,7 @@ export async function packageScspSynth({
 		entries: [
 			'docs/synth-scsp/synth.js',
 			'docs/synth-scsp/processor.js',
+			'docs/synth-scsp/scsp_ssf_worker.js',
 			'docs/playground/scsp_dsp_lab.js',
 			'docs/js/native-fx-worklet.js',
 			'docs/synth-scsp/synth.css',
@@ -92,6 +95,20 @@ export async function packageScspSynth({
 	});
 	const inputs = new Set(readable.inputs),
 		bundles = readable.entries.filter((entry) => !entry.path.endsWith('.css'));
+	for (const path of SCSP_SSF_BUILD_INPUTS)
+		inputs.add(path);
+	const ssfArtifacts = ['scsp-ssf.wasm', 'scsp-ssf-build.json', 'scsp-ssf-notices.txt'];
+	const ssfDirectory = 'generated/scsp-ssf';
+	await mkdir(join(stage, ssfDirectory), { recursive: true });
+	const scspSsf = [];
+	for (const name of ssfArtifacts) {
+		const path = ssfDirectory + '/' + name;
+		const source = 'docs/' + path;
+		const bytes = await readFile(join(root, source));
+		await writeFile(join(stage, path), bytes);
+		inputs.add(source);
+		scspSsf.push({ path, ...record(bytes) });
+	}
 	for (const name of [
 		'tetorica-playground-globals.d.ts',
 		'tetorica-playground-scsp.d.ts',
@@ -239,6 +256,7 @@ export async function packageScspSynth({
 			path: 'generated/scsp_wasm.wasm',
 			...record(await readFile(join(stage, 'generated/scsp_wasm.wasm'))),
 		},
+		scspSsf,
 		sourceCheck,
 	};
 	await writeFile(

@@ -2,11 +2,10 @@
 
 ## Current scope · 2026-11-21
 
-SCSP Synth has retired the GPL ssfplay / Mednafen engine and its SSF / MiniSSF
-playback controls from the browser and release ZIP. VGM reference playback,
-Synth keyboard, Code, DSP and previously saved SCSP instrument presets remain
-available. The browser's separately authored SSF container, slot inspection
-and capture helpers are retained for a future replacement.
+The original GPL ssfplay / Mednafen engine was retired in favor of a separate
+player using the BSD SCSP device and the MIT Musashi 68000 sources already used
+by AtariAudio. The browser's SSF container loader prepares sound RAM for this
+player. Slot inspection and Capture helpers are available for a later phase.
 
 The standalone ZIP and the nested editable source archive passed inspection
 for the retired SSF engine. Chromium and WebKit verified the packaged
@@ -19,17 +18,18 @@ hash mismatch for `docs/js/native_genesis_scsp.js`.
       shared sound RAM image, load the CPU's reset vectors and interleave the
       CPU and audio clock. Start with the original SSF sine and its MiniSSF
       pitch patch. Verify the rendered pitch and block-size independence.
-- [ ] Implement SCSP timer and sound-CPU interrupts from the Saturn manual.
-      Verify original IRQ fixtures before measuring local recordings and
-      deciding which additional registers or DMA behavior they require.
-- [ ] Verify supported SSF / MiniSSF containers, library ordering, deterministic
-      CPU-to-SCSP timing, IRQ delivery, PCM and DSP output with original fixtures
+- [x] Implement SCSP timers A/B/C and sound-CPU interrupts from the Saturn
+      manual. Verify original IRQ fixtures and identify where local recordings
+      reach hardware outside the current board.
+- [x] Verify supported SSF / MiniSSF containers, library ordering, deterministic
+      CPU-to-SCSP timing, IRQ delivery and PCM output with original fixtures
       and locally supplied recordings before enabling playback in the Synth.
-- [ ] Reintegrate folder import / transport first. Restore live CH observation,
-      editing, paused audition and Capture once the new renderer can supply
-      timing-aligned slot and RAM snapshots.
-- [ ] Record exact dependency revisions and licenses and check the generated
+- [x] Reintegrate folder and multi-file import with the existing song transport.
+- [ ] Restore live CH observation, editing, paused audition and Capture once
+      the new renderer can supply timing-aligned slot and RAM snapshots.
+- [x] Record exact dependency revisions and licenses and check the generated
       renderer and source kit before adding them to the release ZIP.
+- [ ] Add cancellable SSF seeking with a separate renderer and a progress display.
 
 ### Native prototype
 
@@ -48,8 +48,58 @@ The board maps 512 KiB of sound RAM and the supported SCSP registers using
 the [Saturn sound block memory map](https://docs.exodusemulator.com/Archives/SSDDV25/segahtml/hard/scsp/hon/p01_10_j.htm).
 It runs 256 sound-CPU cycles per 44.1 kHz sample, carrying instruction
 overrun into the next sample. The fixture verifies deterministic playback
-at this sample boundary. Timer/IRQ, DMA, real-song compatibility and
-browser playback are pending.
+at this sample boundary.
+
+### Timer and interrupt verification
+
+The Native board now advances timers A/B/C by their prescaler at each
+44.1 kHz frame. It latches requests separately from IRQ enables, presents
+the programmed autovectors to the 68000, and handles SCIRE acknowledgement.
+This implements the sample-boundary model in sections 4.2.11–12 of the
+[SCSP User's Manual](https://antime.kapsi.fi/sega/files/ST-077-R2-052594.pdf).
+
+Original driver fixtures use `STOP` and `RTE` to switch a PCM voice from
+the interrupt handlers. Timer A switches every 256–257 frames in the
+fixture, B every 192, and C every 256. The fixtures check that a disabled
+IRQ remains pending, an unacknowledged IRQ can re-enter, and byte writes
+preserve the other half of the control word. PCM matched across 8,192- and
+257-frame render blocks.
+
+All 72 selected entries under `ww/ss` assembled from 81 supplied files.
+The board serves the disconnected MIDI status and ignores writes in the
+unused range after MADRS, matching the BSD core. It accepts a DSP work-register
+zero write only when the addressed bits are already zero. A fixture checks
+this initialization and rejects a nonzero write to TEMP.
+
+The offline test rendered two seconds from each entry. 71 produced signal
+in that window. The remaining track first produced signal at frame 120,372
+(2.7295 s) and rendered for 15 seconds. Two tracks reached full scale on
+11 channel samples in the two-second runs. Listening, comparison against
+a reference player and DMA remain on the checklist.
+
+### WASM preview
+
+Use `sh scripts/build_scsp_ssf_wasm.sh` to build the separate SSF WASM. The
+browser runs the sound CPU and SCSP on a module Worker. The existing transport
+uses the renderer's stereo PCM and the shared Master output. Folder import
+retains the paths needed for .ssflib dependencies.
+
+```sh
+node scripts/check_scsp_ssf_native.mjs --wasm docs/generated/scsp-ssf/scsp-ssf.wasm
+node scripts/check_scsp_ssf_native.mjs --wasm docs/generated/scsp-ssf/scsp-ssf.wasm --real-dir ww/ss
+```
+
+The first command compares seven original SSF, MiniSSF, sound RAM and timer
+cases. The second compared the 72 user-supplied local recordings, including
+the delayed-start track through 15 seconds. All 7,011,900 stereo frames in
+the local comparison matched Native bit for bit at 44.1 kHz with unity gain.
+
+The Chromium and WebKit checks ran from the extracted release ZIP. They use
+original test fixtures and measure audio before a muted destination. They cover
+silent import, the SSFLib path through folder import, Play, Pause, Resume, Stop
+and preservation of the paused song after a missing-library error.
+Both browsers also listed all 72 tracks from `ww/ss` and measured audio
+from one standalone track and one track with a library dependency.
 
 ## Historical implementation · 2026-11-15
 

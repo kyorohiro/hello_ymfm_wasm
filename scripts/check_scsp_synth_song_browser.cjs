@@ -1,4 +1,4 @@
-// Browser verification of the public SCSP VGM controls and their shared Master.
+// Browser verification of the public SCSP song controls and their shared Master.
 // Every destination edge is intercepted at gain zero before app initialization.
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -136,10 +136,14 @@ async function selectFile(page, filePath) {
   await until(() => view(page).then(state => state.files === filePath), 'Files selection ' + filePath);
 }
 async function importSong(page, name, bytes) {
-  await page.click('#synthMenuButton');
-  const chooser = page.waitForEvent('filechooser'); await page.click('#loadVgm');
-  await (await chooser).setFiles({name, mimeType:'application/octet-stream', buffer:Buffer.from(bytes)});
+  await importThroughMenu(page,'#loadVgm',{name, mimeType:'application/octet-stream', buffer:Buffer.from(bytes)});
   await until(() => page.locator('#scspSongSelect option').evaluateAll((options, value) => options.some(option => option.value === value), '/vgm/' + name), 'import ' + name);
+}
+async function importThroughMenu(page, selector, input) {
+  await page.click('#synthMenuButton');
+  const chooser = page.waitForEvent('filechooser');
+  await page.click(selector);
+  await (await chooser).setFiles(input);
 }
 async function exportSelected(page) {
   await page.click('#synthMenuButton');
@@ -238,9 +242,57 @@ async function check(browser, name, origin, fixture) {
     await selectFile(page,'/vgm/original.vgz'); assert.deepEqual(await exportSelected(page),fixture.gzip);
     await selectFile(page,'/vgm/original.vgm'); assert.deepEqual(await exportSelected(page),Buffer.from(fixture.bytes));
     checks.push('Reload restores both original recordings without starting audio');
+    const graphAfterReload = await page.evaluate(() => __scspSongAudit.graph());
+
+    stage = 'standalone SSF';
+    const workers = [];
+    page.on('worker', worker => {if (new URL(worker.url()).pathname.endsWith('/scsp_ssf_worker.js')) workers.push(worker);});
+    await importThroughMenu(page,'#loadSsfFiles',{
+      name:'original.ssf', mimeType:'application/octet-stream', buffer:Buffer.from(fixture.ssf.standalone),
+    });
+    await until(() => view(page).then(state => state.selected === '/ssf/original.ssf' && !state.playDisabled), 'SSF selection');
+    assert.equal((await page.evaluate(() => __scspSongAudit.graph())).contexts,0);
+    assert.equal(workers.length,0);
+    await page.click('#scspSongPlay');
+    await until(() => view(page).then(state => /^Playing.*\bSSF\b/.test(state.song)), 'SSF playback');
+    measurements.ssf = await pcm(page);
+    assert.equal(workers.length,1);
+    await page.click('#scspSongStop'); await pcm(page,false);
+    checks.push('Selecting SSF stays silent until the isolated WASM Worker starts');
+
+    stage = 'MiniSSF folder, Pause and Resume';
+    await importThroughMenu(page,'#loadSsfFolder',fixture.ssfFolder);
+    await until(() => view(page).then(state => state.selected.endsWith('/track.minissf') && !state.playDisabled), 'MiniSSF folder selection');
+    const miniPath = (await view(page)).selected;
+    assert(miniPath.startsWith('/ssf/'));
+    assert.equal(await page.locator('#scspSongSelect option').evaluateAll(options => options.some(option => /\.ssflib$/i.test(option.value))),false);
+    await page.click('#scspSongPlay');
+    await until(() => view(page).then(state => /^Playing.*MiniSSF/.test(state.song)), 'MiniSSF playback');
+    measurements.miniSsf = await pcm(page);
+    await page.click('#scspSongPause'); await pcm(page,false);
+    const pausedMini = await view(page); assert.equal(pausedMini.pause,'Resume');
+    await wait(140); assert.equal((await view(page)).position,pausedMini.position);
+    const pausedWorkers = workers.length;
+    await page.click('#scspSongPause'); await pcm(page);
+    assert.equal(workers.length,pausedWorkers);
+    await page.click('#scspSongPause'); await pcm(page,false);
+    checks.push('Folder import resolves MiniSSF libraries, Pause freezes the playhead and Resume retains its Worker');
+
+    stage = 'missing SSFLib preserves the paused song';
+    await importThroughMenu(page,'#loadSsfFiles',{
+      name:'missing-library.minissf', mimeType:'application/octet-stream', buffer:Buffer.from(fixture.ssf.mini),
+    });
+    await until(() => view(page).then(state => /missing SSFLib/i.test(state.status)), 'missing library error');
+    const preserved = await view(page);
+    assert.equal(preserved.selected,miniPath); assert.equal(preserved.pause,'Resume');
+    await page.click('#scspSongStop'); await pcm(page,false);
+    assert((await view(page)).stopDisabled);
+    assert.equal((await page.evaluate(() => __scspSongAudit.graph())).contexts,1);
+    checks.push('A missing SSFLib leaves the paused song available and Stop silences it');
+
     assert.deepEqual(errors,[]);
     return {browser:name,passed:true,checks,measurements,physicalOutputMuted:true,listeningPerformed:false,
-      nativeCores,playbackGraph,graphAfterReload:await page.evaluate(() => __scspSongAudit.graph())};
+      nativeCores,playbackGraph,graphAfterReload};
   } catch (error) {
     await fs.mkdir(config.screenshots,{recursive:true});
     await page.screenshot({path:path.join(config.screenshots,name + '-failure.png'),fullPage:true}).catch(() => {});
@@ -260,8 +312,16 @@ const server = http.createServer(async (request,response) => {
 });
 (async () => {
   const {buildScspSongDemo} = await import(pathToFileURL(path.join(repo,'docs/synth-scsp/song_source.js')).href);
+  const {createScspSsfPlaybackFixture} = await import(pathToFileURL(path.join(repo,'test/helpers/scsp_ssf_fixture.mjs')).href);
   const bytes = buildScspSongDemo(), unsupported = bytes.slice(); new DataView(unsupported.buffer).setUint32(0x2c,7670454,true);
-  const fixture = {bytes,gzip:gzipSync(bytes),unsupported};
+  const ssf = createScspSsfPlaybackFixture();
+  const ssfFolder = await fs.mkdtemp(path.join(tmpdir(),'scsp-ssf-browser-'));
+  const fixture = {bytes,gzip:gzipSync(bytes),unsupported,ssf,ssfFolder};
+  await fs.mkdir(path.join(ssfFolder,'lib'));
+  await Promise.all([
+    fs.writeFile(path.join(ssfFolder,'track.minissf'),ssf.mini),
+    fs.writeFile(path.join(ssfFolder,'lib','driver.ssflib'),ssf.library),
+  ]);
   await new Promise((resolve,reject) => {server.once('error',reject); server.listen(0,'127.0.0.1',resolve);});
   const origin = 'http://127.0.0.1:' + server.address().port;
   let failure = null;
@@ -274,7 +334,11 @@ const server = http.createServer(async (request,response) => {
     }
     assert.deepEqual(missing,[]); assert.deepEqual(external,[]);
   } catch (error) {failure = error;}
-  finally {server.closeIdleConnections?.(); server.closeAllConnections?.(); if (server.listening) await new Promise(resolve => server.close(resolve));}
+  finally {
+    server.closeIdleConnections?.(); server.closeAllConnections?.();
+    if (server.listening) await new Promise(resolve => server.close(resolve));
+    await fs.rm(ssfFolder,{recursive:true,force:true});
+  }
   const receipt = {schemaVersion:1,passed:!failure,root:config.root,entry:config.entry,physicalOutputMuted:true,listeningPerformed:false,
     fixture:{vgmBytes:bytes.length,vgmSha256:hash(bytes),vgzBytes:fixture.gzip.length,vgzSha256:hash(fixture.gzip)},
     results,missing,external,expectedBlockedMonaco:blockedMonaco,...(failure ? {error:failure.stack} : {})};

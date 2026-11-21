@@ -3,6 +3,7 @@
 #include "m68kops.h"
 #include "scsp_instrument.h"
 
+#include <array>
 #include <cstdlib>
 #include <memory>
 #include <new>
@@ -15,6 +16,132 @@ constexpr uint32_t kAddressMask = 0x00ffffff;
 constexpr uint32_t kNoFault = UINT32_MAX;
 // Nominal Saturn sound clock of 11.2896 MHz at 44.1 kHz output.
 constexpr int kCpuCyclesPerFrame = 256;
+
+constexpr uint32_t kMidiInput = 0x404;
+constexpr uint16_t kMidiEmpty = (1u << 11) | (1u << 8); // MOEMP and MIEMP
+constexpr uint32_t kDspGap = 0x7c0;
+constexpr uint32_t kDspProgram = 0x800;
+constexpr uint32_t kDspWorkStart = 0xc00;
+constexpr uint32_t kDspWorkEnd = 0xee4;
+
+// SCSP common registers at $100418–$10042e. These are part of the sound
+// board; the shared PCM/DSP instrument API does not execute interrupt logic.
+constexpr uint32_t kTimerA = 0x418;
+constexpr uint32_t kTimerC = 0x41c;
+constexpr uint32_t kSoundEnable = 0x41e;
+constexpr uint32_t kSoundPending = 0x420;
+constexpr uint32_t kSoundReset = 0x422;
+constexpr uint32_t kSoundLevel0 = 0x424;
+constexpr uint32_t kSoundLevel2 = 0x428;
+constexpr uint32_t kMainEnable = 0x42a;
+constexpr uint32_t kMainPending = 0x42c;
+constexpr uint32_t kMainReset = 0x42e;
+constexpr uint16_t kManualIrq = 1u << 5;
+constexpr uint16_t kTimerAIrq = 1u << 6;
+constexpr uint16_t kSampleIrq = 1u << 10;
+constexpr uint16_t kIrqMask = 0x07ff;
+
+uint16_t mergeWord(uint16_t previous, uint16_t value, uint16_t mask) {
+    return (previous & ~mask) | (value & mask);
+}
+
+struct ScspTimer {
+    uint16_t read() const { return (prescaler << 8) | count; }
+
+    void write(uint16_t value, uint16_t mask) {
+        const uint16_t next = mergeWord(read(), value, mask);
+        prescaler = (next >> 8) & 7;
+        count = uint8_t(next);
+        if ((mask & 0xff) || remaining != 0)
+            remaining = count == 0xff ? 0 : 1u << prescaler;
+    }
+
+    bool advanceSample() {
+        if (remaining == 0 || --remaining != 0)
+            return false;
+        if (++count == 0xff)
+            return true;
+        remaining = 1u << prescaler;
+        return false;
+    }
+
+    uint8_t prescaler = 0;
+    uint8_t count = 0;
+    unsigned remaining = 0;
+};
+
+class ScspInterrupts {
+public:
+    static bool owns(uint32_t offset) { return offset >= kTimerA && offset <= kMainReset; }
+
+    uint16_t read(uint32_t offset) const {
+        if (offset <= kTimerC)
+            return timers[(offset - kTimerA) / 2].read();
+        if (offset >= kSoundLevel0 && offset <= kSoundLevel2)
+            return soundLevels[(offset - kSoundLevel0) / 2];
+        switch (offset) {
+        case kSoundEnable: return soundEnabled;
+        case kSoundPending: return soundPending;
+        case kMainEnable: return mainEnabled;
+        case kMainPending: return mainPending;
+        default: return 0; // Writing one to a reset register clears that flag.
+        }
+    }
+
+    void write(uint32_t offset, uint16_t value, uint16_t mask) {
+        if (offset <= kTimerC) {
+            timers[(offset - kTimerA) / 2].write(value, mask);
+            return;
+        }
+        if (offset >= kSoundLevel0 && offset <= kSoundLevel2) {
+            auto &level = soundLevels[(offset - kSoundLevel0) / 2];
+            level = uint8_t(mergeWord(level, value, mask));
+            return;
+        }
+        switch (offset) {
+        case kSoundEnable: soundEnabled = mergeWord(soundEnabled, value, mask & kIrqMask); break;
+        case kSoundPending: soundPending |= value & mask & kManualIrq; break;
+        case kSoundReset: soundPending &= ~(value & mask); break;
+        case kMainEnable: mainEnabled = mergeWord(mainEnabled, value, mask & kIrqMask); break;
+        case kMainPending: mainPending |= value & mask & kManualIrq; break;
+        case kMainReset: mainPending &= ~(value & mask); break;
+        }
+    }
+
+    void advanceSample() {
+        uint16_t events = kSampleIrq;
+        for (unsigned index = 0; index < timers.size(); ++index) {
+            if (timers[index].advanceSample())
+                events |= kTimerAIrq << index;
+        }
+        soundPending |= events;
+        mainPending |= events;
+    }
+
+    unsigned soundLevel() const {
+        const uint16_t requests = soundPending & soundEnabled;
+        unsigned highest = 0;
+        for (unsigned source = 5; source <= 10; ++source) {
+            if (!(requests & (1u << source)))
+                continue;
+            // Timer B, Timer C and sample IRQ use the same SCILV column.
+            const unsigned column = source < 7 ? source : 7;
+            unsigned level = 0;
+            for (unsigned bit = 0; bit < soundLevels.size(); ++bit)
+                level |= ((soundLevels[bit] >> column) & 1u) << bit;
+            if (level > highest)
+                highest = level;
+        }
+        return highest;
+    }
+
+private:
+    std::array<ScspTimer, 3> timers{};
+    std::array<uint8_t, 3> soundLevels{};
+    uint16_t soundEnabled = 0, soundPending = 0;
+    // Drivers can read and clear these latches. The standalone board has no SH-2.
+    uint16_t mainEnabled = 0, mainPending = 0;
+};
 
 class SoundBoard {
 public:
@@ -46,10 +173,13 @@ public:
             // An instruction can run past the slice. Carry those clocks into
             // the next sample, including when the caller changes block sizes.
             cyclesAhead -= kCpuCyclesPerFrame;
-            if (cyclesAhead < 0)
+            if (cyclesAhead < 0) {
+                updateSoundIrq();
                 cyclesAhead += cpu.Execute(-cyclesAhead);
+            }
             if (fault != kNoFault || !scsp_render(chip, left + frame, right + frame, 1))
                 return false;
+            interrupts.advanceSample();
         }
         return true;
     }
@@ -67,7 +197,8 @@ public:
         }
         if (!isRegister(address))
             return reportFault(address);
-        const uint32_t value = scsp_read(chip, (address - kRegisterBase) & ~1u);
+        const uint32_t offset = (address - kRegisterBase) & ~1u;
+        const uint32_t value = readRegister(offset);
         if (value == UINT32_MAX)
             return reportFault(address);
         if (!byteAccess)
@@ -89,7 +220,21 @@ public:
                 const uint32_t offset = (address - kRegisterBase) & ~1u;
                 const unsigned shift = byteAccess && !(address & 1) ? 8 : 0;
                 const uint16_t mask = byteAccess ? 0xffu << shift : 0xffff;
-                if (scsp_write(chip, offset, uint16_t(value << shift), mask))
+                const uint16_t word = value << shift;
+                if (ScspInterrupts::owns(offset)) {
+                    interrupts.write(offset, word, mask);
+                    updateSoundIrq();
+                    return;
+                }
+                // The unused write range following MADRS does not alias MADRS.
+                if (offset >= kDspGap && offset < kDspProgram)
+                    return;
+                // Some drivers clear the DSP workspace at boot. Admit the
+                // operation only if every addressed bit is already zero.
+                if (offset >= kDspWorkStart && offset < kDspWorkEnd &&
+                    (word & mask) == 0 && (scsp_read(chip, offset) & mask) == 0)
+                    return;
+                if (scsp_write(chip, offset, word, mask))
                     return;
             }
         }
@@ -103,6 +248,25 @@ private:
         return address >= kRegisterBase && address < kRegisterBase + kRegisterBytes;
     }
 
+    uint32_t readRegister(uint32_t offset) {
+        if (ScspInterrupts::owns(offset))
+            return interrupts.read(offset);
+        if (offset == kMidiInput)
+            return kMidiEmpty; // No external MIDI device is attached.
+        return scsp_read(chip, offset);
+    }
+
+    void updateSoundIrq() {
+        const unsigned level = interrupts.soundLevel();
+        // The pinned core clears IPL internally on autovector. Restore the
+        // device level for the next CPU slice. A held level 7 is not a new edge.
+        if (level == 7 && lastSoundLevel == 7)
+            cpu.m68ki_cpu.int_level = 7u << 8;
+        else
+            cpu.m68k_set_irq(level);
+        lastSoundLevel = level;
+    }
+
     uint16_t reportFault(uint32_t address) {
         fault = address;
         cpu.m68k_end_timeslice();
@@ -112,7 +276,9 @@ private:
     // CPU accesses, sample fetches and DSP all use this chip's sound RAM.
     void *chip = scsp_create();
     M68k cpu;
+    ScspInterrupts interrupts;
     int cyclesAhead = 0;
+    unsigned lastSoundLevel = 0;
     uint32_t fault = kNoFault;
 };
 }

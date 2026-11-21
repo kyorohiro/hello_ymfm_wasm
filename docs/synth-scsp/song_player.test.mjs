@@ -6,6 +6,7 @@ import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { prepareScspSongSource, buildScspSongDemo } from './song_source.js';
 import { createScspSongPlayer, createScspSongRenderer } from './song_player.js';
+import { createScspSsfPlaybackFixture } from '../../test/helpers/scsp_ssf_fixture.mjs';
 const binary = await readFile(new URL('../generated/scsp_wasm.wasm', import.meta.url));
 const createCore = () =>
 	Scsp.create({ moduleFactory: factory, moduleOptions: { wasmBinary: binary } });
@@ -46,7 +47,7 @@ test('original SCSP VGM renders finite audible stereo PCM with exact block parti
   } finally {first.dispose(); second.dispose();}
 });
 
-function rig({ gate, yieldTask = async () => {} } = {}) {
+function rig({ gate, createSsfEngine, yieldTask = async () => {} } = {}) {
 	let clock = 0,
 		serial = 0;
 	const timers = new Map(),
@@ -125,6 +126,7 @@ function rig({ gate, yieldTask = async () => {} } = {}) {
 	const player = createScspSongPlayer({
 		getAudio: () => audio,
 		createEngine,
+		createSsfEngine,
 		yieldTask,
 		nowMs: () => clock * 1000,
 		schedule: (task, delay) => {
@@ -161,6 +163,75 @@ test('invalid replacement retains the loaded playing source and its independent 
     const after = r.player.getState(); assert.equal(after.name, 'first.vgm'); assert(after.playing);
     assert.equal(after.positionSeconds, before.positionSeconds); assert.equal(r.engines.length, 1);
     assert.equal(r.buffers[0].rate, 44100); assert.equal(r.nodes[0].target.target, r.audio.songInputNode);
+  } finally {r.player.dispose();}
+});
+
+test('SSF asynchronously retains in-flight PCM when paused and cancels its engine on Stop', async () => {
+  const wait = () => new Promise(setImmediate), requests = [];
+  let disposed = false, creations = 0;
+  const r = rig({
+    async createSsfEngine(source) {
+      creations++;
+      assert.equal(source.kind,'ssf');
+      return {
+        process(frames) {
+          return new Promise(resolve => requests.push({frames,resolve}));
+        },
+        dispose() {disposed = true;},
+      };
+    },
+  });
+  const block = ({frames,resolve}) => resolve({
+    frames,left:new Float32Array(frames).fill(.25),right:new Float32Array(frames).fill(.25),ended:false,
+  });
+  try {
+    const fixture = createScspSsfPlaybackFixture();
+    await r.player.loadSsf(fixture.files,fixture.files[0].path);
+    assert.equal(creations,0);
+    assert.equal(r.player.getState().canSeek,false);
+    assert.equal(await r.player.play(),true);
+    assert(r.player.pause());
+    block(requests.shift());
+    await wait();
+    r.advance(.1);
+    assert(r.player.getState().paused);
+    assert.equal(r.player.getState().positionFrames,0);
+    assert.equal(r.nodes.length,0);
+    assert.equal(requests.length,0);
+    const preserved = r.buffers[0];
+    assert.equal(await r.player.resume(),true);
+    assert.equal(creations,1);
+    assert.equal(r.nodes[0].buffer,preserved);
+    r.player.stop();
+    assert(disposed);
+    block(requests.shift());
+    await wait();
+    assert.equal(r.player.getState().positionFrames,0);
+    assert.equal(r.nodes.length,1);
+    assert.equal(r.timers.size,0);
+  } finally {r.player.dispose();}
+});
+
+test('Stop aborts SSF worker startup before any PCM is queued', async () => {
+  let entered;
+  const startup = new Promise(resolve => {entered = resolve;});
+  const r = rig({
+    createSsfEngine(source,{signal}) {
+      return new Promise((resolve,reject) => {
+        signal.addEventListener('abort',() => reject(signal.reason),{once:true});
+        entered(signal);
+      });
+    },
+  });
+  try {
+    const fixture = createScspSsfPlaybackFixture();
+    await r.player.loadSsf(fixture.standaloneFiles,fixture.standaloneFiles[0].path);
+    const playing = r.player.play(), signal = await startup;
+    r.player.stop();
+    assert(signal.aborted);
+    assert.equal(await playing,false);
+    assert.equal(r.player.getState().playback,'stopped');
+    assert.equal(r.nodes.length,0);
   } finally {r.player.dispose();}
 });
 

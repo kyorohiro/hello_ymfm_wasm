@@ -25,6 +25,7 @@ jobs:
       - name: Test and package the standalone SCSP Synth
         run: |
           npm run test:scsp-synth
+          node scripts/check_scsp_ssf_native.mjs --wasm docs/generated/scsp-ssf/scsp-ssf.wasm
           npm run test:runtime:types
           node --test test/runtime/scsp_loop_link.test.mjs scripts/mixer_calibration_scsp_loop_link_revision.test.mjs
           node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs scripts/mixer_calibration_scsp_draft_revision.test.mjs scripts/mixer_calibration_scsp_empty_draft_revision.test.mjs

@@ -15,7 +15,7 @@ test('package versions cannot escape the release directory',()=>{
 test('SCSP ZIP is deterministic and runs byte-exact editable modules with authenticated browser/native source',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'scsp-synth-package-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const a=await packageScspSynth({version:'test',releaseDir:join(dir,'a')}),b=await packageScspSynth({version:'test',releaseDir:join(dir,'b')});
- assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,4);
+ assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,5);
  const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -41,7 +41,17 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  const native=JSON.parse(await readFile(join(a.stage,'sources/SCSP.json')));
  for(const entry of native.inputs){const data=await readFile(join(a.stage,entry.path));assert.equal(data.length,entry.bytes);assert.equal(sha(data),entry.sha256);}
  for(const [name,entry]of Object.entries(native.generated))assert.equal(sha(await readFile(join(a.stage,'generated',name))),entry.sha256);
- assert.deepEqual(info.receipt.bundles.map(entry=>entry.path),['synth-scsp/synth.js','synth-scsp/processor.js','playground/scsp_dsp_lab.js','js/native-fx-worklet.js']);
+ assert.deepEqual(info.receipt.bundles.map(entry=>entry.path),['synth-scsp/synth.js','synth-scsp/processor.js','synth-scsp/scsp_ssf_worker.js','playground/scsp_dsp_lab.js','js/native-fx-worklet.js']);
+ for(const name of ['scsp-ssf.wasm','scsp-ssf-build.json','scsp-ssf-notices.txt']){
+  const path='generated/scsp-ssf/'+name;
+  const bytes=await readFile(join(a.stage,path));
+  assert.deepEqual(bytes,await readFile(new URL('../docs/'+path,import.meta.url)));
+  const output={path,bytes:bytes.length,sha256:sha(bytes)};
+  assert(info.receipt.scspSsf.some(entry=>entry.path===output.path&&entry.sha256===output.sha256&&entry.bytes===output.bytes));
+ }
+ for(const name of ['tetorica_src/native/scsp_ssf/scsp_ssf.cpp','scripts/build_scsp_ssf_wasm.sh','third_party/atari-audio/src/external/Musashi/m68k.cpp']){
+  assert(info.receipt.originalInputs.some(entry=>entry.path===name),name+' belongs in the editable source archive');
+ }
  for(const name of ['synth-scsp/code_host.js','synth-scsp/code_endpoint.js','synth-scsp/song_player.js',
   'synth-scsp/dsp_setup_code.js','synth-scsp/dsp_program_view.js','synth-scsp/dsp_program.js','synth-scsp/dsp_examples.js','synth-scsp/dsp_assembler.js','synth-scsp/dsp_assembler.d.ts','synth-scsp/dsp_signal_flow.js','synth-scsp/fm_custom_view.js','synth-scsp/fm_cycle2_view.js','synth-scsp/examples/cycle2.js',
   'synth-scsp/DSP_ASSEMBLER.md','synth-scsp/examples/delay.scspasm','synth-scsp/examples/fir2-lowpass.scspasm','synth-scsp/examples/fir2-highpass.scspasm','synth-scsp/examples/iir1-lowpass.scspasm', 'synth-scsp/examples/routing-gain-iir.scspasm', 'synth-scsp/dsp_routing_view.js','synth-scsp/code_examples.js','synth-scsp/examples/dsp-iir-motion.js',

@@ -2,11 +2,16 @@
 import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { prepareScspSongSource } from './song_source.js';
+import { prepareScspSsfSource } from './ssf_source.js';
+import { createScspSsfEngine } from './scsp_ssf_engine.js';
 
 const RATE = 44100,
 	CHUNK = 256,
 	LOOKAHEAD = 0.05,
 	START_DELAY = 0.01;
+const SSF_CHUNK = 1024,
+	SSF_LOOKAHEAD = 0.12,
+	SSF_PREVIEW_SECONDS = 180;
 const nativeSchedule = globalThis.setTimeout.bind(globalThis);
 const nativeCancel = globalThis.clearTimeout.bind(globalThis);
 const later = () => new Promise((resolve) => nativeSchedule(resolve, 0));
@@ -113,6 +118,7 @@ export function createScspSongPlayer({
 	onState = () => {},
 	onStatus = () => {},
 	createEngine = createCore,
+	createSsfEngine = createScspSsfEngine,
 	schedule = nativeSchedule,
 	cancel = nativeCancel,
 	yieldTask = later,
@@ -128,6 +134,7 @@ export function createScspSongPlayer({
 	let generation = 0,
 		loadGeneration = 0,
 		loadController = null,
+		startController = null,
 		loading = false,
 		seeking = null,
 		errorMessage = '';
@@ -178,6 +185,7 @@ export function createScspSongPlayer({
 			kind: source?.kind ?? (source ? 'vgm' : ''),
 			sourceChip: 'scsp',
 			sourceClock: source?.clock ?? null,
+			loadedFiles: source?.loadedFiles?.slice() ?? [],
 			warnings: source ? [...source.warnings] : [],
 			seeking: Boolean(seeking),
 			seekProgress: seeking?.progress ?? 0,
@@ -185,7 +193,7 @@ export function createScspSongPlayer({
 			canPause: playback === 'playing',
 			canResume: playback === 'paused' && !busy,
 			canStop: busy || Boolean(active) || frames > 0,
-			canSeek: Boolean(source) && !loading && playback !== 'starting',
+			canSeek: Boolean(source) && source.kind !== 'ssf' && !loading && playback !== 'starting',
 		};
 	}
 	function emit() {
@@ -229,6 +237,8 @@ export function createScspSongPlayer({
 		loadGeneration++;
 		loadController?.abort();
 		loadController = null;
+		startController?.abort();
+		startController = null;
 		loading = false;
 		seeking?.controller.abort();
 		seeking = null;
@@ -256,7 +266,7 @@ export function createScspSongPlayer({
 				disposed ||
 				ticket !== loadGeneration ||
 				controller.signal.aborted ||
-				!isCurrent()
+				!isCurrent(next)
 			)
 				throw aborted();
 			// Commit only after complete source validation. A failed import keeps the
@@ -280,6 +290,23 @@ export function createScspSongPlayer({
 		return loadSource(
 			(signal) => prepareScspSongSource(bytes, { signal, yieldTask }),
 			nextName,
+			options,
+		);
+	}
+	function loadSsf(entries, entryPath, options) {
+		return loadSource(
+			async (signal) => {
+				const prepared = await prepareScspSsfSource(entries, entryPath, { signal });
+				if (prepared.totalSamples !== null) return prepared;
+				return {
+					...prepared,
+					totalSamples: SSF_PREVIEW_SECONDS * RATE,
+					lengthSeconds: SSF_PREVIEW_SECONDS,
+					fadeSeconds: 0,
+					warnings: [...prepared.warnings, `Preview stops after ${SSF_PREVIEW_SECONDS / 60} minutes.`],
+				};
+			},
+			entryPath.split('/').pop(),
 			options,
 		);
 	}
@@ -313,11 +340,14 @@ export function createScspSongPlayer({
 		if (!current(ticket)) throw aborted();
 		return { context, output };
 	}
-	async function createRun(ticket, selected, output) {
+	async function createRun(ticket, selected, output, signal) {
 		let core, renderer, gain;
 		try {
-			core = await createEngine(selected.header);
-			renderer = createScspSongRenderer(core, selected);
+			if (selected.kind === 'ssf') renderer = await createSsfEngine(selected, { signal });
+			else {
+				core = await createEngine(selected.header);
+				renderer = createScspSongRenderer(core, selected);
+			}
 			if (!current(ticket)) throw aborted();
 			gain = output.context.createGain();
 			gain.connect(output.output);
@@ -333,6 +363,7 @@ export function createScspSongPlayer({
 				nextTime: null,
 				timer: null,
 				eof: false,
+				pumping: false,
 				released: false,
 				lastEmitTime: null,
 			};
@@ -380,19 +411,68 @@ export function createScspSongPlayer({
 		};
 		run.renderedFrames += frames;
 		run.segments.push(segment);
-		scheduleSegment(run, segment);
+		if (playback === 'playing' && (run.source.kind !== 'ssf' || run.nextTime !== null))
+			scheduleSegment(run, segment);
+	}
+	function consume(run) {
+		if (run.context.state === 'closed') throw new Error('SCSP song AudioContext was closed');
+		const consumed = position();
+		positionFrames = consumed;
+		run.basePosition = consumed;
+		run.segments = run.segments.filter((segment) => segment.firstFrame + segment.frames > consumed);
+	}
+	function finishPump(run) {
+		if (active !== run || playback !== 'playing') return;
+		if (run.eof && position() >= run.renderedFrames) {
+			positionFrames = run.renderedFrames;
+			active = null;
+			playback = 'ended';
+			release(run);
+			emit();
+			return;
+		}
+		if (run.lastEmitTime === null || run.context.currentTime - run.lastEmitTime >= 0.05) {
+			run.lastEmitTime = run.context.currentTime;
+			emit();
+		}
+		if (active === run && playback === 'playing')
+			run.timer = schedule(() => {
+				run.timer = null;
+				pump(run);
+			}, 8);
+	}
+	async function pumpSsf(run) {
+		if (run.pumping) return;
+		run.pumping = true;
+		try {
+			consume(run);
+			for (let count = 0; count < 6 && !run.eof && playback === 'playing'; count++) {
+				if ((run.renderedFrames - position()) / RATE >= SSF_LOOKAHEAD) break;
+				const { left, right, frames, ended } = await run.renderer.process(SSF_CHUNK);
+				if (active !== run) return;
+				if (frames) append(run, left, right, frames);
+				run.eof = ended;
+				if (!frames) break;
+			}
+			// Prime the Worker queue before handing the first buffers to Web Audio.
+			if (active === run && playback === 'playing' && run.nextTime === null) {
+				for (const segment of run.segments) scheduleSegment(run, segment);
+			}
+			finishPump(run);
+		} catch (error) {
+			fail(error, run);
+		} finally {
+			run.pumping = false;
+		}
 	}
 	function pump(run) {
 		if (active !== run || playback !== 'playing') return;
+		if (run.source.kind === 'ssf') {
+			void pumpSsf(run);
+			return;
+		}
 		try {
-			if (run.context.state === 'closed')
-				throw new Error('SCSP song AudioContext was closed');
-			const consumed = position();
-			positionFrames = consumed;
-			run.basePosition = consumed;
-			run.segments = run.segments.filter(
-				(segment) => segment.firstFrame + segment.frames > consumed,
-			);
+			consume(run);
 			const deadline = nowMs() + 8;
 			for (let chunks = 0; !run.eof && chunks < 12 && nowMs() < deadline; chunks++) {
 				if ((run.renderedFrames - position()) / RATE >= LOOKAHEAD) break;
@@ -403,23 +483,7 @@ export function createScspSongPlayer({
 				run.eof = run.renderer.ended;
 				if (!frames) break;
 			}
-			if (run.eof && position() >= run.renderedFrames) {
-				positionFrames = run.renderedFrames;
-				active = null;
-				playback = 'ended';
-				release(run);
-				emit();
-				return;
-			}
-			if (run.lastEmitTime === null || run.context.currentTime - run.lastEmitTime >= 0.05) {
-				run.lastEmitTime = run.context.currentTime;
-				emit();
-			}
-			if (active === run && playback === 'playing')
-				run.timer = schedule(() => {
-					run.timer = null;
-					pump(run);
-				}, 8);
+			finishPump(run);
 		} catch (error) {
 			fail(error, run);
 		}
@@ -427,10 +491,12 @@ export function createScspSongPlayer({
 	async function play() {
 		open();
 		if (loading || seeking || playback === 'starting') return false;
-		if (!source) throw new Error('Choose a SCSP VGM or VGZ song first');
+		if (!source) throw new Error('Choose a SCSP reference song first');
 		if (playback === 'paused') return resume();
 		if (playback === 'playing') return true;
-		const ticket = ++generation;
+		const ticket = ++generation,
+			controller = new AbortController();
+		startController = controller;
 		release(active);
 		active = null;
 		playback = 'starting';
@@ -439,7 +505,7 @@ export function createScspSongPlayer({
 		emit();
 		try {
 			const output = await host(ticket),
-				run = await createRun(ticket, source, output);
+				run = await createRun(ticket, source, output, controller.signal);
 			if (!current(ticket)) {
 				release(run);
 				return false;
@@ -447,10 +513,13 @@ export function createScspSongPlayer({
 			active = run;
 			playback = 'playing';
 			pump(run);
+			if (run.source.kind === 'ssf') emit();
 			return playback === 'playing' || playback === 'ended';
 		} catch (error) {
 			if (current(ticket)) fail(error);
 			return false;
+		} finally {
+			if (startController === controller) startController = null;
 		}
 	}
 	function pause() {
@@ -494,6 +563,7 @@ export function createScspSongPlayer({
 		open();
 		if (!source || loading || !Number.isFinite(seconds))
 			throw new TypeError('Choose a SCSP song and a finite seek time');
+		if (source.kind === 'ssf') return false;
 		const target = Math.round(
 			Math.max(0, Math.min(source.totalSamples / RATE, seconds)) * RATE,
 		);
@@ -580,6 +650,7 @@ export function createScspSongPlayer({
 	};
 	return {
 		load: (...args) => track(load(...args)),
+		loadSsf: (...args) => track(loadSsf(...args)),
 		play: () => track(play()),
 		pause,
 		resume: () => track(resume()),

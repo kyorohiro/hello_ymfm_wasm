@@ -2,6 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setupScspSongControls} from './song_controls.js';
+import {prepareScspSsfSource} from './ssf_source.js';
+import {createScspSsfPlaybackFixture} from '../../test/helpers/scsp_ssf_fixture.mjs';
 
 function rig() {
   const listeners = new Map(), nodes = new Map();
@@ -17,8 +19,15 @@ function rig() {
     async load(data,name,settings = {}) {
       await Promise.resolve();
       if (settings.signal?.aborted || settings.isCurrent && !settings.isCurrent()) throw new DOMException('Cancelled','AbortError');
-      if (!data[0]) throw new Error('Invalid song'); loaded = name; state = {...state,loaded:true,durationSeconds:2.4,kind:'vgm'}; options.onState(state);
+      if (!data[0]) throw new Error('Invalid song'); loaded = name; state = {...state,loaded:true,durationSeconds:2.4,kind:'vgm',loadedFiles:[]}; options.onState(state);
       calls.push(['vgm',data,name]);
+    },
+    async loadSsf(entries,path,settings) {
+      const source = await prepareScspSsfSource(entries,path,settings);
+      if (!settings.isCurrent(source)) throw new DOMException('Cancelled','AbortError');
+      loaded = path;
+      state = {...state,loaded:true,durationSeconds:source.durationSeconds,kind:'ssf',format:source.format,loadedFiles:source.loadedFiles};
+      options.onState(state);
     },
     whenIdle:async () => {},play:async () => {},pause() {},resume:async () => {},seek:async () => {}};
   const controller = setupScspSongControls({project,document,ensureAudio:async () => {audioRequests++;},getAudio:() => null,
@@ -51,10 +60,10 @@ test('Files songs populate selection and a failed replacement retains its select
     r.put('/vgm/first.vgm',new Uint8Array([1])); r.put('/vgm/bad.vgz',new Uint8Array([0])); r.put('/audio/reference.wav',new Uint8Array([9]));
     const retainedSsf = Uint8Array.of(5, 6, 7);
     r.put('/ssf/legacy.ssf', retainedSsf);
-    assert.equal(r.nodes.get('scspSongSelect').children.length,3);
+    assert.equal(r.nodes.get('scspSongSelect').children.length,4);
     assert.deepEqual(r.files.get('/ssf/legacy.ssf').data, retainedSsf);
     assert.equal(await r.controller.selectFile('/vgm/first.vgm'),true); assert.equal(r.loaded,'first.vgm');
-    await assert.rejects(r.controller.selectFile('/ssf/legacy.ssf'),/Choose a VGM/);
+    await assert.rejects(r.controller.selectFile('/ssf/legacy.ssf'),/SSF:/);
     await assert.rejects(r.controller.selectFile('/vgm/bad.vgz'),/Invalid song/);
     assert.equal(r.loaded,'first.vgm'); assert.equal(r.nodes.get('scspSongSelect').value,'/vgm/first.vgm');
     const replacement = r.controller.selectFile('/vgm/bad.vgz');
@@ -63,6 +72,24 @@ test('Files songs populate selection and a failed replacement retains its select
     assert.equal(r.loaded, 'first.vgm');
     r.put('/vgm/first.vgm',new Uint8Array([2])); assert.equal(r.controller.getState().loaded,false);
   } finally {r.controller.dispose(); assert.equal(r.listeners.size,0);}
+});
+
+test('SSF library files are hidden from the song list and edits invalidate only dependent sources', async () => {
+  const r = rig(), { files } = createScspSsfPlaybackFixture();
+  try {
+    for (const {path,data} of files) r.put(path,data);
+    const [song,library] = files;
+    const select = r.nodes.get('scspSongSelect');
+    assert.deepEqual(select.children.map(child => child.value),['',song.path]);
+    assert(await r.controller.selectFile(song.path));
+    assert.equal(r.controller.getState().format,'MiniSSF');
+    assert.equal(r.audioRequests,0);
+    r.put('/ssf/unrelated.ssflib',Uint8Array.of(3));
+    assert.equal(r.loaded,song.path);
+    r.remove(library.path);
+    assert.equal(r.controller.getState().loaded,false);
+    await assert.rejects(r.controller.selectFile(song.path),/missing SSFLib/);
+  } finally {r.controller.dispose();}
 });
 
 test('stale Files callbacks cannot commit a song and the original demo needs no import', async () => {

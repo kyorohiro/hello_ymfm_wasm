@@ -487,9 +487,24 @@ stops Code, and Run stops the song.
 
 [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)
 
-SSF / MiniSSF playback is unavailable in this build. Previously captured
-instruments saved as SCSP presets or in a Cassette can still be loaded.
-[SSF replacement plan](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/issues/todo_scsp_synth_ssf_20261115.md)
+### SSF / MiniSSF
+
+Use **Menu → SSF folder…** for an album with shared `.ssflib` files. Use
+**SSF / MiniSSF files…** for a standalone `.ssf` or files and libraries
+from one directory. The original files are kept under `ssf/` in Files. Choose
+the song above Waveform / Spectrum and use **Play song**, **Pause / Resume**
+and **Stop**. Library files are resolved from the selected song and kept
+out of the song list. A song saved in a Cassette becomes available when the
+Cassette is reopened.
+
+The song runs on a separate 68000 and SCSP inside a Web Worker and shares
+the existing Master output. Playback uses the source's length, fade and
+relative volume. Without a length tag, preview stops after three minutes.
+The seek bar works with VGM recordings. SSF seeking, Live CH observation
+and Capture remain follow-up work. DMA, some SCSP register accesses and
+hardware timing are outside the verified playback scope. Previously
+captured presets and Cassettes can still be loaded.
+[SSF verification and follow-up](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/issues/todo_scsp_synth_ssf_20261115.md)
 
 ## Experimental DSP programs
 
@@ -678,6 +693,12 @@ is original. SCSP / DSP C++ sources, pristine MAME upstream, licenses and
 the Emscripten recipe are under `sources/`. Start with `sources/SCSP.md`.
 The SDK retains its unpublished local-candidate provenance. See `LICENSE`
 and `licenses/mame-scsp/LICENSE` for BSD-3-Clause terms.
+
+SSF playback uses the same BSD-3-Clause SCSP/DSP core and the pinned
+MIT-licensed Musashi implementation from AtariAudio. Its standalone WASM,
+source hashes and complete notices are under `generated/scsp-ssf/`.
+To rebuild offline, extract `sources/scsp-synth-browser-inputs.zip` and run
+`sh scripts/build_scsp_ssf_wasm.sh` in that tree with Node.js and Emscripten.
 
 Authored JavaScript and CSS are copied byte-for-byte into the distribution,
 preserving comments, names and layout. Edit modules in `synth-scsp/`, `js/`
