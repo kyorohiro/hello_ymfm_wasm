@@ -1,9 +1,39 @@
 # SCSP Synth SSF / MiniSSF playback
 
+## Current scope · 2026-11-21
+
+SCSP Synth has retired the GPL ssfplay / Mednafen engine and its SSF / MiniSSF
+playback controls from the browser and release ZIP. VGM reference playback,
+Synth keyboard, Code, DSP and previously saved SCSP instrument presets remain
+available. The browser's separately authored SSF container, slot inspection
+and capture helpers are retained for a future replacement.
+
+The standalone ZIP and the nested editable source archive passed inspection
+for the retired SSF engine. Chromium and WebKit verified the packaged
+keyboard, preset round-trip, VGM transport and Code DSP with muted output.
+The historical shared-client navigation receipt still has a pre-existing
+hash mismatch for `docs/js/native_genesis_scsp.js`.
+
+- [ ] Evaluate the [MIT-licensed Musashi 68000 core](https://github.com/kstenerud/Musashi/blob/master/m68kcpu.c)
+      with the existing BSD SCSP core. Build a standalone Saturn sound board
+      adapter with its own memory map, timing, timers and interrupts.
+- [ ] Verify supported SSF / MiniSSF containers, library ordering, deterministic
+      CPU-to-SCSP timing, IRQ delivery, PCM and DSP output with original fixtures
+      and locally supplied recordings before enabling playback in the Synth.
+- [ ] Reintegrate folder import / transport first. Restore live CH observation,
+      editing, paused audition and Capture once the new renderer can supply
+      timing-aligned slot and RAM snapshots.
+- [ ] Record exact dependency revisions and licenses and check the generated
+      renderer and source kit before adding them to the release ZIP.
+
+## Historical implementation · 2026-11-15
+
+The notes below describe the retired backend.
+
 Requested 2026-11-15. Add Saturn sound-program playback to the existing SCSP
 Synth song controls. Keep the current Code / keyboard workflow usable.
 
-## Plan
+### Original plan
 
 - [x] Inspect available SSF players, licenses and browser build feasibility.
 - [x] Select a sound-CPU / SCSP engine and record its source provenance.

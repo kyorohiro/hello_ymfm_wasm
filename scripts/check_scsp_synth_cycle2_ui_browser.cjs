@@ -331,18 +331,7 @@ async function exercise(name,origin){
     await page.locator('#synthCodeStopButton').click();state=await waitState(page,state=>!state.codeActive,'Code stopped with physical owner');
     assert(state.manualVoices.some(value=>value.id===manual.id&&value.held));assert.deepEqual(await request(page,{method:'readDspProgram',args:[]}),program);
     await page.keyboard.up('s');await selectChannel(page,null);assert(await page.locator('#scspCycle2Output').isEnabled());
-    const authored=await portable(page);
-    const {createScspSsfCaptureFixture}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs')).href);
-    const fixture=createScspSsfCaptureFixture();
-    await page.locator('#ssfFileInput').setInputFiles({name:'cycle-ui-reference.ssf',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
-    await page.locator('#scspSongPlay').click();
-    await page.waitForFunction(()=>document.getElementById('scspSsfLive').dataset.active==='true');
-    assert(await page.locator('#scspCycle2Output').isDisabled());await until(()=>page.locator('#scspCycle2Option').evaluate(option=>option.disabled),'Cycle option disabled in non-FM2 context');
-    assert(await page.locator('#operatorDepth').isDisabled());assert.deepEqual(await portable(page),authored);
-    await page.locator('#scspSongPause').click();await page.waitForFunction(()=>document.getElementById('scspSongPause').textContent==='Resume');
-    assert(await page.locator('#scspCycle2Output').isDisabled());assert.deepEqual(await portable(page),authored);
-    await page.locator('#scspSongStop').click();await selectChannel(page,null);assert(await page.locator('#scspCycle2Output').isEnabled());
-    cases.push('Physical CH and SSF play/pause contexts cannot use hidden Auto Cycle controls; Code Stop preserves an independent physical owner and DSP while SSF leaves the authored Cycle unchanged');
+    cases.push('Physical CH cannot use hidden Auto Cycle controls; Code Stop preserves an independent physical owner and DSP');
 
     const expected=await saveInstrument(page),named=await saveFileSound(page,'UI Cycle preset');
     await page.locator('#scspPresetSelect').selectOption(await presetOption(page,named));

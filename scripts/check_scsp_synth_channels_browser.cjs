@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Auto and physical SCSP channel editing, Code and SSF checks. Every physical destination is muted.
+// Auto and physical SCSP channel editing and Code checks. Every physical destination is muted.
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
 const { tmpdir } = require('node:os');
-const { pathToFileURL } = require('node:url');
 const { chromium, webkit } = require('playwright');
 
 const startedAt = Date.now();
@@ -216,37 +215,6 @@ async function pcm(page, audible = true) {
 	);
 	return output;
 }
-const view = (page) =>
-	page.evaluate(() => {
-		const section = document.getElementById('scspSsfLive'),
-			voice = document.getElementById('voice');
-		return {
-			status: document.getElementById('status').textContent,
-			song: document.getElementById('scspSongStatus').textContent,
-			position: Number(document.getElementById('scspSongSeek').value),
-			pause: document.getElementById('scspSongPause').textContent,
-			code: document.getElementById('synthCodeState').textContent,
-			liveVisible: Boolean(section && !section.hidden),
-			liveActive: section?.dataset.active,
-			enabled: document.getElementById('scspSsfLiveEnabled')?.checked,
-			slot: document.querySelector('#scspChannelTabs [aria-selected="true"]')?.dataset
-				.scspChannel,
-			frame: section?.dataset.frame,
-			voiceSlot: voice?.dataset.ssfSlot,
-			liveStatus: document.getElementById('scspSsfLiveStatus')?.textContent,
-			reference: document.getElementById('scspSsfReference')?.value,
-			captureStatus: document.getElementById('scspSsfCaptureStatus')?.textContent,
-			captureError: document.getElementById('scspSsfCaptureStatus')?.dataset.error,
-			activity: [...document.querySelectorAll('#scspChannelTabs [data-scsp-channel]')]
-				.filter((button) => button.dataset.scspChannel !== 'auto')
-				.map((button) => ({
-					slot: Number(button.dataset.scspChannel),
-					active: button.dataset.active,
-					gate: button.dataset.gate,
-					selected: button.getAttribute('aria-selected'),
-				})),
-		};
-	});
 async function canvas(page) {
 	return page.locator('#voice canvas').evaluate(async (node) => {
 		const bytes = node.getContext('2d').getImageData(0, 0, node.width, node.height).data;
@@ -260,27 +228,6 @@ async function authoring(page) {
 		return JSON.stringify({ config: read.state.config, operators: read.operators });
 	});
 }
-async function selectSlot(page, slot) {
-	await page.click('#scspChannelTabs [data-scsp-channel="' + slot + '"]');
-	await until(
-		() =>
-			view(page).then(
-				(value) => value.slot === String(slot) && value.voiceSlot === String(slot),
-			),
-		'Live slot ' + slot,
-	);
-}
-async function load(page, name, bytes) {
-	if (!(await page.locator('#synthMenu').evaluate((node) => node.open)))
-		await page.click('#synthMenuButton');
-	const chooser = page.waitForEvent('filechooser');
-	await page.click('#loadSsf');
-	await (
-		await chooser
-	).setFiles({ name, mimeType: 'application/octet-stream', buffer: Buffer.from(bytes) });
-	await until(() => page.locator('#scspSongPlay').isEnabled(), 'SSF source ready');
-}
-
 /** Code opens audio outside the editor queue. Hold its last startup reply so a
  * physical-only edit lands after the first native idle-bank snapshot. */
 async function checkColdStartupRace(browser, engine, origin) {
@@ -422,7 +369,7 @@ async function checkColdStartupRace(browser, engine, origin) {
 	}
 }
 
-async function check(browser, engine, origin, fixture) {
+async function check(browser, engine, origin) {
 	const page = await browser.newPage({ viewport: { width: 1240, height: 1100 } });
 	page.setDefaultTimeout(25000);
 	const errors = [],
@@ -442,8 +389,6 @@ async function check(browser, engine, origin, fixture) {
 	const state = () => page.evaluate(async () => (await __scspLiveAudit.read()).state);
 	const physical = (slot) =>
 		page.evaluate((slot) => __scspLiveAudit.read('readPhysical', [slot]), slot);
-	const preview = () =>
-		page.evaluate(() => __scspLiveAudit.read('readAudition').catch(() => null));
 	const point = () =>
 		page.evaluate(() => ({
 			status: document.getElementById('status').textContent,
@@ -452,7 +397,6 @@ async function check(browser, engine, origin, fixture) {
 			selected: document.querySelector('#scspChannelTabs [aria-selected="true"]')?.dataset
 				.scspChannel,
 			physical: document.getElementById('voice').dataset.physicalChannel,
-			ssf: document.getElementById('voice').dataset.ssfLive,
 			summary: document.getElementById('scspChannelSummary').textContent,
 			channels: [...document.querySelectorAll('#scspChannelTabs [data-scsp-channel]')].map(
 				(button) => ({
@@ -477,7 +421,7 @@ async function check(browser, engine, origin, fixture) {
 			await until(
 				() =>
 					point().then(
-						(value) => value.source === 'ssf' || value.physical === String(channel),
+						(value) => value.physical === String(channel),
 					),
 				'physical target ' + channel,
 			);
@@ -843,76 +787,6 @@ async function check(browser, engine, origin, fixture) {
 			'Physical runtime overrides never replace the grouped Auto draft or preset sources, and one compact row fits390px',
 		);
 
-		step('one shared selector owns SSF Live, paused audition and Capture');
-		await load(page, 'channels.ssf', fixture.bytes);
-		await page.check('#scspSsfLiveEnabled');
-		await page.click('#scspSongPlay', { delay: 5 });
-		await pcm(page);
-		await until(() => point().then((value) => value.source === 'ssf'), 'row observes SSF');
-		await page.click('#scspSongPause', { delay: 120 });
-		await until(() => view(page).then((value) => value.pause === 'Resume'), 'SSF paused');
-		await pcm(page, false);
-		await select(1);
-		await until(
-			() =>
-				view(page).then((value) => value.voiceSlot === '1' && value.liveActive === 'true'),
-			'SSF CH2 inspection',
-		);
-		assert(await control(page, 'totalLevel').isEnabled());
-		assert(await control(page, 'bits').isDisabled());
-		assert.equal(await control(page, 'bits').inputValue(), '8');
-		assert.equal(await page.locator('#scspSsfSlot,#scspSsfSlots').count(), 0);
-		const frozen = await view(page),
-			beforePreview = await authoring(page),
-			ssfKey = await press('C4');
-		await until(
-			async () => (await preview())?.voiceGroups.some((group) => group.held),
-			'paused selected SSF audition',
-		);
-		assert.equal((await view(page)).frame, frozen.frame);
-		assert.equal((await view(page)).position, frozen.position);
-		assert.equal(await authoring(page), beforePreview);
-		await page.keyboard.up(ssfKey);
-		await page.click('#scspSongPause', { delay: 5 });
-		await until(
-			() =>
-				view(page).then(
-					(value) => value.pause === 'Pause' && value.position > frozen.position,
-				),
-			'SSF resumed before held Capture',
-		);
-		await page.click('#scspSsfCapture', { delay: 120 });
-		await until(
-			() =>
-				point().then(
-					(value) =>
-						/^Captured SSF Slot 2/.test(value.status) && value.selected === 'auto',
-				),
-			'Capture returns to grouped Auto',
-		);
-		assert.equal((await view(page)).pause, 'Resume');
-		assert(
-			(await view(page)).position >= frozen.position,
-			'playing Capture pauses at the current position',
-		);
-		const capturePosition = (await view(page)).position;
-		assert.equal((await state()).slots[0].sample.bits, 8);
-		await page.check('#scspSsfLiveEnabled');
-		await until(
-			() =>
-				view(page).then(
-					(value) => Number(value.frame) >= Number(frozen.frame) && value.slot === '1',
-				),
-			'captured SSF physical CH restored',
-		);
-		assert.equal((await view(page)).position, capturePosition);
-		assert.equal((await view(page)).pause, 'Resume');
-		await page.click('#scspSongStop');
-		await select('auto');
-		await pcm(page, false);
-		checks.push(
-			'One row selects editable SSF parameters and paused previews; a held Capture click during playback pauses the song and selects editable Auto',
-		);
 		assert.equal((await graph(page)).contexts, 1);
 		assert.equal((await graph(page)).destinationEdges, 1);
 		assert.deepEqual(errors, []);
@@ -942,7 +816,6 @@ async function check(browser, engine, origin, fixture) {
 			errors,
 			error: error.stack,
 			view: await point().catch(() => null),
-			song: await view(page).catch(() => null),
 			graph: await graph(page).catch(() => null),
 		};
 		throw error;
@@ -971,10 +844,6 @@ const server = http.createServer(async (request, response) => {
 	}
 });
 (async () => {
-	const { createScspSsfCaptureFixture } = await import(
-		pathToFileURL(path.join(repo, 'test/helpers/scsp_ssf_fixture.mjs'))
-	);
-	const fixture = createScspSsfCaptureFixture();
 	let failure = null;
 	try {
 		await new Promise((resolve, reject) => {
@@ -989,7 +858,7 @@ const server = http.createServer(async (request, response) => {
 			});
 			try {
 				const coldStartupRace = await checkColdStartupRace(browser, engine, origin);
-				const checked = await check(browser, engine, origin, fixture);
+				const checked = await check(browser, engine, origin);
 				checked.coldStartupRace = coldStartupRace;
 				checked.checks.unshift(
 					'Physical-only PCM and mix edits during the last cold startup reply trigger a consistent native migration before Code starts',

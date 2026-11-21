@@ -45,10 +45,6 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  for(const name of ['synth-scsp/code_host.js','synth-scsp/code_endpoint.js','synth-scsp/song_player.js',
   'synth-scsp/dsp_setup_code.js','synth-scsp/dsp_program_view.js','synth-scsp/dsp_program.js','synth-scsp/dsp_examples.js','synth-scsp/dsp_assembler.js','synth-scsp/dsp_assembler.d.ts','synth-scsp/dsp_signal_flow.js','synth-scsp/fm_custom_view.js','synth-scsp/fm_cycle2_view.js','synth-scsp/examples/cycle2.js',
   'synth-scsp/DSP_ASSEMBLER.md','synth-scsp/examples/delay.scspasm','synth-scsp/examples/fir2-lowpass.scspasm','synth-scsp/examples/fir2-highpass.scspasm','synth-scsp/examples/iir1-lowpass.scspasm', 'synth-scsp/examples/routing-gain-iir.scspasm', 'synth-scsp/dsp_routing_view.js','synth-scsp/code_examples.js','synth-scsp/examples/dsp-iir-motion.js',
-  'synth-scsp/ssf_source.js','synth-scsp/ssf_renderer.js',
-  'generated/ssf-player/ssf_player.js','generated/ssf-player/ssf_player.wasm','generated/ssf-player/NOTICE.txt',
-  'licenses/ssfplay/COPYING','licenses/ssfplay/zlib-LICENSE','sources/ssf-player/third_party/ssfplay/UPSTREAM.json',
-  'sources/ssf-player/scripts/build_ssf_player.mjs','sources/ssf-player/tetorica_src/wasm/ssf_player/ssf_player.cpp',
   'playground/tetorica-playground-globals.d.ts','playground/tetorica-playground-scsp.d.ts','playground/tetorica-shell.d.ts',
   'js/native_audio_effect.wasm','sources/code-effects/tetorica_src/native/audio_effect/gain.c']) assert(info.names.includes(name),name);
  for(const name of ['dsp_assembler.d.ts','DSP_ASSEMBLER.md','examples/delay.scspasm','examples/fir2-lowpass.scspasm','examples/fir2-highpass.scspasm','examples/iir1-lowpass.scspasm', 'examples/routing-gain-iir.scspasm','examples/dsp-iir-motion.js','examples/cycle2.js']){
@@ -72,29 +68,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  assert.match(await readFile(join(a.stage,'sources/SCSP.md'),'utf8'),/build_scsp_wasm/);assert.match(await readFile(join(a.stage,'licenses/mame-scsp/LICENSE'),'utf8'),/Redistribution/);
  assert.match(await readFile(join(a.stage,'playground/scsp-dsp.html'),'utf8'),/src="scsp_dsp_lab\.js\?v=delay-1"/);
  assert.match(await readFile(join(a.stage,'README.md'),'utf8'),/copied byte-for-byte/);
-	assert.equal(info.receipt.ssfPlayer.license, 'GPL-2.0-or-later');
-	for (const entry of [info.receipt.ssfPlayer.factory, info.receipt.ssfPlayer.wasm]) {
-		const bytes = await readFile(join(a.stage, entry.path));
-		assert.equal(bytes.length, entry.bytes);
-		assert.equal(sha(bytes), entry.sha256);
-		assert.deepEqual(bytes, await readFile(new URL('../docs/' + entry.path, import.meta.url)));
-	}
-	assert.match(
-		await readFile(join(a.stage, 'licenses/ssfplay/COPYING'), 'utf8'),
-		/GNU GENERAL PUBLIC LICENSE/,
-	);
-	const ssfUpstream = JSON.parse(
-		await readFile(
-			join(a.stage, 'sources/ssf-player/third_party/ssfplay/UPSTREAM.json'),
-			'utf8',
-		),
-	);
-	for (const entry of [...ssfUpstream.files,...ssfUpstream.dependencies.flatMap(dependency=>dependency.files)]) {
-		const bytes = await readFile(
-			join(a.stage, 'sources/ssf-player/third_party/ssfplay', entry.path),
-		);
-		assert.equal(bytes.length, entry.bytes);
-		assert.equal(sha(bytes), entry.sha256);
-	}
+ assert.equal(info.receipt.ssfPlayer,undefined);
+ for(const name of [...info.names,...info.receipt.originalInputs.map(input=>input.path)]){
+  assert.doesNotMatch(name,/ssf[-_]player|ssfplay|ssf_renderer|mednafen/i,`${name}: the GPL SSF player must stay out of the ZIP and its source archive`);
+ }
  const original=await readFile(a.archive);await assert.rejects(packageScspSynth({version:'test',releaseDir:join(dir,'a')}),/already exists/);assert.deepEqual(await readFile(a.archive),original);
 });

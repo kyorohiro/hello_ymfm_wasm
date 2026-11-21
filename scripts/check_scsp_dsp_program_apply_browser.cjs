@@ -440,7 +440,7 @@ async function check(browser, name, origin, assemble, expectedWords) {
     assert.deepEqual(await request(page, {method: 'exportPatch', args: []}), voicePresetBefore,
       'Custom DSP program never changes the portable voice preset format or content');
     assert.deepEqual(await request(page, {method: 'readAudition', args: []}), auditionBefore,
-      'Primary Synth DSP Apply does not modify the separate SSF audition instrument');
+      'Primary Synth DSP Apply leaves the separate audition instrument unchanged');
     cases.push('explicit EWT=0 Apply changes actual wet output while voices and Code survive');
 
     // Bypass the UI's Check: the audio owner must validate the full request too.

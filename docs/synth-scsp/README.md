@@ -62,8 +62,8 @@ editor. This also returns from the DSP tab while Code keeps playing. PCM,
 Envelope and LFO use the same physical editor and established application
 timing as selecting the CH above. Navigation does not apply PCM or retrigger
 notes. Mouse/touch activation releases button focus for musical keys; native
-Enter/Space activation keeps keyboard focus. A target changed during a press,
-a hidden/disabled view or SSF Live cannot activate an old shortcut.
+Enter/Space activation keeps keyboard focus. The shortcut is ignored if the
+target changes during a press or the view becomes hidden or disabled.
 Keyboard / Code owner, note and requested Held / Released state appear beside
 the mapping. A released retained group is not a free slot or proof of audible
 release, and the Synth view does not invent native envelope meters.
@@ -81,22 +81,19 @@ Source A–F in CH1–CH6 remain editing templates. With no allocated group,
 Auto shows the selected editor source. A physical key can also own a source
 slot. Slot reuse, group retirement and Code Stop replace or remove the old
 allocation display using current owner records, rather than stale Code lanes.
-Polling and selection only inspect these existing records. SSF Live keeps its
-separate native snapshot view; its Off / Stop restores the Synth allocation
-view. The `?` contains the longer ownership and routing explanation.
+Polling and selection only inspect these existing records. The `?` contains
+the longer ownership and routing explanation.
 
-**Highlight changes** beside the slot legend starts On. During Code or live
-SSF playback, displayed Frequency, Depth, Ratio, Envelope, LFO and mix values
+**Highlight changes** beside the slot legend starts On. During Code
+playback, displayed Frequency, Depth, Ratio, Envelope, LFO and mix values
 briefly glow when they change. It reuses FM2612's bounded 420 ms scalar pulse,
 without extra sound-engine reads, timers, frame loops or forced layout.
 Rapid changes do not restart an active pulse. Dragged/focused fields that the
 renderer defers are compared only after their displayed values change.
 
 The first display and changes of CH, Auto source, engine/session, PCM source or
-visible chip panel start a silent baseline. Pause, seek, Live Off and Stop
-clear pulses; Resume does not flash a newly selected frame as edits. Native
-ENV/activity indicators are not highlighted, and this is not a measurement of
-audio output or proof that Code rather than a manual edit caused a change.
+visible chip panel start a silent baseline. Stop clears pulses. The highlights
+show the displayed control values, which can change through Code or manual edits.
 The preference is saved separately on this device, outside presets/Cassettes.
 Off clears pulses and skips value reads/comparisons; On begins from a clean
 baseline. Reduced-motion mode uses a 1 ms pulse. Longer help is behind `?`.
@@ -173,8 +170,7 @@ A–F to the same code. A compact summary shows when their values differ.
 Depth changes apply to held and releasing Auto / Code groups without restarting
 notes or DSP. An operator without an input keeps its value for later routing;
 changing the operator count also retains all six authored values. Physical CH
-and SSF controls continue to edit their displayed slot rather than this Auto
-operator configuration.
+controls edit their displayed slot.
 
 Draw a waveform or import browser-supported audio, apply the PCM, then play
 a new note. Unapplied drawings stay with their Auto operator or physical CH
@@ -199,13 +195,11 @@ enabled, Attack transitions to Decay 1 when playback reaches the programmed
 loop start, even if Attack has not reached its usual level. Until that
 threshold, reaching the full Attack level holds it in Attack. This differs
 from Attack hold, which is a separate hardware feature. The checkbox applies
-to new Synth notes, including supported paused SSF audition. Live SSF editing
-also writes this register on the selected song CH. Captured forward-loop
-instruments retain both the loop start and this setting.
+to new Synth notes. Forward-loop presets retain the loop start and this setting.
 
 **Click guard · Software** starts On below the Keyboard / Code tabs. It
 softens very fast releases for Auto keyboard groups, physical CH keyboard
-notes, scoped Code `noteOff()` and paused SSF audition. Slower and infinite
+notes and scoped Code `noteOff()`. Slower and infinite
 programmed releases remain intact. This is a Synth performance preference,
 not a hardware mode or a setting saved in instrument / Cassette files.
 Changing it keeps notes and Code running and affects subsequent releases.
@@ -217,7 +211,6 @@ there is no delayed Key Off or Master fade. Requested ADSR codes and saved PCM r
 unchanged, and the next note-on restores the authored RR. This is a selected
 SCSP Release rate, not a fixed millisecond ramp or note-on / retrigger guard.
 The shared Playground and npm APIs retain their existing hardware behavior.
-The SSF song itself is unchanged; its paused audition uses a separate Synth.
 
 ## Code
 
@@ -473,34 +466,7 @@ Invalid replacements preserve the current instrument.
 
 ## Reference recordings
 
-Menu → SSF folder imports Saturn SSF / MiniSSF songs and their SSFLib
-dependencies together. Choose an unpacked folder containing the related
-files. Their subdirectories are retained under `ssf/`. SSF / MiniSSF files
-also accepts a multi-file selection. A file ending in `.ssf` can itself
-depend on SSFLib data, so include its related library files.
-
-Choose a song above Waveform / Spectrum, then Play song. Pause changes to
-Resume and retains the same sound-CPU state and unconsumed audio. Stop
-releases its player. Seek creates an independent machine and executes up to
-the target position. Libraries are kept in Files and omitted from the song
-selector. Loading and selecting a recording are silent.
-
-SSF playback executes the 68000, SCSP, DSP, timers and interrupts in the
-Mednafen-derived ssfplay engine. The browser checks container CRCs, resolves
-the primary library before the song patch, then applies auxiliary libraries
-in order. Paths are relative to the file that refers to them. Missing or
-corrupt required files preserve the previous recording. A corrupt unrelated
-entry can remain in Files while another song loads. Each native program
-image fits the Saturn's 512 KiB sound RAM. Sources are bounded to 4 MiB per
-file, 64 MiB per set, and 32 MiB of decompressed dependency programs. Files
-imports also obey the existing 12 MiB project budget.
-
-The entry's length, fade and relative volume tags control playback. With a
-missing or invalid length tag, the player uses a three-minute preview and
-shows that choice beside the transport. Seek may take time because the sound
-program must execute from its reset state.
-
-SCSP also has VGM register and RAM recording support. Menu → VGM / VGZ imports
+SCSP supports VGM register and RAM recordings. Menu → VGM / VGZ imports
 the original file into `vgm/`. Select a recording above Waveform / Spectrum
 and use Play song, Pause / Resume, Stop or the seek bar. Demo builds an
 original short sine phrase for checking this path without a game recording.
@@ -518,144 +484,12 @@ Song playback uses its own SCSP state and RAM through the existing
 AudioContext and Master output. During playback, the keyboard plays the
 selected Synth target, independently of the song's machine. Starting a song
 stops Code, and Run stops the song.
-Live from SSF is enabled by default. The same permanent CH row shows sampled
-native slot activity and envelope state. Select a CH to inspect its raw PCM
-prefix, envelope codes, LFO, attenuation, pan and sound-stack modulation in
-the existing controls. Envelope, LFO and mix parameters can be edited while
-playing or paused; seeking remains read-only. The waveform previews up to
-256 raw samples from the programmed start address. The inspector shows the
-physical sample playback rate in samples per second. A recording's original
-root note is unknown. The loop mode and programmed boundaries appear beside
-the slot status. Noise and zero sources have their own source labels.
 
-The **32-slot overview** uses that same CH selector; no second picker is needed.
-Its ENV strips show sampled envelope levels. Amber identifies an active slot in
-the native Release phase, independently of its requested Gate bit. Inactive
-does not mean a slot is unassigned or free, and ENV / Active are not measured
-audio meters. Pause freezes the whole map at one audible-position frame.
-
-Below it, **Selected SSF route** shows the selected CH's configured Sound Stack
-X/Y offsets, receiving MDL, stack-write inhibition (`STWINH`), Direct level / pan
-and `MIXS` input / `IMXL` send. X/Y remain separate raw 0–63 offsets, including
-equal references. These are not immediate producer CH numbers: Sound Stack
-history and delayed writes matter. No A/B pairs or editing-source reservation
-is inferred for a game recording. The pinned SSF renderer applies modulation
-only when MDL is greater than 4; this renderer-specific behavior is labelled
-separately from the stored hardware code. An inhibited stack write does not
-mute Direct or DSP Send. The game DSP determines subsequent return paths.
-The `?` contains timing and observation caveats. Selection and inspection never
-write the song registers; existing manual parameter edits still target the
-selected song CH. Live Off / Stop returns to the authored view.
-
-During SSF Live, the **DSP** tab shows the song machine's **read-only DSP**,
-separate from the Synth's program and draft. Its frame badge matches the selected
-CH's audible-position snapshot. Pause freezes that frame across CH choices;
-seek replaces it with the new position. The bounded observation history keeps
-up to 16 snapshots, with retained typed-array buffers limited to 8 MiB. This
-includes RAM, slot registers and DSP arrays; JavaScript object overhead is separate.
-
-Expand Program to inspect all 128 instructions and their four raw words.
-The whole-instruction decoder displays game programs without applying the
-Synth editor's execution-profile restrictions. The listing follows the Mednafen
-renderer dialect: `NOFL` is word3 bit 8, while word3 bit 15 is opaque. It is not
-a promise of compatibility with Synth/MAME assembly. Opaque bits remain explicit
-`RAW` fields or Opaque labels; an undecodable instruction retains its raw words. Separate
-disclosures contain all 64 signed COEF codes, 32 MADRS addresses and 16 shared
-returns. COEF codes divide by 4096 to give their multiplier.
-
-The selected CH's direct level / pan and `ISEL` / `IMXL` send are configured
-routes. Instruction selector references and `EWT` selectors describe the program,
-and the observed signed `EFREG` values are sampled hardware state. They are
-not audio meters or proof that one CH reaches a particular return: arbitrary
-DSP connectivity is **program-defined**. Return 0–15 use the `EFSDL` / `EFPAN`
-fields in CH1–CH16's register sets. The `?` disclosure explains these distinctions.
-
-Viewing, expanding tables or switching CH never applies or copies the song's
-DSP to Synth. Live Off and Stop reveal the existing Synth draft again. A player
-without DSP observation data displays **Unavailable**, rather than an invented
-zero program or zero outputs.
-
-Pause freezes one native snapshot for all CH choices. Live Off keeps the
-selected CH and shows its editable Synth slot, not the SSF slot. Stop and
-natural end also return to that selected editor target. Choose Auto explicitly
-to restore the grouped instrument and its unapplied operator draft; selecting
-Auto turns Live off. Live On uses the selected CH, or the previously inspected
-SSF CH when returning from Auto (initially CH1). Selecting an authored preset
-while Live returns to Auto and keeps the song transport available. Save
-actions become available in the editor view.
-
-While paused with Live On, the keyboard auditions the selected supported PCM
-slot. Reference key defaults to C4, with C2–C6 available. That key reproduces
-the captured hardware sample playback rate; other keys transpose from it.
-This establishes a tuning reference without guessing the sample's original
-root note. Audition uses an independent native SCSP handle in the existing
-AudioWorklet and AudioContext. The authored PCM, settings and unapplied draft
-remain intact. The song stays paused while you preview its selected PCM.
-Changing slot, reference key, Live mode or transport clears audition voices.
-Live Off restores keyboard playing on the selected physical Synth CH.
-
-With Live On, Envelope, including Attack / loop link, LFO, level and pan
-controls write the selected song CH's emulated SCSP registers during playback
-or Pause. This also works on Noise and linked slots that cannot be captured
-independently. The driver may write the same parameter later and replace your
-change. The original SSF files and sample RAM are not rewritten by these
-controls. The PCM prefix, format, playback rate, loop boundaries and
-slot-modulation display remain observations. Full waveform editing is
-available after Capture to Synth.
-
-Paused PCM preview uses the displayed edited parameters. Envelope changes
-affect subsequent preview notes; LFO, level and pan update held preview notes.
-The activity and ENV indicators still describe the song's slots, not the
-independent preview. Changing CH or Reference key does not undo song-register
-edits. Resume continues the edited machine; it does not restore the original
-registers, and later driver writes may overwrite manual values. Stop and a
-new Play start a fresh machine from the recording.
-
-Capture includes the displayed edited parameters, after which Save to presets
-retains them in the Auto instrument. Live register edits do not replace the
-authored Synth or become part of a Cassette's instrument. Capture eligibility
-is separate: unsupported instruments keep Capture unavailable with a reason,
-while their supported live parameters remain editable. Invalid edits preserve
-the previous register state.
-
-Capture to Synth copies the click-time slot into the editable instrument,
-selects Auto, switches Live Off and keeps Pause / Resume available. Capturing
-during playback pauses the song first. The full programmed PCM, format, supported
-loop boundaries, Envelope, LFO, total level, direct level and pan are copied.
-Use Save to presets in the authored view to retain the instrument under
-`presets/`, or export its portable JSON from Menu. Live On returns to the
-song view, and Resume continues its current sound machine. The SSF source is
-unchanged.
-
-This first capture supports independent PCM8 / PCM16 slots with ordinary
-one-shot or forward loops and 2–65,535 samples. Unsupported noise / zero
-sources, source-bit operations, short-wave / extended pitch coding, reverse /
-alternating loops, hold / bypass modes and linked sound-stack
-modulation show their reason beside Capture. Slots without audible direct
-output and loops too short for their playback step are also unavailable.
-Attack / loop link is supported for forward loops and one-shots with a zero
-threshold. A linked one-shot with a nonzero threshold is unavailable because
-the current high-level one-shot adapter programs its loop-start register to
-zero; capture does not silently replace that threshold or add a forward loop.
-Failed validation preserves the authored instrument and paused recording.
-Paired-slot capture remains follow-up work.
-
-Audition and Capture start a fresh sample, envelope and LFO phase. The Synth
-uses its own SCSP approximation and Master. Song DSP programs, send / return
-processing and the song's global master volume are not copied, so this is a
-dry instrument capture. Native interpolation boundaries and output level
-can differ from the original recording.
-
-The transport retains a bounded window of same-time slot and 512 KiB RAM
-snapshots. It selects the latest state at or before the audible position,
-accounting for native and Web Audio lookahead. Typical retention is a few
-MiB, with a maximum of 16 snapshots, about 8 MiB. Live Off stops acquisition.
-Activity indicates native waveform / envelope state, including silent
-modulators. ENV percentages show normalized attenuation progress.
-
-The recording formats are described in the original VGM and PSF specifications.
 [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)
-and [PSF / SSF specification](https://gist.github.com/SaxxonPike/11618bd321a45a70c01febae43ff564e).
+
+SSF / MiniSSF playback is unavailable in this build. Previously captured
+instruments saved as SCSP presets or in a Cassette can still be loaded.
+[SSF replacement plan](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/issues/todo_scsp_synth_ssf_20261115.md)
 
 ## Experimental DSP programs
 
@@ -669,9 +503,8 @@ Apply replaces the Synth DSP program. A changed program clears the wet Delay tai
 while keyboard and Code voices continue. Rejected Apply keeps the previous program;
 a transfer failure restores it before rendering resumes. If restoration itself
 fails, audio stops and reports that it must be restarted.
-SSF playback owns a separate DSP program in the song engine; **Apply to Synth**
-does not edit that song program. **Reset draft** restores the built-in source in
-the editor; use Check and Apply to restore that program in the Synth.
+**Reset draft** restores the built-in source in the editor. Use Check and
+Apply to restore that program in the Synth.
 
 **Copy .scspasm** and **Save .scspasm** export the draft text, including invalid or
 unapplied edits. Restoring saved draft text never applies it automatically. Voice
@@ -797,9 +630,7 @@ The **?** contains the encoding and persistence details.
 
 Coefficient changes apply immediately, retaining the DSP ring tail, held voices
 and Code session. They do not require program Check / Apply. Invalid edits leave
-the old coefficients in place. These controls address the Synth's DSP, separately
-from SSF playback / audition. While SSF Live is active, its read-only observation
-replaces these Synth controls in the DSP tab; Live Off restores the Synth view.
+the old coefficients in place. The controls address the Synth's DSP.
 
 COEF1 and **Feedback** are two views of the same coefficient. Feedback displays
 the quantized hardware multiplier, including after Code calls
@@ -847,22 +678,6 @@ is original. SCSP / DSP C++ sources, pristine MAME upstream, licenses and
 the Emscripten recipe are under `sources/`. Start with `sources/SCSP.md`.
 The SDK retains its unpublished local-candidate provenance. See `LICENSE`
 and `licenses/mame-scsp/LICENSE` for BSD-3-Clause terms.
-
-SSF playback includes ssfplay_tools and Mednafen 1.32.1 under
-GPL-2.0-or-later. The corresponding C/C++ source, copyright notices,
-upstream hashes and standalone rebuild recipe are in `sources/ssf-player/`.
-The C ABI wrapper uses the same license. See `licenses/ssfplay/COPYING` and
-`generated/ssf-player/NOTICE.txt`. The browser loader and transport are
-included as editable JavaScript. The player has an independent sound machine
-for each playback or seek candidate.
-ABI 2 adds passive slot and RAM observation through a checked temporary
-build overlay. The source kit includes `ssf_observer.inc` and its recipe.
-ABI 3 adds bounded masked writes for Envelope, LFO and direct mix registers.
-Edits preserve CPU time, sample RAM, unrelated register bits and queued audio;
-the next rendered audio reflects the write after the existing lookahead.
-The UI keeps pending manual values until that native frame becomes audible,
-then follows any later music-driver writes. Paused preview edits use their
-own generation-fenced Synth owner and do not replace the song's machine.
 
 Authored JavaScript and CSS are copied byte-for-byte into the distribution,
 preserving comments, names and layout. Edit modules in `synth-scsp/`, `js/`

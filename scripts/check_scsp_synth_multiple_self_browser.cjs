@@ -352,14 +352,7 @@ async function exercise(name,origin){
     await page.keyboard.up('a');await waitState(page,state=>state.manualVoices.every(value=>value.slot!==31||!value.held),'manual physical key-up');
     await page.locator('#synthCodeStopButton').click();await waitState(page,state=>!state.codeActive,'Code stop');await page.locator('#stop').click();
     cases.push('Fresh parallel Self Code example runs; selected depth/retrigger preserve other Self operators, Code session, independent physical owner/key-up and DSP');
-    await loadInstrument(page,saved4,'parallel-before-ssf.json');await customGraph(page,graph4.inputs,graph4.outputs);const authored=await request(page,{method:'exportPatch',args:[]});
-    const {createScspSsfCaptureFixture}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs')).href),fixture=createScspSsfCaptureFixture();
-    await page.locator('#ssfFileInput').setInputFiles({name:'parallel-self-scope.ssf',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
-    await page.locator('#scspSongPlay').click();await page.waitForFunction(()=>document.getElementById('scspSsfLive').dataset.active==='true');
-    assert(await page.locator('#scspCustomFmInput').isHidden()||await page.locator('#scspCustomFmInput').isDisabled());assert(await page.locator('#operatorDepth').isDisabled());assert.deepEqual(await request(page,{method:'exportPatch',args:[]}),authored);
-    await page.locator('#scspSongPause').click();await page.waitForFunction(()=>document.getElementById('scspSongPause').textContent==='Resume');assert.deepEqual(await request(page,{method:'exportPatch',args:[]}),authored);
-    await page.locator('#scspSongStop').click();await selectChannel(page,null);await customGraph(page,graph4.inputs,graph4.outputs);
-    cases.push('SSF Live play/pause remains read-only and preserves the authored multiple-Self v10 graph, PCM, depths and DSP');
+    await loadInstrument(page,saved4,'parallel-before-cassette.json');await customGraph(page,graph4.inputs,graph4.outputs);
     const archive=await exportProject(page),{loadPlaygroundCassette}=await import(pathToFileURL(path.join(repository,'docs/playground/playground_cassette.js')).href),cassette=await loadPlaygroundCassette(new Uint8Array(archive));
     const settings=JSON.parse(new TextDecoder().decode(cassette.files.get('scsp-synth.project.json'))).settings;assert.equal(settings.version,10);assert.deepEqual(settings.fm.custom,graph4);assert.deepEqual(settings.fm.depths,saved4.fm.depths);
     await loadInstrument(page,single8,'single-before-project.json');await customGraph(page,single8.fm.custom.inputs,single8.fm.custom.outputs);

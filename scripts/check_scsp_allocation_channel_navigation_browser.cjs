@@ -6,7 +6,6 @@ const fs = require('node:fs/promises');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
-const {pathToFileURL} = require('node:url');
 const {chromium, webkit} = require('playwright');
 
 const repository = path.resolve(__dirname, '..');
@@ -201,7 +200,7 @@ async function linkSnapshot(page) {
   })));
 }
 
-async function exercise(name,origin,fixture) {
+async function exercise(name,origin) {
   const browser=await({chromium,webkit}[name]).launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}: {})});
   const context=await browser.newContext({viewport:{width:1400,height:1050}}),page=await context.newPage();
   page.setDefaultTimeout(20000);
@@ -427,36 +426,6 @@ async function exercise(name,origin,fixture) {
     measurements.stoppedLinks=stoppedLinks;
     checks.push('Global Stop retires Code groups, disables unavailable member buttons and leaves a stale hidden member activation inert');
 
-    step('SSF Play / Pause disables and hides authored links');
-    await page.locator('#ssfFileInput').setInputFiles({name:'navigation-reference.ssf',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
-    assert(await page.locator('#scspSsfLiveEnabled').isChecked());
-    await link(page,'A').scrollIntoViewIfNeeded();
-    const heldBox=await link(page,'A').boundingBox();
-    await page.mouse.move(heldBox.x+heldBox.width/2,heldBox.y+heldBox.height/2);await page.mouse.down();
-    // Native Enter starts SSF while the earlier authored CH pointer press remains held.
-    await page.locator('#scspSongPlay').focus();await page.keyboard.press('Enter');
-    await page.waitForFunction(()=>document.getElementById('scspSsfLive').dataset.active==='true');
-    const ssfSelected=await selected(page);await page.mouse.up();
-    assert.equal(await selected(page),ssfSelected,'Hidden-context pointer release never selects its prior authored target');
-    assert(await page.locator('#scspSynthSlotAllocation').isHidden());
-    assert((await linkSnapshot(page)).every(value=>value.disabled),'All authored CH links disabled during SSF');
-    await selectChannel(page,1);await page.locator('#scspSsfSlotRoutes').waitFor({state:'visible'});
-    for(const pause of [false,true]) {
-      if(pause){await page.locator('#scspSongPause').click();await page.waitForFunction(()=>document.getElementById('scspSongPause').textContent==='Resume');}
-      const beforeHidden=await mutations(page),physicalTarget=await selected(page),source=await page.locator('#scspChannelTabs').getAttribute('data-source');
-      await link(page,'A').evaluate(node=>node.click());
-      assert.equal(await selected(page),physicalTarget);assert.equal(await page.locator('#scspChannelTabs').getAttribute('data-source'),source);
-      assert.equal(await mutations(page),beforeHidden,'SSF hidden CH link posts no writes');
-      assert(await page.locator('#scspSsfSlotRoutes').isVisible());assert(await page.locator('#scspSynthSlotAllocation').isHidden());
-    }
-    measurements.ssf={selected:await selected(page),links:await linkSnapshot(page),graph:await graph(page)};
-    await screenshot('ssf-paused');
-    await page.locator('#scspSsfLiveEnabled').uncheck();
-    await page.locator('#scspSynthSlotAllocation').waitFor({state:'visible'});
-    assert(await link(page,'A').isEnabled());
-    await page.locator('#scspSongStop').click();await selectChannel(page);
-    checks.push('SSF starts during a held authored CH press without stale navigation; Play and Pause hide and disable every authored link, preserve the existing SSF physical selector/routes, and ignore hidden activation; Live Off restores navigation');
-
     step('native touch navigation and coarse-pointer layout');
     const touchContext=await browser.newContext({viewport:{width:390,height:844},hasTouch:true});
     try {
@@ -501,12 +470,10 @@ async function exercise(name,origin,fixture) {
 (async()=>{
   const started=Date.now(),results=[];let failure=null;
   await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});await fs.mkdir(config.screenshots,{recursive:true});
-  const {createScspSsfCaptureFixture}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs')).href);
-  const fixture=createScspSsfCaptureFixture();
   try {
     await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
     const origin='http://127.0.0.1:'+server.address().port;
-    for(const name of engines){try{results.push(await exercise(name,origin,fixture));}catch(error){results.push(error.receipt??{browser:name,passed:false,error:error.stack});throw error;}}
+    for(const name of engines){try{results.push(await exercise(name,origin));}catch(error){results.push(error.receipt??{browser:name,passed:false,error:error.stack});throw error;}}
     assert.deepEqual(sourceErrors,[]);
     for(const [name,record]of served)assert.equal(sha(await fs.readFile(path.join(config.root,name))),record.sha256,'Source changed '+name);
   } catch(error) {failure=error;}

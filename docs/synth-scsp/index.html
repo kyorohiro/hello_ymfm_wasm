@@ -55,32 +55,6 @@
 									</section>
 									<section class="synth-menu-section synth-menu-actions">
 										<h2>Import</h2>
-										<button
-											id="loadSsfFolder"
-											type="button"
-											data-close-synth-menu
-										>
-											SSF folder…
-										</button>
-										<input
-											id="ssfFolderInput"
-											class="file-input"
-											type="file"
-											webkitdirectory
-											multiple
-											aria-label="Choose an SSF folder with related SSFLib files"
-										/>
-										<button id="loadSsf" type="button" data-close-synth-menu>
-											SSF / MiniSSF files…
-										</button>
-										<input
-											id="ssfFileInput"
-											class="file-input"
-											type="file"
-											accept=".ssf,.minissf,.ssflib"
-											multiple
-											aria-label="Choose SSF, MiniSSF and related SSFLib files together"
-										/>
 										<button id="loadVgm" type="button" data-close-synth-menu>
 											VGM / VGZ…</button
 										><input
@@ -196,10 +170,9 @@
 								<details class="scsp-inline-help">
 									<summary aria-label="About SCSP recordings">?</summary>
 									<p>
-										Import an SSF folder to include each song's SSFLib
-										dependencies. Files retains the original songs and
-										libraries. SCSP VGM / VGZ contains recorded register writes
-										and sound RAM. The Demo is a self-authored register log.
+										SCSP VGM / VGZ contains recorded register writes and sound RAM.
+										Files retains the original recordings. The Demo is a
+										self-authored register log.
 									</p>
 								</details>
 							</div>
@@ -216,7 +189,7 @@
 								/><output id="scspSongPosition" for="scspSongSeek">0:00 / —</output>
 							</div>
 							<p id="scspSongStatus" role="status">
-								Import an SSF folder or SCSP VGM from Menu, or try Demo.
+								Import a SCSP VGM / VGZ from Menu, or try Demo.
 							</p>
 						</section></details><div id="synthExpandedVolumeSlot" hidden></div></div></div>
 					<aside
@@ -227,69 +200,6 @@
 					></aside>
 					<div class="scsp-main"><div id="synthExpandedTabsSlot" hidden></div><div id="synthExpandedCodeSlot" class="scsp-expanded-code" hidden></div><div id="scspSynthEditor">
 
-						<section
-							id="scspSsfLive"
-							class="scsp-ssf-live"
-							aria-label="SSF slot inspection"
-							hidden
-						>
-							<div class="scsp-ssf-live-controls">
-								<label
-									><input id="scspSsfLiveEnabled" type="checkbox" checked /> Live
-									from SSF</label
-								>
-								<label for="scspSsfReference"
-									>Reference key
-									<select
-										id="scspSsfReference"
-										aria-label="SSF captured pitch reference key"
-									>
-										<option value="36">C2</option>
-										<option value="48">C3</option>
-										<option value="60" selected>C4</option>
-										<option value="72">C5</option>
-										<option value="84">C6</option>
-									</select></label
-								>
-								<button id="scspSsfCapture" type="button" disabled>
-									Capture to Synth
-								</button>
-								<details class="scsp-inline-help">
-									<summary aria-label="About SSF Live view">?</summary>
-									<p>
-										Choose a physical CH below the SCSP tab to inspect the
-										SSF slot at the audible song position.
-										Pause keeps one snapshot for all 32 slots. The PCM preview
-										reads a short prefix at the programmed sample start.
-										Envelope, LFO, mix and modulation show hardware values.
-										Seeking is read-only. While paused, the keyboard auditions the
-										selected slot through a separate Synth voice without
-										changing the song. Reference key maps its current playback
-										rate to that key; the original sample root is unknown.
-										Capture to Synth copies supported PCM, loop, Envelope, LFO
-										and mix into an editable instrument. Pause / Resume is
-										preserved. Slot modulation and the song's DSP are not
-										copied.
-									</p>
-									<p>
-										Envelope, LFO, level and pan edit the selected song CH while
-										playing or paused. These change emulated registers; later
-										driver writes may overwrite them. The controls do not rewrite
-										the SSF files or sample RAM. Paused PCM preview and Capture
-										use the displayed parameters. Resume continues the edited
-										machine. Capture first to edit the full waveform.
-									</p>
-								</details>
-							</div>
-							<p id="scspSsfLiveStatus" class="scsp-ssf-live-status" role="status">
-								Waiting for SSF playback.
-							</p>
-							<p
-								id="scspSsfCaptureStatus"
-								class="scsp-ssf-live-status"
-								role="status"
-							></p>
-						</section>
 						<section class="spu-monitor scsp-monitor" aria-label="Audio display">
 							<div
 								class="visual-mode-controls"
@@ -374,12 +284,6 @@
 								aria-label="SCSP editing and keyboard channel"
 							></div>
 							<div class="scsp-overview-annotations">
-							<div id="scspSsfSlotLegend" class="scsp-ssf-slot-legend" aria-label="SSF slot states" hidden>
-								<span data-state="active">Active</span>
-								<span data-state="release">Release</span>
-								<span data-state="inactive">Inactive</span>
-								<span>Bar: ENV</span>
-							</div>
 							<div id="scspSynthSlotLegend" class="scsp-synth-slot-legend" aria-label="Synth slot allocation" hidden>
 								<span data-state="source">Source A–F</span>
 								<span data-state="held">Held</span>
@@ -390,14 +294,13 @@
 								<label><input id="scspLiveHighlightToggle" type="checkbox" checked /> Highlight changes</label>
 								<details class="scsp-inline-help">
 									<summary aria-label="About parameter change highlighting">?</summary>
-									<p>Briefly marks displayed values that change during Code or live SSF playback. Switching CH or source, Pause and Resume start a new baseline. This display preference is saved on this device; it does not change the sound or preset. Off stops change comparisons.</p>
+									<p>Briefly marks displayed values that change during Code playback. Switching CH or restarting Code starts a new baseline. This display preference is saved on this device; it does not change the sound or preset. Off stops change comparisons.</p>
 								</details>
 							</div>
 							</div>
 							<p id="scspChannelSummary" class="scsp-channel-summary" role="status">
 								Auto · grouped keyboard / Code voices.
 							</p>
-							<section id="scspSsfSlotRoutes" class="scsp-ssf-slot-routes" aria-label="Selected SSF slot routes" hidden></section>
 							<section id="scspSynthSlotAllocation" class="scsp-synth-slot-allocation" aria-label="Synth physical slot allocation" hidden></section>
 						</div>
 						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
@@ -622,12 +525,12 @@
 						</section>
 						<section
 							id="scspDspPanel"
+							data-source="synth"
 							role="tabpanel"
 							aria-labelledby="scspDspTab"
 							hidden
 						>
 							<h2>SCSP DSP</h2>
-                            <section id="scspSsfDspView" aria-label="Read-only SSF DSP observation" hidden></section>
                             <div id="scspSynthDspView">
                             <section id="scspDspRouting" class="scsp-dsp-routing" aria-labelledby="scspDspRoutingHeading">
                                 <div class="scsp-dsp-routing-heading">
@@ -638,7 +541,7 @@
                                         <p>Each voice sends to MIXS0 or MIXS1. The DSP program decides which effect output receives it. Input buses, effect outputs and voice channels are separate.</p>
                                         <p>Auto edits the selected source A–F and its grouped voices. A CH selection edits that physical channel. Auto allocation may overwrite a physical channel when it reuses it. Default restores inherited routing.</p>
                                         <p>Send and Return levels are hardware codes 0–7. Pan: 0 center, 15 right only, 31 left only. Set Direct level to 0 in the voice editor to hear only the DSP.</p>
-                                        <p>These controls edit the Synth DSP; SSF has its own program. Save setup to Code keeps the DSP program, routing and returns. Voice presets keep their existing instrument format.</p>
+                                        <p>Save setup to Code keeps the DSP program, routing and returns. Voice presets keep their existing instrument format.</p>
                                     </details>
                                 </div>
                                 <div class="scsp-dsp-routing-grid">
@@ -675,7 +578,7 @@
                                     <details class="scsp-inline-help scsp-dsp-flow-help">
                                         <summary aria-label="About the signal-flow diagram">?</summary>
                                         <p>This shows configured paths, not measured audio levels. The Returns are shared by all voices and may contain DSP history. A zero Send only removes this voice's contribution.</p>
-                                        <p>Direct output bypasses the DSP. Known examples show their input/output connections; an edited program defines its own connections. SSF uses a separate DSP.</p>
+                                        <p>Direct output bypasses the DSP. Known examples show their input/output connections; an edited program defines its own connections.</p>
                                     </details>
                                 </details>
                             </section>
@@ -727,14 +630,12 @@
 										Editing and Check leave the current sound unchanged. Apply changes
 										the Synth DSP after validation. A changed program clears its wet
 										tail while voices continue; failed Apply keeps the previous program.
-										SSF playback owns a separate DSP program in the song engine.
 									</p>
 									<p>
 										Save setup to Code writes the applied Synth DSP program, coefficients
 										and effect settings to Files. It keeps your draft and current
 										performance. Select the saved JavaScript and Run to restore that
-										setup. PCM, notes, live DSP history and the separate SSF
-										engine are not included.
+										setup. The saved code contains only the applied DSP setup.
 									</p>
 									<p>
 										Loading an example stages source and its recommended coefficients.
@@ -801,7 +702,7 @@
 									<details class="scsp-inline-help">
 										<summary aria-label="About DSP coefficients">?</summary>
 										<p>Signed 13-bit Q12. Multiplier = code / 4096. Register word = (code &amp; 0x1fff) &lt;&lt; 3.</p>
-										<p>Changes apply immediately to Synth while voices and the DSP ring continue. SSF has its own DSP.</p>
+										<p>Changes apply immediately to Synth while voices and the DSP ring continue.</p>
 										<p>Role labels follow recognized example programs. Edited programs may use the entries differently. COEF0 and COEF2 last for this session. COEF1 is stored in the existing Feedback field in voice presets. Save .scspasm exports instructions without these coefficient values.</p>
 									</details>
 								</div>
@@ -933,8 +834,7 @@
 										bypass the guard and follow the programmed hardware release.
 										Changing this preference affects subsequent releases without
 										restarting notes or Code. It is not saved with instruments or
-										projects. Paused SSF audition follows this preference; the
-										SSF recording itself is unchanged.
+										projects.
 									</p>
 								</details>
 							</div>
@@ -1049,20 +949,16 @@
 						drawing, grouped voice allocation and Code are software tools. Chain /
 						Pairs / Branch and Custom support 2 / 4 / 6 operators. Custom accepts up to
 						two external inputs per operator, plus independent Self-feedback OPs in Custom4/6 and one Self in Custom2. General cyclic
-						feedback is future work. The editor core uses zero slot-write delay. SSF
-						playback uses Mednafen.
+						feedback is future work. The editor core uses zero slot-write delay.
 					</p>
 					<div>
 						<a href="../scsp.md">SCSP API</a> ·
 						<a href="../playground/scsp-dsp.html">DSP Lab</a> ·
-						<a href="../playground/index.html?mode=scsp">Playground</a> ·
-						<a href="../generated/ssf-player/NOTICE.txt"
-							>SSF player · GPL-2.0-or-later</a
-						>
+						<a href="../playground/index.html?mode=scsp">Playground</a>
 					</div>
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-output-menu-1"></script>
+		<script type="module" src="synth.js?v=scsp-vgm-only-1"></script>
 	</body>
 </html>

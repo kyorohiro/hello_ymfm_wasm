@@ -7,35 +7,41 @@ import { ScspSynth } from '../js/scspsynth.js';
 import { SynthInstrument } from './instrument.js';
 import { readPreset, writePreset } from './preset.js';
 import { readPatch } from './patch.js';
-import { prepareScspSsfSource } from './ssf_source.js';
-import { createScspSsfRenderer } from './ssf_renderer.js';
-import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
 import {
-	createScspSsfPlaybackFixture,
-	createScspSsfCaptureFixture,
-	createScspSsfLoopLinkFixture,
-	createScspSsfLiveFixture,
-} from '../../test/helpers/scsp_ssf_fixture.mjs';
+	decodeScspSsfSnapshot,
+	SCSP_SSF_RAM_BYTES,
+	SCSP_SSF_SNAPSHOT_WORDS,
+} from './ssf_snapshot.js';
+import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
 
 const binary = await readFile(new URL('../generated/scsp_wasm.wasm', import.meta.url));
-const ssfBinary = await readFile(
-	new URL('../generated/ssf-player/ssf_player.wasm', import.meta.url),
-);
 const core = () => Scsp.create({ moduleFactory: factory, moduleOptions: { wasmBinary: binary } });
-async function observe(fixture = createScspSsfPlaybackFixture()) {
-	const files = fixture.standaloneFiles ?? fixture.files;
-	const prepared = await prepareScspSsfSource(files, files[0].path);
-	const renderer = await createScspSsfRenderer(prepared, { wasmBinary: ssfBinary });
-	try {
-		renderer.process(new Float32Array(4096), new Float32Array(4096), 4096);
-		return renderer.readSnapshot();
-	} finally {
-		renderer.dispose();
-	}
+
+function snapshotForCapture({ pitch = 0, writeInhibit = false, loopLink = false } = {}) {
+	const words = new Uint32Array(SCSP_SSF_SNAPSHOT_WORDS);
+	const ram = new Uint8Array(SCSP_SSF_RAM_BYTES);
+	const samples = new DataView(ram.buffer);
+	const length = loopLink ? 2048 : 64;
+	const loopStart = loopLink ? 512 : 0;
+	const startAddress = 0x1000;
+	words.set([0x53534632, 4096, 0, 15, 1]);
+	words.set([
+		0x0820, startAddress, loopStart, length, loopLink ? 18 : 31,
+		0x3c1f | (loopLink ? 0x4000 : 0), 0, 0, pitch, 0, 0, 0xe000,
+	], 16);
+	words.set([
+		0x0830, 0x3000, 8, 64, (3 << 6) | 27, (15 << 10) | (4 << 5) | 23,
+		(writeInhibit ? 0x0200 : 0) | 32, (63 << 6) | 31, 0x7800, 0x578a, 0, 0xa600,
+	], 48);
+	for (let index = 0; index < length; index++)
+		samples.setInt16(startAddress + index * 2, Math.round(8192 * Math.sin(index * Math.PI / 32)), false);
+	for (let index = 0; index < 64; index++)
+		samples.setInt8(0x3000 + index, Math.round(64 * (1 - 4 * Math.abs(index / 64 - 0.5))));
+	return decodeScspSsfSnapshot(words, ram);
 }
 
-test('ordinary capture copies the complete PCM, calibrated reference key and portable envelope / LFO', async () => {
-	const snapshot = await observe(),
+test('ordinary capture copies the complete PCM, calibrated reference key and portable envelope / LFO', () => {
+	const snapshot = snapshotForCapture(),
 		before = structuredClone(snapshot);
 	const capture = createScspSsfCapture(snapshot, 0);
 	assert.deepEqual(snapshot, before);
@@ -61,7 +67,7 @@ test('ordinary capture copies the complete PCM, calibrated reference key and por
 });
 
 test('actual WASM audition / preset round trip retain captured reference pitch and sustain the loop', async () => {
-	const snapshot = await observe(createScspSsfPlaybackFixture({ pitch: 0x7800 }));
+	const snapshot = snapshotForCapture({ pitch: 0x7800 });
 	const { preset } = createScspSsfCapture(snapshot, 0, { referenceMidi: 60 });
 	const first = new SynthInstrument(await core()),
 		second = new SynthInstrument(await core());
@@ -90,8 +96,8 @@ test('actual WASM audition / preset round trip retain captured reference pitch a
 	}
 });
 
-test('PCM8 forward loop, nonzero loop start, KRS, LFO and direct mix survive an actual two-slot SSF capture', async () => {
-	const snapshot = await observe(createScspSsfCaptureFixture());
+test('PCM8 forward loop, nonzero loop start, KRS, LFO and direct mix survive capture from a two-slot snapshot', async () => {
+	const snapshot = snapshotForCapture();
 	const capture = createScspSsfCapture(snapshot, 1, { referenceMidi: 57 });
 	assert(getScspSsfCaptureAvailability(snapshot, 1, { referenceMidi: 57 }).available);
 	const preset = readPreset(capture.preset);
@@ -118,8 +124,8 @@ test('PCM8 forward loop, nonzero loop start, KRS, LFO and direct mix survive an 
 	}
 });
 
-test('full LEA waveform and native 20-bit address / dummy RAM rules are copied without a preview limit', async () => {
-	const snapshot = await observe(),
+test('full LEA waveform and native 20-bit address / dummy RAM rules are copied without a preview limit', () => {
+	const snapshot = snapshotForCapture(),
 		slot = snapshot.slots[0];
 	slot.sample.bits = 8;
 	slot.sample.startAddress = 0xffff0;
@@ -139,8 +145,8 @@ test('full LEA waveform and native 20-bit address / dummy RAM rules are copied w
 	assert.deepEqual(createScspSsfCapture(snapshot, 0).preset.pcm.slice(0, 3), [0x1234, 0, 0]);
 });
 
-test('native STWINH alone permits independent direct PCM capture with an outgoing-stack warning', async () => {
-	const snapshot = await observe(createScspSsfLiveFixture());
+test('native STWINH alone permits independent direct PCM capture with an outgoing-stack warning', () => {
+	const snapshot = snapshotForCapture({ writeInhibit: true });
 	assert.equal(snapshot.slots[1].voice.modulation.depth, 0);
 	assert.equal(snapshot.slots[1].voice.modulation.writeInhibit, true);
 	const before = structuredClone(snapshot);
@@ -160,7 +166,7 @@ test('native STWINH alone permits independent direct PCM capture with an outgoin
 });
 
 test('one-shot capture stays one-shot through real WASM and does not silently turn into a forward loop', async () => {
-	const snapshot = await observe(),
+	const snapshot = snapshotForCapture(),
 		slot = snapshot.slots[0];
 	slot.sample.loopMode = 0;
 	slot.sample.loopStart = 0;
@@ -182,8 +188,8 @@ test('one-shot capture stays one-shot through real WASM and does not silently tu
 	}
 });
 
-test('unsupported dependencies and malformed snapshots fail before replacing the current preset', async () => {
-	const snapshot = await observe();
+test('unsupported dependencies and malformed snapshots fail before replacing the current preset', () => {
+	const snapshot = snapshotForCapture();
 	const cases = [
 		[(s) => (s.slots[0].sample.sourceMode = 1), /Noise/],
 		[(s) => (s.slots[0].sample.sourceMode = 2), /Zero source/],
@@ -233,15 +239,15 @@ test('unsupported dependencies and malformed snapshots fail before replacing the
 });
 
 test('linked SSF Attack retains its nonzero loop threshold through Capture and preset round trips', async () => {
-	const fixture = createScspSsfLoopLinkFixture();
-	const snapshot = await observe(fixture);
+	const snapshot = snapshotForCapture({ loopLink: true });
+	const { loopStart, loopEnd } = snapshot.slots[0].sample;
 	assert(snapshot.slots[0].flags.loopLink);
 	assert(snapshot.slots[0].voice.envelope.loopLink);
 	assert(getScspSsfCaptureAvailability(snapshot, 0).available);
 	const { preset } = createScspSsfCapture(snapshot, 0);
 	assert.equal(preset.voice.envelope.loopLink, true);
-	assert.equal(preset.options.loopStartSamples, fixture.loopStart);
-	assert.equal(preset.pcm.length, fixture.length);
+	assert.equal(preset.options.loopStartSamples, loopStart);
+	assert.equal(preset.pcm.length, loopEnd);
 	const linked = new SynthInstrument(await core());
 	const restored = new SynthInstrument(await core());
 	const ordinary = new SynthInstrument(await core());
@@ -257,7 +263,7 @@ test('linked SSF Attack retains its nonzero loop threshold through Capture and p
 		for (const instrument of [linked, restored, ordinary]) instrument.noteOn('reference', 60);
 		const slot = linked.read().voiceGroups[0].slots[0];
 		assert.equal(linked.core.read(slot * 32 + 10) & 0x4000, 0x4000);
-		assert.equal(linked.core.read(slot * 32 + 4), fixture.loopStart);
+		assert.equal(linked.core.read(slot * 32 + 4), loopStart);
 		const audio = linked.core.generateStereo(8192);
 		assert.deepEqual(audio, restored.core.generateStereo(8192));
 		const unlinked = ordinary.core.generateStereo(8192);
@@ -277,8 +283,8 @@ test('linked SSF Attack retains its nonzero loop threshold through Capture and p
 	}
 });
 
-test('shared DSP and global master are explicitly reported as dry-capture limitations', async () => {
-	const snapshot = await observe();
+test('shared DSP and global master are explicitly reported as dry-capture limitations', () => {
+	const snapshot = snapshotForCapture();
 	snapshot.slots[0].dsp.send = 5;
 	snapshot.slots[0].dsp.returnLevel = 3;
 	snapshot.globals.masterVolume = 8;

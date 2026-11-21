@@ -6,7 +6,6 @@ const fs = require('node:fs/promises');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
-const {pathToFileURL} = require('node:url');
 const {chromium, webkit} = require('playwright');
 
 const repository = path.resolve(__dirname, '..');
@@ -128,7 +127,7 @@ const stable=state=>({dspRoutingOverrides:state.dspRoutingOverrides,dspReturns:s
   samples:state.playingSampleIds,gate:state.slots.map(voice=>voice.gate),ramUsedBytes:state.ramUsedBytes,
   codeActive:state.codeActive});
 
-async function exercise(name,origin,fixture){
+async function exercise(name,origin){
   const browser=await({chromium,webkit}[name]).launch({headless:true});
   const context=await browser.newContext({viewport:{width:1400,height:1000}}),page=await context.newPage();
   const errors=[],missing=[],external=[],cases=[];
@@ -227,46 +226,22 @@ async function exercise(name,origin,fixture){
     assert.equal((await page.evaluate(()=>__scspFlowAudit.level())).peak,0);
     cases.push('Flow follows live UI edits during Code and Stop remains silent');
 
-    if(!(await page.locator('#synthMenu').evaluate(node=>node.open)))await page.locator('#synthMenuButton').click();
-    const chooser=page.waitForEvent('filechooser');await page.locator('#loadSsf').click();
-    await(await chooser).setFiles({name:'flow-original.ssf',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
-    await until(()=>page.locator('#scspSongPlay').isEnabled(),'SSF source ready');
-    const primaryBefore=await request(page,{method:'readDspSetup',args:[]});
-    await page.locator('#scspSongPlay').click();
-    await page.waitForFunction(()=>document.getElementById('scspSsfLive').dataset.active==='true');
-    await page.locator('#scspSongPause').click();
-    await page.waitForFunction(()=>document.getElementById('scspSongPause').textContent.includes('Resume'));
-    const separate=await waitFlow(page,value=>value.notice?.text.includes('SSF has a separate DSP'),'SSF separation notice');
-    assert(await page.locator('#scspDspTab').isEnabled(),'DSP remains available for the read-only SSF view');
-    await page.locator('#scspDspTab').click();
-    assert(await page.locator('#scspSsfDspView').isVisible());
-    assert(await page.locator('#scspSynthDspView').isHidden());
-    assert(await page.locator('#scspDspInput').isDisabled());
-    assert.deepEqual(await request(page,{method:'readDspSetup',args:[]}),primaryBefore,'SSF view must not change Synth DSP');
-    await page.locator('#scspSongStop').click();
-    await page.waitForTimeout(140);
-    await page.locator('#scspDspTab').click();
-    assert.equal((await page.evaluate(()=>__scspFlowAudit.level())).peak,0);
-    cases.push('SSF live view labels its separate DSP and cannot mutate the primary configuration');
-
     await page.setViewportSize({width:390,height:844});
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert(overflow<=1,'Mobile overflow '+overflow);
     await page.locator('#scspDspSignalFlow').screenshot({path:imageBase+'-mobile.png'});
     const audited=await graph(page);assert(audited.physicalOutputMuted&&audited.routes>0);assert(audited.rates.every(rate=>rate===48000));
     assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
-    return {browser:name,rate:48000,passed:true,cases,coldBefore,coldAfter,right,noContribution,center,unused,custom,separate,
+    return {browser:name,rate:48000,passed:true,cases,coldBefore,coldAfter,right,noContribution,center,unused,custom,
       graph:audited,mobileOverflow:overflow,screenshots:{desktop:imageBase+'-desktop.png',mobile:imageBase+'-mobile.png'},errors,missing,externalRequestsBlocked:external.length};
   }catch(error){console.error(JSON.stringify({name,errors,missing,status:await page.locator('#status').textContent(),flow:await flow(page).catch(()=>null),body:(await page.locator('body').innerText()).slice(0,5500)},null,2));throw error;}
   finally{await context.close();await browser.close();}
 }
 (async()=>{
   await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});
-  const {createScspSsfLiveFixture}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs')).href);
-  const fixture=createScspSsfLiveFixture();
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   const origin='http://127.0.0.1:'+server.address().port;
   try{
-    const results=[];for(const name of engines)results.push(await exercise(name,origin,fixture));
+    const results=[];for(const name of engines)results.push(await exercise(name,origin));
     for(const [name,record]of served)assert.equal(sha(await fs.readFile(path.join(config.root,name))),record.sha256,'Source changed '+name);
     const report={passed:true,root:config.root,entry:config.entry,physicalOutputMuted:true,listeningPerformed:false,results,assets:Object.fromEntries(served)};
     await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log('SCSP DSP flow browser PASS:',config.out);

@@ -300,15 +300,6 @@ async function exercise(name,origin){
     }
     cases.push('V7 Custom/fixed/PCM presets retain six authored depths across mode changes; v4/v5/v6 scalar files still round-trip and incompatible replacements preserve sound');
     await loadInstrument(page,saved6,'six-v7-project.json');await customGraph(page,graph6.inputs,graph6.outputs);
-    const authoredBefore=await request(page,{method:'exportPatch',args:[]});
-    const {createScspSsfCaptureFixture}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs')).href),fixture=createScspSsfCaptureFixture();
-    await page.locator('#ssfFileInput').setInputFiles({name:'depth-scope.ssf',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
-    await page.locator('#scspSongPlay').click();await page.waitForFunction(()=>document.getElementById('scspSsfLive').dataset.active==='true');
-    await selectChannel(page,0);assert(await page.locator('#operatorDepth').isDisabled());assert(await page.locator('#fmDepth').isHidden()||await page.locator('#fmDepth').isDisabled());
-    assert.deepEqual(await request(page,{method:'exportPatch',args:[]}),authoredBefore,'SSF scope never overwrites authored per-OP MDL');
-    await page.locator('#scspSongPause').click();await page.waitForFunction(()=>document.getElementById('scspSongPause').textContent==='Resume');assert(await page.locator('#operatorDepth').isDisabled());
-    await page.locator('#scspSongStop').click();await selectChannel(page,null);await until(async()=>await page.locator('#operatorDepth').isEnabled(),'return to authored depth');
-    cases.push('SSF play and pause keep Auto per-OP depth controls disabled and preserve the complete authored sound');
     const archive=await exportProject(page),{loadPlaygroundCassette}=await import(pathToFileURL(path.join(repository,'docs/playground/playground_cassette.js')).href);
     const cassette=await loadPlaygroundCassette(new Uint8Array(archive));const settings=JSON.parse(new TextDecoder().decode(cassette.files.get('scsp-synth.project.json'))).settings;
     assert.equal(settings.version,7);assert.deepEqual(settings.fm.depths,saved6.fm.depths);

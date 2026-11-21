@@ -37,7 +37,6 @@ jobs:
           node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_fm_depth_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_ssf_dsp_revision.test.mjs
           node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_ssf_dsp_revision.mjs --check
-          node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_ssf_dsp_passive_parity.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_self_feedback_revision.test.mjs scripts/scsp_fm_self_feedback_default_parity.test.mjs
           node test/helpers/check_historical_calibration_receipt.mjs scripts/record_scsp_fm_self_feedback_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_multi_self_feedback_revision.test.mjs scripts/scsp_fm_multi_self_feedback_default_parity.test.mjs
@@ -63,18 +62,13 @@ jobs:
           node scripts/check_scsp_synth_browser.cjs --root release/scsp-synth-browser --entry /index.html --out release/scsp-synth-browser.json
           node scripts/check_scsp_synth_code_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-code-browser.json --screenshots=release/scsp-synth-code-images
           node scripts/check_scsp_synth_song_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-song-browser.json
-          node scripts/check_scsp_synth_ssf_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-browser.json --screenshots=release/scsp-synth-ssf-images
-          node scripts/check_scsp_synth_live_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-live-browser.json --screenshots=release/scsp-synth-live-images
-          node scripts/check_scsp_synth_capture_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-capture-browser.json --screenshots=release/scsp-synth-capture-images
           node scripts/check_scsp_synth_channels_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-channels-browser.json --screenshots=release/scsp-synth-channels-images
           node scripts/check_scsp_synth_click_guard_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-click-guard-browser.json --screenshots=release/scsp-synth-click-guard-images
-          node scripts/check_scsp_synth_paused_edit_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-edit-browser.json --screenshots=release/scsp-synth-ssf-edit-images
           node scripts/check_scsp_synth_dsp_routing_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-dsp-routing-browser.json
           node scripts/check_scsp_synth_dsp_flow_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-dsp-flow-browser.json
           node scripts/check_scsp_synth_fm_custom_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-fm-custom-browser.json
           node scripts/check_scsp_synth_fm_multi_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-fm-multi-browser.json
           node scripts/check_scsp_synth_fm_depth_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-fm-depth-browser.json
-          node scripts/check_scsp_synth_ssf_dsp_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-dsp-browser.json
           node scripts/check_scsp_synth_self_feedback_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-self-feedback-browser.json
           node scripts/check_scsp_synth_multi_self_feedback_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-multi-self-feedback-browser.json
           node scripts/check_scsp_synth_multiple_self_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-multiple-self-browser.json
@@ -93,18 +87,10 @@ jobs:
             release/scsp-synth-code-browser.json
             release/scsp-synth-code-images/
             release/scsp-synth-song-browser.json
-            release/scsp-synth-ssf-browser.json
-            release/scsp-synth-ssf-images/
-            release/scsp-synth-live-browser.json
-            release/scsp-synth-live-images/
-            release/scsp-synth-capture-browser.json
-            release/scsp-synth-capture-images/
             release/scsp-synth-channels-browser.json
             release/scsp-synth-channels-images/
             release/scsp-synth-click-guard-browser.json
             release/scsp-synth-click-guard-images/
-            release/scsp-synth-ssf-edit-browser.json
-            release/scsp-synth-ssf-edit-images/
             release/scsp-synth-dsp-routing-browser.json
             release/scsp-synth-dsp-flow-browser.json
             release/scsp-synth-dsp-flow-browser-*.png
@@ -114,8 +100,6 @@ jobs:
             release/scsp-synth-fm-multi-browser-*.png
             release/scsp-synth-fm-depth-browser.json
             release/scsp-synth-fm-depth-browser-*.png
-            release/scsp-synth-ssf-dsp-browser.json
-            release/scsp-synth-ssf-dsp-browser-*.png
             release/scsp-synth-self-feedback-browser.json
             release/scsp-synth-self-feedback-browser-*.png
             release/scsp-synth-multi-self-feedback-browser.json

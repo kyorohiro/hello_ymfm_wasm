@@ -11,8 +11,12 @@ import { version as esbuildVersion } from 'esbuild';
 import { copyReadableModules } from './copy_readable_modules.mjs';
 import { copyScspSources } from './copy_scsp_sources.mjs';
 import { checkRuntimeArtifacts, copyRuntimeArtifacts } from './runtime_artifacts.mjs';
-import { checkSsfPlayerSources } from './build_ssf_player.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
+const ssfPlayerPath = /(?:^|\/)(?:ssf[-_]player|ssfplay(?:_tools)?|ssf_renderer|build_ssf_player|mednafen)(?:[/.]|$)/i;
+function assertNoSsfPlayer(paths) {
+	const path = paths.find((path) => ssfPlayerPath.test(path));
+	assert(path === undefined, `SCSP Synth must exclude the retired GPL SSF player: ${path}`);
+}
 const record = (data) => ({
 	bytes: data.length,
 	sha256: createHash('sha256').update(data).digest('hex'),
@@ -62,7 +66,6 @@ export async function packageScspSynth({
 } = {}) {
 	validateScspSynthVersion(version);
 	await checkRuntimeArtifacts({ root, ids: ['scsp'], mirrors: true });
-	await checkSsfPlayerSources();
 	releaseDir = resolve(releaseDir);
 	await mkdir(releaseDir, { recursive: true });
 	const archive = join(releaseDir, `tetorica_scsp_synth_${version}_itch.zip`);
@@ -85,7 +88,7 @@ export async function packageScspSynth({
 			'docs/js/native-fx-worklet.js',
 			'docs/synth-scsp/synth.css',
 		],
-		factories: ['docs/generated/scsp_wasm.js', 'docs/generated/ssf-player/ssf_player.js'],
+		factories: ['docs/generated/scsp_wasm.js'],
 	});
 	const inputs = new Set(readable.inputs),
 		bundles = readable.entries.filter((entry) => !entry.path.endsWith('.css'));
@@ -141,46 +144,6 @@ export async function packageScspSynth({
 		join(stage, effectKit, 'README.md'),
 		'# Code software effects\n\nThe BSD-3-Clause software FX rack follows the SCSP output. Rebuild with Emscripten from this directory.\n\n```sh\nsh scripts/build_native_audio_effect.sh /tmp/tetorica-scsp-effects\ncp /tmp/tetorica-scsp-effects/gain.wasm ../../js/native_audio_effect.wasm\n```\n',
 	);
-	const ssfKit = 'sources/ssf-player';
-	await mkdir(join(stage, 'generated/ssf-player'), { recursive: true });
-	for (const name of ['ssf_player.js', 'ssf_player.wasm', 'NOTICE.txt']) {
-		const source = 'docs/generated/ssf-player/' + name;
-		await copyFile(join(root, source), join(stage, 'generated/ssf-player', name));
-		inputs.add(source);
-	}
-	await mkdir(join(stage, ssfKit, 'third_party'), { recursive: true });
-	await cp(join(root, 'third_party/ssfplay'), join(stage, ssfKit, 'third_party/ssfplay'), {
-		recursive: true,
-	});
-	for (const name of await filesIn(join(root, 'third_party/ssfplay')))
-		inputs.add('third_party/ssfplay/' + name);
-	const ssfWrapperSources = (await filesIn(join(root, 'tetorica_src/wasm/ssf_player'))).map(
-		(name) => 'tetorica_src/wasm/ssf_player/' + name,
-	);
-	for (const source of ['scripts/build_ssf_player.mjs', ...ssfWrapperSources]) {
-		await mkdir(join(stage, ssfKit, source.slice(0, source.lastIndexOf('/'))), {
-			recursive: true,
-		});
-		await copyFile(join(root, source), join(stage, ssfKit, source));
-		inputs.add(source);
-	}
-	await mkdir(join(stage, 'licenses/ssfplay'), { recursive: true });
-	await copyFile(
-		join(root, 'third_party/ssfplay/mednafen/COPYING'),
-		join(stage, 'licenses/ssfplay/COPYING'),
-	);
-	await copyFile(
-		join(root, 'third_party/ssfplay/zlib/LICENSE'),
-		join(stage, 'licenses/ssfplay/zlib-LICENSE'),
-	);
-	await copyFile(
-		join(root, 'third_party/ssfplay/mednafen/COPYING'),
-		join(stage, ssfKit, 'LICENSE'),
-	);
-	await writeFile(
-		join(stage, ssfKit, 'README.md'),
-		`# SSF / MiniSSF playback source\n\nThe sound-program player uses pinned ssfplay_tools and Mednafen 1.32.1 under GPL-2.0-or-later. The Tetorica C ABI wrapper uses the same license. Original notices, source hashes and the upstream revision are under third_party/ssfplay/. This directory contains the corresponding C/C++ source and build recipe.\n\nWith Emscripten, CMake and Node installed, run from this directory.\n\n\`\`\`sh\nnode scripts/build_ssf_player.mjs --out-dir=/tmp/tetorica-ssf-player --build-dir=/tmp/tetorica-ssf-build --cache-dir=/tmp/tetorica-ssf-cache\ncp /tmp/tetorica-ssf-player/ssf_player.js ../../generated/ssf-player/\ncp /tmp/tetorica-ssf-player/ssf_player.wasm ../../generated/ssf-player/\n\`\`\`\n\nThe browser source and dependency loader are ../../synth-scsp/ssf_source.js and ssf_renderer.js. The renderer receives a validated merged 512 KiB image, creates an independent sound CPU / SCSP machine, and exposes 44.1-kHz stereo PCM to the common transport. Source recordings are supplied by the user. See LICENSE and ../../licenses/ssfplay/COPYING for the GNU GPL terms.\n`,
-	);
 	let html = await readFile(join(root, 'docs/synth-scsp/index.html'), 'utf8');
 	html = html
 		.replaceAll('href="../index.html"', 'href="https://kyorohiro.github.io/hello_ymfm_wasm/"')
@@ -203,10 +166,6 @@ export async function packageScspSynth({
 		html
 			.replaceAll('../tetorica-scsp-synth.webp', './tetorica-scsp-synth.webp')
 			.replaceAll('href="../playground/scsp-dsp.html"', 'href="./playground/scsp-dsp.html"')
-			.replaceAll(
-				'href="../generated/ssf-player/NOTICE.txt"',
-				'href="./generated/ssf-player/NOTICE.txt"',
-			)
 			.replace(/\b(href|src)="(synth\.(?:css|js)(?:\?[^"]*)?)"/g, '$1="./synth-scsp/$2"'),
 	);
 	await mkdir(join(stage, 'playground'), { recursive: true });
@@ -251,6 +210,7 @@ export async function packageScspSynth({
 	await copyFile(join(root, 'docs/synth-scsp/README.md'), join(stage, 'README.md'));
 	const names = [...inputs].sort(),
 		sourceArchive = 'sources/scsp-synth-browser-inputs.zip';
+	assertNoSsfPlayer(names);
 	zip(root, join(stage, sourceArchive), names);
 	const receipt = {
 		schemaVersion: 1,
@@ -279,18 +239,6 @@ export async function packageScspSynth({
 			path: 'generated/scsp_wasm.wasm',
 			...record(await readFile(join(stage, 'generated/scsp_wasm.wasm'))),
 		},
-		ssfPlayer: {
-			license: 'GPL-2.0-or-later',
-			factory: {
-				path: 'generated/ssf-player/ssf_player.js',
-				...record(await readFile(join(stage, 'generated/ssf-player/ssf_player.js'))),
-			},
-			wasm: {
-				path: 'generated/ssf-player/ssf_player.wasm',
-				...record(await readFile(join(stage, 'generated/ssf-player/ssf_player.wasm'))),
-			},
-			source: 'sources/ssf-player/',
-		},
 		sourceCheck,
 	};
 	await writeFile(
@@ -298,6 +246,7 @@ export async function packageScspSynth({
 		JSON.stringify(receipt, null, 2) + '\n',
 	);
 	const files = await filesIn(stage);
+	assertNoSsfPlayer(files);
 	assert(files.length <= 1000, 'itch.io file limit exceeded');
 	const temporary = stage + '.zip';
 	try {

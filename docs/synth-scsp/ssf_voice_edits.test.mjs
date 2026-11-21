@@ -1,18 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { createScspSsfCapture } from './ssf_capture.js';
-import { prepareScspSsfSource } from './ssf_source.js';
-import { createScspSsfRenderer } from './ssf_renderer.js';
-import { createScspSsfPlaybackFixture } from '../../test/helpers/scsp_ssf_fixture.mjs';
 
 const voice = () => ({ frequencyHz: 44100, totalLevel: 12, directLevel: 7, pan: 0,
 	envelope: { attackRate: 31, decay1Rate: 0, decay2Rate: 0, decayLevel: 0, releaseRate: 31, keyRateScaling: 15, loopLink: false },
 	lfo: { frequencyCode: 0, pitchWave: 0, pitchDepth: 0, amplitudeWave: 0, amplitudeDepth: 0, reset: false },
 	modulation: { depth: 0, xOffset: 0, yOffset: 0, writeInhibit: false } });
-const snapshot = (frame = 100) => ({ frame, ram: new Uint8Array(524288), slots: Array.from({ length: 32 }, () => ({
-	voice: voice(), registers: new Uint16Array(16), flags: { loopLink: false }, sample: { bits: 16 },
+const snapshot = (frame = 100) => ({ frame, globals: { masterVolume: 15, memory512KiB: true }, ram: new Uint8Array(524288), slots: Array.from({ length: 32 }, () => ({
+	voice: voice(), registers: new Uint16Array(16),
+	flags: { loopLink: false, attackHold: false, envelopeBypass: false, soundDirect: false },
+	sample: { bits: 16, startAddress: 0, sourceMode: 0, sourceBitControl: 0, loopMode: 1, loopStart: 0, loopEnd: 64 },
+	dsp: { input: 0, send: 0, returnLevel: 0, pan: 0 },
 })) });
 
 test('manual values remain until strictly later audible native frames, then later driver snapshots take over', () => {
@@ -50,25 +49,20 @@ test('paused channel/reference choices retain bounded detached edits; stop, seek
 	assert.equal(edits.read(target), null);
 });
 
-test('Capture projects pending parameter/register changes without modifying original native PCM or snapshot', async () => {
-	const fixture = createScspSsfPlaybackFixture(), files = fixture.standaloneFiles;
-	const source = await prepareScspSsfSource(files, files[0].path);
-	const wasmBinary = await readFile(new URL('../generated/ssf-player/ssf_player.wasm', import.meta.url));
-	const renderer = await createScspSsfRenderer(source, { wasmBinary });
-	try {
-		renderer.process(new Float32Array(4096), new Float32Array(4096), 4096);
-		const original = renderer.readSnapshot(), before = structuredClone(original), edits = new ScspSsfVoiceEdits();
-		const target = { snapshot: original, slot: 0, referenceMidi: 60 };
-		edits.sync(1, 'paused', original);
-		for (const [method, patch] of [['setEnvelope', { attackRate: 17, loopLink: true }], ['setLfo', { amplitudeDepth: 4 }], ['setMix', { pan: 15 }]])
-			edits.commit(target, method, patch, { session: 1, nativeFrame: original.frame + 500 });
-		const projected = edits.projectSnapshot(target), captured = createScspSsfCapture(projected, 0), base = createScspSsfCapture(original, 0);
-		assert.equal(projected.ram, original.ram);
-		assert.equal(captured.preset.voice.envelope.attackRate, 17);
-		assert.equal(captured.preset.voice.envelope.loopLink, true);
-		assert.equal(captured.preset.voice.lfo.amplitudeDepth, 4);
-		assert.equal(captured.preset.voice.pan, 15);
-		assert.deepEqual(captured.preset.pcm, base.preset.pcm);
-		assert.deepEqual(original, before);
-	} finally { renderer.dispose(); }
+test('Capture projects pending parameter and register changes while preserving the observed PCM and snapshot', () => {
+	const original = snapshot();
+	original.ram.set([0x12, 0x34, 0xff, 0xfe]);
+	const before = structuredClone(original), edits = new ScspSsfVoiceEdits();
+	const target = { snapshot: original, slot: 0, referenceMidi: 60 };
+	edits.sync(1, 'paused', original);
+	for (const [method, patch] of [['setEnvelope', { attackRate: 17, loopLink: true }], ['setLfo', { amplitudeDepth: 4 }], ['setMix', { pan: 15 }]])
+		edits.commit(target, method, patch, { session: 1, nativeFrame: original.frame + 500 });
+	const projected = edits.projectSnapshot(target), captured = createScspSsfCapture(projected, 0), base = createScspSsfCapture(original, 0);
+	assert.equal(projected.ram, original.ram);
+	assert.equal(captured.preset.voice.envelope.attackRate, 17);
+	assert.equal(captured.preset.voice.envelope.loopLink, true);
+	assert.equal(captured.preset.voice.lfo.amplitudeDepth, 4);
+	assert.equal(captured.preset.voice.pan, 15);
+	assert.deepEqual(captured.preset.pcm, base.preset.pcm);
+	assert.deepEqual(original, before);
 });

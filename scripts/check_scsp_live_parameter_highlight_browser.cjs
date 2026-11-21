@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Real UI, Code and self-authored 68000 SSF checks. Every physical destination is muted before initialization.
+// Real UI and Code checks. Every physical destination is muted before initialization.
 const assert = require('node:assert/strict');
 const {createHash} = require('node:crypto');
 const fs = require('node:fs/promises');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
-const {pathToFileURL} = require('node:url');
 const {chromium, webkit} = require('playwright');
 const startedAt = Date.now(), repository = path.resolve(__dirname, '..');
 const config = {root:path.join(repository,'docs'),entry:'/synth-scsp/index.html',engines:'chromium,webkit',
@@ -75,7 +74,6 @@ function installSilentAudit(){
   function key(node){
     if(node.id)return node.id;if(node.dataset?.chipControl)return node.dataset.chipControl;
     const input=node.querySelector?.('input,select');if(input)return input.id||input.dataset.chipControl;
-    if(node.matches?.('.scsp-ssf-modulation label'))return 'ssf-modulation-'+['depth','xOffset','yOffset','writeInhibit'][[...node.parentElement.querySelectorAll('label')].indexOf(node)];
     return node.tagName+':'+(node.textContent??'').slice(0,60);
   }
   audit.key=key;
@@ -126,33 +124,9 @@ liveLoop('highlight-motion',async()=>{if(step===0){log('highlight-ready');await 
 step++;await scsp.setFrequency(CH1,220+step*7);await scsp.setLfo(0,{frequencyCode:step%2?12:10,pitchDepth:step%2?4:2});
 await scsp.setLfo(1,{frequencyCode:step%2?13:11,pitchDepth:step%2?5:3});await scsp.setConfig({fm:{depth:step%2?7:4}});log('highlight-motion',step);await beat(.24);});`;}
 const holdSource=`const scsp=await useSoundChip('scsp');await scsp.noteOn(CH1,'D4');log('highlight-held');`;
-async function loadSsf(page,bytes,name='highlight-original.ssf'){
-  if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();
-  const chooser=page.waitForEvent('filechooser');await page.locator('#loadSsf').click();
-  await(await chooser).setFiles({name,mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
-  await until(()=>page.locator('#scspSongPlay').isEnabled(),'self-authored SSF ready');
-}
-function createFixture(ssfFromProgram){
-  const image=new Uint8Array(0x1140),view=new DataView(image.buffer);view.setUint32(0,0x7fff0,false);view.setUint32(4,0x100,false);
-  let address=0x100;const word=value=>{view.setUint16(address,value,false);address+=2;};
-  const long=value=>{view.setUint32(address,value,false);address+=4;};
-  const write=(register,value)=>{word(0x33fc);word(value);long(0x100000+register);};
-  const delay=()=>{word(0x203c);long(700000);word(0x5380);word(0x66fc);};
-  word(0x46fc);word(0x2000);write(0x400,0x020f);
-  for(let slot=0;slot<2;slot++)for(const [register,value]of [[2,slot?0x1100:0x1000],[4,0],[6,64],[8,slot?27:31],
-    [10,0x3c1f],[12,12],[14,0],[16,slot?0x7800:0],[18,0x2953],[20,0],[22,0xe000]])write(slot*0x20+register,value);
-  write(0x20,0x0830);write(0,0x1820);const loopAddress=address;
-  for(const high of [true,false]){delay();write(8,high?30:31);write(10,high?0x3cdf:0x3c1f);write(12,high?36:12);
-    write(14,high?0x2041:0);write(16,high?0x7800:0);write(18,high?0x578a:0x2953);write(22,high?0xb600:0xe000);}
-  word(0x4ef9);long(loopAddress);
-  for(let index=0;index<64;index++){view.setInt16(0x1000+index*2,Math.round(8192*Math.sin(index*Math.PI/32)),false);
-    view.setInt8(0x1100+index,Math.round(64*(1-4*Math.abs(index/64-.5))));}
-  return{bytes:ssfFromProgram(image,0,'title=Original parameter highlight driver\nartist=Tetorica\nlength=0:45\nfade=0:00.25\n'),
-    provenance:'Original 68000 MOVE.W immediate register writes, SUBQ/BNE delay and sine/triangle samples authored in this checker; no game data',imageSha256:sha(image),loopAddress};
-}
 async function screenshot(page,engine,label,screenshots){await fs.mkdir(config.screenshots,{recursive:true});
   const file=path.join(config.screenshots,engine+'-'+label+'.png');await page.screenshot({path:file,fullPage:false});screenshots[label]={file,sha256:sha(await fs.readFile(file))};}
-async function check(browser,engine,origin,fixture){
+async function check(browser,engine,origin){
   const context=await browser.newContext({viewport:{width:1400,height:1050},serviceWorkers:'block'}),page=await context.newPage();
   const errors=[],missing=[],external=[],expectedBlockedMonaco=[],checks=[],measurements={},screenshots={};let stage='cold default and preference';
   await context.addInitScript(installSilentAudit);page.setDefaultTimeout(20000);
@@ -233,36 +207,6 @@ async function check(browser,engine,origin,fixture){
     assert.notEqual((await inspect(page)).codeSession,session);await page.locator('#synthCodeStopButton').click();await until(async()=>!(await inspect(page)).codeActive,'new session stopped');await silent(page);
     checks.push('Code Stop clears state and a new Code session takes a silent first baseline');
 
-    step('self-authored SSF CPU edits frequency, Envelope, LFO, mix and modulation');
-    await loadSsf(page,fixture.bytes);await page.locator('#scspSongPlay').click();await until(()=>page.locator('#scspSsfLive').getAttribute('data-active').then(value=>value==='true'),'SSF Live active');
-    await selectChannel(page,0);await noPulses('initial SSF CH snapshot baseline',100);const ssfMark=await mark(page);
-    await until(async()=>{const value=await events(page,ssfMark),keys=new Set(value.classes.filter(item=>item.active).map(item=>item.key));return ['scsp-root','scsp-attackRate','scsp-lfo-frequencyCode','scsp-totalLevel','ssf-modulation-depth'].every(key=>keys.has(key));},'CPU-driven parameter pulses');
-    const ssfEvents=await events(page,ssfMark);assert(!ssfEvents.classes.some(value=>value.active&&(/Channel|channel|ENV/.test(value.key))));
-    await control(page,'totalLevel').scrollIntoViewIfNeeded();await until(async()=> (await pulseKeys(page)).includes('scsp-totalLevel'),'active SSF mix pulse for screenshot');
-    await screenshot(page,engine,'ssf-active-pulse',screenshots);
-    measurements.ssfPcm=await sounding(page);measurements.ssfPulseKeys=[...new Set(ssfEvents.classes.filter(value=>value.active).map(value=>value.key))];
-    checks.push('Original 68000 fixture drives real SSF frequency/Envelope/LFO/mix and read-only modulation pulses; activity and ENV meters stay excluded');
-
-    step('SSF Pause/Resume, seek, Live Off, session and Stop boundaries');
-    await page.locator('#scspSongPause').click();await until(()=>page.locator('#scspSongPause').textContent().then(value=>value==='Resume'),'SSF paused');
-    await noPulses('Pause clears classes');const pauseMark=await mark(page),frame=await page.locator('#scspSsfLive').getAttribute('data-frame');
-    await cleanNavigation(()=>selectChannel(page,1),'paused other SSF CH',{releasePreview:true});await cleanNavigation(()=>selectChannel(page,0),'paused first SSF CH',{releasePreview:true});
-    assert.equal(await page.locator('#scspSsfLive').getAttribute('data-frame'),frame);assert.deepEqual((await events(page,pauseMark)).classes.filter(value=>value.active),[]);
-    await page.locator('#scspSongPause').click();assert.deepEqual(await pulseKeys(page),[]);await until(()=>page.locator('#scspSongPause').textContent().then(value=>value==='Pause'),'SSF resumed');
-    await until(async()=> (await pulseKeys(page)).length>0,'later SSF CPU mutation after Resume');
-    await page.locator('#scspSongPause').click();await until(()=>page.locator('#scspSongPause').textContent().then(value=>value==='Resume'),'SSF paused for seek');
-    const seekMark=await mark(page);await page.locator('#scspSongSeek').evaluate(input=>{input.value='1.75';input.dispatchEvent(new Event('change',{bubbles:true}));});
-    await until(()=>page.locator('#scspSongStatus').textContent().then(text=>!text.startsWith('Seeking')),'paused seek completed');await noPulses('paused seek takes a silent new snapshot');
-    assert.deepEqual((await events(page,seekMark)).classes.filter(value=>value.active),[]);
-    await page.uncheck('#scspSsfLiveEnabled');await noPulses('paused Live Off clears');await page.check('#scspSsfLiveEnabled');await noPulses('paused Live On rebases');
-    await page.locator('#scspSongPause').click();await until(async()=> (await pulseKeys(page)).length>0,'active SSF pulse before Live Off');
-    await page.uncheck('#scspSsfLiveEnabled');assert.deepEqual(await pulseKeys(page),[]);await noPulses('playing Live Off stays clear');
-    await page.check('#scspSsfLiveEnabled');assert.deepEqual(await pulseKeys(page),[]);await until(async()=> (await pulseKeys(page)).length>0,'active SSF pulse before Stop');
-    await page.locator('#scspSongStop').click();assert.deepEqual(await pulseKeys(page),[]);await noPulses('SSF Stop clears an active pulse');await silent(page);
-    const replacementMark=await mark(page);await loadSsf(page,fixture.bytes,'highlight-another-original.ssf');await noPulses('replacement song session clears');
-    assert.deepEqual((await events(page,replacementMark)).classes.filter(value=>value.active),[]);
-    checks.push('Pause, paused CH changes, Resume first observation, seek, Live Off/On, Stop and replacement session clear/rebase without stale flashes');
-
     step('390 px layout and bounded reduced-motion CSS');
     for(const width of [1400,390]){await page.setViewportSize({width,height:1050});await page.locator('#scspLiveHighlightToggle').scrollIntoViewIfNeeded();
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'layout fits '+width);await screenshot(page,engine,'layout-'+width,screenshots);}
@@ -296,14 +240,14 @@ async function check(browser,engine,origin,fixture){
   }finally{await context.close();}
 }
 (async()=>{
-  const {ssfFromProgram}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs'))),fixture=createFixture(ssfFromProgram);let failure=null;
+  let failure=null;
   try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin='http://127.0.0.1:'+server.address().port;
     for(const engine of engines){const browser=await{chromium,webkit}[engine].launch({headless:true,...engine==='chromium'?{args:['--mute-audio']}: {}});
-      try{results.push(await check(browser,engine,origin,fixture));}catch(error){results.push(error.receipt??{browser:engine,passed:false,error:error.stack});throw error;}finally{await browser.close();}}
+      try{results.push(await check(browser,engine,origin));}catch(error){results.push(error.receipt??{browser:engine,passed:false,error:error.stack});throw error;}finally{await browser.close();}}
     assert.deepEqual(sourceErrors,[]);
   }catch(error){failure=error;}finally{server.closeIdleConnections?.();server.closeAllConnections?.();if(server.listening)await new Promise(resolve=>server.close(resolve));}
   const receipt={schemaVersion:1,passed:!failure,elapsedSeconds:(Date.now()-startedAt)/1000,root:config.root,entry:config.entry,
-    physicalOutputMuted:true,listeningPerformed:false,fixture:{provenance:fixture.provenance,imageSha256:fixture.imageSha256,ssfSha256:sha(fixture.bytes),loopAddress:fixture.loopAddress},
+    physicalOutputMuted:true,listeningPerformed:false,
     checker:{file:path.relative(repository,__filename),sha256:sha(await fs.readFile(__filename))},servedAssets:Object.fromEntries([...served].sort(([left],[right])=>left.localeCompare(right))),sourceErrors,results,...failure?{error:failure.stack}:{}};
   await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});await fs.writeFile(config.out,JSON.stringify(receipt,null,2)+'\n');if(failure)throw failure;console.log('PASS receipt '+config.out);
 })().catch(error=>{console.error(error);process.exitCode=1;});

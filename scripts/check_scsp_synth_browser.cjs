@@ -120,7 +120,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    // Exercise the native select with a filename much wider than its box.
    // The wrapper, rather than native select overflow behavior, bounds it.
    const songOption=page.locator('#scspSongSelect option').first(),songLabel=await songOption.textContent();
-   await songOption.evaluate(option=>{option.textContent='A very long SSF folder / '+('long-song-name-'.repeat(30))+'.minissf';});
+   await songOption.evaluate(option=>{option.textContent='A very long VGM folder / '+('long-song-name-'.repeat(30))+'.vgz';});
    assert.equal(await page.locator('.scsp-song-select').evaluate(node=>getComputedStyle(node).overflowX),'hidden');
    assert(await page.locator('#scspSongSelect').evaluate(node=>node.getBoundingClientRect().width<=node.parentElement.clientWidth+1),'song select fits its clipping wrapper');
    const songHelp=page.locator('.scsp-song-transport .scsp-inline-help');

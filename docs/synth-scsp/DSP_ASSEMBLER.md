@@ -8,7 +8,7 @@ The Synth's **DSP** tab adds a draft editor and **Check → Apply to Synth**.
 Editing and Check leave the running program unchanged. Check reports source
 lines and physical steps, and displays the canonical instructions. Apply uses
 the bounded execution profiles below. The collapsed built-in reference explains
-the original six-step Delay; SSF playback owns a separate DSP program.
+the original six-step Delay.
 
 **Copy .scspasm** / **Save .scspasm** export the current draft verbatim, including
 invalid or unapplied edits. A restored local draft is never applied automatically.
@@ -205,7 +205,7 @@ locally, returning a new `Uint16Array(512)` without RPC, rendering or mutation.
 its line / step; compilation is not accepted as a remote Worklet command.
 
 The other four methods are asynchronous owner-acknowledged calls on the same
-Synth DSP used by the GUI, independent of SSF playback. Program-only Apply
+Synth DSP used by the GUI. Program-only Apply
 retains current coefficients. An optional **complete** three-entry table uses
 the same atomic setup Apply as the GUI. Partial `setDspCoefficients()` edits
 retain history and voices; COEF1 also updates saved Feedback. Invalid requests
@@ -249,7 +249,7 @@ restoring the project never executes it automatically.
 **Copy / Save .scspasm** still export the draft source verbatim. **Save setup
 to Code** instead exports what is applied, so it remains available even when
 the draft is invalid or a different example is staged. It does not capture
-PCM, notes, oscillator/FM connections, live RAM / TEMP history or the separate SSF DSP.
+PCM, notes, oscillator/FM connections or live RAM / TEMP history.
 The generated script uses the current voices; save an instrument separately
 when its sample / voice setup also needs to be kept. Local-storage failure
 keeps the new file in Files and offers project export for recovery.
@@ -275,7 +275,6 @@ keyOn. Enable gates both Returns without discarding their requested settings.
 
 These settings belong to the DSP session. Ordinary voice presets retain their
 existing format; use **Save setup to Code** to keep the new routing and Returns.
-SSF playback owns its separate DSP and is not changed by this Synth routing.
 
 ### Signal-flow view
 
@@ -331,7 +330,6 @@ Apply before **Enable audio** changes this session's setup without creating an
 audio device. Startup transfers that acknowledged program. Stop, mode changes
 and loading voice presets retain it within the current Synth session. Reloading
 the page starts with the built-in program and restores only draft text.
-Apply targets the Synth DSP, independently of SSF playback / paused audition.
 
 ### Two-tap FIR examples
 
@@ -438,9 +436,7 @@ reload starts them at 4095. COEF1 is the existing saved Feedback field. Preset
 shape is unchanged, but negative / above-0.85 Feedback needs this newer reader.
 `.scspasm` Copy / Save exports instructions without coefficient values. Program-only
 Apply and Reset draft do not change coefficients. Example Apply
-includes its three staged values. SSF has its own DSP; these
-controls are disabled during SSF Live editing; Code DSP calls still address
-the primary Synth DSP, not the separate SSF engine.
+includes its three staged values. GUI and Code calls address the same Synth DSP.
 
 To hear a minimal edit, enable DSP return, change `EWT=1` to `EWT=0`, Check and Apply.
 The wet output disappears while direct voice output continues. Reset draft,

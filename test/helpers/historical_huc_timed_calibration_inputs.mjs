@@ -6,6 +6,7 @@
 // pinned Git cuts without replacing any earlier archived body.
 // The fixture integrity test compares every complete body to its fixed Git revision.
 import {readFileSync as readLive} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {gunzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
@@ -18,10 +19,33 @@ const root=fileURLToPath(new URL('../../',import.meta.url));
 const snapshot=JSON.parse(readLive(new URL('../../'+HUC_HISTORY_PATH,import.meta.url))),sha=b=>createHash('sha256').update(b).digest('hex');
 if(sha(JSON.stringify(snapshot))!==HUC_HISTORY_PIN||snapshot.scope!=='test-only-pre-huc6280-timed-inputs')throw Error('Invalid historical HuC6280 test input archive');
 const decoded=new Map();
+const scspHistoryCommit='68caf4b8aedfe8b4913aebc8076606e1f631d744';
+const scspHistory=new Map();
+const scspHistoricalDependencies=new Set([
+ 'docs/js/scspsynth.js',
+ 'docs/js/playground_scsp.js',
+ 'docs/js/playground_scsp_audio.js',
+ 'docs/js/playground_scsp_worklet.js',
+ 'docs/playground/playground.js',
+]);
+function readHistoricalScspInput(name){
+ if(!scspHistory.has(name)){
+  scspHistory.set(name,execFileSync('git',['show',scspHistoryCommit+':'+name],{cwd:root,maxBuffer:4*1024*1024}));
+ }
+ return Buffer.from(scspHistory.get(name));
+}
+
 export function readPreHucTimedInput(location){
  const url=location instanceof URL?location:new URL('file://'+resolve(String(location)));
  const name=relative(root,fileURLToPath(url)).replaceAll('\\','/'),entry=snapshot.sources[name];
- if(!entry)return readLive(url);
+ if(scspHistoricalDependencies.has(name))return readHistoricalScspInput(name);
+ if(!entry){
+  // Receipts for the original SCSP application can still check their inputs
+  // after SSF removal. Git supplies bytes for hashing without loading a player.
+  if(/^(?:docs\/(?:synth-scsp|generated\/ssf-player)\/|tetorica_src\/wasm\/ssf_player\/|third_party\/ssfplay\/|scripts\/(?:check_scsp_.*_browser\.cjs|build_ssf_player\.mjs|record_scsp_ssf_dsp_passive_parity\.mjs|package_itch_scsp_synth(?:\.test)?\.mjs)$)/.test(name))
+   return readHistoricalScspInput(name);
+  return readLive(url);
+ }
  if(!decoded.has(name)){
   const bytes=gunzipSync(Buffer.from(entry.gzipBase64,'base64'),{maxOutputLength:2*1024*1024});
   if(bytes.length!==entry.bytes||sha(bytes)!==entry.sha256)throw Error('Historical HuC6280 source mismatch: '+name);

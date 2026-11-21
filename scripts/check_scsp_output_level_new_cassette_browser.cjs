@@ -72,7 +72,17 @@ async function stopCode(page){await page.locator('#synthCodeStopButton').click()
 async function addFile(page,name,text){if(await page.locator('#scspFilesPanel').isHidden())await page.locator('#scspFilesToggle').click();await page.locator('#scspFilesInput').setInputFiles({name,mimeType:'text/plain',buffer:Buffer.from(text)});await until(()=>page.locator('#scspFilesTree [data-file-path="/'+name+'"]').count(),'imported '+name);}
 async function openNew(page){await menu(page,'#scspProjectNewButton');await page.locator('#scspNewCassetteDialog').waitFor({state:'visible'});assert(await page.locator('#scspNewCassetteCancel').evaluate(node=>node===document.activeElement));assert(!await page.locator('#synthMenu').evaluate(node=>node.open));}
 async function newDone(page){await page.locator('#scspNewCassetteDialog').waitFor({state:'hidden'});await until(()=>page.locator('#scspFilesStatus').textContent().then(value=>value.startsWith('New SCSP Cassette created.')),'new cassette saved');await until(()=>page.locator('#scspFilesPanel').getAttribute('aria-busy').then(value=>value==='false'),'Files unlocked');await silence(page);}
-async function loadSsf(page,bytes){const pending=page.waitForEvent('filechooser');await menu(page,'#loadSsf');await(await pending).setFiles({name:'level-original.ssf',mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});await until(()=>page.locator('#scspSongPlay').isEnabled(),'SSF loaded');}
+async function loadVgm(page,bytes){const pending=page.waitForEvent('filechooser');await menu(page,'#loadVgm');await(await pending).setFiles({name:'level-original.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});await until(()=>page.locator('#scspSongPlay').isEnabled(),'VGM loaded');}
+function repeatDemo(bytes,repeats){
+ const headerSize=256,commands=bytes.subarray(headerSize,bytes.length-1),extended=new Uint8Array(headerSize+commands.length*repeats+1);
+ extended.set(bytes.subarray(0,headerSize));
+ for(let i=0;i<repeats;i++)extended.set(commands,headerSize+i*commands.length);
+ extended[extended.length-1]=0x66;
+ const view=new DataView(extended.buffer);
+ view.setUint32(4,extended.length-4,true);
+ view.setUint32(0x18,view.getUint32(0x18,true)*repeats,true);
+ return extended;
+}
 async function exportCassette(page){const pending=page.waitForEvent('download');await menu(page,'#scspProjectExportButton');const download=await pending;return{bytes:await fs.readFile(await download.path()),name:download.suggestedFilename()};}
 async function screenshot(page,engine,label,images){await fs.mkdir(config.screenshots,{recursive:true});const file=path.join(config.screenshots,engine+'-'+label+'.png');await page.screenshot({path:file,fullPage:false});images[label]={file,sha256:sha(await fs.readFile(file))};}
 async function check(browser,engine,origin,fixture,loadCassette){
@@ -101,17 +111,14 @@ async function check(browser,engine,origin,fixture,loadCassette){
   near(measurements.codeFx.balanceToNativeRatio,.125);near(measurements.codeFx.finalToNativeRatio,.5,.04);await stopCode(page);
   checks.push('Documented Code and real liveFx half-gain retain the original .125 FX input and receive compensation exactly once after FX');
 
-  step('SSF playback and paused audition use one shared final gain');
+  step('VGM playback uses one shared final gain');
   await addFile(page,'keep-before-new.txt','Keep before New Cassette\n');await control(page,'root').fill('500');await control(page,'root').dispatchEvent('change');
-  await loadSsf(page,fixture.standalone);await page.locator('#scspSongPlay').click();await until(()=>page.locator('#scspSsfLive').getAttribute('data-active').then(value=>value==='true'),'SSF live');
-  await page.locator('[data-scsp-channel="0"]').click();measurements.ssf=[];for(const master of[.6,0,1,3.8]){await setMaster(page,master);measurements.ssf.push(await measure(page,'SSF Master '+master,{source:'song',master}));}
-  await page.locator('#scspSongPause').click();await until(()=>page.locator('#scspSongPause').textContent().then(value=>value==='Resume'),'SSF paused');await silence(page);await setMaster(page,1);
-  await page.locator('#synthInputKeyboardTab').click();await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.down(key);await until(async()=>{const value=await page.evaluate(()=>__scspOutputAudit.request({method:'readAudition',args:[]}));return value.voiceGroups.some(group=>group.held);},'paused audition held');
-  measurements.audition=await measure(page,'Paused SSF audition Master100',{master:1});await page.keyboard.up(key);await silence(page);
-  checks.push('Actual original 68000 SSF playback obeys all four Master settings through songInput; paused-keyboard audition uses the same single compensation');
+  await loadVgm(page,fixture);await page.locator('#scspSongPlay').click();await until(()=>page.locator('#scspSongPause').textContent().then(value=>value==='Pause'),'VGM playing');
+  measurements.vgm=[];for(const master of[.6,0,1,3.8]){await setMaster(page,master);measurements.vgm.push(await measure(page,'VGM Master '+master,{source:'song',master}));}
+  await setMaster(page,1);
+  checks.push('SCSP VGM playback obeys all four Master settings through songInput');
 
-  step('New Cassette cancellation preserves playing SSF, files, patch and draft');
-  await page.locator('#scspSongPause').click();await until(()=>page.locator('#scspSongPause').textContent().then(value=>value==='Pause'),'SSF resumed');
+  step('New Cassette cancellation preserves playing VGM, files, patch and draft');
   const beforeSong=await snapshot(page),songPosition=Number(await page.locator('#scspSongSeek').inputValue());await openNew(page);
   await page.locator('#scspNewCassetteCancel').click();assert.equal((await snapshot(page)).workspaceId,beforeSong.workspaceId);assert.equal(await page.locator('#scspSongPause').textContent(),'Pause');
   await until(()=>page.locator('#scspSongSeek').inputValue().then(value=>Number(value)>songPosition),'song progresses after Cancel');
@@ -125,7 +132,7 @@ async function check(browser,engine,origin,fixture,loadCassette){
   assert(!(await inspect(page)).codeActive);assert(!/Playing|Paused/.test(await page.locator('#scspSongStatus').textContent()));
   assert.equal(await page.locator('#scspFilesTree [data-file-path="/keep-before-new.txt"]').count(),0);assert.equal(await control(page,'totalLevel').inputValue(),'12');
   near(Number(await control(page,'root').inputValue()),44100/64);assert(await page.locator('[data-chip-action="scsp-apply"]').isDisabled(),'fresh project clears the old unapplied draft');
-  checks.push('Cancel/Escape preserve the playing SSF, workspace, files and unapplied waveform tuning; Create without export stops transport and commits a fresh local Cassette without autoplay');
+  checks.push('Cancel/Escape preserve the playing VGM, workspace, files and unapplied waveform tuning; Create without export stops transport and commits a fresh local Cassette without autoplay');
 
   step('running Code cancel and Export current & create preserve the old Cassette');
   await addFile(page,'preserved-notes.txt','Original user text kept by exported Cassette\n');await control(page,'totalLevel').fill('22');await control(page,'totalLevel').dispatchEvent('change');
@@ -162,7 +169,7 @@ async function check(browser,engine,origin,fixture,loadCassette){
   status:await page.locator('#status').textContent().catch(()=>null),filesStatus:await page.locator('#scspFilesStatus').textContent().catch(()=>null),codeError:await page.locator('#synthCodeError').textContent().catch(()=>null),graph:await read(page,'graph').catch(()=>null),levels:await read(page,'levels').catch(()=>null)};throw error;
  }finally{await context.close();}
 }
-(async()=>{const{createScspSsfPlaybackFixture,ssfFromProgram}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs'))),{loadPlaygroundCassette}=await import(pathToFileURL(path.join(repository,'docs/playground/playground_cassette.js')));const fixture=createScspSsfPlaybackFixture();fixture.standalone=ssfFromProgram(fixture.image,0,'title=Original output level fixture\nlength=0:45\nfade=0:00.25\n');let failure=null;
+(async()=>{const{buildScspSongDemo}=await import(pathToFileURL(path.join(repository,'docs/synth-scsp/song_source.js'))),{loadPlaygroundCassette}=await import(pathToFileURL(path.join(repository,'docs/playground/playground_cassette.js')));const fixture=repeatDemo(buildScspSongDemo(),20);let failure=null;
  try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin='http://127.0.0.1:'+server.address().port;
   for(const engine of engines){const browser=await{chromium,webkit}[engine].launch({headless:true,...engine==='chromium'?{args:['--mute-audio']}: {}});try{results.push(await check(browser,engine,origin,fixture,loadPlaygroundCassette));}catch(error){results.push(error.receipt??{browser:engine,passed:false,error:error.stack});throw error;}finally{await browser.close();}}assert.deepEqual(sourceErrors,[]);
  }catch(error){failure=error;}finally{server.closeAllConnections?.();if(server.listening)await new Promise(resolve=>server.close(resolve));}

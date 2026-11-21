@@ -6,7 +6,6 @@ const fs = require('node:fs/promises');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
-const {pathToFileURL} = require('node:url');
 const {chromium, webkit} = require('playwright');
 
 const repository = path.resolve(__dirname, '..');
@@ -169,7 +168,7 @@ await scsp.noteOn(${lane},'D4');
 liveLoop('allocation-hold',async()=>{await beat(4096);});`;
 }
 
-async function exercise(name,origin,fixture) {
+async function exercise(name,origin) {
   const browser=await({chromium,webkit}[name]).launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}: {})});
   const context=await browser.newContext({viewport:{width:1400,height:1050}}),page=await context.newPage();
   page.setDefaultTimeout(20000);
@@ -314,24 +313,6 @@ liveLoop('allocation-steal',async()=>{await beat(4096);});`;
     assert.equal((await allocation(page)).group,'');
     checks.push('Capacity stealing replaces the selected physical pair with logical Code CH14 and removes stale CH1 ownership; topology retirement clears highlights while Code continues, and Stop removes all owners');
 
-    step('SSF Live / Pause / Live off returns to the authored route area');
-    await page.locator('#ssfFileInput').setInputFiles({name:'allocation-reference.ssf',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
-    await page.locator('#scspSsfLiveEnabled').check();await page.locator('#scspSongPlay').click();
-    await page.waitForFunction(()=>document.getElementById('scspSsfLive').dataset.active==='true');
-    await selectChannel(page,1);
-    await page.locator('#scspSsfSlotRoutes').waitFor({state:'visible'});
-    assert(await page.locator('#scspSynthSlotAllocation').isHidden());
-    assert.equal((await allocation(page)).channels.filter(channel=>channel.related==='true').length,0);
-    await page.locator('#scspSongPause').click();await page.waitForFunction(()=>document.getElementById('scspSongPause').textContent==='Resume');
-    assert(await page.locator('#scspSsfSlotRoutes').isVisible());assert(await page.locator('#scspSynthSlotAllocation').isHidden());
-    await page.locator('#scspSsfLiveEnabled').uncheck();
-    await page.locator('#scspSynthSlotAllocation').waitFor({state:'visible'});
-    assert(await page.locator('#scspSsfSlotRoutes').isHidden());
-    assert.equal(await page.locator('#scspChannelTabs [data-scsp-channel]').count(),33);
-    assert.equal(await page.locator('#scspSsfSlot,#scspSsfSlots').count(),0);
-    await page.locator('#scspSongStop').click();await selectChannel(page);
-    checks.push('Existing SSF Play and Pause keep the original Live route observer; Live off returns to the authored view using the same 33-button selector');
-
     step('desktop / 390px layout and keyboard focus');
     await page.locator('#voiceMode').selectOption('fm2');await page.locator('#algorithm').selectOption('cycle2');
     await waitState(page,state=>state.config.mode==='fm2'&&state.config.fm.algorithm==='cycle2','final Cycle2 configuration accepted');
@@ -367,12 +348,10 @@ liveLoop('allocation-steal',async()=>{await beat(4096);});`;
 (async()=>{
   const started=Date.now(),results=[];let failure=null;
   await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});await fs.mkdir(config.screenshots,{recursive:true});
-  const {createScspSsfCaptureFixture}=await import(pathToFileURL(path.join(repository,'test/helpers/scsp_ssf_fixture.mjs')).href);
-  const fixture=createScspSsfCaptureFixture();
   try {
     await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
     const origin='http://127.0.0.1:'+server.address().port;
-    for(const name of engines){try{results.push(await exercise(name,origin,fixture));}catch(error){results.push(error.receipt??{browser:name,passed:false,error:error.stack});throw error;}}
+    for(const name of engines){try{results.push(await exercise(name,origin));}catch(error){results.push(error.receipt??{browser:name,passed:false,error:error.stack});throw error;}}
     assert.deepEqual(sourceErrors,[]);
     for(const [name,record]of served)assert.equal(sha(await fs.readFile(path.join(config.root,name))),record.sha256,'Source changed '+name);
   } catch(error) {failure=error;}
