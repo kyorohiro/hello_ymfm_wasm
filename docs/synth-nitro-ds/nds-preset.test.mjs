@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isNdsPresetPath, readNdsPreset, writeNdsPreset } from './nds-preset.js';
+import { createNdsCodeRuntime } from './nds-code.js';
+import { isNdsPresetPath, ndsPresetChannelSettings, readNdsPreset, writeNdsPreset } from './nds-preset.js';
 import { createNdsProject } from './nds-project.js';
+import { editNdsSound, ndsSoundPatch, restoreNdsSound, snapshotNdsSound } from './nds-sample-editor.js';
 import { makeNdsSample } from './nds-synth-api.js';
 
 const mixer = { shape: 'triangle', volume: 90, pan: 40, divider: 2, duty: 3, loop: true };
@@ -32,6 +34,60 @@ test('DS presets support built-in PCM, pulse and noise without sample payloads',
 		assert.deepEqual(readNdsPreset(writeNdsPreset(mode, sound)), { name: mode, ...sound });
 	}
 	assert.throws(() => writeNdsPreset('Bad', { ...preset('pcm8'), mode: 'noise' }), /requires PCM8/);
+});
+
+test('DS presets keep old JSON and channel patches when the keyboard controls the timer', () => {
+	const sound = { ...mixer, mode: 'pulse' };
+	const text = writeNdsPreset('Pulse', sound);
+	assert(!Object.hasOwn(JSON.parse(text), 'timer'));
+	assert.equal(writeNdsPreset('Pulse', { ...sound, timer: null }), text);
+	const record = JSON.parse(text);
+	assert.deepEqual(readNdsPreset({ ...record, timer: null }), readNdsPreset(text));
+	assert(!Object.hasOwn(ndsPresetChannelSettings({ ...sound, timer: null }), 'timer'));
+	assert(!Object.hasOwn(snapshotNdsSound({ ...sound, timer: null }), 'timer'));
+	for (const timer of [-1, 65536, 1.25, '123']) {
+		assert.throws(() => readNdsPreset({ ...record, timer }), /DS timer/);
+		assert.throws(() => writeNdsPreset('Pulse', { ...sound, timer }), /DS timer/);
+	}
+});
+
+test('DS presets preserve fixed timer overrides through sample and mixer edits', () => {
+	for (const timer of [0, 12345, 65535]) {
+		for (const mode of ['pcm8', 'pcm16', 'adpcm', 'pulse', 'noise']) {
+			const sound = ['pulse', 'noise'].includes(mode) ? { ...mixer, mode, timer } : { ...preset(mode), timer };
+			const loaded = readNdsPreset(writeNdsPreset(mode, sound));
+			const restored = restoreNdsSound(loaded);
+			assert.deepEqual(snapshotNdsSound(restored), loaded);
+			const edited = editNdsSound(editNdsSound(restored, 'volume', 30), 'loop', false);
+			const patch = ndsSoundPatch(edited);
+			assert.equal(patch.timer, timer);
+			assert.equal(patch.volume, 30);
+			assert.equal(patch.loop, false);
+			assert(!Object.hasOwn(ndsSoundPatch(editNdsSound(edited, 'timer', null)), 'timer'));
+		}
+	}
+});
+
+test('Code loadPreset configures the fixed timer and returns the channel state without triggering it', async t => {
+	const sound = { ...mixer, mode: 'noise', timer: 0 };
+	const state = { active: false, mode: 'noise', timer: 0 };
+	const calls = [];
+	const chip = {
+		async configure(channel, patch) { calls.push([channel, patch]); return state; },
+		async stopOwned() {},
+	};
+	const runtime = createNdsCodeRuntime({
+		ensureAudio: async () => ({ context: { currentTime: 0 }, chip: { forOwner: () => chip } }),
+	});
+	t.after(() => runtime.stop());
+	await runtime.run(`
+		const nds = await useSoundChip("nds");
+		const result = await nds.loadPreset(CH16, ${JSON.stringify(writeNdsPreset('Noise', sound))});
+		if (result.active || result.timer !== 0) throw new Error('Unexpected state after loadPreset');
+	`);
+	assert.deepEqual(calls, [[15, {
+		mode: 'noise', volume: 90, pan: 40, divider: 2, duty: 3, loop: true, timer: 0,
+	}]]);
 });
 
 test('DS presets reject noncanonical base64, invalid ADPCM and unsupported ranges before loading', () => {

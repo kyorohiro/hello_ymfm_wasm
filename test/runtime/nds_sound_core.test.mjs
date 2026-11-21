@@ -153,3 +153,119 @@ test('rate tracking is block-invariant at 44.1 and 48 kHz, and release differs f
 		assert.equal(full.getState(0).active, false);
 	}
 });
+
+test('Sound Capture records separate stereo mixer taps before software output headroom', () => {
+	const core = new NdsSoundCore(rate);
+	const leftSample = Buffer.alloc(16);
+	const rightSample = Buffer.alloc(16);
+	for (let offset = 0; offset < 16; offset += 2) {
+		leftSample.writeInt16LE(0x1234, offset);
+		rightSample.writeInt16LE(-0x180, offset);
+	}
+	core.configure(0, { ...allLeft, bytes: leftSample });
+	core.configure(2, { ...allLeft, bytes: rightSample, pan: 127 });
+	core.keyOn(0);
+	core.keyOn(2);
+	render(core, 4);
+
+	core.startCapture(0, { format: 'pcm16', lengthWords: 4, timer: stepPerFrame });
+	core.startCapture(1, { format: 'pcm8', lengthWords: 4, timer: stepPerFrame });
+	const mixed = render(core, 16);
+	assert(mixed.left.every(value => value === pcm16Level(0x1234)));
+	assert(mixed.right.every(value => value === pcm16Level(-0x180)));
+
+	const left = core.readCapture(0);
+	const right = core.readCapture(1);
+	assert.equal(left.timerChannel, 1);
+	assert.equal(right.timerChannel, 3);
+	assert.equal(left.active, false);
+	assert.equal(right.active, false);
+	assert.equal(left.recordedFrames, 8);
+	assert.equal(right.recordedFrames, 16);
+	assert.deepEqual(left.bytes, new Uint8Array(leftSample));
+	assert.deepEqual(right.bytes, new Uint8Array(16).fill(0xff));
+	left.bytes.fill(0);
+	assert.deepEqual(core.readCapture(0).bytes, new Uint8Array(leftSample));
+
+	core.configure(0, { ...allLeft, bytes: core.readCapture(0).bytes, loop: false });
+	core.keyOn(0);
+	assert.deepEqual([...render(core, 6).left], [0, 0, 0, ...Array(3).fill(pcm16Level(0x1234))]);
+});
+
+test('Sound Capture clips mixer peaks and handles faster timers with bounded held samples', () => {
+	const core = new NdsSoundCore(rate);
+	for (const channel of [0, 2, 4, 5]) {
+		const left = channel < 4;
+		const bytes = new Uint8Array(16).fill(left ? 0x80 : 0x7f);
+		core.configure(channel, { ...allLeft, mode: 'pcm8', bytes, pan: left ? 0 : 127 });
+		core.keyOn(channel);
+	}
+	render(core, 4);
+	const fastTimer = 65536 - 100;
+	core.startCapture(0, { format: 'pcm16', lengthWords: 1, timer: fastTimer });
+	core.startCapture(1, { format: 'pcm8', lengthWords: 1, timer: fastTimer });
+	render(core, 1);
+	assert.deepEqual([...core.readCapture(0).bytes], [0, 0x80, 0, 0x80]);
+	assert.equal(core.getCaptureState(0).active, false);
+	assert.equal(core.getCaptureState(1).recordedFrames, 3);
+	assert.equal(core.getCaptureState(1).byteLength, 0);
+	render(core, 1);
+	assert.deepEqual([...core.readCapture(1).bytes], [0x7f, 0x7f, 0x7f, 0x7f]);
+	assert.equal(core.getCaptureState(1).active, false);
+});
+
+test('Sound Capture follows its shared timer, reports retunes and exposes only complete words on Stop', () => {
+	const core = new NdsSoundCore(rate);
+	const slowTimer = 65536 - (65536 - stepPerFrame) * 2;
+	const idle = core.getCaptureState(0);
+	assert.equal(idle.format, null);
+	assert.equal(core.readCapture(0).bytes.length, 0);
+	assert.throws(() => core.startCapture(0, { format: 'pcm8', lengthWords: 65536, timer: slowTimer }), /length in words/);
+	assert.deepEqual(core.getCaptureState(0), idle);
+	assert.equal(core.getState(1).timer, idle.timer);
+	const initial = core.startCapture(0, { format: 'pcm8', lengthWords: 2, timer: stepPerFrame });
+	assert.equal(core.getState(1).timer, stepPerFrame);
+	assert.equal(initial.sampleRate, NDS_AUDIO_CLOCK / (65536 - stepPerFrame));
+	assert.throws(() => core.startCapture(0, { format: 'pcm16', lengthWords: 4, timer: slowTimer }), /active Sound Capture/);
+	assert.deepEqual(core.getCaptureState(0), initial);
+	core.configure(3, { timer: slowTimer });
+	core.startCapture(1, { format: 'pcm16', lengthWords: 4 });
+	render(core, 5);
+	assert.equal(core.getCaptureState(0).recordedFrames, 5);
+	assert.equal(core.getCaptureState(1).recordedFrames, 2);
+	core.configure(1, { timer: slowTimer });
+	render(core, 4);
+	const stopped = core.stopCapture(0);
+	assert.equal(stopped.timer, stepPerFrame);
+	assert.equal(stopped.currentTimer, slowTimer);
+	assert.equal(stopped.timerChanged, true);
+	assert.equal(stopped.recordedFrames, 7);
+	assert.equal(stopped.active, false);
+	assert.deepEqual(core.readCapture(0).bytes, new Uint8Array(4));
+	render(core, 8);
+	assert.deepEqual(core.getCaptureState(0), stopped);
+	assert.equal(core.getCaptureState(1).timerChanged, false);
+	assert.equal(core.getCaptureState(1).recordedFrames, 8);
+	assert.equal(core.getCaptureState(1).active, false);
+});
+
+test('Sound Capture has the same bytes and duration across render block sizes', () => {
+	const bytes = Uint8Array.from({ length: 64 }, (_, index) => 4 * index);
+	for (const sampleRate of [44100, 48000]) {
+		const full = new NdsSoundCore(sampleRate);
+		const split = new NdsSoundCore(sampleRate);
+		for (const core of [full, split]) {
+			core.configure(0, { ...allLeft, mode: 'pcm8', bytes, pan: 64, volume: 91 });
+			core.keyOn(0);
+			core.startCapture(0, { format: 'pcm16', lengthWords: 37, timer: 64339 });
+			core.startCapture(1, { format: 'pcm8', lengthWords: 37, timer: 64179 });
+		}
+		render(full, 747);
+		for (let start = 0; start < 747; start += 97) render(split, Math.min(97, 747 - start));
+		for (const unit of [0, 1]) {
+			assert.deepEqual(split.readCapture(unit), full.readCapture(unit));
+			assert.equal(full.getCaptureState(unit).active, false);
+			assert(full.readCapture(unit).bytes.some(value => value !== 0));
+		}
+	}
+});

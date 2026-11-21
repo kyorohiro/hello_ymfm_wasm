@@ -173,3 +173,23 @@ test('DS owner-scoped releases and live edits cannot change a replaced voice', a
 	assert.equal(await code.keyOff(0, key.token), true);
 	assert.equal((await code.getState(0)).active, false);
 });
+
+test('DS owned timer changes and key tracking reuse the held PCM sample and preserve ownership', async () => {
+	const { chip } = endpoint();
+	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
+	const { bytes } = makeNdsSample('pcm16');
+	const sample = { mode: 'pcm16', bytes, sampleRate: 32000, rootNote: 'C4', loopStartWords: 0, lengthWords: 32 };
+	const note = await keyboard.noteOn(0, 'C5', { ...sample, timer: 0 });
+	assert.equal(note.timer, 0);
+	const fixed = ndsTimerForFrequency(16000, 1).timer;
+	const changed = await keyboard.configureOwned(0, note.token, { timer: fixed });
+	assert.equal(changed.timer, fixed);
+	assert(changed.active && !changed.releasing);
+	const tracked = await keyboard.configureOwned(0, note.token, {}, 'C5');
+	assert.equal(tracked.timer, ndsTimerForFrequency(64000, 1).timer);
+	assert.equal(tracked.token, note.token);
+	assert.equal(tracked.byteLength, bytes.length);
+	const replacement = await code.noteOn(0, 'C4');
+	assert.equal(await keyboard.configureOwned(0, note.token, {}, 'C5'), false);
+	assert.equal((await code.getState(0)).timer, replacement.timer);
+});

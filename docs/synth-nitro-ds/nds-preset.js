@@ -50,6 +50,7 @@ function validateSound(sound, name, readBytes) {
 		divider: integer(sound.divider, 0, 3, 'DS volume divider'),
 		duty: integer(sound.duty, 0, 7, 'DS pulse duty'), loop: sound.loop,
 	};
+	if (sound.timer != null) result.timer = integer(sound.timer, 0, 0xffff, 'DS timer');
 	if (sound.sample == null) return result;
 	if (!SAMPLE_MODES.includes(result.mode) || typeof sound.sample !== 'object' || Array.isArray(sound.sample))
 		throw new TypeError('DS sample data requires PCM8, PCM16 or IMA-ADPCM.');
@@ -72,8 +73,9 @@ export function readNdsPreset(source) {
 }
 
 /** Convert a decoded sound into settings for one physical DS channel. */
-export function ndsPresetChannelSettings({ mode, shape, volume, pan, divider, duty, loop, sample }) {
+export function ndsPresetChannelSettings({ mode, shape, volume, pan, divider, duty, loop, timer, sample }) {
 	const settings = { mode, volume, pan, divider, duty, loop };
+	if (timer != null) settings.timer = timer;
 	if (!SAMPLE_MODES.includes(mode)) return settings;
 	if (!sample) return { ...settings, shape };
 	const { bytes, sampleRate, rootNote, loopStartWords, lengthWords } = sample;

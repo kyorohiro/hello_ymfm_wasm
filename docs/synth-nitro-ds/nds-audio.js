@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { NdsSynth } from './nds-synth-api.js';
+import { NdsSynth } from './nds-synth-api.js?v=nds-timer-1';
 
 const TIMEOUT = 12000;
 const MAX_OUTSTANDING = 256;
@@ -76,7 +76,7 @@ export async function createNdsAudio({ volume = .7, onError = () => {} } = {}) {
 		if (!context.audioWorklet) throw new Error('DS Synth requires AudioWorklet over HTTPS or localhost.');
 		await deadline(Promise.all([
 			context.resume(),
-			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-sample-1', import.meta.url)),
+			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-timer-1', import.meta.url)),
 		]), 'DS audio could not start. Check audio permission and try again.');
 		worklet = new AudioWorkletNode(context, 'tetorica-nds-synth', {
 			numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],

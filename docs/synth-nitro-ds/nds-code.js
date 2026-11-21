@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
-import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
+import { setupSynthCodeControls } from '../synth/synth_code_controls.js?v=nds-source-controls-1';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
-import { selectNdsCodeDeclarations } from './nds-code-declarations.js?v=nds-code-presets-1';
-import { ndsPresetChannelSettings, readNdsPreset } from './nds-preset.js?v=nds-2sf-audition-1';
+import { selectNdsCodeDeclarations } from './nds-code-declarations.js?v=nds-timer-1';
+import { ndsPresetChannelSettings, readNdsPreset } from './nds-preset.js?v=nds-timer-1';
 
 const extraChannels = Array.from({ length: 10 }, (_, index) => ['CH' + (index + 7), index + 6]);
 // The common Code runtime already injects the first six channels.
@@ -94,6 +94,10 @@ export function createNdsCodeRuntime({
 		noteOn: (...args) => owner.noteOn(...args),
 		noteOff: (...args) => owner.noteOff(...args),
 		getState: (...args) => owner.getState(...args),
+		startCapture: (...args) => owner.startCapture(...args),
+		getCaptureState: (...args) => owner.getCaptureState(...args),
+		stopCapture: (...args) => owner.stopCapture(...args),
+		readCapture: (...args) => owner.readCapture(...args),
 		allNotesOff: () => owner.stopOwned(),
 	};
 	return createPlaygroundCodeRuntime({

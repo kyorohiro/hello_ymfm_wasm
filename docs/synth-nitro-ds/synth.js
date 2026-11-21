@@ -5,17 +5,18 @@ import { createTwoSfPlayer } from './2sf-player.js?v=nds-2sf-audition-1';
 import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-channels-1';
 import { setupNdsChannelPicker } from './nds-channel-picker.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
-import { createNdsAudio } from './nds-audio.js?v=nds-sample-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-channels-1';
-import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-2sf-audition-1';
+import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
+import { createNdsAudio } from './nds-audio.js?v=nds-timer-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-live-controls-1';
+import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-source-controls-1';
+import { setupNdsSoundCapture } from './nds-sound-capture.js';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
-import { setupNdsFiles } from './nds-files.js?v=nds-2sf-files-1';
-import { isNdsPresetPath, ndsPresetChannelSettings } from './nds-preset.js?v=nds-2sf-audition-1';
+import { setupNdsFiles } from './nds-files.js?v=nds-workspace-1';
+import { isNdsPresetPath, ndsPresetChannelSettings } from './nds-preset.js?v=nds-timer-1';
 
 const node = (id) => document.getElementById(id);
 const song = node('songSelect'), play = node('play'), pause = node('pause'), stop = node('stop');
 const saveSong = node('saveTwoSfSong');
-const codeLayout = node('synthWorkspaceCodeButton'), synthLayout = node('synthWorkspaceSynthButton');
 const master = node('master'), position = node('position'), time = node('time');
 const status = node('status'), playbackStatus = node('playbackStatus');
 const waveform = node('waveform'), envelope = node('envelope');
@@ -329,7 +330,8 @@ for (const button of monitorButtons) button.addEventListener('click', () => {
 });
 
 const getAudio = () => audio;
-keyboard = setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, onActivity: syncMonitor, onError: report });
+keyboard = setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity: syncMonitor, onError: report });
+const capturePanel = setupNdsSoundCapture({ ensureAudio, getAudio, keyboard });
 const setStatus = message => { if (!disposing) status.textContent = message; };
 const project = createNdsProject({ starterCode: NDS_STARTER_CODE, starterFiles: NDS_STARTER_FILES });
 const projectFiles = setupNdsFiles({
@@ -345,22 +347,19 @@ const projectFiles = setupNdsFiles({
 		return keyboard.stop();
 	},
 });
+const chipTab = node('ndsChipTab');
+let expandedTabs;
+const selectChip = button => expandedTabs.showChip(button);
 code = setupNdsCode({
 	project, files: projectFiles, ensureAudio, getAudio, setStatus, onActivity: syncMonitor,
-	onExpandedChange(expanded) {
-		codeLayout?.setAttribute('aria-pressed', String(expanded));
-		synthLayout?.setAttribute('aria-pressed', String(!expanded));
-	},
+	onViewChange: mode => expandedTabs?.showInput(mode),
+	onExpandedChange: value => expandedTabs?.setExpanded(value),
 });
-codeLayout?.addEventListener('click', () => void code.controls.setExpanded(true).catch(report));
-synthLayout?.addEventListener('click', async () => {
-	try {
-		if (await code.controls.setMode('keyboard', { focusEditor: false })) {
-			await code.controls.setExpanded(false);
-			synthLayout.focus();
-		}
-	} catch (error) { report(error); }
+expandedTabs = setupSynthExpandedTabs({ codeControls: code.controls, selectChip,
+	elements: { editor: node('ndsSynthEditor'), chipTabs: [chipTab], volume: master.closest('label') },
+	getChipView: () => 'ds',
 });
+chipTab.addEventListener('click', () => selectChip(chipTab));
 void code.ready?.catch(report);
 const unwatchSavedSongs = project.savedFs.onDidChange(updateSavedSongs);
 updateSavedSongs();
@@ -435,6 +434,8 @@ window.addEventListener('pagehide', event => {
 		return;
 	}
 	disposing = true;
+	expandedTabs.dispose();
+	capturePanel.dispose();
 	keyboard.cancelSampleLoad();
 	unwatchSavedSongs();
 	unwatchSavedSounds();

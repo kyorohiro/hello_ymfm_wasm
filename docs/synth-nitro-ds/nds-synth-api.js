@@ -3,7 +3,7 @@ import { noteToHz } from '../js/soundchip_pitch.js';
 import { NDS_AUDIO_CLOCK, NDS_ADPCM_STEPS, NDS_ADPCM_INDEX_DELTAS, ndsAdpcmDelta } from './nds-core.js';
 
 const PCM_MODES = new Set(['pcm8', 'pcm16', 'adpcm']);
-const CYCLE_FRAMES = 64;
+export const NDS_SOFTWARE_WAVE_FRAMES = 64;
 const WAVE_SHAPE = {
 	sine: (phase) => Math.sin(phase * Math.PI * 2),
 	triangle: (phase) => 1 - 4 * Math.abs(phase - .5),
@@ -41,8 +41,8 @@ function encodeWaveAdpcm(wave) {
 export function makeNdsSample(mode, shape = 'sine') {
 	if (!PCM_MODES.has(mode)) throw new RangeError('Choose PCM8, PCM16 or IMA ADPCM sample data.');
 	if (!Object.hasOwn(WAVE_SHAPE, shape)) throw new RangeError('Unknown DS software waveform.');
-	const wave = Int16Array.from({ length: CYCLE_FRAMES }, (_, frame) =>
-		Math.round(WAVE_SHAPE[shape](frame / CYCLE_FRAMES) * 20480));
+	const wave = Int16Array.from({ length: NDS_SOFTWARE_WAVE_FRAMES }, (_, frame) =>
+		Math.round(WAVE_SHAPE[shape](frame / NDS_SOFTWARE_WAVE_FRAMES) * 20480));
 	let bytes;
 	if (mode === 'pcm8') bytes = Uint8Array.from(wave, (value) => Math.round(value / 256) & 0xff);
 	else if (mode === 'pcm16') {
@@ -107,8 +107,10 @@ export class NdsSynth {
 	async configure(channel, patch) {
 		return this.#request('configure', [channel, patch]);
 	}
-	async configureOwned(channel, token, patch) {
-		return this.#request('configureOwned', [channel, this.#owner, token, patch]);
+	async configureOwned(channel, token, patch, note) {
+		const args = [channel, this.#owner, token, patch];
+		if (note !== undefined) args.push(noteToHz(note));
+		return this.#request('configureOwned', args);
 	}
 	async setNote(channel, note) {
 		return this.setFrequency(channel, noteToHz(note));
@@ -120,6 +122,18 @@ export class NdsSynth {
 	}
 	async getState(channel) {
 		return this.#request('getState', [channel]);
+	}
+	async startCapture(unit, settings) {
+		return this.#request('startCapture', [unit, settings]);
+	}
+	async getCaptureState(unit) {
+		return this.#request('getCaptureState', [unit]);
+	}
+	async stopCapture(unit) {
+		return this.#request('stopCapture', [unit]);
+	}
+	async readCapture(unit) {
+		return this.#request('readCapture', [unit]);
 	}
 	async stopOwned() {
 		return this.#request('stopOwned', [this.#owner]);

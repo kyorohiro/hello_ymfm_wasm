@@ -1,17 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { midiToNoteName } from '../synth/synth_keyboard.js';
+import { noteToHz } from '../js/soundchip_pitch.js';
+import { makeNdsSample } from './nds-synth-api.js?v=nds-timer-1';
 import { encodeNdsSample, normalizeNdsSampleRange, readNdsSample, readNdsSampleRange, readNdsWav, NDS_MAX_WAV_BYTES } from './nds-sample.js?v=nds-2sf-audition-1';
-import { ndsPresetChannelSettings } from './nds-preset.js?v=nds-2sf-audition-1';
+import { ndsPresetChannelSettings } from './nds-preset.js?v=nds-timer-1';
 
 export const isNdsSampleMode = mode => mode === 'pcm8' || mode === 'pcm16' || mode === 'adpcm';
-const formatNames = { pcm8: 'PCM8', pcm16: 'PCM16', adpcm: 'IMA-ADPCM' };
+const sampleFormats = {
+	pcm8: { name: 'PCM8', encoding: '8-bit signed PCM' },
+	pcm16: { name: 'PCM16', encoding: '16-bit signed PCM' },
+	adpcm: { name: 'IMA-ADPCM', encoding: '4-bit codes · 4-byte header' },
+};
 
 export function ndsSoundPatch(sound) {
 	return ndsPresetChannelSettings(snapshotNdsSound(sound));
 }
 
-export function snapshotNdsSound({ name, mode, shape, volume, pan, divider, duty, loop, sample }) {
+export function snapshotNdsSound({ name, mode, shape, volume, pan, divider, duty, loop, timer, sample }) {
 	const preset = { name, mode, shape, volume, pan, divider, duty, loop };
+	if (timer != null) preset.timer = timer;
 	if (!isNdsSampleMode(mode) || !sample) return preset;
 	const { asset, rootNote, range: { loopStartWords, lengthWords } } = sample;
 	return { ...preset, sample: { bytes: asset.bytes, sampleRate: asset.sampleRate, rootNote, loopStartWords, lengthWords } };
@@ -37,14 +44,53 @@ export function editNdsSound(sound, key, value) {
 export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError }) {
 	const node = id => document.getElementById(id);
 	const panel = node('ndsSampleEditor'), wavInput = node('ndsWavInput'), load = node('ndsLoadWav');
+	const rangeFields = node('ndsSampleRangeFields'), title = node('ndsSampleTitle');
+	const info = node('ndsSampleInfo'), status = node('ndsSampleStatus');
 	const useBuiltin = node('ndsUseBuiltin'), root = node('ndsSampleRoot'), start = node('ndsSampleStart'), end = node('ndsSampleEnd');
 	const canvas = node('ndsSampleCanvas'), context = canvas.getContext('2d');
 	const width = canvas.width, height = canvas.height;
+	const builtinAssets = new Map();
 	let request = 0, peaks, cachedSample = null, drag = null;
+	let drawnAsset, drawnRange, drawnLoop;
+	const y = value => height * (.5 - value * .43);
 
-	function draw(sample, repeat) {
-		if (!context) return;
-		const { asset, range } = sample;
+	function builtinAsset(mode, shape) {
+		const key = `${mode}:${shape}`;
+		if (!builtinAssets.has(key)) {
+			const { bytes, frames } = makeNdsSample(mode, shape);
+			builtinAssets.set(key, readNdsSample(bytes, frames * noteToHz('C4'), mode));
+		}
+		return builtinAssets.get(key);
+	}
+
+	function draw(asset, range, repeat) {
+		if (!context || (asset === drawnAsset && range === drawnRange && repeat === drawnLoop)) return;
+		drawnAsset = asset;
+		drawnRange = range;
+		drawnLoop = repeat;
+		context.fillStyle = '#191b26';
+		context.fillRect(0, 0, width, height);
+		const sx = width * (range?.startFrame ?? 0) / asset.frames;
+		const ex = width * (range?.endFrame ?? asset.frames) / asset.frames;
+		if (range) {
+			context.fillStyle = repeat ? '#9c42565c' : '#5b516a52';
+			context.fillRect(repeat ? sx : 0, 0, repeat ? ex - sx : ex, height);
+		}
+		context.strokeStyle = '#56536a';
+		context.beginPath(); context.moveTo(0, height / 2); context.lineTo(width, height / 2); context.stroke();
+		context.strokeStyle = '#ed9ebb';
+		context.beginPath();
+		if (!range) {
+			const step = width / asset.frames;
+			context.moveTo(0, y(asset.pcm[0]));
+			for (let frame = 0; frame < asset.frames; frame++) {
+				const level = y(asset.pcm[frame]);
+				context.lineTo(frame * step, level);
+				context.lineTo((frame + 1) * step, level);
+			}
+			context.stroke();
+			return;
+		}
 		if (cachedSample !== asset) {
 			cachedSample = asset;
 			peaks = new Float32Array(width * 2);
@@ -59,16 +105,6 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 				peaks[x * 2] = lo; peaks[x * 2 + 1] = hi;
 			}
 		}
-		const sx = width * range.startFrame / asset.frames, ex = width * range.endFrame / asset.frames;
-		context.fillStyle = '#191b26';
-		context.fillRect(0, 0, width, height);
-		context.fillStyle = repeat ? '#9c42565c' : '#5b516a52';
-		context.fillRect(repeat ? sx : 0, 0, repeat ? ex - sx : ex, height);
-		context.strokeStyle = '#56536a';
-		context.beginPath(); context.moveTo(0, height / 2); context.lineTo(width, height / 2); context.stroke();
-		const y = v => height * (.5 - v * .43);
-		context.strokeStyle = '#ed9ebb';
-		context.beginPath();
 		for (let x = 0; x < width; x++) {
 			const high = y(peaks[x * 2 + 1]), low = y(peaks[x * 2]);
 			context.moveTo(x + .5, high); context.lineTo(x + .5, Math.max(high + 1, low));
@@ -82,10 +118,24 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 
 	function render() {
 		const sound = getSound();
-		const sample = isNdsSampleMode(sound.mode) ? sound.sample : null;
-		panel.hidden = useBuiltin.hidden = !sample;
-		if (!sample) return;
-		const { asset, rootNote, range } = sample;
+		const sampleMode = isNdsSampleMode(sound.mode), sample = sampleMode ? sound.sample : null;
+		panel.hidden = load.hidden = !sampleMode;
+		useBuiltin.hidden = rangeFields.hidden = !sample;
+		if (!sampleMode) return;
+		panel.dataset.editable = String(Boolean(sample));
+		const asset = sample?.asset ?? builtinAsset(sound.mode, sound.shape);
+		const { name, encoding } = sampleFormats[asset.mode];
+		title.textContent = `${name} waveform`;
+		canvas.setAttribute('aria-label', sample ? `Decoded ${name} waveform and loop range` : `Decoded ${name} built-in sample waveform`);
+		const source = sample ? sound.name : 'Built-in waveform';
+		const rate = sample ? ` · ${asset.sampleRate.toLocaleString()} Hz` : '';
+		info.textContent = `${source ? `${source} · ` : ''}${encoding}${rate} · ${asset.frames.toLocaleString()} frames · ${asset.bytes.length.toLocaleString()} bytes · ${asset.framesPerWord} frames/word`;
+		if (!sample) {
+			status.textContent = 'Applies on the next note.';
+			draw(asset, null, sound.loop);
+			return;
+		}
+		const { rootNote, range } = sample;
 		root.value = rootNote;
 		node('ndsSampleRootName').value = midiToNoteName(rootNote);
 		start.value = range.startFrame; end.value = range.endFrame;
@@ -93,10 +143,8 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		start.max = Math.min(range.endFrame - asset.framesPerWord, (65535 - asset.headerWords) * asset.framesPerWord);
 		end.min = range.startFrame + asset.framesPerWord;
 		end.max = asset.frames;
-		const title = sound.name ? `${sound.name} · ` : '';
-		node('ndsSampleInfo').textContent = `${title}${formatNames[asset.mode]} · ${asset.sampleRate.toLocaleString()} Hz · ${asset.frames.toLocaleString()} frames · ${asset.framesPerWord} frames/word`;
-		node('ndsSampleStatus').textContent = `${sound.loop ? 'Repeat' : 'One shot'} · PNT ${range.loopStartWords} · LEN ${range.lengthWords} words. Changes apply on the next note.`;
-		draw(sample, sound.loop);
+		status.textContent = `${sound.loop ? 'Repeat' : 'One shot'} · PNT ${range.loopStartWords} · LEN ${range.lengthWords} words. Changes apply on the next note.`;
+		draw(asset, range, sound.loop);
 	}
 
 	function changeRange(key, frame) {

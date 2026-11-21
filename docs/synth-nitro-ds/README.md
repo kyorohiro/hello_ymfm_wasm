@@ -12,12 +12,22 @@ CH15–CH16. Code names CH1–CH16 correspond to hardware channels 0–15.
 The CPU-free AudioWorklet runs original BSD-3-Clause JavaScript. The voice
 settings follow the DS timer, volume, pan, pulse, and word-addressed sample
 controls. Sine, Triangle, Saw and Square are built-in software samples.
+The sample preview decodes the selected PCM16, PCM8 or IMA-ADPCM data and
+shows its size. Pulse shows its duty control. Noise shows its generator and
+clock, while PCM sample controls appear in the three sample modes.
 Changing source, shape or repeat applies on the next note. Volume, pan,
-divider and pulse duty can change while a keyboard note is held. The DS
-noise timer changes the rate of the noise generator.
+divider and pulse duty can change while a keyboard note is held.
 [DS sound-channel reference](https://mgba-emu.github.io/gbatek/#ds-sound-channels-015)
 
-Under **Code**, use **Run**, **Apply** and **Stop** with the locally retained
+**Key tracking · Software** maps keyboard notes to the chip timer. In Noise
+mode C4 maps to 4 kHz, and one octave doubles or halves the clock.
+Drag the **PCM playback rate**, **Pulse frequency** or **Noise clock** slider
+to set a manual rate while holding a key. You can also enter a rate in Hz.
+The readout shows the actual rate and the hexadecimal timer value. Check
+**Key tracking** again to resume tracking on held notes. The **Volume divider**
+buttons and **Pulse duty** slider also work on held notes.
+
+In the **Code** tab, use **Run**, **Apply** and **Stop** with the locally retained
 `index.js`. Keyboard and Code use the same physical channels. The most recent
 attack takes the channel, and releasing the older note leaves its replacement
 playing. Code continues to play when you switch to the Keyboard tab.
@@ -52,7 +62,8 @@ codes. Format, tuning and range changes apply on the next note. Each converted
 sample can use up to 1 MiB of encoded data.
 
 **Save sound as…** writes a `.nds.json` file in `presets/`. It includes the
-exact encoded sample, source rate, root note, loop points and channel controls.
+exact encoded sample, source rate, root note, loop points and channel controls,
+including the timer value when using a manual rate.
 To recall it, choose **Saved sounds** or select the file in **Files**. Export a
 Cassette to keep the saved sound with its Code. After importing the Cassette,
 choose the sound again to play it.
@@ -70,19 +81,59 @@ await nds.noteOff(CH1);
 ```
 
 `loadPreset()` accepts JSON text or a parsed DS preset. `file()` reads the saved
-version of the file when Auto apply is off.
+version of the file when Auto apply is off. To play with the loaded fixed timer,
+call `await nds.keyOn(CH1)` after `loadPreset()`.
 
 In Code, pass `sampleRate` and `rootNote` together with encoded sample bytes
 to `nds.configure()` or `nds.noteOn()` for source-rate tuning. Loop length is
 independent of tuning for these samples.
 
+## Sound Capture
+
+Open **Sound Capture** in the Synth. Unit 0 records the left mixer and shares
+the CH2 timer. Unit 1 records the right mixer and shares the CH4 timer.
+Choose PCM8 or PCM16, enter a rate and a length in four-byte words, and press
+**Record** while playing the Synth. **Stop** keeps the complete words recorded
+so far. **Load as sample** puts the mono take into the current Synth sound as
+a one-shot, with C4 at the starting capture rate. Use **Save sound as…** to keep
+it in the Cassette.
+
+Capture reads the Synth mixer before Master. A new take applies the selected
+rate to the shared channel timer. A later write to that timer changes the rate
+during recording, and the panel flags the change. For a fixed-rate take, play
+on a channel other than the capture unit's timer channel. This preview samples
+the mixer at the browser's audio render rate and holds its value between
+rendered samples. [DS capture circuit](https://mgba-emu.github.io/gbatek/#ds-sound-capture)
+
+```js
+const nds = await useSoundChip("nds");
+setBpm(120);
+const timer = 65536 - Math.round(16756991 / 16000);
+await nds.noteOn(CH1, "A3", { mode: "pcm16", shape: "triangle", pan: 0 });
+await nds.startCapture(0, { format: "pcm16", lengthWords: 1600, timer });
+await beat(0.5);
+await nds.stopCapture(0);
+await nds.noteOff(CH1);
+const take = await nds.readCapture(0);
+if (take.format && take.bytes.length >= 16) {
+  await nds.noteOn(CH5, "C4", {
+    mode: take.format, bytes: take.bytes, sampleRate: take.sampleRate,
+    rootNote: 60, loop: false,
+  });
+}
+```
+
 ## Files and Cassette
 
 Open **Files** to select `index.js`, browse the scripts in `examples/`, or add
-your own files. Right-click a file or folder to duplicate, rename, delete or
-create an item. Selecting a file keeps the current Keyboard or Code view.
-The **Code / Synth** buttons beside **Files** switch between the larger
-editor and the keyboard layout while keeping Code playback running.
+your own files. Files sits to the left of the workspace on wide screens and
+above it on narrow screens. Right-click a file or folder to duplicate, rename,
+delete or create an item.
+
+The **Code** button beside **Files** opens the expanded workspace with
+**Code**, **DS** and **Keyboard** tabs. **DS** shows the channel controls and
+sound editor. **Synth** restores the standard layout with its Code or Keyboard
+panel below the sound editor. Layout and tab changes keep Code playback running.
 
 **Auto apply** is on by default. When it is off, a dot marks working changes.
 Use **Save** (Ctrl/Cmd+S) or **Save all** to make them available to Run and
@@ -103,7 +154,8 @@ core from SkyEmu. Import an album with **Menu → Import → 2SF folder…**. Us
 **2SF / mini2SF files…** for a standalone track or a song and its libraries
 from the same directory. Choose a song, then press **Play song**. The same
 transport provides **Pause / Resume** and **Stop**, with a waveform display
-and Master control. Importing a set adds its songs for the current session.
+and Master control. **Reference playback** can be collapsed in either layout.
+Importing a set adds its songs for the current session.
 If a new song cannot start, the previous session remains available.
 
 **Save song to Files** keeps the selected song and its required libraries as

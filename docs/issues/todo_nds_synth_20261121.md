@@ -66,8 +66,9 @@ register documentation. The existing SkyEmu player remains the song source.
 - [x] Share one channel button row across Synth and 2SF views, add the
       Code/Synth workspace switch, and preserve performance keys through
       focused parameter selects.
-- [x] Add Files/Cassette and New/Import/Export. Keep the Code workspace
-      expanded when switching between Keyboard and Code.
+- [x] Add Files/Cassette and New/Import/Export. Align Files beside the Synth
+      and use the shared expanded Code / DS / Keyboard tabs. Keep the 2SF
+      transport and Master available in either layout.
       Keep authored files and their saved versions together in the Cassette.
       Seed `index.js` and `examples/`, and migrate the previous local Code edit.
       The 2SF picker stays available for loading the source collection.
@@ -82,11 +83,15 @@ register documentation. The existing SkyEmu player remains the song source.
       the same sample, loop and tuning through `file()`, `loadPreset()` and
       `noteOn()` after a Cassette round trip in Chromium and WebKit.
 - [ ] Explain hardware controls separately from driver/software ADSR, modulation,
-      allocation and software release smoothing. Show the hardware timer as PCM
-      playback rate, pulse frequency or noise clock, with a fixed-rate option.
-- [ ] Add the DS sound capture circuit. Start with left/right mixer capture to
-      word-aligned PCM8/PCM16 buffers and playable sample reuse. Follow the
-      capture timers shared with hardware channels 1/3 (UI CH2/CH4).
+      allocation and software release smoothing.
+- [x] Show the hardware timer as PCM playback rate, Pulse frequency or Noise
+      clock. Label keyboard tracking as software and use a 4 kHz Noise clock
+      at C4. Support live rate, volume divider and pulse duty controls during
+      held notes, and store manual rates in sound presets.
+- [x] Add one-shot DS Sound Capture from the left/right mixer to word-aligned
+      PCM8/PCM16 buffers. Follow the shared hardware CH1/CH3 timers (UI CH2/CH4).
+      Expose both units in Code and load takes as editable samples in the Synth.
+      The capture clock samples the mix at host render cadence.
 - [x] Add direct JavaScript sound-core operations, declarations/completion,
       readable examples and Run/Apply/Stop. Timed-operation APIs are not an
       automatic prerequisite for the first DS prototype.

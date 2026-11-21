@@ -21,7 +21,8 @@ export function setupSynthExpandedTabs({codeControls,selectChip,elements={},getC
   heading.className='synth-expanded-heading';
   const oldLabel=tablist.getAttribute('aria-label'),oldHeadingHidden=inputHeading.hidden;
   const anchors=new Map();
-  const movable=[tablist,codeTab,keyboardTab,expand,transport,...(volumeSlot&&volume?[volume]:[])];
+  const sharedTransport=transport.dataset.codeTransport!=='panel';
+  const movable=[tablist,codeTab,keyboardTab,expand,...(sharedTransport?[transport]:[]),...(volumeSlot&&volume?[volume]:[])];
   for(const node of movable) {
     const anchor=document.createComment('Expanded workspace control');
     node.parentNode.insertBefore(anchor,node);anchors.set(node,anchor);
@@ -59,7 +60,8 @@ export function setupSynthExpandedTabs({codeControls,selectChip,elements={},getC
       currentView=codeControls.isCodeMode()?'code':'keyboard';
       tablist.insertBefore(codeTab,tablist.firstChild);tablist.append(keyboardTab);
       tablist.setAttribute('aria-label','Synth workspace');
-      heading.append(tablist,expand);slot.append(heading,transport);
+      heading.append(tablist,expand);slot.append(heading);
+      if(sharedTransport)slot.append(transport);
       if(volumeSlot&&volume){volumeSlot.append(volume);volumeSlot.hidden=false;}
       inputHeading.hidden=true;slot.hidden=false;
       update();

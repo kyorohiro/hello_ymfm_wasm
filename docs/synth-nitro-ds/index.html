@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-channel-picker-1" />
-		<script type="module" src="synth.js?v=nds-channel-picker-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-live-controls-1" />
+		<script type="module" src="synth.js?v=nds-live-controls-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -43,127 +43,218 @@
 				<button id="stopAll" type="button" aria-label="Stop all sound">Stop all sound</button>
 				<button id="ndsFilesToggle" type="button" aria-expanded="false" aria-controls="ndsFilesPanel">Files</button>
 				<div class="nds-workspace-switch" role="group" aria-label="Workspace layout">
-					<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot">Code</button>
-					<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="synthInputSection">Synth</button>
+					<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedTabsSlot synthExpandedCodeSlot" title="Open Code beside Files">Code</button>
+					<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="ndsSynthEditor" title="Restore the Synth layout without stopping Code">Synth</button>
 				</div>
-				<p id="status" role="status">Import a 2SF folder or select the song and its library together.</p>
 			</div>
-			<section class="reference" aria-labelledby="referenceTitle">
-				<h2 id="referenceTitle">Reference playback</h2>
-				<div class="transport">
-					<div class="song-picker">
-						<label class="song">Song
-							<select id="songSelect" disabled><option value="">Import a 2SF set…</option></select>
-						</label>
-						<button id="saveTwoSfSong" type="button" disabled>Save song to Files</button>
+			<div id="synthWorkspace" class="workspace">
+				<div class="workspace-meta">
+					<div class="workspace-status">
+						<p id="status" role="status">Import a 2SF folder or select the song and its library together.</p>
+						<div id="synthExpandedVolumeSlot" hidden></div>
 					</div>
-					<button id="play" type="button" disabled>Play song</button>
-					<button id="pause" type="button" disabled>Pause</button>
-					<button id="stop" type="button" disabled>Stop</button>
-				</div>
-				<div class="playback">
-					<span id="playbackStatus" role="status">Stopped</span>
-					<progress id="position" max="1" value="0" aria-label="Playback position"></progress>
-					<span id="time">0:00</span>
-				</div>
-				<div id="ndsChannelPicker" class="nds-channel-picker" aria-label="View and keyboard" role="group">
-					<div class="nds-channel-views" role="group" aria-label="View">
-						<span>View / keyboard</span>
-						<button id="ndsSynthView" type="button" aria-pressed="true">Synth</button>
-						<button id="ndsReferenceView" type="button" aria-pressed="false" disabled>2SF</button>
-					</div>
-					<div id="ndsChannelButtons" class="nds-channel-buttons" role="group" aria-label="Channel"></div>
-				</div>
-				<div id="twoSfLivePanel" class="two-sf-live" role="group" aria-label="2SF channel monitor" hidden>
-					<label><input id="twoSfLiveEnabled" type="checkbox" checked /> Live view</label>
-					<span id="twoSfLiveStatus">No song playing</span>
-					<dl id="twoSfLiveDetails" hidden>
-						<div><dt>Voice</dt><dd id="twoSfLiveActive"></dd></div>
-						<div><dt>Format</dt><dd id="twoSfLiveFormat"></dd></div>
-						<div><dt title="Hardware volume code, 0–127">Volume</dt><dd id="twoSfLiveVolume"></dd></div>
-						<div><dt title="0 left, 127 right">Pan</dt><dd id="twoSfLivePan"></dd></div>
-						<div><dt id="twoSfLiveRateLabel">Sample rate</dt><dd id="twoSfLiveRate"></dd></div>
-					</dl>
-				</div>
-				<div id="twoSfAuditionTools" class="two-sf-audition" role="group" aria-label="Paused 2SF audition" hidden>
-					<label>Reference key
-						<select id="twoSfAuditionReference" title="Play this key at the channel’s original rate" disabled>
-							<option value="36">C2</option>
-							<option value="48">C3</option>
-							<option value="60" selected>C4</option>
-							<option value="72">C5</option>
-							<option value="84">C6</option>
-						</select>
-					</label>
-					<button id="twoSfCapture" type="button" disabled>Capture to Synth</button>
-					<span id="twoSfAuditionStatus" role="status"></span>
-				</div>
-			</section>
-			<section class="monitor" aria-label="Output monitor">
-				<div class="monitor-bar">
-					<div class="monitor-modes" role="group" aria-label="Output display">
-						<button type="button" data-monitor="envelope" aria-pressed="false">Envelope</button>
-						<button type="button" data-monitor="waveform" aria-pressed="true">Waveform</button>
-						<button type="button" data-monitor="spectrum" aria-pressed="false">Spectrum</button>
-					</div>
-					<label class="master">Master <input id="master" type="range" min="0" max="380" value="70" />
-						<output id="masterValue" for="master">70%</output>
-					</label>
-				</div>
-				<canvas id="waveform" class="monitor-canvas" width="960" height="180" aria-label="Output waveform"></canvas>
-				<canvas id="envelope" class="monitor-canvas" width="960" height="180" aria-label="Output level history" hidden></canvas>
-				<p id="monitorSource" class="monitor-source">Monitoring Synth</p>
-			</section>
-			<section id="ndsInstrument" class="instrument" aria-labelledby="instrumentTitle">
-				<div class="instrument-heading">
-					<h2 id="instrumentTitle">Synth instrument</h2>
-					<details class="sound-help">
-						<summary aria-label="About DS channels">?</summary>
-						<p>All 16 channels play PCM8, PCM16 and IMA-ADPCM. Physical CH9–CH14 also generate pulse waveforms and CH15–CH16 generate noise. Code uses CH1–CH16 for hardware channels 0–15.</p>
-						<p>Auto allocates compatible channels. Changing the sample, mode or loop applies on the next note. Volume, pan and pulse duty can change on held keyboard notes. The keyboard smooths release in software.</p>
-						<p>In the 2SF view, pause the song to audition the selected channel on the keyboard. Choose Synth to play the edited instrument.</p>
+					<details class="reference" open>
+						<summary id="referenceTitle">Reference playback</summary>
+						<div class="transport">
+							<div class="song-picker">
+								<label class="song">Song
+									<select id="songSelect" disabled><option value="">Import a 2SF set…</option></select>
+								</label>
+								<button id="saveTwoSfSong" type="button" disabled>Save song to Files</button>
+							</div>
+							<button id="play" type="button" disabled>Play song</button>
+							<button id="pause" type="button" disabled>Pause</button>
+							<button id="stop" type="button" disabled>Stop</button>
+						</div>
+						<div class="playback">
+							<span id="playbackStatus" role="status">Stopped</span>
+							<progress id="position" max="1" value="0" aria-label="Playback position"></progress>
+							<span id="time">0:00</span>
+						</div>
 					</details>
 				</div>
-				<div class="hardware-fields">
-					<label>Sound source <select id="ndsMode">
-						<option value="pcm16">PCM16</option><option value="pcm8">PCM8</option>
-						<option value="adpcm">IMA-ADPCM</option><option value="pulse">PSG pulse</option><option value="noise">Noise</option>
-					</select></label>
-					<label>Built-in wave <select id="ndsShape">
-						<option value="sine">Sine</option><option value="triangle">Triangle</option>
-						<option value="saw">Saw</option><option value="square">Square</option>
-					</select></label>
-					<label>Pulse duty <select id="ndsDuty">
-						<option value="0">12.5%</option><option value="1">25%</option><option value="2">37.5%</option>
-						<option value="3">50%</option><option value="4">62.5%</option><option value="5">75%</option>
-						<option value="6">87.5%</option><option value="7">Constant low</option>
-					</select></label>
-					<label>Volume <span class="field-range"><input id="ndsVolume" type="range" min="0" max="127" value="96" /><output id="ndsVolumeValue" for="ndsVolume">96</output></span></label>
-					<label>Pan <span class="field-range"><input id="ndsPan" type="range" min="0" max="127" value="64" /><output id="ndsPanValue" for="ndsPan">64</output></span></label>
-					<label>Volume divider <select id="ndsDivider">
-						<option value="0">÷1</option><option value="1">÷2</option><option value="2">÷4</option><option value="3">÷16</option>
-					</select></label>
-					<label class="loop-control"><input id="ndsLoop" type="checkbox" checked /> Repeat sample</label>
-				</div>
-				<div class="sample-actions">
-					<button id="ndsLoadWav" type="button">Load WAV…</button>
-					<button id="ndsUseBuiltin" type="button" hidden>Use built-in wave</button>
-					<input id="ndsWavInput" type="file" accept=".wav,.wave,audio/wav,audio/wave,audio/x-wav" hidden />
-					<label class="preset-choice">Saved sounds <select id="ndsSavedSounds" disabled><option value="">No saved sounds</option></select></label>
-					<button id="ndsSaveSound" type="button">Save sound as…</button>
-				</div>
-				<section id="ndsSampleEditor" class="sample-editor" aria-labelledby="ndsSampleTitle" hidden>
-					<div class="sample-heading"><h2 id="ndsSampleTitle">Sample waveform</h2><span id="ndsSampleInfo"></span></div>
-					<canvas id="ndsSampleCanvas" width="960" height="144" aria-label="Sample waveform and loop range"></canvas>
-					<div class="sample-fields">
-						<label>Root note · MIDI <input id="ndsSampleRoot" type="number" min="0" max="127" step="1" value="60" /><output id="ndsSampleRootName">C4</output></label>
-						<label>Loop start · frame <input id="ndsSampleStart" type="number" min="0" step="1" value="0" /></label>
-						<label>End · frame <input id="ndsSampleEnd" type="number" min="1" step="1" value="1" /></label>
+				<aside id="ndsFilesPanel" aria-label="Project files" hidden></aside>
+				<div class="workspace-main">
+					<div id="synthExpandedTabsSlot" hidden></div>
+					<div id="ndsSynthEditor">
+						<div class="performance-tabs nds-chip-tabs" role="tablist" aria-label="Sound chip">
+							<button id="ndsChipTab" type="button" role="tab" aria-selected="true" aria-controls="ndsChipPanel">DS</button>
+						</div>
+						<div id="ndsChipPanel" role="tabpanel" aria-labelledby="ndsChipTab">
+							<section class="nds-channel-section" aria-label="DS channels">
+								<div id="ndsChannelPicker" class="nds-channel-picker" aria-label="View and keyboard" role="group">
+									<div class="nds-channel-views" role="group" aria-label="View">
+										<span>View / keyboard</span>
+										<button id="ndsSynthView" type="button" aria-pressed="true">Synth</button>
+										<button id="ndsReferenceView" type="button" aria-pressed="false" disabled>2SF</button>
+									</div>
+									<div id="ndsChannelButtons" class="nds-channel-buttons" role="group" aria-label="Channel"></div>
+								</div>
+								<div id="twoSfLivePanel" class="two-sf-live" role="group" aria-label="2SF channel monitor" hidden>
+									<label><input id="twoSfLiveEnabled" type="checkbox" checked /> Live view</label>
+									<span id="twoSfLiveStatus">No song playing</span>
+									<dl id="twoSfLiveDetails" hidden>
+										<div><dt>Voice</dt><dd id="twoSfLiveActive"></dd></div>
+										<div><dt>Format</dt><dd id="twoSfLiveFormat"></dd></div>
+										<div><dt title="Hardware volume code, 0–127">Volume</dt><dd id="twoSfLiveVolume"></dd></div>
+										<div><dt title="0 left, 127 right">Pan</dt><dd id="twoSfLivePan"></dd></div>
+										<div><dt id="twoSfLiveRateLabel">Sample rate</dt><dd id="twoSfLiveRate"></dd></div>
+									</dl>
+								</div>
+								<div id="twoSfAuditionTools" class="two-sf-audition" role="group" aria-label="Paused 2SF audition" hidden>
+									<label>Reference key
+										<select id="twoSfAuditionReference" title="Play this key at the channel’s original rate" disabled>
+											<option value="36">C2</option>
+											<option value="48">C3</option>
+											<option value="60" selected>C4</option>
+											<option value="72">C5</option>
+											<option value="84">C6</option>
+										</select>
+									</label>
+									<button id="twoSfCapture" type="button" disabled>Capture to Synth</button>
+									<span id="twoSfAuditionStatus" role="status"></span>
+								</div>
+							</section>
+							<section class="monitor" aria-label="Output monitor">
+								<div class="monitor-bar">
+									<div class="monitor-modes" role="group" aria-label="Output display">
+										<button type="button" data-monitor="envelope" aria-pressed="false">Envelope</button>
+										<button type="button" data-monitor="waveform" aria-pressed="true">Waveform</button>
+										<button type="button" data-monitor="spectrum" aria-pressed="false">Spectrum</button>
+									</div>
+									<label class="master">Master <input id="master" type="range" min="0" max="380" value="70" />
+										<output id="masterValue" for="master">70%</output>
+									</label>
+								</div>
+								<canvas id="waveform" class="monitor-canvas" width="960" height="180" aria-label="Output waveform"></canvas>
+								<canvas id="envelope" class="monitor-canvas" width="960" height="180" aria-label="Output level history" hidden></canvas>
+								<p id="monitorSource" class="monitor-source">Monitoring Synth</p>
+							</section>
+							<section id="ndsInstrument" class="instrument" aria-labelledby="instrumentTitle">
+								<div class="instrument-heading">
+									<h2 id="instrumentTitle">Synth instrument</h2>
+									<details class="sound-help">
+										<summary aria-label="About DS channels">?</summary>
+										<p>All 16 channels play PCM8, PCM16 and IMA-ADPCM. Physical CH9–CH14 also generate pulse waveforms and CH15–CH16 generate noise. Code uses CH1–CH16 for hardware channels 0–15.</p>
+										<p>Auto allocates compatible channels. Sample, mode and loop changes apply on the next note. Volume, divider, pan, pulse duty and rate controls apply while you hold a key. The keyboard smooths release in software.</p>
+										<p>In the 2SF view, pause the song to audition the selected channel on the keyboard. Choose Synth to play the edited instrument.</p>
+									</details>
+								</div>
+								<div class="hardware-fields">
+									<label>Sound source <select id="ndsMode">
+										<option value="pcm16">PCM16</option><option value="pcm8">PCM8</option>
+										<option value="adpcm">IMA-ADPCM</option><option value="pulse">PSG pulse</option><option value="noise">Noise</option>
+									</select></label>
+									<label>Built-in wave <select id="ndsShape">
+										<option value="sine">Sine</option><option value="triangle">Triangle</option>
+										<option value="saw">Saw</option><option value="square">Square</option>
+									</select></label>
+									<label>Pulse duty <span class="field-range"><input id="ndsDuty" type="range" min="0" max="7" step="1" value="3" /><output id="ndsDutyValue" for="ndsDuty">50%</output></span></label>
+									<label>Volume <span class="field-range"><input id="ndsVolume" type="range" min="0" max="127" value="96" /><output id="ndsVolumeValue" for="ndsVolume">96</output></span></label>
+									<label>Pan <span class="field-range"><input id="ndsPan" type="range" min="0" max="127" value="64" /><output id="ndsPanValue" for="ndsPan">64</output></span></label>
+									<div class="divider-field">
+										<span id="ndsDividerLabel">Volume divider</span>
+										<div id="ndsDivider" role="group" aria-labelledby="ndsDividerLabel">
+											<button type="button" data-divider="0" aria-pressed="true">÷1</button>
+											<button type="button" data-divider="1" aria-pressed="false">÷2</button>
+											<button type="button" data-divider="2" aria-pressed="false">÷4</button>
+											<button type="button" data-divider="3" aria-pressed="false">÷16</button>
+										</div>
+									</div>
+									<label class="loop-control"><input id="ndsLoop" type="checkbox" checked /> Repeat sample</label>
+								</div>
+								<div class="nds-timer-fields">
+									<label for="ndsTimerSlider" id="ndsTimerRateLabel">PCM playback rate</label>
+									<input id="ndsTimerSlider" type="range" min="0" max="1600" step="1" value="600" />
+									<label class="nds-rate-hz">
+										<input id="ndsTimerHz" type="number" step="any" aria-labelledby="ndsTimerRateLabel ndsTimerUnit" /> <span id="ndsTimerUnit">Hz</span>
+									</label>
+									<label title="Map the keyboard to the chip rate. Moving the slider or setting a value switches to manual rate control."><input id="ndsKeyTracking" type="checkbox" checked /> Key tracking · Software</label>
+									<output id="ndsTimerValue" for="ndsKeyTracking ndsTimerSlider ndsTimerHz">Key tracking</output>
+								</div>
+								<div class="sample-actions">
+									<button id="ndsLoadWav" type="button">Load WAV…</button>
+									<button id="ndsUseBuiltin" type="button" hidden>Use built-in wave</button>
+									<input id="ndsWavInput" type="file" accept=".wav,.wave,audio/wav,audio/wave,audio/x-wav" hidden />
+									<label class="preset-choice">Saved sounds <select id="ndsSavedSounds" disabled><option value="">No saved sounds</option></select></label>
+									<button id="ndsSaveSound" type="button">Save sound as…</button>
+								</div>
+								<p id="ndsGeneratedSource" class="generated-source" hidden></p>
+								<section id="ndsSampleEditor" class="sample-editor" aria-labelledby="ndsSampleTitle" hidden>
+									<div class="sample-heading"><h2 id="ndsSampleTitle">PCM16 waveform</h2><span id="ndsSampleInfo"></span></div>
+									<canvas id="ndsSampleCanvas" width="960" height="144" aria-label="Sample waveform and loop range"></canvas>
+									<div id="ndsSampleRangeFields" class="sample-fields" hidden>
+										<label>Root note · MIDI <input id="ndsSampleRoot" type="number" min="0" max="127" step="1" value="60" /><output id="ndsSampleRootName">C4</output></label>
+										<label>Loop start · frame <input id="ndsSampleStart" type="number" min="0" step="1" value="0" /></label>
+										<label>End · frame <input id="ndsSampleEnd" type="number" min="1" step="1" value="1" /></label>
+									</div>
+									<p id="ndsSampleStatus">The format, tuning and range apply on the next note.</p>
+								</section>
+								<details id="ndsSoundCapture" class="nds-sound-capture">
+									<summary>Sound Capture</summary>
+									<div class="nds-capture-fields">
+										<label>Capture unit
+											<select id="ndsCaptureUnit">
+												<option value="0">0 · Left mixer / CH2 timer</option>
+												<option value="1">1 · Right mixer / CH4 timer</option>
+											</select>
+										</label>
+										<label>Format
+											<select id="ndsCaptureFormat">
+												<option value="pcm16">PCM16</option>
+												<option value="pcm8">PCM8</option>
+											</select>
+										</label>
+										<label>Rate · Hz <input id="ndsCaptureRate" type="number" min="256" step="1" value="16000" /></label>
+										<label>Length · words <input id="ndsCaptureWords" type="number" min="1" max="65535" step="1" value="2000" /></label>
+									</div>
+									<p class="nds-capture-note">Records the Synth mixer before Master. Rate also changes the unit’s channel timer.</p>
+									<div class="nds-capture-actions">
+										<button id="ndsCaptureRecord" type="button">Record</button>
+										<button id="ndsCaptureStop" type="button" disabled>Stop</button>
+										<button id="ndsCaptureLoad" type="button" disabled>Load as sample</button>
+									</div>
+									<p id="ndsCaptureStatus" class="nds-capture-note" role="status"></p>
+								</details>
+								<p id="ndsNoteStatus" class="note-status" aria-live="polite"></p>
+							</section>
+						</div>
 					</div>
-					<p id="ndsSampleStatus">The format, tuning and range apply on the next note.</p>
-				</section>
-				<p id="ndsNoteStatus" class="note-status" aria-live="polite"></p>
-			</section>
+					<section id="synthInputSection" data-input-mode="keyboard" aria-label="Performance input">
+						<div class="performance-heading">
+							<div class="performance-tabs" role="tablist" aria-label="Performance input">
+								<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+								<button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+							</div>
+							<button id="synthCodeExpandButton" type="button" aria-label="Maximize Code" aria-pressed="false" hidden>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg>
+							</button>
+						</div>
+						<div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
+							<div class="keyboard-tools">
+								<button id="octaveDown" type="button" aria-label="Lower keyboard octave">−</button>
+								<span>Octave <output id="octaveValue">+0</output></span>
+								<button id="octaveUp" type="button" aria-label="Raise keyboard octave">+</button>
+							</div>
+							<div id="keyboard" class="keyboard" aria-label="Playable notes"></div>
+						</div>
+						<div id="synthCodePanel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+							<div class="code-toolbar" data-code-transport="panel">
+								<button id="synthCodeRunButton" type="button">Run</button>
+								<button id="synthCodeApplyButton" type="button" disabled>Apply</button>
+								<button id="synthCodeStopButton" type="button" disabled>Stop</button>
+								<span id="synthCodeState" role="status">Stopped</span>
+							</div>
+							<div id="synthCodeEditorHost" aria-label="JavaScript editor"></div>
+							<textarea id="synthCodeEditor" aria-label="JavaScript source" spellcheck="false"></textarea>
+							<p id="synthCodeEditorNote" class="editor-note"></p>
+							<pre id="synthCodeError" class="code-error" role="alert"></pre>
+							<details class="code-console"><summary>Console</summary><pre id="synthCodeLog"></pre></details>
+						</div>
+					</section>
+					<div id="synthExpandedCodeSlot" hidden></div>
+				</div>
+			</div>
 			<dialog id="ndsSaveSoundDialog" class="nds-file-dialog" aria-labelledby="ndsSaveSoundTitle">
 				<form id="ndsSaveSoundForm">
 					<h2 id="ndsSaveSoundTitle">Save DS sound</h2>
@@ -173,40 +264,6 @@
 					<button id="ndsSaveSoundCommit" type="submit">Save</button>
 				</form>
 			</dialog>
-			<div id="synthWorkspace" class="workspace">
-				<aside id="ndsFilesPanel" aria-label="Project files" hidden></aside>
-				<div id="synthExpandedCodeSlot" hidden></div>
-				<section id="synthInputSection" data-input-mode="keyboard" aria-label="Performance input">
-					<div class="performance-tabs" role="tablist" aria-label="Performance input">
-						<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
-						<button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
-					</div>
-					<button id="synthCodeExpandButton" type="button" aria-label="Maximize Code" aria-pressed="false" hidden>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg>
-					</button>
-					<div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
-						<div class="keyboard-tools">
-							<button id="octaveDown" type="button" aria-label="Lower keyboard octave">−</button>
-							<span>Octave <output id="octaveValue">+0</output></span>
-							<button id="octaveUp" type="button" aria-label="Raise keyboard octave">+</button>
-						</div>
-						<div id="keyboard" class="keyboard" aria-label="Playable notes"></div>
-					</div>
-					<div id="synthCodePanel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
-						<div class="code-toolbar">
-							<button id="synthCodeRunButton" type="button">Run</button>
-							<button id="synthCodeApplyButton" type="button" disabled>Apply</button>
-							<button id="synthCodeStopButton" type="button" disabled>Stop</button>
-							<span id="synthCodeState" role="status">Stopped</span>
-						</div>
-						<div id="synthCodeEditorHost" aria-label="JavaScript editor"></div>
-						<textarea id="synthCodeEditor" aria-label="JavaScript source" spellcheck="false"></textarea>
-						<p id="synthCodeEditorNote" class="editor-note"></p>
-						<pre id="synthCodeError" class="code-error" role="alert"></pre>
-						<details class="code-console"><summary>Console</summary><pre id="synthCodeLog"></pre></details>
-					</div>
-				</section>
-			</div>
 			<details class="help">
 				<summary>About 2SF playback</summary>
 				<p>Use folder import to keep relative paths to shared <code>.2sflib</code> data. Save song to Files keeps the selected song and its libraries in the Cassette. Playback uses the song’s length and fade tags, with a three-minute preview when length is missing.</p>

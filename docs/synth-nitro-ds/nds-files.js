@@ -2,7 +2,7 @@
 import { renderFileTree } from '../playground/playground_file_tree.js';
 import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createNdsProjectStore, isNdsCodePath, isNdsTextPath, ndsProjectPath, NDS_PROJECT_FILE_BYTES } from './nds-project.js';
-import { isNdsPresetPath, NDS_PRESET_EXTENSION, readNdsPreset, writeNdsPreset } from './nds-preset.js?v=nds-2sf-audition-1';
+import { isNdsPresetPath, NDS_PRESET_EXTENSION, readNdsPreset, writeNdsPreset } from './nds-preset.js?v=nds-timer-1';
 import { saveTwoSfSong } from './2sf-project.js';
 
 const INDEX = '/index.js';
@@ -201,7 +201,10 @@ export function setupNdsFiles({ project, setStatus = () => {}, onBeforeWorkspace
 		const revision = selection(path);
 		const showText = showSource && editable(path);
 		if (isNdsPresetPath(path) && onSelectPreset) {
-			if (showText && code) await code.openFile(path, { show: code.isCodeMode() });
+			if (showText && code) {
+				const codeVisible = code.isCodeMode() && (!code.isExpanded() || byId('synthExpandedTabsSlot').dataset.view === 'code');
+				await code.openFile(path, { show: codeVisible });
+			}
 			if (disposed || busy || revision !== selectionRevision) return false;
 			const source = project.savedFs.get(path);
 			if (!source) {

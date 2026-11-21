@@ -69,6 +69,33 @@ interface NdsCodeNote extends NdsCodePitch {
   channel: NdsCodeChannel;
   token: number;
 }
+type NdsCodeCaptureUnit = 0 | 1;
+type NdsCodeCaptureFormat = 'pcm8' | 'pcm16';
+interface NdsCodeCaptureSettings {
+  format: NdsCodeCaptureFormat;
+  /** 1–65535 four-byte words. */
+  lengthWords: number;
+  /** Program the shared timer on CH2 for unit 0 or CH4 for unit 1. Omit to use its current value. */
+  timer?: number;
+}
+interface NdsCodeCaptureState {
+  unit: NdsCodeCaptureUnit;
+  active: boolean;
+  format: NdsCodeCaptureFormat | null;
+  lengthWords: number;
+  recordedFrames: number;
+  byteLength: number;
+  timer: number;
+  currentTimer: number;
+  timerChannel: typeof CH2 | typeof CH4;
+  /** Rate at the start of the take. */
+  sampleRate: number;
+  timerChanged: boolean;
+}
+interface NdsCodeCapture extends NdsCodeCaptureState {
+  /** A copy of the complete words written by this unit so far. */
+  bytes: Uint8Array;
+}
 /** A saved .nds.json sound, as read by file(path, { type: "json" }). */
 interface NdsCodePreset {
   format: 'tetorica-nds-sound';
@@ -81,6 +108,8 @@ interface NdsCodePreset {
   divider: NonNullable<NdsCodeVoiceSettings['divider']>;
   duty: NonNullable<NdsCodeVoiceSettings['duty']>;
   loop: boolean;
+  /** Optional fixed hardware timer code (0–65535). */
+  timer?: number;
   sample?: {
     /** Encoded DS sample bytes in base64. */
     bytes: string;
@@ -93,7 +122,7 @@ interface NdsCodePreset {
 interface NdsCodeClient {
   /** Change the settings of one zero-based physical channel. */
   configure(channel: NdsCodeChannel, patch: NdsCodeVoiceSettings): Promise<NdsCodeChannelState>;
-  /** Apply a saved .nds.json as JSON text or an object. Call noteOn() to play it. */
+  /** Apply a saved .nds.json without starting playback. Use keyOn() for a fixed preset timer or noteOn() for a musical note. */
   loadPreset(channel: NdsCodeChannel, preset: string | NdsCodePreset): Promise<NdsCodeChannelState>;
   /** Round musical pitch to the hardware timer. Imported samples use source rate at their root note. */
   setFrequency(channel: NdsCodeChannel, hz: number): Promise<NdsCodePitch>;
@@ -108,6 +137,11 @@ interface NdsCodeClient {
   noteOff(channel: NdsCodeChannel, token?: number): Promise<boolean>;
   getState(channel: NdsCodeChannel): Promise<NdsCodeChannelState>;
   getState(): Promise<NdsCodeChannelState[]>;
+  /** Begin one-shot capture from the Synth mixer. Unit 0 is left and unit 1 is right. */
+  startCapture(unit: NdsCodeCaptureUnit, settings: NdsCodeCaptureSettings): Promise<NdsCodeCaptureState>;
+  getCaptureState(unit: NdsCodeCaptureUnit): Promise<NdsCodeCaptureState>;
+  stopCapture(unit: NdsCodeCaptureUnit): Promise<NdsCodeCaptureState>;
+  readCapture(unit: NdsCodeCaptureUnit): Promise<NdsCodeCapture>;
   /** Release all voices owned by Code. */
   allNotesOff(): Promise<number>;
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js';
-import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js';
+import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js?v=nds-sound-capture-1';
+import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-timer-1';
 
 const DEFAULT_SAMPLE = makeNdsSample('pcm16');
 const PCM_MODES = new Set(['pcm8', 'pcm16', 'adpcm']);
@@ -153,13 +153,17 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 			case 'ready': return true;
 			case 'configure': return this.configure(channel, first);
 			case 'configureOwned':
-				return this.owns(channel, first, second) ? this.configure(channel, third) : false;
+				return this.owns(channel, first, second) ? this.configure(channel, third, fourth) : false;
 			case 'setFrequency': {
 				const { timer, frequencyHz } = this.configure(channel, {}, first);
 				return { timer, frequencyHz };
 			}
 			case 'getState':
 				return channel === undefined ? this.owners.map((_, index) => this.read(index)) : this.read(channel);
+			case 'startCapture': return this.core.startCapture(channel, first);
+			case 'getCaptureState': return this.core.getCaptureState(channel);
+			case 'stopCapture': return this.core.stopCapture(channel);
+			case 'readCapture': return this.core.readCapture(channel);
 			case 'stopOwned': {
 				let released = 0;
 				this.owners.forEach((voice, index) => {
@@ -190,7 +194,8 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 		try {
 			if (!Array.isArray(args)) throw new TypeError('DS audio arguments must be an array.');
 			const value = this.dispatch(method, args);
-			this.port.postMessage({ id, value, owners: OWNERSHIP_METHODS.has(method) ? this.owners : undefined });
+			this.port.postMessage({ id, value, owners: OWNERSHIP_METHODS.has(method) ? this.owners : undefined },
+				method === 'readCapture' ? [value.bytes.buffer] : []);
 		} catch (error) {
 			this.port.postMessage({ id, error: error.message, name: error.name });
 		}

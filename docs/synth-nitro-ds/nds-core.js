@@ -50,6 +50,7 @@ const MODES = ['pcm8', 'pcm16', 'adpcm', 'pulse', 'noise'];
 const DIVISORS = [1, 2, 4, 16];
 const STARTUP_PERIODS = { pcm8: 3, pcm16: 3, adpcm: 11, pulse: 1, noise: 1 };
 const OUTPUT_GAIN = 0.25; // Software headroom before Master; no 10-bit DAC clipping.
+const CAPTURE_TIMER_CHANNELS = [1, 3];
 const PSG_LEVEL = 32767 / 32768;
 const PULSE_PATTERNS = Array.from({ length: 8 }, (_, duty) =>
 	Int8Array.from({ length: 8 }, (_, frame) => duty !== 7 && frame >= 7 - duty ? 1 : -1));
@@ -74,6 +75,17 @@ function integer(value, minimum, maximum, label) {
 
 function unit7(code) {
 	return code === 127 ? 1 : code / 128;
+}
+
+function quantizeCapture(output, pcm8) {
+	// Recover the mixer level before Tetorica's output headroom, then clip
+	// at the capture unit's 16.8-bit input. GBATEK describes a correction
+	// toward zero for negative values with the top fractional bit set.
+	const fixed = Math.max(-0x800000, Math.min(0x7fffff, Math.floor(output * (0x800000 / OUTPUT_GAIN))));
+	const shift = pcm8 ? 16 : 8;
+	const fractionHighBit = 1 << (shift - 1);
+	const correction = fixed < 0 && (fixed & fractionHighBit) !== 0 ? 1 : 0;
+	return (fixed >> shift) + correction;
 }
 
 function prepareSample({ mode, bytes, loopStartWords, lengthWords, loop }) {
@@ -108,6 +120,7 @@ function prepareSample({ mode, bytes, loopStartWords, lengthWords, loop }) {
 
 export class NdsSoundCore {
 	#channels = Array.from({ length: NDS_CHANNEL_COUNT }, () => ({ config: DEFAULTS, sample: null, voice: null }));
+	#captures = [null, null];
 	#sampleRate;
 
 	constructor(sampleRate) {
@@ -160,12 +173,73 @@ export class NdsSoundCore {
 			|| next.lengthWords !== old.lengthWords || next.loop !== old.loop;
 		const sample = sampleChanged ? prepareSample(next) : channel.sample;
 		const voice = channel.voice;
-		if (voice && old.timer !== next.timer) {
-			// Retune without jumping to a different sample at the update boundary.
-			voice.clock = Math.floor((voice.clock / this.#period(old.timer)) * this.#period(next.timer));
+		if (old.timer !== next.timer) {
+			const oldPeriod = this.#period(old.timer);
+			const period = this.#period(next.timer);
+			if (voice) {
+				// Retune without jumping to a different sample at the update boundary.
+				voice.clock = Math.floor((voice.clock / oldPeriod) * period);
+			}
+			const capture = this.#captures[CAPTURE_TIMER_CHANNELS.indexOf(index)];
+			if (capture?.active) {
+				capture.clock = Math.floor((capture.clock / oldPeriod) * period);
+				capture.timerChanged = true;
+			}
 		}
 		channel.config = next;
 		channel.sample = sample;
+	}
+
+	/** Start a mixer-tap one-shot while sharing the capture unit's voice timer. */
+	startCapture(unit, settings) {
+		integer(unit, 0, 1, 'DS capture unit');
+		if (this.#captures[unit]?.active) throw new Error('Stop the active Sound Capture before starting again.');
+		if (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
+			Object.keys(settings).some(key => key !== 'format' && key !== 'lengthWords' && key !== 'timer'))
+			throw new TypeError('Expected DS capture format, word length and optional timer');
+		const { format, lengthWords, timer } = settings;
+		if (format !== 'pcm8' && format !== 'pcm16') throw new RangeError('DS capture format must be pcm8 or pcm16');
+		integer(lengthWords, 1, 0xffff, 'DS capture length in words');
+		const timerChannel = CAPTURE_TIMER_CHANNELS[unit];
+		const sharedTimer = timer === undefined ? this.#channels[timerChannel].config.timer : timer;
+		integer(sharedTimer, 0, 65535, 'DS timer');
+		const bytes = new Uint8Array(lengthWords * 4);
+		if (timer !== undefined) this.configure(timerChannel, { timer });
+		this.#captures[unit] = {
+			active: true, bytes, format, lengthWords, timer: sharedTimer,
+			timerChanged: false, clock: 0, writtenBytes: 0,
+		};
+		return this.getCaptureState(unit);
+	}
+
+	getCaptureState(unit) {
+		integer(unit, 0, 1, 'DS capture unit');
+		const capture = this.#captures[unit];
+		const timerChannel = CAPTURE_TIMER_CHANNELS[unit];
+		const currentTimer = this.#channels[timerChannel].config.timer;
+		const timer = capture?.timer ?? currentTimer;
+		const writtenBytes = capture?.writtenBytes ?? 0;
+		return {
+			unit, timerChannel, timer, currentTimer, sampleRate: NDS_AUDIO_CLOCK / (65536 - timer),
+			active: capture?.active ?? false, format: capture?.format ?? null,
+			lengthWords: capture?.lengthWords ?? 0,
+			recordedFrames: writtenBytes / (capture?.format === 'pcm16' ? 2 : 1),
+			byteLength: writtenBytes - writtenBytes % 4,
+			timerChanged: capture?.timerChanged ?? false,
+		};
+	}
+
+	stopCapture(unit) {
+		integer(unit, 0, 1, 'DS capture unit');
+		const capture = this.#captures[unit];
+		if (capture) capture.active = false;
+		return this.getCaptureState(unit);
+	}
+
+	readCapture(unit) {
+		const state = this.getCaptureState(unit);
+		const bytes = this.#captures[unit]?.bytes.slice(0, state.byteLength) ?? new Uint8Array(0);
+		return { ...state, bytes };
 	}
 
 	keyOn(index) {
@@ -219,6 +293,43 @@ export class NdsSoundCore {
 		for (const channel of this.#channels) {
 			if (channel.voice) this.#renderChannel(channel, left, right);
 		}
+		if (this.#captures[0]?.active) this.#renderCapture(0, left);
+		if (this.#captures[1]?.active) this.#renderCapture(1, right);
+	}
+
+	#renderCapture(unit, output) {
+		const capture = this.#captures[unit];
+		const timer = this.#channels[CAPTURE_TIMER_CHANNELS[unit]].config.timer;
+		const period = this.#period(timer);
+		const { bytes } = capture;
+		const pcm8 = capture.format === 'pcm8';
+		const sampleBytes = pcm8 ? 1 : 2;
+		let { clock, writtenBytes } = capture;
+
+		// Integrate the shared timer at the output cadence. Several capture
+		// edges within a host frame use the same held mixer sample.
+		for (let frame = 0; frame < output.length; frame++) {
+			clock += NDS_AUDIO_CLOCK;
+			if (clock < period) continue;
+			const steps = Math.floor(clock / period);
+			clock -= steps * period;
+			const end = Math.min(bytes.length, writtenBytes + steps * sampleBytes);
+			const value = quantizeCapture(output[frame], pcm8);
+			if (pcm8) bytes.fill(value, writtenBytes, end);
+			else {
+				for (let offset = writtenBytes; offset < end; offset += 2) {
+					bytes[offset] = value;
+					bytes[offset + 1] = value >> 8;
+				}
+			}
+			writtenBytes = end;
+			if (writtenBytes === bytes.length) {
+				capture.active = false;
+				break;
+			}
+		}
+		capture.clock = clock;
+		capture.writtenBytes = writtenBytes;
 	}
 
 	#renderChannel(channel, left, right) {

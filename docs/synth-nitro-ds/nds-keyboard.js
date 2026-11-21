@@ -1,16 +1,40 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buildKeyboard, createFretboardLayout, createFretboardState } from '../synth/synth_keyboard.js';
-import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-2sf-audition-1';
+import { noteToHz } from '../js/soundchip_pitch.js';
+import { NDS_AUDIO_CLOCK } from './nds-core.js?v=nds-sound-capture-1';
+import { ndsTimerForFrequency, NDS_SOFTWARE_WAVE_FRAMES } from './nds-synth-api.js?v=nds-timer-1';
+import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-source-1';
 
 const CHANNELS = Array.from({ length: 16 }, (_, channel) => channel);
 const AUTO = -1;
+const NOISE_CLOCK_AT_C4 = 4000;
+const C4_HZ = noteToHz('C4');
+const LIVE_FIELDS = ['volume', 'pan', 'divider', 'duty'];
 const defaultSound = () => ({ name: '', mode: 'pcm16', shape: 'sine', volume: 96, pan: 64, divider: 0, duty: 3, loop: true, sample: null });
 const supports = (channel, mode) => isNdsSampleMode(mode) || (mode === 'pulse' ? channel >= 8 && channel < 14 : channel >= 14);
+const timerSteps = mode => mode === 'pulse' ? 8 : 1;
+const timerHz = (mode, timer) => NDS_AUDIO_CLOCK / (65536 - timer) / timerSteps(mode);
+const timerHex = timer => `0x${timer.toString(16).toUpperCase().padStart(4, '0')}`;
+const rateFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });
+// The timer can cover sixteen octaves of rates. Give each octave equal slider space.
+const sliderToTimer = value => 65536 - Math.round(2 ** (16 - value / 100));
+const timerToSlider = timer => Math.round((16 - Math.log2(65536 - timer)) * 100);
+const noiseTimerForKey = midi => ndsTimerForFrequency(NOISE_CLOCK_AT_C4 * noteToHz(midi) / C4_HZ, 1).timer;
 
-export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, onActivity, onError }) {
+function defaultTimer(sound) {
+	const hz = sound.mode === 'pulse' ? 440 : sound.mode === 'noise' ? NOISE_CLOCK_AT_C4
+		: sound.sample?.asset.sampleRate ?? C4_HZ * NDS_SOFTWARE_WAVE_FRAMES;
+	return ndsTimerForFrequency(hz, timerSteps(sound.mode)).timer;
+}
+
+export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity, onError }) {
 	const node = (id) => document.getElementById(id);
 	const keyboard = node('keyboard'), activity = node('ndsNoteStatus');
-	const fields = Object.fromEntries(['mode', 'shape', 'volume', 'pan', 'divider', 'duty', 'loop'].map(name =>
+	const keyTracking = node('ndsKeyTracking'), rateInput = node('ndsTimerHz'), rateSlider = node('ndsTimerSlider');
+	const rateLabel = node('ndsTimerRateLabel'), rateValue = node('ndsTimerValue');
+	const generatedSource = node('ndsGeneratedSource');
+	const dividerButtons = [...node('ndsDivider').querySelectorAll('[data-divider]')];
+	const fields = Object.fromEntries(['mode', 'shape', 'volume', 'pan', 'duty', 'loop'].map(name =>
 		[name, node(`nds${name[0].toUpperCase()}${name.slice(1)}`)]));
 	const settings = Array.from({ length: 17 }, defaultSound);
 	const held = new Map(), occupied = new Map(), auditionOccupied = new Map();
@@ -24,18 +48,51 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, o
 		renderSettings();
 	}
 
+	function heldTimerNote(sound) {
+		return [...occupied.values()].findLast(note => note.target === selection && note.mode === sound.mode && note.timer !== null);
+	}
+
+	function renderTimerStatus() {
+		const sound = getSound();
+		const tracking = sound.timer == null;
+		const liveTimer = sound.timer ?? heldTimerNote(sound)?.timer;
+		const timer = liveTimer ?? defaultTimer(sound);
+		const hz = timerHz(sound.mode, timer), hzText = `${rateFormat.format(hz)} Hz`;
+		keyTracking.checked = tracking;
+		if (sliderToTimer(rateSlider.valueAsNumber) !== timer) rateSlider.value = timerToSlider(timer);
+		rateSlider.setAttribute('aria-valuetext', hzText);
+		if (document.activeElement !== rateInput)
+			rateInput.value = Math.max(Number(rateInput.min), Math.min(Number(rateInput.max), Number(hz.toFixed(3))));
+		const state = tracking ? 'Key tracking' : 'Manual';
+		rateValue.value = liveTimer === undefined ? state : `${state} · ${hzText} · ${timerHex(timer)}`;
+	}
+
 	function renderSettings() {
 		const sound = getSound();
+		const sampleMode = isNdsSampleMode(sound.mode);
 		for (const [key, el] of Object.entries(fields)) {
 			if (key === 'loop') el.checked = sound.loop;
 			else el.value = String(sound[key]);
 		}
 		for (const option of fields.mode.options) option.disabled = selection !== AUTO && !supports(selection, option.value);
-		fields.shape.disabled = !isNdsSampleMode(sound.mode) || Boolean(sound.sample);
-		fields.loop.disabled = !isNdsSampleMode(sound.mode);
-		fields.duty.disabled = sound.mode !== 'pulse';
+		fields.shape.closest('label').hidden = !sampleMode || Boolean(sound.sample);
+		fields.loop.closest('label').hidden = !sampleMode;
+		fields.duty.closest('label').hidden = sound.mode !== 'pulse';
+		generatedSource.hidden = sampleMode;
+		generatedSource.textContent = sampleMode ? '' : sound.mode === 'pulse'
+			? 'PSG pulse · 8 steps per cycle · CH9–CH14'
+			: 'Noise · 15-bit LFSR · CH15–CH16';
 		node('ndsVolumeValue').value = sound.volume;
 		node('ndsPanValue').value = sound.pan;
+		const duty = sound.duty === 7 ? 'Low' : `${(sound.duty + 1) * 12.5}%`;
+		node('ndsDutyValue').value = duty;
+		fields.duty.setAttribute('aria-valuetext', sound.duty === 7 ? 'Constant low' : duty);
+		for (const button of dividerButtons)
+			button.setAttribute('aria-pressed', String(Number(button.dataset.divider) === sound.divider));
+		rateLabel.textContent = sampleMode ? 'PCM playback rate' : sound.mode === 'pulse' ? 'Pulse frequency' : 'Noise clock';
+		rateInput.min = timerHz(sound.mode, 0);
+		rateInput.max = timerHz(sound.mode, 65535);
+		renderTimerStatus();
 		sampleEditor.render();
 	}
 
@@ -43,8 +100,42 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, o
 		const activeKeys = new Set([...held.values()].map(({ entry }) => entry.key));
 		for (const button of keyboard.querySelectorAll('.key'))
 			button.setAttribute('aria-pressed', String(activeKeys.has(button.dataset.key)));
-		activity.textContent = lastNote || (selection === AUTO ? 'Auto · choose a sound and play the keyboard.' : `CH ${selection + 1} · play this physical channel.`);
+		activity.textContent = typeof lastNote === 'object'
+			? `${lastNote.entry.noteName} · ${lastNote.voices === auditionOccupied ? '2SF ' : ''}CH ${lastNote.channel + 1} · Timer ${timerHex(lastNote.timer)}`
+			: lastNote || (selection === AUTO ? 'Auto · choose a sound and play the keyboard.' : `CH ${selection + 1} · play this physical channel.`);
+		renderTimerStatus();
 		onActivity();
+	}
+
+	async function retuneHeldNote(note, timer, patch = {}) {
+		const clock = timer ?? (note.mode === 'noise' ? noiseTimerForKey(note.entry.midi) : null);
+		const state = clock == null
+			? await note.chip.configureOwned(note.channel, note.token, patch, note.entry.midi)
+			: await note.chip.configureOwned(note.channel, note.token, { ...patch, timer: clock });
+		if (!state || note.voices.get(note.channel) !== note) return;
+		note.timer = state.timer;
+		renderHeld();
+	}
+
+	function setTimer(timer) {
+		const sound = getSound();
+		if ((sound.timer ?? null) === timer) return;
+		settings[selection + 1] = { ...sound, timer };
+		renderTimerStatus();
+		for (const note of occupied.values()) {
+			if (note.target === selection && note.mode === sound.mode && note.token !== null)
+				void retuneHeldNote(note, timer).catch(onError);
+		}
+	}
+
+	function setField(name, value) {
+		try { updateSound(editNdsSound(getSound(), name, value)); }
+		catch (error) { renderSettings(); onError(error); return; }
+		if (!LIVE_FIELDS.includes(name)) return;
+		for (const note of occupied.values()) {
+			if (note.target === selection && note.token !== null)
+				void note.chip.configureOwned(note.channel, note.token, { [name]: value }).catch(onError);
+		}
 	}
 
 	function allocate(target, mode) {
@@ -59,9 +150,12 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, o
 		if (held.has(id)) return;
 		const source = audition;
 		if (source && !source.patch) return;
-		const target = selection, sound = source ? source.patch : ndsSoundPatch(getSound());
+		const target = selection, original = getSound();
+		const sound = source ? source.patch : ndsSoundPatch(original);
+		const noteSettings = !source && sound.mode === 'noise' && sound.timer == null
+			? { ...sound, timer: noiseTimerForKey(entry.midi) } : sound;
 		const voices = source ? auditionOccupied : occupied;
-		const note = { id, entry, target, channel: null, chip: null, voices, token: null };
+		const note = { id, entry, target, mode: sound.mode, channel: null, chip: null, voices, token: null, timer: null };
 		let previous;
 		held.set(id, note);
 		renderHeld();
@@ -74,15 +168,25 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, o
 			previous = voices.get(channel);
 			note.channel = channel;
 			voices.set(channel, note);
-			const { token, timer } = await chip.noteOn(channel, entry.midi, sound);
+			const { token, timer } = await chip.noteOn(channel, entry.midi, noteSettings);
 			note.token = token;
+			note.timer = timer;
 			if (previous && held.get(previous.id) === previous) held.delete(previous.id);
 			if (held.get(id) !== note) {
 				await chip.noteOff(channel, token);
 				return;
 			}
-			lastNote = `${entry.noteName} · ${source ? '2SF ' : ''}CH ${channel + 1} · Timer 0x${timer.toString(16).toUpperCase().padStart(4, '0')}`;
+			lastNote = note;
 			renderHeld();
+			const edited = settings[target + 1];
+			if (!source && edited !== original) {
+				const patch = {};
+				for (const field of LIVE_FIELDS) if (edited[field] !== original[field]) patch[field] = edited[field];
+				if (edited.mode === sound.mode && (edited.timer ?? null) !== (sound.timer ?? null))
+					void retuneHeldNote(note, edited.timer, patch).catch(onError);
+				else if (Object.keys(patch).length)
+					void chip.configureOwned(channel, token, patch).catch(onError);
+			}
 		} catch (error) {
 			if (voices.get(note.channel) === note && previous && held.get(previous.id) === previous)
 				voices.set(note.channel, previous);
@@ -156,19 +260,31 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, o
 		renderSettings();
 		renderHeld();
 	}
+	keyTracking.addEventListener('change', () => {
+		const sound = getSound();
+		setTimer(keyTracking.checked ? null : heldTimerNote(sound)?.timer ?? defaultTimer(sound));
+	});
+	rateSlider.addEventListener('input', () => setTimer(sliderToTimer(rateSlider.valueAsNumber)));
+	rateInput.addEventListener('change', () => {
+		const hz = rateInput.valueAsNumber;
+		if (Number.isFinite(hz) && rateInput.validity.valid)
+			setTimer(ndsTimerForFrequency(hz, timerSteps(getSound().mode)).timer);
+		rateInput.blur();
+		renderTimerStatus();
+	});
+	rateInput.addEventListener('keydown', event => {
+		if (event.key !== 'Enter') return;
+		event.preventDefault();
+		rateInput.blur();
+	});
 	for (const [name, field] of Object.entries(fields)) {
 		field.addEventListener(field.type === 'range' ? 'input' : 'change', () => {
 			const value = name === 'loop' ? field.checked : ['mode', 'shape'].includes(name) ? field.value : Number(field.value);
-			try { updateSound(editNdsSound(getSound(), name, value)); }
-			catch (error) { renderSettings(); onError(error); return; }
-			if (!['volume', 'pan', 'divider', 'duty'].includes(name)) return;
-			const chip = getAudio()?.chip.forOwner('keyboard');
-			for (const note of occupied.values()) {
-				if (note.target === selection && note.token !== null)
-					void chip?.configureOwned(note.channel, note.token, { [name]: value }).catch(onError);
-			}
+			setField(name, value);
 		});
 	}
+	for (const button of dividerButtons)
+		button.addEventListener('click', () => setField('divider', Number(button.dataset.divider)));
 	for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) node(id).addEventListener('click', () => {
 		void stop().catch(onError);
 		octave += delta;

@@ -38,10 +38,10 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   const keyboardPanel=byId('synthKeyboardPanel'),codePanel=byId('synthCodePanel');
   const textarea=byId('synthCodeEditor'),editorHost=byId('synthCodeEditorHost'),note=byId('synthCodeEditorNote');
   const runButton=byId('synthCodeRunButton'),applyButton=byId('synthCodeApplyButton'),stopButton=byId('synthCodeStopButton');
-  // These hosts treat the tabs as views of one performance. Keep the existing
-  // transport (and its event bindings) reachable while the keyboard is shown.
+  // Keep the transport reachable during a shared performance unless the host
+  // keeps the controls in the Code panel.
   const transport=runButton.parentNode;
-  if(keepRunningOnKeyboard&&transport&&keyboardPanel.parentNode){
+  if(keepRunningOnKeyboard&&transport&&transport.dataset.codeTransport!=='panel'&&keyboardPanel.parentNode){
     transport.dataset.codeTransport='shared';
     keyboardPanel.parentNode.insertBefore(transport,keyboardPanel);
   }
