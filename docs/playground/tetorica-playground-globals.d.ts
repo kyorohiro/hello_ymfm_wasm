@@ -3062,14 +3062,15 @@ interface PlaygroundNesOperationRecorder {
   atSample(sample:number):PlaygroundNesOperationRecorder;
   atSeconds(seconds:number):PlaygroundNesOperationRecorder;
   writeRegister(register:number,value:number):PlaygroundNesOperationRecorder;
-  setFrequency(channel:0|1|2,hz:number):PlaygroundNesOperationRecorder;
-  setNote(channel:0|1|2,note:string|number):PlaygroundNesOperationRecorder;
-  noteOn(channel:0|1|2,note:string|number):PlaygroundNesOperationRecorder;
-  keyOn(channel:0|1|2):PlaygroundNesOperationRecorder;
-  keyOff(channel:0|1|2|3|4):PlaygroundNesOperationRecorder;
-  noteOff(channel:0|1|2|3|4):PlaygroundNesOperationRecorder;
+  setFrequency(channel:0|1|2|5,hz:number):PlaygroundNesOperationRecorder;
+  setNote(channel:0|1|2|5,note:string|number):PlaygroundNesOperationRecorder;
+  noteOn(channel:0|1|2|5,note:string|number):PlaygroundNesOperationRecorder;
+  keyOn(channel:0|1|2|5):PlaygroundNesOperationRecorder;
+  keyOff(channel:0|1|2|3|4|5):PlaygroundNesOperationRecorder;
+  noteOff(channel:0|1|2|3|4|5):PlaygroundNesOperationRecorder;
   pulse:{[K in keyof PlaygroundNes['pulse']]:(...args:Parameters<PlaygroundNes['pulse'][K]>)=>PlaygroundNesOperationRecorder};
   triangle:{[K in keyof PlaygroundNes['triangle']]:(...args:Parameters<PlaygroundNes['triangle'][K]>)=>PlaygroundNesOperationRecorder};
+  fds:{[K in 'setVolume'|'setFrequency'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff']:(...args:Parameters<PlaygroundNes['fds'][K]>)=>PlaygroundNesOperationRecorder};
   dmc:{[K in 'play'|'stop']:(...args:Parameters<PlaygroundNes['dmc'][K]>)=>PlaygroundNesOperationRecorder};
   noise:{[K in keyof PlaygroundNes['noise']]:(...args:Parameters<PlaygroundNes['noise'][K]>)=>PlaygroundNesOperationRecorder};
 }

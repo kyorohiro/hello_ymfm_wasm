@@ -184,3 +184,29 @@ test('prepared DMC metadata rejects accessors without running them',()=>{
  let reads=0;const sample={length:17};Object.defineProperty(sample,'address',{enumerable:true,get(){reads++;return 0xc000;}});
  assert.throws(()=>createNesTimedSnapshot({...reset(),sample},{instanceId:'bad',clock:reset().clock,frame:0,sampleRate:48000}),/selection/);assert.equal(reads,0);
 });
+
+for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.js'])for(const rate of [44100,48000])test(`${file} ${rate}: FDS control compile/execution parity, gain and cancellation`,async()=>{
+ const p=await setup(file,rate);try{
+ const plan=build(b=>{b.fds.setVolume(17,2);b.fds.noteOn('C4');b.atSample(441).fds.setFrequency(330);b.writeRegister(0x4084,0x88);b.writeRegister(0x4086,20);b.writeRegister(0x4087,0);b.atSeconds(.02).fds.noteOff();});
+ const state=await p.rpc({action:'capture'}),copy=structuredClone(state),expected=compile(plan,state,{fds:true});assert.deepEqual(state,copy);
+ const accepted=await p.rpc({action:'schedule',operations:plan,options:{name:'fds'},owner:'fds'}),start=p.writes.length;p.render(accepted.startFrame+Math.round(.02*rate)+1);
+ assert.deepEqual(rows(p.writes.slice(start)),rows(expected));assert.deepEqual(p.writes.slice(start).map(w=>w.frame),expected.map(w=>accepted.startFrame+Math.round(w.offsetSeconds*rate)));
+ assert.equal((await p.rpc({action:'capture'})).fdsGain,17);
+ const on=await p.rpc({action:'schedule',operations:build(b=>b.fds.keyOn()),options:{name:'fds'},owner:'fds'});p.render(on.startFrame+1);await p.rpc({action:'releaseOwner',owner:'fds'});assert.equal(p.core.getState().registers[0x83]&128,128);
+ }finally{p.close();}
+});
+test('FDS rejects disabled hardware and RAM transfers; retains same-value envelope writes',()=>{
+ const plan=build(b=>{b.fds.setVolume(12);b.fds.keyOn();b.writeRegister(0x4080,1);b.writeRegister(0x4080,1);});
+ assert.throws(()=>compile(plan,reset()),/FDS/);const writes=compile(plan,reset(),{fds:true});assert.equal(writes.filter(w=>w.register===0x4080&&w.value===1).length,2);
+ assert.throws(()=>compile(build(b=>b.writeRegister(0x4088,1)),reset(),{fds:true}),/no RAM/);assert.throws(()=>compile(build(b=>b.writeRegister(0x4040,1)),reset(),{fds:true}),/no RAM/);
+});
+
+for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.js'])test(`${file}: FDS stale Off and cancellation preserve a newer manual Gate`,async()=>{
+ const p=await setup(file,48000),standalone=file.includes('docs/');try{
+ const r=await p.rpc({action:'schedule',operations:build(b=>{b.fds.noteOn('C4');b.atSeconds(.02).fds.noteOff();}),options:{name:'old'},owner:'old'});p.render(r.startFrame+1);
+ if(standalone)await p.command('noteOn',['manual',64,5]);else p.p.inspector.invoke('auditionOn',[5,64,'manual']);
+ const gain=p.core.getState().registers[0x80];p.render(1100);assert.equal(p.core.getState().registers[0x80],gain);assert.equal(p.core.getState().registers[0x83]&128,0);await p.rpc({action:'releaseOwner',owner:'old'});assert.equal(p.core.getState().registers[0x83]&128,0);
+ const on=await p.rpc({action:'schedule',operations:build(b=>b.fds.keyOn()),options:{name:'new'},owner:'new'});p.render(on.startFrame+1);
+ if(standalone)assert.equal(await p.command('noteOff',['manual']),false);else assert.equal(p.p.inspector.invoke('auditionOff',[5,'manual']),false);
+ }finally{p.close();}
+});

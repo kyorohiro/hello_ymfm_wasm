@@ -252,9 +252,15 @@ export class NesInstrument {
     this._apply(previous,next,channel);this.channelPresets[channel]=next;this.codeRaw[channel]=false;this.codePresets[channel]=null;
     return this.read();
   }
-  applyTimedWrite(register,value,owner,{nesRetriggerDmc=false}={}) {
+  applyTimedWrite(register,value,owner,{nesRetriggerDmc=false,fdsState,preserveOwner=false,nesFdsOff=false}={}) {
     this._open();
     const state=this.synth._getState();
+    if(nesFdsOff&&this.owners[5]&&this.owners[5].timedOwner!==owner)return;
+    if(register===0x4083&&!preserveOwner){
+      if(value&128){if(this.owners[5]&&this.owners[5].timedOwner!==owner)return;this._forget(5);}
+      else {this._ownCode(5,this.codeSession);this.owners[5].timedOwner=owner;this.codeRaw[5]=true;}
+    }
+    if(fdsState&&register>=0x4023)this.synth._adoptState({...state,fdsGain:fdsState.fdsGain,fdsMaster:fdsState.fdsMaster});
     if(register===0x4015){
       const enabled=(state.enabled&15)|(this.core.getState().dmcRemaining>0?16:0);
       for(let ch=0;ch<5;ch++)if(!(value&(1<<ch))&&this.owners[ch]&&this.owners[ch].timedOwner!==owner&&!(ch===4&&nesRetriggerDmc))value=(value&~(1<<ch))|(enabled&(1<<ch));
@@ -268,7 +274,7 @@ export class NesInstrument {
     this.synth.writeRegister(register,value);
   }
   cancelTimedOwner(owner){
-    for(let ch=0;ch<5;ch++)if(this.owners[ch]?.timedOwner===owner){this._stopChannel(ch);this._forget(ch);}
+    for(let ch=0;ch<6;ch++)if(this.owners[ch]?.timedOwner===owner){this._stopChannel(ch);this._forget(ch);}
   }
   beginCode(...args) {
     this._open();if(args.length)throw new TypeError('Code session takes no arguments');

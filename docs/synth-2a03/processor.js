@@ -21,7 +21,7 @@ class NesSynthProcessor extends AudioWorkletProcessor {
       apply:(data,reply,frame,metadata)=>this.timed.apply(data.operation,{postMessage:reply??(message=>this.port.postMessage(message))},frame,metadata),
       onCancelOwner:owner=>{if(!this.instrument)return;const before=this.instrument.owners.slice();this.instrument.cancelTimedOwner(owner);this.ownedTransition(before);}});
     this.timed=createNesTimedProcessor({performance:{...this.performanceQueue,receive:(data,port)=>this.performanceQueue.receive(data,message=>port.postMessage(message))},
-      getState:()=>{const state=this.instrument.core.getState();return {...this.instrument.synth._getState(),registers:state.registers,enabled:(state.registers[0x15]&15)|(state.dmcRemaining>0?16:0),sample:this.instrument.synth._getState().sample??this.instrument.dmcTimedSelection};},getConfig:()=>({instanceId:this.instanceId,clock:this.instrument.synth.clock,engine:'nes-wasm'}),
+      getState:()=>{const state=this.instrument.core.getState();return {...this.instrument.synth._getState(),registers:state.registers,enabled:(state.registers[0x15]&15)|(state.dmcRemaining>0?16:0),sample:this.instrument.synth._getState().sample??this.instrument.dmcTimedSelection};},getConfig:()=>({instanceId:this.instanceId,clock:this.instrument.synth.clock,engine:'nes-wasm',fds:true}),
       dispatch:(data,port,frame,metadata)=>{const before=this.instrument.owners.slice();this.instrument.applyTimedWrite(data.args[0],data.args[1],metadata.owner,metadata);this.ownedTransition(before);},nowFrame:()=>this.renderFrame,sampleRate});
     this.clickGuard = new OutputClickGuard({sampleRate});
     this.clickGuardEnabled = true;

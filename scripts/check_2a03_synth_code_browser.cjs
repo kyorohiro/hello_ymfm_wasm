@@ -305,6 +305,9 @@ async function check(browser,name,origin,loadCassette){
     await stop(page);await pcm(page,false);assert.equal((await read(page)).coreState.dmcRemaining,0);
     const dmcExample=await page.evaluate(async()=>{const entry=document.querySelector('script[type="module"][src]').src;return(await import(new URL('code_examples.js',entry))).NES_DMC_TIMED_EXAMPLE;});
     await source(page,dmcExample+"\nconsole.log('DMC_EXAMPLE_READY');");await execute(page);await pcm(page);await until(()=>page.locator('#synthCodeLog').textContent().then(v=>v.includes('DMC_EXAMPLE_READY')),'DMC example ran');await stop(page);
+    step('Timed FDS example compiles, plays and stops on the shared Synth');
+    const fdsExample=await page.evaluate(async()=>{const entry=document.querySelector('script[type="module"][src]').src;return(await import(new URL('code_examples.js',entry))).NES_FDS_TIMED_EXAMPLE;});
+    await source(page,fdsExample+"\nconsole.log('FDS_EXAMPLE_READY');");await execute(page);await pcm(page);await until(()=>page.locator('#synthCodeLog').textContent().then(v=>v.includes('FDS_EXAMPLE_READY')),'FDS example ran');await stop(page);await pcm(page,false);
     assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
     return{browser:name,passed:true,checks,measurements,graph:await page.evaluate(()=>__nesCodeAudit.graph()),pageErrors:errors,missing};
   }catch(error){

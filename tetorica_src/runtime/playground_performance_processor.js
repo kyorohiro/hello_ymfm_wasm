@@ -271,6 +271,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     else if(command.method==='write'&&(command.args?.[0]&128))psgLatch=(command.args[0]>>4)&7;
   }
   function applyTracked(command,port,frame,metadata) {
+    if(chipName()==='nes'&&metadata?.nesFdsOff&&owners.has(5)&&owners.get(5).owner!==metadata.owner)return false;
     if(auditions.size&&['segapsg','snes','ps1','scsp','wonderswan','pokey','sid'].includes(chipName())&&command.method==='allNotesOff'){
       for(let channel=0;channel<(chipName()==='scsp'?32:chipName()==='ps1'?24:chipName()==='snes'?8:chipName()==='sid'?3:4);channel++)if(!auditions.has(channel))applyTracked(performanceNoteRelease(chipName(),channel),port,frame);
       return true;

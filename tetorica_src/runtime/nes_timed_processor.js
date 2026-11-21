@@ -40,7 +40,7 @@ export function createNesTimedProcessor({performance: timeline, getState, getCon
     validateNesOperationState(getState());
     const clock=getConfig().clock;
     const plan = validateNesOperations(operations, {clock,validateArguments:false});
-    const admissionResolver=createNesOperationResolver({clock});
+    const admissionResolver=createNesOperationResolver({clock,fds:getConfig().fds===true});
     let admissionState=validateNesOperationState(getState());
     const entries=plan.operations.map(operation=>{
       const resolved=admissionResolver.resolve(operation,admissionState);admissionState=resolved.state;
@@ -89,7 +89,7 @@ export function createNesTimedProcessor({performance: timeline, getState, getCon
       if (payload.method === 'schedule') {
         if (payload.args.length !== 2) throw new TypeError('Invalid NES staged schedule arguments');
         records.set(name, {method:payload.method,args:[
-          validateNesOperations(payload.args[0], {clock:getConfig().clock,initialState:getState()}), {...payload.args[1]},
+          validateNesOperations(payload.args[0], {clock:getConfig().clock,initialState:getState(),fds:getConfig().fds===true}), {...payload.args[1]},
         ]});
       } else {
         if (payload.args.length !== 1) throw new TypeError('Invalid NES staged clear arguments');
@@ -129,9 +129,9 @@ export function createNesTimedProcessor({performance: timeline, getState, getCon
     },
     apply(operation, port, frame, metadata) {
       const clock = getConfig().clock;
-      if (clock !== resolverClock) { resolver = createNesOperationResolver({clock}); resolverClock = clock; }
+      if (clock !== resolverClock) { resolver = createNesOperationResolver({clock,fds:getConfig().fds===true}); resolverClock = clock; }
       const result = resolver.resolve(operation, getState());
-      for (const {register,value} of result.writes) dispatch({method:'writeRegister',args:[register,value]},port,frame,{...metadata,timedOperation:true,nesRetriggerDmc:operation.method==='dmc.play',preserveOwner:register!==0x4015&&![0x4003,0x4007,0x400b,0x400f].includes(register)});
+      for (const {register,value} of result.writes) dispatch({method:'writeRegister',args:[register,value]},port,frame,{...metadata,timedOperation:true,nesRetriggerDmc:operation.method==='dmc.play',fdsState:result.state,nesFdsOff:['fds.keyOff','fds.noteOff'].includes(operation.method)||(['keyOff','noteOff'].includes(operation.method)&&operation.args[0]===5),preserveOwner:(register!==0x4083||['fds.setFrequency','fds.setNote','setFrequency','setNote'].includes(operation.method))&&register!==0x4015&&![0x4003,0x4007,0x400b,0x400f].includes(register)});
 
     },
     clear() { staged.clear(); },

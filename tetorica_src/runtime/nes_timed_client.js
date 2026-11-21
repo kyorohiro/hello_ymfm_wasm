@@ -212,7 +212,7 @@ export function attachNesTimedClient(api, configuration = {}, port) {
     // RPC, so later local edits cannot alter this compilation's copied state.
     // Compilation itself validates every call through the shared resolver and
     // returns no partial trace on failure; do not run the same conversion twice.
-    return compileNesOperations(recorded,state,{clock});
+    return compileNesOperations(recorded,state,{clock,fds:api.fdsEnabled===true});
   };
   api.schedule = (operations, settings) => capability.schedule(operations,settings);
   api.clearSchedule = scheduleName => capability.clearSchedule(scheduleName);

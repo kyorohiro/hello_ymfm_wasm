@@ -27,8 +27,9 @@ nes.build(b=>{b.dmc.play({rate:15,loop:true,level:64});b.atSample(441).dmc.stop(
 // @ts-expect-error data transfers are not recorded
 nes.build(b=>b.dmc.loadSample(new Uint8Array(1)));
 const snap=await nes.captureState();snap.sample?.address;
-// @ts-expect-error FDS is outside this timed slice
-nes.build(b=>b.noteOn(CH6,'C4'));
+nes.build(b=>{b.noteOn(CH6,'C4');b.fds.setVolume(20);b.fds.setNote('E3');b.fds.noteOff();});
+// @ts-expect-error FDS RAM transfers remain immediate
+nes.build(b=>b.fds.setWave(Array(64).fill(32)));
 const voice:Promise<void>=nes.pulse.setVoice(CH1,{duty:.25,volume:8,envelope:{period:2}});await voice;
 const timer:Promise<number>=nes.fds.setFrequency(440);await timer;
 const pitch:Promise<number>=nes.pulse.setNote(CH1,'E3');await pitch;

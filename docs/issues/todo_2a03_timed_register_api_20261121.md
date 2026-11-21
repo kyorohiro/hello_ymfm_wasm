@@ -49,3 +49,20 @@ at 44.1/48 kHz (4096 stereo frames, maximum difference 0).
 Compilation does not simulate elapsed DMC one-shot counters; snapshots retain
 selection metadata, not RAM bytes. Human listening remains pending.
 [Evidence](verification_2a03_dmc_timed_20261121.json).
+
+## Completed FDS control slice
+
+- [x] Record FDS pitch, fixed volume and gates with existing conversion; raw envelope/modulation controls, excluding Wave RAM and modulation-table writes.
+- [x] Preserve FDS capability checks, partial timer updates, configured gain and Gate ownership.
+- [x] Verify compile/schedule parity and actual WASM at 44.1/48 kHz; types, example and readable ZIP.
+
+FDS controls are implemented in shared Web Audio Main/Worker and standalone
+Code; Wave RAM and modulation-table transfers, Native execution and Live UI
+remain follow-ups. Fresh Cassettes include `examples/timed-fds.js`.
+[Verification](verification_2a03_fds_timed_20261121.json).
+
+FDS verification: 316 NES regressions and 85 shared/calibration tests pass.
+Actual WASM compile/write/frame parity is checked at 44.1/48 kHz on both
+shared and standalone endpoints. Readable ZIP passes physically muted
+Chromium/WebKit performance and real Monaco checks; build checks 477
+declarations across 414 modules. Human listening remains pending.

@@ -113,3 +113,16 @@ execution may then differ from a previously compiled virtual pass. Capture again
 for its applied state, or use explicit stops/looping while comparing traces.
 Snapshots do not freeze RAM or restore decoder/shift-buffer phase. These limits
 are separate from sample-accurate scheduling of the authored writes.
+
+## FDS control reservations
+
+With FDS enabled, `b.fds.setVolume(volume, master)`, `setFrequency(hz)`,
+`setNote(note)`, `noteOn(note)`, `noteOff()`, `keyOn()` and `keyOff()` use
+the existing immediate converter. Root CH6 helpers are also supported.
+Raw control writes to $4023, $4080, $4082..$4087, $4089 and $408A permit
+hardware volume/depth envelopes, frequency, bias and halt control. Same-value
+writes are retained. These raw writes keep the immediate API's metadata semantics.
+Wave RAM and $4088 modulation-table writes remain rejected. Load tables before
+scheduling; snapshots do not contain table RAM or envelope/phase progress.
+`examples/timed-fds.js` demonstrates pitch and gates on the currently loaded wave.
+FDS-disabled endpoints reject these operations before accepting a reservation.

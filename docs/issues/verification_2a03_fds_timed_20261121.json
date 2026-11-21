@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-21",
+  "scope": "NES/FDS timed control operations",
+  "tests": {
+    "nesRegressionTests": 316,
+    "sharedProcessorSenderAndCalibrationChain": 85,
+    "fdsActualWasmAndOwnershipTestsIncluded": 7,
+    "generatedModules": 414,
+    "checkedDeclarations": 477
+  },
+  "verified": [
+    "Existing immediate FDS converter reused for pitch/fixed gain and gates",
+    "Raw envelope/depth/rate/bias/halt controls; repeated writes preserved",
+    "FDS-disabled compiler rejected; RAM transfers rejected",
+    "Actual shared Worklet and standalone compile/write/frame parity at 44100/48000 Hz",
+    "Configured volume survives inactive setVolume and subsequent keyOn",
+    "Newer manual FDS gate and volume survive stale scheduled Off/cancel",
+    "New scheduled Gate retires stale manual key-up",
+    "Existing manual PCM, DMC, Code transactions and click guards retain regression coverage"
+  ],
+  "browsers": {
+    "zipPerformance": {
+      "path": "build/nes-fds-zip-browser.json",
+      "sha256": "59d580f56013b02aa98c0723d9608760ff9d491f7934b8d931cbcb380db61ca1",
+      "physicalOutputMuted": true,
+      "passed": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "zipMonaco": {
+      "path": "build/nes-fds-zip-monaco.json",
+      "sha256": "65444a91ab9901f91512fe2ef703e8b71beae81c6dc80e1b8344449408e2bbc1",
+      "physicalOutputMuted": true,
+      "passed": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    }
+  },
+  "package": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-fds/itch_2a03_synth_fds-final-20261121-Sn5GTA",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-fds/tetorica_2a03_synth_fds-final-20261121_itch.zip",
+    "files": 161,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 1977745,
+      "sha256": "24d78557086151db0330c54c34eb2ebd59b95aa7a61f8171a7ff73bb6ace1ec7"
+    },
+    "sourceCheck": {
+      "inputs": 27,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "example": "Fresh Cassette: examples/timed-fds.js; existing Cassettes restored unchanged",
+  "limits": [
+    "Wave RAM and modulation-table transfers remain immediate/outside build",
+    "Envelope controls use raw register writes; no new high-level envelope API",
+    "Snapshots contain operation-resolution state, not envelope/phase progress or RAM",
+    "Native scheduling and rate-limited scheduled-state Live UI remain follow-ups"
+  ],
+  "humanListeningPerformed": false,
+  "published": false,
+  "commitOrPushPerformed": false
+}

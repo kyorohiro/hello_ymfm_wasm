@@ -2,7 +2,7 @@
 export const NES_TIMED_EXAMPLE = `const nes = await useSoundChip("nes");
 const bpm = 120;
 setBpm(bpm);
-const beatSeconds = 60 / bpm;
+const beatSeconds = 60 / 120;
 const phrase = nes.build(b => {
   b.pulse.setVoice(CH1, { duty: 0.5, volume: 8 });
   b.atSeconds(0).noteOn(CH1, "E3");
@@ -22,7 +22,7 @@ await nes.schedule(phrase, { name: "apu", repeatSeconds: beatSeconds });
 export const NES_DMC_TIMED_EXAMPLE = `const nes = await useSoundChip("nes");
 const bpm = 120;
 setBpm(bpm);
-const step = 60 / bpm;
+const step = 60 / 120;
 
 // Prepare RAM outside build. Reuse your loaded sample when available.
 // This self-authored demo is alternating DPCM bits, not PCM conversion.
@@ -40,4 +40,18 @@ console.table(await nes.compile(phrase, { initialState: snapshot }));
 await nes.schedule(phrase, { name: "dmc", repeatSeconds: step });
 // Sample selection resolves when executed. RAM is not part of the snapshot.
 // Standalone software click guard is optional; shared raw playback stays raw.
+`;
+
+/** Timed controls use the currently loaded FDS Wave/modulation tables. */
+export const NES_FDS_TIMED_EXAMPLE = `const nes = await useSoundChip("nes");
+setBpm(120);
+const step = 60 / 120;
+const phrase = nes.build(b => {
+  b.fds.setVolume(24);
+  b.fds.noteOn("E3");
+  b.atSeconds(step * 0.5).fds.setNote("G3");
+  b.atSeconds(step * 0.9).fds.noteOff();
+});
+console.table(await nes.compile(phrase));
+await nes.schedule(phrase, {name: "fds", repeatSeconds: step});
 `;

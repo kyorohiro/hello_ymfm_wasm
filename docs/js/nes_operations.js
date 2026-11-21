@@ -12,12 +12,14 @@ export {createNesOperationResetState,validateNesOperationState} from './nes_oper
  * atSample(value:number):NESOperationRecorder,atSeconds(value:number):NESOperationRecorder,
  * pulse:{[K in keyof NesApuSynth['pulse']]:(...args:Parameters<NesApuSynth['pulse'][K]>)=>NESOperationRecorder},
  * triangle:{[K in keyof NesApuSynth['triangle']]:(...args:Parameters<NesApuSynth['triangle'][K]>)=>NESOperationRecorder},
+ * fds:{[K in 'setVolume'|'setFrequency'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff']:(...args:Parameters<NesApuSynth['fds'][K]>)=>NESOperationRecorder},
  * dmc:{[K in 'play'|'stop']:(...args:Parameters<NesApuSynth['dmc'][K]>)=>NESOperationRecorder},
  * noise:{[K in keyof NesApuSynth['noise']]:(...args:Parameters<NesApuSynth['noise'][K]>)=>NESOperationRecorder}
  * }} NESOperationRecorder */
 const arity=Object.freeze({writeRegister:[2,2],setFrequency:[2,2],setNote:[2,2],noteOn:[2,2],keyOn:[1,1],noteOff:[1,1],keyOff:[1,1],
  'pulse.setVoice':[2,2],'pulse.setFrequency':[2,2],'pulse.setNote':[2,2],'pulse.noteOn':[2,2],'pulse.keyOn':[1,1],'pulse.noteOff':[1,1],'pulse.keyOff':[1,1],
  'triangle.setFrequency':[1,1],'triangle.setNote':[1,1],'triangle.noteOn':[1,1],'triangle.keyOn':[0,0],'triangle.noteOff':[0,0],'triangle.keyOff':[0,0],
+ 'fds.setVolume':[1,2],'fds.setFrequency':[1,1],'fds.setNote':[1,1],'fds.noteOn':[1,1],'fds.noteOff':[0,0],'fds.keyOn':[0,0],'fds.keyOff':[0,0],
  'dmc.play':[0,1],'dmc.stop':[0,0],
  'noise.setVoice':[0,1],'noise.noteOn':[0,0],'noise.noteOff':[0,0]});
 export const NES_OPERATION_METHODS=Object.freeze(Object.keys(arity));
@@ -159,7 +161,7 @@ export function buildNesOperations(callback, options = {}) {
     previous = seconds;
     return builder;
   };
-  for(const group of ['pulse','triangle','noise','dmc'])builder[group]=Object.create(null);
+  for(const group of ['pulse','triangle','noise','dmc','fds'])builder[group]=Object.create(null);
   for (const method of NES_OPERATION_METHODS) (method.includes('.')?builder[method.split('.')[0]]:builder)[method.split('.').at(-1)] = (...args) => {
     check();
     if (operations.length >= MAX_NES_OPERATIONS) throw new RangeError(`NES programs support at most ${MAX_NES_OPERATIONS} operations`);
@@ -181,16 +183,16 @@ export function buildNesOperations(callback, options = {}) {
 
 /** A scratch chip shares existing parameter validation and register conversion.
  * State adoption and raw-shadow updates never touch the live SoundChip.
- * @param {{clock?:number}} [options]
+ * @param {{clock?:number,fds?:boolean}} [options]
  * @returns {{resolve(operation:NESTimedOperation,state:NESOperationState):{writes:NESRegisterWrite[],state:NESOperationState}}} */
-export function createNesOperationResolver({clock=1789772.7272727273}={}) {
+export function createNesOperationResolver({clock=1789772.7272727273,fds=false}={}) {
  let writes=[];
- const synth=new NesApuSynth({transport:{clock,writeRegister(register,value){writes.push({register,value});}},initialize:false});
+ const synth=new NesApuSynth({transport:{clock,writeRegister(register,value){writes.push({register,value});}},initialize:false,fds});
  return {resolve(operation,state){
   const input=validateNesOperationState(state),call=copyCall(operation);
-  if(call.method==='writeRegister'&&![0x4000,0x4001,0x4002,0x4003,0x4004,0x4005,0x4006,0x4007,0x4008,0x400a,0x400b,0x400c,0x400e,0x400f,0x4010,0x4011].includes(call.args[0]))throw new Error('NES timed raw writes support Pulse/Triangle/Noise and DMC rate/DAC registers only; shared enables use keyOn/keyOff');
+  if(call.method==='writeRegister'&&![0x4000,0x4001,0x4002,0x4003,0x4004,0x4005,0x4006,0x4007,0x4008,0x400a,0x400b,0x400c,0x400e,0x400f,0x4010,0x4011,0x4023,0x4080,0x4082,0x4083,0x4084,0x4085,0x4086,0x4087,0x4089,0x408a].includes(call.args[0]))throw new Error('NES timed raw writes support Pulse/Triangle/Noise and DMC rate/DAC and FDS control registers only (no RAM); shared enables use keyOn/keyOff');
   if(call.method.startsWith('pulse.')&&(!Number.isInteger(call.args[0])||call.args[0]<0||call.args[0]>1))throw new RangeError('Pulse channels are 0 or 1');
-  if(!call.method.includes('.')&&call.method!=='writeRegister'&&(!Number.isInteger(call.args[0])||call.args[0]<0||call.args[0]>(['keyOff','noteOff'].includes(call.method)?4:3)))throw new RangeError('NES timed tone channels are 0..3; DMC supports Off');
+  if(!call.method.includes('.')&&call.method!=='writeRegister'&&(!Number.isInteger(call.args[0])||call.args[0]<0||call.args[0]>(fds?5:['keyOff','noteOff'].includes(call.method)?4:3)))throw new RangeError('NES timed tone channels are 0..3; DMC supports Off');
   synth._adoptState({...input,clock});writes=[];
   const [group,method]=call.method.split('.');
   if(method)synth[group][method](...call.args);else synth[group](...call.args);
@@ -200,12 +202,12 @@ export function createNesOperationResolver({clock=1789772.7272727273}={}) {
 
 /** Validate all calls using their shared existing conversion, without live state.
  * @param {NESOperationProgram} plan
- * @param {{clock?:number,validateArguments?:boolean,initialState?:NESOperationState}} [options]
+ * @param {{clock?:number,fds?:boolean,validateArguments?:boolean,initialState?:NESOperationState}} [options]
  * @returns {NESOperationProgram} */
-export function validateNesOperations(plan, {clock = 1789772.7272727273, validateArguments = true, initialState} = {}) {
+export function validateNesOperations(plan, {clock = 1789772.7272727273, validateArguments = true, initialState, fds=false} = {}) {
   const copy = copyProgram(plan);
   if (!validateArguments) return copy;
-  const resolver = createNesOperationResolver({clock});
+  const resolver = createNesOperationResolver({clock,fds});
   let state = initialState ? validateNesOperationState(initialState) : createNesOperationResetState({clock});
   for (const operation of copy.operations) state = resolver.resolve(operation, state).state;
   return copy;
@@ -213,9 +215,9 @@ export function validateNesOperations(plan, {clock = 1789772.7272727273, validat
 
 /** Compile one virtual pass. Baseline adoption never contributes write rows.
  * @param {NESOperationProgram} plan @param {NESOperationState} state
- * @param {{clock?:number}} [options] @returns {NESCompiledWrite[]} */
-export function compileNesOperations(plan, state, {clock = 1789772.7272727273} = {}) {
-  const copy = copyProgram(plan), resolver = createNesOperationResolver({clock}), rows = [];
+ * @param {{clock?:number,fds?:boolean}} [options] @returns {NESCompiledWrite[]} */
+export function compileNesOperations(plan, state, {clock = 1789772.7272727273,fds=false} = {}) {
+  const copy = copyProgram(plan), resolver = createNesOperationResolver({clock,fds}), rows = [];
   let work = validateNesOperationState(state);
   for (let operationIndex = 0; operationIndex < copy.operations.length; operationIndex++) {
     const operation = copy.operations[operationIndex];

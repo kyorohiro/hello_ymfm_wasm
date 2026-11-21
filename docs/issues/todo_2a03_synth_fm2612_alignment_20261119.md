@@ -22,7 +22,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | Output-only channel switches shared by Keyboard, Code and song | **Missing UI/integration.** There is no common six-channel Mixer. [song_player.js](../synth-2a03/song_player.js) has reference-player channel switching primitives; selecting a CH or disabling a hardware voice is not equivalent to output-only mute. |
 | PCM drawing and Start/Loop range editing | **Chip-specific / already different.** [dmc_editor.js](../synth-2a03/dmc_editor.js) already edits DPCM bits and draws target DAC curves with Undo; FDS wave drawing also exists. RF5C164 PCM byte/range semantics must not be copied into DMC. |
 | Looper / Event Rec | **Not implemented; optional.** No equivalent recording UI is present. This is not required for the first saving/layout rollout. |
-| Timed build/schedule/compile/capture-state API | **Present for Pulse/Triangle/Noise and prepared DMC (2026-11-21).** Recorder/compiler, detached snapshots, AudioWorklet scheduling and Code lifecycle are connected. DMC memory/FDS and Native execution remain follow-ups. [Verification](todo_2a03_timed_register_api_20261121.md). |
+| Timed build/schedule/compile/capture-state API | **Present for Pulse/Triangle/Noise, prepared DMC and FDS controls (2026-11-21).** Recorder/compiler, detached snapshots, AudioWorklet scheduling and Code lifecycle are connected. DMC/FDS RAM and Native execution remain follow-ups. [Verification](todo_2a03_timed_register_api_20261121.md). |
 
 ## First implementation candidate: saving and Files
 
@@ -78,7 +78,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 
 ## Timed register API follow-up
 
-Pulse/Triangle/Noise and prepared DMC playback are implemented; separate the remaining DMC memory/FDS chip-level work from Files/UI alignment.
+Pulse/Triangle/Noise, prepared DMC and FDS controls playback are implemented; separate the remaining DMC memory/FDS chip-level work from Files/UI alignment.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
 - [x] Preserve pulse/triangle/noise, shared enables, length/envelope/retrigger writes and NES register side effects.
