@@ -1,3 +1,4 @@
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
 import { createAudio } from './audio.js?v=scsp-output-level-1';
@@ -67,6 +68,7 @@ let queue = Promise.resolve(),
 	sequence = 0;
 let selectedOperator = 0,
 	latestState = null,
+	expandedTabs = null,
 	codeHost = null,
 	songControls = null,
 	songState = null,
@@ -1401,6 +1403,7 @@ const monitorResize = new ResizeObserver(() => {
 });
 monitorResize.observe($('outputCanvas'));
 function chipTab(dsp) {
+	expandedTabs?.showChip($(dsp?'scspDspTab':'scspChipTab'));
 	$('scspChipPanel').hidden = dsp;
 	$('scspDspPanel').hidden = !dsp;
 	for (const [id, selected] of [
@@ -1574,6 +1577,7 @@ $('save').addEventListener('click', async () => {
 	}
 });
 codeHost = setupScspCodeHost({
+ onViewChange:mode=>expandedTabs?.showInput(mode),onExpandedChange:value=>expandedTabs?.setExpanded(value),
 	ensureAudio,
 	getAudio: () => audio,
 	getSettings: () => clone(cachedPatch),
@@ -1596,6 +1600,7 @@ codeHost = setupScspCodeHost({
 	onActivity: syncActivity,
 	setStatus: status,
 });
+expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,selectChip:button=>{chipTab(button.id==='scspDspTab');return true;},elements:{editor:$('scspSynthEditor'),chipTabs:[$('scspChipTab'),$('scspDspTab')],volume:$('volume').closest('.master-control')}});
 songControls = setupScspSongControls({
 	project: codeHost.project,
 	ensureAudio,
@@ -1657,6 +1662,7 @@ window.addEventListener('pagehide', (event) => {
 		return;
 	}
 	disposed = true;
+	expandedTabs?.dispose();
 	dspProgramView?.dispose();
 	dspRoutingView?.dispose();
 	dspSignalFlow?.dispose();

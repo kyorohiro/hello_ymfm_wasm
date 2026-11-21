@@ -19,7 +19,7 @@ const config = {
   out: path.join(tmpdir(), "scsp-synth-code-monaco-browser.json")
 };
 for (let i = 2; i < process.argv.length; i++) {
-  const match = /^--(root|entry|engines|out)(?:=(.*))?$/.exec(process.argv[i]);
+  const match = /^--(root|entry|engines|out|monaco-root)(?:=(.*))?$/.exec(process.argv[i]);
   assert(match, `Unknown argument: ${process.argv[i]}`);
   const value = match[2] ?? process.argv[++i];
   assert(value && !value.startsWith("--"), `Missing --${match[1]} value`);
@@ -331,8 +331,11 @@ async function run(browser, name, origin) {
       if (response.status() >= 400) cdnFailures.push({ url: response.url(), status: response.status() });
     }
   });
-  await context.route("**/*", (route) => {
+  await context.route("**/*", async (route) => {
     const url = new URL(route.request().url());
+    if(config['monaco-root']&&isMonacoCdn(url.href)){
+      const root=path.resolve(config['monaco-root']),file=path.resolve(root,decodeURIComponent(url.href.slice(CDN_PREFIX.length).split('?')[0]));assert(file.startsWith(root+path.sep));let body;try{body=await fs.readFile(file);}catch(error){if(error.code!=='ENOENT'||!file.endsWith('.min.js'))throw error;body=await fs.readFile(file.replace(/\.min\.js$/,'.js'));}return route.fulfill({status:200,body,contentType:mime[path.extname(file)]??'application/octet-stream'});
+    }
     if (url.origin === origin || ["blob:", "data:"].includes(url.protocol) || isMonacoCdn(url.href)) {
       return route.continue();
     }

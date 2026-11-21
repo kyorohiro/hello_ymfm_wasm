@@ -37,12 +37,11 @@ Status updated through the 2026-11-21 workspace and timed-API ports:
 | FM2608 | Implemented 2026-11-21: [verification](verification_fm2608_code_workspace_20261121.json) | FM/SSG/Rhythm/loaded-sample ADPCM-B implemented; memory transfer/Native/UI following remain separate |
 | 2A03 | Implemented 2026-11-21: [verification](verification_2a03_code_workspace_20261121.json) | Pulse/Triangle/Noise, prepared DMC and FDS controls implemented; [FDS RAM/memory/Native follow-ups](todo_2a03_timed_register_api_20261121.md) |
 | S-DSP | Implemented: [workspace verification](verification_snes_code_workspace_20261121.json) | Physical voice/pitch/gate/DSP controls and prepared Echo implemented: [verification](verification_snes_timed_api_20261121.json) |
-| SCSP | Port needed | Port needed; DSP assembly is separate |
+| SCSP | Implemented: [workspace verification](verification_scsp_code_workspace_20261121.json) | Deferred by explicit user request on 2026-11-21; DSP assembly is separate |
 | ASWAN | Present | Scoped implementation present; retain documented exclusions |
 | SMSGEAR / YM2413 | Present | Sega PSG / YM2413 shared clients and borrowed Synth wiring present |
 
-The remaining SCSP workspace does not yet use the
-persistent-expanded helper/header buttons. Source inspection is not a new
+SCSP now also uses the persistent-expanded helper/header buttons (2026-11-21). Source inspection is not a new
 claim of backend/audio validation or full completion of every optional row.
 
 ## Agreed order

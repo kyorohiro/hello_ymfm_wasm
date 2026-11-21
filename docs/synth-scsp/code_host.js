@@ -35,6 +35,8 @@ export function setupScspCodeHost({
 	clearLooper = stopLooper,
 	stopSong = async () => {},
 	onActivity = () => {},
+	onViewChange = () => {},
+	onExpandedChange = () => {},
 	setStatus = () => {},
 } = {}) {
 	let disposed = false,
@@ -134,6 +136,7 @@ export function setupScspCodeHost({
 		files,
 		getRuntime,
 		keepRunningOnKeyboard: true,
+		persistentExpanded: true, onViewChange, onExpandedChange,
 		allowTextFiles: true,
 		maxTextLength: SCSP_PROJECT_FILE_BYTES,
 		writeText: (path, source) => project.writeEditorText(path, source),

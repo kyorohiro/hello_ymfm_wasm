@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-21",
+  "scope": "SCSP persistent Code workspace only",
+  "tests": {
+    "scspRegressionsAndPackaging": 503,
+    "sharedExpandedTabs": 11
+  },
+  "verified": [
+    "Header Code/Synth and persistent expanded Code/SCSP/DSP/Keyboard tabs",
+    "Master and collapsible reference/SSF song transport above Files/main",
+    "Same Code session, context and Worklet across view changes with finite muted PCM",
+    "Existing PCM and 2/4/6-operator Code, manual notes, edits, pitch, preset selection and Cassette recovery retain browser coverage",
+    "Real Monaco visibility, types, completion and readable implementation navigation at desktop/narrow widths",
+    "Existing click guard and Looper lifecycle retained"
+  ],
+  "reports": {
+    "source": {
+      "passed": true,
+      "path": "build/scsp-workspace-browser.json",
+      "sha256": "87fc6b002d724fc76fae1868440fe0fb36d48ec9956f21e8c4fb6de2c9e3e8f1",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "sourceMonaco": {
+      "passed": true,
+      "path": "build/scsp-workspace-monaco.json",
+      "sha256": "8af05bce0db9eb0bcbbcd7e37ed28ab34a2c4dad1c7661a34bc2e2683e7777a1",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "zip": {
+      "passed": true,
+      "path": "build/scsp-workspace-zip-browser.json",
+      "sha256": "37df56266d4a3bda77f25612e7aeefe5d5cd6c89f1b6b4ca72ad02c02b4dfebb",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "zipMonaco": {
+      "passed": true,
+      "path": "build/scsp-workspace-zip-monaco.json",
+      "sha256": "9df3d86149ee7d47fe12050ea45df745113b4021883bd84e9c14dc9204e4250b",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    }
+  },
+  "package": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-workspace/itch_scsp_synth_workspace-20261121-cQ74FQ",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-workspace/tetorica_scsp_synth_workspace-20261121_itch.zip",
+    "files": 390,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 4443911,
+      "sha256": "80848c863fa47c4ab0c5cdc6a8bafe1d6cbb48c5fb2797b410f3e7ad4e68b77a"
+    },
+    "sourceCheck": {
+      "inputs": 19,
+      "files": 24
+    }
+  },
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "timedApiAdded": false,
+  "scopeDecision": "User explicitly deferred SCSP build/schedule/compile; scheduling, PCM/DSP transfer and a new Mixer are not included.",
+  "limits": [
+    "Human SSF listening, device and long-duration checks remain pending",
+    "Working/saved Files migration and other chip-specific extensions are separate tasks"
+  ],
+  "published": false,
+  "commitOrPushPerformed": false
+}

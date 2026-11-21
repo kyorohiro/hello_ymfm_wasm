@@ -336,6 +336,16 @@ async function check(browser, name, origin, loadCassette) {
     await execute(page, true);
     await until(() => page.locator("#synthCodeLog").textContent().then((value) => /apply-count 2/.test(value)), "Apply kept context");
     assert.equal((await read(page)).codeSession, originalSession);
+    step("Persistent Code/SCSP/DSP/Keyboard tabs preserve Code, Master and reference controls");
+    const beforeTabs=await page.evaluate(()=>__scspCodeAudit.graph());
+    await page.locator('#synthWorkspaceCodeButton').click();
+    for(const id of ['scspChipTab','scspDspTab','synthInputKeyboardTab','synthInputCodeTab']){
+      await page.locator('#'+id).click();await page.waitForFunction(id=>document.getElementById(id).getAttribute('aria-selected')==='true',id);
+      assert(await page.locator('#synthWorkspace').evaluate(e=>e.classList.contains('is-code-expanded')));assert(await page.locator('#volume').isVisible());assert(await page.locator('#scspSongPlay').isVisible());assert.equal((await read(page)).codeSession,originalSession);await pcm(page);
+    }
+    assert.deepEqual(await page.evaluate(()=>__scspCodeAudit.graph()),beforeTabs);
+    await page.locator('#scspReferencePlayback summary').first().click();assert(await page.locator('#volume').isVisible());await page.locator('#scspReferencePlayback summary').first().click();
+    await page.locator('#scspChipTab').click();await page.locator('#synthWorkspaceSynthButton').click();
     step("Manual keyboard, numeric buttons and dragging remain live during Code");
     await page.locator("#synthInputCodeTab").click();
     const manualKey = await page.locator("#keyboard .key[data-key]").first().getAttribute("data-key");
@@ -469,7 +479,7 @@ async function check(browser, name, origin, loadCassette) {
       await page.locator("#synthCodeExpandButton").click();
       assert(await page.locator("#synthExpandedCodeSlot #synthCodeEditor").isVisible());
       assert(await page.locator("#scspFilesPanel").isVisible());
-      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "expanded width " + width);
+      await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth+1);assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "expanded width " + width);
       await fs.mkdir(config.screenshots, { recursive: true });
       await page.screenshot({ path: path.join(config.screenshots, name + "-" + width + ".png"), fullPage: true });
       await page.locator("#synthCodeExpandButton").click();

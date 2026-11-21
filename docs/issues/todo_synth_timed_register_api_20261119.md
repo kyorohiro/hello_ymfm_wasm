@@ -75,3 +75,6 @@ FDS full-table update (2026-11-21): recorded `fds.setWave()` and
 payloads. DMC memory transfer, arbitrary raw RAM edits, Native scheduling and
 scheduled-state Live UI remain separate.
 [Verification](verification_2a03_fds_tables_20261121.json).
+
+SCSP decision 2026-11-21: workspace alignment only is implemented.
+The user explicitly deferred build/schedule/compile. Resume only on a new request.

@@ -158,7 +158,7 @@
 						<div class="transport-actions">
 							<button id="start" class="primary" type="button">Enable audio</button
 							><button id="stop" type="button">Stop all sound</button
-							><button
+							><span class="scsp-workspace-switch" role="group" aria-label="Workspace layout"><button id="synthWorkspaceCodeButton" type="button" aria-pressed="false">Code</button><button id="synthWorkspaceSynthButton" type="button" aria-pressed="true">Synth</button></span><button
 								id="scspFilesToggle"
 								type="button"
 								aria-expanded="false"
@@ -180,19 +180,11 @@
 							/><output id="volumeValue" for="volume">60%</output></label
 						>
 					</div>
-					<p id="status" class="audio-status" role="status" aria-live="polite">
-						Enable audio or Run Code to play. Files save locally.
-					</p>
+
 				</header>
-				<div id="synthWorkspace" class="scsp-code-workspace">
-					<aside
-						id="scspFilesPanel"
-						class="scsp-files-panel"
-						aria-label="Project files"
-						hidden
-					></aside>
-					<div class="scsp-main">
-						<section class="scsp-song-player" aria-label="SCSP reference playback">
+				<div id="synthWorkspace" class="scsp-code-workspace"><div class="scsp-workspace-meta"><p id="status" class="audio-status" role="status" aria-live="polite">
+						Enable audio or Run Code to play. Files save locally.
+					</p><div class="scsp-reference-row"><details class="scsp-reference" id="scspReferencePlayback" open><summary>Reference playback</summary><section class="scsp-song-player" aria-label="SCSP reference playback">
 							<div class="scsp-song-transport">
 								<label for="scspSongSelect">Song</label
 								><span class="scsp-song-select"><select id="scspSongSelect" aria-label="SCSP songs in Files">
@@ -226,7 +218,15 @@
 							<p id="scspSongStatus" role="status">
 								Import an SSF folder or SCSP VGM from Menu, or try Demo.
 							</p>
-						</section>
+						</section></details><div id="synthExpandedVolumeSlot" hidden></div></div></div>
+					<aside
+						id="scspFilesPanel"
+						class="scsp-files-panel"
+						aria-label="Project files"
+						hidden
+					></aside>
+					<div class="scsp-main"><div id="synthExpandedTabsSlot" hidden></div><div id="synthExpandedCodeSlot" class="scsp-expanded-code" hidden></div><div id="scspSynthEditor">
+
 						<section
 							id="scspSsfLive"
 							class="scsp-ssf-live"
@@ -348,7 +348,7 @@
 						</section>
 						<div class="scsp-chip-tabs" role="tablist" aria-label="Sound chip editor">
 							<button
-								id="scspChipTab"
+								id="scspChipTab" data-synth-chip="scsp"
 								role="tab"
 								type="button"
 								aria-selected="true"
@@ -356,7 +356,7 @@
 							>
 								SCSP</button
 							><button
-								id="scspDspTab"
+								id="scspDspTab" data-synth-chip="dsp"
 								role="tab"
 								type="button"
 								aria-selected="false"
@@ -868,13 +868,13 @@
 							</details>
                             </div>
 						</section>
-						<section
+						</div><section
 							id="synthInputSection"
 							class="keyboard-section scsp-input-section"
 							aria-label="Performance input"
 							data-input-mode="keyboard"
 						>
-							<div
+							<div class="scsp-input-heading"><div
 								class="scsp-input-tabs"
 								role="tablist"
 								aria-label="Performance input"
@@ -920,7 +920,7 @@
 									</svg>
 								</button>
 							</div>
-							<div class="scsp-input-options">
+							</div><div class="scsp-input-options">
 								<label class="check-control">
 									<input id="scspClickGuard" type="checkbox" checked />
 									Click guard · Software
@@ -1041,7 +1041,7 @@
 							</div>
 						</section>
 					</div>
-					<div id="synthExpandedCodeSlot" class="scsp-expanded-code" hidden></div>
+
 				</div>
 				<footer>
 					<p>

@@ -1837,3 +1837,41 @@ footer {
 #scspDspProgramSetupStatus {
 	overflow-wrap: anywhere;
 }
+
+/* Persistent expanded workspace uses the existing controls. */
+.scsp-workspace-switch {display:inline-flex;}
+.scsp-workspace-switch button {border-radius:0;}
+.scsp-workspace-switch button:first-child {border-radius:99px 0 0 99px;}
+.scsp-workspace-switch button:last-child {border-radius:0 99px 99px 0;}
+.scsp-workspace-switch button[aria-pressed="true"] {background:var(--accent);color:white;}
+.scsp-workspace-meta {grid-column:1/-1;display:grid;gap:12px 16px;min-width:0;align-items:start;}
+.scsp-workspace-meta .audio-status {margin:0;padding-top:10px;}
+.scsp-reference-row {display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0;}
+.scsp-reference {flex:1 1 280px;min-width:0;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);}
+.scsp-reference[open] {flex-basis:100%;}
+.scsp-reference > summary {font-size:.76rem;font-weight:650;cursor:pointer;}
+.scsp-reference[open] > summary {margin-bottom:10px;}
+.scsp-reference .scsp-song-player {padding:0;border:0;margin:0;background:none;}
+#synthExpandedVolumeSlot {margin-left:auto;min-width:0;max-width:100%;}
+#synthExpandedVolumeSlot .master-control {max-width:100%;}
+.scsp-code-workspace.is-code-expanded .scsp-main {display:block;}
+.scsp-main #synthExpandedCodeSlot {grid-column:auto;}
+#scspSynthEditor,#synthExpandedTabsSlot,.scsp-input-heading {min-width:0;}
+#scspSynthEditor[hidden],#synthExpandedTabsSlot[hidden],#synthExpandedVolumeSlot[hidden] {display:none;}
+.scsp-code-workspace.is-code-expanded #synthInputSection > h2 {display:none;}
+.scsp-code-workspace .synth-expanded-heading {display:flex;align-items:flex-start;gap:8px;min-width:0;margin-bottom:12px;}
+.scsp-code-workspace .synth-expanded-heading .scsp-chip-tabs {flex:1;flex-wrap:wrap;min-width:0;margin:0;}
+.scsp-code-workspace .synth-expanded-heading .scsp-chip-tabs > button {min-height:34px;padding:7px 10px;flex:0 0 auto;}
+.scsp-code-workspace .synth-expanded-heading .scsp-code-expand {flex:none;padding:7px;min-height:34px;}
+#synthExpandedTabsSlot > .scsp-code-toolbar {margin-bottom:12px;}
+.scsp-code-workspace.is-code-expanded .scsp-input-section {padding:0;border:0;margin:0;}
+@media(min-width:761px) {
+ .scsp-code-workspace.has-files > .scsp-workspace-meta {grid-template-columns:230px minmax(0,1fr);}
+ .scsp-code-workspace.has-files.is-code-expanded > .scsp-main {padding-top:13px;}
+ .scsp-code-workspace.has-files.is-code-expanded .scsp-files-heading {min-height:34px;}
+}
+
+.scsp-code-workspace .scsp-main #synthExpandedCodeSlot {grid-column:auto;}
+.scsp-main,.scsp-reference {min-width:0;}
+
+#scspSynthEditor[hidden] {display:none;}

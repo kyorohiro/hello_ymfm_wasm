@@ -2,7 +2,7 @@
 
 Recorded: 2026-11-19. Documentation/source audit only; existing checked work
 remains in its original TODOs. No runtime edits or new validation are claimed.
-SCSP is currently an unprioritized candidate; the user's ordered rollout is
+SCSP workspace alignment is now authorized; timed APIs were explicitly deferred on 2026-11-21. Historically, the user's ordered rollout is
 HuC6280 → SPU → DMG → SID. This list does not approve every optional extension.
 
 ## Current comparison
@@ -12,7 +12,7 @@ HuC6280 → SPU → DMG → SID. This list does not approve every optional exten
 | Working/saved and explicit Save | **Missing.** [code_project.js](../synth-scsp/code_project.js) uses a single filesystem/v1 project snapshot. [code_files.js](../synth-scsp/code_files.js) has local persistence and Save sound/Code, but not independent accepted/working versions, Auto apply, dots, Save all/Discard or dual-version Cassette recovery. |
 | Instrument file linked to UI edits | **Partial.** PCM/routing/voice presets and JSON editing exist; Save sound creates a new `.scsp.json` path. UI state, per-target unapplied PCM drafts and the selected Files document are not one working/saved document. |
 | Files Undo and New/import restore | **Partial.** Transactional replacement and failed-New rollback exist. There is no user Files Undo history for successful file/New/import operations in [code_files.js](../synth-scsp/code_files.js). |
-| Persistent expanded Code workspace | **Partial.** Existing Code/maximize and SCSP/DSP/CH controls are present. [code_host.js](../synth-scsp/code_host.js) does not enable FM2612's persistent combined tab workspace or header Code–Synth switch. |
+| Persistent expanded Code workspace | **Present (2026-11-21).** Header Code/Synth, persistent Code/SCSP/DSP/Keyboard tabs, visible Master and collapsible reference playback reuse the shared expanded workspace. |
 | Changed-value highlighting | **Present.** Default-On switch, stored preference and bounded Code/SSF highlighting already exist in [live_highlight.js](../synth-scsp/live_highlight.js) and [synth.js](../synth-scsp/synth.js). Preserve the [completed work](todo_scsp_live_parameter_highlight_20261118.md); do not rebuild it as a missing feature. |
 | Shared channel output mutes | **Missing as a common output-only mixer.** Level/pan, DSP sends/returns and sound-stack routing are editable, but are hardware/control state, not independent Keyboard/Code/SSF listening switches. [index.html](../synth-scsp/index.html) has no FM2612-style channel output mixer. The desired Direct/DSP/modulator behavior needs a design decision first. |
 | PCM drawing/ranges | **Present in part / chip-specific.** The [shared voice panel](../playground/playground_scsp_voice_panel.js) already draws PCM, selects a region from loaded audio and sets Root/rate/forward-loop start. Explicit Apply allocates RAM for future notes; held/releasing notes retain their sample. Arbitrary Start/Loop End controls are not a required 1:1 RF5C164 port. |
@@ -80,3 +80,19 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
 - [ ] Define a bounded register-only surface; PCM transfers, ring-buffer contents and DSP assembly/program execution remain separate concerns.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.
+
+## Authorized workspace slice — 2026-11-21
+
+- [x] Header Code/Synth and persistent Code/SCSP/DSP/Keyboard tabs.
+- [x] Visible Master and collapsible SSF/reference playback above Files/main.
+- [x] Preserve Code/model, physical slots, PCM drafts, routing, DSP and existing Looper semantics.
+- [x] Muted source/ZIP, real Monaco, desktop/mobile verification.
+
+The user explicitly deferred SCSP build/schedule/compile. Do not implement
+timed operation APIs, PCM/DSP transfer scheduling or a new Mixer in this slice.
+
+Verification: 503 SCSP regression/packaging checks and 11 shared expanded-tab
+checks pass. Source and readable ZIP pass physically muted Chromium/WebKit
+performance and real Monaco checks, including desktop/390px views.
+[Evidence](verification_scsp_code_workspace_20261121.json).
+Do not resume build/schedule/compile without a subsequent user request.
