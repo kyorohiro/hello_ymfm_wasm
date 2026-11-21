@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-files-1" />
-		<script type="module" src="synth.js?v=nds-files-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-sample-1" />
+		<script type="module" src="synth.js?v=nds-sample-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -106,8 +106,34 @@
 					</select></label>
 					<label class="loop-control"><input id="ndsLoop" type="checkbox" checked /> Repeat sample</label>
 				</div>
+				<div class="sample-actions">
+					<button id="ndsLoadWav" type="button">Load WAV…</button>
+					<button id="ndsUseBuiltin" type="button" hidden>Use built-in wave</button>
+					<input id="ndsWavInput" type="file" accept=".wav,.wave,audio/wav,audio/wave,audio/x-wav" hidden />
+					<label class="preset-choice">Saved sounds <select id="ndsSavedSounds" disabled><option value="">No saved sounds</option></select></label>
+					<button id="ndsSaveSound" type="button">Save sound as…</button>
+				</div>
+				<section id="ndsSampleEditor" class="sample-editor" aria-labelledby="ndsSampleTitle" hidden>
+					<div class="sample-heading"><h2 id="ndsSampleTitle">Sample waveform</h2><span id="ndsSampleInfo"></span></div>
+					<canvas id="ndsSampleCanvas" width="960" height="144" aria-label="Sample waveform and loop range"></canvas>
+					<div class="sample-fields">
+						<label>Root note · MIDI <input id="ndsSampleRoot" type="number" min="0" max="127" step="1" value="60" /><output id="ndsSampleRootName">C4</output></label>
+						<label>Loop start · frame <input id="ndsSampleStart" type="number" min="0" step="1" value="0" /></label>
+						<label>End · frame <input id="ndsSampleEnd" type="number" min="1" step="1" value="1" /></label>
+					</div>
+					<p id="ndsSampleStatus">The format, tuning and range apply on the next note.</p>
+				</section>
 				<p id="ndsNoteStatus" class="note-status" aria-live="polite"></p>
 			</section>
+			<dialog id="ndsSaveSoundDialog" class="nds-file-dialog" aria-labelledby="ndsSaveSoundTitle">
+				<form id="ndsSaveSoundForm">
+					<h2 id="ndsSaveSoundTitle">Save DS sound</h2>
+					<label>Name <input id="ndsSoundName" type="text" maxlength="120" required /></label>
+					<p id="ndsSaveSoundError" role="alert"></p>
+					<button id="ndsSaveSoundCancel" type="button">Cancel</button>
+					<button id="ndsSaveSoundCommit" type="submit">Save</button>
+				</form>
+			</dialog>
 			<div id="synthWorkspace" class="workspace">
 				<aside id="ndsFilesPanel" aria-label="Project files" hidden></aside>
 				<div id="synthExpandedCodeSlot" hidden></div>

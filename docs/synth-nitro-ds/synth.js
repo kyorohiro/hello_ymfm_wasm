@@ -2,11 +2,12 @@
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
 import { createTwoSfPlayer } from './2sf-player.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
-import { createNdsAudio } from './nds-audio.js';
-import { setupNdsKeyboard } from './nds-keyboard.js';
+import { createNdsAudio } from './nds-audio.js?v=nds-sample-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-sample-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-files-1';
-import { createNdsProject } from './nds-project.js';
-import { setupNdsFiles } from './nds-files.js';
+import { createNdsProject } from './nds-project.js?v=nds-sample-1';
+import { setupNdsFiles } from './nds-files.js?v=nds-sample-1';
+import { isNdsPresetPath } from './nds-preset.js';
 
 const node = (id) => document.getElementById(id);
 const song = node('songSelect'), play = node('play'), pause = node('pause'), stop = node('stop');
@@ -147,11 +148,64 @@ const getAudio = () => audio;
 keyboard = setupNdsKeyboard({ ensureAudio, getAudio, onActivity: syncMonitor, onError: report });
 const setStatus = message => { if (!disposing) status.textContent = message; };
 const project = createNdsProject({ starterCode: NDS_STARTER_CODE, starterFiles: NDS_STARTER_FILES });
-const projectFiles = setupNdsFiles({ project, setStatus, onBeforeWorkspaceReplace: () => keyboard.stop() });
+const projectFiles = setupNdsFiles({
+	project, setStatus, onSelectPreset: preset => keyboard.applyPreset(preset),
+	onBeforeWorkspaceReplace() {
+		keyboard.cancelSampleLoad();
+		return keyboard.stop();
+	},
+});
 code = setupNdsCode({
 	project, files: projectFiles, ensureAudio, getAudio, setStatus, onActivity: syncMonitor,
 });
 void code.ready?.catch(report);
+
+const savedSounds = node('ndsSavedSounds');
+let presetList = '';
+function updateSavedSounds() {
+	const paths = project.savedFs.list().map(file => file.path).filter(isNdsPresetPath).sort((a, b) => a.localeCompare(b));
+	const signature = JSON.stringify(paths);
+	if (signature === presetList) return;
+	presetList = signature;
+	savedSounds.replaceChildren(new Option(paths.length ? 'Choose saved sound…' : 'No saved sounds', ''),
+		...paths.map(path => new Option(path.split('/').at(-1).replace(/\.nds\.json$/i, ''), path)));
+	savedSounds.disabled = !paths.length;
+}
+const unwatchSavedSounds = project.savedFs.onDidChange(updateSavedSounds);
+updateSavedSounds();
+savedSounds.addEventListener('change', () => {
+	const path = savedSounds.value;
+	savedSounds.value = '';
+	savedSounds.blur();
+	if (path) void projectFiles.selectFile(path, { showSource: false }).catch(report);
+});
+
+const saveDialog = node('ndsSaveSoundDialog'), soundName = node('ndsSoundName');
+const saveCommit = node('ndsSaveSoundCommit'), saveCancel = node('ndsSaveSoundCancel'), saveError = node('ndsSaveSoundError');
+let soundToSave;
+node('ndsSaveSound').addEventListener('click', () => {
+	soundToSave = keyboard.getPreset();
+	soundName.value = soundToSave.name || (soundToSave.mode === 'pulse' ? 'DS Pulse' : soundToSave.mode === 'noise' ? 'DS Noise' : `DS ${soundToSave.shape}`);
+	saveError.textContent = '';
+	saveDialog.showModal();
+	soundName.select();
+});
+saveCancel.addEventListener('click', () => saveDialog.close());
+saveDialog.addEventListener('cancel', event => { if (saveCommit.disabled) event.preventDefault(); });
+saveDialog.addEventListener('close', () => { soundToSave = null; });
+node('ndsSaveSoundForm').addEventListener('submit', async event => {
+	event.preventDefault();
+	if (saveCommit.disabled || !soundToSave) return;
+	saveError.textContent = '';
+	saveCommit.disabled = saveCancel.disabled = true;
+	try {
+		const saved = await projectFiles.savePreset(soundName.value, soundToSave);
+		if (!saved) throw new Error('Wait for the current Files operation and try again.');
+		saveDialog.close();
+	} catch (error) { saveError.textContent = error.message; }
+	finally { saveCommit.disabled = saveCancel.disabled = false; }
+});
+
 node('enableAudio').addEventListener('click', () => void ensureAudio().catch(report));
 node('stopAll').addEventListener('click', async event => {
 	const button = event.currentTarget;
@@ -174,6 +228,8 @@ window.addEventListener('pagehide', event => {
 		return;
 	}
 	disposing = true;
+	keyboard.cancelSampleLoad();
+	unwatchSavedSounds();
 	visualizer.dispose();
 	void (async () => {
 		await code.controls.flush().catch(() => {});

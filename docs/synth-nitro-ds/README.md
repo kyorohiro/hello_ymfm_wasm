@@ -38,6 +38,28 @@ and optional word-aligned PCM or ADPCM bytes. `getState()` reads physical
 channel settings. The output monitor offers Envelope (measured RMS history),
 Waveform and Spectrum. Master controls the Synth and 2SF playback levels.
 
+## WAV and sound presets
+
+Choose a PCM format and click **Load WAV…**. The Synth converts the WAV
+to a mono DS sample at its source rate. **Root note** sets the MIDI note that
+plays at that rate. New WAVs start as one-shots.
+
+Turn on **Repeat sample** to loop the shaded range. Drag either waveform marker
+or edit **Loop start · frame** and **End · frame**. The end is exclusive. The
+editor aligns both points to whole DS words and shows the resulting PNT and LEN
+codes. Format, tuning and range changes apply on the next note. Each converted
+sample can use up to 1 MiB of encoded data.
+
+**Save sound as…** writes a `.nds.json` file in `presets/`. It includes the
+exact encoded sample, source rate, root note, loop points and channel controls.
+To recall it, choose **Saved sounds** or select the file in **Files**. Export a
+Cassette to keep the saved sound with its Code. After importing the Cassette,
+choose the sound again to play it.
+
+In Code, pass `sampleRate` and `rootNote` together with encoded sample bytes
+to `nds.configure()` or `nds.noteOn()` for source-rate tuning. Loop length is
+independent of tuning for these samples.
+
 ## Files and Cassette
 
 Open **Files** to select `index.js`, browse the scripts in `examples/`, or add
@@ -89,4 +111,4 @@ The 2SF player supports ROM-boot sets with standard timing. It applies song
 length and fade tags, with a three-minute fallback when length is missing.
 The assembled cartridge is limited to 64 MiB. Legacy emulator save states and
 timing overrides report an error. The [DS Synth TODO](../issues/todo_nds_synth_20261121.md)
-tracks the sample loading UI, hardware sound capture and release packaging.
+tracks hardware sound capture, support for more source formats and release packaging.

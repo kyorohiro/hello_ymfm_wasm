@@ -295,6 +295,93 @@ async function checkWorkspace(page, fixture, name) {
 	return 'legacy draft, file actions, saved and working views, New and ZIP round trip';
 }
 
+async function checkSample(page, fixture, name) {
+	const { encodeWav } = await import('../../docs/js/wav.js');
+	const sampleRate = 24000;
+	const wave = Float32Array.from({ length: 5760 }, (_, frame) => .7 * Math.sin(frame * Math.PI * 2 / 80));
+	const source = { name: 'Marked cycle.wav', mimeType: 'audio/wav', buffer: Buffer.from(encodeWav({ sampleRate, channels: [wave, wave] })) };
+	const panel = page.locator('#ndsSampleEditor'), mode = page.locator('#ndsMode'), repeat = page.locator('#ndsLoop');
+	const start = page.locator('#ndsSampleStart'), end = page.locator('#ndsSampleEnd'), rootNote = page.locator('#ndsSampleRoot');
+	const savedSounds = page.locator('#ndsSavedSounds');
+	await page.locator('#synthInputKeyboardTab').click();
+	await page.locator('#ndsChannel').selectOption('auto');
+	await mode.selectOption('pcm16');
+	await importFiles(page, '#ndsLoadWav', source);
+	await panel.waitFor();
+	assert.equal(await repeat.isChecked(), false);
+	assert.equal(await rootNote.inputValue(), '60');
+	assert.match(await page.locator('#ndsSampleInfo').textContent(), /PCM16.*24,?000 Hz/);
+
+	await mode.selectOption('pcm8');
+	assert.match(await page.locator('#ndsSampleInfo').textContent(), / · PCM8 · /);
+	await mode.selectOption('adpcm');
+	assert.match(await page.locator('#ndsSampleInfo').textContent(), / · IMA-ADPCM · /);
+	const samplePlot = page.locator('#ndsSampleCanvas');
+	await samplePlot.scrollIntoViewIfNeeded();
+	const rect = await samplePlot.boundingBox();
+	await page.mouse.move(rect.x + 2, rect.y + rect.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(rect.x + rect.width / 5, rect.y + rect.height / 2);
+	await page.mouse.up();
+	assert(Number(await start.inputValue()) > 1000, 'Dragging the waveform marker should move the repeat start');
+	const change = async (field, value) => { await field.fill(value); await field.press('Tab'); };
+	await change(start, '803');
+	await change(end, '3996');
+	await change(rootNote, '72');
+	await repeat.check();
+	assert.equal(await start.inputValue(), '800');
+	assert.equal(await end.inputValue(), '4000');
+	assert.match(await page.locator('#ndsSampleStatus').textContent(), /PNT 101 · LEN 400 words/);
+	await importFiles(page, '#ndsLoadWav', { name: 'Invalid.wav', mimeType: 'audio/wav', buffer: Buffer.from('not a valid WAV') });
+	await until(() => page.locator('#status').textContent(), value => /WAV|RIFF/i.test(value), 'Invalid WAV should report an error');
+	assert.equal(await start.inputValue(), '800');
+
+	async function hearLoop() {
+		await page.keyboard.down('6'); // C4, one octave below the saved root note.
+		try {
+			const tuned = state => state.muted && state.channels.some(({ rms, pitch }) => rms > .002 && Math.abs(pitch - 150) < 3);
+			await until(() => output(page), tuned, 'Imported WAV should transpose by source rate and root note');
+			await wait(550);
+			assert(tuned(await output(page)), 'Repeat should sustain the edited window past the one-shot duration');
+		} finally { await page.keyboard.up('6'); }
+		await until(() => output(page), state => state.channels.every(({ peak }) => peak < 1e-7), 'Sample note should release');
+	}
+	await hearLoop();
+
+	await page.locator('#ndsSaveSound').click();
+	await page.locator('#ndsSoundName').fill('Browser sample');
+	await page.locator('#ndsSaveSoundCommit').click();
+	await page.locator('#ndsSaveSoundDialog').waitFor({ state: 'hidden' });
+	const presetPath = '/presets/Browser sample.nds.json';
+	assert.equal(await savedSounds.locator(`option[value="${presetPath}"]`).count(), 1);
+
+	const zipPath = path.join(fixture, `${name}-sample.cassette.zip`);
+	await page.locator('#menu').click();
+	const downloaded = page.waitForEvent('download');
+	await page.locator('#ndsExportCassette').click();
+	await (await downloaded).saveAs(zipPath);
+	await page.locator('#ndsUseBuiltin').click();
+	assert(await panel.isHidden());
+	await page.locator('#menu').click();
+	await page.locator('#ndsNewCassette').click();
+	await page.locator('#ndsNewCassetteCreate').click();
+	await page.locator('#ndsNewCassetteDialog').waitFor({ state: 'hidden' });
+	await until(() => savedSounds.isDisabled(), Boolean, 'New Cassette should have no user sound');
+	await importFiles(page, '#ndsImportCassette', zipPath);
+	await savedSounds.locator(`option[value="${presetPath}"]`).waitFor({ state: 'attached' });
+	await savedSounds.selectOption(presetPath);
+	await panel.waitFor();
+	assert.equal(await mode.inputValue(), 'adpcm');
+	assert.equal(await rootNote.inputValue(), '72');
+	assert.equal(await start.inputValue(), '800');
+	assert.equal(await end.inputValue(), '4000');
+	assert.equal(await repeat.isChecked(), true);
+	assert(await page.locator('#synthKeyboardPanel').isVisible());
+	await hearLoop();
+	assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+	return 'WAV conversion, tuned loop, sound saved in manual mode and Cassette restored';
+}
+
 async function check(name, origin, fixture) {
 	const browser = await engines[name].launch({ headless: true,
 		...(name === 'chromium' ? { args: ['--mute-audio'] } : {}),
@@ -383,9 +470,10 @@ async function check(name, origin, fixture) {
 		assert(audit.muted && audit.outputs > 0);
 		const synthModes = await checkSynth(page);
 		const workspace = await checkWorkspace(page, fixture, name);
+		const sample = await checkSample(page, fixture, name);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, synthModes, workspace, physicalOutputMuted: true };
+		return { browser: name, left, right, realSongs, synthModes, workspace, sample, physicalOutputMuted: true };
 	} finally {
 		await browser.close();
 	}

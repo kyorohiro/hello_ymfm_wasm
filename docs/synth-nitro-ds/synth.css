@@ -119,6 +119,21 @@ h2 { font-size: 1rem; }
 .field-range input { flex: 1; min-width: 0; }
 .field-range output { min-width: 2rem; text-align: right; font-variant-numeric: tabular-nums; }
 .note-status { font-size: .82rem; color: #565766; margin-top: .5rem; }
+.sample-actions, .sample-heading, .sample-fields { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
+.sample-actions { margin-top: .75rem; }
+.sample-actions button, .preset-choice select { min-height: 2.2rem; padding: .25rem .55rem; }
+.preset-choice { display: flex; align-items: center; gap: .4rem; flex: 1 1 15rem; min-width: 0; font-size: .85rem; }
+.preset-choice select { width: 100%; min-width: 0; flex: 1; }
+.sample-editor { margin-top: .75rem; padding: .7rem; border: 1px solid #d0c7d2; border-radius: .7rem; background: #f1edf5; }
+.sample-heading { margin-bottom: .5rem; align-items: baseline; }
+#ndsSampleInfo, #ndsSampleStatus { color: #565766; font-size: .8rem; overflow-wrap: anywhere; }
+#ndsSampleCanvas { display: block; width: 100%; height: auto; min-height: 85px; border-radius: .45rem; background: #191b26; cursor: ew-resize; touch-action: none; }
+.sample-fields { margin: .5rem 0; }
+.sample-fields label { display: flex; align-items: center; gap: .3rem; font-size: .8rem; }
+.sample-fields input { width: 6rem; color: inherit; background: #faf9fc; border: 1px solid #c3bdc7; border-radius: .45rem; padding: .2rem .35rem; }
+#ndsSampleRoot { width: 4.1rem; }
+#ndsSampleRootName { min-width: 2.5rem; }
+#ndsSaveSoundError:empty { display: none; }
 .performance-tabs { display: inline-flex; gap: .3rem; }
 .performance-tabs button { border-radius: .55rem .55rem 0 0; }
 .performance-tabs button[aria-selected="true"] { background: #f4d5e0; border-color: #b97d96; }

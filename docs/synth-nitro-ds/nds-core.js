@@ -24,6 +24,28 @@ export function ndsAdpcmDelta(step, code) {
 	return code & 8 ? -delta : delta;
 }
 
+export function readNdsAdpcmHeader(bytes) {
+	if (!(bytes instanceof Uint8Array) || bytes.length < 4)
+		throw new RangeError('Invalid Nintendo DS ADPCM header');
+	const sample = new DataView(bytes.buffer, bytes.byteOffset, 4).getInt16(0, true);
+	const stepIndex = bytes[2];
+	if (stepIndex > 88 || bytes[3] !== 0 || sample === -32768)
+		throw new RangeError('Invalid Nintendo DS ADPCM header');
+	return { sample, stepIndex };
+}
+
+export function decodeNdsAdpcm(bytes) {
+	let { sample, stepIndex } = readNdsAdpcmHeader(bytes);
+	const decoded = new Int16Array((bytes.length - 4) * 2);
+	for (let index = 0; index < decoded.length; index++) {
+		const code = (bytes[4 + (index >>> 1)] >>> ((index & 1) * 4)) & 15;
+		sample = Math.min(32767, Math.max(-32767, sample + ndsAdpcmDelta(NDS_ADPCM_STEPS[stepIndex], code)));
+		stepIndex = Math.min(88, Math.max(0, stepIndex + NDS_ADPCM_INDEX_DELTAS[code & 7]));
+		decoded[index] = sample;
+	}
+	return decoded;
+}
+
 const MODES = ['pcm8', 'pcm16', 'adpcm', 'pulse', 'noise'];
 const DIVISORS = [1, 2, 4, 16];
 const STARTUP_PERIODS = { pcm8: 3, pcm16: 3, adpcm: 11, pulse: 1, noise: 1 };
@@ -67,27 +89,17 @@ function prepareSample({ mode, bytes, loopStartWords, lengthWords, loop }) {
 			start: loopStartWords * 4, end: end * 4, lengthWords: length,
 		};
 	}
-	const view = new DataView(bytes.buffer, bytes.byteOffset, end * 4);
 	if (mode === 'pcm16') {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, end * 4);
 		return {
 			read: (frame) => view.getInt16(frame * 2, true) / 32768,
 			start: loopStartWords * 2, end: end * 2, lengthWords: length,
 		};
 	}
 	if (loop && loopStartWords === 0) throw new RangeError('An ADPCM loop must start after its header word');
-	let sample = view.getInt16(0, true);
-	let stepIndex = bytes[2];
-	if (stepIndex > 88 || bytes[3] !== 0 || sample === -32768)
-		throw new RangeError('Invalid Nintendo DS ADPCM header');
-	const decoded = new Int16Array((end - 1) * 8);
 	// Decode from the header even when the loop has a lead-in. Reading from the
 	// decoded loop start restores the same predictor and index on every repeat.
-	for (let index = 0; index < decoded.length; index++) {
-		const code = (bytes[4 + (index >>> 1)] >>> ((index & 1) * 4)) & 15;
-		sample = Math.min(32767, Math.max(-32767, sample + ndsAdpcmDelta(NDS_ADPCM_STEPS[stepIndex], code)));
-		stepIndex = Math.min(88, Math.max(0, stepIndex + NDS_ADPCM_INDEX_DELTAS[code & 7]));
-		decoded[index] = sample;
-	}
+	const decoded = decodeNdsAdpcm(bytes.subarray(0, end * 4));
 	return {
 		read: (frame) => decoded[frame] / 32768,
 		start: Math.max(0, (loopStartWords - 1) * 8), end: decoded.length, lengthWords: length,

@@ -70,6 +70,11 @@ register documentation. The existing SkyEmu player remains the song source.
       The 2SF picker stays available for loading the source collection.
 - [x] Verify Cassette round trips, rejected ZIPs, the prior Code draft, and
       saving, discarding and restoring a local project in Chromium and WebKit.
+- [x] Add WAV import and conversion to DS PCM8, PCM16 or IMA-ADPCM.
+      Show the playback waveform and edit the word-aligned repeat start and
+      end. Tune imported samples using their source rate and a root note.
+- [x] Save self-contained DS instruments to `presets/` and verify that samples,
+      tuning and loop points survive a Cassette export and re-import.
 - [ ] Explain hardware controls separately from driver/software ADSR, modulation,
       allocation and any software click mitigation. Scope hardware sound capture
       and capture-based effects as later work rather than silently omitting them.
@@ -165,7 +170,8 @@ original layout under `build/nds-vio2sf-local/`.
       pointer release, and 375/1280 px layout widths.
 - [x] Verify Worklet timing across different block sizes at 44.1/48 kHz,
       channel ownership, panning and headroom when mixing three voices.
-- [ ] Add arbitrary sample loading with source range, format, loop and ADPCM
-      header validation. Verify the ADPCM decoder against an independent reference.
+- [x] Restore sample loading for WAV with source range, format, loop and ADPCM
+      header validation in the current BSD core.
+- [ ] Compare ADPCM output against an independent hardware reference.
 - [ ] Add Code and its project workspace after replacing the Synth sound
       engine. Build browser 2SF reference playback on the validated player path.

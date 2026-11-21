@@ -196,10 +196,14 @@ export function createNdsProject({ starterCode = '', starterFiles = [] } = {}) {
 		discardFiles: paths => editLayers(candidate => candidate.discardMany(paths)),
 		getDirtyPaths: workspace.getDirtyPaths, isFileModified: workspace.isDirty,
 		reset() { return restore(wrap({ version: 1, working: initial, saved: initial, autoSave: workspace.autoSave })); },
-		importFiles(entries) {
+		importFiles(entries, { save = false } = {}) {
 			const files = preparedImportEntries(entries);
-			editLayers(({ working }) => working.writeFiles(files));
-			return files.map(file => file.path);
+			const paths = files.map(file => file.path);
+			editLayers(candidate => {
+				candidate.working.writeFiles(files);
+				if (save && paths.length) candidate.saveMany(paths);
+			});
+			return paths;
 		},
 		makeDirectory: (path, options) => editLayers(({ working }) => working.mkdir(ndsProjectPath(path), options)),
 		transfer: (source, target, options) => editLayers(({ working }) =>

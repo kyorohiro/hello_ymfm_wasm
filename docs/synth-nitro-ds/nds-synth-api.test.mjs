@@ -84,6 +84,66 @@ test('DS Worklet tunes loaded samples and exposes zero-based physical channels',
 	await assert.rejects(chip.setFrequency(0, undefined), /positive finite Hz/);
 });
 
+test('Imported sample pitch follows source rate and root independently of loop length', async () => {
+	const { chip } = endpoint();
+	const { bytes } = makeNdsSample('pcm16');
+	const sound = { mode: 'pcm16', bytes, sampleRate: 32000, rootNote: 69, loopStartWords: 4, lengthWords: 13 };
+	const root = await chip.noteOn(0, 'A4', sound);
+	assert.equal(root.timer, ndsTimerForFrequency(32000, 1).timer);
+	assert(Math.abs(root.frequencyHz - 440) < 1);
+	const state = await chip.getState(0);
+	assert.equal(state.sampleRate, 32000);
+	assert.equal(state.rootNote, 69);
+	assert.equal(state.loopStartWords, 4);
+	assert.equal(state.lengthWords, 13);
+	await chip.configure(0, { loopStartWords: 7, lengthWords: 5 });
+	assert.equal((await chip.setNote(0, 'A5')).timer, ndsTimerForFrequency(64000, 1).timer);
+	assert.equal((await chip.setFrequency(0, 220)).timer, ndsTimerForFrequency(16000, 1).timer);
+	assert.equal((await chip.getState(0)).loopStartWords, 7);
+	const raw = await chip.noteOn(0, 'A5', { timer: 0xc000 });
+	assert.equal(raw.timer, 0xc000);
+	assert.equal((await chip.keyOn(0)).timer, 0xc000);
+	assert.equal((await chip.setFrequency(0, Number.MAX_VALUE)).timer, 65535);
+	assert.equal((await chip.setFrequency(0, Number.MIN_VALUE)).timer, 0);
+
+	await assert.rejects(chip.configure(0, { sampleRate: 44100 }), /rootNote together/);
+	await assert.rejects(chip.configure(0, { rootNote: 'R4', sampleRate: 44100 }), /note name/);
+	await assert.rejects(chip.configure(0, { rootNote: 'A4', sampleRate: 44100, frames: 32 }), /source tuning or a sample-cycle length/);
+	assert.equal((await chip.getState(0)).sampleRate, 32000);
+	await chip.configure(0, { bytes });
+	assert.equal((await chip.getState(0)).rootNote, null);
+	assert.equal((await chip.noteOn(0, 'A4')).timer, ndsTimerForFrequency(440, 64).timer);
+	await chip.configure(0, { rootNote: 'A3', sampleRate: 44100 });
+	assert.equal((await chip.getState(0)).rootNote, 'A3');
+	await chip.configure(0, { shape: 'saw' });
+	assert.equal((await chip.getState(0)).sampleRate, null);
+	await assert.rejects(chip.configure(0, { rootNote: 'A3', sampleRate: 44100 }), /requires imported/);
+});
+
+test('Identical imported ADPCM retriggers reuse prepared bytes until the data or range changes', async () => {
+	const { chip, worklet } = endpoint();
+	const { bytes, loopStartWords, lengthWords } = makeNdsSample('adpcm');
+	const sound = { mode: 'adpcm', bytes, loop: true, loopStartWords, lengthWords, rootNote: 'C4', sampleRate: 22050 };
+	const configure = worklet.core.configure.bind(worklet.core);
+	const updates = [];
+	worklet.core.configure = (channel, patch) => {
+		updates.push(Object.hasOwn(patch, 'bytes'));
+		return configure(channel, patch);
+	};
+	await chip.noteOn(0, 'C4', sound);
+	const transposed = await chip.noteOn(0, 'C5', sound);
+	assert.equal(transposed.timer, ndsTimerForFrequency(44100, 1).timer);
+	assert.deepEqual(updates, [true, false]);
+	bytes[4] ^= 1;
+	await chip.noteOn(0, 'C4', sound);
+	await chip.noteOn(0, 'C4', { ...sound, loopStartWords: loopStartWords + 1, lengthWords: lengthWords - 1 });
+	assert.equal((await chip.getState(0)).loopStartWords, loopStartWords + 1);
+	const { loopStartWords: _start, lengthWords: _length, ...soundWithoutRange } = sound;
+	await chip.noteOn(0, 'C4', soundWithoutRange);
+	assert.deepEqual(updates, [true, false, true, true, true]);
+	assert.equal((await chip.getState(0)).loopStartWords, loopStartWords);
+});
+
 test('DS owner-scoped releases and live edits cannot change a replaced voice', async () => {
 	const { chip, worklet } = endpoint();
 	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');

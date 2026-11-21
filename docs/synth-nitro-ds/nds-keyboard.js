@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buildKeyboard, createFretboardLayout, createFretboardState } from '../synth/synth_keyboard.js';
+import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js';
 
 const CHANNELS = Array.from({ length: 16 }, (_, channel) => channel);
 const AUTO = -1;
-const defaultSound = () => ({ mode: 'pcm16', shape: 'sine', volume: 96, pan: 64, divider: 0, duty: 3, loop: true });
-const isSample = (mode) => mode === 'pcm8' || mode === 'pcm16' || mode === 'adpcm';
-const supports = (channel, mode) => isSample(mode) || (mode === 'pulse' ? channel >= 8 && channel < 14 : channel >= 14);
+const defaultSound = () => ({ name: '', mode: 'pcm16', shape: 'sine', volume: 96, pan: 64, divider: 0, duty: 3, loop: true, sample: null });
+const supports = (channel, mode) => isNdsSampleMode(mode) || (mode === 'pulse' ? channel >= 8 && channel < 14 : channel >= 14);
 
 export function setupNdsKeyboard({ ensureAudio, getAudio, onActivity, onError }) {
 	const node = (id) => document.getElementById(id);
@@ -16,18 +16,27 @@ export function setupNdsKeyboard({ ensureAudio, getAudio, onActivity, onError })
 	const held = new Map(), occupied = new Map();
 	const fret = createFretboardState();
 	let selection = AUTO, octave = 0, next = 0, entries = new Map(), lastNote = '';
+	const getSound = () => settings[selection + 1];
+	const sampleEditor = setupNdsSampleEditor({ getSound, updateSound, getTarget: () => selection, onError });
+
+	function updateSound(sound) {
+		settings[selection + 1] = sound;
+		renderSettings();
+	}
 
 	function renderSettings() {
-		const sound = settings[selection + 1];
+		const sound = getSound();
 		for (const [key, el] of Object.entries(fields)) {
 			if (key === 'loop') el.checked = sound.loop;
 			else el.value = String(sound[key]);
 		}
 		for (const option of fields.mode.options) option.disabled = selection !== AUTO && !supports(selection, option.value);
-		fields.shape.disabled = fields.loop.disabled = !isSample(sound.mode);
+		fields.shape.disabled = !isNdsSampleMode(sound.mode) || Boolean(sound.sample);
+		fields.loop.disabled = !isNdsSampleMode(sound.mode);
 		fields.duty.disabled = sound.mode !== 'pulse';
 		node('ndsVolumeValue').value = sound.volume;
 		node('ndsPanValue').value = sound.pan;
+		sampleEditor.render();
 	}
 
 	function renderHeld() {
@@ -48,8 +57,7 @@ export function setupNdsKeyboard({ ensureAudio, getAudio, onActivity, onError })
 
 	async function press(id, entry) {
 		if (held.has(id)) return;
-		const target = selection, sound = { ...settings[target + 1] };
-		if (!isSample(sound.mode)) delete sound.shape;
+		const target = selection, sound = ndsSoundPatch(getSound());
 		const note = { id, entry, target, channel: null, token: null };
 		let previous;
 		held.set(id, note);
@@ -128,6 +136,7 @@ export function setupNdsKeyboard({ ensureAudio, getAudio, onActivity, onError })
 
 	channelSelect.append(...CHANNELS.map(channel => new Option(`CH ${channel + 1}`, channel)));
 	channelSelect.addEventListener('change', () => {
+		sampleEditor.cancelPending();
 		selection = channelSelect.value === 'auto' ? AUTO : Number(channelSelect.value);
 		lastNote = '';
 		channelSelect.blur();
@@ -137,9 +146,9 @@ export function setupNdsKeyboard({ ensureAudio, getAudio, onActivity, onError })
 	for (const [name, field] of Object.entries(fields)) {
 		field.addEventListener(field.type === 'range' ? 'input' : 'change', () => {
 			const value = name === 'loop' ? field.checked : ['mode', 'shape'].includes(name) ? field.value : Number(field.value);
-			settings[selection + 1][name] = value;
 			if (field.type !== 'range') field.blur();
-			renderSettings();
+			try { updateSound(editNdsSound(getSound(), name, value)); }
+			catch (error) { renderSettings(); onError(error); return; }
 			if (!['volume', 'pan', 'divider', 'duty'].includes(name)) return;
 			const chip = getAudio()?.chip.forOwner('keyboard');
 			for (const note of occupied.values()) {
@@ -166,5 +175,17 @@ export function setupNdsKeyboard({ ensureAudio, getAudio, onActivity, onError })
 	document.addEventListener('visibilitychange', () => { if (document.hidden) void stop().catch(onError); });
 	renderSettings();
 	renderKeys();
-	return { stop, isPlaying: () => held.size > 0 };
+	return {
+		stop, isPlaying: () => held.size > 0, cancelSampleLoad: sampleEditor.cancelPending,
+		getPreset: () => snapshotNdsSound(getSound()),
+		applyPreset(preset) {
+			if (selection !== AUTO && !supports(selection, preset.mode))
+				throw new RangeError(`CH ${selection + 1} cannot play this sound. Choose Auto or a compatible channel.`);
+			const sound = restoreNdsSound(preset);
+			sampleEditor.cancelPending();
+			updateSound(sound);
+			lastNote = sound.name;
+			renderHeld();
+		},
+	};
 }

@@ -32,6 +32,10 @@ interface NdsCodeVoiceSettings {
   lengthWords?: number;
   /** Sample-cycle length for software MIDI pitch conversion. */
   frames?: number | null;
+  /** Source sample rate in Hz for imported PCM/ADPCM. Provide with rootNote. */
+  sampleRate?: number;
+  /** The note played at the source rate. Use an integer MIDI note or a name such as C4. */
+  rootNote?: number | string;
   /** Override the hardware timer code (0–65535). */
   timer?: number;
 }
@@ -52,6 +56,8 @@ interface NdsCodeChannelState extends NdsCodePitch {
   releasing: boolean;
   frames: number;
   shape: NdsCodeShape | null;
+  sampleRate: number | null;
+  rootNote: number | string | null;
   owner: string | null;
   token: number | null;
 }
@@ -66,7 +72,7 @@ interface NdsCodeNote extends NdsCodePitch {
 interface NdsCodeClient {
   /** Change the settings of one zero-based physical channel. */
   configure(channel: NdsCodeChannel, patch: NdsCodeVoiceSettings): Promise<NdsCodeChannelState>;
-  /** Round the requested frequency to a hardware timer value. */
+  /** Round musical pitch to the hardware timer. Imported samples use source rate at their root note. */
   setFrequency(channel: NdsCodeChannel, hz: number): Promise<NdsCodePitch>;
   setNote(channel: NdsCodeChannel, note: string | number): Promise<NdsCodePitch>;
   /** Start the configured channel at its hardware timer value. */
