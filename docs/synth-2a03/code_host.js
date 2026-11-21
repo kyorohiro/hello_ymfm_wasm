@@ -38,7 +38,7 @@ export function setupNesCodeHost({ensureAudio,getAudio,getSettings,applySettings
     if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
-  files=setupNesCodeFiles({project,getSettings,applySettings,setStatus,onSelectSong,
+  files=setupNesCodeFiles({project,getStarterCode:()=>NES_STARTER_CODE,getSettings,applySettings,setStatus,onSelectSong,
     async onBeforeSoundApply(){await beforeSoundApply();if(!runtime?.getState().running)await stopKeyboard();},
     async onBeforeWorkspaceReplace(){await stopSong();await stop();await stopKeyboard();}});
   function getRuntime(){

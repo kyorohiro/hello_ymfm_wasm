@@ -36,7 +36,7 @@ function copyPath(project,path){
   do{result=`${directory==='/'?'':directory}/${stem}-copy${index===1?'':`-${index}`}${extension}`;index++;}while(occupied(project,result));
   return result;
 }
-export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
+export function setupSnesCodeFiles({project=createSnesCodeProject(),getStarterCode=()=>'',getSettings=()=>project.settings,applySettings=async()=>{},
   onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},onOpenSource=async()=>false,setStatus=()=>{},store=createSnesProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('snesFilesPanel'),toggle=doc.getElementById('snesFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const saveSoundAs=doc.getElementById('snesSaveSoundAs'),presetSelect=doc.getElementById('snesPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
@@ -51,11 +51,11 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   heading.append(title,toolbar);
   const actions=make('div');actions.className='snes-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
-  for(const[id,label]of [['snesFileNewButton','New JS'],['snesFileSaveSoundButton','Save sound'],['snesFileRenameButton','Rename…'],['snesFileDeleteButton','Delete…'],['snesFileImportButton','Add files…'],['snesFileExportButton','Export file'],['snesProjectExportButton','Export project'],['snesProjectImportButton','Import project…']]){
+  for(const[id,label]of [['snesProjectNewButton','New Cassette…'],['snesFileNewButton','New JS'],['snesFileSaveSoundButton','Save sound'],['snesFileRenameButton','Rename…'],['snesFileDeleteButton','Delete…'],['snesFileImportButton','Add files…'],['snesFileExportButton','Export file'],['snesProjectExportButton','Export project'],['snesProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';
     (id==='snesFileNewButton'||id==='snesFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
     if(id==='snesFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
-    const destination={snesProjectImportButton:['snesMenuProjectImport','Cassette…'],snesProjectExportButton:['snesMenuProjectExport','Cassette · ZIP'],snesFileImportButton:['snesMenuFilesImport','Files…'],snesFileExportButton:['snesMenuFileExport','Selected file']}[id];
+    const destination={snesProjectNewButton:['snesMenuProjectNew','Cassette…'],snesProjectImportButton:['snesMenuProjectImport','Cassette…'],snesProjectExportButton:['snesMenuProjectExport','Cassette · ZIP'],snesFileImportButton:['snesMenuFilesImport','Files…'],snesFileExportButton:['snesMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
     listen(button,'pointerdown',event=>{if(event.button===0){event.preventDefault();if(id!=='snesFileSaveSoundButton'||!code?.isCodeMode?.())doc.activeElement?.blur?.();}});
@@ -181,6 +181,12 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
       await code?.restoreState?.(project.getCodeState());await persistCode();say('S-DSP project imported. Code was not run.');return true;
     }finally{if(!disposed)setBusy(false);}
   }
+  async function newProject(){
+    await api.ready;if(disposed||busy)return false;
+    const fresh=createSnesCodeProject({getStarterCode});
+    const result=await importProject(await fresh.exportProject());
+    if(result)say('New Cassette created. Code was not run.');return result;
+  }
   async function exportProject(){await api.ready;await code?.flush?.();project.setSettings(getSettings());return project.exportProject();}
   async function move(source,destination,copy=false){
     if(disposed||busy)return false;const token=++operation;await code?.flush?.();if(disposed||token!==operation)return false;source=allowed(source);destination=allowed(destination);setBusy(true,{lockMain:!copy});
@@ -268,10 +274,10 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
     if(disposed||busy)return;dialogAction=action;dialogPath=path;
     dialogSound=action==='save-sound'?readSnesProjectSound(getSettings()):null;
     const directory=path&&project.fs.stat(path).type==='directory'?path:path?dirname(path):'/';
-    label.textContent={'save-sound':'Sound name',delete:'Delete this project path?',rename:'New file path',instrument:'New instrument · .sdsp.json path',folder:'New folder path',new:'New JavaScript file path'}[action];
-    nameInput.value=action==='save-sound'?(dialogSound.name||'Untitled'):action==='new'?`${directory==='/'?'':directory}/untitled.js`:action==='folder'?`${directory==='/'?'':directory}/New folder/`:action==='instrument'?`${directory==='/'?'/presets':directory}/Untitled.sdsp.json`:(path??'');
+    label.textContent={'project-new':'Create a new Cassette? Export the current Cassette first to keep it.','save-sound':'Sound name',delete:'Delete this project path?',rename:'New file path',instrument:'New instrument · .sdsp.json path',folder:'New folder path',new:'New JavaScript file path'}[action];
+    nameInput.value=action==='project-new'?'Replace current files, sound and Code with the starter Cassette.':action==='save-sound'?(dialogSound.name||'Untitled'):action==='new'?`${directory==='/'?'':directory}/untitled.js`:action==='folder'?`${directory==='/'?'':directory}/New folder/`:action==='instrument'?`${directory==='/'?'/presets':directory}/Untitled.sdsp.json`:(path??'');
     nameInput.required=action==='save-sound';nameInput.maxLength=action==='save-sound'?80:524288;
-    nameInput.readOnly=action==='delete';confirm.textContent=action==='save-sound'?'Save':action==='delete'?'Delete':action==='rename'?'Rename':'Create';dialog.showModal();nameInput.focus();nameInput.select?.();
+    nameInput.readOnly=action==='delete'||action==='project-new';confirm.textContent=action==='save-sound'?'Save':action==='delete'?'Delete':action==='rename'?'Rename':'Create';dialog.showModal();nameInput.focus();nameInput.select?.();
   }
   function askSaveSound(){if(disposed||busy)return false;setVisible(true);ask('save-sound');return true;}
   const contextMenu=installSnesFileContextMenu({root:tree,document:doc,isBusy:()=>disposed||busy,onError:report,
@@ -282,6 +288,7 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   listen(toggle,'click',()=>setVisible(panel.hidden));listen(panel,'keydown',event=>event.stopPropagation());
   listen(tree,'click',event=>{const summary=event.target?.closest?.('summary[data-file-path]');if(!summary||busy)return;event.preventDefault();const path=summary.getAttribute('data-file-path');expanded.set(path,!summary.parentNode.open);project.select(path);render();schedule();});
   listen(form,'submit',event=>{event.preventDefault();const action=dialogAction,value=nameInput.value,path=dialogPath,sound=dialogSound;dialog.close();void Promise.resolve().then(()=>{
+    if(action==='project-new')return newProject();
     if(action==='save-sound')return saveSound({name:value,sound});
     if(action==='new'){if(!isSnesCodePath(value))throw Error('Use a .js or .mjs file name.');return createFile(value);}
     if(action==='folder')return createFile(value.replace(/\/$/,'')+'/');
@@ -291,14 +298,14 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   listen(cancel,'click',()=>dialog.close());listen(dialog,'close',()=>{dialogSound=null;});
   listen(saveSoundAs,'click',()=>{saveSoundAs.blur();try{askSaveSound();}catch(error){report(error);}});
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(selectFile(choice.path)).catch(report);});
-  for(const[id,fn]of [['snesFileNewButton',()=>ask('new')],['snesFileRenameButton',()=>ask('rename')],['snesFileDeleteButton',()=>ask('delete')],['snesFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['snesProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['snesFileSaveSoundButton',()=>void saveSound().catch(report)],['snesProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['snesFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
+  for(const[id,fn]of [['snesProjectNewButton',()=>{setVisible(true);ask('project-new');}],['snesFileNewButton',()=>ask('new')],['snesFileRenameButton',()=>ask('rename')],['snesFileDeleteButton',()=>ask('delete')],['snesFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['snesProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['snesFileSaveSoundButton',()=>void saveSound().catch(report)],['snesProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['snesFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
   listen(doc,'keydown',event=>{if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='s'){event.preventDefault();event.stopPropagation();void(code?.flush?.()??persistCode()).catch(report);}},true);
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,addSounds,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,newProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,addSounds,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

@@ -43,7 +43,7 @@ function copyPath(project,path){
   do{result=`${directory==='/'?'':directory}/${stem}-copy${index===1?'':`-${index}`}${extension}`;index++;}while(occupied(project,result));
   return result;
 }
-export function setupNesCodeFiles({project=createNesCodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
+export function setupNesCodeFiles({project=createNesCodeProject(),getStarterCode=()=>'',getSettings=()=>project.settings,applySettings=async()=>{},
   onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},onSelectSong=async()=>{},setStatus=()=>{},store=createNesProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('nesFilesPanel'),toggle=doc.getElementById('nesFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const saveSoundAs=doc.getElementById('nesSaveSoundAs'),presetSelect=doc.getElementById('nesPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
@@ -58,11 +58,11 @@ export function setupNesCodeFiles({project=createNesCodeProject(),getSettings=()
   heading.append(title,toolbar);
   const actions=make('div');actions.className='nes-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
-  for(const[id,label]of [['nesFileNewButton','New JS'],['nesFileSaveSoundButton','Save sound'],['nesFileRenameButton','Rename…'],['nesFileDeleteButton','Delete…'],['nesFileImportButton','Add files…'],['nesFileExportButton','Export file'],['nesProjectExportButton','Export project'],['nesProjectImportButton','Import project…']]){
+  for(const[id,label]of [['nesProjectNewButton','New Cassette…'],['nesFileNewButton','New JS'],['nesFileSaveSoundButton','Save sound'],['nesFileRenameButton','Rename…'],['nesFileDeleteButton','Delete…'],['nesFileImportButton','Add files…'],['nesFileExportButton','Export file'],['nesProjectExportButton','Export project'],['nesProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';
     (id==='nesFileNewButton'||id==='nesFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
     if(id==='nesFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
-    const destination={nesProjectImportButton:['nesMenuProjectImport','Cassette…'],nesProjectExportButton:['nesMenuProjectExport','Cassette · ZIP'],nesFileImportButton:['nesMenuFilesImport','Files…'],nesFileExportButton:['nesMenuFileExport','Selected file']}[id];
+    const destination={nesProjectNewButton:['nesMenuProjectNew','Cassette…'],nesProjectImportButton:['nesMenuProjectImport','Cassette…'],nesProjectExportButton:['nesMenuProjectExport','Cassette · ZIP'],nesFileImportButton:['nesMenuFilesImport','Files…'],nesFileExportButton:['nesMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
     listen(button,'pointerdown',event=>{if(event.button===0){event.preventDefault();if(id!=='nesFileSaveSoundButton'||!code?.isCodeMode?.())doc.activeElement?.blur?.();}});
@@ -256,6 +256,12 @@ export function setupNesCodeFiles({project=createNesCodeProject(),getSettings=()
       await code?.restoreState?.(project.getCodeState());await persistCode();say('NES + FDS project imported. Code was not run.');return true;
     }finally{if(!disposed)setBusy(false);}
   }
+  async function newProject(){
+    await api.ready;if(disposed||busy)return false;
+    const fresh=createNesCodeProject({getStarterCode});
+    const result=await importProject(await fresh.exportProject());
+    if(result)say('New Cassette created. Code was not run.');return result;
+  }
   async function exportProject(){await api.ready;await code?.flush?.();project.setSettings(getSettings());return project.exportProject();}
   async function move(source,destination,copy=false){
     if(disposed||busy)return false;const token=++operation;await code?.flush?.();if(disposed||token!==operation)return false;source=allowed(source);destination=allowed(destination);setBusy(true,{lockMain:!copy});
@@ -328,10 +334,10 @@ export function setupNesCodeFiles({project=createNesCodeProject(),getSettings=()
     if(disposed||busy)return;dialogAction=action;dialogPath=path;
     dialogSound=action==='save-sound'?readNesProjectSound(getSettings()):null;
     const directory=path&&project.fs.stat(path).type==='directory'?path:path?dirname(path):'/';
-    label.textContent={'save-sound':'Sound name',delete:'Delete this project path?',rename:'New file path',instrument:'New instrument · .nes.json path',folder:'New folder path',new:'New JavaScript file path'}[action];
-    nameInput.value=action==='save-sound'?(dialogSound.name||'Untitled'):action==='new'?`${directory==='/'?'':directory}/untitled.js`:action==='folder'?`${directory==='/'?'':directory}/New folder/`:action==='instrument'?`${directory==='/'?'/presets':directory}/Untitled.nes.json`:(path??'');
+    label.textContent={'project-new':'Create a new Cassette? Export the current Cassette first to keep it.','save-sound':'Sound name',delete:'Delete this project path?',rename:'New file path',instrument:'New instrument · .nes.json path',folder:'New folder path',new:'New JavaScript file path'}[action];
+    nameInput.value=action==='project-new'?'Replace current files, sound and Code with the starter Cassette.':action==='save-sound'?(dialogSound.name||'Untitled'):action==='new'?`${directory==='/'?'':directory}/untitled.js`:action==='folder'?`${directory==='/'?'':directory}/New folder/`:action==='instrument'?`${directory==='/'?'/presets':directory}/Untitled.nes.json`:(path??'');
     nameInput.required=action==='save-sound';nameInput.maxLength=action==='save-sound'?80:524288;
-    nameInput.readOnly=action==='delete';confirm.textContent=action==='save-sound'?'Save':action==='delete'?'Delete':action==='rename'?'Rename':'Create';dialog.showModal();nameInput.focus();nameInput.select?.();
+    nameInput.readOnly=action==='delete'||action==='project-new';confirm.textContent=action==='save-sound'?'Save':action==='delete'?'Delete':action==='rename'?'Rename':'Create';dialog.showModal();nameInput.focus();nameInput.select?.();
   }
   function askSaveSound(){if(disposed||busy)return false;setVisible(true);ask('save-sound');return true;}
   const contextMenu=installNesFileContextMenu({root:tree,document:doc,isBusy:()=>disposed||busy,onError:report,
@@ -342,6 +348,7 @@ export function setupNesCodeFiles({project=createNesCodeProject(),getSettings=()
   listen(toggle,'click',()=>setVisible(panel.hidden));listen(panel,'keydown',event=>event.stopPropagation());
   listen(tree,'click',event=>{const summary=event.target?.closest?.('summary[data-file-path]');if(!summary||busy)return;event.preventDefault();const path=summary.getAttribute('data-file-path');expanded.set(path,!summary.parentNode.open);project.select(path);render();schedule();});
   listen(form,'submit',event=>{event.preventDefault();const action=dialogAction,value=nameInput.value,path=dialogPath,sound=dialogSound;dialog.close();void Promise.resolve().then(()=>{
+    if(action==='project-new')return newProject();
     if(action==='save-sound')return saveSound({name:value,sound});
     if(action==='new'){if(!isNesCodePath(value))throw Error('Use a .js or .mjs file name.');return createFile(value);}
     if(action==='folder')return createFile(value.replace(/\/$/,'')+'/');
@@ -351,14 +358,14 @@ export function setupNesCodeFiles({project=createNesCodeProject(),getSettings=()
   listen(cancel,'click',()=>dialog.close());listen(dialog,'close',()=>{dialogSound=null;});
   listen(saveSoundAs,'click',()=>{saveSoundAs.blur();try{askSaveSound();}catch(error){report(error);}});
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(selectFile(choice.path)).catch(report);});
-  for(const[id,fn]of [['nesFileNewButton',()=>ask('new')],['nesFileRenameButton',()=>ask('rename')],['nesFileDeleteButton',()=>ask('delete')],['nesFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['nesProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['nesFileSaveSoundButton',()=>void saveSound().catch(report)],['nesProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['nesFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
+  for(const[id,fn]of [['nesProjectNewButton',()=>{setVisible(true);ask('project-new');}],['nesFileNewButton',()=>ask('new')],['nesFileRenameButton',()=>ask('rename')],['nesFileDeleteButton',()=>ask('delete')],['nesFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['nesProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['nesFileSaveSoundButton',()=>void saveSound().catch(report)],['nesProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['nesFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
   listen(doc,'keydown',event=>{if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='s'){event.preventDefault();event.stopPropagation();void(code?.flush?.()??persistCode()).catch(report);}},true);
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importVgm,importProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importVgm,importProject,newProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

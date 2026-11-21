@@ -36,7 +36,7 @@ export function setupSnesCodeHost({ensureAudio,getAudio,getSettings,applySetting
     if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
-  files=setupSnesCodeFiles({project,getSettings,applySettings,setStatus,onOpenSource,
+  files=setupSnesCodeFiles({project,getStarterCode:()=>SNES_STARTER_CODE,getSettings,applySettings,setStatus,onOpenSource,
     async onBeforeSoundApply(){if(!runtime?.getState().running)await stopKeyboard();},
     async onBeforeWorkspaceReplace(){await clearLooper();await stopSong();await stop();await stopKeyboard();}});
   function getRuntime(){

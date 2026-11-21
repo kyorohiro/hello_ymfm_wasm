@@ -147,3 +147,15 @@ scheduled-state Live UI remain separate.
 S-DSP workspace completed 2026-11-21: header Code/Synth, persistent expanded
 Code/S-DSP/Mixer/Keyboard, visible Master and collapsible SPC reference.
 [Verification](verification_snes_code_workspace_20261121.json). Timed API follows separately.
+
+## New Cassette menus — 2026-11-21
+
+- [x] NES and S-DSP: New above Import, with Cassette action.
+- [x] Confirm replacement; Cancel keeps the current project/performance.
+- [x] Reuse workspace replacement to stop Code/song/notes (and S-DSP Looper), restore default sound, starter index.js and seeded examples without running Code.
+- [x] Check both menu flows and persistence.
+
+Verification: existing 323 NES and 203 S-DSP tests pass. Physically muted
+Chromium/WebKit checks cover New above Import, Cancel preserving running Code,
+confirmed replacement restoring starter Code/examples, and silent persistence
+after reload. [Evidence](verification_nes_snes_new_cassette_20261121.json).

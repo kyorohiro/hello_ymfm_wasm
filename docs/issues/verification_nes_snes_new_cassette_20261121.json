@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-21",
+  "scope": "NES and S-DSP New > Cassette menus",
+  "tests": {
+    "nesExistingRegressions": 323,
+    "sdspExistingRegressions": 203,
+    "isolatedBrowserCases": [
+      {
+        "engine": "chromium",
+        "chip": "nes",
+        "passed": true,
+        "cancelRetainsCode": true,
+        "newRestoresStarterAndExamples": true,
+        "reloadSilent": true,
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "chromium",
+        "chip": "snes",
+        "passed": true,
+        "cancelRetainsCode": true,
+        "newRestoresStarterAndExamples": true,
+        "reloadSilent": true,
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "chip": "nes",
+        "passed": true,
+        "cancelRetainsCode": true,
+        "newRestoresStarterAndExamples": true,
+        "reloadSilent": true,
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "chip": "snes",
+        "passed": true,
+        "cancelRetainsCode": true,
+        "newRestoresStarterAndExamples": true,
+        "reloadSilent": true,
+        "physicalOutputMuted": true
+      }
+    ]
+  },
+  "verified": [
+    "New precedes Import in both menus",
+    "Cassette action opens explicit replacement confirmation",
+    "Cancel leaves source and running Code intact",
+    "Confirmation uses existing workspace replacement hooks, default sound, original starter index.js and seeded examples",
+    "New Cassette persists and reloads without creating an AudioContext or running Code"
+  ],
+  "browserReport": {
+    "path": "build/new-cassette-browser.json",
+    "sha256": "09deb551f4d6937a01f0d71f53f3fa6c98408db154045e8b4bb123ee6926c275"
+  },
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "published": false,
+  "commitOrPushPerformed": false
+}
