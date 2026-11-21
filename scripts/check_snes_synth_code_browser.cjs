@@ -39,13 +39,20 @@ async function check(name,engine,origin){
    mark('BPM starter and actual shared S-DSP output');await page.waitForFunction(()=>document.querySelector('#synthCodeEditor').value.includes('await beat(0.5)'));
    await run();await page.waitForFunction(()=>audit.notes.some(n=>n.method==='noteOn'&&n.args[0].startsWith('sdsp-code:')));await page.waitForFunction(()=>audit.peak()>.0001);
    assert.equal(await page.evaluate(()=>audit.contexts.length),1);assert.equal(await page.evaluate(()=>audit.nodes.length),1);
+   mark('persistent expanded workspace keeps running Code, Master and SPC controls');
+   await page.locator('#synthWorkspaceCodeButton').click();assert(await page.locator('#synthWorkspace').evaluate(e=>e.classList.contains('is-code-expanded')));
+   const prior=await page.evaluate(()=>audit.notes.length);
+   for(const tab of ['snesChipTab','snesMixerTab','synthInputKeyboardTab','synthInputCodeTab']){await page.locator('#'+tab).click();await page.waitForFunction(id=>document.getElementById(id).getAttribute('aria-selected')==='true',tab);assert(await page.locator('#synthWorkspace').evaluate(e=>e.classList.contains('is-code-expanded')));assert(await page.locator('#masterVolume').isVisible());assert(await page.locator('#spcSongPlayer').isVisible());assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);}
+   await page.waitForTimeout(450);assert((await page.evaluate(()=>audit.notes.length))>prior);assert.equal(await page.evaluate(()=>audit.contexts.length),1);assert.equal(await page.evaluate(()=>audit.nodes.length),1);
+   await page.locator('#snesReferencePlayback summary').click();assert(await page.locator('#masterVolume').isVisible());await page.locator('#snesReferencePlayback summary').click();
+   await page.locator('#synthWorkspaceSynthButton').click();await page.locator('#snesChipTab').click();assert(!(await page.locator('#synthWorkspace').evaluate(e=>e.classList.contains('is-code-expanded'))));
    await page.locator('#synthCodeStopButton').click();await waitVoices(0);
    mark('manual keyboard in Code, focus safety and shared allocation');
    await run('const snes=await useSoundChip("snes"); await snes.noteOn(CH1,"C4"); context.kept=17; liveFx("gain",{context:{gain:.5},process(input,output,state,ctx){for(let ch=0;ch<output.length;ch++)for(let i=0;i<output[ch].length;i++)output[ch][i]=(input[ch]?.[i]??0)*ctx.gain;}});');await waitVoices(1);
    await page.locator('#synthInputCodeTab').click();await page.keyboard.down('q');await waitVoices(2);await page.keyboard.up('q');await waitVoices(1);
    await page.locator('#synthCodeEditor').focus();const before=await page.evaluate(()=>audit.notes.length);await page.keyboard.press('w');assert.equal(await page.evaluate(()=>audit.notes.length),before);
    await setCode('if(context.kept!==17)throw Error("context lost"); const chip=await useSoundChip("snes"); await chip.noteOn(CH2,"E4");');await page.locator('#synthCodeApplyButton').click();await waitVoices(2);
-   await page.locator('#synthInputKeyboardTab').click();assert.match(await page.locator('#synthCodeState').textContent(),/Running/);
+   await page.locator('#synthInputKeyboardTab').click();assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
    await page.keyboard.down('q');await waitVoices(3);await page.locator('#synthCodeStopButton').click();await waitVoices(1);await page.keyboard.up('q');await waitVoices(0);
    let expectedSound;
    const presets=await page.evaluate(async()=>{
@@ -108,7 +115,7 @@ async function check(name,engine,origin){
    await page.evaluate(()=>audit.databases.forEach(db=>db.close()));await setCode(saved+'// after reconnect\n');await page.keyboard.press('ControlOrMeta+s');await page.waitForTimeout(200);await page.reload();await page.waitForFunction(()=>!document.querySelector('.snes-main').inert);await page.locator('#synthInputCodeTab').click();await page.waitForFunction(()=>document.querySelector('#synthCodeEditor').value.endsWith('// after reconnect\n'));assert.equal(await page.evaluate(()=>audit.contexts.length),0);
    mark('expanded Code and narrow layout');await page.locator('#synthCodeExpandButton').click();assert(await page.locator('#synthWorkspace').evaluate(e=>e.classList.contains('is-code-expanded')));
    await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:config.out.replace(/\.json$/,'-'+name+'-wide.png'),fullPage:true});await page.setViewportSize({width:390,height:844});
-   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:config.out.replace(/\.json$/,'-'+name+'-narrow.png'),fullPage:true});
+   await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth+1);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:config.out.replace(/\.json$/,'-'+name+'-narrow.png'),fullPage:true});
    assert.equal(await page.locator('#synthCodeError').textContent(),'');assert.equal(await page.evaluate(()=>audit.mutes.every(m=>m.gain.value===0)),true);assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
    return {engine:name,passed:true,checks,measurements,muted:true};
  }catch(error){await page.screenshot({path:config.out.replace(/\.json$/,'-'+name+'-failure.png')}).catch(()=>{});throw Error(name+' / '+checks.at(-1)+': '+error.stack+'\npage errors: '+errors+'\nmissing: '+missing);}

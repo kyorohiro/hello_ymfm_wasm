@@ -143,3 +143,7 @@ FDS full-table update (2026-11-21): recorded `fds.setWave()` and
 payloads. DMC memory transfer, arbitrary raw RAM edits, Native scheduling and
 scheduled-state Live UI remain separate.
 [Verification](verification_2a03_fds_tables_20261121.json).
+
+S-DSP workspace completed 2026-11-21: header Code/Synth, persistent expanded
+Code/S-DSP/Mixer/Keyboard, visible Master and collapsible SPC reference.
+[Verification](verification_snes_code_workspace_20261121.json). Timed API follows separately.

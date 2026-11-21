@@ -10,15 +10,15 @@ export function createSnesMixer({getAudio,player,onChange=()=>{}}){
     async reset(){api.setVolume(1);await api.setMuteMask(0);},
   };return api;
 }
-export function setupSnesChipTabs({document:doc=globalThis.document,onError=()=>{},mixer}){
+export function setupSnesChipTabs({document:doc=globalThis.document,onError=()=>{},mixer,onSelect=()=>{}}){
  const listeners=[],$=id=>doc.getElementById(id);
  const listen=(node,type,fn)=>{node.addEventListener(type,fn);listeners.push(()=>node.removeEventListener(type,fn));};
  const buttons=[$('snesChipTab'),$('snesMixerTab')],panels=[$('snesChipPanel'),$('snesMixerPanel')];
- function select(index){buttons.forEach((button,i)=>{button.setAttribute('aria-selected',String(i===index));button.tabIndex=i===index?0:-1;panels[i].hidden=i!==index;});}
+ function select(index){buttons.forEach((button,i)=>{button.setAttribute('aria-selected',String(i===index));button.tabIndex=i===index?0:-1;panels[i].hidden=i!==index;});onSelect(buttons[index]);}
  buttons.forEach((button,i)=>{listen(button,'click',()=>{select(i);button.blur();});listen(button,'keydown',event=>{let index=event.key==='Home'?0:event.key==='End'?1:['ArrowLeft','ArrowRight'].includes(event.key)?1-i:null;if(index===null)return;event.preventDefault();select(index);buttons[index].focus();});});
  const volume=$('snesChipVolume'),value=$('snesChipVolumeValue'),reset=$('snesMixerReset');
  listen(volume,'input',()=>{try{mixer.setVolume(Number(volume.value)/100);update();}catch(error){onError(error);}});
  listen(reset,'click',()=>{reset.blur();void mixer.reset().then(update).catch(onError);});
  function update(){const state=mixer.read();volume.value=String(state.volume*100);value.textContent=`${Math.round(state.volume*100)}%`;reset.disabled=state.volume===1&&state.muteMask===0;}
- update();return {update,dispose(){for(const cleanup of listeners)cleanup();}};
+ update();return {update,select(button){const index=buttons.indexOf(button);if(index<0)throw TypeError("Unknown S-DSP tab");select(index);return true;},dispose(){for(const cleanup of listeners)cleanup();}};
 }

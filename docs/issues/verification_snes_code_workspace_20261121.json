@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-21",
+  "scope": "S-DSP persistent Code workspace",
+  "tests": {
+    "snesRegressionAndPackaging": 187,
+    "sharedExpandedTabs": 11
+  },
+  "verified": [
+    "Header Code/Synth layout switch; persistent expanded Code/S-DSP/Mixer/Keyboard navigation",
+    "Master and collapsible SPC reference playback above Files/main",
+    "Running Code retains one AudioContext and instrument Worklet across view changes",
+    "Manual keys, channel allocation and live Wave/BRR/Noise/PMON edits with Echo",
+    "Code Apply/context/FX, stale key release and preset selection retain regression coverage",
+    "Cassette and closed IndexedDB recovery retain Code and full sounds",
+    "Real Monaco editing/completion/implementation navigation and 1240/390px layouts",
+    "Existing Looper blocking/stopping rules retained; no new recorder"
+  ],
+  "reports": {
+    "source": {
+      "passed": true,
+      "path": "build/snes-workspace-browser.json",
+      "sha256": "3a7254214b1b2eda74f1f06e8bdf4f342c6ef713b871fa2c3fb07fc8cc84361a",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "sourceMonaco": {
+      "passed": true,
+      "path": "build/snes-workspace-monaco.json",
+      "sha256": "4d8018a9a38b54c847096ddabde55fb62e4702634ef22fdb5ace008c6784eb6e",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "zip": {
+      "passed": true,
+      "path": "build/snes-workspace-zip-browser.json",
+      "sha256": "e353d44ce9beef55d2285d1dd48c4eeb8a5dc3a29d77bfb844aee220069b7719",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "zipMonaco": {
+      "passed": true,
+      "path": "build/snes-workspace-zip-monaco.json",
+      "sha256": "aaf3d62e366abd34ddc7004f8c8200b015a6f82a469fd00dccef2d4da47dfb16",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    }
+  },
+  "package": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/snes-workspace/itch_sdsp_synth_workspace-final-20261121-MEW6nE",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/snes-workspace/tetorica_sdsp_synth_workspace-final-20261121_itch.zip",
+    "files": 152,
+    "bundles": 6,
+    "archiveRecord": {
+      "bytes": 1626872,
+      "sha256": "77c58280b4e055f3e559f67a4687d8e4c163f1935b4b4d2d7c8ca7d5a16f9892"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "physicalOutputMuted": true,
+  "humanListeningPerformed": false,
+  "limits": [
+    "S-DSP build/schedule/compile remains the next chip-level task",
+    "Working/saved Files migration and Live highlights remain separate",
+    "SPC song sound and long-term device behavior require human checks"
+  ],
+  "published": false,
+  "commitOrPushPerformed": false
+}

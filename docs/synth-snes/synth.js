@@ -1,3 +1,4 @@
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js';
 import {createSnesChannelView,spcVariant} from './channel_view.js?v=shared-channel-editor-1';
 import {createSnesMixer,setupSnesChipTabs} from './mixer.js';
 // SPDX-License-Identifier: BSD-3-Clause
@@ -26,7 +27,7 @@ const status = (text, error = false) => {
   $('audioStatus').dataset.error = String(error);
 };
 const report = error => status(error?.message ?? String(error), true);
-let codeHost=null,songControls=null,looperControls=null,liveInspector=null;
+let expandedTabs=null,codeHost=null,songControls=null,looperControls=null,liveInspector=null;
 let looper=null,channelView=null,mixer=null,chipTabs=null,audition=null,previewSequence=0,previewKey=null,previewPlaying=false;
 const performancePreset=()=>audition??preset;
 const menu=setupSnesMenu();
@@ -448,14 +449,14 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){looper.stop();void songPlayer.pause().catch(report);void codeHost?.stop();stopNotes();return;}
-  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();liveInspector.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();channelView.dispose();chipTabs.dispose();unwatchSongFiles();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
+  disposed=true;epoch++;notes.clear();expandedTabs?.dispose();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();liveInspector.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();channelView.dispose();chipTabs.dispose();unwatchSongFiles();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
 });
 looper=createSnesLooper({ensureAudio,releaseNotes:()=>stopNotes(),
   beforeStart:async()=>{if(switchingAudioOutput)throw new Error('Wait for audio output switching.');if(codeHost?.isCodeMode()||codeHost?.isRunning())throw new Error('Stop Code and choose Keyboard to use Looper.');await stopNotes();},
   onChange:()=>{looperControls?.update();visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing||Boolean(looper?.read().running));}});
 looperControls=setupSnesLooperControls({looper,isBlocked:()=>switchingAudioOutput||Boolean(codeHost?.isCodeMode()||codeHost?.isRunning()),onError:report});
 mixer=createSnesMixer({getAudio:()=>audio,player:songPlayer,onChange:()=>chipTabs?.update()});
-chipTabs=setupSnesChipTabs({mixer,onError:report});
+chipTabs=setupSnesChipTabs({onSelect:button=>expandedTabs?.showChip(button),mixer,onError:report});
 channelView=createSnesChannelView({onState:()=>updatePresetUi(),player:songPlayer,getOptions:()=>spcBrowser.getImportOptions(),onError:report,
   onBeforeSelect:async value=>{if(value!==null)await codeHost?.stop();await stopNotes();},
   onView(state){
@@ -470,9 +471,10 @@ $('snesVoiceFields').addEventListener('pointerdown',event=>{if($('snesVoiceField
 $('snesSongSelect').addEventListener('change',()=>{const path=$('snesSongSelect').value;if(path)void codeHost.files.selectFile(path).catch(report);});
 songControls=setupSnesSongControls({player:songPlayer,onError:report,setMuteMask:value=>mixer.setMuteMask(value)});
 updatePresetUi();setVolume();setPitchUi(0);
-codeHost=setupSnesCodeHost({onBeforeRun:()=>channelView.read().selected===null?undefined:channelView.select(null),onOpenSource:openStoredSpc,ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
+codeHost=setupSnesCodeHost({onViewChange:mode=>expandedTabs?.showInput(mode),onExpandedChange:value=>expandedTabs?.setExpanded(value),onBeforeRun:()=>channelView.read().selected===null?undefined:channelView.select(null),onOpenSource:openStoredSpc,ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
   applySettings:async(value,{isCurrent=()=>true}={})=>{if(!isCurrent())return false;await applyPreset(value,{load:true});return isCurrent();},
   stopLooper:()=>looper.stop(),clearLooper:()=>looper.clear(),stopSong:()=>songPlayer.stop(),stopKeyboard:()=>stopNotes(),setStatus:status,onActivity:()=>{looperControls?.update();visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing||Boolean(looper?.read().running));}});
+expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,selectChip:button=>chipTabs.select(button),elements:{editor:$('snesSynthEditor'),chipTabs:[$('snesChipTab'),$('snesMixerTab')],volume:$('masterVolume').closest('.master-control')}});
 const unwatchSongFiles=codeHost.project.onDidChange(refreshSongFiles);
 void codeHost.ready.then(refreshSongFiles).catch(report);
 

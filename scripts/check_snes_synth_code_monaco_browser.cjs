@@ -15,7 +15,7 @@ const config = {
   out: path.join(tmpdir(), 'snes-synth-code-monaco-browser.json'),
 };
 for (let i = 2; i < process.argv.length; i++) {
-  const match = /^--(root|entry|engines|out)(?:=(.*))?$/.exec(process.argv[i]);
+  const match = /^--(root|entry|engines|out|monaco-root)(?:=(.*))?$/.exec(process.argv[i]);
   assert(match, `Unknown argument: ${process.argv[i]}`);
   const value = match[2] ?? process.argv[++i];
   assert(value && !value.startsWith('--'), `Missing --${match[1]} value`);
@@ -184,7 +184,7 @@ async function run(browser,name,origin){
   page.on('pageerror',e=>errors.push(e.stack??e.message));
   page.on('requestfailed',request=>{if(isMonacoCdn(request.url()))cdnFailures.push({url:request.url(),error:request.failure()?.errorText});});
   page.on('response',response=>{if(isMonacoCdn(response.url())){cdn.set(response.url(),{status:response.status()});if(response.status()>=400)cdnFailures.push({url:response.url(),status:response.status()});}});
-  await context.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin===origin||['blob:','data:'].includes(url.protocol)||isMonacoCdn(url.href))return route.continue();blocked.push(url.href);return route.abort();});
+  await context.route('**/*',async route=>{const url=new URL(route.request().url());if(config['monaco-root']&&isMonacoCdn(url.href)){const root=path.resolve(config['monaco-root']),file=path.resolve(root,decodeURIComponent(url.href.slice(CDN_PREFIX.length).split('?')[0]));assert(file.startsWith(root+path.sep));let body;try{body=await fs.readFile(file);}catch(error){if(error.code!=='ENOENT'||!file.endsWith('.min.js'))throw error;body=await fs.readFile(file.replace(/\.min\.js$/,'.js'));}return route.fulfill({status:200,body,contentType:mime[path.extname(file)]??'application/octet-stream'});} if(url.origin===origin||['blob:','data:'].includes(url.protocol)||isMonacoCdn(url.href))return route.continue();blocked.push(url.href);return route.abort();});
   await context.addInitScript(muteDestinations);
   const editor=()=>page.evaluate(()=>{const host=document.querySelector('#synthCodeEditorHost');return window.monaco?.editor?.getEditors().some(e=>host.contains(e.getDomNode()));});
   const waitModel=async path=>page.waitForFunction(path=>{const host=document.querySelector('#synthCodeEditorHost'),e=window.monaco?.editor?.getEditors().find(e=>host.contains(e.getDomNode()));return e?.getModel()?.uri.path==='/project'+path;},path);
@@ -215,7 +215,7 @@ async function run(browser,name,origin){
     result.steps.push('mixed JSON / JavaScript edits preserve both files and explicitly apply the edited sound');
     await page.locator('#synthCodeExpandButton').click();for(const width of [1240,390]){
       await page.setViewportSize({width,height:900});
-      await page.waitForFunction(()=>{const host=document.querySelector('#synthCodeEditorHost'),e=monaco.editor.getEditors().find(e=>host.contains(e.getDomNode()));return e?.getLayoutInfo().width>100&&e.getLayoutInfo().height>=240&&host.querySelector('.view-lines')?.textContent.includes('useSoundChip');});const size=await page.locator('#synthCodeEditorHost').boundingBox();assert(size.width>100&&size.height>240);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      await page.waitForFunction(()=>{const host=document.querySelector('#synthCodeEditorHost'),e=monaco.editor.getEditors().find(e=>host.contains(e.getDomNode()));return e?.getLayoutInfo().width>100&&e.getLayoutInfo().height>=240&&host.querySelector('.view-lines')?.textContent.includes('useSoundChip');});await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth+1);const size=await page.locator('#synthCodeEditorHost').boundingBox();assert(size.width>100&&size.height>240);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),JSON.stringify(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.right>innerWidth+1;}).slice(0,12).map(e=>[e.id,e.className,e.getBoundingClientRect().width]))));
       await page.locator('#synthInputSection').screenshot({path:config.out.replace(/\.json$/,'-'+name+'-'+width+'.png')});
     }
     await page.setViewportSize({width:1240,height:1000});await page.locator('#synthCodeExpandButton').click();await page.reload();await page.waitForFunction(()=>document.querySelector('#synthCodeEditorHost').dataset.ready==='true');await waitModel('/index.js');

@@ -310,3 +310,39 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .sdsp-adsr-handle:focus-visible { outline:2px solid #e4b522; outline-offset:3px; }
 .sdsp-adsr-graph[aria-disabled="true"] .sdsp-adsr-curve { stroke:#81918a; stroke-dasharray:5 4; }
 .sdsp-adsr-release { position:absolute; right:6px; bottom:2px; color:#b6c8c0; font-size:.65rem; pointer-events:none; }
+
+/* Persistent expanded workspace uses the existing controls. */
+.snes-workspace-switch {display:inline-flex;}
+.snes-workspace-switch button {border-radius:0;}
+.snes-workspace-switch button:first-child {border-radius:99px 0 0 99px;}
+.snes-workspace-switch button:last-child {border-radius:0 99px 99px 0;}
+.snes-workspace-switch button[aria-pressed="true"] {background:var(--accent);color:white;}
+.snes-workspace-meta {grid-column:1/-1;display:grid;gap:12px 16px;min-width:0;align-items:start;}
+.snes-workspace-meta .audio-status {margin:0;padding-top:10px;}
+.snes-reference-row {display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0;}
+.snes-reference {flex:1 1 280px;min-width:0;border:1px solid var(--line);border-radius:10px;padding:12px;background:#e8e7e0;}
+.snes-reference[open] {flex-basis:100%;}
+.snes-reference > summary {font-size:.76rem;font-weight:650;cursor:pointer;}
+.snes-reference[open] > summary {margin-bottom:10px;}
+.snes-reference .snes-song-player {padding:0;border:0;margin:0;background:none;}
+#synthExpandedVolumeSlot {margin-left:auto;min-width:0;max-width:100%;}
+#synthExpandedVolumeSlot .master-control {max-width:100%;}
+.snes-code-workspace.is-code-expanded .snes-main {display:block;}
+.snes-main #synthExpandedCodeSlot {grid-column:auto;}
+#snesSynthEditor,#synthExpandedTabsSlot,.snes-input-heading {min-width:0;}
+#snesSynthEditor[hidden],#synthExpandedTabsSlot[hidden],#synthExpandedVolumeSlot[hidden] {display:none;}
+.snes-code-workspace.is-code-expanded #synthInputSection > h2 {display:none;}
+.snes-code-workspace .synth-expanded-heading {display:flex;align-items:flex-start;gap:8px;min-width:0;margin-bottom:12px;}
+.snes-code-workspace .synth-expanded-heading .snes-chip-tabs {flex:1;flex-wrap:wrap;min-width:0;margin:0;}
+.snes-code-workspace .synth-expanded-heading .snes-chip-tabs > button {min-height:34px;padding:7px 10px;flex:0 0 auto;}
+.snes-code-workspace .synth-expanded-heading .snes-code-expand {flex:none;padding:7px;min-height:34px;}
+#synthExpandedTabsSlot > .snes-code-toolbar {margin-bottom:12px;}
+.snes-code-workspace.is-code-expanded .snes-input-section {padding:0;border:0;margin:0;}
+@media(min-width:761px) {
+ .snes-code-workspace.has-files > .snes-workspace-meta {grid-template-columns:230px minmax(0,1fr);}
+ .snes-code-workspace.has-files.is-code-expanded > .snes-main {padding-top:13px;}
+ .snes-code-workspace.has-files.is-code-expanded .snes-files-heading {min-height:34px;}
+}
+
+.snes-code-workspace .snes-main #synthExpandedCodeSlot {grid-column:auto;}
+.snes-main,.snes-reference {min-width:0;}
