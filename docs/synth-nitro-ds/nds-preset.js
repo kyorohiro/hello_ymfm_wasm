@@ -71,6 +71,15 @@ export function readNdsPreset(source) {
 	return validateSound(value, value.name, decodeBase64);
 }
 
+/** Convert a decoded sound into settings for one physical DS channel. */
+export function ndsPresetChannelSettings({ mode, shape, volume, pan, divider, duty, loop, sample }) {
+	const settings = { mode, volume, pan, divider, duty, loop };
+	if (!SAMPLE_MODES.includes(mode)) return settings;
+	if (!sample) return { ...settings, shape };
+	const { bytes, sampleRate, rootNote, loopStartWords, lengthWords } = sample;
+	return { ...settings, bytes, sampleRate, rootNote, loopStartWords, lengthWords };
+}
+
 export function writeNdsPreset(name, sound) {
 	const value = validateSound(sound, name, bytes => bytes);
 	if (value.sample) value.sample.bytes = encodeBase64(value.sample.bytes);

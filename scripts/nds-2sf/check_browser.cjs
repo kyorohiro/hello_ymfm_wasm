@@ -336,15 +336,16 @@ async function checkSample(page, fixture, name) {
 	await until(() => page.locator('#status').textContent(), value => /WAV|RIFF/i.test(value), 'Invalid WAV should report an error');
 	assert.equal(await start.inputValue(), '800');
 
+	const tuned = state => state.muted && state.channels.some(({ rms, pitch }) => rms > .002 && Math.abs(pitch - 150) < 3);
+	const quiet = label => until(() => output(page), state => state.channels.every(({ peak }) => peak < 1e-7), label);
 	async function hearLoop() {
 		await page.keyboard.down('6'); // C4, one octave below the saved root note.
 		try {
-			const tuned = state => state.muted && state.channels.some(({ rms, pitch }) => rms > .002 && Math.abs(pitch - 150) < 3);
 			await until(() => output(page), tuned, 'Imported WAV should transpose by source rate and root note');
 			await wait(550);
 			assert(tuned(await output(page)), 'Repeat should sustain the edited window past the one-shot duration');
 		} finally { await page.keyboard.up('6'); }
-		await until(() => output(page), state => state.channels.every(({ peak }) => peak < 1e-7), 'Sample note should release');
+		await quiet('Sample note should release');
 	}
 	await hearLoop();
 
@@ -378,8 +379,40 @@ async function checkSample(page, fixture, name) {
 	assert.equal(await repeat.isChecked(), true);
 	assert(await page.locator('#synthKeyboardPanel').isVisible());
 	await hearLoop();
+
+	await page.locator('#synthInputCodeTab').click();
+	const files = page.locator('#ndsFilesPanel'), editor = page.locator('#synthCodeEditor');
+	if (!(await files.isVisible())) await page.locator('#ndsFilesToggle').click();
+	const index = files.locator('button[data-file-path="/index.js"]');
+	await index.click();
+	await until(() => editor.inputValue(), value => value.includes('nds-working-draft'), 'Cassette should restore the saved entry source');
+	await editor.fill(`const nds = await useSoundChip("nds");
+await nds.loadPreset(CH2, await file(${JSON.stringify(presetPath)}, { type: "json" }));
+const state = await nds.getState(CH2);
+if (state.active || state.mode !== "adpcm" || state.rootNote !== 72 || state.sampleRate !== 24000 ||
+    state.loopStartWords !== 101 || state.lengthWords !== 400 || !state.loop || state.byteLength === 0) {
+  throw new Error("Expected a configured, silent ADPCM channel: " + JSON.stringify(state));
+}
+await nds.noteOn(CH2, "C4");`);
+	await index.getByLabel('Unsaved changes').waitFor();
+	await editor.press('Control+s');
+	await index.getByLabel('Unsaved changes').waitFor({ state: 'hidden' });
+	await until(() => page.locator('#ndsFilesStatus').textContent(), value => value === 'Files saved.', 'Code entry should be saved in manual mode');
+	const run = page.locator('#synthCodeRunButton'), stop = page.locator('#synthCodeStopButton');
+	await run.click();
+	try {
+		const code = await until(() => page.evaluate(() => ({
+			state: document.getElementById('synthCodeState').textContent,
+			error: document.getElementById('synthCodeError').textContent,
+		})), value => /Running|Error/.test(value.state), 'Code should finish loading the saved sample');
+		assert.equal(code.state, 'Running', code.error);
+		await until(() => output(page), tuned, 'Code should play the restored sample one octave below its root');
+		await wait(550);
+		assert(tuned(await output(page)), 'Code should sustain the restored repeat window');
+	} finally { await stop.click(); }
+	await quiet('Stopping Code should release its sample note');
 	assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-	return 'WAV conversion, tuned loop, sound saved in manual mode and Cassette restored';
+	return 'WAV conversion, tuned loop, sound saved in manual mode and played from the restored Cassette in Keyboard and Code';
 }
 
 async function check(name, origin, fixture) {

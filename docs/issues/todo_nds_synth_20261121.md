@@ -75,6 +75,9 @@ register documentation. The existing SkyEmu player remains the song source.
       end. Tune imported samples using their source rate and a root note.
 - [x] Save self-contained DS instruments to `presets/` and verify that samples,
       tuning and loop points survive a Cassette export and re-import.
+- [x] Load a saved DS instrument into a physical channel from Code. Verify
+      the same sample, loop and tuning through `file()`, `loadPreset()` and
+      `noteOn()` after a Cassette round trip in Chromium and WebKit.
 - [ ] Explain hardware controls separately from driver/software ADSR, modulation,
       allocation and any software click mitigation. Scope hardware sound capture
       and capture-based effects as later work rather than silently omitting them.

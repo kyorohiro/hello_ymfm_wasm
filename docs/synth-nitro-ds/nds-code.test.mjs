@@ -5,6 +5,7 @@ import test from 'node:test';
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
 import { createNdsCodeRuntime, NDS_STARTER_CODE, NDS_STARTER_FILES } from './nds-code.js';
 import { selectNdsCodeDeclarations } from './nds-code-declarations.js';
+import { writeNdsPreset } from './nds-preset.js';
 
 test('DS Code handles all physical channels and stops only Code notes', async () => {
 	const active = new Map([[0, 'keyboard']]), owners = [];
@@ -75,12 +76,63 @@ test('Run and Apply read the saved entry, imported module, and project file', as
 	await runtime.stop();
 });
 
+test('Code loads a saved sound into one channel without triggering it, with the exact sample and tuning', async (t) => {
+	const sample = { sampleRate: 24000, rootNote: 72, loopStartWords: 3, lengthWords: 9,
+		bytes: Uint8Array.from({ length: 64 }, (_, index) => index) };
+	const sound = { mode: 'pcm16', shape: 'sine', volume: 94, pan: 27, divider: 1, duty: 3, loop: true, sample };
+	const pulse = { ...sound, mode: 'pulse', duty: 5, sample: null };
+	const script = `
+		const nds = await useSoundChip('nds');
+		const sample = await file('../presets/Sample.nds.json');
+		const state = await nds.loadPreset(CH2, sample);
+		if (state.active) throw new Error('Unexpected gate');
+		await nds.noteOn(CH2, 'C4');
+		await nds.loadPreset(CH9, await file('../presets/Pulse.nds.json', { type: 'json' }));
+	`;
+	const workspace = createVirtualFileWorkspace([
+		{ path: '/presets/Sample.nds.json', data: writeNdsPreset('Sample', sound) },
+		{ path: '/presets/Pulse.nds.json', data: writeNdsPreset('Pulse', pulse) },
+		{ path: '/examples/play.js', data: script },
+	]);
+	workspace.setAutoSave(false);
+	workspace.working.writeText('/presets/Sample.nds.json', writeNdsPreset('Draft', { ...sound, volume: 24 }));
+	const calls = [];
+	const chip = {
+		async configure(channel, settings) { calls.push(['configure', channel, settings]); return { active: false }; },
+		async noteOn(...args) { calls.push(['noteOn', ...args]); },
+		async stopOwned() {},
+	};
+	const runtime = createNdsCodeRuntime({ project: { savedFs: workspace.saved },
+		ensureAudio: async () => ({ context: { currentTime: 0 }, chip: { forOwner: () => chip } }) });
+	t.after(() => runtime.stop());
+	await runtime.run(script, { path: '/examples/play.js' });
+	assert.deepEqual(calls, [
+		['configure', 1, { mode: 'pcm16', volume: 94, pan: 27, divider: 1, duty: 3, loop: true, ...sample }],
+		['noteOn', 1, 'C4'],
+		['configure', 8, { mode: 'pulse', volume: 94, pan: 27, divider: 1, duty: 5, loop: true }],
+	]);
+});
+
+test('Invalid DS presets fail before configuring a channel', async (t) => {
+	let configured = 0;
+	const chip = { async configure() { configured++; }, async stopOwned() {} };
+	const runtime = createNdsCodeRuntime({ ensureAudio: async () => ({ context: { currentTime: 0 },
+		chip: { forOwner: () => chip } }) });
+	t.after(() => runtime.stop());
+	await assert.rejects(runtime.run(`
+		const nds = await useSoundChip('nds');
+		await nds.loadPreset(CH1, '{"format":"other","version":1}');
+	`), /Unsupported DS sound preset/);
+	assert.equal(configured, 0);
+});
+
 test('DS editor declarations describe the default runtime and physical channels', async () => {
 	const source = await readFile(new URL('../playground/tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
 	const declarations = selectNdsCodeDeclarations(source);
 	assert.match(declarations, /declare function useSoundChip\(name: 'nds'\): Promise<NdsCodeClient>/);
 	assert.match(declarations, /declare const CH16: 15/);
 	assert.match(declarations, /interface NdsCodeAPI \{[\s\S]*CH16:typeof CH16/);
+	assert.match(declarations, /loadPreset\(channel: NdsCodeChannel, preset: string \| NdsCodePreset\): Promise<NdsCodeChannelState>/);
 	assert.doesNotMatch(declarations, /declare function liveFx\b|interface YM2612FMApi\b/);
 	assert.match(NDS_STARTER_CODE, /await nds\.noteOn\(CH1/);
 	assert.match(NDS_STARTER_CODE, /await beat\(/);

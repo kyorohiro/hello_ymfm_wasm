@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buildKeyboard, createFretboardLayout, createFretboardState } from '../synth/synth_keyboard.js';
-import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js';
+import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-code-presets-1';
 
 const CHANNELS = Array.from({ length: 16 }, (_, channel) => channel);
 const AUTO = -1;

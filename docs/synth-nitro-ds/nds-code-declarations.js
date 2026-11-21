@@ -69,9 +69,32 @@ interface NdsCodeNote extends NdsCodePitch {
   channel: NdsCodeChannel;
   token: number;
 }
+/** A saved .nds.json sound, as read by file(path, { type: "json" }). */
+interface NdsCodePreset {
+  format: 'tetorica-nds-sound';
+  version: 1;
+  name: string;
+  mode: NdsCodeMode;
+  shape?: NdsCodeShape;
+  volume: number;
+  pan: number;
+  divider: NonNullable<NdsCodeVoiceSettings['divider']>;
+  duty: NonNullable<NdsCodeVoiceSettings['duty']>;
+  loop: boolean;
+  sample?: {
+    /** Encoded DS sample bytes in base64. */
+    bytes: string;
+    sampleRate: number;
+    rootNote: number;
+    loopStartWords: number;
+    lengthWords: number;
+  } | null;
+}
 interface NdsCodeClient {
   /** Change the settings of one zero-based physical channel. */
   configure(channel: NdsCodeChannel, patch: NdsCodeVoiceSettings): Promise<NdsCodeChannelState>;
+  /** Apply a saved .nds.json as JSON text or an object. Call noteOn() to play it. */
+  loadPreset(channel: NdsCodeChannel, preset: string | NdsCodePreset): Promise<NdsCodeChannelState>;
   /** Round musical pitch to the hardware timer. Imported samples use source rate at their root note. */
   setFrequency(channel: NdsCodeChannel, hz: number): Promise<NdsCodePitch>;
   setNote(channel: NdsCodeChannel, note: string | number): Promise<NdsCodePitch>;

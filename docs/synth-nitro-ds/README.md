@@ -56,6 +56,21 @@ To recall it, choose **Saved sounds** or select the file in **Files**. Export a
 Cassette to keep the saved sound with its Code. After importing the Cassette,
 choose the sound again to play it.
 
+Code can use the same saved sound. Replace the path with a file from `presets/`.
+`loadPreset()` prepares the selected physical channel. `noteOn()` plays the
+loaded sample using its saved root note, source rate and loop settings.
+
+```js
+const nds = await useSoundChip("nds");
+await nds.loadPreset(CH1, await file("/presets/My sound.nds.json"));
+await nds.noteOn(CH1, "C4");
+await beat(1);
+await nds.noteOff(CH1);
+```
+
+`loadPreset()` accepts JSON text or a parsed DS preset. `file()` reads the saved
+version of the file when Auto apply is off.
+
 In Code, pass `sampleRate` and `rootNote` together with encoded sample bytes
 to `nds.configure()` or `nds.noteOn()` for source-rate tuning. Loop length is
 independent of tuning for these samples.

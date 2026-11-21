@@ -1,23 +1,20 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { midiToNoteName } from '../synth/synth_keyboard.js';
 import { encodeNdsSample, normalizeNdsSampleRange, readNdsSample, readNdsSampleRange, readNdsWav, NDS_MAX_WAV_BYTES } from './nds-sample.js';
+import { ndsPresetChannelSettings } from './nds-preset.js?v=nds-code-presets-1';
 
 export const isNdsSampleMode = mode => mode === 'pcm8' || mode === 'pcm16' || mode === 'adpcm';
 const formatNames = { pcm8: 'PCM8', pcm16: 'PCM16', adpcm: 'IMA-ADPCM' };
 
-export function ndsSoundPatch({ mode, shape, volume, pan, divider, duty, loop, sample }) {
-	const patch = { mode, volume, pan, divider, duty, loop };
-	if (!isNdsSampleMode(mode)) return patch;
-	if (!sample) return { ...patch, shape };
-	const { asset, rootNote, range } = sample;
-	return { ...patch, bytes: asset.bytes, sampleRate: asset.sampleRate, rootNote,
-		loopStartWords: range.loopStartWords, lengthWords: range.lengthWords };
+export function ndsSoundPatch(sound) {
+	return ndsPresetChannelSettings(snapshotNdsSound(sound));
 }
 
-export function snapshotNdsSound(sound) {
-	const { bytes, sampleRate, rootNote, loopStartWords, lengthWords, ...patch } = ndsSoundPatch(sound);
-	return { name: sound.name, ...patch, shape: sound.shape,
-		...(bytes ? { sample: { bytes, sampleRate, rootNote, loopStartWords, lengthWords } } : {}) };
+export function snapshotNdsSound({ name, mode, shape, volume, pan, divider, duty, loop, sample }) {
+	const preset = { name, mode, shape, volume, pan, divider, duty, loop };
+	if (!isNdsSampleMode(mode) || !sample) return preset;
+	const { asset, rootNote, range: { loopStartWords, lengthWords } } = sample;
+	return { ...preset, sample: { bytes: asset.bytes, sampleRate: asset.sampleRate, rootNote, loopStartWords, lengthWords } };
 }
 
 export function restoreNdsSound({ sample, ...patch }) {
