@@ -14,9 +14,14 @@ keyboard, preset round-trip, VGM transport and Code DSP with muted output.
 The historical shared-client navigation receipt still has a pre-existing
 hash mismatch for `docs/js/native_genesis_scsp.js`.
 
-- [ ] Evaluate the [MIT-licensed Musashi 68000 core](https://github.com/kstenerud/Musashi/blob/master/m68kcpu.c)
-      with the existing BSD SCSP core. Build a standalone Saturn sound board
-      adapter with its own memory map, timing, timers and interrupts.
+- [x] Prototype a Native sound board with the pinned Musashi 68000 sources
+      already used by the ST Synth and the existing BSD SCSP device. Use one
+      shared sound RAM image, load the CPU's reset vectors and interleave the
+      CPU and audio clock. Start with the original SSF sine and its MiniSSF
+      pitch patch. Verify the rendered pitch and block-size independence.
+- [ ] Implement SCSP timer and sound-CPU interrupts from the Saturn manual.
+      Verify original IRQ fixtures before measuring local recordings and
+      deciding which additional registers or DMA behavior they require.
 - [ ] Verify supported SSF / MiniSSF containers, library ordering, deterministic
       CPU-to-SCSP timing, IRQ delivery, PCM and DSP output with original fixtures
       and locally supplied recordings before enabling playback in the Synth.
@@ -25,6 +30,26 @@ hash mismatch for `docs/js/native_genesis_scsp.js`.
       timing-aligned slot and RAM snapshots.
 - [ ] Record exact dependency revisions and licenses and check the generated
       renderer and source kit before adding them to the release ZIP.
+
+### Native prototype
+
+`node scripts/check_scsp_ssf_native.mjs` builds the prototype in a temporary
+directory, composes both original fixtures with the existing loader and
+checks stereo PCM without opening an audio device. It expects 689.0625 Hz
+from SSF and 344.53125 Hz from MiniSSF. The PCM stays bit-identical when
+split into 257-frame blocks. A CPU write to the waveform raises the peak
+from 0.25 to 0.50. Invalid image lengths and unsupported bus accesses have
+separate checks.
+
+The test links only the three Musashi translation units already used by
+AtariAudio (pinned in [third-party records](../../third_party/atari-audio/PATCHES.md)),
+the existing BSD-3-Clause SCSP/DSP device, and the new BSD-3-Clause board.
+The board maps 512 KiB of sound RAM and the supported SCSP registers using
+the [Saturn sound block memory map](https://docs.exodusemulator.com/Archives/SSDDV25/segahtml/hard/scsp/hon/p01_10_j.htm).
+It runs 256 sound-CPU cycles per 44.1 kHz sample, carrying instruction
+overrun into the next sample. The fixture verifies deterministic playback
+at this sample boundary. Timer/IRQ, DMA, real-song compatibility and
+browser playback are pending.
 
 ## Historical implementation · 2026-11-15
 
