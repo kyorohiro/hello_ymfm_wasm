@@ -66,3 +66,20 @@ Actual WASM compile/write/frame parity is checked at 44.1/48 kHz on both
 shared and standalone endpoints. Readable ZIP passes physically muted
 Chromium/WebKit performance and real Monaco checks; build checks 477
 declarations across 414 modules. Human listening remains pending.
+
+## Completed FDS table transfer slice
+
+- [x] Record full setWave/setModulation tables as detached bounded data; reuse immediate conversion.
+- [x] Execute each upload without rendering/interleaving inside its register batch; retain Gate ownership and stop/restore order.
+- [x] Verify compile parity, RAM/table effects, malformed replacement rejection, types and muted ZIP browsers.
+
+FDS full-table recording/execution is implemented. The existing timed-fds
+example now switches a self-authored sine to saw mid-note. Raw RAM-port
+edits remain excluded, as do DMC memory transfer and Native scheduling.
+[Verification](verification_2a03_fds_tables_20261121.json).
+
+Table-transfer verification: 323 NES tests and 87 common/calibration checks pass.
+The actual WASM tests cover both shared and standalone endpoints at 44.1/48 kHz,
+ordered full-table writes, applied Wave RAM and modulation frequency, retained
+Gate ownership and rejected replacement retaining the previous repeat.
+Generated build: 414 modules / 477 declarations. Human listening is pending.

@@ -126,3 +126,26 @@ Wave RAM and $4088 modulation-table writes remain rejected. Load tables before
 scheduling; snapshots do not contain table RAM or envelope/phase progress.
 `examples/timed-fds.js` demonstrates pitch and gates on the currently loaded wave.
 FDS-disabled endpoints reject these operations before accepting a reservation.
+
+## Timed FDS table batches
+
+`b.fds.setWave(values)` records 64 integer samples (0..63).
+`b.fds.setModulation({table,rate,depth,bias,enabled})` records the existing
+32-entry modulation upload and its controls; table entries are integers 0..7.
+Plain arrays and Uint8Array are copied when recorded. Later source-array edits
+cannot alter the operation. Existing option defaults and validation are reused.
+
+Each full operation resolves immediately before execution, then applies its
+ordered register batch at one audio frame, without rendering or another queued
+operation inside it. Wave upload retains halt/write-enable/restore writes;
+modulation upload retains halt/table/bias/depth/rate/restore writes and existing
+cursor side effects. Both retain the note owner; these transfers are real
+hardware operations and can change phase or produce audible discontinuities.
+They do not add a software crossfade. Repeats store one compact table payload.
+
+Compilation includes every RAM-port write, even repeated $4088 values. A snapshot
+still contains no RAM or modulation cursor/phase; full uploads need no prior
+table contents. Arbitrary raw Wave RAM/$4088 edits remain rejected in this API.
+DMC sample uploads remain outside build. Failed schedule/Apply validation does
+not apply a partial table upload. The existing queue budgets count all generated
+register writes. Fresh Cassettes' timed-fds example now changes its wave mid-note.

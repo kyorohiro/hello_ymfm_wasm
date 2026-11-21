@@ -131,7 +131,7 @@ export function createNesTimedProcessor({performance: timeline, getState, getCon
       const clock = getConfig().clock;
       if (clock !== resolverClock) { resolver = createNesOperationResolver({clock,fds:getConfig().fds===true}); resolverClock = clock; }
       const result = resolver.resolve(operation, getState());
-      for (const {register,value} of result.writes) dispatch({method:'writeRegister',args:[register,value]},port,frame,{...metadata,timedOperation:true,nesRetriggerDmc:operation.method==='dmc.play',fdsState:result.state,nesFdsOff:['fds.keyOff','fds.noteOff'].includes(operation.method)||(['keyOff','noteOff'].includes(operation.method)&&operation.args[0]===5),preserveOwner:(register!==0x4083||['fds.setFrequency','fds.setNote','setFrequency','setNote'].includes(operation.method))&&register!==0x4015&&![0x4003,0x4007,0x400b,0x400f].includes(register)});
+      for (const {register,value} of result.writes) dispatch({method:'writeRegister',args:[register,value]},port,frame,{...metadata,timedOperation:true,nesRetriggerDmc:operation.method==='dmc.play',fdsState:result.state,nesFdsOff:['fds.keyOff','fds.noteOff'].includes(operation.method)||(['keyOff','noteOff'].includes(operation.method)&&operation.args[0]===5),preserveOwner:(register!==0x4083||['fds.setWave','fds.setModulation','fds.setFrequency','fds.setNote','setFrequency','setNote'].includes(operation.method))&&register!==0x4015&&![0x4003,0x4007,0x400b,0x400f].includes(register)});
 
     },
     clear() { staged.clear(); },

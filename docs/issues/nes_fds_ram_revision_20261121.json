@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "scope": "nes-fds-ram-timed-playback",
+  "baseCommit": "33305050db1c6bcc0f99f1f1f2a0bea5cfc0b714",
+  "reason": "Add bounded detached FDS full-table recording, audio-clock register batches and standalone asset-cache invalidation. Reuse immediate setWave/setModulation conversion and preserve Gate ownership, same-value writes and malformed-replacement atomicity. No core/WASM, mixer gain or historical measurement change.",
+  "sources": {
+    "docs/js/nes_operations.js": {
+      "before": {
+        "bytes": 13874,
+        "sha256": "eb956924bc99b37d53fd3e28f84a9ca6bd7e1f2ea41052eacae47d5db9c44b3e"
+      },
+      "after": {
+        "bytes": 14059,
+        "sha256": "181f80c20c9ac86a5e77d66cb8691cb2df9169487a15382f8bd808528887486b"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1364,
+          "afterBytes": 182,
+          "beforeBase64": "ICogZmRzOntbSyBpbiAnc2V0Vm9sdW1lJ3wnc2V0RnJlcXVlbmN5J3wnc2V0Tm90ZSd8J25vdGVPbid8J25vdGVPZmYnfCdrZXlPbid8J2tleU9mZiddOiguLi5hcmdzOlBhcmFtZXRlcnM8TmVzQXB1U3ludGhbJ2ZkcyddW0tdPik9Pk5FU09wZXJhdGlvblJlY29yZGVyfSwK"
+        },
+        {
+          "afterOffset": 2230,
+          "afterBytes": 191,
+          "beforeBase64": "ICdmZHMuc2V0Vm9sdW1lJzpbMSwyXSwnZmRzLnNldEZyZXF1ZW5jeSc6WzEsMV0sJ2Zkcy5zZXROb3RlJzpbMSwxXSwnZmRzLm5vdGVPbic6WzEsMV0sJ2Zkcy5ub3RlT2ZmJzpbMCwwXSwnZmRzLmtleU9uJzpbMCwwXSwnZmRzLmtleU9mZic6WzAsMF0sCg=="
+        },
+        {
+          "afterOffset": 4012,
+          "afterBytes": 87,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 4208,
+          "afterBytes": 111,
+          "beforeBase64": "ICBpZiAoa2V5cy5sZW5ndGggPiAzMikgdGhyb3cgbmV3IFJhbmdlRXJyb3IoJ05FUyBvcGVyYXRpb24gYXJndW1lbnQgaXMgdG9vIGxhcmdlJyk7Cg=="
+        },
+        {
+          "afterOffset": 4379,
+          "afterBytes": 96,
+          "beforeBase64": "ICAgICAgaWYgKHZhbHVlLmxlbmd0aCA+IDE2KSB0aHJvdyBuZXcgUmFuZ2VFcnJvcignTkVTIG9wZXJhdGlvbiBhcmd1bWVudCBhcnJheSBpcyB0b28gbGFyZ2UnKTsK"
+        }
+      ]
+    },
+    "docs/js/nes_timed_processor.js": {
+      "before": {
+        "bytes": 8806,
+        "sha256": "aa40453df1e63740f75058c5f6fee8df9bf27f9f6929f31e748a6c845dc436cf"
+      },
+      "after": {
+        "bytes": 8840,
+        "sha256": "bfe86db4449c9129d5be2337a94f0616533b3df3f4655e6d2b6fc3c14486fe5d"
+      },
+      "hunks": [
+        {
+          "afterOffset": 8202,
+          "afterBytes": 589,
+          "beforeBase64": "ICAgICAgZm9yIChjb25zdCB7cmVnaXN0ZXIsdmFsdWV9IG9mIHJlc3VsdC53cml0ZXMpIGRpc3BhdGNoKHttZXRob2Q6J3dyaXRlUmVnaXN0ZXInLGFyZ3M6W3JlZ2lzdGVyLHZhbHVlXX0scG9ydCxmcmFtZSx7Li4ubWV0YWRhdGEsdGltZWRPcGVyYXRpb246dHJ1ZSxuZXNSZXRyaWdnZXJEbWM6b3BlcmF0aW9uLm1ldGhvZD09PSdkbWMucGxheScsZmRzU3RhdGU6cmVzdWx0LnN0YXRlLG5lc0Zkc09mZjpbJ2Zkcy5rZXlPZmYnLCdmZHMubm90ZU9mZiddLmluY2x1ZGVzKG9wZXJhdGlvbi5tZXRob2QpfHwoWydrZXlPZmYnLCdub3RlT2ZmJ10uaW5jbHVkZXMob3BlcmF0aW9uLm1ldGhvZCkmJm9wZXJhdGlvbi5hcmdzWzBdPT09NSkscHJlc2VydmVPd25lcjoocmVnaXN0ZXIhPT0weDQwODN8fFsnZmRzLnNldEZyZXF1ZW5jeScsJ2Zkcy5zZXROb3RlJywnc2V0RnJlcXVlbmN5Jywnc2V0Tm90ZSddLmluY2x1ZGVzKG9wZXJhdGlvbi5tZXRob2QpKSYmcmVnaXN0ZXIhPT0weDQwMTUmJiFbMHg0MDAzLDB4NDAwNywweDQwMGIsMHg0MDBmXS5pbmNsdWRlcyhyZWdpc3Rlcil9KTsK"
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 200613,
+        "sha256": "cf2a604c050ad5bc71bb47417a7642ec0755aa5f36a2b5c95fd91836a6bd99af"
+      },
+      "after": {
+        "bytes": 200639,
+        "sha256": "0c199eaaa488f73d353d7810d633e10351da939b11e8342738afde9f429f1272"
+      },
+      "hunks": [
+        {
+          "afterOffset": 161141,
+          "afterBytes": 193,
+          "beforeBase64": "ICBmZHM6e1tLIGluICdzZXRWb2x1bWUnfCdzZXRGcmVxdWVuY3knfCdzZXROb3RlJ3wnbm90ZU9uJ3wnbm90ZU9mZid8J2tleU9uJ3wna2V5T2ZmJ106KC4uLmFyZ3M6UGFyYW1ldGVyczxQbGF5Z3JvdW5kTmVzWydmZHMnXVtLXT4pPT5QbGF5Z3JvdW5kTmVzT3BlcmF0aW9uUmVjb3JkZXJ9Owo="
+        }
+      ]
+    },
+    "docs/synth-2a03/TIMED_API.md": {
+      "before": {
+        "bytes": 7698,
+        "sha256": "db66d2d1deb505dbc3095237dd7b8fd72712aa0c7734f3cc7dcb0764cd4f1ca0"
+      },
+      "after": {
+        "bytes": 9125,
+        "sha256": "6aae92369de1a21374339aa110b7baf47e342a85c465d4881848bcb331dc89ea"
+      },
+      "hunks": [
+        {
+          "afterOffset": 7698,
+          "afterBytes": 1427,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/synth-2a03/code_examples.js": {
+      "before": {
+        "bytes": 2403,
+        "sha256": "6f05b31efb22eade33649a5c170e10e927f301c47305e756b4d1c90aeab31bd4"
+      },
+      "after": {
+        "bytes": 2668,
+        "sha256": "e711b606f045ddfa1b401f1d8b0cf329f606741e7fb3beb4ece87c22dce84e02"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1939,
+          "afterBytes": 78,
+          "beforeBase64": "LyoqIFRpbWVkIGNvbnRyb2xzIHVzZSB0aGUgY3VycmVudGx5IGxvYWRlZCBGRFMgV2F2ZS9tb2R1bGF0aW9uIHRhYmxlcy4gKi8K"
+        },
+        {
+          "afterOffset": 2130,
+          "afterBytes": 102,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 2264,
+          "afterBytes": 105,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 2414,
+          "afterBytes": 100,
+          "beforeBase64": "ICBiLmF0U2Vjb25kcyhzdGVwICogMC41KS5mZHMuc2V0Tm90ZSgiRzMiKTsK"
+        }
+      ]
+    },
+    "docs/synth-2a03/instrument.js": {
+      "before": {
+        "bytes": 28623,
+        "sha256": "d938a90e4fd2d159ad894a2d7fc44aeb1001ffec0a61e23cc55af3f9506cc2b6"
+      },
+      "after": {
+        "bytes": 28742,
+        "sha256": "5be7daff62961e9e46d312d3e220c3fa0db359dd17c9fdfb5a0212876d4e2ec2"
+      },
+      "hunks": [
+        {
+          "afterOffset": 19498,
+          "afterBytes": 119,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "package.json": {
+      "before": {
+        "bytes": 15757,
+        "sha256": "e527748071b10179b24e2b6399f39f734f2e8ac3c0576bc742626e8fc0171ace"
+      },
+      "after": {
+        "bytes": 15869,
+        "sha256": "6d0df8e2e0a5d1cfa6ce8aa028bcb26c5663dec50bf44f909322829d45295793"
+      },
+      "hunks": [
+        {
+          "afterOffset": 10040,
+          "afterBytes": 352,
+          "beforeBase64": "ICAgICJ0ZXN0OjJhMDMtc3ludGgiOiAibm9kZSAtLXRlc3QgZG9jcy9zeW50aC0yYTAzLyoudGVzdC5tanMgc2NyaXB0cy9wYWNrYWdlX2l0Y2hfMmEwM19zeW50aC50ZXN0Lm1qcyB0ZXN0L3J1bnRpbWUvbmVzX3RpbWVkLnRlc3QubWpzIHNjcmlwdHMvbWl4ZXJfY2FsaWJyYXRpb25fbmVzX3RpbWVkX3JldmlzaW9uLnRlc3QubWpzIHNjcmlwdHMvbWl4ZXJfY2FsaWJyYXRpb25fbmVzX2RtY19yZXZpc2lvbi50ZXN0Lm1qcyBzY3JpcHRzL21peGVyX2NhbGlicmF0aW9uX25lc19mZHNfcmV2aXNpb24udGVzdC5tanMiLAo="
+        },
+        {
+          "afterOffset": 15581,
+          "afterBytes": 282,
+          "beforeBase64": "ICAgICJ0ZXN0Om5lcy10aW1lZCI6ICJub2RlIC0tdGVzdCB0ZXN0L3J1bnRpbWUvbmVzX3RpbWVkLnRlc3QubWpzIHNjcmlwdHMvbWl4ZXJfY2FsaWJyYXRpb25fbmVzX3RpbWVkX3JldmlzaW9uLnRlc3QubWpzIHNjcmlwdHMvbWl4ZXJfY2FsaWJyYXRpb25fbmVzX2RtY19yZXZpc2lvbi50ZXN0Lm1qcyBzY3JpcHRzL21peGVyX2NhbGlicmF0aW9uX25lc19mZHNfcmV2aXNpb24udGVzdC5tanMiCg=="
+        }
+      ]
+    },
+    "tetorica_src/runtime/nes_operations.js": {
+      "before": {
+        "bytes": 13874,
+        "sha256": "eb956924bc99b37d53fd3e28f84a9ca6bd7e1f2ea41052eacae47d5db9c44b3e"
+      },
+      "after": {
+        "bytes": 14059,
+        "sha256": "181f80c20c9ac86a5e77d66cb8691cb2df9169487a15382f8bd808528887486b"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1364,
+          "afterBytes": 182,
+          "beforeBase64": "ICogZmRzOntbSyBpbiAnc2V0Vm9sdW1lJ3wnc2V0RnJlcXVlbmN5J3wnc2V0Tm90ZSd8J25vdGVPbid8J25vdGVPZmYnfCdrZXlPbid8J2tleU9mZiddOiguLi5hcmdzOlBhcmFtZXRlcnM8TmVzQXB1U3ludGhbJ2ZkcyddW0tdPik9Pk5FU09wZXJhdGlvblJlY29yZGVyfSwK"
+        },
+        {
+          "afterOffset": 2230,
+          "afterBytes": 191,
+          "beforeBase64": "ICdmZHMuc2V0Vm9sdW1lJzpbMSwyXSwnZmRzLnNldEZyZXF1ZW5jeSc6WzEsMV0sJ2Zkcy5zZXROb3RlJzpbMSwxXSwnZmRzLm5vdGVPbic6WzEsMV0sJ2Zkcy5ub3RlT2ZmJzpbMCwwXSwnZmRzLmtleU9uJzpbMCwwXSwnZmRzLmtleU9mZic6WzAsMF0sCg=="
+        },
+        {
+          "afterOffset": 4012,
+          "afterBytes": 87,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 4208,
+          "afterBytes": 111,
+          "beforeBase64": "ICBpZiAoa2V5cy5sZW5ndGggPiAzMikgdGhyb3cgbmV3IFJhbmdlRXJyb3IoJ05FUyBvcGVyYXRpb24gYXJndW1lbnQgaXMgdG9vIGxhcmdlJyk7Cg=="
+        },
+        {
+          "afterOffset": 4379,
+          "afterBytes": 96,
+          "beforeBase64": "ICAgICAgaWYgKHZhbHVlLmxlbmd0aCA+IDE2KSB0aHJvdyBuZXcgUmFuZ2VFcnJvcignTkVTIG9wZXJhdGlvbiBhcmd1bWVudCBhcnJheSBpcyB0b28gbGFyZ2UnKTsK"
+        }
+      ]
+    },
+    "tetorica_src/runtime/nes_timed_processor.js": {
+      "before": {
+        "bytes": 8806,
+        "sha256": "aa40453df1e63740f75058c5f6fee8df9bf27f9f6929f31e748a6c845dc436cf"
+      },
+      "after": {
+        "bytes": 8840,
+        "sha256": "bfe86db4449c9129d5be2337a94f0616533b3df3f4655e6d2b6fc3c14486fe5d"
+      },
+      "hunks": [
+        {
+          "afterOffset": 8202,
+          "afterBytes": 589,
+          "beforeBase64": "ICAgICAgZm9yIChjb25zdCB7cmVnaXN0ZXIsdmFsdWV9IG9mIHJlc3VsdC53cml0ZXMpIGRpc3BhdGNoKHttZXRob2Q6J3dyaXRlUmVnaXN0ZXInLGFyZ3M6W3JlZ2lzdGVyLHZhbHVlXX0scG9ydCxmcmFtZSx7Li4ubWV0YWRhdGEsdGltZWRPcGVyYXRpb246dHJ1ZSxuZXNSZXRyaWdnZXJEbWM6b3BlcmF0aW9uLm1ldGhvZD09PSdkbWMucGxheScsZmRzU3RhdGU6cmVzdWx0LnN0YXRlLG5lc0Zkc09mZjpbJ2Zkcy5rZXlPZmYnLCdmZHMubm90ZU9mZiddLmluY2x1ZGVzKG9wZXJhdGlvbi5tZXRob2QpfHwoWydrZXlPZmYnLCdub3RlT2ZmJ10uaW5jbHVkZXMob3BlcmF0aW9uLm1ldGhvZCkmJm9wZXJhdGlvbi5hcmdzWzBdPT09NSkscHJlc2VydmVPd25lcjoocmVnaXN0ZXIhPT0weDQwODN8fFsnZmRzLnNldEZyZXF1ZW5jeScsJ2Zkcy5zZXROb3RlJywnc2V0RnJlcXVlbmN5Jywnc2V0Tm90ZSddLmluY2x1ZGVzKG9wZXJhdGlvbi5tZXRob2QpKSYmcmVnaXN0ZXIhPT0weDQwMTUmJiFbMHg0MDAzLDB4NDAwNywweDQwMGIsMHg0MDBmXS5pbmNsdWRlcyhyZWdpc3Rlcil9KTsK"
+        }
+      ]
+    }
+  },
+  "dependencies": {}
+}

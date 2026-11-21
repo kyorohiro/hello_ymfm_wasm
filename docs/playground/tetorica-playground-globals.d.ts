@@ -3070,7 +3070,7 @@ interface PlaygroundNesOperationRecorder {
   noteOff(channel:0|1|2|3|4|5):PlaygroundNesOperationRecorder;
   pulse:{[K in keyof PlaygroundNes['pulse']]:(...args:Parameters<PlaygroundNes['pulse'][K]>)=>PlaygroundNesOperationRecorder};
   triangle:{[K in keyof PlaygroundNes['triangle']]:(...args:Parameters<PlaygroundNes['triangle'][K]>)=>PlaygroundNesOperationRecorder};
-  fds:{[K in 'setVolume'|'setFrequency'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff']:(...args:Parameters<PlaygroundNes['fds'][K]>)=>PlaygroundNesOperationRecorder};
+  fds:{[K in 'setWave'|'setModulation'|'setVolume'|'setFrequency'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff']:(...args:Parameters<PlaygroundNes['fds'][K]>)=>PlaygroundNesOperationRecorder};
   dmc:{[K in 'play'|'stop']:(...args:Parameters<PlaygroundNes['dmc'][K]>)=>PlaygroundNesOperationRecorder};
   noise:{[K in keyof PlaygroundNes['noise']]:(...args:Parameters<PlaygroundNes['noise'][K]>)=>PlaygroundNesOperationRecorder};
 }

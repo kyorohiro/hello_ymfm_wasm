@@ -195,7 +195,7 @@ for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.
  const on=await p.rpc({action:'schedule',operations:build(b=>b.fds.keyOn()),options:{name:'fds'},owner:'fds'});p.render(on.startFrame+1);await p.rpc({action:'releaseOwner',owner:'fds'});assert.equal(p.core.getState().registers[0x83]&128,128);
  }finally{p.close();}
 });
-test('FDS rejects disabled hardware and RAM transfers; retains same-value envelope writes',()=>{
+test('FDS rejects disabled hardware and unscoped raw RAM writes; retains same-value envelope writes',()=>{
  const plan=build(b=>{b.fds.setVolume(12);b.fds.keyOn();b.writeRegister(0x4080,1);b.writeRegister(0x4080,1);});
  assert.throws(()=>compile(plan,reset()),/FDS/);const writes=compile(plan,reset(),{fds:true});assert.equal(writes.filter(w=>w.register===0x4080&&w.value===1).length,2);
  assert.throws(()=>compile(build(b=>b.writeRegister(0x4088,1)),reset(),{fds:true}),/no RAM/);assert.throws(()=>compile(build(b=>b.writeRegister(0x4040,1)),reset(),{fds:true}),/no RAM/);
@@ -209,4 +209,22 @@ for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.
  const on=await p.rpc({action:'schedule',operations:build(b=>b.fds.keyOn()),options:{name:'new'},owner:'new'});p.render(on.startFrame+1);
  if(standalone)assert.equal(await p.command('noteOff',['manual']),false);else assert.equal(p.p.inspector.invoke('auditionOff',[5,'manual']),false);
  }finally{p.close();}
+});
+
+for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.js'])for(const rate of [44100,48000])test(`${file} ${rate}: timed FDS full tables preserve ordered writes and live Gate`,async()=>{
+ const p=await setup(file,rate);try{
+ const wave=Array.from({length:64},(_,i)=>i),table=Array.from({length:32},(_,i)=>i%8);
+ const plan=build(b=>{b.fds.setVolume(20);b.fds.noteOn('C4');b.atSample(441).fds.setWave(wave);b.fds.setModulation({table,rate:256,depth:8,bias:-3});});wave.fill(0);table.fill(0);
+ const state=await p.rpc({action:'capture'}),expected=compile(plan,state,{fds:true});assert.equal(expected.filter(w=>w.register>=0x4040&&w.register<0x4080).length,64);assert.equal(expected.filter(w=>w.register===0x4088).length,32);
+ const r=await p.rpc({action:'schedule',operations:plan,options:{name:'tables',repeatSeconds:.04},owner:'tables'}),start=p.writes.length;p.render(r.startFrame+Math.round(.01*rate)+1);
+ assert.deepEqual(rows(p.writes.slice(start)),rows(expected));assert.deepEqual(p.writes.slice(start).map(w=>w.frame),expected.map(w=>r.startFrame+Math.round(w.offsetSeconds*rate)));
+ assert.equal(p.core.getState().registers[0x83]&128,0);assert.deepEqual(p.core.getState().wave,Array.from({length:64},(_,i)=>i));assert.equal(p.core.getState().fdsModFrequency,256);if(p.p.instrument){assert.equal(p.p.instrument.assets.wave,null);assert.equal(p.p.instrument.assets.modulation,null);}
+ await assert.rejects(p.rpc({action:'schedule',operations:build(b=>b.fds.setWave(Array(63).fill(0))),options:{name:'tables'},owner:'tables'}));p.render(Math.round(.04*rate));assert.equal(p.writes.slice(start).filter(w=>w.register===0x4040).length,2);
+ await p.rpc({action:'releaseOwner',owner:'tables'});assert.equal(p.core.getState().registers[0x83]&128,128);
+ }finally{p.close();}
+});
+test('FDS table recorder detaches byte arrays and rejects malformed data before compilation',()=>{
+ const wave=new Uint8Array(64).fill(20),p=build(b=>b.fds.setWave(wave));wave.fill(0);assert.equal(compile(p,reset(),{fds:true}).find(w=>w.register===0x4040).value,20);
+ for(const table of [Array(31).fill(0),Array(32).fill(8)])assert.throws(()=>compile(build(b=>b.fds.setModulation({table})),reset(),{fds:true}));
+ assert.throws(()=>compile(build(b=>b.fds.setWave(Array(64).fill(64))),reset(),{fds:true}));
 });

@@ -12,14 +12,14 @@ export {createNesOperationResetState,validateNesOperationState} from './nes_oper
  * atSample(value:number):NESOperationRecorder,atSeconds(value:number):NESOperationRecorder,
  * pulse:{[K in keyof NesApuSynth['pulse']]:(...args:Parameters<NesApuSynth['pulse'][K]>)=>NESOperationRecorder},
  * triangle:{[K in keyof NesApuSynth['triangle']]:(...args:Parameters<NesApuSynth['triangle'][K]>)=>NESOperationRecorder},
- * fds:{[K in 'setVolume'|'setFrequency'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff']:(...args:Parameters<NesApuSynth['fds'][K]>)=>NESOperationRecorder},
+ * fds:{[K in 'setWave'|'setModulation'|'setVolume'|'setFrequency'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff']:(...args:Parameters<NesApuSynth['fds'][K]>)=>NESOperationRecorder},
  * dmc:{[K in 'play'|'stop']:(...args:Parameters<NesApuSynth['dmc'][K]>)=>NESOperationRecorder},
  * noise:{[K in keyof NesApuSynth['noise']]:(...args:Parameters<NesApuSynth['noise'][K]>)=>NESOperationRecorder}
  * }} NESOperationRecorder */
 const arity=Object.freeze({writeRegister:[2,2],setFrequency:[2,2],setNote:[2,2],noteOn:[2,2],keyOn:[1,1],noteOff:[1,1],keyOff:[1,1],
  'pulse.setVoice':[2,2],'pulse.setFrequency':[2,2],'pulse.setNote':[2,2],'pulse.noteOn':[2,2],'pulse.keyOn':[1,1],'pulse.noteOff':[1,1],'pulse.keyOff':[1,1],
  'triangle.setFrequency':[1,1],'triangle.setNote':[1,1],'triangle.noteOn':[1,1],'triangle.keyOn':[0,0],'triangle.noteOff':[0,0],'triangle.keyOff':[0,0],
- 'fds.setVolume':[1,2],'fds.setFrequency':[1,1],'fds.setNote':[1,1],'fds.noteOn':[1,1],'fds.noteOff':[0,0],'fds.keyOn':[0,0],'fds.keyOff':[0,0],
+ 'fds.setWave':[1,1],'fds.setModulation':[1,1],'fds.setVolume':[1,2],'fds.setFrequency':[1,1],'fds.setNote':[1,1],'fds.noteOn':[1,1],'fds.noteOff':[0,0],'fds.keyOn':[0,0],'fds.keyOff':[0,0],
  'dmc.play':[0,1],'dmc.stop':[0,0],
  'noise.setVoice':[0,1],'noise.noteOn':[0,0],'noise.noteOff':[0,0]});
 export const NES_OPERATION_METHODS=Object.freeze(Object.keys(arity));
@@ -55,13 +55,14 @@ function copyValue(value, stack = new Set(), depth = 0) {
   }
   if (typeof value !== 'object') throw new TypeError('NES operation arguments must be serializable data');
   if (depth >= 8 || stack.has(value)) throw new TypeError('NES operation arguments must be bounded, acyclic data');
+  if (ArrayBuffer.isView(value)&&value instanceof Uint8Array) value=Array.from(value);
   if (!Array.isArray(value)) object(value, 'NES operation argument');
   const keys = Reflect.ownKeys(value);
-  if (keys.length > 32) throw new RangeError('NES operation argument is too large');
+  if (keys.length > (Array.isArray(value)?65:32)) throw new RangeError('NES operation argument is too large');
   stack.add(value);
   try {
     if (Array.isArray(value)) {
-      if (value.length > 16) throw new RangeError('NES operation argument array is too large');
+      if (value.length > 64) throw new RangeError('NES operation argument array is too large');
       const result = [];
       for (let index = 0; index < value.length; index++) {
         const descriptor = Object.getOwnPropertyDescriptor(value, String(index));

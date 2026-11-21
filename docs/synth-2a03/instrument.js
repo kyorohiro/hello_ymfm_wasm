@@ -272,6 +272,8 @@ export class NesInstrument {
     const channel=[0x4003,0x4007,0x400b,0x400f].indexOf(register);
     if(channel>=0&&(state.enabled&(1<<channel))){this._ownCode(channel,this.codeSession);this.owners[channel].timedOwner=owner;this.codeRaw[channel]=true;}
     this.synth.writeRegister(register,value);
+    if(register>=0x4040&&register<=0x407f)this.assets.wave=null;
+    if(register===0x4088)this.assets.modulation=null;
   }
   cancelTimedOwner(owner){
     for(let ch=0;ch<6;ch++)if(this.owners[ch]?.timedOwner===owner){this._stopChannel(ch);this._forget(ch);}

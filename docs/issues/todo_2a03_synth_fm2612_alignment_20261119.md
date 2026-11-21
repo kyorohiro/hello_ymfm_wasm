@@ -118,3 +118,9 @@ current/reset/reused snapshots are supported without stopping audio.
 
 - [x] Prepared DMC timed playback, detached selection, ownership and optional
       standalone click guard. [Verification](verification_2a03_dmc_timed_20261121.json).
+
+FDS full-table update (2026-11-21): recorded `fds.setWave()` and
+`fds.setModulation()` are implemented with audio-clock batches and detached
+payloads. DMC memory transfer, arbitrary raw RAM edits, Native scheduling and
+scheduled-state Live UI remain separate.
+[Verification](verification_2a03_fds_tables_20261121.json).

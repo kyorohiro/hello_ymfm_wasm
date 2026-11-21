@@ -137,3 +137,9 @@ SPU, DMG, SID and the scoped ASWAN port have implementation records in that
 index. Remaining chip ports and the Code / Synth workspace rollout take
 priority over further highlights. Individual scopes and backend limits remain
 separate; this record does not start runtime implementation automatically.
+
+FDS full-table update (2026-11-21): recorded `fds.setWave()` and
+`fds.setModulation()` are implemented with audio-clock batches and detached
+payloads. DMC memory transfer, arbitrary raw RAM edits, Native scheduling and
+scheduled-state Live UI remain separate.
+[Verification](verification_2a03_fds_tables_20261121.json).

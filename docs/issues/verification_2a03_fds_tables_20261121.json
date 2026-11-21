@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-21",
+  "scope": "NES/FDS timed full-table transfers",
+  "tests": {
+    "nesRegressions": 323,
+    "sharedProcessorSenderCalibration": 87,
+    "newActualWasmAndRecorderTestsIncluded": 5,
+    "buildModules": 414,
+    "checkedDeclarations": 477
+  },
+  "verified": [
+    "Detached bounded plain-array and Uint8Array table arguments",
+    "Existing immediate setWave/setModulation conversion reused",
+    "Complete register batches at one frame with halt/write/restore order and retained Gate ownership",
+    "Shared and standalone actual WASM compile/register/frame parity at 44100 and 48000 Hz",
+    "Applied Wave RAM and modulation rate match recorded tables/controls",
+    "Malformed replacement rejected without replacing an accepted repeating pattern",
+    "Standalone asset caches invalidated by scheduled table writes",
+    "DMC and manual PCM exact predecessor regression checks remain passing"
+  ],
+  "package": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-fds-tables/itch_2a03_synth_fds-tables-final-20261121-VOLnhh",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-fds-tables/tetorica_2a03_synth_fds-tables-final-20261121_itch.zip",
+    "files": 161,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 1978207,
+      "sha256": "7c4cf9c53b4fb160c6e06d27b94d9d3b9eda5b5565a02ca1f7b9cd2c6ff538c1"
+    },
+    "sourceCheck": {
+      "inputs": 27,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "browsers": {
+    "performance": {
+      "passed": true,
+      "path": "build/nes-fds-tables-zip-browser.json",
+      "sha256": "eeeea111ea3d9b9c07e16da1a3b1ffca01b09c2002a3d3eac3ef17bac190c203",
+      "physicalOutputMuted": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    "monaco": {
+      "passed": true,
+      "path": "build/nes-fds-tables-zip-monaco.json",
+      "sha256": "f983242a8bd9db717a56a4d9d0282036d28067e3cb5a2d5f85826396546bad23",
+      "physicalOutputMuted": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    }
+  },
+  "example": "Fresh Cassette examples/timed-fds.js changes sine to saw mid-note",
+  "limits": [
+    "Snapshots omit Wave/modulation RAM, cursor and oscillator/envelope phase",
+    "Raw Wave RAM/$4088 partial edits remain excluded; use complete table helpers",
+    "DMC sample RAM uploads remain outside build",
+    "Transfers preserve hardware halt/cursor/phase side effects; no software crossfade is added",
+    "Native scheduling and scheduled-state Live UI remain follow-ups"
+  ],
+  "listeningPerformed": false,
+  "published": false,
+  "commitOrPushPerformed": false
+}

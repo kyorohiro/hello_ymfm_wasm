@@ -69,3 +69,9 @@ Individual implementation notes distinguish verified slices from remaining work.
 Executed schedules need a separate, rate-limited Synth Live view. See
 [Scheduled performance Live UI](todo_synth_scheduled_live_view_20261121.md).
 This display phase is deferred; build/compile do not change the live sound or UI.
+
+FDS full-table update (2026-11-21): recorded `fds.setWave()` and
+`fds.setModulation()` are implemented with audio-clock batches and detached
+payloads. DMC memory transfer, arbitrary raw RAM edits, Native scheduling and
+scheduled-state Live UI remain separate.
+[Verification](verification_2a03_fds_tables_20261121.json).
