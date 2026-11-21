@@ -249,13 +249,31 @@ export class NdsSoundCore {
 
 	keyOn(index) {
 		const channel = this.#channel(index);
-		const { mode, loop } = channel.config;
+		const { mode, loop, bytes } = channel.config;
 		const sample = channel.sample;
 		if (!sample && mode !== 'pulse' && mode !== 'noise') throw new Error('Load a DS sample before Key On');
 		channel.voice = {
-			mode, sample, loop, position: -STARTUP_PERIODS[mode], clock: 0,
+			mode, sample, loop, bytes, position: -STARTUP_PERIODS[mode], clock: 0,
 			releaseFrames: 0, releaseRemaining: 0,
 		};
+	}
+
+	/** Apply software-edited bounds to the sounding sample without restarting it. */
+	setPlayingSampleRange(index, { loopStartWords, lengthWords }) {
+		const voice = this.#channel(index).voice;
+		if (!voice?.sample || voice.releaseFrames) return false;
+		integer(loopStartWords, 0, 65535, 'DS loop start in words');
+		integer(lengthWords, 1, 0x3fffff, 'DS sample length in words');
+		const sample = prepareSample({ mode: voice.mode, bytes: voice.bytes, loop: voice.loop, loopStartWords, lengthWords });
+		if (voice.position >= sample.end) {
+			if (!voice.loop) {
+				this.release(index);
+				return true;
+			}
+			voice.position = sample.start + (voice.position - sample.end) % (sample.end - sample.start);
+		}
+		voice.sample = sample;
+		return true;
 	}
 
 	keyOff(index) {

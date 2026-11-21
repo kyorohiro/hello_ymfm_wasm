@@ -194,6 +194,30 @@ test('DS owned timer changes and key tracking reuse the held PCM sample and pres
 	assert.equal((await code.getState(0)).timer, replacement.timer);
 });
 
+test('DS held sample range updates preserve the playing note and reject a stale owner', async () => {
+	const { chip, worklet } = endpoint();
+	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
+	const bytes = new Uint8Array(32);
+	bytes.fill(127, 16);
+	const note = await keyboard.noteOn(0, 'C4', { mode: 'pcm8', bytes, loop: true, timer: 65187, pan: 0 });
+	const left = new Float32Array(128), right = new Float32Array(128);
+	worklet.process([], [[left, right]]);
+	assert(left.some(value => value > 0));
+	const range = { loopStartWords: 0, lengthWords: 4 };
+	assert.equal(await keyboard.setOwnedSampleRange(0, note.token, range), true);
+	worklet.process([], [[left, right]]);
+	assert(left.every(value => value === 0));
+	const playing = await chip.getState(0);
+	assert(playing.active && !playing.releasing && playing.token === note.token);
+	assert.equal(playing.lengthWords, 8, 'The range patch only applies to the held note');
+
+	const replacement = await code.keyOn(0);
+	assert.equal(await keyboard.setOwnedSampleRange(0, note.token, range), false);
+	worklet.process([], [[left, right]]);
+	assert(left.some(value => value > 0));
+	assert(code.owns(0, replacement.token));
+});
+
 test('DS worklet channel mix persists across note owners and physical register edits', async () => {
 	const { chip } = endpoint();
 	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js?v=nds-mixer-1';
-import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-mixer-1';
+import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js?v=nds-live-channel-1';
+import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-live-channel-1';
 
 const DEFAULT_SAMPLE = makeNdsSample('pcm16');
 const PCM_MODES = new Set(['pcm8', 'pcm16', 'adpcm']);
@@ -154,6 +154,8 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 			case 'configure': return this.configure(channel, first);
 			case 'configureOwned':
 				return this.owns(channel, first, second) ? this.configure(channel, third, fourth) : false;
+			case 'setOwnedSampleRange':
+				return this.owns(channel, first, second) && this.core.setPlayingSampleRange(channel, third);
 			case 'setFrequency': {
 				const { timer, frequencyHz } = this.configure(channel, {}, first);
 				return { timer, frequencyHz };

@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-mixer-1" />
-		<script type="module" src="synth.js?v=nds-mixer-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-live-channel-1" />
+		<script type="module" src="synth.js?v=nds-live-channel-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -132,9 +132,10 @@
 									<details class="sound-help">
 										<summary aria-label="About DS channels">?</summary>
 										<p>All 16 channels play PCM8, PCM16 and IMA-ADPCM. Physical CH9–CH14 also generate pulse waveforms and CH15–CH16 generate noise. Code uses CH1–CH16 for hardware channels 0–15.</p>
-										<p>Auto allocates compatible channels. Sample, mode and loop changes apply on the next note. Volume, divider, pan, pulse duty and rate controls apply while you hold a key. The keyboard smooths release in software.</p>
-										<p>Choose a channel while a 2SF plays to follow it. Pause to play that channel on the keyboard. Choose Auto to play your own instrument.</p>
+										<p>Auto allocates compatible channels. Sample, mode and repeat changes apply on the next note. Range edits apply when you release a marker or commit a number. Volume, divider, pan, pulse duty and rate controls apply while you hold a key.</p>
+										<p>Choose a channel to follow its settings in 2SF or Code. Pause 2SF to audition the selected channel. During Code, edit the channel’s volume, divider, pan, duty and rate here. Choose Auto to play your own instrument.</p>
 									</details>
+									<p id="ndsInstrumentStatus" class="instrument-status" hidden></p>
 								</div>
 								<div class="hardware-fields">
 									<label>Sound source <select id="ndsMode">

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
 import { listSavedTwoSfSets } from './2sf-project.js';
-import { createTwoSfPlayer } from './2sf-player.js?v=nds-2sf-audition-1';
+import { createTwoSfPlayer } from './2sf-player.js?v=nds-channel-view-1';
 import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-unified-channels-1';
 import { setupNdsChannelPicker } from './nds-channel-picker.js?v=nds-unified-channels-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
-import { createNdsAudio } from './nds-audio.js?v=nds-mixer-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-pcm-draw-1';
+import { createNdsAudio } from './nds-audio.js?v=nds-live-channel-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-live-channel-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-source-controls-1';
 import { setupNdsSoundCapture } from './nds-sound-capture.js?v=nds-pcm-draw-1';
 import { setupNdsMixer } from './nds-mixer.js?v=nds-mixer-1';
@@ -22,6 +22,7 @@ const master = node('master'), position = node('position'), time = node('time');
 const status = node('status'), playbackStatus = node('playbackStatus');
 const waveform = node('waveform'), envelope = node('envelope');
 const instrument = node('ndsInstrument');
+const instrumentTitle = node('instrumentTitle'), instrumentStatus = node('ndsInstrumentStatus');
 const channelModeStatus = node('ndsChannelModeStatus');
 const visualizer = createSpuOutputVisualizer({ canvas: waveform, envelopeCanvas: envelope });
 visualizer.setMode('waveform');
@@ -32,6 +33,8 @@ let sessionFiles = [], sessionTracks = [], savedSets = new Map(), songOptions = 
 let auditionAudio, auditionAudioPromise, auditionStatus = null, auditionRevision = 0, auditionTarget = null, pausedPreset = null;
 let disposing = false;
 let liveEnabled = true, nextLiveUpdate = 0;
+let codeChannelView = null;
+const CHANNEL_UPDATE_MS = 100;
 let referenceLevel = 1;
 const displayName = (path) => path.split('/').at(-1).replace(/\.(?:2sf|mini2sf)$/i, '');
 const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
@@ -67,16 +70,84 @@ const liveView = setupTwoSfLiveView({
 
 const isReferenceChannel = (state, channel) => channel >= 0 && (state.phase === 'playing' || state.phase === 'paused');
 
+function canObserveCodeChannel() {
+	return !disposing && !document.hidden && instrument.getClientRects().length > 0;
+}
+
+function renderChannelInstrument(kind, channel, state, extra = {}) {
+	const label = kind ? `${kind === 'reference' ? '2SF' : 'Code'} · CH${channel + 1}` : 'Synth instrument';
+	const { phase, onEdit, preset } = extra;
+	const description = kind ? [
+		phase ?? 'Live',
+		state ? (state.active ? 'Active' : 'Idle') : 'Waiting for channel data…',
+		kind === 'reference' && state ? 'Read only' : '',
+	].filter(Boolean).join(' · ') : '';
+	if (instrumentTitle.textContent !== label) instrumentTitle.textContent = label;
+	if (instrumentStatus.textContent !== description) instrumentStatus.textContent = description;
+	instrumentStatus.hidden = !description;
+	keyboard.setChannelView(kind ? { kind, channel, state, preset, onEdit, phase } : null);
+}
+
+function updateCodeChannelView(channel) {
+	const target = audio?.chip;
+	if (codeChannelView?.channel !== channel || codeChannelView?.chip !== target) {
+		clearTimeout(codeChannelView?.timer);
+		codeChannelView = null;
+		if (channel < 0 || !target) return;
+		const view = { channel, chip: target, state: null, pending: false, timer: 0, revision: 0 };
+		view.show = () => renderChannelInstrument('code', channel, view.state, { onEdit: view.edit });
+		view.edit = async patch => {
+			if (codeChannelView !== view) return;
+			const revision = ++view.revision;
+			try {
+				const state = await target.configure(channel, patch);
+				if (codeChannelView !== view || revision !== view.revision) return;
+				view.state = state;
+				view.show();
+			} catch (error) {
+				if (codeChannelView !== view || revision !== view.revision) return;
+				report(error);
+				view.show();
+			}
+		};
+		view.poll = async () => {
+			view.timer = 0;
+			if (codeChannelView !== view || !canObserveCodeChannel()) return;
+			view.pending = true;
+			const revision = view.revision;
+			try {
+				const state = await target.getState(channel);
+				if (codeChannelView === view && revision === view.revision && canObserveCodeChannel()) {
+					view.state = state;
+					view.show();
+				}
+			} catch (error) {
+				if (codeChannelView === view) report(error);
+				return;
+			} finally {
+				view.pending = false;
+			}
+			if (codeChannelView === view && canObserveCodeChannel()) view.timer = setTimeout(view.poll, CHANNEL_UPDATE_MS);
+		};
+		codeChannelView = view;
+	}
+	if (!codeChannelView) return;
+	const view = codeChannelView;
+	view.show();
+	if (canObserveCodeChannel() && !view.pending && !view.timer) void view.poll();
+}
+
 function renderLive(state) {
-	nextLiveUpdate = performance.now() + 100;
+	nextLiveUpdate = performance.now() + CHANNEL_UPDATE_MS;
 	const channel = channelPicker.getSelection();
 	const referenceView = isReferenceChannel(state, channel);
 	const prepare = referenceView && state.phase === 'paused' && !state.pending && !state.switching;
 	const monitor = player.getMonitorState(liveEnabled || prepare);
 	channelPicker.render(liveEnabled ? monitor.snapshot : null);
-	if (instrument.hidden !== referenceView) instrument.hidden = referenceView;
+	const codeView = !referenceView && channel >= 0 && code?.isRunning() && audio;
 	if (channelModeStatus) {
-		const label = referenceView ? `2SF · CH${channel + 1}` : channel === -1 ? 'Synth · Auto' : `Synth · CH${channel + 1}`;
+		const label = referenceView ? `2SF · CH${channel + 1}` : channel === -1 ? 'Synth · Auto'
+			: `${codeView ? 'Code' : 'Synth'} · CH${channel + 1}`;
 		if (channelModeStatus.textContent !== label) channelModeStatus.textContent = label;
 	}
 	keyboard.setChannel(referenceView ? -1 : channel);
@@ -91,6 +162,14 @@ function renderLive(state) {
 		keyboard.setAudition(referenceView ? { channel } : null);
 		if (prepare) void prepareAudition(channel, referenceNote, monitor, revision);
 	}
+	updateCodeChannelView(codeView ? channel : -1);
+	if (referenceView) {
+		const voice = !state.switching ? monitor.snapshot?.channels[channel] : null;
+		renderChannelInstrument('reference', channel, voice, {
+			phase: state.phase === 'paused' ? 'Paused' : liveEnabled ? 'Playing' : 'Live view off',
+			preset: pausedPreset,
+		});
+	} else if (!codeView) renderChannelInstrument(null);
 	liveView.render({ ...state, ...monitor, referenceView, canCapture: Boolean(pausedPreset), auditionStatus });
 }
 
@@ -365,6 +444,7 @@ const chipTabs = [chipTab, mixerTab];
 let expandedTabs;
 function syncMixerVisibility() {
 	mixer.setVisible(!chipEditor.hidden && !mixerPanel.hidden);
+	renderLive(player.getState());
 }
 function selectChip(button) {
 	mixerPanel.hidden = button !== mixerTab;
@@ -377,7 +457,11 @@ function selectChip(button) {
 	syncMixerVisibility();
 }
 code = setupNdsCode({
-	project, files: projectFiles, ensureAudio, getAudio, setStatus, onActivity: syncMonitor,
+	project, files: projectFiles, ensureAudio, getAudio, setStatus,
+	onActivity() {
+		syncMonitor();
+		renderLive(player.getState());
+	},
 	onViewChange(mode) { expandedTabs?.showInput(mode); syncMixerVisibility(); },
 	onExpandedChange(value) { expandedTabs?.setExpanded(value); syncMixerVisibility(); },
 });
@@ -469,6 +553,7 @@ window.addEventListener('pagehide', event => {
 		return;
 	}
 	disposing = true;
+	updateCodeChannelView(-1);
 	expandedTabs.dispose();
 	mixer.dispose();
 	capturePanel.dispose();

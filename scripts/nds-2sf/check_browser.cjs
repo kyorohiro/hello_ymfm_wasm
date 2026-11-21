@@ -154,6 +154,25 @@ async function holdC4(page, action) {
 
 const channelButton = (page, channel) => page.locator(`#ndsChannelButtons [data-channel="${channel}"]`);
 
+async function assertReferenceInstrument(page, hz, expectedPan) {
+	const instrument = page.locator('#ndsInstrument');
+	await instrument.waitFor();
+	assert.match(await page.locator('#instrumentTitle').textContent(), /2SF.*CH\s*1/);
+	const expectedTimer = 65536 - Math.round(16756991 / (hz * 32));
+	const timer = `0x${expectedTimer.toString(16).padStart(4, '0')}`;
+	await until(() => instrument.evaluate(element => {
+		const field = id => element.querySelector(`#${id}`);
+		return {
+			mode: field('ndsMode').value, volume: Number(field('ndsVolume').value), pan: Number(field('ndsPan').value),
+			timer: field('ndsTimerValue').textContent, loop: field('ndsLoop').checked,
+		};
+	}), values => values.mode === 'pcm16' && values.volume === 100 && values.pan === expectedPan &&
+		values.loop && values.timer.toLowerCase().includes(timer), 'The Synth controls should show the selected 2SF channel');
+	for (const selector of ['#ndsMode', '#ndsVolume', '#ndsPan', '#ndsLoop', '#ndsTimerSlider', '#ndsTimerHz']) {
+		assert(await instrument.locator(selector).isDisabled(), `${selector} should be read-only for 2SF`);
+	}
+}
+
 async function checkPausedAudition(page, frozenPosition, frozenClock) {
 	const reference = page.locator('#twoSfAuditionReference');
 	const status = () => page.locator('#twoSfAuditionStatus').textContent();
@@ -175,8 +194,11 @@ async function checkPausedAudition(page, frozenPosition, frozenClock) {
 	});
 	await channelButton(page, 0).click();
 	assert.equal(await reference.inputValue(), '60', 'Audition starts with C4 as the root note');
-	await page.locator('#ndsInstrument').waitFor({ state: 'hidden' });
+	await assertReferenceInstrument(page, 440, 0);
 	await ready();
+	await page.locator('#ndsSampleCanvas').waitFor();
+	await until(() => page.locator('#ndsSampleStatus').textContent(), value => /32 decoded frames/.test(value) && /64 PCM bytes/.test(value),
+		'Paused 2SF should show its actual decoded sample in the Synth waveform panel');
 	await holdC4(page, () => measureSide(page, 0, 440, 1));
 	await until(() => output(page, 1), silent, 'Releasing the key should silence the frozen sample');
 	await verifySongFrozen();
@@ -244,8 +266,7 @@ async function checkReferenceCapture(page) {
 	if (!(await panel.isVisible())) await page.locator('#ndsFilesToggle').click();
 	await channelButton(page, 0).click();
 	await panel.locator(`button[data-file-path="${presetPath}"]`).click();
-	await page.locator('#ndsInstrument').waitFor();
-	assert.equal(await channelButton(page, -1).getAttribute('aria-pressed'), 'true', 'Loading a saved sound should reveal it in Auto');
+	await until(() => channelButton(page, -1).getAttribute('aria-pressed'), value => value === 'true', 'Loading a saved sound should reveal it in Auto');
 	assert.equal(await readPosition(page), pausedPosition, 'Loading a saved sound should keep the song paused');
 	await page.locator('#ndsNewJs').click();
 	await page.locator('#ndsFileName').fill('/capture-check.js');
@@ -618,6 +639,7 @@ async function checkSample(page, fixture, name) {
 	await importFiles(page, '#ndsLoadWav', source);
 	await sampleRange.waitFor();
 	assert.equal(await repeat.isChecked(), false);
+	assert(await start.isDisabled(), 'A one-shot sample should not allow editing the loop start');
 	assert.equal(await rootNote.inputValue(), '60');
 	assert.match(await page.locator('#ndsSampleInfo').textContent(), /16-bit signed PCM.*24,?000 Hz/);
 
@@ -625,6 +647,9 @@ async function checkSample(page, fixture, name) {
 	assert.equal(await page.locator('#ndsSampleTitle').textContent(), 'PCM8 waveform');
 	await mode.selectOption('adpcm');
 	assert.equal(await page.locator('#ndsSampleTitle').textContent(), 'IMA-ADPCM waveform');
+	assert(await start.isDisabled(), 'Converting a one-shot sample should retain the disabled loop start');
+	await repeat.check();
+	assert(await start.isEnabled());
 	const samplePlot = page.locator('#ndsSampleCanvas');
 	await samplePlot.scrollIntoViewIfNeeded();
 	const rect = await samplePlot.boundingBox();
@@ -637,7 +662,6 @@ async function checkSample(page, fixture, name) {
 	await change(start, '803');
 	await change(end, '3996');
 	await change(rootNote, '72');
-	await repeat.check();
 	assert.equal(await start.inputValue(), '800');
 	assert.equal(await end.inputValue(), '4000');
 	assert.match(await page.locator('#ndsSampleStatus').textContent(), /PNT 101 · LEN 400 words/);
@@ -949,6 +973,22 @@ async function checkFixedTimer(page) {
 	const noteStatus = page.locator('#ndsNoteStatus');
 	const noiseTimer = (note, rate) => until(() => noteStatus.textContent(),
 		text => text.includes(`${note} · CH 15 · Timer 0x${timerCode(rate)}`), `Expected ${rate} Hz noise clock from ${note}`);
+	const viewport = page.viewportSize();
+	const timerLayout = () => page.evaluate(() => {
+		const timer = document.querySelector('.nds-timer-fields').getBoundingClientRect();
+		const keyboard = document.getElementById('synthInputSection').getBoundingClientRect();
+		return { timerHeight: timer.height, keyboardTop: keyboard.top + scrollY };
+	});
+	for (const width of [375, 720, 1200]) {
+		await page.setViewportSize({ width, height: viewport.height });
+		const idle = await timerLayout();
+		await holdC4(page, async () => {
+			await noiseTimer('C4', 4000);
+			await until(() => timerValue.textContent(), value => value.includes(`0x${timerCode(4000)}`), 'Held key tracking rate should be visible');
+			assert.deepEqual(await timerLayout(), idle, `Key tracking must not shift the keyboard at ${width}px`);
+		});
+	}
+	await page.setViewportSize(viewport);
 	for (const [key, note, midi] of [['z', 'E2', 40], ['x', 'F2', 41]]) {
 		await page.keyboard.down(key);
 		try { await noiseTimer(note, 4000 * 2 ** ((midi - 60) / 12)); }
@@ -971,7 +1011,7 @@ async function checkFixedTimer(page) {
 		try { await page.mouse.move(x + width * .39, y + height / 2, { steps: 8 }); }
 		finally { await page.mouse.up(); }
 		assert.equal(await tracking.isChecked(), false, 'Dragging should select manual rate control');
-		assert.match(await timerValue.textContent(), /Manual/);
+		assert.match(await timerValue.textContent(), /Hz · 0x[\da-f]{4}/i);
 		await measureNoise(({ peak, pitch }) => peak > .01 && pitch > initial.pitch * 2,
 			'Dragging the noise clock should speed up its audible transitions while the key stays down');
 		await divider.locator('[data-divider="2"]').click();
@@ -996,7 +1036,7 @@ async function checkFixedTimer(page) {
 	await panLeft();
 	await setRate(14080); // 64 frames × 220 Hz for the built-in PCM cycle.
 	await holdC4(page, () => measureSide(page, 0, 220));
-	return 'Manual Pulse and PCM rates, saved timer round trip, distinct low Noise keys, and pointer clock/divider edits without retriggering';
+	return 'Manual Pulse and PCM rates, saved timer round trip, stable key-tracking layout, distinct low Noise keys, and pointer clock/divider edits without retriggering';
 }
 
 async function checkMixer(page, fixture) {
@@ -1076,6 +1116,92 @@ async function checkDrawPcm(page) {
 	return 'A built-in wave previews a stroke, restores on Escape, encodes on release and keeps its range on format conversion';
 }
 
+async function checkCodeChannel(page) {
+	await page.reload();
+	const mode = page.locator('#ndsMode'), pan = page.locator('#ndsPan'), volume = page.locator('#ndsVolume');
+	const setRange = (control, value) => control.evaluate((input, next) => {
+		input.value = String(next);
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	}, value);
+	await channelButton(page, 0).click();
+	await mode.selectOption('pcm16');
+	await setRange(pan, 64);
+	await setRange(volume, 37);
+	await page.locator('#synthWorkspaceCodeButton').click();
+
+	const path = '/live-channel-check.js';
+	await page.locator('#ndsNewJs').click();
+	await page.locator('#ndsFileName').fill(path);
+	await page.locator('#ndsFileNameConfirm').click();
+	await page.locator('#ndsFileNameDialog').waitFor({ state: 'hidden' });
+	const editor = page.locator('#synthCodeEditor');
+	await until(() => editor.inputValue(), value => value.includes('Write your DS performance'), 'Code channel test file should be editable');
+	await editor.fill(`const nds = await useSoundChip("nds");
+await nds.noteOn(CH1, "A4", { mode: "pcm8", shape: "sine", pan: 0, volume: 80, loop: true });`);
+	if (!(await page.locator('#ndsAutoApply').isChecked())) {
+		const unsaved = page.locator(`#ndsFilesPanel button[data-file-path="${path}"]`).getByLabel('Unsaved changes');
+		await unsaved.waitFor();
+		await editor.press('Control+s');
+		await unsaved.waitFor({ state: 'hidden' });
+	}
+	await page.locator('#synthCodeRunButton').click();
+	await measureSide(page, 0, 440);
+	await page.locator('#ndsChipTab').click();
+	await page.locator('#ndsInstrument').waitFor();
+	await until(() => page.locator('#instrumentTitle').textContent(), value => /Code.*CH\s*1/.test(value), 'Code should show the selected physical channel');
+	await until(async () => [await mode.inputValue(), await volume.inputValue(), await pan.inputValue()],
+		values => values.join(',') === 'pcm8,80,0', 'The Synth controls should show the live PCM8 settings from Code');
+	assert.match(await page.locator('#ndsTimerValue').textContent(), /0x[\da-f]{4}/i, 'The held note should show its hardware timer');
+	assert(await pan.isEnabled() && await volume.isEnabled(), 'Code CH1 should allow live Pan and Volume edits');
+
+	await setRange(pan, 127);
+	const [, initial] = await measureSide(page, 1, 440);
+	await setRange(volume, 40);
+	await until(() => output(page), ({ channels }) => channels[1] && Math.abs(channels[1].rms / initial.rms - .5) < .08,
+		'Changing live volume should halve the level of the held Code note');
+	assert.match(await page.locator('#synthCodeState').textContent(), /Running|Playing/, 'Live CH edits should leave Code running');
+	await page.locator('#synthInputCodeTab').click();
+	await page.locator('#synthCodeStopButton').click();
+	await until(() => output(page), ({ channels }) => channels.length === 2 && channels.every(({ peak }) => peak < 1e-7),
+		'Stopping Code should release its edited channel');
+	await page.locator('#ndsChipTab').click();
+	await until(async () => [await mode.inputValue(), await volume.inputValue(), await pan.inputValue()],
+		values => values.join(',') === 'pcm16,37,64', 'Stopping Code should restore the authored CH1 settings');
+	return 'On the DS tab, CH1 shows Code PCM8 and its hardware timer; live Pan and Volume reach the held note, and Stop restores the authored sound';
+}
+
+async function checkHeldRange(page) {
+	await page.reload();
+	await channelButton(page, 0).click();
+	await page.locator('#ndsMode').selectOption('pcm16');
+	const { encodeWav } = await import('../../docs/js/wav.js');
+	const sampleRate = 24000, half = 3840;
+	const wave = Float32Array.from({ length: half * 2 }, (_, frame) =>
+		frame < half ? 0 : .7 * Math.sin(frame * Math.PI * 2 / 80));
+	await importFiles(page, '#ndsLoadWav', {
+		name: 'Range check.wav', mimeType: 'audio/wav', buffer: Buffer.from(encodeWav({ sampleRate, channels: [wave] })),
+	});
+	await page.locator('#ndsSampleRangeFields').waitFor();
+	await page.locator('#ndsLoop').check();
+	const end = page.locator('#ndsSampleEnd');
+	const tone = () => until(() => output(page), ({ channels }) => channels.some(({ rms }) => rms > .012),
+		'The held loop should sound when its range includes the tone');
+	const changeEnd = async value => {
+		await end.fill(String(value));
+		await end.press('Tab');
+		assert.equal(await end.inputValue(), String(value));
+	};
+	await holdC4(page, async () => {
+		await tone();
+		await changeEnd(half);
+		await wait(500); // Let both the previous playback window and the analyzer history pass.
+		assert((await output(page)).channels.every(({ rms }) => rms < 1e-5), 'The held loop should use the narrowed, silent range');
+		await changeEnd(half * 2);
+		await tone();
+	});
+	return 'Changing End on a held key removes and restores the audible part of the sample loop';
+}
+
 async function check(name, origin, fixture) {
 	const browser = await engines[name].launch({ headless: true,
 		...(name === 'chromium' ? { args: ['--mute-audio'] } : {}),
@@ -1125,6 +1251,7 @@ async function check(name, origin, fixture) {
 		assert.equal(await channelButton(page, -1).getAttribute('aria-pressed'), 'true', 'Starting a song should keep Auto selected');
 		await channelButton(page, 0).click();
 		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 440, 0), 'Expected CH1 settings of the audible left-A4 song');
+		await assertReferenceInstrument(page, 440, 0);
 		assert(await channelButton(page, -1).isVisible(), 'Auto remains available during 2SF playback');
 		assert.equal(await page.locator('#ndsSynthView, #ndsReferenceView').count(), 0, 'The shared row should be the only channel picker');
 		await pause.click();
@@ -1185,6 +1312,7 @@ async function check(name, origin, fixture) {
 		const right = await measureSide(page, 1, 659.255, 0);
 		await channelButton(page, 0).click();
 		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 659.255, 127), 'Reference CH1 should reflect the new right-E5 song');
+		await assertReferenceInstrument(page, 659.255, 127);
 		await stop.click();
 		assert.equal(await channelButton(page, 0).getAttribute('aria-pressed'), 'true', 'Stop should keep a physical channel selected for the Synth');
 
@@ -1222,11 +1350,13 @@ async function check(name, origin, fixture) {
 		const fixedTimer = await checkFixedTimer(page);
 		const mixer = await checkMixer(page, fixture);
 		const drawPcm = await checkDrawPcm(page);
+		const codeChannel = await checkCodeChannel(page);
+		const heldRange = await checkHeldRange(page);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm,
+		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, heldRange,
 			selectFocus: 'musical key sounds without changing the focused source select',
-			referenceLive: 'Auto and the same sixteen physical channels before, during and after song playback, fixture settings, frozen pause and missing library',
+			referenceLive: 'The same channel picker and read-only Synth controls during playback and pause, PCM from the paused channel, frozen position and missing library',
 			referenceAudition: 'automatic paused audition with Live on or off, frozen 440 Hz sample, C5-root transposition, idle channel silence, and authored keyboard on Auto',
 			referenceCapture: 'captured settings and exact original PCM16 preset, 220 Hz from editable Synth and saved-preset Code',
 			physicalOutputMuted: true };

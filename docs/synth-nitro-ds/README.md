@@ -31,6 +31,10 @@ In the **Code** tab, use **Run**, **Apply** and **Stop** with the locally retain
 `index.js`. Keyboard and Code use the same physical channels. The most recent
 attack takes the channel, and releasing the older note leaves its replacement
 playing. Code continues to play when you switch to the Keyboard tab.
+Choose **CH1–CH16** on the **DS** tab during Code to inspect that physical
+channel in the same instrument panel. Volume, pan, divider, pulse duty and
+rate edits apply to the live channel. Later writes from Code can change those
+values again.
 
 ```js
 const nds = await useSoundChip("nds");
@@ -67,8 +71,10 @@ plays at that rate. New WAVs start as one-shots.
 Turn on **Repeat sample** to loop the shaded range. Drag either waveform marker
 or edit **Loop start · frame** and **End · frame**. The end is exclusive. The
 editor aligns both points to whole DS words and shows the resulting PNT and LEN
-codes. Format, tuning and range changes apply on the next note. Each converted
-sample can use up to 1 MiB of encoded data.
+codes. The new range applies to a held keyboard note using that sample when
+you release the marker or commit the number. For a one-shot, edit **End** to
+change where the sample stops. Format and root note changes apply on the next
+note. Each converted sample can use up to 1 MiB of encoded data.
 
 Choose **Draw** on the same canvas to edit a built-in, imported or captured
 waveform. The stroke previews while you drag. Release to encode the edit into
@@ -181,14 +187,15 @@ press **Play song**. Clicking the saved song in Files also selects it.
 The Cassette has a 16 MiB limit. Larger sets can still be played from the
 session import.
 
-While a reference song is playing or paused, choose **CH1–CH16** to inspect
-its activity, format, hardware volume, pan and sample or step rate. **Auto**
-keeps the authored sound available while the reference song plays. **Live view**
+While a reference song is playing or paused, choose **CH1–CH16** to see its
+hardware settings in the same instrument panel used for Synth. **Auto** keeps
+the authored sound available while the reference song plays. **Live view**
 follows the playback position and lights active channels.
 The display samples the emulated DS about once per video frame and refreshes
 at most ten times per second during steady playback. **Pause** freezes the
 same snapshot for all sixteen channels, so you can inspect any of them while
-the song is paused. Turn off **Live view** to hide the values.
+the song is paused. Paused PCM channels that support audition also show their
+decoded sample waveform.
 
 Pause the song and choose a channel to audition it directly on the keyboard.
 The **Reference key** (C4 by default) plays the recorded sample rate. A key starts

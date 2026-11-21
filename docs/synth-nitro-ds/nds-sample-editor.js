@@ -41,7 +41,7 @@ export function editNdsSound(sound, key, value) {
 		range: normalizeNdsSampleRange(converted, { ...range, loop: next.loop }) } };
 }
 
-export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError }) {
+export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRangeCommit, onError }) {
 	const node = id => document.getElementById(id);
 	const panel = node('ndsSampleEditor'), wavInput = node('ndsWavInput'), load = node('ndsLoadWav');
 	const rangeFields = node('ndsSampleRangeFields'), title = node('ndsSampleTitle');
@@ -51,7 +51,8 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 	const toolButtons = [...panel.querySelectorAll('[data-nds-wave-tool]')];
 	const width = canvas.width, height = canvas.height;
 	const builtinAssets = new Map();
-	let request = 0, peaks, cachedSample = null, gesture = null, tool = 'range';
+	let request = 0, peaks, cachedSample = null, gesture = null, tool = 'range', channelView = null;
+	let viewedPreset, viewedSample;
 	let drawnAsset, drawnRange, drawnLoop;
 	const y = value => height * (.5 - value * .43);
 
@@ -118,7 +119,8 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 			context.moveTo(x + .5, high); context.lineTo(x + .5, Math.max(high + 1, low));
 		}
 		context.stroke();
-		for (const [x, color] of [[sx, '#f9bf69'], [ex, '#9dd5f2']]) {
+		const markers = repeat ? [[sx, '#f9bf69'], [ex, '#9dd5f2']] : [[ex, '#9dd5f2']];
+		for (const [x, color] of markers) {
 			context.fillStyle = color;
 			context.fillRect(Math.min(width - 2, x), 0, 2, height);
 		}
@@ -130,21 +132,68 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		if (pointer !== undefined && canvas.hasPointerCapture(pointer)) canvas.releasePointerCapture(pointer);
 	}
 
-	function canDraw(stroke, sound, asset) {
+	function ownsGesture(stroke, sound, asset) {
 		return stroke.target === getTarget() && stroke.asset === asset && stroke.sample === sound.sample;
 	}
 
+	function renderChannelView() {
+		const { kind, state, preset, phase } = channelView;
+		const format = sampleFormats[state?.mode];
+		panel.hidden = !format;
+		panel.dataset.editable = 'false';
+		useBuiltin.hidden = load.hidden = rangeFields.hidden = true;
+		if (!format) return;
+		if (preset !== viewedPreset) {
+			viewedSample = preset ? restoreNdsSound(preset).sample : null;
+			viewedPreset = preset;
+		}
+		const sample = viewedSample;
+		// Code can preview a known built-in asset. Arbitrary PCM uploaded by Code
+		// and a running 2SF only supply registers here.
+		const asset = sample?.asset ?? (kind === 'code' && state.shape && state.byteLength
+			? builtinAsset(state.mode, state.shape) : null);
+		const byteLength = asset?.bytes.length ?? state.byteLength;
+		const loopStartWords = sample?.range.loopStartWords ?? state.loopStartWords;
+		const lengthWords = sample?.range.lengthWords ?? state.lengthWords;
+		const range = lengthWords == null ? '' : `PNT ${loopStartWords ?? '—'} · LEN ${lengthWords} words`;
+		const frames = asset ? `${asset.frames.toLocaleString()} decoded frames` : '';
+		const bytes = byteLength == null ? '' : `${byteLength.toLocaleString()} PCM bytes`;
+		const repeatMode = state.repeatMode == null ? (state.loop ? 'Repeat' : 'One shot')
+			: ['Manual', 'Repeat', 'One shot', 'Reserved repeat mode'][state.repeatMode];
+		title.textContent = `${format.name} waveform`;
+		info.textContent = format.encoding;
+		const unavailable = kind === 'reference' && phase !== 'Paused'
+			? 'Waveform available when paused on a supported PCM channel.' : 'Waveform unavailable for this sample.';
+		status.textContent = [frames, bytes, repeatMode, range, asset ? '' : unavailable].filter(Boolean).join(' · ');
+		canvas.hidden = !asset;
+		if (asset) {
+			canvas.setAttribute('aria-label', `Decoded ${format.name} channel waveform`);
+			draw(asset, sample?.range ?? null, state.loop);
+		}
+	}
+
+	function setChannelView(view) {
+		if (channelView?.kind !== view?.kind || channelView?.channel !== view?.channel) {
+			request++;
+			endGesture();
+		}
+		channelView = view;
+		for (const button of toolButtons) button.hidden = Boolean(view);
+		render();
+	}
+
 	function render() {
+		if (channelView) { renderChannelView(); return; }
 		const sound = getSound();
 		const sampleMode = isNdsSampleMode(sound.mode), sample = sampleMode ? sound.sample : null;
 		panel.hidden = load.hidden = !sampleMode;
 		useBuiltin.hidden = rangeFields.hidden = !sample;
+		canvas.hidden = false;
 		if (!sampleMode) { endGesture(); return; }
 		panel.dataset.editable = String(Boolean(sample));
 		panel.dataset.waveTool = tool;
 		const asset = sample?.asset ?? builtinAsset(sound.mode, sound.shape);
-		if (gesture && (gesture.target !== getTarget() || gesture.asset !== asset ||
-			(gesture.tool === 'draw' && gesture.sample !== sample))) endGesture();
+		if (gesture && !ownsGesture(gesture, sound, asset)) endGesture();
 		const stroke = gesture?.tool === 'draw' ? gesture : null;
 		const { name, encoding } = sampleFormats[asset.mode];
 		title.textContent = `${name} waveform`;
@@ -160,33 +209,41 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 			draw(asset, null, sound.loop, stroke);
 			return;
 		}
-		const { rootNote, range } = sample;
+		const { rootNote } = sample;
+		const range = gesture?.tool === 'range' ? gesture.range : sample.range;
 		root.value = rootNote;
 		node('ndsSampleRootName').value = midiToNoteName(rootNote);
 		start.value = range.startFrame; end.value = range.endFrame;
+		start.disabled = !sound.loop;
+		start.title = sound.loop ? '' : 'Enable Repeat sample to edit the loop start.';
 		start.step = end.step = asset.framesPerWord;
 		start.max = Math.min(range.endFrame - asset.framesPerWord, (65535 - asset.headerWords) * asset.framesPerWord);
 		end.min = range.startFrame + asset.framesPerWord;
 		end.max = asset.frames;
 		const rangeInfo = `${sound.loop ? 'Repeat' : 'One shot'} · PNT ${range.loopStartWords} · LEN ${range.lengthWords} words.`;
-		status.textContent = `${rangeInfo} ${tool === 'draw' ? drawHint : 'Changes apply on the next note.'}`;
+		status.textContent = `${rangeInfo} ${tool === 'draw' ? drawHint : 'Range applies on release or when you enter a frame.'}`;
 		draw(asset, range, sound.loop, stroke);
 	}
 
-	function changeRange(key, frame) {
-		const sound = getSound(), sample = sound.sample;
-		if (!sample) return;
+	function moveRange(sample, loop, key, frame) {
 		const { asset, range } = sample;
 		const limit = key === 'startFrame' ? Math.min(frame, range.endFrame - asset.framesPerWord)
 			: Math.max(frame, range.startFrame + asset.framesPerWord);
-		updateSound({ ...sound, sample: { ...sample,
-			range: normalizeNdsSampleRange(asset, { ...range, [key]: limit, loop: sound.loop }) } });
+		return normalizeNdsSampleRange(asset, { ...range, [key]: limit, loop });
+	}
+
+	function commitRange(sound, range) {
+		const { sample } = sound;
+		if (range.loopStartWords === sample.range.loopStartWords && range.lengthWords === sample.range.lengthWords) return;
+		const next = { ...sound, sample: { ...sample, range } };
+		updateSound(next);
+		onRangeCommit?.(next);
 	}
 
 	load.addEventListener('click', () => wavInput.click());
 	wavInput.addEventListener('change', async () => {
 		const file = wavInput.files[0]; wavInput.value = '';
-		if (!file) return;
+		if (!file || channelView) return;
 		const revision = ++request, target = getTarget();
 		try {
 			if (file.size > NDS_MAX_WAV_BYTES) throw new RangeError('Choose a WAV file up to 16 MiB.');
@@ -199,14 +256,20 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		} catch (error) { if (revision === request && target === getTarget()) onError(error); }
 	});
 	useBuiltin.addEventListener('click', () => {
+		if (channelView) return;
 		request++;
 		updateSound({ ...getSound(), name: '', sample: null, loop: true });
 	});
 	for (const [input, key] of [[start, 'startFrame'], [end, 'endFrame']]) input.addEventListener('change', () => {
-		try { changeRange(key, input.valueAsNumber); } catch (error) { render(); onError(error); }
+		const sound = getSound();
+		if (channelView || !sound.sample || input.disabled) return;
+		try { commitRange(sound, moveRange(sound.sample, sound.loop, key, input.valueAsNumber)); }
+		catch (error) { onError(error); }
+		render();
 		input.blur();
 	});
 	root.addEventListener('change', () => {
+		if (channelView) return;
 		const sound = getSound(), rootNote = root.valueAsNumber;
 		if (sound.sample && Number.isInteger(rootNote) && rootNote >= 0 && rootNote <= 127)
 			updateSound({ ...sound, sample: { ...sound.sample, rootNote } });
@@ -250,14 +313,14 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 			document.activeElement?.blur();
 		});
 		button.addEventListener('click', () => {
-			if (tool === button.dataset.ndsWaveTool) return;
+			if (channelView || tool === button.dataset.ndsWaveTool) return;
 			endGesture();
 			tool = button.dataset.ndsWaveTool;
 			render();
 		});
 	}
 	canvas.addEventListener('pointerdown', event => {
-		if (event.button !== 0 || gesture || !isNdsSampleMode(getSound().mode)) return;
+		if (event.button !== 0 || gesture || channelView || !isNdsSampleMode(getSound().mode)) return;
 		if (tool === 'range' && !getSound().sample) return;
 		event.preventDefault();
 		document.activeElement?.blur();
@@ -273,15 +336,17 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 			return;
 		}
 		const frame = rangePoint(event), { startFrame, endFrame } = sound.sample.range;
-		const key = Math.abs(frame - startFrame) < Math.abs(frame - endFrame) ? 'startFrame' : 'endFrame';
-		gesture = { tool, pointer, key, target, asset: sound.sample.asset };
-		changeRange(key, frame);
+		const key = sound.loop && Math.abs(frame - startFrame) < Math.abs(frame - endFrame) ? 'startFrame' : 'endFrame';
+		const { sample } = sound, range = moveRange(sample, sound.loop, key, frame);
+		gesture = { tool, pointer, key, target, sample, asset: sample.asset, range };
+		render();
 	});
 	canvas.addEventListener('pointermove', event => {
 		if (gesture?.pointer !== event.pointerId || gesture.target !== getTarget()) return;
 		const sound = getSound();
 		if (gesture.tool === 'range') {
-			if (sound.sample) changeRange(gesture.key, rangePoint(event));
+			gesture.range = moveRange(gesture.sample, sound.loop, gesture.key, rangePoint(event));
+			render();
 			return;
 		}
 		paint(event, gesture);
@@ -291,10 +356,14 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		if (gesture?.pointer !== event.pointerId) return;
 		const stroke = gesture, sound = getSound();
 		endGesture();
-		if (stroke.tool !== 'draw') return;
 		const sample = sound.sample, current = sample?.asset ?? (isNdsSampleMode(sound.mode) ? builtinAsset(sound.mode, sound.shape) : null);
-		if (!canDraw(stroke, sound, current)) { render(); return; }
+		if (!ownsGesture(stroke, sound, current)) { render(); return; }
 		try {
+			if (stroke.tool === 'range') {
+				commitRange(sound, moveRange(sample, sound.loop, stroke.key, rangePoint(event)));
+				render();
+				return;
+			}
 			paint(event, stroke);
 			const source = stroke.source;
 			const asset = encodeNdsSample(source, stroke.asset.sampleRate, sound.mode);
@@ -306,9 +375,9 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		if (gesture?.pointer === event.pointerId) cancelGesture();
 	});
 	document.addEventListener('keydown', event => {
-		if (event.key !== 'Escape' || gesture?.tool !== 'draw') return;
+		if (event.key !== 'Escape' || !gesture) return;
 		event.preventDefault();
 		cancelGesture();
 	});
-	return { render, cancelPending() { request++; cancelGesture(); } };
+	return { render, setChannelView, cancelPending() { request++; cancelGesture(); } };
 }

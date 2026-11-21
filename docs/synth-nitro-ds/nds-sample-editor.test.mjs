@@ -25,21 +25,25 @@ function editorFixture(t, initial) {
 		hasPointerCapture: id => pointer === id,
 		releasePointerCapture() { pointer = undefined; },
 	});
-	const draw = get('draw');
+	const range = get('range'), draw = get('draw');
+	range.dataset.ndsWaveTool = 'range';
 	draw.dataset.ndsWaveTool = 'draw';
-	get('ndsSampleEditor').querySelectorAll = () => [draw];
+	get('ndsSampleEditor').querySelectorAll = () => [range, draw];
 	const oldDocument = globalThis.document;
 	globalThis.document = Object.assign(new EventTarget(), { getElementById: get });
 	t.after(() => { globalThis.document = oldDocument; });
 	let sound = initial, target = 0;
-	const errors = [];
+	const errors = [], rangeCommits = [];
 	const editor = setupNdsSampleEditor({ getSound: () => sound, getTarget: () => target,
 		updateSound(next) { sound = next; editor.render(); }, onError: error => errors.push(error),
+		onRangeCommit: sound => rangeCommits.push(sound.sample.range),
 	});
 	editor.render();
 	draw.dispatchEvent(new Event('click'));
 	return {
-		get sound() { return sound; }, waveform, errors,
+		get sound() { return sound; }, waveform, errors, rangeCommits, field: get,
+		useRange() { range.dispatchEvent(new Event('click')); },
+		setChannelView: editor.setChannelView,
 		replace(next) { sound = next; target++; editor.render(); },
 		pointer(type, x, y) {
 			canvas.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), {
@@ -100,4 +104,53 @@ test('DS PCM editor discards an unfinished gesture on cancellation or target cha
 	f.pointer('pointerup', 80, 20);
 	assert.equal(f.sound, next);
 	assert.deepEqual(f.errors, []);
+});
+
+test('DS Range commits a drag once and keeps one-shot loop start when editing its end', t => {
+	const wave = makeNdsSample('pcm16', 'sine');
+	const preset = { ...builtin, sample: { ...wave, rootNote: 60, sampleRate: 32000,
+		loopStartWords: 2, lengthWords: wave.lengthWords - 2 } };
+	const original = restoreNdsSound(preset);
+	const f = editorFixture(t, original);
+	f.useRange();
+	f.pointer('pointerdown', 96, 0);
+	f.pointer('pointermove', 60, 0);
+	assert.equal(f.sound, original);
+	assert.deepEqual(f.rangeCommits, []);
+	f.pointer('pointerup', 72, 0);
+	assert.equal(f.sound.sample.asset, original.sample.asset);
+	assert.deepEqual(f.rangeCommits, [f.sound.sample.range]);
+	assert.equal(f.sound.sample.range.endFrame, 48);
+
+	f.replace(restoreNdsSound({ ...preset, loop: false }));
+	assert.equal(f.field('ndsSampleStart').disabled, true);
+	const end = f.field('ndsSampleEnd');
+	end.valueAsNumber = 40;
+	end.dispatchEvent(new Event('change'));
+	assert.equal(f.sound.sample.range.loopStartWords, 2);
+	assert.equal(f.sound.sample.range.endFrame, 40);
+	assert.deepEqual(f.rangeCommits[1], f.sound.sample.range);
+	assert.deepEqual(f.errors, []);
+});
+
+test('DS reference PCM without bytes hides the waveform, then draws the actual paused sample', t => {
+	const f = editorFixture(t, builtin);
+	const state = { mode: 'pcm8', loop: true, byteLength: 64, loopStartWords: 0, lengthWords: 16 };
+	f.setChannelView({ kind: 'reference', channel: 0, state, phase: 'Playing' });
+	assert.equal(f.field('ndsSampleCanvas').hidden, true);
+	assert.match(f.field('ndsSampleStatus').textContent, /64 PCM bytes.*Waveform available when paused/);
+	assert.equal(f.field('ndsSampleRangeFields').hidden, true);
+	const preset = { ...builtin, ...state, sample: { ...makeNdsSample('pcm8', 'square'), sampleRate: 32000, rootNote: 60 } };
+	f.setChannelView({ kind: 'reference', channel: 0, state, preset, phase: 'Paused' });
+	assert.equal(f.field('ndsSampleCanvas').hidden, false);
+	assert.match(f.field('ndsSampleStatus').textContent, /64 decoded frames.*64 PCM bytes/);
+	const points = f.waveform.length;
+	f.setChannelView({ kind: 'reference', channel: 0, state: { ...state, pan: 0 }, preset, phase: 'Paused' });
+	assert.equal(f.waveform.length, points);
+	f.pointer('pointerdown', 0, 20);
+	f.pointer('pointerup', 96, 60);
+	assert.equal(f.sound, builtin);
+	f.setChannelView(null);
+	assert.equal(f.field('ndsLoadWav').hidden, false);
+	assert.equal(f.field('draw').hidden, false);
 });

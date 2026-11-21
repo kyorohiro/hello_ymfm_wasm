@@ -22,14 +22,32 @@ function decodeChannel(row, channel) {
 	const base = 1 + channel * CHANNEL_WORDS;
 	const control = row[base];
 	const formatCode = control >>> 29 & 3;
-	const timer = row[base + 2] & 65535;
+	const timerAndLoop = row[base + 2];
+	const timer = timerAndLoop & 65535;
+	const pcm = formatCode < SAMPLE_FORMATS.length;
 	const format = SAMPLE_FORMATS[formatCode] ?? (channel >= 14 ? 'noise' : channel >= 8 ? 'pulse' : 'reserved');
+	const repeatMode = control >>> 27 & 3;
+	const loop = pcm && repeatMode === 1;
+	const loopStartWords = pcm ? timerAndLoop >>> 16 : null;
+	const lengthWords = pcm ? row[base + 3] & 0x3fffff : null;
+	const configuredLength = (loopStartWords + lengthWords) * 4;
+	// This size is derived from registers. Sample reads still validate the source in RAM.
+	const byteLength = pcm && (loop || repeatMode === 2) && lengthWords > 0
+		&& configuredLength >= 16 && !(format === 'adpcm' && loop && loopStartWords === 0)
+		? configuredLength : null;
 	return {
 		active: Boolean(control >>> 31),
+		mode: format,
 		format,
 		volume: control & 127,
 		pan: control >>> 16 & 127,
 		divider: control >>> 8 & 3,
+		duty: control >>> 24 & 7,
+		repeatMode,
+		loop,
+		loopStartWords,
+		lengthWords,
+		byteLength,
 		timer,
 		sampleRate: NDS_AUDIO_CLOCK / (65536 - timer),
 	};
@@ -43,15 +61,13 @@ export function decodeTwoSfSnapshot(row) {
 export function decodeTwoSfSampleSettings(row, channel) {
 	const voice = decodeChannel(row, channel);
 	if (!voice.active) throw new Error('This channel was idle at Pause.');
-	const base = 1 + channel * CHANNEL_WORDS;
-	const repeatMode = row[base] >>> 27 & 3;
+	const { repeatMode } = voice;
 	if (!SAMPLE_FORMATS.includes(voice.format) || (repeatMode !== 1 && repeatMode !== 2))
 		throw new Error('This channel uses a source or repeat mode that cannot be auditioned.');
 	return {
-		mode: voice.format, volume: voice.volume, pan: voice.pan, divider: voice.divider,
-		duty: row[base] >>> 24 & 7, loop: repeatMode === 1,
-		sampleRate: voice.sampleRate, loopStartWords: row[base + 2] >>> 16,
-		lengthWords: row[base + 3] & 0x3fffff,
+		mode: voice.mode, volume: voice.volume, pan: voice.pan, divider: voice.divider,
+		duty: voice.duty, loop: voice.loop, sampleRate: voice.sampleRate,
+		loopStartWords: voice.loopStartWords, lengthWords: voice.lengthWords,
 	};
 }
 

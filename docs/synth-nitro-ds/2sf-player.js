@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { decodeTwoSfSampleSettings, decodeTwoSfSnapshot, TWO_SF_SNAPSHOT_WORDS, validateTwoSfChannelSample } from './2sf-channel-monitor.js?v=nds-2sf-audition-1';
+import { decodeTwoSfSampleSettings, decodeTwoSfSnapshot, TWO_SF_SNAPSHOT_WORDS, validateTwoSfChannelSample } from './2sf-channel-monitor.js?v=nds-channel-view-1';
 
 const RATE = 48000;
 const BUFFER_SECONDS = 0.25;

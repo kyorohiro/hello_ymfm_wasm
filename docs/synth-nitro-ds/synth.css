@@ -173,7 +173,8 @@ h2 { font-size: 1rem; }
 .nds-file-dialog input { max-width: 100%; }
 .nds-file-dialog p { margin: .55rem 0; }
 .nds-file-dialog button { min-height: 2rem; margin: .3rem .25rem 0 0; }
-.instrument-heading { display: flex; align-items: baseline; gap: .6rem; }
+.instrument-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .6rem; }
+.instrument-status { margin: 0; color: #565766; font-size: .82rem; }
 .sound-help { color: #565766; font-size: .83rem; }
 .sound-help summary { cursor: pointer; }
 .sound-help p { margin: .4rem 0; }
@@ -192,8 +193,8 @@ h2 { font-size: 1rem; }
 .nds-timer-fields label { display: flex; align-items: center; gap: .35rem; min-width: 0; }
 #ndsTimerSlider { width: 9rem; max-width: 100%; margin: 0; }
 #ndsTimerHz { width: 6.75rem; min-width: 0; min-height: 1.75rem; }
-#ndsTimerValue { color: #565766; font-variant-numeric: tabular-nums; }
-.note-status { font-size: .82rem; color: #565766; margin-top: .5rem; }
+#ndsTimerValue { flex: 0 0 min(25ch, 100%); color: #565766; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note-status { min-height: 1lh; font-size: .82rem; color: #565766; margin-top: .5rem; }
 .sample-actions, .sample-heading, .sample-fields { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
 .sample-actions { margin-top: .75rem; }
 .preset-choice select { min-height: 1.75rem; padding: .1875rem .5rem; }
