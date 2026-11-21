@@ -1,4 +1,4 @@
-# Timed NES Pulse / Triangle / Noise
+# Timed NES Pulse / Triangle / Noise / DMC
 
 Fresh Cassettes include `examples/timed-apu.js`. Existing Cassettes are restored
 unchanged. Open the example in Files, choose Code, then Run. The default index
@@ -61,7 +61,55 @@ Standalone click guards and raw hardware Gate semantics are unchanged.
 
 Shared Web Audio Main/Worker NES clients expose the same first-slice API.
 Native capture/execution explicitly reject; reset/client compilation remains
-available without an audio device. DMC playback/memory, FDS wave/modulation,
+available without an audio device. DMC memory transfer, FDS wave/modulation,
 frame-counter `$4017` writes, reset and scheduled-state Live UI are follow-ups.
 No JavaScript timer fallback, background synchronization or npm publication is
 introduced by this source change.
+
+## Prepared DMC playback
+
+Fresh Cassettes also include `examples/timed-dmc.js`. The example reuses a
+prepared sample, or uploads a short self-authored alternating-bit DPCM demo
+**outside** `build` when none exists. It is not PCM-to-DPCM conversion.
+Restoring an existing Cassette does not insert new examples.
+
+Record `dmc.play({rate,loop,level})` and `dmc.stop()`. Options keep the immediate
+API defaults: rate 15 (hardware index 0..15), loop false, initial DAC level 64
+(7-bit code 0..127). Larger rate indices play faster; this changes sample speed,
+not a note-tuned instrument. Root `noteOff(CH5)` / `keyOff(CH5)` also stop DMC.
+Raw `$4010` rate/loop/IRQ and `$4011` DAC writes are supported while playing;
+raw `$4012/$4013/$4015` stay outside recording. `play` writes the selected
+address/length using the existing converter, with explicit disable/config/enable
+writes retained even when repeated. This does not reset the entire APU or its
+DMC output-unit pipeline.
+
+`captureState().sample` is a detached `{address,length}` selection, or null.
+It contains no audio bytes. Address is 64-byte aligned in `$C000..$FFFF`, length
+is `16*n+1` bytes up to 4081 and must fit without wrapping. Web Audio
+`dmc.loadSample()` publishes this selection only after its padded RAM upload is
+acknowledged. The standalone Synth also retains its loaded preset's full sample
+range. Raw RAM upload/reset invalidate prepared selection; superseded uploads
+cannot publish stale selections. Memory transfer is never part of a recorded
+operation and is not rolled back by failed Code Apply.
+
+Admission rejects `play` when no sample is prepared. Execution resolves the
+then-current selection, so replacing a loaded sample after admission changes
+what plays; a prior snapshot still compiles its prior range. Losing selection
+before execution reports a recoverable reservation error before that operation
+writes anything. It does not retire the audio engine. `'reset'` has no prepared
+sample and cannot compile `play`; use current, a loaded client shadow, or a
+captured snapshot. The borrowed Synth still rejects incomplete `'client'` state.
+
+New DMC retriggers intentionally acquire the physical voice, including their
+first disable write. Old Off/cancellation and stale manual key-up cannot stop a
+newer Gate, and Pulse/Triangle/Noise enable bits remain intact. The standalone
+Synth applies its existing optional output click guard to timed DMC edges;
+chip register stops remain immediate. Disable the guard for raw output. The
+shared generic Worklet keeps its existing raw behavior and adds no software fade.
+
+Compilation predicts register operations, not DMC decoding or elapsed hardware
+counters. A one-shot can end between operations; its current enable metadata at
+execution may then differ from a previously compiled virtual pass. Capture again
+for its applied state, or use explicit stops/looping while comparing traces.
+Snapshots do not freeze RAM or restore decoder/shift-buffer phase. These limits
+are separate from sample-accurate scheduling of the authored writes.

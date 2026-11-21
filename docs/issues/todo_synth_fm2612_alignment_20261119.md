@@ -35,7 +35,7 @@ Source recheck on 2026-11-21 (this priority update performs no implementation):
 |---|---|---|
 | YM2149 ST | Implemented 2026-11-21: [workspace record](todo_ym2149_st_code_workspace_20261121.md) | Present; 91 existing AY tests and live reservation continuity passed during the UI port |
 | FM2608 | Implemented 2026-11-21: [verification](verification_fm2608_code_workspace_20261121.json) | FM/SSG/Rhythm/loaded-sample ADPCM-B implemented; memory transfer/Native/UI following remain separate |
-| 2A03 | Implemented 2026-11-21: [verification](verification_2a03_code_workspace_20261121.json) | Pulse/Triangle/Noise implemented; [DMC/FDS follow-ups](todo_2a03_timed_register_api_20261121.md) |
+| 2A03 | Implemented 2026-11-21: [verification](verification_2a03_code_workspace_20261121.json) | Pulse/Triangle/Noise and prepared DMC implemented; [FDS/memory/Native follow-ups](todo_2a03_timed_register_api_20261121.md) |
 | S-DSP | Port needed | Port needed |
 | SCSP | Port needed | Port needed; DSP assembly is separate |
 | ASWAN | Present | Scoped implementation present; retain documented exclusions |

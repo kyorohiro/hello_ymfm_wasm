@@ -25,9 +25,9 @@ collapsible Reference playback remain available above Files and the workspace.
 Run / Apply / Stop stay visible in each expanded view. Selecting an instrument
 continues to apply its sound without forcing Code navigation.
 
-Code also supports `build / schedule / compile` for Pulse, Triangle and Noise.
-Fresh Cassettes include `examples/timed-apu.js`; see [Timed API](TIMED_API.md)
-for snapshots, exact hardware trigger semantics and the remaining DMC/FDS scope.
+Code also supports `build / schedule / compile` for Pulse, Triangle, Noise and prepared DMC playback.
+Fresh Cassettes include `examples/timed-apu.js` and `examples/timed-dmc.js`; see [Timed API](TIMED_API.md)
+for snapshots, exact hardware trigger semantics and the remaining FDS/memory scope.
 
 ## Play
 

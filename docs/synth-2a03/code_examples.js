@@ -16,5 +16,28 @@ const snapshot = await nes.captureState();
 console.table(await nes.compile(phrase, { initialState: snapshot }));
 await nes.schedule(phrase, { name: "apu", repeatSeconds: beatSeconds });
 // Apply replaces this name atomically. Stop cancels only this Code's notes.
-// DMC/FDS and their memory transfers are outside this first timed slice.
+// Prepared DMC playback is also available; FDS and memory transfers are separate.
+`;
+
+export const NES_DMC_TIMED_EXAMPLE = `const nes = await useSoundChip("nes");
+const bpm = 120;
+setBpm(bpm);
+const step = 60 / bpm;
+
+// Prepare RAM outside build. Reuse your loaded sample when available.
+// This self-authored demo is alternating DPCM bits, not PCM conversion.
+if (!(await nes.captureState()).sample) {
+  await nes.dmc.loadSample(new Uint8Array(257).fill(0x55));
+}
+const snapshot = await nes.captureState();
+const phrase = nes.build(b => {
+  b.dmc.play({ rate: 15, loop: true, level: 64 });
+  // Raw rate/loop changes while playing, without uploading or retriggering.
+  b.atSeconds(step * 0.4).writeRegister(0x4010, 0x40 | 10);
+  b.atSeconds(step * 0.8).dmc.stop();
+});
+console.table(await nes.compile(phrase, { initialState: snapshot }));
+await nes.schedule(phrase, { name: "dmc", repeatSeconds: step });
+// Sample selection resolves when executed. RAM is not part of the snapshot.
+// Standalone software click guard is optional; shared raw playback stays raw.
 `;

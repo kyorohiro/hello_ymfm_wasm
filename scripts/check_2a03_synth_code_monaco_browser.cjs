@@ -91,7 +91,8 @@ function muteDestinations() {
 const GOOD_SOURCE = `// @ts-check
 const nes = await useSoundChip('nes');
 const phrase=nes.build(b=>{b.pulse.setVoice(CH1,{volume:8});b.noteOn(CH1,'C4');b.atSample(441).noise.noteOn();b.noise.noteOff();});
-const snapshot=await nes.captureState();
+const dmc=nes.build(b=>{b.dmc.play({rate:15,loop:true,level:64});b.atSeconds(.1).dmc.stop();});
+const snapshot=await nes.captureState();snapshot.sample?.address;
 console.table(await nes.compile(phrase,{initialState:snapshot}));
 await nes.schedule(phrase,{name:'apu',repeatSeconds:1});
 await nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});

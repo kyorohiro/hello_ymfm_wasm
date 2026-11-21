@@ -23,8 +23,10 @@ test('NES async channel helpers and nested hardware API typecheck',async()=>{
 const nes=await useSoundChip('nes');
 const phrase=nes.build(b=>{b.pulse.setVoice(CH1,{volume:8});b.noteOn(CH1,'C4');b.atSample(441).noise.noteOn();b.noise.noteOff();});
 await nes.compile(phrase,{initialState:'reset'});await nes.schedule(phrase,{name:'apu',repeatSeconds:1});
-// @ts-expect-error DMC is outside this timed slice
-nes.build(b=>b.dmc.play());
+nes.build(b=>{b.dmc.play({rate:15,loop:true,level:64});b.atSample(441).dmc.stop();b.keyOff(CH5);});
+// @ts-expect-error data transfers are not recorded
+nes.build(b=>b.dmc.loadSample(new Uint8Array(1)));
+const snap=await nes.captureState();snap.sample?.address;
 // @ts-expect-error FDS is outside this timed slice
 nes.build(b=>b.noteOn(CH6,'C4'));
 const voice:Promise<void>=nes.pulse.setVoice(CH1,{duty:.25,volume:8,envelope:{period:2}});await voice;

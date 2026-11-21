@@ -15,7 +15,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   if(chip==='dx7'&&(method==='noteOn'||method==='noteOff'))return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
   if(chip==='rf5c164'&&(method==='keyOn'||method==='keyOff'))return {key:args[0],on:method==='keyOn'};
   if(chip==='nes'&&method==='writeRegister'&&nesTimed){
-    if(args[0]===0x4015)return {events:Array.from({length:4},(_,key)=>({key,on:!!(args[1]&(1<<key))})).filter(e=>e.on!==!!(nesEnabled&(1<<e.key)))};
+    if(args[0]===0x4015)return {events:Array.from({length:5},(_,key)=>({key,on:!!(args[1]&(1<<key))})).filter(e=>e.on!==!!(nesEnabled&(1<<e.key)))};
     const key=[0x4003,0x4007,0x400b,0x400f].indexOf(args[0]);if(key>=0&&(nesEnabled&(1<<key)))return {key,on:true};
   }
   if(chip==='nes'&&method==='setChannelEnabled')return {key:args[0],on:args[1]};
@@ -68,7 +68,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     if(method==='keyOff')return {key:args[0],on:false};
     if(method==='writeRegister'&&args[0]===0x90){
       const mask=(controlMask??((wonderswanRegisters?.[0x10]??0)^args[1]))&15;
-      const events=Array.from({length:4},(_,key)=>({key,on:!!(args[1]&(1<<key))})).filter(event=>mask&(1<<event.key));
+      const events=Array.from({length:5},(_,key)=>({key,on:!!(args[1]&(1<<key))})).filter(event=>mask&(1<<event.key));
       return events.length?{events}:null;
     }
   }
@@ -251,7 +251,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
   }
   if(method==='reset')return 'all';return null;
 }
-export function createProcessorPerformance({apply,prepare,validate,patternCommandCost,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,getOplRegisters,getWonderSwanRegisters,getPokeyRegisters,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
+export function createProcessorPerformance({apply,prepare,validate,patternCommandCost,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,getOplRegisters,getWonderSwanRegisters,getPokeyRegisters,getNesEnableMask,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map(),auditions=new Map();
   let psgLatch=0,nesEnabled=0;
@@ -323,7 +323,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
   }
   function protectNesEnable(command,metadata) {
     if(chipName()==='nes'&&metadata?.timedOperation&&command.method==='writeRegister'&&command.args[0]===0x4015){
-      let value=command.args[1];for(const [key,entry]of owners)if(Number.isInteger(key)&&key<4&&entry.owner!==metadata.owner&&!(value&(1<<key)))value=(value&~(1<<key))|(nesEnabled&(1<<key));
+      const enabled=getNesEnableMask?.()??nesEnabled;let value=command.args[1];for(const [key,entry]of owners)if(Number.isInteger(key)&&key<5&&entry.owner!==metadata.owner&&!(value&(1<<key))&&!(key===4&&metadata.nesRetriggerDmc))value=(value&~(1<<key))|(enabled&(1<<key));
       return {...command,args:[0x4015,value]};
     }
     if(!auditions.size||chipName()!=='nes'||command.method!=='writeRegister'||command.args[0]!==0x4015)return command;
@@ -369,7 +369,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     return auditions.has(physical)&&auditions.get(physical)===metadata?.owner;
   }
   function note(command,port,metadata) {
-    noteState.nesEnabled=nesEnabled;
+    noteState.nesEnabled=getNesEnableMask?.()??nesEnabled;
     noteState.psgLatch=getPsgLatch?.()??psgLatch;
     noteState.hucChannel=getHucChannel?.()??0;
     noteState.opllRhythm=getOpllRhythm?.()??0;
@@ -383,7 +383,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
         if(event.events.length&&!allowed.length)return false;
         if(allowed.length!==event.events.length){command.args[2]=(command.args[2]&0xc0)|allowed.reduce((mask,entry)=>mask|(1<<Number(entry.key.slice(7))),0);event.events=allowed;}
       }
-      if(event.events.some(event=>!event.on&&metadata&&owners.has(event.key)&&owners.get(event.key).owner!==metadata.owner&&!manualNoteOwner(event.key,metadata)))return false;
+      if(event.events.some(event=>!event.on&&metadata&&owners.has(event.key)&&owners.get(event.key).owner!==metadata.owner&&!manualNoteOwner(event.key,metadata)&&!(chipName()==='nes'&&metadata.nesRetriggerDmc&&event.key===4)))return false;
       for(const entry of event.events){
         if(entry.on)owners.set(entry.key,{owner:metadata?.owner??null,port});else owners.delete(entry.key);
       }

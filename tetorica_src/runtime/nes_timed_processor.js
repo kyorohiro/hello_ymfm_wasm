@@ -41,7 +41,7 @@ export function createNesTimedProcessor({performance: timeline, getState, getCon
     const clock=getConfig().clock;
     const plan = validateNesOperations(operations, {clock,validateArguments:false});
     const admissionResolver=createNesOperationResolver({clock});
-    let admissionState=createNesOperationResetState({clock});
+    let admissionState=validateNesOperationState(getState());
     const entries=plan.operations.map(operation=>{
       const resolved=admissionResolver.resolve(operation,admissionState);admissionState=resolved.state;
       return {offsetSeconds:nesOperationOffsetSeconds(operation,plan.referenceSampleRate),
@@ -89,7 +89,7 @@ export function createNesTimedProcessor({performance: timeline, getState, getCon
       if (payload.method === 'schedule') {
         if (payload.args.length !== 2) throw new TypeError('Invalid NES staged schedule arguments');
         records.set(name, {method:payload.method,args:[
-          validateNesOperations(payload.args[0], {clock:getConfig().clock}), {...payload.args[1]},
+          validateNesOperations(payload.args[0], {clock:getConfig().clock,initialState:getState()}), {...payload.args[1]},
         ]});
       } else {
         if (payload.args.length !== 1) throw new TypeError('Invalid NES staged clear arguments');
@@ -131,7 +131,7 @@ export function createNesTimedProcessor({performance: timeline, getState, getCon
       const clock = getConfig().clock;
       if (clock !== resolverClock) { resolver = createNesOperationResolver({clock}); resolverClock = clock; }
       const result = resolver.resolve(operation, getState());
-      for (const {register,value} of result.writes) dispatch({method:'writeRegister',args:[register,value]},port,frame,{...metadata,timedOperation:true,preserveOwner:register!==0x4015&&![0x4003,0x4007,0x400b,0x400f].includes(register)});
+      for (const {register,value} of result.writes) dispatch({method:'writeRegister',args:[register,value]},port,frame,{...metadata,timedOperation:true,nesRetriggerDmc:operation.method==='dmc.play',preserveOwner:register!==0x4015&&![0x4003,0x4007,0x400b,0x400f].includes(register)});
 
     },
     clear() { staged.clear(); },

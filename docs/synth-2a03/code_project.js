@@ -1,4 +1,4 @@
-import {NES_TIMED_EXAMPLE} from './code_examples.js';
+import {NES_TIMED_EXAMPLE,NES_DMC_TIMED_EXAMPLE} from './code_examples.js';
 // NES + FDS Code project data. Restoring Files never creates audio or runs Code.
 import {createVirtualFileSystem,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
@@ -117,7 +117,7 @@ export function createNesCodeProject({settings=createDefaultPreset(),snapshot,st
   Object.assign(project,createSynthCodeProject(project));
   if(starterCode===undefined&&!snapshot&&getStarterCode)starterCode=getStarterCode();
   if(starterCode!==undefined){if(typeof starterCode!=='string')throw TypeError('Starter code must be text.');fs.writeText('/index.js',starterCode);}
-  if(snapshot)project.restore(snapshot);else fs.writeText('/examples/timed-apu.js',NES_TIMED_EXAMPLE);
+  if(snapshot)project.restore(snapshot);else {fs.writeText('/examples/timed-apu.js',NES_TIMED_EXAMPLE);fs.writeText('/examples/timed-dmc.js',NES_DMC_TIMED_EXAMPLE);}
   return project;
 }
 

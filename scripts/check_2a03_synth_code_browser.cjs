@@ -292,6 +292,19 @@ async function check(browser,name,origin,loadCassette){
     const example=await page.evaluate(async()=>{const entry=document.querySelector('script[type="module"][src]').src;return(await import(new URL('code_examples.js',entry))).NES_TIMED_EXAMPLE;});
     await source(page,example+"\nconsole.log('NES_TIMED_EXAMPLE');");await execute(page);await pcm(page);
     await until(()=>page.locator('#synthCodeLog').textContent().then(value=>value.includes('NES_TIMED_EXAMPLE')),'distributed timed example');await stop(page);
+    step('Prepared DMC timed playback keeps selection, failed Apply, Stop and readable example');
+    const dmcPhrase=(rate,marker)=>`const nes=await useSoundChip('nes');if(!(await nes.captureState()).sample)await nes.dmc.loadSample(new Uint8Array(257).fill(0x55));const pattern=nes.build(b=>{b.dmc.play({rate:${rate},loop:true,level:64});b.atSeconds(.03).writeRegister(0x4010,0x40|${rate});});const snapshot=await nes.captureState();console.table(await nes.compile(pattern,{initialState:snapshot}));await nes.schedule(pattern,{name:'dmc-browser',repeatSeconds:.1});console.log('${marker}');`;
+    await source(page,dmcPhrase(15,'DMC_TIMED_READY'));await execute(page);await pcm(page);
+    await until(()=>page.locator('#synthCodeLog').textContent().then(v=>v.includes('DMC_TIMED_READY')),'prepared DMC accepted');
+    await source(page,dmcPhrase(9,'DMC_TIMED_CHANGED'));await execute(page,true);
+    await until(()=>page.evaluate(async()=>((await __nesCodeAudit.read()).registers[0x10]&15)===9),'DMC changed rate');
+    const selection=await page.evaluate(async()=>{const state=await __nesCodeAudit.read();return(await __nesCodeAudit.read('nesTimed',[state.codeSession,{action:'capture'}])).sample;});assert(selection?.length>0);
+    await source(page,dmcPhrase(3,'DMC_TIMED_STAGED')+"throw Error('EXPECTED_DMC_APPLY_FAILURE');");await page.locator('#synthCodeApplyButton').click();
+    await until(()=>page.locator('#synthCodeError').textContent().then(v=>v.includes('EXPECTED_DMC_APPLY_FAILURE')),'DMC failed Apply reported');await wait(150);
+    assert.equal((await read(page)).registers[0x10]&15,9);assert((await read(page)).coreState.dmcRemaining>0);
+    await stop(page);await pcm(page,false);assert.equal((await read(page)).coreState.dmcRemaining,0);
+    const dmcExample=await page.evaluate(async()=>{const entry=document.querySelector('script[type="module"][src]').src;return(await import(new URL('code_examples.js',entry))).NES_DMC_TIMED_EXAMPLE;});
+    await source(page,dmcExample+"\nconsole.log('DMC_EXAMPLE_READY');");await execute(page);await pcm(page);await until(()=>page.locator('#synthCodeLog').textContent().then(v=>v.includes('DMC_EXAMPLE_READY')),'DMC example ran');await stop(page);
     assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
     return{browser:name,passed:true,checks,measurements,graph:await page.evaluate(()=>__nesCodeAudit.graph()),pageErrors:errors,missing};
   }catch(error){

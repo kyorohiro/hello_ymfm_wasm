@@ -11,7 +11,7 @@ test('NES recorder is detached, validates at compile and preserves packed update
  let saved,calls=0;const patch={volume:7};const plan=build(b=>{calls++;saved=b;b.pulse.setVoice(0,patch);b.noteOn(0,'C4');b.keyOn(0);b.atSample(441).noteOff(0);});patch.volume=15;
  const state=reset();state.registers[0]=0x80;state.enabled=state.registers[0x15]=0x12;const before=structuredClone(state);
  const trace=compile(plan,state);assert.equal(trace[0].value,0xb7);assert.deepEqual(trace.filter(w=>w.register===0x4015).map(w=>w.value),[0x13,0x13,0x12]);assert.equal(trace.filter(w=>w.register===0x4003).length,3);assert.equal(trace.at(-1).offsetSeconds,.01);assert.deepEqual(state,before);assert.equal(calls,1);assert.throws(()=>saved.keyOn(0),/no longer/);
- for(const f of [b=>b.writeRegister(0x4010,0),b=>b.writeRegister(0x4015,0),b=>b.noteOff(4),b=>b.noteOn(5,'C4'),b=>b.pulse.setVoice(0,{volume:16}),b=>b.atSample(100).atSeconds(0)])assert.throws(()=>compile(build(f),state));
+ for(const f of [b=>b.writeRegister(0x4012,0),b=>b.writeRegister(0x4015,0),b=>b.noteOff(5),b=>b.noteOn(5,'C4'),b=>b.pulse.setVoice(0,{volume:16}),b=>b.atSample(100).atSeconds(0)])assert.throws(()=>compile(build(f),state));
  assert.throws(()=>build(async b=>b.keyOn(0)),/synchronous/);assert.deepEqual(structuredClone(plan),plan);
 });
 test('NES current/client/reset/reused snapshots compile without changing live state',async()=>{
@@ -93,4 +93,94 @@ for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.
   await p.rpc({action:'schedule',operations:build(b=>{b.pulse.setVoice(0,{volume:8,duty:.5});b.noteOn(0,'C4');}),options:{name:'pulse'},owner:'pulse'});const before=p.writes.length;p.render(300);
   assert(p.writes.slice(before).filter(w=>w.register===0x4015).every(w=>!(w.value&16)));assert.equal(p.core.getState().dmcRemaining,0);
  }finally{p.close();}
+});
+
+test('DMC compile uses detached prepared selection, preserves companion enables and repeated control/DAC writes',()=>{
+ const state=reset();state.enabled=state.registers[0x15]=5;state.sample={address:0xc100,length:257};const before=structuredClone(state);
+ const plan=build(b=>{b.dmc.play({rate:9,loop:true,level:63});b.dmc.play({rate:9,loop:true,level:63});b.atSample(441).writeRegister(0x4010,67);b.writeRegister(0x4011,80);b.atSeconds(.02).dmc.stop();});
+ const trace=compile(plan,state);assert.deepEqual(rows(trace).slice(0,6),[[0x4015,5],[0x4010,73],[0x4011,63],[0x4012,4],[0x4013,16],[0x4015,21]]);assert.equal(trace.filter(w=>w.register===0x4011&&w.value===63).length,2);assert.equal(trace.at(-1).value,5);assert.deepEqual(state,before);
+ for(const call of [b=>b.dmc.play({rate:16}),b=>b.dmc.play({level:128}),b=>b.dmc.play({loop:1})])assert.throws(()=>compile(build(call),state));
+ assert.throws(()=>compile(build(b=>b.dmc.play()),reset()),/Load a DMC sample/);
+ assert.throws(()=>build(b=>b.dmc.loadSample(new Uint8Array(1))));
+ for(const sample of [{address:0xc001,length:17},{address:0xc000,length:16},{address:0xffc0,length:81}])assert.throws(()=>compile(build(b=>b.dmc.play()),{...state,sample}),/selection/);
+ const snap=createNesTimedSnapshot(state,{instanceId:'dmc',clock:state.clock,frame:0,sampleRate:48000});assert(Object.isFrozen(snap.sample));assert.notEqual(snap.sample,state.sample);assert.deepEqual(rows(compile(plan,snap)),rows(trace));assert.deepEqual(state,before);
+});
+async function prepareDmc(p,file,{address=0xc000,length=257}={}){
+ const bytes=new Uint8Array(length).fill(0x55);
+ if(file.includes('docs/')){const session=(await p.command('read')).codeSession;await p.command('code',[session,'dmc.loadSample',[bytes,{address}]]);}
+ else {await p.command('loadMemory',[bytes,address]);await p.command('nesSelectSample',[{address,length}]);}
+}
+for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.js'])for(const rate of [44100,48000])test(`${file} ${rate}: prepared DMC compile/timing and owned Stop preserve Pulse/Triangle`,async()=>{
+ const p=await setup(file,rate);try{
+  await prepareDmc(p,file,{address:0xc100});const state=await p.rpc({action:'capture'});assert.deepEqual(state.sample,{address:0xc100,length:257});
+  const plan=build(b=>{b.pulse.setVoice(0,{volume:6,duty:.5});b.noteOn(0,'C4');b.dmc.play({rate:15,loop:true,level:64});b.atSample(441).writeRegister(0x4010,78);b.atSeconds(.02).dmc.stop();});
+  const expected=compile(plan,state),r=await p.rpc({action:'schedule',operations:plan,options:{name:'dmc'},owner:'dmc'});const n=p.writes.length;p.render(r.startFrame+Math.round(.02*rate)+1);assert.deepEqual(rows(p.writes.slice(n)),rows(expected));assert.deepEqual(p.writes.slice(n).map(w=>w.frame),expected.map(w=>r.startFrame+Math.round(w.offsetSeconds*rate)));assert.equal((await p.rpc({action:'capture'})).enabled&17,1);
+  await p.rpc({action:'schedule',operations:build(b=>b.dmc.play({loop:true})),options:{name:'loop',repeatSeconds:.05},owner:'loop'});p.render(300);assert(p.core.getState().dmcRemaining>0);
+  await assert.rejects(p.rpc({action:'schedule',operations:build(b=>b.dmc.play({rate:16})),options:{name:'loop'},owner:'loop'}));p.render(Math.round(.06*rate));assert(p.core.getState().dmcRemaining>0);
+  await p.rpc({action:'releaseOwner',owner:'loop'});assert.equal(p.core.getState().dmcRemaining,0);assert((await p.rpc({action:'capture'})).enabled&1);
+ }finally{p.close();}
+});
+
+for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.js'])test(`${file}: DMC timed retrigger takes ownership but stale Off/cancel and key-up cannot stop a newer Gate`,async()=>{
+ const p=await setup(file,48000),standalone=file.includes('docs/');try{
+  await prepareDmc(p,file);const r=await p.rpc({action:'schedule',operations:build(b=>{b.dmc.play({loop:true});b.atSeconds(.02).dmc.stop();}),options:{name:'old-dmc'},owner:'old-dmc'});p.render(r.startFrame+1);
+  if(standalone){const {createDefaultPreset}=await import('../../docs/synth-2a03/preset.js');const preset=createDefaultPreset();preset.source='dmc';preset.dmc={...preset.dmc,data:Array(257).fill(0x55),loop:true};await p.command('applyPhysicalPreset',[4,preset]);await p.command('noteOn',['manual-dmc',60,4]);}
+  else p.p.inspector.invoke('auditionOn',[4,60,'manual-dmc']);
+  p.render(1100);assert(p.core.getState().dmcRemaining>0);await p.rpc({action:'releaseOwner',owner:'old-dmc'});assert(p.core.getState().dmcRemaining>0);
+  await p.rpc({action:'schedule',operations:build(b=>b.dmc.play({loop:true,level:64})),options:{name:'new-dmc'},owner:'new-dmc'});p.render(300);const before=p.writes.length;
+  if(standalone)assert.equal(await p.command('noteOff',['manual-dmc']),false);else assert.equal(p.p.inspector.invoke('auditionOff',[4,'manual-dmc']),false);
+  assert.equal(p.writes.length,before);assert(p.core.getState().dmcRemaining>0);await p.rpc({action:'releaseOwner',owner:'new-dmc'});assert.equal(p.core.getState().dmcRemaining,0);
+  if(standalone)assert.equal(p.p.clickGuard.read().phase,'release');
+ }finally{p.close();}
+});
+
+test('standalone prepared DMC requires a sample, validates before replacing a pattern and retains software smoothing preference',async()=>{
+ const file='../../docs/synth-2a03/processor.js',p=await setup(file,48000);try{
+  await assert.rejects(p.rpc({action:'schedule',operations:build(b=>b.dmc.play()),options:{name:'missing'},owner:'missing'}),/Load a DMC sample/);
+  await prepareDmc(p,file);await p.rpc({action:'schedule',operations:build(b=>b.dmc.play({loop:true})),options:{name:'dmc',repeatSeconds:.1},owner:'dmc'});p.render(300);assert.equal(p.p.clickGuard.read().phase,'attack');
+  p.render(300);assert.equal(p.p.clickGuard.read().phase,'bypass');await p.rpc({action:'releaseOwner',owner:'dmc'});assert.equal(p.p.clickGuard.read().phase,'release');p.render(300);assert.equal(p.p.clickGuard.read().phase,'muted');
+  await p.command('setClickGuard',[false]);await p.rpc({action:'schedule',operations:build(b=>b.dmc.play({loop:true})),options:{name:'raw'},owner:'raw'});p.render(300);assert.equal(p.p.clickGuard.read().phase,'bypass');await p.rpc({action:'releaseOwner',owner:'raw'});assert.equal(p.p.clickGuard.read().phase,'bypass');
+ }finally{p.close();}
+});
+
+test('public Web Audio sample upload selects its full padded DMC range after acknowledgement; raw upload/reset invalidate it',async()=>{
+ const p=await setup('playground_nes_worklet.js',48000);const {createNesClient}=await import('../../tetorica_src/runtime/playground_nes.js');const sent=[];
+ const port={start(){},close(){},postMessage(data){sent.push(data);p.p.receive(data,{postMessage:reply=>queueMicrotask(()=>port.onmessage({data:reply}))});}};
+ const client=createNesClient(port,{fdsEnabled:true});try{
+  assert.deepEqual(await client.dmc.loadSample(new Uint8Array(200).fill(0x55),{address:0xc100}),{address:0xc100,length:209});
+  const snapshot=await client.captureState();assert.deepEqual(snapshot.sample,{address:0xc100,length:209});assert(sent.some(m=>m.method==='nesSelectSample'));
+  const plan=client.build(b=>b.dmc.play({loop:true}));assert.equal((await client.compile(plan,{initialState:'client'})).find(w=>w.register===0x4013).value,13);
+  await client.schedule(plan,{name:'public-dmc'});p.render(300);assert(p.core.getState().dmcRemaining>0);
+  await client.loadMemory(Uint8Array.of(0xaa),0xc100);assert.equal((await client.captureState()).sample,null);await assert.rejects(client.schedule(plan,{name:'public-dmc'}),/Load a DMC sample/);
+  await client.dmc.loadSample(Uint8Array.of(0x55));client.reset();assert.equal((await client.captureState()).sample,null);
+ }finally{client.dispose();p.close();}
+});
+
+for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.js'])test(`${file}: prepared sample selection resolves at execution; a raw upload invalidates it without a fatal engine error`,async()=>{
+ const p=await setup(file,48000);try{
+  await prepareDmc(p,file,{address:0xc100,length:257});const snapshot=await p.rpc({action:'capture'}),plan=build(b=>b.dmc.play({loop:true}));assert.equal(compile(plan,snapshot).find(w=>w.register===0x4012).value,4);
+  await p.rpc({action:'schedule',operations:plan,options:{name:'switch'},owner:'switch'});await prepareDmc(p,file,{address:0xc200,length:513});p.render(300);assert.equal(p.writes.findLast(w=>w.register===0x4012).value,8);assert.equal(p.writes.findLast(w=>w.register===0x4013).value,32);assert.deepEqual(snapshot.sample,{address:0xc100,length:257});
+  await p.rpc({action:'schedule',operations:plan,options:{name:'invalidated'},owner:'invalidated'});
+  if(file.includes('docs/')){const session=(await p.command('read')).codeSession;await p.command('code',[session,'loadMemory',[Uint8Array.of(0xaa),0xc200]]);}else await p.command('loadMemory',[Uint8Array.of(0xaa),0xc200]);
+  assert.equal((await p.rpc({action:'capture'})).sample,null);const count=p.writes.length;p.render(300);assert(!p.writes.slice(count).some(w=>w.register===0x4015&&(w.value&16)));assert(p.core.handle,'engine remains alive');
+ }finally{p.close();}
+});
+
+test('superseded Web Audio DMC upload does not publish a stale prepared selection',async()=>{
+ const {createNesClient}=await import('../../tetorica_src/runtime/playground_nes.js');const sent=[];const port={start(){},close(){},postMessage:data=>sent.push(data)};const client=createNesClient(port);
+ try{const pending=client.dmc.loadSample(new Uint8Array(17));const upload=sent.find(m=>m.method==='loadMemory');assert(upload);client.reset();port.onmessage({data:{id:upload.id,value:true}});await assert.rejects(pending,/superseded|reset/);assert(!sent.some(m=>m.method==='nesSelectSample'));}finally{client.dispose();}
+});
+
+for(const rate of [44100,48000])test(`standalone ${rate}: manual DMC and its click guard retain exact pre-DMC-timed PCM`,async()=>{
+ const {readNesDmcPredecessor}=await import('../../scripts/mixer_calibration_nes_dmc_revision.mjs');const file='../../docs/synth-2a03/processor.js';const old=await setup(file,rate,readNesDmcPredecessor('docs/synth-2a03/processor.js')),now=await setup(file,rate);try{
+  const {createDefaultPreset}=await import('../../docs/synth-2a03/preset.js');const preset=createDefaultPreset();preset.source='dmc';preset.dmc={...preset.dmc,data:Array(257).fill(0x55),loop:true};
+  for(const p of [old,now]){await p.command('setPreset',[preset]);await p.command('noteOn',['dmc-parity',60,4]);}
+  assert.deepEqual(now.render(1024),old.render(1024));assert.deepEqual(now.lastRight(),old.lastRight());for(const p of [old,now])await p.command('noteOff',['dmc-parity']);assert.deepEqual(now.render(1024),old.render(1024));assert.deepEqual(now.lastRight(),old.lastRight());
+ }finally{old.close();now.close();}
+});
+
+
+test('prepared DMC metadata rejects accessors without running them',()=>{
+ let reads=0;const sample={length:17};Object.defineProperty(sample,'address',{enumerable:true,get(){reads++;return 0xc000;}});
+ assert.throws(()=>createNesTimedSnapshot({...reset(),sample},{instanceId:'bad',clock:reset().clock,frame:0,sampleRate:48000}),/selection/);assert.equal(reads,0);
 });

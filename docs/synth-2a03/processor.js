@@ -19,10 +19,10 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     this.performanceQueue=createPerformanceQueue({nowFrame:()=>this.renderFrame,sampleRate,
       patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,
       apply:(data,reply,frame,metadata)=>this.timed.apply(data.operation,{postMessage:reply??(message=>this.port.postMessage(message))},frame,metadata),
-      onCancelOwner:owner=>this.instrument?.cancelTimedOwner(owner)});
+      onCancelOwner:owner=>{if(!this.instrument)return;const before=this.instrument.owners.slice();this.instrument.cancelTimedOwner(owner);this.ownedTransition(before);}});
     this.timed=createNesTimedProcessor({performance:{...this.performanceQueue,receive:(data,port)=>this.performanceQueue.receive(data,message=>port.postMessage(message))},
-      getState:()=>{const state=this.instrument.core.getState();return {...this.instrument.synth._getState(),registers:state.registers,enabled:(state.registers[0x15]&15)|(state.dmcRemaining>0?16:0)};},getConfig:()=>({instanceId:this.instanceId,clock:this.instrument.synth.clock,engine:'nes-wasm'}),
-      dispatch:(data,port,frame,metadata)=>this.instrument.applyTimedWrite(data.args[0],data.args[1],metadata.owner),nowFrame:()=>this.renderFrame,sampleRate});
+      getState:()=>{const state=this.instrument.core.getState();return {...this.instrument.synth._getState(),registers:state.registers,enabled:(state.registers[0x15]&15)|(state.dmcRemaining>0?16:0),sample:this.instrument.synth._getState().sample??this.instrument.dmcTimedSelection};},getConfig:()=>({instanceId:this.instanceId,clock:this.instrument.synth.clock,engine:'nes-wasm'}),
+      dispatch:(data,port,frame,metadata)=>{const before=this.instrument.owners.slice();this.instrument.applyTimedWrite(data.args[0],data.args[1],metadata.owner,metadata);this.ownedTransition(before);},nowFrame:()=>this.renderFrame,sampleRate});
     this.clickGuard = new OutputClickGuard({sampleRate});
     this.clickGuardEnabled = true;
     this.port.onmessage = ({data}) => this.receive(data);

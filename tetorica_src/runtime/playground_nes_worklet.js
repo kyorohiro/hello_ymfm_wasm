@@ -8,11 +8,12 @@ import {NesVoiceInspector} from './playground_native_voice_inspector.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
-    super(); this.dead = false;this.chip=null;
-    this.performance=createProcessorPerformance({chip:'nes',patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,apply:(data,port,frame,metadata)=>{if(data.method==='applyTimedOperation')this.timed.apply(data.operation,port,frame,metadata);else this.apply(data,port,metadata);},immediate:['loadMemory','stopVoices'],
+    super(); this.dead = false;this.chip=null;this.dmcSample=null;
+    this.performance=createProcessorPerformance({chip:'nes',patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,apply:(data,port,frame,metadata)=>{if(data.method==='applyTimedOperation')this.timed.apply(data.operation,port,frame,metadata);else this.apply(data,port,metadata);},immediate:['loadMemory','stopVoices','nesSelectSample'],
+      getNesEnableMask:()=>{const s=this.chip?.getState();return s?((s.registers[0x15]&15)|(s.dmcRemaining>0?16:0)):0;},
       releaseNote:channel=>channel===5?{method:'writeRegister',args:[0x4083,(this.inspector?.registers[0x83]??0)|128]}:{method:'setChannelEnabled',args:[channel,false]}});
     this.instanceId='nes:'+Math.random().toString(36).slice(2);
-    this.timed=createNesTimedProcessor({performance:this.performance,getState:()=>{const s=this.chip.getState();return validateNesOperationState({...s,clock:this.baseClock*(this.clockResampler?.ratio??1),enabled:(s.registers[0x15]&15)|(s.dmcRemaining>0?16:0)});},getConfig:()=>({instanceId:this.instanceId,clock:this.baseClock*(this.clockResampler?.ratio??1),engine:'nes-wasm'}),dispatch:(command,port,frame,metadata)=>this.performance.applyImmediate({...command,nesTimed:true},port,metadata),nowFrame:()=>currentFrame,sampleRate});
+    this.timed=createNesTimedProcessor({performance:this.performance,getState:()=>{const s=this.chip.getState();return validateNesOperationState({...s,clock:this.baseClock*(this.clockResampler?.ratio??1),enabled:(s.registers[0x15]&15)|(s.dmcRemaining>0?16:0),sample:this.dmcSample});},getConfig:()=>({instanceId:this.instanceId,clock:this.baseClock*(this.clockResampler?.ratio??1),engine:'nes-wasm'}),dispatch:(command,port,frame,metadata)=>this.performance.applyImmediate({...command,nesTimed:true},port,metadata),nowFrame:()=>currentFrame,sampleRate});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if(data.primaryWorker) {
@@ -68,9 +69,15 @@ class Processor extends AudioWorkletProcessor {
         this.chip.reserveStereoFrames(Math.ceil(128*this.clockResampler.ratio));
         port.postMessage({id:data.id}); return;
       }
+      if(data.method==='nesSelectSample'){
+        const descriptor=data.args?.[0];validateNesOperationState({clock:this.baseClock,registers:Array(144).fill(0),sample:descriptor});
+        if(!descriptor||!this.inspector.memoryRanges.some(r=>r.address<=descriptor.address&&r.end>=descriptor.address+descriptor.length))throw new Error('DMC selection requires uploaded memory');
+        this.dmcSample={...descriptor};if(data.id!==undefined)port.postMessage({id:data.id,value:true});return;
+      }
       const methods = ['reset', 'writeRegister', 'setChannelEnabled', 'loadMemory'];
       if (!methods.includes(data.method)) throw new Error('Unknown NES command');
-      if(metadata?.timedOperation&&data.nesTimed&&data.method==='writeRegister'){const ch=[0x4003,0x4007,0x400b,0x400f].indexOf(data.args[0]);if(ch>=0){const id=this.inspector.auditions.get(ch);if(id){this.inspector.auditions.delete(ch);this.performance.endAudition(ch,'voice-editor:'+id);}}}
+      if(metadata?.timedOperation&&data.nesTimed&&data.method==='writeRegister'){const ch=data.args[0]===0x4015&&metadata.nesRetriggerDmc&&(data.args[1]&16)?4:[0x4003,0x4007,0x400b,0x400f].indexOf(data.args[0]);if(ch>=0){const id=this.inspector.auditions.get(ch);if(id){this.inspector.auditions.delete(ch);this.performance.endAudition(ch,'voice-editor:'+id);}}}
+      if(['reset','loadMemory'].includes(data.method))this.dmcSample=null;
       this.chip[data.method](...(data.args ?? []));
       if (data.method === 'reset') this.clockResampler?.resetPhase();
       if (data.id !== undefined) port.postMessage({id: data.id, value: true});

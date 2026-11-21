@@ -38,6 +38,21 @@ export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false
   };
   const synth = new NesApuSynth({transport,initialize:!state});
   if(state)synth._adoptState(state);
+  if(!native){
+    let selectionEpoch=0;
+    const loadSample=synth.dmc.loadSample;
+    const load=transport.loadMemory;transport.loadMemory=(...args)=>{selectionEpoch++;return load(...args);};
+    // loadSample itself uses this transport. Advance the selection epoch only
+    // for raw uploads, not for the synchronous upload it starts internally.
+    synth.dmc.loadSample=async(...args)=>{
+      const promise=loadSample(...args),epoch=selectionEpoch,result=await promise;
+      if(disposed||epoch!==selectionEpoch)throw new Error('DMC load was superseded or reset');
+      await request('nesSelectSample',[result]);
+      if(disposed||epoch!==selectionEpoch)throw new Error('DMC load was superseded or reset');
+      return result;
+    };
+    const reset=transport.reset;transport.reset=()=>{selectionEpoch++;return reset();};
+  }
   const client=Object.assign(synth, {_stopVoices() {
     // The admin editor can change FDS pitch on the Worklet independently of
     // this thread's shadow. Stop must use applied registers at the processor.

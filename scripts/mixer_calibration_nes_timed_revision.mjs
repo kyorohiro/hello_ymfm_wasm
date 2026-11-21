@@ -1,3 +1,4 @@
+import {createNesDmcRevisionReadContext} from './mixer_calibration_nes_dmc_revision.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 // NES Pulse/Triangle/Noise timed-operation review. No historical source hashes are rewritten.
 import {createHash} from 'node:crypto';
@@ -28,11 +29,13 @@ function predecessor(bytes,entry){
  return result;
 }
 export function createNesTimedRevisionReadContext(read=readFileSync){
+ const latest=createNesDmcRevisionReadContext(read);read=latest.readSource;
  const {sources,dependencies}=evidence(read);let checked=false;
  const check=()=>{if(checked)return;for(const [name,record]of Object.entries(dependencies)){
   if(!matches(read(new URL(name,root)),record))throw Error('Unreviewed NES NES timed dependency: '+name);
  }checked=true;};
  function restore(path,bytes){
+  bytes=latest.restore(path,bytes);
   const name=Object.hasOwn(sources,path)?path:'docs/'+path,entry=sources[name];
   if(!entry||!matches(bytes,entry.after))return bytes;
   check();return predecessor(Buffer.from(bytes),entry);
@@ -40,7 +43,7 @@ export function createNesTimedRevisionReadContext(read=readFileSync){
  return {restore,readSource(url){const bytes=read(url);return url instanceof URL&&url.protocol==='file:'?restore(relative(fileURLToPath(root),fileURLToPath(url)).replaceAll('\\','/'),bytes):bytes;}};
 }
 export function readNesTimedPredecessor(path){
- const bytes=readFileSync(new URL(path,root)),data=evidence(readFileSync),entry=data.sources[path];
+ const latest=createNesDmcRevisionReadContext(),bytes=latest.restore(path,readFileSync(new URL(path,root))),data=evidence(readFileSync),entry=data.sources[path];
  if(!entry||!matches(bytes,entry.after))throw Error('Unreviewed standalone FM2608 predecessor source');
  return createNesTimedRevisionReadContext().restore(path,bytes).toString('utf8');
 }

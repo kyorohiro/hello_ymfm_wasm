@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "scope": "NES prepared DMC build/schedule/compile playback",
+  "date": "2026-11-21",
+  "tests": {
+    "nesSynthIncludingTimedAndExactReview": 307,
+    "timedTestsIncluded": 30,
+    "sharedProcessorSenderAndCalibrationChain": 83,
+    "npmBuild": {
+      "modules": 414,
+      "declarations": 477
+    }
+  },
+  "timing": {
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "referenceSampleRate": 44100,
+    "actualWasmSharedAndStandalone": true,
+    "compiledWritesAndFramesMatchExecutionForControlledLoopFixture": true
+  },
+  "verified": [
+    "DMC play/stop through existing immediate converter, including repeated disable/config/enable writes",
+    "detached validated selection descriptor, getters rejected without invocation",
+    "RAM upload acknowledged before selection publication; raw upload/reset/superseded upload invalidation",
+    "sample replacement resolves at execution; selection loss rejects operation without retiring engine",
+    "actual remaining bytes distinguish selected sample from active/ended playback",
+    "companion enable bits and newer manual/scheduled owners survive stale Off/cancel",
+    "failed Apply retains accepted reservation; Stop releases owned DMC",
+    "existing standalone optional click guard covers timed edges, generic Worklet stays raw",
+    "types and real Monaco support DMC play/stop and reject builder memory transfers"
+  ],
+  "manualPcmParity": {
+    "reference": "exact authenticated pre-DMC revision source",
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "stereoFramesCompared": 4096,
+    "maximumDifference": 0
+  },
+  "browsers": {
+    "sourceCode": {
+      "path": "build/nes-dmc-browser.json",
+      "sha256": "673edb6dfd2d36d334d01c5b34e1e3f3c7ac4ec9a782abec5d98223ca7ac485e",
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing",
+            "NES timed Code compiles real writes and preserves accepted patterns across failed Apply",
+            "Prepared DMC timed playback keeps selection, failed Apply, Stop and readable example"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.37896728515625,
+              "rms": 0.08154443932863582,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              379.30000001192093,
+              377.5
+            ]
+          }
+        },
+        {
+          "browser": "webkit",
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing",
+            "NES timed Code compiles real writes and preserves accepted patterns across failed Apply",
+            "Prepared DMC timed playback keeps selection, failed Apply, Stop and readable example"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.3326610028743744,
+              "rms": 0.08176302508435968,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              378,
+              379
+            ]
+          }
+        }
+      ]
+    },
+    "sourceMonaco": {
+      "path": "build/nes-dmc-monaco.json",
+      "sha256": "522e7d2c4d7ecce33742a54b015e1c3ab254d0faf523f343128b10bc95d40e6d",
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "measurements": {}
+        },
+        {
+          "browser": "webkit",
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "measurements": {}
+        }
+      ]
+    },
+    "zipCode": {
+      "path": "build/nes-dmc-zip-browser.json",
+      "sha256": "b4da049656482a6204cb723133fcff84d9e343e8ebbcf6cad67d7c2fedcee56b",
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing",
+            "NES timed Code compiles real writes and preserves accepted patterns across failed Apply",
+            "Prepared DMC timed playback keeps selection, failed Apply, Stop and readable example"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.37896728515625,
+              "rms": 0.0851313547021049,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              382.10000002384186,
+              377.89999997615814
+            ]
+          }
+        },
+        {
+          "browser": "webkit",
+          "checks": [
+            "Files and Code mount silently, with local modules and plain JSON",
+            "All six physical channels use the existing APU and produce finite PCM",
+            "A beat-based melody keeps running across view changes and manual parameter edits",
+            "Code automation and manual keyboard share the APU in both input views",
+            "Files preset selection keeps Code and hidden JSON keeps Keyboard mode",
+            "Cassette restores local modules, sound and text without running Code",
+            "Persistent workspace preserves running Code, Master, song controls and channel editing",
+            "NES timed Code compiles real writes and preserves accepted patterns across failed Apply",
+            "Prepared DMC timed playback keeps selection, failed Apply, Stop and readable example"
+          ],
+          "measurements": {
+            "allChannels": {
+              "peak": 0.2928692698478699,
+              "rms": 0.07546138139119658,
+              "finite": true,
+              "muted": true
+            },
+            "beatIntervalsMs": [
+              396,
+              377
+            ]
+          }
+        }
+      ]
+    },
+    "zipMonaco": {
+      "path": "build/nes-dmc-zip-monaco.json",
+      "sha256": "d937ae2fd588a335ae4c629acefebab9b0607660d142ee9530eeb4533ec173be",
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "measurements": {}
+        },
+        {
+          "browser": "webkit",
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, invalid channels/Duty/Noise note, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared NES + FDS",
+            "Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources"
+          ],
+          "measurements": {}
+        }
+      ]
+    }
+  },
+  "package": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-dmc/itch_2a03_synth_dmc-verified-20261121-oy5ghQ",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/nes-dmc/tetorica_2a03_synth_dmc-verified-20261121_itch.zip",
+    "files": 161,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 1976630,
+      "sha256": "475867448cd0d37dce5c0460de3d37145062433fa81d951b68806cf3a7b97254"
+    },
+    "sourceCheck": {
+      "inputs": 27,
+      "sdkVersion": "0.1.8-fm2608-source-mixer"
+    }
+  },
+  "limits": [
+    "DMC memory upload remains outside build and is not rolled back by failed Apply",
+    "Snapshots contain selection metadata, not sample RAM or decoder phase",
+    "compile does not simulate elapsed one-shot counters; natural EOS or concurrent writes may change actual later enable writes",
+    "FDS, Native scheduling and rate-limited scheduled-state Live UI remain follow-ups",
+    "Existing Cassettes are restored unchanged; fresh Cassettes seed examples/timed-dmc.js"
+  ],
+  "humanListeningPerformed": false,
+  "npmPublicationPerformed": false,
+  "tauriUpdated": false,
+  "remoteCiRun": false,
+  "commitOrPushPerformed": false
+}

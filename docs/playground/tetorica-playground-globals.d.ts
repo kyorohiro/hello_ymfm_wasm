@@ -3057,7 +3057,7 @@ type PlaygroundPWM32X = {
 declare function createSoundChip(name: 'pwm', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundPWM32X & PlaygroundChipClock & {readonly id: string}>;
 
 /** NES APU; primary NES mode enables FDS. Independent instances opt in with {fds:true}. */
-/** First timed slice: Pulse/Triangle/Noise. No DMC, FDS, RAM or frame-counter writes. */
+/** Timed Pulse/Triangle/Noise and prepared DMC playback. No FDS, RAM transfer or frame-counter writes. */
 interface PlaygroundNesOperationRecorder {
   atSample(sample:number):PlaygroundNesOperationRecorder;
   atSeconds(seconds:number):PlaygroundNesOperationRecorder;
@@ -3066,14 +3066,15 @@ interface PlaygroundNesOperationRecorder {
   setNote(channel:0|1|2,note:string|number):PlaygroundNesOperationRecorder;
   noteOn(channel:0|1|2,note:string|number):PlaygroundNesOperationRecorder;
   keyOn(channel:0|1|2):PlaygroundNesOperationRecorder;
-  keyOff(channel:0|1|2|3):PlaygroundNesOperationRecorder;
-  noteOff(channel:0|1|2|3):PlaygroundNesOperationRecorder;
+  keyOff(channel:0|1|2|3|4):PlaygroundNesOperationRecorder;
+  noteOff(channel:0|1|2|3|4):PlaygroundNesOperationRecorder;
   pulse:{[K in keyof PlaygroundNes['pulse']]:(...args:Parameters<PlaygroundNes['pulse'][K]>)=>PlaygroundNesOperationRecorder};
   triangle:{[K in keyof PlaygroundNes['triangle']]:(...args:Parameters<PlaygroundNes['triangle'][K]>)=>PlaygroundNesOperationRecorder};
+  dmc:{[K in 'play'|'stop']:(...args:Parameters<PlaygroundNes['dmc'][K]>)=>PlaygroundNesOperationRecorder};
   noise:{[K in keyof PlaygroundNes['noise']]:(...args:Parameters<PlaygroundNes['noise'][K]>)=>PlaygroundNesOperationRecorder};
 }
 interface PlaygroundNesOperationProgram {version:1;chip:'nes';referenceSampleRate:number;operations:readonly {time:{unit:'sample'|'seconds';value:number};order:number;method:string;args:readonly unknown[]}[];}
-interface PlaygroundNesStateSnapshot {readonly format:'tetorica-nes-state';readonly version:1;readonly instanceId:string|number;readonly clock:number;readonly engine:'nes-wasm';readonly registers:readonly number[];readonly enabled:number;readonly fdsActive:boolean;readonly fdsGain:number;readonly fdsMaster:number;readonly sample:null;readonly frame:number;readonly sampleRate:number;}
+interface PlaygroundNesStateSnapshot {readonly format:'tetorica-nes-state';readonly version:1;readonly instanceId:string|number;readonly clock:number;readonly engine:'nes-wasm';readonly registers:readonly number[];readonly enabled:number;readonly fdsActive:boolean;readonly fdsGain:number;readonly fdsMaster:number;readonly sample:Readonly<{address:number;length:number}>|null;readonly frame:number;readonly sampleRate:number;}
 interface PlaygroundNesTimedWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
 interface PlaygroundNes {
   build(callback:(builder:PlaygroundNesOperationRecorder)=>void,options?:{referenceSampleRate?:number}):PlaygroundNesOperationProgram;
