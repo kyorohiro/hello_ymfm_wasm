@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-2sf-live-1" />
-		<script type="module" src="synth.js?v=nds-2sf-live-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-2sf-audition-1" />
+		<script type="module" src="synth.js?v=nds-2sf-audition-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -70,6 +70,20 @@
 						<div><dt title="0 left, 127 right">Pan</dt><dd id="twoSfLivePan"></dd></div>
 						<div><dt id="twoSfLiveRateLabel">Sample rate</dt><dd id="twoSfLiveRate"></dd></div>
 					</dl>
+				</div>
+				<div id="twoSfAuditionTools" class="two-sf-audition" role="group" aria-label="Paused 2SF audition" hidden>
+					<label><input id="twoSfAuditionEnabled" type="checkbox" aria-describedby="twoSfAuditionStatus" disabled /> Audition on keyboard</label>
+					<label>Reference key
+						<select id="twoSfAuditionReference" title="Play this key at the channel’s original rate" disabled>
+							<option value="36">C2</option>
+							<option value="48">C3</option>
+							<option value="60" selected>C4</option>
+							<option value="72">C5</option>
+							<option value="84">C6</option>
+						</select>
+					</label>
+					<button id="twoSfCapture" type="button" disabled>Capture to Synth</button>
+					<span id="twoSfAuditionStatus" role="status"></span>
 				</div>
 			</section>
 			<section class="monitor" aria-label="Output monitor">

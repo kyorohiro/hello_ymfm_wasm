@@ -2,7 +2,7 @@
 import { renderFileTree } from '../playground/playground_file_tree.js';
 import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createNdsProjectStore, isNdsCodePath, isNdsTextPath, ndsProjectPath, NDS_PROJECT_FILE_BYTES } from './nds-project.js';
-import { isNdsPresetPath, NDS_PRESET_EXTENSION, readNdsPreset, writeNdsPreset } from './nds-preset.js';
+import { isNdsPresetPath, NDS_PRESET_EXTENSION, readNdsPreset, writeNdsPreset } from './nds-preset.js?v=nds-2sf-audition-1';
 
 const INDEX = '/index.js';
 const INITIAL_ID = 'tetorica-nitro-ds';

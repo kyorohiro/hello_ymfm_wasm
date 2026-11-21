@@ -89,6 +89,49 @@ function checkSnapshots(track, pcm, snapshots) {
 		assert.equal(last[1 + channel * 5] >>> 31, 0, `Hardware CH${channel} should stay idle`);
 }
 
+function checkCaptureHistory(work) {
+	const fixture = fileURLToPath(new URL('./make_fixture.py', import.meta.url));
+	execFileSync('python3', [fixture, work, '--history-fixture'], { timeout: 60000 });
+	const rom = readFileSync(join(work, 'history-overwrite.nds'));
+	const { core, output } = openRenderer(rom);
+	function capture(frame) {
+		const bytes = core.nds_2sf_capture(frame, 0);
+		assert.equal(bytes, 64, 'Expected the entire 32-frame PCM16 sample');
+		return Buffer.from(new Uint8Array(core.memory.buffer, core.nds_2sf_capture_data(), bytes));
+	}
+	let initial;
+	try {
+		for (let start = 0; start < rate; start += 2048) {
+			assert.equal(core.nds_2sf_render(output, 2048), 2048);
+			const words = new Uint32Array(core.memory.buffer, core.nds_2sf_snapshots(),
+				core.nds_2sf_snapshot_count() * snapshotWords).slice();
+			for (let offset = 0; offset < words.length; offset += snapshotWords) {
+				const [frame, control, address] = words.subarray(offset, offset + snapshotWords);
+				if (!(control >>> 31)) continue;
+				const sample = capture(frame);
+				if (!initial) {
+					assert.equal(sample.readInt16LE(0), 0, 'Original source starts at the sine zero crossing');
+					assert.equal(sample.readInt16LE(2), 2341, 'Original source starts with the authored PCM16 samples');
+					assert.equal(core.nds_2sf_capture(frame + 1, 0), -1, 'Reject a frame with no exact snapshot');
+					assert.equal(core.nds_2sf_capture(frame, 1), -2, 'Reject an idle channel');
+					initial = { frame, address, sample, rewritten: false };
+				} else if (!initial.rewritten && sample.readUInt32LE(0) === 0x1234abcd) {
+					assert.equal(address, initial.address, 'The same source address now contains different PCM');
+					assert.deepEqual(sample.subarray(4), initial.sample.subarray(4), 'Only the first PCM word changed');
+					assert.deepEqual(capture(initial.frame), initial.sample, 'Older observation must keep its own PCM bytes');
+					initial.rewritten = true;
+				}
+			}
+		}
+		assert(initial?.rewritten, 'Expected the playing program to rewrite its sample');
+		assert.equal(core.nds_2sf_capture(initial.frame, 0), -1, 'Expired sample observations should be rejected');
+	} finally {
+		core.nds_2sf_close();
+		core.free(output);
+	}
+	console.log('Capture history retains original PCM across an in-place rewrite and drops expired observations');
+}
+
 function readNativePcm(path, frames) {
 	const wave = readFileSync(path);
 	// Header produced by render_skyemu.c. The comparison uses only PCM.
@@ -114,6 +157,7 @@ function checkDemo(work) {
 		checkSnapshots(track, native, regular);
 		console.log(`${track}: ${frames} stereo frames match native PCM and ${regular.length} snapshots agree across block sizes`);
 	}
+	checkCaptureHistory(work);
 }
 
 async function checkRealFolder(work, folder) {

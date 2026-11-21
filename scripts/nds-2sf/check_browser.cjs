@@ -75,17 +75,17 @@ function silentAudit() {
 			: 0;
 		return { rms: Math.sqrt(squared / wave.length), peak, pitch };
 	}
-	window.twoSfAudit = () => ({
+	window.twoSfAudit = (index = -1) => ({
 		contexts: contexts.length,
-		currentTime: contexts.at(-1)?.currentTime ?? 0,
-		contextState: contexts.at(-1)?.state ?? 'idle',
+		currentTime: contexts.at(index)?.currentTime ?? 0,
+		contextState: contexts.at(index)?.state ?? 'idle',
 		outputs: monitored.length,
 		muted: monitored.every(({ mute }) => mute.gain.value === 0),
-		channels: monitored.at(-1)?.meters.map(measure) ?? [],
+		channels: monitored.at(index)?.meters.map(measure) ?? [],
 	});
 }
 
-const output = (page) => page.evaluate(() => window.twoSfAudit());
+const output = (page, index = -1) => page.evaluate(index => window.twoSfAudit(index), index);
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(read, predicate, label, timeoutMs = 15000) {
 	const deadline = Date.now() + timeoutMs;
@@ -115,8 +115,8 @@ const readPosition = (page) => page.locator('#position').evaluate((element) =>
 	(element instanceof HTMLProgressElement || element instanceof HTMLInputElement ? element.value : element.textContent),
 );
 
-async function measureSide(page, side, pitch) {
-	const { channels } = await until(() => output(page), (state) => {
+async function measureSide(page, side, pitch, index = -1) {
+	const { channels } = await until(() => output(page, index), (state) => {
 		const signal = state.channels[side], other = state.channels[1 - side];
 		return state.muted && signal && other && signal.rms > 0.005 && other.rms < signal.rms * 0.04 &&
 			Math.abs(signal.pitch - pitch) < 4;
@@ -145,6 +145,152 @@ function fixtureChannel(state, hz, pan) {
 		state.volume === 100 && state.pan === pan && Math.abs(state.rate - sampleRate) < 2;
 }
 
+async function holdC4(page, action) {
+	await page.keyboard.down('6');
+	try {
+		return await action();
+	} finally { await page.keyboard.up('6'); }
+}
+
+async function checkPausedAudition(page, frozenPosition, frozenClock) {
+	const audition = page.locator('#twoSfAuditionEnabled');
+	const reference = page.locator('#twoSfAuditionReference');
+	const status = () => page.locator('#twoSfAuditionStatus').textContent();
+	const ready = () => until(status, text => /Keyboard ready/i.test(text), 'The paused channel should be ready for keyboard audition');
+	const live = page.locator('#twoSfLiveEnabled'), channel = page.locator('#twoSfLiveChannel');
+	const silent = ({ channels }) => channels.length === 2 && channels.every(({ peak }) => peak < 1e-7);
+	const verifySongFrozen = async () => {
+		const state = await output(page, 0);
+		assert.equal(state.contextState, 'suspended', 'The reference audio should remain paused during audition');
+		assert.equal(state.currentTime, frozenClock, 'Keyboard audition must not advance the reference clock');
+		assert.equal(await readPosition(page), frozenPosition);
+	};
+
+	// Distinguish the authored sound from the reference with both pitch and pan.
+	await page.locator('#ndsPan').evaluate(input => {
+		input.value = '127';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	});
+	assert(!(await audition.isChecked()), 'Audition should be opt-in on Pause');
+	assert.equal(await reference.inputValue(), '60', 'Audition starts with C4 as the root note');
+	await audition.check();
+	await ready();
+	await holdC4(page, () => measureSide(page, 0, 440, 1));
+	await until(() => output(page, 1), silent, 'Releasing the key should silence the frozen sample');
+	await verifySongFrozen();
+
+	await reference.selectOption('72');
+	await ready();
+	await holdC4(page, () => measureSide(page, 0, 220, 1));
+	await until(() => output(page, 1), silent, 'The transposed note should release');
+	await channel.selectOption('15');
+	await until(status, text => /idle/i.test(text), 'An idle reference channel should have no playable sample');
+	await holdC4(page, async () => {
+		await wait(120);
+		assert(silent(await output(page, 1)), 'An idle reference channel must not replay the previous sample');
+		assert.equal((await output(page)).outputs, 2, 'Audition must not fall back to the authored Synth while enabled');
+	});
+	await verifySongFrozen();
+
+	await live.uncheck();
+	await page.locator('#twoSfAuditionTools').waitFor({ state: 'hidden' });
+	assert(!(await audition.isChecked()), 'Disabling Live should clear audition');
+	await holdC4(page, () => measureSide(page, 1, 261.626));
+	assert.equal(await page.locator('#ndsPan').inputValue(), '127', 'Audition must preserve authored Synth settings');
+	await verifySongFrozen();
+
+	// Arm audition again to verify that Resume clears it and restores normal
+	// keyboard routing even if audition was selected immediately before Resume.
+	await live.check();
+	await channel.selectOption('0');
+	await audition.check();
+	await ready();
+}
+
+async function checkReferenceCapture(page) {
+	const pausedPosition = await readPosition(page);
+	const audition = page.locator('#twoSfAuditionEnabled'), capture = page.locator('#twoSfCapture');
+	await page.locator('#twoSfAuditionReference').selectOption('72');
+	await audition.check();
+	await capture.click();
+	await page.locator('#ndsSampleEditor').waitFor();
+	assert.equal(await audition.isChecked(), false, 'Capture should return the keyboard to the editable Synth sound');
+	assert.equal(await page.locator('#twoSfLiveChannel').inputValue(), '0', 'Capture should retain the selected reference channel');
+	assert.match((await readReferenceChannel(page)).status, /Paused/);
+	assert.equal(await readPosition(page), pausedPosition, 'Capture should retain the paused song position');
+	assert.equal(await page.locator('#ndsMode').inputValue(), 'pcm16');
+	assert.equal(await page.locator('#ndsPan').inputValue(), '0');
+	assert.equal(await page.locator('#ndsSampleRoot').inputValue(), '72');
+	assert.equal(await page.locator('#ndsSampleEnd').inputValue(), '32');
+	assert.equal(await page.locator('#ndsLoop').isChecked(), true);
+	await holdC4(page, () => measureSide(page, 0, 220));
+
+	await page.locator('#ndsSaveSound').click();
+	assert.equal(await page.locator('#ndsSoundName').inputValue(), '2SF CH 1');
+	await page.locator('#ndsSaveSoundCommit').click();
+	await page.locator('#ndsSaveSoundDialog').waitFor({ state: 'hidden' });
+	const presetPath = '/presets/2SF CH 1.nds.json';
+	await page.locator(`#ndsSavedSounds option[value="${presetPath}"]`).waitFor({ state: 'attached' });
+
+	const panel = page.locator('#ndsFilesPanel');
+	if (!(await panel.isVisible())) await page.locator('#ndsFilesToggle').click();
+	await page.locator('#ndsNewJs').click();
+	await page.locator('#ndsFileName').fill('/capture-check.js');
+	await page.locator('#ndsFileNameConfirm').click();
+	await page.locator('#ndsFileNameDialog').waitFor({ state: 'hidden' });
+	await page.locator('#synthInputCodeTab').click();
+	const editor = page.locator('#synthCodeEditor');
+	await until(() => editor.inputValue(), value => value.includes('Write your DS performance'), 'Captured-preset test script should be editable');
+	const original = Buffer.alloc(64);
+	for (let i = 0; i < 32; i++) original.writeInt16LE(Math.round(12000 * Math.sin(2 * Math.PI * i / 32)), i * 2);
+	await editor.fill(`const nds = await useSoundChip("nds");
+const preset = await file(${JSON.stringify(presetPath)}, { type: "json" });
+const sample = preset.sample;
+if (preset.mode !== "pcm16" || preset.pan !== 0 || !preset.loop || sample.loopStartWords !== 0 ||
+    sample.lengthWords !== 16 || sample.rootNote !== 72 || Math.abs(sample.sampleRate - 16756991 / 1190) > 1e-8 ||
+    sample.bytes !== ${JSON.stringify(original.toString('base64'))}) {
+  throw new Error("Saved reference preset did not retain the source bytes and settings: " + JSON.stringify(preset));
+}
+await nds.loadPreset(CH2, preset);
+await nds.noteOn(CH2, "C4");`);
+	await page.locator('#synthCodeRunButton').click();
+	try {
+		const code = await until(() => page.evaluate(() => ({
+			state: document.getElementById('synthCodeState').textContent,
+			error: document.getElementById('synthCodeError').textContent,
+		})), value => /Running|Error/.test(value.state), 'Code should finish loading the saved 2SF sample');
+		assert.equal(code.state, 'Running', code.error);
+		await measureSide(page, 0, 220);
+	} finally { await page.locator('#synthCodeStopButton').click(); }
+	assert.equal(await readPosition(page), pausedPosition, 'Saving and running Code should leave the 2SF transport paused');
+	await panel.locator('button[data-file-path="/index.js"]').click();
+	await page.locator('#synthInputKeyboardTab').click();
+}
+
+async function checkPresentimentAudition(page) {
+	const channel = page.locator('#twoSfLiveChannel'), pause = page.locator('#pause');
+	const available = state => state.visible && state.active === 'Active' && state.format === 'IMA-ADPCM';
+	await channel.selectOption('4');
+	let paused;
+	for (let attempt = 0; attempt < 4; attempt++) {
+		await until(() => readReferenceChannel(page), state => available(state) && /Live/.test(state.status),
+			'Presentiment should trigger its CH5 percussion sample');
+		await pause.click();
+		paused = await until(() => readReferenceChannel(page), state => /Paused/.test(state.status), 'Wait for frozen real-song channel');
+		if (available(paused)) break;
+		await pause.click();
+	}
+	assert(available(paused), 'Pause should catch an active CH5 percussion sample');
+	const frozen = await readPosition(page);
+	await page.locator('#twoSfAuditionReference').selectOption('84');
+	await page.locator('#twoSfAuditionEnabled').check();
+	await until(() => page.locator('#twoSfAuditionStatus').textContent(), text => /Keyboard ready/i.test(text),
+		'Presentiment percussion should be captured from the paused ADPCM channel');
+	await holdC4(page, () => until(() => output(page, 1), state => state.muted && state.channels.some(({ rms }) => rms > 0.0001),
+		'The original real-song ADPCM sample should produce keyboard PCM'));
+	assert.equal(await readPosition(page), frozen, 'Audition should keep the real song paused');
+}
+
 async function checkSynth(page) {
 	await page.reload();
 	const noteStatus = page.locator('#ndsNoteStatus');
@@ -169,6 +315,7 @@ async function checkSynth(page) {
 	await page.locator('#ndsChannel').selectOption('0');
 	assert(await mode.locator('option[value="pulse"]').evaluate(option => option.disabled));
 	assert(await mode.locator('option[value="noise"]').evaluate(option => option.disabled));
+	await page.locator('#synthInputKeyboardTab').click();
 	const key = page.locator('.key[data-key="6"]');
 	await key.hover();
 	await page.mouse.down();
@@ -182,6 +329,9 @@ async function checkSynth(page) {
 		await measureSide(page, 1, 261.626);
 	} finally { await page.mouse.up(); }
 	await quiet();
+	const files = page.locator('#ndsFilesPanel');
+	if (!(await files.isVisible())) await page.locator('#ndsFilesToggle').click();
+	await files.locator('button[data-file-path="/index.js"]').click();
 	await page.locator('#synthInputCodeTab').click();
 	const editor = page.locator('#synthCodeEditor');
 	await until(() => editor.inputValue(), value => value.includes('legacy DS draft'), 'Previous single-file draft should survive migration');
@@ -517,11 +667,15 @@ async function check(name, origin, fixture) {
 		assert.equal((await output(page)).currentTime, freeze.currentTime);
 		assert.equal(await readPosition(page), pausedPosition);
 		assert.deepEqual(await readLive(), frozenChannel, 'A missing library should leave the paused song observation intact');
+		await checkPausedAudition(page, pausedPosition, freeze.currentTime);
 		await pause.click();
-		await until(() => output(page), (state) => state.currentTime > freeze.currentTime + 0.04, 'Playback clock should resume');
-		await measureSide(page, 0, 440);
+		await until(() => output(page, 0), (state) => state.currentTime > freeze.currentTime + 0.04, 'Playback clock should resume');
+		await page.locator('#twoSfAuditionTools').waitFor({ state: 'hidden' });
+		assert(!(await page.locator('#twoSfAuditionEnabled').isChecked()), 'Resuming playback should clear audition');
+		await measureSide(page, 0, 440, 0);
+		await holdC4(page, () => measureSide(page, 1, 261.626));
 		await stop.click();
-		await until(() => output(page), (state) => state.channels.every(({ peak }) => peak < 1e-7), 'Stop should silence the output');
+		await until(() => output(page, 0), (state) => state.channels.every(({ peak }) => peak < 1e-7), 'Stop should silence the output');
 		await until(readLive, state => !state.visible, 'Stop should clear the previous channel observation');
 
 		await importFiles(page, '#loadTwoSfFolder', fixture);
@@ -529,18 +683,31 @@ async function check(name, origin, fixture) {
 			value.includes('right-e5') || label.includes('right-e5')), 'Original folder should be selectable again');
 		await select.selectOption(restored.find(({ value, label }) => value.includes('right-e5') || label.includes('right-e5')).value);
 		await play.click();
-		const right = await measureSide(page, 1, 659.255);
+		const right = await measureSide(page, 1, 659.255, 0);
 		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 659.255, 127), 'Reference CH1 should reflect the new right-E5 song');
 		await stop.click();
 
-		let realSongs = null;
+		await select.selectOption(fixtureChoice('left-a4'));
+		await play.click();
+		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 440, 0), 'Play the left fixture again before testing Capture');
+		await pause.click();
+		await until(readLive, state => /Paused/.test(state.status) && fixtureChannel(state, 440, 0), 'Pause CH1 ready for Capture');
+		await checkReferenceCapture(page);
+		await stop.click();
+
+		let realSongs = null, realAudition = null;
 		if (realFolder) {
 			await page.reload();
 			await importFiles(page, '#loadTwoSfFolder', realFolder);
 			const realTracks = await until(() => tracks(page), (entries) => entries.length === 71, '71 tracks expected from the local set', 30000);
-			await select.selectOption(realTracks[0].value);
+			const presentiment = realTracks.find(({ label }) => /Presentiment/i.test(label));
+			await select.selectOption((presentiment ?? realTracks[0]).value);
 			await play.click();
 			await until(() => output(page), (state) => state.muted && state.channels.some(({ rms }) => rms > 0.0001), 'Expected playback from the local 2SF set', 30000);
+			if (presentiment) {
+				await checkPresentimentAudition(page);
+				realAudition = 'Presentiment CH5 IMA-ADPCM one-shot';
+			}
 			await stop.click();
 			realSongs = realTracks.length;
 		}
@@ -551,8 +718,10 @@ async function check(name, origin, fixture) {
 		const sample = await checkSample(page, fixture, name);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, synthModes, workspace, sample,
+		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample,
 			referenceLive: 'fixture registers and pan, frozen pause and channel switch, Live toggle, missing library and Stop',
+			referenceAudition: 'frozen 440 Hz sample, C5-root transposition, idle channel silence, authored keyboard restored after Live Off and Resume',
+			referenceCapture: 'captured settings and exact original PCM16 preset, 220 Hz from editable Synth and saved-preset Code',
 			physicalOutputMuted: true };
 	} finally {
 		await browser.close();

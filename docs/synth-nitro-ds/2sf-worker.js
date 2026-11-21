@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { assembleTwoSf } from './2sf_source.js';
 import { parseScspSsfTime } from '../synth-scsp/ssf_source.js';
-import { readTwoSfSnapshots } from './2sf-channel-monitor.js';
+import { readTwoSfSnapshots } from './2sf-channel-monitor.js?v=nds-2sf-audition-1';
+import { NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
 
 const RATE = 48000;
 const BLOCK_FRAMES = 2048;
 const MAX_ROM_BYTES = 64 * 1024 * 1024;
 const MAX_SECONDS = 60 * 60;
-const wasmUrl = new URL('./generated/skyemu-2sf.wasm?v=nds-live-1', import.meta.url);
+const wasmUrl = new URL('./generated/skyemu-2sf.wasm?v=nds-2sf-audition-1', import.meta.url);
+const captureErrors = {
+	[-1]: 'Sample history is unavailable at this playback position.',
+	[-2]: 'This channel was idle at Pause.',
+	[-3]: 'This channel has no supported sample in DS RAM.',
+	[-4]: 'This sample exceeded the 2SF history budget.',
+};
 let renderer = null;
 
 async function open(path, files) {
@@ -20,6 +27,8 @@ async function open(path, files) {
 	const core = instance.exports;
 	const monitorSupported = typeof core.nds_2sf_snapshots === 'function' &&
 		typeof core.nds_2sf_snapshot_count === 'function';
+	const auditionSupported = monitorSupported && typeof core.nds_2sf_capture === 'function' &&
+		typeof core.nds_2sf_capture_data === 'function';
 	core._initialize();
 	const image = core.malloc(rom.byteLength);
 	if (!image) throw new Error('Could not allocate the DS cartridge image.');
@@ -39,6 +48,16 @@ async function open(path, files) {
 	return {
 		totalFrames,
 		monitorSupported,
+		auditionSupported,
+		capture(frame, channel) {
+			if (!auditionSupported) return { unavailable: 'Update the 2SF renderer for keyboard audition.' };
+			const size = core.nds_2sf_capture(frame, channel);
+			if (size <= 0) return { unavailable: captureErrors[size] ?? 'This 2SF sample is unavailable.' };
+			const pointer = core.nds_2sf_capture_data();
+			if (!pointer || size > NDS_MAX_SAMPLE_BYTES || pointer + size > core.memory.buffer.byteLength)
+				return { unavailable: 'The 2SF renderer returned an invalid sample.' };
+			return { bytes: new Uint8Array(core.memory.buffer, pointer, size).slice() };
+		},
 		process() {
 			const count = Math.min(totalFrames - frame, BLOCK_FRAMES);
 			if (!count || core.nds_2sf_render(output, count) !== count) throw new Error('SkyEmu could not produce a PCM block.');
@@ -61,7 +80,11 @@ self.onmessage = async ({ data }) => {
 	try {
 		if (method === 'open') {
 			renderer = await open(data.path, data.files);
-			self.postMessage({ id, value: { totalFrames: renderer.totalFrames, monitorSupported: renderer.monitorSupported } });
+			const { totalFrames, monitorSupported, auditionSupported } = renderer;
+			self.postMessage({ id, value: { totalFrames, monitorSupported, auditionSupported } });
+		} else if (method === 'capture' && renderer) {
+			const value = renderer.capture(data.frame, data.channel);
+			self.postMessage({ id, value }, value.bytes ? [value.bytes.buffer] : []);
 		} else if (method === 'render' && renderer) {
 			const block = renderer.process();
 			const transfer = [block.left.buffer, block.right.buffer];

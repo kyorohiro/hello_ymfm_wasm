@@ -66,19 +66,23 @@ h2 { font-size: 1rem; }
 #playbackStatus { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #position { flex: 1; min-width: 1.2rem; }
 #time, #masterValue { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.two-sf-live {
+.two-sf-live, .two-sf-audition {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: .4rem .8rem;
+	font-size: .83rem;
+}
+.two-sf-live {
 	margin-top: .75rem;
 	padding-top: .65rem;
 	border-top: 1px solid #ddd7e1;
-	font-size: .83rem;
 }
-.two-sf-live label { display: inline-flex; align-items: center; gap: .35rem; }
-#twoSfLiveChannel { min-height: 2rem; padding: .18rem .45rem; }
-#twoSfLiveStatus, .two-sf-live dt { color: #565766; }
+.two-sf-audition { margin-top: .35rem; }
+.two-sf-live label, .two-sf-audition label { display: inline-flex; align-items: center; gap: .35rem; }
+#twoSfLiveChannel, #twoSfAuditionReference, #twoSfCapture { min-height: 2rem; padding: .18rem .45rem; }
+#twoSfLiveStatus, #twoSfAuditionStatus, .two-sf-live dt { color: #565766; }
+#twoSfAuditionStatus { min-width: 0; overflow-wrap: anywhere; }
 #twoSfLiveDetails { display: flex; flex-wrap: wrap; gap: .25rem .8rem; margin: 0; }
 #twoSfLiveDetails > div { display: flex; align-items: baseline; gap: .25rem; white-space: nowrap; }
 .two-sf-live dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 650; }

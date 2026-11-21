@@ -111,6 +111,17 @@ at most ten times per second during steady playback. **Pause** freezes the
 same snapshot for all sixteen channels, so you can inspect any of them while
 the song is paused. Turn off **Live view** to hide the values.
 
+While paused, choose a channel and enable **Audition on keyboard**. The
+**Reference key** (C4 by default) plays the recorded sample rate. A key starts
+the sample from its beginning with the captured pan, volume and loop.
+Audition supports PCM8, PCM16 and IMA-ADPCM from main RAM or ARM7 private WRAM.
+Song effects, driver envelopes and sample phase are outside the saved sound.
+
+With the audition ready, press **Capture to Synth** to load the sound into
+the current Synth slot and keep the song paused. Use **Save sound as…** to
+save it to `presets/`. The same sound is available to Code via `loadPreset()`.
+Turn Audition off to return to the edited sound without applying the capture.
+
 ## Build the local preview
 
 Building the browser preview requires Python 3.11+ and Emscripten. The script

@@ -6,7 +6,7 @@ import {
 } from './nds-core.js?v=nds-sample-1';
 
 export const NDS_MAX_WAV_BYTES = 16 * 1024 * 1024;
-const MIN_SAMPLE_RATE = Math.ceil(NDS_AUDIO_CLOCK / 65536);
+const MIN_SAMPLE_RATE = NDS_AUDIO_CLOCK / 65536;
 const MAX_LOOP_START_WORDS = 0xffff;
 const SAMPLE_FORMATS = {
 	pcm8: { framesPerWord: 4, headerWords: 0 },
@@ -17,8 +17,10 @@ const MAX_WAV_FRAMES = (NDS_MAX_SAMPLE_BYTES / 4 - 1) * SAMPLE_FORMATS.adpcm.fra
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export function validateNdsSampleRate(rate) {
-	if (!Number.isInteger(rate) || rate < MIN_SAMPLE_RATE || rate > NDS_AUDIO_CLOCK)
-		throw new RangeError(`DS sample rate must be an integer from ${MIN_SAMPLE_RATE} through ${NDS_AUDIO_CLOCK} Hz`);
+	// WAV headers use integer rates. A captured DS timer can yield a fraction,
+	// which is needed to reproduce the same timer at the reference note.
+	if (!Number.isFinite(rate) || rate < MIN_SAMPLE_RATE || rate > NDS_AUDIO_CLOCK)
+		throw new RangeError(`DS sample rate must be within the hardware range of ${MIN_SAMPLE_RATE.toFixed(2)}–${NDS_AUDIO_CLOCK} Hz`);
 	return rate;
 }
 

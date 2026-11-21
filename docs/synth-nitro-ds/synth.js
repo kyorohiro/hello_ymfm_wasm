@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
-import { createTwoSfPlayer } from './2sf-player.js?v=nds-live-1';
-import { setupTwoSfLiveView } from './2sf-live-view.js';
+import { createTwoSfPlayer } from './2sf-player.js?v=nds-2sf-audition-1';
+import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-2sf-audition-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createNdsAudio } from './nds-audio.js?v=nds-sample-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-code-presets-1';
-import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-code-presets-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-2sf-audition-1';
+import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-2sf-audition-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
-import { setupNdsFiles } from './nds-files.js?v=nds-sample-1';
-import { isNdsPresetPath } from './nds-preset.js';
+import { setupNdsFiles } from './nds-files.js?v=nds-2sf-audition-1';
+import { isNdsPresetPath, ndsPresetChannelSettings } from './nds-preset.js?v=nds-2sf-audition-1';
 
 const node = (id) => document.getElementById(id);
 const song = node('songSelect'), play = node('play'), pause = node('pause'), stop = node('stop');
@@ -20,6 +20,7 @@ visualizer.setMode('waveform');
 const MAX_SOURCE_BYTES = 128 * 1024 * 1024;
 const MAX_FILES = 1024;
 let files = [], timer = 0, audio, audioPromise, keyboard, code, monitoredOutput = null;
+let auditionAudio, auditionAudioPromise, auditionStatus = null, auditionRevision = 0, pausedPreset = null;
 let disposing = false;
 let liveEnabled = true, nextLiveUpdate = 0;
 const displayName = (path) => path.split('/').at(-1).replace(/\.(?:2sf|mini2sf)$/i, '');
@@ -35,11 +36,86 @@ const liveView = setupTwoSfLiveView({
 		liveEnabled = enabled;
 		renderLive(player.getState());
 	},
+	onSelectionChange: changeAudition,
+	onAuditionChange: changeAudition,
+	onCapture: captureToSynth,
 });
 
+function clearAudition() {
+	if (auditionStatus === null) return;
+	auditionRevision++;
+	auditionStatus = null;
+	pausedPreset = null;
+	keyboard.setAudition(null);
+}
+
 function renderLive(state) {
+	if (state.phase !== 'paused' || state.pending || state.switching || !liveEnabled) clearAudition();
 	nextLiveUpdate = performance.now() + 100;
-	liveView.render({ ...state, ...player.getMonitorState(liveEnabled) });
+	const monitor = player.getMonitorState(liveEnabled);
+	liveView.render({ ...state, ...monitor, canCapture: Boolean(pausedPreset), auditionStatus: auditionStatus ??
+		(monitor.auditionSupported === false ? 'Update the 2SF renderer for keyboard audition.' : null) });
+}
+
+async function changeAudition() {
+	const { channel, enabled, referenceNote } = liveView.getSelection();
+	const state = player.getState();
+	if (!enabled || !liveEnabled || state.phase !== 'paused' || state.pending || state.switching) {
+		clearAudition();
+		renderLive(state);
+		return;
+	}
+	const revision = ++auditionRevision;
+	auditionStatus = 'Reading the paused sample…';
+	pausedPreset = null;
+	keyboard.setAudition({ channel });
+	renderLive(state);
+	try {
+		const { bytes, sampleRate, loopStartWords, lengthWords, ...settings } = await player.readPausedSample(channel);
+		if (revision !== auditionRevision) return;
+		pausedPreset = {
+			...settings, name: '2SF CH ' + (channel + 1), shape: 'sine',
+			sample: { bytes, sampleRate, loopStartWords, lengthWords, rootNote: referenceNote },
+		};
+		auditionStatus = 'Keyboard ready · ' + pausedPreset.name;
+		keyboard.setAudition({ channel, patch: ndsPresetChannelSettings(pausedPreset) });
+	} catch (error) {
+		if (revision !== auditionRevision) return;
+		auditionStatus = error.message;
+	}
+	renderLive(player.getState());
+}
+
+function captureToSynth() {
+	if (!pausedPreset) return;
+	try {
+		const preset = pausedPreset;
+		keyboard.applyPreset(preset);
+		clearAudition();
+		liveView.disableAudition();
+		renderLive(player.getState());
+		status.textContent = `${preset.name} loaded into Synth. Use Save sound as… to keep it in Files.`;
+	} catch (error) {
+		report(error);
+	}
+}
+
+async function ensureAuditionAudio() {
+	if (auditionAudio?.context.state === 'closed') auditionAudio = null;
+	if (!auditionAudio) {
+		auditionAudioPromise ??= createNdsAudio({ volume: Number(master.value) / 100, onError: report }).then(async instance => {
+			if (disposing) {
+				await instance.dispose();
+				throw new DOMException('Keyboard audition stopped', 'AbortError');
+			}
+			auditionAudio = instance;
+			instance.setVolume(Number(master.value) / 100);
+			syncMonitor();
+		}).finally(() => { auditionAudioPromise = null; });
+		await auditionAudioPromise;
+	}
+	await auditionAudio.resume();
+	return auditionAudio;
 }
 
 async function ensureAudio() {
@@ -64,16 +140,18 @@ async function ensureAudio() {
 function syncMonitor() {
 	if (disposing) return;
 	const synthActive = keyboard?.isPlaying() || code?.isRunning();
+	const auditionActive = keyboard?.isAuditionPlaying();
 	const phase = player.getState().phase;
 	const reference = !synthActive && (phase === 'playing' || phase === 'paused');
-	const next = (reference ? player.analyser : audio?.analyser) ?? null;
+	const next = (auditionActive ? auditionAudio?.analyser : reference ? player.analyser : audio?.analyser) ?? null;
 	if (next !== monitoredOutput) {
 		monitoredOutput = next;
 		if (next) visualizer.connect(next.context, next);
 		else visualizer.disconnect();
 	}
 	visualizer.setRunning(reference ? phase === 'playing' : synthActive);
-	node('monitorSource').textContent = reference ? 'Monitoring 2SF' : 'Monitoring Synth';
+	node('monitorSource').textContent = auditionActive ? 'Monitoring 2SF keyboard audition'
+		: reference ? 'Monitoring 2SF' : 'Monitoring Synth';
 }
 
 function render(state) {
@@ -152,6 +230,7 @@ master.addEventListener('input', () => {
 	master.classList.toggle('boost', percent > 100);
 	player.setVolume(percent / 100);
 	audio?.setVolume(percent / 100);
+	auditionAudio?.setVolume(percent / 100);
 	visualizer.wake();
 });
 
@@ -165,7 +244,7 @@ for (const button of monitorButtons) button.addEventListener('click', () => {
 });
 
 const getAudio = () => audio;
-keyboard = setupNdsKeyboard({ ensureAudio, getAudio, onActivity: syncMonitor, onError: report });
+keyboard = setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, onActivity: syncMonitor, onError: report });
 const setStatus = message => { if (!disposing) status.textContent = message; };
 const project = createNdsProject({ starterCode: NDS_STARTER_CODE, starterFiles: NDS_STARTER_FILES });
 const projectFiles = setupNdsFiles({
@@ -233,7 +312,7 @@ node('stopAll').addEventListener('click', async event => {
 	player.stop();
 	try {
 		await Promise.all([keyboard.stop(), code.stop()]);
-		await audio?.chip.allSoundOff();
+		await Promise.all([audio?.chip.allSoundOff(), auditionAudio?.chip.allSoundOff()]);
 		status.textContent = 'All sound stopped.';
 	} catch (error) { report(error); }
 	finally { button.disabled = false; }
@@ -254,6 +333,6 @@ window.addEventListener('pagehide', event => {
 	void (async () => {
 		await code.controls.flush().catch(() => {});
 		await code.dispose().catch(() => {});
-		await Promise.allSettled([projectFiles.dispose(), audio?.dispose()]);
+		await Promise.allSettled([projectFiles.dispose(), audio?.dispose(), auditionAudio?.dispose()]);
 	})();
 });

@@ -69,9 +69,11 @@ node scripts/nds-2sf/check_browser.cjs
 
 The checks verify Native and WASM PCM parity for two authored tracks and
 verify that channel snapshots stay aligned at different render block sizes.
+The PCM capture check rewrites a sample in ARM7 private WRAM and checks that
+both the earlier snapshot and the new one retain their own bytes.
 The browser check verifies loading, pitch, stereo balance, Live channel state,
-Pause / Resume, Stop and recovery from a missing library with Chromium and
-WebKit output muted.
+Pause / Resume, Stop, recovery from a missing library, and the paused audition
+and preset workflow with Chromium and WebKit output muted.
 
 To compare the first eight seconds of each song in a local set, run the parity
 checker with `--real-folder="/path/to/set"`. The supplied Chrono Trigger set

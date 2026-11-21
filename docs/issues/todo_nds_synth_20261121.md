@@ -120,14 +120,14 @@ register documentation. The existing SkyEmu player remains the song source.
 - [x] Evaluate per-CH output muting. SkyEmu exposes no mute mask in the pinned
       API. A mute hook would need to skip mixer contributions while preserving
       register values and decoder progression.
-- [ ] Freeze a selected channel on Pause, audition it independently, then Capture
-      its bounded sample/settings to Synth. Preserve the paused song and clearly
-      label driver-generated behavior that a static capture cannot reproduce.
-      Before audition, retain sample bytes for the same PCM frame as the
-      frozen registers. Start with bounded main RAM and ARM7 private WRAM
-      reads, and verify in-place RAM changes, repeat mode and ADPCM headers.
-      Four tested Chrono Trigger tracks used IMA-ADPCM from main RAM in their
-      first 12 seconds. The authored PCM fixture uses ARM7 private WRAM.
+- [x] Audition a paused channel on the keyboard, Capture its sample/settings
+      into the current Synth slot, and save a preset usable with `loadPreset()`.
+      Preserve the paused song throughout. Start notes from the sample's
+      beginning at the selected reference tuning.
+      Keep up to 48 PCM-timestamped observations and 8 MiB of sample bytes
+      from main RAM or ARM7 private WRAM. Verify the same-address rewrite
+      fixture and the captured PCM16 bytes, timer-derived rate, loop and pan.
+      The browser check also auditions a Chrono Trigger ADPCM one-shot.
 - [ ] Compare captured sound with reference playback under equivalent settings.
       Successful 2SF playback alone is not proof of Synth-core correctness.
 

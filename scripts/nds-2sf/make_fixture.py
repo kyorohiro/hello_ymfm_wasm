@@ -27,7 +27,7 @@ def note_registers(frequency, pan):
     return struct.pack("<II", timer, control)
 
 
-def make_rom():
+def make_rom(*, overwrite_sample=False):
     # Original ARM7 test program. LDR literals are patched below from their
     # positions. ARM9 idles while ARM7 sets up a looping sine on hardware CH0.
     code = [
@@ -48,11 +48,29 @@ def make_rom():
         0xE5801000,  # str r1, [r0]
         0xEAFFFFFE,  # b .
     ]
-    literals = (
+    literals = [
         (0, 2, 0x04000304), (3, 2, 0x04000500), (4, 1, 0x807F),
         (6, 0, 0x04000400), (7, 1, ARM7_ENTRY + PCM_OFFSET),
         (9, 1, 0), (13, 1, 0),
-    )
+    ]
+    if overwrite_sample:
+        # Leave time for the decoder to loop over the initial bytes, then
+        # rewrite the first PCM word without changing any channel register.
+        end = len(code) - 1
+        code[end:] = [
+            0,           # ldr r3, =delay
+            0xE2533001,  # subs r3, r3, #1
+            0x1AFFFFFD,  # bne subs
+            0,           # ldr r2, =PCM address
+            0,           # ldr r1, =0x1234ABCD
+            0xE5821000,  # str r1, [r2]
+            0xEAFFFFFE,  # b .
+        ]
+        literals[5:5] = [
+            (end, 3, 0x100000),
+            (end + 3, 2, ARM7_ENTRY + PCM_OFFSET),
+            (end + 4, 1, 0x1234ABCD),
+        ]
     for instruction, register, value in literals:
         distance = (len(code) - instruction - 2) * 4  # ARM PC points two instructions ahead.
         code[instruction] = 0xE59F0000 | (register << 12) | distance
@@ -95,4 +113,12 @@ def make_fixture(directory):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
-    make_fixture(parser.parse_args().output)
+    parser.add_argument("--history-fixture", action="store_true",
+                        help="generate a ROM that rewrites its playing PCM buffers")
+    args = parser.parse_args()
+    if args.history_fixture:
+        args.output.mkdir(parents=True, exist_ok=True)
+        rom, _ = make_rom(overwrite_sample=True)
+        (args.output / "history-overwrite.nds").write_bytes(rom)
+    else:
+        make_fixture(args.output)

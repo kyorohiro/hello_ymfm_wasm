@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
-import { getNdsSampleLayout, readNdsSampleRange, validateNdsSampleRate } from './nds-sample.js';
+import { getNdsSampleLayout, readNdsSampleRange, validateNdsSampleRate } from './nds-sample.js?v=nds-2sf-audition-1';
 
 export const NDS_PRESET_FORMAT = 'tetorica-nds-sound';
 export const NDS_PRESET_EXTENSION = '.nds.json';

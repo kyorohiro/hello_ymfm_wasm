@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { decodeTwoSfSnapshot, TWO_SF_SNAPSHOT_WORDS } from './2sf-channel-monitor.js';
+import { decodeTwoSfSampleSettings, decodeTwoSfSnapshot, TWO_SF_SNAPSHOT_WORDS, validateTwoSfChannelSample } from './2sf-channel-monitor.js?v=nds-2sf-audition-1';
 
 const RATE = 48000;
 const BUFFER_SECONDS = 0.25;
@@ -9,7 +9,7 @@ const MONITOR_BLOCK_LIMIT = 48;
 const MONITOR_SNAPSHOT_LIMIT = 128;
 
 function openWorker() {
-	const worker = new Worker(new URL('./2sf-worker.js?v=nds-live-1', import.meta.url), { type: 'module' });
+	const worker = new Worker(new URL('./2sf-worker.js?v=nds-2sf-audition-1', import.meta.url), { type: 'module' });
 	let pending = null, id = 0, closed = false;
 	function close(error = new DOMException('Playback stopped', 'AbortError')) {
 		if (closed) return;
@@ -91,10 +91,41 @@ export function createTwoSfPlayer({ onChange, onError }) {
 
 	function getMonitorState(enabled = true) {
 		const session = current;
-		if (!session?.monitorSupported || !enabled)
-			return { monitorSupported: session?.monitorSupported ?? null, snapshot: null };
-		const row = session.phase === 'paused' ? session.pausedSnapshot : snapshotAt(session, monitorTime());
-		return { monitorSupported: true, snapshot: row ? decodeTwoSfSnapshot(row) : null };
+		const monitorSupported = session?.monitorSupported ?? null;
+		const auditionSupported = session?.auditionSupported ?? null;
+		const row = monitorSupported && enabled &&
+			(session.phase === 'paused' ? session.pausedSnapshot : snapshotAt(session, monitorTime()));
+		return { monitorSupported, auditionSupported, snapshot: row ? decodeTwoSfSnapshot(row) : null };
+	}
+
+	async function readPausedSample(channel) {
+		const session = current, row = session?.pausedSnapshot;
+		const stillPaused = () => session === current && session?.phase === 'paused' &&
+			session.pausedSnapshot === row && !pending && !switching;
+		const checkPaused = () => {
+			if (!stillPaused()) throw new DOMException('Paused song changed.', 'AbortError');
+		};
+		checkPaused();
+		if (!row) throw new Error('Pause after the song has started to audition a channel.');
+		if (!session.auditionSupported) throw new Error('Update the 2SF renderer for keyboard audition.');
+		const settings = decodeTwoSfSampleSettings(row, channel);
+		// The Worker allows one RPC at a time. Drain any render already in
+		// flight and serialize requests from rapid channel/reference changes.
+		const request = (session.sampleRequest?.catch(() => {}) ?? Promise.resolve()).then(async () => {
+			await session.renderRequest;
+			checkPaused();
+			const { bytes, unavailable } = await session.worker.ask('capture', { frame: row[0], channel });
+			checkPaused();
+			if (unavailable) throw new Error(unavailable);
+			validateTwoSfChannelSample(settings, bytes);
+			return { ...settings, bytes };
+		});
+		session.sampleRequest = request;
+		try {
+			return await request;
+		} finally {
+			if (session.sampleRequest === request) session.sampleRequest = null;
+		}
 	}
 
 	function ensureAudio() {
@@ -170,13 +201,16 @@ export function createTwoSfPlayer({ onChange, onError }) {
 		session.filling = true;
 		try {
 			while (!session.ended && session.phase === 'playing' && session.next - audio.currentTime < BUFFER_SECONDS) {
-				const block = await session.worker.ask('render');
+				session.renderRequest = session.worker.ask('render');
+				const block = await session.renderRequest;
+				session.renderRequest = null;
 				if (current !== session) return;
 				schedule(session, block);
 			}
 		} catch (error) {
 			finish(session, 'error', error);
 		} finally {
+			session.renderRequest = null;
 			session.filling = false;
 			if (current === session && session.phase === 'playing' && !session.ended) {
 				session.timer = setTimeout(() => refill(session), 24);
@@ -197,14 +231,15 @@ export function createTwoSfPlayer({ onChange, onError }) {
 		}
 		const session = {
 			path, files, worker, phase: 'playing', nodes: new Set(), played: 0, totalFrames: 0,
-			monitorSupported: null, scheduledFrames: 0, timeline: [], snapshots: [],
+			monitorSupported: null, auditionSupported: null, scheduledFrames: 0, timeline: [], snapshots: [],
 		};
 		pending = session;
 		notify();
 		try {
 			ensureAudio();
 			if (current?.phase !== 'paused') await audio.resume();
-			({ totalFrames: session.totalFrames, monitorSupported: session.monitorSupported } =
+			({ totalFrames: session.totalFrames, monitorSupported: session.monitorSupported,
+				auditionSupported: session.auditionSupported } =
 				await worker.ask('open', { path, files }));
 			const blocks = [];
 			for (let index = 0; index < 4; index++) {
@@ -248,6 +283,8 @@ export function createTwoSfPlayer({ onChange, onError }) {
 				clearTimeout(session.timer);
 				await audio.suspend();
 			} else {
+				await session.sampleRequest?.catch(() => {});
+				if (current !== session) return;
 				await audio.resume();
 				if (current !== session) return;
 				session.phase = 'playing';
@@ -271,7 +308,7 @@ export function createTwoSfPlayer({ onChange, onError }) {
 	}
 
 	return {
-		getState, getMonitorState, play, togglePause, stop,
+		getState, getMonitorState, readPausedSample, play, togglePause, stop,
 		matches(path, files) { return current?.path === path && current.files === files; },
 		setVolume(value) {
 			volume = value;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { midiToNoteName } from '../synth/synth_keyboard.js';
-import { encodeNdsSample, normalizeNdsSampleRange, readNdsSample, readNdsSampleRange, readNdsWav, NDS_MAX_WAV_BYTES } from './nds-sample.js';
-import { ndsPresetChannelSettings } from './nds-preset.js?v=nds-code-presets-1';
+import { encodeNdsSample, normalizeNdsSampleRange, readNdsSample, readNdsSampleRange, readNdsWav, NDS_MAX_WAV_BYTES } from './nds-sample.js?v=nds-2sf-audition-1';
+import { ndsPresetChannelSettings } from './nds-preset.js?v=nds-2sf-audition-1';
 
 export const isNdsSampleMode = mode => mode === 'pcm8' || mode === 'pcm16' || mode === 'adpcm';
 const formatNames = { pcm8: 'PCM8', pcm16: 'PCM16', adpcm: 'IMA-ADPCM' };
