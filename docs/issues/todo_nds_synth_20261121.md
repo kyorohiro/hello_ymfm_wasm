@@ -40,8 +40,8 @@ a product hypothesis, not a measured demographic claim.
       dependencies and browser/WASM feasibility. Confirm which CPU, timer,
       memory and interrupt services the selected engine needs for game drivers.
 - [x] Verify CPU-free sound rendering with vio2sf/DeSmuME in WASM.
-- [ ] Expose bounded decoder/channel state for UI observation; the prototype
-      only reads register mirrors, not decoder position or dynamic busy state.
+- [x] Expose bounded decoder and channel state from SkyEmu for UI observation.
+      The bridge records the register mirrors and sample position.
 - [ ] Preserve upstream source attribution and a readable, reproducible source
       distribution consistent with Tetorica's modification/reuse goal.
 
@@ -113,11 +113,21 @@ register documentation. The existing SkyEmu player remains the song source.
       then validate user-provided sets. Do not bundle commercial game assets.
 - [ ] Add song selection, Play/Pause/Resume/Stop and error reporting; preserve
       the current instrument independently from song transport.
-- [ ] Expose rate-limited visible-channel state and per-CH output controls where
-      the selected engine permits; keep muting separate from emulation state.
+- [x] Show a selected physical channel during 2SF playback. Use PCM-timestamped
+      SkyEmu register snapshots and refresh the visible view at up to 10 Hz.
+      Pause freezes the snapshot for all 16 channels. Verify both browsers,
+      with authored fixtures for stereo pan, sample format and pause behavior.
+- [x] Evaluate per-CH output muting. SkyEmu exposes no mute mask in the pinned
+      API. A mute hook would need to skip mixer contributions while preserving
+      register values and decoder progression.
 - [ ] Freeze a selected channel on Pause, audition it independently, then Capture
       its bounded sample/settings to Synth. Preserve the paused song and clearly
       label driver-generated behavior that a static capture cannot reproduce.
+      Before audition, retain sample bytes for the same PCM frame as the
+      frozen registers. Start with bounded main RAM and ARM7 private WRAM
+      reads, and verify in-place RAM changes, repeat mode and ADPCM headers.
+      Four tested Chrono Trigger tracks used IMA-ADPCM from main RAM in their
+      first 12 seconds. The authored PCM fixture uses ARM7 private WRAM.
 - [ ] Compare captured sound with reference playback under equivalent settings.
       Successful 2SF playback alone is not proof of Synth-core correctness.
 

@@ -15,6 +15,7 @@ const realFolder = /^--real-folder=(.+)$/.exec(args[0] ?? '')?.[1];
 assert(args.length === 0 || (args.length === 1 && realFolder),
 	'Usage: node scripts/nds-2sf/check_skyemu_wasm.mjs [--real-folder=PATH]');
 const rate = 48000;
+const snapshotWords = 1 + 16 * 5;
 const wasmPath = join(root, 'build/nds-2sf/skyemu-2sf.wasm');
 const wasm = new WebAssembly.Module(readFileSync(wasmPath));
 assert.deepEqual(WebAssembly.Module.imports(wasm), [
@@ -39,18 +40,53 @@ function openRenderer(rom) {
 	return { core, output };
 }
 
-function render(rom, frameCount, blockSize) {
+function render(rom, frameCount, blockSize, snapshots) {
 	const { core, output } = openRenderer(rom);
 	const pcm = Buffer.alloc(frameCount * 4);
 	for (let start = 0; start < frameCount; start += blockSize) {
 		const count = Math.min(blockSize, frameCount - start);
 		assert.equal(core.nds_2sf_render(output, count), count);
 		pcm.set(new Uint8Array(core.memory.buffer, output, count * 4), start * 4);
+		if (snapshots) {
+			const snapshotCount = core.nds_2sf_snapshot_count();
+			assert(snapshotCount <= 9, 'A render should produce a bounded number of snapshots');
+			if (snapshotCount) {
+				const words = new Uint32Array(core.memory.buffer, core.nds_2sf_snapshots(), snapshotCount * snapshotWords);
+				for (let offset = 0; offset < words.length; offset += snapshotWords)
+					snapshots.push(words.slice(offset, offset + snapshotWords));
+			}
+		}
 	}
 	core.nds_2sf_close();
 	assert.equal(core.nds_2sf_render(output, 1), 0, 'Reject render after closing');
 	core.free(output);
 	return pcm;
+}
+
+function checkSnapshots(track, pcm, snapshots) {
+	assert(snapshots.length >= 2, 'Expected a baseline and emulator-tick snapshots');
+	assert.equal(snapshots[0][0], 0, 'Baseline snapshot should start at output frame zero');
+	assert(snapshots.every(([frame], index) => index === 0 || frame > snapshots[index - 1][0]),
+		'Snapshot positions should be strictly increasing in the 48 kHz output timeline');
+	const sound = snapshots.find(row => row[1] >>> 31);
+	assert(sound, 'The fixture should key on hardware CH0');
+	const firstSignal = Math.floor(pcm.findIndex((byte) => byte !== 0) / 4);
+	assert(firstSignal >= 0 && Math.abs(sound[0] - firstSignal) <= 1024,
+		`CH0 activity should line up with the first PCM within one tick: snapshot ${sound[0]}, audio ${firstSignal}`);
+
+	const last = snapshots.at(-1);
+	const [, control, address, timerLoop, length] = last;
+	const panRight = track === 'right-e5';
+	assert.equal(control >>> 31, 1, 'CH0 should remain active');
+	assert.equal((control >>> 29) & 3, 1, 'CH0 reads back as PCM16');
+	assert.equal(control & 127, 100, 'CH0 volume should equal the authored setting');
+	assert.equal((control >>> 8) & 3, 0, 'CH0 uses the unattenuated divider setting');
+	assert.equal((control >>> 16) & 127, panRight ? 127 : 0, 'CH0 pan should match the selected track');
+	assert.equal(address, 0x03800100, 'CH0 source should match the fixture wave address');
+	assert.equal(timerLoop, panRight ? 64742 : 64346, 'CH0 timer and loop start should match the fixture');
+	assert.equal(length, 16, 'CH0 loop length should match the 32 PCM16 samples');
+	for (let channel = 1; channel < 16; channel++)
+		assert.equal(last[1 + channel * 5] >>> 31, 0, `Hardware CH${channel} should stay idle`);
 }
 
 function readNativePcm(path, frames) {
@@ -71,9 +107,12 @@ function checkDemo(work) {
 	for (const track of ['left-a4', 'right-e5']) {
 		const rom = readFileSync(join(work, track + '.nds'));
 		const native = readNativePcm(join(work, track + '.wav'), frames);
-		for (const blockSize of [2048, 257])
-			assert(render(rom, frames, blockSize).equals(native), `${track}: ${blockSize}-frame blocks differed from Native PCM`);
-		console.log(`${track}: ${frames} stereo frames match native PCM with 2048- and 257-frame blocks`);
+		const regular = [], small = [];
+		assert(render(rom, frames, 2048, regular).equals(native), `${track}: 2048-frame blocks differed from Native PCM`);
+		assert(render(rom, frames, 257, small).equals(native), `${track}: 257-frame blocks differed from Native PCM`);
+		assert.deepEqual(small, regular, `${track}: snapshots changed with browser render-block size`);
+		checkSnapshots(track, native, regular);
+		console.log(`${track}: ${frames} stereo frames match native PCM and ${regular.length} snapshots agree across block sizes`);
 	}
 }
 

@@ -124,6 +124,27 @@ async function measureSide(page, side, pitch) {
 	return channels;
 }
 
+function readReferenceChannel(page) {
+	return page.evaluate(() => {
+		const text = name => document.getElementById('twoSfLive' + name).textContent.trim();
+		return {
+			status: text('Status'),
+			visible: !document.getElementById('twoSfLiveDetails').hidden,
+			active: text('Active'),
+			format: text('Format'),
+			volume: Number(text('Volume')),
+			pan: Number(text('Pan')),
+			rate: Number(text('Rate').replace(/[,\s]|Hz/g, '')),
+		};
+	});
+}
+
+function fixtureChannel(state, hz, pan) {
+	const sampleRate = 16756991 / Math.round(16756991 / (hz * 32));
+	return state.visible && state.active === 'Active' && state.format === 'PCM16' &&
+		state.volume === 100 && state.pan === pan && Math.abs(state.rate - sampleRate) < 2;
+}
+
 async function checkSynth(page) {
 	await page.reload();
 	const noteStatus = page.locator('#ndsNoteStatus');
@@ -454,15 +475,33 @@ async function check(name, origin, fixture) {
 			return entry.value;
 		};
 		const play = page.locator('#play'), pause = page.locator('#pause'), stop = page.locator('#stop');
+		const live = page.locator('#twoSfLiveEnabled'), channel = page.locator('#twoSfLiveChannel');
+		const readLive = () => readReferenceChannel(page);
+		await until(() => live.isChecked(), Boolean, 'Reference Live should be enabled by default');
+		assert.equal(await channel.locator('option').count(), 16, 'All physical DS channels should be selectable');
+		assert.equal((await readLive()).visible, false, 'No channel data is shown before playback');
 		await select.selectOption(fixtureChoice('left-a4'));
 		await play.click();
 		const left = await measureSide(page, 0, 440);
+		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 440, 0), 'Expected CH1 settings of the audible left-A4 song');
 		await pause.click();
 		const freeze = await until(() => output(page), (state) => state.contextState === 'suspended', 'Paused audio context expected');
 		const pausedPosition = await readPosition(page);
+		const frozenChannel = await until(readLive, state => /Paused/.test(state.status) && fixtureChannel(state, 440, 0), 'Reference CH1 should freeze when paused');
+		await channel.selectOption('15');
+		await until(readLive, state => state.visible && /Paused/.test(state.status) && state.active === 'Idle',
+			'Selecting CH16 should show its idle state from the paused frame');
+		await live.uncheck();
+		await until(readLive, state => !state.visible && /Off/i.test(state.status), 'Turning Live off should hide the channel readings');
+		await live.check();
+		await until(readLive, state => state.visible && /Paused/.test(state.status) && state.active === 'Idle',
+			'Turning Live back on should restore the paused CH16');
+		await channel.selectOption('0');
+		assert.deepEqual(await readLive(), frozenChannel, 'Selecting CH1 again should reveal the same frozen settings');
 		await wait(200);
 		assert.equal((await output(page)).currentTime, freeze.currentTime);
 		assert.equal(await readPosition(page), pausedPosition);
+		assert.deepEqual(await readLive(), frozenChannel, 'Paused channel readings should stay fixed');
 		assert.match(await pause.innerText(), /Resume/i);
 
 		await importFiles(page, '#loadTwoSfFiles', {
@@ -477,11 +516,13 @@ async function check(name, origin, fixture) {
 		assert.match(await pause.innerText(), /Resume/i);
 		assert.equal((await output(page)).currentTime, freeze.currentTime);
 		assert.equal(await readPosition(page), pausedPosition);
+		assert.deepEqual(await readLive(), frozenChannel, 'A missing library should leave the paused song observation intact');
 		await pause.click();
 		await until(() => output(page), (state) => state.currentTime > freeze.currentTime + 0.04, 'Playback clock should resume');
 		await measureSide(page, 0, 440);
 		await stop.click();
 		await until(() => output(page), (state) => state.channels.every(({ peak }) => peak < 1e-7), 'Stop should silence the output');
+		await until(readLive, state => !state.visible, 'Stop should clear the previous channel observation');
 
 		await importFiles(page, '#loadTwoSfFolder', fixture);
 		const restored = await until(() => tracks(page), (entries) => entries.some(({ value, label }) =>
@@ -489,6 +530,7 @@ async function check(name, origin, fixture) {
 		await select.selectOption(restored.find(({ value, label }) => value.includes('right-e5') || label.includes('right-e5')).value);
 		await play.click();
 		const right = await measureSide(page, 1, 659.255);
+		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 659.255, 127), 'Reference CH1 should reflect the new right-E5 song');
 		await stop.click();
 
 		let realSongs = null;
@@ -509,7 +551,9 @@ async function check(name, origin, fixture) {
 		const sample = await checkSample(page, fixture, name);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, synthModes, workspace, sample, physicalOutputMuted: true };
+		return { browser: name, left, right, realSongs, synthModes, workspace, sample,
+			referenceLive: 'fixture registers and pan, frozen pause and channel switch, Live toggle, missing library and Stop',
+			physicalOutputMuted: true };
 	} finally {
 		await browser.close();
 	}

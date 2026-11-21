@@ -27,12 +27,48 @@ static struct tm rtc = {.tm_year = 100, .tm_mon = 0, .tm_mday = 1, .tm_wday = 6}
 #undef printf
 #undef fopen
 
-enum { MAX_ROM_BYTES = 64 * 1024 * 1024, MAX_RENDER_FRAMES = 2048 };
+enum {
+	MAX_ROM_BYTES = 64 * 1024 * 1024,
+	MAX_RENDER_FRAMES = 2048,
+	MAX_RENDER_TICKS = 8,
+	CHANNELS = 16,
+	CHANNEL_WORDS = 5,
+	SNAPSHOT_WORDS = 1 + CHANNELS * CHANNEL_WORDS,
+};
 _Static_assert(SE_AUDIO_SAMPLE_RATE == 48000, "Update the 2SF frontend sample rate");
 
 static sb_emu_state_t emu;
 static nds_t console;
 static nds_scratch_t scratch;
+static uint32_t rendered_frames;
+static unsigned snapshot_count;
+static uint32_t snapshots[1 + MAX_RENDER_TICKS][SNAPSHOT_WORDS];
+
+// A row carries the absolute stereo PCM frame, then each channel's CNT, SAD,
+// packed TMR/PNT, LEN and running decoder position. CNT bit 31 is cleared by
+// SkyEmu when a one-shot ends. Reading register mirrors does not invoke MMIO.
+static void take_snapshot(uint32_t frame) {
+	uint32_t *row = snapshots[snapshot_count++];
+	*row++ = frame;
+	for (unsigned channel = 0; channel < CHANNELS; ++channel) {
+		const unsigned offset = channel * 16;
+		*row++ = nds7_io_read32(&console, NDS7_SOUND0_CNT + offset);
+		*row++ = nds7_io_read32(&console, NDS7_SOUND0_SAD + offset);
+		*row++ = nds7_io_read32(&console, NDS7_SOUND0_TMR + offset);
+		*row++ = nds7_io_read32(&console, NDS7_SOUND0_LEN + offset);
+		*row++ = console.audio.channel[channel].sample;
+	}
+}
+
+// Rows belong to the most recent successful render and stay valid through the
+// next render or close. The final tick's state may follow the current block.
+const uint32_t *nds_2sf_snapshots(void) {
+	return snapshots[0];
+}
+
+unsigned nds_2sf_snapshot_count(void) {
+	return snapshot_count;
+}
 
 bool se_load_bios_file(const char *name, const char *path, const char *file,
                       uint8_t *data, size_t size) {
@@ -59,6 +95,8 @@ void nds_2sf_close(void) {
 	if (emu.rom_loaded) nds_unload(&console, &scratch);
 	free(emu.rom_data);
 	memset(&emu, 0, sizeof emu);
+	rendered_frames = 0;
+	snapshot_count = 0;
 }
 
 int nds_2sf_open(const uint8_t *rom, size_t size) {
@@ -79,16 +117,28 @@ int nds_2sf_open(const uint8_t *rom, size_t size) {
 }
 
 unsigned nds_2sf_render(int16_t *output, unsigned frames) {
+	snapshot_count = 0;
 	if (!emu.rom_loaded || !output || !frames || frames > MAX_RENDER_FRAMES) return 0;
 	sb_ring_buffer_t *ring = &emu.audio_ring_buff;
 	const unsigned samples = frames * 2;
-	for (unsigned tick = 0; sb_ring_buffer_size(ring) < samples; ++tick) {
+	if (!rendered_frames) take_snapshot(0);
+	unsigned buffered = sb_ring_buffer_size(ring);
+	for (unsigned tick = 0; buffered < samples; ++tick) {
 		// A DS frame produces about 800 stereo frames. A sleeping driver can
 		// return without advancing. Let the host report failure in that case.
-		if (tick == 8) return 0;
+		if (tick == MAX_RENDER_TICKS) {
+			snapshot_count = 0;
+			return 0;
+		}
 		nds_tick(&emu, &console, &scratch);
+		const unsigned available = sb_ring_buffer_size(ring);
+		// Use the ring's queued PCM count. Its read/write cursors periodically
+		// wrap into range, and prior renders can leave part of a tick queued.
+		if (available > buffered) take_snapshot(rendered_frames + available / 2);
+		buffered = available;
 	}
 	for (unsigned sample = 0; sample < samples; ++sample)
 		output[sample] = ring->data[ring->read_ptr++ % SB_AUDIO_RING_BUFFER_SIZE];
+	rendered_frames += frames;
 	return frames;
 }

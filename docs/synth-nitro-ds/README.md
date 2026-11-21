@@ -104,6 +104,13 @@ transport provides **Pause / Resume** and **Stop**, with a waveform display
 and Master control. Original files stay in memory for the current session.
 If a new song cannot start, the previous session remains available.
 
+**Live view** follows the song at the playback position. Choose **CH1–CH16**
+to see channel activity, format, hardware volume, pan and sample or step rate.
+The display samples the emulated DS about once per video frame and refreshes
+at most ten times per second during steady playback. **Pause** freezes the
+same snapshot for all sixteen channels, so you can inspect any of them while
+the song is paused. Turn off **Live view** to hide the values.
+
 ## Build the local preview
 
 Building the browser preview requires Python 3.11+ and Emscripten. The script

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
-import { createTwoSfPlayer } from './2sf-player.js';
+import { createTwoSfPlayer } from './2sf-player.js?v=nds-live-1';
+import { setupTwoSfLiveView } from './2sf-live-view.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createNdsAudio } from './nds-audio.js?v=nds-sample-1';
 import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-code-presets-1';
@@ -20,6 +21,7 @@ const MAX_SOURCE_BYTES = 128 * 1024 * 1024;
 const MAX_FILES = 1024;
 let files = [], timer = 0, audio, audioPromise, keyboard, code, monitoredOutput = null;
 let disposing = false;
+let liveEnabled = true, nextLiveUpdate = 0;
 const displayName = (path) => path.split('/').at(-1).replace(/\.(?:2sf|mini2sf)$/i, '');
 const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const report = (error) => { if (!disposing) status.textContent = error.message; };
@@ -28,6 +30,17 @@ const player = createTwoSfPlayer({
 	onChange: render,
 	onError: report,
 });
+const liveView = setupTwoSfLiveView({
+	onEnabledChange(enabled) {
+		liveEnabled = enabled;
+		renderLive(player.getState());
+	},
+});
+
+function renderLive(state) {
+	nextLiveUpdate = performance.now() + 100;
+	liveView.render({ ...state, ...player.getMonitorState(liveEnabled) });
+}
 
 async function ensureAudio() {
 	if (audio?.context.state === 'closed') audio = null;
@@ -63,7 +76,9 @@ function syncMonitor() {
 	node('monitorSource').textContent = reference ? 'Monitoring 2SF' : 'Monitoring Synth';
 }
 
-function render(state = player.getState()) {
+function render(state) {
+	const transportChanged = Boolean(state);
+	state ??= player.getState();
 	const { path, pending, phase, switching, duration } = state;
 	const playing = phase === 'playing', paused = phase === 'paused';
 	play.disabled = !song.value || Boolean(pending) || switching || player.matches(song.value, files);
@@ -79,8 +94,13 @@ function render(state = player.getState()) {
 	time.textContent = duration ? `${clock(state.position)} / ${clock(duration)}` : '0:00';
 	clearTimeout(timer);
 	if (playing) timer = setTimeout(render, 50);
+	if (transportChanged || (liveEnabled && !document.hidden && performance.now() >= nextLiveUpdate)) renderLive(state);
 	syncMonitor();
 }
+
+document.addEventListener('visibilitychange', () => {
+	if (!document.hidden) renderLive(player.getState());
+});
 
 function importFiles(selected) {
 	const entries = Array.from(selected, (file) => ({ path: file.webkitRelativePath || file.name, file }))

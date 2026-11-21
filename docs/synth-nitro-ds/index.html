@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-sample-1" />
-		<script type="module" src="synth.js?v=nds-code-presets-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-2sf-live-1" />
+		<script type="module" src="synth.js?v=nds-2sf-live-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -58,6 +58,18 @@
 					<span id="playbackStatus" role="status">Stopped</span>
 					<progress id="position" max="1" value="0" aria-label="Playback position"></progress>
 					<span id="time">0:00</span>
+				</div>
+				<div class="two-sf-live" role="group" aria-label="2SF channel monitor">
+					<label><input id="twoSfLiveEnabled" type="checkbox" checked /> Live view</label>
+					<label>2SF channel <select id="twoSfLiveChannel" aria-describedby="twoSfLiveStatus" disabled></select></label>
+					<span id="twoSfLiveStatus">No song playing</span>
+					<dl id="twoSfLiveDetails" hidden>
+						<div><dt>Voice</dt><dd id="twoSfLiveActive"></dd></div>
+						<div><dt>Format</dt><dd id="twoSfLiveFormat"></dd></div>
+						<div><dt title="Hardware volume code, 0–127">Volume</dt><dd id="twoSfLiveVolume"></dd></div>
+						<div><dt title="0 left, 127 right">Pan</dt><dd id="twoSfLivePan"></dd></div>
+						<div><dt id="twoSfLiveRateLabel">Sample rate</dt><dd id="twoSfLiveRate"></dd></div>
+					</dl>
 				</div>
 			</section>
 			<section class="monitor" aria-label="Output monitor">

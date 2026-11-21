@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { decodeTwoSfSnapshot, TWO_SF_SNAPSHOT_WORDS } from './2sf-channel-monitor.js';
+
 const RATE = 48000;
 const BUFFER_SECONDS = 0.25;
 const START_SECONDS = 0.025;
 const RELEASE_SECONDS = 0.008;
+const MONITOR_BLOCK_LIMIT = 48;
+const MONITOR_SNAPSHOT_LIMIT = 128;
 
 function openWorker() {
-	const worker = new Worker(new URL('./2sf-worker.js', import.meta.url), { type: 'module' });
+	const worker = new Worker(new URL('./2sf-worker.js?v=nds-live-1', import.meta.url), { type: 'module' });
 	let pending = null, id = 0, closed = false;
 	function close(error = new DOMException('Playback stopped', 'AbortError')) {
 		if (closed) return;
@@ -67,6 +71,32 @@ export function createTwoSfPlayer({ onChange, onError }) {
 	}
 	const notify = () => onChange(getState());
 
+	// An AudioBufferSource can finish rendering before the output device plays
+	// its last samples. Keep a small timeline separate from the source nodes.
+	function snapshotAt(session, time) {
+		let frame = -1;
+		for (let index = session.timeline.length - 1; index >= 0; index--) {
+			const block = session.timeline[index];
+			if (time < block.start) continue;
+			frame = block.frame + Math.min(block.frames - 1, Math.floor((time - block.start) * RATE));
+			break;
+		}
+		return session.snapshots.findLast(row => row[0] <= frame) ?? null;
+	}
+
+	function monitorTime() {
+		const outputTime = audio.getOutputTimestamp?.()?.contextTime;
+		return outputTime > 0 && outputTime <= audio.currentTime ? outputTime : audio.currentTime;
+	}
+
+	function getMonitorState(enabled = true) {
+		const session = current;
+		if (!session?.monitorSupported || !enabled)
+			return { monitorSupported: session?.monitorSupported ?? null, snapshot: null };
+		const row = session.phase === 'paused' ? session.pausedSnapshot : snapshotAt(session, monitorTime());
+		return { monitorSupported: true, snapshot: row ? decodeTwoSfSnapshot(row) : null };
+	}
+
 	function ensureAudio() {
 		if (audio) return;
 		audio = new AudioContext();
@@ -80,6 +110,9 @@ export function createTwoSfPlayer({ onChange, onError }) {
 	function retire(session) {
 		clearTimeout(session.timer);
 		session.worker.close();
+		session.timeline.length = 0;
+		session.snapshots.length = 0;
+		session.pausedSnapshot = null;
 		if (!session.gain) return;
 		const now = audio.currentTime;
 		const end = audio.state === 'running' ? now + RELEASE_SECONDS : now;
@@ -101,7 +134,7 @@ export function createTwoSfPlayer({ onChange, onError }) {
 		notify();
 	}
 
-	function schedule(session, { left, right, ended }) {
+	function schedule(session, { left, right, snapshots, ended }) {
 		const buffer = audio.createBuffer(2, left.length, RATE);
 		buffer.copyToChannel(left, 0);
 		buffer.copyToChannel(right, 1);
@@ -111,6 +144,15 @@ export function createTwoSfPlayer({ onChange, onError }) {
 		const start = Math.max(session.next, audio.currentTime);
 		const block = { node, start, frames: buffer.length };
 		session.nodes.add(block);
+		if (session.monitorSupported) {
+			session.timeline.push({ start, frames: block.frames, frame: session.scheduledFrames });
+			if (session.timeline.length > MONITOR_BLOCK_LIMIT) session.timeline.shift();
+			for (let offset = 0; offset < (snapshots?.length ?? 0); offset += TWO_SF_SNAPSHOT_WORDS) {
+				session.snapshots.push(snapshots.subarray(offset, offset + TWO_SF_SNAPSHOT_WORDS));
+				if (session.snapshots.length > MONITOR_SNAPSHOT_LIMIT) session.snapshots.shift();
+			}
+		}
+		session.scheduledFrames += block.frames;
 		session.next = start + buffer.duration;
 		session.ended = ended;
 		node.onended = () => {
@@ -153,13 +195,17 @@ export function createTwoSfPlayer({ onChange, onError }) {
 			notify();
 			return;
 		}
-		const session = { path, files, worker, phase: 'playing', nodes: new Set(), played: 0, totalFrames: 0 };
+		const session = {
+			path, files, worker, phase: 'playing', nodes: new Set(), played: 0, totalFrames: 0,
+			monitorSupported: null, scheduledFrames: 0, timeline: [], snapshots: [],
+		};
 		pending = session;
 		notify();
 		try {
 			ensureAudio();
 			if (current?.phase !== 'paused') await audio.resume();
-			({ totalFrames: session.totalFrames } = await worker.ask('open', { path, files }));
+			({ totalFrames: session.totalFrames, monitorSupported: session.monitorSupported } =
+				await worker.ask('open', { path, files }));
 			const blocks = [];
 			for (let index = 0; index < 4; index++) {
 				const block = await worker.ask('render');
@@ -197,12 +243,15 @@ export function createTwoSfPlayer({ onChange, onError }) {
 		notify();
 		try {
 			if (session.phase === 'playing') {
+				session.pausedSnapshot = snapshotAt(session, monitorTime());
 				session.phase = 'paused';
 				clearTimeout(session.timer);
 				await audio.suspend();
 			} else {
 				await audio.resume();
+				if (current !== session) return;
 				session.phase = 'playing';
+				session.pausedSnapshot = null;
 				void refill(session);
 			}
 		} catch (error) {
@@ -222,7 +271,7 @@ export function createTwoSfPlayer({ onChange, onError }) {
 	}
 
 	return {
-		getState, play, togglePause, stop,
+		getState, getMonitorState, play, togglePause, stop,
 		matches(path, files) { return current?.path === path && current.files === files; },
 		setVolume(value) {
 			volume = value;

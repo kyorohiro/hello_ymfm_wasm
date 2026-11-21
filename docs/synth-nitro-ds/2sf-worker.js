@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { assembleTwoSf } from './2sf_source.js';
 import { parseScspSsfTime } from '../synth-scsp/ssf_source.js';
+import { readTwoSfSnapshots } from './2sf-channel-monitor.js';
 
 const RATE = 48000;
 const BLOCK_FRAMES = 2048;
 const MAX_ROM_BYTES = 64 * 1024 * 1024;
 const MAX_SECONDS = 60 * 60;
-const wasmUrl = new URL('./generated/skyemu-2sf.wasm', import.meta.url);
+const wasmUrl = new URL('./generated/skyemu-2sf.wasm?v=nds-live-1', import.meta.url);
 let renderer = null;
 
 async function open(path, files) {
@@ -17,6 +18,8 @@ async function open(path, files) {
 	const imports = { env: { emscripten_notify_memory_growth() {} } };
 	const { instance } = await WebAssembly.instantiate(await response.arrayBuffer(), imports);
 	const core = instance.exports;
+	const monitorSupported = typeof core.nds_2sf_snapshots === 'function' &&
+		typeof core.nds_2sf_snapshot_count === 'function';
 	core._initialize();
 	const image = core.malloc(rom.byteLength);
 	if (!image) throw new Error('Could not allocate the DS cartridge image.');
@@ -35,6 +38,7 @@ async function open(path, files) {
 	let frame = 0;
 	return {
 		totalFrames,
+		monitorSupported,
 		process() {
 			const count = Math.min(totalFrames - frame, BLOCK_FRAMES);
 			if (!count || core.nds_2sf_render(output, count) !== count) throw new Error('SkyEmu could not produce a PCM block.');
@@ -46,7 +50,8 @@ async function open(path, files) {
 				right[i] = samples[i * 2 + 1] * fadeGain / 32768;
 			}
 			frame += count;
-			return { left, right, ended: frame === totalFrames };
+			const snapshots = monitorSupported ? readTwoSfSnapshots(core) : null;
+			return { left, right, snapshots, ended: frame === totalFrames };
 		},
 	};
 }
@@ -56,10 +61,12 @@ self.onmessage = async ({ data }) => {
 	try {
 		if (method === 'open') {
 			renderer = await open(data.path, data.files);
-			self.postMessage({ id, value: { totalFrames: renderer.totalFrames } });
+			self.postMessage({ id, value: { totalFrames: renderer.totalFrames, monitorSupported: renderer.monitorSupported } });
 		} else if (method === 'render' && renderer) {
 			const block = renderer.process();
-			self.postMessage({ id, value: block }, [block.left.buffer, block.right.buffer]);
+			const transfer = [block.left.buffer, block.right.buffer];
+			if (block.snapshots) transfer.push(block.snapshots.buffer);
+			self.postMessage({ id, value: block }, transfer);
 		} else throw new Error('Invalid 2SF renderer request.');
 	} catch (error) {
 		self.postMessage({ id, error: error.message });
