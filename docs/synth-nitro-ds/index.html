@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-2sf-audition-1" />
-		<script type="module" src="synth.js?v=nds-2sf-audition-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-2sf-files-1" />
+		<script type="module" src="synth.js?v=nds-2sf-files-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -47,9 +47,12 @@
 			<section class="reference" aria-labelledby="referenceTitle">
 				<h2 id="referenceTitle">Reference playback</h2>
 				<div class="transport">
-					<label class="song">Song
-						<select id="songSelect" disabled><option value="">Import a 2SF set…</option></select>
-					</label>
+					<div class="song-picker">
+						<label class="song">Song
+							<select id="songSelect" disabled><option value="">Import a 2SF set…</option></select>
+						</label>
+						<button id="saveTwoSfSong" type="button" disabled>Save song to Files</button>
+					</div>
 					<button id="play" type="button" disabled>Play song</button>
 					<button id="pause" type="button" disabled>Pause</button>
 					<button id="stop" type="button" disabled>Stop</button>
@@ -196,7 +199,7 @@
 			</div>
 			<details class="help">
 				<summary>About 2SF playback</summary>
-				<p>Use folder import to keep relative paths to shared <code>.2sflib</code> data. Files stay in memory for this session. Playback uses the song’s length and fade tags, with a three-minute preview when length is missing.</p>
+				<p>Use folder import to keep relative paths to shared <code>.2sflib</code> data. Save song to Files keeps the selected song and its libraries in the Cassette. Playback uses the song’s length and fade tags, with a three-minute preview when length is missing.</p>
 				<p>The SkyEmu preview plays ROM-boot sets at standard timing. Legacy save-state sets and driver timing overrides report an error.</p>
 			</details>
 		</main>

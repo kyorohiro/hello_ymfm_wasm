@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
+import { listSavedTwoSfSets } from './2sf-project.js';
 import { createTwoSfPlayer } from './2sf-player.js?v=nds-2sf-audition-1';
 import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-2sf-audition-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
@@ -7,11 +8,12 @@ import { createNdsAudio } from './nds-audio.js?v=nds-sample-1';
 import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-2sf-audition-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-2sf-audition-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
-import { setupNdsFiles } from './nds-files.js?v=nds-2sf-audition-1';
+import { setupNdsFiles } from './nds-files.js?v=nds-2sf-files-1';
 import { isNdsPresetPath, ndsPresetChannelSettings } from './nds-preset.js?v=nds-2sf-audition-1';
 
 const node = (id) => document.getElementById(id);
 const song = node('songSelect'), play = node('play'), pause = node('pause'), stop = node('stop');
+const saveSong = node('saveTwoSfSong');
 const master = node('master'), position = node('position'), time = node('time');
 const status = node('status'), playbackStatus = node('playbackStatus');
 const waveform = node('waveform'), envelope = node('envelope');
@@ -19,7 +21,8 @@ const visualizer = createSpuOutputVisualizer({ canvas: waveform, envelopeCanvas:
 visualizer.setMode('waveform');
 const MAX_SOURCE_BYTES = 128 * 1024 * 1024;
 const MAX_FILES = 1024;
-let files = [], timer = 0, audio, audioPromise, keyboard, code, monitoredOutput = null;
+let timer = 0, audio, audioPromise, keyboard, code, monitoredOutput = null;
+let sessionFiles = [], sessionTracks = [], savedSets = new Map(), songOptions = new Map(), savingSong = false;
 let auditionAudio, auditionAudioPromise, auditionStatus = null, auditionRevision = 0, pausedPreset = null;
 let disposing = false;
 let liveEnabled = true, nextLiveUpdate = 0;
@@ -159,7 +162,10 @@ function render(state) {
 	state ??= player.getState();
 	const { path, pending, phase, switching, duration } = state;
 	const playing = phase === 'playing', paused = phase === 'paused';
-	play.disabled = !song.value || Boolean(pending) || switching || player.matches(song.value, files);
+	const selected = songOptions.get(song.value);
+	const sources = selected?.group ? selected.group.sources : sessionFiles;
+	play.disabled = !selected || Boolean(pending) || switching || player.matches(selected.path, sources);
+	saveSong.disabled = !selected || Boolean(selected.group) || savingSong;
 	pause.disabled = !(playing || paused) || Boolean(pending) || switching;
 	pause.textContent = paused ? 'Resume' : 'Pause';
 	stop.disabled = !(playing || paused || pending);
@@ -180,6 +186,50 @@ document.addEventListener('visibilitychange', () => {
 	if (!document.hidden) renderLive(player.getState());
 });
 
+function updateSongOptions(preferred = song.value) {
+	const options = new Map();
+	const groups = [];
+	function addOptions(label, paths, group) {
+		if (!paths.length) return;
+		const optgroup = document.createElement('optgroup');
+		optgroup.label = label;
+		for (const path of paths) {
+			const relative = group ? path.slice(group.root.length + 1) : path;
+			options.set(path, { path: relative, group });
+			optgroup.append(new Option(relative, path));
+		}
+		groups.push(optgroup);
+	}
+	addOptions('Imported for this session', sessionTracks);
+	for (const group of savedSets.values()) addOptions(`Saved in Files · ${group.name}`, group.tracks, group);
+	songOptions = options;
+	song.replaceChildren(...(groups.length ? groups : [new Option('Import a 2SF set…', '')]));
+	song.disabled = !options.size;
+	if (options.has(preferred)) song.value = preferred;
+	render();
+}
+
+function updateSavedSongs() {
+	const groups = listSavedTwoSfSets(project.savedFs);
+	const next = new Map(groups.map(group => {
+		const previous = savedSets.get(group.root);
+		return [group.root, previous?.revision === group.revision ? previous : { ...group, sources: null }];
+	}));
+	if (next.size === savedSets.size && [...next].every(([root, group]) => group === savedSets.get(root))) return;
+	savedSets = next;
+	updateSongOptions();
+}
+
+function sourcesFor(group) {
+	if (!group) return sessionFiles;
+	group.sources ??= group.paths.map(path => {
+		const source = project.savedFs.get(path);
+		if (source?.type !== 'binary') throw new Error(`The saved 2SF source must contain binary data: ${path}`);
+		return { path: path.slice(group.root.length + 1), file: new Blob([source.data]) };
+	});
+	return group.sources;
+}
+
 function importFiles(selected) {
 	const entries = Array.from(selected, (file) => ({ path: file.webkitRelativePath || file.name, file }))
 		.filter(({ path }) => isTwoSfSourcePath(path));
@@ -190,12 +240,10 @@ function importFiles(selected) {
 	if (new Set(entries.map(({ path }) => path)).size !== entries.length)
 		throw new Error('Duplicate filenames. Use folder import to keep their relative paths.');
 	songs.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
-	const options = songs.map(({ path }) => new Option(path, path));
-	files = entries;
-	song.replaceChildren(...options);
-	song.disabled = false;
+	sessionFiles = entries;
+	sessionTracks = songs.map(({ path }) => path);
 	status.textContent = `Loaded ${songs.length} ${songs.length === 1 ? 'song' : 'songs'}.`;
-	render();
+	updateSongOptions(sessionTracks[0]);
 }
 
 function connectPicker(buttonId, inputId) {
@@ -219,8 +267,26 @@ connectPicker('loadTwoSfFolder', 'twoSfFolder');
 connectPicker('loadTwoSfFiles', 'twoSfFiles');
 song.addEventListener('change', () => { song.blur(); render(); });
 play.addEventListener('click', () => {
+	const selected = songOptions.get(song.value);
+	if (!selected) return;
 	status.textContent = '';
-	void player.play(song.value, files);
+	try { void player.play(selected.path, sourcesFor(selected.group)); }
+	catch (error) { report(error); }
+});
+saveSong.addEventListener('click', async () => {
+	const selected = songOptions.get(song.value);
+	if (!selected || selected.group || savingSong) return;
+	savingSong = true;
+	status.textContent = 'Saving the selected song and its libraries…';
+	render();
+	try {
+		if (!(await projectFiles.saveReferenceSong(selected.path, sessionFiles)))
+			setStatus('Wait for the current Files operation and try again.');
+	} catch (error) { if (error.name !== 'AbortError') report(error); }
+	finally {
+		savingSong = false;
+		if (!disposing) render();
+	}
 });
 pause.addEventListener('click', () => void player.togglePause());
 stop.addEventListener('click', () => player.stop());
@@ -249,6 +315,12 @@ const setStatus = message => { if (!disposing) status.textContent = message; };
 const project = createNdsProject({ starterCode: NDS_STARTER_CODE, starterFiles: NDS_STARTER_FILES });
 const projectFiles = setupNdsFiles({
 	project, setStatus, onSelectPreset: preset => keyboard.applyPreset(preset),
+	onSelectReference(path) {
+		if (!songOptions.get(path)?.group) return false;
+		song.value = path;
+		render();
+		return true;
+	},
 	onBeforeWorkspaceReplace() {
 		keyboard.cancelSampleLoad();
 		return keyboard.stop();
@@ -258,11 +330,16 @@ code = setupNdsCode({
 	project, files: projectFiles, ensureAudio, getAudio, setStatus, onActivity: syncMonitor,
 });
 void code.ready?.catch(report);
+const unwatchSavedSongs = project.savedFs.onDidChange(updateSavedSongs);
+updateSavedSongs();
 
 const savedSounds = node('ndsSavedSounds');
 let presetList = '';
 function updateSavedSounds() {
-	const paths = project.savedFs.list().map(file => file.path).filter(isNdsPresetPath).sort((a, b) => a.localeCompare(b));
+	const { savedFs } = project;
+	const paths = savedFs.listDirectories().flatMap(parent => savedFs.readdir(parent)
+		.filter(isNdsPresetPath).map(name => (parent === '/' ? '' : parent) + '/' + name))
+		.filter(path => savedFs.has(path)).sort((a, b) => a.localeCompare(b));
 	const signature = JSON.stringify(paths);
 	if (signature === presetList) return;
 	presetList = signature;
@@ -328,6 +405,7 @@ window.addEventListener('pagehide', event => {
 	}
 	disposing = true;
 	keyboard.cancelSampleLoad();
+	unwatchSavedSongs();
 	unwatchSavedSounds();
 	visualizer.dispose();
 	void (async () => {

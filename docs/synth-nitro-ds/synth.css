@@ -59,8 +59,10 @@ h2 { font-size: 1rem; }
 .reference { background: #f8f7fb; border: 1px solid #ccc8d2; }
 .reference h2 { margin-bottom: .65rem; }
 .transport { flex-wrap: wrap; align-items: end; }
-.song { display: grid; gap: .2rem; flex: 1 1 19rem; min-width: 0; }
+.song-picker { display: flex; align-items: end; gap: .5rem; flex: 1 1 24rem; min-width: 0; }
+.song { display: grid; gap: .2rem; flex: 1; min-width: 0; }
 .song select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+#saveTwoSfSong { flex: none; padding-inline: .6rem; font-size: .87rem; }
 #play, #enableAudio, #synthCodeRunButton { background: #a52c58; border-color: #8b244b; color: white; }
 .playback { margin-top: .8rem; font-size: .88rem; min-width: 0; }
 #playbackStatus { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

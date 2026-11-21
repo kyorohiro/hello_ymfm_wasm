@@ -101,8 +101,16 @@ core from SkyEmu. Import an album with **Menu → Import → 2SF folder…**. Us
 **2SF / mini2SF files…** for a standalone track or a song and its libraries
 from the same directory. Choose a song, then press **Play song**. The same
 transport provides **Pause / Resume** and **Stop**, with a waveform display
-and Master control. Original files stay in memory for the current session.
+and Master control. Importing a set adds its songs for the current session.
 If a new song cannot start, the previous session remains available.
+
+**Save song to Files** keeps the selected song and its required libraries as
+original files under `2sf/`. Their relative paths are preserved. Songs saved
+from the same set can share a library. The song appears under **Saved in
+Files** after reloading the page or importing the Cassette. Choose it and
+press **Play song**. Clicking the saved song in Files also selects it.
+The Cassette has a 16 MiB limit. Larger sets can still be played from the
+session import.
 
 **Live view** follows the song at the playback position. Choose **CH1–CH16**
 to see channel activity, format, hardware volume, pan and sample or step rate.

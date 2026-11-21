@@ -106,9 +106,12 @@ register documentation. The existing SkyEmu player remains the song source.
       matched bit for bit at 48 kHz. Human listening remains open.
 - [x] Restore the CPU-free Keyboard and Code Synth with a permissive DS sound
       core and keep the existing reference player available on the same page.
-- [ ] Read a folder containing .2sf/.mini2sf and referenced .2sflib dependencies;
+- [x] Read a folder containing .2sf/.mini2sf and referenced .2sflib dependencies;
       resolve PSF-style library chains safely, retain originals in Files, and
       report missing dependencies without replacing the current playable sound.
+      Save the selected song and its dependency files under `2sf/` while
+      keeping their paths and bytes. Check reload and Cassette import in
+      Chromium/WebKit and verify a byte-exact real-song Cassette round trip.
 - [ ] Start with a reproducible self-authored fixture and existing engine output;
       then validate user-provided sets. Do not bundle commercial game assets.
 - [ ] Add song selection, Play/Pause/Resume/Stop and error reporting; preserve

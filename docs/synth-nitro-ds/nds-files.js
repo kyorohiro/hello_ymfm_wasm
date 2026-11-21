@@ -3,6 +3,7 @@ import { renderFileTree } from '../playground/playground_file_tree.js';
 import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createNdsProjectStore, isNdsCodePath, isNdsTextPath, ndsProjectPath, NDS_PROJECT_FILE_BYTES } from './nds-project.js';
 import { isNdsPresetPath, NDS_PRESET_EXTENSION, readNdsPreset, writeNdsPreset } from './nds-preset.js?v=nds-2sf-audition-1';
+import { saveTwoSfSong } from './2sf-project.js';
 
 const INDEX = '/index.js';
 const INITIAL_ID = 'tetorica-nitro-ds';
@@ -42,7 +43,7 @@ function presetPath(project, name) {
 }
 
 export function setupNdsFiles({ project, setStatus = () => {}, onBeforeWorkspaceReplace = async () => {},
-	onSelectPreset, store = createNdsProjectStore(), document: doc = globalThis.document } = {}) {
+	onSelectPreset, onSelectReference, store = createNdsProjectStore(), document: doc = globalThis.document } = {}) {
 	const win = doc.defaultView;
 	const byId = (id) => doc.getElementById(id);
 	const panel = byId('ndsFilesPanel'), toggle = byId('ndsFilesToggle'), workspace = byId('synthWorkspace');
@@ -214,6 +215,10 @@ export function setupNdsFiles({ project, setStatus = () => {}, onBeforeWorkspace
 			return true;
 		}
 		if (showText) return code?.openFile(path, { show: code.isCodeMode() });
+		if (onSelectReference?.(path)) {
+			say(`Song selected · ${basename(path)}.`);
+			return true;
+		}
 		if (project.fs.has(path)) say(`${basename(path)} · ${project.fs.stat(path).size.toLocaleString()} bytes`);
 		return true;
 	}
@@ -235,6 +240,14 @@ export function setupNdsFiles({ project, setStatus = () => {}, onBeforeWorkspace
 			selection(path);
 			if (await commitFiles()) say(`Sound saved · ${basename(path)}.`);
 			return path;
+		});
+	}
+
+	async function saveReferenceSong(path, files) {
+		return operation(async () => {
+			const saved = await saveTwoSfSong(project, path, files, { isCurrent: () => !disposed });
+			if (await commitFiles()) say(`Saved song to Files · ${basename(saved.path)}.`);
+			return saved;
 		});
 	}
 
@@ -469,7 +482,7 @@ export function setupNdsFiles({ project, setStatus = () => {}, onBeforeWorkspace
 		setCodeControls(controls) { code = controls; code.setBusy(busy); },
 		rememberCodeState(state) { codeState = { ...state }; schedule(); },
 		codeEdited(path) { if (selected === path) render(); },
-		recoverCodeState() { schedule(); }, persistCode, selectFile, savePreset, setVisible,
+		recoverCodeState() { schedule(); }, persistCode, selectFile, savePreset, saveReferenceSong, setVisible,
 		async dispose() {
 			if (disposed) return;
 			const saved = persistCode(); disposed = true;

@@ -589,6 +589,63 @@ await nds.noteOn(CH2, "C4");`);
 	return 'WAV conversion, tuned loop, sound saved in manual mode and played from the restored Cassette in Keyboard and Code';
 }
 
+async function checkReferenceFiles(page, fixture, name) {
+	await page.reload();
+	await importFiles(page, '#loadTwoSfFolder', fixture);
+	const imported = await until(() => tracks(page), entries => entries.length === 2, 'Expected both songs in the imported reference set');
+	const left = imported.find(({ label }) => /left-a4/i.test(label));
+	assert(left, 'The imported set has a left-A4 track');
+	const select = page.locator('#songSelect'), play = page.locator('#play'), stop = page.locator('#stop');
+	await select.selectOption(left.value);
+	assert.equal(await page.locator('#ndsAutoApply').isChecked(), false, 'Saving a song should work in manual-save mode');
+	await page.locator('#saveTwoSfSong').click();
+	await until(() => page.locator('#status').textContent(), value => /Saved song to Files/i.test(value), 'The 2SF song and its library should be saved');
+	assert.equal(await select.inputValue(), left.value, 'Saving must preserve the session song selection');
+	assert.equal((await output(page)).contexts, 0, 'Saving a reference must not start audio');
+
+	async function playSavedSong() {
+		const [{ value }] = await until(() => tracks(page),
+			entries => entries.length === 1 && entries[0].value.startsWith('/2sf/') && /left-a4/i.test(entries[0].label),
+			'Only the saved song should be listed after re-opening the workspace');
+		await select.selectOption(value);
+		await play.click();
+		await measureSide(page, 0, 440);
+		await stop.click();
+	}
+
+	await page.reload();
+	assert.equal((await output(page)).contexts, 0, 'Reloading saved reference files must not start audio');
+	await playSavedSong();
+
+	const zipPath = path.join(fixture, `${name}-2sf.cassette.zip`);
+	await page.locator('#menu').click();
+	const downloaded = page.waitForEvent('download');
+	await page.locator('#ndsExportCassette').click();
+	await (await downloaded).saveAs(zipPath);
+	const { unzipSync } = await import('../../docs/playground/vendor/fflate.js');
+	const entries = unzipSync(await fs.readFile(zipPath));
+	const sourcePaths = Object.keys(entries).filter(file => /^2sf\/.*\.(2sf|mini2sf|2sflib)$/i.test(file));
+	assert.deepEqual(sourcePaths.map(file => path.posix.basename(file)).sort(), ['demo.2sflib', 'left-a4.mini2sf']);
+	assert.equal(path.posix.dirname(sourcePaths[0]), path.posix.dirname(sourcePaths[1]), 'Keep the library next to its dependent song');
+	for (const file of sourcePaths) {
+		assert.deepEqual(Buffer.from(entries[file]), await fs.readFile(path.join(fixture, path.posix.basename(file))),
+			`The Cassette must preserve the original bytes of ${file}`);
+	}
+
+	await page.locator('#menu').click();
+	await page.locator('#ndsNewCassette').click();
+	await page.locator('#ndsNewCassetteCreate').click();
+	await page.locator('#ndsNewCassetteDialog').waitFor({ state: 'hidden' });
+	await until(() => tracks(page), entries => entries.length === 0, 'New Cassette should clear the saved reference list');
+	const contexts = (await output(page)).contexts;
+	await importFiles(page, '#ndsImportCassette', zipPath);
+	await until(() => tracks(page), entries => entries.length === 1, 'The imported Cassette should restore its reference');
+	assert.equal((await output(page)).contexts, contexts, 'Importing a Cassette must not start reference audio');
+	assert(await stop.isDisabled(), 'Reference playback should remain stopped after import');
+	await playSavedSong();
+	return 'selected source and exact shared library bytes saved in manual mode, restored after reload and Cassette import, measured 440 Hz';
+}
+
 async function check(name, origin, fixture) {
 	const browser = await engines[name].launch({ headless: true,
 		...(name === 'chromium' ? { args: ['--mute-audio'] } : {}),
@@ -716,9 +773,10 @@ async function check(name, origin, fixture) {
 		const synthModes = await checkSynth(page);
 		const workspace = await checkWorkspace(page, fixture, name);
 		const sample = await checkSample(page, fixture, name);
+		const referenceFiles = await checkReferenceFiles(page, fixture, name);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample,
+		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles,
 			referenceLive: 'fixture registers and pan, frozen pause and channel switch, Live toggle, missing library and Stop',
 			referenceAudition: 'frozen 440 Hz sample, C5-root transposition, idle channel silence, authored keyboard restored after Live Off and Resume',
 			referenceCapture: 'captured settings and exact original PCM16 preset, 220 Hz from editable Synth and saved-preset Code',
