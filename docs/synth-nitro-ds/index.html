@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Tetorica Nitro DS Synth</title>
+		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
+		<link rel="stylesheet" href="synth.css" />
+		<script type="module" src="synth.js"></script>
+	</head>
+	<body>
+		<main class="shell">
+			<header class="hero">
+				<img src="../tetorica_nitro_ds_synth.webp" width="92" height="92" alt="" />
+				<div>
+					<h1>Tetorica Nitro DS Synth</h1>
+					<p>2SF reference playback preview</p>
+				</div>
+			</header>
+			<div class="toolbar">
+				<details class="menu">
+					<summary id="menu" aria-label="Menu">☰</summary>
+					<div class="menu-panel">
+						<strong>Import</strong>
+						<button id="loadTwoSfFolder" type="button">2SF folder…</button>
+						<button id="loadTwoSfFiles" type="button">2SF / mini2SF files…</button>
+					</div>
+				</details>
+				<input id="twoSfFolder" type="file" webkitdirectory multiple hidden />
+				<input id="twoSfFiles" type="file" accept=".2sf,.mini2sf,.2sflib" multiple hidden />
+				<p id="status" role="status">Import a 2SF folder or select the song and its library together.</p>
+			</div>
+			<section class="reference" aria-labelledby="referenceTitle">
+				<h2 id="referenceTitle">Reference playback</h2>
+				<div class="transport">
+					<label class="song">Song
+						<select id="songSelect" disabled><option value="">Import a 2SF set…</option></select>
+					</label>
+					<button id="play" type="button" disabled>Play song</button>
+					<button id="pause" type="button" disabled>Pause</button>
+					<button id="stop" type="button" disabled>Stop</button>
+				</div>
+				<div class="playback">
+					<span id="playbackStatus" role="status">Stopped</span>
+					<progress id="position" max="1" value="0" aria-label="Playback position"></progress>
+					<span id="time">0:00</span>
+				</div>
+			</section>
+			<section class="monitor" aria-labelledby="waveformTitle">
+				<div class="monitor-bar">
+					<h2 id="waveformTitle">Waveform</h2>
+					<label class="master">Master <input id="master" type="range" min="0" max="380" value="70" />
+						<output id="masterValue" for="master">70%</output>
+					</label>
+				</div>
+				<canvas id="waveform" width="960" height="180" aria-label="Master output waveform"></canvas>
+			</section>
+			<details class="help">
+				<summary>About 2SF playback</summary>
+				<p>Use folder import to keep relative paths to shared <code>.2sflib</code> data. Files stay in memory for this session. Playback uses the song’s length and fade tags, with a three-minute preview when length is missing.</p>
+				<p>The SkyEmu preview plays ROM-boot sets at standard timing. Legacy save-state sets and driver timing overrides report an error.</p>
+			</details>
+		</main>
+	</body>
+</html>

@@ -50,8 +50,32 @@ requested render duration.
 The test uses the MIT [SkyEmu source at the pinned revision](https://github.com/skylersaleh/SkyEmu/tree/b64903f0fde8104d0796546b96859e9f682311b7).
 The build verifies the source archive SHA-256 and retains upstream notices
 for the BSD-2-Clause DS FreeBIOS and the MIT GBA replacement BIOS, ROM
-database and libretro header. The 2SF assembly and test harness here are
-Tetorica BSD-3-Clause code. The browser does not load this experiment.
+database and libretro header. The 2SF assembly and test harness are Tetorica
+BSD-3-Clause code.
+
+## Local browser preview
+
+With the verified SkyEmu archive in place, build the DS-only WASM and install
+it for the [local Reference playback page](../../docs/synth-nitro-ds/README.md).
+The browser shares the 2SF assembler with the CLI and loads the DS-only core
+in a Worker. Its source closure uses MIT SkyEmu, the MIT ROM database, and
+BSD-2-Clause DS FreeBIOS. The build writes their notices alongside the WASM.
+
+```sh
+sh scripts/nds-2sf/build_skyemu_wasm.sh --preview
+node scripts/nds-2sf/check_skyemu_wasm.mjs
+node scripts/nds-2sf/check_browser.cjs
+```
+
+The checks verify Native and WASM PCM parity for two authored tracks. The
+browser check verifies loading, pitch, stereo balance, Pause / Resume, Stop
+and recovery from a missing library with Chromium and WebKit output muted.
+
+To compare the first eight seconds of each song in a local set, run the parity
+checker with `--real-folder="/path/to/set"`. The supplied Chrono Trigger set
+matched across all 71 tracks at 48 kHz. Give the browser checker the same flag
+to check that it lists the set and can play a track. Both commands use temporary
+output paths and leave the source set in place.
 
 The format and compatibility notes are in the
 [2SF author notes](https://github.com/soltune/procyon2sf/blob/main/docs/TECHNICAL.md).

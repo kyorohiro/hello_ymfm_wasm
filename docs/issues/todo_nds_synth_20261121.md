@@ -65,6 +65,20 @@ a product hypothesis, not a measured demographic claim.
 
 ## 2SF / mini2SF reference path
 
+- [x] Build the pinned SkyEmu WASM with MIT and BSD notices. Verify the
+      original fixtures against Native. Keep the generated binary local to
+      the preview while preparing the redistribution source set.
+- [x] Connect folder selection and Play, Pause / Resume and Stop on the
+      local Reference playback page. Keep user files in memory and run the
+      emulator in a dedicated Worker. Verify the preview in Chromium and WebKit.
+- [x] Verify the actual Chrono Trigger folder opens all 71 song choices and
+      reaches audible PCM in Chromium and WebKit with the destination muted.
+      The shared library expands into a 32 MiB cartridge with the song overlay.
+- [x] Compare Native and WASM on the first eight seconds of each supplied
+      Chrono Trigger track. All 27,264,000 stereo frames across 71 tracks
+      matched bit for bit at 48 kHz. Human listening remains open.
+- [ ] Restore the CPU-free Keyboard and Code Synth with a permissive DS sound
+      core and integrate the reference player into its workspace.
 - [ ] Read a folder containing .2sf/.mini2sf and referenced .2sflib dependencies;
       resolve PSF-style library chains safely, retain originals in Files, and
       report missing dependencies without replacing the current playable sound.

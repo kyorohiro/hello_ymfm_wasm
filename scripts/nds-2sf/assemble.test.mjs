@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 import { scspSsfCrc32 as crc32 } from '../../docs/synth-scsp/ssf_source.js';
+import { assembleTwoSf as assemblePortable, isTwoSfPath, isTwoSfSourcePath } from '../../docs/synth-nitro-ds/2sf_source.js';
 import { assembleTwoSf } from './assemble.mjs';
 
 function container({ offset = 0, data, tags = '', reserved = '', version = 0x24, encoded } = {}) {
@@ -115,4 +116,53 @@ test('CLI leaves existing output untouched on invalid input', async t => {
 	assert.equal(result.status, 1);
 	assert.match(result.stderr, /missing library missing\.2sflib/);
 	assert.equal(await readFile(output, 'utf8'), 'previous output');
+});
+
+test('portable loader composes folder paths with the same entry-relative library order', async () => {
+	const entry = '/2sf/set/songs/Track.MINI2SF';
+	const file = new File([
+		container({ offset: 2, data: [7], tags: 'Title=Track\r\n_LIB=library\\chain.2sflib\r\n_lib2=post.2sflib' }),
+	], 'Track.MINI2SF');
+	Object.defineProperty(file, 'webkitRelativePath', { value: entry });
+	const entries = [
+		file,
+		{ path: '/2sf/set/Base.2sflib', data: container({ data: [1, 2, 3, 4] }) },
+		{ path: '/2sf/set/songs/library/chain.2sflib', data: container({ offset: 1, data: [5], tags: '_lib=../base.2sflib' }) },
+		{ path: '/2sf/set/songs/post.2sflib', data: container({ offset: 2, data: [6] }) },
+		{ path: '/2sf/set/songs/unrelated.2sf', data: new Uint8Array([1, 2, 3]) },
+	];
+	const result = await assemblePortable(entry, entries, { setRoot: '/2sf/set', maxRomBytes: 64 });
+	assert.deepEqual(result.rom, Uint8Array.of(1, 5, 6, 4));
+	assert.deepEqual(result.files, [entries[1].path, entries[2].path, entry, entries[3].path]);
+	assert.equal(result.tags.get('title'), 'Track');
+	assert(isTwoSfPath(entry));
+	assert(!isTwoSfPath(entries[1].path));
+	assert(isTwoSfSourcePath(entries[1].path));
+});
+
+test('portable loader rejects invalid streams, escaping paths and oversized cartridges', async () => {
+	const path = '/2sf/set/Track.2sf';
+	const load = (data, options) => assemblePortable(path, [{ path, data }], {
+		setRoot: '/2sf/set', ...options,
+	});
+	const stream = Buffer.concat([deflateSync(Buffer.alloc(8)), Buffer.of(1)]);
+	await assert.rejects(load(container({ encoded: stream })), /invalid zlib program/);
+	await assert.rejects(load(container({ tags: '_lib=../outside.2sflib' })), /library path escapes/);
+	await assert.rejects(load(container({ tags: '_lib=missing.2sflib' })), /missing library missing.2sflib/);
+	await assert.rejects(load(container({ offset: 8, data: [7] }), { maxRomBytes: 8 }), /ROM overlay exceeds/);
+	await assert.rejects(load(container({ offset: 4, data: [7] }), { maxRomBytes: 6 }), /cartridge image exceeds/);
+	await assert.rejects(load(container({ data: Array(300).fill(0) }), { maxRomBytes: 64 }), /expanded budget/);
+});
+
+test('portable loader rejects ambiguous paths and honors an abort before reading data', async () => {
+	const path = 'Track.mini2sf';
+	const song = { path, data: container({ tags: '_lib=base.2sflib' }) };
+	const libs = ['Base.2sflib', 'BASE.2sflib'].map(path => ({ path, data: container({ data: [1] }) }));
+	await assert.rejects(assemblePortable(path, [song, ...libs]), /ambiguous library filename/);
+	await assert.rejects(assemblePortable(path, [song, { ...song, path: '/Track.mini2sf' }]), /duplicate file path/);
+	const controller = new AbortController();
+	await assert.rejects(assemblePortable(path, [{ path, async arrayBuffer() {
+		controller.abort();
+		return song.data;
+	} }], { signal: controller.signal }), { name: 'AbortError' });
 });
