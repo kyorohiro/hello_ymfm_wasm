@@ -1,0 +1,138 @@
+# Nintendo DS Synth and 2SF reference playback
+
+Recorded 2026-11-21 after the user selected DS as a new Tetorica Synth target.
+Goal: use familiar game music as an entry into sound-chip exploration, then let
+users edit the sound and control it from readable JavaScript. Audience reach is
+a product hypothesis, not a measured demographic claim.
+
+## License decision and 2SF feasibility
+
+- [x] Keep GPL code out of the Nintendo DS source and distribution. The former
+      vio2sf prototype, its browser build and its test fixtures are archived
+      locally under the Git-ignored `build/nds-vio2sf-local/` directory.
+      The icon and the permissive SkyEmu feasibility work remain in the source tree.
+- [x] Use MIT SkyEmu for an isolated native 2SF experiment. Resolve ROM overlays
+      and folder libraries in memory and measure PCM without an audio device.
+- [x] Verify two self-authored mini2SF tracks sharing one library. SkyEmu
+      rendered 440.035 Hz left and 659.511 Hz right at 48 kHz. Five loader tests
+      cover order, CRC, bounds, library paths and unsupported state or timing
+      options. See [the local experiment](../../scripts/nds-2sf/README.md).
+- [x] Verify startup and PCM output with the supplied Chrono Trigger set.
+      Presentiment, Chrono Trigger, Wind Scene and Corridors of Time each
+      resolved the shared library and yielded distinct non-silent 48 kHz
+      stereo PCM for the first eight seconds on arm64 macOS.
+- [ ] Try other game drivers and check playback duration, loops and fidelity
+      by listening to the outputs. The first experiment covers ROM-boot sets
+      with standard timing. Legacy save states and timing overrides remain open.
+- [ ] Add browser playback after measuring real sets. Keep player validation
+      separate from the Synth's register accuracy and sample capture.
+- [ ] Replace the Synth sound engine with a permissive implementation before
+      distributing it. Keep playback-engine and Synth-core decisions distinct.
+
+## First decisions and feasibility
+
+- [x] Product: **Tetorica Nitro DS Synth**, slug `tetorica-nitro-ds-synth`.
+      Public API chip identifier remains undecided.
+- [x] Adopt the silver/white, red/magenta dual-screen icon:
+      `docs/tetorica_nitro_ds_synth.webp` (1254 × 1254).
+      Derive the UI palette from it in the UI phase.
+- [ ] Audit reusable DS/2SF engines, their licenses/source obligations, build
+      dependencies and browser/WASM feasibility. Confirm which CPU, timer,
+      memory and interrupt services the selected engine needs for game drivers.
+- [x] Verify CPU-free sound rendering with vio2sf/DeSmuME in WASM.
+- [ ] Expose bounded decoder/channel state for UI observation; the prototype
+      only reads register mirrors, not decoder position or dynamic busy state.
+- [ ] Preserve upstream source attribution and a readable, reproducible source
+      distribution consistent with Tetorica's modification/reuse goal.
+
+## Bounded initial implementation
+
+- [x] Prototype PCM8/PCM16/IMA-ADPCM and the restricted PSG/Noise channels.
+      All 16 physical channels support sample playback; hardware channels 8–13
+      additionally support square waves, and 14–15 additionally support Noise.
+      These modes share the physical voices, not independent extra voice pools.
+- [x] Add the browser Keyboard screen, output Envelope/Waveform/Spectrum,
+      Auto/physical CH, hardware mode controls and Master. Reuse the FM2612
+      keyboard and SPU monitor with the Nitro DS icon palette.
+- [ ] Add Code and Files/Cassette, New/Import/Export and persistent expanded
+      workspace following the existing Synth UI patterns.
+- [ ] Explain hardware controls separately from driver/software ADSR, modulation,
+      allocation and any software click mitigation. Scope hardware sound capture
+      and capture-based effects as later work rather than silently omitting them.
+- [ ] Add direct JavaScript sound-core operations, declarations/completion,
+      readable examples and Run/Apply/Stop. Timed-operation APIs are not an
+      automatic prerequisite for the first DS prototype.
+
+## 2SF / mini2SF reference path
+
+- [ ] Read a folder containing .2sf/.mini2sf and referenced .2sflib dependencies;
+      resolve PSF-style library chains safely, retain originals in Files, and
+      report missing dependencies without replacing the current playable sound.
+- [ ] Start with a reproducible self-authored fixture and existing engine output;
+      then validate user-provided sets. Do not bundle commercial game assets.
+- [ ] Add song selection, Play/Pause/Resume/Stop and error reporting; preserve
+      the current instrument independently from song transport.
+- [ ] Expose rate-limited visible-channel state and per-CH output controls where
+      the selected engine permits; keep muting separate from emulation state.
+- [ ] Freeze a selected channel on Pause, audition it independently, then Capture
+      its bounded sample/settings to Synth. Preserve the paused song and clearly
+      label driver-generated behavior that a static capture cannot reproduce.
+- [ ] Compare captured sound with reference playback under equivalent settings.
+      Successful 2SF playback alone is not proof of Synth-core correctness.
+
+## Verification and later scope
+
+- [ ] Validate format decoding, looping/timing, tuning, panning and channel limits
+      using deterministic fixtures and actual WASM PCM with physical output muted.
+- [ ] Test dependency failures, cancellation, replacement atomicity, keyboard
+      ownership, Code continuity, persistence and readable standalone ZIPs.
+- [ ] Verify Chromium/WebKit, Monaco/fallback, desktop/narrow layouts; distinguish
+      automated evidence from human listening and real-hardware comparisons.
+- [ ] Decide Native/npm/Tauri/release scope after the web prototype is verified.
+      No publication, tags or Tauri work is included by this planning record.
+
+SDAT/SSEQ/SBNK/SWAR/SWAV import is an optional additional path. The agreed
+reference-playback direction is 2SF/mini2SF, not an SDAT sequencer prerequisite.
+
+References:
+- https://mgba-emu.github.io/gbatek/#ds-sound
+- https://github.com/xbmc/audiodecoder.2sf
+- https://github.com/soltune/procyon2sf/blob/main/docs/TECHNICAL.md
+
+## 2026-11-21 implementation checkpoint
+
+The following notes record the archived prototype. Paths are relative to its
+original layout under `build/nds-vio2sf-local/`.
+
+- Pinned unchanged `lib/vio2sf` from Kodi mirror commit
+  `232abe97f202bda4deef214989bb9d99a0730540`; original notices, COPYING,
+  provenance note and source hashes are under `third_party/vio2sf/`.
+- Added isolated CPU-free bridge `tetorica_src/wasm/nds/nds_wasm.cpp` and
+  `scripts/build_nds_wasm.sh`. Generated output stays in ignored
+  `build/nds-prototype`; no existing SDK/calibrated artifacts are changed.
+- Seven silent WASM test cases pass (`node --test tests/nds/core.test.mjs`):
+  all 16 PCM voices, mode/channel restrictions, basic timer tuning, pan,
+  loops/one-shot termination, ADPCM smoke test, muting and instance isolation.
+- Found upstream mute freezes decoder progression. The adapter mutes gain
+  around each synchronous render and restores registers; tests confirm a
+  muted one-shot still ends.
+- Known upstream limits: 2SF mixer bypasses speaker/master-enable gates;
+  hardware sound capture and alternate output routing are not validated.
+  Raw prototype writes are trusted-fixture only. No public file loading yet.
+- GPL source obligations and glue-file notices must be reviewed before
+  redistribution. See `third_party/vio2sf/README.md` for exact scope.
+
+### Browser Keyboard checkpoint
+
+- [x] Add AudioWorklet transport with bounded built-in PCM8/PCM16/IMA-ADPCM
+      samples, PSG and Noise, 44.1/48 kHz playback, and software release smoothing.
+- [x] Verify the browser with the real WASM and muted Chromium/WebKit. A4 is
+      within 3 Hz across both device rates and tested pitched modes. The check
+      also covers allocation restrictions, real output level, keyboard and
+      pointer release, and 375/1280 px layout widths.
+- [x] Verify Worklet timing across different block sizes at 44.1/48 kHz,
+      channel ownership, panning and headroom when mixing three voices.
+- [ ] Add arbitrary sample loading with source range, format, loop and ADPCM
+      header validation. Verify the ADPCM decoder against an independent reference.
+- [ ] Add Code and its project workspace after replacing the Synth sound
+      engine. Build browser 2SF reference playback on the validated player path.
