@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // DS sound-channel formats and timing from GBATEK, DS Sound Channels / Notes.
 // https://mgba-emu.github.io/gbatek/#ds-sound
+import { chipMixGains, soundChipMixDefaults, validateChipMix } from '../js/soundchip_mixer.js';
 
 export const NDS_AUDIO_CLOCK = 16756991;
 export const NDS_CHANNEL_COUNT = 16;
@@ -50,6 +51,8 @@ const MODES = ['pcm8', 'pcm16', 'adpcm', 'pulse', 'noise'];
 const DIVISORS = [1, 2, 4, 16];
 const STARTUP_PERIODS = { pcm8: 3, pcm16: 3, adpcm: 11, pulse: 1, noise: 1 };
 const OUTPUT_GAIN = 0.25; // Software headroom before Master; no 10-bit DAC clipping.
+const MIX_DEFAULTS = Object.freeze(soundChipMixDefaults());
+const MIX_GAINS_DEFAULTS = Object.freeze(chipMixGains(MIX_DEFAULTS));
 const CAPTURE_TIMER_CHANNELS = [1, 3];
 const PSG_LEVEL = 32767 / 32768;
 const PULSE_PATTERNS = Array.from({ length: 8 }, (_, duty) =>
@@ -119,7 +122,9 @@ function prepareSample({ mode, bytes, loopStartWords, lengthWords, loop }) {
 }
 
 export class NdsSoundCore {
-	#channels = Array.from({ length: NDS_CHANNEL_COUNT }, () => ({ config: DEFAULTS, sample: null, voice: null }));
+	#channels = Array.from({ length: NDS_CHANNEL_COUNT }, () => ({
+		config: DEFAULTS, sample: null, voice: null, mix: MIX_DEFAULTS, mixGains: MIX_GAINS_DEFAULTS,
+	}));
 	#captures = [null, null];
 	#sampleRate;
 
@@ -285,6 +290,24 @@ export class NdsSoundCore {
 		};
 	}
 
+	/** Software output trim independent of the physical channel registers. */
+	setChannelMix(index, patch) {
+		const channel = this.#channel(index);
+		if (!patch || typeof patch !== 'object' || Array.isArray(patch) ||
+			Object.keys(patch).some(key => !Object.hasOwn(MIX_DEFAULTS, key)))
+			throw new TypeError('Expected DS channel mixer volume, pan or mute settings');
+		const mix = { ...channel.mix, ...patch };
+		validateChipMix(mix);
+		channel.mix = mix;
+		channel.mixGains = chipMixGains(mix);
+		return { ...mix };
+	}
+
+	getChannelMix(index) {
+		if (index === undefined) return this.#channels.map(channel => ({ ...channel.mix }));
+		return { ...this.#channel(index).mix };
+	}
+
 	render(left, right) {
 		if (!(left instanceof Float32Array) || !(right instanceof Float32Array) || left.length !== right.length)
 			throw new TypeError('DS rendering requires equal-length Float32Array output channels');
@@ -338,8 +361,10 @@ export class NdsSoundCore {
 		const { timer, volume, pan, divider, duty } = channel.config;
 		const gain = unit7(volume) * OUTPUT_GAIN / DIVISORS[divider];
 		const panMix = unit7(pan);
-		const leftGain = gain * (1 - panMix);
-		const rightGain = gain * panMix;
+		const [mixLeft, mixRight] = channel.mixGains;
+		const leftGain = gain * (1 - panMix) * mixLeft;
+		const rightGain = gain * panMix * mixRight;
+		const audible = leftGain !== 0 || rightGain !== 0;
 		const period = this.#period(timer);
 		const oscillator = mode === 'pulse' ? PULSE_PATTERNS[duty] : NOISE_PATTERN;
 		const length = sample?.end ?? oscillator.length;
@@ -349,7 +374,7 @@ export class NdsSoundCore {
 		let { position, clock, releaseRemaining } = voice;
 
 		for (let frame = 0; frame < left.length; frame++) {
-			if (position >= 0) {
+			if (audible && position >= 0) {
 				const fade = releaseFrames ? (releaseRemaining - 1) / Math.max(1, releaseFrames - 1) : 1;
 				const value = (sample ? sample.read(position) : oscillator[position] * PSG_LEVEL) * fade;
 				left[frame] += value * leftGain;

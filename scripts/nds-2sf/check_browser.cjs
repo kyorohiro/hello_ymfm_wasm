@@ -168,10 +168,12 @@ async function checkPausedAudition(page, frozenPosition, frozenClock) {
 	};
 
 	// Distinguish the authored sound from the reference with both pitch and pan.
+	await channelButton(page, -1).click();
 	await page.locator('#ndsPan').evaluate(input => {
 		input.value = '127';
 		input.dispatchEvent(new Event('input', { bubbles: true }));
 	});
+	await channelButton(page, 0).click();
 	assert.equal(await reference.inputValue(), '60', 'Audition starts with C4 as the root note');
 	await page.locator('#ndsInstrument').waitFor({ state: 'hidden' });
 	await ready();
@@ -192,26 +194,22 @@ async function checkPausedAudition(page, frozenPosition, frozenClock) {
 	});
 	await verifySongFrozen();
 
-	await live.uncheck();
-	await page.locator('#twoSfAuditionTools').waitFor({ state: 'hidden' });
-	await holdC4(page, () => measureSide(page, 1, 261.626));
-	assert.equal(await page.locator('#ndsPan').inputValue(), '127', 'Audition must preserve authored Synth settings');
-	await verifySongFrozen();
-
-	// Return to the paused source to verify Synth disarms its audition without
-	// losing the selected source CH or moving the song.
-	await live.check();
 	await channelButton(page, 0).click();
 	await ready();
-	await page.locator('#ndsSynthView').click();
+	await live.uncheck();
+	await page.locator('#twoSfLiveDetails').waitFor({ state: 'hidden' });
+	await page.locator('#twoSfAuditionTools').waitFor();
+	await holdC4(page, () => measureSide(page, 0, 220, 1));
+	await verifySongFrozen();
+
+	await channelButton(page, -1).click();
 	await page.locator('#ndsInstrument').waitFor();
 	await page.locator('#twoSfAuditionTools').waitFor({ state: 'hidden' });
-	assert.equal(await channelButton(page, -1).getAttribute('aria-pressed'), 'true',
-		'Switching away from 2SF should remember the authored channel target');
+	assert.equal(await page.locator('#ndsPan').inputValue(), '127', 'Audition must preserve authored Synth settings');
 	await holdC4(page, () => measureSide(page, 1, 261.626));
 	await verifySongFrozen();
-	await page.locator('#ndsReferenceView').click();
-	assert.equal(await channelButton(page, 0).getAttribute('aria-pressed'), 'true');
+	await channelButton(page, 0).click();
+	await live.check();
 	await ready();
 }
 
@@ -221,14 +219,13 @@ async function checkReferenceCapture(page) {
 	await page.locator('#twoSfAuditionReference').selectOption('72');
 	await capture.click();
 	await page.locator('#ndsSampleRangeFields').waitFor();
-	assert.equal(await page.locator('#ndsSynthView').getAttribute('aria-pressed'), 'true', 'Capture should return the keyboard to the editable Synth sound');
+	assert.equal(await channelButton(page, -1).getAttribute('aria-pressed'), 'true', 'Capture should return the keyboard to the editable Auto sound');
 	assert.match(await page.locator('#pause').innerText(), /Resume/);
 	assert.equal(await readPosition(page), pausedPosition, 'Capture should retain the paused song position');
-	await page.locator('#ndsReferenceView').click();
-	assert.equal(await channelButton(page, 0).getAttribute('aria-pressed'), 'true', 'Capture should retain the selected reference channel');
+	await channelButton(page, 0).click();
 	await until(() => readReferenceChannel(page), state => state.visible && /Paused/.test(state.status),
 		'Reopening the reference view should show the same paused song');
-	await page.locator('#ndsSynthView').click();
+	await channelButton(page, -1).click();
 	assert.equal(await page.locator('#ndsMode').inputValue(), 'pcm16');
 	assert.equal(await page.locator('#ndsPan').inputValue(), '0');
 	assert.equal(await page.locator('#ndsSampleRoot').inputValue(), '72');
@@ -245,6 +242,11 @@ async function checkReferenceCapture(page) {
 
 	const panel = page.locator('#ndsFilesPanel');
 	if (!(await panel.isVisible())) await page.locator('#ndsFilesToggle').click();
+	await channelButton(page, 0).click();
+	await panel.locator(`button[data-file-path="${presetPath}"]`).click();
+	await page.locator('#ndsInstrument').waitFor();
+	assert.equal(await channelButton(page, -1).getAttribute('aria-pressed'), 'true', 'Loading a saved sound should reveal it in Auto');
+	assert.equal(await readPosition(page), pausedPosition, 'Loading a saved sound should keep the song paused');
 	await page.locator('#ndsNewJs').click();
 	await page.locator('#ndsFileName').fill('/capture-check.js');
 	await page.locator('#ndsFileNameConfirm').click();
@@ -462,7 +464,7 @@ async function checkWorkspace(page, fixture, name) {
 	assert(await panel.isVisible(), 'Opening the Code workspace should also open Files');
 	await until(() => editor.inputValue(), value => value.includes('useSoundChip("nds")'), 'Starter example should be editable');
 	assert.equal(await codeLayout.getAttribute('aria-pressed'), 'true');
-	assert.deepEqual(await expandedTabs.getByRole('tab').allTextContents(), ['Code', 'DS', 'Keyboard']);
+	assert.deepEqual(await expandedTabs.getByRole('tab').allTextContents(), ['Code', 'DS', 'Mixer', 'Keyboard']);
 	await assertBesideFiles(expandedTabs, 'Files and the expanded tabs should start at the same height');
 	assert(!(await synth.isVisible()), 'The expanded Code tab should show the editor');
 	assert(await playSong.isVisible() && await master.isVisible(), 'Expanded Code should keep 2SF transport and Master available');
@@ -598,7 +600,7 @@ async function checkWorkspace(page, fixture, name) {
 	await synthLayout.click();
 	await expandedTabs.waitFor({ state: 'hidden' });
 	await page.setViewportSize(viewport);
-	return 'Shared Code/DS/Keyboard tabs and sidebar on desktop and mobile, running Code retained, legacy draft, saved and working files, New and ZIP round trip';
+	return 'Shared Code/DS/Mixer/Keyboard tabs and sidebar on desktop and mobile, running Code retained, legacy draft, saved and working files, New and ZIP round trip';
 }
 
 async function checkSample(page, fixture, name) {
@@ -997,6 +999,83 @@ async function checkFixedTimer(page) {
 	return 'Manual Pulse and PCM rates, saved timer round trip, distinct low Noise keys, and pointer clock/divider edits without retriggering';
 }
 
+async function checkMixer(page, fixture) {
+	await page.reload();
+	const setRange = (control, value) => page.locator(control).evaluate((input, value) => {
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	}, value);
+	const checkPeak = (peak, label) => until(() => output(page), ({ channels }) =>
+		channels[0] && Math.abs(channels[0].peak - peak) < .025 * peak, label);
+	await channelButton(page, 0).click();
+	await setRange('#ndsPan', 0);
+	await page.locator('#ndsMixerTab').click();
+	const panel = page.locator('#ndsMixerPanel');
+	await panel.waitFor();
+	assert.equal(await panel.locator('.nds-mix-channel').count(), 16);
+	assert(await page.locator('#master').isVisible(), 'Master should stay available in Mixer');
+	const level = '[aria-label="CH1 level"]';
+	await setRange(level, 50);
+	assert.equal((await output(page)).contexts, 0, 'Mix edits should wait for the normal audio gesture');
+	await holdC4(page, async () => {
+		const [half] = await measureSide(page, 0, 261.626);
+		await setRange(level, 100);
+		await checkPeak(2 * half.peak, 'The channel trim should update held notes and apply on initial audio creation');
+		const mute = panel.getByRole('button', { name: 'CH1 mute' });
+		await mute.click();
+		await until(() => output(page), ({ channels }) => channels.every(({ peak }) => peak < 1e-7), 'Muted CH1 should be silent');
+		await panel.locator('[data-channel="0"][data-active="true"]').waitFor();
+		await mute.click();
+		await checkPeak(2 * half.peak, 'Unmuting should resume the held sound');
+		await setRange('#master', 35);
+		await checkPeak(half.peak, 'Master should apply after the channel trim');
+	});
+	await setRange('#master', 70);
+	await importFiles(page, '#loadTwoSfFolder', fixture);
+	const entry = await until(async () => (await tracks(page)).find(({ value }) => value.includes('left-a4')),
+		Boolean, 'Fixture song should be available');
+	await page.locator('#songSelect').selectOption(entry.value);
+	await page.locator('#play').click();
+	const [reference] = await measureSide(page, 0, 440);
+	await setRange('#ndsReferenceMix', 50);
+	await checkPeak(reference.peak * .5, 'The 2SF level should work during reference playback');
+	await setRange('#master', 35);
+	await checkPeak(reference.peak * .25, 'Master and 2SF level should multiply');
+	await page.locator('#stop').click();
+	return 'Sixteen strips, live trim and mute of the held CH, Master and 2SF level measured';
+}
+
+async function checkDrawPcm(page) {
+	await page.reload();
+	const canvas = page.locator('#ndsSampleCanvas');
+	await canvas.waitFor();
+	const readWave = () => canvas.evaluate(item => item.toDataURL());
+	const original = await readWave();
+	await page.locator('[data-nds-wave-tool="draw"]').click();
+	await canvas.scrollIntoViewIfNeeded();
+	const { x, y, width, height } = await canvas.boundingBox();
+	await page.mouse.move(x + width * .15, y + height * .2);
+	await page.mouse.down();
+	await page.mouse.move(x + width * .65, y + height * .8, { steps: 8 });
+	assert.notEqual(await readWave(), original, 'A stroke should preview before it is committed');
+	await page.keyboard.press('Escape');
+	await page.mouse.up();
+	assert.equal(await readWave(), original, 'Escape should recover the previous encoded wave');
+	await page.mouse.move(x + width * .15, y + height * .2);
+	await page.mouse.down();
+	await page.mouse.move(x + width * .65, y + height * .8, { steps: 8 });
+	await page.mouse.up();
+	await page.locator('#ndsSampleRangeFields').waitFor();
+	assert.notEqual(await readWave(), original, 'A finished drawing should remain as an encoded sound');
+	assert.equal(await page.locator('#ndsSampleEnd').inputValue(), '64');
+	assert.equal(await page.locator('#ndsSampleRoot').inputValue(), '60');
+	await page.locator('#ndsMode').selectOption('adpcm');
+	assert.equal(await page.locator('#ndsSampleTitle').textContent(), 'IMA-ADPCM waveform');
+	assert.equal(await page.locator('#ndsSampleEnd').inputValue(), '64');
+	assert(await page.locator('#ndsLoop').isChecked());
+	return 'A built-in wave previews a stroke, restores on Escape, encodes on release and keeps its range on format conversion';
+}
+
 async function check(name, origin, fixture) {
 	const browser = await engines[name].launch({ headless: true,
 		...(name === 'chromium' ? { args: ['--mute-audio'] } : {}),
@@ -1043,9 +1122,11 @@ async function check(name, origin, fixture) {
 		await select.selectOption(fixtureChoice('left-a4'));
 		await play.click();
 		const left = await measureSide(page, 0, 440);
+		assert.equal(await channelButton(page, -1).getAttribute('aria-pressed'), 'true', 'Starting a song should keep Auto selected');
+		await channelButton(page, 0).click();
 		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 440, 0), 'Expected CH1 settings of the audible left-A4 song');
-		assert.equal(await page.locator('#ndsReferenceView').getAttribute('aria-pressed'), 'true');
-		assert(!(await channelButton(page, -1).isVisible()), '2SF uses explicit hardware channels');
+		assert(await channelButton(page, -1).isVisible(), 'Auto remains available during 2SF playback');
+		assert.equal(await page.locator('#ndsSynthView, #ndsReferenceView').count(), 0, 'The shared row should be the only channel picker');
 		await pause.click();
 		const freeze = await until(() => output(page), (state) => state.contextState === 'suspended', 'Paused audio context expected');
 		const pausedPosition = await readPosition(page);
@@ -1084,11 +1165,17 @@ async function check(name, origin, fixture) {
 		await until(() => output(page, 0), (state) => state.currentTime > freeze.currentTime + 0.04, 'Playback clock should resume');
 		await page.locator('#twoSfAuditionTools').waitFor({ state: 'hidden' });
 		await measureSide(page, 0, 440, 0);
+		assert.equal(await channelButton(page, 0).getAttribute('aria-pressed'), 'true', 'Resume should keep the selected channel');
+		await holdC4(page, async () => {
+			await wait(120);
+			assert((await output(page, 1)).channels.every(({ peak }) => peak < 1e-7), 'A playing song channel should wait for Pause to audition');
+		});
+		await channelButton(page, -1).click();
 		await holdC4(page, () => measureSide(page, 1, 261.626));
 		await stop.click();
 		await until(() => output(page, 0), (state) => state.channels.every(({ peak }) => peak < 1e-7), 'Stop should silence the output');
 		await until(readLive, state => !state.visible, 'Stop should clear the previous channel observation');
-		assert.equal(await page.locator('#ndsSynthView').getAttribute('aria-pressed'), 'true', 'Stop should restore the Synth view');
+		assert.equal(await channelButton(page, -1).getAttribute('aria-pressed'), 'true', 'Stop should keep Auto selected');
 
 		await importFiles(page, '#loadTwoSfFolder', fixture);
 		const restored = await until(() => tracks(page), (entries) => entries.some(({ value, label }) =>
@@ -1096,8 +1183,10 @@ async function check(name, origin, fixture) {
 		await select.selectOption(restored.find(({ value, label }) => value.includes('right-e5') || label.includes('right-e5')).value);
 		await play.click();
 		const right = await measureSide(page, 1, 659.255, 0);
+		await channelButton(page, 0).click();
 		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 659.255, 127), 'Reference CH1 should reflect the new right-E5 song');
 		await stop.click();
+		assert.equal(await channelButton(page, 0).getAttribute('aria-pressed'), 'true', 'Stop should keep a physical channel selected for the Synth');
 
 		await select.selectOption(fixtureChoice('left-a4'));
 		await play.click();
@@ -1131,12 +1220,14 @@ async function check(name, origin, fixture) {
 		const referenceFiles = await checkReferenceFiles(page, fixture, name);
 		const soundCapture = await checkSoundCapture(page);
 		const fixedTimer = await checkFixedTimer(page);
+		const mixer = await checkMixer(page, fixture);
+		const drawPcm = await checkDrawPcm(page);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer,
+		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm,
 			selectFocus: 'musical key sounds without changing the focused source select',
-			referenceLive: 'shared Synth/2SF channel picker, fixture registers and pan, frozen pause, Live toggle, missing library and Stop',
-			referenceAudition: 'automatic paused audition, frozen 440 Hz sample, C5-root transposition, idle channel silence, authored keyboard restored in Synth, after Live Off, and on Resume',
+			referenceLive: 'Auto and the same sixteen physical channels before, during and after song playback, fixture settings, frozen pause and missing library',
+			referenceAudition: 'automatic paused audition with Live on or off, frozen 440 Hz sample, C5-root transposition, idle channel silence, and authored keyboard on Auto',
 			referenceCapture: 'captured settings and exact original PCM16 preset, 220 Hz from editable Synth and saved-preset Code',
 			physicalOutputMuted: true };
 	} finally {

@@ -3,9 +3,9 @@
 ## Keyboard and Code
 
 Press **Enable audio**, then play the displayed computer keys or click the
-on-screen keys. Choose **Synth** under **View / keyboard**. **Auto** plays one
-instrument across compatible channels. Select **CH1–CH16** to edit and play
-one physical channel. All 16 support
+on-screen keys. **Auto** plays one instrument across compatible channels.
+Select **CH1–CH16** to edit and play a physical channel when the reference song
+is stopped. All 16 support
 PCM8, PCM16 and IMA-ADPCM. Pulse is available on CH9–CH14, and Noise on
 CH15–CH16. Code names CH1–CH16 correspond to hardware channels 0–15.
 
@@ -49,6 +49,15 @@ and optional word-aligned PCM or ADPCM bytes. `getState()` reads physical
 channel settings. The output monitor offers Envelope (measured RMS history),
 Waveform and Spectrum. Master controls the Synth and 2SF playback levels.
 
+## Mixer
+
+Use **Mixer** for the level, stereo balance and mute of each of the 16 Synth
+channels. An active strip is highlighted, including while it is muted.
+The channel strips apply to Keyboard, Code, and paused 2SF keyboard audition.
+**2SF level** adjusts the whole reference track. **Master** adjusts all outputs
+together and stays visible across tabs. Mixer controls are software listening
+controls. A channel's hardware Volume and Pan are stored in its sound preset.
+
 ## WAV and sound presets
 
 Choose a PCM format and click **Load WAV…**. The Synth converts the WAV
@@ -60,6 +69,12 @@ or edit **Loop start · frame** and **End · frame**. The end is exclusive. The
 editor aligns both points to whole DS words and shows the resulting PNT and LEN
 codes. Format, tuning and range changes apply on the next note. Each converted
 sample can use up to 1 MiB of encoded data.
+
+Choose **Draw** on the same canvas to edit a built-in, imported or captured
+waveform. The stroke previews while you drag. Release to encode the edit into
+the selected DS format for the next note. Drawing preserves the sample length,
+source rate, root note and loop. Press **Escape** during a stroke to restore the
+previous wave. **Range** returns to editing the loop markers.
 
 **Save sound as…** writes a `.nds.json` file in `presets/`. It includes the
 exact encoded sample, source rate, root note, loop points and channel controls,
@@ -98,7 +113,7 @@ so far. **Load as sample** puts the mono take into the current Synth sound as
 a one-shot, with C4 at the starting capture rate. Use **Save sound as…** to keep
 it in the Cassette.
 
-Capture reads the Synth mixer before Master. A new take applies the selected
+Capture reads the Synth mixer after the channel strips and before Master. A new take applies the selected
 rate to the shared channel timer. A later write to that timer changes the rate
 during recording, and the panel flags the change. For a fixed-rate take, play
 on a channel other than the capture unit's timer channel. This preview samples
@@ -131,7 +146,7 @@ above it on narrow screens. Right-click a file or folder to duplicate, rename,
 delete or create an item.
 
 The **Code** button beside **Files** opens the expanded workspace with
-**Code**, **DS** and **Keyboard** tabs. **DS** shows the channel controls and
+**Code**, **DS**, **Mixer** and **Keyboard** tabs. **DS** shows the channel controls and
 sound editor. **Synth** restores the standard layout with its Code or Keyboard
 panel below the sound editor. Layout and tab changes keep Code playback running.
 
@@ -166,26 +181,24 @@ press **Play song**. Clicking the saved song in Files also selects it.
 The Cassette has a 16 MiB limit. Larger sets can still be played from the
 session import.
 
-Choose **2SF** under **View / keyboard** to use the same channel buttons for
-the song. **Live view** follows the playback position and lights active
-channels. Choose **CH1–CH16** to see activity, format, hardware volume,
-pan and sample or step rate.
+While a reference song is playing or paused, choose **CH1–CH16** to inspect
+its activity, format, hardware volume, pan and sample or step rate. **Auto**
+keeps the authored sound available while the reference song plays. **Live view**
+follows the playback position and lights active channels.
 The display samples the emulated DS about once per video frame and refreshes
 at most ten times per second during steady playback. **Pause** freezes the
 same snapshot for all sixteen channels, so you can inspect any of them while
 the song is paused. Turn off **Live view** to hide the values.
 
-While paused in **2SF** view, choose a channel to audition it on the keyboard. The
-**Reference key** (C4 by default) plays the recorded sample rate. A key starts
+Pause the song and choose a channel to audition it directly on the keyboard.
+The **Reference key** (C4 by default) plays the recorded sample rate. A key starts
 the sample from its beginning with the captured pan, volume and loop.
 Audition supports PCM8, PCM16 and IMA-ADPCM from main RAM or ARM7 private WRAM.
 Song effects, driver envelopes and sample phase are outside the saved sound.
 
-With the audition ready, press **Capture to Synth** to load the sound into
-the current Synth slot and keep the song paused. Use **Save sound as…** to
-save it to `presets/`. The same sound is available to Code via `loadPreset()`.
-Choose **Synth** to play the edited sound. **Capture to Synth** also selects
-that view.
+Press **Capture to Synth** when you want to copy the auditioned sound into
+**Auto** for editing. The song stays paused. Use **Save sound as…** to save
+it to `presets/`. Code can load that sound via `loadPreset()`.
 
 ## Build the local preview
 

@@ -2,14 +2,15 @@
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
 import { listSavedTwoSfSets } from './2sf-project.js';
 import { createTwoSfPlayer } from './2sf-player.js?v=nds-2sf-audition-1';
-import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-channels-1';
-import { setupNdsChannelPicker } from './nds-channel-picker.js';
+import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-unified-channels-1';
+import { setupNdsChannelPicker } from './nds-channel-picker.js?v=nds-unified-channels-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
-import { createNdsAudio } from './nds-audio.js?v=nds-timer-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-live-controls-1';
+import { createNdsAudio } from './nds-audio.js?v=nds-mixer-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-pcm-draw-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-source-controls-1';
-import { setupNdsSoundCapture } from './nds-sound-capture.js';
+import { setupNdsSoundCapture } from './nds-sound-capture.js?v=nds-pcm-draw-1';
+import { setupNdsMixer } from './nds-mixer.js?v=nds-mixer-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
 import { setupNdsFiles } from './nds-files.js?v=nds-workspace-1';
 import { isNdsPresetPath, ndsPresetChannelSettings } from './nds-preset.js?v=nds-timer-1';
@@ -21,6 +22,7 @@ const master = node('master'), position = node('position'), time = node('time');
 const status = node('status'), playbackStatus = node('playbackStatus');
 const waveform = node('waveform'), envelope = node('envelope');
 const instrument = node('ndsInstrument');
+const channelModeStatus = node('ndsChannelModeStatus');
 const visualizer = createSpuOutputVisualizer({ canvas: waveform, envelopeCanvas: envelope });
 visualizer.setMode('waveform');
 const MAX_SOURCE_BYTES = 128 * 1024 * 1024;
@@ -30,6 +32,7 @@ let sessionFiles = [], sessionTracks = [], savedSets = new Map(), songOptions = 
 let auditionAudio, auditionAudioPromise, auditionStatus = null, auditionRevision = 0, auditionTarget = null, pausedPreset = null;
 let disposing = false;
 let liveEnabled = true, nextLiveUpdate = 0;
+let referenceLevel = 1;
 const displayName = (path) => path.split('/').at(-1).replace(/\.(?:2sf|mini2sf)$/i, '');
 const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const report = (error) => { if (!disposing) status.textContent = error.message; };
@@ -38,14 +41,22 @@ const player = createTwoSfPlayer({
 	onChange: render,
 	onError: report,
 });
-const channelPicker = setupNdsChannelPicker({
-	onSelect({ mode, channel }) {
-		if (mode === 'synth') keyboard.setChannel(channel);
-		renderLive(player.getState());
+function updateReferenceGain() {
+	player.setVolume(Number(master.value) / 100 * referenceLevel);
+}
+const mixer = setupNdsMixer({
+	root: node('ndsMixerChannels'), reference: node('ndsReferenceMix'), referenceValue: node('ndsReferenceMixValue'),
+	getAudioRoutes: () => [audio, auditionAudio], onError: report,
+	onReferenceLevel(value) {
+		referenceLevel = value;
+		updateReferenceGain();
 	},
 });
+const channelPicker = setupNdsChannelPicker({
+	onSelect: () => renderLive(player.getState()),
+});
 const liveView = setupTwoSfLiveView({
-	getChannel: () => channelPicker.getReferenceChannel(),
+	getChannel: channelPicker.getSelection,
 	onEnabledChange(enabled) {
 		liveEnabled = enabled;
 		renderLive(player.getState());
@@ -54,39 +65,36 @@ const liveView = setupTwoSfLiveView({
 	onCapture: captureToSynth,
 });
 
-function clearAudition() {
-	if (auditionTarget === null) return;
-	auditionRevision++;
-	auditionTarget = null;
-	auditionStatus = null;
-	pausedPreset = null;
-	keyboard.setAudition(null);
-}
+const isReferenceChannel = (state, channel) => channel >= 0 && (state.phase === 'playing' || state.phase === 'paused');
 
 function renderLive(state) {
 	nextLiveUpdate = performance.now() + 100;
-	const monitor = player.getMonitorState(liveEnabled);
-	channelPicker.render({ ...state, ...monitor }, monitor.snapshot);
-	const { mode, channel } = channelPicker.getSelection();
-	const referenceView = mode === 'reference';
+	const channel = channelPicker.getSelection();
+	const referenceView = isReferenceChannel(state, channel);
+	const prepare = referenceView && state.phase === 'paused' && !state.pending && !state.switching;
+	const monitor = player.getMonitorState(liveEnabled || prepare);
+	channelPicker.render(liveEnabled ? monitor.snapshot : null);
 	if (instrument.hidden !== referenceView) instrument.hidden = referenceView;
-	if (referenceView && liveEnabled && state.phase === 'paused' && !state.pending && !state.switching) {
-		const { referenceNote } = liveView.getSelection();
-		const target = `${monitor.snapshot?.frame ?? 'waiting'}:${channel}:${referenceNote}`;
-		if (target !== auditionTarget) {
-			auditionTarget = target;
-			void prepareAudition(channel, referenceNote, monitor);
-		}
-	} else {
-		clearAudition();
+	if (channelModeStatus) {
+		const label = referenceView ? `2SF · CH${channel + 1}` : channel === -1 ? 'Synth · Auto' : `Synth · CH${channel + 1}`;
+		if (channelModeStatus.textContent !== label) channelModeStatus.textContent = label;
+	}
+	keyboard.setChannel(referenceView ? -1 : channel);
+	const { referenceNote } = liveView.getSelection();
+	const target = prepare ? JSON.stringify([state.path, monitor.snapshot?.frame, channel, referenceNote])
+		: referenceView ? `waiting:${channel}` : null;
+	if (target !== auditionTarget) {
+		auditionTarget = target;
+		const revision = ++auditionRevision;
+		auditionStatus = null;
+		pausedPreset = null;
+		keyboard.setAudition(referenceView ? { channel } : null);
+		if (prepare) void prepareAudition(channel, referenceNote, monitor, revision);
 	}
 	liveView.render({ ...state, ...monitor, referenceView, canCapture: Boolean(pausedPreset), auditionStatus });
 }
 
-async function prepareAudition(channel, referenceNote, monitor) {
-	const revision = ++auditionRevision;
-	pausedPreset = null;
-	keyboard.setAudition({ channel });
+async function prepareAudition(channel, referenceNote, monitor, revision) {
 	if (!monitor.auditionSupported || !monitor.snapshot) {
 		auditionStatus = monitor.auditionSupported === false ? 'Update the 2SF renderer for keyboard audition.'
 			: 'Pause after the song starts to audition a channel.';
@@ -113,10 +121,8 @@ function captureToSynth() {
 	if (!pausedPreset) return;
 	try {
 		const preset = pausedPreset;
+		channelPicker.select(-1);
 		keyboard.applyPreset(preset);
-		channelPicker.showSynth();
-		clearAudition();
-		renderLive(player.getState());
 		status.textContent = `${preset.name} loaded into Synth. Use Save sound as… to keep it in Files.`;
 	} catch (error) {
 		report(error);
@@ -133,6 +139,7 @@ async function ensureAuditionAudio() {
 			}
 			auditionAudio = instance;
 			instance.setVolume(Number(master.value) / 100);
+			await mixer.apply(instance).catch(report);
 			syncMonitor();
 		}).finally(() => { auditionAudioPromise = null; });
 		await auditionAudioPromise;
@@ -151,6 +158,7 @@ async function ensureAudio() {
 			}
 			audio = instance;
 			instance.setVolume(Number(master.value) / 100);
+			await mixer.apply(instance).catch(report);
 			node('enableAudio').textContent = 'Audio ready';
 			syncMonitor();
 		}).finally(() => { audioPromise = null; });
@@ -314,7 +322,7 @@ master.addEventListener('input', () => {
 	const percent = Number(master.value);
 	node('masterValue').value = `${percent}%`;
 	master.classList.toggle('boost', percent > 100);
-	player.setVolume(percent / 100);
+	updateReferenceGain();
 	audio?.setVolume(percent / 100);
 	auditionAudio?.setVolume(percent / 100);
 	visualizer.wake();
@@ -335,7 +343,11 @@ const capturePanel = setupNdsSoundCapture({ ensureAudio, getAudio, keyboard });
 const setStatus = message => { if (!disposing) status.textContent = message; };
 const project = createNdsProject({ starterCode: NDS_STARTER_CODE, starterFiles: NDS_STARTER_FILES });
 const projectFiles = setupNdsFiles({
-	project, setStatus, onSelectPreset: preset => keyboard.applyPreset(preset),
+	project, setStatus,
+	onSelectPreset(preset) {
+		if (isReferenceChannel(player.getState(), channelPicker.getSelection())) channelPicker.select(-1);
+		keyboard.applyPreset(preset);
+	},
 	onSelectReference(path) {
 		if (!songOptions.get(path)?.group) return false;
 		song.value = path;
@@ -347,19 +359,42 @@ const projectFiles = setupNdsFiles({
 		return keyboard.stop();
 	},
 });
-const chipTab = node('ndsChipTab');
+const chipEditor = node('ndsSynthEditor'), mixerPanel = node('ndsMixerPanel');
+const chipTab = node('ndsChipTab'), mixerTab = node('ndsMixerTab');
+const chipTabs = [chipTab, mixerTab];
 let expandedTabs;
-const selectChip = button => expandedTabs.showChip(button);
+function syncMixerVisibility() {
+	mixer.setVisible(!chipEditor.hidden && !mixerPanel.hidden);
+}
+function selectChip(button) {
+	mixerPanel.hidden = button !== mixerTab;
+	node('ndsChipPanel').hidden = !mixerPanel.hidden;
+	for (const tab of chipTabs) {
+		tab.setAttribute('aria-selected', String(tab === button));
+		tab.tabIndex = tab === button ? 0 : -1;
+	}
+	expandedTabs.showChip(button);
+	syncMixerVisibility();
+}
 code = setupNdsCode({
 	project, files: projectFiles, ensureAudio, getAudio, setStatus, onActivity: syncMonitor,
-	onViewChange: mode => expandedTabs?.showInput(mode),
-	onExpandedChange: value => expandedTabs?.setExpanded(value),
+	onViewChange(mode) { expandedTabs?.showInput(mode); syncMixerVisibility(); },
+	onExpandedChange(value) { expandedTabs?.setExpanded(value); syncMixerVisibility(); },
 });
 expandedTabs = setupSynthExpandedTabs({ codeControls: code.controls, selectChip,
-	elements: { editor: node('ndsSynthEditor'), chipTabs: [chipTab], volume: master.closest('label') },
-	getChipView: () => 'ds',
+	elements: { editor: chipEditor, chipTabs },
+	getChipView: button => button === mixerTab ? 'mixer' : 'ds',
 });
-chipTab.addEventListener('click', () => selectChip(chipTab));
+for (const tab of chipTabs) {
+	tab.addEventListener('click', () => selectChip(tab));
+	tab.addEventListener('keydown', event => {
+		if (code.controls.isExpanded() || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+		event.preventDefault();
+		const next = event.key === 'Home' ? chipTab : event.key === 'End' ? mixerTab : tab === chipTab ? mixerTab : chipTab;
+		selectChip(next);
+		next.focus();
+	});
+}
 void code.ready?.catch(report);
 const unwatchSavedSongs = project.savedFs.onDidChange(updateSavedSongs);
 updateSavedSongs();
@@ -435,6 +470,7 @@ window.addEventListener('pagehide', event => {
 	}
 	disposing = true;
 	expandedTabs.dispose();
+	mixer.dispose();
 	capturePanel.dispose();
 	keyboard.cancelSampleLoad();
 	unwatchSavedSongs();

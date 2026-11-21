@@ -89,7 +89,7 @@ export function setupNdsSoundCapture({ ensureAudio, getAudio, keyboard }) {
 				if (clip.active || clip.bytes.length < PLAYABLE_BYTES) throw new Error('Finish recording at least four words first.');
 				const name = `Capture ${selected}`;
 				keyboard.applyPreset({
-					...keyboard.getPreset(), name, mode: clip.format, loop: false,
+					...keyboard.getPreset(), name, mode: clip.format, loop: false, timer: null,
 					sample: { bytes: clip.bytes, sampleRate: clip.sampleRate,
 						rootNote: ROOT_NOTE, loopStartWords: 0, lengthWords: clip.bytes.length / 4 },
 				});

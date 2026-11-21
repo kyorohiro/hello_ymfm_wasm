@@ -48,9 +48,10 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 	const info = node('ndsSampleInfo'), status = node('ndsSampleStatus');
 	const useBuiltin = node('ndsUseBuiltin'), root = node('ndsSampleRoot'), start = node('ndsSampleStart'), end = node('ndsSampleEnd');
 	const canvas = node('ndsSampleCanvas'), context = canvas.getContext('2d');
+	const toolButtons = [...panel.querySelectorAll('[data-nds-wave-tool]')];
 	const width = canvas.width, height = canvas.height;
 	const builtinAssets = new Map();
-	let request = 0, peaks, cachedSample = null, drag = null;
+	let request = 0, peaks, cachedSample = null, gesture = null, tool = 'range';
 	let drawnAsset, drawnRange, drawnLoop;
 	const y = value => height * (.5 - value * .43);
 
@@ -63,11 +64,26 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		return builtinAssets.get(key);
 	}
 
-	function draw(asset, range, repeat) {
-		if (!context || (asset === drawnAsset && range === drawnRange && repeat === drawnLoop)) return;
-		drawnAsset = asset;
+	function readPeaks(pcm, output, first = 0, last = width - 1) {
+		for (let x = first; x <= last; x++) {
+			const from = Math.floor(x * pcm.length / width);
+			const to = Math.max(from + 1, Math.floor((x + 1) * pcm.length / width));
+			let lo = 1, hi = -1;
+			for (let index = from; index < to; index++) {
+				const value = pcm[index];
+				lo = Math.min(lo, value); hi = Math.max(hi, value);
+			}
+			output[x * 2] = lo; output[x * 2 + 1] = hi;
+		}
+		return output;
+	}
+
+	function draw(asset, range, repeat, stroke = null) {
+		if (!context || (!stroke && asset === drawnAsset && range === drawnRange && repeat === drawnLoop)) return;
+		drawnAsset = stroke ? null : asset;
 		drawnRange = range;
 		drawnLoop = repeat;
+		const pcm = stroke?.source ?? asset.pcm;
 		context.fillStyle = '#191b26';
 		context.fillRect(0, 0, width, height);
 		const sx = width * (range?.startFrame ?? 0) / asset.frames;
@@ -82,31 +98,23 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		context.beginPath();
 		if (!range) {
 			const step = width / asset.frames;
-			context.moveTo(0, y(asset.pcm[0]));
+			context.moveTo(0, y(pcm[0]));
 			for (let frame = 0; frame < asset.frames; frame++) {
-				const level = y(asset.pcm[frame]);
+				const level = y(pcm[frame]);
 				context.lineTo(frame * step, level);
 				context.lineTo((frame + 1) * step, level);
 			}
 			context.stroke();
 			return;
 		}
-		if (cachedSample !== asset) {
+		if (stroke) stroke.peaks ??= readPeaks(pcm, new Float32Array(width * 2));
+		else if (cachedSample !== asset) {
 			cachedSample = asset;
-			peaks = new Float32Array(width * 2);
-			for (let x = 0; x < width; x++) {
-				const from = Math.floor(x / width * asset.frames);
-				const to = Math.max(from + 1, Math.floor((x + 1) / width * asset.frames));
-				let lo = 1, hi = -1;
-				for (let index = from; index < to; index++) {
-					const value = asset.pcm[index];
-					lo = Math.min(lo, value); hi = Math.max(hi, value);
-				}
-				peaks[x * 2] = lo; peaks[x * 2 + 1] = hi;
-			}
+			peaks = readPeaks(pcm, peaks ?? new Float32Array(width * 2));
 		}
+		const columns = stroke?.peaks ?? peaks;
 		for (let x = 0; x < width; x++) {
-			const high = y(peaks[x * 2 + 1]), low = y(peaks[x * 2]);
+			const high = y(columns[x * 2 + 1]), low = y(columns[x * 2]);
 			context.moveTo(x + .5, high); context.lineTo(x + .5, Math.max(high + 1, low));
 		}
 		context.stroke();
@@ -116,23 +124,40 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		}
 	}
 
+	function endGesture() {
+		const pointer = gesture?.pointer;
+		gesture = null;
+		if (pointer !== undefined && canvas.hasPointerCapture(pointer)) canvas.releasePointerCapture(pointer);
+	}
+
+	function canDraw(stroke, sound, asset) {
+		return stroke.target === getTarget() && stroke.asset === asset && stroke.sample === sound.sample;
+	}
+
 	function render() {
 		const sound = getSound();
 		const sampleMode = isNdsSampleMode(sound.mode), sample = sampleMode ? sound.sample : null;
 		panel.hidden = load.hidden = !sampleMode;
 		useBuiltin.hidden = rangeFields.hidden = !sample;
-		if (!sampleMode) return;
+		if (!sampleMode) { endGesture(); return; }
 		panel.dataset.editable = String(Boolean(sample));
+		panel.dataset.waveTool = tool;
 		const asset = sample?.asset ?? builtinAsset(sound.mode, sound.shape);
+		if (gesture && (gesture.target !== getTarget() || gesture.asset !== asset ||
+			(gesture.tool === 'draw' && gesture.sample !== sample))) endGesture();
+		const stroke = gesture?.tool === 'draw' ? gesture : null;
 		const { name, encoding } = sampleFormats[asset.mode];
 		title.textContent = `${name} waveform`;
-		canvas.setAttribute('aria-label', sample ? `Decoded ${name} waveform and loop range` : `Decoded ${name} built-in sample waveform`);
+		canvas.setAttribute('aria-label', tool === 'draw' ? `Draw the ${name} waveform. Release to apply.`
+			: sample ? `Decoded ${name} waveform and loop range` : `Decoded ${name} built-in sample waveform`);
+		for (const button of toolButtons) button.setAttribute('aria-pressed', String(button.dataset.ndsWaveTool === tool));
 		const source = sample ? sound.name : 'Built-in waveform';
 		const rate = sample ? ` · ${asset.sampleRate.toLocaleString()} Hz` : '';
 		info.textContent = `${source ? `${source} · ` : ''}${encoding}${rate} · ${asset.frames.toLocaleString()} frames · ${asset.bytes.length.toLocaleString()} bytes · ${asset.framesPerWord} frames/word`;
+		const drawHint = 'Draw · Software · Release to apply on the next note.';
 		if (!sample) {
-			status.textContent = 'Applies on the next note.';
-			draw(asset, null, sound.loop);
+			status.textContent = tool === 'draw' ? drawHint : 'Select Draw to edit the built-in waveform.';
+			draw(asset, null, sound.loop, stroke);
 			return;
 		}
 		const { rootNote, range } = sample;
@@ -143,8 +168,9 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		start.max = Math.min(range.endFrame - asset.framesPerWord, (65535 - asset.headerWords) * asset.framesPerWord);
 		end.min = range.startFrame + asset.framesPerWord;
 		end.max = asset.frames;
-		status.textContent = `${sound.loop ? 'Repeat' : 'One shot'} · PNT ${range.loopStartWords} · LEN ${range.lengthWords} words. Changes apply on the next note.`;
-		draw(asset, range, sound.loop);
+		const rangeInfo = `${sound.loop ? 'Repeat' : 'One shot'} · PNT ${range.loopStartWords} · LEN ${range.lengthWords} words.`;
+		status.textContent = `${rangeInfo} ${tool === 'draw' ? drawHint : 'Changes apply on the next note.'}`;
+		draw(asset, range, sound.loop, stroke);
 	}
 
 	function changeRange(key, frame) {
@@ -188,22 +214,101 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onError
 		root.blur();
 	});
 
-	function point(event) {
+	function rangePoint(event) {
 		const rect = canvas.getBoundingClientRect();
 		return Math.round((event.clientX - rect.left) / rect.width * getSound().sample.asset.frames);
 	}
+	function paint(event, stroke) {
+		const rect = canvas.getBoundingClientRect(), { source } = stroke;
+		const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(1, rect.width)));
+		const value = Math.max(-1, Math.min(1, (.5 - (event.clientY - rect.top) / Math.max(1, rect.height)) / .43));
+		const frame = Math.round(x * (source.length - 1));
+		const previous = stroke.point ?? { frame, value };
+		const first = Math.min(previous.frame, frame), last = Math.max(previous.frame, frame);
+		const distance = frame - previous.frame;
+		if (distance) for (let index = first; index <= last; index++) {
+			const ratio = (index - previous.frame) / distance;
+			source[index] = previous.value + ratio * (value - previous.value);
+		}
+		else source[frame] = value;
+		stroke.point = { frame, value };
+		if (stroke.peaks) {
+			// Only bins touched by this segment need to be rescanned for the preview.
+			const x0 = Math.max(0, Math.floor(first * width / source.length) - 1);
+			const x1 = Math.min(width - 1, Math.ceil((last + 1) * width / source.length));
+			readPeaks(source, stroke.peaks, x0, x1);
+		}
+	}
+	function cancelGesture() {
+		if (!gesture) return;
+		endGesture();
+		render();
+	}
+	for (const button of toolButtons) {
+		button.addEventListener('pointerdown', event => {
+			event.preventDefault();
+			document.activeElement?.blur();
+		});
+		button.addEventListener('click', () => {
+			if (tool === button.dataset.ndsWaveTool) return;
+			endGesture();
+			tool = button.dataset.ndsWaveTool;
+			render();
+		});
+	}
 	canvas.addEventListener('pointerdown', event => {
-		if (event.button !== 0 || !getSound().sample) return;
+		if (event.button !== 0 || gesture || !isNdsSampleMode(getSound().mode)) return;
+		if (tool === 'range' && !getSound().sample) return;
 		event.preventDefault();
-		const frame = point(event), { startFrame, endFrame } = getSound().sample.range;
+		document.activeElement?.blur();
+		const sound = getSound(), target = getTarget(), pointer = event.pointerId;
+		canvas.setPointerCapture(pointer);
+		if (tool === 'draw') {
+			const { sample } = sound, asset = sample?.asset ?? builtinAsset(sound.mode, sound.shape);
+			const source = asset.pcm.slice();
+			if (sample) source.set(sample.source);
+			gesture = { tool, pointer, target, sample, asset, source };
+			paint(event, gesture);
+			draw(asset, sample?.range ?? null, sound.loop, gesture);
+			return;
+		}
+		const frame = rangePoint(event), { startFrame, endFrame } = sound.sample.range;
 		const key = Math.abs(frame - startFrame) < Math.abs(frame - endFrame) ? 'startFrame' : 'endFrame';
-		drag = { pointer: event.pointerId, key, target: getTarget() };
-		canvas.setPointerCapture(event.pointerId);
+		gesture = { tool, pointer, key, target, asset: sound.sample.asset };
 		changeRange(key, frame);
 	});
 	canvas.addEventListener('pointermove', event => {
-		if (drag?.pointer === event.pointerId && drag.target === getTarget() && getSound().sample) changeRange(drag.key, point(event));
+		if (gesture?.pointer !== event.pointerId || gesture.target !== getTarget()) return;
+		const sound = getSound();
+		if (gesture.tool === 'range') {
+			if (sound.sample) changeRange(gesture.key, rangePoint(event));
+			return;
+		}
+		paint(event, gesture);
+		draw(gesture.asset, sound.sample?.range ?? null, sound.loop, gesture);
 	});
-	canvas.addEventListener('lostpointercapture', () => { drag = null; });
-	return { render, cancelPending() { request++; drag = null; } };
+	canvas.addEventListener('pointerup', event => {
+		if (gesture?.pointer !== event.pointerId) return;
+		const stroke = gesture, sound = getSound();
+		endGesture();
+		if (stroke.tool !== 'draw') return;
+		const sample = sound.sample, current = sample?.asset ?? (isNdsSampleMode(sound.mode) ? builtinAsset(sound.mode, sound.shape) : null);
+		if (!canDraw(stroke, sound, current)) { render(); return; }
+		try {
+			paint(event, stroke);
+			const source = stroke.source;
+			const asset = encodeNdsSample(source, stroke.asset.sampleRate, sound.mode);
+			const range = sample?.range ?? normalizeNdsSampleRange(asset, { loop: sound.loop });
+			updateSound({ ...sound, sample: { asset, source, rootNote: sample?.rootNote ?? 60, range } });
+		} catch (error) { render(); onError(error); }
+	});
+	for (const type of ['pointercancel', 'lostpointercapture']) canvas.addEventListener(type, event => {
+		if (gesture?.pointer === event.pointerId) cancelGesture();
+	});
+	document.addEventListener('keydown', event => {
+		if (event.key !== 'Escape' || gesture?.tool !== 'draw') return;
+		event.preventDefault();
+		cancelGesture();
+	});
+	return { render, cancelPending() { request++; cancelGesture(); } };
 }

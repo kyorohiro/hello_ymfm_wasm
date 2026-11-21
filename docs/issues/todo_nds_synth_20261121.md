@@ -63,9 +63,9 @@ register documentation. The existing SkyEmu player remains the song source.
       These modes share the physical voices, not independent extra voice pools.
 - [x] Restore the browser Keyboard screen, output Envelope/Waveform/Spectrum,
       Auto/physical CH, and hardware controls with the Nitro DS icon palette.
-- [x] Share one channel button row across Synth and 2SF views, add the
-      Code/Synth workspace switch, and preserve performance keys through
-      focused parameter selects.
+- [x] Use one Auto / CH1–CH16 picker. Auto auditions the authored instrument.
+      During 2SF playback a physical CH follows the song and auditions its
+      PCM on Pause. Preserve performance keys through focused selects.
 - [x] Add Files/Cassette and New/Import/Export. Align Files beside the Synth
       and use the shared expanded Code / DS / Keyboard tabs. Keep the 2SF
       transport and Master available in either layout.
@@ -77,6 +77,11 @@ register documentation. The existing SkyEmu player remains the song source.
 - [x] Add WAV import and conversion to DS PCM8, PCM16 or IMA-ADPCM.
       Show the playback waveform and edit the word-aligned repeat start and
       end. Tune imported samples using their source rate and a root note.
+- [x] Draw built-in, WAV and captured PCM on the Range / Draw canvas. Encode
+      a completed stroke in the selected DS format for the next note.
+- [x] Add a reusable software mix for CH1–CH16 with level, balance and mute.
+      Show active Synth channels and give the whole reference track a 2SF level
+      control. Keep Master available in both workspaces.
 - [x] Save self-contained DS instruments to `presets/` and verify that samples,
       tuning and loop points survive a Cassette export and re-import.
 - [x] Load a saved DS instrument into a physical channel from Code. Verify

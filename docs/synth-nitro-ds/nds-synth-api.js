@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { NDS_AUDIO_CLOCK, NDS_ADPCM_STEPS, NDS_ADPCM_INDEX_DELTAS, ndsAdpcmDelta } from './nds-core.js';
+import { NDS_AUDIO_CLOCK, NDS_ADPCM_STEPS, NDS_ADPCM_INDEX_DELTAS, ndsAdpcmDelta } from './nds-core.js?v=nds-mixer-1';
 
 const PCM_MODES = new Set(['pcm8', 'pcm16', 'adpcm']);
 export const NDS_SOFTWARE_WAVE_FRAMES = 64;
@@ -122,6 +122,12 @@ export class NdsSynth {
 	}
 	async getState(channel) {
 		return this.#request('getState', [channel]);
+	}
+	async setChannelMix(channel, patch) {
+		return this.#request('setChannelMix', [channel, patch]);
+	}
+	async getChannelMix(channel) {
+		return this.#request('getChannelMix', [channel]);
 	}
 	async startCapture(unit, settings) {
 		return this.#request('startCapture', [unit, settings]);

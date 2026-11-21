@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-live-controls-1" />
-		<script type="module" src="synth.js?v=nds-live-controls-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-mixer-1" />
+		<script type="module" src="synth.js?v=nds-mixer-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -51,7 +51,9 @@
 				<div class="workspace-meta">
 					<div class="workspace-status">
 						<p id="status" role="status">Import a 2SF folder or select the song and its library together.</p>
-						<div id="synthExpandedVolumeSlot" hidden></div>
+						<label class="master">Master <input id="master" type="range" min="0" max="380" value="70" />
+							<output id="masterValue" for="master">70%</output>
+						</label>
 					</div>
 					<details class="reference" open>
 						<summary id="referenceTitle">Reference playback</summary>
@@ -79,16 +81,13 @@
 					<div id="ndsSynthEditor">
 						<div class="performance-tabs nds-chip-tabs" role="tablist" aria-label="Sound chip">
 							<button id="ndsChipTab" type="button" role="tab" aria-selected="true" aria-controls="ndsChipPanel">DS</button>
+							<button id="ndsMixerTab" type="button" role="tab" aria-selected="false" aria-controls="ndsMixerPanel" tabindex="-1">Mixer</button>
 						</div>
 						<div id="ndsChipPanel" role="tabpanel" aria-labelledby="ndsChipTab">
 							<section class="nds-channel-section" aria-label="DS channels">
-								<div id="ndsChannelPicker" class="nds-channel-picker" aria-label="View and keyboard" role="group">
-									<div class="nds-channel-views" role="group" aria-label="View">
-										<span>View / keyboard</span>
-										<button id="ndsSynthView" type="button" aria-pressed="true">Synth</button>
-										<button id="ndsReferenceView" type="button" aria-pressed="false" disabled>2SF</button>
-									</div>
+								<div id="ndsChannelPicker" class="nds-channel-picker">
 									<div id="ndsChannelButtons" class="nds-channel-buttons" role="group" aria-label="Channel"></div>
+									<p id="ndsChannelModeStatus" class="nds-channel-source">Synth · Auto</p>
 								</div>
 								<div id="twoSfLivePanel" class="two-sf-live" role="group" aria-label="2SF channel monitor" hidden>
 									<label><input id="twoSfLiveEnabled" type="checkbox" checked /> Live view</label>
@@ -122,9 +121,6 @@
 										<button type="button" data-monitor="waveform" aria-pressed="true">Waveform</button>
 										<button type="button" data-monitor="spectrum" aria-pressed="false">Spectrum</button>
 									</div>
-									<label class="master">Master <input id="master" type="range" min="0" max="380" value="70" />
-										<output id="masterValue" for="master">70%</output>
-									</label>
 								</div>
 								<canvas id="waveform" class="monitor-canvas" width="960" height="180" aria-label="Output waveform"></canvas>
 								<canvas id="envelope" class="monitor-canvas" width="960" height="180" aria-label="Output level history" hidden></canvas>
@@ -137,7 +133,7 @@
 										<summary aria-label="About DS channels">?</summary>
 										<p>All 16 channels play PCM8, PCM16 and IMA-ADPCM. Physical CH9–CH14 also generate pulse waveforms and CH15–CH16 generate noise. Code uses CH1–CH16 for hardware channels 0–15.</p>
 										<p>Auto allocates compatible channels. Sample, mode and loop changes apply on the next note. Volume, divider, pan, pulse duty and rate controls apply while you hold a key. The keyboard smooths release in software.</p>
-										<p>In the 2SF view, pause the song to audition the selected channel on the keyboard. Choose Synth to play the edited instrument.</p>
+										<p>Choose a channel while a 2SF plays to follow it. Pause to play that channel on the keyboard. Choose Auto to play your own instrument.</p>
 									</details>
 								</div>
 								<div class="hardware-fields">
@@ -181,7 +177,14 @@
 								</div>
 								<p id="ndsGeneratedSource" class="generated-source" hidden></p>
 								<section id="ndsSampleEditor" class="sample-editor" aria-labelledby="ndsSampleTitle" hidden>
-									<div class="sample-heading"><h2 id="ndsSampleTitle">PCM16 waveform</h2><span id="ndsSampleInfo"></span></div>
+									<div class="sample-heading">
+										<h2 id="ndsSampleTitle">PCM16 waveform</h2>
+										<span id="ndsSampleInfo"></span>
+										<div class="sample-tools" role="group" aria-label="Waveform editing">
+											<button type="button" data-nds-wave-tool="range" aria-pressed="true">Range</button>
+											<button type="button" data-nds-wave-tool="draw" aria-pressed="false">Draw</button>
+										</div>
+									</div>
 									<canvas id="ndsSampleCanvas" width="960" height="144" aria-label="Sample waveform and loop range"></canvas>
 									<div id="ndsSampleRangeFields" class="sample-fields" hidden>
 										<label>Root note · MIDI <input id="ndsSampleRoot" type="number" min="0" max="127" step="1" value="60" /><output id="ndsSampleRootName">C4</output></label>
@@ -219,6 +222,13 @@
 								<p id="ndsNoteStatus" class="note-status" aria-live="polite"></p>
 							</section>
 						</div>
+						<section id="ndsMixerPanel" class="nds-mixer" role="tabpanel" aria-labelledby="ndsMixerTab" hidden>
+							<div class="nds-mixer-header">
+								<h2>Synth channels</h2>
+								<label>2SF level <input id="ndsReferenceMix" type="range" min="0" max="200" value="100" /> <output id="ndsReferenceMixValue" for="ndsReferenceMix">100%</output></label>
+							</div>
+							<div id="ndsMixerChannels" class="nds-mixer-channels" aria-label="Synth and audition channel outputs"></div>
+						</section>
 					</div>
 					<section id="synthInputSection" data-input-mode="keyboard" aria-label="Performance input">
 						<div class="performance-heading">

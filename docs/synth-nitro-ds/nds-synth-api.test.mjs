@@ -193,3 +193,22 @@ test('DS owned timer changes and key tracking reuse the held PCM sample and pres
 	assert.equal(await keyboard.configureOwned(0, note.token, {}, 'C5'), false);
 	assert.equal((await code.getState(0)).timer, replacement.timer);
 });
+
+test('DS worklet channel mix persists across note owners and physical register edits', async () => {
+	const { chip } = endpoint();
+	const keyboard = chip.forOwner('keyboard'), code = chip.forOwner('code');
+	const note = await keyboard.noteOn(0, 'A4', { volume: 90, pan: 64 });
+	const mix = { volume: .4, pan: -.25, muted: true };
+	assert.deepEqual(await chip.setChannelMix(0, mix), mix);
+	assert(keyboard.owns(0, note.token));
+	const replacement = await code.noteOn(0, 'C4', { volume: 113, pan: 127 });
+	assert(code.owns(0, replacement.token));
+	assert.equal((await chip.getState(0)).volume, 113);
+	assert.equal((await chip.getState(0)).pan, 127);
+	assert.deepEqual(await chip.getChannelMix(0), mix);
+	const rows = await chip.getChannelMix();
+	assert.equal(rows.length, 16);
+	assert.deepEqual(rows[0], mix);
+	assert.deepEqual(rows[1], { volume: 1, pan: 0, muted: false });
+	await assert.rejects(chip.setChannelMix(16, { volume: .5 }), /DS channel/);
+});

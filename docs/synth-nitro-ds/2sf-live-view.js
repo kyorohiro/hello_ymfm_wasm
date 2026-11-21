@@ -29,25 +29,26 @@ export function setupTwoSfLiveView({ getChannel, onEnabledChange, onAuditionChan
 		const hasSong = phase === 'playing' || phase === 'paused';
 		const hidePanel = !referenceView;
 		if (panel.hidden !== hidePanel) panel.hidden = hidePanel;
-		const current = referenceView && enabled.checked && hasSong && !switching ? snapshot?.channels[getChannel()] : null;
+		const selected = referenceView && hasSong && !switching ? snapshot?.channels[getChannel()] : null;
+		const current = enabled.checked ? selected : null;
 		const hideDetails = !current;
 		if (details.hidden !== hideDetails) details.hidden = hideDetails;
 
-		const hideAudition = hidePanel || phase !== 'paused' || !enabled.checked || Boolean(pending || switching);
+		const hideAudition = hidePanel || phase !== 'paused' || Boolean(pending || switching);
 		if (auditionTools.hidden !== hideAudition) auditionTools.hidden = hideAudition;
-		const disableAudition = !current || auditionSupported !== true;
+		const disableAudition = !selected || auditionSupported !== true;
 		if (reference.disabled !== disableAudition) reference.disabled = disableAudition;
 		const disableCapture = hideAudition || canCapture !== true;
 		if (capture.disabled !== disableCapture) capture.disabled = disableCapture;
 		write(auditionMessage, hideAudition ? '' : auditionStatus ?? '');
 
 		let label = 'No song playing';
-		if (!enabled.checked) label = 'Live view off';
+		if (!enabled.checked) label = phase === 'playing' ? 'Live view off · Pause for keyboard audition' : 'Live view off';
 		else if (switching) label = 'Preparing channel view…';
 		else if (hasSong) {
 			if (monitorSupported === false) label = 'Update the 2SF renderer for Live view';
 			else if (!current) label = 'Waiting for channel data…';
-			else label = phase === 'paused' ? 'Paused · Read only' : 'Live · Read only';
+			else label = phase === 'paused' ? 'Paused · Read only' : 'Live · Pause for keyboard audition';
 		}
 		write(status, label);
 		if (!current) return;

@@ -112,6 +112,35 @@ test('samples are owned, sample changes wait for Key On and pan, volume and divi
 	assert.equal(render(core, 2).right[1], -squareLevel / 32);
 });
 
+test('DS channel mix trims the stereo output while muted playback keeps advancing', () => {
+	const core = new NdsSoundCore(rate);
+	const reference = new NdsSoundCore(rate);
+	const bytes = Uint8Array.from({ length: 16 }, (_, frame) => (frame + 1) * 4);
+	for (const engine of [core, reference]) {
+		engine.configure(0, { ...allLeft, pan: 64, mode: 'pcm8', bytes });
+		engine.keyOn(0);
+		render(engine, 4);
+	}
+	const defaults = { volume: 1, pan: 0, muted: false };
+	assert.deepEqual(core.getChannelMix(), Array.from({ length: 16 }, () => defaults));
+	assert.deepEqual(core.setChannelMix(0, { volume: .5, pan: 1 }), { ...defaults, volume: .5, pan: 1 });
+	const trimmed = render(core, 4);
+	const dry = render(reference, 4);
+	assert(trimmed.left.every(value => value === 0));
+	assert.deepEqual(trimmed.right, dry.right.map(value => value * .5));
+	assert.throws(() => core.setChannelMix(0, { volume: .25, pan: 2 }), /Mixer requires/);
+	assert.throws(() => core.setChannelMix(0, { solo: true }), /DS channel mixer/);
+	assert.deepEqual(core.getChannelMix(0), { ...defaults, volume: .5, pan: 1 });
+
+	core.setChannelMix(0, { muted: true });
+	const silent = render(core, 18);
+	assert(silent.left.every(value => value === 0) && silent.right.every(value => value === 0));
+	render(reference, 18);
+	assert.deepEqual(core.getState(0), reference.getState(0));
+	core.setChannelMix(0, defaults);
+	assert.deepEqual(render(core, 16), render(reference, 16));
+});
+
 test('rate tracking is block-invariant at 44.1 and 48 kHz, and release differs from hardware Key Off', () => {
 	for (const sampleRate of [44100, 48000]) {
 		const timer = 65536 - Math.round(NDS_AUDIO_CLOCK / (440 * 8));
@@ -190,6 +219,21 @@ test('Sound Capture records separate stereo mixer taps before software output he
 	core.configure(0, { ...allLeft, bytes: core.readCapture(0).bytes, loop: false });
 	core.keyOn(0);
 	assert.deepEqual([...render(core, 6).left], [0, 0, 0, ...Array(3).fill(pcm16Level(0x1234))]);
+});
+
+test('Sound Capture includes the channel mixer trim and mute', () => {
+	const core = new NdsSoundCore(rate);
+	const bytes = new Uint8Array(16).fill(64);
+	core.configure(0, { ...allLeft, mode: 'pcm8', bytes });
+	core.configure(2, { ...allLeft, mode: 'pcm8', bytes });
+	core.setChannelMix(0, { volume: .5 });
+	core.setChannelMix(2, { muted: true });
+	core.keyOn(0);
+	core.keyOn(2);
+	render(core, 4);
+	core.startCapture(0, { format: 'pcm8', lengthWords: 1, timer: stepPerFrame });
+	render(core, 4);
+	assert.deepEqual([...core.readCapture(0).bytes], [32, 32, 32, 32]);
 });
 
 test('Sound Capture clips mixer peaks and handles faster timers with bounded held samples', () => {

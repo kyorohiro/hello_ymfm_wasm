@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js?v=nds-sound-capture-1';
-import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-timer-1';
+import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NdsSoundCore } from './nds-core.js?v=nds-mixer-1';
+import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-mixer-1';
 
 const DEFAULT_SAMPLE = makeNdsSample('pcm16');
 const PCM_MODES = new Set(['pcm8', 'pcm16', 'adpcm']);
@@ -160,6 +160,8 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 			}
 			case 'getState':
 				return channel === undefined ? this.owners.map((_, index) => this.read(index)) : this.read(channel);
+			case 'setChannelMix': return this.core.setChannelMix(channel, first);
+			case 'getChannelMix': return this.core.getChannelMix(channel);
 			case 'startCapture': return this.core.startCapture(channel, first);
 			case 'getCaptureState': return this.core.getCaptureState(channel);
 			case 'stopCapture': return this.core.stopCapture(channel);

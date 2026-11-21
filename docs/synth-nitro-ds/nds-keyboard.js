@@ -3,7 +3,7 @@ import { buildKeyboard, createFretboardLayout, createFretboardState } from '../s
 import { noteToHz } from '../js/soundchip_pitch.js';
 import { NDS_AUDIO_CLOCK } from './nds-core.js?v=nds-sound-capture-1';
 import { ndsTimerForFrequency, NDS_SOFTWARE_WAVE_FRAMES } from './nds-synth-api.js?v=nds-timer-1';
-import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-source-1';
+import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-pcm-draw-1';
 
 const CHANNELS = Array.from({ length: 16 }, (_, channel) => channel);
 const AUTO = -1;
