@@ -1,3 +1,4 @@
+import {attachNesTimedClient} from '../js/nes_timed_client.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {noteToHz} from '../js/soundchip_pitch.js';
 
@@ -73,7 +74,7 @@ export function validateNesCodeCall(method, args, clock = 1789772.7272727273) {
 }
 
 /** An awaitable NesApuSynth-shaped facade; it owns no APU or audio device. */
-export function createNesCodeClient({metadata, invoke, isCurrent, dispose} = {}) {
+export function createNesCodeClient({metadata, invoke, isCurrent, dispose,timedRequest,timedPort} = {}) {
   if (!Number.isSafeInteger(metadata?.session) || metadata.session < 1 || metadata.channels !== 6
       || !Number.isFinite(metadata.clock) || metadata.clock <= 0) throw new Error('Invalid NES Code session');
   for (const callback of [invoke,isCurrent,dispose]) {
@@ -101,5 +102,6 @@ export function createNesCodeClient({metadata, invoke, isCurrent, dispose} = {})
     closed = true;
     return closing = Promise.resolve(dispose());
   };
+  if(timedRequest){Object.defineProperty(client,'_requestControl',{value:(_method,args)=>timedRequest(args[0])});return attachNesTimedClient(client,{},timedPort);}
   return client;
 }

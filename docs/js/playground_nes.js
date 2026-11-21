@@ -1,10 +1,11 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {NesApuSynth} from './nesapusynth.js?v=pokey-mode-1';
-import {NES_APU_CLOCK} from './nesapu.js?v=nes-wasm-1';
+import {attachNesTimedClient} from './nes_timed_client.js';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
+import {NesApuSynth} from './nesapusynth.js';
+import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
 /** @param {MessagePort} port Ordered Worklet command/acknowledgement port, owned by the client.
  * @param {{clock?: number, fdsEnabled?: boolean, state?:object,native?:boolean}} [options={}] Clock in Hz, FDS availability and an optional existing device snapshot.
- * @returns {NesApuSynth & {_stopVoices:()=>Promise<void>}} Synth whose dispose closes the port and rejects pending uploads. */
+ * @returns {NesApuSynth & import('./nes_timed_client.js').NESTimedApi & {_stopVoices:()=>Promise<void>}} Synth whose dispose closes the port and rejects pending uploads. */
 export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false, state,native=false} = {}, lifecycle={}) {
   let disposed = false, sequence = 0;
   const pending = new Map();
@@ -50,7 +51,8 @@ export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false
     for (const request of pending.values()) request.reject(new Error('NES disposed'));
     pending.clear(); port.close();
   }});
-  const controlled=attachChipClock(client, port, clock);
+  Object.defineProperties(client,{_timedClientStateComplete:{get:()=>true},_getTimedState:{value:()=>client._getState()}});
+  const controlled=attachNesTimedClient(attachChipClock(client, port, clock),{native},port);
   if(native){
     const setClock=controlled.setClock.bind(controlled);
     controlled.setClock=hz=>{const context=lifecycle.captureContext?.();check(context);return scoped(setClock(hz),context);};

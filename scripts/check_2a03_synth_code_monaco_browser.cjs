@@ -90,6 +90,10 @@ function muteDestinations() {
 
 const GOOD_SOURCE = `// @ts-check
 const nes = await useSoundChip('nes');
+const phrase=nes.build(b=>{b.pulse.setVoice(CH1,{volume:8});b.noteOn(CH1,'C4');b.atSample(441).noise.noteOn();b.noise.noteOff();});
+const snapshot=await nes.captureState();
+console.table(await nes.compile(phrase,{initialState:snapshot}));
+await nes.schedule(phrase,{name:'apu',repeatSeconds:1});
 await nes.pulse.setVoice(CH1, {duty: 0.25, volume: 8, envelope: {period: 2, loop: true}});
 await nes.pulse.setFrequency(CH1, 220);
 await nes.noteOn(CH1, 'A3');
@@ -420,6 +424,7 @@ async function run(browser, name, origin) {
       {needle: 'nes.pulse.setVoice', symbol: 'setVoice', file: 'nesapusynth.js', sourceSymbol: 'setVoice:'},
       {needle: 'nes.noteOn(CH1', symbol: 'noteOn', file: 'synth-2a03/code_endpoint.js', sourceSymbol: 'createNesCodeClient'},
       {needle: 'nes.getState', symbol: 'getState', file: 'synth-2a03/code_endpoint.js', sourceSymbol: 'createNesCodeClient'},
+      {needle: 'nes.build', symbol:'build',file:'nes_timed_client.js',sourceSymbol:'attachNesTimedClient'},
     ]) result.implementations.push(await bounded(definition(page, target), 'Go to Definition / ' + target.file, 60000));
     result.steps.push('Public Go to Definition and View implementation open readable Code runtime and NES + FDS sources');
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), '1240px layout has no horizontal overflow');

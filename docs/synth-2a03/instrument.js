@@ -251,6 +251,23 @@ export class NesInstrument {
     this._apply(previous,next,channel);this.channelPresets[channel]=next;this.codeRaw[channel]=false;this.codePresets[channel]=null;
     return this.read();
   }
+  applyTimedWrite(register,value,owner) {
+    this._open();
+    const state=this.synth._getState();
+    if(register===0x4015){
+      for(let ch=0;ch<4;ch++)if(!(value&(1<<ch))&&this.owners[ch]&&this.owners[ch].timedOwner!==owner)value=(value&~(1<<ch))|(state.enabled&(1<<ch));
+      for(let ch=0;ch<4;ch++)if((state.enabled^(value&31))&(1<<ch)){
+        if(value&(1<<ch)){this._ownCode(ch,this.codeSession);this.owners[ch].timedOwner=owner;}
+        else this._forget(ch);
+      }
+    }
+    const channel=[0x4003,0x4007,0x400b,0x400f].indexOf(register);
+    if(channel>=0&&(state.enabled&(1<<channel))){this._ownCode(channel,this.codeSession);this.owners[channel].timedOwner=owner;this.codeRaw[channel]=true;}
+    this.synth.writeRegister(register,value);
+  }
+  cancelTimedOwner(owner){
+    for(let ch=0;ch<4;ch++)if(this.owners[ch]?.timedOwner===owner){this._stopChannel(ch);this._forget(ch);}
+  }
   beginCode(...args) {
     this._open();if(args.length)throw new TypeError('Code session takes no arguments');
     if(this.codeActive)this.endCode(this.codeSession);

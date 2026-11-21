@@ -81,6 +81,8 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
     return symbol==='build'?{file:'ps1_operations.js',symbol:'buildPs1Operations'}:{file:'ps1_timed_client.js',symbol:'attachPs1TimedClient'};
   if (/^Playground(?:Primary)?Ps1/.test(owner)||owner==='SpuCodeClient') return {file:'ps1synth.js',symbol:/^(?:Playground|SpuCodeClient)/.test(symbol)?'Ps1Synth':symbol};
   if (/^Playground(?:Primary)?Scsp/.test(owner)) return {file:'scspsynth.js',symbol:owner==='PlaygroundScsp'&&!/^Playground/.test(symbol)?'ScspSynth.'+symbol:'ScspSynth'};
+  if(owner==='PlaygroundNesOperationRecorder')return ['atSample','atSeconds'].includes(symbol)?{file:'nes_operations.js',symbol:'buildNesOperations'}:{file:'nesapusynth.js',symbol};
+  if(owner==='PlaygroundNes'&&['build','compile','schedule','captureState','clearSchedule'].includes(symbol))return {file:'nes_timed_client.js',symbol:'attachNesTimedClient'};
   if (/^PlaygroundNes$/.test(owner)) return {file:'nesapusynth.js', symbol};
   if(/^PlaygroundGameboy(?:OperationRecorder|OperationProgram|RecordedOperation)$/.test(owner))return {file:'gameboy_operations.js',symbol:'buildGameboyOperations'};
   if(/^PlaygroundGameboy(?:StateSnapshot|OperationState)$/.test(owner))return {file:'gameboy_timed_state.js',symbol:'createGameboyTimedSnapshot'};

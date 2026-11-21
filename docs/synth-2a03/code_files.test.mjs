@@ -107,7 +107,7 @@ test('invalid and oversized import batches leave no partial source or preset fil
   const f=fixture(t);await f.files.ready;const before=f.project.snapshot();
   await assert.rejects(f.files.importFiles([file('Valid.vgm',song()),file('Broken.vgm',Uint8Array.of(1,2,3))]),/header|VGM/i);
   assert.deepEqual(f.project.snapshot(),before);
-  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(NES_PROJECT_FILE_BYTES-100)}]);
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(NES_PROJECT_FILE_BYTES-100-f.project.fs.list().filter(f=>f.type==='text').reduce((sum,f)=>sum+new TextEncoder().encode(f.data).length,0))}]);
   const full=f.project.snapshot();
   await assert.rejects(f.files.importFiles([file('Full.vgm',song())]),/16 MiB/);
   assert.deepEqual(f.project.snapshot(),full);

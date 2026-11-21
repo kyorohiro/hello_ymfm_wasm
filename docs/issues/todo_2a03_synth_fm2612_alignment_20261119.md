@@ -22,7 +22,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | Output-only channel switches shared by Keyboard, Code and song | **Missing UI/integration.** There is no common six-channel Mixer. [song_player.js](../synth-2a03/song_player.js) has reference-player channel switching primitives; selecting a CH or disabling a hardware voice is not equivalent to output-only mute. |
 | PCM drawing and Start/Loop range editing | **Chip-specific / already different.** [dmc_editor.js](../synth-2a03/dmc_editor.js) already edits DPCM bits and draws target DAC curves with Undo; FDS wave drawing also exists. RF5C164 PCM byte/range semantics must not be copied into DMC. |
 | Looper / Event Rec | **Not implemented; optional.** No equivalent recording UI is present. This is not required for the first saving/layout rollout. |
-| Timed build/schedule/compile/capture-state API | **Separate proposal.** No equivalent is wired through [code_host.js](../synth-2a03/code_host.js); preserve immediate APIs and distinguish hardware frame sequencing from software reservations. |
+| Timed build/schedule/compile/capture-state API | **Present for Pulse/Triangle/Noise (2026-11-21).** Recorder/compiler, detached snapshots, AudioWorklet scheduling and Code lifecycle are connected. DMC/FDS and Native execution remain follow-ups. [Verification](todo_2a03_timed_register_api_20261121.md). |
 
 ## First implementation candidate: saving and Files
 
@@ -78,10 +78,10 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 
 ## Timed register API follow-up
 
-Not implemented; separate chip-level API work from Files/UI alignment.
+Pulse/Triangle/Noise is implemented; separate the remaining DMC/FDS chip-level work from Files/UI alignment.
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
-- [ ] Preserve pulse/triangle/noise, shared enables, length/envelope/retrigger writes and NES register side effects.
+- [x] Preserve pulse/triangle/noise, shared enables, length/envelope/retrigger writes and NES register side effects.
 - [ ] Scope DMC sample memory and FDS Wave/modulation RAM separately; hardware frame sequencing is not a substitute for sample-clock reservations.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.
@@ -97,7 +97,7 @@ Work in bounded slices; do not imply ordinary Code performance is timed scheduli
       instrument selection and keyboard note ownership during layout changes.
 - [x] Validate source/readable ZIP in muted Chromium/WebKit, fallback and Monaco,
       desktop/mobile, existing Code/keyboard/song flow and relevant regressions.
-- [ ] Next: implement the separately tracked NES/FDS timed operation API. Keep
+- [x] Next: implement the first Pulse/Triangle/Noise timed API slice. DMC/FDS remain separately tracked. Keep
       memory transfers, FDS RAM semantics, raw gates and click guards explicit.
 
 No Looper/Event Rec, Live highlighting, Files migration or new mixer is included
@@ -111,3 +111,7 @@ transport/Master visibility, 1240px/390px layouts and Files/tab alignment.
 Human listening and device tests remain pending. Timed API is the next task,
 not part of this UI port.
 [Evidence](verification_2a03_code_workspace_20261121.json).
+
+Timed first slice is verified: [implementation and remaining work](todo_2a03_timed_register_api_20261121.md).
+The borrowed Synth client explicitly rejects incomplete `client` snapshots;
+current/reset/reused snapshots are supported without stopping audio.

@@ -21,6 +21,12 @@ test('NES async channel helpers and nested hardware API typecheck',async()=>{
   try{
     await writeFile(join(work,'globals.d.ts'),selected);await writeFile(join(work,'entry.ts'),`export {};
 const nes=await useSoundChip('nes');
+const phrase=nes.build(b=>{b.pulse.setVoice(CH1,{volume:8});b.noteOn(CH1,'C4');b.atSample(441).noise.noteOn();b.noise.noteOff();});
+await nes.compile(phrase,{initialState:'reset'});await nes.schedule(phrase,{name:'apu',repeatSeconds:1});
+// @ts-expect-error DMC is outside this timed slice
+nes.build(b=>b.dmc.play());
+// @ts-expect-error FDS is outside this timed slice
+nes.build(b=>b.noteOn(CH6,'C4'));
 const voice:Promise<void>=nes.pulse.setVoice(CH1,{duty:.25,volume:8,envelope:{period:2}});await voice;
 const timer:Promise<number>=nes.fds.setFrequency(440);await timer;
 const pitch:Promise<number>=nes.pulse.setNote(CH1,'E3');await pitch;

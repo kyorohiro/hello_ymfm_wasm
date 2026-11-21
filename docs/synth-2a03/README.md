@@ -25,8 +25,9 @@ collapsible Reference playback remain available above Files and the workspace.
 Run / Apply / Stop stay visible in each expanded view. Selecting an instrument
 continues to apply its sound without forcing Code navigation.
 
-This layout uses the existing immediate NES/FDS Code API. It does not yet add
-`build / schedule / compile`; that chip-specific API is tracked separately.
+Code also supports `build / schedule / compile` for Pulse, Triangle and Noise.
+Fresh Cassettes include `examples/timed-apu.js`; see [Timed API](TIMED_API.md)
+for snapshots, exact hardware trigger semantics and the remaining DMC/FDS scope.
 
 ## Play
 

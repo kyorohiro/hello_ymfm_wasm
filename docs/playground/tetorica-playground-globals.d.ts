@@ -3057,7 +3057,31 @@ type PlaygroundPWM32X = {
 declare function createSoundChip(name: 'pwm', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundPWM32X & PlaygroundChipClock & {readonly id: string}>;
 
 /** NES APU; primary NES mode enables FDS. Independent instances opt in with {fds:true}. */
+/** First timed slice: Pulse/Triangle/Noise. No DMC, FDS, RAM or frame-counter writes. */
+interface PlaygroundNesOperationRecorder {
+  atSample(sample:number):PlaygroundNesOperationRecorder;
+  atSeconds(seconds:number):PlaygroundNesOperationRecorder;
+  writeRegister(register:number,value:number):PlaygroundNesOperationRecorder;
+  setFrequency(channel:0|1|2,hz:number):PlaygroundNesOperationRecorder;
+  setNote(channel:0|1|2,note:string|number):PlaygroundNesOperationRecorder;
+  noteOn(channel:0|1|2,note:string|number):PlaygroundNesOperationRecorder;
+  keyOn(channel:0|1|2):PlaygroundNesOperationRecorder;
+  keyOff(channel:0|1|2|3):PlaygroundNesOperationRecorder;
+  noteOff(channel:0|1|2|3):PlaygroundNesOperationRecorder;
+  pulse:{[K in keyof PlaygroundNes['pulse']]:(...args:Parameters<PlaygroundNes['pulse'][K]>)=>PlaygroundNesOperationRecorder};
+  triangle:{[K in keyof PlaygroundNes['triangle']]:(...args:Parameters<PlaygroundNes['triangle'][K]>)=>PlaygroundNesOperationRecorder};
+  noise:{[K in keyof PlaygroundNes['noise']]:(...args:Parameters<PlaygroundNes['noise'][K]>)=>PlaygroundNesOperationRecorder};
+}
+interface PlaygroundNesOperationProgram {version:1;chip:'nes';referenceSampleRate:number;operations:readonly {time:{unit:'sample'|'seconds';value:number};order:number;method:string;args:readonly unknown[]}[];}
+interface PlaygroundNesStateSnapshot {readonly format:'tetorica-nes-state';readonly version:1;readonly instanceId:string|number;readonly clock:number;readonly engine:'nes-wasm';readonly registers:readonly number[];readonly enabled:number;readonly fdsActive:boolean;readonly fdsGain:number;readonly fdsMaster:number;readonly sample:null;readonly frame:number;readonly sampleRate:number;}
+interface PlaygroundNesTimedWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
 interface PlaygroundNes {
+  build(callback:(builder:PlaygroundNesOperationRecorder)=>void,options?:{referenceSampleRate?:number}):PlaygroundNesOperationProgram;
+  compile(operations:PlaygroundNesOperationProgram,options?:{initialState?:'current'|'client'|'reset'|PlaygroundNesStateSnapshot}):Promise<PlaygroundNesTimedWrite[]>;
+  captureState():Promise<PlaygroundNesStateSnapshot>;
+  schedule(operations:PlaygroundNesOperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;startFrame?:number;sampleRate:number;entries:number;repeatSeconds?:number;staged?:boolean}>;
+  clearSchedule(name:string):Promise<boolean>;
+
   resetRegisters():void;
   loadMemory(bytes:Uint8Array|ArrayBuffer,address?:number):void|Promise<unknown>;
   readonly clock: number;

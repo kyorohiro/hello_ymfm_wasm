@@ -4,7 +4,7 @@ import {createNesCodeClient,nesCodeCancelled} from './code_endpoint.js';
 
 export const NES_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'releaseKeyboard', 'applyPhysicalPreset', 'beginCode', 'code', 'endCode', 'setClickGuard']);
+const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'releaseKeyboard', 'applyPhysicalPreset', 'beginCode', 'code', 'endCode', 'setClickGuard','nesTimed']);
 const nativeSetTimer=globalThis.setTimeout.bind(globalThis),nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
 
 function validateVolume(value) {
@@ -136,6 +136,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
         owner.metadata=metadata;if(!current())throw nesCodeCancelled();
         owner.client=createNesCodeClient({metadata,isCurrent:current,
           invoke:(method,args)=>{if(!current())throw nesCodeCancelled();return command('code',[metadata.session,method,args]);},
+          timedRequest:payload=>{if(!current())throw nesCodeCancelled();return command('nesTimed',[metadata.session,payload]);},timedPort:node.port,
           dispose:()=>stopCode(owner.client)});
         return owner.client;
       }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});

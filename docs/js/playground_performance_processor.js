@@ -5,8 +5,8 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  * while their sound changes wait for the reserved audio frame.
  */
 /** @param {string} chip @param {any} command
- * @param {{psgLatch?:number,hucChannel?:number,opllRhythm?:number,wonderswanRegisters?:ArrayLike<number>}} [state] */
-export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel,controlMask,psgRegister,port:registerPort=0},{psgLatch=0,hucChannel=0,opllRhythm=0,wonderswanRegisters}={}) {
+ * @param {{psgLatch?:number,hucChannel?:number,opllRhythm?:number,nesEnabled?:number,wonderswanRegisters?:ArrayLike<number>}} [state] */
+export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel,controlMask,psgRegister,nesTimed=false,port:registerPort=0},{psgLatch=0,hucChannel=0,opllRhythm=0,nesEnabled=0,wonderswanRegisters}={}) {
   if(['reset','allNotesOff','stopVoices','panic'].includes(method))return {allOff:true};
   if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
   if(chip==='ps1'&&['_auditionKeyOn','_auditionKeyOff'].includes(method))return {key:args[0],on:method==='_auditionKeyOn'};
@@ -14,6 +14,10 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   if(chip==='snes'&&method==='writeDsp'&&[0x4c,0x5c].includes(args[0]))return {events:Array.from({length:8},(_,key)=>key).filter(key=>args[1]&(1<<key)).map(key=>({key,on:args[0]===0x4c}))};
   if(chip==='dx7'&&(method==='noteOn'||method==='noteOff'))return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
   if(chip==='rf5c164'&&(method==='keyOn'||method==='keyOff'))return {key:args[0],on:method==='keyOn'};
+  if(chip==='nes'&&method==='writeRegister'&&nesTimed){
+    if(args[0]===0x4015)return {events:Array.from({length:4},(_,key)=>({key,on:!!(args[1]&(1<<key))})).filter(e=>e.on!==!!(nesEnabled&(1<<e.key)))};
+    const key=[0x4003,0x4007,0x400b,0x400f].indexOf(args[0]);if(key>=0&&(nesEnabled&(1<<key)))return {key,on:true};
+  }
   if(chip==='nes'&&method==='setChannelEnabled')return {key:args[0],on:args[1]};
   if(chip==='nes'&&method==='writeRegister'&&args[0]===0x4083)return {key:5,on:!(args[1]&128)};
   if(chip==='gameboy'&&method==='writeRegister'){
@@ -251,7 +255,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map(),auditions=new Map();
   let psgLatch=0,nesEnabled=0;
-  const noteState={psgLatch:0};
+  const noteState={psgLatch:0,nesEnabled:0};
   const chipName=()=>typeof chip==='function'?chip():chip;
   // Data bytes reuse the last register selected by any applied PSG writer.
   // A chip snapshot includes inspector writes that bypass this queue.
@@ -299,7 +303,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     if(!auditions.size)return false;
     // Explicit timed chip edits follow actual application order. Note ownership
     // below still protects newer manual Gates from an old scheduled release.
-    if(['ay8910','huc6280','wonderswan','gameboy','sid','ym2608'].includes(chipName())&&metadata?.timedOperation)return false;
+    if(['ay8910','huc6280','wonderswan','gameboy','sid','ym2608','nes'].includes(chipName())&&metadata?.timedOperation)return false;
     // PSG noise rate 3 uses tone channel 3's divider. A held noise key owns
     // that divider as well, while the tone channel's volume remains editable.
     if(chipName()==='segapsg'&&command.method==='write'&&auditions.has(3)&&(getPsgMode?.()&3)===3){
@@ -318,6 +322,10 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     return auditions.has(channel)&&auditions.get(channel)!==metadata?.owner;
   }
   function protectNesEnable(command,metadata) {
+    if(chipName()==='nes'&&metadata?.timedOperation&&command.method==='writeRegister'&&command.args[0]===0x4015){
+      let value=command.args[1];for(const [key,entry]of owners)if(Number.isInteger(key)&&key<4&&entry.owner!==metadata.owner&&!(value&(1<<key)))value=(value&~(1<<key))|(nesEnabled&(1<<key));
+      return {...command,args:[0x4015,value]};
+    }
     if(!auditions.size||chipName()!=='nes'||command.method!=='writeRegister'||command.args[0]!==0x4015)return command;
     let mask=0;for(const [channel,owner]of auditions)if(channel<5&&owner!==metadata?.owner)mask|=1<<channel;
     if(!mask)return command;
@@ -361,6 +369,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     return auditions.has(physical)&&auditions.get(physical)===metadata?.owner;
   }
   function note(command,port,metadata) {
+    noteState.nesEnabled=nesEnabled;
     noteState.psgLatch=getPsgLatch?.()??psgLatch;
     noteState.hucChannel=getHucChannel?.()??0;
     noteState.opllRhythm=getOpllRhythm?.()??0;

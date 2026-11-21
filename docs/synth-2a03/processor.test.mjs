@@ -1,3 +1,5 @@
+import {createPerformanceQueue} from '../js/playground_performance_queue.js';
+import {createNesTimedProcessor} from '../js/nes_timed_processor.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -29,7 +31,7 @@ function fixture() {
   class Processor { constructor(){this.port = {postMessage:value => messages.push(value)};} }
   vm.runInNewContext(source.replace(/^import .*;\n/gm,''), {
     AudioWorkletProcessor:Processor, NesApuWasm:{create:value => {options.push(value);return initialization;}},
-    NesInstrument:Instrument, OutputClickGuard, factory:()=>{}, sampleRate:48000, Set,
+    NesInstrument:Instrument, OutputClickGuard,createPerformanceQueue,createNesTimedProcessor, factory:()=>{}, sampleRate:48000, Set,
     registerProcessor(name,value){assert.equal(name,'tetorica-nes-fds-synth');Constructor = value;},
   });
   const processor = new Constructor({processorOptions:{wasmBinary:new Uint8Array([0])}});

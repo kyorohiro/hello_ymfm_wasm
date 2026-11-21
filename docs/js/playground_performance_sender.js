@@ -85,7 +85,7 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
     }
     // Register-operation RPCs own their compact timeline; retain the owner
     // without adding the performance lead a second time.
-    if(!Array.isArray(data)&&['ayTimed','ym2612Timed','ym2608Timed','huc6280Timed','ps1Timed','wonderswanTimed','psgTimed','opllTimed','sidTimed','gameboyTimed'].includes(data?.method)){
+    if(!Array.isArray(data)&&['ayTimed','ym2612Timed','ym2608Timed','huc6280Timed','ps1Timed','wonderswanTimed','psgTimed','opllTimed','sidTimed','gameboyTimed','nesTimed'].includes(data?.method)){
       port.postMessage({...data,timedPerformance:timestamp()},transfer);return;
     }
     const {time} = timestamp();

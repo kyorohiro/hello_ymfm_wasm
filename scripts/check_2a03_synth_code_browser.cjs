@@ -279,6 +279,19 @@ async function check(browser,name,origin,loadCassette){
     assert(await page.locator('#masterVolume').isVisible());assert(await page.locator('#nesChannelTabs').isVisible());
     assert.equal((await read(page)).codeSession,owner);
     await page.locator('#synthInputCodeTab').click();await stop(page);
+    step('NES timed Code compiles real writes and preserves accepted patterns across failed Apply');
+    const timed=(volume,marker)=>`const nes=await useSoundChip('nes');const snapshot=await nes.captureState();const plan=nes.build(b=>{b.pulse.setVoice(CH1,{duty:.5,volume:${volume}});b.noteOn(CH1,'C4');b.atSeconds(.01).noise.setVoice({volume:3,period:6});b.noise.noteOn();b.atSeconds(.02).noise.noteOff();});console.table(await nes.compile(plan,{initialState:snapshot}));await nes.schedule(plan,{name:'timed-browser',repeatSeconds:.05});console.log('${marker}');`;
+    await source(page,timed(6,'NES_TIMED_READY'));await execute(page);await pcm(page);
+    await until(()=>page.locator('#synthCodeLog').textContent().then(value=>value.includes('NES_TIMED_READY')),'timed accepted');
+    await source(page,timed(3,'NES_TIMED_APPLIED'));await execute(page,true);
+    await until(()=>page.evaluate(async()=>{const s=await __nesCodeAudit.read();return(s.registers[0]&15)===3;}),'timed volume applied');
+    await source(page,timed(12,'NES_TIMED_FAILED')+"throw Error('EXPECTED_NES_TIMED_FAILURE');");await page.locator('#synthCodeApplyButton').click();
+    await until(()=>page.locator('#synthCodeError').textContent().then(value=>value.includes('EXPECTED_NES_TIMED_FAILURE')),'failed Apply reported');await wait(150);
+    assert.equal((await read(page)).registers[0]&15,3,'failed Apply keeps accepted timed voice');
+    await stop(page);await pcm(page,false);
+    const example=await page.evaluate(async()=>{const entry=document.querySelector('script[type="module"][src]').src;return(await import(new URL('code_examples.js',entry))).NES_TIMED_EXAMPLE;});
+    await source(page,example+"\nconsole.log('NES_TIMED_EXAMPLE');");await execute(page);await pcm(page);
+    await until(()=>page.locator('#synthCodeLog').textContent().then(value=>value.includes('NES_TIMED_EXAMPLE')),'distributed timed example');await stop(page);
     assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
     return{browser:name,passed:true,checks,measurements,graph:await page.evaluate(()=>__nesCodeAudit.graph()),pageErrors:errors,missing};
   }catch(error){

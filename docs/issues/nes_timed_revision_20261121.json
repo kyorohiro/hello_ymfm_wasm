@@ -1,0 +1,574 @@
+{
+  "schemaVersion": 1,
+  "scope": "nes-timed-registers",
+  "baseCommit": "d6a8298e60360518553c83d6b31782e4d9277483",
+  "reason": "Add first NES Pulse/Triangle/Noise register-operation recording, compilation and audio-clock execution. Reuse the immediate converter and shared queue. Keep raw trigger writes, companion enables and ownership. DMC/FDS/memory, cores/WASM, source gains and historical measurements remain outside this slice.",
+  "sources": {
+    "docs/js/playground_nes.js": {
+      "before": {
+        "bytes": 5417,
+        "sha256": "93936960519761e0324e37959bfd59357fd8583e9caae9cf7c52e1a2cee11e17"
+      },
+      "after": {
+        "bytes": 5637,
+        "sha256": "31634ccc8ab2dbaebeffec7a374bbf9e5654162854f9acf9450bf4c05bcfc7bd"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 222,
+          "beforeBase64": "aW1wb3J0IHthdHRhY2hDaGlwQ2xvY2ssIENISVBfQ0xPQ0tTfSBmcm9tICcuL3BsYXlncm91bmRfY2hpcF9jbG9jay5qcz92PXBva2V5LXByZXBhcmUtMSc7CmltcG9ydCB7TmVzQXB1U3ludGh9IGZyb20gJy4vbmVzYXB1c3ludGguanM/dj1wb2tleS1tb2RlLTEnOwppbXBvcnQge05FU19BUFVfQ0xPQ0t9IGZyb20gJy4vbmVzYXB1LmpzP3Y9bmVzLXdhc20tMSc7Cg=="
+        },
+        {
+          "afterOffset": 579,
+          "afterBytes": 174,
+          "beforeBase64": "ICogQHJldHVybnMge05lc0FwdVN5bnRoICYge19zdG9wVm9pY2VzOigpPT5Qcm9taXNlPHZvaWQ+fX0gU3ludGggd2hvc2UgZGlzcG9zZSBjbG9zZXMgdGhlIHBvcnQgYW5kIHJlamVjdHMgcGVuZGluZyB1cGxvYWRzLiAqLwo="
+        },
+        {
+          "afterOffset": 3329,
+          "afterBytes": 217,
+          "beforeBase64": "ICBjb25zdCBjb250cm9sbGVkPWF0dGFjaENoaXBDbG9jayhjbGllbnQsIHBvcnQsIGNsb2NrKTsK"
+        }
+      ]
+    },
+    "docs/js/playground_nes_worklet.js": {
+      "before": {
+        "bytes": 5241,
+        "sha256": "efbc7bdb797b7a47435060d39a89446a375603857b2152276b7555f6058b821b"
+      },
+      "after": {
+        "bytes": 6460,
+        "sha256": "c1f83aa271fdbf6a97bebe33635f1a316629f7add0acb0bf30b2c183cf4f4cd2"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 537,
+          "beforeBase64": "aW1wb3J0IHtDaGlwQ2xvY2tSZXNhbXBsZXIsIENISVBfQ0xPQ0tTfSBmcm9tICcuL3BsYXlncm91bmRfY2hpcF9jbG9jay5qcz92PXBva2V5LXByZXBhcmUtMSc7CmltcG9ydCB7TmVzQXB1V2FzbX0gZnJvbSAnLi9uZXNhcHVfd2FzbS5qcz92PW5lcy13YXNtLTEnOwppbXBvcnQgZmFjdG9yeSBmcm9tICcuLi9nZW5lcmF0ZWQvbmVzYXB1X3dhc20uanM/dj1uZXMtd2FzbS0xJzsKaW1wb3J0IHtjcmVhdGVQcm9jZXNzb3JQZXJmb3JtYW5jZX0gZnJvbSAnLi9wbGF5Z3JvdW5kX3BlcmZvcm1hbmNlX3Byb2Nlc3Nvci5qcz92PXNpZC10aW1lZC0xJzsKaW1wb3J0IHtOZXNWb2ljZUluc3BlY3Rvcn0gZnJvbSAnLi9wbGF5Z3JvdW5kX25hdGl2ZV92b2ljZV9pbnNwZWN0b3IuanM/dj1wczEtZGVmZXJyZWQtcmVsZWFzZS0xJzsKaW1wb3J0IHtyZWNlaXZlQ2hpcEluc3BlY3Rvcn0gZnJvbSAnLi9wbGF5Z3JvdW5kX2NoaXBfaW5zcGVjdG9yX3N0YXRlLmpzP3Y9cmY1YzE2NC1ub3Rlcy0xJzsK"
+        },
+        {
+          "afterOffset": 657,
+          "afterBytes": 333,
+          "beforeBase64": "ICAgIHRoaXMucGVyZm9ybWFuY2U9Y3JlYXRlUHJvY2Vzc29yUGVyZm9ybWFuY2Uoe2NoaXA6J25lcycsYXBwbHk6KGRhdGEscG9ydCk9PnRoaXMuYXBwbHkoZGF0YSxwb3J0KSxpbW1lZGlhdGU6Wydsb2FkTWVtb3J5Jywnc3RvcFZvaWNlcyddLAo="
+        },
+        {
+          "afterOffset": 1162,
+          "afterBytes": 597,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 3779,
+          "afterBytes": 169,
+          "beforeBase64": "ICBkaXNwb3NlKCkgeyB0aGlzLnBlcmZvcm1hbmNlLmNsZWFyKCk7IHRoaXMuZGVhZCA9IHRydWU7IHRoaXMuY2hpcD8uZGlzcG9zZSgpOyB0aGlzLmNoaXAgPSBudWxsOyB0aGlzLnJlbW90ZT8uY2xvc2UoKTt0aGlzLndvcmtlclJlbW90ZT8uY2xvc2UoKTsgfQo="
+        },
+        {
+          "afterOffset": 3972,
+          "afterBytes": 73,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 4510,
+          "afterBytes": 32,
+          "beforeBase64": "ICBhcHBseShkYXRhLCBwb3J0KSB7Cg=="
+        },
+        {
+          "afterOffset": 5372,
+          "afterBytes": 293,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/js/playground_performance_processor.js": {
+      "before": {
+        "bytes": 32785,
+        "sha256": "19a080aea765675c4edc6c451c5ca7c19532697cbed5bcdba56445377965a895"
+      },
+      "after": {
+        "bytes": 33571,
+        "sha256": "214a01856e419ed88c61664d2d0e9af6d2c888a7d8b9c0ca01f697d9e954bdcb"
+      },
+      "hunks": [
+        {
+          "afterOffset": 353,
+          "afterBytes": 366,
+          "beforeBase64": "ICogQHBhcmFtIHt7cHNnTGF0Y2g/Om51bWJlcixodWNDaGFubmVsPzpudW1iZXIsb3BsbFJoeXRobT86bnVtYmVyLHdvbmRlcnN3YW5SZWdpc3RlcnM/OkFycmF5TGlrZTxudW1iZXI+fX0gW3N0YXRlXSAqLwpleHBvcnQgZnVuY3Rpb24gaWRlbnRpZnlQZXJmb3JtYW5jZU5vdGUoY2hpcCx7bWV0aG9kLHR5cGUsYXJncz1bXSAscmVnaXN0ZXIsdmFsdWUsY2hhbm5lbCxjb250cm9sTWFzayxwc2dSZWdpc3Rlcixwb3J0OnJlZ2lzdGVyUG9ydD0wfSx7cHNnTGF0Y2g9MCxodWNDaGFubmVsPTAsb3BsbFJoeXRobT0wLHdvbmRlcnN3YW5SZWdpc3RlcnN9PXt9KSB7Cg=="
+        },
+        {
+          "afterOffset": 1625,
+          "afterBytes": 325,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 17202,
+          "afterBytes": 45,
+          "beforeBase64": "ICBjb25zdCBub3RlU3RhdGU9e3BzZ0xhdGNoOjB9Owo="
+        },
+        {
+          "afterOffset": 20199,
+          "afterBytes": 133,
+          "beforeBase64": "ICAgIGlmKFsnYXk4OTEwJywnaHVjNjI4MCcsJ3dvbmRlcnN3YW4nLCdnYW1lYm95Jywnc2lkJywneW0yNjA4J10uaW5jbHVkZXMoY2hpcE5hbWUoKSkmJm1ldGFkYXRhPy50aW1lZE9wZXJhdGlvbilyZXR1cm4gZmFsc2U7Cg=="
+        },
+        {
+          "afterOffset": 21877,
+          "afterBytes": 358,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 25385,
+          "afterBytes": 37,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/js/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9925,
+        "sha256": "cc484ee275c79e14ecb199264594c85333e888dceb9fe607915258f090d3fd56"
+      },
+      "after": {
+        "bytes": 9936,
+        "sha256": "bff2e9332d5647bf22c7456d98ab119fe69cce5e3b486ffb4676ec57c05637e6"
+      },
+      "hunks": [
+        {
+          "afterOffset": 5474,
+          "afterBytes": 198,
+          "beforeBase64": "ICAgIGlmKCFBcnJheS5pc0FycmF5KGRhdGEpJiZbJ2F5VGltZWQnLCd5bTI2MTJUaW1lZCcsJ3ltMjYwOFRpbWVkJywnaHVjNjI4MFRpbWVkJywncHMxVGltZWQnLCd3b25kZXJzd2FuVGltZWQnLCdwc2dUaW1lZCcsJ29wbGxUaW1lZCcsJ3NpZFRpbWVkJywnZ2FtZWJveVRpbWVkJ10uaW5jbHVkZXMoZGF0YT8ubWV0aG9kKSl7Cg=="
+        }
+      ]
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 31710,
+        "sha256": "62a0c5c4916ca8c339f3bb24025872327d91dd632ad3a8487c587e4f7ef609a0"
+      },
+      "after": {
+        "bytes": 32068,
+        "sha256": "604bde1eed90c72584ec6b97ff8521ce4b007955d88e83f6447f750d27d3d46a"
+      },
+      "hunks": [
+        {
+          "afterOffset": 7804,
+          "afterBytes": 358,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 197809,
+        "sha256": "2a17a1484c34534f7ae92b583b347d89d44e236771da8e8d0d9d886e1f8df38a"
+      },
+      "after": {
+        "bytes": 200264,
+        "sha256": "9cd23ee8f4fea9e143ee3b1bbbfd7915e4f0353f48eafeeba5e845b01e8f08c0"
+      },
+      "hunks": [
+        {
+          "afterOffset": 160121,
+          "afterBytes": 1840,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 161987,
+          "afterBytes": 615,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/sources/sid/tetorica_src/runtime/playground_performance_processor.js": {
+      "before": {
+        "bytes": 32785,
+        "sha256": "19a080aea765675c4edc6c451c5ca7c19532697cbed5bcdba56445377965a895"
+      },
+      "after": {
+        "bytes": 33571,
+        "sha256": "214a01856e419ed88c61664d2d0e9af6d2c888a7d8b9c0ca01f697d9e954bdcb"
+      },
+      "hunks": [
+        {
+          "afterOffset": 353,
+          "afterBytes": 366,
+          "beforeBase64": "ICogQHBhcmFtIHt7cHNnTGF0Y2g/Om51bWJlcixodWNDaGFubmVsPzpudW1iZXIsb3BsbFJoeXRobT86bnVtYmVyLHdvbmRlcnN3YW5SZWdpc3RlcnM/OkFycmF5TGlrZTxudW1iZXI+fX0gW3N0YXRlXSAqLwpleHBvcnQgZnVuY3Rpb24gaWRlbnRpZnlQZXJmb3JtYW5jZU5vdGUoY2hpcCx7bWV0aG9kLHR5cGUsYXJncz1bXSAscmVnaXN0ZXIsdmFsdWUsY2hhbm5lbCxjb250cm9sTWFzayxwc2dSZWdpc3Rlcixwb3J0OnJlZ2lzdGVyUG9ydD0wfSx7cHNnTGF0Y2g9MCxodWNDaGFubmVsPTAsb3BsbFJoeXRobT0wLHdvbmRlcnN3YW5SZWdpc3RlcnN9PXt9KSB7Cg=="
+        },
+        {
+          "afterOffset": 1625,
+          "afterBytes": 325,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 17202,
+          "afterBytes": 45,
+          "beforeBase64": "ICBjb25zdCBub3RlU3RhdGU9e3BzZ0xhdGNoOjB9Owo="
+        },
+        {
+          "afterOffset": 20199,
+          "afterBytes": 133,
+          "beforeBase64": "ICAgIGlmKFsnYXk4OTEwJywnaHVjNjI4MCcsJ3dvbmRlcnN3YW4nLCdnYW1lYm95Jywnc2lkJywneW0yNjA4J10uaW5jbHVkZXMoY2hpcE5hbWUoKSkmJm1ldGFkYXRhPy50aW1lZE9wZXJhdGlvbilyZXR1cm4gZmFsc2U7Cg=="
+        },
+        {
+          "afterOffset": 21877,
+          "afterBytes": 358,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 25385,
+          "afterBytes": 37,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/synth-2a03/README.md": {
+      "before": {
+        "bytes": 36253,
+        "sha256": "93baca94c0451ba30c58a95bf2c8c8ef80312ca0c3227801297e9524ecb4b54f"
+      },
+      "after": {
+        "bytes": 36338,
+        "sha256": "37090d5f984e3143e449b7738175f9327a6b08c96902e9ba6a9540a5b15f8caa"
+      },
+      "hunks": [
+        {
+          "afterOffset": 1321,
+          "afterBytes": 239,
+          "beforeBase64": "VGhpcyBsYXlvdXQgdXNlcyB0aGUgZXhpc3RpbmcgaW1tZWRpYXRlIE5FUy9GRFMgQ29kZSBBUEkuIEl0IGRvZXMgbm90IHlldCBhZGQKYGJ1aWxkIC8gc2NoZWR1bGUgLyBjb21waWxlYDsgdGhhdCBjaGlwLXNwZWNpZmljIEFQSSBpcyB0cmFja2VkIHNlcGFyYXRlbHkuCg=="
+        }
+      ]
+    },
+    "docs/synth-2a03/audio.js": {
+      "before": {
+        "bytes": 9204,
+        "sha256": "cfaa7b833c40b789aff6ff1ebba28626cb4170f12d56c75957772ce86f3a6647"
+      },
+      "after": {
+        "bytes": 9364,
+        "sha256": "de2e5b9c291884572315c4cb1fda102c4bcae95929432eb0596a3ee6ab4a8c60"
+      },
+      "hunks": [
+        {
+          "afterOffset": 211,
+          "afterBytes": 206,
+          "beforeBase64": "Y29uc3QgQ09NTUFORFMgPSBuZXcgU2V0KFsncmVhZCcsICdzZXRQcmVzZXQnLCAnbG9hZFByZXNldCcsICdub3RlT24nLCAnbm90ZU9mZicsICdzZXRQaXRjaCcsICdzdG9wJywgJ3JlbGVhc2VLZXlib2FyZCcsICdhcHBseVBoeXNpY2FsUHJlc2V0JywgJ2JlZ2luQ29kZScsICdjb2RlJywgJ2VuZENvZGUnLCAnc2V0Q2xpY2tHdWFyZCddKTsK"
+        },
+        {
+          "afterOffset": 7404,
+          "afterBytes": 149,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/synth-2a03/code_endpoint.js": {
+      "before": {
+        "bytes": 5568,
+        "sha256": "f1a7a83bf62d5ad920e4b41666ffc26986b14c54a0362fc192b275ee5b0abc14"
+      },
+      "after": {
+        "bytes": 5819,
+        "sha256": "7866c0f7c6e8486eda7949ee77b2a97487e29d8569451b7aba039ababd9572a8"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 64,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 4250,
+          "afterBytes": 106,
+          "beforeBase64": "ZXhwb3J0IGZ1bmN0aW9uIGNyZWF0ZU5lc0NvZGVDbGllbnQoe21ldGFkYXRhLCBpbnZva2UsIGlzQ3VycmVudCwgZGlzcG9zZX0gPSB7fSkgewo="
+        },
+        {
+          "afterOffset": 5636,
+          "afterBytes": 164,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/synth-2a03/code_project.js": {
+      "before": {
+        "bytes": 11073,
+        "sha256": "d155f1aded3d8627b1c1c22294d4349c56a118a8b9edd6305ebbe9dc642a94f8"
+      },
+      "after": {
+        "bytes": 11189,
+        "sha256": "7dd3155e878360619c3a293070ee900eaba658866eda3263daf613a2a7cefbab"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 54,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 10328,
+          "afterBytes": 103,
+          "beforeBase64": "ICBpZihzbmFwc2hvdClwcm9qZWN0LnJlc3RvcmUoc25hcHNob3QpOwo="
+        }
+      ]
+    },
+    "docs/synth-2a03/instrument.js": {
+      "before": {
+        "bytes": 26630,
+        "sha256": "3c9b9fe9282385619032d8e6bfaa5add729a51544118143885197f95b3ebf71f"
+      },
+      "after": {
+        "bytes": 27529,
+        "sha256": "8c3e6cc50d74d9787d567574a59d16f683ef63c0f87d788f578ff30d0cc72869"
+      },
+      "hunks": [
+        {
+          "afterOffset": 17732,
+          "afterBytes": 899,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "docs/synth-2a03/processor.js": {
+      "before": {
+        "bytes": 5954,
+        "sha256": "a90c74c69e97d987df678a9fab20aceb095a76662e914ac43bdd0aa651c31280"
+      },
+      "after": {
+        "bytes": 8166,
+        "sha256": "77a587d2d0e1f619eb27d158aa6a9c43d46dda7c2fa27980c4e1dce5e3c77b33"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 148,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 853,
+          "afterBytes": 1113,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 2612,
+          "afterBytes": 56,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 5103,
+          "afterBytes": 340,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 6301,
+          "afterBytes": 243,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 7522,
+          "afterBytes": 460,
+          "beforeBase64": "ICAgICAgY29uc3QgcGNtID0gdGhpcy5pbnN0cnVtZW50LmdlbmVyYXRlU3RlcmVvKGxlZnQubGVuZ3RoKTsKICAgICAgdGhpcy5jbGlja0d1YXJkLnByb2Nlc3MocGNtKTsKICAgICAgbGVmdC5zZXQocGNtLmxlZnQpOyByaWdodD8uc2V0KHBjbS5yaWdodCk7Cg=="
+        }
+      ]
+    },
+    "package.json": {
+      "before": {
+        "bytes": 15340,
+        "sha256": "354b1b4d19f75b0023657e96a15082fe4e6d8e8d620578db722e118eab966597"
+      },
+      "after": {
+        "bytes": 15549,
+        "sha256": "69e4a8da4a9adb3092d2bed49ae00dd3e95b0bd6d1df9097af5d0a4ffbabf1d2"
+      },
+      "hunks": [
+        {
+          "afterOffset": 10040,
+          "afterBytes": 192,
+          "beforeBase64": "ICAgICJ0ZXN0OjJhMDMtc3ludGgiOiAibm9kZSAtLXRlc3QgZG9jcy9zeW50aC0yYTAzLyoudGVzdC5tanMgc2NyaXB0cy9wYWNrYWdlX2l0Y2hfMmEwM19zeW50aC50ZXN0Lm1qcyIsCg=="
+        },
+        {
+          "afterOffset": 15351,
+          "afterBytes": 192,
+          "beforeBase64": "ICAgICJwYWNrOnNtc2dlYXItc3ludGgiOiAic2ggc2NyaXB0cy9wYWNrYWdlX2l0Y2hfc21zZ2Vhcl9zeW50aC5zaCIK"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_nes.js": {
+      "before": {
+        "bytes": 5371,
+        "sha256": "9379cf844dadaeb772b74524aa16ecf19c7269e8b97fb87edf7be49285a3b269"
+      },
+      "after": {
+        "bytes": 5637,
+        "sha256": "31634ccc8ab2dbaebeffec7a374bbf9e5654162854f9acf9450bf4c05bcfc7bd"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 60,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 579,
+          "afterBytes": 174,
+          "beforeBase64": "ICogQHJldHVybnMge05lc0FwdVN5bnRoICYge19zdG9wVm9pY2VzOigpPT5Qcm9taXNlPHZvaWQ+fX0gU3ludGggd2hvc2UgZGlzcG9zZSBjbG9zZXMgdGhlIHBvcnQgYW5kIHJlamVjdHMgcGVuZGluZyB1cGxvYWRzLiAqLwo="
+        },
+        {
+          "afterOffset": 3329,
+          "afterBytes": 217,
+          "beforeBase64": "ICBjb25zdCBjb250cm9sbGVkPWF0dGFjaENoaXBDbG9jayhjbGllbnQsIHBvcnQsIGNsb2NrKTsK"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_nes_worklet.js": {
+      "before": {
+        "bytes": 5139,
+        "sha256": "f38c7e2ad5bb765c53a1946d0e4c7eafc8d76b31d02f52a7b334c5021fc2d0a9"
+      },
+      "after": {
+        "bytes": 6459,
+        "sha256": "e0a83bd2055ed112c3c0bc47cbe5fecef865adcb6a9ee9c1f6d2a796740435c4"
+      },
+      "hunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 134,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 656,
+          "afterBytes": 333,
+          "beforeBase64": "ICAgIHRoaXMucGVyZm9ybWFuY2U9Y3JlYXRlUHJvY2Vzc29yUGVyZm9ybWFuY2Uoe2NoaXA6J25lcycsYXBwbHk6KGRhdGEscG9ydCk9PnRoaXMuYXBwbHkoZGF0YSxwb3J0KSxpbW1lZGlhdGU6Wydsb2FkTWVtb3J5Jywnc3RvcFZvaWNlcyddLAo="
+        },
+        {
+          "afterOffset": 1161,
+          "afterBytes": 597,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 3778,
+          "afterBytes": 169,
+          "beforeBase64": "ICBkaXNwb3NlKCkgeyB0aGlzLnBlcmZvcm1hbmNlLmNsZWFyKCk7IHRoaXMuZGVhZCA9IHRydWU7IHRoaXMuY2hpcD8uZGlzcG9zZSgpOyB0aGlzLmNoaXAgPSBudWxsOyB0aGlzLnJlbW90ZT8uY2xvc2UoKTt0aGlzLndvcmtlclJlbW90ZT8uY2xvc2UoKTsgfQo="
+        },
+        {
+          "afterOffset": 3971,
+          "afterBytes": 73,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 4509,
+          "afterBytes": 32,
+          "beforeBase64": "ICBhcHBseShkYXRhLCBwb3J0KSB7Cg=="
+        },
+        {
+          "afterOffset": 5371,
+          "afterBytes": 293,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_processor.js": {
+      "before": {
+        "bytes": 32785,
+        "sha256": "19a080aea765675c4edc6c451c5ca7c19532697cbed5bcdba56445377965a895"
+      },
+      "after": {
+        "bytes": 33571,
+        "sha256": "214a01856e419ed88c61664d2d0e9af6d2c888a7d8b9c0ca01f697d9e954bdcb"
+      },
+      "hunks": [
+        {
+          "afterOffset": 353,
+          "afterBytes": 366,
+          "beforeBase64": "ICogQHBhcmFtIHt7cHNnTGF0Y2g/Om51bWJlcixodWNDaGFubmVsPzpudW1iZXIsb3BsbFJoeXRobT86bnVtYmVyLHdvbmRlcnN3YW5SZWdpc3RlcnM/OkFycmF5TGlrZTxudW1iZXI+fX0gW3N0YXRlXSAqLwpleHBvcnQgZnVuY3Rpb24gaWRlbnRpZnlQZXJmb3JtYW5jZU5vdGUoY2hpcCx7bWV0aG9kLHR5cGUsYXJncz1bXSAscmVnaXN0ZXIsdmFsdWUsY2hhbm5lbCxjb250cm9sTWFzayxwc2dSZWdpc3Rlcixwb3J0OnJlZ2lzdGVyUG9ydD0wfSx7cHNnTGF0Y2g9MCxodWNDaGFubmVsPTAsb3BsbFJoeXRobT0wLHdvbmRlcnN3YW5SZWdpc3RlcnN9PXt9KSB7Cg=="
+        },
+        {
+          "afterOffset": 1625,
+          "afterBytes": 325,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 17202,
+          "afterBytes": 45,
+          "beforeBase64": "ICBjb25zdCBub3RlU3RhdGU9e3BzZ0xhdGNoOjB9Owo="
+        },
+        {
+          "afterOffset": 20199,
+          "afterBytes": 133,
+          "beforeBase64": "ICAgIGlmKFsnYXk4OTEwJywnaHVjNjI4MCcsJ3dvbmRlcnN3YW4nLCdnYW1lYm95Jywnc2lkJywneW0yNjA4J10uaW5jbHVkZXMoY2hpcE5hbWUoKSkmJm1ldGFkYXRhPy50aW1lZE9wZXJhdGlvbilyZXR1cm4gZmFsc2U7Cg=="
+        },
+        {
+          "afterOffset": 21877,
+          "afterBytes": 358,
+          "beforeBase64": ""
+        },
+        {
+          "afterOffset": 25385,
+          "afterBytes": 37,
+          "beforeBase64": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9925,
+        "sha256": "cc484ee275c79e14ecb199264594c85333e888dceb9fe607915258f090d3fd56"
+      },
+      "after": {
+        "bytes": 9936,
+        "sha256": "bff2e9332d5647bf22c7456d98ab119fe69cce5e3b486ffb4676ec57c05637e6"
+      },
+      "hunks": [
+        {
+          "afterOffset": 5474,
+          "afterBytes": 198,
+          "beforeBase64": "ICAgIGlmKCFBcnJheS5pc0FycmF5KGRhdGEpJiZbJ2F5VGltZWQnLCd5bTI2MTJUaW1lZCcsJ3ltMjYwOFRpbWVkJywnaHVjNjI4MFRpbWVkJywncHMxVGltZWQnLCd3b25kZXJzd2FuVGltZWQnLCdwc2dUaW1lZCcsJ29wbGxUaW1lZCcsJ3NpZFRpbWVkJywnZ2FtZWJveVRpbWVkJ10uaW5jbHVkZXMoZGF0YT8ubWV0aG9kKSl7Cg=="
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "docs/js/nes_operation_state.js": {
+      "bytes": 1561,
+      "sha256": "5c40b0b3a3110083d4c5b06be239a62861e398038bdf5a4d1fa51007eac581fc"
+    },
+    "docs/js/nes_operations.js": {
+      "bytes": 13062,
+      "sha256": "b9e1232f5a21c12c55c09aa353dcc577807fb6c5dea46c09f65eca6642e1c776"
+    },
+    "docs/js/nes_timed_client.js": {
+      "bytes": 11731,
+      "sha256": "49062c72aa6940caf7c734792112f8ed34f8d48e1fe1ea54920ca902d3f58206"
+    },
+    "docs/js/nes_timed_processor.js": {
+      "bytes": 8384,
+      "sha256": "da2c668aab09022780f0a67f998422cbab7fac927228941c6c8743fb2ee33adf"
+    },
+    "docs/js/nes_timed_state.js": {
+      "bytes": 3486,
+      "sha256": "64a75bded5afff89d56eff647da43e3e396c7774801017a763a09d8e909d517b"
+    },
+    "docs/synth-2a03/TIMED_API.md": {
+      "bytes": 3837,
+      "sha256": "7818f045ee755b737321ce857ee6f35dc00c662b19a4f07d442b54aa1ca65df2"
+    },
+    "docs/synth-2a03/code_examples.js": {
+      "bytes": 949,
+      "sha256": "522da19ae168170a542ddccb7f9479cba80b32960b1ac57367afbe224a7aef46"
+    },
+    "tetorica_src/runtime/nes_operation_state.js": {
+      "bytes": 1561,
+      "sha256": "5c40b0b3a3110083d4c5b06be239a62861e398038bdf5a4d1fa51007eac581fc"
+    },
+    "tetorica_src/runtime/nes_operations.js": {
+      "bytes": 13062,
+      "sha256": "b9e1232f5a21c12c55c09aa353dcc577807fb6c5dea46c09f65eca6642e1c776"
+    },
+    "tetorica_src/runtime/nes_timed_client.js": {
+      "bytes": 11731,
+      "sha256": "49062c72aa6940caf7c734792112f8ed34f8d48e1fe1ea54920ca902d3f58206"
+    },
+    "tetorica_src/runtime/nes_timed_processor.js": {
+      "bytes": 8384,
+      "sha256": "da2c668aab09022780f0a67f998422cbab7fac927228941c6c8743fb2ee33adf"
+    },
+    "tetorica_src/runtime/nes_timed_state.js": {
+      "bytes": 3486,
+      "sha256": "64a75bded5afff89d56eff647da43e3e396c7774801017a763a09d8e909d517b"
+    }
+  }
+}

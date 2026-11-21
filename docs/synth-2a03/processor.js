@@ -1,3 +1,5 @@
+import {createPerformanceQueue} from '../js/playground_performance_queue.js';
+import {createNesTimedProcessor} from '../js/nes_timed_processor.js';
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import factory from '../generated/nesapu_wasm.js';
@@ -13,6 +15,14 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     super();
     this.dead = false;
     this.instrument = null;
+    this.renderFrame=0;this.instanceId='nes-synth:'+Math.random().toString(36).slice(2);
+    this.performanceQueue=createPerformanceQueue({nowFrame:()=>this.renderFrame,sampleRate,
+      patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,
+      apply:(data,reply,frame,metadata)=>this.timed.apply(data.operation,{postMessage:reply??(message=>this.port.postMessage(message))},frame,metadata),
+      onCancelOwner:owner=>this.instrument?.cancelTimedOwner(owner)});
+    this.timed=createNesTimedProcessor({performance:{...this.performanceQueue,receive:(data,port)=>this.performanceQueue.receive(data,message=>port.postMessage(message))},
+      getState:()=>{const state=this.instrument.core.getState();return {...this.instrument.synth._getState(),registers:state.registers,enabled:(state.registers[0x15]&15)|(state.dmcRemaining>0?16:0)};},getConfig:()=>({instanceId:this.instanceId,clock:this.instrument.synth.clock,engine:'nes-wasm'}),
+      dispatch:(data,port,frame,metadata)=>this.instrument.applyTimedWrite(data.args[0],data.args[1],metadata.owner),nowFrame:()=>this.renderFrame,sampleRate});
     this.clickGuard = new OutputClickGuard({sampleRate});
     this.clickGuardEnabled = true;
     this.port.onmessage = ({data}) => this.receive(data);
@@ -29,6 +39,7 @@ class NesSynthProcessor extends AudioWorkletProcessor {
 
   dispose() {
     if (this.dead) return;
+    this.performanceQueue?.clear();this.timed?.clear();
     this.dead = true;
     this.instrument?.dispose();
     this.instrument = null;
@@ -84,6 +95,11 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     this.commands=this.commands.then(async () => {
       if (this.dead) return;
       try {
+        if(data?.method==='nesTimed'){
+          const [session,payload]=data.args??[];
+          if(!this.instrument.codeActive||session!==this.instrument.codeSession)throw new Error('NES Code session expired');
+          this.timed.receive({...data,args:[payload]},{postMessage:message=>this.port.postMessage(message)});return;
+        }
         if (!COMMANDS.has(data?.method)) throw new Error('Unknown 2A03 Synth command');
         if (data.args !== undefined && !Array.isArray(data.args)) throw new TypeError('NES + FDS command arguments must be an array');
         const args = data.args ?? [];
@@ -94,6 +110,7 @@ class NesSynthProcessor extends AudioWorkletProcessor {
         // Public DMC upload has an acknowledgement Promise. Complete it before
         // a following trigger/reset/session close may touch the same sample.
         if(value&&typeof value.then==='function')value=await value;
+        if((['beginCode','stop','loadPreset'].includes(data.method)||data.method==='endCode'&&value!==false||data.method==='code'&&['reset','resetRegisters','allNotesOff'].includes(args[1]))){this.performanceQueue.clear();this.timed.clear();}
         // Only successful commands change the output bridge. In particular,
         // a stale noteOff(false) cannot fade a replacement voice.
         if(data.method!=='read'&&data.method!=='setClickGuard') {
@@ -114,9 +131,15 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     if (!left) return true;
     if (!this.instrument) { left.fill(0); right?.fill(0); return true; }
     try {
-      const pcm = this.instrument.generateStereo(left.length);
-      this.clickGuard.process(pcm);
-      left.set(pcm.left); right?.set(pcm.right);
+      let offset=0;
+      const start=this.renderFrame;
+      while(offset<left.length){
+        this.performanceQueue.advance(start+offset);
+        const count=Math.min(left.length-offset,Math.max(1,this.performanceQueue.nextFrame()-start-offset));
+        const pcm=this.instrument.generateStereo(count);this.clickGuard.process(pcm);
+        left.set(pcm.left,offset);right?.set(pcm.right,offset);offset+=count;
+      }
+      this.renderFrame+=left.length;
     } catch (error) {
       left.fill(0); right?.fill(0); this.fail(error); return false;
     }

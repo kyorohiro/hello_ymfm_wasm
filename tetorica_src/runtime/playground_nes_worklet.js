@@ -1,3 +1,5 @@
+import {createNesTimedProcessor} from './nes_timed_processor.js';
+import {validateNesOperationState} from './nes_operation_state.js';
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {NesApuWasm} from './nesapu_wasm.js';
 import factory from './generated/nesapu_wasm.js';
@@ -7,8 +9,10 @@ import {receiveChipInspector} from './playground_chip_inspector_state.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;this.chip=null;
-    this.performance=createProcessorPerformance({chip:'nes',apply:(data,port)=>this.apply(data,port),immediate:['loadMemory','stopVoices'],
+    this.performance=createProcessorPerformance({chip:'nes',patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,apply:(data,port,frame,metadata)=>{if(data.method==='applyTimedOperation')this.timed.apply(data.operation,port,frame,metadata);else this.apply(data,port,metadata);},immediate:['loadMemory','stopVoices'],
       releaseNote:channel=>channel===5?{method:'writeRegister',args:[0x4083,(this.inspector?.registers[0x83]??0)|128]}:{method:'setChannelEnabled',args:[channel,false]}});
+    this.instanceId='nes:'+Math.random().toString(36).slice(2);
+    this.timed=createNesTimedProcessor({performance:this.performance,getState:()=>{const s=this.chip.getState();return validateNesOperationState({...s,clock:this.baseClock*(this.clockResampler?.ratio??1),enabled:(s.registers[0x15]&15)|(s.dmcRemaining>0?16:0)});},getConfig:()=>({instanceId:this.instanceId,clock:this.baseClock*(this.clockResampler?.ratio??1),engine:'nes-wasm'}),dispatch:(command,port,frame,metadata)=>this.performance.applyImmediate({...command,nesTimed:true},port,metadata),nowFrame:()=>currentFrame,sampleRate});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if(data.primaryWorker) {
@@ -43,14 +47,15 @@ class Processor extends AudioWorkletProcessor {
       this.port.postMessage({ready: true,backend:chip.backend});
     }).catch(error=>{if(this.dead)return;this.port.postMessage({error:error.message});this.dispose();});
   }
-  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close();this.workerRemote?.close(); }
+  dispose() { this.timed?.clear();this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close();this.workerRemote?.close(); }
   receive(data, port) {
+    if(data?.method==='nesTimed'){this.timed.receive(data,port);return;}
     if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector?(action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args):null))return;
     if(data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession)this.inspector?.invoke('auditionAllOff');
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }
-  apply(data, port) {
+  apply(data, port, metadata) {
     if (data.method === 'dispose') { this.dispose(); return; }
     try {
       if (this.dead) throw new Error('NES disposed');if(!this.chip)throw new Error('NES chip is not ready');
@@ -65,6 +70,7 @@ class Processor extends AudioWorkletProcessor {
       }
       const methods = ['reset', 'writeRegister', 'setChannelEnabled', 'loadMemory'];
       if (!methods.includes(data.method)) throw new Error('Unknown NES command');
+      if(metadata?.timedOperation&&data.nesTimed&&data.method==='writeRegister'){const ch=[0x4003,0x4007,0x400b,0x400f].indexOf(data.args[0]);if(ch>=0){const id=this.inspector.auditions.get(ch);if(id){this.inspector.auditions.delete(ch);this.performance.endAudition(ch,'voice-editor:'+id);}}}
       this.chip[data.method](...(data.args ?? []));
       if (data.method === 'reset') this.clockResampler?.resetPhase();
       if (data.id !== undefined) port.postMessage({id: data.id, value: true});
