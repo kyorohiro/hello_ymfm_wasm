@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { SoundChipMixer } from '../js/soundchip_mixer.js';
 import { decodeTwoSfSampleSettings, decodeTwoSfSnapshot, TWO_SF_SNAPSHOT_WORDS, validateTwoSfChannelSample } from './2sf-channel-monitor.js?v=nds-channel-view-1';
 
 const RATE = 48000;
@@ -9,7 +10,7 @@ const MONITOR_BLOCK_LIMIT = 48;
 const MONITOR_SNAPSHOT_LIMIT = 128;
 
 function openWorker() {
-	const worker = new Worker(new URL('./2sf-worker.js?v=nds-2sf-audition-1', import.meta.url), { type: 'module' });
+	const worker = new Worker(new URL('./2sf-worker.js?v=nds-adpcm-cache-1', import.meta.url), { type: 'module' });
 	let pending = null, id = 0, closed = false;
 	function close(error = new DOMException('Playback stopped', 'AbortError')) {
 		if (closed) return;
@@ -55,6 +56,7 @@ function openWorker() {
 // The preview owns its output context. Suspending it retains queued PCM and
 // freezes the audio clock while the Worker and its emulated DS remain alive.
 export function createTwoSfPlayer({ onChange, onError }) {
+	const mixer = new SoundChipMixer();
 	let audio, master, analyser, volume = 0.7;
 	let current = null, pending = null, last = null;
 	let switching = false;
@@ -135,7 +137,8 @@ export function createTwoSfPlayer({ onChange, onError }) {
 		master.gain.value = volume;
 		analyser = audio.createAnalyser();
 		analyser.fftSize = 2048;
-		master.connect(analyser).connect(audio.destination);
+		mixer.connect('nds', 'nds', master, analyser);
+		analyser.connect(audio.destination);
 	}
 
 	function retire(session) {
@@ -313,6 +316,9 @@ export function createTwoSfPlayer({ onChange, onError }) {
 		setVolume(value) {
 			volume = value;
 			master?.gain.setTargetAtTime(value, audio.currentTime, 0.008);
+		},
+		setOutputMix(settings) {
+			mixer.set('nds', settings);
 		},
 		get analyser() { return analyser; },
 	};

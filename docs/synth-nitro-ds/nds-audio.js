@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { SoundChipMixer } from '../js/soundchip_mixer.js';
 import { NdsSynth } from './nds-synth-api.js?v=nds-range-live-1';
 
 const TIMEOUT = 12000;
@@ -19,13 +20,15 @@ function deadline(promise, message) {
 
 /** One CPU-free DS audio instance shared by manual and Code voices. The 2SF
  * reference engine has its own output session because Pause freezes its clock. */
-export async function createNdsAudio({ volume = .7, onError = () => {} } = {}) {
+export async function createNdsAudio({ volume = .7, outputMix = {}, onError = () => {} } = {}) {
 	validateVolume(volume);
+	const mixer = new SoundChipMixer();
+	mixer.set('nds', outputMix);
 	const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
 	if (!Context) throw new Error('Web Audio is unavailable.');
 	const context = new Context({ latencyHint: 'interactive' });
 	const requests = new Map(), owners = Array(16).fill(null);
-	let worklet, master, analyser, closed = false, closing, nextId = 0;
+	let worklet, master, analyser, releaseOutput, closed = false, closing, nextId = 0;
 
 	function dispose(error = new Error('DS audio is closed.')) {
 		if (closed) return closing;
@@ -43,6 +46,7 @@ export async function createNdsAudio({ volume = .7, onError = () => {} } = {}) {
 			worklet.disconnect();
 			worklet.port.close();
 		}
+		releaseOutput?.();
 		master?.disconnect();
 		analyser?.disconnect();
 		closing = context.state === 'closed' ? Promise.resolve() : context.close();
@@ -100,7 +104,9 @@ export async function createNdsAudio({ volume = .7, onError = () => {} } = {}) {
 		master.gain.value = volume;
 		analyser = context.createAnalyser();
 		analyser.fftSize = 2048;
-		worklet.connect(master).connect(analyser).connect(context.destination);
+		releaseOutput = mixer.connect('nds', 'nds', master, analyser);
+		worklet.connect(master);
+		analyser.connect(context.destination);
 		await request('ready');
 	} catch (error) {
 		await dispose(error).catch(() => {});
@@ -115,6 +121,9 @@ export async function createNdsAudio({ volume = .7, onError = () => {} } = {}) {
 		setVolume(value) {
 			validateVolume(value);
 			if (!closed) master.gain.setTargetAtTime(value, context.currentTime, .008);
+		},
+		setOutputMix(settings) {
+			if (!closed) mixer.set('nds', settings);
 		},
 	};
 }

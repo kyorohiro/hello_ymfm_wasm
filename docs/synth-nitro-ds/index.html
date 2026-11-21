@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-live-channel-1" />
-		<script type="module" src="synth.js?v=nds-range-live-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-output-mix-1" />
+		<script type="module" src="synth.js?v=nds-adpcm-cache-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -224,11 +224,12 @@
 							</section>
 						</div>
 						<section id="ndsMixerPanel" class="nds-mixer" role="tabpanel" aria-labelledby="ndsMixerTab" hidden>
-							<div class="nds-mixer-header">
-								<h2>Synth channels</h2>
-								<label>2SF level <input id="ndsReferenceMix" type="range" min="0" max="200" value="100" /> <output id="ndsReferenceMixValue" for="ndsReferenceMix">100%</output></label>
+							<div class="nds-mix-output" role="group" aria-labelledby="ndsOutputTitle">
+								<h2 id="ndsOutputTitle">DS output</h2>
+								<button id="ndsOutputMute" type="button" aria-pressed="false">Mute</button>
+								<label class="nds-mix-fader"><span>Level</span><input id="ndsOutputLevel" type="range" min="0" max="200" value="100" aria-valuetext="100%" /><output id="ndsOutputLevelValue" for="ndsOutputLevel">100%</output></label>
+								<label class="nds-mix-fader"><span>Balance</span><input id="ndsOutputBalance" type="range" min="-100" max="100" value="0" aria-valuetext="Center" /><output id="ndsOutputBalanceValue" for="ndsOutputBalance">Center</output></label>
 							</div>
-							<div id="ndsMixerChannels" class="nds-mixer-channels" aria-label="Synth and audition channel outputs"></div>
 						</section>
 					</div>
 					<section id="synthInputSection" data-input-mode="keyboard" aria-label="Performance input">

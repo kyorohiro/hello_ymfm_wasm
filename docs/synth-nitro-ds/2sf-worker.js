@@ -3,12 +3,11 @@ import { assembleTwoSf } from './2sf_source.js';
 import { parseScspSsfTime } from '../synth-scsp/ssf_source.js';
 import { readTwoSfSnapshots } from './2sf-channel-monitor.js?v=nds-2sf-audition-1';
 import { NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
+import { instantiateSkyEmu, loadSkyEmuModule, SKYEMU_SAMPLE_RATE as RATE } from './nds-skyemu-wasm.js?v=nds-adpcm-cache-1';
 
-const RATE = 48000;
 const BLOCK_FRAMES = 2048;
 const MAX_ROM_BYTES = 64 * 1024 * 1024;
 const MAX_SECONDS = 60 * 60;
-const wasmUrl = new URL('./generated/skyemu-2sf.wasm?v=nds-2sf-audition-1', import.meta.url);
 const captureErrors = {
 	[-1]: 'Sample history is unavailable at this playback position.',
 	[-2]: 'This channel was idle at Pause.',
@@ -20,16 +19,11 @@ let renderer = null;
 async function open(path, files) {
 	const entries = files.map(({ path, file }) => ({ path, size: file.size, arrayBuffer: () => file.arrayBuffer() }));
 	const { rom, tags } = await assembleTwoSf(path, entries, { maxRomBytes: MAX_ROM_BYTES });
-	const response = await fetch(wasmUrl);
-	if (!response.ok) throw new Error('2SF renderer is unavailable. Build the local WASM preview first.');
-	const imports = { env: { emscripten_notify_memory_growth() {} } };
-	const { instance } = await WebAssembly.instantiate(await response.arrayBuffer(), imports);
-	const core = instance.exports;
+	const core = instantiateSkyEmu(await loadSkyEmuModule());
 	const monitorSupported = typeof core.nds_2sf_snapshots === 'function' &&
 		typeof core.nds_2sf_snapshot_count === 'function';
 	const auditionSupported = monitorSupported && typeof core.nds_2sf_capture === 'function' &&
 		typeof core.nds_2sf_capture_data === 'function';
-	core._initialize();
 	const image = core.malloc(rom.byteLength);
 	if (!image) throw new Error('Could not allocate the DS cartridge image.');
 	try {

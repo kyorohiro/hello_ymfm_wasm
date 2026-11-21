@@ -55,12 +55,11 @@ Waveform and Spectrum. Master controls the Synth and 2SF playback levels.
 
 ## Mixer
 
-Use **Mixer** for the level, stereo balance and mute of each of the 16 Synth
-channels. An active strip is highlighted, including while it is muted.
-The channel strips apply to Keyboard, Code, and paused 2SF keyboard audition.
-**2SF level** adjusts the whole reference track. **Master** adjusts all outputs
-together and stays visible across tabs. Mixer controls are software listening
-controls. A channel's hardware Volume and Pan are stored in its sound preset.
+Use **Mixer** to set the **DS output** level, stereo balance and mute for
+Keyboard, Code, 2SF playback and paused 2SF audition. **Master** adjusts
+the overall volume and stays visible across tabs. Set each channel’s
+hardware Volume and Pan on the **DS** tab. Those values are stored in the
+sound preset.
 
 ## WAV and sound presets
 

@@ -79,9 +79,10 @@ register documentation. The existing SkyEmu player remains the song source.
       end. Tune imported samples using their source rate and a root note.
 - [x] Draw built-in, WAV and captured PCM on the Range / Draw canvas. Encode
       a completed stroke in the selected DS format for the next note.
-- [x] Add a reusable software mix for CH1–CH16 with level, balance and mute.
-      Show active Synth channels and give the whole reference track a 2SF level
-      control. Keep Master available in both workspaces.
+- [x] Add one DS stereo output on the Mixer tab. Share software Level,
+      Balance and Mute across Keyboard, Code, 2SF playback and paused audition.
+      Keep Master available in both workspaces and per-channel hardware
+      Volume/Pan in the DS controls.
 - [x] Save self-contained DS instruments to `presets/` and verify that samples,
       tuning and loop points survive a Cassette export and re-import.
 - [x] Load a saved DS instrument into a physical channel from Code. Verify
@@ -164,6 +165,49 @@ register documentation. The existing SkyEmu player remains the song source.
       automated evidence from human listening and real-hardware comparisons.
 - [ ] Decide Native/npm/Tauri/release scope after the web prototype is verified.
       No publication, tags or Tauri work is included by this planning record.
+
+## One DS sound core for Synth and 2SF
+
+2SF should exercise the same DS sound implementation that Keyboard and Code
+use. Share the renderer and keep the ARM7/ARM9 program as the source of timed
+register and sample RAM operations during reference playback. A browser
+observer snapshot tracks the UI at the audible position. It only contains
+one row per emulated video frame and cannot carry the intervening writes
+needed to drive the sound hardware.
+
+- [x] Prove that direct RAM and sound-register writes into the pinned SkyEmu
+      audio routine produce the same PCM as the 2SF driver on authored
+      fixtures. Run the direct audio routine without booting a DS program
+      and use the same compiled WASM as the reference player. Verified both
+      PCM16 fixtures. The stereo sample values match exactly at changes
+      after phase alignment, and the change times differ by at most one
+      output sample at 48 kHz. Direct pan updates the held channel.
+- [x] Open that WASM from a browser AudioWorklet and measure a live note.
+      Expose register and decoder readback and an atomic PCM range edit for
+      the Synth adapter.
+- [ ] Preserve existing Synth behavior on the shared audio path. Check
+      PCM8, PCM16, IMA-ADPCM, pulse, Noise, live Range edits, software note
+      release and the two Sound Capture units. Compare the hardware timer,
+      channel levels and stereo routing on fixtures. The pinned SkyEmu
+      routine currently needs Sound Capture and DS output routing support.
+- [x] Bound high-rate ADPCM work in the common renderer's direct session.
+      A local stress test with 16 sustained ADPCM channels at timer 65535
+      went from p95 3.07 ms to 0.021 ms per 128 frames at 48 kHz on Apple M2
+      (1,000 measured direct-render blocks, 2.67 ms budget). Keep 2SF
+      decoding against live RAM. Validate state and PCM with the cache on
+      and off, including range edits and sample rewrites.
+- [ ] Use preparation steps before the first Key On for a long ADPCM sample
+      in the Synth adapter. In the local 1 MiB test the eager Key On cost
+      p95 5.68 ms. Preparing up to 16,384 frames per call cost p95 0.051 ms
+      per step, and the following Key On took p95 under 0.001 ms. Measure the
+      complete host route on slower hardware, including sample upload.
+- [ ] Route Keyboard, Code, paused audition and 2SF through the shared
+      renderer. Keep Pause at the same song position and verify that Stop,
+      source replacement and note ownership still work.
+- [ ] Use 2SF to verify the shared renderer on authored fixtures and the
+      local Chrono Trigger set, then verify the standalone ZIP in Chromium
+      and WebKit. Retain the existing permissive-license source kit and its
+      reproducible WASM build.
 
 SDAT/SSEQ/SBNK/SWAR/SWAV import is an optional additional path. The agreed
 reference-playback direction is 2SF/mini2SF, not an SDAT sequencer prerequisite.

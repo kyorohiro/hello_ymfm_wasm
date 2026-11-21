@@ -22,11 +22,16 @@ assert.deepEqual(WebAssembly.Module.imports(wasm), [
 	{ module: 'env', name: 'emscripten_notify_memory_growth', kind: 'function' },
 ]);
 
-function openRenderer(rom) {
+function newCore() {
 	const { exports: core } = new WebAssembly.Instance(wasm, {
 		env: { emscripten_notify_memory_growth() {} },
 	});
 	core._initialize();
+	return core;
+}
+
+function openRenderer(rom) {
+	const core = newCore();
 	const image = core.malloc(rom.length);
 	const output = core.malloc(2048 * 4);
 	assert(image && output, 'Allocate ROM and stereo PCM buffers');
@@ -87,6 +92,278 @@ function checkSnapshots(track, pcm, snapshots) {
 	assert.equal(length, 16, 'CH0 loop length should match the 32 PCM16 samples');
 	for (let channel = 1; channel < 16; channel++)
 		assert.equal(last[1 + channel * 5] >>> 31, 0, `Hardware CH${channel} should stay idle`);
+}
+
+function renderDirect(rom, snapshot, frames) {
+	const [, control, sourceAddress, timerLoop, length] = snapshot;
+	const arm7Offset = rom.readUInt32LE(0x30);
+	const arm7LoadAddress = rom.readUInt32LE(0x38);
+	const byteLength = ((timerLoop >>> 16) + length) * 4;
+	const sourceOffset = arm7Offset + sourceAddress - arm7LoadAddress;
+	assert(sourceOffset >= arm7Offset && sourceOffset + byteLength <= arm7Offset + rom.readUInt32LE(0x3c),
+		'Fixture PCM must be inside the ARM7 program image');
+
+	const core = newCore();
+	const upload = core.malloc(byteLength);
+	const output = core.malloc(2048 * 4);
+	const image = core.malloc(rom.length);
+	assert(upload && output && image, 'Allocate direct PCM and mode-switch buffers');
+	new Uint8Array(core.memory.buffer, upload, byteLength).set(rom.subarray(sourceOffset, sourceOffset + byteLength));
+	new Uint8Array(core.memory.buffer, image, rom.length).set(rom);
+	assert.equal(core.nds_synth_open(), 1, 'Initialize the shared audio core without a ROM');
+	try {
+		assert.equal(core.nds_synth_open(), 0, 'Keep the existing direct sound session');
+		assert.equal(core.nds_2sf_open(image, rom.length), 0, 'A direct session already owns the console');
+		assert.equal(core.nds_synth_render(output, 0), 0, 'Reject an empty direct render');
+		assert.equal(core.nds_synth_render(output, 2049), 0, 'Reject an overlarge direct render');
+		assert.equal(core.nds_synth_upload(4 * 1024 * 1024 - 1, upload, 2), 0, 'Reject a sample crossing the RAM boundary');
+		assert.equal(core.nds_synth_write(2, control), 0, 'Reject an unaligned sound register');
+		assert.equal(core.nds_synth_write(16 * 16, control), 0, 'Reject a non-channel register');
+		assert.equal(core.nds_synth_write(0, control), 0, 'Reject PCM key-on before setting a valid source and range');
+		assert.equal(core.nds_synth_upload(0, upload, byteLength), 1);
+		// Direct samples live in main RAM. Use the register values from the
+		// 2SF driver, with the source address redirected to the same PCM bytes.
+		for (const [offset, value] of [[4, 0x02000000], [8, timerLoop], [12, length], [0, control]])
+			assert.equal(core.nds_synth_write(offset, value), 1);
+		const pcm = Buffer.alloc(frames * 4);
+		for (let frame = 0; frame < frames; frame += 257) {
+			const count = Math.min(257, frames - frame);
+			assert.equal(core.nds_synth_render(output, count), count);
+			pcm.set(new Uint8Array(core.memory.buffer, output, count * 4), frame * 4);
+		}
+		const right = ((control >>> 16) & 127) === 0;
+		const switchedPan = (control & ~(127 << 16)) | ((right ? 127 : 0) << 16);
+		assert.equal(core.nds_synth_write(0, switchedPan), 1, 'Update pan while the note stays enabled');
+		assert.equal(core.nds_synth_render(output, 2048), 2048);
+		const next = new Int16Array(core.memory.buffer, output, 2048 * 2);
+		const peak = [0, 0];
+		for (let i = 0; i < next.length; i++) peak[i % 2] = Math.max(peak[i % 2], Math.abs(next[i]));
+		assert(peak[Number(right)] > 1000 && peak[Number(!right)] < peak[Number(right)] / 100,
+			'A live CH0 register write should move the existing note to the other speaker');
+		const previousPosition = core.nds_synth_position(0);
+		assert.equal(core.nds_synth_range(0, 4, 4), 1, 'Move both PCM16 range bounds on the live channel');
+		assert.equal(core.nds_synth_read(8) >>> 0, (4 << 16) | (timerLoop & 0xffff));
+		assert.equal(core.nds_synth_read(12), 4);
+		const expectedPosition = previousPosition < 16 ? previousPosition : 8 + (previousPosition - 16) % 8;
+		assert.equal(core.nds_synth_position(0), expectedPosition);
+		assert.equal(core.nds_synth_read(0) >>> 0, switchedPan >>> 0, 'The range edit preserves the active gate');
+		assert.equal(core.nds_synth_range(0, 0xffff, 0x3fffff), 0, 'Reject a range past the end of RAM');
+		assert.equal(core.nds_synth_read(12), 4, 'A rejected range keeps the committed length');
+		assert.equal(core.nds_synth_position(0), expectedPosition, 'A rejected range keeps the cursor');
+		core.nds_synth_close();
+		assert.equal(core.nds_synth_render(output, 1), 0, 'Reject direct render after closing');
+		assert.equal(core.nds_2sf_open(image, rom.length), 1, 'Boot 2SF on the same console after closing the direct session');
+		assert.equal(core.nds_synth_open(), 0, 'A 2SF session already owns the console');
+		return pcm;
+	} finally {
+		core.nds_synth_close();
+		core.nds_2sf_close();
+		core.free(image);
+		core.free(output);
+		core.free(upload);
+	}
+}
+
+function alignedChanges(pcm, channel, count) {
+	// The fixture starts each loop at zero and has just one rising zero
+	// crossing per cycle. Skip boot, then align the two clocks at that point.
+	const sample = frame => pcm.readInt16LE(frame * 4 + channel * 2);
+	const frames = pcm.length / 4;
+	let first = rate / 4;
+	while (first < frames && !(sample(first - 1) < 0 && sample(first) === 0)) first++;
+	assert(first < frames, 'The running fixture should reach a rising zero crossing');
+	const changes = [];
+	let previous;
+	for (let frame = first; frame < frames && changes.length < count; frame++) {
+		const value = pcm.readUInt32LE(frame * 4);
+		if (value === previous) continue;
+		changes.push({ value, frame: frame - first });
+		previous = value;
+	}
+	assert.equal(changes.length, count, 'The loop should cycle continuously after the crossing');
+	return changes;
+}
+
+function checkSharedSound(track, rom, reference, snapshot) {
+	const direct = renderDirect(rom, snapshot, rate / 2);
+	const channel = track === 'right-e5' ? 1 : 0;
+	const expected = alignedChanges(reference, channel, 32 * 16);
+	const actual = alignedChanges(direct, channel, expected.length);
+	assert.deepEqual(actual.map(({ value }) => value), expected.map(({ value }) => value),
+		`${track}: direct and 2SF should read the same repeating stereo PCM levels`);
+	assert(actual.every(({ frame }, index) => Math.abs(frame - expected[index].frame) <= 1),
+		`${track}: direct and 2SF should agree on loop speed within one output frame`);
+	console.log(`${track}: ${expected.length} direct-mode stereo changes match the 2SF renderer`);
+}
+
+function adpcmFixture(replacement = false) {
+	const bytes = Buffer.alloc(257 * 4);
+	bytes.writeInt16LE(replacement ? -9701 : 1359, 0);
+	bytes[2] = replacement ? 41 : 70;
+	for (let i = 4; i < bytes.length; i++) bytes[i] = (i * 137 + (i >>> 2) * 73 + (replacement ? 63 : 0)) & 255;
+	return bytes;
+}
+
+function withDirectAdpcm(core, { cache, timer, pnt, length, loop, beforeKeyOn }, run) {
+	const bytes = adpcmFixture();
+	const buffer = core.malloc(bytes.length), output = core.malloc(2048 * 4);
+	assert(buffer && output, 'Allocate ADPCM upload and PCM output buffers');
+	assert.equal(core.nds_synth_open(), 1);
+	const control = (0xc0000000 | ((loop ? 1 : 2) << 27) | (43 << 16) | 109) >>> 0;
+	function upload(sample) {
+		new Uint8Array(core.memory.buffer, buffer, sample.length).set(sample);
+		assert.equal(core.nds_synth_upload(0, buffer, sample.length), 1, 'Upload ADPCM at the current source address');
+	}
+	function render(frames) {
+		assert.equal(core.nds_synth_render(output, frames), frames);
+		return {
+			pcm: Buffer.from(new Uint8Array(core.memory.buffer, output, frames * 4)),
+			position: core.nds_synth_position(0),
+			active: Boolean(core.nds_synth_read(0) >>> 31),
+		};
+	}
+	try {
+		assert.equal(core.nds_synth_set_adpcm_cache(Number(cache)), 1);
+		upload(bytes);
+		beforeKeyOn?.(upload);
+		for (const [offset, value] of [[4, 0x02000000], [8, (pnt << 16) | timer], [12, length], [0, control]])
+			assert.equal(core.nds_synth_write(offset, value), 1);
+		return run({ core, render, upload, control });
+	} finally {
+		core.nds_synth_close();
+		core.free(output);
+		core.free(buffer);
+	}
+}
+
+function checkAdpcmBlock(actual, expected, label) {
+	if (!actual.pcm.equals(expected.pcm)) {
+		const byte = actual.pcm.findIndex((value, index) => value !== expected.pcm[index]);
+		const sample = byte - byte % 2;
+		assert.fail(`${label}: frame ${Math.floor(sample / 4)} ${sample % 4 ? 'R' : 'L'} was ${actual.pcm.readInt16LE(sample)}, expected ${expected.pcm.readInt16LE(sample)}`);
+	}
+	assert.equal(actual.position, expected.position, `${label}: decoder position changed`);
+	assert.equal(actual.active, expected.active, `${label}: active gate changed`);
+}
+
+function checkPreparedAdpcm(core, timer) {
+	const replacement = adpcmFixture(true);
+	const settings = { timer, pnt: 4, length: 191, loop: true };
+	function renderShared({ core, render, control }, expand) {
+		const initial = render(57);
+		assert(initial.position < (settings.pnt + 9) * 8, 'The edit should occur before the first loop wraps');
+		if (expand)
+			assert.equal(core.nds_synth_range(0, settings.pnt, settings.length), 1, 'A running loop can extend into the prepared data');
+		const otherControl = ((control & ~(127 << 16)) | (127 << 16)) >>> 0;
+		for (const [offset, value] of [[4, 0x02000000], [8, (7 << 16) | 65533], [12, 250], [0, otherControl]])
+			assert.equal(core.nds_synth_write(16 + offset, value), 1, 'A second channel uses the same sample address');
+		const blocks = [];
+		for (const frames of [19, 257, 2048, 511]) {
+			blocks.push({
+				...render(frames),
+				otherPosition: core.nds_synth_position(1),
+				otherActive: Boolean(core.nds_synth_read(16) >>> 31),
+			});
+		}
+		return blocks;
+	}
+	const expected = withDirectAdpcm(core, { ...settings, cache: false, beforeKeyOn: upload => upload(replacement) },
+		session => renderShared(session, false));
+	const actual = withDirectAdpcm(core, {
+		...settings,
+		length: 9,
+		cache: true,
+		beforeKeyOn(upload) {
+			const size = replacement.length;
+			assert.equal(core.nds_synth_prepare_adpcm(0, size, 0), 0, 'Reject a zero decode budget');
+			assert.equal(core.nds_synth_prepare_adpcm(0, size, 16385), 0, 'Reject an excessive decode budget');
+			assert.equal(core.nds_synth_prepare_adpcm(1, size, 97), 0, 'Reject an unaligned sample source');
+			assert.equal(core.nds_synth_prepare_adpcm(0, size, 1024), 2, 'The original upload is partly decoded');
+			upload(replacement);
+			const results = [];
+			for (let chunk = 0; chunk < 32; chunk++) {
+				const status = core.nds_synth_prepare_adpcm(0, size, 97);
+				results.push(status);
+				if (status !== 2) break;
+			}
+			assert.deepEqual(results, [...Array(Math.ceil((size * 2 - 8) / 97) - 1).fill(2), 1],
+				'Replacement must restart preparation and obey the decode budget');
+			assert.equal(core.nds_synth_prepare_adpcm(0, size, 1), 1, 'A prepared sample stays ready');
+		},
+	}, session => renderShared(session, true));
+	for (let index = 0; index < expected.length; index++) {
+		checkAdpcmBlock(actual[index], expected[index], 'Prepared ADPCM used on two channels');
+		assert.equal(actual[index].otherPosition, expected[index].otherPosition, 'The shared sample keeps each channel’s own position');
+		assert.equal(actual[index].otherActive, true, 'The second channel remains active');
+	}
+	console.log('Chunked ADPCM preparation restarts on upload and shared sample playback matches uncached PCM');
+}
+
+function checkDirectAdpcm() {
+	const core = newCore();
+	const normalTimer = 65536 - Math.round(16756991 / 32768);
+	const chunks = [1, 17, 128, 257, 2048, 2048];
+	for (const timer of [normalTimer, 65533, 65535]) {
+		for (const loop of [false, true]) {
+			// At timer 65535, the short looping sample can wrap several times
+			// inside one output frame. The long one-shot also crosses its end.
+			const settings = { timer, pnt: 4, length: loop ? 9 : 253, loop };
+			const collect = ({ render }) => chunks.map(render);
+			const expected = withDirectAdpcm(core, { ...settings, cache: false }, collect);
+			const actual = withDirectAdpcm(core, { ...settings, cache: true }, collect);
+			assert(expected.some(({ pcm }) => pcm.some(value => value !== 0)), 'The ADPCM fixture must produce a non-silent signal');
+			assert.equal(expected.at(-1).active, loop, 'The loop stays active and the one-shot ends');
+			for (let index = 0; index < chunks.length; index++)
+				checkAdpcmBlock(actual[index], expected[index], `ADPCM ${loop ? 'loop' : 'one-shot'}, timer ${timer}, block ${index}`);
+		}
+	}
+
+	const retuneWhilePlaying = cache => withDirectAdpcm(core, { timer: normalTimer, pnt: 4, length: 9, loop: true, cache },
+		({ core, render }) => {
+			render(321);
+			assert.equal(core.nds_synth_write(8, (4 << 16) | 65535), 1);
+			const fast = render(401);
+			assert.equal(core.nds_synth_write(8, (4 << 16) | normalTimer), 1);
+			return [fast, render(512)];
+		});
+	const retuned = retuneWhilePlaying(false), cachedRetuned = retuneWhilePlaying(true);
+	for (let index = 0; index < retuned.length; index++)
+		checkAdpcmBlock(cachedRetuned[index], retuned[index], 'ADPCM live timer write');
+
+	const settings = { timer: 65533, pnt: 4, length: 22, loop: true };
+	const rewriteWhilePlaying = (cache, replace) => withDirectAdpcm(core, { ...settings, cache }, ({ core, render, upload, control }) => {
+		render(37);
+		if (replace) upload(adpcmFixture(true));
+		const held = render(533);
+		assert.equal(core.nds_synth_write(0, control & 0x7fffffff), 1);
+		assert.equal(core.nds_synth_write(0, control), 1);
+		return [held, render(257)];
+	});
+	const unmodified = rewriteWhilePlaying(false, false);
+	const rewritten = rewriteWhilePlaying(false, true);
+	const cachedRewrite = rewriteWhilePlaying(true, true);
+	for (let index = 0; index < rewritten.length; index++) {
+		assert(!rewritten[index].pcm.equals(unmodified[index].pcm), 'A same-address upload must audibly change the fixture');
+		checkAdpcmBlock(cachedRewrite[index], rewritten[index], index ? 'ADPCM retrigger after same-address upload' : 'ADPCM same-address upload while playing');
+	}
+
+	// Both traces have the same timer phase. The longer loop is edited
+	// after the cursor has passed the new end, while still on its first pass.
+	const outer = { timer: normalTimer, loop: true };
+	const target = { pnt: 2, length: 4 };
+	const expected = withDirectAdpcm(core, { ...outer, ...target, cache: false }, ({ render }) => {
+		render(96);
+		return render(1024);
+	});
+	const actual = withDirectAdpcm(core, { ...outer, pnt: 4, length: 60, cache: true }, ({ core, render }) => {
+		const initial = render(96);
+		assert(initial.position >= (target.pnt + target.length) * 8 && initial.position < (4 + 60) * 8);
+		assert.equal(core.nds_synth_range(0, target.pnt, target.length), 1, 'Reposition the running ADPCM loop');
+		return render(1024);
+	});
+	checkAdpcmBlock(actual, expected, 'ADPCM live loop range');
+	console.log('Direct ADPCM cache matches uncached PCM, cursor and gate for loops, one-shots, live timer and range edits and same-address uploads');
+	checkPreparedAdpcm(core, normalTimer);
 }
 
 function checkCaptureHistory(work) {
@@ -151,13 +428,16 @@ function checkDemo(work) {
 		const rom = readFileSync(join(work, track + '.nds'));
 		const native = readNativePcm(join(work, track + '.wav'), frames);
 		const regular = [], small = [];
-		assert(render(rom, frames, 2048, regular).equals(native), `${track}: 2048-frame blocks differed from Native PCM`);
+		const reference = render(rom, frames, 2048, regular);
+		assert(reference.equals(native), `${track}: 2048-frame blocks differed from Native PCM`);
 		assert(render(rom, frames, 257, small).equals(native), `${track}: 257-frame blocks differed from Native PCM`);
 		assert.deepEqual(small, regular, `${track}: snapshots changed with browser render-block size`);
 		checkSnapshots(track, native, regular);
+		checkSharedSound(track, rom, reference, regular.at(-1));
 		console.log(`${track}: ${frames} stereo frames match native PCM and ${regular.length} snapshots agree across block sizes`);
 	}
 	checkCaptureHistory(work);
+	checkDirectAdpcm();
 }
 
 async function checkRealFolder(work, folder) {

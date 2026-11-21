@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
 import { listSavedTwoSfSets } from './2sf-project.js';
-import { createTwoSfPlayer } from './2sf-player.js?v=nds-channel-view-1';
+import { createTwoSfPlayer } from './2sf-player.js?v=nds-adpcm-cache-1';
 import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-unified-channels-1';
 import { setupNdsChannelPicker } from './nds-channel-picker.js?v=nds-unified-channels-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
-import { createNdsAudio } from './nds-audio.js?v=nds-range-live-1';
+import { createNdsAudio } from './nds-audio.js?v=nds-output-mix-1';
 import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-range-live-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-source-controls-1';
 import { setupNdsSoundCapture } from './nds-sound-capture.js?v=nds-pcm-draw-1';
-import { setupNdsMixer } from './nds-mixer.js?v=nds-mixer-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
 import { setupNdsFiles } from './nds-files.js?v=nds-workspace-1';
 import { isNdsPresetPath, ndsPresetChannelSettings } from './nds-preset.js?v=nds-timer-1';
@@ -19,6 +18,7 @@ const node = (id) => document.getElementById(id);
 const song = node('songSelect'), play = node('play'), pause = node('pause'), stop = node('stop');
 const saveSong = node('saveTwoSfSong');
 const master = node('master'), position = node('position'), time = node('time');
+const outputLevel = node('ndsOutputLevel'), outputBalance = node('ndsOutputBalance'), outputMute = node('ndsOutputMute');
 const status = node('status'), playbackStatus = node('playbackStatus');
 const waveform = node('waveform'), envelope = node('envelope');
 const instrument = node('ndsInstrument');
@@ -35,7 +35,6 @@ let disposing = false;
 let liveEnabled = true, nextLiveUpdate = 0;
 let codeChannelView = null;
 const CHANNEL_UPDATE_MS = 100;
-let referenceLevel = 1;
 const displayName = (path) => path.split('/').at(-1).replace(/\.(?:2sf|mini2sf)$/i, '');
 const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const report = (error) => { if (!disposing) status.textContent = error.message; };
@@ -44,17 +43,29 @@ const player = createTwoSfPlayer({
 	onChange: render,
 	onError: report,
 });
-function updateReferenceGain() {
-	player.setVolume(Number(master.value) / 100 * referenceLevel);
+player.setVolume(Number(master.value) / 100);
+function getOutputMix() {
+	return { volume: outputLevel.valueAsNumber / 100, pan: outputBalance.valueAsNumber / 100,
+		muted: outputMute.getAttribute('aria-pressed') === 'true' };
 }
-const mixer = setupNdsMixer({
-	root: node('ndsMixerChannels'), reference: node('ndsReferenceMix'), referenceValue: node('ndsReferenceMixValue'),
-	getAudioRoutes: () => [audio, auditionAudio], onError: report,
-	onReferenceLevel(value) {
-		referenceLevel = value;
-		updateReferenceGain();
-	},
+function updateOutputMix() {
+	const mix = getOutputMix();
+	const level = `${outputLevel.value}%`;
+	const balance = mix.pan === 0 ? 'Center' : `${Math.abs(outputBalance.valueAsNumber)}${mix.pan < 0 ? 'L' : 'R'}`;
+	node('ndsOutputLevelValue').value = level;
+	node('ndsOutputBalanceValue').value = balance;
+	outputLevel.setAttribute('aria-valuetext', level);
+	outputBalance.setAttribute('aria-valuetext', balance);
+	for (const route of [player, audio, auditionAudio]) route?.setOutputMix(mix);
+	visualizer.wake();
+}
+outputLevel.addEventListener('input', updateOutputMix);
+outputBalance.addEventListener('input', updateOutputMix);
+outputMute.addEventListener('click', () => {
+	outputMute.setAttribute('aria-pressed', String(!getOutputMix().muted));
+	updateOutputMix();
 });
+updateOutputMix();
 const channelPicker = setupNdsChannelPicker({
 	onSelect: () => renderLive(player.getState()),
 });
@@ -211,14 +222,14 @@ function captureToSynth() {
 async function ensureAuditionAudio() {
 	if (auditionAudio?.context.state === 'closed') auditionAudio = null;
 	if (!auditionAudio) {
-		auditionAudioPromise ??= createNdsAudio({ volume: Number(master.value) / 100, onError: report }).then(async instance => {
+		auditionAudioPromise ??= createNdsAudio({ volume: Number(master.value) / 100, outputMix: getOutputMix(), onError: report }).then(async instance => {
 			if (disposing) {
 				await instance.dispose();
 				throw new DOMException('Keyboard audition stopped', 'AbortError');
 			}
 			auditionAudio = instance;
 			instance.setVolume(Number(master.value) / 100);
-			await mixer.apply(instance).catch(report);
+			instance.setOutputMix(getOutputMix());
 			syncMonitor();
 		}).finally(() => { auditionAudioPromise = null; });
 		await auditionAudioPromise;
@@ -230,14 +241,14 @@ async function ensureAuditionAudio() {
 async function ensureAudio() {
 	if (audio?.context.state === 'closed') audio = null;
 	if (!audio) {
-		audioPromise ??= createNdsAudio({ volume: Number(master.value) / 100, onError: report }).then(async instance => {
+		audioPromise ??= createNdsAudio({ volume: Number(master.value) / 100, outputMix: getOutputMix(), onError: report }).then(async instance => {
 			if (disposing) {
 				await instance.dispose();
 				throw new DOMException('Audio initialization stopped', 'AbortError');
 			}
 			audio = instance;
 			instance.setVolume(Number(master.value) / 100);
-			await mixer.apply(instance).catch(report);
+			instance.setOutputMix(getOutputMix());
 			node('enableAudio').textContent = 'Audio ready';
 			syncMonitor();
 		}).finally(() => { audioPromise = null; });
@@ -401,7 +412,7 @@ master.addEventListener('input', () => {
 	const percent = Number(master.value);
 	node('masterValue').value = `${percent}%`;
 	master.classList.toggle('boost', percent > 100);
-	updateReferenceGain();
+	player.setVolume(percent / 100);
 	audio?.setVolume(percent / 100);
 	auditionAudio?.setVolume(percent / 100);
 	visualizer.wake();
@@ -442,10 +453,6 @@ const chipEditor = node('ndsSynthEditor'), mixerPanel = node('ndsMixerPanel');
 const chipTab = node('ndsChipTab'), mixerTab = node('ndsMixerTab');
 const chipTabs = [chipTab, mixerTab];
 let expandedTabs;
-function syncMixerVisibility() {
-	mixer.setVisible(!chipEditor.hidden && !mixerPanel.hidden);
-	renderLive(player.getState());
-}
 function selectChip(button) {
 	mixerPanel.hidden = button !== mixerTab;
 	node('ndsChipPanel').hidden = !mixerPanel.hidden;
@@ -454,7 +461,7 @@ function selectChip(button) {
 		tab.tabIndex = tab === button ? 0 : -1;
 	}
 	expandedTabs.showChip(button);
-	syncMixerVisibility();
+	renderLive(player.getState());
 }
 code = setupNdsCode({
 	project, files: projectFiles, ensureAudio, getAudio, setStatus,
@@ -462,8 +469,8 @@ code = setupNdsCode({
 		syncMonitor();
 		renderLive(player.getState());
 	},
-	onViewChange(mode) { expandedTabs?.showInput(mode); syncMixerVisibility(); },
-	onExpandedChange(value) { expandedTabs?.setExpanded(value); syncMixerVisibility(); },
+	onViewChange(mode) { expandedTabs?.showInput(mode); renderLive(player.getState()); },
+	onExpandedChange(value) { expandedTabs?.setExpanded(value); renderLive(player.getState()); },
 });
 expandedTabs = setupSynthExpandedTabs({ codeControls: code.controls, selectChip,
 	elements: { editor: chipEditor, chipTabs },
@@ -555,7 +562,6 @@ window.addEventListener('pagehide', event => {
 	disposing = true;
 	updateCodeChannelView(-1);
 	expandedTabs.dispose();
-	mixer.dispose();
 	capturePanel.dispose();
 	keyboard.cancelSampleLoad();
 	unwatchSavedSongs();

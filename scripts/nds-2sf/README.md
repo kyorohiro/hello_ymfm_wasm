@@ -75,6 +75,41 @@ The browser check verifies loading, pitch, stereo balance, Live channel state,
 Pause / Resume, Stop, recovery from a missing library, and the paused audition
 and preset workflow with Chromium and WebKit output muted.
 
+The WASM also exposes a CPU-free direct sound session. The parity checker
+opens the same WASM in direct mode, copies the fixtures' PCM into main RAM
+and writes their sound-channel registers. It compares the repeating stereo
+sample values and the timing of each transition with the rendered 2SF and
+checks that a pan write takes effect on the running channel. This is the
+verification path for sharing the sound renderer with the Synth.
+The browser check also loads the same WASM into an AudioWorklet at 48 kHz
+and measures a note and a live pan change from host register writes.
+The direct session can read channel registers and the running sample position.
+PCM8 and PCM16 range updates write both bounds as a single operation. An
+ADPCM sample loaded by the direct session can share a decoded table across
+channels. The audio routine looks up the final predictor, index and loop
+latch when it advances across many ADPCM samples in one output frame.
+With a prepared table, live PNT/LEN edits within its bounds restore the
+decoder state for the new loop. An overlapping RAM upload invalidates
+the table and resumes incremental decoding from the current state.
+The 2SF driver uses incremental decoding with live emulated RAM.
+
+For a large upload, call `nds_synth_prepare_adpcm(offset, byteLength, frames)`
+in separate steps before Key On. Each call decodes up to 16,384 frames and
+returns 2 while more work remains, 1 when ready, or 0 for an invalid or
+uncacheable range. The JavaScript wrapper returns a readiness boolean and
+throws on failure. The audio budget checker measures both sustained
+playback and preparation of a 1 MiB sample:
+
+```sh
+node scripts/nds-2sf/check_skyemu_audio_budget.mjs --blocks=1000
+```
+
+Pass `--wasm=PATH` to repeat the measurement with a baseline build. Pass
+`--song=PATH` with its library accessible from `--set-root=DIR` to measure
+2SF worker-size blocks. Timing is reported per machine rather than used as
+a fixed test threshold. The standalone rebuild uses `patch` to apply
+`skyemu_adpcm_cache.patch` to the pinned header in a temporary directory.
+
 To compare the first eight seconds of each song in a local set, run the parity
 checker with `--real-folder="/path/to/set"`. The supplied Chrono Trigger set
 matched across all 71 tracks at 48 kHz. Give the browser checker the same flag
@@ -84,4 +119,4 @@ output paths and leave the source set in place.
 The format and compatibility notes are in the
 [2SF author notes](https://github.com/soltune/procyon2sf/blob/main/docs/TECHNICAL.md).
 The [Synth TODO](../../docs/issues/todo_nds_synth_20261121.md) tracks the
-browser player and the separate permissive Synth sound engine.
+browser player and the migration of Keyboard and Code to the shared renderer.

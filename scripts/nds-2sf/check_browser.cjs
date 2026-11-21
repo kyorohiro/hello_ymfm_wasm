@@ -1041,48 +1041,73 @@ async function checkFixedTimer(page) {
 
 async function checkMixer(page, fixture) {
 	await page.reload();
-	const setRange = (control, value) => page.locator(control).evaluate((input, value) => {
-		input.value = value;
-		input.dispatchEvent(new Event('input', { bubbles: true }));
-	}, value);
 	const checkPeak = (peak, label) => until(() => output(page), ({ channels }) =>
 		channels[0] && Math.abs(channels[0].peak - peak) < .025 * peak, label);
+	const checkSilence = label => until(() => output(page), ({ channels }) =>
+		channels.length === 2 && channels.every(({ peak }) => peak < 1e-7), label);
+	const master = page.locator('#master'), level = page.locator('#ndsOutputLevel');
+	const balance = page.locator('#ndsOutputBalance'), mute = page.locator('#ndsOutputMute');
 	await channelButton(page, 0).click();
-	await setRange('#ndsPan', 0);
+	await page.locator('#ndsPan').fill('0');
 	await page.locator('#ndsMixerTab').click();
 	const panel = page.locator('#ndsMixerPanel');
 	await panel.waitFor();
-	assert.equal(await panel.locator('.nds-mix-channel').count(), 16);
-	assert(await page.locator('#master').isVisible(), 'Master should stay available in Mixer');
-	const level = '[aria-label="CH1 level"]';
-	await setRange(level, 50);
+	assert.equal(await panel.locator('.nds-mix-output').count(), 1, 'Mixer should have one DS stereo output');
+	assert.equal(await panel.locator('.nds-mix-channel, #ndsReferenceMix').count(), 0, 'Individual CH and 2SF volume controls should be gone from Mixer');
+	assert(await master.isVisible(), 'Master should stay available in Mixer');
+	await level.fill('50');
 	assert.equal((await output(page)).contexts, 0, 'Mix edits should wait for the normal audio gesture');
 	await holdC4(page, async () => {
 		const [half] = await measureSide(page, 0, 261.626);
-		await setRange(level, 100);
-		await checkPeak(2 * half.peak, 'The channel trim should update held notes and apply on initial audio creation');
-		const mute = panel.getByRole('button', { name: 'CH1 mute' });
+		await level.fill('100');
+		await checkPeak(2 * half.peak, 'DS Level should update held notes and apply on initial audio creation');
+		await balance.fill('50');
+		await checkPeak(half.peak, 'DS Balance should attenuate the held note on the left');
+		await balance.fill('0');
 		await mute.click();
-		await until(() => output(page), ({ channels }) => channels.every(({ peak }) => peak < 1e-7), 'Muted CH1 should be silent');
-		await panel.locator('[data-channel="0"][data-active="true"]').waitFor();
+		await checkSilence('Muting DS should silence the held note');
 		await mute.click();
 		await checkPeak(2 * half.peak, 'Unmuting should resume the held sound');
-		await setRange('#master', 35);
-		await checkPeak(half.peak, 'Master should apply after the channel trim');
+		await master.fill('35');
+		await checkPeak(half.peak, 'Master and DS Level should multiply for keyboard notes');
 	});
-	await setRange('#master', 70);
+	await master.fill('70');
 	await importFiles(page, '#loadTwoSfFolder', fixture);
 	const entry = await until(async () => (await tracks(page)).find(({ value }) => value.includes('left-a4')),
 		Boolean, 'Fixture song should be available');
 	await page.locator('#songSelect').selectOption(entry.value);
 	await page.locator('#play').click();
 	const [reference] = await measureSide(page, 0, 440);
-	await setRange('#ndsReferenceMix', 50);
-	await checkPeak(reference.peak * .5, 'The 2SF level should work during reference playback');
-	await setRange('#master', 35);
-	await checkPeak(reference.peak * .25, 'Master and 2SF level should multiply');
+	await level.scrollIntoViewIfNeeded();
+	const { width, height } = await level.boundingBox();
+	await level.click({ position: { x: width / 4, y: height / 2 } });
+	const songLevel = Number(await level.inputValue());
+	assert(songLevel > 30 && songLevel < 70, 'Clicking the visible DS Level slider should change its value');
+	await checkPeak(reference.peak * songLevel / 100, 'The same DS Level slider should work during reference playback');
+	await balance.fill('50');
+	await checkPeak(reference.peak * songLevel / 200, 'DS Balance should attenuate the song on the left');
+	await balance.fill('0');
+	const pause = page.locator('#pause');
+	await pause.click();
+	const referenceOutput = (await output(page)).outputs - 1;
+	const frozen = await until(() => output(page, referenceOutput), ({ contextState }) => contextState === 'suspended', 'The song clock should pause');
+	await until(() => page.locator('#twoSfAuditionStatus').textContent(), value => /Keyboard ready/i.test(value),
+		'The selected reference channel should be ready for audition');
+	await level.fill('100');
+	await holdC4(page, async () => {
+		const [audition] = await measureSide(page, 0, 440, referenceOutput + 1);
+		await level.fill('50');
+		await checkPeak(audition.peak * .5, 'The same DS Level slider should work during paused 2SF keyboard audition');
+		await balance.fill('50');
+		await checkPeak(audition.peak * .25, 'DS Balance should apply to the paused audition');
+		await mute.click();
+		await checkSilence('Muting DS should silence the held audition');
+		await mute.click();
+		await checkPeak(audition.peak * .25, 'Unmuting should restore the held audition');
+	});
+	assert.equal((await output(page, referenceOutput)).currentTime, frozen.currentTime, 'Shared mix adjustments should keep the reference song paused');
 	await page.locator('#stop').click();
-	return 'Sixteen strips, live trim and mute of the held CH, Master and 2SF level measured';
+	return 'One DS stereo strip controls Level, Balance and Mute for the keyboard, 2SF playback and paused audition';
 }
 
 async function checkDrawPcm(page) {
@@ -1160,6 +1185,11 @@ await nds.noteOn(CH1, "A4", { mode: "pcm8", shape: "sine", pan: 0, volume: 80, l
 	await until(() => output(page), ({ channels }) => channels[1] && Math.abs(channels[1].rms / initial.rms - .5) < .08,
 		'Changing live volume should halve the level of the held Code note');
 	assert.match(await page.locator('#synthCodeState').textContent(), /Running|Playing/, 'Live CH edits should leave Code running');
+	const [, beforeMix] = await measureSide(page, 1, 440);
+	await page.locator('#ndsMixerTab').click();
+	await page.locator('#ndsOutputLevel').fill('50');
+	await until(() => output(page), ({ channels }) => channels[1] && Math.abs(channels[1].peak / beforeMix.peak - .5) < .025,
+		'DS Level should also control the held Code note');
 	await page.locator('#synthInputCodeTab').click();
 	await page.locator('#synthCodeStopButton').click();
 	await until(() => output(page), ({ channels }) => channels.length === 2 && channels.every(({ peak }) => peak < 1e-7),
@@ -1167,7 +1197,7 @@ await nds.noteOn(CH1, "A4", { mode: "pcm8", shape: "sine", pan: 0, volume: 80, l
 	await page.locator('#ndsChipTab').click();
 	await until(async () => [await mode.inputValue(), await volume.inputValue(), await pan.inputValue()],
 		values => values.join(',') === 'pcm16,37,64', 'Stopping Code should restore the authored CH1 settings');
-	return 'On the DS tab, CH1 shows Code PCM8 and its hardware timer; live Pan and Volume reach the held note, and Stop restores the authored sound';
+	return 'Code CH1 shows PCM8 and its hardware timer; live Pan, Volume and DS Level reach the held note, and Stop restores the authored sound';
 }
 
 async function checkHeldRange(page) {
@@ -1231,6 +1261,73 @@ async function checkHeldRange(page) {
 		});
 	}
 	return 'PCM8, PCM16 and long IMA-ADPCM update a held loop during drag, restore it on Escape and keep the range on pointer-up';
+}
+
+const directSoundWorklet = `
+import { openSkyEmuSound } from '/synth-nitro-ds/nds-skyemu-wasm.js';
+registerProcessor('tetorica-test-shared-ds', class extends AudioWorkletProcessor {
+	constructor({ processorOptions: { module } }) {
+		super();
+		this.sound = openSkyEmuSound(module);
+		this.sound.upload(256, new Uint8Array(32));
+		if (this.sound.prepareAdpcm(256, 32, 8) || !this.sound.prepareAdpcm(256, 32))
+			throw new Error('Expected bounded ADPCM preparation across two calls.');
+		const bytes = new Uint8Array(128), pcm = new DataView(bytes.buffer);
+		for (let frame = 0; frame < 64; frame++)
+			pcm.setInt16(frame * 2, Math.round(12000 * Math.sin(frame * Math.PI / 32)), true);
+		this.sound.upload(0, bytes);
+		this.sound.write(4, 0x02000000);
+		this.sound.write(8, 65536 - Math.round(16756991 / (440 * 64)));
+		this.sound.write(12, 32);
+		this.sound.write(0, 0xa8000064);
+		this.port.onmessage = () => {
+			const old = this.sound.read(0);
+			this.sound.write(0, (old | (127 << 16)) >>> 0);
+		};
+	}
+	process(_inputs, [[left, right]]) {
+		this.sound.render(left, right);
+		return true;
+	}
+});
+`;
+
+async function checkSharedSoundWorklet(page) {
+	await page.evaluate(async () => {
+		const { loadSkyEmuModule, SKYEMU_SAMPLE_RATE } = await import('/synth-nitro-ds/nds-skyemu-wasm.js');
+		const module = await loadSkyEmuModule();
+		const start = document.createElement('button');
+		start.id = 'playDirectSkyEmuSound';
+		start.textContent = 'Start direct DS verification';
+		document.body.append(start);
+		start.addEventListener('click', () => {
+			window.directSkyEmuReady = (async () => {
+				const context = new AudioContext({ sampleRate: SKYEMU_SAMPLE_RATE });
+				try {
+					await Promise.all([context.resume(), context.audioWorklet.addModule('/shared-ds-worklet-test.js')]);
+					const node = new AudioWorkletNode(context, 'tetorica-test-shared-ds', {
+						numberOfInputs: 0, outputChannelCount: [2], processorOptions: { module },
+					});
+					node.connect(context.destination);
+					window.directSkyEmu = { context, node };
+				} catch (error) {
+					await context.close();
+					return error.message;
+				}
+				return '';
+			})();
+		}, { once: true });
+	});
+	await page.locator('#playDirectSkyEmuSound').click();
+	assert.equal(await page.evaluate(() => window.directSkyEmuReady), '', 'Open the 2SF WASM in a browser AudioWorklet');
+	try {
+		await measureSide(page, 0, 440);
+		await page.evaluate(() => window.directSkyEmu.node.port.postMessage('pan right'));
+		await measureSide(page, 1, 440);
+	} finally {
+		await page.evaluate(() => window.directSkyEmu.context.close());
+	}
+	return 'The 2SF WASM runs a direct PCM note in the AudioWorklet and updates pan while held';
 }
 
 async function check(name, origin, fixture) {
@@ -1383,9 +1480,10 @@ async function check(name, origin, fixture) {
 		const drawPcm = await checkDrawPcm(page);
 		const codeChannel = await checkCodeChannel(page);
 		const heldRange = await checkHeldRange(page);
+		const sharedSound = await checkSharedSoundWorklet(page);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, heldRange,
+		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, heldRange, sharedSound,
 			selectFocus: 'musical key sounds without changing the focused source select',
 			referenceLive: 'The same channel picker and read-only Synth controls during playback and pause, PCM from the paused channel, frozen position and missing library',
 			referenceAudition: 'automatic paused audition with Live on or off, frozen 440 Hz sample, C5-root transposition, idle channel silence, and authored keyboard on Auto',
@@ -1402,6 +1500,9 @@ async function main() {
 		try {
 			const requested = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
 			if (requested === '/favicon.ico') return response.writeHead(204).end();
+			if (requested === '/shared-ds-worklet-test.js') return response.writeHead(200, {
+				'Content-Type': 'text/javascript',
+			}).end(directSoundWorklet);
 			const file = path.resolve(webRoot, `.${requested}`);
 			assert(file.startsWith(webRoot + path.sep));
 			response.setHeader('Content-Type', contentTypes[path.extname(file)] ?? 'application/octet-stream');

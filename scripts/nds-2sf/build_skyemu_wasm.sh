@@ -66,6 +66,7 @@ PY
 
 [ "$source_archive" = "$archive" ] || mv -f "$source_archive" "$archive"
 cp "$repo/scripts/nds-2sf/skyemu_2sf.c" "$stage/"
+cp "$repo/scripts/nds-2sf/skyemu_adpcm_cache.patch" "$stage/"
 cp "$repo/scripts/nds-2sf/compile_skyemu_wasm.sh" "$stage/rebuild.sh"
 sh "$stage/rebuild.sh" "$stage/skyemu-2sf.wasm"
 
@@ -74,7 +75,7 @@ case "${1:-}" in
 	--release-kit)
 		mkdir -p "$2"
 		cp -R "$stage/src" "$2/"
-		cp "$stage/LICENSE" "$stage/skyemu-2sf-notices.txt" "$stage/skyemu_2sf.c" "$stage/rebuild.sh" "$2/"
+		cp "$stage/LICENSE" "$stage/skyemu-2sf-notices.txt" "$stage/skyemu_2sf.c" "$stage/skyemu_adpcm_cache.patch" "$stage/rebuild.sh" "$2/"
 		output=$3
 		;;
 esac
