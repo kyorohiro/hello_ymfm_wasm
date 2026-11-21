@@ -2,10 +2,11 @@
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
 import { listSavedTwoSfSets } from './2sf-project.js';
 import { createTwoSfPlayer } from './2sf-player.js?v=nds-2sf-audition-1';
-import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-2sf-audition-1';
+import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-channels-1';
+import { setupNdsChannelPicker } from './nds-channel-picker.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createNdsAudio } from './nds-audio.js?v=nds-sample-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-2sf-audition-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-channels-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-2sf-audition-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
 import { setupNdsFiles } from './nds-files.js?v=nds-2sf-files-1';
@@ -14,16 +15,18 @@ import { isNdsPresetPath, ndsPresetChannelSettings } from './nds-preset.js?v=nds
 const node = (id) => document.getElementById(id);
 const song = node('songSelect'), play = node('play'), pause = node('pause'), stop = node('stop');
 const saveSong = node('saveTwoSfSong');
+const codeLayout = node('synthWorkspaceCodeButton'), synthLayout = node('synthWorkspaceSynthButton');
 const master = node('master'), position = node('position'), time = node('time');
 const status = node('status'), playbackStatus = node('playbackStatus');
 const waveform = node('waveform'), envelope = node('envelope');
+const instrument = node('ndsInstrument');
 const visualizer = createSpuOutputVisualizer({ canvas: waveform, envelopeCanvas: envelope });
 visualizer.setMode('waveform');
 const MAX_SOURCE_BYTES = 128 * 1024 * 1024;
 const MAX_FILES = 1024;
 let timer = 0, audio, audioPromise, keyboard, code, monitoredOutput = null;
 let sessionFiles = [], sessionTracks = [], savedSets = new Map(), songOptions = new Map(), savingSong = false;
-let auditionAudio, auditionAudioPromise, auditionStatus = null, auditionRevision = 0, pausedPreset = null;
+let auditionAudio, auditionAudioPromise, auditionStatus = null, auditionRevision = 0, auditionTarget = null, pausedPreset = null;
 let disposing = false;
 let liveEnabled = true, nextLiveUpdate = 0;
 const displayName = (path) => path.split('/').at(-1).replace(/\.(?:2sf|mini2sf)$/i, '');
@@ -34,45 +37,61 @@ const player = createTwoSfPlayer({
 	onChange: render,
 	onError: report,
 });
+const channelPicker = setupNdsChannelPicker({
+	onSelect({ mode, channel }) {
+		if (mode === 'synth') keyboard.setChannel(channel);
+		renderLive(player.getState());
+	},
+});
 const liveView = setupTwoSfLiveView({
+	getChannel: () => channelPicker.getReferenceChannel(),
 	onEnabledChange(enabled) {
 		liveEnabled = enabled;
 		renderLive(player.getState());
 	},
-	onSelectionChange: changeAudition,
-	onAuditionChange: changeAudition,
+	onAuditionChange: () => renderLive(player.getState()),
 	onCapture: captureToSynth,
 });
 
 function clearAudition() {
-	if (auditionStatus === null) return;
+	if (auditionTarget === null) return;
 	auditionRevision++;
+	auditionTarget = null;
 	auditionStatus = null;
 	pausedPreset = null;
 	keyboard.setAudition(null);
 }
 
 function renderLive(state) {
-	if (state.phase !== 'paused' || state.pending || state.switching || !liveEnabled) clearAudition();
 	nextLiveUpdate = performance.now() + 100;
 	const monitor = player.getMonitorState(liveEnabled);
-	liveView.render({ ...state, ...monitor, canCapture: Boolean(pausedPreset), auditionStatus: auditionStatus ??
-		(monitor.auditionSupported === false ? 'Update the 2SF renderer for keyboard audition.' : null) });
+	channelPicker.render({ ...state, ...monitor }, monitor.snapshot);
+	const { mode, channel } = channelPicker.getSelection();
+	const referenceView = mode === 'reference';
+	if (instrument.hidden !== referenceView) instrument.hidden = referenceView;
+	if (referenceView && liveEnabled && state.phase === 'paused' && !state.pending && !state.switching) {
+		const { referenceNote } = liveView.getSelection();
+		const target = `${monitor.snapshot?.frame ?? 'waiting'}:${channel}:${referenceNote}`;
+		if (target !== auditionTarget) {
+			auditionTarget = target;
+			void prepareAudition(channel, referenceNote, monitor);
+		}
+	} else {
+		clearAudition();
+	}
+	liveView.render({ ...state, ...monitor, referenceView, canCapture: Boolean(pausedPreset), auditionStatus });
 }
 
-async function changeAudition() {
-	const { channel, enabled, referenceNote } = liveView.getSelection();
-	const state = player.getState();
-	if (!enabled || !liveEnabled || state.phase !== 'paused' || state.pending || state.switching) {
-		clearAudition();
-		renderLive(state);
-		return;
-	}
+async function prepareAudition(channel, referenceNote, monitor) {
 	const revision = ++auditionRevision;
-	auditionStatus = 'Reading the paused sample…';
 	pausedPreset = null;
 	keyboard.setAudition({ channel });
-	renderLive(state);
+	if (!monitor.auditionSupported || !monitor.snapshot) {
+		auditionStatus = monitor.auditionSupported === false ? 'Update the 2SF renderer for keyboard audition.'
+			: 'Pause after the song starts to audition a channel.';
+		return;
+	}
+	auditionStatus = 'Reading the paused sample…';
 	try {
 		const { bytes, sampleRate, loopStartWords, lengthWords, ...settings } = await player.readPausedSample(channel);
 		if (revision !== auditionRevision) return;
@@ -94,8 +113,8 @@ function captureToSynth() {
 	try {
 		const preset = pausedPreset;
 		keyboard.applyPreset(preset);
+		channelPicker.showSynth();
 		clearAudition();
-		liveView.disableAudition();
 		renderLive(player.getState());
 		status.textContent = `${preset.name} loaded into Synth. Use Save sound as… to keep it in Files.`;
 	} catch (error) {
@@ -265,7 +284,7 @@ function connectPicker(buttonId, inputId) {
 
 connectPicker('loadTwoSfFolder', 'twoSfFolder');
 connectPicker('loadTwoSfFiles', 'twoSfFiles');
-song.addEventListener('change', () => { song.blur(); render(); });
+song.addEventListener('change', () => render());
 play.addEventListener('click', () => {
 	const selected = songOptions.get(song.value);
 	if (!selected) return;
@@ -328,6 +347,19 @@ const projectFiles = setupNdsFiles({
 });
 code = setupNdsCode({
 	project, files: projectFiles, ensureAudio, getAudio, setStatus, onActivity: syncMonitor,
+	onExpandedChange(expanded) {
+		codeLayout?.setAttribute('aria-pressed', String(expanded));
+		synthLayout?.setAttribute('aria-pressed', String(!expanded));
+	},
+});
+codeLayout?.addEventListener('click', () => void code.controls.setExpanded(true).catch(report));
+synthLayout?.addEventListener('click', async () => {
+	try {
+		if (await code.controls.setMode('keyboard', { focusEditor: false })) {
+			await code.controls.setExpanded(false);
+			synthLayout.focus();
+		}
+	} catch (error) { report(error); }
 });
 void code.ready?.catch(report);
 const unwatchSavedSongs = project.savedFs.onDidChange(updateSavedSongs);
@@ -352,7 +384,6 @@ updateSavedSounds();
 savedSounds.addEventListener('change', () => {
 	const path = savedSounds.value;
 	savedSounds.value = '';
-	savedSounds.blur();
 	if (path) void projectFiles.selectFile(path, { showSource: false }).catch(report);
 });
 

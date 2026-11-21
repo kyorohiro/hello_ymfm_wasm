@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-2sf-files-1" />
-		<script type="module" src="synth.js?v=nds-2sf-files-1"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-channel-picker-1" />
+		<script type="module" src="synth.js?v=nds-channel-picker-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -42,6 +42,10 @@
 				<button id="enableAudio" type="button">Enable audio</button>
 				<button id="stopAll" type="button" aria-label="Stop all sound">Stop all sound</button>
 				<button id="ndsFilesToggle" type="button" aria-expanded="false" aria-controls="ndsFilesPanel">Files</button>
+				<div class="nds-workspace-switch" role="group" aria-label="Workspace layout">
+					<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot">Code</button>
+					<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="synthInputSection">Synth</button>
+				</div>
 				<p id="status" role="status">Import a 2SF folder or select the song and its library together.</p>
 			</div>
 			<section class="reference" aria-labelledby="referenceTitle">
@@ -62,9 +66,16 @@
 					<progress id="position" max="1" value="0" aria-label="Playback position"></progress>
 					<span id="time">0:00</span>
 				</div>
-				<div class="two-sf-live" role="group" aria-label="2SF channel monitor">
+				<div id="ndsChannelPicker" class="nds-channel-picker" aria-label="View and keyboard" role="group">
+					<div class="nds-channel-views" role="group" aria-label="View">
+						<span>View / keyboard</span>
+						<button id="ndsSynthView" type="button" aria-pressed="true">Synth</button>
+						<button id="ndsReferenceView" type="button" aria-pressed="false" disabled>2SF</button>
+					</div>
+					<div id="ndsChannelButtons" class="nds-channel-buttons" role="group" aria-label="Channel"></div>
+				</div>
+				<div id="twoSfLivePanel" class="two-sf-live" role="group" aria-label="2SF channel monitor" hidden>
 					<label><input id="twoSfLiveEnabled" type="checkbox" checked /> Live view</label>
-					<label>2SF channel <select id="twoSfLiveChannel" aria-describedby="twoSfLiveStatus" disabled></select></label>
 					<span id="twoSfLiveStatus">No song playing</span>
 					<dl id="twoSfLiveDetails" hidden>
 						<div><dt>Voice</dt><dd id="twoSfLiveActive"></dd></div>
@@ -75,7 +86,6 @@
 					</dl>
 				</div>
 				<div id="twoSfAuditionTools" class="two-sf-audition" role="group" aria-label="Paused 2SF audition" hidden>
-					<label><input id="twoSfAuditionEnabled" type="checkbox" aria-describedby="twoSfAuditionStatus" disabled /> Audition on keyboard</label>
 					<label>Reference key
 						<select id="twoSfAuditionReference" title="Play this key at the channel’s original rate" disabled>
 							<option value="36">C2</option>
@@ -104,17 +114,17 @@
 				<canvas id="envelope" class="monitor-canvas" width="960" height="180" aria-label="Output level history" hidden></canvas>
 				<p id="monitorSource" class="monitor-source">Monitoring Synth</p>
 			</section>
-			<section class="instrument" aria-labelledby="instrumentTitle">
+			<section id="ndsInstrument" class="instrument" aria-labelledby="instrumentTitle">
 				<div class="instrument-heading">
-					<h2 id="instrumentTitle">DS sound channels</h2>
+					<h2 id="instrumentTitle">Synth instrument</h2>
 					<details class="sound-help">
 						<summary aria-label="About DS channels">?</summary>
 						<p>All 16 channels play PCM8, PCM16 and IMA-ADPCM. Physical CH9–CH14 also generate pulse waveforms and CH15–CH16 generate noise. Code uses CH1–CH16 for hardware channels 0–15.</p>
 						<p>Auto allocates compatible channels. Changing the sample, mode or loop applies on the next note. Volume, pan and pulse duty can change on held keyboard notes. The keyboard smooths release in software.</p>
+						<p>In the 2SF view, pause the song to audition the selected channel on the keyboard. Choose Synth to play the edited instrument.</p>
 					</details>
 				</div>
 				<div class="hardware-fields">
-					<label>Channel <select id="ndsChannel"><option value="auto">Auto</option></select></label>
 					<label>Sound source <select id="ndsMode">
 						<option value="pcm16">PCM16</option><option value="pcm8">PCM8</option>
 						<option value="adpcm">IMA-ADPCM</option><option value="pulse">PSG pulse</option><option value="noise">Noise</option>

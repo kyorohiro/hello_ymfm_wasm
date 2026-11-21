@@ -4,43 +4,38 @@ const formatLabels = {
 };
 const rateLabel = new Intl.NumberFormat('en', { maximumFractionDigits: 1 });
 
-export function setupTwoSfLiveView({ onEnabledChange, onSelectionChange, onAuditionChange, onCapture }) {
+export function setupTwoSfLiveView({ getChannel, onEnabledChange, onAuditionChange, onCapture }) {
 	const node = (id) => document.getElementById(id);
-	const enabled = node('twoSfLiveEnabled'), channel = node('twoSfLiveChannel');
+	const panel = node('twoSfLivePanel'), enabled = node('twoSfLiveEnabled');
 	const status = node('twoSfLiveStatus'), details = node('twoSfLiveDetails');
 	const active = node('twoSfLiveActive'), format = node('twoSfLiveFormat');
 	const volume = node('twoSfLiveVolume'), pan = node('twoSfLivePan');
 	const rate = node('twoSfLiveRate'), rateTitle = node('twoSfLiveRateLabel');
-	const auditionTools = node('twoSfAuditionTools'), audition = node('twoSfAuditionEnabled');
+	const auditionTools = node('twoSfAuditionTools');
 	const reference = node('twoSfAuditionReference'), auditionMessage = node('twoSfAuditionStatus');
 	const capture = node('twoSfCapture');
 	let view = { phase: 'stopped' };
 
-	channel.replaceChildren(...Array.from({ length: 16 }, (_, index) => new Option(`CH${index + 1}`, index)));
 	const write = (field, value) => {
 		if (field.textContent !== value) field.textContent = value;
 	};
 	const getSelection = () => ({
-		channel: Number(channel.value),
-		enabled: audition.checked,
+		channel: getChannel(),
 		referenceNote: Number(reference.value),
 	});
 
 	function update() {
-		const { phase, pending, switching, monitorSupported, snapshot, auditionSupported, auditionStatus, canCapture } = view;
+		const { referenceView, phase, pending, switching, monitorSupported, snapshot, auditionSupported, auditionStatus, canCapture } = view;
 		const hasSong = phase === 'playing' || phase === 'paused';
-		const disableSelect = !enabled.checked || !hasSong || switching || monitorSupported === false;
-		const current = disableSelect ? null : snapshot?.channels[Number(channel.value)];
+		const hidePanel = !referenceView;
+		if (panel.hidden !== hidePanel) panel.hidden = hidePanel;
+		const current = referenceView && enabled.checked && hasSong && !switching ? snapshot?.channels[getChannel()] : null;
 		const hideDetails = !current;
-		if (channel.disabled !== disableSelect) channel.disabled = disableSelect;
 		if (details.hidden !== hideDetails) details.hidden = hideDetails;
 
-		const hideAudition = phase !== 'paused' || !enabled.checked || Boolean(pending || switching);
+		const hideAudition = hidePanel || phase !== 'paused' || !enabled.checked || Boolean(pending || switching);
 		if (auditionTools.hidden !== hideAudition) auditionTools.hidden = hideAudition;
-		if (hideAudition) audition.checked = false;
 		const disableAudition = !current || auditionSupported !== true;
-		const disableToggle = disableAudition && !audition.checked;
-		if (audition.disabled !== disableToggle) audition.disabled = disableToggle;
 		if (reference.disabled !== disableAudition) reference.disabled = disableAudition;
 		const disableCapture = hideAudition || canCapture !== true;
 		if (capture.disabled !== disableCapture) capture.disabled = disableCapture;
@@ -67,32 +62,15 @@ export function setupTwoSfLiveView({ onEnabledChange, onSelectionChange, onAudit
 		write(rate, Number.isFinite(current.sampleRate) ? `${rateLabel.format(current.sampleRate)} Hz` : '—');
 	}
 
-	channel.addEventListener('change', () => {
-		channel.blur();
-		onSelectionChange?.(Number(channel.value));
-		update();
-	});
 	enabled.addEventListener('change', () => {
 		onEnabledChange(enabled.checked);
 		update();
 	});
-	function changeAudition() {
-		const { enabled, referenceNote } = getSelection();
-		onAuditionChange?.(enabled, referenceNote);
-	}
-	audition.addEventListener('change', changeAudition);
-	reference.addEventListener('change', () => {
-		reference.blur();
-		changeAudition();
-	});
+	reference.addEventListener('change', () => onAuditionChange?.(getSelection()));
 	capture.addEventListener('click', () => onCapture?.());
 	update();
 	return {
 		getSelection,
-		disableAudition() {
-			audition.checked = false;
-			update();
-		},
 		render(state) {
 			view = state;
 			update();

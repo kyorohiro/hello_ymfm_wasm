@@ -63,6 +63,9 @@ register documentation. The existing SkyEmu player remains the song source.
       These modes share the physical voices, not independent extra voice pools.
 - [x] Restore the browser Keyboard screen, output Envelope/Waveform/Spectrum,
       Auto/physical CH, and hardware controls with the Nitro DS icon palette.
+- [x] Share one channel button row across Synth and 2SF views, add the
+      Code/Synth workspace switch, and preserve performance keys through
+      focused parameter selects.
 - [x] Add Files/Cassette and New/Import/Export. Keep the Code workspace
       expanded when switching between Keyboard and Code.
       Keep authored files and their saved versions together in the Cassette.
@@ -79,8 +82,11 @@ register documentation. The existing SkyEmu player remains the song source.
       the same sample, loop and tuning through `file()`, `loadPreset()` and
       `noteOn()` after a Cassette round trip in Chromium and WebKit.
 - [ ] Explain hardware controls separately from driver/software ADSR, modulation,
-      allocation and any software click mitigation. Scope hardware sound capture
-      and capture-based effects as later work rather than silently omitting them.
+      allocation and software release smoothing. Show the hardware timer as PCM
+      playback rate, pulse frequency or noise clock, with a fixed-rate option.
+- [ ] Add the DS sound capture circuit. Start with left/right mixer capture to
+      word-aligned PCM8/PCM16 buffers and playable sample reuse. Follow the
+      capture timers shared with hardware channels 1/3 (UI CH2/CH4).
 - [x] Add direct JavaScript sound-core operations, declarations/completion,
       readable examples and Run/Apply/Stop. Timed-operation APIs are not an
       automatic prerequisite for the first DS prototype.

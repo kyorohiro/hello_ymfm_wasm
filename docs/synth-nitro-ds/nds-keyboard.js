@@ -9,7 +9,7 @@ const supports = (channel, mode) => isNdsSampleMode(mode) || (mode === 'pulse' ?
 
 export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, onActivity, onError }) {
 	const node = (id) => document.getElementById(id);
-	const channelSelect = node('ndsChannel'), keyboard = node('keyboard'), activity = node('ndsNoteStatus');
+	const keyboard = node('keyboard'), activity = node('ndsNoteStatus');
 	const fields = Object.fromEntries(['mode', 'shape', 'volume', 'pan', 'divider', 'duty', 'loop'].map(name =>
 		[name, node(`nds${name[0].toUpperCase()}${name.slice(1)}`)]));
 	const settings = Array.from({ length: 17 }, defaultSound);
@@ -148,19 +148,17 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, o
 		renderHeld();
 	}
 
-	channelSelect.append(...CHANNELS.map(channel => new Option(`CH ${channel + 1}`, channel)));
-	channelSelect.addEventListener('change', () => {
+	function setChannel(channel) {
+		if (channel === selection) return;
 		sampleEditor.cancelPending();
-		selection = channelSelect.value === 'auto' ? AUTO : Number(channelSelect.value);
+		selection = channel;
 		lastNote = '';
-		channelSelect.blur();
 		renderSettings();
 		renderHeld();
-	});
+	}
 	for (const [name, field] of Object.entries(fields)) {
 		field.addEventListener(field.type === 'range' ? 'input' : 'change', () => {
 			const value = name === 'loop' ? field.checked : ['mode', 'shape'].includes(name) ? field.value : Number(field.value);
-			if (field.type !== 'range') field.blur();
 			try { updateSound(editNdsSound(getSound(), name, value)); }
 			catch (error) { renderSettings(); onError(error); return; }
 			if (!['volume', 'pan', 'divider', 'duty'].includes(name)) return;
@@ -176,21 +174,36 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, getAudio, o
 		octave += delta;
 		renderKeys();
 	});
-	window.addEventListener('keydown', event => {
+	// Let arrows and Tab navigate native controls. An actual musical key takes
+	// priority over select type-ahead, and pointer commits release select focus.
+	let pointerSelect = null;
+	document.addEventListener('pointerdown', event => {
+		pointerSelect = event.target?.closest?.('select') ?? null;
+	}, { capture: true });
+	document.addEventListener('change', event => {
+		const select = event.target;
+		if (select !== pointerSelect) return;
+		pointerSelect = null;
+		setTimeout(() => { if (document.activeElement === select) select.blur(); }, 0);
+	}, { capture: true });
+	document.addEventListener('keydown', event => {
 		if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
-		if (event.target?.closest?.('textarea,select,[contenteditable],dialog[open],.monaco-editor,#synthCodeEditorHost,input:not([type=range]):not([type=checkbox])')) return;
+		const select = event.target?.closest?.('select');
+		if (select && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', ' ', 'Enter', 'Escape', 'Tab'].includes(event.key))
+			pointerSelect = null;
+		if (event.target?.closest?.('textarea,[contenteditable],dialog[open],.monaco-editor,#synthCodeEditorHost,input:not([type=range]):not([type=checkbox])')) return;
 		const entry = entries.get(event.key.toLowerCase());
 		if (!entry) return;
 		event.preventDefault();
 		if (!event.repeat) void press(`key:${event.code || entry.key}`, entry);
-	});
+	}, { capture: true });
 	window.addEventListener('keyup', event => release(`key:${event.code || event.key.toLowerCase()}`));
 	window.addEventListener('blur', () => void stop().catch(onError));
 	document.addEventListener('visibilitychange', () => { if (document.hidden) void stop().catch(onError); });
 	renderSettings();
 	renderKeys();
 	return {
-		stop, setAudition, isPlaying: () => held.size > 0,
+		stop, setChannel, setAudition, isPlaying: () => held.size > 0,
 		isAuditionPlaying: () => [...held.values()].some(note => note.voices === auditionOccupied),
 		cancelSampleLoad: sampleEditor.cancelPending,
 		getPreset: () => snapshotNdsSound(getSound()),

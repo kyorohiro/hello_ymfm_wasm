@@ -3,8 +3,9 @@
 ## Keyboard and Code
 
 Press **Enable audio**, then play the displayed computer keys or click the
-on-screen keys. **Auto** plays one instrument across compatible channels.
-Select **CH 1–16** to edit and play one physical channel. All 16 support
+on-screen keys. Choose **Synth** under **View / keyboard**. **Auto** plays one
+instrument across compatible channels. Select **CH1–CH16** to edit and play
+one physical channel. All 16 support
 PCM8, PCM16 and IMA-ADPCM. Pulse is available on CH9–CH14, and Noise on
 CH15–CH16. Code names CH1–CH16 correspond to hardware channels 0–15.
 
@@ -80,7 +81,8 @@ independent of tuning for these samples.
 Open **Files** to select `index.js`, browse the scripts in `examples/`, or add
 your own files. Right-click a file or folder to duplicate, rename, delete or
 create an item. Selecting a file keeps the current Keyboard or Code view.
-Maximize Code to use a taller editor beside Files.
+The **Code / Synth** buttons beside **Files** switch between the larger
+editor and the keyboard layout while keeping Code playback running.
 
 **Auto apply** is on by default. When it is off, a dot marks working changes.
 Use **Save** (Ctrl/Cmd+S) or **Save all** to make them available to Run and
@@ -112,14 +114,16 @@ press **Play song**. Clicking the saved song in Files also selects it.
 The Cassette has a 16 MiB limit. Larger sets can still be played from the
 session import.
 
-**Live view** follows the song at the playback position. Choose **CH1–CH16**
-to see channel activity, format, hardware volume, pan and sample or step rate.
+Choose **2SF** under **View / keyboard** to use the same channel buttons for
+the song. **Live view** follows the playback position and lights active
+channels. Choose **CH1–CH16** to see activity, format, hardware volume,
+pan and sample or step rate.
 The display samples the emulated DS about once per video frame and refreshes
 at most ten times per second during steady playback. **Pause** freezes the
 same snapshot for all sixteen channels, so you can inspect any of them while
 the song is paused. Turn off **Live view** to hide the values.
 
-While paused, choose a channel and enable **Audition on keyboard**. The
+While paused in **2SF** view, choose a channel to audition it on the keyboard. The
 **Reference key** (C4 by default) plays the recorded sample rate. A key starts
 the sample from its beginning with the captured pan, volume and loop.
 Audition supports PCM8, PCM16 and IMA-ADPCM from main RAM or ARM7 private WRAM.
@@ -128,7 +132,8 @@ Song effects, driver envelopes and sample phase are outside the saved sound.
 With the audition ready, press **Capture to Synth** to load the sound into
 the current Synth slot and keep the song paused. Use **Save sound as…** to
 save it to `presets/`. The same sound is available to Code via `loadPreset()`.
-Turn Audition off to return to the edited sound without applying the capture.
+Choose **Synth** to play the edited sound. **Capture to Synth** also selects
+that view.
 
 ## Build the local preview
 
