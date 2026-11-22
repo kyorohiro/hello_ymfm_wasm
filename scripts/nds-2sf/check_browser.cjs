@@ -1458,7 +1458,14 @@ async function check(name, origin, fixture) {
 		await checkPlayingReferenceEdits(page);
 		assert(await channelButton(page, -1).isVisible(), 'Auto remains available during 2SF playback');
 		assert.equal(await page.locator('#ndsSynthView, #ndsReferenceView').count(), 0, 'The shared row should be the only channel picker');
-		await pause.click();
+		// Native clicks can span several transport updates.
+		const pauseText = await pause.evaluateHandle(button => button.firstChild);
+		try {
+			await wait(180);
+			assert(await pause.evaluate((button, text) => button.firstChild === text, pauseText),
+				'Keep the Pause label node in place across transport updates');
+			await pause.click({ delay: 180 });
+		} finally { await pauseText.dispose(); }
 		const freeze = await until(() => output(page), (state) => state.contextState === 'suspended', 'Paused audio context expected');
 		const pausedPosition = await readPosition(page);
 		const frozenChannel = await until(readLive, state => /Paused/.test(state.status) && fixtureChannel(state, 440, 0), 'Reference CH1 should freeze when paused');
@@ -1596,7 +1603,8 @@ async function main() {
 		}
 	});
 	try {
-		execFileSync('python3', [path.join(__dirname, 'make_fixture.py'), fixture]);
+		// Allow time for several live edits and a held-pointer Pause before EOF.
+		execFileSync('python3', [path.join(__dirname, 'make_fixture.py'), fixture, '--length', '6']);
 		await new Promise((resolve, reject) => {
 			server.once('error', reject);
 			server.listen(0, '127.0.0.1', resolve);

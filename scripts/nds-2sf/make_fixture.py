@@ -101,18 +101,19 @@ def write_2sf(path, offset, payload, tags=""):
     path.write_bytes(header + compressed + tag_bytes)
 
 
-def make_fixture(directory):
+def make_fixture(directory, length=2):
     directory.mkdir(parents=True, exist_ok=True)
     rom, patch_offset = make_rom()
     write_2sf(directory / "demo.2sflib", 0, rom)
     for name, pitch, pan in TRACKS:
         write_2sf(directory / name, patch_offset, note_registers(pitch, pan),
-                  f"_lib=demo.2sflib\ntitle={name.removesuffix('.mini2sf')}\nlength=2.0\n")
+                  f"_lib=demo.2sflib\ntitle={name.removesuffix('.mini2sf')}\nlength={length:.1f}\n")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--length", type=int, default=2, help="length tag for demo tracks in seconds")
     parser.add_argument("--history-fixture", action="store_true",
                         help="generate a ROM that rewrites its playing PCM buffers")
     args = parser.parse_args()
@@ -121,4 +122,4 @@ if __name__ == "__main__":
         rom, _ = make_rom(overwrite_sample=True)
         (args.output / "history-overwrite.nds").write_bytes(rom)
     else:
-        make_fixture(args.output)
+        make_fixture(args.output, args.length)

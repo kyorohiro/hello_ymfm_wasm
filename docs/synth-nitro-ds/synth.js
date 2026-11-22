@@ -313,8 +313,11 @@ function render(state) {
 	const sources = selected?.group ? selected.group.sources : sessionFiles;
 	play.disabled = !selected || Boolean(pending) || switching || player.matches(selected.path, sources);
 	saveSong.disabled = !selected || Boolean(selected.group) || savingSong;
-	pause.disabled = !(playing || paused) || Boolean(pending) || switching;
-	pause.textContent = paused ? 'Resume' : 'Pause';
+	const pauseDisabled = !(playing || paused) || Boolean(pending) || switching;
+	const pauseLabel = paused ? 'Resume' : 'Pause';
+	// Keep the pointer target stable while the playback timer refreshes.
+	if (pause.disabled !== pauseDisabled) pause.disabled = pauseDisabled;
+	if (pause.textContent !== pauseLabel) pause.textContent = pauseLabel;
 	stop.disabled = !(playing || paused || pending);
 	const label = { playing: 'Playing', paused: 'Paused', ended: 'Ended', error: 'Playback failed', stopped: 'Stopped' }[phase];
 	const title = pending ? `Preparing · ${displayName(pending)}` : path ? `${label} · ${displayName(path)}` : label;
