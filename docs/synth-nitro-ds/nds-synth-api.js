@@ -63,6 +63,12 @@ export function ndsTimerForFrequency(hz, frames) {
 	return { timer: 65536 - period, frequencyHz: NDS_AUDIO_CLOCK / period / frames };
 }
 
+export function ndsTimerForVoicePitch(hz, frames, tuning) {
+	if (!tuning) return ndsTimerForFrequency(hz, frames).timer;
+	const rate = tuning.sampleRate * (hz / tuning.rootHz);
+	return ndsTimerForFrequency(Math.max(NDS_AUDIO_CLOCK / 65536, Math.min(NDS_AUDIO_CLOCK, rate)), 1).timer;
+}
+
 /** Immediate physical-channel operations for Keyboard and Code. Calls on an
  * owner-scoped chip release only notes that the same owner started. */
 export class NdsSynth {
@@ -130,6 +136,12 @@ export class NdsSynth {
 	}
 	async getState(channel) {
 		return this.#request('getState', [channel]);
+	}
+	async prepareVoice(channel) {
+		return this.#request('prepareVoice', [channel, this.#owner]);
+	}
+	async timedControl(payload) {
+		return this.#request('ndsTimed', [payload]);
 	}
 	async setChannelMix(channel, patch) {
 		return this.#request('setChannelMix', [channel, patch]);

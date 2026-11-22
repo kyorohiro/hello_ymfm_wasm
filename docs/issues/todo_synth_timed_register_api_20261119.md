@@ -24,6 +24,7 @@ See the [current alignment priority](todo_synth_fm2612_alignment_20261119.md#cur
 | SCSP / Saturn | Planned; distinct from DSP assembly: [TODO](todo_scsp_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | ASWAN | Synth Web Audio parameters, owned Synth notes and raw Gates implemented. Shared Playground/npm 0.2.45 supports hardware parameters and raw Gates; software Envelope notes remain Synth-only, RAM/PCM and Native scheduling remain separate: [public rollout](todo_wonderswan_timed_public_api_20261120.md), [Synth TODO](todo_aswan_synth_fm2612_alignment_20261119.md#timed-register-api-follow-up) |
 | SMSGEAR / YM2413 | Source recheck 2026-11-21: Sega PSG / YM2413 shared timed clients are connected to borrowed Synth Code clients; preserve their existing scopes and backend exclusions. See [Synth TODO](todo_smsgear_synth_20261120.md). This records existing code, not new validation. |
+| Nitro DS | Implemented in Synth Code for prepared PCM/IMA-ADPCM, Pulse and Noise. Register snapshots, Worklet scheduling and Code lifecycle are verified. Shared Playground/npm/Native and scheduled sample uploads remain separate: [TODO](todo_nds_synth_20261121.md#timed-register-operations). |
 
 ## Shared acceptance contract for each port
 

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { makeNdsSample, NdsSynth, ndsTimerForFrequency } from './nds-synth-api.js';
 import { NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
+import { buildNdsOperations, compileNdsOperations } from './nds-timed-operations.js';
 
 const wasmModule = await WebAssembly.compile(await readFile(
 	new URL('./generated/skyemu-2sf.wasm', import.meta.url),
@@ -344,6 +345,106 @@ test('DS worklet channel mix persists across note owners and physical register e
 	assert.deepEqual(rows[0], { ...mix, muted: false });
 	assert.deepEqual(rows[1], { volume: 1, pan: 0, muted: false });
 	await assert.rejects(chip.setChannelMix(16, { volume: .5 }), /DS channel/);
+});
+
+test('DS timed writes run on the exact output frame and merge with intervening channel edits', async (t) => {
+	const { chip, worklet } = endpoint(t);
+	const code = chip.forOwner('code');
+	await code.configure(0, {
+		mode: 'pcm8', bytes: new Uint8Array(32).fill(96), loop: true,
+		timer: ndsTimerForFrequency(48000, 1).timer, volume: 96, pan: 0,
+	});
+	await code.prepareVoice(0);
+	const capture = () => code.timedControl({ action: 'capture' });
+	const before = await capture();
+	const operations = buildNdsOperations(b => {
+		b.keyOn(0);
+		b.atSample(149).configure(0, { pan: 127 });
+		b.atSeconds(149 / 44100).configure(0, { volume: 48 });
+		b.atSample(257).keyOff(0);
+	});
+	const writes = compileNdsOperations(operations, before.state).slice(-3);
+	const control = 0x04000400, gate = 0x80000000;
+	assert.deepEqual(writes.map(({ register }) => register), [control, control, control]);
+	assert.deepEqual(writes.map(({ value }) => value & 127), [96, 48, 48]);
+	assert(writes.slice(0, 2).every(({ value }) => value & gate));
+	assert.equal(writes[2].value & gate, 0);
+	assert.equal((await capture()).state[0].control, before.state[0].control,
+		'Compiling the same baseline must not write live registers');
+
+	const accepted = await code.timedControl({
+		action: 'schedule', owner: 'nds-test-timing', operations, options: { name: 'timing' },
+	});
+	await assert.rejects(code.timedControl({
+		action: 'schedule', owner: 'nds-test-timing', operations, options: { name: 'timing', repeatSeconds: .001 },
+	}), /repeat/i, 'Invalid replacement must leave the accepted schedule intact');
+	await code.configure(0, { divider: 1 });
+	const from = (await capture()).frame;
+	const panFrame = accepted.startFrame - from + Math.round(149 / 44100 * 48000);
+	const stopFrame = accepted.startFrame - from + Math.round(257 / 44100 * 48000);
+	assert(panFrame > 0 && stopFrame > panFrame);
+	const trace = [[], []];
+	for (let start = 0; start < stopFrame + 128; start += 128) {
+		const block = [new Float32Array(128), new Float32Array(128)];
+		worklet.process([], [block]);
+		block.forEach((side, index) => trace[index].push(...side));
+	}
+	const [left, right] = trace;
+	assert(left.slice(panFrame - 30, panFrame).every(value => value > .02));
+	assert(left.slice(panFrame).every(value => value === 0), 'Pan must change at the converted 149th sample');
+	assert(right.slice(0, panFrame).every(value => value === 0));
+	assert(right.slice(panFrame, stopFrame).every(value => value > .01));
+	assert(right.slice(stopFrame).every(value => value === 0), 'Key Off must take effect at the exact output frame');
+	const after = await capture();
+	assert.equal(after.state[0].control & 0x37f, (1 << 8) | 48,
+		'The write must retain the divider set after admission and apply the same-frame volume');
+});
+
+test('A pending DS scheduled release does not cut a keyboard note that took the channel', async (t) => {
+	const { chip, worklet } = endpoint(t);
+	const code = chip.forOwner('code'), keyboard = chip.forOwner('keyboard');
+	await code.configure(8, { mode: 'pulse', timer: ndsTimerForFrequency(440, 8).timer });
+	const operations = buildNdsOperations(b => {
+		b.keyOn(8);
+		b.atSample(1102).keyOff(8);
+	});
+	const receipt = await code.timedControl({
+		action: 'schedule', owner: 'nds-test-ownership', operations, options: { name: 'ownership' },
+	});
+	const voice = () => chip.getState(8);
+	const frame = async () => (await code.timedControl({ action: 'capture' })).frame;
+	const block = [new Float32Array(128), new Float32Array(128)];
+	const render = () => worklet.process([], [block]);
+	for (let at = await frame(); at <= receipt.startFrame; at += block[0].length) render();
+	assert((await voice()).active, 'The scheduled Key On should play');
+	const held = await keyboard.noteOn(8, 'C5');
+	const offFrame = receipt.startFrame + Math.round(1102 / 44100 * 48000);
+	for (let at = await frame(); at <= offFrame + block[0].length; at += block[0].length) render();
+	assert(keyboard.owns(8, held.token));
+	assert((await voice()).active, 'The scheduled Key Off should keep the later keyboard note playing');
+	assert(block[0].some(value => Math.abs(value) > .005));
+});
+
+test('DS timed Note On uses the prepared ADPCM sample and its root tuning', async (t) => {
+	const { chip, worklet } = endpoint(t);
+	const code = chip.forOwner('code');
+	const { frames, ...sample } = makeNdsSample('adpcm', 'triangle');
+	await code.configure(2, { ...sample, mode: 'adpcm', sampleRate: 32000, rootNote: 'A4', pan: 127 });
+	const operations = buildNdsOperations(b => b.noteOn(2, 'A5'));
+	const schedule = () => code.timedControl({ action: 'schedule', operations, options: { name: 'adpcm' } });
+	await assert.rejects(schedule(), /prepare/i);
+	await code.prepareVoice(2);
+	const baseline = await code.timedControl({ action: 'capture' });
+	const writes = compileNdsOperations(operations, baseline.state);
+	const receipt = await schedule();
+	const timer = ndsTimerForFrequency(64000, 1).timer;
+	assert.equal(writes.find(({ register }) => register === 0x04000428).value & 0xffff, timer);
+	const block = [new Float32Array(128), new Float32Array(128)];
+	for (let at = baseline.frame; at <= receipt.startFrame + 128; at += block[0].length) worklet.process([], [block]);
+	const state = await code.getState(2);
+	assert.deepEqual([state.playingMode, state.timer, state.rootNote, state.sampleRate], ['adpcm', timer, 'A4', 32000]);
+	assert(block[0].every(value => value === 0) && block[1].some(value => Math.abs(value) > .025),
+		'The prepared ADPCM sample should reach the right output channel');
 });
 
 test('Every channel can prepare a long ADPCM replacement while the other channels play', async (t) => {

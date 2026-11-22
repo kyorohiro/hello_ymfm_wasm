@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { SoundChipMixer } from '../js/soundchip_mixer.js';
-import { NdsSynth } from './nds-synth-api.js?v=nds-shared-renderer-1';
+import { NdsSynth } from './nds-synth-api.js?v=nds-timed-1';
 import { loadSkyEmuModule, SKYEMU_SAMPLE_RATE } from './nds-skyemu-wasm.js?v=nds-shared-renderer-1';
 
 const TIMEOUT = 12000;
@@ -29,6 +29,7 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 	if (!Context) throw new Error('Web Audio is unavailable.');
 	const context = new Context({ latencyHint: 'interactive', sampleRate: SKYEMU_SAMPLE_RATE });
 	const requests = new Map(), owners = Array(16).fill(null);
+	const timedListeners = new Set();
 	let worklet, master, analyser, releaseOutput, closed = false, closing, nextId = 0;
 
 	function dispose(error = new Error('DS audio is closed.')) {
@@ -39,6 +40,7 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 			reject(error);
 		}
 		requests.clear();
+		timedListeners.clear();
 		owners.fill(null);
 		if (worklet) {
 			worklet.onprocessorerror = null;
@@ -82,7 +84,7 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 		const [module] = await deadline(Promise.all([
 			loadSkyEmuModule(),
 			context.resume(),
-			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-keyboard-live-1', import.meta.url)),
+			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-timed-1', import.meta.url)),
 		]), 'DS audio could not start. Check audio permission and try again.');
 		worklet = new AudioWorkletNode(context, 'tetorica-nds-synth', {
 			numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { module },
@@ -90,6 +92,10 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 		worklet.onprocessorerror = () => fail(new Error('The DS audio processor failed.'));
 		worklet.port.onmessageerror = () => fail(new Error('The DS audio processor reply could not be read.'));
 		worklet.port.onmessage = ({ data }) => {
+			if (data?.type === 'nds-timed-error') {
+				for (const listener of timedListeners) listener(data);
+				return;
+			}
 			const command = requests.get(data?.id);
 			if (!command) return;
 			clearTimeout(command.timer);
@@ -118,6 +124,10 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 	return {
 		context, analyser,
 		chip: new NdsSynth(request, { owners }),
+		onTimedError(listener) {
+			timedListeners.add(listener);
+			return () => timedListeners.delete(listener);
+		},
 		resume: () => deadline(context.resume(), 'DS audio could not resume.'),
 		dispose,
 		setVolume(value) {

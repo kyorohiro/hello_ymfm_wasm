@@ -5,18 +5,17 @@ import {
 	ndsInteger, ndsSampleRange, normalizeNdsChannel, normalizeNdsChannelMix, readNdsAdpcmHeader,
 } from './nds-core.js?v=nds-shared-renderer-1';
 import { openSkyEmuSound, SKYEMU_SAMPLE_RATE } from './nds-skyemu-wasm.js?v=nds-shared-renderer-1';
+import {
+	NDS_SOUND_REGISTER_BASE, NDS_SOUND_KEY_ON, ndsChannelStartControl, ndsLiveRegisterWrites,
+} from './nds-timed-operations.js';
 
 const SAMPLE_ADDRESS = 0x08000000;
 const UPLOAD_BYTES_PER_STEP = 16 * 1024;
 const REGISTER_BYTES_PER_CHANNEL = 16;
 const CNT = 0, SAD = 4, TMR_PNT = 8, LEN = 12;
-const KEY_ON = 0x80000000;
 const ADPCM_HEADER_FRAMES = 8;
 const MAX_RENDER_FRAMES = 2048;
 const FORMATS = { pcm8: 0, pcm16: 1, adpcm: 2, pulse: 3, noise: 3 };
-const LIVE_FIELDS = [
-	['volume', 0x7f, 0], ['divider', 3, 8], ['pan', 0x7f, 16], ['duty', 7, 24],
-];
 const DEFAULT_MIX = Object.freeze(soundChipMixDefaults());
 
 function registerBase(channel) {
@@ -30,7 +29,7 @@ export class NdsSkyEmuCore {
 	#channels = Array.from({ length: NDS_CHANNEL_COUNT }, (_, channel) => ({
 		config: NDS_CHANNEL_DEFAULTS, range: null, timer: NDS_CHANNEL_DEFAULTS.timer,
 		playing: null, prepared: null, preparingSlot: null, mix: DEFAULT_MIX,
-		slots: [0, 1].map(index => ({ index: channel * 2 + index, bytes: null, uploaded: 0 })),
+		slots: [0, 1].map(index => ({ index: channel * 2 + index, bytes: null, uploaded: 0, ready: false })),
 	}));
 	constructor(module, sampleRate) {
 		if (sampleRate !== SKYEMU_SAMPLE_RATE) throw new RangeError(`DS audio requires a ${SKYEMU_SAMPLE_RATE} Hz rendering context.`);
@@ -48,7 +47,7 @@ export class NdsSkyEmuCore {
 	}
 
 	#playing(index, channel) {
-		if (channel.playing && !(this.#renderer.read(registerBase(index) + CNT) & KEY_ON)) channel.playing = null;
+		if (channel.playing && !(this.#renderer.read(registerBase(index) + CNT) & NDS_SOUND_KEY_ON)) channel.playing = null;
 		return channel.playing;
 	}
 
@@ -66,14 +65,13 @@ export class NdsSkyEmuCore {
 		const range = ndsSampleRange(next);
 		if (next.mode === 'adpcm' && next.bytes) readNdsAdpcmHeader(next.bytes);
 		if (!deferLive) {
-			if (Object.hasOwn(patch, 'timer') && channel.timer !== next.timer) this.#writeTimer(index, channel, next.timer);
-			const register = registerBase(index) + CNT;
-			const current = this.#renderer.read(register);
-			let control = current;
-			for (const [field, mask, shift] of LIVE_FIELDS) {
-				if (Object.hasOwn(patch, field)) control = (control & ~(mask << shift)) | (next[field] << shift);
+			const base = registerBase(index);
+			const state = { channel: index, control: this.#renderer.read(base + CNT), timerRegister: this.#renderer.read(base + TMR_PNT) };
+			for (const { register, value } of ndsLiveRegisterWrites(state, patch)) {
+				const offset = register - NDS_SOUND_REGISTER_BASE;
+				if (offset === base + TMR_PNT) this.#writeTimer(index, channel, next.timer);
+				else this.#renderer.write(offset, value);
 			}
-			if ((control >>> 0) !== current) this.#renderer.write(register, control >>> 0);
 		}
 		if (channel.config.mode !== next.mode || channel.config.bytes !== next.bytes) this.cancelPreparation(index);
 		channel.config = next;
@@ -95,6 +93,7 @@ export class NdsSkyEmuCore {
 		if (slot.bytes !== bytes) {
 			slot.bytes = bytes;
 			slot.uploaded = 0;
+			slot.ready = false;
 		}
 		if (slot.uploaded < bytes.length) {
 			const end = Math.min(bytes.length, slot.uploaded + UPLOAD_BYTES_PER_STEP);
@@ -109,6 +108,7 @@ export class NdsSkyEmuCore {
 			if (this.#renderer.prepareVoiceAdpcm(slot.index, bytes.length) === false) return false;
 			channel.preparingSlot = null;
 		}
+		slot.ready = true;
 		channel.prepared = { mode, bytes, slot };
 		return true;
 	}
@@ -122,7 +122,7 @@ export class NdsSkyEmuCore {
 
 	keyOn(index) {
 		const channel = this.#channel(index);
-		const { mode, bytes, loop, loopStartWords, timer, volume, pan, divider, duty } = channel.config;
+		const { mode, bytes, loop, loopStartWords, timer } = channel.config;
 		const format = FORMATS[mode];
 		const usesSample = format !== 3;
 		const prepared = channel.prepared;
@@ -136,11 +136,40 @@ export class NdsSkyEmuCore {
 			this.#renderer.write(base + LEN, channel.range.lengthWords);
 		}
 		this.#writeTimer(index, channel, timer, usesSample ? loopStartWords : 0);
-		const repeat = loop || !usesSample ? 1 : 2;
-		const control = volume | (divider << 8) | (pan << 16) | (duty << 24) | (repeat << 27) | (format << 29);
-		this.#renderer.write(base + CNT, (KEY_ON | control) >>> 0);
+		this.#renderer.write(base + CNT, ndsChannelStartControl(channel.config));
 		channel.playing = { mode, loop, bytes, slot };
 		channel.prepared = null;
+	}
+
+	#uploadedSample(channel) {
+		const { bytes } = channel.config;
+		return channel.range && channel.slots.find(slot => slot.bytes === bytes && slot.ready);
+	}
+
+	/** Gate only modes that can start now, without an upload or decode job. */
+	keyOnPrepared(index) {
+		const channel = this.#channel(index);
+		const { mode, bytes } = channel.config;
+		if (FORMATS[mode] !== 3) {
+			const slot = this.#uploadedSample(channel);
+			if (!slot) throw new Error('Prepare the DS sample before scheduling Key On.');
+			channel.prepared = { mode, bytes, slot };
+		}
+		this.keyOn(index);
+	}
+
+	timedRegisters(index) {
+		const channel = this.#channel(index);
+		const base = registerBase(index);
+		const slot = this.#uploadedSample(channel);
+		return {
+			control: this.#renderer.read(base + CNT),
+			timerRegister: this.#renderer.read(base + TMR_PNT),
+			sampleAddress: this.#renderer.read(base + SAD),
+			sampleLengthRegister: this.#renderer.read(base + LEN),
+			nextSampleAddress: slot ? SAMPLE_ADDRESS + slot.index * NDS_MAX_SAMPLE_BYTES : null,
+			canKeyOn: FORMATS[channel.config.mode] === 3 || Boolean(slot),
+		};
 	}
 
 	setPlayingSampleRange(index, { loopStartWords, lengthWords }) {
@@ -161,7 +190,7 @@ export class NdsSkyEmuCore {
 		const channel = this.#channel(index);
 		const register = registerBase(index) + CNT;
 		const current = this.#renderer.read(register);
-		if (current & KEY_ON) this.#renderer.write(register, current & ~KEY_ON);
+		if (current & NDS_SOUND_KEY_ON) this.#renderer.write(register, current & ~NDS_SOUND_KEY_ON);
 		channel.playing = null;
 	}
 

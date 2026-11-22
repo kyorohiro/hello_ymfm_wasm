@@ -119,6 +119,78 @@ interface NdsCodePreset {
     lengthWords: number;
   } | null;
 }
+type NdsTimedVoiceSettings = Pick<NdsCodeVoiceSettings, 'volume' | 'pan' | 'divider' | 'duty' | 'timer'>;
+interface NdsOperationRecorder {
+  /** Absolute offset from the reservation start. The reference rate defaults to 44100 Hz. */
+  atSample(sample: number): NdsOperationRecorder;
+  /** Absolute offset in seconds from the reservation start. */
+  atSeconds(seconds: number): NdsOperationRecorder;
+  /** Change live fields on a configured source. Prepare samples before scheduling. */
+  configure(channel: NdsCodeChannel, patch: NdsTimedVoiceSettings): NdsOperationRecorder;
+  setNote(channel: NdsCodeChannel, note: string | number): NdsOperationRecorder;
+  setFrequency(channel: NdsCodeChannel, hz: number): NdsOperationRecorder;
+  noteOn(channel: NdsCodeChannel, note: string | number, patch?: NdsTimedVoiceSettings): NdsOperationRecorder;
+  /** Software release. The fade is not itself a register write. */
+  noteOff(channel: NdsCodeChannel): NdsOperationRecorder;
+  keyOn(channel: NdsCodeChannel): NdsOperationRecorder;
+  keyOff(channel: NdsCodeChannel): NdsOperationRecorder;
+}
+interface NdsOperationProgram {
+  readonly kind: 'nds-operations';
+  readonly referenceSampleRate: number;
+  readonly operations: readonly {
+    readonly method: Exclude<keyof NdsOperationRecorder, 'atSample' | 'atSeconds'>;
+    readonly args: readonly unknown[];
+    readonly time: { readonly unit: 'sample' | 'seconds'; readonly value: number };
+  }[];
+}
+interface NdsTimedChannelState {
+  channel: NdsCodeChannel;
+  mode: NdsCodeMode;
+  volume: number;
+  pan: number;
+  divider: number;
+  duty: number;
+  timer: number;
+  loop: boolean;
+  loopStartWords: number;
+  lengthWords: number | null;
+  frames: number;
+  sampleRate: number | null;
+  rootNote: number | string | null;
+  control: number;
+  timerRegister: number;
+  sampleAddress: number;
+  sampleLengthRegister: number;
+  nextSampleAddress: number | null;
+  canKeyOn: boolean;
+}
+/** Detached applied register and source metadata. It contains no sample bytes. */
+interface NdsTimedSnapshot {
+  readonly chip: 'nds';
+  readonly version: 1;
+  readonly instanceId: string;
+  readonly frame: number;
+  readonly sampleRate: number;
+  readonly state: readonly Readonly<NdsTimedChannelState>[];
+}
+interface NdsCompiledWrite {
+  offsetSeconds: number;
+  /** Physical DS register address, beginning at 0x04000400 for CH1. */
+  register: number;
+  value: number;
+  width: 32;
+  operationIndex: number;
+  writeIndex: number;
+}
+interface NdsScheduleReceipt {
+  name: string;
+  startFrame?: number;
+  sampleRate: number;
+  entries: number;
+  repeatSeconds?: number;
+  staged?: boolean;
+}
 interface NdsCodeClient {
   /** Change the settings of one zero-based physical channel. */
   configure(channel: NdsCodeChannel, patch: NdsCodeVoiceSettings): Promise<NdsCodeChannelState>;
@@ -127,6 +199,8 @@ interface NdsCodeClient {
   /** Round musical pitch to the hardware timer. Imported samples use source rate at their root note. */
   setFrequency(channel: NdsCodeChannel, hz: number): Promise<NdsCodePitch>;
   setNote(channel: NdsCodeChannel, note: string | number): Promise<NdsCodePitch>;
+  /** Prepare the configured sample in bounded chunks without starting playback. */
+  prepareVoice(channel: NdsCodeChannel): Promise<NdsCodeChannelState>;
   /** Start the configured channel at its hardware timer value. */
   keyOn(channel: NdsCodeChannel): Promise<NdsCodeNote>;
   /** End this Code voice immediately. Pass a token to match one attack. */
@@ -144,6 +218,16 @@ interface NdsCodeClient {
   readCapture(unit: NdsCodeCaptureUnit): Promise<NdsCodeCapture>;
   /** Release all voices owned by Code. */
   allNotesOff(): Promise<number>;
+  /** Record timed operations without changing the live chip. */
+  build(callback: (recorder: NdsOperationRecorder) => void | NdsOperationRecorder, options?: { referenceSampleRate?: number }): NdsOperationProgram;
+  /** Capture applied register and source metadata without stopping the renderer. */
+  captureState(): Promise<NdsTimedSnapshot>;
+  /** Inspect the predicted writes. The DS Synth lacks a complete local shadow, so 'client' rejects. */
+  compile(operations: NdsOperationProgram, options?: { initialState?: 'current' | 'reset' | 'client' | NdsTimedSnapshot }): Promise<NdsCompiledWrite[]>;
+  /** Add or replace a named AudioWorklet reservation. */
+  schedule(operations: NdsOperationProgram, options: { name: string; repeatSeconds?: number }): Promise<NdsScheduleReceipt>;
+  /** Cancel future operations from this reservation. */
+  clearSchedule(name: string): Promise<boolean>;
 }
 type PlaygroundLivePrepareAPI = NdsCodeAPI;
 declare function useSoundChip(name: 'nds'): Promise<NdsCodeClient>;

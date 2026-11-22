@@ -15,6 +15,7 @@ const { values: options } = parseArgs({ options: {
 	'real-folder': { type: 'string' },
 	'web-root': { type: 'string', default: path.join(root, 'docs') },
 	entry: { type: 'string', default: '/synth-nitro-ds/index.html' },
+	'timed-only': { type: 'boolean' },
 } });
 const webRoot = path.resolve(options['web-root']);
 assert(/^\/(?!\/)/.test(options.entry) && !options.entry.includes('\\'), 'Use an entry URL path such as /index.html');
@@ -1353,6 +1354,121 @@ window.ndsCodeVoice = {
 	return 'Keyboard plays CH16 Noise and the configured CH2 PCM while Code holds CH1; source, wave and repeat edits apply on the next note';
 }
 
+async function checkTimedCode(page) {
+	await page.reload();
+	await page.locator('#synthWorkspaceCodeButton').click();
+	await page.locator('#ndsAutoApply').check();
+	await page.locator('#ndsNewJs').click();
+	await page.locator('#ndsFileName').fill('/timed-check.js');
+	await page.locator('#ndsFileNameConfirm').click();
+	await page.locator('#ndsFileNameDialog').waitFor({ state: 'hidden' });
+	const editor = page.locator('#synthCodeEditor');
+	await until(() => editor.inputValue(), value => value.includes('Write your DS performance'), 'Timed Code file should be open');
+	const run = page.locator('#synthCodeRunButton'), apply = page.locator('#synthCodeApplyButton');
+	const stop = page.locator('#synthCodeStopButton'), error = page.locator('#synthCodeError');
+	const source = (pitch, { setup = false, fail = false } = {}) => [
+		'const nds = await useSoundChip("nds");',
+		setup ? `
+await nds.configure(CH1, { mode: "pcm16", volume: 96, pan: 0 });
+await nds.prepareVoice(CH1);
+await nds.configure(CH9, { mode: "pulse", duty: 3, volume: 96, pan: 127 });
+await nds.configure(CH15, { mode: "noise", timer: 62743, volume: 88, pan: 127 });
+const snapshot = await nds.captureState();
+const probe = nds.build(b => {
+  b.atSeconds(0).configure(CH9, { pan: 0 });
+  b.atSample(4410).configure(CH9, { volume: 52 });
+  b.atSeconds(0.1).keyOn(CH9);
+  b.atSeconds(0.1).keyOn(CH9);
+  b.atSeconds(0.2).keyOff(CH9);
+});
+window.ndsTimed = {
+  trace: await nds.compile(probe, { initialState: snapshot }),
+  comparison: await nds.compile(probe, { initialState: snapshot }),
+  baseline: snapshot.state[8].pan,
+  livePan: (await nds.getState(CH9)).pan,
+  read: channel => nds.getState(channel),
+};` : '',
+		`
+const phrase = nds.build(b => {
+  b.atSeconds(0).noteOn(CH1, "A4");
+  b.atSeconds(0).noteOn(CH9, ${JSON.stringify(pitch)});
+  b.atSample(11025).keyOff(CH1);
+  b.atSeconds(0.25).noteOff(CH9);
+  b.atSeconds(0.3).keyOn(CH15);
+  b.atSeconds(0.475).keyOff(CH15);
+});
+await nds.schedule(phrase, { name: "browser-phrase", repeatSeconds: 0.6 });`,
+		fail ? 'throw new Error("timed test rollback");' : '',
+	].join('\n');
+	const readVoice = channel => page.evaluate(index => window.ndsTimed?.read(index) ?? null, channel);
+	const simultaneous = frequency => until(() => output(page), ({ muted, channels: [left, right] }) =>
+		muted && left?.rms > .005 && Math.abs(left.pitch - 440) < 4 &&
+		right?.rms > .005 && Math.abs(right.pitch - frequency) < 4,
+		`The reservation should play 440 Hz PCM and ${frequency} Hz Pulse together`, 4000);
+	const quiet = label => until(() => output(page), ({ muted, channels }) =>
+		muted && channels.length === 2 && channels.every(({ peak }) => peak < 1e-7), label, 3000);
+
+	await editor.fill(source('C5', { setup: true }));
+	await run.click();
+	try {
+		await until(() => page.evaluate(() => [Boolean(window.ndsTimed), document.querySelector('#synthCodeError').textContent.trim()]),
+			([ready, message]) => ready || Boolean(message), 'Timed Code should expose its register trace');
+		assert.equal((await error.textContent()).trim(), '');
+		const { trace, comparison, baseline, livePan } = await page.evaluate(() => {
+			const { read, ...results } = window.ndsTimed;
+			return results;
+		});
+		assert.deepEqual(trace, comparison, 'A reusable snapshot should compile the same writes');
+		assert.deepEqual([baseline, livePan], [127, 127], 'Compiling must leave the physical channel untouched');
+		const control = 0x04000480;
+		const gateWrites = trace.filter(({ register, offsetSeconds }) => register === control && offsetSeconds === 0.1);
+		assert.equal(gateWrites[0].value & 127, 52, 'Same-frame writes should retain insertion order');
+		assert.equal(gateWrites.filter(({ value }) => value & 0x80000000).length, 2, 'Identical gate strobes must remain visible');
+		assert(gateWrites.filter(({ value }) => value & 0x80000000).every(({ value }) => (value & 127) === 52));
+		await simultaneous(523.25);
+		await until(() => readVoice(14), voice => voice?.active && voice.playingMode === 'noise',
+			'The reservation should also play the configured Noise', 3500);
+
+		await editor.fill(source('E5'));
+		await apply.click();
+		await simultaneous(659.255);
+		await until(() => readVoice(8), voice => voice?.active && voice.frequencyHz > 650,
+			'The new timed phrase should replace the old phrase');
+		await editor.fill(source('G5', { fail: true }));
+		await apply.click();
+		await until(() => error.textContent(), value => value.includes('timed test rollback'), 'The failed Apply error should appear');
+		await until(() => readVoice(8), voice => voice && !voice.active, 'The retained phrase should reach its rest');
+		const retained = await until(() => readVoice(8), voice => voice?.active,
+			'The previous phrase should keep recurring after failed Apply', 4000);
+		assert(Math.abs(retained.frequencyHz - 659.255) < 4, 'The aborted phrase must never replace the prior Pulse pitch');
+		await simultaneous(659.255);
+
+		await editor.fill(`const nds = await useSoundChip("nds");
+const held = nds.build(b => {
+  b.noteOn(CH1, "A4").noteOn(CH9, "F5");
+  b.atSeconds(1.25).keyOff(CH1).keyOff(CH9);
+});
+await nds.schedule(held, { name: "browser-phrase", repeatSeconds: 1.5 });`);
+		await apply.click();
+		const held = await simultaneous(698.46);
+		await editor.fill('const nds = await useSoundChip("nds");\nawait nds.clearSchedule("browser-phrase");');
+		assert((await readVoice(8)).active, 'The Pulse voice must be held when Clear is requested');
+		await apply.click();
+		const cleared = await quiet('Clearing an active named reservation should release both channels');
+		assert(cleared.currentTime - held.currentTime < 1, 'Clear must release the held notes before their scheduled gates');
+		await wait(1550);
+		assert((await output(page)).channels.every(({ peak }) => peak < 1e-7), 'Cleared reservations should no longer repeat');
+		await editor.fill(source('C5'));
+		await apply.click();
+		await simultaneous(523.25);
+	} finally { await stop.click(); }
+	await quiet('Stop should silence the scheduled channels');
+	await wait(680);
+	assert((await output(page)).channels.every(({ peak }) => peak < 1e-7), 'Stopped reservations should not restart the voices');
+	await assertSynthRenderer(page);
+	return 'Reusable register traces, repeated gate writes, scheduled PCM/Pulse/Noise, Apply rollback, clear and Stop';
+}
+
 async function checkHeldRange(page) {
 	await page.reload();
 	await channelButton(page, 0).click();
@@ -1511,6 +1627,12 @@ async function check(name, origin, fixture) {
 			}));
 		});
 		await page.goto(`${origin}${options.entry}`);
+		if (options['timed-only']) {
+			const timedCode = await checkTimedCode(page);
+			assert.deepEqual(errors, []);
+			assert.deepEqual(fetchFailures, []);
+			return { browser: name, timedCode, physicalOutputMuted: true };
+		}
 
 		await importFiles(page, '#loadTwoSfFolder', fixture);
 		const choices = await until(() => tracks(page), (entries) => entries.length === 2, 'Two original tracks expected');
@@ -1651,11 +1773,12 @@ async function check(name, origin, fixture) {
 		const mixer = await checkMixer(page, fixture);
 		const drawPcm = await checkDrawPcm(page);
 		const codeChannel = await checkCodeChannel(page);
+		const timedCode = await checkTimedCode(page);
 		const heldRange = await checkHeldRange(page);
 		const sharedSound = await checkSharedSoundWorklet(page);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, heldRange, sharedSound,
+		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, timedCode, heldRange, sharedSound,
 			selectFocus: 'musical keys work after source selection and preserve the focused built-in wave',
 			referenceLive: 'Selected-channel Pan and Volume reach 2SF playback and paused audition, with a live sample waveform and position preserved',
 			referenceAudition: 'automatic paused audition with Live on or off, frozen 440 Hz sample, C5-root transposition, idle channel silence, and authored keyboard on Auto',

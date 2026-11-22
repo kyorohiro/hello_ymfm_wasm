@@ -2,8 +2,9 @@
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js?v=nds-source-controls-1';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
-import { selectNdsCodeDeclarations } from './nds-code-declarations.js?v=nds-timer-1';
+import { selectNdsCodeDeclarations } from './nds-code-declarations.js?v=nds-timed-1';
 import { ndsPresetChannelSettings, readNdsPreset } from './nds-preset.js?v=nds-timer-1';
+import { attachNdsTimedClient } from './nds-timed-client.js';
 
 const extraChannels = Array.from({ length: 10 }, (_, index) => ['CH' + (index + 7), index + 6]);
 // The common Code runtime already injects the first six channels.
@@ -69,7 +70,59 @@ liveLoop("noise", async () => {
 });
 `,
 	},
+	{
+		path: '/examples/timed-phrase.js',
+		data: `const nds = await useSoundChip("nds");
+
+// Prepare each source before scheduling its notes.
+await nds.configure(CH9, { mode: "pulse", duty: 2, volume: 60 });
+await nds.configure(CH15, { mode: "noise", volume: 25 });
+await nds.setFrequency(CH15, 6000);
+
+// Sample offsets use a 44.1 kHz reference. Seconds use the same start time.
+const phrase = nds.build(b => {
+  b.atSample(0).noteOn(CH9, "C4");
+  b.keyOn(CH15);
+  b.atSeconds(0.045).keyOff(CH15);
+  b.atSeconds(0.125).keyOff(CH9);
+  b.atSeconds(0.25).noteOn(CH9, "G4");
+  b.atSeconds(0.375).keyOff(CH9);
+});
+
+const snapshot = await nds.captureState();
+console.table(await nds.compile(phrase, { initialState: snapshot }));
+await nds.schedule(phrase, { name: "pulse-and-noise", repeatSeconds: 0.5 });
+// Apply replaces this name after the script succeeds. Stop clears the schedule.
+`,
+	},
 ]);
+
+function createNdsCodeClient(owner, audio) {
+	return attachNdsTimedClient({
+		configure: (...args) => owner.configure(...args),
+		async loadPreset(channel, source) {
+			const preset = readNdsPreset(source);
+			return owner.configure(channel, ndsPresetChannelSettings(preset));
+		},
+		setFrequency: (...args) => owner.setFrequency(...args),
+		setNote: (...args) => owner.setNote(...args),
+		prepareVoice: (...args) => owner.prepareVoice(...args),
+		keyOn: (...args) => owner.keyOn(...args),
+		keyOff: (...args) => owner.keyOff(...args),
+		noteOn: (...args) => owner.noteOn(...args),
+		noteOff: (...args) => owner.noteOff(...args),
+		getState: (...args) => owner.getState(...args),
+		startCapture: (...args) => owner.startCapture(...args),
+		getCaptureState: (...args) => owner.getCaptureState(...args),
+		stopCapture: (...args) => owner.stopCapture(...args),
+		readCapture: (...args) => owner.readCapture(...args),
+		allNotesOff: () => owner.stopOwned(),
+	}, {
+		request: payload => owner.timedControl(payload),
+		sampleRate: audio.context.sampleRate,
+		onTimedError: audio.onTimedError,
+	});
+}
 
 /** Run a local script against the physical channels shared with the keyboard. */
 export function createNdsCodeRuntime({
@@ -81,25 +134,7 @@ export function createNdsCodeRuntime({
 }) {
 	const savedCode = project && createSynthCodeProject(project, { version: 'saved' });
 	let audio = null, owner = null, revision = 0;
-	const client = {
-		configure: (...args) => owner.configure(...args),
-		async loadPreset(channel, source) {
-			const preset = readNdsPreset(source);
-			return owner.configure(channel, ndsPresetChannelSettings(preset));
-		},
-		setFrequency: (...args) => owner.setFrequency(...args),
-		setNote: (...args) => owner.setNote(...args),
-		keyOn: (...args) => owner.keyOn(...args),
-		keyOff: (...args) => owner.keyOff(...args),
-		noteOn: (...args) => owner.noteOn(...args),
-		noteOff: (...args) => owner.noteOff(...args),
-		getState: (...args) => owner.getState(...args),
-		startCapture: (...args) => owner.startCapture(...args),
-		getCaptureState: (...args) => owner.getCaptureState(...args),
-		stopCapture: (...args) => owner.stopCapture(...args),
-		readCapture: (...args) => owner.readCapture(...args),
-		allNotesOff: () => owner.stopOwned(),
-	};
+	const clients = new WeakMap();
 	return createPlaygroundCodeRuntime({
 		supportedSoundChips: ['nds'],
 		async ensureReady() {
@@ -107,10 +142,11 @@ export function createNdsCodeRuntime({
 			const nextAudio = await ensureAudio() ?? getAudio();
 			if (token !== revision) throw new DOMException('Code stopped', 'AbortError');
 			owner = nextAudio.chip.forOwner('code');
+			if (!clients.has(nextAudio)) clients.set(nextAudio, createNdsCodeClient(owner, nextAudio));
 			audio = nextAudio;
 		},
 		now: () => audio?.context.currentTime ?? 0,
-		useSoundChip: () => client,
+		useSoundChip: () => clients.get(audio),
 		readFile: savedCode?.readFile,
 		prepareSource(source, options) {
 			return channelBindings + (savedCode ? savedCode.prepareSource(source, options) : source);
@@ -122,7 +158,8 @@ export function createNdsCodeRuntime({
 			const previous = owner;
 			owner = null;
 			audio = null;
-			await previous?.stopOwned();
+			try { await previous?.timedControl?.({ action: 'end' }); }
+			finally { await previous?.stopOwned(); }
 		},
 	});
 }

@@ -6,6 +6,7 @@ import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspa
 import { createNdsCodeRuntime, NDS_STARTER_CODE, NDS_STARTER_FILES } from './nds-code.js';
 import { selectNdsCodeDeclarations } from './nds-code-declarations.js';
 import { writeNdsPreset } from './nds-preset.js';
+import { createNdsResetOperationState } from './nds-timed-operations.js';
 
 test('DS Code handles all physical channels and stops only Code notes', async () => {
 	const active = new Map([[0, 'keyboard']]), owners = [];
@@ -126,6 +127,58 @@ test('Invalid DS presets fail before configuring a channel', async (t) => {
 	assert.equal(configured, 0);
 });
 
+test('DS timed Code compiles detached state and only commits a successful evaluation', async (t) => {
+	const actions = [];
+	const chip = {
+		prepareVoice(channel) { actions.push({ action: 'prepareVoice', channel }); },
+		async timedControl(payload) {
+			actions.push(payload);
+			if (payload.action === 'capture') return { chip: 'nds', version: 1, instanceId: 'test-audio',
+				frame: 128, sampleRate: 48000, state: createNdsResetOperationState() };
+			return true;
+		},
+		stopOwned() { actions.push({ action: 'releaseImmediate' }); },
+	};
+	const audio = { context: { currentTime: 0, sampleRate: 48000 }, chip: { forOwner: () => chip } };
+	const runtime = createNdsCodeRuntime({ ensureAudio: async () => audio });
+	t.after(() => runtime.stop());
+	await runtime.run(`
+		const nds = await useSoundChip('nds');
+		const plan = nds.build(b => b.atSample(100).configure(CH1, { volume: 42 }));
+		const snapshot = await nds.captureState();
+		const writes = await nds.compile(plan, { initialState: snapshot });
+		if (!Object.isFrozen(snapshot.state[0]) || writes[0]?.value !== 42) throw Error('Wrong DS writes');
+		await nds.compile(plan, { initialState: 'reset' });
+		await nds.prepareVoice(CH2);
+		await nds.schedule(plan, { name: 'phrase', repeatSeconds: 0.5 });
+		Object.assign(context, { nds, plan, snapshot });
+	`);
+	assert.deepEqual(actions.map(({ action }) => action), ['capture', 'prepareVoice', 'stage', 'commit']);
+	assert.equal(actions[1].channel, 1);
+	assert.equal(actions[2].args[1].name, 'phrase');
+	assert.equal(actions[2].owner, actions[3].owner);
+	assert.equal(actions[2].transactionId, actions[3].transactionId);
+	await assert.rejects(runtime.apply(`
+		await context.nds.schedule(context.plan, { name: 'phrase', repeatSeconds: 1 });
+		throw Error('Abort replacement');
+	`), /Abort replacement/);
+	assert.deepEqual(actions.slice(-2).map(({ action }) => action), ['stage', 'abort']);
+	assert.equal(actions.at(-1).owner, actions[2].owner);
+	assert.notEqual(actions.at(-1).transactionId, actions[2].transactionId);
+	await assert.rejects(runtime.apply(`
+		await context.nds.compile(context.plan, { initialState: { ...context.snapshot, instanceId: 'other-audio' } });
+	`), /Incompatible DS timed snapshot/);
+	await assert.rejects(runtime.apply(`
+		await context.nds.compile(context.plan, { initialState: 'client' });
+	`), /Incomplete DS client state/);
+	assert.equal(actions.filter(({ action }) => action === 'capture').length, 1);
+	await runtime.apply(`await context.nds.clearSchedule('phrase');`);
+	assert.deepEqual(actions.slice(-2).map(({ action }) => action), ['stage', 'commit']);
+	assert.equal(actions.at(-2).method, 'clearSchedule');
+	await runtime.stop();
+	assert.deepEqual(actions.slice(-3).map(({ action }) => action), ['cancelOwner', 'end', 'releaseImmediate']);
+});
+
 test('DS editor declarations describe the default runtime and physical channels', async () => {
 	const source = await readFile(new URL('../playground/tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
 	const declarations = selectNdsCodeDeclarations(source);
@@ -133,12 +186,19 @@ test('DS editor declarations describe the default runtime and physical channels'
 	assert.match(declarations, /declare const CH16: 15/);
 	assert.match(declarations, /interface NdsCodeAPI \{[\s\S]*CH16:typeof CH16/);
 	assert.match(declarations, /loadPreset\(channel: NdsCodeChannel, preset: string \| NdsCodePreset\): Promise<NdsCodeChannelState>/);
+	assert.match(declarations, /atSample\(sample: number\): NdsOperationRecorder/);
+	assert.match(declarations, /prepareVoice\(channel: NdsCodeChannel\): Promise<NdsCodeChannelState>/);
+	assert.match(declarations, /compile\(operations: NdsOperationProgram,[^\n]*NdsTimedSnapshot/);
 	assert.doesNotMatch(declarations, /declare function liveFx\b|interface YM2612FMApi\b/);
 	assert.match(NDS_STARTER_CODE, /await nds\.noteOn\(CH1/);
 	assert.match(NDS_STARTER_CODE, /await beat\(/);
 	for (const { path, data } of NDS_STARTER_FILES) {
 		assert.match(path, /^\/examples\/[\w-]+\.js$/);
 		assert.match(data, /await useSoundChip\("nds"\)/);
-		assert.match(data, /await beat\(/);
+		if (path === '/examples/timed-phrase.js') {
+			assert.match(data, /nds\.build\(/);
+			assert.match(data, /await nds\.compile\(/);
+			assert.match(data, /await nds\.schedule\(/);
+		} else assert.match(data, /await beat\(/);
 	}
 });

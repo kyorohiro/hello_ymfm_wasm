@@ -99,13 +99,28 @@ register documentation. The existing SkyEmu player remains the song source.
       Expose both units in Code and load takes as editable samples in the Synth.
       The capture clock samples the mix at host render cadence.
 - [x] Add direct JavaScript sound-core operations, declarations/completion,
-      readable examples and Run/Apply/Stop. Timed-operation APIs are not an
-      automatic prerequisite for the first DS prototype.
+      readable examples and Run/Apply/Stop.
 - [x] Check all five sound modes through a muted AudioWorklet in Chromium and
       WebKit at 44.1 and 48 kHz. Check live pan, direct channel restrictions,
       Keyboard and Code operating together, and release ownership in both
       browsers. Verify Monaco completion and local script recovery in both.
       Listening and comparison against DS hardware remain open.
+
+## Timed register operations
+
+- [x] Expose `build()`, `schedule()`, `compile()`, `captureState()` and
+      `clearSchedule()` in Synth Code. Support configured PCM8/PCM16/IMA-ADPCM,
+      Pulse and Noise voices, with note and gate commands, timer, volume, pan,
+      divider and pulse duty. `prepareVoice()` uploads sample data in bounded
+      Worklet chunks before scheduling. The JS client has no complete shadow
+      and reports an error for the `client` compile baseline.
+- [x] Execute reservations on the AudioWorklet sample clock. Preserve named
+      replacement, Run/Apply/Stop and voice ownership. Verify the compiled
+      register writes against the same operations used by playback. Muted
+      Chromium/WebKit checks cover repeating patterns and Apply rollback.
+      A WASM output test verifies exact 44.1 kHz offsets at the 48 kHz render rate.
+- [ ] Keep scheduled transfers and source changes, 2SF driver scheduling,
+      and shared Playground/npm/Native support as follow-ups.
 
 ## 2SF / mini2SF reference path
 

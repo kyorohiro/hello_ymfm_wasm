@@ -60,6 +60,56 @@ and optional word-aligned PCM or ADPCM bytes. `getState()` reads physical
 channel settings. The output monitor offers Envelope (measured RMS history),
 Waveform and Spectrum. Master controls the Synth and 2SF playback levels.
 
+### Timed register operations
+
+In a new Cassette, open **Files → examples → timed-phrase.js** and **Run** it
+from Code. In an existing Cassette, you can use the snippet below. The example
+configures a Pulse voice and a Noise voice, prints their register writes in
+Console and schedules them on the DS Synth AudioWorklet clock.
+
+```js
+const nds = await useSoundChip("nds");
+await nds.configure(CH9, { mode: "pulse", duty: 2, volume: 60 });
+
+const phrase = nds.build(b => {
+  b.atSample(0).noteOn(CH9, "C4");
+  b.atSample(2205).configure(CH9, { pan: 96 });
+  b.atSeconds(0.18).keyOff(CH9);
+});
+
+const snapshot = await nds.captureState();
+console.table(await nds.compile(phrase, { initialState: snapshot }));
+await nds.schedule(phrase, { name: "pulse", repeatSeconds: 0.4 });
+```
+
+`atSample()` uses 44,100 Hz by default. Set `referenceSampleRate` in the
+second argument to `build()` to choose another reference. Both time methods
+use offsets from the start of the reservation. Operations at the same offset
+run in recorder order. The Worklet runs at 48 kHz; the device rate does not
+change the offsets.
+
+Set up the source before scheduling. For PCM8, PCM16 and IMA-ADPCM, call
+`await nds.prepareVoice(CH1)` after configuring or loading the sample so the
+first scheduled attack can start at its exact frame. Pulse and Noise are ready
+after `configure()`. Timed settings are `timer`, `volume`, `pan`, `divider`
+and `duty`. The recorder also supports `setNote()`, `setFrequency()`,
+`noteOn()`, `noteOff()`, `keyOn()` and `keyOff()`.
+
+`compile()` defaults to a current Worklet snapshot. Reuse `captureState()` to
+compare several plans from the same state, or pass `initialState: "reset"`
+for power-on register values. The reset state has no prepared sound sources.
+`initialState: "client"` reports an error because the DS client has an
+incomplete register shadow. The resulting table lists 32-bit writes at DS MMIO
+addresses. It describes the plan against its baseline. Software `noteOff()`
+starts an 8 ms fade, and the fade and natural sample ends do not appear as
+planned register writes.
+
+Apply updates entry schedules after the script succeeds. Use
+`await nds.clearSchedule("pulse")` to cancel future writes and release notes
+held by the named pattern. **Stop** releases Code notes and cancels its reservations.
+Scheduled operations act on the Synth's physical channels. They do not run
+inside the 2SF player or transfer sample RAM.
+
 ## Mixer
 
 Use **Mixer** to set the **DS output** level, stereo balance and mute for

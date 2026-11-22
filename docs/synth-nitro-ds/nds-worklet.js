@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
+import { createProcessorPerformance } from '../js/playground_performance_processor.js';
 import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NDS_NOISE_CLOCK_AT_C4 } from './nds-core.js?v=nds-keyboard-live-1';
-import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-shared-renderer-1';
-import { NdsSkyEmuCore } from './nds-skyemu-core.js?v=nds-shared-renderer-1';
+import { makeNdsSample, ndsTimerForFrequency, ndsTimerForVoicePitch } from './nds-synth-api.js?v=nds-timed-1';
+import { NdsSkyEmuCore } from './nds-skyemu-core.js?v=nds-timed-1';
+import { resolveNdsOperation } from './nds-timed-operations.js';
+import { createNdsTimedProcessor } from './nds-timed-processor.js';
 
 const DEFAULT_SAMPLE = makeNdsSample('pcm16');
 const PCM_MODES = new Set(['pcm8', 'pcm16', 'adpcm']);
 const ATTACK = new Set(['noteOn', 'keyOn']);
 const RELEASE = new Set(['noteOff', 'keyOff']);
-const OWNERSHIP_METHODS = new Set([...ATTACK, ...RELEASE, 'stopOwned', 'allSoundOff']);
+const OWNERSHIP_METHODS = new Set([...ATTACK, ...RELEASE, 'getState', 'stopOwned', 'allSoundOff']);
 const PREPARATION_STEPS_PER_BLOCK = 4;
 const SMALL_SAMPLE_BYTES = 1024;
 const NOISE_TO_KEY_RATIO = NDS_NOISE_CLOCK_AT_C4 / noteToHz('C4');
@@ -35,6 +38,26 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 		this.samples = Array.from({ length: NDS_CHANNEL_COUNT }, () => ({ shape: 'sine', frames: null, tuning: null, bytes: null }));
 		this.pendingAttacks = new Map();
 		this.dead = false;
+		this.renderFrame = 0;
+		this.renderSound = (left, right) => this.core.render(left, right);
+		this.performance = createProcessorPerformance({
+			chip: 'nds', rate: sampleRate, nowFrame: () => this.renderFrame, trackImmediateNotes: false,
+			patternCommandCost: () => 8,
+			apply: ({ name, operation }, _port, _frame, { owner }) => {
+				try { this.applyTimed(operation, owner, name); }
+				catch (error) {
+					this.releaseTimed(owner, name);
+					throw error;
+				}
+			},
+		});
+		this.timed = createNdsTimedProcessor({
+			performance: this.performance, sampleRate, instanceId: `nds:${Math.random().toString(36).slice(2)}`,
+			getState: () => this.owners.map((_, channel) => this.timedState(channel)),
+			canKeyOn: channel => this.core.timedRegisters(channel).canKeyOn,
+			onError: message => this.port.postMessage(message),
+			releaseHeld: (owner, name) => this.releaseTimed(owner, name),
+		});
 		for (let channel = 0; channel < NDS_CHANNEL_COUNT; channel++) {
 			const { frames, ...sample } = DEFAULT_SAMPLE;
 			this.core.configure(channel, { ...sample, mode: 'pcm16', timer: ndsTimerForFrequency(440, frames).timer });
@@ -54,6 +77,44 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 			frequencyHz, sampleRate: sample.tuning?.sampleRate ?? null, rootNote: sample.tuning?.rootNote ?? null,
 			owner: this.owners[channel]?.owner ?? null, token: this.owners[channel]?.token ?? null,
 		};
+	}
+
+	timedState(channel) {
+		const { owner: _owner, token: _token, ...channelState } = this.read(channel);
+		return { ...channelState, ...this.core.timedRegisters(channel) };
+	}
+
+	releaseTimed(owner, name) {
+		let released = false;
+		this.owners.forEach((voice, channel) => {
+			if (voice?.timedOwner && (owner === undefined || voice.timedOwner === owner) &&
+				(name === undefined || voice.scheduleName === name)) {
+				this.core.release(channel);
+				this.owners[channel] = null;
+				released = true;
+			}
+		});
+		return released;
+	}
+
+	applyTimed(operation, owner, name) {
+		const channel = operation.args[0];
+		const { patch, gate } = resolveNdsOperation(operation, this.timedState(channel));
+		if (gate === 'keyOff' || gate === 'noteOff') {
+			if (this.owners[channel]?.timedOwner === owner) {
+				if (gate === 'keyOff') this.core.keyOff(channel);
+				else this.core.release(channel);
+				this.owners[channel] = null;
+			}
+			return;
+		}
+		if (Object.keys(patch).length) this.configure(channel, patch, undefined, { deferLive: gate === 'keyOn' });
+		if (gate === 'keyOn') {
+			this.core.keyOnPrepared(channel);
+			// A scheduled attack supersedes an earlier pending attack on its voice.
+			this.cancelAttack(channel);
+			this.owners[channel] = { owner: 'code', timedOwner: owner, scheduleName: name, token: 0 };
+		}
 	}
 
 	configure(channel, settings, frequency, options) {
@@ -102,8 +163,7 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 		}
 		if (frequency !== undefined && !Object.hasOwn(patch, 'timer')) {
 			if (tuning) {
-				const playbackRate = tuning.sampleRate * (frequency / tuning.rootHz);
-				patch.timer = ndsTimerForFrequency(Math.max(NDS_AUDIO_CLOCK / 65536, Math.min(NDS_AUDIO_CLOCK, playbackRate)), 1).timer;
+				patch.timer = ndsTimerForVoicePitch(frequency, 1, tuning);
 			} else {
 				const hasNewBytes = Object.hasOwn(patch, 'bytes');
 				const loop = patch.loop ?? state.loop;
@@ -140,6 +200,8 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 	queueAttack(id, method, args) {
 		const [channel, first, second, third, fourth] = args;
 		const [owner, token] = method === 'noteOn' ? [third, fourth] : [first, second];
+		if (method === 'prepareVoice' && this.pendingAttacks.has(channel))
+			throw new Error('The DS channel is already preparing a note.');
 		if (method === 'noteOn') this.configure(channel, second, first, { deferLive: true, keyboard: owner === 'keyboard' });
 		else this.core.getState(channel);
 		this.cancelAttack(channel);
@@ -167,6 +229,10 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 				// reserves room for one replacement while all 16 voices play.
 				if (!ready) continue;
 				this.pendingAttacks.delete(channel);
+				if (attack.method === 'prepareVoice') {
+					this.reply(attack.id, attack.method, this.read(channel));
+					continue;
+				}
 				this.core.keyOn(channel);
 				const { owner, token } = attack;
 				this.owners[channel] = { owner, token };
@@ -192,6 +258,7 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 		}
 		switch (method) {
 			case 'ready': return 'skyemu';
+			case 'ndsTimed': return this.timed.invoke(channel);
 			case 'configure': return this.configure(channel, first);
 			case 'configureOwned':
 				return !this.pendingAttacks.has(channel) && this.owns(channel, first, second)
@@ -224,6 +291,7 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 				return released;
 			}
 			case 'allSoundOff':
+				this.timed.reset();
 				for (const index of this.pendingAttacks.keys()) this.cancelAttack(index);
 				this.core.allSoundOff();
 				this.owners.fill(null);
@@ -240,6 +308,7 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 	receive(data) {
 		if (data?.method === 'dispose') {
 			this.dead = true;
+			this.timed.reset();
 			this.pendingAttacks.clear();
 			this.core.close();
 			this.owners.fill(null);
@@ -249,7 +318,7 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 		const { id, method, args } = data;
 		try {
 			if (!Array.isArray(args)) throw new TypeError('DS audio arguments must be an array.');
-			if (ATTACK.has(method)) this.queueAttack(id, method, args);
+			if (ATTACK.has(method) || method === 'prepareVoice') this.queueAttack(id, method, args);
 			else this.reply(id, method, this.dispatch(method, args));
 		} catch (error) {
 			this.port.postMessage({ id, error: error.message, name: error.name });
@@ -259,7 +328,10 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 	process(_inputs, outputs) {
 		const [left, right] = outputs[0] ?? [];
 		if (this.dead) return false;
-		if (left && right) this.core.render(left, right);
+		if (left && right) {
+			this.performance.render(left, right, this.renderSound);
+			this.renderFrame += left.length;
+		}
 		this.advanceAttacks();
 		return true;
 	}
