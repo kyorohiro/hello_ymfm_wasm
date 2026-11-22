@@ -246,6 +246,35 @@ def committed_desktop(version, selection=None, *, batch=None):
     return {**plan, "products": products}
 
 
+def desktop_jobs_ready(jobs):
+    # The Mac installers are built and notarized locally. Hosted Mac builds
+    # are independent checks, while the other jobs gate artifact collection.
+    hosted_mac = ("build (macos-arm64,", "build (macos-x86_64,")
+    required = [job for job in jobs if not job["name"].startswith(hosted_mac)]
+    if any(job["status"] != "completed" or job["conclusion"] not in ("success", "skipped")
+           for job in required):
+        return False
+    return all(any(job["name"].startswith(f"build ({platform},") and job["conclusion"] == "success"
+                   for job in required) for platform in CI_PLATFORMS)
+
+
+def wait_for_desktop_artifacts(repo, tag, commit, timeout):
+    deadline = time.monotonic() + timeout
+    while True:
+        row = matching_run(repo, "build-desktop.yml", tag, commit)
+        if row:
+            if row["conclusion"] == "success":
+                return row
+            jobs = gh_json("run", "view", str(row["databaseId"]), "-R", repo, "--json", "jobs")["jobs"]
+            if desktop_jobs_ready(jobs):
+                return row
+            if row["status"] == "completed":
+                raise ReleaseError(f"Desktop CI failed: {row['url']}")
+        if time.monotonic() >= deadline:
+            raise ReleaseError(f"Waiting for Windows/Linux artifacts for {repo} at {tag}. Run the same stage again.")
+        time.sleep(10)
+
+
 def desktop_ci(version, push, wait, *, batch=None):
     plan = committed_desktop(version, batch=batch)
     tag = f"v{version}"
@@ -263,10 +292,8 @@ def desktop_ci(version, push, wait, *, batch=None):
         if (target / "artifacts.json").exists():
             ci_records(target, product, version)
             continue
-        row = wait_for_run(repo, "build-desktop.yml", tag, product["commit"], wait)
+        row = wait_for_desktop_artifacts(repo, tag, product["commit"], wait)
         print(f"{product['id']} · {row['url']}", flush=True)
-        if row["conclusion"] != "success":
-            raise ReleaseError(f"Desktop CI failed: {row['url']}")
         target.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=target.parent, prefix=f".{product['id']}-") as stage:
             directory_arg = Path(stage) / "download"

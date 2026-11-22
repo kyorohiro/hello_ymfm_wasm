@@ -193,6 +193,25 @@ class ReleaseDistributionTests(unittest.TestCase):
         self.run.assert_not_called()
         self.gh.assert_called_once()
 
+    def test_desktop_recovery_requires_windows_linux_and_other_validation_jobs(self):
+        repo = 'kyorohiro/tetorica-2a03-synth-tauri'
+        row = {'databaseId': 42, 'status': 'completed', 'conclusion': 'cancelled',
+               'url': 'https://example.invalid/cancelled-mac'}
+        jobs = [{'name': f'build ({platform}, runner, installer)', 'status': 'completed', 'conclusion': 'success'}
+                for platform in release.CI_PLATFORMS]
+        jobs += [{'name': 'browser', 'status': 'completed', 'conclusion': 'success'},
+                 {'name': 'build (macos-arm64, macos-14, dmg)', 'status': 'completed', 'conclusion': 'cancelled'}]
+        self.gh.return_value = {'jobs': jobs}
+        with patch.object(release, 'matching_run', return_value=row) as match:
+            self.assertEqual(release.wait_for_desktop_artifacts(repo, TAG, COMMIT, 0), row)
+            match.assert_called_with(repo, 'build-desktop.yml', TAG, COMMIT)
+            for failed in (jobs[0], jobs[-2]):
+                with self.subTest(failed=failed['name']):
+                    failed['conclusion'] = 'failure'
+                    with self.assertRaisesRegex(release.ReleaseError, 'Desktop CI failed'):
+                        release.wait_for_desktop_artifacts(repo, TAG, COMMIT, 0)
+                    failed['conclusion'] = 'success'
+
     def desktop_artifacts(self):
         sources = {}
         for platform, suffix, channel, arch in (
