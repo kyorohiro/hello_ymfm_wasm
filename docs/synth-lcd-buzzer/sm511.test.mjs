@@ -35,6 +35,14 @@ test('SM511 melody playback respects ROM rests, slot lengths, and first stop', (
 	assert.match(buzzerCodeDeclarations(''), /sm511: Sm511CodeChip/);
 });
 
+test('repeating the SM511 waveform matches adjacent identical ROM commands', () => {
+	for (const command of [0x02, 0x1d, 0x22, 0x3d]) {
+		const cycle = renderSm511CommandCycle(core, command);
+		const phrase = renderSm511Melody(core, Array(4).fill(command), MASTER_CLOCK_HZ);
+		assert(phrase.every((sample, frame) => sample === cycle[frame % cycle.length]));
+	}
+});
+
 test('SM511 pattern timing keeps each quantized step and gives short notes one ROM command', () => {
 	const { samples, boundaries } = renderSm511Pattern(core, [60, null, 61], {
 		stepSeconds: .125, gate: .1, sampleRate: MASTER_CLOCK_HZ,

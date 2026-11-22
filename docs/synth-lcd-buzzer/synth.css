@@ -164,6 +164,7 @@ input { accent-color: #9a3c13; }
 .cpu-pulse-sliders output { font-family: var(--mono); }
 .cpu-pulse-sliders input { width: 100%; margin: 0; }
 .tone-source button[aria-pressed="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
+.rom-keyboard-options { display: flex; flex-wrap: wrap; column-gap: 14px; }
 .rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
 .rom-controls .tone-source { margin: 0; }
 #sm511Command { font: .82rem var(--mono); align-self: center; }

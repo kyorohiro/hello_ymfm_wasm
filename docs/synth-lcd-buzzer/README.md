@@ -37,6 +37,8 @@ the native core.
 
 With **SM511** selected, press an on-screen pad or computer key to play one
 ROM note for **62.5 ms** or **125 ms**. Releasing the key can stop it early.
+Enable **Repeat · Software** to continue the same ROM note for as long as
+the key is held. The waveform continues across the repeated slots.
 **Key tracking · Software** maps each key two octaves up and folds it into
 C♯5–C7. For example, C4 sounds as C6. Moving **ROM note** or choosing an
 octave switches to one fixed ROM pitch for every key. Check **Key tracking**

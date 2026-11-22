@@ -55,6 +55,7 @@ const sm510Preset = byId('sm510Preset'), sm510StepTime = byId('sm510StepTime'), 
 const sm510Gates = Array(GATE_STEP_COUNT).fill(false), sm510Buttons = [];
 const sm511Play = byId('sm511Play'), sm511Stop = byId('sm511Stop'), sm511Status = byId('sm511Status');
 const sm511Pitch = byId('sm511Pitch'), sm511KeyTracking = byId('sm511KeyTracking');
+const sm511Repeat = byId('sm511Repeat');
 const sm511OctaveButtons = [...document.querySelectorAll('[data-rom-octave]')];
 const sm511LengthButtons = [...document.querySelectorAll('[data-rom-length]')];
 let sm511ManualPitch = 0x02, sm511LongNote = false, heldRomTone, lastRomCommand;
@@ -708,6 +709,9 @@ sm511KeyTracking.addEventListener('change', () => {
 	if (!sm511KeyTracking.checked) sm511ManualPitch = trackedRomPitch();
 	retuneRomNote();
 });
+sm511Repeat.addEventListener('change', () => {
+	if (heldRomTone?.keyboard) retuneRomNote();
+});
 for (const button of sm511OctaveButtons) button.addEventListener('click', () => {
 	setManualRomPitch(button.dataset.romOctave === '1');
 });
@@ -800,10 +804,11 @@ const performance = setupBuzzerPerformance({
 		if (chip === 'sm511') {
 			const pitch = sm511KeyTracking.checked ? sm511Command(note) : sm511ManualPitch;
 			const command = pitch | (sm511LongNote ? 0x20 : 0);
-			const samples = keyboard ? renderSm511Melody(core, [command], MASTER_CLOCK_HZ) : renderSm511CommandCycle(core, command);
+			const singleSlot = keyboard && !sm511Repeat.checked;
+			const samples = singleSlot ? renderSm511Melody(core, [command], MASTER_CLOCK_HZ) : renderSm511CommandCycle(core, command);
 			const buffer = context.createBuffer(1, samples.length, MASTER_CLOCK_HZ);
 			buffer.copyToChannel(samples, 0);
-			return { buffer, toneMode: mode, command, loop: !keyboard };
+			return { buffer, toneMode: mode, command, keyboard, loop: !singleSlot };
 		}
 		const halfCycles = keyTracking.checked ? core.directHalfCycles(frequency) : manualPulseCycles;
 		const plan = buildSm510Pulse(mode, halfCycles, pulseDrive);

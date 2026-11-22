@@ -105,7 +105,10 @@
 				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
 			</div>
 			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
-				<label class="chip-key-tracking"><input id="sm511KeyTracking" type="checkbox" checked> Key tracking · Software</label>
+				<div class="rom-keyboard-options">
+					<label class="chip-key-tracking"><input id="sm511KeyTracking" type="checkbox" checked> Key tracking · Software</label>
+					<label class="chip-key-tracking"><input id="sm511Repeat" type="checkbox"> Repeat · Software</label>
+				</div>
 				<div class="rom-controls">
 					<div class="rom-note">
 						<label for="sm511Pitch">ROM note</label>
@@ -131,7 +134,7 @@
 					<summary aria-label="SM511 help" title="SM511 help">?</summary>
 					<dl class="chip-details">
 						<dt>Hardware ROM</dt><dd>The 256-word ROM stores six-bit commands for pitches, rests and stops. Bit 4 chooses the octave and bit 5 selects 62.5 or 125 ms.</dd>
-						<dt>App playback</dt><dd>Press a key to play one ROM command. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</dd>
+						<dt>App playback</dt><dd>Press a key to play one ROM command. Repeat continues the same note until you release the key. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</dd>
 					</dl>
 				</details>
 			</div>
