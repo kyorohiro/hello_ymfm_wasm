@@ -10,6 +10,8 @@ export const DIRECT_R = 'direct';
 export const DK52_R = 'dk52';
 export const EQUAL_TEMPERAMENT = 'equal';
 export const R_WRITE_CYCLES = 2; // LAX followed by ATR
+export const MIN_PULSE_HALF_CYCLES = 4;
+export const MAX_PULSE_HALF_CYCLES = 63;
 const REG_R = 0;
 const EDGE_SECONDS = .008;
 const MAX_MACHINE_CYCLES = 30 * MACHINE_CYCLE_HZ;
@@ -86,6 +88,28 @@ export function readRAtTick({ writes }, tick) {
 		else end = middle;
 	}
 	return first ? writes[first * 2 - 1] & 3 : 0;
+}
+
+export function buildSm510Pulse(mode, halfCycles, driveMask) {
+	const direct = mode === DIRECT_R;
+	if (!direct && mode !== DK52_R) throw new RangeError('Choose Direct R or the DK-52 divider.');
+	if (!Number.isInteger(halfCycles) || halfCycles < MIN_PULSE_HALF_CYCLES || halfCycles > MAX_PULSE_HALF_CYCLES)
+		throw new RangeError(`Use ${MIN_PULSE_HALF_CYCLES}–${MAX_PULSE_HALF_CYCLES} machine cycles per half-period.`);
+	if (!Number.isInteger(driveMask) || driveMask < 0 || driveMask > 3)
+		throw new RangeError('Use a two-bit R pin mask.');
+
+	const loopStart = R_WRITE_CYCLES * TICKS_PER_MACHINE_CYCLE;
+	const halfTicks = halfCycles * TICKS_PER_MACHINE_CYCLE;
+	const period = 2 * halfTicks;
+	// An odd number of machine cycles per half-period flips the divider phase
+	// after one pulse period, so the loop must include both phases.
+	const loopLength = !direct && period % R1_DIVISOR ? 2 * period : period;
+	const end = loopStart + loopLength;
+	const high = direct ? driveMask & 1 : driveMask;
+	const low = direct ? driveMask & 2 : 0;
+	const writes = [];
+	for (let tick = loopStart; tick < end; tick += period) writes.push(tick, high, tick + halfTicks, low);
+	return { end, writes: Uint32Array.from(writes), loopStart, halfTicks };
 }
 
 export function connectRChannels(source, context, outputs) {

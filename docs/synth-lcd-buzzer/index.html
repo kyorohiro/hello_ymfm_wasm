@@ -75,27 +75,28 @@
 					<button type="button" data-tone-mode="direct" aria-pressed="true">Direct R</button>
 					<button type="button" data-tone-mode="dk52" aria-pressed="false">DK-52 Divider</button>
 				</div>
-				<div class="r-latch" role="group" aria-label="SM510 R latch" aria-describedby="sm510LatchDetail">
-					<div class="r-latch-controls">
-						<label for="sm510Latch">R latch</label>
-						<output id="sm510Latch" for="sm510R1 sm510R2" aria-live="off">0b00 · 0x0</output>
-						<div class="tone-source">
-							<button id="sm510R1" type="button" aria-pressed="false">R1</button>
-							<button id="sm510R2" type="button" aria-pressed="false">R2</button>
+				<section class="cpu-pulse" aria-labelledby="sm510PulseHeading">
+					<div class="cpu-pulse-controls">
+						<h3 id="sm510PulseHeading">CPU Pulse</h3>
+						<div class="tone-source" role="group" aria-label="Pins driven by CPU pulse">
+							<span>Drive</span>
+							<button id="sm510PulseR1" type="button" aria-pressed="true">R1</button>
+							<button id="sm510PulseR2" type="button" aria-pressed="false">R2</button>
 						</div>
 					</div>
-					<p id="sm510Pins" class="chip-note">Direct R pins · R1 low · R2 low</p>
-					<div class="tone-source" role="group" aria-label="Monitor R output">
-						<span class="r-monitor-label">Monitor</span>
-						<button id="sm510MonitorR1" type="button" aria-pressed="true">R1</button>
-						<button id="sm510MonitorR2" type="button" aria-pressed="false">R2</button>
-						<button id="sm510MonitorDiff" type="button" aria-pressed="false">R1 − R2</button>
+					<label class="pulse-key-tracking"><input id="sm510KeyTracking" type="checkbox" checked> Key tracking · Software</label>
+					<div class="cpu-pulse-sliders">
+						<label for="sm510PulseCycles">On/off interval <output id="sm510PulseInterval" for="sm510KeyTracking sm510PulseCycles">Key tracking</output></label>
+						<input id="sm510PulseCycles" type="range" min="4" max="63" value="19">
+						<label for="sm510PulseVolume">Volume <output id="sm510PulseVolumeValue" for="sm510PulseVolume">65%</output></label>
+						<input id="sm510PulseVolume" type="range" min="0" max="100" value="65">
 					</div>
-					<p id="sm510LatchDetail" class="chip-note">Monitor routes the R latch and Code register writes to Pulse output and audio. R1 is the DK-52 wiring. R1 − R2 shows the voltage difference across the two pins.</p>
-				</div>
+					<p id="sm510PulseTiming" class="chip-note">Play a key to hear the CPU pulse.</p>
+					<p class="chip-note">Moving the interval slider switches to manual timing. Drive one pin for a smaller signal or both for twice the swing.</p>
+				</section>
 				<dl class="chip-details">
 					<dt>Hardware</dt><dd><code>ATR</code> copies the low two accumulator bits to R. Direct R holds each pin at its latched level. The DK-52 divider gates a 4,096 Hz signal on each pin, with R2 in opposite phase.</dd>
-					<dt>App playback</dt><dd>Choose a mask for the R controls and new notes. <span id="toneSourceDetail">Direct R switches the output at whole SM510 machine cycles to set each pitch.</span></dd>
+					<dt>App playback</dt><dd><span id="toneSourceDetail">Direct R switches the output at whole SM510 machine cycles to set each pitch.</span></dd>
 				</dl>
 				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
 			</div>
@@ -264,6 +265,12 @@
 						</section>
 							<p>The demo models the DK-52’s digital timing. The physical piezo and enclosure shape the sound of the board.</p>
 						<h3>R1 from Code</h3>
+						<div class="tone-source" role="group" aria-label="Monitor Code register output">
+							<span class="r-monitor-label">Code monitor</span>
+							<button id="sm510MonitorR1" type="button" aria-pressed="true">R1</button>
+							<button id="sm510MonitorR2" type="button" aria-pressed="false">R2</button>
+							<button id="sm510MonitorDiff" type="button" aria-pressed="false">R1 − R2</button>
+						</div>
 						<p>Open <strong>Files → examples → sm510-r1.js</strong> and press <strong>Run</strong>. Bit 0 of <code>REG_R</code> gates the fixed R1 carrier. The wait sets the beep length in seconds.</p>
 						<pre id="sm510CodeExample" class="code-log"><code>const sm510 = await useSoundChip("sm510");
 await sm510.write(sm510.REG_R, 0x1);
@@ -271,7 +278,7 @@ await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);</code></pre>
 						<h3>CPU cycles and the R latch</h3>
 						<p>At 32,768 Hz, two master-clock ticks make one CPU machine cycle. <code>LAX</code> and <code>ATR</code> each take one machine cycle. An alternating <code>LAX</code> / <code>ATR</code> sequence can change the R latch every two machine cycles, about 122 µs apart. The divider advances every master tick and R1 follows bit 2 while enabled.</p>
-						<p>The hardware latches the low two bits of the four-bit accumulator. The app’s <code>write(REG_R, value)</code> accepts the same four-bit operand. The SM510 tab shows the resulting R value and lets you monitor either pin or their voltage difference. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets. The timeline starts with R and the divider at zero.</p>
+						<p>The hardware latches the low two bits of the four-bit accumulator. The app’s <code>write(REG_R, value)</code> accepts the same four-bit operand. Use <strong>Code monitor</strong> to hear either pin or their voltage difference. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets. The timeline starts with R and the divider at zero.</p>
 						<pre class="code-log"><code>const pulse = sm510.build(b =&gt; {
   b.atCycle(2).write(sm510.REG_R, 0x1);
   b.atCycle(1640).write(sm510.REG_R, 0x0);

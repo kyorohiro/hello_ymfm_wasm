@@ -114,19 +114,31 @@ The demo shares the instrument's **Volume** control. **Play R1** always uses
 the DK-52 divider, and its eight gates and step time belong to the demo.
 [MAME DK-52 wiring](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800) · [SM510 R output](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510.cpp#L43-L69)
 
+### CPU Pulse
+
+With **SM510** selected, press and hold a keyboard pad or its matching
+computer key to play a CPU pulse. **Key tracking · Software** maps the note
+to the closest available rate. Moving **On/off interval** switches to a
+fixed rate for every key. Check **Key tracking** again to follow the pitch
+of the held key.
+
+The voice uses the two-page `LAX` / `ATR` / padding / `TL` routine, with
+4–63 machine cycles per half-period at 16,384 machine cycles per second.
+**Direct R** plays the resulting pitch, from 2,048 Hz down to about 130 Hz.
+In **DK-52 Divider**, the same CPU timing gates a 4,096 Hz carrier.
+
+**Drive** selects which pins participate. The voice auditions across R1 and
+R2. With both pins selected in Direct R, the CPU alternates `0x1` and `0x2`.
+In Divider mode it alternates `0x3` and `0x0`, and the enabled pins have
+opposite phase. Both-pin drive gives twice the voltage swing of one pin
+in this wiring. **Drive** and **Volume** can both change while a key is held.
+
 ### R latch and Code
 
-The **SM510** tab shows the two-bit **R latch** in binary and hexadecimal.
-Toggle **R1** (bit 0) and **R2** (bit 1) to write the latch by hand. Use
-**Monitor** to route either pin or **R1 − R2** to Pulse output and mono audio.
-This applies to manual controls and explicit Code register writes. The DK-52
-board model, Keyboard, and Step Sequencer use R1.
-
-In **Direct R**, select **Monitor R2** and toggle R2 to see High and Low. A
-steady level gives no sustained tone. In **DK-52 Divider**, either enabled
-pin produces 4,096 Hz, with opposite phases. Turn both pins on and select
-**R1 − R2** to hear the same pitch with twice the signal swing. The readout
-follows cycle sequences at the screen's refresh rate.
+Use **Files → Sound chip → Code monitor** to route either pin or **R1 − R2**
+to Pulse output and mono audio for explicit Code register writes. The monitor
+defaults to R1 to match the DK-52 board wiring, and the R1 gate demo uses that
+same pin. In Direct R, a steady pin level gives no sustained tone.
 
 Use `useSoundChip('sm510')` for the DK-52 divider and
 `useSoundChip('sm510-direct')` for the direct mask. Each client keeps its

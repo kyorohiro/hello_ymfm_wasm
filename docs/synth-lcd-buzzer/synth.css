@@ -144,12 +144,16 @@ input { accent-color: #9a3c13; }
 .chip-controls .chip-details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; margin: 9px 0 0; color: #5d4c3b; font-size: .82rem; line-height: 1.45; }
 .chip-controls .chip-details dt { color: var(--ink); font-weight: 700; }
 .chip-controls .chip-details dd { margin: 0; }
-.r-latch { margin-top: 10px; padding: 8px 10px; border: 1px solid #bba58c; border-radius: 6px; }
-.r-latch-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.r-latch-controls label { font-weight: 700; }
-.r-latch-controls output { font-family: monospace; }
-.r-latch-controls .tone-source { margin: 0; }
+.cpu-pulse { margin-top: 10px; padding: 8px 10px; border: 1px solid #bba58c; border-radius: 6px; }
+.cpu-pulse-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.cpu-pulse-controls .tone-source { margin: 0; }
 .r-monitor-label { font-weight: 700; }
+.cpu-pulse h3 { margin: 0; font-size: .98rem; }
+.pulse-key-tracking { display: flex; gap: 5px; align-items: center; width: fit-content; margin-top: 8px; font-size: .84rem; }
+.cpu-pulse-sliders { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 10px; align-items: center; margin-top: 8px; font-size: .84rem; }
+.cpu-pulse-sliders label { display: grid; }
+.cpu-pulse-sliders output { font-family: var(--mono); }
+.cpu-pulse-sliders input { width: 100%; margin: 0; }
 .tone-source button[aria-pressed="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
 .rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
 .rom-controls .tone-source { margin: 0; }

@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { createBuzzerVoice } from './performance.js';
 
 function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
-	const sources = [], changes = [], output = {};
+	const sources = [], changes = [], connections = [], output = {};
 	const context = {
 		currentTime: 0,
 		sampleRate: 48000,
@@ -23,7 +23,11 @@ function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 			return source;
 		},
 		createGain() {
-			return { gain: { cancelScheduledValues() {}, setValueAtTime() {}, linearRampToValueAtTime() {} }, connect() {}, disconnect() {} };
+			return {
+				gain: { cancelScheduledValues() {}, setValueAtTime() {}, linearRampToValueAtTime() {} },
+				connect(destination) { connections.push(destination); },
+				disconnect() {},
+			};
 		},
 	};
 	const voice = createBuzzerVoice({
@@ -34,7 +38,7 @@ function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 		onNoteChange: note => changes.push(note),
 		...voiceOptions,
 	});
-	return { voice, sources, changes, context };
+	return { voice, sources, changes, connections, context };
 }
 
 test('held notes use a two-level pulse and replacing the gate preserves the newer owner', async () => {
@@ -97,17 +101,81 @@ test('a newer transport cancels a pending note only on its own chip', async () =
 	assert.equal(voice.getNote(), 60);
 });
 
-test('the note callback reports the mode of the prepared tone', async () => {
+test('the note callback reports the mode and prepared tone', async () => {
 	const sounding = [];
+	const tone = { buffer: { length: 8 }, toneMode: 'dk52' };
 	const { voice } = fixture(undefined, () => 'sm510', {
-		prepareTone: (_frequency, context) => ({
-			buffer: context.createBuffer(1, 8),
-			toneMode: 'dk52',
-		}),
+		prepareTone: () => tone,
 		onNoteChange: (...args) => sounding.push(args),
 	});
 	const owner = Symbol('keyboard');
 	assert.equal(await voice.noteOn('A4', owner), true);
 	voice.noteOff(owner);
-	assert.deepEqual(sounding, [[69, 'sm510', 'dk52'], [null]]);
+	assert.deepEqual(sounding, [[69, 'sm510', 'dk52', tone], [null]]);
+});
+
+test('retuning replaces the held tone and output without changing note ownership', async () => {
+	const owner = Symbol('keyboard'), other = Symbol('code');
+	const callbacks = [], prepared = [];
+	const output = {};
+	let settings = { buffer: { length: 8 }, toneMode: 'dk52' };
+	const { voice, sources, connections, context } = fixture(undefined, () => 'sm510', {
+		prepareTone(frequency, _context, note, chip) {
+			prepared.push([frequency, note, chip]);
+			return settings;
+		},
+		onRequestNote: chip => callbacks.push(['request', chip]),
+		onBeforeNote: chip => { callbacks.push(['before', chip]); },
+	});
+	await voice.noteOn('A4', owner);
+	settings = { buffer: { length: 32 }, toneMode: 'direct', output };
+	context.currentTime = .25;
+	assert.equal(await voice.retune('sm510'), true);
+	assert.deepEqual(prepared, [[440, 69, 'sm510'], [440, 69, 'sm510']]);
+	assert.deepEqual(callbacks, [['request', 'sm510'], ['before', 'sm510']]);
+	assert.equal(sources[0].stopped, sources[1].started);
+	assert.equal(sources[1].buffer, settings.buffer);
+	assert.equal(connections.at(-1), output);
+	voice.noteOff(other);
+	assert.equal(voice.getNote(), 69);
+	voice.noteOff(owner);
+	assert.equal(voice.getNote(), null);
+});
+
+test('retune ignores other chips, pending notes, and preparations superseded or released', async () => {
+	const owner = Symbol('keyboard'), other = Symbol('code');
+	const preparations = [];
+	let selected = 'sm510', defer = false;
+	const tone = { buffer: { length: 8 } };
+	const { voice, sources } = fixture(undefined, () => selected, {
+		prepareTone: () => defer ? new Promise(resolve => preparations.push(resolve)) : tone,
+	});
+	await voice.noteOn(60, owner);
+	selected = 'sm511';
+	assert.equal(await voice.retune('sm510'), false);
+	assert.equal(await voice.retune('sm511'), false);
+	selected = 'sm510';
+	defer = true;
+	const first = voice.retune('sm510');
+	const latest = voice.retune('sm510');
+	preparations.shift()(tone);
+	assert.equal(await first, false);
+	preparations.shift()(tone);
+	assert.equal(await latest, true);
+
+	const obsolete = voice.retune('sm510');
+	const next = voice.noteOn(64, other);
+	assert.equal(await voice.retune('sm510'), false);
+	voice.noteOff(other);
+	preparations.shift()(tone);
+	preparations.shift()(tone);
+	assert.equal(await obsolete, false);
+	assert.equal(await next, false);
+
+	const released = voice.retune('sm510');
+	voice.noteOff(owner);
+	preparations.shift()(tone);
+	assert.equal(await released, false);
+	assert.equal(voice.getNote(), null);
+	assert.equal(sources.length, 2);
 });

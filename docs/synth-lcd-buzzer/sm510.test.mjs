@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { buzzerCodeDeclarations } from './code.js';
 import {
-	DIRECT_R, DK52_R, MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
+	DIRECT_R, DK52_R, MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, MAX_PULSE_HALF_CYCLES, MIN_PULSE_HALF_CYCLES,
+	R1_DIVISOR, R1_HZ, buildSm510Pulse,
 	createSm510AudioCore, createSm510CodeChip, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
 
@@ -80,6 +81,58 @@ test('R2 uses the same write boundaries at fractional browser sample positions',
 		assert.deepEqual(core.renderDirectR2(writes, 32, rate), core.renderDirectR1(reference, 32, rate));
 	}
 	assert.deepEqual([...writes], [2, 2, 7, 0, 7, 3, 13, 1, 17, 0]);
+});
+
+test('Direct R CPU pulses start after LAX and ATR and alternate the enabled pins', () => {
+	const halfCycles = MIN_PULSE_HALF_CYCLES;
+	for (const mask of [0, 1, 2, 3]) {
+		const pulse = buildSm510Pulse(DIRECT_R, halfCycles, mask);
+		assert.deepEqual(pulse, { end: 20, writes: Uint32Array.of(4, mask & 1, 12, mask & 2), loopStart: 4, halfTicks: 8 });
+		const pin1 = renderR1Timeline(pulse, MASTER_CLOCK_HZ, core.renderDirectR1);
+		const pin2 = renderR1Timeline(pulse, MASTER_CLOCK_HZ, core.renderDirectR2);
+		const level = Math.fround(.16);
+		assert(pin1.slice(0, pulse.loopStart).every(sample => sample === 0));
+		assert(pin2.slice(0, pulse.loopStart).every(sample => sample === 0));
+		assert(pin1.slice(4, 12).every(sample => sample === (mask & 1 ? level : 0)));
+		assert(pin2.slice(4, 12).every(sample => sample === 0));
+		assert(pin1.slice(12).every(sample => sample === 0));
+		assert(pin2.slice(12).every(sample => sample === (mask & 2 ? level : 0)));
+	}
+});
+
+test('DK-52 CPU pulses retain divider phase when the loop wraps', () => {
+	assert.deepEqual(buildSm510Pulse(DK52_R, 4, 2), {
+		end: 20, writes: Uint32Array.of(4, 2, 12, 0), loopStart: 4, halfTicks: 8,
+	});
+	const pulse = buildSm510Pulse(DK52_R, 5, 3);
+	assert.deepEqual(pulse, {
+		end: 44, writes: Uint32Array.of(4, 3, 14, 0, 24, 3, 34, 0), loopStart: 4, halfTicks: 10,
+	});
+	const loopLength = pulse.end - pulse.loopStart;
+	const nextWrites = pulse.writes.map((value, index) => index % 2 === 0 ? value + loopLength : value);
+	const repeated = { end: pulse.end + loopLength, writes: Uint32Array.from([...pulse.writes, ...nextWrites]) };
+	const pin1 = renderR1Timeline(repeated, MASTER_CLOCK_HZ, core.renderR1);
+	const pin2 = renderR1Timeline(repeated, MASTER_CLOCK_HZ, core.renderR2);
+	const level = Math.fround(.16);
+	assert.equal(pin1[4], level);
+	assert.equal(pin2[4], -level);
+	assert.equal(pin1[24], -level);
+	assert.equal(pin2[24], level);
+	for (const samples of [pin1, pin2]) {
+		assert(samples.slice(14, 24).every(sample => sample === 0));
+		assert.deepEqual(samples.slice(pulse.loopStart, pulse.end), samples.slice(pulse.end));
+	}
+});
+
+test('SM510 CPU pulse inputs are limited to executable half-periods and two-pin masks', () => {
+	assert.equal(buildSm510Pulse(DK52_R, MAX_PULSE_HALF_CYCLES, 1).halfTicks, 126);
+	for (const halfCycles of [MIN_PULSE_HALF_CYCLES - 1, 4.5, MAX_PULSE_HALF_CYCLES + 1]) {
+		assert.throws(() => buildSm510Pulse(DIRECT_R, halfCycles, 1), /machine cycles/);
+	}
+	for (const driveMask of [-1, .5, 4]) {
+		assert.throws(() => buildSm510Pulse(DK52_R, 4, driveMask), /two-bit/);
+	}
+	assert.throws(() => buildSm510Pulse('equal', 4, 1), /Direct R or the DK-52 divider/);
 });
 
 test('Code immediate writes latch the two low bits of a four-bit operand', () => {
