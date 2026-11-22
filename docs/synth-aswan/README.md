@@ -100,6 +100,12 @@ remains editable and keeps the last valid sound; finish or Discard that JSON
 before using its controls. Selection does not force Keyboard into Code.
 Importing a project never runs its code.
 
+Use **Undo files** to return to the project state just before the last Files
+operation. It restores working and saved files, sound settings and the editor
+selection. Undo stops playback. The history keeps up to 20 operations within
+32 MiB for the current session. Opening or creating a Cassette starts a new
+history.
+
 Turn **Auto apply** off to keep a working draft. Modified filenames show **●**.
 **Save** (Cmd/Ctrl+S) accepts the selected file; **Save all** accepts all changes.
 **Discard / Discard all** restores saved content. Auto sound edits wait for

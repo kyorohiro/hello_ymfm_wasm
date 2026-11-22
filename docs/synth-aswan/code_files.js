@@ -4,6 +4,7 @@ import { renderFileTree } from '../playground/playground_file_tree.js';
 import { transferVirtualFiles, isCheckpointPath } from '../js/tetorica_virtual_files/filesystem.js';
 import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import { installSpuFileContextMenu as installAswanFileContextMenu } from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
+import { createSpuFileHistory } from '../synth-spu/file_history.js';
 import {
 	createAswanCodeProject,
 	createAswanProjectStore,
@@ -140,6 +141,7 @@ export function setupAswanCodeFiles({
 	const win = doc.defaultView ?? globalThis,
 		main = doc.getElementById('aswanSynthMain'),
 		listeners = [],
+		fileHistory = createSpuFileHistory(),
 		expanded = new Map([
 			['/presets', true],
 			['/lib', true],
@@ -152,6 +154,8 @@ export function setupAswanCodeFiles({
 		disposing = false,
 		pendingNewCassette = null,
 		newProjectTask = null,
+		undoTask = null,
+		undoWarning = '',
 		restoring = false,
 		persistenceReady = false,
 		operation = 0,
@@ -190,6 +194,7 @@ export function setupAswanCodeFiles({
 		['aswanFileSaveAllButton', 'Save all'],
 		['aswanFileDiscardButton', 'Discard'],
 		['aswanFileDiscardAllButton', 'Discard all'],
+		['aswanFileUndoButton', 'Undo files'],
 		['aswanFileSaveSoundButton', 'Save sound'],
 		['aswanFileRenameButton', 'Rename…'],
 		['aswanFileDeleteButton', 'Delete…'],
@@ -207,6 +212,8 @@ export function setupAswanCodeFiles({
 		buttons.set(id, button);
 		if (id === 'aswanFileNewButton')
 			button.title = 'New JavaScript file; end the path with / to create a folder';
+		if (id === 'aswanFileUndoButton')
+			button.title = 'Restore the working and saved project from before the last Files operation';
 		const destination = {
 			aswanProjectNewButton: ['aswanMenuProjectNew', 'Cassette · ZIP…'],
 			aswanProjectImportButton: ['aswanMenuProjectImport', 'Project · ZIP…'],
@@ -283,8 +290,9 @@ export function setupAswanCodeFiles({
 		dialogPath = null;
 	const say = (message) => {
 		if (!disposed) {
-			info.textContent = message;
-			setStatus(message);
+			const text = undoWarning ? `${message} ${undoWarning}` : message;
+			info.textContent = text;
+			setStatus(text);
 		}
 	};
 	const report = (error) => {
@@ -405,6 +413,7 @@ export function setupAswanCodeFiles({
 			buttons.get(id).disabled = busy || !(project.selectedPath && project.isFileModified(project.selectedPath));
 		for (const id of ['aswanFileSaveAllButton', 'aswanFileDiscardAllButton'])
 			buttons.get(id).disabled = busy || !project.getDirtyPaths().length;
+		buttons.get('aswanFileUndoButton').disabled = busy || !fileHistory.peek();
 		newCassetteCreate.disabled = newCassetteExport.disabled = busy || disposing;
 		code?.setBusy?.(busy);
 		for (const button of tree.querySelectorAll('button')) button.disabled = busy;
@@ -448,6 +457,88 @@ export function setupAswanCodeFiles({
 		const result = await code?.flush?.(options);
 		await pendingSoundEdit;
 		return result;
+	}
+	function captureFileHistory() {
+		const snapshot = project.snapshot();
+		// Version 2 stores the working filesystem in the workspace layers.
+		delete snapshot.filesystem;
+		const state = code?.captureState?.() ?? snapshot.codeState;
+		snapshot.codeState = state.path && project.fs.get(state.path)?.type !== 'text'
+			? { ...state, path: null }
+			: state;
+		return {
+			project: snapshot,
+			appliedPreset: appliedPreset && { ...appliedPreset },
+		};
+	}
+	function rememberFileOperation(previous) {
+		undoWarning = fileHistory.push(previous) ? '' : 'Undo is unavailable because this project exceeds the history limit.';
+		if (undoWarning) say('File operation completed.');
+	}
+	function undo() {
+		if (disposed || disposing || busy || newProjectTask || undoTask || !fileHistory.peek()) return Promise.resolve(false);
+		const task = { promise: null, flushed: false };
+		undoTask = task;
+		task.promise = restoreFileHistory(task).finally(() => { undoTask = null; });
+		return task.promise;
+	}
+	async function restoreFileHistory(task) {
+		const entry = fileHistory.peek();
+		const snapshot = createAswanCodeProject({ snapshot: entry.project }).snapshot();
+		const token = ++operation;
+		const current = () => !disposed && !disposing && token === operation;
+		const previousIdentity = identity, previousPersistence = persistenceReady;
+		let previous, retired = false, attemptedSound = false, committed = false;
+		const restoreSound = (state, source) => applySettings(state.savedSettings, {
+			record: false, source, load: false, applyAudio: true, displayPreset: state.settings, isCurrent: current,
+		});
+		clearTimeout(saveTimer);
+		setBusy(true);
+		try {
+			if ((await flushCode({ persist: false })) === false || !current()) return false;
+			task.flushed = true;
+			previous = captureFileHistory();
+			restoring = true;
+			persistenceReady = false;
+			retired = true;
+			if ((await code?.workspaceReplaced?.()) === false || !current()) return false;
+			if ((await onBeforeWorkspaceReplace({ reason: 'undo', isCurrent: current })) === false || !current()) return false;
+			attemptedSound = true;
+			if ((await restoreSound(snapshot, 'undo')) === false || !current()) return false;
+			identity = workspaceId();
+			appliedPreset = entry.appliedPreset;
+			presetCache.clear();
+			project.restore(snapshot);
+			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
+			fileHistory.pop();
+			undoWarning = '';
+			committed = true;
+			if (project.selectedPath) reveal(project.selectedPath);
+			persistenceReady = previousPersistence;
+			const durable = await persistCode();
+			say('Undid file operation. Performance stopped. Code was not run.' +
+				(durable === false ? ' Local save unavailable. Export Cassette to keep the restored files.' : ''));
+			return true;
+		} finally {
+			if (!committed && retired) {
+				identity = previousIdentity;
+				appliedPreset = previous.appliedPreset;
+				presetCache.clear();
+				project.restore(previous.project);
+				if (current()) {
+					if (attemptedSound) try {
+						if ((await restoreSound(previous.project, 'undo-rollback')) === false) throw Error('Previous sound restoration was cancelled.');
+					} catch (error) { report(error); }
+					try { await code?.restoreState?.(previous.project.codeState); } catch (error) { report(error); }
+				}
+			}
+			restoring = false;
+			persistenceReady = previousPersistence;
+			if (current()) {
+				setBusy(false);
+				if (!committed) schedule();
+			}
+		}
 	}
 	const executionPath = () =>
 		code?.executionPath ?? (isAswanCodePath(code?.activePath) ? code.activePath : null);
@@ -554,7 +645,8 @@ export function setupAswanCodeFiles({
 		const active = soundPath(), activeOriginal = savedPath(active), original = savedPath(path);
 		const editorPath = code?.activePath, editorOriginal = savedPath(editorPath);
 		const targets = all ? project.getDirtyPaths() : path && project.isFileModified(path) ? expandedSavePaths([path]) : [];
-		const candidate = createAswanCodeProject({snapshot: project.snapshot()});
+		const previous = captureFileHistory();
+		const candidate = createAswanCodeProject({snapshot: previous.project});
 		setBusy(true, {lockMain: false});
 		try {
 			if (kind === 'auto') candidate.setAutoApply(enabled);
@@ -589,6 +681,8 @@ export function setupAswanCodeFiles({
 			}
 			if (!current()) return false;
 			project.restore(candidate.snapshot());
+			if (kind === 'auto' ? previous.project.workspace.autoSave !== candidate.autoApply : targets.length)
+				rememberFileOperation(previous);
 			if (kind === 'discard') {
 				if (editorPath && editorPath !== editorOriginal && (all || inside(editorPath, path)))
 					code?.pathChanged?.(editorPath, editorOriginal, {preserveExecution: true});
@@ -676,7 +770,8 @@ export function setupAswanCodeFiles({
 			if (!current()) return [];
 			extracted.push({ name: song.name, ...result });
 		}
-		const candidate = createAswanCodeProject({ snapshot: project.snapshot() }),
+		const previous = captureFileHistory();
+		const candidate = createAswanCodeProject({ snapshot: previous.project }),
 			songPaths = candidate.importSongSources(songs),
 			paths = [...candidate.importFiles(entries), ...songPaths];
 		for (const result of extracted) {
@@ -693,6 +788,7 @@ export function setupAswanCodeFiles({
 			}
 			if (!current()) return [];
 			project.restore(candidate.snapshot());
+			if (paths.length) rememberFileOperation(previous);
 			if (replaceActive || replaceExecution) await code.restoreState(project.getCodeState());
 			render();
 			await persistCode();
@@ -832,6 +928,8 @@ export function setupAswanCodeFiles({
 				presetCache.clear();
 				project.restore(candidate);
 				identity = workspaceId();
+				fileHistory.clear();
+				undoWarning = '';
 			} finally {
 				restoring = false;
 			}
@@ -915,6 +1013,8 @@ export function setupAswanCodeFiles({
 			identity = workspaceId();
 			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
 			committed = true;
+			fileHistory.clear();
+			undoWarning = '';
 			soundEditOperation++;
 			soundApplicationPending = false;
 			appliedPreset = null; presetCache.clear();
@@ -975,9 +1075,10 @@ export function setupAswanCodeFiles({
 					(file.type !== 'text' || file.data.length > ASWAN_PROJECT_CODE_LENGTH)
 				)
 					throw Error('JavaScript files must be UTF-8 text no larger than 2 MiB.');
+			const previous = captureFileHistory();
 			let copied = null;
 			if (copy) {
-				const candidate = createAswanCodeProject({ snapshot: project.snapshot() });
+				const candidate = createAswanCodeProject({ snapshot: previous.project });
 				transferVirtualFiles(candidate.fs, source, destination, { copy: true });
 				candidate.restore(candidate.snapshot());
 				copied = candidate.fs.snapshot();
@@ -1013,6 +1114,9 @@ export function setupAswanCodeFiles({
 				if (inside(soundPath(), source)) project.setActiveSoundPath(destination + soundPath().slice(source.length));
 				if (inside(project.selectedPath, source))
 					project.select(destination + project.selectedPath.slice(source.length));
+			}
+			if (copy || source !== destination) rememberFileOperation(previous);
+			if (!copy) {
 				if (project.autoApply) code?.pathChanged?.(source, destination);
 				else code?.pathChanged?.(source, destination, {preserveExecution: true});
 			}
@@ -1047,11 +1151,13 @@ export function setupAswanCodeFiles({
 		path = allowed(path);
 		setBusy(true);
 		try {
+			const previous = hasPath(project.fs, path) ? captureFileHistory() : null;
 			if (project.autoApply && inside(executionPath(), path)) await code.stop();
 			if (disposed || token !== operation) return false;
 			if (inside(project.selectedPath, path)) project.select(null);
 			project.fs.remove(path, { recursive: true });
 			if (soundPath() && !project.fs.has(soundPath()) && !project.savedFs.has(soundPath())) project.setActiveSoundPath(null);
+			if (previous) rememberFileOperation(previous);
 			if (project.autoApply) code?.pathChanged?.(path, null);
 			else code?.pathChanged?.(path, null, {preserveExecution: true});
 			render();
@@ -1072,12 +1178,14 @@ export function setupAswanCodeFiles({
 		if (occupied(project, path)) throw Error('That path already exists.');
 		setBusy(true, { lockMain: false });
 		try {
-			const candidate = createAswanCodeProject({ snapshot: project.snapshot() });
+			const previous = captureFileHistory();
+			const candidate = createAswanCodeProject({ snapshot: previous.project });
 			if (directory) candidate.fs.mkdir(path, { recursive: true });
 			else candidate.importFiles([{ path, type: 'text', data: '' }]);
 			candidate.restore(candidate.snapshot());
 			project.fs.restore(candidate.fs.snapshot());
 			project.select(path);
+			rememberFileOperation(previous);
 			reveal(path);
 			if (directory) expanded.set(path, true);
 			render();
@@ -1112,7 +1220,8 @@ export function setupAswanCodeFiles({
 			}
 			// importFiles validates its candidate before touching this workspace.
 			// Name / size failures must keep both existing files and selection.
-			const candidate = createAswanCodeProject({snapshot: project.snapshot()});
+			const previous = captureFileHistory();
+			const candidate = createAswanCodeProject({snapshot: previous.project});
 			candidate.importFiles([{path, type: 'text', data: JSON.stringify(sound, null, 2) + '\n'}]);
 			candidate.saveFiles([path]);
 			if (value === undefined) {
@@ -1124,6 +1233,7 @@ export function setupAswanCodeFiles({
 			if (disposed || token !== operation) return false;
 			project.restore(candidate.snapshot());
 			project.select(path);
+			rememberFileOperation(previous);
 			reveal(path);
 			setVisible(true);
 			render();
@@ -1369,6 +1479,7 @@ export function setupAswanCodeFiles({
 	for (const [id, action] of [
 		['aswanFileSaveButton', () => saveCurrent()], ['aswanFileSaveAllButton', () => saveCurrent(true)],
 		['aswanFileDiscardButton', () => discardCurrent()], ['aswanFileDiscardAllButton', () => discardCurrent(true)],
+		['aswanFileUndoButton', undo],
 	]) listen(buttons.get(id), 'click', () => void action().catch(report));
 	listen(fileInput, 'change', () => {
 		const files = [...fileInput.files];
@@ -1426,6 +1537,7 @@ export function setupAswanCodeFiles({
 		newProject,
 		exportProject,
 		createFile,
+		undo,
 		move,
 		duplicate,
 		remove,
@@ -1454,10 +1566,11 @@ export function setupAswanCodeFiles({
 			operation++;
 			setBusy(true);
 			newCassetteDialog.close();
-			const pending = newProjectTask;
+			const pending = newProjectTask ?? undoTask;
 			if (pending) await pending.promise.catch(() => {});
 			newCassetteDialog.remove();
 			contextMenu.dispose();
+			fileHistory.clear();
 			// A reset snapshot already includes the last editor flush. Reflushing
 			// the retired editor here could write a fresh starter into its rollback.
 			if (!pending?.flushed) await flushCode();

@@ -65,7 +65,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 | --- | --- |
 | working/saved, Auto apply, ●, Save/Save all/Discard, accepted Code, two-version Cassette | **Implemented.** Shared workspace, v1→v2 migration, Files Auto apply/●/Save/Discard, saved Code entry/modules/data and two-version Cassette export/import. |
 | Active instrument file linked to knob/wave/JSON editing | **Implemented for authored Auto.** Selecting a sound links its document; controls/waves/valid JSON follow Auto apply. First Auto edits create a document. Physical CH edits stay direct and do not rewrite the Auto sound file. Incomplete JSON is retained and protected from knob overwrites. |
-| Files Undo, New Cassette and replacement recovery | **Partial.** Validated imports and recovery exist; Capture transactionally keeps the previous and captured sounds. New Cassette now has confirmation, optional dual-version backup and rollback. General Files Undo remains a separate follow-up. |
+| Files Undo, New Cassette and replacement recovery | **Implemented.** Files Undo restores working and saved snapshots. Capture keeps the previous and captured sounds. New Cassette has confirmation, an optional dual-version backup and rollback. |
 | Persistent expanded Code workspace, chip/Mixer/Keyboard tabs, header Code/Synth, visible Master | **Implemented.** Code/ASWAN/Mixer/Keyboard share the expanded workspace, header Code/Synth changes layout, and the original Master and transport remain available. Expansion is retained across tabs; no new reload preference is added. |
 | Brief Live changed-value highlights, default On and switchable | **Implemented.** [live_highlight.js](../synth-aswan/live_highlight.js), [synth.js](../synth-aswan/synth.js) and `aswanHighlightEnabled` in [index.html](../synth-aswan/index.html) follow VGM/Code, default On and retain a preference. Preserve this feature rather than adding a second highlighter. |
 | Output-only channel switches shared by Keyboard, Code and song | **Implemented.** `aswanMixerChannels` applies four output switches to the instrument endpoint and reference player; Code uses that same instrument. Chip volume and final Master are separate. |
@@ -89,7 +89,7 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
 - [x] Cassette export must include ordinary **saved** files and recoverable
       **working differences**, preserving mode and both versions on import.
       Do not duplicate unchanged PCM/source files.
-- [ ] Add bounded Files Undo (separate follow-up).
+- [x] Add bounded Files Undo for the current Cassette.
 - [x] Add New Cassette with the original starter Code and default sound.
       Preserve the existing two-sound Capture safety and never auto-run restored Code.
 

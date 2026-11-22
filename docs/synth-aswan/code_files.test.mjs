@@ -346,6 +346,93 @@ test('ASWAN duplicate/rename/delete preserve binary data and stop only the execu
 	assert.deepEqual(changes.at(-1), ['/folder/code.js', '/folder/code.json']);
 });
 
+test('ASWAN Files Undo restores both versions, pending paths, and the editor without running Code', async t => {
+	const f = fixture(t);
+	await f.files.ready;
+	const undo = f.doc.getElementById('aswanFileUndoButton');
+	assert.equal(undo.disabled, true);
+	const bytes = Uint8Array.of(0, 255, 24);
+	f.project.importFiles([{ path: '/data/raw.bin', type: 'binary', data: bytes }]);
+	f.project.setAutoApply(false);
+	f.project.writeEditorText('/index.js', '// working draft');
+	f.project.select('/index.js');
+	f.project.setCodeState({ mode: 'code', path: '/index.js' });
+	const before = f.project.snapshot();
+	const restored = [];
+	let retired = 0;
+	f.files.setCodeControls({
+		flush: async () => true, setBusy() {},
+		workspaceReplaced: async () => { retired++; },
+		pathChanged: (source, destination) => {
+			if (f.project.getCodeState().path === source) f.project.setCodeState({ mode: 'code', path: destination });
+		},
+		restoreState: async state => { restored.push(state); },
+		run: () => assert.fail('Undo must never run Code'),
+	});
+	await f.files.createFile('/new.js');
+	await f.files.duplicate('/data');
+	await f.files.move('/index.js', '/renamed.js');
+	assert.equal(f.project.fs.get('/renamed.js')?.data, '// working draft');
+	await f.files.saveAll();
+	assert.equal(f.project.savedFs.get('/renamed.js')?.data, '// working draft');
+	assert.equal(await f.files.undo(), true);
+	assert.equal(f.project.savedFs.get('/index.js')?.data, '// kept');
+	assert.deepEqual(f.project.getPendingMoves(), [['/index.js', '/renamed.js']]);
+	await f.files.remove('/renamed.js');
+	assert.equal(undo.disabled, false);
+	await undo.fire('click');
+	await new Promise(resolve => setImmediate(resolve));
+	assert.equal(f.project.fs.get('/renamed.js')?.data, '// working draft', f.statuses.at(-1));
+	assert.deepEqual(f.project.getPendingMoves(), [['/index.js', '/renamed.js']]);
+	assert.equal(await f.files.undo(), true);
+	assert.equal(f.project.fs.get('/index.js').data, '// working draft');
+	assert.equal(f.project.savedFs.get('/index.js').data, '// kept');
+	assert(!f.project.fs.has('/renamed.js'));
+	assert.equal(await f.files.undo(), true);
+	assert(!f.project.fs.has('/data-copy'));
+	assert.deepEqual(f.project.fs.get('/data/raw.bin').data, bytes);
+	assert.equal(await f.files.undo(), true);
+	assert.deepEqual(f.project.snapshot(), before);
+	assert.deepEqual(restored.at(-1), before.codeState);
+	assert.equal(retired, 5);
+	assert.equal(undo.disabled, true);
+	assert.equal(f.writes.at(-1).workspace.working.files.find(file => file.path === '/index.js')?.data, '// working draft');
+});
+
+test('ASWAN Files Undo rolls back a failed editor restoration and can be retried', async t => {
+	const f = fixture(t);
+	await f.files.ready;
+	await f.files.createFile('/keep-on-failure.js');
+	const current = f.project.snapshot(), identity = f.files.workspaceId;
+	let shouldFail = true;
+	f.files.setCodeControls({
+		flush: async () => true, setBusy() {}, workspaceReplaced: async () => true,
+		restoreState: async () => {
+			if (!shouldFail) return true;
+			shouldFail = false;
+			return false;
+		},
+	});
+	assert.equal(await f.files.undo(), false);
+	assert.deepEqual(f.project.snapshot(), current);
+	assert.equal(f.files.workspaceId, identity);
+	assert.equal(await f.files.undo(), true);
+	assert(!f.project.fs.has('/keep-on-failure.js'));
+});
+
+test('ASWAN Files Undo retains only the last 20 operations and starts fresh for a new Cassette', async t => {
+	const f = fixture(t);
+	await f.files.ready;
+	for (let index = 0; index < 21; index++) await f.files.createFile(`/edit-${index}.js`);
+	for (let index = 0; index < 20; index++) assert.equal(await f.files.undo(), true);
+	assert.equal(await f.files.undo(), false);
+	assert(f.project.fs.has('/edit-0.js'));
+	assert(!f.project.fs.has('/edit-1.js'));
+	await f.files.createFile('/before-new.js');
+	assert.equal(await f.files.newProject(), true);
+	assert.equal(await f.files.undo(), false);
+});
+
 test('ASWAN local restore and project import apply detached settings but never execute source', async (t) => {
 	const preset = createDefaultPreset();
 	preset.source = 'wave';

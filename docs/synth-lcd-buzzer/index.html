@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#26251e">
+	<title>Tetorica LCD Buzzer Synth</title>
+	<link rel="icon" href="./icon.png" type="image/png">
+	<link rel="stylesheet" href="./synth.css">
+	<script type="module" src="./synth.js"></script>
+</head>
+<body>
+	<main class="shell">
+		<nav aria-label="Tetorica"><a href="../index.html">← Tetorica</a></nav>
+		<header class="hero">
+			<img src="./icon.png" width="82" height="82" alt="">
+			<div>
+				<h1>Tetorica LCD Buzzer Synth</h1>
+				<p>A one-bit instrument for short beeps and jingles.</p>
+			</div>
+		</header>
+
+		<div class="instrument">
+			<section class="scope" aria-labelledby="scope-title">
+				<div class="lcd">
+					<header class="scope-header">
+						<h2 id="scope-title">Pulse output</h2>
+						<p id="pitch">—</p>
+					</header>
+					<canvas id="waveform" width="900" height="135" aria-hidden="true"></canvas>
+				</div>
+			</section>
+			<div class="hinge" aria-hidden="true"></div>
+			<section class="sequencer" aria-labelledby="sequencer-title">
+				<div class="section-header">
+					<h2 id="sequencer-title">Step sequencer</h2>
+					<label class="preset">Pattern <select id="preset"></select></label>
+				</div>
+				<ol class="steps" id="steps"></ol>
+				<div class="settings">
+					<label for="tempo">Tempo <output id="tempo-value" for="tempo">120 BPM</output>
+						<input id="tempo" type="range" min="40" max="240" value="120">
+					</label>
+					<label for="gate">Note length <output id="gate-value" for="gate">65%</output>
+						<input id="gate" type="range" min="10" max="100" value="65">
+					</label>
+					<label for="volume">Volume <output id="volume-value" for="volume">60%</output>
+						<input id="volume" type="range" min="0" max="100" value="60">
+					</label>
+				</div>
+				<div class="transport">
+					<button id="play" class="primary" type="button">Play</button>
+					<button id="stop" type="button" disabled>Stop</button>
+					<label class="loop"><input id="loop" type="checkbox" checked> Loop</label>
+					<button id="download" class="download" type="button">Export WAV</button>
+				</div>
+				<p id="status" role="status">Ready</p>
+			</section>
+		</div>
+		<noscript><p>Enable JavaScript to use the sequencer.</p></noscript>
+	</main>
+</body>
+</html>
