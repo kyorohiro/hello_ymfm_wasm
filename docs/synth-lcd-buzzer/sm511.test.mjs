@@ -3,7 +3,10 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { buzzerCodeDeclarations } from './code.js';
 import { createSm510AudioCore, MASTER_CLOCK_HZ } from './sm510.js';
-import { renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label, validateMelody } from './sm511.js';
+import {
+	formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
+	sm511Command, sm511CommandLabel, sm511Label, validateMelody,
+} from './sm511.js';
 
 const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
 const core = createSm510AudioCore(instance.exports);
@@ -52,6 +55,30 @@ test('a full SM511 ROM can play its last address without a trailing Stop', () =>
 	assert(samples.subarray(0, framesBeforeLast).every(sample => sample === 0));
 	assert(samples.subarray(framesBeforeLast).some(sample => sample > 0));
 	assert.deepEqual(samples.subarray(framesBeforeLast), renderSm511Melody(core, rom.subarray(0xff), MASTER_CLOCK_HZ));
+});
+
+test('Copy as Code runs with the entire SM511 ROM, including edits after Stop', async () => {
+	const rom = new Uint8Array(256).fill(0x01);
+	rom[0] = 0x1d;
+	rom[0x80] = 0x20;
+	rom[0xff] = 0x3d;
+	const source = formatSm511MelodyCode(rom);
+	assert.match(source, /^const sm511 = await useSoundChip\("sm511"\);\nawait sm511\.playMelody\(\[/);
+	const rows = source.split('\n').filter(line => /^  0x/.test(line));
+	assert.equal(rows.length, 16);
+	assert(rows.every(row => row.match(/0x[\dA-F]{2}/g)?.length === 16));
+	assert(rows.at(-1).endsWith('0x3D,'));
+	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+	let played;
+	await new AsyncFunction('useSoundChip', source)(async name => {
+		assert.equal(name, 'sm511');
+		return { playMelody: commands => { played = commands; } };
+	});
+	assert.deepEqual(played, [...rom]);
+	assert.deepEqual(validateMelody(played), rom);
+	assert.throws(() => formatSm511MelodyCode(Uint8Array.of(0x40)), /6-bit/);
+	assert.throws(() => formatSm511MelodyCode([0x2e]), /6-bit/);
+	assert.throws(() => formatSm511MelodyCode(new Uint8Array(257)), /1–256/);
 });
 
 test('SM511 pattern timing keeps each quantized step and gives short notes one ROM command', () => {

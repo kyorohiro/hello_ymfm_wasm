@@ -42,8 +42,8 @@
 			</details>
 			<button id="buzzerFilesToggle" type="button" aria-controls="buzzerFilesPanel" aria-expanded="false">Files</button>
 			<div class="workspace-mode" role="group" aria-label="Workspace layout">
-				<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="buzzerInstrument">Synth</button>
-				<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot">Code</button>
+				<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot" title="Open Code beside Files">Code</button>
+				<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="buzzerInstrument" title="Return to the Synth layout">Synth</button>
 			</div>
 			<label class="master-control" for="volume">Master
 				<input id="volume" type="range" min="0" max="100" value="60" aria-label="Master volume">
@@ -148,8 +148,11 @@
 						<button id="sm511Play" class="primary" type="button">Play melody</button>
 						<button id="sm511PlayFrom" type="button">Play from 0x00</button>
 						<button id="sm511Stop" type="button" disabled>Stop melody</button>
+						<button id="sm511CopyCode" type="button">Copy as Code</button>
 						<span id="sm511Status" role="status"></span>
+						<span id="sm511CopyStatus" role="status"></span>
 					</div>
+					<textarea id="sm511CodePreview" class="sm511-code-preview" aria-label="Melody ROM JavaScript" readonly hidden></textarea>
 				</section>
 				<details class="chip-help">
 					<summary aria-label="SM511 help" title="SM511 help">?</summary>
@@ -186,7 +189,9 @@
 							<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
 							<button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
 						</div>
-						<button id="synthCodeExpandButton" type="button" aria-label="Maximize Code" aria-pressed="false" aria-controls="synthExpandedCodeSlot" hidden><span id="synthCodeExpandIcon" aria-hidden="true"></span></button>
+						<button id="synthCodeExpandButton" type="button" aria-label="Maximize Code" title="Maximize Code beside Files" aria-pressed="false" aria-controls="synthExpandedCodeSlot" hidden>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
+						</button>
 					</div>
 					<div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
 						<div class="keyboard-settings">

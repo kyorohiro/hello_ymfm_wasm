@@ -57,21 +57,6 @@ function checkSize(entries) {
 		throw Error('Files exceed the 16 MiB Cassette size limit.');
 }
 
-export function installBuzzerExamples(workspace) {
-	const { working, saved } = workspace;
-	if (working.has('/examples') || saved.has('/examples')) throw Error('A file named /examples blocks the examples folder.');
-	const added = BUZZER_EXAMPLES.filter(({ path }) => !exists(working, path) && !exists(saved, path));
-	if (!added.length) return 0;
-	checkSize([...working.list(), ...added]);
-	checkSize([...saved.list(), ...added]);
-	const next = createVirtualFileWorkspace();
-	next.restore(workspace.snapshot());
-	next.working.writeFiles(added);
-	if (!next.autoSave) next.saveMany(added.map(({ path }) => path));
-	workspace.restore(next.snapshot());
-	return added.length;
-}
-
 function validateProjectSnapshot(snapshot) {
 	const workspace = createVirtualFileWorkspace();
 	if (!snapshot || snapshot.format !== WORKSPACE_FORMAT || snapshot.version !== 1)
@@ -275,7 +260,6 @@ export function setupBuzzerWorkspace({
 	autoLabel.append(auto);
 	heading.append(title);
 	const saveControls = group('buzzer-files-save-controls', 'File saving');
-	const actions = group('buzzer-files-actions', 'File operations');
 	const extras = group('buzzer-files-extras', 'Project and guide');
 	const cassetteName = make('p', CASSETTE_FILENAME);
 	cassetteName.className = 'buzzer-cassette-name';
@@ -285,7 +269,7 @@ export function setupBuzzerWorkspace({
 	const tree = make('div');
 	tree.id = 'buzzerFilesTree';
 	tree.className = 'buzzer-files-tree';
-	panel.append(heading, saveControls, cassetteName, tree, actions, filePathLabel, extras);
+	panel.append(heading, saveControls, cassetteName, tree, filePathLabel, extras);
 
 	const nameDialog = make('dialog');
 	nameDialog.className = 'buzzer-file-dialog';
@@ -729,41 +713,26 @@ export function setupBuzzerWorkspace({
 	saveAllButton.title = 'Save all unsaved files';
 	const discardButton = button('buzzerFileDiscard', 'Discard', discard);
 	discardButton.title = 'Discard the current file’s unsaved changes';
-	const duplicateButton = button('buzzerFileDuplicate', 'Duplicate', duplicate);
-	const renameButton = button('buzzerFileRename', 'Rename…', rename);
-	const deleteButton = button('buzzerFileDelete', 'Delete', remove);
-	const folderButton = button('buzzerFileNewFolder', 'New folder…', newFolder);
-	const undoButton = button('buzzerFileUndo', 'Undo files', undo);
-	undoButton.title = 'Undo the last file operation';
 	const addButton = button('buzzerFileImport', 'Add files…', () => { fileInput.value = ''; fileInput.click(); });
-	const examplesButton = button('buzzerAddExamples', 'Add examples', () => transact(async () => {
-		const previous = snapshot();
-		const count = installBuzzerExamples(workspace);
-		if (count) {
-			history.push(previous);
-			expanded.set('/examples', true);
-			await persistCode();
-			setStatus(`Added ${count} example${count === 1 ? '' : 's'} to /examples.`);
-		} else setStatus('The example paths are already in Files.');
-	}));
 	heading.append(patternButton, newButton);
 	saveControls.append(autoLabel, saveButton, saveAllButton, discardButton);
-	actions.append(duplicateButton, renameButton, deleteButton, folderButton, undoButton);
-	extras.append(addButton, examplesButton, guide);
+	extras.append(addButton, guide);
 
+	const missingContextTarget = path => path === '/' || !exists(fs, path);
 	const contextActions = [
-		{ id: 'duplicate', label: 'Duplicate', run: duplicate, needsPath: true },
-		{ id: 'rename', label: 'Rename…', run: rename, needsPath: true },
-		{ id: 'delete', label: 'Delete', run: remove, needsPath: true },
+		{ id: 'duplicate', label: 'Duplicate', run: duplicate, isDisabled: missingContextTarget },
+		{ id: 'rename', label: 'Rename…', run: rename, isDisabled: missingContextTarget },
+		{ id: 'delete', label: 'Delete', run: remove, isDisabled: missingContextTarget },
 		{ id: 'new', label: 'New pattern…', run: savePattern },
 		{ id: 'code', label: 'New JavaScript file…', run: newCode },
 		{ id: 'folder', label: 'New folder…', run: newFolder },
+		{ id: 'undo', label: 'Undo files', run: undo, isDisabled: () => !history.peek() },
 	];
 	const contextMenu = installSpuFileContextMenu({
 		root: tree, document: doc, isBusy: () => busy, onError: report,
 		onTarget(path) { selected = path; render(); schedulePersist(); },
-		getActions: path => contextActions.map(({ id, label, needsPath }) => ({
-			id, label, disabled: needsPath && (path === '/' || !exists(fs, path)),
+		getActions: path => contextActions.map(({ id, label, isDisabled }) => ({
+			id, label, disabled: isDisabled?.(path),
 		})),
 		onAction: (id, path) => contextActions.find(action => action.id === id).run(path),
 	});
@@ -808,10 +777,9 @@ export function setupBuzzerWorkspace({
 	}
 
 	function updateActions() {
-		const selectedExists = selected !== '/' && exists(fs, selected);
 		const path = currentFile();
 		const selectionDirty = path && workspace.isDirty(path);
-		for (const control of [auto, newButton, patternButton, folderButton, addButton, examplesButton]) control.disabled = busy;
+		for (const control of [auto, newButton, patternButton, addButton]) control.disabled = busy;
 		for (const id of ['buzzerMenuNew', 'buzzerMenuImport', 'buzzerMenuAddFiles', 'buzzerMenuExport', 'buzzerMenuSave']) {
 			const control = byId(id);
 			if (control) control.disabled = busy;
@@ -819,8 +787,6 @@ export function setupBuzzerWorkspace({
 		saveButton.disabled = busy || !path;
 		saveAllButton.disabled = busy || !workspace.isDirty();
 		discardButton.disabled = busy || !selectionDirty;
-		duplicateButton.disabled = renameButton.disabled = deleteButton.disabled = busy || !selectedExists;
-		undoButton.disabled = busy || !history.peek();
 	}
 
 	auto.addEventListener('change', () => {

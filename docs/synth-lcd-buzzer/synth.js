@@ -10,7 +10,7 @@ import {
 	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
 	buildSm510Pulse, connectRChannels, createSm510AudioCore, createRVoice, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
-import { renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label } from './sm511.js';
+import { formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label } from './sm511.js';
 import { setupSm511MelodyEditor } from './melody_editor.js';
 
 const byId = id => document.getElementById(id);
@@ -58,7 +58,11 @@ const sm510Preset = byId('sm510Preset'), sm510StepTime = byId('sm510StepTime'), 
 const sm510Gates = Array(GATE_STEP_COUNT).fill(false), sm510Buttons = [];
 const sm511Play = byId('sm511Play'), sm511Stop = byId('sm511Stop'), sm511Status = byId('sm511Status');
 const sm511PlayFrom = byId('sm511PlayFrom');
-const romEditor = setupSm511MelodyEditor({ document, onChange: () => workspace?.melodyChanged() });
+const sm511CodePreview = byId('sm511CodePreview'), sm511CopyStatus = byId('sm511CopyStatus');
+const romEditor = setupSm511MelodyEditor({
+	document,
+	onChange() { clearRomCopy(); workspace?.melodyChanged(); },
+});
 const sm511Pitch = byId('sm511Pitch'), sm511KeyTracking = byId('sm511KeyTracking');
 const sm511Repeat = byId('sm511Repeat');
 const sm511OctaveButtons = [...document.querySelectorAll('[data-rom-octave]')];
@@ -599,6 +603,24 @@ sm510Stop.addEventListener('click', () => stopPlayback(sm510Owner));
 sm511Play.addEventListener('click', () => void playRomEditor());
 sm511PlayFrom.addEventListener('click', () => void playRomEditor(romEditor.getAddress()));
 sm511Stop.addEventListener('click', () => void stopTransports());
+function clearRomCopy() {
+	sm511CodePreview.hidden = true;
+	sm511CopyStatus.textContent = '';
+}
+byId('sm511CopyCode').addEventListener('click', async () => {
+	const code = formatSm511MelodyCode(romEditor.getMelody());
+	try {
+		await navigator.clipboard.writeText(code);
+		sm511CodePreview.hidden = true;
+		sm511CopyStatus.textContent = 'Code copied.';
+	} catch {
+		sm511CodePreview.value = code;
+		sm511CodePreview.hidden = false;
+		sm511CodePreview.focus();
+		sm511CodePreview.select();
+		sm511CopyStatus.textContent = 'Code selected. Copy the text below.';
+	}
+});
 const trackedRomPitch = () => (heldRomTone?.command ?? lastRomCommand ?? sm511ManualPitch) & 0x1f;
 const selectedRomPitch = () => sm511KeyTracking.checked ? trackedRomPitch() : sm511ManualPitch;
 function refreshRomNote() {
@@ -827,7 +849,8 @@ new ResizeObserver(drawWave).observe(canvas);
 workspace = setupBuzzerWorkspace({
 	document, setStatus, getPattern, stopPerformance,
 	applyPattern(pattern) { applyPattern(pattern); restartPattern(); },
-	getMelody: romEditor.getMelody, applyMelody: romEditor.setMelody,
+	getMelody: romEditor.getMelody,
+	applyMelody(commands) { romEditor.setMelody(commands); clearRomCopy(); },
 	getStarterCode: () => BUZZER_STARTER,
 });
 const synthButton = byId('synthWorkspaceSynthButton'), codeButton = byId('synthWorkspaceCodeButton');

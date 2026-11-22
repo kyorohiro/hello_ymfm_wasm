@@ -37,6 +37,17 @@ export function validateMelody(commands) {
 	return Uint8Array.from(commands);
 }
 
+export function formatSm511MelodyCode(commands) {
+	const melody = validateMelody(commands);
+	const lines = [];
+	for (let start = 0; start < melody.length; start += 16) {
+		const words = melody.subarray(start, start + 16);
+		const hex = Array.from(words, word => `0x${word.toString(16).toUpperCase().padStart(2, '0')}`);
+		lines.push(`  ${hex.join(', ')},`);
+	}
+	return `const sm511 = await useSoundChip("sm511");\nawait sm511.playMelody([\n${lines.join('\n')}\n]);\n`;
+}
+
 export function renderSm511Melody(core, commands, sampleRate) {
 	let units = 0;
 	for (const command of commands) {

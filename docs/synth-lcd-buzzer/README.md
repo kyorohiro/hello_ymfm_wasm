@@ -45,6 +45,7 @@ rests use **62.5 ms** or **125 ms**. The editor opens with
 the original demo and fills the remaining addresses with Stop commands.
 **Play melody** starts at `0x00`. **Play from** starts at the selected address.
 Playback ends at the first Stop or at the end of the address range.
+**Copy as Code** copies all 256 commands as JavaScript for `sm511.playMelody()`.
 
 The edited ROM is saved with the Cassette. Select SM511 and choose
 **Menu → Export → Melody ROM · WAV** to export playback from `0x00` as
@@ -236,15 +237,13 @@ close the file panel. `/index.js` contains the starter Code,
 and `/pattern.json` holds the active eight-step pattern for Code playback.
 Select a saved pattern to make it active. **＋ Pattern** keeps a named copy alongside Code and
 other project files. Use **＋ JS** to create a script. Right-click a file or
-folder for Duplicate, Rename, and Delete, or to create a file or folder in
-that part of the tree. **Sound chip** opens the hardware guide.
+folder to duplicate, rename, delete, create a folder, or undo a file change.
+**Sound chip** opens the hardware guide.
 
 New Cassettes include editable Code examples in **Files → examples**.
 Run `short-beep.js`, `chirp.js`, or `trill.js` to hear the SM510 tone
 source. Run `sm510-r1.js` or `sm510-cycles.js` for immediate or cycle-timed
-DK-52 R1 writes, or `sm511-melody.js` for a Melody ROM phrase. In an existing Cassette, **Add examples** fills unused
-example paths with ready-to-run copies. An existing file, directory or
-pending deletion keeps its path.
+DK-52 R1 writes, or `sm511-melody.js` for a Melody ROM phrase.
 
 With **Auto apply** off, edited files show **●**. **Run** and **Apply** read
 saved Code and saved imports. Use **Save**, Ctrl/Cmd+S, or **Menu → Save all**

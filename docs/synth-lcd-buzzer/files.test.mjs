@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
 import { createPlaygroundCassetteZip, loadPlaygroundCassette } from '../playground/playground_cassette.js';
-import { decodeBuzzerCassette, encodeBuzzerCassette, installBuzzerExamples } from './files.js';
+import { decodeBuzzerCassette, encodeBuzzerCassette } from './files.js';
 import { SM511_DEMO, SM511_ROM_STEPS } from './sm511.js';
 
 const pattern = { notes: [60, null, 62, null, 64, null, 67, null], bpm: 116, gate: .5, volume: .6, loop: true };
@@ -88,41 +88,4 @@ test('LCD Buzzer Cassette rejects incompatible projects and unsafe state', async
 	]);
 	assert.throws(() => encodeBuzzerCassette({ ...fixture(workspace), activePattern: '/missing.lcd-buzzer.json' }), /active pattern/);
 	assert.throws(() => encodeBuzzerCassette({ ...fixture(workspace), pattern: { ...pattern, notes: [60] } }), Error);
-});
-
-test('adding LCD Buzzer examples saves only new paths and respects a pending deletion', () => {
-	const workspace = createVirtualFileWorkspace([
-		{ path: '/index.js', data: 'saved user code' },
-		{ path: '/examples/chirp.js', data: 'saved custom chirp' },
-		{ path: '/examples/short-beep.js', data: 'pending deletion' },
-	], { autoSave: false });
-	workspace.working.writeText('/index.js', 'working user code');
-	workspace.working.writeText('/examples/chirp.js', 'working custom chirp');
-	workspace.working.remove('/examples/short-beep.js');
-	const dirty = workspace.getDirtyPaths();
-
-	assert.equal(installBuzzerExamples(workspace), 4);
-	assert.match(workspace.saved.get('/examples/trill.js').data, /noteOn/);
-	assert.deepEqual(workspace.working.get('/examples/trill.js').data, workspace.saved.get('/examples/trill.js').data);
-	const registerExample = workspace.saved.get('/examples/sm510-r1.js').data;
-	assert.match(registerExample, /useSoundChip\("sm510"\)/);
-	assert.match(registerExample, /write\(sm510\.REG_R, 0x1\)[\s\S]+write\(sm510\.REG_R, 0x0\)/);
-	assert.equal(workspace.working.get('/examples/sm510-r1.js').data, registerExample);
-	assert.match(workspace.saved.get('/examples/sm510-cycles.js').data, /atCycle\(1640\).*write\(sm510\.REG_R, 0x0\)/);
-	assert.match(workspace.saved.get('/examples/sm511-melody.js').data, /useSoundChip\("sm511"\)/);
-	assert.equal(workspace.saved.get('/index.js').data, 'saved user code');
-	assert.equal(workspace.working.get('/index.js').data, 'working user code');
-	assert.equal(workspace.saved.get('/examples/chirp.js').data, 'saved custom chirp');
-	assert.equal(workspace.working.get('/examples/chirp.js').data, 'working custom chirp');
-	assert.equal(workspace.saved.get('/examples/short-beep.js').data, 'pending deletion');
-	assert(!workspace.working.has('/examples/short-beep.js'));
-	assert.deepEqual(workspace.getDirtyPaths(), dirty);
-	assert.equal(installBuzzerExamples(workspace), 0);
-});
-
-test('an existing file at /examples blocks addition without changing the workspace', () => {
-	const workspace = createVirtualFileWorkspace([{ path: '/examples', data: 'user file' }]);
-	const before = workspace.snapshot();
-	assert.throws(() => installBuzzerExamples(workspace), /blocks the examples folder/);
-	assert.deepEqual(workspace.snapshot(), before);
 });
