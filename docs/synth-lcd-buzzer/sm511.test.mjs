@@ -4,7 +4,8 @@ import test from 'node:test';
 import { buzzerCodeDeclarations } from './code.js';
 import { createSm510AudioCore, MASTER_CLOCK_HZ } from './sm510.js';
 import {
-	formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
+	buildSm511MelodySequence, compileSm511MelodySequence, formatSm511MelodyCode, readSm511MelodySequence,
+	renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
 	sm511Command, sm511CommandLabel, sm511Label, validateMelody,
 } from './sm511.js';
 
@@ -36,6 +37,30 @@ test('SM511 melody playback respects ROM rests, slot lengths, and first stop', (
 	assert.throws(() => validateMelody([0x0e]), /6-bit/);
 	assert.throws(() => validateMelody(new Uint8Array(257)), /1–256/);
 	assert.match(buzzerCodeDeclarations(''), /sm511: Sm511CodeChip/);
+});
+
+test('SM511 compilation traces playback through Stop while preserving the full ROM', () => {
+	const input = Uint8Array.of(0x12, 0x20, 0x2c, 0x21, 0x15);
+	const plan = buildSm511MelodySequence(input);
+	assert(Object.isFrozen(plan));
+	assert.equal(plan.commandCount, 5);
+	input.fill(0);
+	const commands = readSm511MelodySequence(plan);
+	assert.deepEqual([...commands], [0x12, 0x20, 0x2c, 0x21, 0x15]);
+	const expected = [
+		{ address: 0, command: 0x12, masterTick: 0, durationTicks: 2048, offsetSeconds: 0, durationSeconds: .0625 },
+		{ address: 1, command: 0x20, masterTick: 2048, durationTicks: 4096, offsetSeconds: .0625, durationSeconds: .125 },
+		{ address: 2, command: 0x2c, masterTick: 6144, durationTicks: 4096, offsetSeconds: .1875, durationSeconds: .125 },
+		{ address: 3, command: 0x21, masterTick: 10240, durationTicks: 0, offsetSeconds: .3125, durationSeconds: 0 },
+	];
+	const trace = compileSm511MelodySequence(plan);
+	assert.deepEqual(trace, expected);
+	assert.equal(renderSm511Melody(core, commands, MASTER_CLOCK_HZ).length, trace.at(-1).masterTick);
+	trace[0].command = 0;
+	commands.fill(0);
+	assert.deepEqual(compileSm511MelodySequence(plan), expected);
+	assert.throws(() => compileSm511MelodySequence({ commandCount: 5 }), /from build/);
+	assert.throws(() => buildSm511MelodySequence([0x01, 0x0f]), /6-bit/);
 });
 
 test('repeating the SM511 waveform matches adjacent identical ROM commands', () => {

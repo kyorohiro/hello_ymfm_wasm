@@ -14,6 +14,7 @@ export const MAX_PULSE_HALF_CYCLES = 63;
 const REG_R = 0;
 const EDGE_SECONDS = .008;
 const MAX_MACHINE_CYCLES = 30 * MACHINE_CYCLE_HZ;
+const cycleSequences = new WeakMap();
 
 export const GATE_PRESETS = {
 	short: { stepMs: 85, on: [0] },
@@ -27,9 +28,20 @@ function checkWrite(register, value) {
 		throw new RangeError('REG_R expects a 4-bit integer from 0x0 to 0xF.');
 }
 
+function getCycleSequence(plan, chip) {
+	const sequence = cycleSequences.get(plan);
+	if (!sequence || (chip !== undefined && sequence.chip !== chip))
+		throw new TypeError('Provide an SM510 cycle sequence from build().');
+	return sequence;
+}
+
+export function readSm510CycleSequence(plan, chip) {
+	const { id, end, writes } = getCycleSequence(plan, chip);
+	return { id, end, writes: writes.slice() };
+}
+
 export function createSm510CodeChip({ id = 'sm510', write, playCycles }) {
-	const plans = new WeakMap();
-	return {
+	const chip = {
 		id,
 		get REG_R() { return REG_R; },
 		get clock() { return MASTER_CLOCK_HZ; },
@@ -68,15 +80,30 @@ export function createSm510CodeChip({ id = 'sm510', write, playCycles }) {
 			const end = cycle * TICKS_PER_MACHINE_CYCLE;
 			const plan = Object.freeze({ machineCycles: cycle });
 			writes.push(end, 0);
-			plans.set(plan, { end, writes: Uint32Array.from(writes) });
+			cycleSequences.set(plan, { chip, id, end, writes: Uint32Array.from(writes) });
 			return plan;
 		},
+		compile(plan) {
+			const { writes } = getCycleSequence(plan, chip);
+			const trace = [];
+			// The final pair closes playback and was not authored by the caller.
+			for (let index = 0; index < writes.length - 2; index += 2) {
+				const masterTick = writes[index];
+				trace.push({
+					offsetSeconds: masterTick / MASTER_CLOCK_HZ,
+					machineCycle: masterTick / TICKS_PER_MACHINE_CYCLE,
+					masterTick, register: REG_R, value: writes[index + 1],
+					operationIndex: index / 2, writeIndex: 0,
+				});
+			}
+			return trace;
+		},
 		playCycles(plan) {
-			const timeline = plans.get(plan);
-			if (!timeline) throw new TypeError('Provide an SM510 cycle sequence from build().');
-			return playCycles(timeline);
+			const { end, writes } = readSm510CycleSequence(plan, chip);
+			return playCycles({ end, writes });
 		},
 	};
+	return chip;
 }
 
 export function readRAtTick({ writes }, tick) {

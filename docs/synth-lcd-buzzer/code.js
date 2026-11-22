@@ -3,8 +3,8 @@ import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
 import { selectCodeHostDeclarations } from '../synth/synth_code_declarations.js';
 import { buzzerMidi } from './buzzer.js';
-import { DIRECT_R, DK52_R, createSm510CodeChip } from './sm510.js';
-import { validateMelody } from './sm511.js';
+import { DIRECT_R, DK52_R, createSm510CodeChip, readSm510CycleSequence } from './sm510.js';
+import { buildSm511MelodySequence, compileSm511MelodySequence, readSm511MelodySequence, validateMelody } from './sm511.js';
 
 export const BUZZER_STARTER = `const buzzer = await useSoundChip("sm510");
 setBpm(120);
@@ -50,18 +50,42 @@ interface Sm510CycleBuilder {
 interface Sm510CycleSequence {
   readonly machineCycles: number;
 }
-interface Sm510CodeChip<Id extends 'sm510' | 'sm510-direct' = 'sm510' | 'sm510-direct'> {
+interface Sm510CycleWrite {
+  offsetSeconds: number; machineCycle: number; masterTick: number;
+  register: 0; value: number; operationIndex: number; writeIndex: 0;
+}
+interface Sm511MelodySequence {
+  readonly commandCount: number;
+}
+interface Sm511MelodySlot {
+  address: number; command: number; masterTick: number; durationTicks: number;
+  offsetSeconds: number; durationSeconds: number;
+}
+interface BuzzerScheduleOptions {
+  name: string; repeatSeconds?: number;
+}
+interface BuzzerScheduleReceipt extends BuzzerScheduleOptions {
+  duration: number; startTime?: number; staged?: true;
+}
+interface BuzzerTimedPlayback<Sequence> {
+  schedule(sequence: Sequence, options: BuzzerScheduleOptions): Promise<BuzzerScheduleReceipt | false>;
+  clearSchedule(name: string): Promise<boolean>;
+}
+interface Sm510CodeChip<Id extends 'sm510' | 'sm510-direct' = 'sm510' | 'sm510-direct'> extends BuzzerTimedPlayback<Sm510CycleSequence> {
   readonly id: Id;
   readonly REG_R: 0;
   readonly clock: 32768;
   readonly machineCycleHz: 16384;
   write(register: Sm510CodeChip['REG_R'], value: number): void;
   build(record: (sequence: Sm510CycleBuilder) => void): Sm510CycleSequence;
+  compile(sequence: Sm510CycleSequence): Sm510CycleWrite[];
   playCycles(sequence: Sm510CycleSequence): Promise<boolean>;
 }
-interface Sm511CodeChip {
+interface Sm511CodeChip extends BuzzerTimedPlayback<Sm511MelodySequence> {
   readonly id: 'sm511';
   readonly clock: 32768;
+  build(commands: readonly number[] | Uint8Array): Sm511MelodySequence;
+  compile(sequence: Sm511MelodySequence): Sm511MelodySlot[];
   playMelody(commands: readonly number[] | Uint8Array): Promise<boolean>;
   stopMelody(): void;
 }
@@ -85,8 +109,13 @@ function checkChannel(channel) {
 
 const patternNote = note => note === null ? null : buzzerMidi(note);
 
+function withTimedPlayback(chip, capability) {
+	Object.defineProperty(chip, '_timedOperations', { value: capability, configurable: true });
+	return Object.assign(chip, { schedule: capability.schedule, clearSchedule: capability.clearSchedule });
+}
+
 export function setupBuzzerCode({
-	workspace, performance, ensureAudio, now, sequence, r1, melody, setStatus, onExpandedChange, onViewChange,
+	workspace, performance, ensureAudio, now, sequence, r1, melody, scheduler, setStatus, onExpandedChange, onViewChange,
 	onRunRequest, onStopRequest, onPlaybackChange,
 }) {
 	const { project, files } = workspace;
@@ -122,12 +151,28 @@ export function setupBuzzerCode({
 		};
 	}
 	const legacy = { id: 'lcd-buzzer', ...performanceMethods(legacyOwner) };
-	const sm511 = {
+	const sm510Timed = scheduler.createClient({
+		channel: 'sm510',
+		prepare(plan, repeatSeconds) {
+			const timeline = readSm510CycleSequence(plan);
+			const mode = timeline.id === 'sm510-direct' ? DIRECT_R : DK52_R;
+			return r1.prepareScheduled(timeline, mode, repeatSeconds);
+		},
+	});
+	const sm511Timed = scheduler.createClient({
+		channel: 'sm511',
+		prepare(plan, repeatSeconds) {
+			return melody.prepareScheduled(readSm511MelodySequence(plan), repeatSeconds);
+		},
+	});
+	const sm511 = withTimedPlayback({
 		id: 'sm511',
 		get clock() { return 32768; },
+		build: buildSm511MelodySequence,
+		compile: compileSm511MelodySequence,
 		playMelody(commands) { return melody.play(validateMelody(commands)); },
 		stopMelody: melody.stop,
-	};
+	}, sm511Timed);
 	const registerClients = new Map();
 	const release = () => {
 		for (const owner of [legacyOwner, sm510Owner]) {
@@ -149,11 +194,11 @@ export function setupBuzzerCode({
 				const core = await r1.prepare();
 				if (!registerClients.has(name)) {
 					const mode = name === 'sm510-direct' ? DIRECT_R : DK52_R;
-					const chip = createSm510CodeChip({
+					const chip = withTimedPlayback(createSm510CodeChip({
 						id: name,
 						write: value => r1.write(value, core, mode),
 						playCycles: plan => r1.playCycles(plan, mode),
-					});
+					}), sm510Timed);
 					if (name === 'sm510') Object.assign(chip, performanceMethods(sm510Owner, name));
 					registerClients.set(name, chip);
 				}

@@ -65,6 +65,9 @@ const chip = await useSoundChip('sm511');
 await chip.playMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 ```
 
+Use [`build()`, `compile()`, and `schedule()`](#named-timed-playback) to
+inspect the ROM timing or reserve playback on the audio clock.
+
 ## Mixer
 
 **Mixer** gives SM510 and SM511 their own level and mute controls.
@@ -156,8 +159,8 @@ same pin. In Direct R, a steady pin level gives no sustained tone.
 
 Use `useSoundChip('sm510')` for the DK-52 divider and
 `useSoundChip('sm510-direct')` for the direct mask. Each client keeps its
-mask regardless of the **Tone source** selector. Both expose
-`write(REG_R, value)`, `build()`, and `playCycles()`.
+mask regardless of the **Tone source** selector. Both expose immediate writes,
+one-shot cycle playback, and [named timed playback](#named-timed-playback).
 
 Open `examples/sm510-r1.js` in **Files** and press **Run** for a DK-52 beep.
 Bit 0 of `REG_R` gates the fixed R1 carrier. Write `0x1` to open the gate
@@ -220,6 +223,68 @@ const pulse = direct.build(b => {
 });
 await direct.playCycles(pulse);
 ```
+
+## Named timed playback
+
+SM510 and SM511 Code clients share the `build()`, `compile()`, `schedule()`,
+and `clearSchedule()` workflow. `build()` prepares the program and
+`await chip.compile(plan)` returns a timing trace without changing playback.
+The SM510 trace lists the recorded external R writes in order. Each row has
+`register`, `value`, `machineCycle`, `masterTick`, `offsetSeconds`,
+`operationIndex`, and `writeIndex`. `value` preserves the four-bit write
+operand. The automatic end-of-phrase latch clear is outside the trace.
+The SM511 trace lists `address`, `command`, `masterTick`, `durationTicks`,
+`offsetSeconds`, and `durationSeconds` for each ROM entry. The first Stop
+ends the trace with a zero-duration row.
+On both chips one master tick lasts 1/32,768 second.
+
+The following example reserves a DK-52 beep pattern and an SM511 melody on
+their own Mixer channels. Each phrase takes a quarter of a second and starts
+again every second.
+
+```js
+const sm510 = await useSoundChip('sm510');
+const sm511 = await useSoundChip('sm511');
+
+const pulse = sm510.build(b => {
+  b.atCycle(2).write(sm510.REG_R, 0x1);
+  b.atCycle(1024).write(sm510.REG_R, 0x0);
+  b.atCycle(3074).write(sm510.REG_R, 0x1);
+  b.atCycle(4000).write(sm510.REG_R, 0x0);
+  b.atCycle(4096);
+});
+const melody = sm511.build([0x0d, 0x20, 0x12, 0x01]);
+
+console.table(await sm510.compile(pulse));
+console.table(await sm511.compile(melody));
+await sm510.schedule(pulse, { name: 'pulse', repeatSeconds: 1 });
+await sm511.schedule(melody, { name: 'melody', repeatSeconds: 1 });
+```
+
+`schedule()` resolves when the reservation is accepted. A top-level receipt
+has `staged: true` until the current evaluation commits. Inside a live loop
+the receipt includes `startTime` in AudioContext seconds. Omit `repeatSeconds`
+to play once. The repeat period must be at least the phrase's duration and
+at most 60 seconds. It is independent of BPM and aligned to whole audio
+frames, with room for the complete phrase. Each repeat plays the phrase
+from reset on the browser's `AudioContext` clock.
+
+Each chip can play one timed reservation at a time. A new reservation on
+that chip replaces the current one, even with a different name. `sm510` and
+`sm510-direct` share this reservation. Each plan uses the DK-52 or Direct R
+mode of the client that built it. SM511 can play independently. Playing a key
+or using an immediate playback method on the same chip can interrupt
+scheduled playback. Use
+`await chip.clearSchedule(name)` from the script or loop that owns the
+reservation to cancel a matching name.
+
+Top-level reservations take effect after a successful **Run** or **Apply**.
+On Apply, reusing a name replaces its reservation and omitted top-level
+names are cleared. A failed Apply keeps the previous reservations. A
+reservation made inside `liveLoop()` belongs to that loop. Removing the
+loop or stopping it cancels its reservations. When you keep a loop on Apply,
+its reservation survives removing the `schedule()` call. Cancel it explicitly
+with `clearSchedule()`. **Stop Code** cancels all Code reservations.
 
 ## Native and WASM audio cores
 

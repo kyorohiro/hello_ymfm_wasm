@@ -10,8 +10,9 @@ import {
 	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
 	buildSm510Pulse, connectRChannels, createSm510AudioCore, createRVoice, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
-import { formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label } from './sm511.js';
+import { formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label, sm511MelodyDuration } from './sm511.js';
 import { setupSm511MelodyEditor } from './melody_editor.js';
+import { createTimedSchedule } from './timed-schedule.js';
 
 const byId = id => document.getElementById(id);
 const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=sm511-melody', import.meta.url));
@@ -71,6 +72,9 @@ let sm511ManualPitch = 0x02, sm511LongNote = false, heldRomTone, lastRomCommand;
 const noteLabels = new Map(NOTE_OPTIONS.map(({ value, label }) => [value, label]));
 let pattern = validateBuzzerPattern({ notes: PATTERNS[0].notes, bpm: PATTERNS[0].bpm, gate: .65, volume: .6, loop: true });
 let audio, master, clip = null, pending = null, request = 0, frame = 0;
+const audioTime = () => audio?.currentTime ?? 0;
+// Leave time to submit both sources before their shared audio-clock start.
+const scheduler = createTimedSchedule({ nextStartTime: () => audioTime() + .02 });
 let activeStep = -1, activeR1Step = -1, heldNote = null;
 let heldChip = null, heldToneMode, melodyClip = null, melodyPending = null;
 let workspace, controls;
@@ -103,7 +107,9 @@ function syncTransport() {
 
 function currentR() {
 	if (clip?.r1Plan) {
-		const tick = Math.floor((audio.currentTime - clip.start) * MASTER_CLOCK_HZ);
+		const elapsed = audio.currentTime - clip.start;
+		const position = clip.source.loop && elapsed >= 0 ? elapsed % clip.duration : elapsed;
+		const tick = Math.floor(position * MASTER_CLOCK_HZ);
 		return readRAtTick(clip.r1Plan, tick);
 	}
 	if (clip?.kind === 'sm510') return sm510Gates[activeR1Step] ? 1 : 0;
@@ -293,6 +299,25 @@ function renderSequence(sampleRate, chip, mode, core) {
 	return renderSm510Notes(core, mode, notes.map(targetHz), { stepSeconds: 30 / bpm, gate, sampleRate });
 }
 
+function renderCycleSequence(core, plan, mode) {
+	const direct = mode === DIRECT_R, { sampleRate } = audio;
+	return {
+		samples: renderR1Timeline(plan, sampleRate, direct ? core.renderDirectR1 : core.renderR1),
+		r2Samples: renderR1Timeline(plan, sampleRate, direct ? core.renderDirectR2 : core.renderR2),
+	};
+}
+
+function createPlaybackBuffer(samples, r2Samples, repeatSeconds) {
+	const { sampleRate } = audio;
+	const frames = repeatSeconds === undefined ? samples.length
+		: Math.max(samples.length, Math.round(repeatSeconds * sampleRate));
+	if (!frames) return null;
+	const buffer = audio.createBuffer(r2Samples ? 2 : 1, frames, sampleRate);
+	buffer.copyToChannel(samples, 0);
+	if (r2Samples) buffer.copyToChannel(r2Samples, 1);
+	return buffer;
+}
+
 async function start(kind, { owner, loopOverride, r1Plan, r1Mode, chip = r1Mode ? 'sm510' : selectedChip }) {
 	cancelPendingChipWork(chip);
 	performance.cancelPending(chip);
@@ -305,58 +330,18 @@ async function start(kind, { owner, loopOverride, r1Plan, r1Mode, chip = r1Mode 
 		const core = await prepareSm510();
 		if (token !== request) return false;
 		const { sampleRate } = audio;
-		let rendered, r2Samples;
+		let rendered;
 		if (kind === 'sm510')
-			rendered = renderR1Pattern(sm510Gates, { stepMs: Number(sm510StepTime.value), sampleRate: audio.sampleRate }, core.renderR1);
-		else if (r1Plan) {
-			const direct = r1Mode === DIRECT_R;
-			rendered = { samples: renderR1Timeline(r1Plan, sampleRate, direct ? core.renderDirectR1 : core.renderR1) };
-			r2Samples = renderR1Timeline(r1Plan, sampleRate, direct ? core.renderDirectR2 : core.renderR2);
-		} else rendered = renderSequence(sampleRate, chip, mode, core);
-		const { samples } = rendered;
-		const buffer = audio.createBuffer(r2Samples ? 2 : 1, samples.length, sampleRate);
-		buffer.copyToChannel(samples, 0);
-		if (r2Samples) buffer.copyToChannel(r2Samples, 1);
-		const gain = audio.createGain(), source = audio.createBufferSource();
-		source.buffer = buffer;
-		source.loop = kind === 'pattern' && (loopOverride ?? pattern.loop);
-		const previous = chip === 'sm511' ? stopMelody() : chip === 'sm510' ? releaseR() : undefined;
-		const time = Math.max(releaseClip() ?? 0, releaseClipAndKeys(chip), previous ?? 0, handoffEnd);
-		const current = {
-			kind, source, gain, owner, loopOverride, r1Plan, r1Mode, chip, toneMode: mode,
-			start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames, boundaries: rendered?.boundaries,
-		};
-		source.connect(gain);
-		const splitter = r2Samples ? connectRChannels(gain, audio, rMonitorOutputs) : null;
-		if (!splitter) gain.connect(mix[chip].output);
-		source.onended = () => {
-			source.disconnect();
-			gain.disconnect();
-			splitter?.disconnect();
-			if (clip !== current) return;
-			clip = null;
-			cancelAnimationFrame(frame);
-			showStep(-1);
-			showR1Step(-1);
-			if (r1Plan) drawWave();
-			status.textContent = kind === 'pattern' ? 'Pattern finished' : 'Ready';
-			syncTransport();
-		};
-		source.start(time);
-		clip = current;
+			rendered = renderR1Pattern(sm510Gates, { stepMs: Number(sm510StepTime.value), sampleRate }, core.renderR1);
+		else if (r1Plan) rendered = renderCycleSequence(core, r1Plan, r1Mode);
+		else rendered = renderSequence(sampleRate, chip, mode, core);
+		const buffer = createPlaybackBuffer(rendered.samples, rendered.r2Samples);
 		pending = null;
-		if (kind === 'pattern') {
-			status.textContent = source.loop ? 'Looping pattern' : 'Playing pattern';
-			animate();
-		} else if (kind === 'sm510') {
-			status.textContent = 'Playing R1 demo';
-			animate();
-		} else {
-			status.textContent = 'Playing SM510 cycle sequence';
-			animate();
-			drawWave();
-		}
-		syncTransport();
+		playPreparedClip(kind, {
+			owner, loopOverride, r1Plan, r1Mode, chip, mode, buffer, rendered,
+			loop: kind === 'pattern' && (loopOverride ?? pattern.loop),
+			notBefore: scheduler.stop(chip),
+		});
 		return true;
 	} catch (error) {
 		if (token !== request) return false;
@@ -367,6 +352,45 @@ async function start(kind, { owner, loopOverride, r1Plan, r1Mode, chip = r1Mode 
 		if (kind === 'sm510-plan') throw error;
 		return false;
 	}
+}
+
+function playPreparedClip(kind, {
+	owner, loopOverride, r1Plan, r1Mode, chip, mode, buffer, loop, rendered, notBefore = 0,
+}) {
+	const gain = audio.createGain(), source = audio.createBufferSource();
+	source.buffer = buffer;
+	source.loop = loop;
+	const previous = chip === 'sm511' ? stopMelody() : releaseR();
+	const time = Math.max(releaseClip() ?? 0, releaseClipAndKeys(chip), previous ?? 0, handoffEnd, notBefore);
+	const current = {
+		kind, source, gain, owner, loopOverride, r1Plan, r1Mode, chip, toneMode: mode,
+		start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames, boundaries: rendered?.boundaries,
+	};
+	source.connect(gain);
+	const splitter = r1Plan ? connectRChannels(gain, audio, rMonitorOutputs) : null;
+	if (!splitter) gain.connect(mix[chip].output);
+	source.onended = () => {
+		source.disconnect();
+		gain.disconnect();
+		splitter?.disconnect();
+		if (clip !== current) return;
+		clip = null;
+		cancelAnimationFrame(frame);
+		showStep(-1);
+		showR1Step(-1);
+		if (r1Plan) drawWave();
+		status.textContent = kind === 'pattern' ? 'Pattern finished' : 'Ready';
+		syncTransport();
+	};
+	source.start(time);
+	clip = current;
+	if (kind === 'pattern') status.textContent = source.loop ? 'Looping pattern' : 'Playing pattern';
+	else if (kind === 'sm510') status.textContent = 'Playing R1 demo';
+	else status.textContent = source.loop ? 'Looping SM510 cycle sequence' : 'Playing SM510 cycle sequence';
+	animate();
+	if (r1Plan) drawWave();
+	syncTransport();
+	return time;
 }
 
 function releaseClipAndKeys(chip) {
@@ -390,8 +414,9 @@ function releaseR() {
 function writeSm510R(value, core, mode) {
 	cancelPendingChipWork('sm510');
 	performance.cancelPending('sm510');
+	const scheduledEnd = scheduler.stop('sm510');
 	const previous = mode !== rMode ? releaseR() : undefined;
-	const begin = audio ? Math.max(releaseClipAndKeys('sm510'), previous ?? 0, handoffEnd) : 0;
+	const begin = audio ? Math.max(releaseClipAndKeys('sm510'), previous ?? 0, scheduledEnd ?? 0, handoffEnd) : 0;
 	rValue = value;
 	rMode = mode;
 	if (value && !rVoice) {
@@ -515,38 +540,18 @@ async function playMelody(commands, owner) {
 		const core = await prepareSm510();
 		if (melodyPending !== token) return false;
 		const samples = renderSm511Melody(core, commands, audio.sampleRate);
-		const previous = releaseMelody();
+		const buffer = createPlaybackBuffer(samples);
+		const scheduledEnd = scheduler.stop('sm511');
 		if (!samples.length) {
+			releaseMelody();
 			melodyPending = null;
 			sm511Status.textContent = 'Stopped';
 			syncTransport();
 			drawWave();
 			return false;
 		}
-		const source = audio.createBufferSource(), gain = audio.createGain();
-		source.buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
-		source.buffer.copyToChannel(samples, 0);
-		source.connect(gain);
-		gain.connect(mix.sm511.output);
-		const heldUntil = heldChip === 'sm511' ? audio.currentTime + transportRelease : audio.currentTime;
-		if (heldChip === 'sm511') performance.stopAll();
-		const start = Math.max(heldUntil, previous ?? 0, stopPlayback(undefined, { chip: 'sm511' }) ?? 0, handoffEnd);
-		const current = { source, gain, owner };
-		source.onended = () => {
-			source.disconnect();
-			gain.disconnect();
-			if (melodyClip !== current) return;
-			melodyClip = null;
-			sm511Status.textContent = 'Melody finished';
-			syncTransport();
-			drawWave();
-		};
-		source.start(start);
-		melodyClip = current;
+		playPreparedMelody(buffer, owner, false, scheduledEnd);
 		melodyPending = null;
-		sm511Status.textContent = 'Playing melody';
-		syncTransport();
-		drawWave();
 		return true;
 	} catch (error) {
 		if (melodyPending !== token) return false;
@@ -555,6 +560,74 @@ async function playMelody(commands, owner) {
 		syncTransport();
 		throw error;
 	}
+}
+
+function playPreparedMelody(buffer, owner, loop = false, notBefore = 0) {
+	const source = audio.createBufferSource(), gain = audio.createGain();
+	source.buffer = buffer;
+	source.loop = loop;
+	source.connect(gain);
+	gain.connect(mix.sm511.output);
+	const previous = releaseMelody();
+	const start = Math.max(releaseClipAndKeys('sm511'), previous ?? 0, handoffEnd, notBefore);
+	const current = { source, gain, owner };
+	source.onended = () => {
+		source.disconnect();
+		gain.disconnect();
+		if (melodyClip !== current) return;
+		melodyClip = null;
+		sm511Status.textContent = 'Melody finished';
+		syncTransport();
+		drawWave();
+	};
+	source.start(start);
+	melodyClip = current;
+	sm511Status.textContent = loop ? 'Looping melody' : 'Playing melody';
+	syncTransport();
+	drawWave();
+	return start;
+}
+
+async function prepareScheduledCycles(r1Plan, r1Mode, repeatSeconds) {
+	await ensureAudio();
+	const core = await prepareSm510();
+	const { samples, r2Samples } = renderCycleSequence(core, r1Plan, r1Mode);
+	const duration = r1Plan.end / MASTER_CLOCK_HZ;
+	const buffer = createPlaybackBuffer(samples, r2Samples, repeatSeconds);
+	return {
+		duration,
+		play(notBefore) {
+			const chip = 'sm510', owner = Symbol('SM510 schedule');
+			cancelPendingChipWork(chip);
+			performance.cancelPending(chip);
+			const startTime = playPreparedClip('sm510-plan', {
+				owner, r1Plan, r1Mode, chip, mode: r1Mode, buffer, notBefore,
+				loop: repeatSeconds !== undefined,
+			});
+			return { startTime, stop: () => stopPlayback(owner, { chip }) };
+		},
+	};
+}
+
+async function prepareScheduledMelody(commands, repeatSeconds) {
+	await ensureAudio();
+	const core = await prepareSm510();
+	const samples = renderSm511Melody(core, commands, audio.sampleRate);
+	const buffer = samples.length ? createPlaybackBuffer(samples, null, repeatSeconds) : null;
+	return {
+		duration: sm511MelodyDuration(commands),
+		play(notBefore) {
+			const owner = Symbol('SM511 schedule');
+			cancelPendingChipWork('sm511');
+			performance.cancelPending('sm511');
+			if (!buffer) {
+				stopMelody();
+				return { startTime: notBefore, stop: () => {} };
+			}
+			const startTime = playPreparedMelody(buffer, owner, repeatSeconds !== undefined, notBefore);
+			return { startTime, stop: () => stopMelody(owner) };
+		},
+	};
 }
 
 function restartPattern() {
@@ -767,8 +840,9 @@ const performance = setupBuzzerPerformance({
 		return { buffer, toneMode: mode, halfCycles, startup: plan.loopStart / MASTER_CLOCK_HZ };
 	},
 	onBeforeNote(chip) {
+		const scheduledEnd = scheduler.stop(chip);
 		const end = stopPlayback(undefined, { chip });
-		return Math.max(end ?? 0, chip === 'sm511' ? stopMelody() ?? 0 : 0, handoffEnd);
+		return Math.max(end ?? 0, scheduledEnd ?? 0, chip === 'sm511' ? stopMelody() ?? 0 : 0, handoffEnd);
 	},
 	onNoteChange(note, chip, mode, tone) {
 		heldNote = note;
@@ -915,8 +989,8 @@ function showInputView(view) {
 }
 
 controls = setupBuzzerCode({
-	workspace, performance, ensureAudio, setStatus,
-	now: () => audio?.currentTime ?? 0,
+	workspace, performance, ensureAudio, scheduler, setStatus,
+	now: audioTime,
 	onRunRequest: stopRomEditor,
 	onStopRequest: stopTransports,
 	onPlaybackChange(active) {
@@ -932,10 +1006,12 @@ controls = setupBuzzerCode({
 		prepare: prepareSm510,
 		write: writeSm510R,
 		playCycles: (r1Plan, r1Mode) => start('sm510-plan', { owner: sm510CodeOwner, r1Plan, r1Mode }),
+		prepareScheduled: prepareScheduledCycles,
 		stop: () => stopPlayback(sm510CodeOwner),
 	},
 	melody: {
 		play: commands => playMelody(commands, sm511CodeOwner),
+		prepareScheduled: prepareScheduledMelody,
 		stop: () => stopMelody(sm511CodeOwner),
 	},
 	onExpandedChange(expanded) {

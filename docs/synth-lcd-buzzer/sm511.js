@@ -5,6 +5,8 @@ export const SM511_ROM_STEPS = 256;
 export const SM511_SHORT_SECONDS = 1 / 16;
 export const SM511_DEMO = Object.freeze([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const SHORT_TICKS = SM511_SHORT_SECONDS * MASTER_CLOCK_HZ;
+const melodySequences = new WeakMap();
 
 // Keep the MIDI values in existing projects and map their pitch classes onto
 // the SM511's two ROM octaves. C♯3–C5 maps two octaves up.
@@ -37,6 +39,44 @@ export function validateMelody(commands) {
 	return Uint8Array.from(commands);
 }
 
+function getMelodySequence(plan) {
+	const commands = melodySequences.get(plan);
+	if (!commands) throw new TypeError('Provide an SM511 melody sequence from build().');
+	return commands;
+}
+
+export function buildSm511MelodySequence(commands) {
+	const words = validateMelody(commands);
+	const plan = Object.freeze({ commandCount: words.length });
+	melodySequences.set(plan, words);
+	return plan;
+}
+
+export function readSm511MelodySequence(plan) {
+	return getMelodySequence(plan).slice();
+}
+
+function commandDurationTicks(command) {
+	if ((command & 0xf) === 1) return 0;
+	return command & 0x20 ? 2 * SHORT_TICKS : SHORT_TICKS;
+}
+
+export function compileSm511MelodySequence(plan) {
+	const trace = [];
+	let masterTick = 0;
+	for (const [address, command] of getMelodySequence(plan).entries()) {
+		const durationTicks = commandDurationTicks(command);
+		trace.push({
+			address, command, masterTick, durationTicks,
+			offsetSeconds: masterTick / MASTER_CLOCK_HZ,
+			durationSeconds: durationTicks / MASTER_CLOCK_HZ,
+		});
+		if (!durationTicks) break;
+		masterTick += durationTicks;
+	}
+	return trace;
+}
+
 export function formatSm511MelodyCode(commands) {
 	const melody = validateMelody(commands);
 	const lines = [];
@@ -48,13 +88,18 @@ export function formatSm511MelodyCode(commands) {
 	return `const sm511 = await useSoundChip("sm511");\nawait sm511.playMelody([\n${lines.join('\n')}\n]);\n`;
 }
 
-export function renderSm511Melody(core, commands, sampleRate) {
-	let units = 0;
+export function sm511MelodyDuration(commands) {
+	let ticks = 0;
 	for (const command of commands) {
-		if ((command & 0xf) === 1) break;
-		units += (command & 0x20) ? 2 : 1;
+		const durationTicks = commandDurationTicks(command);
+		if (!durationTicks) break;
+		ticks += durationTicks;
 	}
-	const frames = Math.ceil(units * SM511_SHORT_SECONDS * sampleRate);
+	return ticks / MASTER_CLOCK_HZ;
+}
+
+export function renderSm511Melody(core, commands, sampleRate) {
+	const frames = Math.ceil(sm511MelodyDuration(commands) * sampleRate);
 	return frames ? core.renderSm511Melody(commands, frames, sampleRate) : new Float32Array();
 }
 

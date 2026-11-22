@@ -5,14 +5,15 @@ import { buzzerCodeDeclarations } from './code.js';
 import {
 	DIRECT_R, DK52_R, MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, MAX_PULSE_HALF_CYCLES, MIN_PULSE_HALF_CYCLES,
 	R1_DIVISOR, R1_HZ, buildSm510Pulse,
-	createSm510AudioCore, createSm510CodeChip, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
+	createSm510AudioCore, createSm510CodeChip, directPitchHz, readRAtTick, readSm510CycleSequence,
+	renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
 
 const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
 const core = createSm510AudioCore(instance.exports);
 const render = core.renderR1;
 
-test('Code declarations expose the note client and both R output masks', () => {
+test('Code declarations expose the note, R output, and timed playback clients', () => {
 	const types = buzzerCodeDeclarations('');
 	assert.match(types, /'lcd-buzzer': BuzzerCodeChip/);
 	assert.match(types, /sm510: Sm510CodeChip<'sm510'> & BuzzerPerformance/);
@@ -20,6 +21,10 @@ test('Code declarations expose the note client and both R output masks', () => {
 	assert.match(types, /readonly REG_R: 0/);
 	assert.match(types, /noteOn\(channel: typeof CH1/);
 	assert.match(types, /atCycle\(machineCycle: number\)/);
+	assert.match(types, /compile\(sequence: Sm510CycleSequence\): Sm510CycleWrite\[\]/);
+	assert.match(types, /compile\(sequence: Sm511MelodySequence\): Sm511MelodySlot\[\]/);
+	assert.match(types, /schedule\(sequence: Sequence, options: BuzzerScheduleOptions\)/);
+	assert.match(types, /clearSchedule\(name: string\): Promise<boolean>/);
 });
 
 test('DK-52 R1 uses the same 4,096 Hz carrier at different step times and browser sample rates', () => {
@@ -166,6 +171,34 @@ test('cycle sequences place writes at exact master ticks without executing instr
 	assert.throws(() => chip.build(b => b.atCycle(3).atCycle(2)), /nondecreasing/);
 	assert.throws(() => chip.build(async b => b.atCycle(3)), /synchronous/);
 	assert.throws(() => chip.playCycles({ machineCycles: 6 }), /from build/);
+});
+
+test('SM510 compilation preserves authored write order and keeps playback data detached', () => {
+	const direct = createSm510CodeChip({ id: 'sm510-direct' });
+	const dk52 = createSm510CodeChip({});
+	const plan = direct.build(b => {
+		b.atCycle(2).write(direct.REG_R, 3).write(direct.REG_R, 0xe);
+		b.atCycle(6).write(direct.REG_R, 0);
+	});
+	assert(Object.isFrozen(plan));
+	const expected = [
+		{ offsetSeconds: 4 / MASTER_CLOCK_HZ, machineCycle: 2, masterTick: 4, register: 0, value: 3, operationIndex: 0, writeIndex: 0 },
+		{ offsetSeconds: 4 / MASTER_CLOCK_HZ, machineCycle: 2, masterTick: 4, register: 0, value: 14, operationIndex: 1, writeIndex: 0 },
+		{ offsetSeconds: 12 / MASTER_CLOCK_HZ, machineCycle: 6, masterTick: 12, register: 0, value: 0, operationIndex: 2, writeIndex: 0 },
+	];
+	const trace = direct.compile(plan);
+	assert.deepEqual(trace, expected);
+	trace[0].value = 0;
+	const { id, end, writes } = readSm510CycleSequence(plan, direct);
+	assert.equal(id, 'sm510-direct');
+	assert.equal(end, 12);
+	assert.deepEqual([...writes], [4, 3, 4, 14, 12, 0, 12, 0]);
+	writes.fill(0);
+	assert.deepEqual(direct.compile(plan), expected);
+	assert.deepEqual([...readSm510CycleSequence(plan).writes], [4, 3, 4, 14, 12, 0, 12, 0]);
+	assert.throws(() => readSm510CycleSequence(plan, dk52), /from build/);
+	assert.throws(() => dk52.compile(plan), /from build/);
+	assert.throws(() => dk52.playCycles(plan), /from build/);
 });
 
 test('direct note half-periods fit executable SM510 instruction loops', () => {
