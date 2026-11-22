@@ -42,7 +42,7 @@ nav a:hover { text-decoration: underline; }
 	background: repeating-linear-gradient(90deg, #65594a 0 2px, #c2b39f 3px 6px, #948473 8px 11px);
 	box-shadow: inset 0 2px 2px #33231780;
 }
-.sequencer { border-radius: 14px; padding: 17px 18px 12px; background: var(--cream); }
+.sequencer { padding: 2px 0 0; }
 .section-header, .transport { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .section-header { justify-content: space-between; }
 .section-header h2 { margin: 0; font-size: 1.27rem; letter-spacing: -.025em; }
@@ -94,8 +94,6 @@ input { accent-color: #9a3c13; }
 .workspace-toolbar { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; }
 .workspace-mode { display: flex; gap: 3px; margin-left: auto; }
 .workspace-mode button[aria-pressed="true"] { color: #fffaf0; background: #963b14; border-color: #783110; }
-.is-code-mode .instrument .sequencer, .is-code-mode .instrument .hinge { display: none; }
-.is-code-mode #waveform { height: 88px; }
 .synth-menu { position: relative; color-scheme: light; }
 .synth-menu summary {
 	list-style: none;
@@ -140,12 +138,15 @@ input { accent-color: #9a3c13; }
 	border-radius: 14px;
 	background: var(--cream);
 }
-.input-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 12px; }
-.input-tabs, .code-transport { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.input-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 12px; }
+.input-tabs, .code-transport { display: flex; align-items: center; gap: 6px; }
+.code-transport { flex-wrap: wrap; }
+.code-transport ~ #synthKeyboardPanel, .code-transport ~ #buzzerStepSequencerPanel { margin-top: 9px; }
 .input-tabs button[aria-selected="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
 #synthCodeExpandButton { font-size: .85rem; }
 #synthCodeExpandIcon::before { content: 'Expand'; }
 #synthCodeExpandButton[aria-pressed="true"] #synthCodeExpandIcon::before { content: 'Restore'; }
+#synthKeyboardPanel:not([hidden]) + #synthCodePanel:not([hidden]) { margin-top: 14px; }
 .keyboard-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 12px; margin: 0 0 9px; font-size: .83rem; }
 .keyboard-settings [role="group"] { display: flex; align-items: center; gap: 5px; }
 .keyboard-settings button { padding: 0 7px; min-width: 30px; min-height: 29px; }
@@ -180,20 +181,47 @@ input { accent-color: #9a3c13; }
 #synthCodeError { color: #842417; }
 .workspace-status { font-size: .85rem; color: #eee0cc; margin: 10px 0 0; }
 
-.buzzer-files-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px; }
-.buzzer-files-heading h2 { margin: 0; font-size: 1.1rem; }
+.buzzer-files-heading,
+.buzzer-files-save-controls,
+.buzzer-files-actions,
+.buzzer-files-extras { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.buzzer-files-heading h2 { flex: 1; margin: 0; font-size: .79rem; letter-spacing: .14em; }
+.buzzer-files-save-controls { padding: 9px 0; margin-bottom: 8px; border-bottom: 1px solid #d9c6ae; }
+.buzzer-files-save-controls label { display: flex; align-items: center; flex-basis: 100%; gap: 5px; font-size: .76rem; }
+.buzzer-files-save-controls input { margin: 0; }
+.buzzer-files-actions { padding-top: 9px; }
+.buzzer-files-extras { margin-top: 8px; }
 .buzzer-files-guide, .chip-guide a { color: #873610; }
 .buzzer-files-guide { font-size: .8rem; }
-.buzzer-files-actions { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
-.buzzer-files button, .buzzer-file-dialog button { min-height: 31px; border-radius: 6px; padding-inline: 6px; font-size: .8rem; }
+.buzzer-files button, .buzzer-file-dialog button, .buzzer-file-context-menu button { min-height: 31px; border-radius: 6px; padding-inline: 6px; font-size: .8rem; }
+.buzzer-cassette-name { margin: 0 0 6px; overflow-wrap: anywhere; font-size: .72rem; color: #5d4c3b; }
 .buzzer-files-tree { min-height: 98px; max-height: 360px; overflow: auto; }
 .buzzer-files-tree ul { list-style: none; margin: 0; padding-left: 12px; }
 .buzzer-files-tree > ul { padding-left: 0; }
-.buzzer-files-tree summary { cursor: pointer; font-size: .82rem; }
+.buzzer-files-tree summary, .buzzer-files-tree .file-tree-root { border-radius: 6px; cursor: pointer; font-size: .82rem; overflow-wrap: anywhere; }
+.buzzer-files-tree summary { padding: 5px 2px; }
+.buzzer-files-tree .file-tree-root { padding: 5px; margin-bottom: 4px; border-bottom: 1px solid #d9c6ae; }
 .buzzer-files-tree .file-entry { display: block; width: 100%; text-align: left; overflow-wrap: anywhere; border-color: transparent; background: transparent; }
-.buzzer-files-tree .file-entry[aria-current="true"], .buzzer-files-tree .file-entry.is-selected { background: #e8dac7; }
+.buzzer-files-tree [aria-current="true"], .buzzer-files-tree .file-entry.is-selected { background: #e8dac7; }
+.buzzer-files-tree .file-drop-target { background: #f0d2a9; outline: 1px solid #a9562e; }
 .buzzer-files-tree [data-modified] { color: #84340e; }
-.buzzer-file-path { overflow-wrap: anywhere; font: .72rem var(--mono); }
+.buzzer-file-unsaved { font-size: .8em; }
+.buzzer-file-path { margin: 8px 0 0; overflow-wrap: anywhere; font: .72rem var(--mono); }
+.buzzer-file-context-menu {
+	color-scheme: light;
+	z-index: 20;
+	display: grid;
+	gap: 3px;
+	min-width: 172px;
+	max-width: 95vw;
+	padding: 6px;
+	border: 1px solid #ad9b83;
+	border-radius: 8px;
+	background: var(--cream);
+	box-shadow: 0 7px 18px #2a1a15aa;
+}
+.buzzer-file-context-menu[hidden] { display: none; }
+.buzzer-file-context-menu button { text-align: left; }
 .buzzer-file-dialog { color: var(--ink); color-scheme: light; background: var(--cream); border: 1px solid #ad9b83; border-radius: 12px; max-width: min(95vw, 400px); }
 .buzzer-file-dialog::backdrop { background: #1d150d9c; }
 .buzzer-file-dialog input:not([type="checkbox"]) { width: 100%; padding: 6px; margin-block: 4px; }
@@ -235,7 +263,7 @@ input { accent-color: #9a3c13; }
 	.scope { padding: 8px; }
 	.lcd { padding: 10px; }
 	#waveform { height: 88px; }
-	.sequencer { padding: 12px 10px 9px; }
+	.input-tabs button { font-size: .85rem; padding-inline: 8px; }
 	.steps { gap: 6px; }
 	.step select { font-size: .82rem; }
 	.settings { gap: 9px; }

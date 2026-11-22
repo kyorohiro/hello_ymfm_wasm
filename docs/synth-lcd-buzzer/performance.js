@@ -173,8 +173,10 @@ export function setupBuzzerPerformance({
 		entries = new Map(layout.entries.map(entry => [entry.key, entry]));
 		buildKeyboard({
 			root: keyboard, rowDefs: layout.rowDefs, layoutEntries: layout.entries, showPitch: false,
-			onPointerDown(event, entry) {
-				if (event.button === 0) press(`pointer:${event.pointerId}`, entry);
+			onPointerDown(event, entry, button) {
+				if (event.button !== 0) return;
+				button.focus({ preventScroll: true });
+				press(`pointer:${event.pointerId}`, entry);
 			},
 			onPointerUp: event => release(`pointer:${event.pointerId}`),
 			onPointerCancel: event => release(`pointer:${event.pointerId}`),

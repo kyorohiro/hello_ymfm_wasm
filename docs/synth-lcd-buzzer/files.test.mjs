@@ -69,9 +69,14 @@ test('adding LCD Buzzer examples saves only new paths and respects a pending del
 	workspace.working.remove('/examples/short-beep.js');
 	const dirty = workspace.getDirtyPaths();
 
-	assert.equal(installBuzzerExamples(workspace), 1);
+	assert.equal(installBuzzerExamples(workspace), 3);
 	assert.match(workspace.saved.get('/examples/trill.js').data, /noteOn/);
 	assert.deepEqual(workspace.working.get('/examples/trill.js').data, workspace.saved.get('/examples/trill.js').data);
+	const registerExample = workspace.saved.get('/examples/sm510-r1.js').data;
+	assert.match(registerExample, /useSoundChip\("sm510"\)/);
+	assert.match(registerExample, /write\(sm510\.REG_R, 0x1\)[\s\S]+write\(sm510\.REG_R, 0x0\)/);
+	assert.equal(workspace.working.get('/examples/sm510-r1.js').data, registerExample);
+	assert.match(workspace.saved.get('/examples/sm510-cycles.js').data, /atCycle\(1640\).*write\(sm510\.REG_R, 0x0\)/);
 	assert.equal(workspace.saved.get('/index.js').data, 'saved user code');
 	assert.equal(workspace.working.get('/index.js').data, 'working user code');
 	assert.equal(workspace.saved.get('/examples/chirp.js').data, 'saved custom chirp');

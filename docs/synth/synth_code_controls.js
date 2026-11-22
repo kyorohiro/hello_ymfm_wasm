@@ -80,10 +80,12 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   }
   function rememberState() {files?.rememberCodeState?.(captureState());}
   function showExpanded(value) {
+    const focused=section.contains(document.activeElement)?document.activeElement:null;
     expanded=Boolean(value)&&(persistentExpanded||mode==='code');
     if(expanded)expandedSlot.append(section);
     else homeAnchor.parentNode.insertBefore(section,homeAnchor.nextSibling);
     expandedSlot.hidden=!expanded;
+    if(focused&&document.activeElement!==focused)focused.focus({preventScroll:true});
     workspace.classList.toggle('is-code-expanded',expanded);
     expandButton.setAttribute('aria-pressed',String(expanded));
     expandButton.setAttribute('aria-label',expanded?'Restore Code':'Maximize Code');
@@ -93,13 +95,15 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     onExpandedChange(expanded);
     monacoEditor?.layout();
   }
-  async function setExpanded(value) {
+  async function setExpanded(value,{focusEditor=true}={}) {
     if(disposed)return false;
-    if(value&&mode!=='code')await setMode('code');
+    if(value&&mode!=='code'&&!await setMode('code',{focusEditor}))return false;
     if(disposed)return false;
     if(value)files?.setVisible?.(true);
     showExpanded(value);
-    if(persistentExpanded&&!expanded&&mode==='keyboard')keyboardTab.focus();else adapter.focus();
+    if(focusEditor) {
+      if(persistentExpanded&&!expanded&&mode==='keyboard')keyboardTab.focus();else adapter.focus();
+    }
     return expanded;
   }
   function showMode(next) {

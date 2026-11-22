@@ -58,40 +58,16 @@
 				</div>
 			</section>
 			<div class="hinge" aria-hidden="true"></div>
-			<section class="sequencer" aria-labelledby="sequencer-title">
-				<div class="section-header">
-					<h2 id="sequencer-title">Step sequencer</h2>
-					<label class="preset">Pattern <select id="preset"></select></label>
-				</div>
-				<ol class="steps" id="steps"></ol>
-				<div class="settings">
-					<label for="tempo">Tempo <output id="tempo-value" for="tempo">120 BPM</output>
-						<input id="tempo" type="range" min="40" max="240" value="120">
-					</label>
-					<label for="gate">Note length <output id="gate-value" for="gate">65%</output>
-						<input id="gate" type="range" min="10" max="100" value="65">
-					</label>
-					<label for="volume">Volume <output id="volume-value" for="volume">60%</output>
-						<input id="volume" type="range" min="0" max="100" value="60">
-					</label>
-				</div>
-				<div class="transport">
-					<button id="play" class="primary" type="button">Play</button>
-					<button id="stop" type="button" disabled>Stop</button>
-					<label class="loop"><input id="loop" type="checkbox" checked> Loop</label>
-					<button id="download" class="download" type="button">Export WAV</button>
-				</div>
-				<p id="status" role="status">Ready</p>
-			</section>
 		</div>
 		<div id="synthWorkspace" class="synth-workspace">
 			<aside id="buzzerFilesPanel" class="buzzer-files" aria-label="Project files" hidden></aside>
 			<div class="performance">
 				<section id="synthInputSection" aria-label="Performance input">
 					<div class="input-heading">
-						<div class="input-tabs" role="tablist" aria-label="Performance input">
+						<div id="buzzerInputTabs" class="input-tabs" role="tablist" aria-label="Performance input">
 							<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
 							<button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+							<button id="buzzerStepSequencerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerStepSequencerPanel" tabindex="-1">Step Sequencer</button>
 						</div>
 						<button id="synthCodeExpandButton" type="button" aria-label="Maximize Code" aria-pressed="false" aria-controls="synthExpandedCodeSlot" hidden><span id="synthCodeExpandIcon" aria-hidden="true"></span></button>
 					</div>
@@ -122,9 +98,36 @@
 							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
 							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
 						</div>
-						<p id="synthCodeEditorNote">Use <code>useSoundChip('lcd-buzzer')</code>. Save before Run or Apply when Auto apply is off.</p>
+						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> for pitched notes or <code>sm510</code> for R register writes. Save before Run or Apply when Auto apply is off.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
 						<pre id="synthCodeLog" class="code-log" aria-label="Code output"></pre>
+					</div>
+					<div id="buzzerStepSequencerPanel" role="tabpanel" aria-labelledby="buzzerStepSequencerTab" hidden>
+						<section class="sequencer" aria-labelledby="sequencer-title">
+							<div class="section-header">
+								<h2 id="sequencer-title">Step sequencer</h2>
+								<label class="preset">Pattern <select id="preset"></select></label>
+							</div>
+							<ol class="steps" id="steps"></ol>
+							<div class="settings">
+								<label for="tempo">Tempo <output id="tempo-value" for="tempo">120 BPM</output>
+									<input id="tempo" type="range" min="40" max="240" value="120">
+								</label>
+								<label for="gate">Note length <output id="gate-value" for="gate">65%</output>
+									<input id="gate" type="range" min="10" max="100" value="65">
+								</label>
+								<label for="volume">Volume <output id="volume-value" for="volume">60%</output>
+									<input id="volume" type="range" min="0" max="100" value="60">
+								</label>
+							</div>
+							<div class="transport">
+								<button id="play" class="primary" type="button">Play</button>
+								<button id="stop" type="button" disabled>Stop</button>
+								<label class="loop"><input id="loop" type="checkbox" checked> Loop</label>
+								<button id="download" class="download" type="button">Export WAV</button>
+							</div>
+							<p id="status" role="status">Ready</p>
+						</section>
 					</div>
 				</section>
 				<div id="synthExpandedCodeSlot" hidden></div>
@@ -159,7 +162,21 @@
 								<button id="sm510Stop" type="button" disabled>Stop R1</button>
 							</div>
 						</section>
-						<p>The demo uses MAME’s DK-52 divider and wiring as a reference. Playback uses a band-limited square wave and short edge fades. The physical piezo and enclosure affect how the board sounds.</p>
+						<p>The demo models the DK-52's digital R1 signal. The physical piezo and enclosure affect how the board sounds.</p>
+						<h3>R1 from Code</h3>
+						<p>Open <strong>Files → examples → sm510-r1.js</strong> and press <strong>Run</strong>. Bit 0 of <code>REG_R</code> gates the fixed R1 carrier. The wait sets the beep length in seconds.</p>
+						<pre id="sm510CodeExample" class="code-log"><code>const sm510 = await useSoundChip("sm510");
+await sm510.write(sm510.REG_R, 0x1);
+await sleep(0.1);
+await sm510.write(sm510.REG_R, 0x0);</code></pre>
+						<h3>CPU cycles and the R latch</h3>
+						<p>At 32,768 Hz, two master-clock ticks make one CPU machine cycle. <code>LAX</code> and <code>ATR</code> each take one machine cycle. An alternating <code>LAX</code> / <code>ATR</code> sequence can change the R latch every two machine cycles, about 122 µs apart. The divider advances every master tick and R1 follows bit 2 while enabled.</p>
+						<p><code>write(REG_R, value)</code> directly changes the 4-bit latch. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets on an audio timeline. Offsets represent when a write takes effect. The timeline starts with R and the divider at zero.</p>
+						<pre class="code-log"><code>const pulse = sm510.build(b =&gt; {
+  b.atCycle(2).write(sm510.REG_R, 0x1);
+  b.atCycle(1640).write(sm510.REG_R, 0x0);
+});
+await sm510.playCycles(pulse);</code></pre>
 						<p>Other SM510 configurations can output R directly from software. SM511 and SM512 have a separate melody controller that plays pitches and lengths from ROM.</p>
 						<h3>Tetorica SM510 Synth</h3>
 						<dl>
@@ -174,7 +191,7 @@
 							<li><strong>Chirp.</strong> <code>chirp.js</code> climbs quickly through a series of pitches.</li>
 							<li><strong>Trill or alarm.</strong> <code>trill.js</code> alternates two pitches, pauses, and repeats.</li>
 						</ul>
-						<p><a href="https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800">MAME DK-52 board</a> · <a href="https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L352-L401">R1 wiring</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510.cpp#L43-L69">SM510 R outputs</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm511.cpp#L76-L131">SM511 melody controller</a></p>
+						<p><a href="https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800">MAME DK-52 board</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510base.h#L69-L75">CPU timing</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510.cpp#L43-L69">SM510 R outputs</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm511.cpp#L76-L131">SM511 melody controller</a></p>
 					</div>
 				</details>
 			</div>

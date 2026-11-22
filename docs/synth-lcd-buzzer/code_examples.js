@@ -58,4 +58,22 @@ for (let phrase = 0; phrase < 2; phrase++) {
 }
 `,
 	},
+	{
+		path: '/examples/sm510-r1.js',
+		data: `const sm510 = await useSoundChip("sm510");
+await sm510.write(sm510.REG_R, 0x1);
+await sleep(0.1);
+await sm510.write(sm510.REG_R, 0x0);
+`,
+	},
+	{
+		path: '/examples/sm510-cycles.js',
+		data: `const sm510 = await useSoundChip("sm510");
+const pulse = sm510.build(b => {
+  b.atCycle(2).write(sm510.REG_R, 0x1);
+  b.atCycle(1640).write(sm510.REG_R, 0x0);
+});
+await sm510.playCycles(pulse);
+`,
+	},
 ];

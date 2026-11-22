@@ -3,6 +3,7 @@ import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
 import { selectCodeHostDeclarations } from '../synth/synth_code_declarations.js';
 import { buzzerMidi } from './buzzer.js';
+import { createSm510CodeChip } from './sm510.js';
 
 export const BUZZER_STARTER = `const buzzer = await useSoundChip("lcd-buzzer");
 setBpm(120);
@@ -39,10 +40,27 @@ interface BuzzerCodeChip {
   playPattern(options?: { loop?: boolean }): Promise<boolean>;
   stopPattern(): void;
 }
-declare function useSoundChip(name: 'lcd-buzzer'): Promise<BuzzerCodeChip>;
+interface Sm510CycleBuilder {
+  atCycle(machineCycle: number): Sm510CycleBuilder;
+  write(register: Sm510CodeChip['REG_R'], value: number): Sm510CycleBuilder;
+}
+interface Sm510CycleSequence {
+  readonly machineCycles: number;
+}
+interface Sm510CodeChip {
+  readonly id: 'sm510';
+  readonly REG_R: 0;
+  readonly clock: 32768;
+  readonly machineCycleHz: 16384;
+  write(register: Sm510CodeChip['REG_R'], value: number): void;
+  build(record: (sequence: Sm510CycleBuilder) => void): Sm510CycleSequence;
+  playCycles(sequence: Sm510CycleSequence): Promise<boolean>;
+}
+type BuzzerCodeChipMap = { 'lcd-buzzer': BuzzerCodeChip; sm510: Sm510CodeChip };
+declare function useSoundChip<Name extends keyof BuzzerCodeChipMap>(name: Name): Promise<BuzzerCodeChipMap[Name]>;
 declare const pg: BuzzerCodeGlobals;
 `;
-const declarations = source => selectCodeHostDeclarations(source, {
+export const buzzerCodeDeclarations = source => selectCodeHostDeclarations(source, {
 	globals, customTypes: types, apiName: 'BuzzerCodeGlobals', banner: 'Tetorica SM510 Synth Code',
 });
 
@@ -52,7 +70,7 @@ function checkChannel(channel) {
 
 const patternNote = note => note === null ? null : buzzerMidi(note);
 
-export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequence, setStatus, onExpandedChange }) {
+export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequence, r1, setStatus, onExpandedChange, onViewChange }) {
 	const { project, files } = workspace;
 	const owner = Symbol('LCD Buzzer Code');
 	const client = {
@@ -84,33 +102,41 @@ export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequ
 		},
 		stopPattern() { sequence.stop(owner); },
 	};
-	const release = () => { performance.noteOff(owner); sequence.stop(owner); };
+	let sm510;
+	const release = () => { performance.noteOff(owner); sequence.stop(owner); r1.stop(); };
 	let controls, runtime;
 	function getRuntime() {
 		runtime ??= createPlaygroundCodeRuntime({
-			supportedSoundChips: ['lcd-buzzer'],
+			supportedSoundChips: ['lcd-buzzer', 'sm510'],
 			ensureReady: ensureAudio,
 			now,
-			useSoundChip: () => client,
+			async useSoundChip(name) {
+				if (name !== 'sm510') return client;
+				const render = await r1.prepare();
+				sm510 ??= createSm510CodeChip({ write: enabled => r1.write(enabled, render), playCycles: r1.playCycles });
+				return sm510;
+			},
 			prepareSource: (...args) => project.prepareSavedSource(...args),
 			readFile: (...args) => project.readSavedFile(...args),
 			onLog: line => controls?.appendLog(line),
-			onState: state => controls?.updateRuntimeState(state),
+			onState(state) {
+				if (state.state === 'error') r1.stop();
+				controls?.updateRuntimeState(state);
+			},
 			beforeStopSoundChips: release,
 			stopSoundChips: release,
 		});
 		return runtime;
 	}
 	controls = setupSynthCodeControls({
-		project, files, getRuntime, setStatus, onExpandedChange,
+		project, files, getRuntime, setStatus, onExpandedChange, onViewChange,
 		getStarterCode: () => BUZZER_STARTER,
 		editorChip: 'lcd-buzzer',
 		journalKey: 'tetorica-lcd-buzzer-pending-code',
-		transformDeclarations: declarations,
+		transformDeclarations: buzzerCodeDeclarations,
 		keepRunningOnKeyboard: true,
 		allowTextFiles: true,
 		writeText: (path, source) => project.writeEditorText(path, source),
-		onModeChange(mode) { if (mode === 'code') performance.stopKeyboard(); },
 	});
 	return controls;
 }

@@ -3,23 +3,28 @@ import { validateBuzzerPattern } from './buzzer.js';
 import { BUZZER_EXAMPLES } from './code_examples.js';
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
 import { isCheckpointPath, transferVirtualFiles } from '../js/tetorica_virtual_files/filesystem.js';
-import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
+import { dirname, normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import { createPlaygroundCassetteZip, loadPlaygroundCassette } from '../playground/playground_cassette.js';
 import { renderFileTree } from '../playground/playground_file_tree.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSynthProjectStore } from '../synth/synth_project_store.js';
+import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
+import { createSpuFileHistory } from '../synth-spu/file_history.js';
 
 const MAX_BYTES = 16 * 1024 * 1024;
 const PATTERN_PATH = '/pattern.json';
 const DRAFT_ROOT = '/.lcd-buzzer-drafts';
 const WORKSPACE_FORMAT = 'tetorica-lcd-buzzer';
+const CASSETTE_FILENAME = 'tetorica-lcd-buzzer.cassette.zip';
 const TEXT_FILE = /\.(?:m?js|json|txt|md|csv|css|html|ya?ml)$/i;
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const encoder = new TextEncoder();
 const inside = (path, root) => path === root || path?.startsWith(root + '/');
 const patternPath = path => path === PATTERN_PATH || /\.lcd-buzzer\.json$/i.test(path);
+const codePath = path => /\.m?js$/i.test(path);
 const basename = path => path.slice(path.lastIndexOf('/') + 1);
+const joinPath = (directory, name) => (directory === '/' ? '' : directory) + '/' + name;
 
 function patternText(value) {
 	return JSON.stringify(validateBuzzerPattern(value), null, 2) + '\n';
@@ -182,6 +187,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	const workspace = createVirtualFileWorkspace(starterFiles());
 	const fs = workspace.working, savedFs = workspace.saved;
 	const store = createSynthProjectStore({ name: 'tetorica-lcd-buzzer-synth-project' });
+	const history = createSpuFileHistory();
 	const expanded = new Map([['/examples', true]]);
 	const moves = new Map();
 	let code, selected = '/index.js', activePattern = PATTERN_PATH;
@@ -189,6 +195,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	let identity = win.crypto.randomUUID?.() ?? `buzzer-${Date.now()}`;
 	let busy = true, restoring = false, persistenceReady = false, saveTimer = null;
 	let applying = false;
+	let renderedTree = '';
 
 	const make = (tag, text) => {
 		const element = doc.createElement(tag);
@@ -201,6 +208,13 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		element.type = 'button';
 		element.id = id;
 		element.addEventListener('click', () => { void Promise.resolve().then(onClick).catch(report); });
+		return element;
+	};
+	const group = (className, label) => {
+		const element = make('div');
+		element.className = className;
+		element.setAttribute('role', 'group');
+		element.setAttribute('aria-label', label);
 		return element;
 	};
 	const project = {
@@ -237,7 +251,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 
 	const heading = make('div');
 	heading.className = 'buzzer-files-heading';
-	const title = make('h2', 'Files');
+	const title = make('h2', 'FILES');
 	const guide = make('a', 'Sound chip');
 	guide.className = 'buzzer-files-guide';
 	guide.href = '#buzzerChipGuide';
@@ -250,18 +264,19 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	auto.type = 'checkbox';
 	auto.id = 'buzzerFilesAutoApply';
 	autoLabel.append(auto);
-	heading.append(title, autoLabel);
-	const actions = make('div');
-	actions.className = 'buzzer-files-actions';
+	heading.append(title);
+	const saveControls = group('buzzer-files-save-controls', 'File saving');
+	const actions = group('buzzer-files-actions', 'File operations');
+	const extras = group('buzzer-files-extras', 'Project and guide');
+	const cassetteName = make('p', CASSETTE_FILENAME);
+	cassetteName.className = 'buzzer-cassette-name';
 	const filePathLabel = make('p');
 	filePathLabel.className = 'buzzer-file-path';
 	filePathLabel.setAttribute('aria-live', 'polite');
 	const tree = make('div');
 	tree.id = 'buzzerFilesTree';
 	tree.className = 'buzzer-files-tree';
-	actions.setAttribute('role', 'group');
-	actions.setAttribute('aria-label', 'Files actions');
-	panel.append(heading, guide, actions, tree, filePathLabel);
+	panel.append(heading, saveControls, cassetteName, tree, actions, filePathLabel, extras);
 
 	const nameDialog = make('dialog');
 	nameDialog.className = 'buzzer-file-dialog';
@@ -359,7 +374,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		const editor = code?.captureState?.() ?? codeState;
 		return {
 			format: WORKSPACE_FORMAT, version: 1, id: identity, workspace: workspace.snapshot(),
-			moves: [...moves], activePattern, selected, pattern: validateBuzzerPattern(getPattern()),
+			moves: [...moves], activePattern, selected: selected === '/' ? null : selected, pattern: validateBuzzerPattern(getPattern()),
 			codeState: { mode: editor.mode, path: fs.get(editor.path ?? '/')?.type === 'text' ? editor.path : null },
 			filesVisible: !panel.hidden,
 		};
@@ -403,11 +418,20 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		return [...related].filter(candidate => exists(fs, candidate) || exists(savedFs, candidate));
 	}
 
+	function currentFile() {
+		if (selected && selected !== '/' && (exists(fs, selected) || exists(savedFs, selected))) return selected;
+		return code?.isCodeMode?.() ? code.activePath : activePattern;
+	}
+
 	async function save(all = false) {
 		await transact(async () => {
-			const paths = all ? workspace.getDirtyPaths() : relatedPaths(selected ?? code?.activePath ?? activePattern ?? PATTERN_PATH);
-			if (all) workspace.saveAll();
-			else if (paths.length) workspace.saveMany(paths);
+			const path = currentFile();
+			const paths = all ? workspace.getDirtyPaths() : path ? relatedPaths(path) : [];
+			if (all || paths.some(item => workspace.isDirty(item))) {
+				const previous = snapshot();
+				const changed = all ? workspace.saveAll() : workspace.saveMany(paths);
+				if (changed) history.push(previous);
+			}
 			for (const [from, to] of moves)
 				if (all || paths.some(path => inside(from, path) || inside(to, path))) moves.delete(from);
 			const durable = await persistCode();
@@ -417,13 +441,14 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 
 	async function discard() {
 		await transact(async () => {
-			if (!selected) return;
-			const paths = relatedPaths(selected);
+			const before = currentFile();
+			if (!before) return;
+			const paths = relatedPaths(before);
 			if (!paths.length) return;
-			const before = selected;
-			const original = [...moves].find(([, to]) => to === selected)?.[0];
-			workspace.discardMany(paths);
-			selected = exists(fs, original) ? original : exists(fs, selected) ? selected : null;
+			const original = [...moves].find(([, to]) => to === before)?.[0];
+			const previous = snapshot();
+			if (workspace.discardMany(paths)) history.push(previous);
+			selected = exists(fs, original) ? original : exists(fs, before) ? before : null;
 			for (const [from, to] of moves)
 				if (paths.some(path => inside(from, path) || inside(to, path))) moves.delete(from);
 			if (code?.activePath === before && before !== selected) code.pathChanged(before, selected, { preserveExecution: true });
@@ -459,25 +484,41 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		return await code?.openFile?.(path) ?? true;
 	}
 
-	function newCode() {
-		askName('New JavaScript file', '/untitled.js', async path => {
+	function selectedDirectory(path) {
+		return fs.listDirectories().includes(path) ? path : path ? dirname(path) : '/';
+	}
+
+	function reveal(path) {
+		for (let directory = dirname(path); directory !== '/'; directory = dirname(directory))
+			expanded.set(directory, true);
+	}
+
+	function newCode(path = selected) {
+		askName('New JavaScript file', joinPath(selectedDirectory(path), 'untitled.js'), async path => {
 			if (!/\.m?js$/i.test(path)) throw Error('Choose a .js or .mjs filename.');
 			if (exists(fs, path) || exists(savedFs, path)) throw Error('That path already exists.');
+			const previous = snapshot();
 			project.writeEditorText(path, '');
+			history.push(previous);
 			selected = path;
+			reveal(path);
 			setVisible(true);
 			nameDialog.close();
 			await code?.openFile?.(path);
+			await persistCode();
 		});
 	}
 
-	function savePattern() {
-		askName('Save pattern as', '/untitled.lcd-buzzer.json', async path => {
+	function savePattern(path = selected) {
+		askName('Save pattern as', joinPath(selectedDirectory(path), 'untitled.lcd-buzzer.json'), async path => {
 			if (!patternPath(path)) throw Error('Use a .lcd-buzzer.json filename.');
 			if (path !== activePattern && (exists(fs, path) || exists(savedFs, path))) throw Error('That path already exists.');
+			const previous = snapshot();
 			project.writeEditorText(path, patternText(getPattern()));
 			workspace.save(path);
+			history.push(previous);
 			selected = activePattern = path;
+			reveal(path);
 			if (code?.activePath === path) code.reloadFile?.();
 			setVisible(true);
 			await persistCode();
@@ -485,16 +526,38 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		});
 	}
 
-	function transfer(source, destination, copy = false) {
+	function newFolder(path = selected) {
+		askName('New folder', joinPath(selectedDirectory(path), 'New Set'), async path => {
+			if (exists(fs, path) || exists(savedFs, path)) throw Error('That path already exists.');
+			const previous = snapshot();
+			fs.mkdir(path, { recursive: true });
+			history.push(previous);
+			selected = path;
+			reveal(path);
+			expanded.set(path, true);
+			await persistCode();
+			setStatus(`Created ${path}.`);
+		});
+	}
+
+	async function transfer(source, destination, copy = false) {
 		source = userPath(source);
 		destination = userPath(destination);
-		if (source === destination) return;
-		if (activePattern && inside(activePattern, source) && !copy &&
-			!patternPath(destination + activePattern.slice(source.length)))
-			throw Error('Keep the .lcd-buzzer.json extension for an active pattern.');
+		if (source === destination) return false;
+		const sourceFile = fs.get(source);
+		if (!copy && sourceFile && patternPath(source) && !patternPath(destination))
+			throw Error('Keep the .lcd-buzzer.json extension for pattern files.');
+		if (!copy && sourceFile?.type === 'text' && codePath(source) && !codePath(destination))
+			throw Error('Keep a .js or .mjs extension for JavaScript files.');
 		if (exists(savedFs, destination) && !exists(fs, destination))
 			throw Error('A saved file already uses that path.');
+		if (copy) {
+			const all = fs.list();
+			checkSize([...all, ...all.filter(file => inside(file.path, source))]);
+		}
+		const previous = snapshot();
 		transferVirtualFiles(fs, source, destination, { copy });
+		history.push(previous);
 		if (!copy) {
 			if (!workspace.autoSave) {
 				const move = [...moves].find(([, to]) => to === source);
@@ -505,25 +568,55 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 			code?.pathChanged?.(source, destination, { preserveExecution: !workspace.autoSave });
 		}
 		selected = destination;
-		schedulePersist();
+		reveal(destination);
+		await persistCode();
+		setStatus(`${copy ? 'Duplicated' : 'Moved'} to ${destination}.`);
+		return true;
 	}
 
-	function rename() {
-		if (!selected || !exists(fs, selected)) return;
-		const source = selected;
-		askName('Rename or move file', source, path => transfer(source, path));
+	function rename(path = selected) {
+		if (!path || path === '/' || !exists(fs, path)) return;
+		askName('Rename or move file', path, next => transfer(path, next));
 	}
 
-	async function remove() {
-		if (!selected || !exists(fs, selected)) return;
-		const path = selected;
-		if (!win.confirm(`Delete ${path}?`)) return;
-		await transact(() => {
+	async function duplicate(path = selected) {
+		if (!path || path === '/' || !exists(fs, path)) return;
+		await transact(async () => {
+			const file = fs.get(path);
+			const name = basename(path);
+			let extensionStart = name.lastIndexOf('.');
+			if (patternPath(path) && path !== PATTERN_PATH) extensionStart = name.toLowerCase().lastIndexOf('.lcd-buzzer.json');
+			const extension = file && extensionStart > 0 ? name.slice(extensionStart) : '';
+			const newExtension = path === PATTERN_PATH ? '.lcd-buzzer.json' : extension;
+			const base = `${extension ? path.slice(0, -extension.length) : path} copy`;
+			let destination = base + newExtension, index = 2;
+			while (exists(fs, destination) || exists(savedFs, destination)) destination = `${base}-${index++}${newExtension}`;
+			await transfer(path, destination, true);
+			if (file?.type === 'text' && codePath(destination)) await code?.openFile?.(destination);
+		});
+	}
+
+	async function remove(path = selected) {
+		if (!path || path === '/' || !exists(fs, path)) return;
+		await transact(async () => {
+			const previous = snapshot();
 			fs.remove(path, { recursive: true });
+			history.push(previous);
 			code?.pathChanged?.(path, null, { preserveExecution: !workspace.autoSave });
 			if (activePattern && inside(activePattern, path)) activePattern = null;
-			if (!exists(savedFs, path)) selected = null;
-			schedulePersist();
+			selected = exists(savedFs, path) ? path : null;
+			await persistCode();
+			setStatus(`Deleted ${path}.`);
+		});
+	}
+
+	async function undo() {
+		await transact(async () => {
+			const previous = history.peek();
+			if (previous && await replaceProject(previous)) {
+				history.pop();
+				setStatus('Undid file operation.');
+			}
 		});
 	}
 
@@ -542,8 +635,11 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 				incoming.push({ path, data: TEXT_FILE.test(path) ? decoder.decode(bytes) : bytes });
 			}
 			checkSize([...fs.list(), ...incoming]);
+			const previous = snapshot();
 			fs.writeFiles(incoming);
+			history.push(previous);
 			selected = incoming[0].path;
+			reveal(selected);
 			setVisible(true);
 			await persistCode();
 			setStatus(`Imported ${incoming.length} file${incoming.length === 1 ? '' : 's'}.`);
@@ -555,7 +651,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		const url = win.URL.createObjectURL(new win.Blob([bytes], { type: 'application/zip' }));
 		const link = make('a');
 		link.href = url;
-		link.download = 'tetorica-lcd-buzzer.cassette.zip';
+		link.download = CASSETTE_FILENAME;
 		link.click();
 		win.setTimeout(() => win.URL.revokeObjectURL(url), 1000);
 	}
@@ -599,55 +695,100 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	async function newCassette(exportCurrent) {
 		await transact(async () => {
 			const fresh = createVirtualFileWorkspace(starterFiles(), { autoSave: workspace.autoSave });
+			const previous = snapshot();
 			const state = validateProjectSnapshot({
-				...snapshot(), workspace: fresh.snapshot(), activePattern: PATTERN_PATH, selected: '/index.js',
+				...previous, workspace: fresh.snapshot(), activePattern: PATTERN_PATH, selected: '/index.js',
 				codeState: { mode: 'keyboard', path: '/index.js' }, pattern: defaultPattern, moves: [],
 			});
 			if (exportCurrent) downloadCassette();
 			if (await replaceProject(state)) {
+				history.push(previous);
 				newDialog.close();
 				setStatus('New Cassette created. Ready to edit.');
 			}
 		});
 	}
 
-	const newButton = button('buzzerFileNew', 'New JS', newCode);
-	const patternButton = button('buzzerSavePattern', 'Save pattern…', savePattern);
+	const newButton = button('buzzerFileNew', '＋ JS', newCode);
+	const patternButton = button('buzzerSavePattern', '＋ Pattern', savePattern);
+	patternButton.title = 'Save the current pattern as a file';
 	const saveButton = button('buzzerFileSave', 'Save', () => save());
+	saveButton.title = 'Save the current file (Ctrl/Cmd+S)';
+	saveButton.setAttribute('aria-keyshortcuts', 'Control+S Meta+S');
+	const saveAllButton = button('buzzerFileSaveAll', 'Save all', () => save(true));
+	saveAllButton.title = 'Save all unsaved files';
 	const discardButton = button('buzzerFileDiscard', 'Discard', discard);
+	discardButton.title = 'Discard the current file’s unsaved changes';
+	const duplicateButton = button('buzzerFileDuplicate', 'Duplicate', duplicate);
 	const renameButton = button('buzzerFileRename', 'Rename…', rename);
-	const deleteButton = button('buzzerFileDelete', 'Delete…', remove);
+	const deleteButton = button('buzzerFileDelete', 'Delete', remove);
+	const folderButton = button('buzzerFileNewFolder', 'New folder…', newFolder);
+	const undoButton = button('buzzerFileUndo', 'Undo files', undo);
+	undoButton.title = 'Undo the last file operation';
 	const addButton = button('buzzerFileImport', 'Add files…', () => { fileInput.value = ''; fileInput.click(); });
 	const examplesButton = button('buzzerAddExamples', 'Add examples', () => transact(async () => {
+		const previous = snapshot();
 		const count = installBuzzerExamples(workspace);
 		if (count) {
+			history.push(previous);
 			expanded.set('/examples', true);
 			await persistCode();
 			setStatus(`Added ${count} example${count === 1 ? '' : 's'} to /examples.`);
 		} else setStatus('The example paths are already in Files.');
 	}));
-	actions.append(newButton, patternButton, saveButton, discardButton, renameButton, deleteButton, addButton, examplesButton);
+	heading.append(patternButton, newButton);
+	saveControls.append(autoLabel, saveButton, saveAllButton, discardButton);
+	actions.append(duplicateButton, renameButton, deleteButton, folderButton, undoButton);
+	extras.append(addButton, examplesButton, guide);
+
+	const contextActions = [
+		{ id: 'duplicate', label: 'Duplicate', run: duplicate, needsPath: true },
+		{ id: 'rename', label: 'Rename…', run: rename, needsPath: true },
+		{ id: 'delete', label: 'Delete', run: remove, needsPath: true },
+		{ id: 'new', label: 'New pattern…', run: savePattern },
+		{ id: 'code', label: 'New JavaScript file…', run: newCode },
+		{ id: 'folder', label: 'New folder…', run: newFolder },
+	];
+	const contextMenu = installSpuFileContextMenu({
+		root: tree, document: doc, isBusy: () => busy, onError: report,
+		onTarget(path) { selected = path; render(); schedulePersist(); },
+		getActions: path => contextActions.map(({ id, label, needsPath }) => ({
+			id, label, disabled: needsPath && (path === '/' || !exists(fs, path)),
+		})),
+		onAction: (id, path) => contextActions.find(action => action.id === id).run(path),
+	});
+	contextMenu.element.id = 'buzzerFileContextMenu';
+	contextMenu.element.classList.add('buzzer-file-context-menu');
 
 	function render() {
 		const files = fs.list(), directories = fs.listDirectories().filter(path => path !== '/');
 		const dirty = new Set(workspace.getDirtyPaths());
 		const missing = savedFs.list().filter(file => !fs.has(file.path));
-		renderFileTree(tree, [...files, ...missing, ...directories.map(path => ({ path, type: 'directory' }))], {
-			selectedPath: selected, expanded,
-			onOpen: path => { void selectFile(path).catch(report); },
-			onTransfer: (source, destination, copy) => { void transact(() => transfer(source, destination, copy)).catch(report); },
-			onImport: (files, directory) => { void importFiles(files, directory).catch(report); },
-		});
+		const entries = [...files, ...missing, ...directories.map(path => ({ path, type: 'directory' }))];
+		const structure = JSON.stringify(entries.map(({ path, type }) => [path, type]));
+		if (structure !== renderedTree) {
+			renderFileTree(tree, entries, {
+				selectedPath: selected, expanded,
+				onOpen: path => { void selectFile(path).catch(report); },
+				onTransfer: (source, destination, copy) => { void transact(() => transfer(source, destination, copy)).catch(report); },
+				onImport: (files, directory) => { void importFiles(files, directory).catch(report); },
+			});
+			tree.querySelector('.file-tree-root').tabIndex = 0;
+			renderedTree = structure;
+		}
 		for (const node of tree.querySelectorAll('[data-file-path]')) {
 			const path = node.getAttribute('data-file-path');
-			if (node.matches('summary')) node.addEventListener('click', () => {
-				selected = path;
-				filePathLabel.textContent = path;
-				updateActions();
-			});
-			if (node.matches('button') && dirty.has(path)) {
-				node.textContent += ' ●';
-				node.setAttribute('data-modified', '');
+			node.setAttribute('aria-current', String(path === selected));
+			if (node.matches('summary') && expanded.has(path)) node.parentElement.open = expanded.get(path);
+			if (node.matches('button')) {
+				const changed = dirty.has(path), old = node.querySelector('.buzzer-file-unsaved');
+				if (changed && !old) {
+					const dot = make('span', ' ●');
+					dot.className = 'buzzer-file-unsaved';
+					dot.setAttribute('aria-label', 'Unsaved changes');
+					node.append(dot);
+				} else if (!changed) old?.remove();
+				node.toggleAttribute('data-modified', changed);
 			}
 		}
 		filePathLabel.textContent = selected ?? '';
@@ -657,15 +798,19 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	}
 
 	function updateActions() {
-		const selectedExists = exists(fs, selected);
-		const selectionDirty = selected && workspace.isDirty(selected);
-		for (const control of [auto, newButton, patternButton, addButton, examplesButton]) control.disabled = busy;
+		const selectedExists = selected !== '/' && exists(fs, selected);
+		const path = currentFile();
+		const selectionDirty = path && workspace.isDirty(path);
+		for (const control of [auto, newButton, patternButton, folderButton, addButton, examplesButton]) control.disabled = busy;
 		for (const id of ['buzzerMenuNew', 'buzzerMenuImport', 'buzzerMenuAddFiles', 'buzzerMenuExport', 'buzzerMenuSave']) {
 			const control = byId(id);
 			if (control) control.disabled = busy;
 		}
-		saveButton.disabled = discardButton.disabled = busy || !selectionDirty;
-		renameButton.disabled = deleteButton.disabled = busy || !selectedExists;
+		saveButton.disabled = busy || !path;
+		saveAllButton.disabled = busy || !workspace.isDirty();
+		discardButton.disabled = busy || !selectionDirty;
+		duplicateButton.disabled = renameButton.disabled = deleteButton.disabled = busy || !selectedExists;
+		undoButton.disabled = busy || !history.peek();
 	}
 
 	auto.addEventListener('change', () => {
@@ -677,6 +822,28 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 			setStatus(enabled ? 'Auto apply enabled.' : 'Auto apply paused. Save to accept edits.');
 		}).catch(report);
 	});
+	panel.addEventListener('pointerdown', event => {
+		if (event.target.closest('button') && event.button === 0) event.preventDefault();
+	});
+	panel.addEventListener('keydown', event => {
+		if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter', 'Home', 'End'].includes(event.key))
+			event.stopPropagation();
+	});
+	tree.addEventListener('click', event => {
+		if (busy) return;
+		const row = event.target.closest('summary[data-file-path], .file-tree-root');
+		if (!row) return;
+		selected = row.dataset.filePath;
+		if (row.matches('summary')) {
+			// Record the state requested by this click before the native toggle event.
+			expanded.set(selected, !row.parentElement.open);
+		}
+		filePathLabel.textContent = selected;
+		for (const entry of tree.querySelectorAll('[data-file-path]'))
+			entry.setAttribute('aria-current', String(entry.dataset.filePath === selected));
+		updateActions();
+		schedulePersist();
+	});
 	toggle.addEventListener('click', () => setVisible(panel.hidden));
 	fileInput.addEventListener('change', () => { void importFiles([...fileInput.files]).catch(report); });
 	cassetteInput.addEventListener('change', () => {
@@ -685,7 +852,11 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		void transact(async () => {
 			if (file.size > MAX_BYTES) throw Error('Cassette exceeds the 16 MiB limit.');
 			const state = await decodeBuzzerCassette(new Uint8Array(await file.arrayBuffer()));
-			if (await replaceProject(state)) setStatus('Cassette opened. Ready to edit.');
+			const previous = snapshot();
+			if (await replaceProject(state)) {
+				history.push(previous);
+				setStatus('Cassette opened. Ready to edit.');
+			}
 		}).catch(report);
 	});
 	byId('buzzerMenuNew')?.addEventListener('click', () => { if (!busy) newDialog.showModal(); });

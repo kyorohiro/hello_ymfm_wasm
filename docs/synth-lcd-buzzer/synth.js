@@ -4,9 +4,13 @@ import { encodeWav } from '../js/wav.js';
 import { BUZZER_STARTER, setupBuzzerCode } from './code.js';
 import { setupBuzzerWorkspace } from './files.js';
 import { setupBuzzerPerformance } from './performance.js';
-import { GATE_PRESETS, GATE_STEP_COUNT, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ, renderR1Pattern } from './sm510.js';
+import {
+	GATE_PRESETS, GATE_STEP_COUNT, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
+	createR1Renderer, createR1Voice, renderR1Pattern, renderR1Timeline,
+} from './sm510.js';
 
 const byId = id => document.getElementById(id);
+const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm', import.meta.url));
 const tempo = byId('tempo'), gate = byId('gate'), volume = byId('volume'), loop = byId('loop');
 const preset = byId('preset'), play = byId('play'), stop = byId('stop'), status = byId('status');
 const canvas = byId('waveform'), drawing = canvas.getContext('2d');
@@ -20,8 +24,10 @@ const rows = [];
 let audio, master, clip = null, pending = null, request = 0, frame = 0;
 let inspectedStep = 0, activeStep = -1, activeR1Step = -1, heldNote = null;
 let workspace;
+let codeR1, r1Renderer;
 const defaultOwner = Symbol('LCD Buzzer transport');
 const sm510Owner = Symbol('SM510 R1 demo');
+const sm510CodeOwner = Symbol('SM510 Code');
 
 preset.add(new Option('Custom', 'custom'));
 for (const [index, pattern] of PATTERNS.entries()) preset.add(new Option(pattern.name, String(index)));
@@ -30,7 +36,7 @@ function syncTransport() {
 	const playing = clip?.kind === 'pattern' || pending?.kind === 'pattern';
 	const playingR1 = clip?.kind === 'sm510' || pending?.kind === 'sm510';
 	play.disabled = playing;
-	stop.disabled = !clip && !pending;
+	stop.disabled = !clip && !pending && !codeR1?.enabled;
 	loop.disabled = playing;
 	sm510Play.disabled = playingR1 || !sm510Gates.some(Boolean);
 	sm510Stop.disabled = !playingR1;
@@ -41,8 +47,12 @@ function syncTransport() {
 function drawWave() {
 	const step = activeStep < 0 ? inspectedStep : activeStep;
 	const note = heldNote ?? notes[step];
-	const frequency = note === null ? null : 440 * 2 ** ((note - 69) / 12);
-	pitch.textContent = frequency ? `${noteLabels.get(note)} · ${frequency.toFixed(1)} Hz` : 'Rest · silence';
+	const r1 = codeR1?.enabled || clip?.kind === 'sm510' || clip?.kind === 'sm510-plan';
+	const soundingR1 = r1 && (clip?.kind !== 'sm510' || sm510Gates[activeR1Step]);
+	const frequency = r1 ? (soundingR1 ? R1_HZ : null) : note === null ? null : 440 * 2 ** ((note - 69) / 12);
+	pitch.textContent = r1
+		? (soundingR1 ? 'SM510 R1 · 4,096 Hz' : 'SM510 R1 · Off')
+		: frequency ? `${noteLabels.get(note)} · ${frequency.toFixed(1)} Hz` : 'Rest · silence';
 	const { width, height } = canvas.getBoundingClientRect();
 	if (!drawing || !width || !height) return;
 	const scale = window.devicePixelRatio || 1;
@@ -69,13 +79,16 @@ function drawWave() {
 	const left = 7, right = width - 7, center = height / 2;
 	if (frequency) {
 		const sampleRate = 48000;
-		const samples = renderNote(note, { sampleRate });
+		const samples = r1 ? null : renderNote(note, { sampleRate });
 		const start = Math.round(.004 * sampleRate);
 		const count = Math.round(.012 * sampleRate);
-		let y = center - Math.sign(samples[start]) * height * .24;
+		const level = frame => samples
+			? Math.sign(samples[frame])
+			: (Math.floor(frame * R1_HZ * 2 / sampleRate) % 2 === 0 ? -1 : 1);
+		let y = center - level(start) * height * .24;
 		drawing.moveTo(left, y);
 		for (let i = 1; i < count; i++) {
-			const next = center - Math.sign(samples[start + i]) * height * .24;
+			const next = center - level(start + i) * height * .24;
 			if (next === y) continue;
 			const x = left + i * (right - left) / count;
 			drawing.lineTo(x, y);
@@ -103,6 +116,7 @@ function showR1Step(index) {
 	sm510Buttons[activeR1Step]?.removeAttribute('aria-current');
 	activeR1Step = index;
 	sm510Buttons[index]?.setAttribute('aria-current', 'step');
+	drawWave();
 }
 
 function animate() {
@@ -128,6 +142,7 @@ function releaseClip() {
 	previous.source.stop(end);
 	showStep(-1);
 	showR1Step(-1);
+	if (previous.kind === 'sm510-plan') drawWave();
 	return end;
 }
 
@@ -143,29 +158,39 @@ async function ensureAudio() {
 	if (audio.state !== 'running') await audio.resume();
 }
 
+function prepareSm510() {
+	r1Renderer ??= fetchSm510().then(async response => {
+		if (!response.ok) throw new Error(`Unable to load the SM510 audio core (HTTP ${response.status}).`);
+		const { instance } = await WebAssembly.instantiate(await response.arrayBuffer());
+		return createR1Renderer(instance.exports);
+	}).catch(error => { r1Renderer = undefined; throw error; });
+	return r1Renderer;
+}
+
 const renderSequence = sampleRate => renderPattern(notes, {
 	bpm: Number(tempo.value), gate: Number(gate.value) / 100, sampleRate,
 });
 
-async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverride) {
+async function start(kind, { step = inspectedStep, owner = defaultOwner, loopOverride, r1Plan } = {}) {
 	const token = ++request;
 	pending = { kind, owner, loopOverride };
 	syncTransport();
 	try {
 		await ensureAudio();
+		const renderR1 = kind === 'sm510' || kind === 'sm510-plan' ? await prepareSm510() : null;
 		if (token !== request) return false;
-		const rendered = kind === 'sm510'
-			? renderR1Pattern(sm510Gates, { stepMs: Number(sm510StepTime.value), sampleRate: audio.sampleRate })
-			: kind === 'pattern' ? renderSequence(audio.sampleRate) : null;
+		let rendered;
+		if (kind === 'sm510')
+			rendered = renderR1Pattern(sm510Gates, { stepMs: Number(sm510StepTime.value), sampleRate: audio.sampleRate }, renderR1);
+		else if (kind === 'sm510-plan') rendered = { samples: renderR1Timeline(r1Plan, audio.sampleRate, renderR1) };
+		else if (kind === 'pattern') rendered = renderSequence(audio.sampleRate);
 		const samples = rendered?.samples ?? renderNote(notes[step], { sampleRate: audio.sampleRate });
 		const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
 		buffer.copyToChannel(samples, 0);
 		const gain = audio.createGain(), source = audio.createBufferSource();
 		source.buffer = buffer;
 		source.loop = kind === 'pattern' && (loopOverride ?? loop.checked);
-		const heldUntil = heldNote === null ? audio.currentTime : audio.currentTime + .008;
-		performance.stopAll();
-		const time = Math.max(releaseClip() ?? audio.currentTime, heldUntil);
+		const time = Math.max(releaseClipAndKeys(), releaseCodeR1() ?? audio.currentTime);
 		const current = { kind, source, gain, owner, loopOverride, start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames };
 		source.connect(gain);
 		gain.connect(master);
@@ -177,6 +202,7 @@ async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverr
 			cancelAnimationFrame(frame);
 			showStep(-1);
 			showR1Step(-1);
+			if (kind === 'sm510-plan') drawWave();
 			status.textContent = kind === 'pattern' ? 'Pattern finished' : 'Ready';
 			syncTransport();
 		};
@@ -189,6 +215,9 @@ async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverr
 		} else if (kind === 'sm510') {
 			status.textContent = 'Playing R1 demo';
 			animate();
+		} else if (kind === 'sm510-plan') {
+			status.textContent = 'Playing SM510 cycle sequence';
+			drawWave();
 		} else {
 			status.textContent = `Previewing ${noteLabels.get(notes[step]) ?? 'rest'}`;
 			showStep(step);
@@ -201,8 +230,42 @@ async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverr
 		status.textContent = error.message;
 		if (kind === 'sm510') setStatus(error.message);
 		syncTransport();
+		if (kind === 'sm510-plan') throw error;
 		return false;
 	}
+}
+
+function releaseClipAndKeys() {
+	const heldUntil = heldNote === null ? audio.currentTime : audio.currentTime + .008;
+	performance.stopAll();
+	return Math.max(releaseClip() ?? audio.currentTime, heldUntil);
+}
+
+function releaseCodeR1() {
+	if (!codeR1) return;
+	const end = codeR1.dispose();
+	codeR1 = undefined;
+	drawWave();
+	return end;
+}
+
+function writeCodeR1(enabled, render) {
+	if (enabled === Boolean(codeR1?.enabled)) return;
+	if (enabled) {
+		if (pending) {
+			request++;
+			pending = null;
+		}
+		const begin = releaseClipAndKeys();
+		codeR1 ??= createR1Voice(audio, master, render);
+		codeR1.setGate(true, begin);
+		status.textContent = 'Playing SM510 R1';
+	} else {
+		codeR1.setGate(false);
+		if (!clip && !pending) status.textContent = 'Ready';
+	}
+	drawWave();
+	syncTransport();
 }
 
 function stopPlayback(owner) {
@@ -210,15 +273,17 @@ function stopPlayback(owner) {
 		request++;
 		pending = null;
 	}
-	const end = clip && (owner === undefined || clip.owner === owner) ? releaseClip() : undefined;
-	if (!clip && !pending && (end !== undefined || owner === undefined)) status.textContent = 'Stopped';
+	const clipEnd = clip && (owner === undefined || clip.owner === owner) ? releaseClip() : undefined;
+	const r1End = owner === undefined || owner === sm510CodeOwner ? releaseCodeR1() : undefined;
+	const end = clipEnd === undefined ? r1End : Math.max(clipEnd, r1End ?? 0);
+	if (!clip && !pending && !codeR1?.enabled && (end !== undefined || owner === undefined)) status.textContent = 'Stopped';
 	syncTransport();
 	return end;
 }
 
 function restartPattern() {
 	const current = pending ?? clip;
-	if (current?.kind === 'pattern') void start('pattern', inspectedStep, current.owner, current.loopOverride);
+	if (current?.kind === 'pattern') void start('pattern', { owner: current.owner, loopOverride: current.loopOverride });
 }
 
 function getPattern() {
@@ -277,7 +342,7 @@ for (const [index] of notes.entries()) {
 	button.addEventListener('click', () => {
 		inspectedStep = index;
 		drawWave();
-		void start('preview', index);
+		void start('preview', { step: index });
 	});
 	select.addEventListener('change', () => {
 		const updated = notes.slice();
@@ -313,7 +378,7 @@ volume.addEventListener('change', () => workspace.patternChanged());
 loop.addEventListener('change', () => workspace.patternChanged());
 play.addEventListener('click', () => void start('pattern'));
 stop.addEventListener('click', () => stopPlayback());
-sm510Play.addEventListener('click', () => void start('sm510', inspectedStep, sm510Owner));
+sm510Play.addEventListener('click', () => void start('sm510', { owner: sm510Owner }));
 sm510Stop.addEventListener('click', () => stopPlayback(sm510Owner));
 
 byId('sm510Carrier').textContent = `${R1_HZ.toLocaleString('en-US')} Hz`;
@@ -399,26 +464,71 @@ workspace = setupBuzzerWorkspace({
 	getStarterCode: () => BUZZER_STARTER,
 });
 const synthButton = byId('synthWorkspaceSynthButton'), codeButton = byId('synthWorkspaceCodeButton');
+const keyboardPanel = byId('synthKeyboardPanel'), sequencerPanel = byId('buzzerStepSequencerPanel');
+const keyboardTab = byId('synthInputKeyboardTab'), codeTab = byId('synthInputCodeTab');
+const sequencerTab = byId('buzzerStepSequencerTab');
+const inputTabs = [keyboardTab, codeTab, sequencerTab];
+
+function showInputView(view) {
+	const selectedTab = view === 'sequencer' ? sequencerTab : view === 'code' ? codeTab : keyboardTab;
+	for (const tab of inputTabs) {
+		tab.setAttribute('aria-selected', String(tab === selectedTab));
+		tab.tabIndex = tab === selectedTab ? 0 : -1;
+	}
+	sequencerPanel.hidden = view !== 'sequencer';
+	keyboardPanel.hidden = view === 'sequencer';
+	keyboardPanel.setAttribute('role', view === 'code' ? 'region' : 'tabpanel');
+	if (view === 'sequencer') performance.stopKeyboard();
+}
+
 const controls = setupBuzzerCode({
 	workspace, performance, ensureAudio, setStatus,
 	now: () => audio?.currentTime ?? 0,
 	sequence: {
 		getPattern, update: updatePattern,
-		play: (owner, override) => start('pattern', inspectedStep, owner, override),
+		play: (owner, loopOverride) => start('pattern', { owner, loopOverride }),
 		stop: stopPlayback,
 	},
+	r1: {
+		prepare: prepareSm510,
+		write: writeCodeR1,
+		playCycles: r1Plan => start('sm510-plan', { owner: sm510CodeOwner, r1Plan }),
+		stop: () => stopPlayback(sm510CodeOwner),
+	},
 	onExpandedChange(expanded) {
-		document.querySelector('.shell').classList.toggle('is-code-mode', expanded);
 		codeButton.setAttribute('aria-pressed', String(expanded));
 		synthButton.setAttribute('aria-pressed', String(!expanded));
 	},
+	onViewChange: showInputView,
 });
-codeButton.addEventListener('click', () => void controls.setExpanded(true).catch(error => setStatus(error.message)));
+sequencerTab.addEventListener('click', async () => {
+	sequencerTab.focus();
+	try {
+		if (await controls.setMode('keyboard', { focusEditor: false })) {
+			showInputView('sequencer');
+			sequencerTab.focus({ preventScroll: true });
+		}
+	} catch (error) { setStatus(error.message); }
+});
+byId('buzzerInputTabs').addEventListener('keydown', event => {
+	const index = inputTabs.indexOf(event.target);
+	if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+	event.preventDefault();
+	event.stopPropagation();
+	const last = inputTabs.length - 1;
+	const next = event.key === 'Home' ? 0 : event.key === 'End' ? last
+		: (index + (event.key === 'ArrowRight' ? 1 : last)) % inputTabs.length;
+	inputTabs[next].click();
+}, true);
+codeButton.addEventListener('click', async () => {
+	try {
+		if (await controls.setExpanded(true, { focusEditor: false })) codeTab.focus({ preventScroll: true });
+	} catch (error) { setStatus(error.message); }
+});
 synthButton.addEventListener('click', async () => {
 	try {
-		await controls.setExpanded(false);
-		await controls.setMode('keyboard', { focusEditor: false });
-		synthButton.focus();
+		await controls.setExpanded(false, { focusEditor: false });
+		if (await controls.setMode('keyboard', { focusEditor: false })) synthButton.focus({ preventScroll: true });
 	} catch (error) { setStatus(error.message); }
 });
 window.addEventListener('pagehide', () => { stopPerformance(); void controls.stop(); });
