@@ -59,6 +59,15 @@
 			</section>
 			<div class="hinge" aria-hidden="true"></div>
 		</div>
+		<div class="tone-source">
+			<label for="toneSource">Tone source</label>
+			<select id="toneSource" aria-describedby="toneSourceDetail">
+				<option value="direct" selected>SM510 Direct R</option>
+				<option value="dk52">DK-52 Divider</option>
+				<option value="equal">Equal temperament</option>
+			</select>
+			<span id="toneSourceDetail">Pitches use whole SM510 machine cycles.</span>
+		</div>
 		<div id="synthWorkspace" class="synth-workspace">
 			<aside id="buzzerFilesPanel" class="buzzer-files" aria-label="Project files" hidden></aside>
 			<div class="performance">
@@ -98,7 +107,7 @@
 							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
 							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
 						</div>
-						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> for pitched notes or <code>sm510</code> for R register writes. Save before Run or Apply when Auto apply is off.</p>
+						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> to play notes with the selected tone source. For R writes use <code>sm510</code> for DK-52 or <code>sm510-direct</code> for direct output.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
 						<pre id="synthCodeLog" class="code-log" aria-label="Code output"></pre>
 					</div>
@@ -171,7 +180,7 @@ await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);</code></pre>
 						<h3>CPU cycles and the R latch</h3>
 						<p>At 32,768 Hz, two master-clock ticks make one CPU machine cycle. <code>LAX</code> and <code>ATR</code> each take one machine cycle. An alternating <code>LAX</code> / <code>ATR</code> sequence can change the R latch every two machine cycles, about 122 µs apart. The divider advances every master tick and R1 follows bit 2 while enabled.</p>
-						<p><code>write(REG_R, value)</code> directly changes the 4-bit latch. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets on an audio timeline. Offsets represent when a write takes effect. The timeline starts with R and the divider at zero.</p>
+						<p><code>write(REG_R, value)</code> accepts a 4-bit accumulator value. The low two bits drive R1 and R2. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets. The timeline starts with R and the divider at zero.</p>
 						<pre class="code-log"><code>const pulse = sm510.build(b =&gt; {
   b.atCycle(2).write(sm510.REG_R, 0x1);
   b.atCycle(1640).write(sm510.REG_R, 0x0);
@@ -180,12 +189,14 @@ await sm510.playCycles(pulse);</code></pre>
 						<p>Other SM510 configurations can output R directly from software. SM511 and SM512 have a separate melody controller that plays pitches and lengths from ROM.</p>
 						<h3>Tetorica SM510 Synth</h3>
 						<dl>
-							<dt>Voice</dt><dd>The sequencer and keyboard use a software-tuned square wave, C3–C6. The newest note takes over.</dd>
+							<dt>Direct R</dt><dd>R1 is toggled by writes at whole machine cycles. Each half-wave fits a ROM page with <code>LAX</code>, <code>ATR</code>, no-ops and a two-cycle <code>TL</code>. The pulse display shows the resulting pitch.</dd>
+							<dt>DK-52</dt><dd>Each note gates the same 4,096 Hz carrier. Rests close the gate.</dd>
+							<dt>Equal temperament</dt><dd>The comparison source plays software-tuned notes from C3 to C6.</dd>
 							<dt>Sequence</dt><dd>Eight eighth-note steps, 40–240 BPM, with rests and a common note length.</dd>
 							<dt>Software controls</dt><dd>Volume, short fades to reduce clicks, and mono WAV export.</dd>
 						</dl>
 						<h3>Effects to try</h3>
-						<p>Open a script from <strong>Files → examples</strong> and press <strong>Run</strong> to hear each effect.</p>
+						<p>Choose <strong>SM510 Direct R</strong> or <strong>Equal temperament</strong> to hear the pitch changes in these <strong>Files → examples</strong> scripts.</p>
 						<ul>
 							<li><strong>Short beep.</strong> <code>short-beep.js</code> separates two notes with a rest.</li>
 							<li><strong>Chirp.</strong> <code>chirp.js</code> climbs quickly through a series of pitches.</li>

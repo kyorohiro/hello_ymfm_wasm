@@ -130,6 +130,10 @@ input { accent-color: #9a3c13; }
 .synth-menu-panel button { width: 100%; text-align: left; }
 
 .synth-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 14px; color-scheme: light; color: var(--ink); }
+.tone-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; margin: 12px 0 0; font-size: .84rem; }
+.tone-source label { font-weight: 700; }
+.tone-source select { color-scheme: light; }
+#toneSourceDetail { color: #e2d2bb; }
 .synth-workspace:has(#buzzerFilesPanel:not([hidden])) { grid-template-columns: minmax(200px, 255px) minmax(0, 1fr); }
 .buzzer-files, .performance {
 	min-width: 0;

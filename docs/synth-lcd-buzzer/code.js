@@ -3,7 +3,7 @@ import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
 import { selectCodeHostDeclarations } from '../synth/synth_code_declarations.js';
 import { buzzerMidi } from './buzzer.js';
-import { createSm510CodeChip } from './sm510.js';
+import { DIRECT_R, DK52_R, createSm510CodeChip } from './sm510.js';
 
 export const BUZZER_STARTER = `const buzzer = await useSoundChip("lcd-buzzer");
 setBpm(120);
@@ -47,8 +47,8 @@ interface Sm510CycleBuilder {
 interface Sm510CycleSequence {
   readonly machineCycles: number;
 }
-interface Sm510CodeChip {
-  readonly id: 'sm510';
+interface Sm510CodeChip<Id extends 'sm510' | 'sm510-direct' = 'sm510' | 'sm510-direct'> {
+  readonly id: Id;
   readonly REG_R: 0;
   readonly clock: 32768;
   readonly machineCycleHz: 16384;
@@ -56,7 +56,11 @@ interface Sm510CodeChip {
   build(record: (sequence: Sm510CycleBuilder) => void): Sm510CycleSequence;
   playCycles(sequence: Sm510CycleSequence): Promise<boolean>;
 }
-type BuzzerCodeChipMap = { 'lcd-buzzer': BuzzerCodeChip; sm510: Sm510CodeChip };
+type BuzzerCodeChipMap = {
+  'lcd-buzzer': BuzzerCodeChip;
+  sm510: Sm510CodeChip<'sm510'>;
+  'sm510-direct': Sm510CodeChip<'sm510-direct'>;
+};
 declare function useSoundChip<Name extends keyof BuzzerCodeChipMap>(name: Name): Promise<BuzzerCodeChipMap[Name]>;
 declare const pg: BuzzerCodeGlobals;
 `;
@@ -102,19 +106,26 @@ export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequ
 		},
 		stopPattern() { sequence.stop(owner); },
 	};
-	let sm510;
+	const registerClients = new Map();
 	const release = () => { performance.noteOff(owner); sequence.stop(owner); r1.stop(); };
 	let controls, runtime;
 	function getRuntime() {
 		runtime ??= createPlaygroundCodeRuntime({
-			supportedSoundChips: ['lcd-buzzer', 'sm510'],
+			supportedSoundChips: ['lcd-buzzer', 'sm510', 'sm510-direct'],
 			ensureReady: ensureAudio,
 			now,
 			async useSoundChip(name) {
-				if (name !== 'sm510') return client;
-				const render = await r1.prepare();
-				sm510 ??= createSm510CodeChip({ write: enabled => r1.write(enabled, render), playCycles: r1.playCycles });
-				return sm510;
+				if (name === 'lcd-buzzer') return client;
+				const core = await r1.prepare();
+				if (!registerClients.has(name)) {
+					const mode = name === 'sm510-direct' ? DIRECT_R : DK52_R;
+					registerClients.set(name, createSm510CodeChip({
+						id: name,
+						write: enabled => r1.write(enabled, core, mode),
+						playCycles: plan => r1.playCycles(plan, mode),
+					}));
+				}
+				return registerClients.get(name);
 			},
 			prepareSource: (...args) => project.prepareSavedSource(...args),
 			readFile: (...args) => project.readSavedFile(...args),

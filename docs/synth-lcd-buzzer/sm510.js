@@ -6,6 +6,10 @@ export const MACHINE_CYCLE_HZ = MASTER_CLOCK_HZ / TICKS_PER_MACHINE_CYCLE;
 export const R1_DIVISOR = 8;
 export const R1_HZ = MASTER_CLOCK_HZ / R1_DIVISOR;
 export const GATE_STEP_COUNT = 8;
+export const DIRECT_R = 'direct';
+export const DK52_R = 'dk52';
+export const EQUAL_TEMPERAMENT = 'equal';
+export const R_WRITE_CYCLES = 2; // LAX followed by ATR
 const REG_R = 0;
 const EDGE_SECONDS = .008;
 const MAX_MACHINE_CYCLES = 30 * MACHINE_CYCLE_HZ;
@@ -22,10 +26,10 @@ function checkWrite(register, value) {
 		throw new RangeError('REG_R expects a 4-bit integer from 0x0 to 0xF.');
 }
 
-export function createSm510CodeChip({ write, playCycles }) {
+export function createSm510CodeChip({ id = 'sm510', write, playCycles }) {
 	const plans = new WeakMap();
 	return {
-		id: 'sm510',
+		id,
 		get REG_R() { return REG_R; },
 		get clock() { return MASTER_CLOCK_HZ; },
 		get machineCycleHz() { return MACHINE_CYCLE_HZ; },
@@ -109,16 +113,70 @@ export function createR1Voice(context, output, render) {
 	};
 }
 
-export function createR1Renderer({ memory, __heap_base, sm510_render_r1 }) {
+export function createSm510AudioCore({
+	memory, __heap_base, sm510_render_r1, sm510_direct_half_cycles,
+	sm510_render_direct_note, sm510_render_direct_r1,
+}) {
+	if (!(memory instanceof WebAssembly.Memory) || !Number.isInteger(__heap_base?.value) ||
+		[sm510_render_r1, sm510_direct_half_cycles, sm510_render_direct_note, sm510_render_direct_r1]
+			.some(render => typeof render !== 'function')) {
+		throw new Error('The installed SM510 audio core does not support Direct R.');
+	}
 	const start = __heap_base.value;
-	return (writes, frameCount, sampleRate) => {
-		const output = start + writes.byteLength;
-		const bytes = output + frameCount * Float32Array.BYTES_PER_ELEMENT;
+	function reserve(bytes) {
 		if (bytes > memory.buffer.byteLength) memory.grow(Math.ceil((bytes - memory.buffer.byteLength) / 65536));
-		new Uint32Array(memory.buffer, start, writes.length).set(writes);
-		sm510_render_r1(output, frameCount, sampleRate, start, writes.length / 2);
-		return new Float32Array(memory.buffer, output, frameCount).slice();
+	}
+	function r1Renderer(render) {
+		return (writes, frameCount, sampleRate) => {
+			const output = start + writes.byteLength;
+			reserve(output + frameCount * Float32Array.BYTES_PER_ELEMENT);
+			new Uint32Array(memory.buffer, start, writes.length).set(writes);
+			render(output, frameCount, sampleRate, start, writes.length / 2);
+			return new Float32Array(memory.buffer, output, frameCount).slice();
+		};
+	}
+	return {
+		directHalfCycles: sm510_direct_half_cycles,
+		renderR1: r1Renderer(sm510_render_r1),
+		renderDirectR1: r1Renderer(sm510_render_direct_r1),
+		renderDirectNote(halfCycles, frames, sampleRate) {
+			reserve(start + frames * Float32Array.BYTES_PER_ELEMENT);
+			sm510_render_direct_note(start, frames, sampleRate, halfCycles);
+			return new Float32Array(memory.buffer, start, frames).slice();
+		},
 	};
+}
+
+export const directPitchHz = halfCycles => MACHINE_CYCLE_HZ / (2 * halfCycles);
+
+export function renderSm510Notes(core, mode, frequencies, { stepSeconds, gate = 1, sampleRate }) {
+	const stepCycles = MACHINE_CYCLE_HZ * stepSeconds;
+	const end = Math.round(frequencies.length * stepCycles) * TICKS_PER_MACHINE_CYCLE;
+	const writes = [];
+	const write = (cycle, value) => writes.push(cycle * TICKS_PER_MACHINE_CYCLE, value);
+	for (const [step, frequency] of frequencies.entries()) {
+		if (frequency === null) continue;
+		// The first pin change occurs after LAX and ATR finish. At release, the
+		// direct two-page routine leaves R1 low after its last complete period.
+		const on = Math.round(step * stepCycles) + R_WRITE_CYCLES;
+		const off = Math.round((step + gate) * stepCycles);
+		if (off - on < R_WRITE_CYCLES) continue;
+		if (mode === DK52_R) {
+			write(on, 1);
+			write(off, 0);
+		} else {
+			const half = core.directHalfCycles(frequency);
+			if (!half) throw new RangeError('The direct R note needs a positive frequency.');
+			const period = half * 2;
+			for (let high = on; high + period <= off; high += period) {
+				write(high, 1);
+				write(high + half, 0);
+			}
+		}
+	}
+	const render = mode === DK52_R ? core.renderR1 : core.renderDirectR1;
+	const samples = renderR1Timeline({ end, writes: Uint32Array.from(writes) }, sampleRate, render);
+	return { samples, stepFrames: sampleRate * stepSeconds, duration: samples.length / sampleRate };
 }
 
 export function renderR1Timeline({ end, writes }, sampleRate, render) {

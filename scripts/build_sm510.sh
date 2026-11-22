@@ -17,6 +17,7 @@ trap 'rm -rf "$WASM_STAGE"' EXIT
 "$WASM_CXX" --target=wasm32-unknown-unknown "$CORE" \
   -std=c++17 -O2 -ffreestanding -fno-exceptions -fno-rtti -nostdlib \
   -Wl,--no-entry,--export-memory,--export=__heap_base,--export=sm510_output_pins,--export=sm510_render_r1 \
+  -Wl,--export=sm510_direct_half_cycles,--export=sm510_render_direct_note,--export=sm510_render_direct_r1 \
   -o "$WASM_STAGE/sm510.wasm"
 
 if [ -n "$NATIVE_DIR" ]; then

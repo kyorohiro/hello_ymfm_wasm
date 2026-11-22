@@ -14,7 +14,7 @@ const MAX_FRET = 12;
 const KEYBOARD_HINT = 'Play the pads or their matching keys';
 
 /** One software voice with ownership shared by the Code and Keyboard inputs. */
-export function createBuzzerVoice({ ensureAudio, getOutput, onBeforeNote, onNoteChange }) {
+export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, onBeforeNote, onNoteChange }) {
 	let active = null, pending = null, disposed = false;
 	let waveContext, waveform, silenceAt = 0;
 
@@ -41,7 +41,9 @@ export function createBuzzerVoice({ ensureAudio, getOutput, onBeforeNote, onNote
 			await ensureAudio();
 			if (pending !== token || disposed) return false;
 			const { context, master } = getOutput();
-			if (context !== waveContext) {
+			const tone = prepareTone ? await prepareTone(frequency, context) : null;
+			if (pending !== token || disposed) return false;
+			if (!tone && context !== waveContext) {
 				waveform = context.createBuffer(1, PERIOD_FRAMES, context.sampleRate);
 				const samples = waveform.getChannelData(0);
 				samples.fill(.2, 0, PERIOD_FRAMES / 2);
@@ -53,11 +55,11 @@ export function createBuzzerVoice({ ensureAudio, getOutput, onBeforeNote, onNote
 			// The host retires the sequencer before this gate takes ownership.
 			if (pending !== token || disposed) return false;
 			release();
-			const start = Math.max(context.currentTime, silenceAt, previousOutputEnd);
+			const start = Math.max(context.currentTime, silenceAt, previousOutputEnd) + (tone?.startup ?? 0);
 			const source = context.createBufferSource(), gain = context.createGain();
-			source.buffer = waveform;
+			source.buffer = tone?.buffer ?? waveform;
 			source.loop = true;
-			source.playbackRate.value = frequency * PERIOD_FRAMES / context.sampleRate;
+			source.playbackRate.value = tone ? 1 : frequency * PERIOD_FRAMES / context.sampleRate;
 			gain.gain.setValueAtTime(0, start);
 			gain.gain.linearRampToValueAtTime(1, start + ATTACK);
 			source.connect(gain);
@@ -98,7 +100,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, onBeforeNote, onNote
 }
 
 export function setupBuzzerPerformance({
-	document, ensureAudio, getOutput, onBeforeNote = () => {}, onNoteChange = () => {}, onError = () => {},
+	document, ensureAudio, getOutput, prepareTone, onBeforeNote = () => {}, onNoteChange = () => {}, onError = () => {},
 }) {
 	const byId = id => document.getElementById(id), window = document.defaultView;
 	const keyboard = byId('buzzerKeyboard'), panel = byId('synthKeyboardPanel');
@@ -109,7 +111,7 @@ export function setupBuzzerPerformance({
 	const fretboard = createFretboardState();
 	let octave = 1, entries = new Map();
 	const voice = createBuzzerVoice({
-		ensureAudio, getOutput, onBeforeNote,
+		ensureAudio, getOutput, prepareTone, onBeforeNote,
 		onNoteChange(note) {
 			status.textContent = note === null ? KEYBOARD_HINT : `Playing ${labels.get(note)}`;
 			onNoteChange(note);

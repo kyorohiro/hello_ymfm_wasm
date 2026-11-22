@@ -3,16 +3,19 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { buzzerCodeDeclarations } from './code.js';
 import {
-	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
-	createR1Renderer, createSm510CodeChip, renderR1Pattern, renderR1Timeline,
+	DIRECT_R, DK52_R, MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
+	createSm510AudioCore, createSm510CodeChip, directPitchHz, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
 
 const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
-const render = createR1Renderer(instance.exports);
+const core = createSm510AudioCore(instance.exports);
+const render = core.renderR1;
 
-test('Code declarations expose both chip clients and the R register constant', () => {
+test('Code declarations expose the note client and both R output masks', () => {
 	const types = buzzerCodeDeclarations('');
-	assert.match(types, /'lcd-buzzer': BuzzerCodeChip; sm510: Sm510CodeChip/);
+	assert.match(types, /'lcd-buzzer': BuzzerCodeChip/);
+	assert.match(types, /sm510: Sm510CodeChip<'sm510'>/);
+	assert.match(types, /'sm510-direct': Sm510CodeChip<'sm510-direct'>/);
 	assert.match(types, /readonly REG_R: 0/);
 	assert.match(types, /noteOn\(channel: typeof CH1/);
 	assert.match(types, /atCycle\(machineCycle: number\)/);
@@ -79,4 +82,66 @@ test('cycle sequences place writes at exact master ticks without executing instr
 	assert.throws(() => chip.build(b => b.atCycle(3).atCycle(2)), /nondecreasing/);
 	assert.throws(() => chip.build(async b => b.atCycle(3)), /synchronous/);
 	assert.throws(() => chip.playCycles({ machineCycles: 6 }), /from build/);
+});
+
+test('direct note half-periods fit executable SM510 instruction loops', () => {
+	// ROM addresses advance via the SM510 polynomial counter, not linearly.
+	const nextAddress = address => {
+		const bits = address & 63;
+		const feedback = (bits & 1) === ((bits >> 1) & 1) ? 32 : 0;
+		return (address & ~63) | feedback | (bits >> 1);
+	};
+	for (let half = 4; half <= 63; half++) {
+		const rom = new Map();
+		for (const [page, value, branch] of [[0, 1, 0x71], [64, 0, 0x70]]) {
+			let address = page;
+			const program = [0x20 + value, 0x61, ...Array(half - 4).fill(0x00), branch, 0x00];
+			for (const opcode of program) {
+				assert(!rom.has(address));
+				rom.set(address, opcode);
+				address = nextAddress(address);
+			}
+		}
+		let pc = 0, cycle = 0, acc = 0;
+		const writes = [];
+		while (writes.length < 5) {
+			const opcode = rom.get(pc);
+			assert.notEqual(opcode, undefined);
+			pc = nextAddress(pc);
+			cycle++;
+			if ((opcode & 0xf0) === 0x20) acc = opcode & 0xf;
+			else if (opcode === 0x61) writes.push([cycle, acc]);
+			else if (opcode === 0x70 || opcode === 0x71) {
+				const operand = rom.get(pc);
+				assert.equal(operand, 0x00);
+				pc = (opcode & 1) * 64;
+				cycle++;
+			} else assert.equal(opcode, 0x00);
+		}
+		assert.deepEqual(writes, [1, 0, 1, 0, 1].map((value, i) => [2 + i * half, value]));
+		assert.equal(core.directHalfCycles(directPitchHz(half)), half);
+	}
+	assert.equal(core.directHalfCycles(440), 19);
+	assert.equal(directPitchHz(19).toFixed(2), '431.16');
+	assert.equal(core.directHalfCycles(130.81278265), 63);
+	assert.equal(core.directHalfCycles(1046.5022612), 8);
+	assert.equal(core.directHalfCycles(1830), 5);
+});
+
+test('hardware steps and sustained notes share the direct pin waveform at native timing', () => {
+	const stepSeconds = 80 / MACHINE_CYCLE_HZ;
+	const { samples } = renderSm510Notes(core, DIRECT_R, [440, null, 440], { stepSeconds, sampleRate: MASTER_CLOCK_HZ });
+	const half = core.directHalfCycles(440);
+	const loop = core.renderDirectNote(half, half * 4, MASTER_CLOCK_HZ);
+	assert(samples.slice(0, 4).every(sample => sample === 0));
+	assert.deepEqual(samples.slice(4, 4 + loop.length), loop);
+	assert.deepEqual(samples.slice(4 + loop.length, 4 + 2 * loop.length), loop);
+	assert(samples.slice(160, 320).every(sample => sample === 0));
+	assert.deepEqual(samples.slice(324, 324 + loop.length), loop);
+
+	const divider = renderSm510Notes(core, DK52_R, [440, 250], { stepSeconds, sampleRate: MASTER_CLOCK_HZ }).samples;
+	assert.deepEqual(divider.slice(4, 12), new Float32Array([
+		.16, .16, .16, .16, -.16, -.16, -.16, -.16,
+	]));
+	assert.deepEqual(divider.slice(4, 12), divider.slice(164, 172));
 });
