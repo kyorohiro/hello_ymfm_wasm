@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isTwoSfPath, isTwoSfSourcePath } from './2sf_source.js';
 import { listSavedTwoSfSets } from './2sf-project.js';
-import { createTwoSfPlayer } from './2sf-player.js?v=nds-shared-renderer-1';
-import { setupTwoSfLiveView } from './2sf-live-view.js?v=nds-unified-channels-1';
+import { createTwoSfPlayer } from './2sf-player.js?v=nds-2sf-live-edit-1';
+import { createTwoSfWaveformMonitor, setupTwoSfLiveView } from './2sf-live-view.js?v=nds-2sf-live-edit-1';
 import { setupNdsChannelPicker } from './nds-channel-picker.js?v=nds-unified-channels-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
 import { createNdsAudio } from './nds-audio.js?v=nds-shared-renderer-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-shared-renderer-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-2sf-live-edit-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-source-controls-1';
 import { setupNdsSoundCapture } from './nds-sound-capture.js?v=nds-pcm-draw-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
@@ -78,25 +78,40 @@ const liveView = setupTwoSfLiveView({
 	onAuditionChange: () => renderLive(player.getState()),
 	onCapture: captureToSynth,
 });
+const referenceWaveform = createTwoSfWaveformMonitor({
+	readWaveform: player.readLiveWaveform,
+	onChange: () => { if (!disposing) renderLive(player.getState()); },
+});
 
 const isReferenceChannel = (state, channel) => channel >= 0 && (state.phase === 'playing' || state.phase === 'paused');
 
-function canObserveCodeChannel() {
+function canObserveInstrument() {
 	return !disposing && !document.hidden && instrument.getClientRects().length > 0;
 }
 
 function renderChannelInstrument(kind, channel, state, extra = {}) {
 	const label = kind ? `${kind === 'reference' ? '2SF' : 'Code'} · CH${channel + 1}` : 'Synth instrument';
-	const { phase, onEdit, preset } = extra;
+	const { phase, onEdit, preset, waveform } = extra;
 	const description = kind ? [
 		phase ?? 'Live',
 		state ? (state.active ? 'Active' : 'Idle') : 'Waiting for channel data…',
-		kind === 'reference' && state ? 'Read only' : '',
+		kind === 'reference' && state ? (onEdit ? 'Channel editing' : 'View only') : '',
 	].filter(Boolean).join(' · ') : '';
 	if (instrumentTitle.textContent !== label) instrumentTitle.textContent = label;
 	if (instrumentStatus.textContent !== description) instrumentStatus.textContent = description;
 	instrumentStatus.hidden = !description;
-	keyboard.setChannelView(kind ? { kind, channel, state, preset, onEdit, phase } : null);
+	keyboard.setChannelView(kind ? { kind, channel, state, preset, waveform, onEdit, phase } : null);
+}
+
+async function editReferenceChannel(channel, patch) {
+	try { await player.editChannel(channel, patch); }
+	catch (error) { if (error.name !== 'AbortError') report(error); }
+	if (!disposing) renderLive(player.getState());
+}
+
+function pausedChannelSettings(voice) {
+	const { volume, pan, divider, duty, sampleRate } = voice;
+	return { volume, pan, divider, duty, sampleRate };
 }
 
 function updateCodeChannelView(channel) {
@@ -123,12 +138,12 @@ function updateCodeChannelView(channel) {
 		};
 		view.poll = async () => {
 			view.timer = 0;
-			if (codeChannelView !== view || !canObserveCodeChannel()) return;
+			if (codeChannelView !== view || !canObserveInstrument()) return;
 			view.pending = true;
 			const revision = view.revision;
 			try {
 				const state = await target.getState(channel);
-				if (codeChannelView === view && revision === view.revision && canObserveCodeChannel()) {
+				if (codeChannelView === view && revision === view.revision && canObserveInstrument()) {
 					view.state = state;
 					view.show();
 				}
@@ -138,14 +153,14 @@ function updateCodeChannelView(channel) {
 			} finally {
 				view.pending = false;
 			}
-			if (codeChannelView === view && canObserveCodeChannel()) view.timer = setTimeout(view.poll, CHANNEL_UPDATE_MS);
+			if (codeChannelView === view && canObserveInstrument()) view.timer = setTimeout(view.poll, CHANNEL_UPDATE_MS);
 		};
 		codeChannelView = view;
 	}
 	if (!codeChannelView) return;
 	const view = codeChannelView;
 	view.show();
-	if (canObserveCodeChannel() && !view.pending && !view.timer) void view.poll();
+	if (canObserveInstrument() && !view.pending && !view.timer) void view.poll();
 }
 
 function renderLive(state) {
@@ -174,11 +189,20 @@ function renderLive(state) {
 		if (prepare) void prepareAudition(channel, referenceNote, monitor, revision);
 	}
 	updateCodeChannelView(codeView ? channel : -1);
+	const voice = referenceView && !state.switching ? monitor.snapshot?.channels[channel] : null;
+	const editable = voice && monitor.editSupported && !state.pending && !state.switching;
+	const watchWaveform = voice && monitor.waveformSupported && state.phase === 'playing' && liveEnabled &&
+		canObserveInstrument() && !state.pending;
+	const preview = referenceWaveform.sample(watchWaveform ? {
+		path: state.path, channel, voice, frame: monitor.snapshot.frame,
+	} : null);
 	if (referenceView) {
-		const voice = !state.switching ? monitor.snapshot?.channels[channel] : null;
+		if (prepare && pausedPreset && voice) keyboard.updateAudition(channel, pausedChannelSettings(voice));
 		renderChannelInstrument('reference', channel, voice, {
 			phase: state.phase === 'paused' ? 'Paused' : liveEnabled ? 'Playing' : 'Live view off',
 			preset: pausedPreset,
+			waveform: preview,
+			onEdit: editable ? patch => editReferenceChannel(channel, patch) : null,
 		});
 	} else if (!codeView) renderChannelInstrument(null);
 	liveView.render({ ...state, ...monitor, referenceView, canCapture: Boolean(pausedPreset), auditionStatus });
@@ -210,7 +234,12 @@ async function prepareAudition(channel, referenceNote, monitor, revision) {
 function captureToSynth() {
 	if (!pausedPreset) return;
 	try {
-		const preset = pausedPreset;
+		const voice = player.getMonitorState(true).snapshot?.channels[channelPicker.getSelection()];
+		const preset = { ...pausedPreset };
+		if (voice) {
+			const { sampleRate, ...fields } = pausedChannelSettings(voice);
+			Object.assign(preset, fields, { sample: { ...preset.sample, sampleRate } });
+		}
 		channelPicker.select(-1);
 		keyboard.applyPreset(preset);
 		status.textContent = `${preset.name} loaded into Synth. Use Save sound as… to keep it in Files.`;

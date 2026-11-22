@@ -15,7 +15,7 @@ test('2SF snapshot exposes the PCM settings used for paused audition', () => {
 	};
 	assert.equal(frame, 800);
 	assert.deepEqual(voice, {
-		...settings, active: true, format: 'pcm16', timer: 64000, repeatMode: 1, byteLength: 128,
+		...settings, active: true, format: 'pcm16', timer: 64000, repeatMode: 1, byteLength: 128, sampleAddress: 0x02000000,
 	});
 	assert.deepEqual(decodeTwoSfSampleSettings(row, 0), settings);
 });
@@ -33,6 +33,7 @@ test('2SF snapshots distinguish pulse and noise and leave unsupported sample len
 	assert.equal(channels[14].mode, 'noise');
 	assert.equal(channels[14].lengthWords, null);
 	assert.equal(channels[14].byteLength, null);
+	assert.equal(channels[14].sampleAddress, null);
 	assert.equal(channels[0].lengthWords, 31);
 	assert.equal(channels[0].byteLength, null); // An IMA-ADPCM loop must skip its header.
 	assert.throws(() => decodeTwoSfSampleSettings(row, 8), /cannot be auditioned/);

@@ -197,12 +197,20 @@ session import.
 While a reference song is playing or paused, choose **CH1–CH16** to see its
 hardware settings in the same instrument panel used for Synth. **Auto** keeps
 the authored sound available while the reference song plays. **Live view**
-follows the playback position and lights active channels.
-The display samples the emulated DS about once per video frame and refreshes
-at most ten times per second during steady playback. **Pause** freezes the
-same snapshot for all sixteen channels, so you can inspect any of them while
-the song is paused. Paused PCM channels that support audition also show their
-decoded sample waveform.
+follows the playback position and lights active channels. The display samples
+the emulated DS about once per video frame and polls the result about ten
+times per second during playback. The selected PCM8, PCM16 or IMA-ADPCM channel
+shows its decoded sample waveform when its sample is available. The preview
+updates at most four times per second while the instrument panel is visible.
+For long samples, it shows the first 32,768 decoded frames.
+**Pause** freezes one snapshot across all sixteen channels.
+
+Use the instrument panel to change the selected channel's Volume, Pan,
+divider, timer rate and pulse duty. Enable **Live view** to edit during Play.
+The edit reaches the song as its audio buffer plays out, usually after about
+a quarter second during playback. Later writes by the original song driver
+can replace your edit. During Pause, the same controls affect keyboard
+audition immediately and keep the song at its paused position.
 
 Pause the song and choose a channel to audition it directly on the keyboard.
 The **Reference key** (C4 by default) plays the recorded sample rate. A key starts

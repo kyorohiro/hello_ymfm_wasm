@@ -386,17 +386,24 @@ function checkCaptureHistory(work) {
 				const [frame, control, address] = words.subarray(offset, offset + snapshotWords);
 				if (!(control >>> 31)) continue;
 				const sample = capture(frame);
+				const revision = core.nds_2sf_capture_revision();
+				assert(revision > 0, 'A retained sample has a nonzero revision');
 				if (!initial) {
 					assert.equal(sample.readInt16LE(0), 0, 'Original source starts at the sine zero crossing');
 					assert.equal(sample.readInt16LE(2), 2341, 'Original source starts with the authored PCM16 samples');
 					assert.equal(core.nds_2sf_capture(frame + 1, 0), -1, 'Reject a frame with no exact snapshot');
+					assert.equal(core.nds_2sf_capture_revision(), 0, 'A failed capture clears the revision');
 					assert.equal(core.nds_2sf_capture(frame, 1), -2, 'Reject an idle channel');
-					initial = { frame, address, sample, rewritten: false };
+					initial = { frame, address, sample, revision, rewritten: false };
 				} else if (!initial.rewritten && sample.readUInt32LE(0) === 0x1234abcd) {
 					assert.equal(address, initial.address, 'The same source address now contains different PCM');
+					assert.notEqual(revision, initial.revision, 'Rewriting the same RAM changes its capture revision');
 					assert.deepEqual(sample.subarray(4), initial.sample.subarray(4), 'Only the first PCM word changed');
 					assert.deepEqual(capture(initial.frame), initial.sample, 'Older observation must keep its own PCM bytes');
+					assert.equal(core.nds_2sf_capture_revision(), initial.revision, 'The older observation keeps its revision too');
 					initial.rewritten = true;
+				} else if (sample.equals(initial.sample)) {
+					assert.equal(revision, initial.revision, 'Unchanged PCM is retained with its original revision');
 				}
 			}
 		}
@@ -407,6 +414,51 @@ function checkCaptureHistory(work) {
 		core.free(output);
 	}
 	console.log('Capture history retains original PCM across an in-place rewrite and drops expired observations');
+}
+
+function checkChannelEdits(rom) {
+	const { core, output } = openRenderer(rom);
+	const frames = 8192, blockSize = 2048, keepTimer = 0xffffffff;
+	function snapshot() {
+		const rows = new Uint32Array(core.memory.buffer, core.nds_2sf_snapshots(), core.nds_2sf_snapshot_count() * snapshotWords);
+		return rows.slice(-snapshotWords);
+	}
+	try {
+		for (let count = 0; count < frames; count += blockSize) assert.equal(core.nds_2sf_render(output, blockSize), blockSize);
+		const before = snapshot();
+		assert(before[1] >>> 31, 'The song fixture must already be playing');
+		assert.equal(core.nds_2sf_edit_channel(16, 127, 70, keepTimer), -1, 'Reject invalid channel index');
+		assert.equal(core.nds_2sf_edit_channel(0, 0x80000000, 0, keepTimer), -1, 'Reject key gate edits');
+		assert.equal(core.nds_2sf_edit_channel(0, 127, 0x10080, keepTimer), -1, 'Reject writes outside the edit mask');
+		assert.equal(core.nds_2sf_edit_channel(0, 0, 0, 65536), -1, 'Reject invalid timer');
+		const mask = 0x077f037f, edit = (6 << 24) | (127 << 16) | (1 << 8) | 70;
+		const appliedAt = core.nds_2sf_edit_channel(0, mask, edit, keepTimer);
+		assert.equal(appliedAt, before[0], 'Edit applies after already-generated PCM');
+		assert.equal(core.nds_2sf_render(output, blockSize), blockSize);
+		const after = snapshot();
+		assert.equal(after[1], ((before[1] & ~mask) | edit) >>> 0, 'Change selected bits without altering the gate or format');
+		assert.deepEqual(after.subarray(2, 5), before.subarray(2, 5), 'Preserve sample source, timer and loop');
+		assert.deepEqual(after.subarray(6), before.subarray(6), 'Preserve all other channels');
+		const baseline = [];
+		render(rom, frames + blockSize, blockSize, baseline);
+		assert.equal(after[5], baseline.at(-1)[5], 'Volume, pan, divider and duty edits leave the PCM decoder cursor intact');
+		let left = 0, right = 0;
+		const pcm = new Int16Array(core.memory.buffer, output, blockSize * 2);
+		for (let frame = appliedAt - frames; frame < blockSize; frame++) {
+			left += Math.abs(pcm[frame * 2]);
+			right += Math.abs(pcm[frame * 2 + 1]);
+		}
+		assert(right > 0 && right > left * 64, 'Editing song pan moves the subsequent audio to the right');
+		assert.equal(core.nds_2sf_edit_channel(0, 0, 0, 65500), after[0]);
+		assert.equal(core.nds_2sf_render(output, blockSize), blockSize);
+		const retuned = snapshot();
+		assert.equal(retuned[3], ((after[3] & 0xffff0000) | 65500) >>> 0, 'Timer edit preserves loop start');
+		assert.equal(retuned[1], after[1], 'Timer edit preserves control including the gate');
+	} finally {
+		core.nds_2sf_close();
+		core.free(output);
+	}
+	console.log('2SF channel edits change the playing mixer and timer without retriggering PCM');
 }
 
 function readNativePcm(path, frames) {
@@ -436,6 +488,7 @@ function checkDemo(work) {
 		checkSharedSound(track, rom, reference, regular.at(-1));
 		console.log(`${track}: ${frames} stereo frames match native PCM and ${regular.length} snapshots agree across block sizes`);
 	}
+	checkChannelEdits(readFileSync(join(work, 'left-a4.nds')));
 	checkCaptureHistory(work);
 	checkDirectAdpcm();
 }

@@ -170,19 +170,26 @@ test('DS Range previews the latest word-aligned point once per frame and commits
 	assert.deepEqual(f.errors, []);
 });
 
-test('DS reference PCM without bytes hides the waveform, then draws the actual paused sample', t => {
+test('DS reference PCM shows bounded live peaks and the full paused sample', t => {
 	const f = editorFixture(t, builtin);
-	const state = { mode: 'pcm8', loop: true, byteLength: 64, loopStartWords: 0, lengthWords: 16 };
+	const state = { mode: 'pcm8', active: true, loop: true, byteLength: 64, loopStartWords: 0, lengthWords: 16 };
 	f.setChannelView({ kind: 'reference', channel: 0, state, phase: 'Playing' });
 	assert.equal(f.field('ndsSampleCanvas').hidden, true);
-	assert.match(f.field('ndsSampleStatus').textContent, /64 PCM bytes.*Waveform available when paused/);
+	assert.match(f.field('ndsSampleStatus').textContent, /64 PCM bytes.*Waiting for waveform data/);
 	assert.equal(f.field('ndsSampleRangeFields').hidden, true);
+	const waveform = { peaks: Float32Array.of(-.5, -.2, .25, .5), frameCount: 64, previewFrames: 32 };
+	f.setChannelView({ kind: 'reference', channel: 0, state, waveform, phase: 'Playing' });
+	assert.equal(f.field('ndsSampleCanvas').hidden, false);
+	assert.match(f.field('ndsSampleStatus').textContent, /64 decoded frames.*First 32 frames shown/);
+	const previewPoints = f.waveform.length;
+	f.setChannelView({ kind: 'reference', channel: 0, state: { ...state, volume: 4 }, waveform, phase: 'Playing' });
+	assert.equal(f.waveform.length, previewPoints);
 	const preset = { ...builtin, ...state, sample: { ...makeNdsSample('pcm8', 'square'), sampleRate: 32000, rootNote: 60 } };
 	f.setChannelView({ kind: 'reference', channel: 0, state, preset, phase: 'Paused' });
 	assert.equal(f.field('ndsSampleCanvas').hidden, false);
 	assert.match(f.field('ndsSampleStatus').textContent, /64 decoded frames.*64 PCM bytes/);
 	const points = f.waveform.length;
-	f.setChannelView({ kind: 'reference', channel: 0, state: { ...state, pan: 0 }, preset, phase: 'Paused' });
+	f.setChannelView({ kind: 'reference', channel: 0, state: { ...state, pan: 0 }, preset: { ...preset, pan: 0 }, phase: 'Paused' });
 	assert.equal(f.waveform.length, points);
 	f.pointer('pointerdown', 0, 20);
 	f.pointer('pointerup', 96, 60);

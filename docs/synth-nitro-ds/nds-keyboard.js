@@ -3,7 +3,7 @@ import { buildKeyboard, createFretboardLayout, createFretboardState } from '../s
 import { noteToHz } from '../js/soundchip_pitch.js';
 import { NDS_AUDIO_CLOCK } from './nds-core.js?v=nds-sound-capture-1';
 import { ndsTimerForFrequency, NDS_SOFTWARE_WAVE_FRAMES } from './nds-synth-api.js?v=nds-timer-1';
-import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-range-live-1';
+import { editNdsSound, isNdsSampleMode, ndsSoundPatch, restoreNdsSound, setupNdsSampleEditor, snapshotNdsSound } from './nds-sample-editor.js?v=nds-2sf-live-edit-1';
 
 const CHANNELS = Array.from({ length: 16 }, (_, channel) => channel);
 const AUTO = -1;
@@ -11,7 +11,7 @@ const NOISE_CLOCK_AT_C4 = 4000;
 const C4_HZ = noteToHz('C4');
 const LIVE_FIELDS = ['volume', 'pan', 'divider', 'duty'];
 const CHANNEL_VIEW_FIELDS = ['mode', 'shape', 'volume', 'pan', 'divider', 'duty', 'loop', 'timer',
-	'byteLength', 'sampleRate', 'loopStartWords', 'lengthWords', 'repeatMode', 'sourceAddress'];
+	'byteLength', 'sampleRate', 'loopStartWords', 'lengthWords', 'repeatMode', 'sampleAddress'];
 const defaultSound = () => ({ name: '', mode: 'pcm16', shape: 'sine', volume: 96, pan: 64, divider: 0, duty: 3, loop: true, sample: null });
 const supports = (channel, mode) => isNdsSampleMode(mode) || (mode === 'pulse' ? channel >= 8 && channel < 14 : channel >= 14);
 const timerSteps = mode => mode === 'pulse' ? 8 : 1;
@@ -44,7 +44,8 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 	let selection = AUTO, octave = 0, next = 0, entries = new Map(), lastNote = '', audition = null, channelView = null;
 	const getSound = () => settings[selection + 1];
 	const getDisplayedSound = () => channelView ? channelView.state ?? {} : getSound();
-	const canEditChannel = () => channelView?.kind === 'code' && channelView.state != null && Boolean(channelView.onEdit);
+	const canEditChannel = field => Boolean(channelView?.onEdit && channelView.state &&
+		(LIVE_FIELDS.includes(field) || field === 'timer'));
 	const sampleEditor = setupNdsSampleEditor({ getSound, updateSound, getTarget: () => selection, onRangeChange: applySampleRange, onError });
 	const sampleActions = node('ndsLoadWav').closest('.sample-actions');
 	const rangeControls = [fields.volume, fields.pan, fields.duty, rateSlider];
@@ -79,6 +80,7 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 	function setChannelView(view) {
 		const targetChanged = channelView?.kind !== view?.kind || channelView?.channel !== view?.channel;
 		const changed = targetChanged || channelView?.preset !== view?.preset || channelView?.phase !== view?.phase ||
+			channelView?.waveform !== view?.waveform ||
 			Boolean(channelView?.onEdit) !== Boolean(view?.onEdit) ||
 			CHANNEL_VIEW_FIELDS.some(key => channelView?.state?.[key] !== view?.state?.[key]);
 		channelView = view;
@@ -113,9 +115,8 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 	function renderSettings() {
 		const sound = getDisplayedSound();
 		const sampleMode = isNdsSampleMode(sound.mode);
-		const editable = canEditChannel();
 		for (const [key, el] of Object.entries(fields)) {
-			el.disabled = Boolean(channelView) && !(editable && LIVE_FIELDS.includes(key));
+			el.disabled = Boolean(channelView) && !canEditChannel(key);
 			if (key === 'loop') el.checked = Boolean(sound.loop);
 			else if (!draggedControls.has(el)) el.value = String(sound[key] ?? '');
 		}
@@ -133,11 +134,11 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 		node('ndsDutyValue').value = duty;
 		fields.duty.setAttribute('aria-valuetext', sound.duty === 7 ? 'Constant low' : duty);
 		for (const button of dividerButtons) {
-			button.disabled = Boolean(channelView) && !editable;
+			button.disabled = Boolean(channelView) && !canEditChannel('divider');
 			button.setAttribute('aria-pressed', String(Number(button.dataset.divider) === sound.divider));
 		}
 		keyTracking.closest('label').hidden = keyTracking.disabled = Boolean(channelView);
-		rateInput.disabled = rateSlider.disabled = Boolean(channelView) && !editable;
+		rateInput.disabled = rateSlider.disabled = Boolean(channelView) && !canEditChannel('timer');
 		rateLabel.textContent = sampleMode ? 'PCM playback rate' : sound.mode === 'pulse' ? 'Pulse frequency' : sound.mode === 'noise' ? 'Noise clock' : 'Channel timer rate';
 		rateInput.min = timerHz(sound.mode, 0);
 		rateInput.max = timerHz(sound.mode, 65535);
@@ -169,7 +170,7 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 
 	function setTimer(timer) {
 		if (channelView) {
-			if (canEditChannel() && timer !== null) void editChannel({ timer }).catch(onError);
+			if (canEditChannel('timer') && timer !== null) void editChannel({ timer }).catch(onError);
 			return;
 		}
 		const sound = getSound();
@@ -184,7 +185,7 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 
 	function setField(name, value) {
 		if (channelView) {
-			if (canEditChannel() && LIVE_FIELDS.includes(name)) void editChannel({ [name]: value }).catch(onError);
+			if (canEditChannel(name)) void editChannel({ [name]: value }).catch(onError);
 			return;
 		}
 		try { updateSound(editNdsSound(getSound(), name, value)); }
@@ -234,7 +235,8 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 			previous = voices.get(channel);
 			note.channel = channel;
 			voices.set(channel, note);
-			const request = chip.beginNote(channel, entry.midi, noteSettings);
+			const startingSettings = source?.patch ?? noteSettings;
+			const request = chip.beginNote(channel, entry.midi, startingSettings);
 			note.pendingToken = request.token;
 			const { token, timer } = await request.ready;
 			note.token = token;
@@ -246,6 +248,8 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 			}
 			lastNote = note;
 			renderHeld();
+			if (source && audition === source && source.patch !== startingSettings)
+				updateAuditionNote(note, startingSettings, source.patch);
 			const edited = settings[target + 1];
 			if (!source && edited !== original) {
 				const patch = {};
@@ -296,6 +300,27 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 			if (note.voices === auditionOccupied) release(note.id);
 		}
 		renderHeld();
+	}
+
+	function updateAuditionNote(note, previous, next) {
+		const patch = {};
+		for (const field of LIVE_FIELDS) if (previous[field] !== next[field]) patch[field] = next[field];
+		if (previous.sampleRate !== next.sampleRate) {
+			patch.sampleRate = next.sampleRate;
+			patch.rootNote = next.rootNote;
+			void retuneHeldNote(note, null, patch).catch(onError);
+		} else if (Object.keys(patch).length) {
+			void note.chip.configureOwned(note.channel, note.token, patch).catch(onError);
+		}
+	}
+
+	function updateAudition(channel, patch) {
+		if (audition?.channel !== channel || !audition.patch) return;
+		const previous = audition.patch;
+		if (Object.entries(patch).every(([key, value]) => previous[key] === value)) return;
+		audition.patch = { ...previous, ...patch };
+		const note = auditionOccupied.get(channel);
+		if (note?.token != null) updateAuditionNote(note, previous, audition.patch);
 	}
 
 	function renderKeys() {
@@ -396,7 +421,7 @@ export function setupNdsKeyboard({ ensureAudio, ensureAuditionAudio, onActivity,
 	renderSettings();
 	renderKeys();
 	return {
-		stop, setChannel, setChannelView, setAudition, isPlaying: () => held.size > 0,
+		stop, setChannel, setChannelView, setAudition, updateAudition, isPlaying: () => held.size > 0,
 		isAuditionPlaying: () => [...held.values()].some(note => note.voices === auditionOccupied),
 		cancelSampleLoad: sampleEditor.cancelPending,
 		getPreset: () => snapshotNdsSound(getSound()),

@@ -45,6 +45,7 @@ function decodeChannel(row, channel) {
 		duty: control >>> 24 & 7,
 		repeatMode,
 		loop,
+		sampleAddress: pcm ? row[base + 1] : null,
 		loopStartWords,
 		lengthWords,
 		byteLength,

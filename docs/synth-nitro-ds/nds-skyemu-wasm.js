@@ -8,7 +8,7 @@ const SAMPLE_SLOT_COUNT = 32;
 let loading;
 export function loadSkyEmuModule() {
 	loading ??= (async () => {
-		const wasmUrl = new URL('./generated/skyemu-2sf.wasm?v=nds-shared-renderer-1', import.meta.url);
+		const wasmUrl = new URL('./generated/skyemu-2sf.wasm?v=nds-2sf-live-edit-1', import.meta.url);
 		const response = await fetch(wasmUrl);
 		if (!response.ok) throw new Error('DS renderer is unavailable. Rebuild the DS WASM or reload the distribution.');
 		return WebAssembly.compile(await response.arrayBuffer());

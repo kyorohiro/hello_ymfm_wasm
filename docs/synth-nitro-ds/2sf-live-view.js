@@ -3,6 +3,38 @@ const formatLabels = {
 	pcm8: 'PCM8', pcm16: 'PCM16', adpcm: 'IMA-ADPCM', pulse: 'PSG pulse', noise: 'Noise', reserved: 'Reserved',
 };
 const rateLabel = new Intl.NumberFormat('en', { maximumFractionDigits: 1 });
+const WAVEFORM_INTERVAL_MS = 250;
+
+export function createTwoSfWaveformMonitor({ readWaveform, onChange }) {
+	let target = null, reading = false, nextRead = 0;
+	return {
+		sample(selection) {
+			const { path, channel, voice, frame } = selection ?? {};
+			if (!voice?.byteLength || frame == null) {
+				target = null;
+				return null;
+			}
+			const key = JSON.stringify([path, channel, voice.mode, voice.sampleAddress, voice.byteLength]);
+			if (target?.key !== key) target = { key, waveform: null };
+			const current = target;
+			const now = performance.now();
+			if (voice.active && !reading && now >= nextRead) {
+				reading = true;
+				nextRead = now + WAVEFORM_INTERVAL_MS;
+				void readWaveform(channel, frame, voice.mode, current.revision).then(result => {
+					if (target !== current || !result?.waveform) return;
+					current.revision = result.revision;
+					current.waveform = result.waveform;
+					onChange();
+				}).catch(() => {
+					// A moving playhead can outlive its retained sample or song.
+					// The next visible update can try the new frame.
+				}).finally(() => { reading = false; });
+			}
+			return current.waveform;
+		},
+	};
+}
 
 export function setupTwoSfLiveView({ getChannel, onEnabledChange, onAuditionChange, onCapture }) {
 	const node = (id) => document.getElementById(id);
@@ -25,7 +57,7 @@ export function setupTwoSfLiveView({ getChannel, onEnabledChange, onAuditionChan
 	});
 
 	function update() {
-		const { referenceView, phase, pending, switching, monitorSupported, snapshot, auditionSupported, auditionStatus, canCapture } = view;
+		const { referenceView, phase, pending, switching, monitorSupported, snapshot, auditionSupported, auditionStatus, canCapture, editSupported } = view;
 		const hasSong = phase === 'playing' || phase === 'paused';
 		const hidePanel = !referenceView;
 		if (panel.hidden !== hidePanel) panel.hidden = hidePanel;
@@ -48,7 +80,8 @@ export function setupTwoSfLiveView({ getChannel, onEnabledChange, onAuditionChan
 		else if (hasSong) {
 			if (monitorSupported === false) label = 'Update the 2SF renderer for Live view';
 			else if (!current) label = 'Waiting for channel data…';
-			else label = phase === 'paused' ? 'Paused · Read only' : 'Live · Pause for keyboard audition';
+			else if (phase === 'paused') label = editSupported ? 'Paused · Edit channel' : 'Paused';
+			else label = 'Live · Pause for keyboard audition';
 		}
 		write(status, label);
 		if (!current) return;

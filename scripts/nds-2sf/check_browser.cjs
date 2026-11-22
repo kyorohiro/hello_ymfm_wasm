@@ -191,9 +191,31 @@ async function assertReferenceInstrument(page, hz, expectedPan) {
 		};
 	}), values => values.mode === 'pcm16' && values.volume === 100 && values.pan === expectedPan &&
 		values.loop && values.timer.toLowerCase().includes(timer), 'The Synth controls should show the selected 2SF channel');
-	for (const selector of ['#ndsMode', '#ndsVolume', '#ndsPan', '#ndsLoop', '#ndsTimerSlider', '#ndsTimerHz']) {
+	for (const selector of ['#ndsMode', '#ndsLoop']) {
 		assert(await instrument.locator(selector).isDisabled(), `${selector} should be read-only for 2SF`);
 	}
+	for (const selector of ['#ndsVolume', '#ndsPan', '#ndsTimerSlider', '#ndsTimerHz', '#ndsDivider [data-divider="0"]']) {
+		assert(await instrument.locator(selector).isEnabled(), `${selector} should edit the selected 2SF channel`);
+	}
+}
+
+async function checkPlayingReferenceEdits(page) {
+	const pan = page.locator('#ndsPan'), volume = page.locator('#ndsVolume');
+	const read = () => readReferenceChannel(page);
+	await page.locator('#ndsSampleCanvas').waitFor();
+	await until(() => page.locator('#ndsSampleStatus').textContent(), value => /32 decoded frames/.test(value),
+		'The playing 2SF channel should show its sample waveform');
+	await pan.fill('127');
+	await until(read, state => state.pan === 127 && /Live/.test(state.status), 'Pan must reach the playing reference channel');
+	await measureSide(page, 1, 440, 0);
+	await volume.fill('0');
+	await until(read, state => state.volume === 0, 'Volume must reach the playing reference channel');
+	await until(() => output(page, 0), ({ channels }) => channels.every(({ peak }) => peak < 1e-7),
+		'The playing channel must become silent at zero hardware volume');
+	await pan.fill('0');
+	await volume.fill('100');
+	await measureSide(page, 0, 440, 0);
+	await until(read, state => fixtureChannel(state, 440, 0), 'Restore the playing reference controls');
 }
 
 async function checkPausedAudition(page, frozenPosition, frozenClock) {
@@ -222,7 +244,27 @@ async function checkPausedAudition(page, frozenPosition, frozenClock) {
 	await page.locator('#ndsSampleCanvas').waitFor();
 	await until(() => page.locator('#ndsSampleStatus').textContent(), value => /32 decoded frames/.test(value) && /64 PCM bytes/.test(value),
 		'Paused 2SF should show its actual decoded sample in the Synth waveform panel');
-	await holdC4(page, () => measureSide(page, 0, 440, 1));
+	await holdC4(page, async () => {
+		await measureSide(page, 0, 440, 1);
+		const pan = page.locator('#ndsPan'), volume = page.locator('#ndsVolume');
+		await pan.fill('127');
+		await measureSide(page, 1, 440, 1);
+		await volume.fill('0');
+		await until(() => output(page, 1), silent, 'Hardware volume must affect the held audition note');
+		await volume.fill('100');
+		await pan.fill('0');
+		await measureSide(page, 0, 440, 1);
+		const rate = page.locator('#ndsTimerHz');
+		const setRate = hz => rate.evaluate((input, value) => {
+			input.value = String(value);
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+		}, hz);
+		await setRate(220 * 32);
+		await measureSide(page, 0, 220, 1);
+		await setRate(440 * 32);
+		await measureSide(page, 0, 440, 1);
+		await verifySongFrozen();
+	});
 	await assertSynthRenderer(page);
 	await until(() => output(page, 1), silent, 'Releasing the key should silence the frozen sample');
 	await verifySongFrozen();
@@ -333,6 +375,12 @@ async function checkPresentimentAudition(page) {
 	for (let attempt = 0; attempt < 4; attempt++) {
 		await until(() => readReferenceChannel(page), state => available(state) && /Live/.test(state.status),
 			'Presentiment should trigger its CH5 percussion sample');
+		if (attempt === 0) {
+			await page.locator('#ndsSampleCanvas').waitFor();
+			assert.equal(await page.locator('#ndsSampleTitle').textContent(), 'IMA-ADPCM waveform');
+			assert.match(await page.locator('#ndsSampleStatus').textContent(), /decoded frames/);
+			assert.match(await pause.textContent(), /Pause/i, 'The ADPCM waveform should appear before Pause');
+		}
 		await pause.click();
 		paused = await until(() => readReferenceChannel(page), state => /Paused/.test(state.status), 'Wait for frozen real-song channel');
 		if (available(paused)) break;
@@ -1407,6 +1455,7 @@ async function check(name, origin, fixture) {
 		await channelButton(page, 0).click();
 		await until(readLive, state => /Live/i.test(state.status) && fixtureChannel(state, 440, 0), 'Expected CH1 settings of the audible left-A4 song');
 		await assertReferenceInstrument(page, 440, 0);
+		await checkPlayingReferenceEdits(page);
 		assert(await channelButton(page, -1).isVisible(), 'Auto remains available during 2SF playback');
 		assert.equal(await page.locator('#ndsSynthView, #ndsReferenceView').count(), 0, 'The shared row should be the only channel picker');
 		await pause.click();
@@ -1443,9 +1492,15 @@ async function check(name, origin, fixture) {
 		assert.equal(await readPosition(page), pausedPosition);
 		assert.deepEqual(await readLive(), frozenChannel, 'A missing library should leave the paused song observation intact');
 		await checkPausedAudition(page, pausedPosition, freeze.currentTime);
+		const pan = page.locator('#ndsPan');
+		await pan.fill('127');
+		await until(readLive, state => /Paused/.test(state.status) && state.pan === 127,
+			'The paused edit should be visible before Resume');
 		await pause.click();
 		await until(() => output(page, 0), (state) => state.currentTime > freeze.currentTime + 0.04, 'Playback clock should resume');
 		await page.locator('#twoSfAuditionTools').waitFor({ state: 'hidden' });
+		await measureSide(page, 1, 440, 0);
+		await pan.fill('0');
 		await measureSide(page, 0, 440, 0);
 		assert.equal(await channelButton(page, 0).getAttribute('aria-pressed'), 'true', 'Resume should keep the selected channel');
 		await holdC4(page, async () => {
@@ -1514,7 +1569,7 @@ async function check(name, origin, fixture) {
 		assert.deepEqual(fetchFailures, []);
 		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, heldRange, sharedSound,
 			selectFocus: 'musical key sounds without changing the focused source select',
-			referenceLive: 'The same channel picker and read-only Synth controls during playback and pause, PCM from the paused channel, frozen position and missing library',
+			referenceLive: 'Selected-channel Pan and Volume reach 2SF playback and paused audition, with a live sample waveform and position preserved',
 			referenceAudition: 'automatic paused audition with Live on or off, frozen 440 Hz sample, C5-root transposition, idle channel silence, and authored keyboard on Auto',
 			referenceCapture: 'captured settings and exact original PCM16 preset, 220 Hz from editable Synth and saved-preset Code',
 			physicalOutputMuted: true };

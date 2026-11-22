@@ -175,6 +175,13 @@ observer snapshot tracks the UI at the audible position. It only contains
 one row per emulated video frame and cannot carry the intervening writes
 needed to drive the sound hardware.
 
+- [x] Edit the selected 2SF channel's live sound controls during Play and
+      Pause. Check that edits reach playback and keyboard audition without
+      changing the paused song position or the authored Synth preset.
+- [x] Show the selected 2SF channel's decoded waveform during playback.
+      Bound update frequency and preview size, and stop fetching when the
+      instrument panel is hidden or Live view is disabled.
+
 - [x] Prove that direct RAM and sound-register writes into the pinned SkyEmu
       audio routine produce the same PCM as the 2SF driver on authored
       fixtures. Run the direct audio routine without booting a DS program

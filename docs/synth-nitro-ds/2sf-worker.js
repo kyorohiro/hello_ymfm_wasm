@@ -2,8 +2,9 @@
 import { assembleTwoSf } from './2sf_source.js';
 import { parseScspSsfTime } from '../synth-scsp/ssf_source.js';
 import { readTwoSfSnapshots } from './2sf-channel-monitor.js?v=nds-2sf-audition-1';
+import { buildTwoSfWaveform } from './2sf-waveform.js';
 import { NDS_MAX_SAMPLE_BYTES } from './nds-core.js';
-import { instantiateSkyEmu, loadSkyEmuModule, SKYEMU_SAMPLE_RATE as RATE } from './nds-skyemu-wasm.js?v=nds-shared-renderer-1';
+import { instantiateSkyEmu, loadSkyEmuModule, SKYEMU_SAMPLE_RATE as RATE } from './nds-skyemu-wasm.js?v=nds-2sf-live-edit-1';
 
 const BLOCK_FRAMES = 2048;
 const MAX_ROM_BYTES = 64 * 1024 * 1024;
@@ -24,6 +25,8 @@ async function open(path, files) {
 		typeof core.nds_2sf_snapshot_count === 'function';
 	const auditionSupported = monitorSupported && typeof core.nds_2sf_capture === 'function' &&
 		typeof core.nds_2sf_capture_data === 'function';
+	const waveformSupported = auditionSupported && typeof core.nds_2sf_capture_revision === 'function';
+	const editSupported = typeof core.nds_2sf_edit_channel === 'function';
 	const image = core.malloc(rom.byteLength);
 	if (!image) throw new Error('Could not allocate the DS cartridge image.');
 	try {
@@ -39,18 +42,41 @@ async function open(path, files) {
 	const fadeStart = Math.round(length * RATE);
 	const totalFrames = Math.round(Math.min(length + fade, MAX_SECONDS) * RATE);
 	let frame = 0;
+	function capture(frame, channel) {
+		if (!auditionSupported) return { unavailable: 'Update the 2SF renderer for keyboard audition.' };
+		const size = core.nds_2sf_capture(frame, channel);
+		if (size <= 0) return { unavailable: captureErrors[size] ?? 'This 2SF sample is unavailable.' };
+		const pointer = core.nds_2sf_capture_data();
+		if (!pointer || size > NDS_MAX_SAMPLE_BYTES || pointer + size > core.memory.buffer.byteLength)
+			return { unavailable: 'The 2SF renderer returned an invalid sample.' };
+		return { bytes: new Uint8Array(core.memory.buffer, pointer, size) };
+	}
 	return {
-		totalFrames,
-		monitorSupported,
-		auditionSupported,
+		totalFrames, monitorSupported, auditionSupported, waveformSupported, editSupported,
 		capture(frame, channel) {
-			if (!auditionSupported) return { unavailable: 'Update the 2SF renderer for keyboard audition.' };
-			const size = core.nds_2sf_capture(frame, channel);
-			if (size <= 0) return { unavailable: captureErrors[size] ?? 'This 2SF sample is unavailable.' };
-			const pointer = core.nds_2sf_capture_data();
-			if (!pointer || size > NDS_MAX_SAMPLE_BYTES || pointer + size > core.memory.buffer.byteLength)
-				return { unavailable: 'The 2SF renderer returned an invalid sample.' };
-			return { bytes: new Uint8Array(core.memory.buffer, pointer, size).slice() };
+			const sample = capture(frame, channel);
+			return sample.bytes ? { bytes: sample.bytes.slice() } : sample;
+		},
+		waveform(frame, channel, mode, knownRevision) {
+			if (!waveformSupported) return { unavailable: true };
+			const { bytes } = capture(frame, channel);
+			if (!bytes) return { unavailable: true };
+			const revision = core.nds_2sf_capture_revision() >>> 0;
+			if (revision === knownRevision) return { revision };
+			try {
+				return { revision, waveform: buildTwoSfWaveform(bytes, mode) };
+			} catch {
+				return { unavailable: true };
+			}
+		},
+		edit(writes) {
+			if (!editSupported) throw new Error('Update the 2SF renderer for channel editing.');
+			let firstFrame = frame;
+			for (const { channel, mask, control, timer } of writes) {
+				firstFrame = core.nds_2sf_edit_channel(channel, mask, control, timer);
+				if (firstFrame < 0) throw new Error('The 2SF renderer rejected a channel edit.');
+			}
+			return firstFrame;
 		},
 		process() {
 			const count = Math.min(totalFrames - frame, BLOCK_FRAMES);
@@ -74,11 +100,16 @@ self.onmessage = async ({ data }) => {
 	try {
 		if (method === 'open') {
 			renderer = await open(data.path, data.files);
-			const { totalFrames, monitorSupported, auditionSupported } = renderer;
-			self.postMessage({ id, value: { totalFrames, monitorSupported, auditionSupported } });
+			const { totalFrames, monitorSupported, auditionSupported, waveformSupported, editSupported } = renderer;
+			self.postMessage({ id, value: { totalFrames, monitorSupported, auditionSupported, waveformSupported, editSupported } });
 		} else if (method === 'capture' && renderer) {
 			const value = renderer.capture(data.frame, data.channel);
 			self.postMessage({ id, value }, value.bytes ? [value.bytes.buffer] : []);
+		} else if (method === 'waveform' && renderer) {
+			const value = renderer.waveform(data.frame, data.channel, data.mode, data.knownRevision);
+			self.postMessage({ id, value }, value.waveform ? [value.waveform.peaks.buffer] : []);
+		} else if (method === 'edit' && renderer) {
+			self.postMessage({ id, value: renderer.edit(data.writes) });
 		} else if (method === 'render' && renderer) {
 			const block = renderer.process();
 			const transfer = [block.left.buffer, block.right.buffer];

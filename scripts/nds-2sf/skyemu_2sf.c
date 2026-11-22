@@ -332,6 +332,7 @@ typedef struct {
 	uint8_t *bytes;
 	size_t length;
 	uint32_t frame;
+	uint32_t revision;
 	unsigned references;
 } CaptureSample;
 
@@ -345,7 +346,9 @@ static CaptureSample capture_samples[CAPTURE_SLOTS];
 static CaptureTick capture_ticks[CAPTURE_TICKS];
 static size_t capture_bytes;
 static unsigned capture_next;
+static uint32_t capture_revision;
 static const uint8_t *capture_result;
+static uint32_t capture_result_revision;
 
 static void release_capture_tick(CaptureTick *tick) {
 	if (!tick->valid) return;
@@ -413,7 +416,10 @@ static int retain_sample(uint32_t frame, uint32_t cnt, uint32_t sad, uint32_t tm
 	uint8_t *bytes = malloc(length);
 	if (!bytes) return CAPTURE_BUDGET;
 	memcpy(bytes, source, length);
-	*free_slot = (CaptureSample){ .source = source, .bytes = bytes, .length = length, .frame = frame, .references = 1 };
+	*free_slot = (CaptureSample){
+		.source = source, .bytes = bytes, .length = length, .frame = frame,
+		.revision = ++capture_revision, .references = 1,
+	};
 	capture_bytes += length;
 	return (int)(free_slot - capture_samples);
 }
@@ -431,6 +437,7 @@ int nds_2sf_capture(uint32_t frame, unsigned channel) {
 		if (index < 0) return index;
 		const CaptureSample *sample = &capture_samples[index];
 		capture_result = sample->bytes;
+		capture_result_revision = sample->revision;
 		return (int)sample->length;
 	}
 	return CAPTURE_MISSING;
@@ -438,6 +445,10 @@ int nds_2sf_capture(uint32_t frame, unsigned channel) {
 
 const uint8_t *nds_2sf_capture_data(void) {
 	return capture_result;
+}
+
+uint32_t nds_2sf_capture_revision(void) {
+	return capture_result ? capture_result_revision : 0;
 }
 
 // A row carries the absolute stereo PCM frame, then each channel's CNT, SAD,
@@ -507,6 +518,7 @@ void nds_2sf_close(void) {
 	for (unsigned index = 0; index < CAPTURE_TICKS; ++index)
 		release_capture_tick(&capture_ticks[index]);
 	capture_next = 0;
+	capture_revision = 0;
 	capture_result = NULL;
 }
 
@@ -525,6 +537,27 @@ int nds_2sf_open(const uint8_t *rom, size_t size) {
 	emu.rom_loaded = nds_load_rom(&emu, &console, &scratch);
 	if (!emu.rom_loaded) nds_2sf_close();
 	return emu.rom_loaded;
+}
+
+// Only change the specified mixer, duty and timer codes. The sound channel's
+// decoder keeps running with its original gate, source and loop. CPU writes
+// after this edit use the same register mirrors and may replace these values.
+int32_t nds_2sf_edit_channel(unsigned channel, uint32_t control_mask, uint32_t control, uint32_t timer) {
+	const uint32_t editable = 0x077f037fu;
+	if (!emu.rom_loaded || synth_open || channel >= CHANNELS || (control_mask & ~editable) ||
+	    (control & ~control_mask) || (timer > 0xffff && timer != UINT32_MAX)) return -1;
+	const unsigned offset = channel * 16;
+	if (control_mask) {
+		const uint32_t address = NDS7_SOUND0_CNT + offset;
+		const uint32_t previous = nds7_io_read32(&console, address);
+		nds7_io_store32(&console, address, (previous & ~control_mask) | control);
+	}
+	if (timer != UINT32_MAX) {
+		const uint32_t address = NDS7_SOUND0_TMR + offset;
+		const uint32_t previous = nds7_io_read32(&console, address);
+		nds7_io_store32(&console, address, (previous & 0xffff0000u) | timer);
+	}
+	return (int32_t)(rendered_frames + sb_ring_buffer_size(&emu.audio_ring_buff) / 2);
 }
 
 unsigned nds_2sf_render(int16_t *output, unsigned frames) {

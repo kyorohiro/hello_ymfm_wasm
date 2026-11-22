@@ -52,8 +52,8 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 	const width = canvas.width, height = canvas.height;
 	const builtinAssets = new Map();
 	let request = 0, peaks, cachedSample = null, gesture = null, tool = 'range', channelView = null;
-	let viewedPreset, viewedSample;
-	let drawnAsset, drawnRange, drawnLoop;
+	let viewedSource, viewedMode, viewedLoop, viewedSample;
+	let drawnAsset, drawnRange, drawnLoop, drawnPreview;
 	const y = value => height * (.5 - value * .43);
 
 	function builtinAsset(mode, shape) {
@@ -79,22 +79,57 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 		return output;
 	}
 
+	function paintBackground() {
+		context.fillStyle = '#191b26';
+		context.fillRect(0, 0, width, height);
+	}
+
+	function paintBaseline() {
+		context.strokeStyle = '#56536a';
+		context.beginPath(); context.moveTo(0, height / 2); context.lineTo(width, height / 2); context.stroke();
+	}
+
+	function drawPreview(preview) {
+		if (!context || preview === drawnPreview) return;
+		drawnAsset = null;
+		drawnPreview = preview;
+		paintBackground();
+		paintBaseline();
+		const { peaks } = preview;
+		const columns = peaks.length / 2;
+		const step = width / columns;
+		context.strokeStyle = '#ed9ebb';
+		context.beginPath();
+		context.moveTo(0, y((peaks[0] + peaks[1]) / 2));
+		for (let column = 0; column < columns; column++) {
+			const low = peaks[column * 2], high = peaks[column * 2 + 1];
+			context.lineTo((column + .5) * step, y((low + high) / 2));
+		}
+		context.stroke();
+		context.beginPath();
+		for (let column = 0; column < columns; column++) {
+			const x = (column + .5) * step;
+			context.moveTo(x, y(peaks[column * 2 + 1]));
+			context.lineTo(x, y(peaks[column * 2]));
+		}
+		context.stroke();
+	}
+
 	function draw(asset, range, repeat, stroke = null) {
 		if (!context || (!stroke && asset === drawnAsset && range === drawnRange && repeat === drawnLoop)) return;
 		drawnAsset = stroke ? null : asset;
 		drawnRange = range;
 		drawnLoop = repeat;
+		drawnPreview = null;
 		const pcm = stroke?.source ?? asset.pcm;
-		context.fillStyle = '#191b26';
-		context.fillRect(0, 0, width, height);
+		paintBackground();
 		const sx = width * (range?.startFrame ?? 0) / asset.frames;
 		const ex = width * (range?.endFrame ?? asset.frames) / asset.frames;
 		if (range) {
 			context.fillStyle = repeat ? '#9c42565c' : '#5b516a52';
 			context.fillRect(repeat ? sx : 0, 0, repeat ? ex - sx : ex, height);
 		}
-		context.strokeStyle = '#56536a';
-		context.beginPath(); context.moveTo(0, height / 2); context.lineTo(width, height / 2); context.stroke();
+		paintBaseline();
 		context.strokeStyle = '#ed9ebb';
 		context.beginPath();
 		if (!range) {
@@ -149,38 +184,46 @@ export function setupNdsSampleEditor({ getSound, updateSound, getTarget, onRange
 	}
 
 	function renderChannelView() {
-		const { kind, state, preset, phase } = channelView;
+		const { kind, state, preset, phase, waveform } = channelView;
 		const format = sampleFormats[state?.mode];
 		panel.hidden = !format;
 		panel.dataset.editable = 'false';
 		useBuiltin.hidden = load.hidden = rangeFields.hidden = true;
 		if (!format) return;
-		if (preset !== viewedPreset) {
-			viewedSample = preset ? restoreNdsSound(preset).sample : null;
-			viewedPreset = preset;
+		if (preset?.sample !== viewedSource || preset?.mode !== viewedMode || preset?.loop !== viewedLoop) {
+			viewedSource = preset?.sample;
+			viewedMode = preset?.mode;
+			viewedLoop = preset?.loop;
+			viewedSample = viewedSource ? restoreNdsSound(preset).sample : null;
 		}
 		const sample = viewedSample;
-		// Code can preview a known built-in asset. Arbitrary PCM uploaded by Code
-		// and a running 2SF only supply registers here.
+		// Code can preview a known built-in asset. 2SF playback supplies bounded
+		// peak columns and paused audition supplies the full packed sample.
 		const asset = sample?.asset ?? (kind === 'code' && state.shape && state.byteLength
 			? builtinAsset(state.mode, state.shape) : null);
 		const byteLength = asset?.bytes.length ?? state.byteLength;
 		const loopStartWords = sample?.range.loopStartWords ?? state.loopStartWords;
 		const lengthWords = sample?.range.lengthWords ?? state.lengthWords;
 		const range = lengthWords == null ? '' : `PNT ${loopStartWords ?? '—'} · LEN ${lengthWords} words`;
-		const frames = asset ? `${asset.frames.toLocaleString()} decoded frames` : '';
+		const decodedFrames = asset?.frames ?? waveform?.frameCount;
+		const frames = decodedFrames == null ? '' : `${decodedFrames.toLocaleString()} decoded frames`;
 		const bytes = byteLength == null ? '' : `${byteLength.toLocaleString()} PCM bytes`;
 		const repeatMode = state.repeatMode == null ? (state.loop ? 'Repeat' : 'One shot')
 			: ['Manual', 'Repeat', 'One shot', 'Reserved repeat mode'][state.repeatMode];
 		title.textContent = `${format.name} waveform`;
 		info.textContent = format.encoding;
-		const unavailable = kind === 'reference' && phase !== 'Paused'
-			? 'Waveform available when paused on a supported PCM channel.' : 'Waveform unavailable for this sample.';
-		status.textContent = [frames, bytes, repeatMode, range, asset ? '' : unavailable].filter(Boolean).join(' · ');
-		canvas.hidden = !asset;
+		const note = asset ? '' : waveform
+			? waveform.previewFrames < waveform.frameCount ? `First ${waveform.previewFrames.toLocaleString()} frames shown` : ''
+			: kind === 'reference' && phase === 'Playing' && state.active && state.byteLength
+				? 'Waiting for waveform data…' : 'Waveform unavailable for this sample.';
+		status.textContent = [frames, bytes, repeatMode, range, note].filter(Boolean).join(' · ');
+		canvas.hidden = !asset && !waveform;
 		if (asset) {
 			canvas.setAttribute('aria-label', `Decoded ${format.name} channel waveform`);
 			draw(asset, sample?.range ?? null, state.loop);
+		} else if (waveform) {
+			canvas.setAttribute('aria-label', `Live ${format.name} channel waveform preview`);
+			drawPreview(waveform);
 		}
 	}
 
