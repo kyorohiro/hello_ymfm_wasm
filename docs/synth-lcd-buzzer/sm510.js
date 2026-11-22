@@ -35,7 +35,7 @@ export function createSm510CodeChip({ id = 'sm510', write, playCycles }) {
 		get machineCycleHz() { return MACHINE_CYCLE_HZ; },
 		write(register, value) {
 			checkWrite(register, value);
-			write(Boolean(value & 1));
+			write(value & 3);
 		},
 		build(record) {
 			if (typeof record !== 'function') throw new TypeError('Provide a synchronous cycle recorder.');
@@ -76,6 +76,16 @@ export function createSm510CodeChip({ id = 'sm510', write, playCycles }) {
 			return playCycles(timeline);
 		},
 	};
+}
+
+export function readRAtTick({ writes }, tick) {
+	let first = 0, end = writes.length / 2;
+	while (first < end) {
+		const middle = Math.floor((first + end) / 2);
+		if (writes[middle * 2] <= tick) first = middle + 1;
+		else end = middle;
+	}
+	return first ? writes[first * 2 - 1] & 3 : 0;
 }
 
 export function createR1Voice(context, output, render) {

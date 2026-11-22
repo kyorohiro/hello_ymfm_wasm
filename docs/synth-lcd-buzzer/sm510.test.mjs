@@ -4,7 +4,7 @@ import test from 'node:test';
 import { buzzerCodeDeclarations } from './code.js';
 import {
 	DIRECT_R, DK52_R, MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
-	createSm510AudioCore, createSm510CodeChip, directPitchHz, renderR1Pattern, renderR1Timeline, renderSm510Notes,
+	createSm510AudioCore, createSm510CodeChip, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
 
 const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
@@ -52,13 +52,13 @@ test('off gates are silent and adjacent on gates produce one continuous pulse', 
 	assert(samples.slice(Math.round(stepFrames * 4) + 1).every(sample => sample === 0));
 });
 
-test('Code immediate writes gate only R1 and accept the complete 4-bit register', () => {
-	const gates = [];
-	const chip = createSm510CodeChip({ write: value => gates.push(value) });
+test('Code immediate writes latch the two low bits of a four-bit operand', () => {
+	const latched = [];
+	const chip = createSm510CodeChip({ write: value => latched.push(value) });
 	assert.equal(chip.clock, 32768);
 	assert.equal(chip.machineCycleHz, 16384);
 	for (const value of [0x1, 0x3, 0x2, 0xf, 0x0]) chip.write(chip.REG_R, value);
-	assert.deepEqual(gates, [true, true, false, true, false]);
+	assert.deepEqual(latched, [1, 3, 2, 3, 0]);
 	assert.throws(() => chip.write('R', 1), /REG_R/);
 	assert.throws(() => chip.write(chip.REG_R, 16), /4-bit/);
 	assert.throws(() => chip.write(chip.REG_R, 0.5), /4-bit/);
@@ -68,14 +68,15 @@ test('cycle sequences place writes at exact master ticks without executing instr
 	let timeline;
 	const chip = createSm510CodeChip({ playCycles: value => { timeline = value; } });
 	const pulse = chip.build(b => {
-		b.atCycle(2).write(chip.REG_R, 3).write(chip.REG_R, 2);
+		b.atCycle(2).write(chip.REG_R, 3).write(chip.REG_R, 0xe);
 		b.atCycle(3).write(chip.REG_R, 1);
 		b.atCycle(5).write(chip.REG_R, 0);
 		b.atCycle(6);
 	});
 	assert.equal(pulse.machineCycles, 6);
 	chip.playCycles(pulse);
-	assert.deepEqual([...timeline.writes], [4, 3, 4, 2, 6, 1, 10, 0, 12, 0]);
+	assert.deepEqual([...timeline.writes], [4, 3, 4, 14, 6, 1, 10, 0, 12, 0]);
+	assert.deepEqual([-1, 3, 4, 5, 6, 10, 12].map(tick => readRAtTick(timeline, tick)), [0, 0, 2, 2, 1, 0, 0]);
 	const pcm = renderR1Timeline(timeline, MACHINE_CYCLE_HZ * 2, render);
 	const level = Math.fround(.16);
 	assert.deepEqual([...pcm], [0, 0, 0, 0, 0, 0, level, level, -level, -level, 0, 0]);

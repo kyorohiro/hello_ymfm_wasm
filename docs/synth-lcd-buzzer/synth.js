@@ -8,7 +8,7 @@ import { setupBuzzerPerformance } from './performance.js';
 import {
 	DIRECT_R, DK52_R, EQUAL_TEMPERAMENT, GATE_PRESETS, GATE_STEP_COUNT,
 	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ, R_WRITE_CYCLES, TICKS_PER_MACHINE_CYCLE,
-	createSm510AudioCore, createR1Voice, directPitchHz, renderR1Pattern, renderR1Timeline, renderSm510Notes,
+	createSm510AudioCore, createR1Voice, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
 import { SM511_DEMO, renderSm511Melody, renderSm511NoteCycle, renderSm511Pattern, sm511Command, sm511Label } from './sm511.js';
 
@@ -24,6 +24,8 @@ const preset = byId('preset'), play = byId('play'), stop = byId('stop'), status 
 const canvas = byId('waveform'), drawing = canvas.getContext('2d');
 const pitch = byId('pitch');
 const toneButtons = [...byId('toneSource').querySelectorAll('[data-tone-mode]')];
+const rLatch = byId('sm510Latch'), rPins = byId('sm510Pins');
+const rButtons = [byId('sm510R1'), byId('sm510R2')];
 const toneHints = {
 	[DIRECT_R]: 'Direct R switches the output at whole SM510 machine cycles to set each pitch.',
 	[DK52_R]: 'Each note gates the fixed 4,096 Hz carrier. Note length controls how long it sounds.',
@@ -54,10 +56,11 @@ let inspectedStep = 0, activeStep = -1, activeR1Step = -1, heldNote = null;
 let heldChip = null, heldToneMode, melodyClip = null, melodyPending = null;
 let workspace, controls;
 let codeActive = false, stepStarting = false, stepRequest = 0, handoffEnd = 0;
-let codeR1, codeR1Mode, coreLoading, audioCore;
+let r1Voice, rMode, rOwner, rValue = 0, pendingR, coreLoading, audioCore;
 const defaultOwner = Symbol('LCD Buzzer transport');
 const sm510Owner = Symbol('SM510 R1 demo');
 const sm510CodeOwner = Symbol('SM510 Code');
+const sm510ManualOwner = Symbol('SM510 manual R');
 const sm511DemoOwner = Symbol('SM511 demo');
 const sm511CodeOwner = Symbol('SM511 Code');
 const transportRelease = .008;
@@ -86,23 +89,50 @@ function syncTransport() {
 	for (const [index, row] of rows.entries()) row.button.disabled = playing || notes[index] === null;
 }
 
+function currentR() {
+	if (clip?.r1Plan) {
+		const tick = Math.floor((audio.currentTime - clip.start) * MASTER_CLOCK_HZ);
+		return readRAtTick(clip.r1Plan, tick);
+	}
+	if (clip?.kind === 'sm510') return sm510Gates[activeR1Step] ? 1 : 0;
+	return rValue;
+}
+
+function drawR() {
+	const value = currentR(), mode = clip?.r1Mode ?? rMode ?? toneMode;
+	const binary = value.toString(2).padStart(2, '0');
+	const latch = `0b${binary} · 0x${value.toString(16)}`;
+	const pins = rButtons.map((button, index) => {
+		const on = Boolean(value & (1 << index));
+		if (button.getAttribute('aria-pressed') !== String(on)) button.setAttribute('aria-pressed', String(on));
+		if (!on) return 'low';
+		if (mode === DIRECT_R) return 'high';
+		return index === 0 ? '4,096 Hz' : '4,096 Hz (inverted)';
+	});
+	const pinDetail = `${mode === DIRECT_R ? 'Direct R' : 'DK-52'} pins · R1 ${pins[0]} · R2 ${pins[1]}`;
+	if (rLatch.value !== latch) rLatch.value = latch;
+	if (rPins.textContent !== pinDetail) rPins.textContent = pinDetail;
+}
+
 function drawWave() {
 	const step = activeStep < 0 ? inspectedStep : activeStep;
 	const note = heldNote ?? notes[step];
-	const rawMode = codeR1?.enabled ? codeR1Mode : clip?.r1Mode;
+	const showingR = rOwner && (r1Voice?.enabled || (selectedChip === 'sm510' && !heldChip && !clip && !melodyClip));
+	const rawMode = showingR ? rMode : clip?.r1Mode;
 	const chip = rawMode ? 'sm510' : heldChip ?? clip?.chip ?? selectedChip;
 	const mode = rawMode ?? (heldChip ? heldToneMode : clip?.toneMode) ?? modeFor(chip);
 	const sm511 = chip === 'sm511';
 	const showingMelody = sm511 && melodyClip && heldNote === null && !clip;
 	const target = note === null ? null : noteToHz(note);
 	const half = !sm511 && mode === DIRECT_R && target && audioCore?.directHalfCycles(target);
-	const sounding = rawMode ? clip?.kind !== 'sm510' || sm510Gates[activeR1Step] : target !== null;
+	const sounding = showingR ? Boolean(rValue & 1)
+		: rawMode ? clip?.kind !== 'sm510' || sm510Gates[activeR1Step] : target !== null;
 	const frequency = !showingMelody && sounding && (sm511 ? audioCore?.sm511PitchHz(sm511Command(note))
 		: mode === DK52_R ? R1_HZ : rawMode ? null
 		: mode === EQUAL_TEMPERAMENT ? target : half ? directPitchHz(half) : null);
 	pitch.title = half && !rawMode ? `${half} machine cycles per half-wave` : '';
 	if (showingMelody) pitch.textContent = 'SM511 · Melody ROM';
-	else if (rawMode === DIRECT_R) pitch.textContent = codeR1?.enabled ? 'Direct R1 · High' : 'Direct R1 · Cycle sequence';
+	else if (rawMode === DIRECT_R) pitch.textContent = showingR ? `Direct R1 · ${sounding ? 'High' : 'Low'}` : 'Direct R1 · Cycle sequence';
 	else if (frequency && rawMode) pitch.textContent = 'SM510 R1 · 4,096 Hz';
 	else if (frequency) pitch.textContent = `${displayNote(note, chip)} · ${frequency.toFixed(2)} Hz`;
 	else if (!sounding) pitch.textContent = rawMode ? 'SM510 R1 · Off' : 'Rest · silence';
@@ -150,7 +180,7 @@ function drawWave() {
 		}
 		drawing.lineTo(right, y);
 	} else {
-		const y = rawMode === DIRECT_R && codeR1?.enabled ? center - height * .24 : center;
+		const y = rawMode === DIRECT_R && r1Voice?.enabled ? center - height * .24 : center;
 		drawing.moveTo(left, y);
 		drawing.lineTo(right, y);
 	}
@@ -170,10 +200,16 @@ function showR1Step(index) {
 	sm510Buttons[activeR1Step]?.removeAttribute('aria-current');
 	activeR1Step = index;
 	sm510Buttons[index]?.setAttribute('aria-current', 'step');
+	drawR();
 	drawWave();
 }
 
 function animate() {
+	if (clip.r1Plan) {
+		drawR();
+		frame = requestAnimationFrame(animate);
+		return;
+	}
 	const isR1 = clip.kind === 'sm510';
 	const elapsed = Math.max(0, audio.currentTime - clip.start);
 	const position = clip.source.loop ? elapsed % clip.duration : elapsed;
@@ -196,7 +232,7 @@ function releaseClip() {
 	previous.source.stop(end);
 	showStep(-1);
 	showR1Step(-1);
-	if (previous.kind === 'sm510-plan') drawWave();
+	if (previous.r1Plan) { drawR(); drawWave(); }
 	return end;
 }
 
@@ -263,10 +299,10 @@ async function start(kind, { step = inspectedStep, owner = defaultOwner, loopOve
 		const gain = audio.createGain(), source = audio.createBufferSource();
 		source.buffer = buffer;
 		source.loop = kind === 'pattern' && (loopOverride ?? loop.checked);
-		const previous = chip === 'sm511' ? stopMelody() : chip === 'sm510' ? releaseCodeR1() : undefined;
+		const previous = chip === 'sm511' ? stopMelody() : chip === 'sm510' ? releaseR() : undefined;
 		const time = Math.max(releaseClip() ?? 0, releaseClipAndKeys(chip), previous ?? 0, handoffEnd);
 		const current = {
-			kind, source, gain, owner, loopOverride, r1Mode, chip, toneMode: mode,
+			kind, source, gain, owner, loopOverride, r1Plan, r1Mode, chip, toneMode: mode,
 			start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames, boundaries: rendered?.boundaries,
 		};
 		source.connect(gain);
@@ -279,7 +315,7 @@ async function start(kind, { step = inspectedStep, owner = defaultOwner, loopOve
 			cancelAnimationFrame(frame);
 			showStep(-1);
 			showR1Step(-1);
-			if (kind === 'sm510-plan') drawWave();
+			if (r1Plan) { drawR(); drawWave(); }
 			status.textContent = kind === 'pattern' ? 'Pattern finished' : 'Ready';
 			syncTransport();
 		};
@@ -294,6 +330,7 @@ async function start(kind, { step = inspectedStep, owner = defaultOwner, loopOve
 			animate();
 		} else if (kind === 'sm510-plan') {
 			status.textContent = 'Playing SM510 cycle sequence';
+			animate();
 			drawWave();
 		} else {
 			status.textContent = `Previewing ${noteLabels.get(notes[step]) ?? 'rest'}`;
@@ -320,35 +357,56 @@ function releaseClipAndKeys(chip) {
 	return Math.max(clipEnd ?? audio.currentTime, heldUntil);
 }
 
-function releaseCodeR1() {
-	if (!codeR1) return;
-	const end = codeR1.dispose();
-	codeR1 = undefined;
+function releaseR() {
+	if (!rOwner) return;
+	const end = r1Voice?.dispose();
+	r1Voice = undefined;
+	rOwner = undefined;
+	rMode = undefined;
+	rValue = 0;
+	drawR();
 	drawWave();
 	return end;
 }
 
-function writeCodeR1(enabled, core, mode) {
-	if (mode === codeR1Mode && enabled === Boolean(codeR1?.enabled)) return;
+function writeSm510R(value, core, mode, owner = sm510CodeOwner) {
+	cancelPendingChipWork('sm510');
+	performance.cancelPending('sm510');
+	const enabled = Boolean(value & 1);
+	const previous = mode !== rMode ? releaseR() : undefined;
+	const begin = audio ? Math.max(releaseClipAndKeys('sm510'), previous ?? 0, handoffEnd) : 0;
+	rValue = value;
+	rMode = mode;
+	rOwner = owner;
 	if (enabled) {
-		cancelPendingChipWork('sm510');
-		performance.cancelPending('sm510');
-		const previous = mode !== codeR1Mode ? releaseCodeR1() : undefined;
-		const begin = Math.max(releaseClipAndKeys('sm510'), previous ?? 0, handoffEnd);
-		codeR1Mode = mode;
-		codeR1 ??= createR1Voice(audio, mix.sm510.output, mode === DIRECT_R ? core.renderDirectR1 : core.renderR1);
-		codeR1.setGate(true, begin);
-		status.textContent = 'Playing SM510 R1';
+		r1Voice ??= createR1Voice(audio, mix.sm510.output, mode === DIRECT_R ? core.renderDirectR1 : core.renderR1);
+		r1Voice.setGate(true, begin);
+		status.textContent = mode === DIRECT_R ? 'SM510 R1 held high' : 'Playing SM510 R1';
 	} else {
-		if (mode !== codeR1Mode || !codeR1) return;
-		codeR1.setGate(false);
+		r1Voice?.setGate(false);
 		if (!clip && !pending) status.textContent = 'Ready';
 	}
+	drawR();
 	drawWave();
 	syncTransport();
 }
 
+async function writeManualR(value, mode) {
+	const change = { value };
+	pendingR = change;
+	try {
+		if (value & 1) await ensureAudio();
+		const core = value & 1 ? await prepareSm510() : null;
+		if (pendingR === change) writeSm510R(value, core, mode, sm510ManualOwner);
+	} catch (error) {
+		if (pendingR === change) setStatus(error.message);
+	} finally {
+		if (pendingR === change) pendingR = undefined;
+	}
+}
+
 function cancelPendingChipWork(chip) {
+	if (chip === 'sm510') pendingR = undefined;
 	if (pending?.chip === chip) {
 		request++;
 		pending = null;
@@ -368,10 +426,11 @@ function stopPlayback(owner, { chip } = {}) {
 		pending = null;
 	}
 	const clipEnd = owns(clip) ? releaseClip() : undefined;
-	const r1End = (!chip || chip === 'sm510') && (owner === undefined || owner === sm510CodeOwner)
-		? releaseCodeR1() : undefined;
+	const stopsR = !chip || chip === 'sm510';
+	if (stopsR && (owner === undefined || owner === sm510ManualOwner)) pendingR = undefined;
+	const r1End = stopsR && (owner === undefined || owner === rOwner) ? releaseR() : undefined;
 	const end = clipEnd === undefined ? r1End : Math.max(clipEnd, r1End ?? 0);
-	if (!clip && !pending && !codeR1?.enabled && (end !== undefined || owner === undefined)) status.textContent = 'Stopped';
+	if (!clip && !pending && !r1Voice?.enabled && (end !== undefined || owner === undefined)) status.textContent = 'Stopped';
 	syncTransport();
 	return end;
 }
@@ -749,11 +808,17 @@ function refreshToneSource() {
 		button.setAttribute('aria-pressed', String(button.dataset.toneMode === toneMode));
 	byId('toneSourceDetail').textContent = toneHints[toneMode];
 	byId('buzzerR1DemoLink').hidden = toneMode !== DK52_R;
+	drawR();
 	drawWave();
 }
+rButtons.forEach((button, index) => button.addEventListener('click', () => {
+	void writeManualR((pendingR?.value ?? currentR()) ^ (1 << index), toneMode);
+}));
 for (const button of toneButtons) button.addEventListener('click', () => {
 	toneMode = button.dataset.toneMode;
 	try { localStorage.setItem(tonePreference, toneMode); } catch {}
+	if (pendingR || (rOwner === sm510ManualOwner && rMode !== toneMode))
+		void writeManualR(pendingR?.value ?? rValue, toneMode);
 	refreshToneSource();
 	if (toneMode === DIRECT_R) void prepareSm510().catch(error => setStatus(error.message));
 });
@@ -768,6 +833,8 @@ workspace = setupBuzzerWorkspace({
 	getStarterCode: () => BUZZER_STARTER,
 });
 const synthButton = byId('synthWorkspaceSynthButton'), codeButton = byId('synthWorkspaceCodeButton');
+const navigation = byId('buzzerWorkspaceNavigation'), inputHeading = byId('buzzerInputHeading');
+const inputTablist = byId('buzzerInputTabs'), expandButton = byId('synthCodeExpandButton');
 const keyboardPanel = byId('synthKeyboardPanel');
 const keyboardTab = byId('synthInputKeyboardTab'), codeTab = byId('synthInputCodeTab');
 const sequencerTab = byId('buzzerStepSequencerTab');
@@ -830,7 +897,7 @@ controls = setupBuzzerCode({
 	},
 	r1: {
 		prepare: prepareSm510,
-		write: writeCodeR1,
+		write: writeSm510R,
 		playCycles: (r1Plan, r1Mode) => start('sm510-plan', { owner: sm510CodeOwner, r1Plan, r1Mode }),
 		stop: () => stopPlayback(sm510CodeOwner),
 	},
@@ -841,6 +908,14 @@ controls = setupBuzzerCode({
 	onExpandedChange(expanded) {
 		codeButton.setAttribute('aria-pressed', String(expanded));
 		synthButton.setAttribute('aria-pressed', String(!expanded));
+		if (expanded === (inputTablist.parentNode === navigation)) return;
+		const focused = document.activeElement;
+		if (expanded) {
+			navigation.prepend(inputTablist);
+			navigation.append(expandButton);
+		} else inputHeading.append(inputTablist, expandButton);
+		inputHeading.hidden = expanded;
+		if (inputTablist.contains(focused) || focused === expandButton) focused.focus({ preventScroll: true });
 	},
 	onViewChange: showInputView,
 });
@@ -867,7 +942,7 @@ function navigateTabs(tabList, tabs) {
 	}, true);
 }
 navigateTabs(byId('buzzerChipTabs'), chipTabs.map(([, tab]) => tab));
-navigateTabs(byId('buzzerInputTabs'), inputTabs);
+navigateTabs(inputTablist, inputTabs);
 codeButton.addEventListener('click', async () => {
 	try {
 		if (await controls.setExpanded(true, { focusEditor: false })) codeTab.focus({ preventScroll: true });

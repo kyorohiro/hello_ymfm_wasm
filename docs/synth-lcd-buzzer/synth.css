@@ -131,6 +131,11 @@ input { accent-color: #9a3c13; }
 
 .synth-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 14px; color-scheme: light; color: var(--ink); }
 .chip-controls { color: var(--ink); color-scheme: light; margin-top: 12px; padding: 12px 16px; border: 1px solid #d38a58; border-radius: 14px; background: var(--cream); }
+.workspace-navigation, .chip-tab-row { display: flex; align-items: center; gap: 6px; }
+.workspace-navigation { flex-wrap: wrap; column-gap: 12px; }
+.chip-tab-row { min-width: 0; }
+.chip-tab-row button { white-space: nowrap; }
+#buzzerFilesToggle[aria-expanded="true"] { background: #ead9c5; }
 .tone-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; margin: 10px 0 0; font-size: .84rem; }
 .tone-source label { font-weight: 700; }
 #toneSourceDetail, .chip-note, #sm511Status { color: #5d4c3b; }
@@ -139,6 +144,11 @@ input { accent-color: #9a3c13; }
 .chip-controls .chip-details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; margin: 9px 0 0; color: #5d4c3b; font-size: .82rem; line-height: 1.45; }
 .chip-controls .chip-details dt { color: var(--ink); font-weight: 700; }
 .chip-controls .chip-details dd { margin: 0; }
+.r-latch { margin-top: 10px; padding: 8px 10px; border: 1px solid #bba58c; border-radius: 6px; }
+.r-latch-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.r-latch-controls label { font-weight: 700; }
+.r-latch-controls output { font-family: monospace; }
+.r-latch-controls .tone-source { margin: 0; }
 .tone-source button[aria-pressed="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
 .rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
 .rom-controls .tone-source { margin: 0; }
@@ -151,7 +161,8 @@ input { accent-color: #9a3c13; }
 .mixer-controls .mixer-mute { justify-content: flex-start; }
 @media (max-width: 520px) {
 	.chip-controls { padding-inline: 10px; }
-	.chip-controls > .input-tabs { gap: 4px; flex-wrap: wrap; }
+	.workspace-navigation, .chip-tab-row, .chip-tab-row .input-tabs { gap: 4px; }
+	.chip-tab-row .input-tabs { flex-wrap: wrap; }
 	.mixer-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .synth-workspace:has(#buzzerFilesPanel:not([hidden])) { grid-template-columns: minmax(200px, 255px) minmax(0, 1fr); }
@@ -286,6 +297,7 @@ input { accent-color: #9a3c13; }
 	.lcd { padding: 10px; }
 	#waveform { height: 88px; }
 	.input-tabs button { font-size: .85rem; padding-inline: 8px; }
+	.chip-tab-row button { font-size: .8rem; padding-inline: 3px; }
 	.steps { gap: 6px; }
 	.step select { font-size: .82rem; }
 	.settings { gap: 9px; }

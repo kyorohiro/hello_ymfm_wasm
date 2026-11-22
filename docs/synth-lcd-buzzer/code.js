@@ -139,7 +139,7 @@ export function setupBuzzerCode({
 					const mode = name === 'sm510-direct' ? DIRECT_R : DK52_R;
 					registerClients.set(name, createSm510CodeChip({
 						id: name,
-						write: enabled => r1.write(enabled, core, mode),
+						write: value => r1.write(value, core, mode),
 						playCycles: plan => r1.playCycles(plan, mode),
 					}));
 				}
@@ -165,6 +165,7 @@ export function setupBuzzerCode({
 		journalKey: 'tetorica-lcd-buzzer-pending-code',
 		transformDeclarations: buzzerCodeDeclarations,
 		keepRunningOnKeyboard: true,
+		persistentExpanded: true,
 		allowTextFiles: true,
 		writeText: (path, source) => project.writeEditorText(path, source),
 	});

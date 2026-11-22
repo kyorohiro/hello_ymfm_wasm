@@ -73,8 +73,9 @@ keys. Use Octave and Fret to move the pitches. In **Code**, type in the
 editor to edit the script, or focus the **Code** tab to play with the computer
 keys. The physical note keys also work while source buttons, switches, or
 sliders have focus. Use the arrow keys to adjust focused sliders.
-The top **Code** button opens the workspace beside Files. **Run** starts a
-session and **Apply** updates it. Both controls sit below the Code editor with
+The top **Code** button moves **Keyboard**, **Code**, and **Step Sequencer**
+next to the chip tabs. **Run** starts a session and **Apply** updates it.
+Both controls sit below the Code editor with
 **Stop Code**. **Play** and **Stop** sit below the Step Sequencer. Run or
 Apply stops manual sequence playback. Play stops the Code session, including
 a running script that is waiting between notes. Either Stop stops both
@@ -113,7 +114,14 @@ The demo shares the instrument's **Volume** control. **Play R1** always uses
 the DK-52 divider, and its eight gates and step time belong to the demo.
 [MAME DK-52 wiring](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800) · [SM510 R output](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510.cpp#L43-L69)
 
-### R1 from Code
+### R latch and Code
+
+The **SM510** tab shows the two-bit **R latch** in binary and hexadecimal.
+Toggle **R1** (bit 0) and **R2** (bit 1) to write the latch by hand. The pin
+readout shows the steady level in **Direct R**, or the gated carrier and its
+phase in **DK-52 Divider**. The app auditions R1 in mono. The readout also
+follows explicit Code writes and samples cycle sequences at the screen's
+refresh rate.
 
 Use `useSoundChip('sm510')` for the DK-52 divider and
 `useSoundChip('sm510-direct')` for the direct mask. Each client keeps its
@@ -159,8 +167,8 @@ window. Live keyboard playback uses a short gain fade on release.
 ### Machine-cycle timing in Code
 
 `sm510.clock` is the master clock in Hz and `sm510.machineCycleHz` is the CPU
-machine-cycle rate. Both clients accept a 4-bit value for `REG_R`, with
-bit 0 driving the mono R1 audio. An immediate
+machine-cycle rate. Both clients accept a four-bit operand for `REG_R`.
+The low two bits fill the latch, with bit 0 driving the mono R1 audio. An immediate
 `write()` changes the latch when called and `sleep()` uses the Code runtime clock.
 The immediate audition smooths the level changes for browser playback.
 For deterministic offsets, `build()` records writes and `playCycles()` renders
@@ -193,7 +201,8 @@ pitch and melody rendering.
 
 ## Files and Menu
 
-Open or close **Files** in either view. `/index.js` contains the starter Code
+The **Files** button sits next to **Mixer** in both views. Use it to open or
+close the file panel. `/index.js` contains the starter Code
 and `/pattern.json` holds the active sequence. Select a saved pattern to load
 it into the sequencer. **＋ Pattern** keeps a named copy alongside Code and
 other project files. Use **＋ JS** to create a script. Right-click a file or
