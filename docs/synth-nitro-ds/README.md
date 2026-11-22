@@ -115,6 +115,35 @@ cancels its reservations.
 Scheduled operations act on the Synth's physical channels. They do not run
 inside the 2SF player or transfer sample RAM.
 
+### Code software effects
+
+Open **Files → examples → live-fx.js** in a new Cassette, then select **Run**.
+`liveFx()` processes the stereo Synth mix before Master, so both Code and
+Keyboard pass through it. 2SF song playback and paused audition have their own
+output route. The DS hardware Sound Capture reads the chip mix before software
+effects.
+
+```js
+liveFx("level", {
+  context: { amount: 0.4 },
+  process(input, output, state, { amount }) {
+    for (let channel = 0; channel < output.length; channel++) {
+      for (let i = 0; i < output[channel].length; i++) {
+        output[channel][i] = input[channel][i] * amount;
+      }
+    }
+  },
+});
+```
+
+Play a key to hear the effect, or add the declaration to a Code melody. The
+`process()` callback runs in the AudioWorklet and reads its settings through
+`context`. Use `fx.updateContext("level", { amount: 0.8 })` during Code to
+change one setting. Apply keeps the processing state for the same effect name
+unless you set `resetState: true`. Removing the declaration and applying
+again removes the effect. **Stop** removes the Code effect rack. The shared
+`fx` API also offers built-in effects such as `fx.setChain([fx.delay()])`.
+
 ## Mixer
 
 Use **Mixer** to set the **DS output** level, stereo balance and mute for

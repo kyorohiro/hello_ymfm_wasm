@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {relative,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createHistoricalGitReader} from './historical_calibration_git_reader.mjs';
 import {ym2608SourceGainDefaultChecker} from '../../scripts/check_ym2608_source_gain_defaults.mjs';
 
 export const YM2608_SOURCE_MIX_HISTORY_PATH='test/fixtures/ym2608-source-mix-predecessors.json';
@@ -65,7 +66,9 @@ export function createHistoricalYm2608SourceMixReader(readSource=url=>readFileSy
 }
 
 const encoding=options=>typeof options==='string'?options:options?.encoding;
-const defaultReader=createHistoricalYm2608SourceMixReader();
+const defaultReader=createHistoricalYm2608SourceMixReader(
+ createHistoricalGitReader('d81ce2bcf9be9c315a789d22dbafa230dfe8e1db'),
+);
 export function readHistoricalYm2608SourceMixFileSync(path,options){
  const location=path instanceof URL?path:new URL('file://'+resolve(String(path)));
  const bytes=defaultReader(location);

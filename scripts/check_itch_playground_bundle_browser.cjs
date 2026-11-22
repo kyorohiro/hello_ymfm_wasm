@@ -10,15 +10,20 @@ const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
 const args=process.argv.slice(2),option=name=>args.find(arg=>arg.startsWith(`--${name}=`))?.slice(name.length+3);
-const help='Usage: node scripts/check_itch_playground_bundle_browser.cjs (--root=STAGE | --zip=ARCHIVE) [--out=REPORT] [--images=DIR] [--chromium|--webkit] [--modes=genesis,mega-cd,gameboy,nes,wonderswan,pokey,pokey-dual]';
+const help='Usage: node scripts/check_itch_playground_bundle_browser.cjs (--root=STAGE | --zip=ARCHIVE) [--out=REPORT] [--images=DIR] [--chromium|--webkit] [--modes=genesis,mega-cd,gameboy,nes,wonderswan,pokey,pokey-dual] [--monaco-root=MIN_VS_DIR] [--sample-example]';
 if(args.includes('--help')){console.log(help);process.exit(0);}
-for(const arg of args)assert(['--chromium','--webkit'].includes(arg)||/^--(?:root|zip|out|images|modes)=/.test(arg),help);
+for(const arg of args)assert(['--chromium','--webkit','--sample-example'].includes(arg)||/^--(?:root|zip|out|images|modes|monaco-root)=.+$/.test(arg),help);
 assert(!!option('root')!==!!option('zip'),help);
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const out=path.resolve(option('out')??'/private/tmp/itch-playground-bundle-browser.json');
 const images=path.resolve(option('images')??'/private/tmp/itch-playground-bundle-browser-images');
 const modes=(option('modes')??'genesis,mega-cd,gameboy,nes,wonderswan').split(',');
 assert(modes.length&&new Set(modes).size===modes.length&&modes.every(mode=>['genesis','mega-cd','gameboy','nes','wonderswan','pokey','pokey-dual'].includes(mode)),'Unknown or repeated mode');
+const sampleExample=args.includes('--sample-example');
+assert(!sampleExample||modes.includes('genesis'),'--sample-example requires Genesis in --modes');
+const monacoRoot=option('monaco-root')?path.resolve(option('monaco-root')):null;
+const monacoCdn='https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/';
+const mime={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml','.png':'image/png','.woff':'font/woff','.woff2':'font/woff2'};
 // Read-only numerical expectations, never a Browser runtime asset fallback.
 let pokeyCalibration=null;
 function pokeyRoutes(mode){return (mode==='pokey'?['primary']:['dual-first','dual-second']).map(role=>{
@@ -77,6 +82,21 @@ async function ready(page,url){
  assert.equal(await page.locator('#runButton').isEnabled(),true);
  return page.evaluate(()=>({status:document.getElementById('status').textContent,mode:document.getElementById('playgroundMode').value,modeCount:document.getElementById('playgroundMode').options.length,audioContexts:window.__itchBundleAudit.contexts.length}));
 }
+async function useMonacoFixture(context){
+ if(!monacoRoot)return;
+ await context.route(url=>url.href.startsWith(monacoCdn),async route=>{
+  const relative=decodeURIComponent(route.request().url().slice(monacoCdn.length).split('?')[0]);
+  const file=path.resolve(monacoRoot,relative);
+  assert(file.startsWith(monacoRoot+path.sep),'Monaco fixture path stays inside min/vs');
+  let body;
+  try{body=await fs.readFile(file);}
+  catch(error){
+   if(error.code!=='ENOENT'||!file.endsWith('.min.js'))throw error;
+   body=await fs.readFile(file.replace(/\.min\.js$/,'.js'));
+  }
+  await route.fulfill({body,contentType:mime[path.extname(file)]??'application/octet-stream',headers:{'access-control-allow-origin':'*'}});
+ });
+}
 async function setSource(page,source,execution){
  await page.locator('#codeTab').click();
  await page.evaluate(({source,execution})=>{monaco.editor.getEditors()[0].setValue(source);document.getElementById('workerExecution').checked=execution==='worker';},{source,execution});
@@ -112,11 +132,18 @@ async function typesAndInspector(page,mode){
  }
  const result=await page.evaluate(async mode=>{
   const good=mode==='mega-cd'?"async function t(){await cdda.load('/a.wav');await cdda.play(1,{offset:0});fm.noteOn(CH1,'A3');}":"fm.noteOn(CH1,'A3');";
-  const source=good+"\nfm.noteOn('invalid','A3');",model=monaco.editor.createModel(source,'javascript',monaco.Uri.parse('file:///bundle-types.js'));
-  try{const worker=await(await monaco.languages.typescript.getJavaScriptWorker())(model.uri);return {validLength:good.length,diagnostics:(await worker.getSemanticDiagnostics(model.uri.toString())).map(({start,code,messageText})=>({start,code,messageText}))};}finally{model.dispose();}
+  const source=good+"\nfm.noteOn('invalid','A3');\nfm.";
+  const model=monaco.editor.createModel(source,'javascript',monaco.Uri.parse('file:///bundle-types.js'));
+  try{
+   const worker=await(await monaco.languages.typescript.getJavaScriptWorker())(model.uri),uri=model.uri.toString();
+   const diagnostics=(await worker.getSemanticDiagnostics(uri)).map(({start,code,messageText})=>({start,code,messageText}));
+   const completions=(await worker.getCompletionsAtPosition(uri,source.length))?.entries.map(entry=>entry.name)??[];
+   return {validLength:good.length,diagnostics,completions};
+  }finally{model.dispose();}
  },mode);
  assert.deepEqual(result.diagnostics.filter(x=>x.start<result.validLength),[],'Selected mode declarations remain available');
- assert(result.diagnostics.some(x=>x.start>=result.validLength),'Monaco semantic Worker rejects invalid channel');
+ assert(result.diagnostics.some(x=>x.start>=result.validLength&&x.code===2345),'Monaco semantic Worker rejects invalid channel');
+ for(const method of ['noteOn','setOperator','setPreset'])assert(result.completions.includes(method),'Monaco completion includes fm.'+method);
  assert.deepEqual(await page.evaluate(()=>({contexts:window.__itchBundleAudit.contexts.length,worklets:window.__itchBundleAudit.worklets.length})),before,'Inspector/types do not create audio');
  return result;
 }
@@ -127,7 +154,7 @@ function sourceFor(mode,token){
  if(mode==='genesis')return `${fileProbe}fm.setPreset(CH1,FM_PRESETS.sine);fm.noteOn(CH1,mod.note);psg.tone(PSG1,{note:'A4',attenuation:8});${marker}${hold}`;
  if(mode==='gameboy')return `${fileProbe}gameboy.pulse.setVoice(0,{duty:.25,volume:8,envelope:{direction:'down',period:0}});gameboy.pulse.noteOn(0,'A4');${marker}${hold}`;
  if(mode==='nes')return `${fileProbe}nes.pulse.setVoice(0,{duty:.25,volume:8});nes.pulse.noteOn(0,'A4');${marker}${hold}`;
- if(mode==='wonderswan')return `${fileProbe}ws.setWaveform(0,Array.from({length:32},(_,i)=>Math.round(7.5+7.5*Math.sin(2*Math.PI*i/32))));ws.setVolume(0,10,10);ws.noteOn(0,'A4');${marker}${hold}`;
+ if(mode==='wonderswan')return `${fileProbe}const ws = await useSoundChip("wonderswan");ws.setWaveform(0,Array.from({length:32},(_,i)=>Math.round(7.5+7.5*Math.sin(2*Math.PI*i/32))));ws.setVolume(0,10,10);ws.noteOn(0,'A4');${marker}${hold}`;
  if(mode==='pokey'||mode==='pokey-dual'){
   const entries=pokeyRoutes(mode).map((route,index)=>`{source:${index?'pokey2':'pokey'},id:${JSON.stringify(route.name)},expectedGain:${route.volume},frequency:${index?880:440},pan:${mode==='pokey-dual'?(index?1:-1):0}}`).join(',');
   return `${fileProbe}
@@ -182,6 +209,24 @@ async function stop(page){
  await page.waitForTimeout(250);
  const pcm=await capture(page);assert.equal(pcm.peak,0,'Global Stop produces exact zero PCM');return pcm;
 }
+async function runSampleExample(page){
+ const example='/examples/basic/ambient-choir-sample.js',sample='/samples/sonic-pi/ambi_choir.flac';
+ const sampleUrl=new URL('.'+sample,page.url()).href;
+ await page.locator('#codeTab').click();
+ await page.locator('#runFileSelect').selectOption(example);
+ const source=await page.evaluate(()=>monaco.editor.getEditors()[0].getValue());
+ assert.match(source,/await sample\.load\(\s*"sonic-pi\/ambi-choir"/,'The bundled Example opened as editable code');
+ const [response]=await Promise.all([
+  page.waitForResponse(response=>response.url()===sampleUrl&&response.ok()),
+  page.locator('#runButton').click(),
+ ]);
+ // The FLAC response can arrive before decoding and the first scheduled loop.
+ await page.waitForFunction(()=>/Running 1 live loop/.test(document.getElementById('status').textContent));
+ let pcm=await capture(page);
+ for(let i=0;i<3&&pcm.rms<=.0002;i++)pcm=await capture(page);
+ assert(pcm.rms>.0002&&pcm.peak<1,`The bundled Example rendered its shipped FLAC sample (RMS ${pcm.rms}, peak ${pcm.peak})`);
+ return {example,samplePath:new URL(response.url()).pathname,pcm,stopped:await stop(page)};
+}
 async function checkPokeySystemMixer(page,mode,playing,token){
  const routes=pokeyRoutes(mode),ids=routes.map(route=>route.name),expectedGains=routes.map(route=>route.volume);
  await waitLog(page,'__BUNDLE_MIXER_SYSTEM__'+token);
@@ -208,6 +253,7 @@ async function checkPokeySystemMixer(page,mode,playing,token){
 }
 async function runCase(browser,typeName,origin,mode,execution,sequence){
  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:1000}}),page=await context.newPage();
+ await useMonacoFixture(context);
  await context.addInitScript(instrumentation);page.setDefaultTimeout(40000);
  const errors=[],failed=[],bad=[],consoleErrors=[];
  page.on('pageerror',e=>errors.push(e.stack??e.message));page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText}));
@@ -217,6 +263,18 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
   result.startup=await ready(page,`${origin}${prefix}/index.html?mode=${mode}&no-sw=1`);
   assert.equal(result.startup.mode,mode);assert.equal(result.startup.audioContexts,0,'Startup is lazy');
   if(mode==='genesis'||mode==='mega-cd')result.types=await typesAndInspector(page,mode);
+  if(mode==='wonderswan'){
+   const starter=await page.evaluate(()=>monaco.editor.getEditors()[0].getValue());
+   assert.match(starter,/const ws = await useSoundChip\("wonderswan"\);/,'The shipped starter explicitly acquires WonderSwan');
+   await setSource(page,starter,execution);
+   await page.locator('#runButton').click();
+   await page.waitForFunction(()=>/Running 1 live loop/.test(document.getElementById('status').textContent));
+   let starterPcm=await capture(page);
+   for(let attempt=0;attempt<4&&starterPcm.rms<=.0002;attempt++)starterPcm=await capture(page);
+   result.wonderSwanStarter=starterPcm;
+   assert(starterPcm.rms>.0002,'The shipped starter plays real WonderSwan PCM');
+   await stop(page);
+  }
   await seedFiles(page);result.shellWorkerAndRelativeImport=true;
   const token=`${typeName}-${mode}-${execution}-${sequence}`,source=sourceFor(mode,token);
   await setSource(page,source,execution);await page.locator('#runButton').click();await waitLog(page,'__BUNDLE_READY__'+token);
@@ -249,6 +307,7 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
   await setSource(page,rerunSource,execution);await page.locator('#runButton').click();await waitLog(page,'__BUNDLE_READY__'+rerunToken);
   await page.waitForTimeout(execution==='worker'?650:100);result.rerun=await capture(page);assert(result.rerun.rms>.0002,'Rerun audible');
   result.finalStop=await stop(page);
+  if(sampleExample&&mode==='genesis')result.sampleExample=await runSampleExample(page);
   if(mode==='mega-cd'){
    await page.locator('#cddaTab').click();await page.locator('#cddaPanel [data-cdrom2-action="refresh"]').click();
    await page.waitForFunction(()=>document.querySelector('#cddaPanel [data-cdrom2-audio]')?.getAttribute('aria-busy')==='false');
@@ -272,6 +331,7 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
   assert(pokeyCalibration.passed&&pokeyCalibration.completeCoverage&&!pokeyCalibration.verify,'Complete POKEY calibration expected values');
   calibrationExpectation={path:'docs/issues/pokey_huc_timed_chip_levels_01.json',sha256:sha(bytes),measurementMetric:pokeyCalibration.calibration.measurementMetric};
  }
+ if(monacoRoot)await fs.access(path.join(monacoRoot,'base/worker/workerMain.js'));
  const artifact=await unpack();await fs.access(path.join(artifact.root,'index.html'));await fs.mkdir(images,{recursive:true});
  let bundle=null;
  try{bundle=JSON.parse(await fs.readFile(path.join(artifact.root,'sources/browser-bundle.json'),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
@@ -282,7 +342,7 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
   const bytes=await fs.readFile(path.join(artifact.root,bundle.entry.path));assert.equal(sha(bytes),bundle.entry.sha256);assert.equal(bytes.length,bundle.entry.bytes);
   for(const removed of bundle.removed){try{await fs.access(path.join(artifact.root,removed));throw Error('Removed module still present: '+removed);}catch(error){if(error.code!=='ENOENT')throw error;}}
  }
- const served=new Map(),requested=new Set(),report={artifact,bundle:bundle?{entry:bundle.entry,removedModules:bundle.removed.length}:null,calibrationExpectation,physicalOutputMuted:true,privateProductionHooks:false,repositoryFallback:false,cases:[]};
+ const served=new Map(),requested=new Set(),report={artifact,bundle:bundle?{entry:bundle.entry,removedModules:bundle.removed.length}:null,calibrationExpectation,monacoFixtureVersion:monacoRoot?'0.52.2':null,physicalOutputMuted:true,privateProductionHooks:false,repositoryFallback:false,cases:[]};
  const server=http.createServer(async(req,res)=>{
   try{
    let pathname=decodeURIComponent(new URL(req.url,'http://local').pathname);
@@ -292,7 +352,6 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
    let file=path.resolve(artifact.root,'.'+pathname);if(file!==artifact.root&&!file.startsWith(artifact.root+path.sep))throw Error('Outside artifact');
    if((await fs.stat(file)).isDirectory())file=path.join(file,'index.html');const bytes=await fs.readFile(file),relative=path.relative(artifact.root,file),record={bytes:bytes.length,sha256:sha(bytes)};
    if(served.has(relative))assert.deepEqual(record,served.get(relative),'Served artifact changed');served.set(relative,record);
-   const mime={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml','.png':'image/png','.woff':'font/woff','.woff2':'font/woff2'};
    res.writeHead(200,{'Content-Type':mime[path.extname(file)]??'application/octet-stream','Cache-Control':'no-store'}).end(bytes);
   }catch(error){res.writeHead(404).end(String(error));}
  });

@@ -30,7 +30,7 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 	const context = new Context({ latencyHint: 'interactive', sampleRate: SKYEMU_SAMPLE_RATE });
 	const requests = new Map(), owners = Array(16).fill(null);
 	const timedListeners = new Set();
-	let worklet, master, analyser, releaseOutput, closed = false, closing, nextId = 0;
+	let worklet, master, analyser, releaseOutput, codeEffect = null, closed = false, closing, nextId = 0;
 
 	function dispose(error = new Error('DS audio is closed.')) {
 		if (closed) return closing;
@@ -127,6 +127,20 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 		onTimedError(listener) {
 			timedListeners.add(listener);
 			return () => timedListeners.delete(listener);
+		},
+		setCodeEffect(node) {
+			if (closed || node === codeEffect) return;
+			if (node) {
+				node.connect(master);
+				try { worklet.connect(node); }
+				catch (error) {
+					node.disconnect(master);
+					throw error;
+				}
+			} else worklet.connect(master);
+			worklet.disconnect(codeEffect ?? master);
+			codeEffect?.disconnect(master);
+			codeEffect = node;
 		},
 		resume: () => deadline(context.resume(), 'DS audio could not resume.'),
 		dispose,

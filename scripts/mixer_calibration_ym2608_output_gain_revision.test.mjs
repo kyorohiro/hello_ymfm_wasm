@@ -1,19 +1,20 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readHistoricalYm2608SourceMixFileSync as readFileSync,createHistoricalYm2608SourceMixReader} from '../test/helpers/historical_ym2608_source_mix_fixture.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import {createHash} from 'node:crypto';
+const sourceCommit = 'c5f701da9c0e231a90986113e19d833e57b9168d';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {restoreMixerCalibrationYm2608OutputGainRevision:restoreArchived,
   YM2608_OUTPUT_GAIN_REVISION_SOURCE_PATHS:paths,YM2608_OUTPUT_GAIN_REVISION_RELATED_PATHS:related,
   YM2608_OUTPUT_GAIN_REVISION_REPORT_PATHS:reports,YM2608_OUTPUT_GAIN_DEFAULT_PCM_PATH:proofPath,
   YM2608_OUTPUT_GAIN_REVISION_RECEIPT_PATH:receiptPath,YM2608_OUTPUT_GAIN_REVISION_RECEIPT_OBJECT_SHA256:pin,
-}=await historicalCalibrationModule('mixer_calibration_ym2608_output_gain_revision.mjs');
-const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+}=await historicalCalibrationModule('mixer_calibration_ym2608_output_gain_revision.mjs', {sourceCommit});
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs', {sourceCommit});
 import {ym2608OutputGainDefaultChecker} from './check_ym2608_output_gain_defaults.mjs';
 
 const read=name => readFileSync(new URL('../'+name,import.meta.url));
-const restore=(path,bytes,options={})=>restoreArchived(path,bytes,{...options,
-  readSource:createHistoricalYm2608SourceMixReader(options.readSource)});
+const restore = restoreArchived;
 const sha=bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const measured=JSON.parse(read(reports[0]));

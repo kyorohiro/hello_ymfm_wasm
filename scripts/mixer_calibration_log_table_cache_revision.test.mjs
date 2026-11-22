@@ -1,8 +1,11 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalYm2612TimedFileSync as readFileSync} from '../test/helpers/historical_ym2612_timed_calibration_fixture.mjs';
+// The audit must use the complete source and dependency tree reviewed by the receipt.
+const sourceCommit = 'f9db21f7070db40b0bcec5f4f2ef5e826327a2e4';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {
   restoreMixerCalibrationLogTableCacheRevision:restore,
   LOG_TABLE_CACHE_REVISION_BASE_COMMIT:baseCommit,
@@ -10,11 +13,11 @@ const {
   LOG_TABLE_CACHE_REVISION_RECEIPT_OBJECT_SHA256:pin,
   LOG_TABLE_CACHE_REVISION_SOURCE_PATHS:paths,
   LOG_TABLE_CACHE_REVISION_LOGGER_PATHS:loggers,
-}=await historicalCalibrationModule('mixer_calibration_log_table_cache_revision.mjs');
+}=await historicalCalibrationModule('mixer_calibration_log_table_cache_revision.mjs',{sourceCommit});
 const {
   restoreMixerCalibrationAyTimedRevision:restoreAy,
   AY_TIMED_REVISION_RECEIPT_PATH:ayReceiptPath,
-}=await historicalCalibrationModule('mixer_calibration_ay_timed_revision.mjs');
+}=await historicalCalibrationModule('mixer_calibration_ay_timed_revision.mjs',{sourceCommit});
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');

@@ -2,13 +2,15 @@ import {historicalCalibrationModule} from '../test/helpers/historical_calibratio
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFile, readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
+const sourceCommit = '201bfcb0da583e1726dfad47f054af9293ef462e';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {NES_NAVIGATION_REVISION_PATH:path,NES_NAVIGATION_REVISION_RECEIPT_PATH:receiptPath,
   NES_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256:pin,
-  restoreMixerCalibrationNesNavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_nes_navigation_revision.mjs');
+  restoreMixerCalibrationNesNavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_nes_navigation_revision.mjs',{sourceCommit});
 import {createNesSharedClientNavigationUiReceipt} from './record_nes_shared_client_navigation_ui_revision.mjs';
-const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
-const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs',{sourceCommit});
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
 
 const read=name=>readFileSync(new URL('../'+name,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -16,7 +18,7 @@ const receipt=JSON.parse(read(receiptPath));
 test('the exact passive NES insertion reconstructs its pinned predecessor and preserves all eight reports',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);
   assert.equal(read(receiptPath).toString(),JSON.stringify(receipt,null,2)+'\n');
-  assert.deepEqual(await createNesSharedClientNavigationUiReceipt({readSource:readHistoricalAyTimedFile}),receipt);
+  assert.deepEqual(await createNesSharedClientNavigationUiReceipt({readSource:async (...args)=>readFileSync(...args)}),receipt);
   const current=read('docs/'+path),before=restore(path,current);
   assert.equal(before.length,receipt.before.bytes);assert.equal(sha(before),receipt.before.sha256);
   assert.equal(restore(path,before),before);

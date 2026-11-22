@@ -2,7 +2,8 @@ import {historicalCalibrationModule} from '../test/helpers/historical_calibratio
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
+import {readFileSync} from 'node:fs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 const {ASWAN_NAVIGATION_REVISION_PATH:path,ASWAN_NAVIGATION_REVISION_RECEIPT_PATH:receiptPath,
   ASWAN_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256:pin,ASWAN_NAVIGATION_REVISION_INSERTIONS:insertions,
   ASWAN_NAVIGATION_PREDECESSOR_RECEIPT_PATH:predecessorPath,
@@ -13,7 +14,8 @@ const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrat
 const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import {definitionSource,runtimeSourceUrl} from '../docs/playground/playground_monaco_definitions.js';
 
-const read=name=>readFileSync(new URL('../'+name,import.meta.url));
+const readReview=createHistoricalGitReader('6e67879741c95e0b0a3b123c69058ef0f769a06e');
+const read=name=>(name==='docs/'+path?readReview:readFileSync)(new URL('../'+name,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 

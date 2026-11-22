@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
+import { createNativeFXController } from '../js/native_fx.js';
 import { createNdsCodeRuntime, NDS_STARTER_CODE, NDS_STARTER_FILES } from './nds-code.js';
 import { selectNdsCodeDeclarations } from './nds-code-declarations.js';
 import { writeNdsPreset } from './nds-preset.js';
@@ -38,6 +43,91 @@ test('DS Code handles all physical channels and stops only Code notes', async ()
 	await runtime.stop();
 	assert.deepEqual([...active], [[0, 'keyboard'], [8, 'keyboard']]);
 	assert(owners.every((owner) => owner === 'code'));
+});
+
+test('DS software effects use the shared route, retain their rack on Apply and clean up on Stop', async (t) => {
+	const routes = [], messages = [], audio = {
+		context: { currentTime: 0 },
+		chip: { forOwner: () => ({ stopOwned() {} }) },
+		setCodeEffect(node) { routes.push(node); },
+	};
+	let creations = 0, disposals = 0;
+	const node = {};
+	const runtime = createNdsCodeRuntime({
+		ensureAudio: async () => audio,
+		createFxRack: async () => {
+			creations++;
+			return { node, controller: createNativeFXController((message) => messages.push(message)), stop() {},
+				dispose() { disposals++; } };
+		},
+	});
+	t.after(() => runtime.stop());
+	const effect = (amount) => `liveFx("level", {
+		context: { amount: ${amount} },
+		process(input, output) { output[0].set(input[0]); output[1].set(input[1]); },
+	});`;
+	const liveMessages = () => messages.filter((message) => message.op === 'live-fx');
+	await runtime.run('await useSoundChip("nds");');
+	assert.deepEqual(routes, [], 'Code without effects keeps the dry output');
+	await runtime.apply(effect(0.5));
+	assert.equal(routes.at(-1), node);
+	await runtime.apply(effect(0.25) + 'pg.fx.updateContext("level", { amount: 0.8 });');
+	assert.equal(creations, 1);
+	assert(liveMessages().filter(({ action }) => action === 'register').every(({ resetState }) => !resetState));
+	assert.deepEqual(liveMessages().at(-1).context, { amount: 0.8 });
+	await assert.rejects(runtime.apply(effect(0) + 'throw Error("Invalid Apply");'), /Invalid Apply/);
+	assert.equal(liveMessages().at(-1).name, 'level');
+	assert.deepEqual(liveMessages().at(-1).context, { amount: 0.25 });
+	assert.equal(routes.at(-1), node);
+	await runtime.apply('await useSoundChip("nds");');
+	assert.equal(liveMessages().at(-1).action, 'remove');
+	assert.equal(routes.at(-1), null);
+	await runtime.apply('fx.setChain([fx.gain({ gain: 0.4 })]);');
+	assert.equal(routes.at(-1), node);
+	await runtime.stop();
+	assert.equal(routes.at(-1), null);
+	assert.equal(disposals, 1);
+});
+
+test('DS Code can run dry if the optional effect loader fails', async (t) => {
+	const audio = {
+		context: { currentTime: 0 },
+		chip: { forOwner: () => ({ stopOwned() {} }) },
+		setCodeEffect() { assert.fail('Unavailable effects must keep the dry route'); },
+	};
+	const runtime = createNdsCodeRuntime({
+		ensureAudio: async () => audio,
+		createFxRack: async () => { throw Error('missing FX module'); },
+	});
+	t.after(() => runtime.stop());
+	await runtime.run('await useSoundChip("nds");');
+	await assert.rejects(runtime.apply('liveFx("level", { process() {} });'), /effects are unavailable: missing FX module/);
+	assert.equal(runtime.getState().running, true);
+});
+
+test('Stopping DS Code during effect startup retires the late rack', async () => {
+	const started = Promise.withResolvers(), loading = Promise.withResolvers();
+	let disposed = false;
+	const audio = {
+		context: { currentTime: 0 },
+		chip: { forOwner() { assert.fail('A cancelled Code run must not acquire the chip'); } },
+		setCodeEffect() { assert.fail('A late rack must not reach the shared output'); },
+	};
+	const runtime = createNdsCodeRuntime({
+		ensureAudio: async () => audio,
+		createFxRack() {
+			started.resolve();
+			return loading.promise;
+		},
+	});
+	const run = runtime.run('liveFx("level", { process() {} });');
+	const rejected = assert.rejects(run, { name: 'AbortError' });
+	await started.promise;
+	await runtime.stop();
+	loading.resolve({ dispose() { disposed = true; } });
+	await rejected;
+	assert.equal(disposed, true);
+	assert.equal(runtime.getState().running, false);
 });
 
 test('Run and Apply read the saved entry, imported module, and project file', async () => {
@@ -189,7 +279,10 @@ test('DS editor declarations describe the default runtime and physical channels'
 	assert.match(declarations, /atSample\(sample: number\): NdsOperationRecorder/);
 	assert.match(declarations, /prepareVoice\(channel: NdsCodeChannel\): Promise<NdsCodeChannelState>/);
 	assert.match(declarations, /compile\(operations: NdsOperationProgram,[^\n]*NdsTimedSnapshot/);
-	assert.doesNotMatch(declarations, /declare function liveFx\b|interface YM2612FMApi\b/);
+	assert.match(declarations, /declare function liveFx<C extends object>/);
+	assert.match(declarations, /declare const fx: FXApi/);
+	assert.match(declarations, /interface NdsCodeAPI \{[\s\S]*fx:typeof fx/);
+	assert.doesNotMatch(declarations, /interface YM2612FMApi\b/);
 	assert.match(NDS_STARTER_CODE, /await nds\.noteOn\(CH1/);
 	assert.match(NDS_STARTER_CODE, /await beat\(/);
 	for (const { path, data } of NDS_STARTER_FILES) {
@@ -200,5 +293,33 @@ test('DS editor declarations describe the default runtime and physical channels'
 			assert.match(data, /await nds\.compile\(/);
 			assert.match(data, /await nds\.schedule\(/);
 		} else assert.match(data, /await beat\(/);
+	}
+});
+
+test('DS effects share the Code host declarations and type-check a stereo effect', async (t) => {
+	const source = await readFile(new URL('../playground/tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
+	const work = await mkdtemp(join(tmpdir(), 'nds-fx-types-'));
+	t.after(() => rm(work, { recursive: true, force: true }));
+	const globals = join(work, 'globals.d.ts'), entry = join(work, 'entry.ts');
+	await writeFile(globals, selectNdsCodeDeclarations(source));
+	await writeFile(entry, `export {};
+liveFx("level", {
+  context: { amount: 0.4 },
+  process(input, output, state, { amount }) {
+    output[0][0] = input[0][0] * amount;
+  },
+});
+await livePrepare("fx", ({ fx }) => fx.gain({ gain: 0.8 }));
+pg.fx.setChain([fx.delay()]);
+fx.updateContext("level", { amount: 0.8 });
+// @ts-expect-error Code cannot create extra DS instances.
+await useSoundChip("ym2612");
+`);
+	const compiler = fileURLToPath(new URL('../../node_modules/typescript/bin/tsc', import.meta.url));
+	try {
+		execFileSync(process.execPath, [compiler, '--strict', '--noEmit', '--target', 'ES2022', '--module', 'ESNext',
+			'--moduleResolution', 'Bundler', '--lib', 'ES2022', globals, entry], { stdio: 'pipe' });
+	} catch (error) {
+		throw new Error(error.stdout?.toString() || error.message);
 	}
 });

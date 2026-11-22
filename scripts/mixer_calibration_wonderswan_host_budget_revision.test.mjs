@@ -8,6 +8,7 @@ import { readFile, mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {tmpdir} from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { createHistoricalGitReader } from '../test/helpers/historical_calibration_git_reader.mjs';
 const {
   restoreMixerCalibrationWonderSwanHostBudgetRevision:restore,
   WONDERSWAN_HOST_BUDGET_REVISION_BASE_COMMIT:commit,
@@ -22,7 +23,10 @@ import * as currentTimeline from '../tetorica_src/runtime/wonderswan_timeline.js
 import * as currentConverter from '../docs/playground/wonderswan_vgm_import.js';
 import { createWonderSwanVgm } from '../test/helpers/wonderswan_vgm_fixture.mjs';
 
-const read = (path) => readFile(new URL('../' + path, import.meta.url));
+// Use the reviewed conversion and dependency inputs for the old proof. The
+// trace comparison below still exercises the live converter and timeline.
+const readReview = createHistoricalGitReader('798c937c991c5a198c6d40edc52eb5e571adf54e');
+const read = (path) => readReview(new URL('../' + path, import.meta.url));
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(await read(receiptPath));
 const aliases = {
@@ -97,7 +101,7 @@ test('future source bodies and changed proof dependencies cannot use the reviewe
   for (const target of [...sources, ...reports, ...related]) {
     const targetUrl = new URL('../' + target, import.meta.url).href;
     const readSource = (url) => {
-      const original = readFileSync(url);
+      const original = readReview(url);
       return url.href === targetUrl ? Buffer.concat([original, Buffer.from('\n')]) : original;
     };
     assert.throws(() => restore(path, bytes, { readSource }), /dependency changed/, target);
@@ -128,7 +132,7 @@ test('the receipt itself requires its independently pinned object hash', async (
   await mkdir(dirname(modulePath), { recursive: true });
   await writeFile(
     modulePath,
-    await read('scripts/mixer_calibration_wonderswan_host_budget_revision.mjs'),
+    await readFile(new URL('./mixer_calibration_wonderswan_host_budget_revision.mjs', import.meta.url)),
   );
   const destination = join(directory, receiptPath);
   await mkdir(dirname(destination), { recursive: true });

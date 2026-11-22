@@ -1,16 +1,20 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+// The later Sine fix changed real DSP bytes independently of timed Game Boy.
+const sourceCommit = 'e2c4b64e57e98bb6433bd11165932086457a69bf';
+const readSineFix = createHistoricalGitReader(sourceCommit);
 const {
   MIXER_CALIBRATION_PS1_STARTER_PATH,
   mixerCalibrationPs1StarterOutsideSha256,
   mixerCalibrationReceiptObjectSha256,
   restoreMixerCalibrationPs1StarterRevision,
   readMixerCalibrationPs1StarterReceipt,
-}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const record=bytes=>({bytes:Buffer.byteLength(bytes),sha256:sha(bytes)});
@@ -189,10 +193,10 @@ test('invalid UTF-8 cannot be hidden by replacing the factory region',()=>{
   assert.throws(()=>restore(f,repinned(f,r=>r.source.after=record(bytes),{bytes})));
 });
 
-test('committed starter receipt retains its historical identities and rejects the later live DSP revision',async()=>{
+test('committed starter receipt retains its historical identities and rejects the later Sine DSP revision',async()=>{
   const root=fileURLToPath(new URL('../',import.meta.url));
   const evidence=await readMixerCalibrationPs1StarterReceipt(root);
-  const bytes=await readFile(new URL('../docs/'+MIXER_CALIBRATION_PS1_STARTER_PATH,import.meta.url));
+  const bytes=readSineFix(new URL('../docs/'+MIXER_CALIBRATION_PS1_STARTER_PATH,import.meta.url));
   assert.equal(mixerCalibrationReceiptObjectSha256(evidence.receipt),evidence.receiptObjectSha256);
   for(const kind of ['ps1','wonderswan','pokey']){
     const reportBytes=await readFile(new URL('../docs/issues/'+kind+'_chip_levels_01.json',import.meta.url)),report=JSON.parse(reportBytes);

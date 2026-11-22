@@ -2,7 +2,8 @@
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js?v=nds-source-controls-1';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
-import { selectNdsCodeDeclarations } from './nds-code-declarations.js?v=nds-timed-1';
+import { selectNdsCodeDeclarations } from './nds-code-declarations.js?v=nds-live-fx-1';
+import { createNdsCodeEffects } from './nds-code-effects.js';
 import { ndsPresetChannelSettings, readNdsPreset } from './nds-preset.js?v=nds-timer-1';
 import { attachNdsTimedClient } from './nds-timed-client.js';
 
@@ -95,6 +96,31 @@ await nds.schedule(phrase, { name: "pulse-and-noise", repeatSeconds: 0.5 });
 // Apply replaces this name after the script succeeds. Stop clears the schedule.
 `,
 	},
+	{
+		path: '/examples/live-fx.js',
+		data: `const nds = await useSoundChip("nds");
+setBpm(120);
+
+// Software stereo effect on the Synth output. Change amount and press Apply.
+liveFx("level", {
+  context: { amount: 0.4 },
+  process(input, output, state, { amount }) {
+    for (let channel = 0; channel < output.length; channel++) {
+      for (let i = 0; i < output[channel].length; i++) {
+        output[channel][i] = input[channel][i] * amount;
+      }
+    }
+  },
+});
+
+liveLoop("melody", async () => {
+  await nds.noteOn(CH1, choose(["C4", "Eb4", "G4"]), { mode: "pcm16", shape: "triangle" });
+  await beat(0.4);
+  await nds.noteOff(CH1);
+  await beat(0.1);
+});
+`,
+	},
 ]);
 
 function createNdsCodeClient(owner, audio) {
@@ -131,8 +157,10 @@ export function createNdsCodeRuntime({
 	getAudio = () => null,
 	onLog,
 	onState,
+	createFxRack,
 }) {
 	const savedCode = project && createSynthCodeProject(project, { version: 'saved' });
+	const effects = createNdsCodeEffects({ createFxRack, onLog });
 	let audio = null, owner = null, revision = 0;
 	const clients = new WeakMap();
 	return createPlaygroundCodeRuntime({
@@ -141,25 +169,34 @@ export function createNdsCodeRuntime({
 			const token = revision;
 			const nextAudio = await ensureAudio() ?? getAudio();
 			if (token !== revision) throw new DOMException('Code stopped', 'AbortError');
+			await effects.prepare(nextAudio);
+			if (token !== revision) throw new DOMException('Code stopped', 'AbortError');
 			owner = nextAudio.chip.forOwner('code');
 			if (!clients.has(nextAudio)) clients.set(nextAudio, createNdsCodeClient(owner, nextAudio));
 			audio = nextAudio;
 		},
 		now: () => audio?.context.currentTime ?? 0,
 		useSoundChip: () => clients.get(audio),
+		fx: effects.fx,
 		readFile: savedCode?.readFile,
 		prepareSource(source, options) {
 			return channelBindings + (savedCode ? savedCode.prepareSource(source, options) : source);
 		},
 		onLog,
-		onState,
+		onState(state) {
+			effects.setBpm(state.bpm);
+			onState?.(state);
+		},
 		beforeStopSoundChips() { revision++; },
 		async stopSoundChips() {
 			const previous = owner;
 			owner = null;
 			audio = null;
-			try { await previous?.timedControl?.({ action: 'end' }); }
-			finally { await previous?.stopOwned(); }
+			try { effects.stop(); }
+			finally {
+				try { await previous?.timedControl?.({ action: 'end' }); }
+				finally { await previous?.stopOwned(); }
+			}
 		},
 	});
 }

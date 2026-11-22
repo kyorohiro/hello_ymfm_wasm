@@ -7,7 +7,10 @@ import {execFileSync} from 'node:child_process';
 import {lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile} from 'node:fs/promises';
 import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkItchPlaygroundZip, validateItchZipEntries, isItchRunArchivedSource, isItchRunSourceGuide, itchRunSourcePreface, ITCH_RUN_DUPLICATE_SOURCE_GUIDES} from './prepare_itch_playground_run.mjs';
+import {
+  checkItchPlaygroundZip, validateItchZipEntries, isItchRunArchivedSource, isItchRunSourceGuide,
+  itchRunSourcePreface, readItchRunEmbeddedScripts, ITCH_RUN_DUPLICATE_SOURCE_GUIDES, ITCH_RUN_EMBEDDED_SCRIPTS,
+} from './prepare_itch_playground_run.mjs';
 
 export const ITCH_RELEASE_ARTIFACTS = Object.freeze([
   {id:'synth', stage:'itch_synth_dev', archive:'hello_ymfm_wasm_dev_itch_synth.zip', browserPlayable:true,
@@ -17,7 +20,7 @@ export const ITCH_RELEASE_ARTIFACTS = Object.freeze([
   {id:'playground-full', stage:'itch_playground_dev', archive:'hello_ymfm_wasm_dev_itch_playground.zip', browserPlayable:false,
     required:['playground.js','playground_vgm_import.js','sources/CDDA.json','sources/MSM5205.json']},
   {id:'playground-run', stage:'itch_playground_dev_for_run', archive:'hello_ymfm_wasm_dev_itch_playground_for_run.zip', browserPlayable:true,
-    required:['playground.js','sources/browser-bundle.json','sources/browser-bundle-inputs.zip','sources/corresponding-source.zip','sources/README-for-run.md']},
+    required:['playground.js','sources/corresponding-source.zip','sources/README-for-run.md']},
 ].map(item=>Object.freeze({...item, required:Object.freeze(item.required)})));
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const safe=name=>typeof name==='string'&&name.length>0&&!name.includes('\\')&&!/[\0-\x1f\x7f]/.test(name)&&!name.startsWith('/')&&!/^[A-Za-z]:/.test(name)&&name.replace(/\/$/,'').split('/').every(part=>part!==''&&part!=='.'&&part!=='..');
@@ -62,6 +65,7 @@ async function stageFiles(stage) {
     for(const item of await readdir(join(stage,prefix),{withFileTypes:true})) {
       const name=prefix?prefix+'/'+item.name:item.name,info=await lstat(join(stage,name));
       assert(safe(name),'Unsafe stage path: '+name); assert(!info.isSymbolicLink(),'Stage symlinks are not allowed: '+name);
+      if(item.name==='.DS_Store'&&info.isFile())continue; // The packagers exclude Finder metadata.
       if(info.isDirectory()){directories.add(name);await visit(name);}
       else {assert(info.isFile(),'Non-regular stage file: '+name);files.set(name,record(await readFile(join(stage,name))));}
     }
@@ -78,9 +82,10 @@ function checkedPaths(values,label,{rootJs=false}={}) {
   for(const name of values) {assert(safe(name)&&!name.endsWith('/'),label+': unsafe path '+JSON.stringify(name));assert(!names.has(name),label+': duplicate '+name);names.add(name);if(rootJs)assert(!name.includes('/')&&name.endsWith('.js'),label+': only root JavaScript inputs');}
   return names;
 }
-async function checkPlaygroundRun(full,run) {
-  const fullFiles=full.snapshot.files,runFiles=run.snapshot.files;
+async function checkPlaygroundBundle(fullFiles,run) {
+  const runFiles=run.snapshot.files;
   const read=name=>readFile(join(run.stage,name));
+  requiredFiles(runFiles,['sources/browser-bundle.json','sources/browser-bundle-inputs.zip'],'playground-run');
   const receipt=JSON.parse(await read('sources/browser-bundle.json'));
   assert.equal(receipt.format,1,'Browser bundle receipt format');
   assert.equal(receipt.entry?.path,'playground.js','Browser bundle entry path');
@@ -114,6 +119,34 @@ async function checkPlaygroundRun(full,run) {
   const uiNames=[...inputs,...[...fullFiles.keys()].filter(rootNotice)].sort();
   exactFiles(uiFiles,new Map(uiNames.map(name=>[name,fullFiles.get(name)])),'Complete original UI source archive');
   assert.equal(receipt.sourceArchive.files,uiNames.length);
+  const added=['sources/browser-bundle-inputs.zip','sources/browser-bundle.json'];
+  if(runFiles.has('playground.js.LEGAL.txt'))added.push('playground.js.LEGAL.txt');
+  if(/playground\.js\.LEGAL\.txt/.test((await read('playground.js')).toString()))assert(runFiles.has('playground.js.LEGAL.txt'),'Linked bundle legal comments are included');
+  return {receipt,removed,added,changed:['index.html','playground.js'],
+    details:{entry:receipt.entry,originalUI:{path:receipt.sourceArchive.path,files:uiFiles.size,...record(uiArchive)},removedRootModules:removed.size}};
+}
+async function checkReadablePlaygroundRun(full,run) {
+  const scripts=await readItchRunEmbeddedScripts(full.stage);
+  assert(scripts.size>0,'Readable browser upload requires verified examples or starters');
+  for(const [name,value]of scripts)same(value,full.snapshot.files.get(name),'Verified embedded script: '+name);
+  const entries=inspectArchive(join(run.stage,ITCH_RUN_EMBEDDED_SCRIPTS),{index:false});
+  assert(entries.every(entry=>!entry.directory),'Playground example archive has no directory records');
+  exactFiles(metadata(entries),scripts,'Complete original embedded scripts archive');
+  const guide=await readFile(join(run.stage,'sources/README-for-run.md'),'utf8');
+  const archive=run.snapshot.files.get(ITCH_RUN_EMBEDDED_SCRIPTS);
+  assert(guide.includes(']('+basename(ITCH_RUN_EMBEDDED_SCRIPTS)+')')&&guide.includes(archive.sha256),
+    'Run source guide identifies the editable example archive');
+  return {removed:[...scripts.keys()],added:[ITCH_RUN_EMBEDDED_SCRIPTS],changed:[],
+    details:{profile:'readable',entry:{path:'playground.js',...run.snapshot.files.get('playground.js')},removedRootModules:0,
+      embeddedScripts:{path:ITCH_RUN_EMBEDDED_SCRIPTS,files:scripts.size,...archive}}};
+}
+async function checkPlaygroundRun(full,run) {
+  const fullFiles=full.snapshot.files,runFiles=run.snapshot.files;
+  const read=name=>readFile(join(run.stage,name));
+  const layout=runFiles.has(ITCH_RUN_EMBEDDED_SCRIPTS)
+    ? await checkReadablePlaygroundRun(full,run)
+    : await checkPlaygroundBundle(fullFiles,run);
+  const removed=[...layout.removed];
   const sourcePath='sources/corresponding-source.zip',sourceBytes=await read(sourcePath),sourceSha=hash(sourceBytes);
   const sources=inspectArchive(join(run.stage,sourcePath),{index:false});
   assert(sources.every(entry=>!entry.directory),'Corresponding source archive has no directory records');
@@ -133,11 +166,10 @@ async function checkPlaygroundRun(full,run) {
   const expected=new Set(fullFiles.keys());
   for(const name of archived) {expected.delete('sources/'+name);assert(!runFiles.has('sources/'+name),'Build source or complete kit member is archived rather than duplicated: '+name);}
   for(const name of removed)expected.delete(name);
-  const added=['sources/corresponding-source.zip','sources/README-for-run.md','sources/browser-bundle-inputs.zip','sources/browser-bundle.json'];
+  const added=['sources/corresponding-source.zip','sources/README-for-run.md',...layout.added];
   for(const name of added)expected.add(name);
-  if(runFiles.has('playground.js.LEGAL.txt'))expected.add('playground.js.LEGAL.txt');
   same([...runFiles.keys()].sort(),[...expected].sort(),'Only documented Run transformations change the file set');
-  const changed=new Set(['index.html','playground.js',...removed,...archived.map(name=>'sources/'+name)]);
+  const changed=new Set([...layout.changed,...removed,...archived.map(name=>'sources/'+name)]);
   const guides=new Set([...fullSources.keys()].filter(name=>!isItchRunArchivedSource(name)&&isItchRunSourceGuide(name)).map(name=>'sources/'+name));
   let unchanged=0,notices=0;
   for(const [name,value]of fullFiles) {
@@ -147,14 +179,15 @@ async function checkPlaygroundRun(full,run) {
   }
   const sourceGuideText=(await read('sources/README-for-run.md')).toString();
   assert(sourceGuideText.includes(sourceSha)&&sourceGuideText.includes('corresponding-source.zip'),'Run source guide identifies the complete source archive');
-  const entryText=(await read('playground.js')).toString();
-  if(/playground\.js\.LEGAL\.txt/.test(entryText))assert(runFiles.has('playground.js.LEGAL.txt'),'Linked bundle legal comments are included');
-  assert.equal(receipt.inputFileCount,fullFiles.size-archived.length+2,'Bundle input file count');
-  assert.equal(receipt.outputFileCount,runFiles.size,'Bundle output file count');
-  assert.equal(receipt.originalFilesUnchanged,receipt.inputFileCount-removed.size-2,'Bundle preserves every other pre-bundle file');
-  return {entry:receipt.entry,originalUI:{path:receipt.sourceArchive.path,files:uiFiles.size,...record(uiArchive)},
+  if(layout.receipt){
+    const {receipt}=layout;
+    assert.equal(receipt.inputFileCount,fullFiles.size-archived.length+2,'Bundle input file count');
+    assert.equal(receipt.outputFileCount,runFiles.size,'Bundle output file count');
+    assert.equal(receipt.originalFilesUnchanged,receipt.inputFileCount-removed.length-2,'Bundle preserves every other pre-bundle file');
+  }
+  return {...layout.details,
     correspondingSource:{path:sourcePath,files:fullSources.size,compilationFiles:code.length,archivedFiles:archived.length,...record(sourceBytes)},
-    removedRootModules:removed.size,unalteredFiles:unchanged,preservedNotices:notices};
+    unalteredFiles:unchanged,preservedNotices:notices};
 }
 function sourceCommit(value) {
   if(value===null)return undefined;

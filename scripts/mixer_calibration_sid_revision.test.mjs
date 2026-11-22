@@ -1,33 +1,30 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import {renderPlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
-const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
-const {restoreMixerCalibrationPs1ImportRevision}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
-// Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
-import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
-const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import vm from 'node:vm';
-const {restoreMixerCalibrationSidRevision,SID_PLAYGROUND_REVISION_BASE_COMMIT:commit,SID_PLAYGROUND_REVISION_RECEIPT_PATH:receiptPath,SID_PLAYGROUND_REVISION_RECEIPT_OBJECT_SHA256:pin,SID_PLAYGROUND_REVISION_SOURCE_PATHS:paths,SID_PLAYGROUND_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_sid_revision.mjs');
-const {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationCompletionPresetImportRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {restoreMixerCalibrationRf5c164NoteRevision}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs');
-const {validatePs1MixerCalibrationSources}=await historicalCalibrationModule('ps1_mixer_calibration.mjs');
-const {validateWonderSwanMixerCalibrationSources}=await historicalCalibrationModule('wonderswan_mixer_calibration.mjs');
-const {validatePokeyMixerCalibrationSources}=await historicalCalibrationModule('pokey_mixer_calibration.mjs');
-const {validateScspMixerCalibrationSources}=await historicalCalibrationModule('scsp_mixer_calibration.mjs');
+// Historical source pairs and their mutations use their full reviewed tree.
+const sourceCommit = '03ef198984e4a5bdf4e19c65b72244a218474f70';
+const readFileSync = createHistoricalGitReader(sourceCommit);
+const {restoreMixerCalibrationSidRevision,SID_PLAYGROUND_REVISION_BASE_COMMIT:commit,SID_PLAYGROUND_REVISION_RECEIPT_PATH:receiptPath,SID_PLAYGROUND_REVISION_RECEIPT_OBJECT_SHA256:pin,SID_PLAYGROUND_REVISION_SOURCE_PATHS:paths,SID_PLAYGROUND_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_sid_revision.mjs',{sourceCommit});
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
+const aySpcCommit = '39c8f1e024dd8727c75bb764d2630605092e5677';
+const {validatePs1MixerCalibrationSources}=await historicalCalibrationModule('ps1_mixer_calibration.mjs',{sourceCommit:aySpcCommit});
+const {validateWonderSwanMixerCalibrationSources}=await historicalCalibrationModule('wonderswan_mixer_calibration.mjs',{sourceCommit:aySpcCommit});
+const {validatePokeyMixerCalibrationSources}=await historicalCalibrationModule('pokey_mixer_calibration.mjs',{sourceCommit:aySpcCommit});
+const {validateScspMixerCalibrationSources}=await historicalCalibrationModule('scsp_mixer_calibration.mjs',{sourceCommit:aySpcCommit});
 
 const root=fileURLToPath(new URL('../',import.meta.url));
-const read=path=>readFile(join(root,path));
+const read=async path=>readFileSync(join(root,path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(await read(receiptPath));
-// Object hash of the generated pre-SID policy at the fixed base commit. Keeping
-// this independent of Git makes the audit work in shallow CI/source ZIPs too.
+// Independent object hash of the pre-SID policy generated at the fixed base commit.
 const PRE_SID_POLICY_OBJECT_SHA256='779a3c0106e5c4b9e1e9921601eb759f1f680b38bd1a719c33edfc9cf9d55453';
 
 test('SID 8580 revision preserves the first receipt, all pre-SID source bodies and the four measurements',async()=>{
@@ -47,8 +44,7 @@ test('SID receipt authenticates all 20 complete source pairs and reconstructs th
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths){
-    const current=restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,await read('docs/'+path)));
-    const entry=receipt.sources[path],bytes=restoreMixerCalibrationSynthDefinitionViewerRevision(path,restoreMixerCalibrationRf5c164NoteRevision(path,restoreMixerCalibrationCompletionPresetImportRevision(path,restoreMixerCalibrationPs1ImportRevision(path,restoreMixerCalibrationVabApiRevision(path,current)))));
+    const entry=receipt.sources[path],bytes=await read('docs/'+path);
     assert.equal(bytes.length,entry.after.bytes,path);assert.equal(sha(bytes),entry.after.sha256,path);
     const restored=restoreMixerCalibrationSidRevision(path,bytes);
     assert.equal(restored.length,entry.before.bytes,path);assert.equal(sha(restored),entry.before.sha256,path);
@@ -90,7 +86,7 @@ test('changing the receipt cannot authorize a new after body without changing th
 
 test('all four historical reports retain their gains and require fresh evidence after AY output and SPC voice editing',async()=>{
   const baselinePath=join(root,'docs/issues/playground_chip_levels_01.json');
-  assert.equal(sha(await readFile(baselinePath)),'9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234');
+  assert.equal(sha(readFileSync(baselinePath)),'9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234');
   const validators=[['ps1Report',validatePs1MixerCalibrationSources],['wsReport',validateWonderSwanMixerCalibrationSources],['pokeyReport',validatePokeyMixerCalibrationSources],['scspReport',validateScspMixerCalibrationSources]];
   for(let index=0;index<reports.length;index++){
     const path=reports[index],bytes=await read(path),report=JSON.parse(bytes),original=JSON.stringify(report),[parameter,validate]=validators[index];

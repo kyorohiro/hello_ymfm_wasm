@@ -32,5 +32,8 @@
   ],
   "dx7": [
     "// Select Mode: DX7. Six operators, 32 algorithms and 16 allocated voices.\n// This original one-carrier preset needs no SysEx file. MIDI notes are 0..127.\nawait dx7.setPreset({\n  name: 'MODE KEYS', algorithm: 31, feedback: 0,\n  operators: {\n    1: {\n      coarse: 1, outputLevel: 85,\n      envelope: {rates: [99, 75, 65, 75], levels: [99, 85, 75, 0]},\n    },\n  },\n});\nawait mixer.set(dx7.id, {volume: 0.5});\nsetBpm(120);\n\nliveLoop('dx7-melody', async () => {\n  for (const note of [60, 64, 67, 71, 72, 67, 64, 62]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n\n// Open examples/dx7/dx7-keyboard.js to play from the shared Keyboard.\n// For your own bank: await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));\n"
+  ],
+  "wonderswan": [
+    "// WonderSwan: four voices with independent 32-sample, 4-bit waveforms.\n// Open the WonderSwan tab to draw waves, then audition any channel with Keyboard.\nconst wave = Array.from({length: 32}, (_, i) => Math.round(7.5 + 7.5 * Math.sin(2 * Math.PI * i / 32)));\nfor (let channel = 0; channel < 4; channel++) {\n  ws.setWaveform(channel, wave);\n  ws.setVolume(channel, 10, 10);\n}\nsetBpm(120);\nliveLoop('wonderswan-four-voices', async () => {\n  for (const notes of [\n    ['C5', 'E4', 'C3', 'G3'], ['E5', 'G4', 'C3', 'E3'],\n    ['G5', 'B4', 'G2', 'D3'], ['D5', 'G4', 'G2', 'B2'],\n  ]) {\n    notes.forEach((note, channel) => ws.noteOn(channel, note));\n    await beat(0.8);\n    ws.allNotesOff();\n    await beat(0.2);\n  }\n});\n"
   ]
 }

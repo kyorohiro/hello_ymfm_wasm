@@ -1,23 +1,24 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+// The audit must use the complete source and dependency tree reviewed by the receipt.
+const sourceCommit = '1a0d162e990b44bd7fd36faabf48dff19cac92bc';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {
   MONACO_MODEL_REVISION_SOURCE_PATH:path,
   MONACO_MODEL_REVISION_RECEIPT_PATH:receiptPath,
   MONACO_MODEL_REVISION_RECEIPT_OBJECT_SHA256:pin,
   MONACO_MODEL_REVISION_REPORT_PATHS:reports,
   restoreMixerCalibrationMonacoModelRevision:restore,
-}=await historicalCalibrationModule('mixer_calibration_monaco_model_revision.mjs');
-const {createMonacoVirtualModelsUiReceipt}=await historicalCalibrationModule('record_monaco_virtual_models_ui_revision.mjs');
-const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
-const {restoreMixerCalibrationSynthSourceNavigationRevision}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
-const {createScspDspHelpersRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_helpers_revision.mjs');
+}=await historicalCalibrationModule('mixer_calibration_monaco_model_revision.mjs',{sourceCommit});
+const {createMonacoVirtualModelsUiReceipt}=await historicalCalibrationModule('record_monaco_virtual_models_ui_revision.mjs',{sourceCommit});
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
+const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs',{sourceCommit});
+const {restoreMixerCalibrationSynthSourceNavigationRevision}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs',{sourceCommit});
 
-const readPredecessor = createScspDspHelpersRevisionReader();
-const read = path => readPredecessor(new URL('../' + path,import.meta.url));
+const read = path => readFileSync(new URL('../' + path,import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));
 

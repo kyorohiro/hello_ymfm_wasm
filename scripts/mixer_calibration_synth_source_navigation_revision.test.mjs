@@ -3,19 +3,21 @@ import {historicalCalibrationModule} from '../test/helpers/historical_calibratio
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
+const sourceCommit = 'a04e3ff87ccc25dcceb27d56d842ad45514669ac';
+const readFileSync = createHistoricalGitReader(sourceCommit);
+const ayWasmUrl = new URL('../docs/generated/ay8910_wasm.wasm', import.meta.url);
+const readAyOutput = createHistoricalGitReader('39c8f1e024dd8727c75bb764d2630605092e5677');
 const {
   SYNTH_SOURCE_NAVIGATION_RECEIPT_PATH:receiptPath,
   SYNTH_SOURCE_NAVIGATION_RECEIPT_OBJECT_SHA256:pin,
   SYNTH_SOURCE_NAVIGATION_SOURCE_PATHS:paths,
   SYNTH_SOURCE_NAVIGATION_REPORT_PATHS:reports,
   restoreMixerCalibrationSynthSourceNavigationRevision:restore,
-}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
-const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {HUC6280_UI_REVISION_RECEIPT_PATH}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
-const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
-const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
-import {historicalVabSourceFixture} from '../test/helpers/historical_vab_source_fixture.mjs';
+}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs',{sourceCommit});
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
+const {HUC6280_UI_REVISION_RECEIPT_PATH,restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs',{sourceCommit});
+const {restoreMixerCalibrationVabApiRevision}=await historicalCalibrationModule('mixer_calibration_vab_api_revision.mjs',{sourceCommit});
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -26,7 +28,7 @@ test('Synth navigation restores the exact independently pinned HuC6280 viewer bo
   assert.equal(read(receiptPath).toString(), JSON.stringify(receipt, null, 2) + '\n');
   const previous = JSON.parse(read(HUC6280_UI_REVISION_RECEIPT_PATH));
   for (const path of paths) {
-    const current = restoreMixerCalibrationFm2608NavigationRevision(path,read('docs/' + path)), original = restore(path, current), entry = receipt.sources[path];
+    const current = read('docs/' + path), original = restore(path, current), entry = receipt.sources[path];
     assert.notEqual(original, current);
     assert.deepEqual(entry.before, previous.sources[path].after);
     assert.equal(original.length, entry.before.bytes);
@@ -41,8 +43,11 @@ test('Synth navigation restores the exact independently pinned HuC6280 viewer bo
       // Keep the old measured DSP contract stale for today's AY output assets.
       // Its source-viewer chain remains independently reproducible from the
       // exact archived VAB predecessor, without a production DSP exception.
-      assert.throws(() => fresh({path, bytes:current, record:report.sources[path], report}), /pinned report\/helper\/cache dependency changed/);
-      const historical=historicalVabSourceFixture(path,restoreMixerCalibrationHuc6280UiRevision(path,original));
+      const vab = restoreMixerCalibrationHuc6280UiRevision(path,original);
+      assert.throws(() => restoreMixerCalibrationVabApiRevision(path,vab,{
+        readSource:url=>url.href===ayWasmUrl.href?readAyOutput(url):readFileSync(url),
+      }), /pinned report\/helper\/cache dependency changed: docs\/generated\/ay8910_wasm\.wasm/);
+      const historical=restoreMixerCalibrationVabApiRevision(path,vab);
       assert.doesNotThrow(() => fresh({path, bytes:historical, record:report.sources[path], report}));
       assert.deepEqual(read(reportPath), bytes);
     }

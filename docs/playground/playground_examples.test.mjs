@@ -85,6 +85,35 @@ test('all mode starters match their physical index.js sources', async () => {
   assert.equal(MODE_DEFAULT_CODES['genesis-nuked'], DEFAULT_CODE);
 });
 
+test('WonderSwan starter and voice examples run with an explicitly acquired chip', async () => {
+  const {WonderSwanSynth} = await import('../../tetorica_src/runtime/wonderswansynth.js');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const sources = [MODE_DEFAULT_CODES.wonderswan, ...['ws-four-voices', 'ws-noise-sweep', 'ws-stereo'].map(name => EXAMPLES[name])];
+  for (const source of sources) {
+    const acquired = [], writes = [], loops = [];
+    const chip = new WonderSwanSynth({transport: {
+      writeRegister: (...args) => writes.push(args),
+      writeMemory: (...args) => writes.push(args),
+      reset() {},
+    }});
+    chip.initialize();
+    const api = {
+      async useSoundChip(name) { acquired.push(name); return chip; },
+      setBpm(bpm) { assert.equal(bpm, 120); },
+      liveLoop(_name, loop) { loops.push(loop); },
+      async beat(beats) { assert.ok(beats > 0); },
+    };
+    await new AsyncFunction(...Object.keys(api), source)(...Object.values(api));
+    assert.deepEqual(acquired, ['wonderswan']);
+    assert.equal(loops.length, 1);
+    const writesBeforeLoop = writes.length;
+    await loops[0]();
+    assert.ok(writes.length > writesBeforeLoop);
+  }
+  const previousStarter = MODE_DEFAULT_CODES.wonderswan.replace('const ws = await useSoundChip("wonderswan");\n', '');
+  assert.ok(MODE_DEFAULT_HISTORY.wonderswan.includes(previousStarter));
+});
+
 test('mode catalogs stay compact while Genesis retains its library and shares the mixed-chip scene', () => {
   assert.deepEqual(Object.keys(MODE_EXAMPLE_FILES), Object.keys(MODE_STARTERS));
   for (const [id, definition] of Object.entries(MODE_STARTERS)) {

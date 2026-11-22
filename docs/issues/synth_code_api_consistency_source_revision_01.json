@@ -1740,8 +1740,8 @@
         "sha256": "2e5beb50ad0715d294d31f6ea1438489f63b95b33f2287bd566882e5e0b1a925"
       },
       "after": {
-        "bytes": 25674,
-        "sha256": "b7535c539710d471685eb2e88076a7ede6f818e4f926092c853dbb8b9fac98d6"
+        "bytes": 25607,
+        "sha256": "5bc4a4f3939880d6b1ad5cf638405ed7d1813c14a17a77f107a2b1478a72e631"
       },
       "hunks": [
         {
@@ -1763,6 +1763,16 @@
           "afterOffset": 12363,
           "afterBytes": 118,
           "beforeText": ""
+        },
+        {
+          "afterOffset": 24678,
+          "afterBytes": 151,
+          "beforeText": "# itch.io counts directory records toward its 1,000-entry limit. Keep the full\n# downloadable layout above; the browser build bundles/minifies page UI,\n# retains separate audio/Worker assets, and includes corresponding sources.\n"
+        },
+        {
+          "afterOffset": 24879,
+          "afterBytes": 112,
+          "beforeText": "node \"${ROOT_DIR}/scripts/prepare_itch_playground_run.mjs\" \"${STAGE_DIR}\" \"${RUN_STAGE_DIR}\" --bundle\n"
         }
       ]
     },

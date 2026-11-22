@@ -2,7 +2,9 @@ import {historicalCalibrationModule} from '../test/helpers/historical_calibratio
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFile, readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 const {SCSP_NAVIGATION_REVISION_PATH:path,SCSP_NAVIGATION_REVISION_RECEIPT_PATH:receiptPath,
   SCSP_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256:pin,
   restoreMixerCalibrationScspNavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_scsp_navigation_revision.mjs');
@@ -10,13 +12,20 @@ import {createScspSharedClientNavigationUiReceipt} from './record_scsp_shared_cl
 const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
 const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 
-const read=name=>readFileSync(new URL('../'+name,import.meta.url));
+const readReview=createHistoricalGitReader('4e2e9f5977d31e806ec01cc19a36edb9a8a4bd2b');
+const reviewedSource=new URL('../docs/'+path,import.meta.url);
+function readSource(location,options){
+  const url=location instanceof URL?location:pathToFileURL(location);
+  const reader=url.href===reviewedSource.href?readReview:readFileSync;
+  return reader(url,options);
+}
+const read=name=>readSource(new URL('../'+name,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 test('the exact passive SCSP insertion reconstructs its pinned predecessor and preserves all eight reports',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);
   assert.equal(read(receiptPath).toString(),JSON.stringify(receipt,null,2)+'\n');
-  assert.deepEqual(await createScspSharedClientNavigationUiReceipt({readSource:readHistoricalAyTimedFile}),receipt);
+  assert.deepEqual(await createScspSharedClientNavigationUiReceipt({readSource}),receipt);
   const current=read('docs/'+path),before=restore(path,current);
   assert.equal(before.length,receipt.before.bytes);assert.equal(sha(before),receipt.before.sha256);
   assert.equal(restore(path,before),before);

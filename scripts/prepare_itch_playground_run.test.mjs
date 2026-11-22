@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,mkdir,readFile,writeFile,access,symlink,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
-import {checkItchPlaygroundZip,prepareItchPlaygroundRun,validateItchZipEntries,isItchRunArchivedSource,ITCH_RUN_DUPLICATE_SOURCE_GUIDES} from './prepare_itch_playground_run.mjs';
+import {checkItchPlaygroundZip,prepareItchPlaygroundRun,validateItchZipEntries,isItchRunArchivedSource,ITCH_RUN_DUPLICATE_SOURCE_GUIDES,ITCH_RUN_EMBEDDED_SCRIPTS} from './prepare_itch_playground_run.mjs';
 const file=(name,bytes=0)=>({name,bytes,directory:false,symlink:false});
 
 test('1000 means all ZIP entries, including directory records',()=>{
@@ -205,6 +205,52 @@ test('Run bundle is generated before enforcing the final hosting entry limit',as
   await assert.rejects(access(join(run,'page0.js')),{code:'ENOENT'});
   await access(join(run,'sources/browser-bundle-inputs.zip'));
   await access(join(run,'sources/corresponding-source.zip'));
+ }finally{await rm(scratch,{recursive:true,force:true});}
+});
+
+test('readable Run archives only byte-matched embedded scripts and retains the other browser files',async()=>{
+ const scratch=await mkdtemp(join(tmpdir(),'itch-readable-')),full=join(scratch,'full'),run=join(scratch,'run');
+ const payload={
+  'index.html':"<script type=\"module\">import('./playground.js')</script>",
+  'LICENSE':'Original license\n',
+  'playground.js':'// Readable UI\n',
+  'sources/core.c':'int sound(void){return 0;}\n',
+  'examples/basic/demo.js':"log('example');\n",
+  'examples/README.md':'Open Files to select an example.\n',
+  'defaults/index.js':"log('starter');\n",
+  'defaults/genesis/index.js':"log('genesis');\n",
+  'defaults/extra/index.js':"log('standalone only');\n",
+  'samples/original.wav':Buffer.from([1,2,3]),
+ };
+ const paths=['examples/basic/demo.js','defaults/index.js','defaults/genesis/index.js'];
+ const data=[
+  'export const EXAMPLE_FILES = '+JSON.stringify([{path:'/'+paths[0],data:payload[paths[0]]}]),
+  'export const DEFAULT_CODE = '+JSON.stringify(payload[paths[1]]),
+  'export const MODE_DEFAULT_CODES = '+JSON.stringify({genesis:payload[paths[2]]}),
+ ].join(';\n')+';\n';
+ payload['playground_examples.js']=data;
+ try{
+  for(const[name,value]of Object.entries(payload)){
+   await mkdir(dirname(join(full,name)),{recursive:true});await writeFile(join(full,name),value);
+  }
+  const result=await prepareItchPlaygroundRun(full,run,{archiveExamples:true});
+  assert.equal(result.bundle,null);
+  assert.equal(result.embeddedScripts.files,paths.length);
+  for(const name of paths)await assert.rejects(access(join(run,name)),{code:'ENOENT'});
+  for(const [name,bytes] of Object.entries(payload)){
+   assert.deepEqual(await readFile(join(full,name)),Buffer.from(bytes),name);
+   if(!name.startsWith('sources/')&&!paths.includes(name))assert.deepEqual(await readFile(join(run,name)),Buffer.from(bytes),name);
+  }
+  const members=JSON.parse(execFileSync(process.env.PYTHON||'python3',['-c',
+   'import json,sys,zipfile\nwith zipfile.ZipFile(sys.argv[1]) as z:print(json.dumps({i.filename:z.read(i).decode() for i in z.infolist()}))',
+   join(run,ITCH_RUN_EMBEDDED_SCRIPTS)],{encoding:'utf8'}));
+  assert.deepEqual(members,Object.fromEntries(paths.map(name=>[name,payload[name]])));
+  assert.match(await readFile(join(run,'sources/README-for-run.md'),'utf8'),/\]\(playground-examples\.zip\)/);
+
+  const stale=join(scratch,'stale');
+  await writeFile(join(full,paths[0]),'// New loose edit\n');
+  await assert.rejects(prepareItchPlaygroundRun(full,stale,{archiveExamples:true}),/differs from loose source/);
+  await assert.rejects(access(stale),{code:'ENOENT'});
  }finally{await rm(scratch,{recursive:true,force:true});}
 });
 

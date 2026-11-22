@@ -16,6 +16,7 @@ const { values: options } = parseArgs({ options: {
 	'web-root': { type: 'string', default: path.join(root, 'docs') },
 	entry: { type: 'string', default: '/synth-nitro-ds/index.html' },
 	'timed-only': { type: 'boolean' },
+	'fx-only': { type: 'boolean' },
 } });
 const webRoot = path.resolve(options['web-root']);
 assert(/^\/(?!\/)/.test(options.entry) && !options.entry.includes('\\'), 'Use an entry URL path such as /index.html');
@@ -1354,6 +1355,81 @@ window.ndsCodeVoice = {
 	return 'Keyboard plays CH16 Noise and the configured CH2 PCM while Code holds CH1; source, wave and repeat edits apply on the next note';
 }
 
+async function checkCodeEffects(page, fixture) {
+	await page.reload();
+	await page.locator('#synthWorkspaceCodeButton').click();
+	await page.locator('#ndsAutoApply').check();
+	await page.locator('#ndsNewJs').click();
+	await page.locator('#ndsFileName').fill('/fx-check.js');
+	await page.locator('#ndsFileNameConfirm').click();
+	await page.locator('#ndsFileNameDialog').waitFor({ state: 'hidden' });
+	const editor = page.locator('#synthCodeEditor');
+	await until(() => editor.inputValue(), value => value.includes('Write your DS performance'), 'FX Code file should be open');
+	const run = page.locator('#synthCodeRunButton'), apply = page.locator('#synthCodeApplyButton');
+	const stop = page.locator('#synthCodeStopButton');
+	const note = `const nds = await useSoundChip("nds");
+await nds.noteOn(CH1, "A4", { mode: "pcm16", shape: "sine", pan: 0, volume: 80, loop: true });`;
+	const effect = `liveFx("level", {
+  context: { amount: .25 },
+  process(input, output, state, context) {
+    for (let channel = 0; channel < output.length; channel++) {
+      for (let i = 0; i < output[channel].length; i++) {
+        output[channel][i] = input[channel][i] * context.amount;
+      }
+    }
+  },
+});
+window.updateNdsEffect = amount => fx.updateContext("level", { amount });`;
+	const contextsBefore = (await output(page)).contexts;
+	await editor.fill(note);
+	await run.click();
+	await measureSide(page, 0, 440);
+	// The first audible buffer can still include silence from before noteOn.
+	await wait(75);
+	const [dry] = await measureSide(page, 0, 440);
+	const measureRatio = (amount) => until(() => output(page), ({ channels: [left, right] }) =>
+		left && right && Math.abs(left.rms / dry.rms - amount) < .035 && Math.abs(left.pitch - 440) < 4 &&
+		right.peak < 1e-7, `Expected ${amount} of the original left-only PCM RMS ${dry.rms} at the same pitch`);
+	await editor.fill(effect);
+	await apply.click();
+	await measureRatio(.25);
+	await page.evaluate(() => window.updateNdsEffect(.5));
+	await measureRatio(.5);
+	await editor.fill('await useSoundChip("nds");');
+	await apply.click();
+	await measureRatio(1);
+	await editor.fill(`const nds = await useSoundChip("nds");
+await nds.configure(CH2, { mode: "pcm16", shape: "sine", pan: 127, volume: 80, loop: true });
+fx.setChain([fx.gain({ gain: 0.5 })]);`);
+	await apply.click();
+	await measureRatio(.5);
+	assert.equal((await output(page)).contexts, contextsBefore + 1, 'Effects should reuse the Synth AudioContext');
+	await assertSynthRenderer(page);
+	await page.locator('#ndsChipTab').click();
+	await channelButton(page, 1).click();
+	await page.locator('#synthInputCodeTab').click();
+	await holdC4(page, async () => {
+		const { channels: [, wet] } = await until(() => output(page), ({ channels: [left, right] }) =>
+			left?.rms > .005 && right?.rms > .005 && Math.abs(right.pitch - 261.626) < 4,
+			'The Keyboard should play CH2 through the same FX rack alongside the Code note');
+		await stop.click();
+		const [, dryKeyboard] = await measureSide(page, 1, 261.626);
+		assert(dryKeyboard.rms > wet.rms * 1.6, 'Stopping Code should remove the effect without releasing the held Keyboard note');
+	});
+	await until(() => output(page), ({ channels }) => channels.every(({ peak }) => peak < 1e-7),
+		'Releasing the Keyboard note should quiet the Synth output');
+
+	await importFiles(page, '#loadTwoSfFolder', fixture);
+	const leftSong = path.basename(fixture) + '/left-a4.mini2sf';
+	await until(() => tracks(page), (entries) => entries.some(({ value }) => value === leftSong), 'Original 2SF track should load');
+	await page.locator('#songSelect').selectOption(leftSong);
+	await page.locator('#play').click();
+	const [reference] = await measureSide(page, 0, 440);
+	await page.locator('#stop').click();
+	return { liveFxGain: [.25, .5], keepsPitchAndPan: true, nativeFxGain: .5, restoresDryOnApply: true, keyboardSurvivesStop: true,
+		referenceRms: reference.rms };
+}
+
 async function checkTimedCode(page) {
 	await page.reload();
 	await page.locator('#synthWorkspaceCodeButton').click();
@@ -1627,6 +1703,12 @@ async function check(name, origin, fixture) {
 			}));
 		});
 		await page.goto(`${origin}${options.entry}`);
+		if (options['fx-only']) {
+			const codeFx = await checkCodeEffects(page, fixture);
+			assert.deepEqual(errors, []);
+			assert.deepEqual(fetchFailures, []);
+			return { browser: name, codeFx, physicalOutputMuted: true };
+		}
 		if (options['timed-only']) {
 			const timedCode = await checkTimedCode(page);
 			assert.deepEqual(errors, []);
@@ -1774,11 +1856,12 @@ async function check(name, origin, fixture) {
 		const drawPcm = await checkDrawPcm(page);
 		const codeChannel = await checkCodeChannel(page);
 		const timedCode = await checkTimedCode(page);
+		const codeFx = await checkCodeEffects(page, fixture);
 		const heldRange = await checkHeldRange(page);
 		const sharedSound = await checkSharedSoundWorklet(page);
 		assert.deepEqual(errors, []);
 		assert.deepEqual(fetchFailures, []);
-		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, timedCode, heldRange, sharedSound,
+		return { browser: name, left, right, realSongs, realAudition, synthModes, workspace, sample, referenceFiles, soundCapture, fixedTimer, mixer, drawPcm, codeChannel, timedCode, codeFx, heldRange, sharedSound,
 			selectFocus: 'musical keys work after source selection and preserve the focused built-in wave',
 			referenceLive: 'Selected-channel Pan and Volume reach 2SF playback and paused audition, with a live sample waveform and position preserved',
 			referenceAudition: 'automatic paused audition with Live on or off, frozen 440 Hz sample, C5-root transposition, idle channel silence, and authored keyboard on Auto',

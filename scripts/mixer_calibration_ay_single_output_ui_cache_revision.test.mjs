@@ -1,21 +1,22 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
-const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {createScspDspHelpersRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_helpers_revision.mjs');
+// The audit must use the complete source and dependency tree reviewed by the receipt.
+const sourceCommit = '39c8f1e024dd8727c75bb764d2630605092e5677';
+const readFileSync = createHistoricalGitReader(sourceCommit);
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
 const {
   AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_PATH:receiptPath,
   AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_OBJECT_SHA256:pin,
   AY_SINGLE_OUTPUT_UI_CACHE_SOURCE_PATHS:paths,
   AY_SINGLE_OUTPUT_UI_CACHE_REPORT_PATHS:reports,
   restoreMixerCalibrationAySingleOutputUiCacheRevision:restore,
-}=await historicalCalibrationModule('mixer_calibration_ay_single_output_ui_cache_revision.mjs');
+}=await historicalCalibrationModule('mixer_calibration_ay_single_output_ui_cache_revision.mjs',{sourceCommit});
 
-const readPredecessor=createScspDspHelpersRevisionReader();
-const read=path=>readPredecessor(new URL('../'+path,import.meta.url));
+const read=path=>readFileSync(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const measuredReports=reports.map(path=>JSON.parse(read(path)));

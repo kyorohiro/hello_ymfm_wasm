@@ -14,7 +14,9 @@ import { Scsp } from '../tetorica_src/runtime/scsp.js';
 import { noteToHz } from '../tetorica_src/runtime/soundchip_pitch.js';
 import factory from '../docs/generated/scsp_wasm.js';
 import { buildScspCalibrationReference } from './soundchip_calibration_scsp.mjs';
-const { assertMixerCalibrationSourceFreshness }=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const { assertMixerCalibrationSourceFreshness }=await historicalCalibrationModule('mixer_calibration_sources.mjs',{
+	sourceCommit:'28aeed956178a5da1efcb8fea6069c1f747202a9',
+});
 const {
 	restoreMixerCalibrationScspLoopLinkRevision:restore,
 	SCSP_LOOP_LINK_REVISION_RECEIPT_PATH:receiptPath,

@@ -1,8 +1,10 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import {createHash} from 'node:crypto';
+const sourceCommit = '0ea54fd359d6443207f4d8b1b64d1af26ee67c22';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {
   restoreMixerCalibrationYm2612TimedRevision:restore,
   createYm2612TimedRevisionReader,
@@ -11,13 +13,11 @@ const {
   YM2612_TIMED_REVISION_SOURCE_PATHS:paths,
   YM2612_TIMED_REVISION_RELATED_PATHS:related,
   YM2612_TIMED_REVISION_REPORT_PATHS:reports,
-}=await historicalCalibrationModule('mixer_calibration_ym2612_timed_revision.mjs');
-const {restoreMixerCalibrationAyTimedRevision}=await historicalCalibrationModule('mixer_calibration_ay_timed_revision.mjs');
-const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {createScspDspHelpersRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_helpers_revision.mjs');
+}=await historicalCalibrationModule('mixer_calibration_ym2612_timed_revision.mjs', {sourceCommit});
+const {restoreMixerCalibrationAyTimedRevision}=await historicalCalibrationModule('mixer_calibration_ay_timed_revision.mjs', {sourceCommit});
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs', {sourceCommit});
 
-const readPredecessor = createScspDspHelpersRevisionReader();
-const read = path => readPredecessor(new URL('../' + path, import.meta.url));
+const read = path => readFileSync(new URL('../' + path, import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));
 const match = (bytes, record) => { assert.equal(bytes.length, record.bytes); assert.equal(sha(bytes), record.sha256); };

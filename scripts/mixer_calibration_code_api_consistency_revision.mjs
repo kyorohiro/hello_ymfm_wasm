@@ -7,9 +7,20 @@ import {fileURLToPath} from 'node:url';
 
 const root = new URL('../', import.meta.url);
 const receiptUrl = new URL('docs/issues/synth_code_api_consistency_source_revision_01.json', root);
-const RECEIPT_SHA256 = '4f0eabd196c90ae5a3e3ef029b56a86e4a5a8e319e11242ce990104c4b9416c3';
+const RECEIPT_SHA256 = '032f616ec2f2a2393bf2fe7906739f45919b6bf35580a625cbddc208736bd25d';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const matches = (bytes, record) => Buffer.byteLength(bytes) === record.bytes && sha(bytes) === record.sha256;
+
+// The generated catalog is pinned by earlier calibration receipts. The only
+// changes here are four WonderSwan example declarations and one starter migration.
+// Authenticate the complete catalog on both sides before giving it to old proofs.
+const catalogPath = 'docs/playground/playground_examples.js';
+const catalogBefore = '6a9e26cdc141bf0719ee56d1764d22ead466551994b8f309cddc84bc2c0e3f89';
+const catalogAfter = '59ada3261e653173f7ee6d3565445d4b69a182d799e47944d228e5ad35fcc81e';
+const acquisition = JSON.stringify('const ws = await useSoundChip("wonderswan");\n').slice(1, -1);
+const starterTestPath = 'docs/playground/playground_mode_starters.test.mjs';
+const starterTestBefore = 'e3856ff3de83ab23a5702b259ef4d1275a5f0722912e93f25c9a4faaf5b760be';
+const starterTestAfter = '66a07f9605129baecdaee968b1c62f3b0af04b6b1b7948f386ff57d7ac4da723';
 
 export function createCodeApiConsistencyRevisionReadContext(read = readFileSync) {
   let sources;
@@ -24,6 +35,18 @@ export function createCodeApiConsistencyRevisionReadContext(read = readFileSync)
       sources = receipt.sources;
     }
     const name = Object.hasOwn(sources, path) ? path : 'docs/' + path;
+    if ((path === catalogPath || name === catalogPath) && sha(bytes) === catalogAfter) {
+      const original = Buffer.from(bytes.toString()
+        .replaceAll(acquisition, '')
+        .replace(/,\n  "wonderswan": \[\n    "[^\n]+"\n  \]/, ''));
+      if (sha(original) !== catalogBefore) throw Error('WonderSwan example catalog predecessor identity changed');
+      return original;
+    }
+    if ((path === starterTestPath || name === starterTestPath) && sha(bytes) === starterTestAfter) {
+      const original = Buffer.from(bytes.toString().replace("'snes','wonderswan']);", "'snes']);"));
+      if (sha(original) !== starterTestBefore) throw Error('WonderSwan starter test predecessor identity changed');
+      return original;
+    }
     const entry = Object.hasOwn(sources, name) ? sources[name] : null;
     if (!entry || !matches(bytes, entry.after)) return bytes;
     const source = Buffer.from(bytes);

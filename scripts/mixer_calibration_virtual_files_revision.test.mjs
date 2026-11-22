@@ -1,16 +1,19 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-const {assertMixerCalibrationSourceFreshness,isMixerCalibrationVirtualFilesRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const sourceCommit = '0d63d895098360312c76273f8b51a17434eaaf45';
+const readFileSync = createHistoricalGitReader(sourceCommit);
+const {assertMixerCalibrationSourceFreshness,isMixerCalibrationVirtualFilesRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
 import {validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
 import {validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
 import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
 import {validateScspMixerCalibrationSources} from './scsp_mixer_calibration.mjs';
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-const read=path=>readFile(new URL(path,root));
+const read=async path=>path.startsWith('docs/issues/')?readFile(new URL(path,root)):readFileSync(new URL(path,root));
 const sources={
   'js/tetorica_virtual_files/git.bundle.js':{
     bytes:298711,sha256:'48bf6973ab36ecb1824c4b52c9e958d1d626b6796a47c0cf4d9b9e5f34ef89d1',
@@ -44,8 +47,12 @@ test('the exact reviewed Git and Shell revisions preserve all four historical me
       /source changed; remeasure:|pinned source\/report dependency changed:/,
       'The reviewed Git/Shell revision does not authorize a later semantic SCSP edit');
     const scspPath='js/scspsynth.js',scspBytes=await read('docs/'+scspPath);
-    assert.throws(()=>assertMixerCalibrationSourceFreshness({path:scspPath,bytes:scspBytes,record:report.sources[scspPath],report}),
-      /source changed; remeasure: docs\/js\/scspsynth\.js|pinned source\/report dependency changed:/,
+    // Change the actual initial master-level register, holding all unrelated sources fixed.
+    const alteredScsp=Buffer.from(scspBytes.toString().replaceAll('write(0x400,0x020f)','write(0x400,0x020e)'));
+    assert.deepEqual({bytes:scspBytes.length,sha256:sha(scspBytes)},report.sources[scspPath]);
+    assert.notDeepEqual(alteredScsp,scspBytes);
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({path:scspPath,bytes:alteredScsp,record:report.sources[scspPath],report}),
+      /source changed; remeasure: docs\/js\/scspsynth\.js/,
       'Check SCSP itself independently of which other stale source the validator finds first');
     assert.equal(JSON.stringify(report),original,'Validation must retain every captured result and original source hash');
   }

@@ -1,4 +1,5 @@
 // CH3 can sweep its frequency register. CH4 can replace its waveform with noise.
+const ws = await useSoundChip("wonderswan");
 const wave = Array.from({length: 32}, (_, i) => i < 16 ? i : 31 - i);
 ws.setWaveform(2, wave);
 ws.setVolume(2, 9, 9);

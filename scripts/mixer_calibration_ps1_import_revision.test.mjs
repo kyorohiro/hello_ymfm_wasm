@@ -1,25 +1,25 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
-const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 // Exact review fingerprints and offline PCM only; no AudioContext or output.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
+// Historical source pairs and their mutations use their full reviewed tree.
+const sourceCommit = 'f84e5455b1fe89699ab86d7d4b42aad97ebd5aa0';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {restoreMixerCalibrationPs1ImportRevision:restore,PS1_IMPORT_REVISION_BASE_COMMIT:commit,
   PS1_IMPORT_REVISION_RECEIPT_PATH:receiptPath,PS1_IMPORT_REVISION_RECEIPT_OBJECT_SHA256:pin,
-  PS1_IMPORT_REVISION_SOURCE_PATHS:paths,PS1_IMPORT_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
-const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+  PS1_IMPORT_REVISION_SOURCE_PATHS:paths,PS1_IMPORT_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs',{sourceCommit});
+const readAySingleOutput = createHistoricalGitReader('39c8f1e024dd8727c75bb764d2630605092e5677');
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
 import {measurePs1ImportRevisionPcm} from './check_ps1_import_revision_pcm.mjs';
-// Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
-import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
-const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 
-const read=path=>readFile(new URL('../'+path,import.meta.url));
+const read=async path=>readFileSync(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(await read(receiptPath));
 const prior=path=>receipt.priorPassiveRevisions.psfStartupMetadata.sources[path]??receipt.priorPassiveRevisions.spuCodeDefinitionViewer.sources[path];
@@ -29,7 +29,7 @@ test('exact archived import source fixtures and separately named prior passive s
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);assert.equal(paths.length,9);
   assert.deepEqual(Object.keys(receipt.priorPassiveRevisions).sort(),['psfStartupMetadata','spuCodeDefinitionViewer']);
   for(const path of paths) {
-    const current=await read('docs/'+path),known=restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,current))),entry=receipt.sources[path]??prior(path),before=restore(path,known);
+    const known=await read('docs/'+path),entry=receipt.sources[path]??prior(path),before=restore(path,known);
     assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
     assert.notEqual(before,known,path);assert.equal(before.length,finalBefore(path).bytes,path);assert.equal(sha(before),finalBefore(path).sha256,path);
     assert.equal(restore(path,before),before,'already restored bytes remain unchanged');
@@ -40,7 +40,7 @@ test('exact archived import source fixtures and separately named prior passive s
     const bytes=await read(path),report=JSON.parse(bytes);assert.equal(bytes.length,receipt.reports[path].bytes,path);assert.equal(sha(bytes),receipt.reports[path].sha256,path);
     // These are immutable historical reports. The native AY addition now
     // requires fresh evidence; source-pair fixtures above do not approve it.
-    const ayPath='js/ay8910.js',awaitedAy=await read('docs/'+ayPath);assert(report.sources[ayPath]);
+    const ayPath='js/ay8910.js',awaitedAy=readAySingleOutput(new URL('../docs/'+ayPath,import.meta.url));assert(report.sources[ayPath]);
     assert.throws(()=>assertMixerCalibrationSourceFreshness({path:ayPath,bytes:awaitedAy,record:report.sources[ayPath],report}),/source changed; remeasure:/);
     assert.deepEqual(await read(path),bytes,'the raw original measurements are never rewritten');
   }
@@ -89,7 +89,7 @@ test('all twelve existing PS1 calibration reference routes retain exact held and
 });
 
 test('the prior PS1 definition mapping preserves existing read-only lookups and adds only the reviewed source target',async()=>{
-  const path='playground/playground_monaco_definitions.js',current=await read('docs/'+path),before=restore(path,restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,current))));
+  const path='playground/playground_monaco_definitions.js',current=await read('docs/'+path),before=restore(path,current);
   const modules=await Promise.all([before,current].map(bytes=>import('data:text/javascript;base64,'+bytes.toString('base64'))));
   for(const code of ['const fm=await useSoundChip("ym2612"); fm.noteOn(CH1,"C4");','const notes=scale("C4","minor",2);','const sid=await useSoundChip("sid"); sid.setFilter({cutoff:440});']) {
     for(let column=1;column<=code.length;column++)assert.deepEqual(modules[1].definitionSource(code,{lineNumber:1,column}),modules[0].definitionSource(code,{lineNumber:1,column}));

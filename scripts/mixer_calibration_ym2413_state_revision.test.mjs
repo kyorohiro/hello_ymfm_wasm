@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationYm2413StateRevision as restore,YM2413_STATE_REVISION_PATHS as paths,YM2413_STATE_REVISION_RECEIPT as receiptPath,YM2413_STATE_REVISION_PIN as pin} from './mixer_calibration_ym2413_state_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+const sourceCommit = '924d5a39ca2e6bd1d4752b17bac89268712d1038';
+const readFileSync = createHistoricalGitReader(sourceCommit);
+const {restoreMixerCalibrationYm2413StateRevision:restore,YM2413_STATE_REVISION_PATHS:paths,YM2413_STATE_REVISION_RECEIPT:receiptPath,YM2413_STATE_REVISION_PIN:pin} = await historicalCalibrationModule('mixer_calibration_ym2413_state_revision.mjs', {sourceCommit});
+const {assertMixerCalibrationSourceFreshness:fresh} = await historicalCalibrationModule('mixer_calibration_sources.mjs', {sourceCommit});
 const read=path=>readFileSync(new URL('../'+path,import.meta.url));
 const receipt=JSON.parse(read(receiptPath));
 const sha=b=>createHash('sha256').update(b).digest('hex');

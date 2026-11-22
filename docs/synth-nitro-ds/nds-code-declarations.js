@@ -3,7 +3,7 @@ import { selectCodeHostDeclarations } from '../synth/synth_code_declarations.js'
 
 const CHANNELS = Array.from({ length: 16 }, (_, index) => 'CH' + (index + 1));
 const GLOBALS = [
-	...CHANNELS, 'context', 'console', 'log', 'useSoundChip', 'file', 'pg',
+	...CHANNELS, 'context', 'console', 'log', 'useSoundChip', 'file', 'pg', 'fx', 'liveFx',
 	'setBpm', 'beat', 'nextBeat', 'sleep', 'sleepSamples', 'tween',
 	'liveLoop', 'livePrepare', 'liveCleanup', 'stopLoop', 'stopAllLoops', 'trackAsync',
 	'parseNoteName', 'midiToNoteName', 'scale', 'chord', 'lerp', 'choose', 'cycle', 'rand', 'rrange', 'randInt',

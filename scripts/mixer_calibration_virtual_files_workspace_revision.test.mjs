@@ -1,15 +1,18 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-const {isMixerCalibrationVirtualFilesWorkspaceRevision:accepts,VIRTUAL_FILES_WORKSPACE_RECEIPT:receiptPath,VIRTUAL_FILES_WORKSPACE_PIN:pin}=await historicalCalibrationModule('mixer_calibration_virtual_files_workspace_revision.mjs');
-const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {validatePs1MixerCalibrationSources}=await historicalCalibrationModule('ps1_mixer_calibration.mjs',{mode:'post-source-mix'});
-const {validateWonderSwanMixerCalibrationSources}=await historicalCalibrationModule('wonderswan_mixer_calibration.mjs',{mode:'post-source-mix'});
-const {validatePokeyMixerCalibrationSources}=await historicalCalibrationModule('pokey_mixer_calibration.mjs',{mode:'post-source-mix'});
-const {validateScspMixerCalibrationSources}=await historicalCalibrationModule('scsp_mixer_calibration.mjs',{mode:'post-source-mix'});
+// Historical source pairs and their mutations use their full reviewed tree.
+const sourceCommit = 'b0830d6b0c3a9f5fed3d3f07b4570ba33ec9e4ea';
+const readFileSync = createHistoricalGitReader(sourceCommit);
+const {isMixerCalibrationVirtualFilesWorkspaceRevision:accepts,VIRTUAL_FILES_WORKSPACE_RECEIPT:receiptPath,VIRTUAL_FILES_WORKSPACE_PIN:pin}=await historicalCalibrationModule('mixer_calibration_virtual_files_workspace_revision.mjs',{sourceCommit});
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
+const {validatePs1MixerCalibrationSources}=await historicalCalibrationModule('ps1_mixer_calibration.mjs',{sourceCommit});
+const {validateWonderSwanMixerCalibrationSources}=await historicalCalibrationModule('wonderswan_mixer_calibration.mjs',{sourceCommit});
+const {validatePokeyMixerCalibrationSources}=await historicalCalibrationModule('pokey_mixer_calibration.mjs',{sourceCommit});
+const {validateScspMixerCalibrationSources}=await historicalCalibrationModule('scsp_mixer_calibration.mjs',{sourceCommit});
 import {createVirtualFileSystem} from '../docs/js/tetorica_virtual_files/filesystem.js';
 const url=p=>new URL('../'+p,import.meta.url),read=p=>readFileSync(url(p)),sha=b=>createHash('sha256').update(b).digest('hex');
 const receipt=JSON.parse(read(receiptPath));

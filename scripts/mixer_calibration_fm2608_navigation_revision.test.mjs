@@ -2,12 +2,14 @@ import {historicalCalibrationModule} from '../test/helpers/historical_calibratio
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
+const sourceCommit = 'dede8a0ae6e66798ac755771e65e11b6af3b0ae3';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {FM2608_NAVIGATION_REVISION_PATH:path,
   FM2608_NAVIGATION_REVISION_RECEIPT_PATH:receiptPath,
   FM2608_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256:pin,
-  restoreMixerCalibrationFm2608NavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
-const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+  restoreMixerCalibrationFm2608NavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs',{sourceCommit});
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
 const read = path => readFileSync(new URL('../' + path,import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));

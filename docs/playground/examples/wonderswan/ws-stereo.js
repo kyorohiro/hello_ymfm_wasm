@@ -1,4 +1,5 @@
 // Each voice has independent left/right four-bit levels, from 0 to 15.
+const ws = await useSoundChip("wonderswan");
 const wave = Array.from({length: 32}, (_, i) => i < 16 ? 15 : 0);
 ws.setWaveform(0, wave);
 ws.setWaveform(1, wave);

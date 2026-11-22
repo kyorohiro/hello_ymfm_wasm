@@ -805,12 +805,11 @@ node --experimental-vm-modules "${ROOT_DIR}/scripts/check_playground_package.mjs
   zip -r "${ZIP_PATH}" . -x "*.DS_Store"
 )
 
-# itch.io counts directory records toward its 1,000-entry limit. Keep the full
-# downloadable layout above; the browser build bundles/minifies page UI,
-# retains separate audio/Worker assets, and includes corresponding sources.
+# itch.io counts directory records toward its 1,000-entry limit. Keep readable
+# modules and archive the loose scripts already embedded in Playground.
 rm -rf "${RUN_STAGE_DIR}"
 rm -f "${RUN_ZIP_PATH}"
-node "${ROOT_DIR}/scripts/prepare_itch_playground_run.mjs" "${STAGE_DIR}" "${RUN_STAGE_DIR}" --bundle
+node "${ROOT_DIR}/scripts/prepare_itch_playground_run.mjs" "${STAGE_DIR}" "${RUN_STAGE_DIR}" --archive-examples
 (
   cd "${RUN_STAGE_DIR}"
   zip -r -D "${RUN_ZIP_PATH}" . -x "*.DS_Store"

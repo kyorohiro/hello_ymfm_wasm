@@ -1,4 +1,3 @@
-import {ITCH_RUN_DUPLICATE_SOURCE_GUIDES} from './prepare_itch_playground_run.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import test from 'node:test';
@@ -9,9 +8,13 @@ import {mkdtemp,mkdir,readFile,writeFile,rm,unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {ITCH_RELEASE_ARTIFACTS,checkItchReleaseArchives,writeItchReleaseManifest} from './check_itch_release_archives.mjs';
-import {prepareItchPlaygroundRun} from './prepare_itch_playground_run.mjs';
+import {prepareItchPlaygroundRun,ITCH_RUN_DUPLICATE_SOURCE_GUIDES,ITCH_RUN_EMBEDDED_SCRIPTS} from './prepare_itch_playground_run.mjs';
 const python=process.env.PYTHON||'python3';
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const examplePath='examples/genesis/run-demo.js';
+const defaultPath='defaults/genesis/index.js';
+const exampleCode="// Original editable example\nlog('demo');\n";
+const defaultCode="// Original editable starter\nlog('start');\n";
 const zipWriter=String.raw`
 import sys,zipfile
 from pathlib import Path
@@ -23,7 +26,7 @@ with zipfile.ZipFile(sys.argv[2],'w',compression=zipfile.ZIP_STORED) as z:
 `;
 async function put(stage,name,bytes){await mkdir(dirname(join(stage,name)),{recursive:true});await writeFile(join(stage,name),bytes);}
 function zip(release,id,{dirs=false}={}) {const item=ITCH_RELEASE_ARTIFACTS.find(value=>value.id===id);execFileSync(python,['-c',zipWriter,join(release,item.stage),join(release,item.archive),dirs?'dirs':'files']);}
-async function fixture(t,{fullDirectories=0,sidKits=false}={}) {
+async function fixture(t,{fullDirectories=0,sidKits=false,readable=false}={}) {
   const release=await mkdtemp(join(tmpdir(),'itch four archives '));t.after(()=>rm(release,{recursive:true,force:true}));
   for(const item of ITCH_RELEASE_ARTIFACTS.filter(item=>item.id!=='playground-run')) {
     const stage=join(release,item.stage);
@@ -48,6 +51,22 @@ async function fixture(t,{fullDirectories=0,sidKits=false}={}) {
       files[`licenses/tetorica-${id}/LICENSE`]=files[`sources/native/${id}/LICENSE`];
       files[`licenses/tetorica-${id}/NOTICE.md`]=files[`sources/native/${id}/NOTICE.md`];
     }
+    if(item.id==='playground-full'&&readable)Object.assign(files,{
+      'playground_examples.js':[
+        'export const DEFAULT_CODE = '+JSON.stringify(defaultCode)+';',
+        'export const MODE_DEFAULT_CODES = '+JSON.stringify({genesis:defaultCode})+';',
+        'export const MODE_DEFAULT_HISTORY = {};',
+        'export const EXAMPLE_FILES = '+JSON.stringify([{path:'/'+examplePath,name:'run-demo',data:exampleCode}])+';',
+        'export const EXAMPLES = Object.fromEntries(EXAMPLE_FILES.map(file => [file.name, file.data]));',
+        '',
+      ].join('\n'),
+      [examplePath]:exampleCode,
+      [defaultPath]:defaultCode,
+      'defaults/index.js':defaultCode,
+      'defaults/y8950/index.js':'// Starter only available as a loose file\n',
+      'examples/README.md':'# Editable demos\n',
+      'samples/sonic-pi/loop.wav':Buffer.from([0,1,2,3]),
+    });
     if(item.id==='playground-full'&&sidKits)Object.assign(files,{
       'js/sid.js':'export const readableSid=true;\n',
       'js/sid8580.js':'export const readableSid8580=true;\n',
@@ -80,7 +99,7 @@ async function fixture(t,{fullDirectories=0,sidKits=false}={}) {
     for(const [name,bytes]of Object.entries(files))await put(stage,name,bytes);
   }
   const full=join(release,'itch_playground_dev'),run=join(release,'itch_playground_dev_for_run');
-  await prepareItchPlaygroundRun(full,run,{bundle:true});
+  await prepareItchPlaygroundRun(full,run,readable?{archiveExamples:true}:{bundle:true});
   for(let i=0;i<fullDirectories;i++)await mkdir(join(full,'download-directory-'+i));
   for(const item of ITCH_RELEASE_ARTIFACTS)zip(release,item.id,{dirs:item.id==='playground-full'});
   return {release,full,run,stage:id=>join(release,ITCH_RELEASE_ARTIFACTS.find(item=>item.id===id).stage),archive:id=>join(release,ITCH_RELEASE_ARTIFACTS.find(item=>item.id===id).archive)};
@@ -123,6 +142,35 @@ test('browser-playable archives count directory records toward the 1000 entry li
   for(let i=0;i<1001;i++)await mkdir(join(stage,'browser-directory-'+i));
   zip(f.release,'synth',{dirs:true});
   await assert.rejects(check(f),/Too many files in zip/);
+});
+
+test('readable Run profile verifies exact example and starter copies while retaining browser files byte-for-byte',async t=>{
+  const f=await fixture(t,{readable:true});
+  await put(f.full,'samples/.DS_Store','Finder metadata excluded when creating the ZIP');
+  const manifest=await check(f);
+  const {playgroundRun}=manifest,archive=await readFile(join(f.run,ITCH_RUN_EMBEDDED_SCRIPTS));
+  assert.equal(playgroundRun.profile,'readable');
+  assert.equal(playgroundRun.entry.sha256,sha(await readFile(join(f.full,'playground.js'))));
+  assert.equal(playgroundRun.removedRootModules,0);
+  assert(!manifest.artifacts.find(item=>item.id==='playground-full').files.some(item=>item.path.endsWith('/.DS_Store')));
+  assert.deepEqual(playgroundRun.embeddedScripts,{path:ITCH_RUN_EMBEDDED_SCRIPTS,files:3,bytes:archive.length,sha256:sha(archive)});
+  for(const name of [examplePath,defaultPath,'defaults/index.js','sources/browser-bundle.json'])
+    await assert.rejects(readFile(join(f.run,name)),{code:'ENOENT'});
+  for(const name of ['index.html','playground.js','playground_examples.js','ui.js','js/audio.js','js/audio-worklet.js',
+    'defaults/y8950/index.js','examples/README.md','samples/sonic-pi/loop.wav'])
+    assert.deepEqual(await readFile(join(f.run,name)),await readFile(join(f.full,name)),name);
+});
+
+test('readable Run profile rejects changes to archived examples or retained application code after repacking',async t=>{
+  const f=await fixture(t,{readable:true}),inner=join(f.run,ITCH_RUN_EMBEDDED_SCRIPTS);
+  const pristine=await readFile(inner);
+  changeInner(inner,examplePath,'Changed embedded example');
+  zip(f.release,'playground-run');
+  await assert.rejects(check(f),/Complete original embedded scripts archive: file bytes examples\/genesis\/run-demo\.js/);
+  await writeFile(inner,pristine);
+  await writeFile(join(f.run,'playground.js'),'globalThis.altered = true;\n');
+  zip(f.release,'playground-run');
+  await assert.rejects(check(f),/Unaltered runtime\/audio\/asset\/source\/notice: playground\.js/);
 });
 
 test('conservative URL candidates need not exist at the root when their real base is a subdirectory',async t=>{
@@ -249,7 +297,7 @@ test('manifest outputs cannot overwrite any validated artifact or stage input',a
 });
 
 for(const changeFull of [false,true])test(`retained duplicate attribution guide rejects ${changeFull?'both full and browser':'browser-only'} edits`,async t=>{
- const f=await fixture(t),retained=Object.values(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)[0];
+ const f=await fixture(t),retained=ITCH_RUN_DUPLICATE_SOURCE_GUIDES['native/cdda/NOTICE.md'];
  await writeFile(join(f.run,retained),'Changed component attribution copy\n');
  zip(f.release,'playground-run');
  if(changeFull){await writeFile(join(f.full,retained),'Changed component attribution copy\n');zip(f.release,'playground-full',{dirs:true});}

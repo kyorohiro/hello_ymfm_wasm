@@ -34,3 +34,28 @@ No upload, itch.io setting change, Tauri import, npm release, commit or tag was 
 ## Next packaging improvement
 
 The user suggested minimizing the Run build. Bundling JS would reduce file count further; minification would reduce size. This task does not bundle or minify application code. A subsequent Run-only bundle should preserve Worker / AudioWorklet entry points and WASM asset URLs and verify both Main and Worker playback before adoption.
+
+## Readable browser ZIP on 2026-11-22
+
+The bundled Run build reached 1,037 entries. The packager now archives the
+loose copies of the 138 examples and 31 starters already embedded in
+`playground_examples.js`. It checks each original against the generated text
+before copying its exact bytes into `sources/playground-examples.zip`. The
+Files panel and new Cassettes continue to use the embedded scripts. The full
+download still includes the loose files.
+
+The browser ZIP has 945 entries and no directory records. Its HTML, JavaScript,
+declarations, WASM, Workers, AudioWorklets and sound samples match the full
+download byte for byte. The source guide links to both the examples archive
+and the existing corresponding-source ZIP.
+
+Verification used `sh scripts/package_itch_playground.sh zip-readable-check-20261122`.
+The two Playground archives passed ZIP/staging and source-byte checks.
+All 83 packaging, example and sample playback tests passed. The extracted
+browser ZIP passed 20 muted Chromium and WebKit cases across Genesis,
+Mega-CD, DMG, NES and WonderSwan, including Main and Worker at a nested
+itch.io-style path. Eight cases checked Monaco completion. Four Genesis
+cases opened the editable ambient choir Example and played the shipped FLAC.
+
+Browser ZIP SHA-256
+`7eac384be17185ba6b635f85365fb7c5cc561e3b6718f72c5754765a1f70d351`.

@@ -1,12 +1,15 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 // Actual runtime and deterministic fake ports; never constructs audio devices.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {createHash} from 'node:crypto';
 import {createPlaygroundCodeRuntime as current} from '../tetorica_src/runtime/playground_code_runtime.js';
+// The audit must use the complete source and dependency tree reviewed by the receipt.
+const sourceCommit = '5999ed7da221c20699b26b8cab296c013b504baf';
+const readFileSync = createHistoricalGitReader(sourceCommit);
 const {CODE_NOTE_REVISION_PATHS:paths,CODE_NOTE_REVISION_RECEIPT_PATH:path,
-  CODE_NOTE_REVISION_RECEIPT_OBJECT_SHA256:pin,restoreMixerCalibrationCodeNoteRevision:restore}=await historicalCalibrationModule('mixer_calibration_code_note_revision.mjs');
+  CODE_NOTE_REVISION_RECEIPT_OBJECT_SHA256:pin,restoreMixerCalibrationCodeNoteRevision:restore}=await historicalCalibrationModule('mixer_calibration_code_note_revision.mjs',{sourceCommit});
 const read=path=>readFileSync(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(path));

@@ -6,9 +6,9 @@ import { createTwoSfWaveformMonitor, setupTwoSfLiveView } from './2sf-live-view.
 import { setupNdsChannelPicker } from './nds-channel-picker.js?v=nds-unified-channels-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
-import { createNdsAudio } from './nds-audio.js?v=nds-timed-1';
+import { createNdsAudio } from './nds-audio.js?v=nds-live-fx-1';
 import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-keyboard-live-1';
-import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-timed-1';
+import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-live-fx-1';
 import { setupNdsSoundCapture } from './nds-sound-capture.js?v=nds-pcm-draw-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
 import { setupNdsFiles } from './nds-files.js?v=nds-workspace-1';

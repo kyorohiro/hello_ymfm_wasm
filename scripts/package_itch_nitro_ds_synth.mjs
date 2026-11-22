@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { execFileSync } from 'node:child_process';
-import { copyFile, link, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, cp, link, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { copyReadableModules } from './copy_readable_modules.mjs';
+import { checkRuntimeArtifacts } from './runtime_artifacts.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const app = 'synth-nitro-ds';
@@ -47,11 +48,14 @@ try {
 const stage = await mkdtemp(join(release, 'itch_nitro_ds_synth_' + version + '-'));
 const temporaryZip = stage + '.zip';
 try {
+	await checkRuntimeArtifacts({ root, ids: ['native_audio_effect'], mirrors: true });
 	await copyReadableModules({
 		root,
 		stage,
-		entries: ['synth.js', 'synth.css', 'nds-worklet.js', '2sf-worker.js']
-			.map(name => 'docs/' + app + '/' + name),
+		entries: [
+			...['synth.js', 'synth.css', 'nds-worklet.js', '2sf-worker.js'].map(name => 'docs/' + app + '/' + name),
+			'docs/js/native-fx-worklet.js',
+		],
 		factories: [],
 	});
 	for (const [source, path] of [
@@ -61,11 +65,27 @@ try {
 		['docs/playground/tetorica-playground-globals.d.ts', 'playground/tetorica-playground-globals.d.ts'],
 		['docs/playground/vendor/fflate-LICENSE', 'playground/vendor/fflate-LICENSE'],
 		['packages/virtual-files/LICENSE', 'licenses/tetorica-virtual-files/LICENSE'],
+		['tetorica_src/runtime/generated/effects/gain.wasm', 'js/native_audio_effect.wasm'],
+		['scripts/build_native_audio_effect.sh', 'sources/code-effects/scripts/build_native_audio_effect.sh'],
+		['LICENSE', 'sources/code-effects/LICENSE'],
 	]) {
 		const output = join(stage, path);
 		await mkdir(dirname(output), { recursive: true });
 		await copyFile(join(root, source), output);
 	}
+	const effectSources = 'tetorica_src/native/audio_effect';
+	await mkdir(join(stage, 'sources/code-effects/tetorica_src/native'), { recursive: true });
+	await cp(join(root, effectSources), join(stage, 'sources/code-effects', effectSources), { recursive: true });
+	await writeFile(join(stage, 'sources/code-effects/README.md'), [
+		'# Code software effects',
+		'',
+		'The BSD-3-Clause Tetorica effect rack processes the Synth output after the DS renderer.',
+		'To rebuild its WASM with Emscripten installed, run from this directory:',
+		'',
+		'    sh scripts/build_native_audio_effect.sh /tmp/tetorica-nitro-ds-code-effects',
+		'    cp /tmp/tetorica-nitro-ds-code-effects/gain.wasm ../../js/native_audio_effect.wasm',
+		'',
+	].join('\n'));
 	const html = await readFile(join(stage, app, 'index.html'), 'utf8');
 	await writeFile(join(stage, 'index.html'), html
 		.replaceAll('../' + icon, './' + icon)
@@ -84,6 +104,7 @@ try {
 		'Try the Keyboard or the JavaScript examples in Files. Use Menu → Import to open a',
 		'2SF folder or select song and library files. 2SF playback supports ROM-boot sets',
 		'with standard timing. Supply your own songs and libraries.',
+		'Use `liveFx()` in Code for software effects on the Synth output.',
 		'',
 		'The JavaScript and CSS are copied from the authored files. Edit and reload',
 		'the page to try your changes. Monaco can load from its CDN, with a local text',
@@ -97,6 +118,7 @@ try {
 		'',
 		'The required SkyEmu source, Tetorica adapter and build recipe are in sources/2sf.',
 		'See LICENSE and sources/2sf/skyemu-2sf-notices.txt for attribution.',
+		'The software effect source and rebuild instructions are in sources/code-effects.',
 		'',
 	].join('\n'));
 	zip(stage, temporaryZip);

@@ -1,55 +1,55 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
-const {restoreMixerCalibrationPs1ImportRevision}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
-// Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
-import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 // Calibration provenance and PCM arrays only. No AudioContext/audio device.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import vm from 'node:vm';
+const sourceCommit = 'de098e0168ea666616f61514f0991d682ee55055';
+const readFileSync = createHistoricalGitReader(sourceCommit);
+const readAySingleOutput = createHistoricalGitReader('39c8f1e024dd8727c75bb764d2630605092e5677');
+const readYm2608OutputGain = createHistoricalGitReader('c5f701da9c0e231a90986113e19d833e57b9168d');
 const {restoreMixerCalibrationRf5c164NoteRevision:restore,RF5C164_NOTE_REVISION_BASE_COMMIT:commit,
   RF5C164_NOTE_REVISION_RECEIPT_PATH:receiptPath,RF5C164_NOTE_REVISION_RECEIPT_OBJECT_SHA256:pin,
-  RF5C164_NOTE_REVISION_SOURCE_PATHS:paths,RF5C164_NOTE_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs');
-const {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationCompletionPresetImportRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {restoreMixerCalibrationYm2608OutputGainRevision:restoreYm2608}=await historicalCalibrationModule('mixer_calibration_ym2608_output_gain_revision.mjs');
-import {createHistoricalYm2608SourceMixReader} from '../test/helpers/historical_ym2608_source_mix_fixture.mjs';
+  RF5C164_NOTE_REVISION_SOURCE_PATHS:paths,RF5C164_NOTE_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs',{sourceCommit});
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
 import {RF5C164Synth} from '../tetorica_src/runtime/rf5c164synth.js';
 import {sampleBytes} from '../tetorica_src/runtime/rf5c164_pcm.js';
 import {Rf5c164} from '../tetorica_src/runtime/rf5c164.js';
 import factory from '../docs/generated/rf5c164_wasm.js';
 
-const read=path=>readFile(new URL('../'+path,import.meta.url));
-const historicalYm2608=createHistoricalYm2608SourceMixReader();
-const restoreMixerCalibrationYm2608OutputGainRevision=(path,bytes,options)=>restoreYm2608(path,bytes,{...options,readSource:historicalYm2608});
+const url=path=>new URL('../'+path,import.meta.url);
+const read=async path=>readFileSync(url(path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(await read(receiptPath));
-const currentMeasurement=JSON.parse(await read('docs/issues/ps1_spc_voice_edit_chip_levels_01.json'));
+const outputGainEvidence=JSON.parse(readYm2608OutputGain(url('docs/issues/ym2608_output_gains_source_revision_01.json')));
 
 test('all 44 exact archived after-source fixtures reconstruct complete pre-feature bodies and retain original reports/gains',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.equal(paths.length,44);assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths) {
-    const current=await read('docs/'+path);
-    const reviewed=restoreMixerCalibrationYm2608OutputGainRevision(path,current,{report:currentMeasurement,record:currentMeasurement.sources[path]});
-    const known=restoreMixerCalibrationCompletionPresetImportRevision(path,restoreMixerCalibrationPs1ImportRevision(path,restoreMixerCalibrationVabApiRevision(path,reviewed))),entry=receipt.sources[path];
+    const known=await read('docs/'+path),entry=receipt.sources[path];
     assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
     const before=restore(path,known);assert.notEqual(before,known,path);
     assert.equal(before.length,entry.before.bytes,path);assert.equal(sha(before),entry.before.sha256,path);
     assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:known,record:entry.after}),'raw','the exact archived after body remains identified without claiming live dependency freshness');
     assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:before,record:entry.before}),'raw',path);
-    if(reviewed!==current)assert.throws(()=>assertMixerCalibrationSourceFreshness({path,bytes:current,record:entry.before}),/remeasure/,'The old note review cannot authorize the newer output-gain API');
+    if (Object.hasOwn(outputGainEvidence.sources,path)) {
+      const newer=readYm2608OutputGain(url('docs/'+path));
+      assert.throws(()=>assertMixerCalibrationSourceFreshness({path,bytes:newer,record:entry.before}),/remeasure/,
+        'The old note review cannot authorize the newer output-gain API');
+    }
     assert.equal(restore(path,before),before,'already pre-feature bytes remain unchanged');
   }
   for(const path of reports) {
     const bytes=await read(path),report=JSON.parse(bytes);assert.equal(bytes.length,receipt.reports[path].bytes,path);assert.equal(sha(bytes),receipt.reports[path].sha256,path);
     // These are immutable historical reports. The native AY addition now
     // requires fresh evidence; source-pair fixtures above do not approve it.
-    const ayPath='js/ay8910.js',awaitedAy=await read('docs/'+ayPath);assert(report.sources[ayPath]);
+    const ayPath='js/ay8910.js',awaitedAy=readAySingleOutput(url('docs/'+ayPath));assert(report.sources[ayPath]);
     assert.throws(()=>assertMixerCalibrationSourceFreshness({path:ayPath,bytes:awaitedAy,record:report.sources[ayPath],report}),/source changed; remeasure:/);
     assert.deepEqual(await read(path),bytes,'source validation cannot rewrite the measurement');
   }

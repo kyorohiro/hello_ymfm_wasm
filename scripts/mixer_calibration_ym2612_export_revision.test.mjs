@@ -1,16 +1,14 @@
 import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
-const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
-const {restoreMixerCalibrationPs1ImportRevision}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
-// Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
-import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
+import {createHistoricalGitReader} from '../test/helpers/historical_calibration_git_reader.mjs';
 import test from 'node:test';
-const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 import assert from 'node:assert/strict';
-import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {createHash} from 'node:crypto';
-const {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationYm2612ExportRevision,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationSynthCodeUiRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
-const {restoreMixerCalibrationSidRevision}=await historicalCalibrationModule('mixer_calibration_sid_revision.mjs');
-const {restoreMixerCalibrationRf5c164NoteRevision}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs');
+const sourceCommit = '86904ede2ef714522d9bb4b1d7f121357c5c4bcc';
+const readFile = createHistoricalGitReader(sourceCommit);
+const readClassExport = createHistoricalGitReader('bff3140bf48a7a6b3f04d6e84a4dc85527975329');
+const readAfterClassExport = createHistoricalGitReader('de098e0168ea666616f61514f0991d682ee55055');
+const {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationYm2612ExportRevision,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationSynthCodeUiRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{sourceCommit});
+const {restoreMixerCalibrationSidRevision}=await historicalCalibrationModule('mixer_calibration_sid_revision.mjs',{sourceCommit});
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const records={
@@ -18,16 +16,17 @@ const records={
   'js/ym2612-worklet-nuked.js':{bytes:24595,sha256:'7b9a91544c84fea385f9830371f7d49541be9e70649b656932ad99258e8793c7'},
 };
 async function exportRevisionFixture(path) {
-  const current=await readFile(new URL('../docs/'+path,import.meta.url));
-  const bytes=restoreMixerCalibrationRf5c164NoteRevision(path,current);
-  if(path!=='js/ym2612-worklet-nuked.js'||sha(bytes)==='5ebfd1097447fcf69e182aa06f95e6f98cc742b7c4bc7c8778c6dfdc238b9c8a')return bytes;
+  const url=new URL('../docs/'+path,import.meta.url);
+  const bytes=readClassExport(url);
+  if(path!=='js/ym2612-worklet-nuked.js')return bytes;
   // Nuked is outside the four active source inventories. Keep this older
   // export-only unit fixture independent of its later cache-token rollout;
   // production freshness must continue rejecting that unlisted revision.
+  const current=readAfterClassExport(url);
   assert.equal(sha(current),'1866417d09e95101207671b4ef00c8fd130d60e5e46ef2ca2a12ee976ea86983');
   assert.equal(restoreMixerCalibrationYm2612ExportRevision(path,current),current);
-  const previous=Buffer.from(current.toString().replace("playground_chip_inspector_state.js?v=rf5c164-notes-1","playground_chip_inspector_state.js?v=pokey-prepare-1"));
-  assert.equal(sha(previous),'5ebfd1097447fcf69e182aa06f95e6f98cc742b7c4bc7c8778c6dfdc238b9c8a');return previous;
+  assert.equal(sha(bytes),'5ebfd1097447fcf69e182aa06f95e6f98cc742b7c4bc7c8778c6dfdc238b9c8a');
+  return bytes;
 }
 
 test('only the named class export reconstructs both complete original measured worklet digests',async()=>{
@@ -68,13 +67,12 @@ test('the exact read-only Synth viewer revision chains to pinned SID bytes and t
   const path='playground/playground_monaco_definitions.js',bytes=await readFile(new URL('../docs/'+path,import.meta.url));
   const report=JSON.parse(await readFile(new URL('../docs/issues/ps1_state_restore_chip_levels_01.json',import.meta.url)));
   const receipt=JSON.parse(await readFile(new URL('../docs/issues/sid_playground_source_revision_02.json',import.meta.url)));
-  const archived=restoreMixerCalibrationPs1ImportRevision(path,restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,bytes))));
-  const original=restoreMixerCalibrationSynthDefinitionViewerRevision(path,archived),sid=receipt.sources[path];
+  const original=restoreMixerCalibrationSynthDefinitionViewerRevision(path,bytes),sid=receipt.sources[path];
   assert.notEqual(original,bytes);assert.equal(original.length,sid.after.bytes);assert.equal(sha(original),sid.after.sha256);
   const measured=restoreMixerCalibrationSidRevision(path,original);
   assert.equal(measured.length,report.sources[path].bytes);assert.equal(sha(measured),report.sources[path].sha256);
-  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:archived,record:report.sources[path]}),'ui-synth-definition-viewer');
-  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:archived,record:sid.after}),'ui-synth-definition-viewer');
+  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record:report.sources[path]}),'ui-synth-definition-viewer');
+  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record:sid.after}),'ui-synth-definition-viewer');
   assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:original,record:report.sources[path]}),'sid-playground-routing');
   for(const changed of [Buffer.concat([bytes,Buffer.from('\n')]),
     Buffer.from(bytes.toString().replace("occurrencesHighlight:'off'","occurrencesHighlight:'all'")),
@@ -93,10 +91,9 @@ test('the exact read-only Synth viewer revision chains to pinned SID bytes and t
 test('exact Monaco host and virtual-files import revisions reconstruct measured bytes, while every next edit is stale',async()=>{
   const report=JSON.parse(await readFile(new URL('../docs/issues/ps1_state_restore_chip_levels_01.json',import.meta.url)));
   for(const path of ['playground/playground_monaco.js','playground/playground_virtual_files.js']) {
-    const bytes=await readFile(new URL('../docs/'+path,import.meta.url)),original=restoreMixerCalibrationSynthCodeUiRevision(path,restoreMixerCalibrationPs1ImportRevision(path,restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,bytes))))),record=report.sources[path];
+    const bytes=await readFile(new URL('../docs/'+path,import.meta.url)),original=restoreMixerCalibrationSynthCodeUiRevision(path,bytes),record=report.sources[path];
     assert.notEqual(original,bytes);assert.equal(original.length,record.bytes);assert.equal(sha(original),record.sha256);
-    if(path==='playground/playground_monaco.js')assert.throws(()=>assertMixerCalibrationSourceFreshness({path,bytes,record}),/pinned report\/helper\/cache dependency changed: docs\/generated\/ay8910_wasm\.wasm/,'The live source cannot borrow an old export-only receipt across the AY DSP change');
-    else assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record}),'ui-synth-code','The independent virtual-file UI receipt remains applicable');
+    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record}),'ui-synth-code','The independently pinned Code UI source can reproduce the measured source');
     assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:original,record}),'raw');
     const changedByte=Buffer.from(bytes);changedByte[Math.floor(changedByte.length/2)]^=1;
     for(const changed of [changedByte,Buffer.concat([bytes,Buffer.from('\n')]),Buffer.from(bytes.toString().replace('import {','import  {'))]) {

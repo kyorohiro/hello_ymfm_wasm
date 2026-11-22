@@ -1,5 +1,6 @@
 // WonderSwan: four voices with independent 32-sample, 4-bit waveforms.
 // Open the WonderSwan tab to draw waves, then audition any channel with Keyboard.
+const ws = await useSoundChip("wonderswan");
 const wave = Array.from({length: 32}, (_, i) => Math.round(7.5 + 7.5 * Math.sin(2 * Math.PI * i / 32)));
 for (let channel = 0; channel < 4; channel++) {
   ws.setWaveform(channel, wave);

@@ -9,6 +9,7 @@ import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:
 import {fileURLToPath} from 'node:url';
 
 export const ITCH_ZIP_LIMITS=Object.freeze({entries:1000,pathCharacters:240,totalBytes:500_000_000,fileBytes:200_000_000});
+export const ITCH_RUN_EMBEDDED_SCRIPTS='sources/playground-examples.zip';
 const archiveName='corresponding-source.zip';
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const slash=value=>value.split(sep).join('/');
@@ -117,13 +118,69 @@ async function walk(directory,prefix=''){
  }
  return files.sort();
 }
+
+/** Identify loose scripts that are already shipped verbatim as Playground data. */
+export async function readItchRunEmbeddedScripts(stage) {
+ const source=await readFile(join(stage,'playground_examples.js'),'utf8');
+ function readData(name) {
+  const match=new RegExp(`^export const ${name} = ([\\s\\S]*?);\\n`,'m').exec(source);
+  if(!match)throw Error('Missing generated Playground example data: '+name);
+  return JSON.parse(match[1]);
+ }
+ const examples=readData('EXAMPLE_FILES'),modeDefaults=readData('MODE_DEFAULT_CODES');
+ assert(Array.isArray(examples)&&examples.length>0,'Expected generated Playground examples');
+ assert(modeDefaults&&typeof modeDefaults==='object'&&!Array.isArray(modeDefaults),'Expected generated Playground starters');
+ const scripts=new Map([['defaults/index.js',readData('DEFAULT_CODE')]]);
+ for(const {path,data} of examples){
+  assert(typeof path==='string'&&path.startsWith('/examples/')&&path.endsWith('.js'),'Invalid embedded example path');
+  const name=path.slice(1);
+  assert(safeName(name)&&!scripts.has(name),'Invalid or repeated embedded example path: '+path);
+  scripts.set(name,data);
+ }
+ for(const [mode,data] of Object.entries(modeDefaults)){
+  assert(/^[a-z0-9-]+$/.test(mode),'Invalid embedded starter mode: '+mode);
+  scripts.set(`defaults/${mode}/index.js`,data);
+ }
+ const verified=new Map();
+ for(const [name,data] of scripts){
+  assert(typeof data==='string','Expected embedded script text: '+name);
+  const bytes=await readFile(join(stage,name));
+  assert(bytes.equals(Buffer.from(data)),'Embedded Playground script differs from loose source: '+name);
+  verified.set(name,{bytes:bytes.length,sha256:sha(bytes)});
+ }
+ return verified;
+}
+
+async function writeVerifiedArchive(root,archive,files){
+ const names=[...files.keys()].sort();
+ const buildZip=String.raw`
+import json,sys,zipfile
+from pathlib import Path
+root=Path(sys.argv[1])
+with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+    for name in json.load(sys.stdin):
+        i=zipfile.ZipInfo(name,(1980,1,1,0,0,0));i.compress_type=zipfile.ZIP_DEFLATED;i.create_system=3;i.external_attr=0o100644<<16
+        z.writestr(i,(root/name).read_bytes(),compress_type=zipfile.ZIP_DEFLATED,compresslevel=9)
+`;
+ execFileSync(process.env.PYTHON||'python3',['-c',buildZip,root,archive],{input:JSON.stringify(names),encoding:'utf8'});
+ const entries=zipEntries(archive,true);
+ assert.deepEqual(entries.map(entry=>entry.name),names,'Complete original archive path set');
+ for(const entry of entries){
+  assert(!entry.directory&&!entry.symlink,'Only regular archived files');
+  assert.deepEqual({bytes:entry.bytes,sha256:entry.sha256},files.get(entry.name),'Archived original bytes: '+entry.name);
+ }
+ const bytes=await readFile(archive);
+ return {files:entries.length,bytes:bytes.length,sha256:sha(bytes),allOriginalSourceBytesVerified:true,directoryEntries:0};
+}
+
 export function itchRunSourcePreface(name,archiveSha){
  const link=slash(relative(dirname(name),archiveName));
  const index=slash(relative(dirname(name),'README-for-run.md'));
  return `> Browser upload source bundle: [Download the complete corresponding source](${link}) (SHA-256: \`${archiveSha}\`).\n> Extract that ZIP into a new directory before following the build instructions below. Its root matches the complete downloadable distribution's \`sources/\` tree, including the original \`sid/\` and \`sid8580-machine/\` kit paths where provided. The ZIP preserves every original source, guide, license, notice and receipt byte. Hashes in receipts describe those extracted originals; this browser-facing guide has only this navigation preface. Component guides duplicated under \`licenses/\` are linked from the [browser source guide](${index}).\n\n`;
 }
 
-export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false}={}){
+export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false,archiveExamples=false}={}){
+ if(bundle&&archiveExamples)throw Error('Choose either a bundled UI or the readable JavaScript release');
  const input=resolve(fullStage),requested=resolve(runStage),sourceInfo=await lstat(input);
  if(!sourceInfo.isDirectory()||sourceInfo.isSymbolicLink())throw Error('Full stage must be a real directory');
  const full=await realpath(input),parent=await realpath(dirname(requested)),run=join(parent,basename(requested));
@@ -132,8 +189,9 @@ export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false}
  const inputFiles=await walk(full);
  if(!inputFiles.includes('index.html')||!inputFiles.includes('LICENSE'))throw Error('Full stage needs index.html and LICENSE');
  const sourceNames=inputFiles.filter(name=>name.startsWith('sources/')).map(name=>name.slice(8));
- if(!sourceNames.length||sourceNames.includes(archiveName)||sourceNames.includes('README-for-run.md'))throw Error('Expected an original, unpacked sources/ tree');
+ if(!sourceNames.length||sourceNames.includes(archiveName)||sourceNames.includes('README-for-run.md')||inputFiles.includes(ITCH_RUN_EMBEDDED_SCRIPTS))throw Error('Expected an original, unpacked sources/ tree');
  const removed=sourceNames.filter(isItchRunArchivedSource);if(!removed.length)throw Error('No corresponding compilation sources found');
+ const embeddedScripts=archiveExamples?await readItchRunEmbeddedScripts(full):new Map();
  const temporary=await mkdtemp(join(parent,'.itch-run-prepare-')),original=new Map();
  let committed=false;
  try{
@@ -146,25 +204,19 @@ export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false}
    if(!source.equals(copy))throw Error('Duplicate source guide differs from retained attribution copy: '+name+' -> '+retained);
    duplicateGuides.push({source:'sources/'+name,retained,...original.get(retained)});
   }
-  const sourceArchive=join(temporary,'sources',archiveName);
-  const buildZip=String.raw`
-import json,sys,zipfile
-from pathlib import Path
-root=Path(sys.argv[1])
-with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
-    for name in json.load(sys.stdin):
-        i=zipfile.ZipInfo(name,(1980,1,1,0,0,0));i.compress_type=zipfile.ZIP_DEFLATED;i.create_system=3;i.external_attr=0o100644<<16
-        z.writestr(i,(root/name).read_bytes(),compress_type=zipfile.ZIP_DEFLATED,compresslevel=9)
-`;
-  execFileSync(process.env.PYTHON||'python3',['-c',buildZip,join(temporary,'sources'),sourceArchive],{input:JSON.stringify(sourceNames),encoding:'utf8'});
-  const inner=zipEntries(sourceArchive,true);assert.equal(inner.length,sourceNames.length,'Complete source archive entry count');
-  assert.deepEqual(inner.map(entry=>entry.name).sort(),sourceNames,'Complete original source path set');
-  for(const entry of inner){assert(!entry.directory&&!entry.symlink,'Only regular source files');assert.deepEqual({bytes:entry.bytes,sha256:entry.sha256},original.get('sources/'+entry.name),'Archived original source bytes: '+entry.name);}
-  const archiveBytes=await readFile(sourceArchive),archiveSha=sha(archiveBytes);
+  const sourceDirectory=join(temporary,'sources');
+  const sourceArchive=await writeVerifiedArchive(sourceDirectory,join(sourceDirectory,archiveName),
+    new Map(sourceNames.map(name=>[name,original.get('sources/'+name)])));
+  const archiveSha=sourceArchive.sha256;
+  const scriptArchive=archiveExamples?await writeVerifiedArchive(temporary,join(temporary,ITCH_RUN_EMBEDDED_SCRIPTS),embeddedScripts):null;
+  for(const name of embeddedScripts.keys())await unlink(join(temporary,name));
   for(const name of removed)await unlink(join(temporary,'sources',name));
   const guides=sourceNames.filter(name=>!isItchRunArchivedSource(name)&&isItchRunSourceGuide(name));
   for(const name of guides){const file=join(temporary,'sources',name);await writeFile(file,itchRunSourcePreface(name,archiveSha)+await readFile(file,'utf8'));}
-  await writeFile(join(temporary,'sources/README-for-run.md'),`# Corresponding source for this browser upload\n\n[Download all corresponding sources](${archiveName}) (SHA-256: \`${archiveSha}\`). The ZIP contains all ${sourceNames.length} original source files, standalone build recipes, licenses, notices, provenance and receipts, without changes. Extract into a new directory and follow the included chip guides. The extracted source root retains every original relative path; with Emscripten installed, for example, run \`sh scripts/build_cdda_wasm.sh ../generated\`.\n\nThe complete downloadable Playground distribution also retains the expanded source tree. This browser upload moves C/C++/header/shell build files, SDK build scripts, build configuration/pin metadata, build catalog and release inventories, upstream source change history, duplicate SID source-kit scripts and the complete \`sid8580-machine/\` native source kit into that same source ZIP to stay within [itch.io HTML upload limits](https://itch.io/docs/creators/html5#zip-file-requirements). The archived 8580 kit includes its Rust/Cargo and native sources, toolchain licenses/notices, matching build receipt and source manifest. Its README and the top-level SID8580 guide remain accessible with source-download navigation. Other retained source guides, license/notice/provenance files and receipts remain accessible individually. Audio modules, WASM, samples, examples and declarations retain their original files. ${bundle?'Page UI modules are bundled and minified; the bundle receipt and original UI inputs are included separately under sources/.':'Page UI modules also retain their original files.'} Guide copies have a download preface; receipt hashes refer to the unmodified files inside the source ZIP.\n`);
+  const scriptsGuide=scriptArchive
+   ? `\n## Playground examples and starters\n\n[Download the original scripts](${basename(ITCH_RUN_EMBEDDED_SCRIPTS)}) (SHA-256: \`${scriptArchive.sha256}\`). Extract at the Playground root to restore these ${scriptArchive.files} files to their original paths. The same code is already embedded in \`playground_examples.js\` for the Files panel and new Cassettes. The complete downloadable Playground ZIP also has the loose scripts.\n`
+    : '';
+  await writeFile(join(sourceDirectory,'README-for-run.md'),`# Corresponding source for this browser upload\n\n[Download all corresponding sources](${archiveName}) (SHA-256: \`${archiveSha}\`). The ZIP contains all ${sourceNames.length} original source files, standalone build recipes, licenses, notices, provenance and receipts, without changes. Extract into a new directory and follow the included chip guides. The extracted source root retains every original relative path; with Emscripten installed, for example, run \`sh scripts/build_cdda_wasm.sh ../generated\`.\n\nThe complete downloadable Playground distribution also retains the expanded source tree. This browser upload moves C/C++/header/shell build files, SDK build scripts, build configuration/pin metadata, build catalog and release inventories, upstream source change history, duplicate SID source-kit scripts and the complete \`sid8580-machine/\` native source kit into that same source ZIP to stay within [itch.io HTML upload limits](https://itch.io/docs/creators/html5#zip-file-requirements). The archived 8580 kit includes its Rust/Cargo and native sources, toolchain licenses/notices, matching build receipt and source manifest. Its README and the top-level SID8580 guide remain accessible with source-download navigation. Other retained source guides, license/notice/provenance files and receipts remain accessible individually. Audio modules, WASM, samples and declarations retain their original files. ${bundle?'Page UI modules are bundled and minified; the bundle receipt and original UI inputs are included separately under sources/.':'Page UI modules also retain their original files.'} Guide copies have a download preface; receipt hashes refer to the unmodified files inside the source ZIP.\n${scriptsGuide}`);
   if(duplicateGuides.length) {
    const links=duplicateGuides.map(({retained})=>`- [${basename(dirname(retained))}/${basename(retained)}](../${retained})`).join('\n');
    const guidePath=join(temporary,'sources/README-for-run.md');
@@ -176,7 +228,7 @@ with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compressle
   for(const name of inputFiles){
    // The full stage is never changed, even when the browser guides are adapted.
    const originalBytes=await readFile(join(full,name));assert.deepEqual({bytes:originalBytes.length,sha256:sha(originalBytes)},original.get(name),'Full stage remained unchanged: '+name);
-   if(removedPaths.has(name)||guidePaths.has(name))continue;
+   if(removedPaths.has(name)||guidePaths.has(name)||embeddedScripts.has(name))continue;
    const bytes=await readFile(join(temporary,name));assert.deepEqual({bytes:bytes.length,sha256:sha(bytes)},original.get(name),'Unchanged browser asset/license/notice/receipt: '+name);unchanged++;
   }
   // Bundle only the copied browser stage. Check the hosting limit afterwards,
@@ -186,7 +238,9 @@ with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compressle
   const outputEntries=await Promise.all(outputFiles.map(async name=>({name,directory:false,symlink:false,bytes:(await lstat(join(temporary,name))).size})));
   const predicted=validateItchZipEntries(outputEntries);
   await rename(temporary,run);committed=true;
-  return {passed:true,fullStage:full,runStage:run,inputFiles:inputFiles.length,sourceArchive:{path:'sources/'+archiveName,files:inner.length,bytes:archiveBytes.length,sha256:archiveSha,allOriginalSourceBytesVerified:true,directoryEntries:0},archivedDuplicateSourceGuides:duplicateGuides,removedCompilationFiles:removed.map(name=>'sources/'+name),prefacedGuides:[...guidePaths],unchangedFilesVerifiedBeforeBundle:unchanged,fullStageUnchanged:true,bundle:bundled,predictedZip:predicted,note:'Create the outer ZIP with no directory records (zip -D), then use --check-zip to validate the actual archive including directory entries.'};
+  return {passed:true,fullStage:full,runStage:run,inputFiles:inputFiles.length,sourceArchive:{path:'sources/'+archiveName,...sourceArchive},
+   ...(scriptArchive?{embeddedScripts:{path:ITCH_RUN_EMBEDDED_SCRIPTS,...scriptArchive}}:{}),
+   archivedDuplicateSourceGuides:duplicateGuides,removedCompilationFiles:removed.map(name=>'sources/'+name),prefacedGuides:[...guidePaths],unchangedFilesVerifiedBeforeBundle:unchanged,fullStageUnchanged:true,bundle:bundled,predictedZip:predicted,note:'Create the outer ZIP with no directory records (zip -D), then use --check-zip to validate the actual archive including directory entries.'};
  }finally{if(!committed)await rm(temporary,{recursive:true,force:true});}
 }
 
@@ -194,8 +248,9 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const args=process.argv.slice(2);
  if(args[0]==='--check-zip'&&args.length===2)console.log(JSON.stringify({passed:true,...checkItchPlaygroundZip(args[1])},null,2));
  else {
-  const bundle=args.includes('--bundle'),paths=args.filter(arg=>arg!=='--bundle');
-  if(paths.length!==2||paths.some(arg=>arg.startsWith('--'))||args.length!==paths.length+Number(bundle))throw Error('Usage: node scripts/prepare_itch_playground_run.mjs <full-stage> <run-stage> [--bundle] | --check-zip <browser.zip>');
-  console.log(JSON.stringify(await prepareItchPlaygroundRun(...paths,{bundle}),null,2));
+  const bundle=args.includes('--bundle'),archiveExamples=args.includes('--archive-examples');
+  const paths=args.filter(arg=>arg!=='--bundle'&&arg!=='--archive-examples');
+  if(paths.length!==2||paths.some(arg=>arg.startsWith('--'))||args.length!==paths.length+Number(bundle)+Number(archiveExamples))throw Error('Usage: node scripts/prepare_itch_playground_run.mjs <full-stage> <run-stage> [--archive-examples | --bundle] | --check-zip <browser.zip>');
+  console.log(JSON.stringify(await prepareItchPlaygroundRun(...paths,{bundle,archiveExamples}),null,2));
  }
 }
