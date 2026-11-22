@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -260,6 +261,57 @@ class LocalReleaseTests(unittest.TestCase):
         self.assertEqual(git(self.apps[-1], "rev-parse", "HEAD"), self.heads[-1])
         self.assertEqual(git(self.apps[-1], "tag", "--list"), "")
         self.assertEqual((self.apps[-1] / "dist/index.html").read_text(), "Unrelated user's edit\n")
+
+    def test_named_batch_reuses_app_version_without_replacing_default_output(self):
+        default_path = self.release.state_path(self.root, self.VERSION)
+        batch = "spu-desktop"
+        batch_path = self.release.state_path(self.root, self.VERSION, batch)
+        self.assertEqual(batch_path.parent.name, "tauri_1.2.3_spu-desktop")
+
+        with mock.patch.object(self.release, "collect_artifacts",
+                               side_effect=self.artifact_fixture):
+            self.release.prepare_release(self.root, self.VERSION, self.web,
+                                         products=self.products[:1], runner=self.runner,
+                                         password=self.PASSWORD)
+            self.release.commit_release(self.root, self.VERSION, runner=self.runner)
+            default_files = tree_bytes(default_path.parent)
+
+            self.release.prepare_release(self.root, self.VERSION, self.web,
+                                         products=self.products[1:], runner=self.runner,
+                                         password=self.PASSWORD, batch=batch)
+            tagged = self.release.commit_release(self.root, self.VERSION,
+                                                 runner=self.runner, batch=batch)
+
+        self.assertEqual(tagged["status"], "tagged")
+        self.assertEqual([product["id"] for product in tagged["products"]], ["spu"])
+        self.assertEqual(tagged, json.loads(batch_path.read_text()))
+        self.assertEqual(tree_bytes(default_path.parent), default_files)
+        for app in self.apps:
+            self.assertEqual(git(app, "tag", "--list"), f"v{self.VERSION}")
+
+    def test_occupied_batch_is_reported_in_plan_and_before_credential_prompt(self):
+        batch = "spu-desktop"
+        output = self.release.state_path(self.root, self.VERSION, batch).parent
+        output.mkdir(parents=True)
+        marker = output / "saved-artifact"
+        marker.write_bytes(b"In-progress build output\n")
+        args = [self.VERSION, "--web-dir", str(self.web), "--products", "spu", "--batch", batch]
+        for mode in ("--plan", "--prepare"):
+            with self.subTest(mode=mode), mock.patch.object(self.release, "ROOT", self.root), \
+                    mock.patch.object(self.release.sys, "platform", "darwin"), \
+                    mock.patch.object(self.release.shutil, "which", return_value="/fixture/tool"), \
+                    mock.patch.object(self.release.getpass, "getpass") as request_password, \
+                    mock.patch.object(self.release.sys, "stderr", new_callable=io.StringIO) as stderr:
+                self.assertEqual(self.release.main([mode, *args]), 1)
+                self.assertIn(f"Output already exists: {output}", stderr.getvalue())
+                request_password.assert_not_called()
+        self.assertEqual(marker.read_bytes(), b"In-progress build output\n")
+        self.assert_original_history()
+
+    def test_batch_name_cannot_redirect_output_path(self):
+        for name in ("", "..", "../browser", "a/b", "a\\b", "a_b", "Batch", "a b"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                self.release.state_path(self.root, self.VERSION, name)
 
     def test_batch_preflight_rejects_dirty_repo_or_existing_tag_before_import(self):
         for issue in ("dirty", "tag"):

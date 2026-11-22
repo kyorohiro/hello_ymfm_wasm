@@ -12,7 +12,7 @@ import time
 
 from release_tauri_all import (
     PRODUCTS, ROOT, ReleaseError, check_record, clean_env, file_record,
-    read_json, release_lock, state_path, validate_version, write_state,
+    read_json, release_lock, select_products, state_path, validate_batch, validate_version, write_state,
 )
 
 GITHUB_OWNER = "kyorohiro"
@@ -226,23 +226,30 @@ def missing_github_assets(records, assets):
     return [record["path"] for record in by_name.values()]
 
 
-def committed_desktop(version):
-    plan = read_json(state_path(ROOT, version))
+def committed_desktop(version, selection=None, *, batch=None):
+    plan = read_json(state_path(ROOT, version, batch))
     repos = {entry["id"]: entry["repo"] for entry in PRODUCTS}
     if plan.get("kind") != "tauri-local-release" or plan.get("status") != "tagged" or plan["version"] != version:
         raise ReleaseError("Run the desktop --prepare and --commit stages first.")
-    for product in plan["products"]:
+    planned = {product["id"]: product for product in plan["products"]}
+    if not planned or len(planned) != len(plan["products"]):
+        raise ReleaseError("Invalid product selection in the desktop release plan.")
+    selected = set(planned) if selection is None else {product["id"] for product in select_products(selection)}
+    if missing := selected - planned.keys():
+        raise ReleaseError("Products missing from the desktop release plan: " + ", ".join(sorted(missing)))
+    products = [product for identifier, product in planned.items() if identifier in selected]
+    for product in products:
         if repos.get(product["id"]) != product["repo"] or not product.get("tagged"):
             raise ReleaseError("Unexpected desktop target in the release plan.")
         for record in product["artifacts"]:
             check_record(record)
-    return plan
+    return {**plan, "products": products}
 
 
-def desktop_ci(version, push, wait):
-    plan = committed_desktop(version)
+def desktop_ci(version, push, wait, *, batch=None):
+    plan = committed_desktop(version, batch=batch)
     tag = f"v{version}"
-    directory = state_path(ROOT, version).parent
+    directory = state_path(ROOT, version, batch).parent
     # Start every selected repository before waiting for any runner.
     for product in plan["products"]:
         repo = f"{GITHUB_OWNER}/{product['repo']}"
@@ -323,33 +330,39 @@ def mac_dmgs(product, version):
     return dmgs
 
 
-def github_desktop(version, notes, publish):
-    plan = committed_desktop(version)
-    products = [product for product in plan["products"] if product["id"] == "synth"]
-    if len(products) != 1:
-        raise ReleaseError("Prepare the FM2612 Synth with --products synth before using github-desktop.")
-    product, = products
-    repo, tag = f"{GITHUB_OWNER}/{product['repo']}", f"v{version}"
-    if remote_tag(repo, tag) != product["commit"]:
-        raise ReleaseError(f"Push the recorded tag for {repo} with desktop-ci --push first.")
-    target = state_path(ROOT, version).parent / "ci" / product["id"]
-    installers = {**mac_dmgs(product, version), **ci_records(target, product, version)}
-    with tempfile.TemporaryDirectory(prefix="tetorica-fm2612-desktop-") as output:
-        folder = Path(output)
-        records = []
-        for channel, original in installers.items():
-            source = Path(original["path"])
-            destination = folder / f"tetorica-fm2612-synth_{version}_{channel}{source.suffix}"
-            shutil.copyfile(source, destination)
-            record = file_record(destination)
-            if (record["bytes"], record["sha256"]) != (original["bytes"], original["sha256"]):
-                raise ReleaseError(f"Installer changed while staging: {source}")
-            records.append(record)
-        records.append(release_checksum(records, folder / "SHA256SUMS"))
-        upload_github_release(repo, tag, f"Tetorica FM2612 Synth {tag}", notes, records, publish)
+def desktop_installer_name(product, version, channel, suffix):
+    return f"{product['repo'].removesuffix('-tauri')}_{version}_{channel}{suffix}"
 
 
-def itch_targets(web_version, desktop_version=None, products=None):
+def github_desktop(version, notes, publish, selection=None, *, batch=None):
+    plan = committed_desktop(version, selection, batch=batch)
+    tag = f"v{version}"
+    ci = state_path(ROOT, version, batch).parent / "ci"
+    releases = []
+    for product in plan["products"]:
+        repo = f"{GITHUB_OWNER}/{product['repo']}"
+        if remote_tag(repo, tag) != product["commit"]:
+            raise ReleaseError(f"Push the recorded tag for {repo} with desktop-ci --push first.")
+        installers = {**mac_dmgs(product, version), **ci_records(ci / product["id"], product, version)}
+        releases.append((product, repo, f"{product['metadata']['product']} {tag}", installers))
+    # Check each selected product's tag and packages before the first upload.
+    for product, repo, title, installers in releases:
+        with tempfile.TemporaryDirectory(prefix=f"{product['repo']}-desktop-") as output:
+            folder = Path(output)
+            records = []
+            for channel, original in installers.items():
+                source = Path(original["path"])
+                destination = folder / desktop_installer_name(product, version, channel, source.suffix)
+                shutil.copyfile(source, destination)
+                record = file_record(destination)
+                if (record["bytes"], record["sha256"]) != (original["bytes"], original["sha256"]):
+                    raise ReleaseError(f"Installer changed while staging: {source}")
+                records.append(record)
+            records.append(release_checksum(records, folder / "SHA256SUMS"))
+            upload_github_release(repo, tag, title, notes, records, publish)
+
+
+def itch_targets(web_version, desktop_version=None, products=None, *, batch=None):
     web = verified_web(web_version)
     selected = set(products or ITCH_SLUG)
     if not selected <= set(ITCH_SLUG):
@@ -360,7 +373,7 @@ def itch_targets(web_version, desktop_version=None, products=None):
             targets[f"{GITHUB_OWNER}/{slug}:html"] = (web_version, web["browser"][product])
             targets[f"{GITHUB_OWNER}/{slug}:source"] = (web_version, web["normal"][product])
     if desktop_version:
-        plan = committed_desktop(desktop_version)
+        plan = committed_desktop(desktop_version, batch=batch)
         if plan["webVersion"] != web_version:
             raise ReleaseError("Desktop installers were built from another Web version.")
         for product in plan["products"]:
@@ -372,15 +385,59 @@ def itch_targets(web_version, desktop_version=None, products=None):
             site = f"{GITHUB_OWNER}/{ITCH_SLUG[identifier]}"
             for channel, dmg in mac_dmgs(product, desktop_version).items():
                 targets[f"{site}:{channel}"] = (desktop_version, dmg)
-            target = state_path(ROOT, desktop_version).parent / "ci" / identifier
+            target = state_path(ROOT, desktop_version, batch).parent / "ci" / identifier
             for channel, record in ci_records(target, product, desktop_version).items():
                 targets[f"{site}:{channel}"] = (desktop_version, record)
     return targets
 
 
-def itch(web_version, desktop_version, products, publish, butler):
-    targets = itch_targets(web_version, desktop_version, products)
+def itch(web_version, desktop_version, products, publish, butler, *, batch=None):
+    targets = itch_targets(web_version, desktop_version, products, batch=batch)
     ledger = web_state(web_version).with_name("itch-uploads.json")
+    upload_itch_targets(targets, ledger, publish, butler)
+
+
+def github_itch_installers(product, version, folder):
+    repo, tag = f"{GITHUB_OWNER}/{product['repo']}", f"v{version}"
+    release = gh_json("release", "view", tag, "-R", repo, "--json", "databaseId,isDraft")
+    if release["isDraft"]:
+        raise ReleaseError(f"Publish {repo} {tag} on GitHub first.")
+    assets = gh_json("api", f"repos/{repo}/releases/{release['databaseId']}")["assets"]
+    suffixes = {channel: ".dmg" for _, channel in MAC_DMG_CHANNELS}
+    suffixes.update({channel: suffix for files in CI_PLATFORMS.values() for suffix, channel in files.items()})
+    names = {channel: desktop_installer_name(product, version, channel, suffix)
+             for channel, suffix in suffixes.items()}
+    if sorted(asset["name"] for asset in assets) != sorted([*names.values(), "SHA256SUMS"]):
+        raise ReleaseError(f"Expected verified desktop release attachments for {repo} {tag}.")
+    command = ["gh", "release", "download", tag, "-R", repo, "--dir", folder]
+    for name in (*names.values(), "SHA256SUMS"):
+        command.extend(("--pattern", name))
+    run(*command, capture=False)
+    records = {channel: file_record(folder / name) for channel, name in names.items()}
+    checksums = folder / "SHA256SUMS"
+    if missing_github_assets([*records.values(), file_record(checksums)], assets):
+        raise ReleaseError(f"GitHub release downloads are incomplete for {repo} {tag}.")
+    expected = sorted(f"{record['sha256']}  {names[channel]}" for channel, record in records.items())
+    if sorted(checksums.read_text(encoding="utf-8").splitlines()) != expected:
+        raise ReleaseError(f"Release checksums differ for {repo} {tag}.")
+    return records
+
+
+def itch_desktop(version, products, publish, butler):
+    ledger = web_state(version).with_name("itch-uploads.json")
+    with tempfile.TemporaryDirectory(prefix="tetorica-itch-desktop-") as output:
+        targets = {}
+        for product in select_products(products):
+            identifier = product["id"]
+            folder = Path(output) / identifier
+            folder.mkdir()
+            project = f"{GITHUB_OWNER}/{ITCH_SLUG[identifier]}"
+            for channel, record in github_itch_installers(product, version, folder).items():
+                targets[f"{project}:{channel}"] = (version, record)
+        upload_itch_targets(targets, ledger, publish, butler)
+
+
+def upload_itch_targets(targets, ledger, publish, butler):
     completed = read_json(ledger) if ledger.exists() else {}
     for target, (version, record) in targets.items():
         check_record({key: record[key] for key in ("path", "bytes", "sha256")})
@@ -393,6 +450,7 @@ def itch(web_version, desktop_version, products, publish, butler):
             continue
         if completed.get(target, {}).get("version") == version:
             raise ReleaseError(f"Different bytes were already uploaded to {target} as {version}.")
+        ledger.parent.mkdir(parents=True, exist_ok=True)
         path = Path(record["path"])
         if target.endswith(":html"):
             run(butler, "push", path, target, "--userversion", version, capture=False)
@@ -409,6 +467,8 @@ def itch(web_version, desktop_version, products, publish, butler):
                 run(butler, "push", directory, target, "--userversion", version, capture=False)
         completed[target] = receipt
         write_state(ledger, completed)
+    if not publish:
+        print(f"Preview · {len(targets)} files. Add --publish to upload to itch.io.")
 
 
 def main():
@@ -417,21 +477,28 @@ def main():
     web = sub.add_parser("prepare-web", help="Build and checksum both Web ZIP collections")
     github = sub.add_parser("github-web", help="Verify the tag and upload the browser release assets")
     desktop = sub.add_parser("desktop-ci", help="Wait for tagged desktop runs and collect Windows/Linux")
-    desktop_release = sub.add_parser("github-desktop", help="Attach or publish verified FM2612 desktop installers")
+    desktop_release = sub.add_parser("github-desktop", help="Attach or publish verified desktop installers")
+    desktop_release.add_argument("--products", help="Comma-separated product IDs from the committed plan (default: all)")
     upload = sub.add_parser("itch", help="Print the planned uploads or update itch.io")
-    for stage in (web, github, desktop, desktop_release, upload):
+    upload_desktop = sub.add_parser("itch-desktop", help="Distribute installers from published GitHub releases")
+    for stage in (web, github, desktop, desktop_release, upload, upload_desktop):
         stage.add_argument("version", type=validate_version)
     for stage in (github, desktop_release):
         stage.add_argument("--notes-file", type=Path, required=True)
     for stage in (github, desktop):
         stage.add_argument("--push", action="store_true", help="Push the exact release tag")
         stage.add_argument("--wait", type=int, default=3600, help="Seconds to wait for each Actions run")
-    for stage in (github, desktop_release, upload):
+    for stage in (github, desktop_release, upload, upload_desktop):
         stage.add_argument("--publish", action="store_true")
+    for stage in (desktop, desktop_release, upload):
+        stage.add_argument("--batch", type=validate_batch, help="Use the named local Tauri release batch")
     upload.add_argument("--desktop-version", type=validate_version)
-    upload.add_argument("--products", help="Comma-separated product IDs")
-    upload.add_argument("--butler", type=Path, default=Path.home() / "bin" / "butler")
+    for stage in (upload, upload_desktop):
+        stage.add_argument("--products", help="Comma-separated product IDs")
+        stage.add_argument("--butler", type=Path, default=Path.home() / "bin" / "butler")
     args = parser.parse_args()
+    if args.stage == "itch" and args.batch and not args.desktop_version:
+        parser.error("--batch requires --desktop-version for itch")
     try:
         if args.stage == "prepare-web":
             with release_lock(ROOT):
@@ -440,17 +507,24 @@ def main():
         elif args.stage == "github-web":
             github_web(args.version, args.notes_file.resolve(strict=True), args.push, args.publish, args.wait)
         elif args.stage == "desktop-ci":
-            desktop_ci(args.version, args.push, args.wait)
+            desktop_ci(args.version, args.push, args.wait, batch=args.batch)
         elif args.stage == "github-desktop":
             with release_lock(ROOT):
-                github_desktop(args.version, args.notes_file.resolve(strict=True), args.publish)
+                github_desktop(args.version, args.notes_file.resolve(strict=True), args.publish, args.products,
+                               batch=args.batch)
+        elif args.stage == "itch-desktop":
+            if args.publish:
+                with release_lock(ROOT):
+                    itch_desktop(args.version, args.products, True, args.butler)
+            else:
+                itch_desktop(args.version, args.products, False, args.butler)
         else:
             selected = args.products.split(",") if args.products else None
             if args.publish:
                 with release_lock(ROOT):
-                    itch(args.version, args.desktop_version, selected, True, args.butler)
+                    itch(args.version, args.desktop_version, selected, True, args.butler, batch=args.batch)
             else:
-                itch(args.version, args.desktop_version, selected, False, args.butler)
+                itch(args.version, args.desktop_version, selected, False, args.butler, batch=args.batch)
     except (ReleaseError, OSError, ValueError, KeyError) as error:
         parser.exit(1, f"Release stopped: {error}\n")
 

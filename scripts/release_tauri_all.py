@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import signal
 import shutil
 import subprocess
@@ -143,8 +144,24 @@ def write_state(path, state):
     temporary.replace(path)
 
 
-def state_path(root, version):
-    return Path(root) / "release" / f"tauri_{validate_version(version)}" / "release-plan.json"
+def validate_batch(value: str) -> str:
+    if not isinstance(value, str) or re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", value) is None:
+        raise ValueError("Batch name must be lowercase ASCII letters or digits separated by hyphens.")
+    return value
+
+
+def state_path(root, version, batch=None):
+    name = f"tauri_{validate_version(version)}"
+    if batch is not None:
+        name += f"_{validate_batch(batch)}"
+    return Path(root) / "release" / name / "release-plan.json"
+
+
+def new_state_path(root, version, batch=None):
+    path = state_path(root, version, batch)
+    if path.parent.exists() or path.parent.is_symlink():
+        raise ReleaseError(f"Output already exists: {path.parent}. Inspect the saved state or choose a different --batch.")
+    return path
 
 
 @contextmanager
@@ -366,18 +383,17 @@ def collect_artifacts(repo, product, version, output, runner, password):
     return records
 
 
-def prepare_release(root, version, web_dir, products=PRODUCTS, runner=None, password=None):
+def prepare_release(root, version, web_dir, products=PRODUCTS, runner=None, password=None, *, batch=None):
     runner = runner or Runner()
     root = Path(root).resolve()
     # Complete all read-only preflight before writing state or importing an app.
-    plan = plan_release(root, version, web_dir, products, runner)
-    path = state_path(root, version)
-    if path.parent.exists():
-        raise ReleaseError(f"Output already exists: {path.parent}. Inspect the saved state before retrying.")
+    path = new_state_path(root, version, batch)
+    plan_release(root, version, web_dir, products, runner)
     if not password:
         raise ReleaseError("APPLE_PASSWORD is required for the local signed/notarized build.")
     with release_lock(root):
         # Repeat preflight under the global lock.
+        new_state_path(root, version, batch)
         plan = plan_release(root, version, web_dir, products, runner)
         path.parent.mkdir()
         plan["status"] = "building"
@@ -430,10 +446,10 @@ def prepare_release(root, version, web_dir, products=PRODUCTS, runner=None, pass
     return plan
 
 
-def commit_release(root, version, products=None, runner=None):
+def commit_release(root, version, products=None, runner=None, *, batch=None):
     root, version = Path(root).resolve(), validate_version(version)
     runner = runner or Runner()
-    path = state_path(root, version)
+    path = state_path(root, version, batch)
     with release_lock(root):
         plan = read_json(path)
         if (plan.get("kind") != "tauri-local-release" or plan.get("version") != version
@@ -504,6 +520,7 @@ def main(argv=None):
     modes.add_argument("--commit", action="store_true", help="Create final local commits and vVERSION tags after verified builds")
     parser.add_argument("version", metavar="VERSION", help="App version written to metadata; independent of Web ZIP versions")
     parser.add_argument("--web-dir", type=Path, help="Existing normal itch_all_* collection; its version can differ from VERSION")
+    parser.add_argument("--batch", type=validate_batch, metavar="NAME", help="Use separate release output for this batch at the same app version")
     parser.add_argument("--products", metavar="ID,ID", help="Select products by ID. Defaults to all desktop products for building, and the saved selection for --commit. IDs: "
                         + ", ".join(product["id"] for product in PRODUCTS))
     args = parser.parse_args(argv)
@@ -513,8 +530,10 @@ def main(argv=None):
         if not args.commit and not args.web_dir:
             parser.error("--web-dir is required for --plan/--prepare (source selection is independent of app VERSION)")
         if args.plan:
+            path = new_state_path(ROOT, args.version, args.batch)
             plan = plan_release(ROOT, args.version, args.web_dir, products)
             print(f"App version: {plan['version']}; source Web collection: {plan['webVersion']}")
+            print(f"Release output: {path.parent}")
             for product in plan["products"]:
                 print(f"{product['repo']}: {product['metadata']['version']} → {args.version}; {Path(product['source']).name}")
         elif args.prepare:
@@ -526,15 +545,17 @@ def main(argv=None):
             if missing:
                 raise ReleaseError("Missing local build tools: " + ", ".join(missing))
             # Preflight before asking for local credentials.
+            path = new_state_path(ROOT, args.version, args.batch)
             plan_release(ROOT, args.version, args.web_dir, products)
             if not os.environ.get("APPLE_PASSWORD") and not sys.stdin.isatty():
                 raise ReleaseError("Set APPLE_PASSWORD locally, or run interactively for hidden password entry.")
             password = os.environ.get("APPLE_PASSWORD") or getpass.getpass("APPLE_PASSWORD (local notarization only): ")
-            prepare_release(ROOT, args.version, args.web_dir, products, password=password)
-            print(f"Built and verified. Review {state_path(ROOT, args.version).parent}")
-            print(f"Then: sh scripts/release_tauri_all.sh --commit {args.version}")
+            prepare_release(ROOT, args.version, args.web_dir, products, password=password, batch=args.batch)
+            print(f"Built and verified. Review {path.parent}")
+            batch_arg = f" --batch {args.batch}" if args.batch else ""
+            print(f"Then: sh scripts/release_tauri_all.sh --commit {args.version}{batch_arg}")
         else:
-            commit_release(ROOT, args.version, products)
+            commit_release(ROOT, args.version, products, batch=args.batch)
             print(f"Created local commits/tags v{args.version}. No push or GitHub publication performed.")
         return 0
     except (ReleaseError, OSError, ValueError, KeyError) as error:

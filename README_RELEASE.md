@@ -4,26 +4,28 @@
 
 ## Web・Tauri・itch.ioをまとめてリリース
 
-`WEB_VERSION`と`APP_VERSION`には、それぞれ今回の未使用の版番号を`X.Y.Z`形式で指定します。
-Web用のリリースノートは`NOTES`に指定します。Webの公開だけなら、最初の2コマンドで進められます。
+`WEB_VERSION`と`APP_VERSION`には、各リポジトリで使う未使用の版番号を`X.Y.Z`形式で指定します。
+リリースノートのパスは`WEB_NOTES`と`DESKTOP_NOTES`に指定します。Webの公開だけなら、最初の2コマンドで進められます。
 Webビルドの前に`npm ci`で依存を揃えます。Nitro DSのビルドにはEmscriptenと、検証済みのSkyEmuソースキャッシュまたは取得用のネットワーク接続が必要です。
 
 ```sh
 python3 scripts/release_distribution.py prepare-web "$WEB_VERSION"
-python3 scripts/release_distribution.py github-web "$WEB_VERSION" --notes-file "$NOTES" --push --publish
+python3 scripts/release_distribution.py github-web "$WEB_VERSION" --notes-file "$WEB_NOTES" --push --publish
 
 sh scripts/release_tauri_all.sh --prepare "$APP_VERSION" --web-dir "release/itch_all_$WEB_VERSION"
 sh scripts/release_tauri_all.sh --commit "$APP_VERSION"
 python3 scripts/release_distribution.py desktop-ci "$APP_VERSION" --push
+python3 scripts/release_distribution.py github-desktop "$APP_VERSION" --notes-file "$DESKTOP_NOTES" --publish
 
-python3 scripts/release_distribution.py itch "$WEB_VERSION" --desktop-version "$APP_VERSION"
-python3 scripts/release_distribution.py itch "$WEB_VERSION" --desktop-version "$APP_VERSION" --publish
+python3 scripts/release_distribution.py itch "$WEB_VERSION" --publish
+python3 scripts/release_distribution.py itch-desktop "$APP_VERSION" --publish
 ```
 
 - `prepare-web`はコミットを記録し、同じソースから通常版とブラウザー版を作ります。GitHub ReleaseにはAnalyzerを含む15製品の通常ZIP、Playgroundの実行用ZIP、`SHA256SUMS`を添付します。`github-web`から`--publish`を省くとドラフトを作成できます。公開前に対象タグの3つのActionsと、添付ファイルのサイズ・SHA-256を確認します。
-- `desktop-ci`は各アプリのタグを送信し、タグとコミットの両方が一致するActionsからWindows x64のNSIS、Linux x64／ARM64のDEBとAppImageを取得します。GitHub側のビルド設定は各Tauriリポジトリで管理します。itchには手元で署名と公証を確認したMac版を使います。
+- `desktop-ci`は各アプリのタグを送信し、タグとコミットの両方が一致するActionsからWindows x64のNSIS、Linux x64／ARM64のDEBとAppImageを取得します。`github-desktop`は手元で署名と公証を確認したMac版をまとめ、各TauriリポジトリのReleaseに添付します。
 - `itch`は最初に対象ファイルとアップロード先を表示します。`--publish`を付けると、`~/bin/butler`でブラウザー版を`html`、改造用ZIPを`source`、各インストーラーをOS・CPU別のチャンネルへ送ります。`source`には元のZIPと`SHA256SUMS`を含めます。新しい`html`チャンネルを初めて公開したときは、itch.ioの編集画面でブラウザー実行用の設定を行います。[Butlerの公式手順](https://itch.io/docs/butler/pushing.html#html-playable-in-browser-games)
-- 認証には手元の`gh`と`butler`を使います。ステップを再実行すると、Web ZIP、GitHubの添付、回収済みのCI成果物、記録済みのitchアップロードを照合して再利用します。`--products`で対象を絞れます。Web版だけをitchへ送る場合は`--desktop-version`を省きます。
+- `itch-desktop`は各Tauriリポジトリの公開済みGitHub Releaseからインストーラーを取得し、SHA-256を照合してitch.ioへ送ります。どちらのitchコマンドも`--publish`を省くと送信先の確認だけを行います。`--products`で対象を絞れます。
+- 認証には手元の`gh`と`butler`を使います。ステップを再実行すると、Web ZIP、GitHubの添付、回収済みのCI成果物、記録済みのitchアップロードを照合して再利用します。手元のWeb版とTauri版をまとめて配布する場合は`itch --desktop-version`も使えます。
 
 ## itch.io向けを共通の版番号で一括作成
 
@@ -136,23 +138,32 @@ commit／tagの途中で止まった場合は、進行記録を使って同じ`-
 対象は2A03、ASWAN、DMG、FM2608、FM2612、HuC6280、Nitro DS、S-DSP、SID、SMS／Game Gear、SPU、
 ST YM2149のSynth、VGM Analyzer、Playgroundです。SCSPはWeb版を配布します。
 `--products nitro-ds,playground`のように絞り込めます。`--commit`は保存済みの選択を使います。
+同じアプリ版で製品を数回に分ける場合は、`--batch`で保存先を指定します。
+たとえば`--batch next-synths`を付けると、`release/tauri_VERSION_next-synths/`に計画と成果物を保存します。
+`--prepare`から`github-desktop`までは同じ`--batch`を指定します。
 
-### FM2612 Synthのデスクトップ版をGitHubで公開
+### 選んだTauri版をGitHubとitch.ioで公開
 
 `APP_VERSION`に未使用のTauri版番号、`WEB_VERSION`に元のWeb版番号、`NOTES`にリリースノートのパスを指定します。
-FM2612のActionsはタグのビルド結果をArtifactsに保存します。
+次はNitro DSとFM2608を同じ版番号で進める例です。
+各TauriリポジトリのActionsはタグのビルド結果をArtifactsに保存します。
 `github-desktop`はタグとビルド元のコミットを照合し、手元で署名・公証を確認したMacのDMG 2本、
-Windows x64のインストーラー1本、Linux x64／ARM64のDEBとAppImage 4本を同じGitHub Releaseにまとめます。
+Windows x64のインストーラー1本、Linux x64／ARM64のDEBとAppImage 4本を製品ごとのGitHub Releaseにまとめます。
 
 ```sh
-sh scripts/release_tauri_all.sh --prepare "$APP_VERSION" --web-dir "release/itch_all_$WEB_VERSION" --products synth
-sh scripts/release_tauri_all.sh --commit "$APP_VERSION"
-python3 scripts/release_distribution.py desktop-ci "$APP_VERSION" --push
-python3 scripts/release_distribution.py github-desktop "$APP_VERSION" --notes-file "$NOTES" --publish
+sh scripts/release_tauri_all.sh --prepare "$APP_VERSION" \
+  --web-dir "release/itch_all_$WEB_VERSION" --products nitro-ds,fm2608 --batch next-synths
+sh scripts/release_tauri_all.sh --commit "$APP_VERSION" --batch next-synths
+python3 scripts/release_distribution.py desktop-ci "$APP_VERSION" --batch next-synths --push
+python3 scripts/release_distribution.py github-desktop "$APP_VERSION" \
+  --batch next-synths --notes-file "$NOTES" --publish
+python3 scripts/release_distribution.py itch-desktop "$APP_VERSION" --products nitro-ds,fm2608
+python3 scripts/release_distribution.py itch-desktop "$APP_VERSION" --products nitro-ds,fm2608 --publish
 ```
 
-`--publish`を省くとドラフトに添付します。すべてのファイルのSHA-256を照合し、再実行時は添付済みのファイルを再利用します。
-FM2612以外のActionsが作成するGitHubドラフトは、引き続き各リポジトリで管理します。
+`github-desktop`で`--publish`を省くとドラフトに添付します。同じコマンドを再実行すると、添付済みファイルのSHA-256を照合して再利用します。
+準備した製品の一部を公開する場合は、`github-desktop`に`--products`を指定します。
+`itch-desktop`は各製品のGitHub Releaseを参照するため、Macをビルドした端末や`--batch`の指定は不要です。
 
 ## npmパッケージ
 

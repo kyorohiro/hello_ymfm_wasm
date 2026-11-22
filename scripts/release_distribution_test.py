@@ -137,6 +137,7 @@ class ReleaseDistributionTests(unittest.TestCase):
         target.mkdir(parents=True)
         product = {
             "id": "synth", "repo": "tetorica-fm2612-synth-tauri", "tagged": True, "commit": COMMIT,
+            "metadata": {"product": "Tetorica FM2612 Synth"},
             "artifacts": [self.artifact(f"mac/synth_{VERSION}_{arch}.dmg", arch.encode())
                           for arch in ("x86_64", "arm64")],
         }
