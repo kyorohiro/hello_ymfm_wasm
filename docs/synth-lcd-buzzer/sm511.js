@@ -23,6 +23,10 @@ export function sm511Command(note) {
 	return 2 + (12 - midi % 12) % 12 + (midi >= 85 ? 0x10 : 0);
 }
 
+export function sm511CommandLabel(command) {
+	return sm511Label(49 + 0xd - (command & 0xf) + (command & 0x10 ? 12 : 0));
+}
+
 export function validateMelody(commands) {
 	if ((!Array.isArray(commands) && !(commands instanceof Uint8Array)) || !commands.length || commands.length > SM511_ROM_STEPS)
 		throw new RangeError('Provide 1–256 SM511 ROM commands.');
@@ -67,8 +71,7 @@ export function renderSm511Pattern(core, notes, { stepSeconds, gate = 1, sampleR
 	return { samples, boundaries, duration: samples.length / sampleRate };
 }
 
-export function renderSm511NoteCycle(core, note) {
-	const command = sm511Command(note);
+export function renderSm511CommandCycle(core, command) {
 	// The four stored phase lengths span two pulses.
 	const frames = Math.round(2 * MASTER_CLOCK_HZ / core.sm511PitchHz(command));
 	return core.renderSm511Tone(command, frames, MASTER_CLOCK_HZ);

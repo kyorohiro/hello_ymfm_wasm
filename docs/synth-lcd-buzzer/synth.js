@@ -10,7 +10,7 @@ import {
 	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
 	buildSm510Pulse, connectRChannels, createSm510AudioCore, createRVoice, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
-import { SM511_DEMO, renderSm511Melody, renderSm511NoteCycle, renderSm511Pattern, sm511Command, sm511Label } from './sm511.js';
+import { SM511_DEMO, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label } from './sm511.js';
 
 const byId = id => document.getElementById(id);
 const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=sm511-melody', import.meta.url));
@@ -54,10 +54,10 @@ const sm510Play = byId('sm510Play'), sm510Stop = byId('sm510Stop'), sm510Control
 const sm510Preset = byId('sm510Preset'), sm510StepTime = byId('sm510StepTime'), sm510StepValue = byId('sm510StepValue');
 const sm510Gates = Array(GATE_STEP_COUNT).fill(false), sm510Buttons = [];
 const sm511Play = byId('sm511Play'), sm511Stop = byId('sm511Stop'), sm511Status = byId('sm511Status');
-const sm511Pitch = byId('sm511Pitch');
+const sm511Pitch = byId('sm511Pitch'), sm511KeyTracking = byId('sm511KeyTracking');
 const sm511OctaveButtons = [...document.querySelectorAll('[data-rom-octave]')];
 const sm511LengthButtons = [...document.querySelectorAll('[data-rom-length]')];
-let sm511UpperOctave = false, sm511LongNote = false;
+let sm511ManualPitch = 0x02, sm511LongNote = false, heldRomTone, lastRomCommand;
 const noteLabels = new Map(NOTE_OPTIONS.map(({ value, label }) => [value, label]));
 const notes = PATTERNS[0].notes.slice();
 const rows = [];
@@ -75,7 +75,10 @@ const sm511DemoOwner = Symbol('SM511 demo');
 const sm511CodeOwner = Symbol('SM511 Code');
 const transportRelease = .008;
 
-const displayNote = (note, chip = selectedChip) => chip === 'sm511' ? sm511Label(note) : noteLabels.get(note);
+function displayNote(note, chip = selectedChip, tone) {
+	if (chip !== 'sm511') return noteLabels.get(note);
+	return tone?.command === undefined ? sm511Label(note) : sm511CommandLabel(tone.command);
+}
 const mixLevel = chip => mix[chip].mute.checked ? 0 : Number(mix[chip].level.value) / 100;
 const modeFor = chip => chip === 'lcd-buzzer' ? EQUAL_TEMPERAMENT : toneMode;
 const isSequencerVisible = () => !showingExpandedChip && !sequencerPanel.hidden;
@@ -120,15 +123,18 @@ function drawWave() {
 	const showingR = rMode && (rAmplitude || (selectedChip === 'sm510' && !heldChip && !clip && !melodyClip));
 	const rawMode = showingR ? rMode : clip?.r1Mode;
 	const pulse = rawMode ? null : heldPulse;
-	const idlePulse = selectedChip === 'sm510' && !heldChip && !clip && !rawMode && !melodyClip && !isSequencerVisible();
+	const idleInstrument = !heldChip && !clip && !rawMode && !melodyClip && !isSequencerVisible();
+	const idlePulse = idleInstrument && selectedChip === 'sm510';
 	const chip = rawMode ? 'sm510' : heldChip ?? clip?.chip ?? selectedChip;
 	const mode = rawMode ?? (heldChip ? heldToneMode : clip?.toneMode) ?? modeFor(chip);
 	const sm511 = chip === 'sm511';
+	const idleRom = idleInstrument && sm511;
 	const showingMelody = sm511 && melodyClip && heldNote === null && !clip;
 	const target = note === null ? null : noteToHz(note);
+	const romCommand = sm511 && note !== null ? heldRomTone?.command ?? sm511Command(note) : null;
 	const half = !sm511 && mode === DIRECT_R && target && audioCore?.directHalfCycles(target);
 	const sounding = rawMode ? rAmplitude !== 0 : target !== null;
-	const frequency = !idlePulse && !showingMelody && sounding && (sm511 ? audioCore?.sm511PitchHz(sm511Command(note))
+	const frequency = !idlePulse && !idleRom && !showingMelody && sounding && (sm511 ? audioCore?.sm511PitchHz(romCommand)
 		: mode === DK52_R ? R1_HZ : rawMode ? null
 		: mode === EQUAL_TEMPERAMENT ? target : half ? directPitchHz(half) : null);
 	pitch.title = pulse ? '8 ms waveform view' : half && !rawMode ? `${half} machine cycles per half-wave` : '';
@@ -136,13 +142,14 @@ function drawWave() {
 		const rate = formatHz(directPitchHz(pulse.halfCycles));
 		pitch.textContent = mode === DIRECT_R ? `CPU pulse · ${rate} Hz` : `4,096 Hz · ${rate} Hz gate`;
 	} else if (idlePulse) pitch.textContent = 'CPU pulse · Ready';
+	else if (idleRom) pitch.textContent = 'SM511 · Ready';
 	else if (showingMelody) pitch.textContent = 'SM511 · Melody ROM';
 	else if (rawMode === DIRECT_R) {
 		const differentialLevels = ['R2 higher', '0 V', 'R1 higher'];
 		const level = monitor === rMonitorModes[2] ? differentialLevels[rAmplitude + 1] : sounding ? 'High' : 'Low';
 		pitch.textContent = `Direct ${monitor.label} · ${level}`;
 	} else if (frequency && rawMode) pitch.textContent = `SM510 ${monitor.label} · 4,096 Hz`;
-	else if (frequency) pitch.textContent = `${displayNote(note, chip)} · ${frequency.toFixed(2)} Hz`;
+	else if (frequency) pitch.textContent = `${sm511 ? sm511CommandLabel(romCommand) : displayNote(note, chip)} · ${frequency.toFixed(2)} Hz`;
 	else if (!sounding) pitch.textContent = rawMode ? `SM510 ${monitor.label} · Off` : 'Rest · silence';
 	else pitch.textContent = `${displayNote(note, chip)} · ${sm511 ? 'SM511' : 'Direct R'}`;
 	const { width, height } = canvas.getBoundingClientRect();
@@ -173,7 +180,7 @@ function drawWave() {
 		const sampleRate = rawMode ? MASTER_CLOCK_HZ : 48000;
 		const count = pulse ? Math.round(.008 * MASTER_CLOCK_HZ) : rawMode ? 4 * R1_DIVISOR : Math.round(.012 * sampleRate);
 		const pulseSamples = pulse?.buffer.getChannelData(0);
-		const waveform = sm511 ? renderSm511NoteCycle(audioCore, note) : null;
+		const waveform = sm511 ? renderSm511CommandCycle(audioCore, romCommand) : null;
 		const level = frame => {
 			if (pulseSamples) return pulseSamples[frame % pulseSamples.length] * 1.1;
 			const firstHalf = Math.floor(frame * frequency * 2 / sampleRate) % 2 === 0;
@@ -672,29 +679,44 @@ sm510Play.addEventListener('click', () => void start('sm510', { owner: sm510Owne
 sm510Stop.addEventListener('click', () => stopPlayback(sm510Owner));
 sm511Play.addEventListener('click', () => void playMelody(Uint8Array.from(SM511_DEMO), sm511DemoOwner).catch(error => setStatus(error.message)));
 sm511Stop.addEventListener('click', () => stopMelody());
-const romNote = () => 49 + Number(sm511Pitch.value) + (sm511UpperOctave ? 12 : 0);
-const romCommand = () => sm511Command(romNote()) | (sm511LongNote ? 0x20 : 0);
+const trackedRomPitch = () => (heldRomTone?.command ?? lastRomCommand ?? sm511ManualPitch) & 0x1f;
+const selectedRomPitch = () => sm511KeyTracking.checked ? trackedRomPitch() : sm511ManualPitch;
 function refreshRomNote() {
-	const note = sm511Label(romNote());
+	const pitch = selectedRomPitch();
+	const command = pitch | (sm511LongNote ? 0x20 : 0);
+	const note = sm511CommandLabel(command);
+	sm511Pitch.value = 0xd - (pitch & 0xf);
 	byId('sm511PitchValue').value = note;
 	sm511Pitch.setAttribute('aria-valuetext', note);
-	byId('sm511Command').textContent = 'ROM 0x' + romCommand().toString(16).toUpperCase().padStart(2, '0');
+	byId('sm511Command').value = 'ROM 0x' + command.toString(16).toUpperCase().padStart(2, '0');
 	for (const button of sm511OctaveButtons)
-		button.setAttribute('aria-pressed', String((button.dataset.romOctave === '1') === sm511UpperOctave));
+		button.setAttribute('aria-pressed', String((button.dataset.romOctave === '1') === Boolean(pitch & 0x10)));
 	for (const button of sm511LengthButtons)
 		button.setAttribute('aria-pressed', String((button.dataset.romLength === '1') === sm511LongNote));
 }
-sm511Pitch.addEventListener('input', refreshRomNote);
-for (const button of sm511OctaveButtons) button.addEventListener('click', () => {
-	sm511UpperOctave = button.dataset.romOctave === '1';
+function retuneRomNote() {
 	refreshRomNote();
+	void performance.retune('sm511').catch(error => setStatus(error.message));
+}
+function setManualRomPitch(upper) {
+	sm511ManualPitch = sm511Command(49 + sm511Pitch.valueAsNumber + (upper ? 12 : 0));
+	sm511KeyTracking.checked = false;
+	retuneRomNote();
+}
+sm511Pitch.addEventListener('input', () => setManualRomPitch(Boolean(selectedRomPitch() & 0x10)));
+sm511KeyTracking.addEventListener('change', () => {
+	if (!sm511KeyTracking.checked) sm511ManualPitch = trackedRomPitch();
+	retuneRomNote();
+});
+for (const button of sm511OctaveButtons) button.addEventListener('click', () => {
+	setManualRomPitch(button.dataset.romOctave === '1');
 });
 for (const button of sm511LengthButtons) button.addEventListener('click', () => {
-	sm511LongNote = button.dataset.romLength === '1';
-	refreshRomNote();
-});
-byId('sm511Preview').addEventListener('click', () => {
-	void playMelody(Uint8Array.of(romCommand()), sm511DemoOwner).catch(error => setStatus(error.message));
+	const longNote = button.dataset.romLength === '1';
+	if (sm511LongNote === longNote) return;
+	sm511LongNote = longNote;
+	if (heldRomTone?.loop === false) retuneRomNote();
+	else refreshRomNote();
 });
 refreshRomNote();
 
@@ -771,15 +793,17 @@ const performance = setupBuzzerPerformance({
 	getChip: () => selectedChip,
 	onRequestNote: cancelPendingChipWork,
 	getOutput: chip => ({ context: audio, master: mix[chip].output, chip }),
-	async prepareTone(frequency, context, note, chip) {
+	async prepareTone(frequency, context, note, chip, { keyboard }) {
 		if (chip === 'lcd-buzzer') return null;
 		const core = await prepareSm510();
 		const mode = modeFor(chip);
 		if (chip === 'sm511') {
-			const samples = renderSm511NoteCycle(core, note);
+			const pitch = sm511KeyTracking.checked ? sm511Command(note) : sm511ManualPitch;
+			const command = pitch | (sm511LongNote ? 0x20 : 0);
+			const samples = keyboard ? renderSm511Melody(core, [command], MASTER_CLOCK_HZ) : renderSm511CommandCycle(core, command);
 			const buffer = context.createBuffer(1, samples.length, MASTER_CLOCK_HZ);
 			buffer.copyToChannel(samples, 0);
-			return { buffer, toneMode: mode };
+			return { buffer, toneMode: mode, command, loop: !keyboard };
 		}
 		const halfCycles = keyTracking.checked ? core.directHalfCycles(frequency) : manualPulseCycles;
 		const plan = buildSm510Pulse(mode, halfCycles, pulseDrive);
@@ -803,9 +827,12 @@ const performance = setupBuzzerPerformance({
 		heldChip = note === null ? null : chip;
 		heldToneMode = mode;
 		heldPulse = chip === 'sm510' ? tone : null;
+		heldRomTone = chip === 'sm511' ? tone : null;
+		if (heldRomTone) lastRomCommand = heldRomTone.command;
+		refreshRomNote();
 		refreshPulseTiming();
 		drawWave();
-		if (!clip && !pending) status.textContent = note === null ? 'Ready' : `Playing ${displayNote(note, chip)}`;
+		if (!clip && !pending) status.textContent = note === null ? 'Ready' : `Playing ${displayNote(note, chip, tone)}`;
 	},
 	onError: error => setStatus(error.message),
 });

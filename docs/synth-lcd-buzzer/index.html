@@ -87,7 +87,7 @@
 							<output id="sm510PulseDriveValue" for="sm510PulseR1 sm510PulseR2">1× swing</output>
 						</div>
 					</div>
-					<label class="pulse-key-tracking"><input id="sm510KeyTracking" type="checkbox" checked> Key tracking · Software</label>
+					<label class="chip-key-tracking"><input id="sm510KeyTracking" type="checkbox" checked> Key tracking · Software</label>
 					<div class="cpu-pulse-sliders">
 						<label for="sm510PulseCycles">On/off interval <output id="sm510PulseInterval" for="sm510KeyTracking sm510PulseCycles">Key tracking</output></label>
 						<input id="sm510PulseCycles" type="range" min="4" max="63" value="19">
@@ -105,6 +105,7 @@
 				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
 			</div>
 			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
+				<label class="chip-key-tracking"><input id="sm511KeyTracking" type="checkbox" checked> Key tracking · Software</label>
 				<div class="rom-controls">
 					<div class="rom-note">
 						<label for="sm511Pitch">ROM note</label>
@@ -119,18 +120,20 @@
 						<button type="button" data-rom-length="0" aria-pressed="true">62.5 ms</button>
 						<button type="button" data-rom-length="1" aria-pressed="false">125 ms</button>
 					</div>
+					<output id="sm511Command" for="sm511KeyTracking sm511Pitch">ROM 0x02</output>
 				</div>
 				<div class="tone-source">
-					<button id="sm511Preview" type="button">Play ROM note</button>
 					<button id="sm511Play" class="primary" type="button">Play melody</button>
 					<button id="sm511Stop" type="button" disabled>Stop melody</button>
-					<code id="sm511Command">ROM 0x02</code>
 					<span id="sm511Status" role="status"></span>
 				</div>
-				<dl class="chip-details">
-					<dt>Hardware ROM</dt><dd>The 256-word ROM stores six-bit commands for pitches, rests and stops. Bit 4 chooses the octave and bit 5 selects 62.5 or 125 ms.</dd>
-					<dt>App playback</dt><dd>Play ROM note auditions the displayed command. Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</dd>
-				</dl>
+				<details class="chip-help">
+					<summary aria-label="SM511 help" title="SM511 help">?</summary>
+					<dl class="chip-details">
+						<dt>Hardware ROM</dt><dd>The 256-word ROM stores six-bit commands for pitches, rests and stops. Bit 4 chooses the octave and bit 5 selects 62.5 or 125 ms.</dd>
+						<dt>App playback</dt><dd>Press a key to play one ROM command. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</dd>
+					</dl>
+				</details>
 			</div>
 			<div id="buzzerLcdPanel" role="tabpanel" aria-labelledby="buzzerLcdTab" hidden>
 				<dl class="chip-details">
@@ -285,7 +288,7 @@ await sm510.playCycles(pulse);</code></pre>
 							<p>The direct-output mask sends the latch to R1 and R2. The app picks a whole number of machine cycles per half-wave. Each half-wave fits a ROM page with <code>LAX</code>, <code>ATR</code>, no-ops and a two-cycle <code>TL</code>. The pulse display shows the resulting pitch.</p>
 							<h3>SM511 melody controller</h3>
 							<p>The SM511 has a 256-word melody ROM. The low nibble of each six-bit word selects rest (<code>0x0</code>), stop (<code>0x1</code>) or one of 12 pitches (<code>0x2</code>–<code>0xD</code>). Bit 4 selects the octave and bit 5 selects a 62.5 or 125 ms slot.</p>
-							<p>In the app, <strong>Play ROM note</strong> previews one command and <strong>Play melody</strong> plays an original phrase. Try <strong>Files → examples → sm511-melody.js</strong> to play the same commands from Code.</p>
+							<p>In the app, the keyboard previews one command and <strong>Play melody</strong> plays an original phrase. Try <strong>Files → examples → sm511-melody.js</strong> to play the same commands from Code.</p>
 							<h3>App instrument and output</h3>
 						<dl>
 								<dt>lcd-buzzer</dt><dd>Software square wave in equal temperament from C3 to C6.</dd>

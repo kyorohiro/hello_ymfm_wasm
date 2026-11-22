@@ -36,7 +36,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 		source.stop(silenceAt);
 	}
 
-	function startTone({ midi, frequency, owner, context, master, chip }, tone, previousOutputEnd = 0) {
+	function startTone({ midi, frequency, owner, context, master, chip, keyboard }, tone, previousOutputEnd = 0) {
 		if (!tone && context !== waveContext) {
 			waveform = context.createBuffer(1, PERIOD_FRAMES, context.sampleRate);
 			const samples = waveform.getChannelData(0);
@@ -49,24 +49,31 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 		const start = Math.max(context.currentTime, silenceAt, previousOutputEnd) + (tone?.startup ?? 0);
 		const source = context.createBufferSource(), gain = context.createGain();
 		source.buffer = tone?.buffer ?? waveform;
-		source.loop = true;
+		source.loop = tone?.loop !== false;
 		source.playbackRate.value = tone ? 1 : frequency * PERIOD_FRAMES / context.sampleRate;
 		gain.gain.setValueAtTime(0, start);
 		gain.gain.linearRampToValueAtTime(1, start + ATTACK);
 		source.connect(gain);
 		gain.connect(master);
-		source.onended = () => { source.disconnect(); gain.disconnect(); };
+		const sounding = { source, gain, context, master, chip, start, owner, midi, frequency, keyboard };
+		source.onended = () => {
+			source.disconnect();
+			gain.disconnect();
+			if (active !== sounding) return;
+			active = null;
+			onNoteChange(null);
+		};
 		source.start(start);
-		active = { source, gain, context, master, chip, start, owner, midi, frequency };
+		active = sounding;
 		onNoteChange(midi, chip, tone?.toneMode, tone);
 	}
 
-	async function noteOn(note, owner) {
+	async function noteOn(note, owner, { keyboard = false } = {}) {
 		const midi = buzzerMidi(note), frequency = noteToHz(midi);
 		if (owner == null) throw new TypeError('A buzzer note needs an owner.');
 		if (disposed) return false;
 		retuneRequest++;
-		const token = { owner, chip: getChip?.() };
+		const token = { owner, chip: getChip?.(), keyboard };
 		pending = token;
 		try {
 			onRequestNote?.(token.chip);
@@ -74,12 +81,12 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 			if (pending !== token || disposed) return false;
 			const output = getOutput(token.chip);
 			const { context, chip } = output;
-			const tone = prepareTone ? await prepareTone(frequency, context, midi, chip) : null;
+			const tone = prepareTone ? await prepareTone(frequency, context, midi, chip, { keyboard: token.keyboard }) : null;
 			if (pending !== token || disposed) return false;
 			const previousOutputEnd = onBeforeNote(chip) ?? 0;
 			// The host retires the sequencer before this gate takes ownership.
 			if (pending !== token || disposed) return false;
-			startTone({ ...output, midi, frequency, owner }, tone, previousOutputEnd);
+			startTone({ ...output, midi, frequency, owner, keyboard: token.keyboard }, tone, previousOutputEnd);
 			return true;
 		} catch (error) {
 			if (pending === token && !disposed) throw error;
@@ -97,7 +104,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 		const isCurrent = () => request === retuneRequest && active === previous && !pending && !disposed && selected();
 		let tone;
 		try {
-			tone = await prepareTone(previous.frequency, previous.context, previous.midi, previous.chip);
+			tone = await prepareTone(previous.frequency, previous.context, previous.midi, previous.chip, { keyboard: previous.keyboard });
 		} catch (error) {
 			if (isCurrent()) throw error;
 			return false;
@@ -145,7 +152,7 @@ export function setupBuzzerPerformance({
 	const voice = createBuzzerVoice({
 		ensureAudio, getOutput, prepareTone, getChip, onRequestNote, onBeforeNote,
 		onNoteChange(note, chip, toneMode, tone) {
-			status.textContent = note === null ? KEYBOARD_HINT : `Playing ${displayNote(note, chip)}`;
+			status.textContent = note === null ? KEYBOARD_HINT : `Playing ${displayNote(note, chip, tone)}`;
 			onNoteChange(note, chip, toneMode, tone);
 		},
 	});
@@ -163,7 +170,7 @@ export function setupBuzzerPerformance({
 
 	async function sound(input) {
 		try {
-			await voice.noteOn(input.entry.midi, input.owner);
+			await voice.noteOn(input.entry.midi, input.owner, { keyboard: true });
 		} catch (error) {
 			held.delete(input.id);
 			showHeld();
@@ -183,10 +190,11 @@ export function setupBuzzerPerformance({
 		const input = held.get(id);
 		if (!input) return;
 		held.delete(id);
+		const wasPlaying = !voice.isIdle();
 		voice.noteOff(input.owner);
 		showHeld();
 		const previous = [...held.values()].at(-1);
-		if (previous && voice.isIdle()) void sound(previous);
+		if (previous && wasPlaying && voice.isIdle()) void sound(previous);
 	}
 
 	function stopKeyboard() {

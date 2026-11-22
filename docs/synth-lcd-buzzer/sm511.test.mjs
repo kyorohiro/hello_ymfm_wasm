@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { buzzerCodeDeclarations } from './code.js';
 import { createSm510AudioCore, MASTER_CLOCK_HZ } from './sm510.js';
-import { renderSm511Melody, renderSm511NoteCycle, renderSm511Pattern, sm511Command, sm511Label, validateMelody } from './sm511.js';
+import { renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label, validateMelody } from './sm511.js';
 
 const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
 const core = createSm510AudioCore(instance.exports);
@@ -12,7 +12,11 @@ test('SM511 maps legacy note values to the two real ROM octaves', () => {
 	assert.deepEqual([48, 49, 60, 61, 72, 84].map(sm511Label), ['C6', 'C♯5', 'C6', 'C♯6', 'C7', 'C7']);
 	assert.deepEqual(Array.from({ length: 24 }, (_, index) => sm511Command(49 + index)),
 		[13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18]);
-	const loop = renderSm511NoteCycle(core, 60);
+	for (let midi = 49; midi <= 72; midi++) {
+		const command = sm511Command(midi);
+		assert.equal(sm511CommandLabel(command | 0x20), sm511Label(midi));
+	}
+	const loop = renderSm511CommandCycle(core, 0x02);
 	assert.equal(loop.length, 62);
 	assert.deepEqual([...loop], Array.from({ length: 62 }, (_, i) => i >= 14 && i < 30 || i >= 46 ? Math.fround(.16) : 0));
 	assert.equal(core.sm511PitchHz(0x12), 2 * MASTER_CLOCK_HZ / 31);

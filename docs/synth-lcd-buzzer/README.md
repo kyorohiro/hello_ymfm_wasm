@@ -35,14 +35,17 @@ renders the controller's output in WASM built from the same C++ source as
 the native core.
 [Sharp Microcomputers Data Book, SM511/SM512 p. 166](https://ftpmirror.your.org/pub/misc/bitsavers/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
 
-Open **SM511** and use **Play melody** and **Stop melody** to audition the
-included original tune. Use **ROM note**, **Lower octave** or **Upper octave**,
-and **62.5 ms** or **125 ms** to assemble one command for **Play ROM note**.
-The hex value shown beside the buttons is the command to use in Code.
-SM511 performance maps the
-existing MIDI keys and steps two octaves up and folds them into C♯5–C7.
-For example, C4 sounds as C6. SM511 sequence playback rounds note and rest
-boundaries to 62.5 ms ticks and packs them into 62.5 ms or 125 ms commands.
+With **SM511** selected, press an on-screen pad or computer key to play one
+ROM note for **62.5 ms** or **125 ms**. Releasing the key can stop it early.
+**Key tracking · Software** maps each key two octaves up and folds it into
+C♯5–C7. For example, C4 sounds as C6. Moving **ROM note** or choosing an
+octave switches to one fixed ROM pitch for every key. Check **Key tracking**
+again to follow the keys. The hexadecimal readout shows the command that
+can be used from Code. **Play melody** auditions the included original tune.
+
+Step Sequencer applies the same MIDI-to-ROM pitch mapping and rounds note
+and rest boundaries to 62.5 ms ticks. The app's `lcd-buzzer.noteOn()` follows
+the pitch controls for SM511 and holds the tone until `noteOff()`.
 
 ### SM511 from Code
 

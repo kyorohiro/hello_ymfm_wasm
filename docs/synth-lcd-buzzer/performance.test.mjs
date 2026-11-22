@@ -15,7 +15,8 @@ function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 		},
 		createBufferSource() {
 			const source = {
-				playbackRate: {}, connect() {}, disconnect() {},
+				playbackRate: {}, connect() {},
+				disconnect() { source.disconnected = true; },
 				start(time) { source.started = time; },
 				stop(time) { source.stopped = time; },
 			};
@@ -112,6 +113,32 @@ test('the note callback reports the mode and prepared tone', async () => {
 	assert.equal(await voice.noteOn('A4', owner), true);
 	voice.noteOff(owner);
 	assert.deepEqual(sounding, [[69, 'sm510', 'dk52', tone], [null]]);
+});
+
+test('finite keyboard slots end naturally and retiring sources leave the current note active', async () => {
+	const keyboard = Symbol('key'), code = Symbol('code');
+	const contexts = [];
+	const { voice, sources, changes } = fixture(undefined, () => 'sm511', {
+		prepareTone(_frequency, context, _note, _chip, options) {
+			contexts.push(options);
+			return { buffer: context.createBuffer(1, 3000), loop: !options.keyboard };
+		},
+	});
+	assert.equal(await voice.noteOn(60, keyboard, { keyboard: true }), true);
+	assert.equal(sources[0].loop, false);
+	assert.equal(await voice.retune('sm511'), true);
+	assert.equal(sources[1].loop, false);
+	sources[0].onended();
+	assert.equal(sources[0].disconnected, true);
+	assert.equal(voice.getNote(), 60);
+	sources[1].onended();
+	assert.equal(sources[1].disconnected, true);
+	assert.equal(voice.isIdle(), true);
+	voice.noteOff(keyboard);
+	assert.equal(await voice.noteOn(64, code), true);
+	assert.equal(sources[2].loop, true);
+	assert.deepEqual(contexts, [{ keyboard: true }, { keyboard: true }, { keyboard: false }]);
+	assert.deepEqual(changes, [60, 60, null, 64]);
 });
 
 test('retuning replaces the held tone without changing note ownership', async () => {
