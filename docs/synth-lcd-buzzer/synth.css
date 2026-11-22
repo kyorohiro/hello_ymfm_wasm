@@ -42,26 +42,7 @@ nav a:hover { text-decoration: underline; }
 	background: repeating-linear-gradient(90deg, #65594a 0 2px, #c2b39f 3px 6px, #948473 8px 11px);
 	box-shadow: inset 0 2px 2px #33231780;
 }
-.sequencer { padding: 2px 0 0; }
-.section-header, .transport { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.section-header { justify-content: space-between; }
-.section-header h2 { margin: 0; font-size: 1.27rem; letter-spacing: -.025em; }
-.preset { display: flex; align-items: center; gap: 9px; font-size: .82rem; font-weight: 650; }
-.steps { list-style: none; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
-.step {
-	min-width: 0;
-	padding: 6px;
-	border: 1px solid #bda990;
-	border-radius: 10px;
-	background: #e8dac7;
-	box-shadow: inset 0 1px 1px #fffaf0;
-}
-.step button, .step select { width: 100%; }
-.step button { font-family: var(--mono); font-size: .92rem; padding: 0 4px; margin-bottom: 5px; color: #fff8e9; background: #443a2f; border-color: #382c21; }
-.step.is-playing { outline: 2px solid #8c360e; outline-offset: 1px; }
-.step.is-playing button { background: #a54416; }
-.step select { padding: 0 3px; font-family: var(--mono); }
-.step.is-rest select { color: #5e4f42; }
+.transport { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
 button, select {
 	min-height: 37px;
@@ -78,18 +59,11 @@ button:not(:disabled):hover { filter: brightness(.92); }
 button:disabled { opacity: .52; cursor: default; }
 :focus-visible { outline: 2px solid #93400e; outline-offset: 3px; }
 nav a:focus-visible { outline-color: #ffbc86; }
-.settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 17px 0; }
-.settings label { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px; min-width: 0; font-size: .82rem; font-weight: 650; }
-.settings output { font: 700 .77rem var(--mono); }
-.settings input { grid-column: 1 / -1; width: 100%; margin: 0; min-height: 20px; }
 input { accent-color: #9a3c13; }
-.transport { gap: 8px; }
 .transport button { min-width: 75px; }
 .primary { color: #fffaf0; background: #963b14; border-color: #783110; }
-.loop { display: inline-flex; align-items: center; gap: 5px; font-size: .86rem; font-weight: 650; cursor: pointer; }
-.download { margin-left: auto; }
-#status { min-height: 1.25em; margin: 10px 0 0; color: #57463a; font-size: .82rem; }
 
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 [hidden] { display: none !important; }
 .workspace-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
 .workspace-mode { display: flex; gap: 3px; }
@@ -168,6 +142,19 @@ input { accent-color: #9a3c13; }
 .rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
 .rom-controls .tone-source { margin: 0; }
 #sm511Command { font: .82rem var(--mono); align-self: center; }
+.sm511-rom { margin-top: 12px; padding: 10px; border: 1px solid #bba58c; border-radius: 8px; }
+.sm511-rom-heading, .sm511-rom-pages, .sm511-rom-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 9px; }
+.sm511-rom-heading { justify-content: space-between; }
+.sm511-rom-heading h3 { margin: 0; font-size: .98rem; }
+.sm511-rom output { font: .8rem var(--mono); }
+.sm511-rom-pages button { min-height: 30px; min-width: 30px; padding: 0 6px; }
+.sm511-rom-slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 8px 0; }
+.sm511-rom-slot { display: grid; justify-items: start; align-content: center; min-height: 42px; padding: 4px 6px; font-size: .84rem; }
+.sm511-rom-slot span:first-child { font: .7rem var(--mono); }
+.sm511-rom-slot[aria-pressed="true"] { color: #fff8e9; background: #443a2f; border-color: #382c21; }
+.sm511-rom-edit label { display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; }
+.sm511-rom-edit select { min-height: 31px; padding-inline: 6px; }
+.sm511-rom-transport { margin-top: 9px; }
 .rom-note { display: grid; grid-template-columns: 1fr auto; gap: 3px 9px; min-width: 125px; }
 .rom-note input { grid-column: 1 / -1; width: 100%; margin: 0; }
 .mixer-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
@@ -303,7 +290,7 @@ input { accent-color: #9a3c13; }
 .sm510-demo .transport { margin: 0; }
 
 @media (max-width: 680px) {
-	.steps, .sm510-gates { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+	.sm510-gates { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 	.synth-workspace:has(#buzzerFilesPanel:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 440px) {
@@ -317,11 +304,6 @@ input { accent-color: #9a3c13; }
 	#waveform { height: 88px; }
 	.input-tabs button { font-size: .85rem; padding-inline: 8px; }
 	#buzzerChipTabs button { font-size: .8rem; padding-inline: 3px; }
-	.steps { gap: 6px; }
-	.step select { font-size: .82rem; }
-	.settings { gap: 9px; }
-	.settings label { grid-template-columns: 1fr; }
-	.settings input { grid-column: 1; }
 	.buzzer-files, .performance { padding: 12px 8px; }
 	.key-row { gap: 2px; }
 	.key { min-height: 38px; }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { validateBuzzerPattern } from './buzzer.js';
 import { BUZZER_EXAMPLES } from './code_examples.js';
+import { SM511_DEMO, validateMelody } from './sm511.js';
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
 import { isCheckpointPath, transferVirtualFiles } from '../js/tetorica_virtual_files/filesystem.js';
 import { dirname, normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
@@ -28,6 +29,10 @@ const joinPath = (directory, name) => (directory === '/' ? '' : directory) + '/'
 
 function patternText(value) {
 	return JSON.stringify(validateBuzzerPattern(value), null, 2) + '\n';
+}
+
+function melodyCommands(commands = SM511_DEMO) {
+	return Array.from(validateMelody(commands));
 }
 
 function userPath(value) {
@@ -99,7 +104,7 @@ function validateProjectSnapshot(snapshot) {
 	return {
 		format: WORKSPACE_FORMAT, version: 1, workspace: workspace.snapshot(), moves, selected, activePattern,
 		codeState: { mode: codeMode, path: codePath }, pattern: validateBuzzerPattern(snapshot.pattern),
-		filesVisible: Boolean(snapshot.filesVisible),
+		melody: melodyCommands(snapshot.melody), filesVisible: Boolean(snapshot.filesVisible),
 	};
 }
 
@@ -173,12 +178,16 @@ export async function decodeBuzzerCassette(bytes) {
 	});
 }
 
-export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, applyPattern, stopPerformance, getStarterCode }) {
+export function setupBuzzerWorkspace({
+	document: doc, setStatus, getPattern, applyPattern, stopPerformance, getStarterCode,
+	getMelody = () => SM511_DEMO, applyMelody = () => {},
+}) {
 	const win = doc.defaultView;
 	const byId = id => doc.getElementById(id);
 	const panel = byId('buzzerFilesPanel');
 	const toggle = byId('buzzerFilesToggle');
 	const defaultPattern = validateBuzzerPattern(getPattern());
+	const defaultMelody = melodyCommands(getMelody());
 	const starterFiles = () => [
 		{ path: '/index.js', data: getStarterCode() },
 		{ path: PATTERN_PATH, data: patternText(defaultPattern) },
@@ -376,7 +385,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 			format: WORKSPACE_FORMAT, version: 1, id: identity, workspace: workspace.snapshot(),
 			moves: [...moves], activePattern, selected: selected === '/' ? null : selected, pattern: validateBuzzerPattern(getPattern()),
 			codeState: { mode: editor.mode, path: fs.get(editor.path ?? '/')?.type === 'text' ? editor.path : null },
-			filesVisible: !panel.hidden,
+			melody: melodyCommands(getMelody()), filesVisible: !panel.hidden,
 		};
 	}
 
@@ -668,6 +677,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 			for (const [from, to] of state.moves) moves.set(from, to);
 			setVisible(state.filesVisible);
 			syncPattern(state.pattern);
+			applyMelody(state.melody.slice());
 		} finally {
 			restoring = false;
 			render();
@@ -698,7 +708,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 			const previous = snapshot();
 			const state = validateProjectSnapshot({
 				...previous, workspace: fresh.snapshot(), activePattern: PATTERN_PATH, selected: '/index.js',
-				codeState: { mode: 'keyboard', path: '/index.js' }, pattern: defaultPattern, moves: [],
+				codeState: { mode: 'keyboard', path: '/index.js' }, pattern: defaultPattern, melody: defaultMelody, moves: [],
 			});
 			if (exportCurrent) downloadCassette();
 			if (await replaceProject(state)) {
@@ -903,5 +913,5 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 		recoverCodeState(path) { this.codeEdited(path); schedulePersist(); },
 	};
 	render();
-	return { project, files, ready, setCodeControls, patternChanged };
+	return { project, files, ready, setCodeControls, patternChanged, melodyChanged: schedulePersist };
 }

@@ -43,6 +43,17 @@ test('repeating the SM511 waveform matches adjacent identical ROM commands', () 
 	}
 });
 
+test('a full SM511 ROM can play its last address without a trailing Stop', () => {
+	const rom = new Uint8Array(256);
+	rom[0xff] = 0x22;
+	const framesBeforeLast = 255 * 2048;
+	const samples = renderSm511Melody(core, validateMelody(rom), MASTER_CLOCK_HZ);
+	assert.equal(samples.length, framesBeforeLast + 4096);
+	assert(samples.subarray(0, framesBeforeLast).every(sample => sample === 0));
+	assert(samples.subarray(framesBeforeLast).some(sample => sample > 0));
+	assert.deepEqual(samples.subarray(framesBeforeLast), renderSm511Melody(core, rom.subarray(0xff), MASTER_CLOCK_HZ));
+});
+
 test('SM511 pattern timing keeps each quantized step and gives short notes one ROM command', () => {
 	const { samples, boundaries } = renderSm511Pattern(core, [60, null, 61], {
 		stepSeconds: .125, gate: .1, sampleRate: MASTER_CLOCK_HZ,

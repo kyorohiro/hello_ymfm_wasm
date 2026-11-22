@@ -3,14 +3,9 @@
 Tetorica SM510 Synth combines the Sharp SM510 buzzer, SM511 melody voice,
 and an equal-tempered square wave. Use the upper **SM510**, **SM511**,
 **lcd-buzzer**, and **Mixer** tabs to choose a voice or adjust the mix.
-Use the lower **Keyboard**, **Code**, and **Step Sequencer**
-tabs to perform and edit. The selected chip supplies the Keyboard, computer
-keys, step previews, Step Sequencer, WAV export, and the `lcd-buzzer` Code
-client. Cassette and pattern files store the MIDI notes and rests.
-
-- Choose an original pattern or enter a note or **Rest** in each of the eight steps. Click a step number to audition its note.
-- Set the tempo, note length and volume. Each step represents an eighth note. Editing a note, tempo or note length during playback starts the updated pattern from step one.
-- Use **Play**, **Stop** and **Loop** to listen. **Export WAV** saves one pass through the sequence as 48 kHz mono PCM16 using the selected chip's mixer level, mute state, and Master.
+Use **Keyboard** and **Code** to perform and edit. The selected chip supplies
+the keyboard and the `lcd-buzzer` Code client. Use **SM511 → Melody ROM** to
+edit and play the chip's 256 melody commands.
 
 ## SM510 tone source
 
@@ -30,9 +25,10 @@ from C3 to C6, with A4 at 440 Hz. It has its own level and mute in **Mixer**.
 The SM511 uses a dedicated melody controller with a 256-step ROM and six bits
 per step. The stored commands describe notes, rests, and stops. The controller
 generates 12 chromatic pitches in either of two octaves from the 32.768 kHz
-clock, with timing units of 62.5 ms or 125 ms. The browser's SM511 voice
-renders the controller's output in WASM built from the same C++ source as
-the native core.
+clock, with timing units of 62.5 ms or 125 ms. SM512 shares this melody
+controller and expands the LCD segment map. The browser's SM511 voice
+renders the controller's output in WASM built from the same C++ source as the
+native core.
 [Sharp Microcomputers Data Book, SM511/SM512 p. 166](https://ftpmirror.your.org/pub/misc/bitsavers/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
 
 With **SM511** selected, press an on-screen pad or computer key to play one
@@ -43,11 +39,20 @@ the key is held. The waveform continues across the repeated slots.
 C♯5–C7. For example, C4 sounds as C6. Moving **ROM note** or choosing an
 octave switches to one fixed ROM pitch for every key. Check **Key tracking**
 again to follow the keys. The hexadecimal readout shows the command that
-can be used from Code. **Play melody** auditions the included original tune.
+can be used from Code. The app's `lcd-buzzer.noteOn()` follows the pitch
+controls for SM511 and holds the tone until `noteOff()`.
 
-Step Sequencer applies the same MIDI-to-ROM pitch mapping and rounds note
-and rest boundaries to 62.5 ms ticks. The app's `lcd-buzzer.noteOn()` follows
-the pitch controls for SM511 and holds the tone until `noteOff()`.
+### Melody ROM editor
+
+Select a ROM address from `0x00` to `0xFF` and choose a note, **Rest**, or
+**Stop**. Notes and rests use **62.5 ms** or **125 ms**. The editor opens with
+the original demo and fills the remaining addresses with Stop commands.
+**Play melody** starts at `0x00`. **Play from** starts at the selected address.
+Playback ends at the first Stop or at the end of the address range.
+
+The edited ROM is saved with the Cassette. Select SM511 and choose
+**Menu → Export → Melody ROM · WAV** to export playback from `0x00` as
+48 kHz mono PCM16 at the current SM511 Mixer and Master levels.
 
 ### SM511 from Code
 
@@ -84,14 +89,13 @@ column. Select a chip tab to show its controls in that column. Select
 **Code** to return to the editor. Code playback continues across these
 views. **Run** starts a session and **Apply** updates it.
 Both controls sit above the Code editor with **Stop Code** and the Code
-status. **Play** and **Stop** sit below the Step Sequencer. Run or
-Apply stops manual sequence playback. Play stops the Code session, including
-a running script that is waiting between notes. Either Stop stops both
-transports. A script can still use `playPattern()` as part of Code playback.
+status. The Melody ROM editor has its own Play and Stop controls. Run or
+Apply stops editor playback, and editor playback stops the Code session.
+Either Stop ends Code and Melody ROM editor playback.
 
 The SM510 and SM511 tabs distinguish each chip’s hardware behavior from app
-controls. The ROM preview, Keyboard, Code, and Step Sequencer belong to the
-app. The lcd-buzzer comparison voice and Mixer levels also run in software.
+controls. The Melody ROM editor, Keyboard, Code, and Mixer belong to the app.
+The lcd-buzzer comparison voice also runs in software.
 
 ```js
 const buzzer = await useSoundChip('lcd-buzzer');
@@ -104,9 +108,9 @@ buzzer.configure({ bpm: 144, gate: 0.4 });
 await buzzer.playPattern({ loop: false });
 ```
 
-Existing `useSoundChip('lcd-buzzer')` scripts use the note and pattern
-performance API. Use `setStep(0, 'C4')` to change the first step and `null`
-for a rest. Notes accept a name or integer MIDI value from C3 through C6.
+Existing `useSoundChip('lcd-buzzer')` scripts can load and play eight-step
+patterns. Use `setStep(0, 'C4')` to change the first step and `null` for a
+rest. Notes accept a name or integer MIDI value from C3 through C6.
 `configure()` accepts tempo (`bpm`), note length (`gate`), `volume`, and
 `loop`. Gate and volume use fractions.
 
@@ -229,9 +233,9 @@ pitch and melody rendering.
 ## Files and Menu
 
 The **Files** button sits next to **Menu** in both views. Use it to open or
-close the file panel. `/index.js` contains the starter Code
-and `/pattern.json` holds the active sequence. Select a saved pattern to load
-it into the sequencer. **＋ Pattern** keeps a named copy alongside Code and
+close the file panel. `/index.js` contains the starter Code,
+and `/pattern.json` holds the active eight-step pattern for Code playback.
+Select a saved pattern to make it active. **＋ Pattern** keeps a named copy alongside Code and
 other project files. Use **＋ JS** to create a script. Right-click a file or
 folder for Duplicate, Rename, and Delete, or to create a file or folder in
 that part of the tree. **Sound chip** opens the hardware guide.

@@ -125,16 +125,34 @@
 					</div>
 					<output id="sm511Command" for="sm511KeyTracking sm511Pitch">ROM 0x02</output>
 				</div>
-				<div class="tone-source">
-					<button id="sm511Play" class="primary" type="button">Play melody</button>
-					<button id="sm511Stop" type="button" disabled>Stop melody</button>
-					<span id="sm511Status" role="status"></span>
-				</div>
+				<section class="sm511-rom" aria-labelledby="sm511RomHeading">
+					<div class="sm511-rom-heading">
+						<h3 id="sm511RomHeading">Melody ROM</h3>
+						<div class="sm511-rom-pages" role="group" aria-label="ROM address pages">
+							<button id="sm511RomPrev" type="button" aria-label="Previous ROM page">‹</button>
+							<output id="sm511RomPage" aria-label="ROM address range">0x00–0x0F</output>
+							<button id="sm511RomNext" type="button" aria-label="Next ROM page">›</button>
+						</div>
+					</div>
+					<div id="sm511RomSlots" class="sm511-rom-slots" role="group" aria-label="ROM addresses"></div>
+					<div class="sm511-rom-edit">
+						<output id="sm511RomAddress" aria-label="Selected ROM address">0x00</output>
+						<label>Command <select id="sm511RomPitch"></select></label>
+						<label>Length <select id="sm511RomLength"><option value="0">62.5 ms</option><option value="32">125 ms</option></select></label>
+						<output id="sm511RomWord" aria-label="ROM command byte">0x0D</output>
+					</div>
+					<div class="transport sm511-rom-transport">
+						<button id="sm511Play" class="primary" type="button">Play melody</button>
+						<button id="sm511PlayFrom" type="button">Play from 0x00</button>
+						<button id="sm511Stop" type="button" disabled>Stop melody</button>
+						<span id="sm511Status" role="status"></span>
+					</div>
+				</section>
 				<details class="chip-help">
 					<summary aria-label="SM511 help" title="SM511 help">?</summary>
 					<dl class="chip-details">
 						<dt>Hardware ROM</dt><dd>The 256-word ROM stores six-bit commands for pitches, rests and stops. Bit 4 chooses the octave and bit 5 selects 62.5 or 125 ms.</dd>
-						<dt>App playback</dt><dd>Press a key to play one ROM command. Repeat continues the same note until you release the key. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</dd>
+						<dt>App playback</dt><dd>Press a key to play one ROM command. Repeat continues the same note until you release the key. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. The ROM editor plays from the chosen address to the first Stop or the end of the ROM.</dd>
 					</dl>
 				</details>
 			</div>
@@ -174,7 +192,6 @@
 						<div id="buzzerInputTabs" class="input-tabs" role="tablist" aria-label="Performance input">
 							<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
 							<button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
-							<button id="buzzerStepSequencerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerStepSequencerPanel" tabindex="-1">Step Sequencer</button>
 						</div>
 						<button id="synthCodeExpandButton" type="button" aria-label="Maximize Code" aria-pressed="false" aria-controls="synthExpandedCodeSlot" hidden><span id="synthCodeExpandIcon" aria-hidden="true"></span></button>
 					</div>
@@ -198,7 +215,7 @@
 						<div class="code-transport" data-code-transport="panel">
 							<button id="synthCodeRunButton" type="button" class="primary">Run</button>
 							<button id="synthCodeApplyButton" type="button" disabled>Apply</button>
-							<button id="synthCodeStopButton" type="button" title="Stop Code and Step Sequencer" disabled>Stop Code</button>
+							<button id="synthCodeStopButton" type="button" title="Stop Code and Melody ROM" disabled>Stop Code</button>
 							<span id="synthCodeState" role="status">Idle</span>
 						</div>
 						<div class="code-editors">
@@ -208,30 +225,6 @@
 						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> to play the selected chip, <code>sm510</code> and <code>sm510-direct</code> for R writes, or <code>sm511</code> for melody ROM commands.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
 						<pre id="synthCodeLog" class="code-log" aria-label="Code output"></pre>
-					</div>
-					<div id="buzzerStepSequencerPanel" role="tabpanel" aria-labelledby="buzzerStepSequencerTab" hidden>
-						<section class="sequencer" aria-labelledby="sequencer-title">
-							<div class="section-header">
-								<h2 id="sequencer-title">Step sequencer</h2>
-								<label class="preset">Pattern <select id="preset"></select></label>
-							</div>
-							<ol class="steps" id="steps"></ol>
-							<div class="settings">
-								<label for="tempo">Tempo <output id="tempo-value" for="tempo">120 BPM</output>
-									<input id="tempo" type="range" min="40" max="240" value="120">
-								</label>
-								<label for="gate">Note length <output id="gate-value" for="gate">65%</output>
-									<input id="gate" type="range" min="10" max="100" value="65">
-								</label>
-							</div>
-							<div class="transport">
-								<button id="play" class="primary" type="button">Play</button>
-								<button id="stop" type="button" title="Stop Step Sequencer and Code" disabled>Stop</button>
-								<label class="loop"><input id="loop" type="checkbox" checked> Loop</label>
-								<button id="download" class="download" type="button">Export WAV</button>
-							</div>
-							<p id="status" role="status">Ready</p>
-						</section>
 					</div>
 				</section>
 				<div id="synthExpandedCodeSlot" hidden></div>
@@ -295,7 +288,7 @@ await sm510.playCycles(pulse);</code></pre>
 							<h3>App instrument and output</h3>
 						<dl>
 								<dt>lcd-buzzer</dt><dd>Software square wave in equal temperament from C3 to C6.</dd>
-								<dt>Step Sequencer</dt><dd>Eight eighth-note steps at 40–240 BPM. SM511 playback converts notes and rests to 62.5 or 125 ms ROM commands.</dd>
+								<dt>Melody ROM</dt><dd>Edit the 256 command addresses in the SM511 tab. Playback stops at a Stop command or the end of the ROM.</dd>
 								<dt>Mixer and WAV</dt><dd>Level, mute and Master apply to the finished audio. WAV export renders one pass on the selected voice with its mix settings.</dd>
 						</dl>
 						<h3>Effects to try</h3>
@@ -310,6 +303,7 @@ await sm510.playCycles(pulse);</code></pre>
 				</details>
 			</div>
 		</div>
+		<span id="status" class="visually-hidden" role="status">Ready</span>
 		<p id="workspace-status" class="workspace-status" role="status"></p>
 		<noscript><p>Enable JavaScript to use the sequencer.</p></noscript>
 	</main>
