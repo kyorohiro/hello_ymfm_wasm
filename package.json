@@ -23,7 +23,7 @@
   },
   "scripts": {
     "test:introductions": "node --test docs/introductions/*.test.mjs",
-    "test:lcd-buzzer-synth": "node --test docs/synth-lcd-buzzer/buzzer.test.mjs",
+    "test:lcd-buzzer-synth": "node --test docs/synth-lcd-buzzer/*.test.mjs",
     "psf:batch": "node scripts/check_psf_batch.mjs",
     "test:psf-batch": "node --test scripts/psf_batch_inputs.test.mjs scripts/psf_batch_worker.test.mjs scripts/check_psf_batch.test.mjs",
     "test:psf-capture-loop": "node scripts/check_psf_capture_loop_layout.mjs",

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { NOTE_OPTIONS, PATTERNS, renderNote, renderPattern } from './buzzer.js';
+import { NOTE_OPTIONS, PATTERNS, renderNote, renderPattern, validateBuzzerPattern } from './buzzer.js';
 import { encodeWav } from '../js/wav.js';
+import { BUZZER_STARTER, setupBuzzerCode } from './code.js';
+import { setupBuzzerWorkspace } from './files.js';
+import { setupBuzzerPerformance } from './performance.js';
 
 const byId = id => document.getElementById(id);
 const tempo = byId('tempo'), gate = byId('gate'), volume = byId('volume'), loop = byId('loop');
@@ -11,13 +14,15 @@ const noteLabels = new Map(NOTE_OPTIONS.map(({ value, label }) => [value, label]
 const notes = PATTERNS[0].notes.slice();
 const rows = [];
 let audio, master, clip = null, pending = null, request = 0, frame = 0;
-let inspectedStep = 0, activeStep = -1;
+let inspectedStep = 0, activeStep = -1, heldNote = null;
+let workspace;
+const defaultOwner = Symbol('LCD Buzzer transport');
 
 preset.add(new Option('Custom', 'custom'));
 for (const [index, pattern] of PATTERNS.entries()) preset.add(new Option(pattern.name, String(index)));
 
 function syncTransport() {
-	const playing = clip?.kind === 'pattern' || pending === 'pattern';
+	const playing = clip?.kind === 'pattern' || pending?.kind === 'pattern';
 	play.disabled = playing;
 	stop.disabled = !clip && !pending;
 	loop.disabled = playing;
@@ -26,7 +31,7 @@ function syncTransport() {
 
 function drawWave() {
 	const step = activeStep < 0 ? inspectedStep : activeStep;
-	const note = notes[step];
+	const note = heldNote ?? notes[step];
 	const frequency = note === null ? null : 440 * 2 ** ((note - 69) / 12);
 	pitch.textContent = frequency ? `${noteLabels.get(note)} · ${frequency.toFixed(1)} Hz` : 'Rest · silence';
 	const { width, height } = canvas.getBoundingClientRect();
@@ -104,6 +109,7 @@ function releaseClip() {
 	previous.gain.gain.linearRampToValueAtTime(0, end);
 	previous.source.stop(end);
 	showStep(-1);
+	return end;
 }
 
 async function ensureAudio() {
@@ -122,24 +128,24 @@ const renderSequence = sampleRate => renderPattern(notes, {
 	bpm: Number(tempo.value), gate: Number(gate.value) / 100, sampleRate,
 });
 
-async function start(kind, step = inspectedStep) {
+async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverride) {
 	const token = ++request;
-	pending = kind;
+	pending = { kind, owner, loopOverride };
 	syncTransport();
 	try {
 		await ensureAudio();
-		if (token !== request) return;
+		if (token !== request) return false;
 		const rendered = kind === 'pattern' ? renderSequence(audio.sampleRate) : null;
 		const samples = rendered?.samples ?? renderNote(notes[step], { sampleRate: audio.sampleRate });
 		const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
 		buffer.copyToChannel(samples, 0);
 		const gain = audio.createGain(), source = audio.createBufferSource();
 		source.buffer = buffer;
-		source.loop = kind === 'pattern' && loop.checked;
-		const previous = clip;
-		releaseClip();
-		const time = audio.currentTime + (previous ? .008 : 0);
-		const current = { kind, source, gain, start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames };
+		source.loop = kind === 'pattern' && (loopOverride ?? loop.checked);
+		const heldUntil = heldNote === null ? audio.currentTime : audio.currentTime + .008;
+		performance.stopAll();
+		const time = Math.max(releaseClip() ?? audio.currentTime, heldUntil);
+		const current = { kind, source, gain, owner, loopOverride, start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames };
 		source.connect(gain);
 		gain.connect(master);
 		source.onended = () => {
@@ -163,24 +169,60 @@ async function start(kind, step = inspectedStep) {
 			showStep(step);
 		}
 		syncTransport();
+		return true;
 	} catch (error) {
-		if (token !== request) return;
+		if (token !== request) return false;
 		pending = null;
 		status.textContent = error.message;
 		syncTransport();
+		return false;
 	}
 }
 
-function stopPlayback() {
-	request++;
-	pending = null;
-	releaseClip();
-	status.textContent = 'Stopped';
+function stopPlayback(owner) {
+	if (pending && (owner === undefined || pending.owner === owner)) {
+		request++;
+		pending = null;
+	}
+	const end = clip && (owner === undefined || clip.owner === owner) ? releaseClip() : undefined;
+	if (!clip && !pending && (end !== undefined || owner === undefined)) status.textContent = 'Stopped';
 	syncTransport();
+	return end;
 }
 
 function restartPattern() {
-	if (clip?.kind === 'pattern' || pending === 'pattern') void start('pattern');
+	const current = pending ?? clip;
+	if (current?.kind === 'pattern') void start('pattern', inspectedStep, current.owner, current.loopOverride);
+}
+
+function getPattern() {
+	return {
+		notes: notes.slice(), bpm: Number(tempo.value), gate: Number(gate.value) / 100,
+		volume: Number(volume.value) / 100, loop: loop.checked,
+	};
+}
+
+function applyPattern(value) {
+	const next = validateBuzzerPattern(value);
+	notes.splice(0, notes.length, ...next.notes);
+	tempo.value = String(next.bpm);
+	gate.value = String(Math.round(next.gate * 100));
+	volume.value = String(Math.round(next.volume * 100));
+	loop.checked = next.loop;
+	const builtIn = PATTERNS.findIndex(pattern => pattern.bpm === next.bpm && pattern.notes.every((note, index) => note === notes[index]));
+	preset.value = builtIn < 0 ? 'custom' : String(builtIn);
+	rows.forEach((_, index) => refreshStep(index));
+	refreshControls();
+	master?.gain.setTargetAtTime(Number(volume.value) / 100, audio.currentTime, .008);
+	drawWave();
+	syncTransport();
+}
+
+function updatePattern(settings) {
+	applyPattern({ ...getPattern(), ...settings });
+	workspace?.patternChanged();
+	if ('notes' in settings || 'bpm' in settings || 'gate' in settings || 'loop' in settings) restartPattern();
+	return getPattern();
 }
 
 function refreshControls() {
@@ -212,13 +254,10 @@ for (const [index] of notes.entries()) {
 		void start('preview', index);
 	});
 	select.addEventListener('change', () => {
-		notes[index] = select.value === '' ? null : Number(select.value);
+		const updated = notes.slice();
+		updated[index] = select.value === '' ? null : Number(select.value);
 		inspectedStep = index;
-		preset.value = 'custom';
-		refreshStep(index);
-		drawWave();
-		syncTransport();
-		restartPattern();
+		updatePattern({ notes: updated });
 	});
 	element.append(button, select);
 	byId('steps').append(element);
@@ -228,15 +267,8 @@ for (const [index] of notes.entries()) {
 function loadPattern(index) {
 	const pattern = PATTERNS[index];
 	if (!pattern) return;
-	for (const [step, note] of pattern.notes.entries()) notes[step] = note;
-	tempo.value = String(pattern.bpm);
-	preset.value = String(index);
 	inspectedStep = 0;
-	rows.forEach((_, step) => refreshStep(step));
-	refreshControls();
-	drawWave();
-	syncTransport();
-	restartPattern();
+	updatePattern({ notes: pattern.notes, bpm: pattern.bpm });
 }
 
 preset.addEventListener('change', () => loadPattern(preset.value));
@@ -244,16 +276,18 @@ tempo.addEventListener('input', () => {
 	preset.value = 'custom';
 	refreshControls();
 });
-tempo.addEventListener('change', restartPattern);
+tempo.addEventListener('change', () => { workspace.patternChanged(); restartPattern(); });
 gate.addEventListener('input', refreshControls);
-gate.addEventListener('change', restartPattern);
+gate.addEventListener('change', () => { workspace.patternChanged(); restartPattern(); });
 volume.addEventListener('input', () => {
 	refreshControls();
 	master?.gain.setTargetAtTime(Number(volume.value) / 100, audio.currentTime, .008);
 });
+volume.addEventListener('change', () => workspace.patternChanged());
+loop.addEventListener('change', () => workspace.patternChanged());
 play.addEventListener('click', () => void start('pattern'));
-stop.addEventListener('click', stopPlayback);
-byId('download').addEventListener('click', () => {
+stop.addEventListener('click', () => stopPlayback());
+function exportWav() {
 	const sampleRate = 48000;
 	const { samples } = renderSequence(sampleRate);
 	const bytes = encodeWav({ sampleRate, channels: [samples] }, { gain: Number(volume.value) / 100 });
@@ -264,7 +298,53 @@ byId('download').addEventListener('click', () => {
 	link.click();
 	setTimeout(() => URL.revokeObjectURL(url), 1000);
 	if (!clip && !pending) status.textContent = 'WAV exported';
+	setStatus('WAV exported');
+}
+byId('download').addEventListener('click', exportWav);
+byId('buzzerMenuWav').addEventListener('click', exportWav);
+
+function setStatus(message) { byId('workspace-status').textContent = message; }
+function stopPerformance() { stopPlayback(); performance.stopAll(); }
+const performance = setupBuzzerPerformance({
+	document, ensureAudio,
+	getOutput: () => ({ context: audio, master }),
+	onBeforeNote: () => stopPlayback(),
+	onNoteChange(note) {
+		heldNote = note;
+		drawWave();
+		if (!clip && !pending) status.textContent = note === null ? 'Ready' : `Playing ${noteLabels.get(note)}`;
+	},
+	onError: error => setStatus(error.message),
 });
-window.addEventListener('pagehide', stopPlayback);
+
 new ResizeObserver(drawWave).observe(canvas);
 loadPattern(0);
+workspace = setupBuzzerWorkspace({
+	document, setStatus, getPattern, stopPerformance,
+	applyPattern(pattern) { applyPattern(pattern); restartPattern(); },
+	getStarterCode: () => BUZZER_STARTER,
+});
+const synthButton = byId('synthWorkspaceSynthButton'), codeButton = byId('synthWorkspaceCodeButton');
+const controls = setupBuzzerCode({
+	workspace, performance, ensureAudio, setStatus,
+	now: () => audio?.currentTime ?? 0,
+	sequence: {
+		getPattern, update: updatePattern,
+		play: (owner, override) => start('pattern', inspectedStep, owner, override),
+		stop: stopPlayback,
+	},
+	onExpandedChange(expanded) {
+		document.querySelector('.shell').classList.toggle('is-code-mode', expanded);
+		codeButton.setAttribute('aria-pressed', String(expanded));
+		synthButton.setAttribute('aria-pressed', String(!expanded));
+	},
+});
+codeButton.addEventListener('click', () => void controls.setExpanded(true).catch(error => setStatus(error.message)));
+synthButton.addEventListener('click', async () => {
+	try {
+		await controls.setExpanded(false);
+		await controls.setMode('keyboard', { focusEditor: false });
+		synthButton.focus();
+	} catch (error) { setStatus(error.message); }
+});
+window.addEventListener('pagehide', () => { stopPerformance(); void controls.stop(); });

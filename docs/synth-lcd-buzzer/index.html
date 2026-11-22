@@ -20,7 +20,34 @@
 			</div>
 		</header>
 
-		<div class="instrument">
+		<div class="workspace-toolbar">
+			<details id="synthMenu" class="synth-menu">
+				<summary id="synthMenuButton" aria-expanded="false">Menu</summary>
+				<div class="synth-menu-panel">
+					<section aria-label="New"><strong>New</strong>
+						<button id="buzzerMenuNew" type="button" data-close-synth-menu>Cassette…</button>
+					</section>
+					<section aria-label="Import"><strong>Import</strong>
+						<button id="buzzerMenuImport" type="button" data-close-synth-menu>Cassette · ZIP…</button>
+						<button id="buzzerMenuAddFiles" type="button" data-close-synth-menu>Project files…</button>
+					</section>
+					<section aria-label="Export"><strong>Export</strong>
+						<button id="buzzerMenuExport" type="button" data-close-synth-menu>Cassette · ZIP</button>
+						<button id="buzzerMenuWav" type="button" data-close-synth-menu>Pattern · WAV</button>
+					</section>
+					<section aria-label="Save"><strong>Save</strong>
+						<button id="buzzerMenuSave" type="button" data-close-synth-menu>Save all</button>
+					</section>
+				</div>
+			</details>
+			<button id="buzzerFilesToggle" type="button" aria-controls="buzzerFilesPanel" aria-expanded="false">Files</button>
+			<div class="workspace-mode" role="group" aria-label="Workspace layout">
+				<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="buzzerInstrument">Synth</button>
+				<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot">Code</button>
+			</div>
+		</div>
+
+		<div class="instrument" id="buzzerInstrument">
 			<section class="scope" aria-labelledby="scope-title">
 				<div class="lcd">
 					<header class="scope-header">
@@ -57,6 +84,74 @@
 				<p id="status" role="status">Ready</p>
 			</section>
 		</div>
+		<div id="synthWorkspace" class="synth-workspace">
+			<aside id="buzzerFilesPanel" class="buzzer-files" aria-label="Project files" hidden></aside>
+			<div class="performance">
+				<section id="synthInputSection" aria-label="Performance input">
+					<div class="input-heading">
+						<div class="input-tabs" role="tablist" aria-label="Performance input">
+							<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+							<button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+						</div>
+						<button id="synthCodeExpandButton" type="button" aria-label="Maximize Code" aria-pressed="false" aria-controls="synthExpandedCodeSlot" hidden><span id="synthCodeExpandIcon" aria-hidden="true"></span></button>
+					</div>
+					<div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
+						<div class="keyboard-settings">
+							<div role="group" aria-label="Keyboard octave">
+								<button id="buzzerOctaveDown" type="button" aria-label="Lower octave">−</button>
+								<span>Octave <output id="buzzerOctaveValue">+1</output></span>
+								<button id="buzzerOctaveUp" type="button" aria-label="Raise octave">+</button>
+							</div>
+							<div role="group" aria-label="Starting fret">
+								<button id="buzzerFretDown" type="button" aria-label="Lower starting fret">−</button>
+								<span>Fret <output id="buzzerFretValue">0</output></span>
+								<button id="buzzerFretUp" type="button" aria-label="Raise starting fret">+</button>
+							</div>
+							<span id="buzzerKeyboardStatus">Play the pads or their matching keys</span>
+						</div>
+						<div id="buzzerKeyboard" class="performance-keyboard"></div>
+					</div>
+					<div id="synthCodePanel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+						<div class="code-transport">
+							<button id="synthCodeRunButton" type="button" class="primary">Run</button>
+							<button id="synthCodeApplyButton" type="button" disabled>Apply</button>
+							<button id="synthCodeStopButton" type="button" disabled>Stop Code</button>
+							<span id="synthCodeState" role="status">Idle</span>
+						</div>
+						<div class="code-editors">
+							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
+						</div>
+						<p id="synthCodeEditorNote">Use <code>useSoundChip('lcd-buzzer')</code>. Save before Run or Apply when Auto apply is off.</p>
+						<pre id="synthCodeError" class="code-log" role="alert"></pre>
+						<pre id="synthCodeLog" class="code-log" aria-label="Code output"></pre>
+					</div>
+				</section>
+				<div id="synthExpandedCodeSlot" hidden></div>
+				<details id="buzzerChipGuide" class="chip-guide">
+					<summary>Sound chip</summary>
+					<div class="chip-guide-content">
+						<h3>Game &amp; Watch hardware</h3>
+						<p>In the SM510-family configurations used here as a reference, a digital output drives a mono piezo buzzer. Some boards gate a clock divider. SM511 and SM512 also have a melody controller that plays pitches and lengths from a small ROM.</p>
+						<p>The buzzer carries one square-wave tone at a time. Sound effects come from the timing of pulses, pitch changes and silence.</p>
+						<h3>LCD Buzzer Synth</h3>
+						<dl>
+							<dt>Voice</dt><dd>One square-wave voice, C3–C6. The newest note takes over.</dd>
+							<dt>Sequence</dt><dd>Eight eighth-note steps, 40–240 BPM, with rests and a common note length.</dd>
+							<dt>Software controls</dt><dd>Volume, short fades to reduce clicks, and mono WAV export.</dd>
+						</dl>
+						<h3>Effects to try</h3>
+						<ul>
+							<li><strong>Short beep.</strong> Turn down Note length and leave an empty step after the note.</li>
+							<li><strong>Chirp.</strong> Run up or down through adjacent pitches. Try Staircase.</li>
+							<li><strong>Trill or alarm.</strong> Alternate two pitches over several steps, then add a rest. Loop to repeat it.</li>
+						</ul>
+						<p><a href="https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp">MAME handheld wiring</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm511.cpp">SM511 melody controller</a></p>
+					</div>
+				</details>
+			</div>
+		</div>
+		<p id="workspace-status" class="workspace-status" role="status"></p>
 		<noscript><p>Enable JavaScript to use the sequencer.</p></noscript>
 	</main>
 </body>
