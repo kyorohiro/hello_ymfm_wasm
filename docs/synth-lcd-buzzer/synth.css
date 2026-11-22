@@ -207,9 +207,23 @@ input { accent-color: #9a3c13; }
 .chip-guide dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 9px; margin: 3px 0 9px; }
 .chip-guide dt { font-weight: 700; }
 .chip-guide dd { margin: 0; }
+.sm510-demo { padding: 10px; margin: 8px 0; border: 1px solid #bda990; border-radius: 10px; background: #eee3d0; }
+.sm510-demo .sm510-path { margin: 0 0 5px; font: 700 .79rem/1.5 var(--mono); color: #414627; }
+.sm510-controls { min-width: 0; margin: 0 0 9px; padding: 0; border: 0; }
+.sm510-settings { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; margin-bottom: 8px; }
+.sm510-settings label { display: grid; gap: 3px; font-weight: 650; }
+.sm510-timing { display: grid; gap: 3px; flex: 1; min-width: 135px; grid-template-columns: auto 1fr; align-items: center; }
+.sm510-timing output { justify-self: end; font: .8rem var(--mono); }
+.sm510-timing input { width: 100%; grid-column: 1 / -1; margin: 0; }
+.sm510-gates { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.sm510-gates button { padding: 3px 1px; font: 700 .85rem/1.15 var(--mono); }
+.sm510-gates button span { display: block; font-size: .72rem; font-weight: 400; }
+.sm510-gates button[aria-pressed="true"] { background: #494d30; border-color: #42462c; color: #fff8e9; }
+.sm510-gates button[aria-current="step"] { opacity: 1; outline: 2px solid #9d3d12; outline-offset: 1px; }
+.sm510-demo .transport { margin: 0; }
 
 @media (max-width: 680px) {
-	.steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+	.steps, .sm510-gates { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 	.synth-workspace:has(#buzzerFilesPanel:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 440px) {

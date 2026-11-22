@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#26251e">
-	<title>Tetorica LCD Buzzer Synth</title>
+	<title>Tetorica SM510 Synth</title>
 	<link rel="icon" href="./icon.png" type="image/png">
 	<link rel="stylesheet" href="./synth.css">
 	<script type="module" src="./synth.js"></script>
@@ -15,8 +15,8 @@
 		<header class="hero">
 			<img src="./icon.png" width="82" height="82" alt="">
 			<div>
-				<h1>Tetorica LCD Buzzer Synth</h1>
-				<p>A one-bit instrument for short beeps and jingles.</p>
+				<h1>Tetorica SM510 Synth</h1>
+				<p>Explore the SM510 buzzer and make one-bit beeps and jingles.</p>
 			</div>
 		</header>
 
@@ -131,22 +131,50 @@
 				<details id="buzzerChipGuide" class="chip-guide">
 					<summary>Sound chip</summary>
 					<div class="chip-guide-content">
-						<h3>Game &amp; Watch hardware</h3>
-						<p>In the SM510-family configurations used here as a reference, a digital output drives a mono piezo buzzer. Some boards gate a clock divider. SM511 and SM512 also have a melody controller that plays pitches and lengths from a small ROM.</p>
-						<p>The buzzer carries one square-wave tone at a time. Sound effects come from the timing of pulses, pitch changes and silence.</p>
-						<h3>LCD Buzzer Synth</h3>
+						<h3>SM510 buzzer demo · DK-52</h3>
+						<p>On this Game &amp; Watch board, R1 drives a piezo buzzer with a fixed square carrier at a nominal <strong id="sm510Carrier"></strong>. The game program switches the R1 gate on and off to make short beeps, pauses and bursts. This configuration has no waveform, pitch or timbre selector.</p>
+						<section class="sm510-demo" aria-label="SM510 R1 demo">
+							<p class="sm510-path" id="sm510Path"></p>
+							<p>Choose an example, toggle the numbered gates or change the step time, then play. Try joining two on steps for one longer beep.</p>
+							<fieldset id="sm510Controls" class="sm510-controls" aria-label="R1 gate settings">
+								<div class="sm510-settings">
+									<label>R1 pattern
+										<select id="sm510Preset">
+											<option value="custom">Custom</option>
+											<option value="short">Single beep</option>
+											<option value="double" selected>Double beep</option>
+											<option value="flutter">Rapid beeps</option>
+										</select>
+									</label>
+									<div class="sm510-timing">
+										<label for="sm510StepTime">Step time</label>
+										<output id="sm510StepValue" for="sm510StepTime"></output>
+										<input id="sm510StepTime" type="range" min="20" max="250" step="5">
+									</div>
+								</div>
+								<div id="sm510Gates" class="sm510-gates" role="group" aria-label="R1 gates"></div>
+							</fieldset>
+							<div class="transport">
+								<button id="sm510Play" type="button">Play R1</button>
+								<button id="sm510Stop" type="button" disabled>Stop R1</button>
+							</div>
+						</section>
+						<p>The demo uses MAME’s DK-52 divider and wiring as a reference. Playback uses a band-limited square wave and short edge fades. The physical piezo and enclosure affect how the board sounds.</p>
+						<p>Other SM510 configurations can output R directly from software. SM511 and SM512 have a separate melody controller that plays pitches and lengths from ROM.</p>
+						<h3>Tetorica SM510 Synth</h3>
 						<dl>
-							<dt>Voice</dt><dd>One square-wave voice, C3–C6. The newest note takes over.</dd>
+							<dt>Voice</dt><dd>The sequencer and keyboard use a software-tuned square wave, C3–C6. The newest note takes over.</dd>
 							<dt>Sequence</dt><dd>Eight eighth-note steps, 40–240 BPM, with rests and a common note length.</dd>
 							<dt>Software controls</dt><dd>Volume, short fades to reduce clicks, and mono WAV export.</dd>
 						</dl>
 						<h3>Effects to try</h3>
+						<p>Open a script from <strong>Files → examples</strong> and press <strong>Run</strong> to hear each effect.</p>
 						<ul>
-							<li><strong>Short beep.</strong> Turn down Note length and leave an empty step after the note.</li>
-							<li><strong>Chirp.</strong> Run up or down through adjacent pitches. Try Staircase.</li>
-							<li><strong>Trill or alarm.</strong> Alternate two pitches over several steps, then add a rest. Loop to repeat it.</li>
+							<li><strong>Short beep.</strong> <code>short-beep.js</code> separates two notes with a rest.</li>
+							<li><strong>Chirp.</strong> <code>chirp.js</code> climbs quickly through a series of pitches.</li>
+							<li><strong>Trill or alarm.</strong> <code>trill.js</code> alternates two pitches, pauses, and repeats.</li>
 						</ul>
-						<p><a href="https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp">MAME handheld wiring</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm511.cpp">SM511 melody controller</a></p>
+						<p><a href="https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800">MAME DK-52 board</a> · <a href="https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L352-L401">R1 wiring</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510.cpp#L43-L69">SM510 R outputs</a> · <a href="https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm511.cpp#L76-L131">SM511 melody controller</a></p>
 					</div>
 				</details>
 			</div>

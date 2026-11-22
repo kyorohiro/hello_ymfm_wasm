@@ -43,11 +43,11 @@ declare function useSoundChip(name: 'lcd-buzzer'): Promise<BuzzerCodeChip>;
 declare const pg: BuzzerCodeGlobals;
 `;
 const declarations = source => selectCodeHostDeclarations(source, {
-	globals, customTypes: types, apiName: 'BuzzerCodeGlobals', banner: 'Tetorica LCD Buzzer Synth Code',
+	globals, customTypes: types, apiName: 'BuzzerCodeGlobals', banner: 'Tetorica SM510 Synth Code',
 });
 
 function checkChannel(channel) {
-	if (channel !== 0) throw new RangeError('The LCD Buzzer uses CH1.');
+	if (channel !== 0) throw new RangeError('Tetorica SM510 Synth uses CH1.');
 }
 
 const patternNote = note => note === null ? null : buzzerMidi(note);

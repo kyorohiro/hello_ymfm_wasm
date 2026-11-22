@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { validateBuzzerPattern } from './buzzer.js';
+import { BUZZER_EXAMPLES } from './code_examples.js';
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
 import { isCheckpointPath, transferVirtualFiles } from '../js/tetorica_virtual_files/filesystem.js';
 import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
@@ -46,10 +47,25 @@ function checkSize(entries) {
 		throw Error('Files exceed the 16 MiB Cassette size limit.');
 }
 
+export function installBuzzerExamples(workspace) {
+	const { working, saved } = workspace;
+	if (working.has('/examples') || saved.has('/examples')) throw Error('A file named /examples blocks the examples folder.');
+	const added = BUZZER_EXAMPLES.filter(({ path }) => !exists(working, path) && !exists(saved, path));
+	if (!added.length) return 0;
+	checkSize([...working.list(), ...added]);
+	checkSize([...saved.list(), ...added]);
+	const next = createVirtualFileWorkspace();
+	next.restore(workspace.snapshot());
+	next.working.writeFiles(added);
+	if (!next.autoSave) next.saveMany(added.map(({ path }) => path));
+	workspace.restore(next.snapshot());
+	return added.length;
+}
+
 function validateProjectSnapshot(snapshot) {
 	const workspace = createVirtualFileWorkspace();
 	if (!snapshot || snapshot.format !== WORKSPACE_FORMAT || snapshot.version !== 1)
-		throw Error('Unsupported LCD Buzzer project.');
+		throw Error('Unsupported Tetorica SM510 Synth project.');
 	for (const layer of [snapshot.workspace?.working, snapshot.workspace?.saved]) {
 		if (!Array.isArray(layer?.files) || !Array.isArray(layer?.directories))
 			throw Error('Invalid Cassette file list.');
@@ -114,7 +130,7 @@ export function encodeBuzzerCassette(state) {
 export async function decodeBuzzerCassette(bytes) {
 	const cassette = await loadPlaygroundCassette(bytes);
 	const state = cassette.metadata.lcdBuzzer;
-	if (!state || state.format !== WORKSPACE_FORMAT || state.version !== 1) throw Error('Choose an LCD Buzzer Cassette.');
+	if (!state || state.format !== WORKSPACE_FORMAT || state.version !== 1) throw Error('Choose a Tetorica SM510 Synth Cassette.');
 	if (!Array.isArray(state.textPaths) || !Array.isArray(state.changed) || !Array.isArray(state.deleted) ||
 		!Array.isArray(state.workingDirectories)) throw Error('Invalid Cassette file metadata.');
 	const textPaths = new Set(state.textPaths.map(userPath));
@@ -161,11 +177,12 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	const starterFiles = () => [
 		{ path: '/index.js', data: getStarterCode() },
 		{ path: PATTERN_PATH, data: patternText(defaultPattern) },
+		...BUZZER_EXAMPLES,
 	];
 	const workspace = createVirtualFileWorkspace(starterFiles());
 	const fs = workspace.working, savedFs = workspace.saved;
 	const store = createSynthProjectStore({ name: 'tetorica-lcd-buzzer-synth-project' });
-	const expanded = new Map();
+	const expanded = new Map([['/examples', true]]);
 	const moves = new Map();
 	let code, selected = '/index.js', activePattern = PATTERN_PATH;
 	let codeState = { mode: 'keyboard', path: '/index.js' };
@@ -601,7 +618,15 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	const renameButton = button('buzzerFileRename', 'Rename…', rename);
 	const deleteButton = button('buzzerFileDelete', 'Delete…', remove);
 	const addButton = button('buzzerFileImport', 'Add files…', () => { fileInput.value = ''; fileInput.click(); });
-	actions.append(newButton, patternButton, saveButton, discardButton, renameButton, deleteButton, addButton);
+	const examplesButton = button('buzzerAddExamples', 'Add examples', () => transact(async () => {
+		const count = installBuzzerExamples(workspace);
+		if (count) {
+			expanded.set('/examples', true);
+			await persistCode();
+			setStatus(`Added ${count} example${count === 1 ? '' : 's'} to /examples.`);
+		} else setStatus('The example paths are already in Files.');
+	}));
+	actions.append(newButton, patternButton, saveButton, discardButton, renameButton, deleteButton, addButton, examplesButton);
 
 	function render() {
 		const files = fs.list(), directories = fs.listDirectories().filter(path => path !== '/');
@@ -634,7 +659,7 @@ export function setupBuzzerWorkspace({ document: doc, setStatus, getPattern, app
 	function updateActions() {
 		const selectedExists = exists(fs, selected);
 		const selectionDirty = selected && workspace.isDirty(selected);
-		for (const control of [auto, newButton, patternButton, addButton]) control.disabled = busy;
+		for (const control of [auto, newButton, patternButton, addButton, examplesButton]) control.disabled = busy;
 		for (const id of ['buzzerMenuNew', 'buzzerMenuImport', 'buzzerMenuAddFiles', 'buzzerMenuExport', 'buzzerMenuSave']) {
 			const control = byId(id);
 			if (control) control.disabled = busy;

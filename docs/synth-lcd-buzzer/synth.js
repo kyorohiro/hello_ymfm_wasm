@@ -4,28 +4,37 @@ import { encodeWav } from '../js/wav.js';
 import { BUZZER_STARTER, setupBuzzerCode } from './code.js';
 import { setupBuzzerWorkspace } from './files.js';
 import { setupBuzzerPerformance } from './performance.js';
+import { GATE_PRESETS, GATE_STEP_COUNT, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ, renderR1Pattern } from './sm510.js';
 
 const byId = id => document.getElementById(id);
 const tempo = byId('tempo'), gate = byId('gate'), volume = byId('volume'), loop = byId('loop');
 const preset = byId('preset'), play = byId('play'), stop = byId('stop'), status = byId('status');
 const canvas = byId('waveform'), drawing = canvas.getContext('2d');
 const pitch = byId('pitch');
+const sm510Play = byId('sm510Play'), sm510Stop = byId('sm510Stop'), sm510Controls = byId('sm510Controls');
+const sm510Preset = byId('sm510Preset'), sm510StepTime = byId('sm510StepTime'), sm510StepValue = byId('sm510StepValue');
+const sm510Gates = Array(GATE_STEP_COUNT).fill(false), sm510Buttons = [];
 const noteLabels = new Map(NOTE_OPTIONS.map(({ value, label }) => [value, label]));
 const notes = PATTERNS[0].notes.slice();
 const rows = [];
 let audio, master, clip = null, pending = null, request = 0, frame = 0;
-let inspectedStep = 0, activeStep = -1, heldNote = null;
+let inspectedStep = 0, activeStep = -1, activeR1Step = -1, heldNote = null;
 let workspace;
 const defaultOwner = Symbol('LCD Buzzer transport');
+const sm510Owner = Symbol('SM510 R1 demo');
 
 preset.add(new Option('Custom', 'custom'));
 for (const [index, pattern] of PATTERNS.entries()) preset.add(new Option(pattern.name, String(index)));
 
 function syncTransport() {
 	const playing = clip?.kind === 'pattern' || pending?.kind === 'pattern';
+	const playingR1 = clip?.kind === 'sm510' || pending?.kind === 'sm510';
 	play.disabled = playing;
 	stop.disabled = !clip && !pending;
 	loop.disabled = playing;
+	sm510Play.disabled = playingR1 || !sm510Gates.some(Boolean);
+	sm510Stop.disabled = !playingR1;
+	sm510Controls.disabled = playingR1;
 	for (const [index, row] of rows.entries()) row.button.disabled = playing || notes[index] === null;
 }
 
@@ -89,14 +98,23 @@ function showStep(index) {
 	drawWave();
 }
 
+function showR1Step(index) {
+	if (activeR1Step === index) return;
+	sm510Buttons[activeR1Step]?.removeAttribute('aria-current');
+	activeR1Step = index;
+	sm510Buttons[index]?.setAttribute('aria-current', 'step');
+}
+
 function animate() {
-	if (clip?.kind !== 'pattern') return;
+	const isR1 = clip.kind === 'sm510';
 	const elapsed = Math.max(0, audio.currentTime - clip.start);
-	const elapsedFrames = Math.floor((elapsed % clip.duration) * audio.sampleRate);
+	const position = clip.source.loop ? elapsed % clip.duration : elapsed;
+	const elapsedFrames = Math.floor(position * audio.sampleRate);
 	// Match the renderer's rounded boundaries, including tempos with fractional frames.
-	let index = notes.length - 1;
+	let index = (isR1 ? sm510Gates : notes).length - 1;
 	while (index > 0 && elapsedFrames < Math.round(index * clip.stepFrames)) index--;
-	showStep(index);
+	if (isR1) showR1Step(index);
+	else showStep(index);
 	frame = requestAnimationFrame(animate);
 }
 
@@ -109,6 +127,7 @@ function releaseClip() {
 	previous.gain.gain.linearRampToValueAtTime(0, end);
 	previous.source.stop(end);
 	showStep(-1);
+	showR1Step(-1);
 	return end;
 }
 
@@ -135,7 +154,9 @@ async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverr
 	try {
 		await ensureAudio();
 		if (token !== request) return false;
-		const rendered = kind === 'pattern' ? renderSequence(audio.sampleRate) : null;
+		const rendered = kind === 'sm510'
+			? renderR1Pattern(sm510Gates, { stepMs: Number(sm510StepTime.value), sampleRate: audio.sampleRate })
+			: kind === 'pattern' ? renderSequence(audio.sampleRate) : null;
 		const samples = rendered?.samples ?? renderNote(notes[step], { sampleRate: audio.sampleRate });
 		const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
 		buffer.copyToChannel(samples, 0);
@@ -155,6 +176,7 @@ async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverr
 			clip = null;
 			cancelAnimationFrame(frame);
 			showStep(-1);
+			showR1Step(-1);
 			status.textContent = kind === 'pattern' ? 'Pattern finished' : 'Ready';
 			syncTransport();
 		};
@@ -163,6 +185,9 @@ async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverr
 		pending = null;
 		if (kind === 'pattern') {
 			status.textContent = source.loop ? 'Looping pattern' : 'Playing pattern';
+			animate();
+		} else if (kind === 'sm510') {
+			status.textContent = 'Playing R1 demo';
 			animate();
 		} else {
 			status.textContent = `Previewing ${noteLabels.get(notes[step]) ?? 'rest'}`;
@@ -174,6 +199,7 @@ async function start(kind, step = inspectedStep, owner = defaultOwner, loopOverr
 		if (token !== request) return false;
 		pending = null;
 		status.textContent = error.message;
+		if (kind === 'sm510') setStatus(error.message);
 		syncTransport();
 		return false;
 	}
@@ -287,6 +313,54 @@ volume.addEventListener('change', () => workspace.patternChanged());
 loop.addEventListener('change', () => workspace.patternChanged());
 play.addEventListener('click', () => void start('pattern'));
 stop.addEventListener('click', () => stopPlayback());
+sm510Play.addEventListener('click', () => void start('sm510', inspectedStep, sm510Owner));
+sm510Stop.addEventListener('click', () => stopPlayback(sm510Owner));
+
+byId('sm510Carrier').textContent = `${R1_HZ.toLocaleString('en-US')} Hz`;
+byId('sm510Path').textContent = `${MASTER_CLOCK_HZ.toLocaleString('en-US')} Hz clock → ÷${R1_DIVISOR} → R1 gate → piezo`;
+
+function refreshR1Controls() {
+	sm510StepValue.value = `${sm510StepTime.value} ms`;
+	for (const [index, button] of sm510Buttons.entries()) {
+		button.setAttribute('aria-pressed', String(sm510Gates[index]));
+		button.querySelector('span').textContent = sm510Gates[index] ? 'On' : 'Off';
+	}
+	syncTransport();
+}
+
+for (let index = 0; index < sm510Gates.length; index++) {
+	const button = document.createElement('button');
+	button.type = 'button';
+	button.setAttribute('aria-label', `R1 gate ${index + 1}`);
+	button.append(String(index + 1), document.createElement('span'));
+	button.addEventListener('click', () => {
+		sm510Gates[index] = !sm510Gates[index];
+		sm510Preset.value = 'custom';
+		refreshR1Controls();
+	});
+	byId('sm510Gates').append(button);
+	sm510Buttons.push(button);
+}
+
+function loadR1Preset() {
+	const pattern = GATE_PRESETS[sm510Preset.value];
+	if (!pattern) return;
+	sm510StepTime.value = String(pattern.stepMs);
+	sm510Gates.fill(false);
+	for (const index of pattern.on) sm510Gates[index] = true;
+	refreshR1Controls();
+}
+
+sm510Preset.addEventListener('change', loadR1Preset);
+sm510StepTime.addEventListener('input', () => {
+	sm510Preset.value = 'custom';
+	refreshR1Controls();
+});
+byId('buzzerChipGuide').addEventListener('toggle', event => {
+	if (!event.currentTarget.open) stopPlayback(sm510Owner);
+});
+loadR1Preset();
+
 function exportWav() {
 	const sampleRate = 48000;
 	const { samples } = renderSequence(sampleRate);
