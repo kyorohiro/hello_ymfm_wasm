@@ -63,24 +63,44 @@
 			<div id="buzzerChipTabs" class="input-tabs" role="tablist" aria-label="Sound chip">
 				<button id="buzzerSm510Tab" type="button" role="tab" aria-selected="true" aria-controls="buzzerSm510Panel">SM510</button>
 				<button id="buzzerSm511Tab" type="button" role="tab" aria-selected="false" aria-controls="buzzerSm511Panel" tabindex="-1">SM511</button>
+				<button id="buzzerLcdTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerLcdPanel" tabindex="-1">lcd-buzzer</button>
 				<button id="buzzerMixerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerMixerPanel" tabindex="-1">Mixer</button>
 			</div>
-			<div id="buzzerSm510Panel" role="tabpanel" aria-labelledby="buzzerSm510Tab" class="tone-source">
-				<label for="toneSource">Tone source</label>
-				<select id="toneSource" aria-describedby="toneSourceDetail">
-					<option value="direct" selected>SM510 Direct R</option>
-					<option value="dk52">DK-52 Divider</option>
-					<option value="equal">Equal temperament</option>
-				</select>
-				<span id="toneSourceDetail">Pitches use whole SM510 machine cycles.</span>
+			<div id="buzzerSm510Panel" role="tabpanel" aria-labelledby="buzzerSm510Tab">
+				<div id="toneSource" class="tone-source" role="group" aria-label="Tone source" aria-describedby="toneSourceDetail">
+					<button type="button" data-tone-mode="direct" aria-pressed="true">Direct R</button>
+					<button type="button" data-tone-mode="dk52" aria-pressed="false">DK-52 Divider</button>
+				</div>
+				<p id="toneSourceDetail" class="chip-note">Direct R switches the output at whole SM510 machine cycles to set each pitch.</p>
+				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
 			</div>
 			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
+				<div class="rom-controls">
+					<div class="rom-note">
+						<label for="sm511Pitch">ROM note</label>
+						<output id="sm511PitchValue" for="sm511Pitch">C6</output>
+						<input id="sm511Pitch" type="range" min="0" max="11" value="11">
+					</div>
+					<div class="tone-source" role="group" aria-label="ROM octave">
+						<button type="button" data-rom-octave="0" aria-pressed="true">Lower octave</button>
+						<button type="button" data-rom-octave="1" aria-pressed="false">Upper octave</button>
+					</div>
+					<div class="tone-source" role="group" aria-label="ROM note length">
+						<button type="button" data-rom-length="0" aria-pressed="true">62.5 ms</button>
+						<button type="button" data-rom-length="1" aria-pressed="false">125 ms</button>
+					</div>
+				</div>
 				<div class="tone-source">
+					<button id="sm511Preview" type="button">Play ROM note</button>
 					<button id="sm511Play" class="primary" type="button">Play melody</button>
 					<button id="sm511Stop" type="button" disabled>Stop melody</button>
+					<code id="sm511Command">ROM 0x02</code>
 					<span id="sm511Status" role="status"></span>
 				</div>
-				<p class="chip-note">Melody ROM uses C♯5–C7 and 62.5 or 125 ms commands. Step Sequencer maps notes to those octaves and rounds timing to 62.5 ms.</p>
+				<p class="chip-note">Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</p>
+			</div>
+			<div id="buzzerLcdPanel" role="tabpanel" aria-labelledby="buzzerLcdTab" hidden>
+				<p class="chip-note">Software square wave in 12-tone equal temperament, C3–C6. A4 is 440 Hz. Adjust this voice’s level in Mixer.</p>
 			</div>
 			<div id="buzzerMixerPanel" role="tabpanel" aria-labelledby="buzzerMixerTab" hidden>
 				<div class="mixer-controls">
@@ -93,6 +113,11 @@
 						<label for="sm511Mix">SM511 <output id="sm511MixValue" for="sm511Mix">100%</output></label>
 						<input id="sm511Mix" type="range" min="0" max="100" value="100">
 						<label class="mixer-mute"><input id="sm511Mute" type="checkbox"> Mute SM511</label>
+					</div>
+					<div>
+						<label for="lcd-buzzerMix">lcd-buzzer <output id="lcd-buzzerMixValue" for="lcd-buzzerMix">100%</output></label>
+						<input id="lcd-buzzerMix" type="range" min="0" max="100" value="100">
+						<label class="mixer-mute"><input id="lcd-buzzerMute" type="checkbox"> Mute lcd-buzzer</label>
 					</div>
 					<div>
 						<label for="buzzerMasterMix">Master <output id="buzzerMasterMixValue" for="buzzerMasterMix">60%</output></label>
@@ -229,7 +254,7 @@ await sm510.playCycles(pulse);</code></pre>
 							<dt>Software controls</dt><dd>Volume, short fades to reduce clicks, and mono WAV export.</dd>
 						</dl>
 						<h3>Effects to try</h3>
-						<p>Choose <strong>SM510 Direct R</strong> or <strong>Equal temperament</strong> to hear the pitch changes in these <strong>Files → examples</strong> scripts.</p>
+						<p>Choose <strong>SM510 → Direct R</strong>, <strong>SM511</strong>, or <strong>lcd-buzzer</strong> to hear the pitch changes in these <strong>Files → examples</strong> scripts.</p>
 						<ul>
 							<li><strong>Short beep.</strong> <code>short-beep.js</code> separates two notes with a rest.</li>
 							<li><strong>Chirp.</strong> <code>chirp.js</code> climbs quickly through a series of pitches.</li>

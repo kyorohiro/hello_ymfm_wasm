@@ -135,11 +135,22 @@ input { accent-color: #9a3c13; }
 .tone-source label { font-weight: 700; }
 #toneSourceDetail, .chip-note, #sm511Status { color: #5d4c3b; }
 .chip-note { margin: 8px 0 0; font-size: .82rem; }
-.mixer-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.chip-note a { color: #873610; }
+.tone-source button[aria-pressed="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
+.rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
+.rom-controls .tone-source { margin: 0; }
+.rom-note { display: grid; grid-template-columns: 1fr auto; gap: 3px 9px; min-width: 125px; }
+.rom-note input { grid-column: 1 / -1; width: 100%; margin: 0; }
+.mixer-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
 .mixer-controls > div { display: grid; align-content: start; gap: 3px; min-width: 0; }
 .mixer-controls label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3px; font-size: .82rem; }
 .mixer-controls input[type="range"] { width: 100%; margin: 0; }
 .mixer-controls .mixer-mute { justify-content: flex-start; }
+@media (max-width: 520px) {
+	.chip-controls { padding-inline: 10px; }
+	.chip-controls > .input-tabs { gap: 4px; flex-wrap: wrap; }
+	.mixer-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .synth-workspace:has(#buzzerFilesPanel:not([hidden])) { grid-template-columns: minmax(200px, 255px) minmax(0, 1fr); }
 .buzzer-files, .performance {
 	min-width: 0;

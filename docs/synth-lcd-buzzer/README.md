@@ -1,8 +1,9 @@
 # Tetorica SM510 Synth
 
-Tetorica SM510 Synth combines the Sharp SM510 buzzer and SM511 melody voices.
-Use the upper **SM510**, **SM511**, and **Mixer** tabs to choose a voice or
-adjust the mix. Use the lower **Keyboard**, **Code**, and **Step Sequencer**
+Tetorica SM510 Synth combines the Sharp SM510 buzzer, SM511 melody voice,
+and an equal-tempered square wave. Use the upper **SM510**, **SM511**,
+**lcd-buzzer**, and **Mixer** tabs to choose a voice or adjust the mix.
+Use the lower **Keyboard**, **Code**, and **Step Sequencer**
 tabs to perform and edit. The selected chip supplies the Keyboard, computer
 keys, step previews, Step Sequencer, WAV export, and the `lcd-buzzer` Code
 client. Cassette and pattern files store the MIDI notes and rests.
@@ -13,13 +14,16 @@ client. Cassette and pattern files store the MIDI notes and rests.
 
 ## SM510 tone source
 
-The **Tone source** selector in **SM510** sets how that voice renders notes.
+The **Tone source** buttons in **SM510** set how that voice renders new notes.
+A held note keeps its original tone until release.
 
 | Tone source | What you hear |
 | --- | --- |
-| **SM510 Direct R** (default) | The direct-output mask lets the program toggle R1. Each note uses an integer number of SM510 machine cycles per half-wave, so the pitch may differ from the note’s equal-tempered frequency. |
+| **Direct R** (default) | The direct-output mask lets the program toggle R1. Each note uses an integer number of SM510 machine cycles per half-wave, so the pitch may differ from the note’s equal-tempered frequency. |
 | **DK-52 Divider** | Each playable note opens the gate on the DK-52’s fixed 4,096 Hz R1 carrier. Changing notes leaves the carrier frequency fixed. Rests close the gate. |
-| **Equal temperament** | A software square wave uses standard equal-tempered pitches with A4 at 440 Hz. |
+
+The **lcd-buzzer** tab plays the software square wave in equal temperament
+from C3 to C6, with A4 at 440 Hz. It has its own level and mute in **Mixer**.
 
 ## SM511 melody voice
 
@@ -32,7 +36,10 @@ the native core.
 [Sharp Microcomputers Data Book, SM511/SM512 p. 166](https://ftpmirror.your.org/pub/misc/bitsavers/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
 
 Open **SM511** and use **Play melody** and **Stop melody** to audition the
-included original tune. Its data is built in. SM511 performance maps the
+included original tune. Use **ROM note**, **Lower octave** or **Upper octave**,
+and **62.5 ms** or **125 ms** to assemble one command for **Play ROM note**.
+The hex value shown beside the buttons is the command to use in Code.
+SM511 performance maps the
 existing MIDI keys and steps two octaves up and folds them into C♯5–C7.
 For example, C4 sounds as C6. SM511 sequence playback rounds note and rest
 boundaries to 62.5 ms ticks and packs them into 62.5 ms or 125 ms commands.
@@ -53,7 +60,7 @@ await chip.playMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 
 ## Mixer
 
-**Mixer** gives the SM510 and SM511 their own level and mute controls before
+**Mixer** gives SM510, SM511, and lcd-buzzer their own level and mute controls before
 the shared **Master**. Master and the Step Sequencer's **Volume** adjust the
 same gain. Opening Mixer keeps playback running on the selected chip.
 Code can play SM510 register writes and SM511 melodies together on their
@@ -64,7 +71,8 @@ respective buses.
 Open **Keyboard** to play the on-screen pads or their matching computer
 keys. Use Octave and Fret to move the pitches. In **Code**, type in the
 editor to edit the script, or focus the **Code** tab to play with the computer
-keys.
+keys. The physical note keys also work while source buttons, switches, or
+sliders have focus. Use the arrow keys to adjust focused sliders.
 The top **Code** button opens the workspace beside Files. **Run** starts a
 session, **Apply** updates it, and **Stop Code** releases Code-owned sound.
 
@@ -136,7 +144,7 @@ timing between R1 transitions.
 A full period takes `2 × N` machine cycles, giving `16,384 / (2 × N)` Hz.
 The synth picks the realizable frequency closest to the requested note in Hz.
 For example, C3 uses `N = 63` (130.03 Hz), and the A4 key uses `N = 19`
-(431.16 Hz). Select **Equal temperament** to hear A4 at 440 Hz.
+(431.16 Hz). Select **lcd-buzzer** to hear A4 at 440 Hz.
 The sequencer plays complete direct R periods within each note's time
 window. Live keyboard playback uses a short gain fade on release.
 

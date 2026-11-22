@@ -12,6 +12,10 @@ const PERIOD_FRAMES = 512;
 const MAX_OCTAVE = 2;
 const MAX_FRET = 12;
 const KEYBOARD_HINT = 'Play the pads or their matching keys';
+const PERFORMANCE_KEY_EXCLUSIONS = [
+	'input:not([type="range"], [type="checkbox"], [type="radio"], [type="button"], [type="reset"], [type="submit"])',
+	'textarea', 'select', '[contenteditable]', '.monaco-editor', '#synthCodeEditorHost', '.synth-menu-panel',
+].join(', ');
 
 /** One software voice with ownership shared by the Code and Keyboard inputs. */
 export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip, onRequestNote, onBeforeNote, onNoteChange }) {
@@ -68,7 +72,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 			source.onended = () => { source.disconnect(); gain.disconnect(); };
 			source.start(start);
 			active = { source, gain, context, start, owner, midi };
-			onNoteChange(midi, chip);
+			onNoteChange(midi, chip, tone?.toneMode);
 			return true;
 		} catch (error) {
 			if (pending === token && !disposed) throw error;
@@ -115,9 +119,9 @@ export function setupBuzzerPerformance({
 	let octave = 1, entries = new Map();
 	const voice = createBuzzerVoice({
 		ensureAudio, getOutput, prepareTone, getChip, onRequestNote, onBeforeNote,
-		onNoteChange(note, chip) {
+		onNoteChange(note, chip, toneMode) {
 			status.textContent = note === null ? KEYBOARD_HINT : `Playing ${displayNote(note, chip)}`;
-			onNoteChange(note, chip);
+			onNoteChange(note, chip, toneMode);
 		},
 	});
 
@@ -233,7 +237,7 @@ export function setupBuzzerPerformance({
 	listen(fretUp, 'click', () => changePosition(octave, fretboard.horizontalFretPosition + 1));
 	listen(document, 'keydown', event => {
 		if (!canPlayKeyboard() || event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey
-			|| event.target?.closest?.('input, textarea, select, [contenteditable], dialog[open], .monaco-editor, #synthCodeEditorHost, .synth-menu-panel')
+			|| event.target?.closest?.(PERFORMANCE_KEY_EXCLUSIONS)
 			|| document.querySelector('dialog[open]')) return;
 		const entry = entries.get(event.key.toLowerCase());
 		if (!entry || !labels.has(entry.midi)) return;

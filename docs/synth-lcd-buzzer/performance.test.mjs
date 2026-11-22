@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createBuzzerVoice } from './performance.js';
 
-function fixture(ensureAudio = async () => {}, getChip) {
+function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 	const sources = [], changes = [], output = {};
 	const context = {
 		currentTime: 0,
@@ -32,6 +32,7 @@ function fixture(ensureAudio = async () => {}, getChip) {
 		getOutput: chip => ({ chip, context, master: output }),
 		onBeforeNote: () => {},
 		onNoteChange: note => changes.push(note),
+		...voiceOptions,
 	});
 	return { voice, sources, changes, context };
 }
@@ -94,4 +95,19 @@ test('a newer transport cancels a pending note only on its own chip', async () =
 	assert.equal(await second, false);
 	assert.equal(sources.length, 1);
 	assert.equal(voice.getNote(), 60);
+});
+
+test('the note callback reports the mode of the prepared tone', async () => {
+	const sounding = [];
+	const { voice } = fixture(undefined, () => 'sm510', {
+		prepareTone: (_frequency, context) => ({
+			buffer: context.createBuffer(1, 8),
+			toneMode: 'dk52',
+		}),
+		onNoteChange: (...args) => sounding.push(args),
+	});
+	const owner = Symbol('keyboard');
+	assert.equal(await voice.noteOn('A4', owner), true);
+	voice.noteOff(owner);
+	assert.deepEqual(sounding, [[69, 'sm510', 'dk52'], [null]]);
 });
