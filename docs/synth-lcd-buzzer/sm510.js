@@ -88,34 +88,54 @@ export function readRAtTick({ writes }, tick) {
 	return first ? writes[first * 2 - 1] & 3 : 0;
 }
 
-export function createR1Voice(context, output, render) {
-	const source = context.createBufferSource(), gain = context.createGain();
-	const samples = render(Uint32Array.of(0, 1), context.sampleRate, context.sampleRate);
-	const buffer = context.createBuffer(1, samples.length, context.sampleRate);
-	buffer.copyToChannel(samples, 0);
+export function connectRChannels(source, context, outputs) {
+	const splitter = context.createChannelSplitter(2);
+	source.connect(splitter);
+	for (const [channel, output] of outputs.entries()) splitter.connect(output, channel);
+	return splitter;
+}
+
+export function createRVoice(context, outputs, renderR1, renderR2) {
+	const source = context.createBufferSource(), rate = context.sampleRate;
+	const buffer = context.createBuffer(2, rate, rate);
+	buffer.copyToChannel(renderR1(Uint32Array.of(0, 1), rate, rate), 0);
+	buffer.copyToChannel(renderR2(Uint32Array.of(0, 2), rate, rate), 1);
 	source.buffer = buffer;
 	source.loop = true;
-	gain.gain.value = 0;
-	source.connect(gain);
-	gain.connect(output);
-	source.onended = () => { source.disconnect(); gain.disconnect(); };
+	const gates = outputs.map(output => {
+		const gate = context.createGain();
+		gate.gain.value = 0;
+		gate.connect(output);
+		return gate;
+	});
+	const splitter = connectRChannels(source, context, gates);
+	source.onended = () => {
+		source.disconnect();
+		splitter.disconnect();
+		for (const gate of gates) gate.disconnect();
+	};
 	source.start();
 
-	let enabled = false, silenceAt = context.currentTime;
-	function setGate(next, time = context.currentTime) {
-		if (next === enabled) return;
-		enabled = next;
-		const level = next ? 1 : 0;
-		gain.gain.cancelScheduledValues(context.currentTime);
-		gain.gain.setTargetAtTime(level, time, .001);
-		gain.gain.setValueAtTime(level, time + EDGE_SECONDS);
-		if (!next) silenceAt = time + EDGE_SECONDS;
+	let value = 0, silenceAt = context.currentTime;
+	function setValue(next, time = context.currentTime) {
+		const nextValue = next & 3;
+		const changed = value ^ nextValue;
+		value = nextValue;
+		const now = context.currentTime;
+		for (const [channel, { gain }] of gates.entries()) {
+			const bit = 1 << channel;
+			if (!(changed & bit)) continue;
+			const level = value & bit ? 1 : 0;
+			gain.cancelScheduledValues(now);
+			gain.setTargetAtTime(level, time, .001);
+			gain.setValueAtTime(level, time + EDGE_SECONDS);
+			if (!level) silenceAt = Math.max(silenceAt, time + EDGE_SECONDS);
+		}
 	}
 	return {
-		get enabled() { return enabled; },
-		setGate,
+		setValue,
 		dispose() {
-			setGate(false);
+			setValue(0);
 			const now = context.currentTime;
 			source.stop(Math.max(now, silenceAt));
 			if (silenceAt > now) return silenceAt;
@@ -138,13 +158,24 @@ export function createSm510AudioCore({
 	function reserve(bytes) {
 		if (bytes > memory.buffer.byteLength) memory.grow(Math.ceil((bytes - memory.buffer.byteLength) / 65536));
 	}
-	function r1Renderer(render) {
+	function pinRenderer(render, { r2 = false, invert = false } = {}) {
 		return (writes, frameCount, sampleRate) => {
 			const output = start + writes.byteLength;
 			reserve(output + frameCount * Float32Array.BYTES_PER_ELEMENT);
-			new Uint32Array(memory.buffer, start, writes.length).set(writes);
+			const events = new Uint32Array(memory.buffer, start, writes.length);
+			events.set(writes);
+			// Let the R1 integrator see bit 1 without shifting any write's time.
+			if (r2) {
+				for (let index = 1; index < events.length; index += 2) events[index] = (events[index] >>> 1) & 1;
+			}
 			render(output, frameCount, sampleRate, start, writes.length / 2);
-			return new Float32Array(memory.buffer, output, frameCount).slice();
+			const samples = new Float32Array(memory.buffer, output, frameCount).slice();
+			if (invert) {
+				for (let index = 0; index < samples.length; index++) {
+					if (samples[index] !== 0) samples[index] = -samples[index];
+				}
+			}
+			return samples;
 		};
 	}
 	function renderTone(render, command, frames, sampleRate) {
@@ -154,8 +185,10 @@ export function createSm510AudioCore({
 	}
 	return {
 		directHalfCycles: sm510_direct_half_cycles,
-		renderR1: r1Renderer(sm510_render_r1),
-		renderDirectR1: r1Renderer(sm510_render_direct_r1),
+		renderR1: pinRenderer(sm510_render_r1),
+		renderR2: pinRenderer(sm510_render_r1, { r2: true, invert: true }),
+		renderDirectR1: pinRenderer(sm510_render_direct_r1),
+		renderDirectR2: pinRenderer(sm510_render_direct_r1, { r2: true }),
 		renderDirectNote(halfCycles, frames, sampleRate) {
 			return renderTone(sm510_render_direct_note, halfCycles, frames, sampleRate);
 		},

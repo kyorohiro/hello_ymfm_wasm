@@ -52,6 +52,36 @@ test('off gates are silent and adjacent on gates produce one continuous pulse', 
 	assert(samples.slice(Math.round(stepFrames * 4) + 1).every(sample => sample === 0));
 });
 
+test('the two R pins preserve their clock phase and independent latch bits', () => {
+	// R2 alone, then both pins, then R1 alone. Writes occur inside a half wave.
+	const writes = Uint32Array.of(2, 2, 7, 3, 12, 1, 17, 0);
+	const high = Math.fround(.16), low = -high;
+	assert.deepEqual([...core.renderR1(writes, 18, MASTER_CLOCK_HZ)], [
+		0, 0, 0, 0, 0, 0, 0, high, low, low, low, low, high, high, high, high, low, 0,
+	]);
+	assert.deepEqual([...core.renderR2(writes, 18, MASTER_CLOCK_HZ)], [
+		0, 0, high, high, low, low, low, low, high, high, high, high, 0, 0, 0, 0, 0, 0,
+	]);
+	assert.deepEqual([...core.renderDirectR1(writes, 18, MASTER_CLOCK_HZ)], [
+		0, 0, 0, 0, 0, 0, 0, high, high, high, high, high, high, high, high, high, high, 0,
+	]);
+	assert.deepEqual([...core.renderDirectR2(writes, 18, MASTER_CLOCK_HZ)], [
+		0, 0, high, high, high, high, high, high, high, high, high, high, 0, 0, 0, 0, 0, 0,
+	]);
+});
+
+test('R2 uses the same write boundaries at fractional browser sample positions', () => {
+	// The last write at an equal timestamp takes precedence.
+	const writes = Uint32Array.of(2, 2, 7, 0, 7, 3, 13, 1, 17, 0);
+	const reference = Uint32Array.of(2, 1, 13, 0);
+	for (const rate of [44100, 48000]) {
+		const inverted = core.renderR1(reference, 32, rate).map(sample => sample === 0 ? 0 : -sample);
+		assert.deepEqual(core.renderR2(writes, 32, rate), inverted);
+		assert.deepEqual(core.renderDirectR2(writes, 32, rate), core.renderDirectR1(reference, 32, rate));
+	}
+	assert.deepEqual([...writes], [2, 2, 7, 0, 7, 3, 13, 1, 17, 0]);
+});
+
 test('Code immediate writes latch the two low bits of a four-bit operand', () => {
 	const latched = [];
 	const chip = createSm510CodeChip({ write: value => latched.push(value) });

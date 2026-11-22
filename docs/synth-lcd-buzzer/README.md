@@ -117,11 +117,16 @@ the DK-52 divider, and its eight gates and step time belong to the demo.
 ### R latch and Code
 
 The **SM510** tab shows the two-bit **R latch** in binary and hexadecimal.
-Toggle **R1** (bit 0) and **R2** (bit 1) to write the latch by hand. The pin
-readout shows the steady level in **Direct R**, or the gated carrier and its
-phase in **DK-52 Divider**. The app auditions R1 in mono. The readout also
-follows explicit Code writes and samples cycle sequences at the screen's
-refresh rate.
+Toggle **R1** (bit 0) and **R2** (bit 1) to write the latch by hand. Use
+**Monitor** to route either pin or **R1 − R2** to Pulse output and mono audio.
+This applies to manual controls and explicit Code register writes. The DK-52
+board model, Keyboard, and Step Sequencer use R1.
+
+In **Direct R**, select **Monitor R2** and toggle R2 to see High and Low. A
+steady level gives no sustained tone. In **DK-52 Divider**, either enabled
+pin produces 4,096 Hz, with opposite phases. Turn both pins on and select
+**R1 − R2** to hear the same pitch with twice the signal swing. The readout
+follows cycle sequences at the screen's refresh rate.
 
 Use `useSoundChip('sm510')` for the DK-52 divider and
 `useSoundChip('sm510-direct')` for the direct mask. Each client keeps its
@@ -168,8 +173,8 @@ window. Live keyboard playback uses a short gain fade on release.
 
 `sm510.clock` is the master clock in Hz and `sm510.machineCycleHz` is the CPU
 machine-cycle rate. Both clients accept a four-bit operand for `REG_R`.
-The low two bits fill the latch, with bit 0 driving the mono R1 audio. An immediate
-`write()` changes the latch when called and `sleep()` uses the Code runtime clock.
+The low two bits fill the latch. An immediate `write()` changes the latch
+when called and `sleep()` uses the Code runtime clock.
 The immediate audition smooths the level changes for browser playback.
 For deterministic offsets, `build()` records writes and `playCycles()` renders
 one finite sequence. Cycle zero starts with the divider and latch cleared.

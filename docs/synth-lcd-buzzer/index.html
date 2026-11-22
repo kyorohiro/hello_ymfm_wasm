@@ -85,7 +85,13 @@
 						</div>
 					</div>
 					<p id="sm510Pins" class="chip-note">Direct R pins · R1 low · R2 low</p>
-					<p id="sm510LatchDetail" class="chip-note">Toggle the R bits by hand or watch Code register writes. The mono audition uses R1.</p>
+					<div class="tone-source" role="group" aria-label="Monitor R output">
+						<span class="r-monitor-label">Monitor</span>
+						<button id="sm510MonitorR1" type="button" aria-pressed="true">R1</button>
+						<button id="sm510MonitorR2" type="button" aria-pressed="false">R2</button>
+						<button id="sm510MonitorDiff" type="button" aria-pressed="false">R1 − R2</button>
+					</div>
+					<p id="sm510LatchDetail" class="chip-note">Monitor routes the R latch and Code register writes to Pulse output and audio. R1 is the DK-52 wiring. R1 − R2 shows the voltage difference across the two pins.</p>
 				</div>
 				<dl class="chip-details">
 					<dt>Hardware</dt><dd><code>ATR</code> copies the low two accumulator bits to R. Direct R holds each pin at its latched level. The DK-52 divider gates a 4,096 Hz signal on each pin, with R2 in opposite phase.</dd>
@@ -265,7 +271,7 @@ await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);</code></pre>
 						<h3>CPU cycles and the R latch</h3>
 						<p>At 32,768 Hz, two master-clock ticks make one CPU machine cycle. <code>LAX</code> and <code>ATR</code> each take one machine cycle. An alternating <code>LAX</code> / <code>ATR</code> sequence can change the R latch every two machine cycles, about 122 µs apart. The divider advances every master tick and R1 follows bit 2 while enabled.</p>
-						<p>The hardware latches the low two bits of the four-bit accumulator. The app’s <code>write(REG_R, value)</code> accepts the same four-bit operand and plays R1 in mono. The SM510 tab shows the resulting R value. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets. The timeline starts with R and the divider at zero.</p>
+						<p>The hardware latches the low two bits of the four-bit accumulator. The app’s <code>write(REG_R, value)</code> accepts the same four-bit operand. The SM510 tab shows the resulting R value and lets you monitor either pin or their voltage difference. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets. The timeline starts with R and the divider at zero.</p>
 						<pre class="code-log"><code>const pulse = sm510.build(b =&gt; {
   b.atCycle(2).write(sm510.REG_R, 0x1);
   b.atCycle(1640).write(sm510.REG_R, 0x0);

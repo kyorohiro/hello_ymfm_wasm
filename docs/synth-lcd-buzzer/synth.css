@@ -149,6 +149,7 @@ input { accent-color: #9a3c13; }
 .r-latch-controls label { font-weight: 700; }
 .r-latch-controls output { font-family: monospace; }
 .r-latch-controls .tone-source { margin: 0; }
+.r-monitor-label { font-weight: 700; }
 .tone-source button[aria-pressed="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
 .rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
 .rom-controls .tone-source { margin: 0; }
