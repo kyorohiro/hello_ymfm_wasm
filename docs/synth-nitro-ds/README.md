@@ -8,6 +8,7 @@ Select **CH1–CH16** to edit and play a physical channel when the reference son
 is stopped. All 16 support
 PCM8, PCM16 and IMA-ADPCM. Pulse is available on CH9–CH14, and Noise on
 CH15–CH16. Code names CH1–CH16 correspond to hardware channels 0–15.
+Choose the source directly from the row above the instrument controls.
 
 Keyboard, Code, paused audition and 2SF playback use the same MIT SkyEmu sound
 renderer in WebAssembly. The Synth and paused audition drive the DS sound
@@ -35,9 +36,12 @@ In the **Code** tab, use **Run**, **Apply** and **Stop** with the locally retain
 attack takes the channel, and releasing the older note leaves its replacement
 playing. Code continues to play when you switch to the Keyboard tab.
 Choose **CH1–CH16** on the **DS** tab during Code to inspect that physical
-channel in the same instrument panel. Volume, pan, divider, pulse duty and
-rate edits apply to the live channel. Later writes from Code can change those
-values again.
+channel in the same instrument panel. The Keyboard plays its current settings.
+Volume, pan, divider, pulse duty and
+rate edits apply to the live channel. The source, built-in wave and repeat
+settings apply on the next note. Selecting another PCM format loads a
+built-in wave for that Code channel. If Code supplies the same fields again,
+its new values take effect. **Auto** edits the keyboard instrument.
 
 ```js
 const nds = await useSoundChip("nds");

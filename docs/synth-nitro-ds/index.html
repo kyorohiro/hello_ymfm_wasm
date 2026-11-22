@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Tetorica Nitro DS Synth</title>
 		<link rel="icon" href="../tetorica_nitro_ds_synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=nds-output-mix-1" />
-	<script type="module" src="synth.js?v=nds-2sf-live-edit-2"></script>
+		<link rel="stylesheet" href="synth.css?v=nds-silver-controls-1" />
+		<script type="module" src="synth.js?v=nds-keyboard-live-1"></script>
 	</head>
 	<body>
 		<main class="shell">
@@ -133,15 +133,18 @@
 										<summary aria-label="About DS channels">?</summary>
 										<p>All 16 channels play PCM8, PCM16 and IMA-ADPCM. Physical CH9–CH14 also generate pulse waveforms and CH15–CH16 generate noise. Code uses CH1–CH16 for hardware channels 0–15.</p>
 										<p>Auto allocates compatible channels. Sample, mode and repeat changes apply on the next note. Range, volume, divider, pan, pulse duty and rate controls apply while you hold a key.</p>
-										<p>Choose a channel to follow and edit its volume, divider, pan, pulse duty and rate during 2SF or Code. Pause 2SF to audition the selected channel. Choose Auto to play your own instrument.</p>
+										<p>Choose a channel to follow and edit its volume, divider, pan, pulse duty and rate during 2SF or Code. During Code, the source, built-in wave and repeat settings apply on the next note. Switching PCM format during Code selects a built-in wave. Later Code writes can replace these settings. Pause 2SF to audition the selected channel. Choose Auto to play your own instrument.</p>
 									</details>
 									<p id="ndsInstrumentStatus" class="instrument-status" hidden></p>
 								</div>
+								<div id="ndsMode" class="nds-source-tabs" role="group" aria-label="Sound source">
+									<button data-mode="pcm16" type="button" aria-pressed="true">PCM16</button>
+									<button data-mode="pcm8" type="button" aria-pressed="false">PCM8</button>
+									<button data-mode="adpcm" type="button" aria-pressed="false">IMA-ADPCM</button>
+									<button data-mode="pulse" type="button" aria-pressed="false" title="CH9–CH14">Pulse</button>
+									<button data-mode="noise" type="button" aria-pressed="false" title="CH15–CH16">Noise</button>
+								</div>
 								<div class="hardware-fields">
-									<label>Sound source <select id="ndsMode">
-										<option value="pcm16">PCM16</option><option value="pcm8">PCM8</option>
-										<option value="adpcm">IMA-ADPCM</option><option value="pulse">PSG pulse</option><option value="noise">Noise</option>
-									</select></label>
 									<label>Built-in wave <select id="ndsShape">
 										<option value="sine">Sine</option><option value="triangle">Triangle</option>
 										<option value="saw">Saw</option><option value="square">Square</option>

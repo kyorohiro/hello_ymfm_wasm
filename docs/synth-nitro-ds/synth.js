@@ -6,8 +6,8 @@ import { createTwoSfWaveformMonitor, setupTwoSfLiveView } from './2sf-live-view.
 import { setupNdsChannelPicker } from './nds-channel-picker.js?v=nds-unified-channels-1';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { setupSynthExpandedTabs } from '../synth/synth_expanded_tabs.js?v=nds-source-controls-1';
-import { createNdsAudio } from './nds-audio.js?v=nds-shared-renderer-1';
-import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-2sf-live-edit-1';
+import { createNdsAudio } from './nds-audio.js?v=nds-keyboard-live-1';
+import { setupNdsKeyboard } from './nds-keyboard.js?v=nds-keyboard-live-1';
 import { NDS_STARTER_CODE, NDS_STARTER_FILES, setupNdsCode } from './nds-code.js?v=nds-source-controls-1';
 import { setupNdsSoundCapture } from './nds-sound-capture.js?v=nds-pcm-draw-1';
 import { createNdsProject } from './nds-project.js?v=nds-sample-1';
@@ -95,6 +95,7 @@ function renderChannelInstrument(kind, channel, state, extra = {}) {
 	const description = kind ? [
 		phase ?? 'Live',
 		state ? (state.active ? 'Active' : 'Idle') : 'Waiting for channel data…',
+		kind === 'code' && state?.playingMode && state.playingMode !== state.mode ? 'Source changes on next note' : '',
 		kind === 'reference' && state ? (onEdit ? 'Channel editing' : 'View only') : '',
 	].filter(Boolean).join(' · ') : '';
 	if (instrumentTitle.textContent !== label) instrumentTitle.textContent = label;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT } from './nds-core.js?v=nds-shared-renderer-1';
+import { NDS_AUDIO_CLOCK, NDS_CHANNEL_COUNT, NDS_NOISE_CLOCK_AT_C4 } from './nds-core.js?v=nds-keyboard-live-1';
 import { makeNdsSample, ndsTimerForFrequency } from './nds-synth-api.js?v=nds-shared-renderer-1';
 import { NdsSkyEmuCore } from './nds-skyemu-core.js?v=nds-shared-renderer-1';
 
@@ -11,6 +11,7 @@ const RELEASE = new Set(['noteOff', 'keyOff']);
 const OWNERSHIP_METHODS = new Set([...ATTACK, ...RELEASE, 'stopOwned', 'allSoundOff']);
 const PREPARATION_STEPS_PER_BLOCK = 4;
 const SMALL_SAMPLE_BYTES = 1024;
+const NOISE_TO_KEY_RATIO = NDS_NOISE_CLOCK_AT_C4 / noteToHz('C4');
 
 function sampleFrames(mode, loop, start, length) {
 	if (mode === 'pulse') return 8;
@@ -112,7 +113,8 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 					? patch.lengthWords ?? byteLength / 4 - start
 					: state.lengthWords;
 				const cycle = (sampleMode ? frameOverride : null) ?? sampleFrames(mode, loop, start, length);
-				patch.timer = ndsTimerForFrequency(frequency, Math.max(1, cycle)).timer;
+				const hz = mode === 'noise' && options?.keyboard ? frequency * NOISE_TO_KEY_RATIO : frequency;
+				patch.timer = ndsTimerForFrequency(hz, Math.max(1, cycle)).timer;
 			}
 		}
 		if (!tuning) reusableBytes = null;
@@ -138,7 +140,7 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 	queueAttack(id, method, args) {
 		const [channel, first, second, third, fourth] = args;
 		const [owner, token] = method === 'noteOn' ? [third, fourth] : [first, second];
-		if (method === 'noteOn') this.configure(channel, second, first, { deferLive: true });
+		if (method === 'noteOn') this.configure(channel, second, first, { deferLive: true, keyboard: owner === 'keyboard' });
 		else this.core.getState(channel);
 		this.cancelAttack(channel);
 		this.pendingAttacks.set(channel, { id, method, owner, token });

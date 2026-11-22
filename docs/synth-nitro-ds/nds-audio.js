@@ -82,7 +82,7 @@ export async function createNdsAudio({ volume = .7, outputMix = {}, onError = ()
 		const [module] = await deadline(Promise.all([
 			loadSkyEmuModule(),
 			context.resume(),
-			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-shared-renderer-1', import.meta.url)),
+			context.audioWorklet.addModule(new URL('./nds-worklet.js?v=nds-keyboard-live-1', import.meta.url)),
 		]), 'DS audio could not start. Check audio permission and try again.');
 		worklet = new AudioWorkletNode(context, 'tetorica-nds-synth', {
 			numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { module },

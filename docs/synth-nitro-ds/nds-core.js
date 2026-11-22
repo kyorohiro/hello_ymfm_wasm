@@ -4,6 +4,7 @@
 import { soundChipMixDefaults, validateChipMix } from '../js/soundchip_mixer.js';
 
 export const NDS_AUDIO_CLOCK = 16756991;
+export const NDS_NOISE_CLOCK_AT_C4 = 4000;
 export const NDS_CHANNEL_COUNT = 16;
 export const NDS_MAX_SAMPLE_BYTES = 1024 * 1024;
 
