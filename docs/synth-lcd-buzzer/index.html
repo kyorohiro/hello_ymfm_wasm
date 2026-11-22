@@ -71,7 +71,10 @@
 					<button type="button" data-tone-mode="direct" aria-pressed="true">Direct R</button>
 					<button type="button" data-tone-mode="dk52" aria-pressed="false">DK-52 Divider</button>
 				</div>
-				<p id="toneSourceDetail" class="chip-note">Direct R switches the output at whole SM510 machine cycles to set each pitch.</p>
+				<dl class="chip-details">
+					<dt>Hardware</dt><dd>Direct R sends the low two bits of the R latch to the pins. On the DK-52, the 32,768 Hz clock supplies a fixed 4,096 Hz carrier gated at R1.</dd>
+					<dt>App playback</dt><dd>Choose the hardware model for new notes. <span id="toneSourceDetail">Direct R switches the output at whole SM510 machine cycles to set each pitch.</span></dd>
+				</dl>
 				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
 			</div>
 			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
@@ -97,10 +100,15 @@
 					<code id="sm511Command">ROM 0x02</code>
 					<span id="sm511Status" role="status"></span>
 				</div>
-				<p class="chip-note">Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</p>
+				<dl class="chip-details">
+					<dt>Hardware ROM</dt><dd>The 256-word ROM stores six-bit commands for pitches, rests and stops. Bit 4 chooses the octave and bit 5 selects 62.5 or 125 ms.</dd>
+					<dt>App playback</dt><dd>Play ROM note auditions the displayed command. Step Sequencer maps notes to C♯5–C7 and rounds timing to 62.5 ms.</dd>
+				</dl>
 			</div>
 			<div id="buzzerLcdPanel" role="tabpanel" aria-labelledby="buzzerLcdTab" hidden>
-				<p class="chip-note">Software square wave in 12-tone equal temperament, C3–C6. A4 is 440 Hz. Adjust this voice’s level in Mixer.</p>
+				<dl class="chip-details">
+					<dt>Software voice</dt><dd>The app generates an equal-tempered square wave from C3 to C6, with A4 at 440 Hz. Use it to compare against the hardware models.</dd>
+				</dl>
 			</div>
 			<div id="buzzerMixerPanel" role="tabpanel" aria-labelledby="buzzerMixerTab" hidden>
 				<div class="mixer-controls">
@@ -124,6 +132,9 @@
 						<input id="buzzerMasterMix" type="range" min="0" max="100" value="60">
 					</div>
 				</div>
+				<dl class="chip-details">
+					<dt>App output</dt><dd>Level and mute adjust each voice after synthesis. Master sets the combined output and mirrors Step Sequencer Volume.</dd>
+				</dl>
 			</div>
 		</section>
 		<div id="synthWorkspace" class="synth-workspace">
@@ -155,15 +166,15 @@
 						<div id="buzzerKeyboard" class="performance-keyboard"></div>
 					</div>
 					<div id="synthCodePanel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
-						<div class="code-transport">
-							<button id="synthCodeRunButton" type="button" class="primary">Run</button>
-							<button id="synthCodeApplyButton" type="button" disabled>Apply</button>
-							<button id="synthCodeStopButton" type="button" disabled>Stop Code</button>
-							<span id="synthCodeState" role="status">Idle</span>
-						</div>
 						<div class="code-editors">
 							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
 							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
+						</div>
+						<div class="code-transport" data-code-transport="panel">
+							<button id="synthCodeRunButton" type="button" class="primary">Run</button>
+							<button id="synthCodeApplyButton" type="button" disabled>Apply</button>
+							<button id="synthCodeStopButton" type="button" title="Stop Code and Step Sequencer" disabled>Stop Code</button>
+							<span id="synthCodeState" role="status">Idle</span>
 						</div>
 						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> to play the selected chip, <code>sm510</code> and <code>sm510-direct</code> for R writes, or <code>sm511</code> for melody ROM commands.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
@@ -189,7 +200,7 @@
 							</div>
 							<div class="transport">
 								<button id="play" class="primary" type="button">Play</button>
-								<button id="stop" type="button" disabled>Stop</button>
+								<button id="stop" type="button" title="Stop Step Sequencer and Code" disabled>Stop</button>
 								<label class="loop"><input id="loop" type="checkbox" checked> Loop</label>
 								<button id="download" class="download" type="button">Export WAV</button>
 							</div>
@@ -201,11 +212,11 @@
 				<details id="buzzerChipGuide" class="chip-guide">
 					<summary>Sound chip</summary>
 					<div class="chip-guide-content">
-						<h3>SM510 buzzer demo · DK-52</h3>
-						<p>On this Game &amp; Watch board, R1 drives a piezo buzzer with a fixed square carrier at a nominal <strong id="sm510Carrier"></strong>. The game program switches the R1 gate on and off to make short beeps, pauses and bursts. This configuration has no waveform, pitch or timbre selector.</p>
+							<h3>SM510 buzzer demo · DK-52</h3>
+							<p>On the DK-52 Game &amp; Watch board, R1 drives the piezo. Divider bit 2 produces a square wave at a nominal <strong id="sm510Carrier"></strong>. The program opens and closes the R1 gate to make beeps and pauses at that fixed pitch.</p>
 						<section class="sm510-demo" aria-label="SM510 R1 demo">
 							<p class="sm510-path" id="sm510Path"></p>
-							<p>Choose an example, toggle the numbered gates or change the step time, then play. Try joining two on steps for one longer beep.</p>
+								<p>The app’s demo schedules R1 writes from these eight gates. Choose a pattern or set the gates and step time yourself. Adjacent on steps form one longer beep.</p>
 							<fieldset id="sm510Controls" class="sm510-controls" aria-label="R1 gate settings">
 								<div class="sm510-settings">
 									<label>R1 pattern
@@ -229,7 +240,7 @@
 								<button id="sm510Stop" type="button" disabled>Stop R1</button>
 							</div>
 						</section>
-						<p>The demo models the DK-52's digital R1 signal. The physical piezo and enclosure affect how the board sounds.</p>
+							<p>The demo models the DK-52’s digital timing. The physical piezo and enclosure shape the sound of the board.</p>
 						<h3>R1 from Code</h3>
 						<p>Open <strong>Files → examples → sm510-r1.js</strong> and press <strong>Run</strong>. Bit 0 of <code>REG_R</code> gates the fixed R1 carrier. The wait sets the beep length in seconds.</p>
 						<pre id="sm510CodeExample" class="code-log"><code>const sm510 = await useSoundChip("sm510");
@@ -238,20 +249,22 @@ await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);</code></pre>
 						<h3>CPU cycles and the R latch</h3>
 						<p>At 32,768 Hz, two master-clock ticks make one CPU machine cycle. <code>LAX</code> and <code>ATR</code> each take one machine cycle. An alternating <code>LAX</code> / <code>ATR</code> sequence can change the R latch every two machine cycles, about 122 µs apart. The divider advances every master tick and R1 follows bit 2 while enabled.</p>
-						<p><code>write(REG_R, value)</code> accepts a 4-bit accumulator value. The low two bits drive R1 and R2. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets. The timeline starts with R and the divider at zero.</p>
+							<p>The hardware uses R latch bits 0 and 1 to drive R1 and R2 according to the mask. The app’s <code>write(REG_R, value)</code> accepts the four-bit latch value and plays R1 in mono. Try <strong>Files → examples → sm510-cycles.js</strong> to place writes at exact machine-cycle offsets. The timeline starts with R and the divider at zero.</p>
 						<pre class="code-log"><code>const pulse = sm510.build(b =&gt; {
   b.atCycle(2).write(sm510.REG_R, 0x1);
   b.atCycle(1640).write(sm510.REG_R, 0x0);
 });
 await sm510.playCycles(pulse);</code></pre>
-						<p>Other SM510 configurations can output R directly from software. SM511 and SM512 have a separate melody controller that plays pitches and lengths from ROM.</p>
-						<h3>Tetorica SM510 Synth</h3>
+							<h3>SM510 Direct R</h3>
+							<p>The direct-output mask sends the latch to R1 and R2. The app picks a whole number of machine cycles per half-wave. Each half-wave fits a ROM page with <code>LAX</code>, <code>ATR</code>, no-ops and a two-cycle <code>TL</code>. The pulse display shows the resulting pitch.</p>
+							<h3>SM511 melody controller</h3>
+							<p>The SM511 has a 256-word melody ROM. The low nibble of each six-bit word selects rest (<code>0x0</code>), stop (<code>0x1</code>) or one of 12 pitches (<code>0x2</code>–<code>0xD</code>). Bit 4 selects the octave and bit 5 selects a 62.5 or 125 ms slot.</p>
+							<p>In the app, <strong>Play ROM note</strong> previews one command and <strong>Play melody</strong> plays an original phrase. Try <strong>Files → examples → sm511-melody.js</strong> to play the same commands from Code.</p>
+							<h3>App instrument and output</h3>
 						<dl>
-							<dt>Direct R</dt><dd>R1 is toggled by writes at whole machine cycles. Each half-wave fits a ROM page with <code>LAX</code>, <code>ATR</code>, no-ops and a two-cycle <code>TL</code>. The pulse display shows the resulting pitch.</dd>
-							<dt>DK-52</dt><dd>Each note gates the same 4,096 Hz carrier. Rests close the gate.</dd>
-							<dt>Equal temperament</dt><dd>The comparison source plays software-tuned notes from C3 to C6.</dd>
-							<dt>Sequence</dt><dd>Eight eighth-note steps, 40–240 BPM, with rests and a common note length.</dd>
-							<dt>Software controls</dt><dd>Volume, short fades to reduce clicks, and mono WAV export.</dd>
+								<dt>lcd-buzzer</dt><dd>Software square wave in equal temperament from C3 to C6.</dd>
+								<dt>Step Sequencer</dt><dd>Eight eighth-note steps at 40–240 BPM. SM511 playback converts notes and rests to 62.5 or 125 ms ROM commands.</dd>
+								<dt>Mixer and WAV</dt><dd>Level, mute and Master apply to the finished audio. WAV export renders one pass on the selected voice with its mix settings.</dd>
 						</dl>
 						<h3>Effects to try</h3>
 						<p>Choose <strong>SM510 → Direct R</strong>, <strong>SM511</strong>, or <strong>lcd-buzzer</strong> to hear the pitch changes in these <strong>Files → examples</strong> scripts.</p>

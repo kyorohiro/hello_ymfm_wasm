@@ -26,6 +26,7 @@ function textFile(project,path,allowTextFiles=false) {
 }
 
 export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=async()=>{},onModeChange=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{},getStarterCode=()=>DEFAULT_CODE,
+  onRunRequest,onStopRequest,onPlaybackChange,
   editorChip='ym2612',transformDeclarations=selectSynthCodeDeclarations,journalKey=JOURNAL_KEY,definitionRuntimeFile='playground_code_runtime.js',
   allowTextFiles=false,keepRunningOnKeyboard=false,persistentExpanded=false,maxTextLength=MAX_CODE_LENGTH,writeText=(path,source)=>project.fs.writeText(path,source),
   loadEditor=async()=>({initializePlaygroundMonaco})}={}) {
@@ -55,6 +56,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   let opening=null;
   let runtime=null,runtimeLoading=null,monacoLoading=null,monacoEditor=null,monacoApi=null,executionPath=null;
   let runtimeState={state:'idle',loopNames:[]};
+  let playbackActive=false,externalStopAvailable=false;
   let adapter={kind:'textarea',getValue:()=>textarea.value,setValue:value=>{textarea.value=value;},focus:()=>textarea.focus(),setReadOnly:value=>{textarea.readOnly=value;}};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
   const captureState=()=>({mode,path:activePath});
@@ -74,9 +76,11 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     codePanel.dataset.editorKind=activePath?(runnable?'javascript':'text'):'none';codePanel.dataset.runnable=String(runnable);
     runButton.disabled=fileBusy||pending||Boolean(opening)||!runnable;applyButton.disabled=fileBusy||pending||Boolean(opening)||!runtime||!runnable;
     runButton.title=applyButton.title=runnable?'':'Text files are edited and saved here; only JavaScript files can run.';
-    stopButton.disabled=!pending&&!runtime&&!runtimeState.running&&!runtimeState.busy;
+    const active=Boolean(pending||runtimeState.running||runtimeState.busy||state==='running'||state==='preparing');
+    stopButton.disabled=onStopRequest ? !active&&!externalStopAvailable : !pending&&!runtime&&!runtimeState.running&&!runtimeState.busy;
     stateLabel.textContent=(runnable?'':'Text · ')+(pending?'Preparing…':state==='running'?(runtimeState.loopNames?.length?`Playing · ${runtimeState.loopNames.length} loop(s)`:'Running'):state.charAt(0).toUpperCase()+state.slice(1));
     adapter.setReadOnly?.(fileBusy||!activePath);textarea.readOnly=fileBusy||!activePath;
+    if(active!==playbackActive){playbackActive=active;onPlaybackChange?.(active);}
   }
   function rememberState() {files?.rememberCodeState?.(captureState());}
   function showExpanded(value) {
@@ -242,6 +246,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(disposed||fileBusy||pending||opening||activePath&&!codePath(activePath))return;
     const epoch=++operation;pending=true;errorLog.textContent='';update();
     try {
+      onRunRequest?.();
       if(!await ensureFile(()=>epoch===operation))return;
       await flush();
       if(epoch!==operation||disposed||!codePath(activePath))return;
@@ -329,6 +334,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   }
   const controls={openFile,flush,stop,cancelPendingExecution,setMode,setExpanded,restoreState,reloadFile,workspaceReplaced,pathChanged,captureState,appendLog,
     getStarterCode,layoutEditor(){monacoEditor?.layout();},
+    setExternalStopAvailable(value){if(!disposed&&externalStopAvailable!==value){externalStopAvailable=value;update();}},
     isCodeMode:()=>mode==='code',get activePath(){return activePath;},get executionPath(){return executionPath;},
     isExpanded:()=>expanded,
     setBusy(value){fileBusy=Boolean(value);update();},
@@ -353,7 +359,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   // click leaves typing focus; editor execution shortcuts keep it for editing.
   listen(runButton,'click',()=>{runButton.focus();void execute(false);});
   listen(applyButton,'click',()=>{applyButton.focus();void execute(true);});
-  listen(stopButton,'click',()=>{stopButton.focus();void stop();});
+  listen(stopButton,'click',()=>{stopButton.focus();void (onStopRequest?onStopRequest():stop());});
   listen(textarea,'input',changeSource);
   const executionShortcut=event=>{
     if(mode==='code'&&(event.ctrlKey||event.metaKey)&&!event.altKey&&(event.key==='Enter'||event.code==='Enter')) {

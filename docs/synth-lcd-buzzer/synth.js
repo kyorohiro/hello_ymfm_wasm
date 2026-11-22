@@ -52,13 +52,15 @@ const rows = [];
 let audio, master, clip = null, pending = null, request = 0, frame = 0;
 let inspectedStep = 0, activeStep = -1, activeR1Step = -1, heldNote = null;
 let heldChip = null, heldToneMode, melodyClip = null, melodyPending = null;
-let workspace;
+let workspace, controls;
+let codeActive = false, stepStarting = false, stepRequest = 0, handoffEnd = 0;
 let codeR1, codeR1Mode, coreLoading, audioCore;
 const defaultOwner = Symbol('LCD Buzzer transport');
 const sm510Owner = Symbol('SM510 R1 demo');
 const sm510CodeOwner = Symbol('SM510 Code');
 const sm511DemoOwner = Symbol('SM511 demo');
 const sm511CodeOwner = Symbol('SM511 Code');
+const transportRelease = .008;
 
 const displayNote = (note, chip = selectedChip) => chip === 'sm511' ? sm511Label(note) : noteLabels.get(note);
 const mixLevel = chip => mix[chip].mute.checked ? 0 : Number(mix[chip].level.value) / 100;
@@ -68,10 +70,13 @@ preset.add(new Option('Custom', 'custom'));
 for (const [index, pattern] of PATTERNS.entries()) preset.add(new Option(pattern.name, String(index)));
 
 function syncTransport() {
-	const playing = clip?.kind === 'pattern' || pending?.kind === 'pattern';
+	const stepActive = stepStarting || clip?.owner === defaultOwner || pending?.owner === defaultOwner;
+	const playing = stepStarting || (clip?.kind === 'pattern' && clip.owner === defaultOwner)
+		|| (pending?.kind === 'pattern' && pending.owner === defaultOwner);
 	const playingR1 = clip?.kind === 'sm510' || pending?.kind === 'sm510';
 	play.disabled = playing;
-	stop.disabled = !clip && !pending && !codeR1?.enabled;
+	stop.disabled = !stepActive && !codeActive;
+	controls?.setExternalStopAvailable(stepActive);
 	loop.disabled = playing;
 	sm510Play.disabled = playingR1 || !sm510Gates.some(Boolean);
 	sm510Stop.disabled = !playingR1;
@@ -183,7 +188,7 @@ function animate() {
 
 function releaseClip() {
 	if (!clip) return;
-	const previous = clip, now = audio.currentTime, end = now + .008;
+	const previous = clip, now = audio.currentTime, end = now + transportRelease;
 	clip = null;
 	cancelAnimationFrame(frame);
 	previous.gain.gain.setValueAtTime(1, now);
@@ -259,7 +264,7 @@ async function start(kind, { step = inspectedStep, owner = defaultOwner, loopOve
 		source.buffer = buffer;
 		source.loop = kind === 'pattern' && (loopOverride ?? loop.checked);
 		const previous = chip === 'sm511' ? stopMelody() : chip === 'sm510' ? releaseCodeR1() : undefined;
-		const time = Math.max(releaseClip() ?? 0, releaseClipAndKeys(chip), previous ?? 0);
+		const time = Math.max(releaseClip() ?? 0, releaseClipAndKeys(chip), previous ?? 0, handoffEnd);
 		const current = {
 			kind, source, gain, owner, loopOverride, r1Mode, chip, toneMode: mode,
 			start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames, boundaries: rendered?.boundaries,
@@ -309,7 +314,7 @@ async function start(kind, { step = inspectedStep, owner = defaultOwner, loopOve
 
 function releaseClipAndKeys(chip) {
 	const ownsKeys = !chip || heldChip === chip;
-	const heldUntil = ownsKeys && heldNote !== null ? audio.currentTime + .008 : audio.currentTime;
+	const heldUntil = ownsKeys && heldNote !== null ? audio.currentTime + transportRelease : audio.currentTime;
 	if (ownsKeys) performance.stopAll();
 	const clipEnd = !chip || clip?.chip === chip ? releaseClip() : undefined;
 	return Math.max(clipEnd ?? audio.currentTime, heldUntil);
@@ -329,7 +334,7 @@ function writeCodeR1(enabled, core, mode) {
 		cancelPendingChipWork('sm510');
 		performance.cancelPending('sm510');
 		const previous = mode !== codeR1Mode ? releaseCodeR1() : undefined;
-		const begin = Math.max(releaseClipAndKeys('sm510'), previous ?? 0);
+		const begin = Math.max(releaseClipAndKeys('sm510'), previous ?? 0, handoffEnd);
 		codeR1Mode = mode;
 		codeR1 ??= createR1Voice(audio, mix.sm510.output, mode === DIRECT_R ? core.renderDirectR1 : core.renderR1);
 		codeR1.setGate(true, begin);
@@ -371,10 +376,54 @@ function stopPlayback(owner, { chip } = {}) {
 	return end;
 }
 
+function cancelStepStart() {
+	stepRequest++;
+	stepStarting = false;
+}
+
+function stopStep() {
+	const wasStarting = stepStarting;
+	cancelStepStart();
+	handoffEnd = Math.max(handoffEnd, stopPlayback(defaultOwner) ?? 0);
+	if (wasStarting && !clip && !pending) status.textContent = 'Stopped';
+}
+
+async function playStep() {
+	const token = ++stepRequest;
+	stepStarting = true;
+	status.textContent = 'Preparing pattern';
+	syncTransport();
+	try {
+		const retiringCode = codeActive;
+		const retired = retiringCode ? controls.stop() : true;
+		const [, stopped] = await Promise.all([ensureAudio(), retired]);
+		if (token !== stepRequest) return;
+		if (stopped) {
+			if (retiringCode) handoffEnd = Math.max(handoffEnd, audio.currentTime + transportRelease);
+			await start('pattern');
+		} else status.textContent = 'Stopped';
+	} catch (error) {
+		if (token === stepRequest) {
+			status.textContent = error.message;
+			setStatus(error.message);
+		}
+	} finally {
+		if (token === stepRequest) {
+			stepStarting = false;
+			syncTransport();
+		}
+	}
+}
+
+async function stopTransports() {
+	stopStep();
+	if (codeActive) await controls.stop();
+}
+
 function releaseMelody() {
 	if (!melodyClip) return;
 	const { source, gain } = melodyClip;
-	const now = audio.currentTime, end = now + .008;
+	const now = audio.currentTime, end = now + transportRelease;
 	melodyClip = null;
 	gain.gain.setValueAtTime(1, now);
 	gain.gain.linearRampToValueAtTime(0, end);
@@ -420,9 +469,9 @@ async function playMelody(commands, owner) {
 		source.buffer.copyToChannel(samples, 0);
 		source.connect(gain);
 		gain.connect(mix.sm511.output);
-		const heldUntil = heldChip === 'sm511' ? audio.currentTime + .008 : audio.currentTime;
+		const heldUntil = heldChip === 'sm511' ? audio.currentTime + transportRelease : audio.currentTime;
 		if (heldChip === 'sm511') performance.stopAll();
-		const start = Math.max(heldUntil, previous ?? 0, stopPlayback(undefined, { chip: 'sm511' }) ?? 0);
+		const start = Math.max(heldUntil, previous ?? 0, stopPlayback(undefined, { chip: 'sm511' }) ?? 0, handoffEnd);
 		const current = { source, gain, owner };
 		source.onended = () => {
 			source.disconnect();
@@ -560,8 +609,8 @@ for (const [chip, channel] of Object.entries(mix)) {
 	channel.mute.addEventListener('change', updateMix);
 }
 loop.addEventListener('change', () => workspace.patternChanged());
-play.addEventListener('click', () => void start('pattern'));
-stop.addEventListener('click', () => stopPlayback());
+play.addEventListener('click', () => void playStep());
+stop.addEventListener('click', () => void stopTransports());
 sm510Play.addEventListener('click', () => void start('sm510', { owner: sm510Owner, r1Mode: DK52_R }));
 sm510Stop.addEventListener('click', () => stopPlayback(sm510Owner));
 sm511Play.addEventListener('click', () => void playMelody(Uint8Array.from(SM511_DEMO), sm511DemoOwner).catch(error => setStatus(error.message)));
@@ -657,7 +706,7 @@ for (const id of ['download', 'buzzerMenuWav'])
 	byId(id).addEventListener('click', () => void exportWav().catch(error => setStatus(error.message)));
 
 function setStatus(message) { byId('workspace-status').textContent = message; }
-function stopPerformance() { stopPlayback(); stopMelody(); performance.stopAll(); }
+function stopPerformance() { cancelStepStart(); stopPlayback(); stopMelody(); performance.stopAll(); }
 const performance = setupBuzzerPerformance({
 	document, ensureAudio,
 	canPlayKeyboard: () => sequencerPanel.hidden,
@@ -684,7 +733,7 @@ const performance = setupBuzzerPerformance({
 	},
 	onBeforeNote(chip) {
 		const end = stopPlayback(undefined, { chip });
-		return chip === 'sm511' ? Math.max(end ?? 0, stopMelody() ?? 0) : end;
+		return Math.max(end ?? 0, chip === 'sm511' ? stopMelody() ?? 0 : 0, handoffEnd);
 	},
 	onNoteChange(note, chip, mode) {
 		heldNote = note;
@@ -765,9 +814,15 @@ function showInputView(view) {
 	if (view === 'sequencer') performance.stopKeyboard();
 }
 
-const controls = setupBuzzerCode({
+controls = setupBuzzerCode({
 	workspace, performance, ensureAudio, setStatus,
 	now: () => audio?.currentTime ?? 0,
+	onRunRequest: stopStep,
+	onStopRequest: stopTransports,
+	onPlaybackChange(active) {
+		codeActive = active;
+		syncTransport();
+	},
 	sequence: {
 		getPattern, update: updatePattern,
 		play: (owner, loopOverride) => start('pattern', { owner, loopOverride }),
@@ -789,6 +844,7 @@ const controls = setupBuzzerCode({
 	},
 	onViewChange: showInputView,
 });
+syncTransport();
 sequencerTab.addEventListener('click', async () => {
 	sequencerTab.focus();
 	try {

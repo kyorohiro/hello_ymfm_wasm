@@ -82,7 +82,10 @@ function checkChannel(channel) {
 
 const patternNote = note => note === null ? null : buzzerMidi(note);
 
-export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequence, r1, melody, setStatus, onExpandedChange, onViewChange }) {
+export function setupBuzzerCode({
+	workspace, performance, ensureAudio, now, sequence, r1, melody, setStatus, onExpandedChange, onViewChange,
+	onRunRequest, onStopRequest, onPlaybackChange,
+}) {
 	const { project, files } = workspace;
 	const owner = Symbol('LCD Buzzer Code');
 	const client = {
@@ -156,6 +159,7 @@ export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequ
 	}
 	controls = setupSynthCodeControls({
 		project, files, getRuntime, setStatus, onExpandedChange, onViewChange,
+		onRunRequest, onStopRequest, onPlaybackChange,
 		getStarterCode: () => BUZZER_STARTER,
 		editorChip: 'lcd-buzzer',
 		journalKey: 'tetorica-lcd-buzzer-pending-code',

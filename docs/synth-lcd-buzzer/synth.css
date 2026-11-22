@@ -136,6 +136,9 @@ input { accent-color: #9a3c13; }
 #toneSourceDetail, .chip-note, #sm511Status { color: #5d4c3b; }
 .chip-note { margin: 8px 0 0; font-size: .82rem; }
 .chip-note a { color: #873610; }
+.chip-controls .chip-details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; margin: 9px 0 0; color: #5d4c3b; font-size: .82rem; line-height: 1.45; }
+.chip-controls .chip-details dt { color: var(--ink); font-weight: 700; }
+.chip-controls .chip-details dd { margin: 0; }
 .tone-source button[aria-pressed="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
 .rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
 .rom-controls .tone-source { margin: 0; }
@@ -161,8 +164,7 @@ input { accent-color: #9a3c13; }
 }
 .input-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 12px; }
 .input-tabs, .code-transport { display: flex; align-items: center; gap: 6px; }
-.code-transport { flex-wrap: wrap; }
-.code-transport ~ #synthKeyboardPanel, .code-transport ~ #buzzerStepSequencerPanel { margin-top: 9px; }
+.code-transport { flex-wrap: wrap; margin-top: 9px; }
 .input-tabs button[aria-selected="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
 #synthCodeExpandButton { font-size: .85rem; }
 #synthCodeExpandIcon::before { content: 'Expand'; }

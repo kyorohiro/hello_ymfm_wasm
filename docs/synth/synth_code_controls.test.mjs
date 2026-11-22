@@ -13,6 +13,7 @@ class Element {
   append(...nodes){for(const node of nodes){node.remove();this.children.push(node);node.parentNode=this;}}
   insertBefore(node,before){if(node===before)return;node.remove();const i=before?this.children.indexOf(before):-1;this.children.splice(i<0?this.children.length:i,0,node);node.parentNode=this;}
   remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(child=>child!==this);this.parentNode=null;}
+  contains(node){return this===node||this.children.some(child=>child.contains(node));}
   get nextSibling(){return this.parentNode?.children[this.parentNode.children.indexOf(this)+1]??null;}
   addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(fn);}
   removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);}
@@ -81,6 +82,38 @@ test('opt-in Keyboard does not cancel a Run waiting for its runtime, while works
     assert.equal(f.calls.stops,0);assert.equal(f.controls.isCodeMode(),false);
     await f.controls.workspaceReplaced();assert.equal(f.calls.stops,1);assert.equal(f.controls.activePath,null);
   }finally{f.cleanup();}
+});
+
+test('host transport hooks receive Run before persistence and allow Stop for external playback',async()=>{
+  const activity=[],persistence=deferred();
+  let runRequests=0,stopRequests=0;
+  const f=fixture({source:'// host transport',hostOptions:{
+    onRunRequest:()=>runRequests++,onStopRequest:()=>stopRequests++,onPlaybackChange:active=>activity.push(active),
+  }});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');
+    const stop=f.byId('synthCodeStopButton');
+    assert.equal(stop.disabled,true);
+    f.controls.setExternalStopAvailable(true);
+    assert.equal(stop.disabled,false);
+    stop.fire('click');
+    assert.equal(stopRequests,1);
+    assert.equal(f.calls.stops,0);
+    f.controls.setExternalStopAvailable(false);
+    assert.equal(stop.disabled,true);
+
+    f.files.persistCode=()=>persistence.promise;
+    f.byId('synthCodeRunButton').fire('click');
+    assert.equal(runRequests,1);
+    assert.deepEqual(activity,[true]);
+    assert.equal(f.calls.runs.length,0);
+    persistence.resolve(true);
+    await until(()=>f.calls.runs.length===1&&!f.byId('synthCodeRunButton').disabled);
+    await f.controls.stop();
+    assert.equal(stopRequests,1,'programmatic Stop stays scoped to Code');
+    assert.deepEqual(activity,[true,false]);
+    assert.equal(stop.disabled,true);
+  } finally {f.cleanup();}
 });
 
 test('persistent expansion survives input changes and reports same-mode Code reveals without restarting playback',async()=>{

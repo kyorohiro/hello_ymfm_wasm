@@ -74,7 +74,15 @@ editor to edit the script, or focus the **Code** tab to play with the computer
 keys. The physical note keys also work while source buttons, switches, or
 sliders have focus. Use the arrow keys to adjust focused sliders.
 The top **Code** button opens the workspace beside Files. **Run** starts a
-session, **Apply** updates it, and **Stop Code** releases Code-owned sound.
+session and **Apply** updates it. Both controls sit below the Code editor with
+**Stop Code**. **Play** and **Stop** sit below the Step Sequencer. Run or
+Apply stops manual sequence playback. Play stops the Code session, including
+a running script that is waiting between notes. Either Stop stops both
+transports. A script can still use `playPattern()` as part of Code playback.
+
+The SM510 and SM511 tabs distinguish each chip’s hardware behavior from app
+controls. The ROM preview, Keyboard, Code, and Step Sequencer belong to the
+app. The lcd-buzzer comparison voice and Mixer levels also run in software.
 
 ```js
 const buzzer = await useSoundChip('lcd-buzzer');
