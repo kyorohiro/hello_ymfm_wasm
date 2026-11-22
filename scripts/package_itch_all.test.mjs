@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, writeFile, readFile, readdir, stat, rm, appendFile, unlink} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, readFile, readdir, stat, rm, appendFile, unlink, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, basename, dirname} from 'node:path';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {createItchBatchPlan, packageAllItch} from './package_itch_all.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const absent = async path => assert.rejects(stat(path), {code:'ENOENT'});
 const scripts = ['2a03_synth','aswan_synth','dmg_synth','fm2608_synth','huc6280_synth','scsp_synth','smsgear_synth','sid_synth',
-  'snes_synth','spu_synth','synth','vgm_analyzer','playground']
+  'snes_synth','spu_synth','nitro_ds_synth','ym2149_st_synth','synth','vgm_analyzer','playground']
   .map(name => `package_itch_${name}.sh`).sort();
 
 function tinyZip(product, version, name, extraName=null) {
@@ -107,6 +108,20 @@ test('batch VERSION is explicit and rejects unsafe paths before running or creat
   assert.equal(calls,0);await absent(root);
   for (const version of ['dev','2026-11-14','v1.2.3+preview','x'.repeat(80)]) {
     assert.equal(createItchBatchPlan({root,version}).version,version);
+  }
+});
+
+test('batch shell launchers run from a symlinked checkout path',async t=>{
+  const directory = await mkdtemp(join(tmpdir(),'itch-release-link-'));
+  t.after(()=>rm(directory,{recursive:true,force:true}));
+  const linked = join(directory,'checkout');
+  await symlink(fileURLToPath(new URL('../',import.meta.url)),linked);
+  for(const script of ['package_itch_all.sh','package_itch_all_for_run.sh']){
+    const result = spawnSync('sh',['scripts/'+script,'../invalid'],{
+      cwd:linked,env:{...process.env,PWD:linked},encoding:'utf8',
+    });
+    assert.equal(result.status,1);
+    assert.match(result.stderr,/Specify a VERSION/);
   }
 });
 

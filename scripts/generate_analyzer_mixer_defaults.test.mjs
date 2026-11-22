@@ -118,6 +118,31 @@ test('measurement source hashes stay mandatory and reject a changed renderer',as
   for(const report of [{},{sources:[]},{sources:{}}])await assert.rejects(verifyAnalyzerCalibrationSources([report]),/Missing Analyzer calibration sources/);
 });
 
+test('only the reviewed cache query changes retain the measured Analyzer source hashes',async()=>{
+  const root=new URL('../',import.meta.url);
+  const report=JSON.parse(await readFile(new URL('docs/issues/analyzer_psg_levels_10.json',root),'utf8'));
+  for(const [path,query] of [
+    ['docs/vgm_analyzer/playback_core.js','./playback_mixer.js?v=pokey-vgm-1'],
+    ['docs/js/ym2608audioengine.js','./ym2608.js?v=audio-stability-2'],
+  ]){
+    const measuredHash=report.sources[path],bytes=await readFile(new URL(path,root));
+    const sources={[path]:measuredHash};
+    assert.notEqual(createHash('sha256').update(bytes).digest('hex'),measuredHash);
+    await verifyAnalyzerCalibrationSources([{sources}],async()=>bytes);
+    for(const modified of [
+      Buffer.from(bytes.toString('utf8').replace(query,query+'-future')),
+      Buffer.concat([bytes,Buffer.from('\n// changed renderer\n')]),
+    ]){
+      assert.notDeepEqual(modified,bytes);
+      await assert.rejects(verifyAnalyzerCalibrationSources([{sources}],async()=>modified),/remeasure:/,path);
+    }
+    await assert.rejects(verifyAnalyzerCalibrationSources([{sources:{[path]:'0'.repeat(64)}}],async()=>bytes),
+      /remeasure:/,path);
+    await assert.rejects(verifyAnalyzerCalibrationSources([{sources:{'unrelated.js':measuredHash}}],async()=>bytes),
+      /remeasure:/,path);
+  }
+});
+
 test('source-folder migration preserves historical hashes and rejects any additional renderer or measurement edit',async()=>{
   const root=new URL('../',import.meta.url);
   const reports=await Promise.all(['analyzer_nes_levels_01','analyzer_extra_levels_06','analyzer_psg_levels_07']

@@ -1,5 +1,5 @@
 #!/bin/sh
 # SPDX-License-Identifier: BSD-3-Clause
 set -eu
-ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd -P)
 exec node "$ROOT_DIR/scripts/package_itch_all.mjs" "$@"

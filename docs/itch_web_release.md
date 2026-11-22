@@ -2,7 +2,7 @@
 
 ## Package all products locally
 
-Use one shared version for all eight Synths, VGM Analyzer, and Playground:
+Use one shared version for all 13 Synths, VGM Analyzer, and Playground:
 
 ```sh
 sh scripts/package_itch_all.sh 20261114
@@ -14,7 +14,7 @@ sh scripts/package_itch_all_for_run.sh 20261114
 | `package_itch_all.sh VERSION` | `release/itch_all_VERSION/`: normal distribution ZIPs. |
 | `package_itch_all_for_run.sh VERSION` | `release/itch_all_VERSION_for_run/`: browser upload ZIPs. |
 
-Each collection contains ten individual product ZIPs, `manifest.json`,
+Each collection contains 15 individual product ZIPs, `manifest.json`,
 `SHA256SUMS`, and `README.txt`. Upload each product ZIP to its own itch project;
 the collection directory is not an application ZIP. Every ZIP filename includes
 the shared version. Game Boy and NES compatibility aliases are omitted because
@@ -25,16 +25,16 @@ DMG uses `tetorica_dmg_synth_20261114_itch.zip` for normal distribution and
 `tetorica_dmg_synth_20261114_itch_for_run.zip` for browser upload.
 Only Playground has different ZIP contents: its browser collection selects
 `*_itch_playground_for_run.zip` instead of the complete downloadable source kit.
-The other nine ZIPs have identical bytes under different collection filenames.
+The other 14 ZIPs have identical bytes under different collection filenames.
 Original filenames directly under `release/` and individual builder outputs
 remain unchanged.
 
-The first invocation builds the ten products and records all eleven output ZIPs
+The first invocation builds the 15 products and records all 16 output ZIPs
 in `release/itch_all_VERSION.json`. Running the other command with the same
 version verifies those hashes and reuses the completed batch. An older browser
 collection can be updated with the same version: its contents are verified,
 the old directory is kept as `*.before-for-run-names`, and a replacement uses
-`_for_run.zip` for all ten products. No product rebuild is needed.
+`_for_run.zip` for all 15 products. No product rebuild is needed.
 Use a new version after changing sources. A version is required: 1–80 characters, starting with a
 letter or number, followed by letters, numbers, `.`, `_`, `+`, or `-`.
 These commands can also be invoked by absolute path from another working
@@ -63,8 +63,9 @@ sh scripts/package_itch_playground.sh
 It runs on tag pushes and manual **Run workflow** requests, not ordinary branch
 pushes or pull requests. It packages the four ZIPs, verifies their contents and
 runs bounded Chromium checks. It does not remeasure all chip levels or run the
-complete browser/SDK suite. GitHub Release attachments and itch.io uploads
-remain manual; no publishing credentials are required.
+complete browser/SDK suite. The workflow only needs read permissions.
+The local automation uses the maintainer's `gh` and `butler` sessions to attach
+verified Web ZIPs and publish them. [Release instructions](../README_RELEASE.md)
 
 Tag pushes also run the short VGM and SBI checks. Detailed per-Synth, npm
 package, SDK and research workflows are manual-only, so a release tag does not
@@ -105,7 +106,7 @@ workflow; no CI run is required during routine editing.
 | --- | --- |
 | `hello_ymfm_wasm_dev_itch_synth.zip` | Synth: browser-playable upload. |
 | `hello_ymfm_wasm_dev_itch_vgm_analyzer.zip` | VGM Analyzer: browser-playable upload. |
-| `hello_ymfm_wasm_dev_itch_playground_for_run.zip` | Playground: browser-playable upload, with bundled and minified UI. |
+| `hello_ymfm_wasm_dev_itch_playground_for_run.zip` | Playground: browser-playable upload within itch.io limits. |
 | `hello_ymfm_wasm_dev_itch_playground.zip` | Playground: full download with expanded sources. Its entry count can exceed itch.io's browser hosting limit. |
 
 The outer Actions artifact is a container for these files. Upload the individual

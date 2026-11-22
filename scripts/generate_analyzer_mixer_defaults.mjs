@@ -15,6 +15,28 @@ const sourceLocations = Object.freeze({
   'cli/render.js': 'tetorica_src/cli/render.js',
 });
 const hashSource = bytes => createHash('sha256').update(bytes).digest('hex');
+// Commit 6165595e changed only these cache queries. Verify the exact
+// reviewed file and reconstruct its measured bytes for the retained report.
+const analyzerCacheQueryRevisions = Object.freeze({
+  'docs/vgm_analyzer/playback_core.js': {
+    currentHash: '4161d034451162813f6136e2f4f0dfbe378639d79a25a680479556b63d57c810',
+    currentImport: './playback_mixer.js?v=pokey-vgm-1',
+    measuredImport: './playback_mixer.js?v=opna-source-mixer-1',
+  },
+  'docs/js/ym2608audioengine.js': {
+    currentHash: '35b171162798add0f7c0407daa93b336f05edff9968d1034837d63e25d161c95',
+    currentImport: './ym2608.js?v=audio-stability-2',
+    measuredImport: './ym2608.js?v=ym2608-source-gains-1',
+  },
+});
+
+function isAnalyzerCacheQueryRevision(path, bytes, currentHash, expectedHash) {
+  if(!Object.hasOwn(analyzerCacheQueryRevisions,path))return false;
+  const revision = analyzerCacheQueryRevisions[path];
+  if(currentHash!==revision.currentHash)return false;
+  const measured = Buffer.from(bytes).toString('utf8').replaceAll(revision.currentImport,revision.measuredImport);
+  return hashSource(measured)===expectedHash;
+}
 
 /** Retain captured hashes while allowing only the reviewed source-folder move.
  * Reconstruct the original path spellings for these five exact modules and
@@ -107,7 +129,9 @@ export async function verifyAnalyzerCalibrationSources(reports,readSource=path=>
     if(!sources.length)throw new Error('Missing Analyzer calibration sources');
     await Promise.all(sources.map(async source=>{
       const bytes=await readSource(source.path);
-      if(hashSource(bytes)!==source.sha256&&!isAnalyzerSourceLayoutRevision(source.path,bytes,source.sha256))
+      const currentHash=hashSource(bytes);
+      if(currentHash!==source.sha256&&!isAnalyzerCacheQueryRevision(source.path,bytes,currentHash,source.sha256)&&
+        !isAnalyzerSourceLayoutRevision(source.path,bytes,source.sha256))
         throw new Error('Analyzer calibration source changed; remeasure: '+source.path);
     }));
   }

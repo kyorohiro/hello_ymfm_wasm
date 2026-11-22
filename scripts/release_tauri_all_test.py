@@ -14,6 +14,8 @@ import unittest
 from unittest import mock
 import zipfile
 
+from tauri_release_metadata import update_metadata
+
 
 MODULE_PATH = Path(__file__).with_name("release_tauri_all.py")
 
@@ -51,8 +53,10 @@ def create_app(root, name, version="0.1.0"):
     app.mkdir(parents=True)
     git(app, "init", "--quiet", "--initial-branch=main")
     git(app, "remote", "add", "origin", f"git@github.com:fixture/{name}.git")
-    write_json(app / "package.json", {"name": name, "version": version,
-                                     "private": True, "scripts": {"test": "fixture"}})
+    write_json(app / "package.json", {
+        "name": name, "version": version, "private": True,
+        "scripts": {"test": "fixture", "import:release": "python3 scripts/import_release.py"},
+    })
     write_json(app / "package-lock.json", {
         "name": name, "version": version, "lockfileVersion": 3,
         "packages": {"": {"name": name, "version": version},
@@ -113,12 +117,12 @@ class FixtureRunner:
             Path(log).parent.mkdir(parents=True, exist_ok=True)
             with Path(log).open("a") as handle:
                 handle.write("Mocked local check/build\n")
-        if argv[:2] == ["python3", "scripts/import_release.py"]:
-            if argv[2:] == ["--check"]:
+        if argv[:4] == ["npm", "run", "import:release", "--"]:
+            if argv[4:] == ["--check"]:
                 return "Pinned Web assets match.\n"
-            if len(argv) != 3:
+            if len(argv) != 7 or argv[5] != "--version":
                 raise AssertionError(f"Unexpected import arguments: {argv}")
-            source = Path(argv[2])
+            source = Path(argv[4])
             # Fixture ZIP entries have only ordinary relative filenames.
             with zipfile.ZipFile(source) as archive:
                 for entry in archive.infolist():
@@ -129,6 +133,7 @@ class FixtureRunner:
                 "version": "web-0.99.99", "source": source.name,
                 "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
             })
+            update_metadata(cwd, argv[6])
             return "Imported Web fixture.\n"
         if argv in (["npm", "ci"], ["npm", "test"]):
             self.module.verify_metadata(cwd, "1.2.3")
@@ -222,6 +227,40 @@ class LocalReleaseTests(unittest.TestCase):
         self.assertFalse((self.root / "release").exists())
         self.assertTrue(all(c["argv"][0] == "git" for c in self.runner.calls))
 
+    def test_all_desktop_products_and_selection(self):
+        self.assertEqual(set(p["id"] for p in self.release.select_products(None)), {
+            "2a03", "aswan", "dmg", "fm2608", "huc6280", "nitro-ds", "playground",
+            "sid", "smsgear", "snes", "spu", "synth", "vgm-analyzer", "ym2149-st",
+        })
+        self.assertEqual([p["id"] for p in self.release.select_products("sid, vgm-analyzer")],
+                         ["vgm-analyzer", "sid"])
+        for selection in ("", "sid,sid", "sid,scsp", "sid,"):
+            with self.subTest(selection=selection):
+                with self.assertRaises(self.release.ReleaseError):
+                    self.release.select_products(selection)
+
+    def test_plan_and_commit_only_the_selected_products(self):
+        selected = self.release.select_products("sid")
+        (self.apps[-1] / "dist/index.html").write_text("Unrelated user's edit\n")
+        before = tree_bytes(self.root)
+        plan = self.release.plan_release(self.root, self.VERSION, self.web,
+                                         products=selected, runner=self.runner)
+        self.assertEqual(tree_bytes(self.root), before)
+        self.assertEqual([p["id"] for p in plan["products"]], ["sid"])
+        with mock.patch.object(self.release, "collect_artifacts",
+                               side_effect=self.artifact_fixture):
+            self.release.prepare_release(self.root, self.VERSION, self.web, products=selected,
+                                         runner=self.runner, password=self.PASSWORD)
+        with self.assertRaisesRegex(self.release.ReleaseError, "complete matching local build"):
+            self.commit()
+        self.assert_original_history()
+        plan = self.release.commit_release(self.root, self.VERSION, runner=self.runner)
+        self.assertEqual(plan["status"], "tagged")
+        self.assertEqual([p["id"] for p in plan["products"]], ["sid"])
+        self.assertEqual(git(self.apps[-1], "rev-parse", "HEAD"), self.heads[-1])
+        self.assertEqual(git(self.apps[-1], "tag", "--list"), "")
+        self.assertEqual((self.apps[-1] / "dist/index.html").read_text(), "Unrelated user's edit\n")
+
     def test_batch_preflight_rejects_dirty_repo_or_existing_tag_before_import(self):
         for issue in ("dirty", "tag"):
             with self.subTest(issue=issue):
@@ -243,15 +282,17 @@ class LocalReleaseTests(unittest.TestCase):
     def test_plan_rejects_stale_or_browser_manifest_and_unsafe_archive(self):
         path = self.web / "manifest.json"
         original = json.loads(path.read_text())
-        for issue in ("checksum", "variant", "path"):
+        for issue in ("checksum", "variant", "path", "browser-zip"):
             with self.subTest(issue=issue):
                 manifest = json.loads(json.dumps(original))
                 if issue == "checksum":
                     manifest["artifacts"][-1]["sha256"] = "0" * 64
                 elif issue == "variant":
                     manifest["variant"] = "for_run"
-                else:
+                elif issue == "path":
                     manifest["artifacts"][-1]["name"] = "../outside.zip"
+                else:
+                    manifest["artifacts"][-1]["name"] = "spu_for_run.zip"
                 write_json(path, manifest)
                 before = tree_bytes(self.root)
                 with self.assertRaises(self.release.ReleaseError):
@@ -275,12 +316,12 @@ class LocalReleaseTests(unittest.TestCase):
             self.assertIn("src-tauri/Cargo.lock", product["fingerprint"])
             calls = [c for c in self.runner.calls if c["cwd"] == app and c["argv"][0] != "git"]
             self.assertEqual([c["argv"] for c in calls], [
-                ["python3", "scripts/import_release.py", product["source"]],
+                ["npm", "run", "import:release", "--", product["source"], "--version", self.VERSION],
                 ["npm", "ci"], ["npm", "test"],
-                ["python3", "scripts/import_release.py", "--check"],
+                ["npm", "run", "import:release", "--", "--check"],
                 ["cargo", "test", "--manifest-path", "src-tauri/Cargo.toml", "--locked"],
                 ["sh", "deploy_mac.sh"],
-                ["python3", "scripts/import_release.py", "--check"],
+                ["npm", "run", "import:release", "--", "--check"],
             ])
         for call in self.runner.calls:
             self.assertNotIn(self.PASSWORD, " ".join(call["argv"]))
@@ -337,6 +378,21 @@ class LocalReleaseTests(unittest.TestCase):
         self.assert_original_history()
         with self.assertRaises(self.release.ReleaseError):
             self.commit()
+
+    def test_bundle_identifier_changes_during_import_are_blocked(self):
+        def mutate_identifier(call):
+            if call["cwd"] == self.apps[0] and call["argv"][:4] == ["npm", "run", "import:release", "--"]:
+                path = self.apps[0] / "src-tauri/tauri.conf.json"
+                data = json.loads(path.read_text())
+                data["identifier"] = "invalid.example.unexpected"
+                write_json(path, data)
+            return False
+
+        self.runner.fail = mutate_identifier
+        with self.assertRaisesRegex(self.release.ReleaseError, "identifier changed"):
+            self.prepare()
+        self.assertFalse(any(c["argv"] == ["sh", "deploy_mac.sh"] for c in self.runner.calls))
+        self.assert_original_history()
 
     def test_commit_failure_after_staging_can_retry_verified_release(self):
         self.prepare()
@@ -400,8 +456,9 @@ class LocalReleaseTests(unittest.TestCase):
     def test_collect_artifacts_verifies_both_architectures_and_rejects_stale_output(self):
         repo = self.apps[0]
         title = "Tetorica Fixture"
+        identifier = "invalid.example.release-fixture"
         product = {"id": "sid", "metadata": {"product": title},
-                   "buildStarted": time.time() - 10}
+                   "identifier": identifier, "buildStarted": time.time() - 10}
         bundles = []
         for target, suffix in (("x86_64-apple-darwin", "x64"),
                                ("aarch64-apple-darwin", "aarch64")):
@@ -410,7 +467,8 @@ class LocalReleaseTests(unittest.TestCase):
             (contents / "MacOS").mkdir(parents=True)
             info = contents / "Info.plist"
             info.write_bytes(plistlib.dumps({"CFBundleShortVersionString": self.VERSION,
-                                             "CFBundleExecutable": "fixture"}))
+                                             "CFBundleExecutable": "fixture",
+                                             "CFBundleIdentifier": identifier}))
             (contents / "MacOS/fixture").write_bytes(b"Synthetic executable")
             (bundle / "dmg").mkdir()
             dmg = bundle / "dmg" / f"{title}_{self.VERSION}_{suffix}.dmg"
@@ -448,11 +506,14 @@ class LocalReleaseTests(unittest.TestCase):
 
         info, dmg = bundles[0]
         original_info = info.read_bytes()
-        for issue in ("wrong-version", "old-dmg"):
+        for issue in ("wrong-version", "wrong-identifier", "old-dmg"):
             with self.subTest(issue=issue):
                 if issue == "wrong-version":
-                    info.write_bytes(plistlib.dumps({"CFBundleShortVersionString": "0.1.0",
-                                                     "CFBundleExecutable": "fixture"}))
+                    info.write_bytes(plistlib.dumps({**plistlib.loads(original_info),
+                                                     "CFBundleShortVersionString": "0.1.0"}))
+                elif issue == "wrong-identifier":
+                    info.write_bytes(plistlib.dumps({**plistlib.loads(original_info),
+                                                     "CFBundleIdentifier": "invalid.example.unexpected"}))
                 else:
                     old = product["buildStarted"] - 1
                     os.utime(dmg, (old, old))

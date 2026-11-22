@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
-test('Analyzer copied JS manifest resolves the shared SPC entry without external files', async t => {
+test('Analyzer copied JS manifest resolves the shared SPC and timed chip entries without external files', async t => {
   const script = await readFile(new URL('./package_itch_vgm_analyzer.sh', import.meta.url), 'utf8');
   const manifest = /\nJS_FILES="\n([\s\S]*?)\n"/.exec(script);
   assert(manifest, 'The Analyzer package declares its copied JavaScript files');
@@ -24,4 +24,7 @@ test('Analyzer copied JS manifest resolves the shared SPC entry without external
   assert.equal(typeof spc.SpcCore, 'function');
   assert.equal(typeof spc.SnesDspCore, 'function');
   assert.equal(typeof spc.prepareSpcTimeline, 'function');
+
+  const worker = await import(pathToFileURL(join(temporary, 'js/playground_worker_chip.js')));
+  assert.equal(typeof worker.createWorkerChip, 'function');
 });

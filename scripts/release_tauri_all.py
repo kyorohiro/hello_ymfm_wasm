@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare nine local signed Mac builds; commit/tag only after verification."""
+"""Prepare selected signed Mac builds and create their local release tags."""
 # SPDX-License-Identifier: BSD-3-Clause
 import argparse
 from contextlib import contextmanager
@@ -17,7 +17,7 @@ import sys
 import time
 
 from tauri_release_metadata import (
-    dependency_snapshot, read_metadata, update_metadata, validate_version,
+    dependency_snapshot, read_metadata, validate_version,
     verify_metadata,
 )
 
@@ -32,6 +32,11 @@ PRODUCTS = (
     {"id": "snes", "repo": "tetorica-sdsp-synth-tauri"},
     {"id": "sid", "repo": "tetorica-sid-synth-tauri"},
     {"id": "spu", "repo": "tetorica-spu-synth-tauri"},
+    {"id": "aswan", "repo": "tetorica-aswan-synth-tauri"},
+    {"id": "fm2608", "repo": "tetorica-fm2608-synth-tauri"},
+    {"id": "nitro-ds", "repo": "tetorica-nitro-ds-synth-tauri"},
+    {"id": "smsgear", "repo": "tetorica-smsgear-ym2413-synth-tauri"},
+    {"id": "ym2149-st", "repo": "tetorica-st-ym2149-synth-tauri"},
 )
 METADATA_FILES = {
     "package.json", "package-lock.json", "src-tauri/Cargo.toml",
@@ -42,6 +47,17 @@ SECRET_ENV = {"APPLE_PASSWORD", "APPLE_APP_SPECIFIC_PASSWORD"}
 
 class ReleaseError(RuntimeError):
     pass
+
+
+def select_products(selection):
+    if selection is None:
+        return PRODUCTS
+    ids = [part.strip() for part in selection.split(",")]
+    available = {product["id"] for product in PRODUCTS}
+    if "" in ids or len(ids) != len(set(ids)) or set(ids) - available:
+        raise ReleaseError("List unique product IDs separated by commas. Available: "
+                           + ", ".join(product["id"] for product in PRODUCTS))
+    return tuple(product for product in PRODUCTS if product["id"] in ids)
 
 
 def clean_env():
@@ -180,11 +196,20 @@ def npm_dependencies(repo):
     return lock
 
 
+def app_identifier(repo):
+    identifier = read_json(repo / "src-tauri/tauri.conf.json").get("identifier")
+    if not isinstance(identifier, str) or not identifier:
+        raise ReleaseError(f"Missing Tauri bundle identifier: {repo}")
+    return identifier
+
+
 def plan_release(root, version, web_dir, products=PRODUCTS, runner=None):
     """Read only. Web manifest's version is deliberately independent of VERSION."""
     root, web_dir = Path(root).resolve(), Path(web_dir).resolve()
     version = validate_version(version)
     runner = runner or Runner()
+    if not products:
+        raise ReleaseError("Select at least one Tauri product.")
     manifest = read_json(web_dir / "manifest.json")
     if manifest.get("kind") != "itch-batch-collection" or manifest.get("variant") != "download":
         raise ReleaseError("Use the normal Web collection (manifest variant download), not _for_run.")
@@ -209,9 +234,12 @@ def plan_release(root, version, web_dir, products=PRODUCTS, runner=None):
                 raise ReleaseError("Uncommitted/local imported-asset edits: " + ", ".join(dirty or ["local-changes.json"]))
             if tag_exists(repo, version, runner):
                 raise ReleaseError(f"Tag v{version} already exists.")
-            for name in ("deploy_mac.sh", "scripts/import_release.py"):
-                if not (repo / name).is_file():
-                    raise ReleaseError(f"Missing {name}")
+            if not (repo / "deploy_mac.sh").is_file():
+                raise ReleaseError("Missing deploy_mac.sh")
+            scripts = read_json(repo / "package.json").get("scripts")
+            import_script = scripts.get("import:release") if isinstance(scripts, dict) else None
+            if not isinstance(import_script, str) or not import_script.strip():
+                raise ReleaseError("Missing npm import:release script.")
             metadata = read_metadata(repo)
             matches = [a for a in artifacts if a.get("product") == product["id"]]
             if len(matches) != 1:
@@ -220,13 +248,16 @@ def plan_release(root, version, web_dir, products=PRODUCTS, runner=None):
             name = archive["name"]
             if not isinstance(name, str) or Path(name).name != name or not name.endswith(".zip"):
                 raise ReleaseError("Unsafe Web archive name.")
+            if name.endswith("_for_run.zip"):
+                raise ReleaseError("Use the normal Web ZIP for " + product["id"])
             source = file_record(web_dir / name)
             if source["sha256"] != archive.get("sha256") or source["bytes"] != archive.get("bytes"):
                 raise ReleaseError("Web ZIP does not match its collection manifest: " + name)
             plan["products"].append({
                 **product, "source": source["path"], "sourceSha256": source["sha256"],
                 "sourceRecord": source, "baseHead": git(repo, "rev-parse", "HEAD", runner=runner),
-                "metadata": metadata, "dependencies": dependency_snapshot(repo),
+                "metadata": metadata, "identifier": app_identifier(repo),
+                "dependencies": dependency_snapshot(repo),
                 "npmDependencies": npm_dependencies(repo),
                 "status": "pending",
             })
@@ -258,11 +289,20 @@ def verify_inputs(repo, product, version, runner):
     if git(repo, "rev-parse", "HEAD", runner=runner) != product["baseHead"]:
         raise ReleaseError(f"HEAD changed: {repo}")
     check_record(product["sourceRecord"])
-    verify_metadata(repo, version)
+    verify_identity_and_version(repo, product, version)
     if dependency_snapshot(repo) != product["dependencies"]:
         raise ReleaseError(f"Cargo dependencies changed during build: {repo}")
     if npm_dependencies(repo) != product["npmDependencies"]:
         raise ReleaseError(f"npm dependencies changed during build: {repo}")
+
+
+def verify_identity_and_version(repo, product, version):
+    verify_metadata(repo, version)
+    actual = read_metadata(repo)
+    if any(actual[key] != product["metadata"][key] for key in ("name", "packageName", "product")):
+        raise ReleaseError(f"App identity changed during release: {repo}")
+    if product.get("identifier") and app_identifier(repo) != product["identifier"]:
+        raise ReleaseError(f"Tauri bundle identifier changed during release: {repo}")
 
 
 def prepare_native_resources(repo, runner, log):
@@ -298,6 +338,8 @@ def collect_artifacts(repo, product, version, output, runner, password):
         info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
         if info.get("CFBundleShortVersionString") != version:
             raise ReleaseError(f"Built app version mismatch: {app}")
+        if product.get("identifier") and info.get("CFBundleIdentifier") != product["identifier"]:
+            raise ReleaseError(f"Built app bundle identifier mismatch: {app}")
         executable = app / "Contents/MacOS" / info["CFBundleExecutable"]
         log = output / "logs" / f"{product['id']}.log"
         for command in (
@@ -347,12 +389,12 @@ def prepare_release(root, version, web_dir, products=PRODUCTS, runner=None, pass
                 repo = root / "w" / product["repo"]
                 log = path.parent / "logs" / f"{product['id']}.log"
                 print(f"[{product['id']}] Import → version {version} → checks → deploy_mac.sh", flush=True)
-                runner.run(["python3", "scripts/import_release.py", product["source"]],
+                runner.run(["npm", "run", "import:release", "--", product["source"], "--version", version],
                            cwd=repo, log=log)
-                update_metadata(repo, version)
+                verify_inputs(repo, product, version, runner)
                 commands = [
                     ["npm", "ci"], ["npm", "test"],
-                    ["python3", "scripts/import_release.py", "--check"],
+                    ["npm", "run", "import:release", "--", "--check"],
                 ]
                 for command in commands:
                     runner.run(command, cwd=repo, log=log)
@@ -365,7 +407,7 @@ def prepare_release(root, version, web_dir, products=PRODUCTS, runner=None, pass
                 runner.run(["sh", "deploy_mac.sh"], cwd=repo,
                            env={"CI": "true", "APPLE_PASSWORD": password},
                            log=log, secret=password)
-                runner.run(["python3", "scripts/import_release.py", "--check"],
+                runner.run(["npm", "run", "import:release", "--", "--check"],
                            cwd=repo, log=log)
                 verify_inputs(repo, product, version, runner)
                 product["artifacts"] = collect_artifacts(
@@ -388,7 +430,7 @@ def prepare_release(root, version, web_dir, products=PRODUCTS, runner=None, pass
     return plan
 
 
-def commit_release(root, version, products=PRODUCTS, runner=None):
+def commit_release(root, version, products=None, runner=None):
     root, version = Path(root).resolve(), validate_version(version)
     runner = runner or Runner()
     path = state_path(root, version)
@@ -396,8 +438,14 @@ def commit_release(root, version, products=PRODUCTS, runner=None):
         plan = read_json(path)
         if (plan.get("kind") != "tauri-local-release" or plan.get("version") != version
                 or plan.get("status") not in ("built", "committing", "tagged")
-                or [(p["id"], p["repo"]) for p in plan["products"]] !=
-                   [(p["id"], p["repo"]) for p in products]):
+                or not plan["products"]):
+            raise ReleaseError("A complete matching local build is required before commit/tag.")
+        planned = {p["id"]: p["repo"] for p in plan["products"]}
+        if len(planned) != len(plan["products"]):
+            raise ReleaseError("Duplicate products in the release plan.")
+        if products is None:
+            products = select_products(",".join(planned))
+        if planned != {p["id"]: p["repo"] for p in products}:
             raise ReleaseError("A complete matching local build is required before commit/tag.")
         check_record(plan["webManifest"])
         # Validate the whole batch before creating the first commit.
@@ -406,7 +454,7 @@ def commit_release(root, version, products=PRODUCTS, runner=None):
             for artifact in product["artifacts"]:
                 check_record(artifact)
             check_record(product["sourceRecord"])
-            verify_metadata(repo, version)
+            verify_identity_and_version(repo, product, version)
             if product.get("commit"):
                 if git(repo, "rev-parse", "HEAD", runner=runner) != product["commit"]:
                     raise ReleaseError(f"Committed HEAD changed: {repo}")
@@ -456,13 +504,16 @@ def main(argv=None):
     modes.add_argument("--commit", action="store_true", help="Create final local commits and vVERSION tags after verified builds")
     parser.add_argument("version", metavar="VERSION", help="App version written to metadata; independent of Web ZIP versions")
     parser.add_argument("--web-dir", type=Path, help="Existing normal itch_all_* collection; its version can differ from VERSION")
+    parser.add_argument("--products", metavar="ID,ID", help="Select products by ID. Defaults to all desktop products for building, and the saved selection for --commit. IDs: "
+                        + ", ".join(product["id"] for product in PRODUCTS))
     args = parser.parse_args(argv)
     try:
         validate_version(args.version)
+        products = select_products(args.products) if args.products is not None or not args.commit else None
         if not args.commit and not args.web_dir:
             parser.error("--web-dir is required for --plan/--prepare (source selection is independent of app VERSION)")
         if args.plan:
-            plan = plan_release(ROOT, args.version, args.web_dir)
+            plan = plan_release(ROOT, args.version, args.web_dir, products)
             print(f"App version: {plan['version']}; source Web collection: {plan['webVersion']}")
             for product in plan["products"]:
                 print(f"{product['repo']}: {product['metadata']['version']} → {args.version}; {Path(product['source']).name}")
@@ -475,15 +526,15 @@ def main(argv=None):
             if missing:
                 raise ReleaseError("Missing local build tools: " + ", ".join(missing))
             # Preflight before asking for local credentials.
-            plan_release(ROOT, args.version, args.web_dir)
+            plan_release(ROOT, args.version, args.web_dir, products)
             if not os.environ.get("APPLE_PASSWORD") and not sys.stdin.isatty():
                 raise ReleaseError("Set APPLE_PASSWORD locally, or run interactively for hidden password entry.")
             password = os.environ.get("APPLE_PASSWORD") or getpass.getpass("APPLE_PASSWORD (local notarization only): ")
-            prepare_release(ROOT, args.version, args.web_dir, password=password)
+            prepare_release(ROOT, args.version, args.web_dir, products, password=password)
             print(f"Built and verified. Review {state_path(ROOT, args.version).parent}")
             print(f"Then: sh scripts/release_tauri_all.sh --commit {args.version}")
         else:
-            commit_release(ROOT, args.version)
+            commit_release(ROOT, args.version, products)
             print(f"Created local commits/tags v{args.version}. No push or GitHub publication performed.")
         return 0
     except (ReleaseError, OSError, ValueError, KeyError) as error:

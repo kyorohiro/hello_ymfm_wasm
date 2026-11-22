@@ -2,6 +2,29 @@
 
 配布物の作成・検証・公開を行うメンテナー向けの手順です。コマンドはリポジトリーのルートから実行します。
 
+## Web・Tauri・itch.ioをまとめてリリース
+
+`WEB_VERSION`と`APP_VERSION`には、それぞれ今回の未使用の版番号を`X.Y.Z`形式で指定します。
+Web用のリリースノートは`NOTES`に指定します。Webの公開だけなら、最初の2コマンドで進められます。
+Webビルドの前に`npm ci`で依存を揃えます。Nitro DSのビルドにはEmscriptenと、検証済みのSkyEmuソースキャッシュまたは取得用のネットワーク接続が必要です。
+
+```sh
+python3 scripts/release_distribution.py prepare-web "$WEB_VERSION"
+python3 scripts/release_distribution.py github-web "$WEB_VERSION" --notes-file "$NOTES" --push --publish
+
+sh scripts/release_tauri_all.sh --prepare "$APP_VERSION" --web-dir "release/itch_all_$WEB_VERSION"
+sh scripts/release_tauri_all.sh --commit "$APP_VERSION"
+python3 scripts/release_distribution.py desktop-ci "$APP_VERSION" --push
+
+python3 scripts/release_distribution.py itch "$WEB_VERSION" --desktop-version "$APP_VERSION"
+python3 scripts/release_distribution.py itch "$WEB_VERSION" --desktop-version "$APP_VERSION" --publish
+```
+
+- `prepare-web`はコミットを記録し、同じソースから通常版とブラウザー版を作ります。GitHub ReleaseにはAnalyzerを含む15製品の通常ZIP、Playgroundの実行用ZIP、`SHA256SUMS`を添付します。`github-web`から`--publish`を省くとドラフトを作成できます。公開前に対象タグの3つのActionsと、添付ファイルのサイズ・SHA-256を確認します。
+- `desktop-ci`は各アプリのタグを送信し、タグとコミットの両方が一致するActionsからWindows x64のNSIS、Linux x64／ARM64のDEBとAppImageを取得します。GitHub側のビルド設定は各Tauriリポジトリで管理します。itchには手元で署名と公証を確認したMac版を使います。
+- `itch`は最初に対象ファイルとアップロード先を表示します。`--publish`を付けると、`~/bin/butler`でブラウザー版を`html`、改造用ZIPを`source`、各インストーラーをOS・CPU別のチャンネルへ送ります。`source`には元のZIPと`SHA256SUMS`を含めます。新しい`html`チャンネルを初めて公開したときは、itch.ioの編集画面でブラウザー実行用の設定を行います。[Butlerの公式手順](https://itch.io/docs/butler/pushing.html#html-playable-in-browser-games)
+- 認証には手元の`gh`と`butler`を使います。ステップを再実行すると、Web ZIP、GitHubの添付、回収済みのCI成果物、記録済みのitchアップロードを照合して再利用します。`--products`で対象を絞れます。Web版だけをitchへ送る場合は`--desktop-version`を省きます。
+
 ## itch.io向けを共通の版番号で一括作成
 
 通常配布用とブラウザー公開用を、同じ版番号でまとめられます。
@@ -14,21 +37,21 @@ sh scripts/package_itch_all_for_run.sh 20261114
 - 通常配布用：`release/itch_all_20261114/`
 - ブラウザー公開用：`release/itch_all_20261114_for_run/`
 
-各フォルダーには、10種類のSynth、VGM Analyzer、Playgroundの個別ZIPを12本と、
+各フォルダーには、13種類のSynth、VGM Analyzer、Playgroundの個別ZIPを15本と、
 `manifest.json`、`SHA256SUMS`、`README.txt`をまとめます。各製品のitchプロジェクトへ
 対応するZIPを個別にアップロードしてください。まとめ先のフォルダー自体はアプリのZIPではありません。
 
-ブラウザー公開用フォルダー内の12本は、すべて名前を`*_for_run.zip`にします。
+ブラウザー公開用フォルダー内の15本は、すべて名前を`*_for_run.zip`にします。
 例えばDMGは通常配布用が`tetorica_dmg_synth_20261114_itch.zip`、ブラウザー公開用が
 `tetorica_dmg_synth_20261114_itch_for_run.zip`です。
 ZIPの内容が異なるのはPlaygroundだけで、通常配布用はソースを含むダウンロード版、
-ブラウザー公開用は実行用の`*_itch_playground_for_run.zip`を選びます。他の11製品は
+ブラウザー公開用は実行用の`*_itch_playground_for_run.zip`を選びます。他の14製品は
 同じバイト列を別名でコピーします。`release/`直下の元ZIP名や個別スクリプトの出力名は変わりません。
 Game Boy／NESの互換コマンドはDMG／2A03と重複するため、一括実行では省きます。
 
-最初の実行で全12製品を作成し、各ZIP名にも共通の版番号を含めます。
+最初の実行で全15製品を作成し、各ZIP名にも共通の版番号を含めます。
 同じ版番号でもう一方のコマンドを実行すると、完了記録
-`release/itch_all_20261114.json`と全13本のZIPのハッシュを検証して再利用します。
+`release/itch_all_20261114.json`と全16本のZIPのハッシュを検証して再利用します。
 旧形式のブラウザー公開用フォルダーも、同じ版番号で再実行すると更新できます。
 内容を検証してから旧フォルダーを`*.before-for-run-names`へ退避し、全ZIP名に
 `_for_run`を付けたフォルダーへ切り替えます。製品をビルドし直す必要はありません。
@@ -61,13 +84,12 @@ ZIPの取り込み成功と一緒に`package.json`、`package-lock.json`、
 `--version`を省略すれば、従来どおりZIPだけ取り込みます。
 `--check`や`--record-local-changes`との同時指定はできません。
 
-2A03、DMG、HuC6280、S-DSP、SID、SPU、FM2612 Synth、VGM Analyzer、Playgroundの
-9リポジトリで同じオプションを使えます。各リポジトリ単体で実行でき、
+対象の14リポジトリで同じオプションを使えます。各リポジトリ単体で実行でき、
 親リポジトリのスクリプトには依存しません。
 取り込み後にテスト・リリースビルドを行い、更新した設定・lockと取り込んだファイルを
 最終commitに含めてからタグを付けてください。取り込みコマンド自体はbuild・commit・tagを行いません。
 
-## 補助ツール：Tauri 9アプリをローカルで一括ビルド
+## Tauri 14アプリをローカルで一括ビルド
 
 `VERSION`は、実行時に指定する**Tauriアプリの共通版番号**です。
 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、
@@ -84,7 +106,7 @@ sh scripts/release_tauri_all.sh --prepare VERSION --web-dir release/itch_all_202
 sh scripts/release_tauri_all.sh --commit VERSION
 ```
 
-`--plan`は読み取りだけです。9リポジトリの未commit変更や既存タグ、Web ZIPのハッシュを、
+`--plan`は読み取りだけです。対象リポジトリの未commit変更や既存タグ、Web ZIPのハッシュを、
 取り込み前にまとめて確認します。変更がある場合は、先にそのリポジトリで整理してください。
 `dist/`の直接編集や`local-changes.json`も自動で消しません。
 `--web-dir`には通常配布用の`itch_all_*/`を指定します。
@@ -111,14 +133,14 @@ commit／tagの途中で止まった場合は、進行記録を使って同じ`-
 原因を直して各アプリの変更を確認・整理し、途中の`release/tauri_VERSION/`を退避してから再実行します。
 停電等で`release/.tauri_release.lock`が残った場合も、実行中の処理がないことを確認してから扱ってください。
 
-対象は2A03、DMG、FM2612 Synth、SPU、HuC6280、S-DSP、SID、VGM Analyzer、Playgroundです。
-Windows／Linuxの配布とGitHub公開の一括化は後続作業です。
-現行ActionsはMac成果物もアップロードするため、ローカル署名済み成果物を置き換えないよう
-workflow側を整理してから公開してください。
+対象は2A03、ASWAN、DMG、FM2608、FM2612、HuC6280、Nitro DS、S-DSP、SID、SMS／Game Gear、SPU、
+ST YM2149のSynth、VGM Analyzer、Playgroundです。SCSPはWeb版を配布します。
+`--products nitro-ds,playground`のように絞り込めます。`--commit`は保存済みの選択を使います。
+既存のActionsが自動生成するTauri用GitHub Releaseドラフトは、各リポジトリで管理します。
 
 ## npmパッケージ
 
-パッケージごとの版番号更新、検証、公開手順は、次の文書を参照してください。
+npmは独立した版番号で公開します。以下のパッケージ別手順でテストとpackを実行し、検証済みのtgzで`npm publish --dry-run`を通してから同じtgzを公開します。npmが追加認証を求めた場合は、アカウント所有者が承認します。公開後は`npm view`のバージョンと`dist.integrity`を照合します。
 
 | パッケージ | 手順 | バージョンの設定先 | packコマンド |
 |---|---|---|---|
