@@ -136,7 +136,23 @@ commit／tagの途中で止まった場合は、進行記録を使って同じ`-
 対象は2A03、ASWAN、DMG、FM2608、FM2612、HuC6280、Nitro DS、S-DSP、SID、SMS／Game Gear、SPU、
 ST YM2149のSynth、VGM Analyzer、Playgroundです。SCSPはWeb版を配布します。
 `--products nitro-ds,playground`のように絞り込めます。`--commit`は保存済みの選択を使います。
-既存のActionsが自動生成するTauri用GitHub Releaseドラフトは、各リポジトリで管理します。
+
+### FM2612 Synthのデスクトップ版をGitHubで公開
+
+`APP_VERSION`に未使用のTauri版番号、`WEB_VERSION`に元のWeb版番号、`NOTES`にリリースノートのパスを指定します。
+FM2612のActionsはタグのビルド結果をArtifactsに保存します。
+`github-desktop`はタグとビルド元のコミットを照合し、手元で署名・公証を確認したMacのDMG 2本、
+Windows x64のインストーラー1本、Linux x64／ARM64のDEBとAppImage 4本を同じGitHub Releaseにまとめます。
+
+```sh
+sh scripts/release_tauri_all.sh --prepare "$APP_VERSION" --web-dir "release/itch_all_$WEB_VERSION" --products synth
+sh scripts/release_tauri_all.sh --commit "$APP_VERSION"
+python3 scripts/release_distribution.py desktop-ci "$APP_VERSION" --push
+python3 scripts/release_distribution.py github-desktop "$APP_VERSION" --notes-file "$NOTES" --publish
+```
+
+`--publish`を省くとドラフトに添付します。すべてのファイルのSHA-256を照合し、再実行時は添付済みのファイルを再利用します。
+FM2612以外のActionsが作成するGitHubドラフトは、引き続き各リポジトリで管理します。
 
 ## npmパッケージ
 

@@ -499,7 +499,10 @@ class LocalReleaseTests(unittest.TestCase):
             for arch in ("x86_64", "arm64") for suffix in (".app.zip", ".dmg")})
         for record in records:
             self.assertEqual(self.release.file_record(record["path"]), record)
-        self.assertEqual([c[2] for c in calls if c[0] == "lipo"], ["x86_64", "arm64"])
+        self.assertEqual([c for c in calls if c[0] == "lipo"], [
+            ["lipo", str(info.parent / "MacOS/fixture"), "-verify_arch", arch]
+            for (info, _), arch in zip(bundles, ("x86_64", "arm64"))
+        ])
         self.assertEqual(sum(c[:2] == ["codesign", "--verify"] for c in calls), 2)
         self.assertEqual(sum(c[:3] == ["xcrun", "stapler", "validate"] for c in calls), 2)
         self.assertEqual(sum(c[0] == "ditto" for c in calls), 2)

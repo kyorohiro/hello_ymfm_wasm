@@ -345,7 +345,7 @@ def collect_artifacts(repo, product, version, output, runner, password):
         for command in (
             ["codesign", "--verify", "--deep", "--strict", str(app)],
             ["xcrun", "stapler", "validate", str(app)],
-            ["lipo", "-verify_arch", arch, str(executable)],
+            ["lipo", str(executable), "-verify_arch", arch],
         ):
             runner.run(command, cwd=repo, log=log, secret=password)
         # Exact version/architecture matching avoids collecting an older DMG.

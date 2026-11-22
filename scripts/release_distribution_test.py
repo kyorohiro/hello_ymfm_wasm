@@ -130,6 +130,56 @@ class ReleaseDistributionTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaisesRegex(release.ReleaseError, "Unexpected or changed"):
                 release.missing_github_assets([normal], [{**asset, **change}])
 
+    def fm2612_desktop_release(self):
+        self.desktop_artifacts()
+        state = release.state_path(self.root, VERSION)
+        target = state.parent / "ci" / "synth"
+        target.mkdir(parents=True)
+        product = {
+            "id": "synth", "repo": "tetorica-fm2612-synth-tauri", "tagged": True, "commit": COMMIT,
+            "artifacts": [self.artifact(f"mac/synth_{VERSION}_{arch}.dmg", arch.encode())
+                          for arch in ("x86_64", "arm64")],
+        }
+        release.write_state(state, {"kind": "tauri-local-release", "status": "tagged",
+                                    "version": VERSION, "products": [product]})
+        files = release.gather_installers(self.root / "download", target, VERSION)
+        release.write_state(target / "artifacts.json", {"commit": COMMIT, "version": VERSION, "files": files})
+        self.gh.return_value = {"object": {"type": "commit", "sha": COMMIT}}
+        return product, target
+
+    def test_fm2612_desktop_stages_seven_installers_and_checksum(self):
+        self.fm2612_desktop_release()
+        expected = {"mac-arm64.dmg", "mac-x64.dmg", "win-x64.exe", "linux-x64-deb.deb",
+                    "linux-arm64-deb.deb", "linux-x64.AppImage", "linux-arm64.AppImage"}
+        notes = self.root / "notes.md"
+
+        def upload(repo, tag, title, actual_notes, records, publish):
+            self.assertEqual((repo, tag, title, actual_notes, publish), (
+                f"{release.GITHUB_OWNER}/tetorica-fm2612-synth-tauri", TAG,
+                f"Tetorica FM2612 Synth {TAG}", notes, True,
+            ))
+            paths = {Path(record["path"]).name: record for record in records}
+            names = {f"tetorica-fm2612-synth_{VERSION}_{name}" for name in expected}
+            self.assertEqual(set(paths), names | {"SHA256SUMS"})
+            checksum = Path(paths["SHA256SUMS"]["path"]).read_text().splitlines()
+            self.assertEqual(set(checksum), {f"{paths[name]['sha256']}  {name}" for name in names})
+            self.assertEqual(Path(paths[f"tetorica-fm2612-synth_{VERSION}_mac-arm64.dmg"]["path"]).read_bytes(), b"arm64")
+
+        with patch.object(release, "upload_github_release", side_effect=upload) as upload_mock:
+            release.github_desktop(VERSION, notes, True)
+        upload_mock.assert_called_once()
+
+    def test_fm2612_desktop_rejects_wrong_tag_and_tampered_ci(self):
+        _, target = self.fm2612_desktop_release()
+        self.gh.return_value = {"object": {"type": "commit", "sha": OTHER_COMMIT}}
+        with self.assertRaisesRegex(release.ReleaseError, "recorded tag"):
+            release.github_desktop(VERSION, self.root / "notes.md", True)
+        self.gh.return_value = {"object": {"type": "commit", "sha": COMMIT}}
+        (target / "win-x64.exe").write_bytes(b"tampered installer")
+        with self.assertRaisesRegex(release.ReleaseError, "Updated CI installer"):
+            release.github_desktop(VERSION, self.root / "notes.md", True)
+        self.run.assert_not_called()
+
     def test_failed_tagged_workflow_blocks_publish(self):
         self.web_artifacts()
         self.gh.return_value = {"object": {"type": "commit", "sha": COMMIT}}

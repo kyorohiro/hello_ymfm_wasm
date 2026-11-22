@@ -33,6 +33,7 @@ CI_PLATFORMS = {
     "linux-arm64": {".deb": "linux-arm64-deb", ".AppImage": "linux-arm64"},
 }
 WEB_WORKFLOWS = ("itch-web.yml", "vgm-mock.yml", "sbi.yml")
+MAC_DMG_CHANNELS = (("arm64", "mac-arm64"), ("x86_64", "mac-x64"))
 
 
 def run(*argv, cwd=ROOT, capture=True):
@@ -182,29 +183,36 @@ def github_web(version, notes, push, publish, wait):
             if row["conclusion"] != "success":
                 raise ReleaseError(f"Release checks failed: {row['url']}")
     records = [*web["normal"].values(), web["browser"]["playground"]]
-    checksum = web_state(version).with_name("SHA256SUMS")
-    checksum.write_text("".join(
+    records.append(release_checksum(records, web_state(version).with_name("SHA256SUMS")))
+    upload_github_release(WEB_REPO, tag, f"Tetorica {tag} — Browser builds", notes, records, publish)
+
+
+def release_checksum(records, path):
+    path.write_text("".join(
         f"{record['sha256']}  {Path(record['path']).name}\n" for record in records
     ), encoding="utf-8")
-    records.append(file_record(checksum))
+    return file_record(path)
+
+
+def upload_github_release(repo, tag, title, notes, records, publish):
     try:
-        release = gh_json("release", "view", tag, "-R", WEB_REPO, "--json", "databaseId,isDraft,url")
+        release = gh_json("release", "view", tag, "-R", repo, "--json", "databaseId,isDraft,url")
     except ReleaseError as error:
         if "release not found" not in str(error).lower():
             raise
-        run("gh", "release", "create", tag, "-R", WEB_REPO, "--verify-tag", "--draft",
-            "--title", f"Tetorica {tag} — Browser builds", "--notes-file", notes)
-        release = gh_json("release", "view", tag, "-R", WEB_REPO, "--json", "databaseId,isDraft,url")
-    endpoint = f"repos/{WEB_REPO}/releases/{release['databaseId']}"
+        run("gh", "release", "create", tag, "-R", repo, "--verify-tag", "--draft",
+            "--title", title, "--notes-file", notes)
+        release = gh_json("release", "view", tag, "-R", repo, "--json", "databaseId,isDraft,url")
+    endpoint = f"repos/{repo}/releases/{release['databaseId']}"
     missing = missing_github_assets(records, gh_json("api", endpoint)["assets"])
     if missing and not release["isDraft"]:
         raise ReleaseError("Published release is missing expected assets.")
     if missing:
-        run("gh", "release", "upload", tag, "-R", WEB_REPO, *missing, capture=False)
+        run("gh", "release", "upload", tag, "-R", repo, *missing, capture=False)
     if missing_github_assets(records, gh_json("api", endpoint)["assets"]):
         raise ReleaseError("GitHub did not receive all verified release assets.")
     if publish and release["isDraft"]:
-        run("gh", "release", "edit", tag, "-R", WEB_REPO, "--verify-tag", "--draft=false", capture=False)
+        run("gh", "release", "edit", tag, "-R", repo, "--verify-tag", "--draft=false", capture=False)
     print(gh_json("api", endpoint)["html_url"])
 
 
@@ -305,6 +313,42 @@ def ci_records(target, product, version):
     return records
 
 
+def mac_dmgs(product, version):
+    dmgs = {}
+    for arch, channel in MAC_DMG_CHANNELS:
+        matches = [file for file in product["artifacts"] if file["path"].endswith(f"_{version}_{arch}.dmg")]
+        if len(matches) != 1:
+            raise ReleaseError(f"Expected signed DMG for {product['id']} {arch}")
+        dmgs[channel] = matches[0]
+    return dmgs
+
+
+def github_desktop(version, notes, publish):
+    plan = committed_desktop(version)
+    products = [product for product in plan["products"] if product["id"] == "synth"]
+    if len(products) != 1:
+        raise ReleaseError("Prepare the FM2612 Synth with --products synth before using github-desktop.")
+    product, = products
+    repo, tag = f"{GITHUB_OWNER}/{product['repo']}", f"v{version}"
+    if remote_tag(repo, tag) != product["commit"]:
+        raise ReleaseError(f"Push the recorded tag for {repo} with desktop-ci --push first.")
+    target = state_path(ROOT, version).parent / "ci" / product["id"]
+    installers = {**mac_dmgs(product, version), **ci_records(target, product, version)}
+    with tempfile.TemporaryDirectory(prefix="tetorica-fm2612-desktop-") as output:
+        folder = Path(output)
+        records = []
+        for channel, original in installers.items():
+            source = Path(original["path"])
+            destination = folder / f"tetorica-fm2612-synth_{version}_{channel}{source.suffix}"
+            shutil.copyfile(source, destination)
+            record = file_record(destination)
+            if (record["bytes"], record["sha256"]) != (original["bytes"], original["sha256"]):
+                raise ReleaseError(f"Installer changed while staging: {source}")
+            records.append(record)
+        records.append(release_checksum(records, folder / "SHA256SUMS"))
+        upload_github_release(repo, tag, f"Tetorica FM2612 Synth {tag}", notes, records, publish)
+
+
 def itch_targets(web_version, desktop_version=None, products=None):
     web = verified_web(web_version)
     selected = set(products or ITCH_SLUG)
@@ -326,11 +370,8 @@ def itch_targets(web_version, desktop_version=None, products=None):
             if product["sourceSha256"] != web["normal"][identifier]["sha256"]:
                 raise ReleaseError(f"Desktop installers for {identifier} used a different Web ZIP.")
             site = f"{GITHUB_OWNER}/{ITCH_SLUG[identifier]}"
-            for arch, channel in (("arm64", "mac-arm64"), ("x86_64", "mac-x64")):
-                dmgs = [file for file in product["artifacts"] if file["path"].endswith(f"_{arch}.dmg")]
-                if len(dmgs) != 1:
-                    raise ReleaseError(f"Expected signed DMG for {product['id']} {arch}")
-                targets[f"{site}:{channel}"] = (desktop_version, dmgs[0])
+            for channel, dmg in mac_dmgs(product, desktop_version).items():
+                targets[f"{site}:{channel}"] = (desktop_version, dmg)
             target = state_path(ROOT, desktop_version).parent / "ci" / identifier
             for channel, record in ci_records(target, product, desktop_version).items():
                 targets[f"{site}:{channel}"] = (desktop_version, record)
@@ -376,14 +417,16 @@ def main():
     web = sub.add_parser("prepare-web", help="Build and checksum both Web ZIP collections")
     github = sub.add_parser("github-web", help="Verify the tag and upload the browser release assets")
     desktop = sub.add_parser("desktop-ci", help="Wait for tagged desktop runs and collect Windows/Linux")
+    desktop_release = sub.add_parser("github-desktop", help="Attach or publish verified FM2612 desktop installers")
     upload = sub.add_parser("itch", help="Print the planned uploads or update itch.io")
-    for stage in (web, github, desktop, upload):
+    for stage in (web, github, desktop, desktop_release, upload):
         stage.add_argument("version", type=validate_version)
-    github.add_argument("--notes-file", type=Path, required=True)
+    for stage in (github, desktop_release):
+        stage.add_argument("--notes-file", type=Path, required=True)
     for stage in (github, desktop):
         stage.add_argument("--push", action="store_true", help="Push the exact release tag")
         stage.add_argument("--wait", type=int, default=3600, help="Seconds to wait for each Actions run")
-    for stage in (github, upload):
+    for stage in (github, desktop_release, upload):
         stage.add_argument("--publish", action="store_true")
     upload.add_argument("--desktop-version", type=validate_version)
     upload.add_argument("--products", help="Comma-separated product IDs")
@@ -398,6 +441,9 @@ def main():
             github_web(args.version, args.notes_file.resolve(strict=True), args.push, args.publish, args.wait)
         elif args.stage == "desktop-ci":
             desktop_ci(args.version, args.push, args.wait)
+        elif args.stage == "github-desktop":
+            with release_lock(ROOT):
+                github_desktop(args.version, args.notes_file.resolve(strict=True), args.publish)
         else:
             selected = args.products.split(",") if args.products else None
             if args.publish:
