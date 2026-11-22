@@ -133,7 +133,10 @@ interface ScspCodeDspApplyOptions {
 }
 type ScspCodeConfigPatch = Partial<Omit<ScspCodeConfig,'fm'|'effect'>> & {fm?:Partial<ScspCodeConfig['fm']>};
 type ScspCodeMix = Omit<PlaygroundScspMix,'dspInput'|'dspSend'>;
-type ScspCodePresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'|'lfo'|'modulation'|'dspInput'|'dspSend'>> & {envelope?:Partial<PlaygroundScspEnvelope>;lfo?:Partial<PlaygroundScspLfo>};
+type ScspCodePresetPatch = Partial<Omit<PlaygroundScspPreset,'sample'|'envelope'|'lfo'|'modulation'|'dspInput'|'dspSend'>> & {
+  /** An authored source operator always has a sample from this bank. */
+  sample?:PlaygroundScspSample;envelope?:Partial<PlaygroundScspEnvelope>;lfo?:Partial<PlaygroundScspLfo>;
+};
 interface ScspCodePortableOperator {
   bits:8|16;pcm:number[];options:PlaygroundScspPCMOptions;
   voice:Omit<PlaygroundScspPreset,'sample'|'modulation'|'dspInput'|'dspSend'>;
@@ -163,10 +166,18 @@ type ScspCodePatch = ScspCodePatchBase & (
   {version:11;mode:'fm2';fm:ScspCodeCycle2Fm}
 );
 interface ScspCodeState extends PlaygroundScspState {
-  config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
+  kind:'scsp';config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
+  channels:(PlaygroundScspState['slots'][number] & {channel:ScspCodeLane;type:'scsp-pcm';active:boolean})[];
+  playingFrequencies:(number|null)[];
+  playingLfos:(PlaygroundScspLfo|null)[];
+  playingModulations:(PlaygroundScspPreset['modulation']|null)[];
+  routing:{count:1|2|4|6;inputs:ScspCodeOperator[][];outputs:ScspCodeOperator[]};
+  dspRamBytes:number;
   /** Current Synth COEF0..2 signed 13-bit codes; multiplier = code / 4096. */
   dspCoefficients:[number,number,number];
   dspRouting:ScspCodeDspRouting;
+  /** Null entries inherit their configured source or default routes. */
+  dspRoutingOverrides:{sources:(ScspCodeDspSend|null)[];slots:(ScspCodeDspSend|null)[]};
   dspReturns:[ScspCodeDspReturn,ScspCodeDspReturn];
   /** App-only software release preference; excluded from portable presets. */
   clickGuard:boolean;

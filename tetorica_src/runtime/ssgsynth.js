@@ -40,13 +40,14 @@ export class SSGSynth {
     for (let r = 0; r <= 13; r++) this.write(r, r === 7 ? (this.registers[7] & 0xc0) | 0x3f : 0);
   }
   /** @param {number} channel 0..2.
-   * @param {{period?: number, frequency?: number, volume?: number, envelope?: boolean}} options
+   * @param {{period?: number, frequency?: number, note?: string|number, volume?: number, envelope?: boolean}} options
    * volume is hardware level 0..15 (0=silent). period overrides frequency.
    */
-  tone(channel, {period, frequency, volume = 12, envelope = false} = {}) {
+  tone(channel, {period, frequency, note, volume = 12, envelope = false} = {}) {
     integer('channel', channel, 2); integer('volume', volume, 15);
     if (typeof envelope !== 'boolean') throw new TypeError('SSG envelope must be boolean');
     if (period === undefined) {
+      if (frequency === undefined && note !== undefined) frequency = noteToHz(note);
       if (!Number.isFinite(frequency) || frequency <= 0) throw new RangeError('Invalid SSG frequency');
       period = Math.max(1, Math.min(4095, Math.round(this.clock / (16 * frequency))));
     }
@@ -79,6 +80,8 @@ export class SSGSynth {
   }
   /** @param {number} channel @param {string|number} note */
   noteOn(channel, note) { this.setNote(channel, note); this.keyOn(channel); }
+  /** @param {number} channel */
+  noteOff(channel) { this.keyOff(channel); }
   /** Enable shared noise on one channel. Changing period affects all noise-enabled channels. @param {number} channel */
   noise(channel, {period = 16, volume = 10, envelope = false} = {}) {
     integer('channel', channel, 2); integer('period', period, 31); integer('volume', volume, 15);
@@ -96,21 +99,30 @@ export class SSGSynth {
   /** Mixer gates may combine tone and noise on the same channel. @param {number} channel */
   setMixer(channel, {tone, noise}) {
     integer('channel', channel, 2);
-    if (typeof tone !== 'boolean' || typeof noise !== 'boolean') throw new TypeError('SSG mixer expects booleans');
-    const bits = (1 << channel) | (8 << channel);
-    this.write(7, (this.registers[7] & ~bits) | (tone ? 0 : 1 << channel) | (noise ? 0 : 8 << channel));
+    if ((tone !== undefined && typeof tone !== 'boolean') || (noise !== undefined && typeof noise !== 'boolean'))
+      throw new TypeError('SSG mixer expects booleans');
+    let mixer = this.registers[7];
+    if (tone !== undefined) mixer = tone ? mixer & ~(1 << channel) : mixer | (1 << channel);
+    if (noise !== undefined) mixer = noise ? mixer & ~(8 << channel) : mixer | (8 << channel);
+    if (tone !== undefined || noise !== undefined) this.write(7, mixer);
   }
   /** Envelope selection replaces fixed volume with the shared hardware envelope. @param {number} channel @param {number} volume */
-  setVolume(channel, volume, envelope = false) {
+  setVolume(channel, volume, envelope) {
     integer('channel', channel, 2); integer('volume', volume, 15);
-    if (typeof envelope !== 'boolean') throw new TypeError('SSG envelope must be boolean');
-    this.write(8 + channel, envelope ? 16 : volume);
+    if (envelope !== undefined && typeof envelope !== 'boolean') throw new TypeError('SSG envelope must be boolean');
+    const useEnvelope = envelope ?? Boolean(this.#levels[channel] & 16);
+    this.write(8 + channel, useEnvelope ? 16 : volume);
   }
   /** @param {number} channel */
   off(channel) { this.keyOff(channel); }
   /** Set the shared envelope period/shape; writing shape retriggers the envelope. */
   setEnvelope({period, shape}) {
-    integer('envelope period', period, 65535); integer('shape', shape, 15);
-    this.write(11, period & 255); this.write(12, period >> 8); this.write(13, shape);
+    if (period !== undefined) integer('envelope period', period, 65535);
+    if (shape !== undefined) integer('shape', shape, 15);
+    if (period !== undefined) {
+      this.write(11, period & 255);
+      this.write(12, period >> 8);
+    }
+    if (shape !== undefined) this.write(13, shape);
   }
 }

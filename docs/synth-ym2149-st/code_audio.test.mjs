@@ -48,6 +48,18 @@ test('Code Stop preserves newer keyboard notes and retires only its FX and borro
   assert.deepEqual(engine.instrument.read().activeChannels,[]);
 });
 
+test('one YM2149 channel can gate Tone and Noise together and Code release preserves held keys',()=>{
+  const {engine}=fixture(),client=createYmBorrowedClient(engine,()=>true,()=>{});
+  client.setMixer(0,{tone:true,noise:true});client.noteOn(0,'C4');
+  const registers=client.getRegisterSnapshot();
+  assert.equal(registers[7]&0x09,0,'tone and noise share the selected channel');
+  engine.instrument.selectChannel(2);engine.instrument.noteOn('manual',67);
+  client.allNotesOff();
+  assert.deepEqual(engine.instrument.read().activeChannels,[2]);
+  assert.equal(client.getRegisterSnapshot()[8],0);
+  assert(engine.instrument.noteOff('manual'));
+});
+
 test('FX borrowing rewires exactly the one existing chip route and restores it on Stop',async()=>{
   const {engine,node}=fixture();let rack,stops=0;
   const controller={liveFx(){},removeLiveFx(){},getChain:()=>[]};

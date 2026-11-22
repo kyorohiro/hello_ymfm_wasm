@@ -101,7 +101,8 @@ class NdsSynthProcessor extends AudioWorkletProcessor {
 		const channel = operation.args[0];
 		const { patch, gate } = resolveNdsOperation(operation, this.timedState(channel));
 		if (gate === 'keyOff' || gate === 'noteOff') {
-			if (this.owners[channel]?.timedOwner === owner) {
+			const voice = this.owners[channel];
+			if (voice?.timedOwner === owner && voice.scheduleName === name) {
 				if (gate === 'keyOff') this.core.keyOff(channel);
 				else this.core.release(channel);
 				this.owners[channel] = null;

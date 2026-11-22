@@ -22,6 +22,9 @@ const gb=await useSoundChip('gameboy');
 const pulse:Promise<void>=gb.pulse.setVoice(CH1,{duty:.25,volume:8,envelope:{period:2}});await pulse;
 const hz:Promise<number>=gb.wave.setNote('E3');await hz;await gb.wave.noteOn(60);await gb.wave.keyOff();
 await gb.noise.setParameters({divisor:3,width:7,shift:4});await gb.noise.keyOn();await gb.keyOff(CH4);
+const released:Promise<boolean>=gb.noise.noteOff();await released;await gb.noteOff(CH4);
+// @ts-expect-error the borrowed Synth already maintains its register state
+gb.adoptRegisterState();
 await gb.setPan(CH3,true,false);await gb.initialize();await gb.reset();await gb.allNotesOff();
 const state=await gb.getState();const source:'pulse'|'wave'|'noise'=state.editorSource;state.registers[0];state.voice[0];state.positionFrames;
 await livePrepare('state',async api=>{const chip=await api.useSoundChip('gameboy');return chip;});

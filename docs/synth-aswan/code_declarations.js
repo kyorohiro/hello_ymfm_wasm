@@ -90,11 +90,17 @@ interface AswanCodeState {
  * Four Wave channels; CH2 can be PCM, CH3 Sweep and CH4 Noise. */
 type AswanCodeClient = Pick<PlaygroundWonderSwan,
   'initialize'|'writeRegister'|'writeMemory'|'loadMemory'|'setWaveform'|'setVolume'|'setPan'|
-  'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'allNotesOff'|'setNoise'|'setSweep'|'setVoiceMode'|'writeVoice'> & {
+  'setFrequency'|'setNote'|'setNoise'|'setSweep'|'setVoiceMode'|'writeVoice'> & {
   readonly id:string;readonly chip:'wonderswan';readonly channels:4;readonly channelCount:4;readonly clock:3072000;
   getState():Promise<AswanCodeState>;
+  initialize():Promise<boolean>;
+  noteOn(channel:PlaygroundWonderSwanChannel,note:string|number):Promise<PlaygroundWonderSwanChannel>;
+  /** Gate at the current hardware period. An imported Synth PCM instrument keeps its sample trigger. */
+  keyOn(channel:PlaygroundWonderSwanChannel):Promise<PlaygroundWonderSwanChannel>;
+  keyOff(channel:PlaygroundWonderSwanChannel):Promise<boolean>;
+  allNotesOff():Promise<boolean>;
   /** Record once without reading or changing live state. Parameter, Synth note and raw Gate operations. */
-  build(callback:(builder:AswanOperationBuilder)=>void,options?:{referenceSampleRate?:number}):AswanOperations;
+  build<Result>(callback:(builder:AswanOperationBuilder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):AswanOperations;
   /** Detached sent-register metadata, not oscillator/LFSR/Sweep phase. */
   captureState():Promise<AswanTimedSnapshot>;
   /** Predict hardware writes without changing audio. Soft noteOn/noteOff and incomplete client state are explicitly rejected. */
@@ -103,9 +109,9 @@ type AswanCodeClient = Pick<PlaygroundWonderSwan,
   schedule(operations:AswanOperations,options:{name:string;repeatSeconds?:number}):Promise<AswanTimedReceipt>;
   clearSchedule(name:string):Promise<boolean>;
   /** Release the selected physical channel, using the current software release setting. */
-  noteOff(channel:PlaygroundWonderSwanChannel):Promise<void>;
+  noteOff(channel:PlaygroundWonderSwanChannel):Promise<boolean>;
   /** End this Code lease without closing the editor's AudioContext. */
-  dispose():Promise<void>;
+  dispose():Promise<boolean | undefined>;
 };
 type AswanCodeSoundChipMap={wonderswan:AswanCodeClient};
 type PlaygroundLivePrepareAPI=AswanCodeAPI;

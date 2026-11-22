@@ -12,7 +12,8 @@ async function prepare(mode){
  process.once('exit',()=>rmSync(directory,{recursive:true,force:true}));
  const scripts=new URL('../../scripts/',import.meta.url),inputs=new URL('./historical_huc_timed_calibration_inputs.mjs',import.meta.url).href;
  const provider=pathToFileURL(join(directory,'archived-fs.mjs')).href;
- await writeFile(new URL(provider),`export {${mode==='post-source-mix'?'readPostSourceMixFileSync':'readFileSync'} as readFileSync} from '${inputs}';`);
+ const readMethod={reviewed:'readFileSync','post-source-mix':'readPostSourceMixFileSync','pre-code-api':'readCodeApiPredecessorFileSync'}[mode];
+ await writeFile(new URL(provider),`export {${readMethod} as readFileSync} from '${inputs}';`);
  const extra=['ps1_mixer_calibration.mjs','wonderswan_mixer_calibration.mjs','pokey_mixer_calibration.mjs','scsp_mixer_calibration.mjs','record_monaco_virtual_models_ui_revision.mjs','record_scsp_dsp_routing_ui_default_parity.mjs'];
  const files=(await readdir(scripts)).filter(name=>(name.startsWith('mixer_calibration_')||name.startsWith('record_scsp_')||['record_playground_scsp_cycle2_examples_revision.mjs','record_playground_scsp_dsp_routing_default_parity.mjs'].includes(name)||extra.includes(name))&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs'));
  const asyncProvider=pathToFileURL(join(directory,'archived-fs-promises.mjs')).href;
@@ -38,7 +39,7 @@ async function prepare(mode){
  return directory;
 }
 export async function historicalCalibrationModule(name,{mode='reviewed'}={}){
- if(!['reviewed','post-source-mix'].includes(mode))throw Error('Unknown historical input mode');
+ if(!['reviewed','post-source-mix','pre-code-api'].includes(mode))throw Error('Unknown historical input mode');
  if(!/^(?:mixer_calibration_[a-z0-9_]+|(?:ps1|wonderswan|pokey|scsp)_mixer_calibration|record_monaco_virtual_models_ui_revision|record_scsp_[a-z0-9_]+|record_playground_scsp_cycle2_examples_revision|record_playground_scsp_dsp_routing_default_parity)\.mjs$/.test(name))throw Error('Expected a historical calibration guard module');
  if(!graphs.has(mode))graphs.set(mode,prepare(mode));
  const directory=await graphs.get(mode);return import(pathToFileURL(join(directory,name)).href);

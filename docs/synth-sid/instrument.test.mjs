@@ -29,6 +29,10 @@ const render=(instrument,frames=4096)=>instrument.renderInto(new Float32Array(fr
 test('Code and keyboard share physical voices with last-KeyOn ownership and keyboard-only focus cleanup',async t=>{
   for(const setupModel of [setup,setup8580]){
     const {instrument}=await setupModel(t),token=instrument.beginCode();
+    const registers=instrument.code(token.session,'getRegisterSnapshot');
+    assert(registers instanceof Uint8Array);assert.equal(registers.length,32);
+    const initialRegister=registers[4];registers[4]^=0xff;
+    assert.equal(instrument.code(token.session,'getRegisterSnapshot')[4],initialRegister);
     instrument.code(token.session,'noteOn',[1,'C4']);
     instrument.noteOn('keyboard',67,1);
     assert.equal(instrument.code(token.session,'noteOff',[1]),false);
@@ -38,8 +42,13 @@ test('Code and keyboard share physical voices with last-KeyOn ownership and keyb
     instrument.releaseKeyboard();assert.equal(instrument.code(token.session,'getState').channels[1].gate,true);
     instrument.noteOn('last-key',60,2);instrument.releaseKeyboard();
     const state=instrument.code(token.session,'getState');assert.equal(state.channels[2].gate,false);assert.equal(state.channels[1].gate,true);
-    instrument.noteOn('forced',60,1);instrument.code(token.session,'allNotesOff');
-    assert.equal(instrument.code(token.session,'getState').channels[1].gate,false,'explicit allNotesOff remains physical');
+    instrument.noteOn('held',60,1);instrument.code(token.session,'noteOn',[2,'E4']);
+    assert.equal(instrument.code(token.session,'keyOff',[1]),false);
+    instrument.code(token.session,'allNotesOff');
+    const after=instrument.code(token.session,'getState');
+    assert.equal(after.channels[1].gate,true,'keyboard owner survives Code allNotesOff');
+    assert.equal(after.channels[2].gate,false,'Code Gate releases');
+    assert.equal(instrument.noteOff('held'),true);
     assert.equal(instrument.codeActive,true);
   }
 });

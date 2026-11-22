@@ -44,6 +44,7 @@ await sid.keyOn(CH2);await sid.keyOff(CH2);await sid.allNotesOff();
 await sid.writeRegister(24,15);await sid.reset();await sid.initialize();await sid.dispose();
 const state:PlaygroundSidState=await sid.getState();const gate:boolean=state.channels[0].gate;
 const read:Promise<number>=sid.readRegister(27);const clock:Promise<boolean>=sid.setClock(sid.clock);
+const registers:Uint8Array=await sid.getRegisterSnapshot();const released:boolean=await sid.keyOff(CH1);
 liveLoop('phrase',async()=>{await sid.noteOn(CH3,choose(scale('C4','minor')));await beat(.5);await sid.noteOff(CH3);});
 await livePrepare('state',async api=>{const instrument=await api.useSoundChip('sid');await instrument.setNote(0,60);api.log('ready');
   // @ts-expect-error the borrowed host has no implicit default-FM play helper
@@ -94,7 +95,7 @@ test('SID declarations keep the existing Monaco source mappings for shared clock
       {file:'playground_code_runtime.js',symbol});
     assert(sourcePosition(runtime,symbol).lineNumber>1,symbol);
   }
-  for(const [symbol,file,target=symbol]of [['noteOn','sidsynth.js'],['setVoice','sidsynth.js'],['setFilter','sidsynth.js'],['getState','playground_sid.js','createSidRegisterClient']]) {
+  for(const [symbol,file,target=symbol]of [['noteOn','sidsynth.js'],['setVoice','sidsynth.js'],['setFilter','sidsynth.js'],['getRegisterSnapshot','sidsynth.js'],['getState','playground_sid.js','createSidRegisterClient']]) {
     const line=lines.findIndex(value=>value.trimStart().startsWith(symbol+'('));assert(line>=0,symbol);
     assert.deepEqual(definitionSource(selected,{lineNumber:line+1,column:lines[line].indexOf(symbol)+1},'c64',{runtimeFile:'playground_code_runtime.js'}),{file,symbol:target});
   }

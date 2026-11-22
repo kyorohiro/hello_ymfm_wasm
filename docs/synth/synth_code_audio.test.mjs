@@ -123,7 +123,7 @@ test('a pending CD-DA lease cannot return after Stop and a later epoch acquires 
 test('borrowed FM stays shared with its editor and Code disposal never closes that chip or the context',async()=>{
   const f=fixture(),fm=f.audio.getFm();assert.equal(fm,await f.audio.useSoundChip('ym2612'));
   assert.equal(fm.clock,7670454);fm.noteOn(0,4,644);assert(f.events.some(e=>e[0]==='fm-on'&&e[3]===644));
-  fm.dispose();assert.equal(f.events.filter(e=>e[0]==='fm-off').length,6);
+  fm.dispose();assert.deepEqual(f.events.filter(e=>e[0]==='fm-off'),[['fm-off',0]]);
   await f.audio.stop();assert.equal(f.context.closeCalls,0);assert(f.input.edges.has(f.output));await f.audio.dispose();
 });
 
@@ -144,7 +144,17 @@ test('physical-channel keyboard claims block older Code Off until its next Note 
   await f.audio.dispose();
 });
 
-test('FM, PSG and PCM Code share keyboard channels with last-KeyOn ownership, while explicit allNotesOff remains physical',async()=>{
+test('FM and PSG Code allNotesOff request renderer-held timed releases even without any immediate Code notes',async()=>{
+  const f=fixture();const releases=[];
+  f.fm.transport={_releaseTimedNotes:()=>releases.push('fm')};
+  f.psg._releaseTimedNotes=()=>releases.push('psg');
+  (await f.audio.useSoundChip('ym2612')).allNotesOff();
+  (await f.audio.useSoundChip('segapsg')).allNotesOff();
+  assert.deepEqual(releases,['fm','psg']);
+  await f.audio.dispose();
+});
+
+test('FM, PSG and PCM Code share keyboard channels with last-KeyOn ownership, and Code allNotesOff preserves the keyboard',async()=>{
   const f=fixture();
   for(const [name,count]of [['ym2612',6],['segapsg',4],['rf5c164',8]]){
     const code=await f.audio.useSoundChip(name),calls=[];
@@ -160,7 +170,11 @@ test('FM, PSG and PCM Code share keyboard channels with last-KeyOn ownership, wh
     if(name==='ym2612')code.noteOn(channel,4,800);else code.noteOn(channel,'E4');
     const previous=calls.length;assert.equal(keyboard.noteOff(channel),false);assert.equal(keyboard.setFrequency(channel,3,100),false);
     assert.equal(calls.length,previous,`${name} old keyboard release/bend cannot change the Code owner`);
-    keyboard.noteOn(channel,4,700);code.allNotesOff();assert.equal(keyboard.noteOff(channel),false);
+    keyboard.noteOn(channel,4,700);
+    if(name==='ym2612')code.noteOn(0,4,800);else code.noteOn(0,'E4');
+    const beforeRelease=f.events.length;code.allNotesOff();
+    assert.deepEqual(f.events.slice(beforeRelease).map(event=>event.slice(0,2)),[[{ym2612:'fm-off',segapsg:'psg-off',rf5c164:'pcm-off'}[name],0]]);
+    assert.notEqual(keyboard.noteOff(channel),false);
     assert.equal(f.context.closeCalls,0);assert.equal(await f.audio.useSoundChip(name),code);
     assert(count>channel);
   }
@@ -233,7 +247,8 @@ test('PCM Code shares the author sample, follows live level/pan/loop/root edits 
   assert.deepEqual(f.events.slice(from).filter(e=>e[0]==='pcm-channel'&&e[1]===3),[['pcm-channel',3,{volume:32,pan:{left:0,right:15},loopStart:16,step:2048}]]);
   assert.equal(f.events.slice(from).filter(e=>e[0]==='pcm-channel').length,8,'idle Code channels also inherit the next authored note settings');
   assert(!f.events.slice(from).some(e=>['pcm-on','pcm-off','pcm-release'].includes(e[0])));
-  pcm.keyOff(3);assert.deepEqual(f.events.at(-1),['pcm-release',3]);assert.deepEqual(f.audio.getState().pcmChannels,[]);
+  pcm.keyOff(3);assert.deepEqual(f.events.at(-1),['pcm-off',3]);assert.deepEqual(f.audio.getState().pcmChannels,[]);
+  pcm.keyOn(3);pcm.noteOff(3);assert.deepEqual(f.events.at(-1),['pcm-release',3]);
   await f.audio.stop();assert(!f.events.some(e=>e[0]==='restore-memory'),'ordinary code notes do not replace the shared sample bank');
   assert.equal(f.getPreset().sample.data,original.sample.data);await f.audio.dispose();
 });
@@ -734,5 +749,9 @@ test('author CH3 tuning applies to physical CH3 only and Code CH1 never redirect
   writes.length=0;fm.noteOn(2,4,1024);assert.deepEqual(writes.filter(w=>w.register===0x28).map(w=>w.value),[2,0x52]);
   assert(writes.some(w=>w.register===0x27&&(w.value&64)));assert(writes.some(w=>w.register===0xa9));assert(writes.some(w=>w.register===0xaa));assert(writes.some(w=>w.register===0xa8));
   writes.length=0;fm.setFrequency(0,4,700);assert(writes.some(w=>w.register===0xa0));assert(!writes.some(w=>w.register===0x27||w.register>=0xa8&&w.register<=0xae));
+  writes.length=0;fm.setFrequency(0,440);assert(writes.some(w=>w.register===0xa0));assert(!writes.some(w=>w.register===0x28));
+  writes.length=0;fm.setFrequency(2,440);assert(writes.some(w=>w.register===0xa9));assert(!writes.some(w=>w.register===0x28));
+  const byHz=writes.slice();writes.length=0;fm.setNote(2,'A4');assert.deepEqual(writes,byHz);
+  assert.equal(fm.read,undefined);assert.equal(fm.readStatus,undefined);
   writes.length=0;fm.noteOff(0);assert.deepEqual(writes,[{port:0,register:0x28,value:0}]);assert.deepEqual(f.audio.getState().fmChannels,[2]);await f.audio.dispose();
 });

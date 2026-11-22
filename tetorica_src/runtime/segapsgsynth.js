@@ -71,7 +71,7 @@ export class SegaPSGSynth {
     if (Number.isInteger(state.stereo)) this.#stereo = state.stereo & 255;
   }
   /** @param {number} channel Physical tone channel, 0..2.
-   * @param {{note?: string, frequency?: number, period?: number, attenuation?: number, volume?: number}} [options]
+   * @param {{note?: string|number, frequency?: number, period?: number, attenuation?: number, volume?: number}} [options]
    * @returns {number} Written 10-bit period, calculated using SEGAPSG_CLOCK.
    */
   tone(channel, options = {}) {
@@ -97,15 +97,20 @@ export class SegaPSGSynth {
   }
   /** @param {number} channel @param {string|number} note */
   setNote(channel, note) { return this.setFrequency(channel, noteToHz(note)); }
-  /** Restore the configured attenuation without changing pitch. @param {number} channel */
-  keyOn(channel) { const ch = normalizeToneChannel(channel); this.setAttenuation(ch, this.#attenuations[ch]); }
+  /** Restore the configured tone or noise attenuation. @param {number} channel */
+  keyOn(channel) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('PSG channel must be 0..3');
+    this.setAttenuation(channel, this.#attenuations[channel]);
+  }
   /** Silence while remembering the configured attenuation. @param {number} channel */
   keyOff(channel) {
-    const ch = normalizeToneChannel(channel), attenuation = this.#attenuations[ch];
-    this.setAttenuation(ch, 15); this.#attenuations[ch] = attenuation;
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('PSG channel must be 0..3');
+    this._forceKeyOff(channel);
   }
   /** @param {number} channel @param {string|number} note */
-  noteOn(channel, note) { this.setNote(channel, note); this.keyOn(channel); }
+  noteOn(channel, note) { const period = this.setNote(channel, note); this.keyOn(channel); return period; }
+  /** @param {number} channel */
+  noteOff(channel) { this.keyOff(channel); }
   /** Set attenuation only: 0 is loudest, 15 is silent; channel 3 is noise. @param {number} channel @param {number} attenuation */
   setAttenuation(channel, attenuation) {
     if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('PSG channel must be 0..3');
@@ -162,6 +167,7 @@ export function psgPeriodFromFrequency(frequency, clock = SEGAPSG_CLOCK) {
 
 /** @param {string | number} note */
 export function psgPeriodFromNote(note, clock = SEGAPSG_CLOCK) {
+  if (typeof note === 'number') return psgPeriodFromFrequency(noteToHz(note), clock);
   const match = /^([A-G](?:#|b)?)(-?\d+)$/.exec(String(note).trim());
   if (!match || NOTE_TO_SEMITONE[match[1]] === undefined) {
     throw new Error(`Unsupported PSG note: ${note}`);

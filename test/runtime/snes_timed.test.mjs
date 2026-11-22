@@ -8,6 +8,7 @@ import {attachSnesTimedClient} from '../../tetorica_src/runtime/snes_timed_clien
 import {createSnesTimedSnapshot} from '../../tetorica_src/runtime/snes_timed_state.js';
 import {readSnesTimedPredecessor} from '../../scripts/mixer_calibration_snes_timed_revision.mjs';
 import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
+import {createSnesCodeClient} from '../../docs/synth-snes/code_client.js';
 const root=new URL('../../tetorica_src/runtime/',import.meta.url);
 async function setup(file,rate,sourceOverride){
  let Type,frame=0,eventFrame,lastRight;const messages=[],context={sampleRate:rate,Float32Array,Uint8Array,console,AudioWorkletProcessor:class{constructor(){this.port={postMessage:m=>messages.push(m)};}},registerProcessor(_name,type){Type=type;}};Object.defineProperty(context,'currentFrame',{get:()=>frame});
@@ -36,6 +37,42 @@ test('SNES reset compiler retains duplicate writes, validates raw scope and deta
  const patch={gain:17},p=build(b=>{b.setChannel(0,patch);b.writeDsp(0x3d,2);b.writeDsp(0x3d,2);});patch.gain=90;
  const rows=compile(p,reset());assert.equal(rows.find(w=>w.register===7).value,17);assert.equal(rows.filter(w=>w.register===0x3d).length,2);
  assert.throws(()=>compile(build(b=>b.writeDsp(0x6d,0)),reset()),/slice/);assert.throws(()=>compile(build(b=>b.writeDsp(0x6c,0)),reset()),/Echo/);assert.throws(()=>compile(build(b=>b.keyOn(0)),reset()),/BRR/);
+});
+
+test('S-DSP Code clears only the named scheduled gates, and allNotesOff can release the remaining gates without the keyboard',async()=>{
+ const p=await setup('../../docs/synth-snes/processor.js',48000);try{
+  const manual=await p.command('noteOn',['keyboard',65]);assert.equal(manual.channel,0);
+  const code=createSnesCodeClient({command:p.command,timedPort:p.p.port});
+  const {channel}=await code.noteOn(0,'E4');assert.equal(channel,1);
+  const schedule=(name,voice)=>code.schedule(build(b=>b.noteOn(voice,'C4').atSeconds(.5).noteOff(voice)),{name,repeatSeconds:1});
+  await schedule('first',2);const second=await schedule('second',3);
+  assert(p.render(second.startFrame+512).some(value=>Math.abs(value)>.001));
+  assert.equal((await code.getState()).timedGateMask,12);
+  await code.clearSchedule('first');
+  assert.equal((await code.getState()).timedGateMask,8);
+  assert.equal(p.core.readDsp(0x5c)&15,4,'the second reservation and other notes remain gated');
+  await code.allNotesOff();
+  assert.equal((await code.getState()).timedGateMask,0);
+  assert.deepEqual((await code.getState()).voices.map(voice=>voice.id),['keyboard']);
+  assert.equal(p.core.readDsp(0x5c)&15,14,'explicit release preserves the keyboard Gate');
+  assert(p.render(2048).some(value=>Math.abs(value)>.001),'the keyboard remains audible');
+  p.render(50000);
+  assert.equal((await code.getState()).timedGateMask,8,'the remaining reservation plays its next repeat');
+ }finally{p.close();}
+});
+
+test('Playground S-DSP clears its scheduled Gate and preserves newer immediate gates',async()=>{
+ const p=await setup('playground_snes_worklet.js',48000);try{
+  const scheduled=(name)=>p.rpc({action:'schedule',operations:build(b=>b.noteOn(1,'C4').atSeconds(.5).noteOff(1)),options:{name},owner:'code'});
+  const clear=(name)=>p.rpc({action:'clear',name,owner:'code'});
+  await p.command('noteOn',[0,'G4']);
+  const first=await scheduled('first');p.render(first.startFrame+128);
+  assert.equal(p.core.readDsp(0x5c)&3,0);
+  await clear('first');assert.equal(p.core.readDsp(0x5c)&3,2);
+  await scheduled('second');p.render(300);
+  await p.command('noteOn',[1,'E4']);
+  await clear('second');assert.equal(p.core.readDsp(0x5c)&3,0);
+ }finally{p.close();}
 });
 
 for(const file of ['playground_snes_worklet.js','../../docs/synth-snes/processor.js'])test(`${file}: prior-frame KON, snapshot reuse and manual Gate ownership`,async()=>{

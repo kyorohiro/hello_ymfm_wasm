@@ -41,6 +41,17 @@ test('standalone main-module rewriting retains the explicit saved CD-DA file rea
   assert.match(packager,/for file in [^\n;]*\bcdda_inputs\.js\b[^\n;]*; do\n  cp "\$\{ROOT_DIR\}\/docs\/synth-huc6280/);
 });
 
+test('standalone PSG timed worklet and borrowed worker clients have their register resolver modules',async()=>{
+  const packager=await readFile(join(root,'scripts/package_itch_synth.sh'),'utf8');
+  const includes=new Set(packager.split('\n'));
+  for(const name of [
+    'segapsg_operations.js','segapsg_timed_client.js','segapsg_timed_processor.js','segapsg_timed_state.js',
+    'gameboy_operations.js','gameboy_timed_client.js','gameboy_timed_state.js',
+    'opn_ssg_retained.js','ym2608_operations.js','ym2608_operation_state.js','ym2608_timed_client.js',
+    'ym2608_timed_processor.js','ym2608_timed_state.js',
+  ])assert(includes.has(name),name);
+});
+
 test('readable VFS modules retain canonical source receipts and execute a standalone manual Save/discard/recovery',async t=>{
   const stage=await mkdtemp(join(tmpdir(),'tetorica-synth-vfs-stage-'));t.after(()=>rm(stage,{recursive:true,force:true}));
   const receipt=await copyReadableModules({root,stage,entries:['docs/js/tetorica_virtual_files/workspace.js'],factories:[]});

@@ -1,8 +1,8 @@
 // Exact pre-feature Worklets reconstructed for offline audio regression tests.
 // Every byte of both source pairs is pinned; unexpected edits must refresh the
 // independently reviewed compatibility evidence, never silently skip checking.
-import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {createCodeApiConsistencyRevisionReadContext} from '../../scripts/mixer_calibration_code_api_consistency_revision.mjs';
 
 export const YM2612_TIMED_BASE_COMMIT = 'd620c38f701d0c8906ae0c05387019a891237d3b';
 export const YM2612_TIMED_WORKLET_PREDECESSORS = Object.freeze({
@@ -114,10 +114,11 @@ export const YM2612_TIMED_WORKLET_PREDECESSORS = Object.freeze({
   }
 } );
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const {readSource}=createCodeApiConsistencyRevisionReadContext();
 export async function readHistoricalYm2612TimedWorklet(engine) {
   const entry = YM2612_TIMED_WORKLET_PREDECESSORS[engine];
   if (!entry) throw new Error('Unsupported historical YM2612 Worklet');
-  const bytes = await readFile(new URL('../../' + entry.path, import.meta.url));
+  const bytes = readSource(new URL('../../' + entry.path, import.meta.url));
   if (bytes.length !== entry.after.bytes || sha(bytes) !== entry.after.sha256) {
     throw new Error('Current YM2612 Worklet differs from the authenticated timed-operation revision: ' + engine);
   }

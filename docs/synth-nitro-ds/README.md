@@ -25,6 +25,9 @@ divider and pulse duty can change while a keyboard note is held.
 
 **Key tracking · Software** maps keyboard notes to the chip timer. In Noise
 mode C4 maps to 4 kHz, and one octave doubles or halves the clock.
+Code pitches in Noise mode set the LFSR clock directly. To match the keyboard
+at C4, configure the channel for Noise, call `setFrequency(ch, 4000)` and then
+`keyOn(ch)`. Code `noteOn(ch, "C4")` uses the note's approximately 262 Hz clock.
 Drag the **PCM playback rate**, **Pulse frequency** or **Noise clock** slider
 to set a manual rate while holding a key. You can also enter a rate in Hz.
 The readout shows the actual rate and the hexadecimal timer value. Check
@@ -106,7 +109,9 @@ planned register writes.
 
 Apply updates entry schedules after the script succeeds. Use
 `await nds.clearSchedule("pulse")` to cancel future writes and release notes
-held by the named pattern. **Stop** releases Code notes and cancels its reservations.
+held by the named pattern. Scheduled gate releases apply to the note that the
+same reservation started on that channel. **Stop** releases Code notes and
+cancels its reservations.
 Scheduled operations act on the Synth's physical channels. They do not run
 inside the 2SF player or transfer sample RAM.
 

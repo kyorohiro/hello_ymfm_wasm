@@ -61,7 +61,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.samplePcm = {sequence:0,revision:0,byteSequence:0,bytes:new WeakMap(),slotId:null};
     this.voices = new SpuRoundRobinVoices();
     this.timedFrame=0;this.timedIdentity=`spu:${Math.random().toString(36).slice(2)}`;
-    this.performance=createProcessorPerformance({chip:'ps1',rate:sampleRate,nowFrame:()=>this.timedFrame,trackImmediateNotes:false,patternCommandCost:ps1TimedCommandCost,
+    this.performance=createProcessorPerformance({chip:'ps1',releasePatternNotes:true,rate:sampleRate,nowFrame:()=>this.timedFrame,trackImmediateNotes:false,patternCommandCost:ps1TimedCommandCost,
       apply:(command,port,frame,metadata)=>command.method==='applyPs1TimedOperation'
         ?this.timed.apply(command.operation,port,frame,metadata)
         :this.invokeCode(this.codeEpoch,command.method,command.args),
@@ -120,7 +120,13 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         if(args.length)throw new TypeError('SPU Code start takes no arguments');
         value=this.beginCode();
       }
-      else if(method==='code')value=this.invokeCode(...args);
+      else if(method==='code') {
+        value=this.invokeCode(...args);
+        if(args[1]==='noteOn'||args[1]==='keyOn'){
+          const channel=args[2][0];this.performance.forgetNote(channel);
+          if(this.pmonFor(channel).settings.enabled)this.performance.forgetNote(channel-1);
+        }
+      }
       else if(method==='codeTimed') {
         if(args.length!==2||!this.codeCheckpoint||args[0]!==this.codeEpoch)throw codeCancelled();
         this.timed.receive({id,method:'ps1Timed',args:[args[1]]},this.port);return;
@@ -705,7 +711,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       this.codeNoiseSample=sample;this.noise=next;this.syncModulators();return {...next};
     }
     const ch=args[0];let result;
-    if(method==='noteOff'&&this.hasKeyboardOwner(ch))return false;
+    if((method==='keyOff'||method==='noteOff')&&this.hasKeyboardOwner(ch))return false;
     if(this.noiseFor(ch).enabled&&!this.codeHardwareNoise.has(ch)&&['setNote','setFrequency','noteOn'].includes(method)) {
       if(!Number.isInteger(ch)||ch<0||ch>23)throw new RangeError('PS1 SPU channel must be 0..23');
       if(method==='setFrequency') {
@@ -717,8 +723,10 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       if(args[1]!==undefined)this.synth.setNote(ch,args[1]);
       result=this.voiceKey(ch,true,this.clickGuard);
     }else if(method==='noteOff')result=this.voiceKey(ch,false,this.clickGuard);
-    else if(method==='allNotesOff'&&this.clickGuard) {
-      for(let voice=0;voice<24;voice++)this.voiceKey(voice,false,true);
+    else if(method==='allNotesOff') {
+      for(const voice of this.codeGates)if(!this.hasKeyboardOwner(voice)){
+        this.physicalKey(voice,false,this.clickGuard);this.synth.gates[voice]=false;
+      }
     }else result=this.synth[method](...args);
     if(method==='reset') {
       this.timed?.clear();this.performance.clear();
@@ -738,8 +746,9 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     }else if(['keyOff','noteOff'].includes(method)) {
       if(method==='keyOff')this.retireKeyboardChannel(ch);this.codeGates.delete(ch);
       if(this.pmonFor(ch).settings.enabled&&!this.hasKeyboardOwner(ch-1)){this.physicalKey(ch-1,false,method==='noteOff'&&this.clickGuard);this.codeGates.delete(ch-1);}
+      return true;
     }else if(method==='allNotesOff') {
-      this.codeGates.clear();this.keyboardOwners.clear();this.keyboardModulators.clear();this.inspector.resetAuditions();this.voices.reset();
+      this.codeGates.clear();
     }else if(this.pmonFor(ch).settings.enabled&&['setFrequency','setNote','setPitch','setPreset','setChannel'].includes(method))this.configureCodeModulator(ch);
     if(['setPreset','setChannel','reset'].includes(method))this.syncHostMask();
     if(this.noiseFor(ch).enabled&&['setPreset','setChannel'].includes(method))this.syncModulators({noiseChannels:[ch],pmonChannels:[]});

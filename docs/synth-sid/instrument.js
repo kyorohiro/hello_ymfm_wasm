@@ -243,9 +243,10 @@ export class SidInstrument{
       this._replace(this.channelSettings,true);return;
     }
     if(method==='allNotesOff'){
-      this.gateOwners.fill({kind:'code'});this.voices.clear();this.slots.fill(null);
-      const previous=this.registerMetadata;this.registerMetadata={preserveOwner:false};
-      try{return this.synth.allNotesOff();}finally{this.registerMetadata=previous;}
+      for(let channel=0;channel<3;channel++)if(this.gateOwners[channel]?.kind==='code'){
+        this._gate(channel,false);this.gateOwners[channel]=null;
+      }
+      return;
     }
     let channel=args[0],on=method==='noteOn'||method==='keyOn',off=method==='noteOff'||method==='keyOff';
     const rawGate=method==='writeRegister'&&[4,11,18].includes(args[0]);
@@ -254,7 +255,9 @@ export class SidInstrument{
     const previous=this.registerMetadata;this.registerMetadata={preserveOwner:!rawGate&&!on&&!off};
     let result;
     try{result=this.synth[method](...args);}finally{this.registerMetadata=previous;}
-    if(on||rawGate){this.gateOwners[channel]={kind:'code'};this.slots[channel]=null;for(const [id,voice]of this.voices)if(voice.channel===channel)this.voices.delete(id);}
+    if(on||rawGate){this.gateOwners[channel]=on?{kind:'code'}:null;this.slots[channel]=null;for(const [id,voice]of this.voices)if(voice.channel===channel)this.voices.delete(id);}
+    else if(off)this.gateOwners[channel]=null;
+    if(off&&!rawGate)return true;
     return result;
   }
   /** Resolver output is already validated. Keep parameter writes distinct from
@@ -264,7 +267,7 @@ export class SidInstrument{
     const [register,value]=command.args;
     const result=this.synth.writeRegister(register,value);
     if([4,11,18].includes(register)&&!metadata?.preserveOwner){
-      const channel=(register-4)/7;this.gateOwners[channel]={kind:'code'};this.slots[channel]=null;
+      const channel=(register-4)/7;this.gateOwners[channel]=value&1?{kind:'code'}:null;this.slots[channel]=null;
       for(const [id,voice] of this.voices)if(voice.channel===channel)this.voices.delete(id);
     }
     return result;

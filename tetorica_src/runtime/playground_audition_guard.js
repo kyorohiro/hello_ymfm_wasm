@@ -51,11 +51,11 @@ export function createOpnAuditionGuard(chip, channelCount = 6) {
      * and pitch writes retain that token; an old scheduled Off cannot release
      * a currently held manual replacement. Ordinary script writes keep their
      * existing keyboard-priority path above. */
-    writeTimedRegister(register, value, port = 0) {
+    writeTimedRegister(register, value, port = 0, releasingGate = false) {
       if (port === 0 && register === 0x28) {
         const code = value & 7, channel = (code & 3) + (code & 4 ? 3 : 0);
         if ((code & 3) !== 3 && channel < channelCount) {
-          if (!(value & 0xf0) && (heldMask & (1 << channel))) return false;
+          if ((releasingGate || !(value & 0xf0)) && (heldMask & (1 << channel))) return false;
           if (value & 0xf0) {tokens[channel] = 0; heldMask &= ~(1 << channel);}
         }
       }

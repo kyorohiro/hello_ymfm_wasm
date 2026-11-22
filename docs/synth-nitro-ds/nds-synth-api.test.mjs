@@ -425,6 +425,26 @@ test('A pending DS scheduled release does not cut a keyboard note that took the 
 	assert(block[0].some(value => Math.abs(value) > .005));
 });
 
+test('DS keeps a newer pattern playing when another pattern releases or is cleared', async (t) => {
+	const { chip, worklet } = endpoint(t);
+	const code = chip.forOwner('code'), keyboard = chip.forOwner('keyboard');
+	const owner = 'same-code-generation';
+	await code.configure(8, { mode: 'pulse' });
+	await code.configure(9, { mode: 'pulse' });
+	const held = await keyboard.noteOn(9, 'C4');
+	const older = buildNdsOperations(b => b.noteOn(8, 'A4').atSeconds(.01).keyOff(8));
+	const newer = buildNdsOperations(b => b.atSeconds(.005).noteOn(8, 'A5'));
+	await code.timedControl({ action: 'schedule', owner, operations: older, options: { name: 'older' } });
+	await code.timedControl({ action: 'schedule', owner, operations: newer, options: { name: 'newer' } });
+	worklet.process([], [[new Float32Array(768), new Float32Array(768)]]);
+	assert((await code.getState(8)).active, 'The old Key Off must not release the newer reservation');
+	assert.equal(await code.timedControl({ action: 'clear', owner, name: 'older' }), false);
+	assert((await code.getState(8)).active);
+	assert.equal(await code.timedControl({ action: 'clear', owner, name: 'newer' }), true);
+	assert((await code.getState(8)).releasing, 'Canceling the current reservation uses the software release');
+	assert(keyboard.owns(9, held.token));
+});
+
 test('DS timed Note On uses the prepared ADPCM sample and its root tuning', async (t) => {
 	const { chip, worklet } = endpoint(t);
 	const code = chip.forOwner('code');

@@ -13,6 +13,7 @@ import {fileURLToPath} from 'node:url';
 import {relative,resolve} from 'node:path';
 import {createHistoricalFm2612ApplicationReader} from './historical_fm2612_application_source_fixture.mjs';
 import {createHistoricalYm2608SourceMixReader} from './historical_ym2608_source_mix_fixture.mjs';
+import {createCodeApiConsistencyRevisionReadContext} from '../../scripts/mixer_calibration_code_api_consistency_revision.mjs';
 export const HUC_HISTORY_PIN='d5a45dfd85decc9f9c4d2605709727803b7bd86f52ba056f3bc123ad1b7a6fa0';
 export const HUC_HISTORY_PATH='test/fixtures/pre-huc-timed-calibration-inputs.json';
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -21,6 +22,7 @@ if(sha(JSON.stringify(snapshot))!==HUC_HISTORY_PIN||snapshot.scope!=='test-only-
 const decoded=new Map();
 const scspHistoryCommit='68caf4b8aedfe8b4913aebc8076606e1f631d744';
 const scspHistory=new Map();
+const codeApiPredecessor=createCodeApiConsistencyRevisionReadContext(readLive);
 const scspHistoricalDependencies=new Set([
  'docs/js/scspsynth.js',
  'docs/js/playground_scsp.js',
@@ -28,6 +30,12 @@ const scspHistoricalDependencies=new Set([
  'docs/js/playground_scsp_worklet.js',
  'docs/playground/playground.js',
 ]);
+
+export function readCodeApiPredecessorFileSync(location,options){
+ const url=location instanceof URL?location:new URL('file://'+resolve(String(location)));
+ const bytes=codeApiPredecessor.readSource(url),encoding=typeof options==='string'?options:options?.encoding;
+ return encoding?bytes.toString(encoding):bytes;
+}
 function readHistoricalScspInput(name){
  if(!scspHistory.has(name)){
   scspHistory.set(name,execFileSync('git',['show',scspHistoryCommit+':'+name],{cwd:root,maxBuffer:4*1024*1024}));
@@ -44,7 +52,7 @@ export function readPreHucTimedInput(location){
   // after SSF removal. Git supplies bytes for hashing without loading a player.
   if(/^(?:docs\/(?:synth-scsp|generated\/ssf-player)\/|tetorica_src\/wasm\/ssf_player\/|third_party\/ssfplay\/|scripts\/(?:check_scsp_.*_browser\.cjs|build_ssf_player\.mjs|record_scsp_ssf_dsp_passive_parity\.mjs|package_itch_scsp_synth(?:\.test)?\.mjs)$)/.test(name))
    return readHistoricalScspInput(name);
-  return readLive(url);
+  return codeApiPredecessor.readSource(url);
  }
  if(!decoded.has(name)){
   const bytes=gunzipSync(Buffer.from(entry.gzipBase64,'base64'),{maxOutputLength:2*1024*1024});

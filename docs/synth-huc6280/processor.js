@@ -23,7 +23,7 @@ class Huc6280SynthProcessor extends AudioWorkletProcessor {
       if (this.dead) {core.dispose(); return;}
       try {this.instrument = new Huc6280Instrument(core);}
       catch (error) {core.dispose(); throw error;}
-      this.performance=createProcessorPerformance({chip:'huc6280',rate:sampleRate,nowFrame:()=>this.renderedFrames,
+      this.performance=createProcessorPerformance({chip:'huc6280',releasePatternNotes:true,rate:sampleRate,nowFrame:()=>this.renderedFrames,
         getHucChannel:()=>this.instrument.synth._getState().selectedChannel,patternCommandCost:huc6280TimedCommandCost,
         releaseNote:channel=>({method:'releaseTimedGate',args:[channel]}),
         apply:(command,port,frame,metadata)=>{

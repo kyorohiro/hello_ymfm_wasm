@@ -1,6 +1,8 @@
 import {createSegaPsgAudio} from '../js/playground_segapsg_audio.js';
 import {createSegaPsgApi} from '../js/segapsg_api.js';
 import {SEGAPSG_CLOCK} from '../js/segapsg.js';
+import {attachChipClock} from '../js/playground_chip_clock.js';
+import {attachPsgTimedClient} from '../js/segapsg_timed_client.js';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
 import {normalizeSynthPsgEnvelope} from './synth_psg_envelope.js?v=psg-envelope-1';
 import {normalizePsgRecording} from './synth_psg_recording.js?v=psg-event-rec-1';
@@ -22,6 +24,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
     if(current===owner)current=null;
     owner.gain.gain.value=0;
     try {owner.api?.allNotesOff();} catch {}
+    owner.api?.dispose();
     owner.abort.abort(reason);
     owner.cleanupPlayback?.();
     try {owner.device?.dispose();} finally {owner.gain.disconnect();}
@@ -44,7 +47,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
     const creating=Promise.resolve().then(()=>{
       owner.abort.signal.throwIfAborted();
       return createDevice(context,gain,{clock:SEGAPSG_CLOCK,stereoEnabled:false,signal:owner.abort.signal,
-        workletUrl:new URL('./synth_psg_worklet.js?v=channel-mixer-1',import.meta.url),
+        workletUrl:new URL('./synth_psg_worklet.js?v=synth-timed-1',import.meta.url),
         onError:error=>fail(owner,error)});
     });
     owner.promise=new Promise((resolve,reject)=>{
@@ -69,12 +72,16 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
         const attenuation=value=>{if(!Number.isInteger(value)||value<0||value>15)throw new RangeError('PSG attenuation must be 0..15');};
         const rawWrite=value=>{
           if(value&128)latched=(value>>4)&7;
-          post('write',[value],envelopesUsed&&!(value&128)?{psgRegister:latched}:{});
+          post('write',[value],!(value&128)?{psgRegister:latched}:{});
         };
         const engine={writePsg:rawWrite,processFrames(){},reset(){latched=0;post('reset');}};
         const interaction=createSynthPsgSongInteraction(engine,{clockHz:SEGAPSG_CLOCK});
         const reset=()=>{api.stopLooperPlayback();api.stopRecordingPlayback();engine.reset();};
         const api=createSegaPsgApi({clock:SEGAPSG_CLOCK,write:value=>{engine.processFrames(1);return engine.writePsg(value);},reset,resetAll:reset});
+        api.dispose=()=>{};
+        Object.defineProperty(api,'stereoEnabled',{value:false});
+        attachPsgTimedClient(attachChipClock(api,port,SEGAPSG_CLOCK),{},port);
+        delete api.setClock;
         api.readWrittenState=()=>interaction.read();
         api.readWrittenSnapshot=frozen=>interaction.readSnapshot(frozen,interaction.generatedFrames,{frozen:true});
         api.editWrittenChannel=(channel,changes)=>interaction.applyEdit({channel,changes});
@@ -165,6 +172,8 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
           envelopesUsed=true;post('envelopeNoteOn',[ch,envelope,baseAttenuation]);
         };
         api.envelopeNoteOff=ch=>{channel(ch);if(envelopesUsed)post('envelopeNoteOff',[ch]);};
+        api.envelopeKeyOff=ch=>{channel(ch);if(envelopesUsed)post('envelopeKeyOff',[ch]);};
+        api._releaseTimedNotes=()=>post('releaseTimedNotes');
         api.setEnvelopeAttenuation=value=>{attenuation(value);if(envelopesUsed)post('setEnvelopeAttenuation',[value]);};
         const allNotesOff=api.allNotesOff;
         api.allNotesOff=()=>{api.stopLooperPlayback();api.stopRecordingPlayback();api.stopEnvelopes();allNotesOff();};

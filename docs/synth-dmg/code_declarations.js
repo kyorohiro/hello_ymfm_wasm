@@ -14,14 +14,20 @@ interface GameboyCodeState {
 }
 /** Borrow the existing editor APU. Hardware methods acknowledge asynchronously.
  * Pulse CH1/CH2, Wave CH3 and Noise CH4 remain physical channels. */
-type GameboyCodeClient = Omit<PlaygroundGameboy,'dispose'|'setClock'> & {
+type GameboyCodeClient = Omit<PlaygroundGameboy,'adoptRegisterState'|'dispose'|'setClock'> & {
   readonly id:string;readonly chip:'gameboy';readonly channels:4;readonly clock:4194304;
   getState():Promise<GameboyCodeState>;
+  /** Hardware release, equivalent to keyOff(). */
+  noteOff(ch:0|1|2|3):Promise<boolean>;
+  pulse:PlaygroundGameboy['pulse'] & {noteOff(ch:0|1):Promise<boolean>};
+  wave:PlaygroundGameboy['wave'] & {noteOff():Promise<boolean>};
+  noise:PlaygroundGameboy['noise'] & {noteOff():Promise<boolean>};
+  /** Release the Code-owned physical channels. */
   allNotesOff():Promise<void>;
   /** The Synth APU stays at its existing DMG clock. */
   setClock(clock:4194304):Promise<number>;
   /** End this lease and restore the editor preset/Wave RAM; never close its AudioContext. */
-  dispose():Promise<void>;
+  dispose():Promise<unknown>;
 };
 type GameboyCodeSoundChipMap={gameboy:GameboyCodeClient};
 type PlaygroundLivePrepareAPI=GameboyCodeAPI;
@@ -39,6 +45,7 @@ export function selectGameboyCodeDeclarations(source){
       if(!gameboy)throw Error('Shared Game Boy declarations are missing.');
       types.set(gameboy.name,{...gameboy,text:gameboy.text
         .replace(/^(\s+\w+\([^\n]*\)): void;/gm,'$1: Promise<void>;')
+        .replace(/(\b(?:noteOff|keyOff)\([^)]*\)):\s*Promise<void>;/g,'$1:Promise<boolean>;')
         .replace(/^(\s+\w+\([^\n]*\)): number;/gm,'$1: Promise<number>;')});
     }});
 }

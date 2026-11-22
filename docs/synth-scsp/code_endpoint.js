@@ -82,6 +82,8 @@ export function validateScspCodeCall(method, args) {
 		(!Number.isInteger(args[0]) || args[0] < 0 || args[0] > 5)
 	)
 		throw new RangeError('SCSP source operator must be A–F (0..5)');
+	if (method === 'setPreset' && args[1]?.sample === null)
+		throw new TypeError('Assign a sample from this bank to the SCSP source operator.');
 	if (method === 'setNote' || method === 'noteOn') noteToHz(args[1]);
 	if (['setDspSend', 'setDspSourceSend', 'setDspReturn'].includes(method)) {
 		const maximum = method === 'setDspSend' ? 31 : method === 'setDspSourceSend' ? 5 : 1;

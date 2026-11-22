@@ -310,7 +310,13 @@ export class GameboyInstrument {
     if (method === 'getState') return {...this.synth._getState(),editorSource:this.preset.source,positionFrames:this.codeFrames};
     if (method === 'dispose') { this._endCode(); return this.read(); }
     if (method === 'setClock') return this.synth.clock;
-    if (method === 'allNotesOff') { for (let ch = 0; ch < 4; ch++) this.synth.keyOff(ch);this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);return; }
+    if (method === 'allNotesOff') {
+      for (let ch = 0; ch < 4; ch++) if (this.gateOwners[ch] === 'code') {
+        this.synth.keyOff(ch);
+        this.gateOwners[ch] = null;
+      }
+      return;
+    }
     const on=['noteOn','keyOn','pulse.noteOn','pulse.keyOn','wave.noteOn','wave.keyOn','noise.keyOn'].includes(method);
     const off=['keyOff','pulse.keyOff','wave.keyOff','noise.keyOff'].includes(method);
     const channel=method.startsWith('wave.')?2:method.startsWith('noise.')?3:args[0];
@@ -318,7 +324,7 @@ export class GameboyInstrument {
     const [group, member] = method.split('.');
     const result=member ? this.synth[group][member](...args) : this.synth[group](...args);
     if(on)this._ownCode(channel);
-    else if(off)this.gateOwners[channel]=null;
+    else if(off){this.gateOwners[channel]=null;return true;}
     else if(method==='initialize'||method==='reset'){
       this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);this.cursor=0;
     }else if(method==='wave.setWaveform'||method==='wave.stopAndSetWaveform'){

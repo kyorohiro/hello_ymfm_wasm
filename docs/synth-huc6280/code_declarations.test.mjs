@@ -32,18 +32,22 @@ await pce.writeRegister(0,5);await pce.keyOn(CH6);await pce.keyOff(CH6);await pc
 const operations=pce.build(b=>{b.atSample(0).setVolume(CH1,12).keyOn(CH1);b.atSeconds(.1).keyOff(CH1);},{referenceSampleRate:48000});
 const snapshot=await pce.captureState();const trace:Huc6280TimedWrite[]=await pce.compile(operations,{initialState:snapshot});
 await pce.compile(operations,{initialState:'current'});await pce.compile(operations,{initialState:'reset'});await pce.compile(operations,{initialState:'client'});
-const receipt=await pce.schedule(operations,{name:'pulse',repeatSeconds:.2});const startFrame:number=receipt.startFrame;await pce.clearSchedule('pulse');
+const receipt=await pce.schedule(operations,{name:'pulse',repeatSeconds:.2});const startFrame:number|undefined=receipt.startFrame;const sampleRate:number=receipt.sampleRate;await pce.clearSchedule('pulse');
+// @ts-expect-error builders execute synchronously
+pce.build(async b=>b.keyOff(CH1));
 // @ts-expect-error register reservations deliberately exclude software-envelope aliases
 pce.build(b=>b.noteOn(CH1,'C4'));
 // @ts-expect-error bulk Wave RAM transfer is immediate-only
 pce.build(b=>b.setWaveform(CH1,new Uint8Array(32)));
 const released:Promise<boolean>=pce.noteOff(CH1);await released;
+const rawOff:Promise<boolean>=pce.keyOff(CH1);await rawOff;
+const attack=await pce.noteOn(CH1,'C4');const stolenId:string|null=attack.stolenId;
 const state=await pce.getState();const source:'wave'|'noise'|'dda'=state.editorSource;state.globals[0];state.registers[0][4];state.waveforms[0][31];state.positionFrames;
 const observed:'sent'=state.observation.registers;const samples:number=state.dda.samples;const release:number|undefined=state.envelopes[0]?.release;
 await livePrepare('state',async api=>{const chip=await api.useSoundChip('huc6280');return chip;});
 await tween({seconds:2},async value=>{await pce.setVolume(CH1,Math.round(31*value));});pg.log(source);await pce.dispose();
 const adpcm=await useSoundChip('msm5205');
-await adpcm.loadMemory('/audio/drum.adpcm');await adpcm.loadSample({sampleRate:8000,channels:[new Float32Array(800)]},{rate:12});
+await adpcm.loadMemory('/audio/drum.adpcm',{rate:10,name:'Drum'});await adpcm.loadSample({sampleRate:8000,channels:[new Float32Array(800)]},{rate:12,path:'/audio/drum.wav'});
 await adpcm.play({offset:0,length:100,loop:true,rate:12});await adpcm.writeRegister(1,7);const adpcmState=await adpcm.getState();adpcmState.positionNibbles;await adpcm.stop();
 const sourceId:string=adpcm.sourceId;const stateId:string=adpcmState.sourceId;const revision:number=adpcmState.revision;
 const rate:PlaygroundMsm5205Rate=adpcmState.defaults.rate;const loop:boolean=adpcmState.defaults.loop;
@@ -52,6 +56,7 @@ const adpcmPlayback:'empty'|'ready'|'playing'|'ended'=adpcmState.state;
 // @ts-expect-error source identity belongs to the host
 adpcm.sourceId='other';
 const cd=await useSoundChip('cdda');await cd.load('/audio/track.wav');await cd.play(1,{offset:.1});await cd.pause();await cd.resume();await cd.seek(0);await cd.list();await cd.getState();await cd.stop();await cd.dispose();
+const tracks:ReadonlyArray<PlaygroundCddaTrack>=cd.list();
 const cdId:string=cd.sourceId;const cdState=await cd.getState();const cdSourceId:string=cdState.sourceId;const cdRevision:number=cdState.revision;
 const cdPlayback:'empty'|'ready'|'playing'|'paused'|'ended'=cdState.state;const trackNumber:number|undefined=cdState.tracks[0]?.number;
 // @ts-expect-error source identity belongs to the host

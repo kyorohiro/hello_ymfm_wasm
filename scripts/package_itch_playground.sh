@@ -171,6 +171,11 @@ playground_spc_audio.js
 spc_file.js
 snes_brr.js
 snes_brr_encoder.js
+snes_operation_state.js
+snes_operations.js
+snes_timed_client.js
+snes_timed_processor.js
+snes_timed_state.js
 ps1_adpcm_encoder.js
 wav.js
 spc_resampler.js
@@ -292,6 +297,11 @@ nesapu.js
 nesapu_wasm.js
 nesapusynth.js
 nesapuaudioengine.js
+nes_operation_state.js
+nes_operations.js
+nes_timed_client.js
+nes_timed_processor.js
+nes_timed_state.js
 fds_audio.js
 chip_worklet_transport.js
 playground_ym2151.js
@@ -357,6 +367,10 @@ playground_pokey_inspector.js
 wonderswan.js
 wonderswansynth.js
 wonderswan_timeline.js
+wonderswan_operations.js
+wonderswan_timed_client.js
+wonderswan_timed_processor.js
+wonderswan_timed_state.js
 playground_wonderswan.js
 playground_wonderswan_audio.js
 playground_wonderswan_worklet.js
@@ -494,6 +508,11 @@ ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+ym2608_operation_state.js
+ym2608_operations.js
+ym2608_timed_client.js
+ym2608_timed_processor.js
+ym2608_timed_state.js
 adpcm_b_sample.js
 adpcm_a_sample.js
 y8950_adpcm.js

@@ -101,11 +101,12 @@ async function setup(file,rate,sourceOverride){
 for(const file of ['ym2608-worklet.js','playground_ym2608_worklet.js','../../docs/synth-fm2608/audio_worklet.js'])for(const rate of [44100,48000])test(`${file} ${rate} real WASM executes mixed FM/SSG at exact frames with compile parity`,async()=>{
  const p=await setup(file,rate);try{
   p.synth.setOperator(3,0,{dt:5,multi:2});p.synth.ssg.write(7,0xc0);
-  const plan=build(b=>{b.setOperator(3,0,{multi:7});b.keyOn(3);b.keyOn(3);b.ssg.setMixer(1,{tone:true,noise:false});b.ssg.setVolume(1,13);b.ssg.setEnvelope({period:300,shape:8});b.atSeconds(.1).ssg.keyOff(1);b.atSample(4410).ssg.keyOn(1);b.keyOff(3);});
+  const plan=build(b=>{b.setOperator(3,0,{multi:7});b.keyOn(3);b.keyOn(3);b.ssg.setMixer(1,{tone:true,noise:false});b.ssg.setVolume(1,13);b.ssg.setEnvelope({period:300,shape:8});b.ssg.setEnvelope({period:200});b.ssg.setEnvelope({shape:8});b.atSeconds(.1).ssg.keyOff(1);b.atSample(4410).ssg.keyOn(1);b.keyOff(3);});
   const snapshot=p.rpc({action:'capture'}),expected=compile(plan,snapshot);
   const receipt=p.rpc({action:'schedule',operations:plan,options:{name:'test'}});assert.equal(receipt.startFrame,128);assert.equal(p.writes.length,0);
   p.render(receipt.startFrame+Math.round(.1*rate)+1);
   assert.deepEqual(bytes(p.writes),bytes(expected));assert.equal(p.writes.at(-1).frame,receipt.startFrame+Math.round(.1*rate));
+  assert.deepEqual(p.writes.filter(row=>row.port===0&&row.register===13).map(row=>row.value),[8,8]);
   assert.equal(p.rpc({action:'capture'}).ssgLevels[1],13);
  }finally{p.close();}
 });
@@ -131,6 +132,32 @@ test('Native capture/scheduling reject explicitly; detached local compile remain
  const client=createYm2608Client(port,{native:true});const plan=client.build(b=>b.ssg.setVolume(0,7));
  assert.equal((await client.compile(plan,{initialState:'reset'}))[0].value,7);
  await assert.rejects(client.captureState(),/Native/);await assert.rejects(client.schedule(plan,{name:'n'}),/Native/);client.dispose();
+});
+
+test('standalone named cancellation releases only the current reservation’s SSG gate',async()=>{
+ const p=await setup('../../docs/synth-fm2608/audio_worklet.js',48000);try{
+  const owner='named-owner';
+  const reserve=(name,program)=>p.rpc({action:'schedule',operations:build(program),options:{name},owner});
+  const capture=()=>p.rpc({action:'capture'}).registers[0].slice(8,11);
+  reserve('first',b=>{b.ssg.setVolume(0,6);b.ssg.setVolume(1,7);});p.render(256);
+  reserve('second',b=>b.ssg.setVolume(0,10));p.render(256);
+  p.synth.ssg.setVolume(2,12);assert.deepEqual(capture(),[10,7,12]);
+  p.rpc({action:'clear',name:'first',owner});assert.deepEqual(capture(),[10,0,12]);
+  p.rpc({action:'clear',name:'second',owner});assert.deepEqual(capture(),[0,0,12]);
+ }finally{p.close();}
+});
+
+test('standalone OPNA allNotesOff releases held timed FM and SSG while retaining later events and manual sound',async()=>{
+ const p=await setup('../../docs/synth-fm2608/audio_worklet.js',48000);try{
+  const plan=build(b=>{b.keyOn(0);b.ssg.setVolume(0,9);b.ssg.setVolume(1,5);});
+  const receipt=p.rpc({action:'schedule',operations:plan,options:{name:'repeat',repeatSeconds:.06}});
+  p.render(receipt.startFrame+1);
+  p.synth.ssg.setVolume(1,12);
+  const read=()=>{const state=p.rpc({action:'capture'});return [state.keyMasks[0],...state.registers[0].slice(8,10)];};
+  assert.deepEqual(read(),[15,9,12]);
+  p.send({type:'release-timed-notes'});assert.deepEqual(read(),[0,0,12]);
+  p.render(receipt.startFrame+2880-p.frame()+1);assert.deepEqual(read(),[15,9,5]);
+ }finally{p.close();}
 });
 
 for(const file of ['ym2608-worklet.js','../../docs/synth-fm2608/audio_worklet.js'])test(`${file} primary Worker port acknowledges direct timed RPC and preserves metadata`,async()=>{

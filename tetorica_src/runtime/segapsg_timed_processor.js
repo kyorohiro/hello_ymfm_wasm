@@ -331,7 +331,7 @@ export function createPsgTimedProcessor({
 		},
 		apply(command, port, frame, metadata) {
 			const { operation, reservation, pattern } = command;
-			if (["keyOff", "off", "noiseOff"].includes(operation.method)) {
+			if (["keyOff", "noteOff", "off", "noiseOff"].includes(operation.method)) {
 				const token = gates.get(
 					operation.method === "noiseOff" ? 3 : operation.args[0],
 				);
@@ -377,6 +377,7 @@ export function createPsgTimedProcessor({
 							"tone",
 							"keyOn",
 							"keyOff",
+							"noteOff",
 							"off",
 							"noise",
 							"noiseOff",
@@ -412,6 +413,7 @@ export function createPsgTimedProcessor({
 				reservation: command.reservation,
 			});
 		},
+		releaseNotes: releaseAll,
 		clear() {
 			timeline.clearPatterns();
 			staged.clear();

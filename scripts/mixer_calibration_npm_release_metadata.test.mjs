@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {createNpmReleaseMetadataReadContext,NPM_RELEASE_METADATA_RECEIPT,NPM_RELEASE_METADATA_PIN,NPM_RELEASE_METADATA_PATHS} from './mixer_calibration_npm_release_metadata.mjs';
 import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
 import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
+import {createCodeApiConsistencyRevisionReadContext} from './mixer_calibration_code_api_consistency_revision.mjs';
 
 const root=new URL('../',import.meta.url),read=name=>readFileSync(new URL(name,root));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -59,13 +60,14 @@ test('non-metadata bytes pass through untouched and the existing SID dependency 
   const bytes=Buffer.from('unreviewed renderer');
   assert.equal(createNpmReleaseMetadataReadContext().restore('tetorica_src/runtime/sidsynth.js',bytes),bytes);
   const changes=new Map([['tetorica_src/runtime/sid_operations.js',Buffer.concat([read('tetorica_src/runtime/sid_operations.js'),Buffer.from('\n// unreviewed\n')])]]);
-  const metadata=createNpmReleaseMetadataReadContext(source(changes));
+  const latest=createCodeApiConsistencyRevisionReadContext(source(changes)),metadata=createNpmReleaseMetadataReadContext(latest.readSource);
   const connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sid=createSidTimedRevisionReadContext(connection.readSource);
   assert.throws(()=>sid.restore('docs/js/playground_runtime.js',connection.readSource(new URL('docs/js/playground_runtime.js',root))),/SID timed revision dependency tetorica_src\/runtime\/sid_operations.js/);
 });
 
 test('the exact release predecessor reader composes with the untouched SID revision',()=>{
-  const metadata=createNpmReleaseMetadataReadContext(),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sid=createSidTimedRevisionReadContext(connection.readSource);
+  const latest=createCodeApiConsistencyRevisionReadContext(),metadata=createNpmReleaseMetadataReadContext(latest.readSource);
+  const connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sid=createSidTimedRevisionReadContext(connection.readSource);
   const current=connection.readSource(new URL('docs/js/playground_runtime.js',root)),previous=sid.restore('docs/js/playground_runtime.js',current);
   assert.notDeepEqual(current,previous);
   assert.equal(JSON.parse(sid.readSource(new URL('packages/fm2612/package.json',root))).version,'0.2.45');

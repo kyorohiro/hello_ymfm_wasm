@@ -49,12 +49,20 @@ export function selectSmsGearCodeDeclarations(source) {
  type SmsGearPsgOperations = PlaygroundSegaPsgOperationProgram;
  type SmsGearPsgSnapshot = PlaygroundSegaPsgStateSnapshot;
  type SmsGearPsgWrite = PlaygroundSegaPsgCompiledWrite;
- type SmsGearPsg = Omit<PlaygroundSegaPsg,'dispose'|'resetAll'>;
+ type SmsGearPsg = Omit<PlaygroundSegaPsg,'resetAll'|'keyOff'|'noteOff'|'off'|'noiseOff'> & {
+   keyOff(channel:0|1|2|3):void|false;
+   noteOff(channel:0|1|2|3):void|false;
+   off(channel:0|1|2|3):void|false;
+   noiseOff():void|false;
+ };
  type SmsGearOpllBuilder = PlaygroundYm2413OperationRecorder;
  type SmsGearOpllOperations = PlaygroundYm2413OperationProgram;
  type SmsGearOpllSnapshot = PlaygroundYm2413StateSnapshot;
  type SmsGearOpllWrite = PlaygroundYm2413CompiledWrite;
- type SmsGearOpll = Omit<PlaygroundYm2413,'dispose'>;
+ type SmsGearOpll = Omit<PlaygroundYm2413,'keyOff'|'noteOff'> & {
+   keyOff(channel:PlaygroundYm2413Channel):void|false;
+   noteOff(channel:PlaygroundYm2413Channel):void|false;
+ };
  declare function useSoundChip<Name extends 'segapsg'|'ym2413'>(name:Name):Promise<Name extends 'segapsg'?SmsGearPsg:SmsGearOpll>;
  type PlaygroundSelectedFmChannel = PlaygroundYm2413Channel;
  type PlaygroundLivePrepareAPI = SmsGearCodeAPI;

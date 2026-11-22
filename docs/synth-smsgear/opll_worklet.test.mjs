@@ -117,6 +117,28 @@ async function setup(t, rate = 48000) {
 const peak = (pcm) =>
 	Math.max(...pcm.left.map(Math.abs), ...pcm.right.map(Math.abs));
 
+test("actual OPLL Worklet: releasing held reservations keeps newer manual notes and future timed gates", async (t) => {
+	const f = await setup(t), { api, processor: p } = f;
+	for (const channel of [0, 1, 2])
+		api.setVoice(channel, { instrument: 1, attenuation: 3 });
+	const pattern = api.build((b) => {
+		b.noteOn(0, "C4").noteOn(1, "E4");
+		b.atSeconds(0.04).noteOn(2, "G4");
+	});
+	const receipt = await api.schedule(pattern, { name: "held-and-later" });
+	f.render(receipt.startFrame + 512);
+	assert(p.registers[0x20] & 16);
+	assert(p.registers[0x21] & 16);
+	f.adopt();
+	api.noteOn(1, "F4");
+	p.receive({ method: "releaseTimedNotes" });
+	assert.equal(p.registers[0x20] & 16, 0);
+	assert(p.registers[0x21] & 16, "manual replacement gate stays on");
+	assert.equal(p.performance.getStats().patternCount, 1);
+	f.render(2000);
+	assert(p.registers[0x22] & 16, "future scheduled gate still executes");
+});
+
 test("actual OPLL Worklet: retiring old CH8 melody after Rhythm enable cannot mute the new Hi-hat physical channel", async (t) => {
 	const f = await setup(t),
 		{ api, processor: p } = f;

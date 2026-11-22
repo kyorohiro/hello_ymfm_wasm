@@ -291,7 +291,10 @@ async function checkKeyboard(browser,name,origin){
   try{
     await page.goto(origin+config.entry);assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,0);
     step('Code tab keeps musical focus and plays before Run, including a note held across the view change');
-    await page.locator('#startAudio').click();await stateIs(page,value=>Boolean(value.channelSettings),'idle SID ready');
+    const startAudio=page.locator('#startAudio');
+    await startAudio.click();
+    await until(async()=>await startAudio.textContent()==='Audio ready','SID editor audio initialized');
+    await stateIs(page,value=>Boolean(value.channelSettings),'idle SID ready');
     const idleKey=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(idleKey);
     await page.keyboard.down(idleKey);await sounding(page);const idleHeld=(await snapshot(page)).voices[0].id;
     await page.locator('#synthInputCodeTab').click();

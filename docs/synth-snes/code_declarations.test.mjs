@@ -17,10 +17,17 @@ const snes=await useSoundChip('snes');
 await snes.noteOn(CH1,'C4');await beat(.5);await snes.noteOff(CH1);
 await snes.noteOn(7,60);const state:SnesCodeState=await snes.getState();
 const active:boolean=state.pmon.active;
+const timed:number=state.timedGateMask, flags:number=state.noiseRegisters.flg, gain:number=state.registers[0][7];
+const send:boolean=state.preset.echo.send, attack:number=state.preset.pmon.envelope.attack;
+const released:boolean=await snes.noteOff(CH8);
 liveLoop('melody',async()=>{await snes.noteOn(CH2,choose(scale('C4','minor')));await beat(.25);await snes.noteOff(CH2);});
 await livePrepare('chip',async api=>api.useSoundChip('snes'));
 const phrase=snes.build(b=>{b.setChannel(CH1,{gain:80});b.noteOn(CH1,'C4');b.atSample(441).noteOff(CH1);});
-const snap=await snes.captureState();await snes.compile(phrase,{initialState:snap});await snes.schedule(phrase,{name:'voice',repeatSeconds:.5});await snes.clearSchedule('voice');
+const snap=await snes.captureState();await snes.compile(phrase,{initialState:snap});
+const receipt=await snes.schedule(phrase,{name:'voice',repeatSeconds:.5});const entries:number=receipt.entries;
+const staged:boolean|undefined=receipt.staged;await snes.clearSchedule('voice');
+// @ts-expect-error build callbacks must run synchronously
+snes.build(async b=>{b.keyOn(CH1);});
 // @ts-expect-error RAM upload is not a recorded operation
 snes.build(b=>b.loadBRR(new Uint8Array(9),{rootNote:'C4'}));
 await pg.useSoundChip('snes');await snes.allNotesOff();await snes.dispose();

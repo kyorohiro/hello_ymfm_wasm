@@ -10,27 +10,40 @@ const SPU_TYPES=`
 interface SpuCodePmon {enabled:boolean;waveform:'sine'|'triangle'|'saw'|'square';ratio:number;depth:number;decayMs:number;}
 interface SpuCodeNoise {enabled:boolean;clock:number;}
 interface SpuCodeMorph {enabled:boolean;a:number[];b:number[];amount:number;}
-type SpuCodeState = Omit<PlaygroundPs1State,'sampleRate'> & {
+type SpuCodeVoiceState = PlaygroundPs1State['channels'][number] & {
+  channel:PlaygroundPs1Channel;active:boolean;type:'spu-adpcm';rawRegisters:number[];
+  noiseClock:number;pmonSettings:SpuCodePmon;morphSettings:SpuCodeMorph;
+  adpcmPreview:{sample:number;pcm:readonly number[];preview:true;source:'sample-start';history:'zero-at-sample-start';decodedFrames:number;sampleByteLength:number}|null;
+  adpcmPreviewUnavailable:string|null;
+};
+type SpuCodeState = Omit<PlaygroundPs1State,'sampleRate'|'channels'> & {
   sampleRate:number;nativeSampleRate:44100;
+  kind:'ps1';codeActive:true;channels:SpuCodeVoiceState[];
+  auditions:{channel:PlaygroundPs1Channel;id:string}[];
   /** App-only software click guard; raw keyOn/keyOff always bypass it. */
   clickGuard:boolean;
   pmon:SpuCodePmon;noise:SpuCodeNoise;morph:SpuCodeMorph;
   hostAudio:{sampleId:number|null;frames:number;duration:number;loop:boolean}|null;
   polyphony:12|24;
+  pmonSampleReserved:boolean;samplePcmSource:{sampleId:number;token:string}|null;
 };
 /** Borrow the upper editor's SPU, its samples and its current sound.
  * All hardware operations are acknowledged asynchronously. */
-type SpuCodeClient = Omit<PlaygroundPs1,'getState'|'dispose'|'noteOn'|'noteOff'|'keyOn'|'keyOff'> & {
+type SpuCodeClient = Omit<PlaygroundPs1,'getState'|'snapshot'|'dispose'|'noteOn'|'noteOff'|'keyOn'|'keyOff'|'allNotesOff'> & {
   readonly id:string;readonly chip:'ps1';
   /** Synth only: follow Click guard for this voice; note pitch uses the current sample's declared root. */
   noteOn(channel:PlaygroundPs1Channel,note?:string|number):Promise<void>;
-  /** Synth only: follow Click guard for this voice. Long and infinite ADSR releases remain intact. */
-  noteOff(channel:PlaygroundPs1Channel):Promise<void>;
+  /** Follow Click guard and preserve keyboard-owned notes. Long and infinite ADSR releases remain intact. */
+  noteOff(channel:PlaygroundPs1Channel):Promise<boolean>;
   /** Raw KON. Bypasses Click guard; setNote changes the pitch before triggering. */
   keyOn(channel:PlaygroundPs1Channel):Promise<void>;
-  /** Raw KOFF. Bypasses Click guard and follows the programmed ADSR release. */
-  keyOff(channel:PlaygroundPs1Channel):Promise<void>;
+  /** Raw KOFF on a Code voice. Bypasses Click guard and follows the programmed ADSR release. */
+  keyOff(channel:PlaygroundPs1Channel):Promise<boolean>;
+  /** Release sounding Code voices and preserve keyboard-owned voices. */
+  allNotesOff():Promise<void>;
   getState():Promise<SpuCodeState>;
+  /** Inspection copy at the Worklet output rate with separate nativeSampleRate. */
+  snapshot():Promise<SpuCodeState & {ram:Uint8Array;registers:Uint16Array}>;
   /** Stop this Code session and restore the editor sound; never close its shared audio context. */
   dispose():Promise<void>;
 };

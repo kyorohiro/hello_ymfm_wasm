@@ -104,7 +104,8 @@ test('live PSG channel mutes queue before readiness, retain masks across routes,
   api.tone(0,{frequency:440,attenuation:6});const before=first.writes.length;
   f.audio.setChannelMuted(0,true);f.audio.setChannelMuted(0,true);
   assert.deepEqual(first.writes.slice(before),[{method:'setChannelMuted',args:[0,true]}]);
-  api.setAttenuation(0,2);assert.deepEqual(first.writes.at(-1),{method:'write',args:[0x92]},'authoring remains independent of output mute');
+  api.setAttenuation(0,2);assert.deepEqual(first.writes.slice(-2),[{method:'write',args:[0x92]},
+    {method:'psgConfiguredLevels',args:[[2,0,0,0],1]}],'authoring remains independent of output mute');
   f.audio.setChannelMuted(0,false);assert.deepEqual(first.writes.at(-1),{method:'setChannelMuted',args:[0,false]});
   const count=first.writes.length;
   for(const ch of [-1,4,1.5,'0'])assert.throws(()=>f.audio.setChannelMuted(ch,true));
@@ -162,7 +163,7 @@ test('Event Rec and PCM loop transport replace one another only after valid inpu
   assert(request.writes.some(message=>message.method==='stopLooper'&&message.args[0]>first));
   assert.throws(()=>api.startLooper({loopLength:0,startTime:0}));assert(api.isRecordingPlaybackActive());
   api.startLooper({loopLength:.1,startTime:1});assert(!api.isRecordingPlaybackActive());assert(api.isLooperPlaybackActive());
-  api.reset();assert(!api.isLooperPlaybackActive());assert.equal(request.writes.at(-1).method,'reset');f.audio.dispose();
+  api.reset();assert(!api.isLooperPlaybackActive());assert.deepEqual(request.writes.slice(-2).map(value=>value.method),['reset','psgConfiguredLevels']);f.audio.dispose();
 });
 
 test('recording transport detaches events, validates before replacing playback and matches completion to its current generation',async()=>{
@@ -203,7 +204,8 @@ test('PSG allocation is lazy, coalesces the same route, sends ordered real API w
   assert.deepEqual(request.writes,offWrites,'every fresh endpoint begins with all four PSG attenuators muted');
   assert.equal(h.gains[0].gain.value,2*SYNTH_SONG_MIX_DEFAULTS.psg);
   psg.tone(0,{frequency:440,attenuation:6});
-  assert.deepEqual(request.writes.slice(-3),[0x8e,0x0f,0x96].map(value=>({method:'write',args:[value]})),
+  assert.deepEqual(request.writes.slice(-4),[{method:'write',args:[0x8e]},{method:'write',args:[0x0f],psgRegister:0},
+    {method:'write',args:[0x96]},{method:'psgConfiguredLevels',args:[[6,0,0,0],1]}],
     'the low latch, high data and attenuation reach one ordered endpoint');
   f.audio.setVolume(3.8);assert.equal(h.gains[0].gain.value,3.8*SYNTH_SONG_MIX_DEFAULTS.psg);
   assert.equal(await f.audio.prepare(h.context,h.output),psg);assert.equal(f.requests.length,1);
@@ -298,6 +300,6 @@ test('software envelope commands validate and detach settings, preserve raw latc
   f.audio.setEnabled(false);
   assert.deepEqual(request.writes.slice(-5),[{method:'stopEnvelopes',args:[]},...offWrites],'disable stops released envelopes before clearing the hardware');
   f.audio.setEnabled(true);assert.deepEqual(request.writes.slice(-4),offWrites);
-  api.setFrequency(0,440);assert.equal(Object.hasOwn(request.writes.at(-1),'psgRegister'),false,'cleared software control returns to the original raw transport');
+  api.setFrequency(0,440);assert.equal(request.writes.at(-1).psgRegister,0,'scheduled operations can also move the latch');
   f.audio.dispose();
 });

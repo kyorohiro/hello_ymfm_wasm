@@ -72,6 +72,38 @@ test('a retired DX7 owner cannot release a replacement owner on the same MIDI no
   assert.deepEqual(p.applied.at(-1),{method:'noteOff',args:[60]});
 });
 
+test('named cancellation releases only voices still held by that pattern including an expired one-shot',()=>{
+  const p=setup({chip:'ay8910',releasePatternNotes:true});
+  const scope={session:1,owner:'entry'};
+  const gate=register=>({method:'writeRegister',args:[register,12]});
+  p.performance.schedulePattern({name:'old',performance:{...scope,time:0},
+    entries:[8,9,10].map(register=>({offsetSeconds:0,command:gate(register)}))});
+  p.render(1);
+  p.performance.schedulePattern({name:'new',performance:{...scope,time:.001},
+    entries:[{offsetSeconds:0,command:gate(8)}]});
+  p.render(1);
+  p.performance.applyImmediate(gate(9),p.port,{owner:'keyboard'});
+  const before=p.applied.length;
+  assert.throws(()=>p.performance.schedulePattern({name:'old',performance:{...scope,time:.002},entries:[]}),/limit|empty/);
+  assert.equal(p.applied.length,before,'invalid replacement must keep the owned gate');
+  assert.equal(p.performance.clearPattern('old',scope),true);
+  assert.deepEqual(p.applied.slice(before),[{method:'forceKeyOff',args:[2]}]);
+  assert.equal(p.performance.clearPattern('old',scope),false);
+  assert.equal(p.performance.clearPattern('new',scope),true);
+  assert.deepEqual(p.applied.at(-1),{method:'forceKeyOff',args:[0]});
+});
+
+test('a stale timed gate off cannot release a newer named pattern in the same generation',()=>{
+  const p=setup({chip:'ay8910',releasePatternNotes:true});
+  const scope={session:1,owner:'entry',time:0};
+  const volume=(value,offsetSeconds)=>({offsetSeconds,command:{method:'writeRegister',args:[8,value]}});
+  p.performance.schedulePattern({name:'old',performance:scope,entries:[volume(7,0),volume(0,.005)]});
+  p.performance.schedulePattern({name:'new',performance:scope,entries:[volume(12,.003)]});
+  p.render(8);
+  assert.deepEqual(p.applied.map(command=>command.args[1]),[7,12]);
+  assert.equal(p.performance.clearPattern('new',scope),true);
+});
+
 for(const [name,command,key]of[
   ['rf5c164',{method:'keyOn',args:[3]},3],['nes',{method:'setChannelEnabled',args:[1,true]},1],
   ['gameboy',{method:'writeRegister',args:[14,128]},2],['segapsg',{method:'write',args:[0xd2]},2],

@@ -252,31 +252,44 @@ export class NesInstrument {
     this._apply(previous,next,channel);this.channelPresets[channel]=next;this.codeRaw[channel]=false;this.codePresets[channel]=null;
     return this.read();
   }
-  applyTimedWrite(register,value,owner,{nesRetriggerDmc=false,fdsState,preserveOwner=false,nesFdsOff=false}={}) {
+  applyTimedWrite(register,value,owner,{nesRetriggerDmc=false,fdsState,preserveOwner=false,nesFdsOff=false,patternName}={}) {
     this._open();
     const state=this.synth._getState();
-    if(nesFdsOff&&this.owners[5]&&this.owners[5].timedOwner!==owner)return;
+    const ownsTimed=ch=>{
+      const gate=this.owners[ch];
+      return Boolean(gate?.timedOwner)&&gate.timedOwner===owner&&gate.patternName===patternName;
+    };
+    const ownTimed=ch=>{
+      this._ownCode(ch,this.codeSession);Object.assign(this.owners[ch],{timedOwner:owner,patternName});this.codeRaw[ch]=true;
+    };
+    if(nesFdsOff&&this.owners[5]&&!ownsTimed(5))return;
     if(register===0x4083&&!preserveOwner){
-      if(value&128){if(this.owners[5]&&this.owners[5].timedOwner!==owner)return;this._forget(5);}
-      else {this._ownCode(5,this.codeSession);this.owners[5].timedOwner=owner;this.codeRaw[5]=true;}
+      if(value&128){if(this.owners[5]&&!ownsTimed(5))return;this._forget(5);}
+      else ownTimed(5);
     }
     if(fdsState&&register>=0x4023)this.synth._adoptState({...state,fdsGain:fdsState.fdsGain,fdsMaster:fdsState.fdsMaster});
     if(register===0x4015){
       const enabled=(state.enabled&15)|(this.core.getState().dmcRemaining>0?16:0);
-      for(let ch=0;ch<5;ch++)if(!(value&(1<<ch))&&this.owners[ch]&&this.owners[ch].timedOwner!==owner&&!(ch===4&&nesRetriggerDmc))value=(value&~(1<<ch))|(enabled&(1<<ch));
+      for(let ch=0;ch<5;ch++)if(!(value&(1<<ch))&&this.owners[ch]&&!ownsTimed(ch)&&!(ch===4&&nesRetriggerDmc))value=(value&~(1<<ch))|(enabled&(1<<ch));
       for(let ch=0;ch<5;ch++){
-        if(!(value&(1<<ch))&&this.owners[ch]?.timedOwner===owner||ch===4&&nesRetriggerDmc&&!(value&16))this._forget(ch);
-        else if((value&(1<<ch))&&!(enabled&(1<<ch))){this._ownCode(ch,this.codeSession);this.owners[ch].timedOwner=owner;this.codeRaw[ch]=true;}
+        if(!(value&(1<<ch))&&ownsTimed(ch)||ch===4&&nesRetriggerDmc&&!(value&16))this._forget(ch);
+        else if((value&(1<<ch))&&!(enabled&(1<<ch)))ownTimed(ch);
       }
     }
     const channel=[0x4003,0x4007,0x400b,0x400f].indexOf(register);
-    if(channel>=0&&(state.enabled&(1<<channel))){this._ownCode(channel,this.codeSession);this.owners[channel].timedOwner=owner;this.codeRaw[channel]=true;}
+    if(channel>=0&&(state.enabled&(1<<channel)))ownTimed(channel);
     this.synth.writeRegister(register,value);
     if(register>=0x4040&&register<=0x407f)this.assets.wave=null;
     if(register===0x4088)this.assets.modulation=null;
   }
-  cancelTimedOwner(owner){
-    for(let ch=0;ch<6;ch++)if(this.owners[ch]?.timedOwner===owner){this._stopChannel(ch);this._forget(ch);}
+  cancelTimedOwner(owner,patternName){
+    let released=false;
+    for(let ch=0;ch<6;ch++){
+      const gate=this.owners[ch];
+      if(!gate?.timedOwner||(owner!==undefined&&gate.timedOwner!==owner)||(patternName!==undefined&&gate.patternName!==patternName))continue;
+      this._stopChannel(ch);this._forget(ch);released=true;
+    }
+    return released;
   }
   beginCode(...args) {
     this._open();if(args.length)throw new TypeError('Code session takes no arguments');
@@ -325,7 +338,10 @@ export class NesInstrument {
     validateNesCodeCall(method,args,this.synth.clock);
     if(method==='getState')return {...this.read(),...this.synth._getState()};
     if(method==='dispose')return this.endCode(session);
-    if(method==='allNotesOff'){this.stop();return;}
+    if(method==='allNotesOff'){
+      for(let ch=0;ch<6;ch++)if(this.owners[ch]?.kind==='code'&&this.owners[ch].session===session){this._stopChannel(ch);this._forget(ch);}
+      return;
+    }
     if(method==='dmc.play'&&!this.synth._getState().sample) {
       const authored=this.channelPresets[4],options=args[0]??{};
       if(!options||typeof options!=='object'||Array.isArray(options))throw new TypeError('DMC playback options must be an object');
@@ -341,7 +357,7 @@ export class NesInstrument {
     if(on)return this._codeAttack(channel,args[method.startsWith('triangle.')||method.startsWith('fds.')?0:1],session,method.endsWith('keyOn'));
     if(off||rawOff){
       const owner=this.owners[channel];
-      if(!rawOff&&(!owner||owner.kind!=='code'||owner.session!==session))return false;
+      if(owner?.kind==='keyboard'||!rawOff&&(!owner||owner.kind!=='code'||owner.session!==session))return false;
       this._stopChannel(channel);this._forget(channel);return true;
     }
     const [group,member]=method.split('.');

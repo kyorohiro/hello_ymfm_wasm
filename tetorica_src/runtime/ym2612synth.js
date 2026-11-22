@@ -401,6 +401,10 @@ export class YM2612WorkletTransport {
     this.node.port.postMessage({ type: "clear-scheduled-writes" });
   }
 
+  _releaseTimedNotes() {
+    if (!this.disposed) this.node.port.postMessage({type:'release-timed-notes'});
+  }
+
   loadDacBank(name, bytes) {
     this.node.port.postMessage(
       { type: "load-dac-bank", name, data: bytes.buffer },
@@ -930,7 +934,8 @@ export class YM2612Synth {
     }
 
     const operatorMask = buildKeyOperatorMask(operators);
-    this._write(0, 0x28, operatorMask | KEY_CHANNEL_CODES[channel]);
+    const held = this._timedState.keyMasks[channel] << 4;
+    this._write(0, 0x28, (held & ~operatorMask) | KEY_CHANNEL_CODES[channel]);
   }
 
   /** Note name or integer MIDI plus KEY ON. @overload @param {number} channel @param {string|number} note @returns {void} */

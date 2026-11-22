@@ -254,6 +254,7 @@ export function attachPsgTimedClient(api, configuration = {}, port) {
 			"keyOn",
 			"keyOff",
 			"noteOn",
+			"noteOff",
 			"off",
 			"tone",
 			"noise",

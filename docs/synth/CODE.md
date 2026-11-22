@@ -47,8 +47,9 @@ only when its path is missing and keeps your edited source and selection.
 `atSample()` offsets. It does not read or modify the chip. `await fm.schedule()`
 accepts a named reservation on the AudioWorklet sample clock; the returned
 Promise reports acceptance, not completion. Replacing a name restarts its
-pattern. `await fm.clearSchedule(name)` cancels future operations without
-restoring previous parameter values. Stop cancels Code-owned reservations.
+pattern. `await fm.clearSchedule(name)` cancels future operations and releases
+notes still owned by that pattern. Other notes and parameter edits are retained.
+Stop cancels Code-owned reservations.
 
 `await fm.compile(program)` resolves a predicted register trace from a coherent
 renderer snapshot. Use `{initialState: "client"}` for local state without a
@@ -62,6 +63,24 @@ Scheduling is software. YM2612 supplies the operator behavior and envelopes.
 Packed-register fields are resolved when each operation executes, so changing
 MULT retains the DT present at that moment. An explicit Key On/Off write is
 kept even when its value repeats. Native timed execution is unavailable.
+
+`fm.setFrequency(CH1, 440)` takes Hz. The legacy three-argument form takes
+BLOCK and F-NUM. `fm.keyOff(CH1, [OP1])` releases only that operator and
+preserves the other gates. Get a register-write trace with `compile()` or
+an acknowledged renderer snapshot with `captureState()`.
+
+The Sega PSG has the same `build()` / `schedule()` / `compile()` methods as
+SMSGEAR's PSG. `psg.noteOn(PSG1, 60)` accepts a MIDI note and returns the
+10-bit hardware period. Tone channels are 0–2. Use `noise()` for channel 3,
+and `keyOn(3)` or `keyOff(3)` to control its gate. Programs address actual PSG
+registers and skip the Synth's optional software envelope. Immediate `noteOff()`
+uses that envelope when enabled, while `keyOff()` releases the gate directly.
+Genesis uses mono PSG and has no Game Gear stereo register.
+
+For RF5C164, Code `noteOff()` uses the same short software release as keyboard
+key-up. `keyOff()` closes the chip gate immediately. Code `allNotesOff()`
+releases sounding Code-owned notes, including held timed FM and PSG notes.
+Future reservations remain active, and a newer keyboard note can keep sounding.
 
 Selecting an FM, PSG or PCM sound in Files or the preset lists selects that
 chip's **Auto** instrument, even from a physical CH view, while Code keeps running. It preserves live loops, context,
@@ -347,4 +366,4 @@ The effect runs in the audio processor. Pass its adjustable values through its `
 
 Use `await import("./helper.js")` for local modules, and `await file("./data.json", {type:"json"})` for local data. `file()` also supports text (default) and `arrayBuffer`. Paths are relative to the current file, as in Playground. Entry code supports top-level `await`; it is evaluated as a performance script rather than a static ES module.
 
-This first integration uses Playground's shared Main execution components. The audio processors and PWM reservations still run on the audio clock; JavaScript loops follow the browser's Main-thread scheduling. Worker execution is a separate extension. Keyboard can play alongside Code on the same physical channels. The most recent Key On owns a channel: an older Code Note Off or keyboard key-up cannot silence its newer owner, and no old note is automatically resumed. Parameters alone do not claim a gate; raw register writes and explicit allNotesOff remain physical controls. Blur releases keyboard-owned notes without stopping Code. Looper / Event Rec require Code to be stopped. Starting reference VGM playback stops Code.
+This first integration uses Playground's shared Main execution components. The audio processors and PWM reservations still run on the audio clock; JavaScript loops follow the browser's Main-thread scheduling. Worker execution is a separate extension. Keyboard can play alongside Code on the same physical channels. The most recent Key On owns a channel: an older Code Note Off or keyboard key-up cannot silence its newer owner, and no old note is automatically resumed. Parameters alone do not claim a gate. FM, PSG and RF5C164 `allNotesOff()` release notes owned by Code. **Stop all sound** is the whole-Synth control. Blur releases keyboard-owned notes without stopping Code. Looper / Event Rec require Code to be stopped. Starting reference VGM playback stops Code.

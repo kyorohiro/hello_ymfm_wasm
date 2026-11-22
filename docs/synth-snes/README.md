@@ -442,15 +442,18 @@ liveLoop("melody", async () => {
 This Synth performance handle shares the existing S-DSP, sample bank, current
 sound, keyboard allocator and Master. Its note methods are asynchronous; await
 them before starting a musical wait. `beat()` follows `setBpm()`, while `sleep()`
-measures seconds. Performance lanes **0–7** identify Code notes; **CH1–CH6** are
-aliases for 0–5, and numeric 6 / 7 address the last two lanes. They are not fixed
-DSP voice numbers. Notes use the same round robin / stealing rules as the
+measures seconds. Performance lanes **0–7** identify Code notes. **CH1–CH8**
+are aliases for those lanes. Notes use the same round robin / stealing rules as the
 keyboard: eight ordinary notes, or four PMON pairs, shared with manual keys.
 Noise uses its shared clock and ignores the requested musical pitch.
 
 The handle exposes `noteOn(lane, note)`, `noteOff(lane)`, `getState()`,
-`allNotesOff()` and `dispose()`. The last two release only that Code session's
-notes. Note names and integer MIDI 0–127 are supported. The editor sets the
+`allNotesOff()` and `dispose()`. `noteOff()` returns whether its lane still
+owned a voice. `allNotesOff()` releases Code's currently sounding lane and
+scheduled notes. Upcoming scheduled events continue until you cancel them with
+`clearSchedule(name)`. `getState().voices` lists allocated lane and keyboard
+notes. `getState().timedGateMask` identifies the physical voices currently
+owned by timed operations. Note names and integer MIDI 0–127 are supported. The editor sets the
 Wave / BRR bank, envelopes, Noise, PMON and Echo; edits apply through the existing
 live-update rules. This app-specific performance handle differs from Playground's
 raw `SnesSynth` channel / RAM API. **Copy JavaScript** retains the existing

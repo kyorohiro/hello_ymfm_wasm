@@ -125,6 +125,27 @@ for(const rate of [44100,48000])test(`real ${rate}Hz timed batches match compila
   } finally { p.close(); }
 });
 
+test('one YM2149 gate keeps Tone and Noise enabled together on the same channel',async () => {
+  const p = await setup();
+  try {
+    p.client.writeRegister(7,0xff);
+    const pattern = p.client.build(b => {
+      b.setMixer(0,{tone:true});
+      b.setMixer(0,{noise:true});
+      b.noteOn(0,'A4');
+    });
+    const writes = await p.client.compile(pattern);
+    assert.deepEqual(writes.filter(row => row.register===7).map(row => row.value),[0xfe,0xf6]);
+    const receipt = await p.client.schedule(pattern,{name:'tone+noise'});
+    p.render(receipt.startFrame+128);
+    assert.equal(p.read().registers[7],0xf6);
+    assert(p.read().registers[8]>0);
+    await p.client.clearSchedule('tone+noise');
+    assert.equal(p.read().registers[8],0);
+    assert.equal(p.read().registers[7],0xf6);
+  } finally { p.close(); }
+});
+
 test('real scheduled R7 partial updates preserve an intervening manual edit',async () => {
   const p = await setup();
   try {

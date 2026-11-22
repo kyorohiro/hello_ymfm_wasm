@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {SegaPSG,SEGAPSG_CLOCK} from '../js/segapsg.js';
 import factory from '../generated/segapsg_wasm.js';
 import {createSegaPsgApi} from '../js/segapsg_api.js';
+import {buildPsgOperations} from '../js/segapsg_operations.js';
 import {normalizeSynthPsgSettings} from './synth_psg.js';
 import {prepareSynthPsgLoopUnit} from './synth_psg_loop_player.js';
 
@@ -20,8 +21,8 @@ globalThis.registerProcessor=(name,processor)=>{assert.equal(name,'tetorica-sega
 try {await import('./synth_psg_worklet.js');}
 finally {for(const [name,descriptor]of previous)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}
 const wasmBinary=await readFile(new URL('../generated/segapsg_wasm.wasm',import.meta.url));
-async function worklet() {
-  const previous=Object.getOwnPropertyDescriptor(globalThis,'sampleRate');globalThis.sampleRate=48000;
+async function worklet(rate=48000) {
+  const previous=Object.getOwnPropertyDescriptor(globalThis,'sampleRate');globalThis.sampleRate=rate;
   let processor;
   try {processor=new Processor({processorOptions:{wasmBinary,clock:SEGAPSG_CLOCK,stereoEnabled:false}});}
   finally {previous?Object.defineProperty(globalThis,'sampleRate',previous):delete globalThis.sampleRate;}
@@ -116,6 +117,39 @@ test('private worklet Envelope Off generates the exact shared PSG PCM for ordina
     assert.deepEqual(generate(processor,12000),chip.generateStereo(12000));
     send(processor,'allNotesOff');assert(generate(processor,1000).left.every(value=>value===0));
   } finally {processor.dispose();chip.dispose();}
+});
+
+for(const rate of [44100,48000])test(`Genesis PSG ${rate}: timed note release leaves the reservation and newer manual gate intact`,async()=>{
+  const processor=await worklet(rate);
+  let id=0;
+  function timed(request) {
+    send(processor,'psgTimed',[request],{id:++id});
+    const reply=processor.port.messages.find(item=>item.id===id);
+    assert.equal(reply?.error,undefined,JSON.stringify(reply));return reply.value;
+  }
+  try {
+    send(processor,'allNotesOff');
+    send(processor,'psgConfiguredLevels',[[4,0,0,0],1]);
+    const program=buildPsgOperations(b=>{
+      b.atSample(441).noteOn(0,60);
+      b.atSample(882).noteOff(0);
+    });
+    const receipt=timed({action:'schedule',operations:program,options:{name:'pulse',repeatSeconds:0.06}});
+    const keyFrame=receipt.startFrame+rate/100;
+    assert(generate(processor,keyFrame).left.every(value=>value===0));
+    assert(generate(processor,64).left.some(value=>value!==0));
+    assert.equal(timed({action:'capture'}).state.attenuations[0],4);
+    send(processor,'releaseTimedNotes');
+    const secondCycle=keyFrame+Math.round(.06*rate);
+    assert(generate(processor,secondCycle-processor.renderedFrames).left.every(value=>value===0));
+    assert(generate(processor,64).left.some(value=>value!==0),'the next reserved cycle still plays');
+    // Newer ordinary authoring commands retire the old scheduled gate token.
+    send(processor,'write',[0x91]);
+    send(processor,'releaseTimedNotes');
+    assert.equal(timed({action:'clear',name:'pulse'}),true);
+    assert(generate(processor,4800).left.some(value=>value!==0));
+    assert.equal(timed({action:'capture'}).state.attenuations[0],1);
+  } finally {processor.dispose();}
 });
 
 test('software attenuation cannot redirect a split tone high byte into an unrelated PSG volume register',async()=>{

@@ -58,6 +58,8 @@ const note:Promise<void>=ps1.setNote(CH3,'E3');await note;
 await ps1.setPitch(CH4,4096);await ps1.setFrequency(CH5,440);await ps1.keyOn(CH6);await ps1.keyOff(CH6);
 await ps1.noteOn(23,'C4');await ps1.noteOff(23);await ps1.allNotesOff();
 const snapshot=await ps1.snapshot();snapshot.ram[0];snapshot.registers[0];
+const outputRate:number=snapshot.sampleRate, nativeRate:44100=snapshot.nativeSampleRate;
+const pitchWord:number=snapshot.channels[0].rawRegisters[2];const released:boolean=await ps1.keyOff(CH1);
 await ps1.reset({clearRam:true});await ps1.dispose();
 liveLoop('phrase',async()=>{await other.noteOn(channel,choose(scale('E3','minorPentatonic',2)));await sleep(.12);await other.noteOff(channel);await beat(.5);});
 await livePrepare('state',async api=>{const instrument=await api.useSoundChip('ps1');await instrument.setNote(0,60);api.log('ready');

@@ -10,7 +10,7 @@ import ymfmFactory from '../../tetorica_src/runtime/generated/ym2612_wasm.js';
 import nukedFactory from '../../tetorica_src/runtime/generated/nuked_opn2_wasm.js';
 import {SegaPSG, SEGAPSG_CLOCK} from '../../tetorica_src/runtime/segapsg.js';
 import segaPsgModuleFactory from '../../tetorica_src/runtime/generated/segapsg_wasm.js';
-import {YM2612Synth} from '../../tetorica_src/runtime/ym2612synth.js';
+import {YM2612Synth,YM2612WorkletTransport} from '../../tetorica_src/runtime/ym2612synth.js';
 import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
 import {PsgInspectorState, receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
@@ -357,5 +357,19 @@ for(const engine of ['ymfm','nuked'])test(`${engine} timed owner release cannot 
     p.render(thirdReceipt.startFrame-p.frame()+300);
     assert.equal(p.rpc({action:'capture'}).keyMasks[0],4);
     p.rpc({action:'releaseOwner',owner:'second'});assert.equal(p.rpc({action:'capture'}).keyMasks[0],4);
+  }finally{p.close();}
+});
+
+for(const engine of ['ymfm','nuked'])test(`${engine} Code allNotesOff releases sounding reservations and preserves the next cycle and keyboard`,async()=>{
+  const p=await setup(engine,48000);
+  try {
+    const plan=buildYm2612Operations(b=>{b.keyOn(0,[0]);b.keyOn(1,[1]);});
+    const receipt=p.rpc({action:'schedule',operations:plan,options:{name:'pulse',repeatSeconds:.06}});
+    p.render(receipt.startFrame+1);assert.deepEqual(p.rpc({action:'capture'}).keyMasks.slice(0,2),[1,2]);
+    p.send({type:'audition-note-on',channel:1,token:1,block:4,fnum:700});
+    const transport=new YM2612WorkletTransport({postMessage:p.send});
+    transport._releaseTimedNotes();assert.deepEqual(p.rpc({action:'capture'}).keyMasks.slice(0,2),[0,15]);
+    p.render(receipt.startFrame+2880-p.frame()+1);
+    assert.deepEqual(p.rpc({action:'capture'}).keyMasks.slice(0,2),[1,2]);
   }finally{p.close();}
 });

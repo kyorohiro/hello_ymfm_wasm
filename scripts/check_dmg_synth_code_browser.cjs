@@ -234,11 +234,16 @@ async function check(browser,name,origin,loadCassette){
     assert.equal(await page.evaluate(async()=>{try{await __dmgSaved.pulse.noteOn(0,'C5');return 'allowed';}catch(error){return error.name;}}),'AbortError');
     assert.equal(await page.locator('#voiceEditor').getAttribute('data-readonly'),'false');
 
-    step('Save sound preserves running Code and focus, while a JSON selection remains non-runnable');
+    step('Creating an instrument preserves running Code and focus, while a JSON selection remains non-runnable');
     await page.locator('#dmgChannelSelect').selectOption('synth');
     await source(page,HOLD);await execute(page);await pcm(page);await page.locator('#synthCodeEditor').focus();
     const beforeSave=await read(page,'observeCode'),focus=await page.evaluate(()=>document.activeElement.id);
-    await page.locator('#dmgFileSaveSoundButton').click();await until(()=>page.locator('#dmgFilesStatus').textContent().then(value=>/Current DMG instrument saved/.test(value)),'Save sound');
+    await page.locator('#dmgFileSaveSoundButton').click();
+    const instrumentPath=`/presets/${author.preset.name}.dmg.json`;
+    const nameDialog=page.locator('#dmgFileNameDialog');
+    await nameDialog.locator('#dmgFileNameInput').fill(instrumentPath);
+    await nameDialog.getByRole('button',{name:'Create',exact:true}).click();
+    await until(()=>page.locator('#dmgFilesStatus').textContent().then(value=>value?.startsWith('Saved to '+instrumentPath)),'Save sound');
     assert.equal(await page.evaluate(()=>document.activeElement.id),focus);assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');
     const sound=JSON.parse(await page.locator('#synthCodeEditor').inputValue());assert.deepEqual(sound,author.preset);
     assert(await page.locator('#synthCodeRunButton').isDisabled());assert(await page.locator('#synthCodeApplyButton').isDisabled());
@@ -354,6 +359,8 @@ liveLoop('motion',async()=>{prepared.ticks++;await gb.pulse.setDuty(0,prepared.t
 
     step('Files restore preserves text and selection without creating audio or executing saved Code');
     await page.locator('#dmgProjectFileInput').setInputFiles({name:'dmg-project.zip',mimeType:'application/zip',buffer:projectDownload.bytes});
+    await page.locator('#dmgImportCassetteDialog').waitFor({state:'visible'});
+    await page.locator('#dmgImportCassetteReplace').click();
     await until(()=>page.locator('#dmgFilesStatus').textContent().then(value=>/Imported|imported|Project loaded|Project imported/.test(value)),'project import');
     assert.equal(await read(page,'observeCode'),null);await selectFile(page,'/index.js',{code:true});assert.match(await page.locator('#synthCodeEditor').inputValue(),/livePrepare/);
     await until(()=>page.evaluate(()=>new Promise(resolve=>{const request=indexedDB.open('tetorica-dmg-synth-files',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('projects','readonly').objectStore('projects').get('current');get.onsuccess=()=>{db.close();resolve(get.result?.codeState?.path==='/index.js'&&get.result?.codeState?.mode==='code');};get.onerror=()=>resolve(false);};request.onerror=()=>resolve(false);})), 'persisted editor selection');

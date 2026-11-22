@@ -37,7 +37,7 @@ test('last KON owns each physical channel: old keyboard and old typed Code relea
   instrument.noteOn('replacement',67,{channel:0});instrument.releaseKeyboard();code('pulse.noteOn',1,'E4');
   count=writes.length;instrument.releaseKeyboard();assert.equal(writes.length,count);assert(active(instrument,1),'blur/keyboard cleanup leaves Code gates sounding');
   instrument.noteOn('raw',60,{channel:0});code('writeRegister',4,instrument.observeCode().voice[4]|128);assert.equal(instrument.noteOff('raw'),false);
-  instrument.noteOn('explicit-all',60,{channel:0});code('allNotesOff');assert.deepEqual(instrument.read().voices,[]);assert(!active(instrument,0)&&!active(instrument,1));
+  instrument.noteOn('explicit-all',60,{channel:0});code('allNotesOff');assert.equal(instrument.read().voices[0].id,'explicit-all');assert(active(instrument,0)&&!active(instrument,1));
 });
 
 test('selected-CH edits change only explicit fields, retaining every frequency, other CH settings, gates, native history and Code token',async t=>{

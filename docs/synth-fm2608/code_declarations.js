@@ -51,16 +51,17 @@ interface Fm2608CodeClient extends Fm2608CodeFm, PlaygroundYm2608TimedApi {
     setFrequency(channel:0|1|2,hz:number):number;
     setNote(channel:0|1|2,note:string|number):number;
     noteOn(channel:0|1|2,note:string|number):void;
+    noteOff(channel:0|1|2):void;
     keyOn(channel:0|1|2):void;
     keyOff(channel:0|1|2):void;
     off(channel:0|1|2):void;
-    tone(channel:0|1|2,options:{frequency?:number;period?:number;volume?:number;envelope?:boolean}):number;
+    tone(channel:0|1|2,options:{frequency?:number;period?:number;note?:string|number;volume?:number;envelope?:boolean}):number;
     noise(channel:0|1|2,options?:{period?:number;volume?:number;envelope?:boolean}):void;
     setTonePeriod(channel:0|1|2,period:number):void;
-    setMixer(channel:0|1|2,options:{tone:boolean;noise:boolean}):void;
+    setMixer(channel:0|1|2,options:{tone?:boolean;noise?:boolean}):void;
     setVolume(channel:0|1|2,volume:number,envelope?:boolean):void;
     /** Shared across the three SSG channels. Writing shape restarts it. */
-    setEnvelope(options:{period:number;shape:number}):void;
+    setEnvelope(options:{period?:number;shape?:number}):void;
     reset():void;
   };
   rhythm:{
@@ -83,7 +84,7 @@ interface Fm2608CodeClient extends Fm2608CodeFm, PlaygroundYm2608TimedApi {
     setPlaybackRate(rate:number):number;
     setDeltaN(value:number):void;
     keyOn(options?:{repeat?:boolean}):void;
-    /** Synth-only 8ms hardware-volume release. Raw keyOff remains immediate. */
+    /** Synth-only 12 ms hardware-volume release. Raw keyOff remains immediate. */
     noteOff():boolean;
     keyOff():void;
     reset():void;

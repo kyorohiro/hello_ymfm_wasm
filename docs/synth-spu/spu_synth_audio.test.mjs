@@ -390,8 +390,19 @@ test('Code and keyboard share physical CHs: the latest Note On owns it; old othe
   call('noteOn',0,69);assert.equal(p.command('instrumentNoteOff',['keyboard-1']),false);assert(p.processor.codeGates.has(0));
   const pitch=p.processor.synth.core.read(4);p.command('setInstrumentPitchBend',[1]);assert.equal(p.processor.synth.core.read(4),pitch,'old keyboard note cannot bend a newer Code voice');
   p.command('instrumentAllNotesOff');assert(p.processor.codeGates.has(0)&&p.processor.codeGates.has(3));assert(p.processor.synth.gates[0]&&p.processor.synth.gates[3]);
-  p.command('instrumentNoteOn',[64,'keyboard-2',0,0]);call('keyOff',0);assert.equal(p.processor.keyboardOwners.has(0),false,'raw keyOff stays an explicit physical gate action');
-  assert.equal(p.command('instrumentNoteOff',['keyboard-2']),false);call('allNotesOff');assert.equal(p.processor.codeGates.size,0);p.command('stop');
+  p.command('instrumentNoteOn',[64,'keyboard-2',0,0]);assert.equal(call('keyOff',0),false);
+  call('allNotesOff');assert.equal(p.processor.codeGates.size,0);
+  assert(p.processor.keyboardOwners.has(0)&&p.processor.synth.gates[0],'Code releases preserve newer keyboard owners');
+  assert.equal(p.processor.synth.gates[3],false,'Code Gate releases');
+  assert.equal(p.command('instrumentNoteOff',['keyboard-2']),true);p.command('stop');
+});
+
+test('SPU Code snapshot uses the Worklet output rate and preserves native rate and hardware fields',async t=>{
+  const p=await setup(48000);t.after(()=>p.close());const session=p.command('beginCode').session;
+  const snapshot=p.command('code',[session,'snapshot',[]]);
+  assert.equal(snapshot.sampleRate,48000);assert.equal(snapshot.nativeSampleRate,44100);
+  assert.equal(snapshot.channels[0].rawRegisters.length,8);
+  assert(snapshot.ram instanceof Uint8Array);assert.equal(snapshot.registers.length,512);
 });
 
 test('selected Noise edits use one NON bit, share only the clock, and preserve Code/ENV during clock changes after clearRam',async t=>{
@@ -1820,6 +1831,19 @@ test('Synth Code timed schedule uses the borrowed SPU, maintains raw/guarded rel
  p.render(1200);assert(!p.processor.codeGates.has(0));assert.equal(p.processor.clickGuard,true);
  p.command('stop');p.render(2000);assert.equal(p.processor.performance.getStats().patternCount,0);
  assert.throws(()=>p.command('codeTimed',[session,{action:'capture'}]),/session stopped/);
+});
+
+test('SPU named cancellation releases a held timed Gate and preserves a newer immediate Gate',async t=>{
+ const p=await setup(48000);t.after(()=>p.close());const {session}=p.command('beginCode');
+ const {buildPs1Operations}=await import('../../tetorica_src/runtime/ps1_operations.js');
+ const plan=buildPs1Operations(b=>{b.noteOn(0,'E3').noteOn(1,'A3');b.atSeconds(.05).keyOff(0).keyOff(1);});
+ const timed=(action,value)=>p.command('codeTimed',[session,{action,...value}]);
+ timed('schedule',{operations:plan,options:{name:'held'}});p.render(256);
+ assert(p.processor.codeGates.has(0)&&p.processor.codeGates.has(1));
+ p.command('code',[session,'noteOn',[1,'C4']]);
+ assert.equal(timed('clear',{name:'held'}),true);p.render(4096);
+ assert.equal(p.processor.codeGates.has(0),false);
+ assert.equal(p.processor.codeGates.has(1),true);
 });
 
 test('Code hardware flags do not allocate samples, retune a PMON source or survive Code Stop',async t=>{

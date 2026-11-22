@@ -82,9 +82,7 @@ export async function createSmsGearAudio({
 		};
 	const forceOff = (name, channel) =>
 		name === "segapsg"
-			? channel === 3
-				? psg._forceKeyOff(3)
-				: psg.keyOff(channel)
+			? psg.keyOff(channel)
 			: typeof channel === "string"
 				? opll.setRhythm({ [channel]: false })
 				: opll.noteOff(channel);
@@ -204,12 +202,13 @@ export async function createSmsGearAudio({
 			!voice ||
 			leases.get(voice.name + ":" + voice.channel) !== voice.token
 		)
-			return;
+			return false;
 		leases.delete(voice.name + ":" + voice.channel);
 		forceOff(voice.name, voice.channel);
 	}
 	const borrowed = (name, isCurrent) => {
 		const target = raw[name],
+			endpoint = synth.primaryEndpoints.find((item) => item.name === name),
 			owned = new Map(),
 			methods = new Map();
 		const release = () => {
@@ -217,11 +216,18 @@ export async function createSmsGearAudio({
 				noteOff({ name, channel, token });
 			owned.clear();
 		};
+		const releaseAllNotes = () => {
+			if (!isCurrent())
+				throw new DOMException("Code session ended", "AbortError");
+			release();
+			endpoint.node.port.postMessage({ method: "releaseTimedNotes" });
+		};
 		const client = new Proxy(target, {
 			get(object, key) {
 				if (key === "then") return undefined;
 				if (key === "id" || key === "chip") return name;
-				if (key === "dispose" || key === "allNotesOff") return release;
+				if (key === "dispose") return release;
+				if (key === "allNotesOff") return releaseAllNotes;
 				const value = Reflect.get(object, key, object);
 				if (typeof value !== "function") return value;
 				if (!methods.has(key))
@@ -233,15 +239,13 @@ export async function createSmsGearAudio({
 							);
 						const channel =
 							key === "noise" || key === "noiseOff" ? 3 : args[0];
-						if (
-							["keyOff", "noteOff", "off", "noiseOff"].includes(
-								key,
-							) &&
-							owned.has(channel)
-						) {
+						if (["keyOff", "noteOff", "off", "noiseOff"].includes(key)) {
 							const token = owned.get(channel);
-							owned.delete(channel);
-							return noteOff({ name, channel, token });
+							if (token !== undefined) {
+								owned.delete(channel);
+								return noteOff({ name, channel, token });
+							}
+							if (leases.has(name + ":" + channel)) return false;
 						}
 						const result = value.apply(object, args);
 						if (name === "ym2413" && key === "setRhythm") {

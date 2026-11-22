@@ -31,6 +31,13 @@ export function selectSidCodeDeclarations(source) {
           "Restore the upper editor's current settings without replacing its instrument.")
         .replace('  dispose():void;',"  /** Restore the current editor patch and stop its voices; never close the shared SID or AudioContext. */\n  dispose():void;")
         .replace(/^(  \w+\([^\n]*\)):void;/gm,'$1:Promise<void>;')
-        .replace(/^(  (?:setFrequency|setNote)\([^\n]+\)):number;/gm,'$1:Promise<number>;')});
+        .replace(/^(  (?:setFrequency|setNote)\([^\n]+\)):number;/gm,'$1:Promise<number>;')
+        .replace('  noteOn(channel:PlaygroundSidChannel,note:string|number):Promise<void>;',
+          '  /** Set note pitch and assert the SID Gate. An already high Gate does not restart the envelope. */\n  noteOn(channel:PlaygroundSidChannel,note:string|number):Promise<void>;')
+        .replace(/^(  (?:keyOff|noteOff)\([^\n]+\)):Promise<void>;/gm,'$1:Promise<boolean>;')
+        .replace('  allNotesOff():Promise<void>;',
+          '  /** Release Code Gates (including sounding reservations) and preserve keyboard Gates. */\n  allNotesOff():Promise<void>;')
+        .replace('  getState():Promise<PlaygroundSidState>;',
+          '  getState():Promise<PlaygroundSidState>;\n  /** Detached copy of the Worklet’s 32-byte write shadow. */\n  getRegisterSnapshot():Promise<Uint8Array>;')});
     }});
 }

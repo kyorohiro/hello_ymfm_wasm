@@ -83,6 +83,7 @@ export class YM2612Processor extends AudioWorkletProcessor {
       channelCount: 6,
     });
     this.performanceQueue = createPerformanceQueue({
+      onReleasePattern: (name, scope) => this.performanceOwnership.releasePattern(name, scope),
       patternCommandCost:command=>command.method==='applyTimedOperation'?command.writeCost:1,
       apply: (command, reply, frame, performance) => this.applyCommand(command, reply, frame, performance),
       onCancelOwner: owner => {
@@ -243,10 +244,11 @@ export class YM2612Processor extends AudioWorkletProcessor {
   applyCommand(command, reply = message => this.port.postMessage(message), commandFrame = currentFrame, performance) {
     if (command.method === 'ym2612Timed') {this.timed.receive(command,{postMessage:reply});return;}
     if (command.method === 'applyTimedOperation') return this.timed.apply(command.operation,{postMessage:reply},commandFrame,performance);
+    if (command.type === 'release-timed-notes') return this.performanceOwnership.releasePattern();
     if (performance?.timedOperation && command.type === 'write' && this.auditions) {
       if (!this.performanceOwnership.canApplyTimed(command,performance)) return false;
       const inspector=this.opnInspector??this.auditions;
-      if (!inspector.writeTimedRegister(command.register,command.value,command.port)) return false;
+      if (!inspector.writeTimedRegister(command.register,command.value,command.port,performance.releasingGate)) return false;
       this.performanceOwnership.observe(command,performance);
       this.pcmDac.observeWrite(command.port,command.register,command.value);
       return true;

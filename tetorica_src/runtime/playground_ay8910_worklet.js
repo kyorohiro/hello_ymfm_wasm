@@ -16,7 +16,7 @@ class Processor extends AudioWorkletProcessor{
     // The tied-output table has a different baseline and already starts at
     // zero when normalized. Its level must not receive the per-voice offset.
     this.centerSpeaker=type===0x10&&!!(flags&1)&&!(flags&2);this.speakerOffset=0;
-    this.performance=createProcessorPerformance({chip:'ay8910',getAyRegisters:()=>this.registers,immediate:['stopVoices'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
+    this.performance=createProcessorPerformance({chip:'ay8910',releasePatternNotes:true,getAyRegisters:()=>this.registers,immediate:['stopVoices'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage=({data})=>{
       if(data.primaryWorker){this.workerRemote?.close();this.workerRemote=null;if(data.port){if(this.dead){data.port.close();return;}const remote=this.workerRemote=data.port;remote.onmessage=event=>{if(this.workerRemote===remote)this.receive(event.data,remote);};remote.start();}return;}

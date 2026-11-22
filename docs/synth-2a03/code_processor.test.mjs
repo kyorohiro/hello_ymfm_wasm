@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {buildNesOperations} from '../js/nes_operations.js';
 let Constructor;
 globalThis.AudioWorkletProcessor=class{constructor(){this.messages=[];this.port={postMessage:value=>this.messages.push(value)};}};
 globalThis.sampleRate=48000;
@@ -38,4 +39,38 @@ test('DMC upload, trigger, Stop and re-Run are ordered; expired sessions cannot 
   assert.equal(processor.instrument.read().owners[0].session,next);
   const pcm=[[new Float32Array(1024),new Float32Array(1024)]];processor.process([],pcm);
   assert(pcm[0][0].every(Number.isFinite));assert(pcm[0][0].some(v=>Math.abs(v)>.0001));
+});
+
+test('clearing one completed reservation releases its gate without stopping keyboard or another pattern',async t=>{
+  const {processor,command}=await fixture(t),session=(await command('beginCode')).value.session;
+  const timed=payload=>command('nesTimed',[session,{owner:'score',...payload}]);
+  for(const [name,ch] of [['clear-me',0],['keep-me',1]]){
+    const receipt=await timed({action:'schedule',options:{name},operations:buildNesOperations(b=>b.noteOn(ch,'C4'))});
+    assert.equal(receipt.error,undefined);
+  }
+  processor.process([],[[new Float32Array(512),new Float32Array(512)]]);
+  assert.equal(processor.instrument.owners[0].patternName,'clear-me');
+  assert.equal(processor.instrument.owners[1].patternName,'keep-me');
+  await command('noteOn',['manual',64,2]);
+  assert.equal((await timed({action:'clear',name:'clear-me'})).value,true);
+  assert.equal(processor.instrument.owners[0],null);
+  assert.equal(processor.instrument.owners[1].patternName,'keep-me');
+  assert.equal(processor.instrument.read().owners[2].kind,'keyboard');
+  assert.equal((await timed({action:'clear',name:'keep-me'})).value,true);
+  assert.equal(processor.instrument.owners[1],null);
+  assert.equal(processor.instrument.read().owners[2].kind,'keyboard');
+});
+
+test('Code allNotesOff releases current Code voices but preserves a later scheduled key and the keyboard',async t=>{
+  const {processor,command}=await fixture(t),session=(await command('beginCode')).value.session;
+  const receipt=await command('nesTimed',[session,{action:'schedule',owner:'score',options:{name:'later'},
+    operations:buildNesOperations(b=>b.atSeconds(.02).noteOn(1,'C4'))}]);
+  assert.equal(receipt.error,undefined);
+  await command('code',[session,'noteOn',[0,'C4']]);
+  await command('noteOn',['keyboard',67,2]);
+  const released=await command('code',[session,'allNotesOff',[]]);assert.equal(released.error,undefined);
+  assert.equal(processor.instrument.owners[0],null);
+  assert.equal(processor.instrument.read().owners[2].kind,'keyboard');
+  processor.process([],[[new Float32Array(1500),new Float32Array(1500)]]);
+  assert.equal(processor.instrument.owners[1].patternName,'later');
 });

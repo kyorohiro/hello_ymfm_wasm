@@ -985,10 +985,20 @@ await pce.schedule(operations, { name: "pulse", repeatSeconds: 0.2 });
 Immediate `noteOn()`/`noteOff()` retain the Synth's Software Envelope and DDA
 sample feeder. Register reservations use explicit `setNote()` and `keyOn()` /
 `keyOff()` instead: recorded noteOn/off aliases reject with an explanation.
+`noteOn()` resolves to `{channel, stolenId}`. `keyOff()` and `noteOff()` resolve
+to `false` when a keyboard note owns the channel. `allNotesOff()` releases current
+Code-owned notes while future reservations stay active. `clearSchedule(name)`
+cancels the reservation and releases any gate it still owns. A staged reservation
+receipt includes `sampleRate`; `startFrame` is available after it is committed.
 Parameter edits retain an existing envelope; explicit hardware gates supersede
 it. A stale reserved release cannot cut a newer keyboard/immediate note.
 Bulk Wave RAM transfers and PCM feeding remain outside register reservations;
 R6 is accepted only when the virtual applied state enables DDA.
+
+For CD audio, `cdda.list()` returns the current local track list synchronously.
+`msm5205.loadMemory(source, {rate, signal, name, path})` accepts encoded ADPCM
+bytes or a file path. The options select the hardware rate, cancellation
+signal and display metadata.
 
 `compile()` defaults to an acknowledged Worklet snapshot. `initialState: "reset"`
 and a previously captured snapshot need no state RPC and never alter live sound.

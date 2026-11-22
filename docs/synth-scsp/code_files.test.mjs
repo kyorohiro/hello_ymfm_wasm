@@ -419,9 +419,11 @@ test('SCSP New Cassette creates default sound, original starter/examples and fre
 
 test('SCSP New Cassette exports the old workspace before creation and export cancellation/failure preserves it',async t=>{
   for(const outcome of ['success','cancel','throw'])await t.test(outcome,async t=>{
-    const downloads=[];
-    const f=fixture(t,{downloadFile:async(bytes,name,type)=>{downloads.push({bytes,name,type});if(outcome==='throw')throw Error('Download unavailable');return outcome!=='cancel';}});
-    await f.files.ready;f.project.importFiles([{path:'/keep.txt',data:'exported old file'}]);
+    const downloads=[],project=createScspCodeProject({settings:createDefaultPreset(),starterCode:'// kept'});
+    // Seed the existing workspace before the Files autosave watcher is attached.
+    project.importFiles([{path:'/keep.txt',data:'exported old file'}]);
+    const f=fixture(t,{project,downloadFile:async(bytes,name,type)=>{downloads.push({bytes,name,type});if(outcome==='throw')throw Error('Download unavailable');return outcome!=='cancel';}});
+    await f.files.ready;
     const before=f.project.snapshot(),identity=f.files.workspaceId;
     if(outcome==='throw')await assert.rejects(f.files.newProject({exportCurrent:true}),/Download unavailable/);
     else assert.equal(await f.files.newProject({exportCurrent:true}),outcome==='success');

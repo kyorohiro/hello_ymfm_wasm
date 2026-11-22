@@ -90,6 +90,20 @@ test('real Code runtime commits Run/Apply, aborts a failed Apply, and Stop relea
  }finally{await runtime.stop();p.close();}
 });
 
+test('clearing a held HuC6280 pattern leaves a later keyboard gate on the same chip',async()=>{
+ const p=await setup();try{
+ const plan=p.client.build(b=>{b.setVolume(0,12).keyOn(0);b.setVolume(1,12).keyOn(1);b.atSeconds(.05).keyOff(0).keyOff(1);});
+ await p.client.schedule(plan,{name:'held'});p.render(200);
+ assert.equal((await p.client.getState()).registers[0][4]&128,128);
+ await p.call('noteOn',['new-keyboard-owner',60,1]);
+ assert.equal(await p.client.clearSchedule('held'),true);p.render(3000);
+ const {registers}=await p.client.getState();
+ assert.equal(registers[0][4]&128,0);
+ assert.equal(registers[1][4]&128,128);
+ assert.equal(p.processor.instrument.gateOwners[1].owner,'keyboard');
+ }finally{p.close();}
+});
+
 test('invalid resets/preset loads retain reservations and their Code lease',async()=>{
  const p=await setup();try{
  await p.client.schedule(p.client.build(b=>b.setVolume(0,9).keyOn(0)),{name:'retained',repeatSeconds:.02});

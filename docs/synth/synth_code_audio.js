@@ -208,15 +208,22 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     psgLatched=Number.isInteger(actual)&&actual>=0&&actual<=7?actual:fallback;
     return psgLatched;
   }
-  function psgOff(ch) {
+  function psgOff(ch,smooth=true) {
     integer(ch,3,'PSG channel');const api=required(getPsg,'PSG'),settings=settingsPsg();
     if(!canRelease('segapsg',ch)){psgActive.delete(ch);return false;}
-    if(settings.envelope.enabled&&psgActive.has(ch))api.envelopeNoteOff?.(ch);
-    else if(ch===3)api.noiseOff();else api.keyOff(ch);
+    if(smooth&&settings.envelope.enabled&&psgActive.has(ch))api.envelopeNoteOff?.(ch);
+    else {api.envelopeKeyOff?.(ch);api.keyOff(ch);}
     psgLatch(api,(ch<<1)|1);
     psgActive.delete(ch);
   }
-  function stopPsg() {const api=getPsg();api?.allNotesOff();if(api)psgLatch(api,7);for(let ch=0;ch<4;ch++)claim('segapsg',ch);psgActive.clear();}
+  function stopPsg() {
+    const api=getPsg();
+    if(api)for(let ch=0;ch<4;ch++)if(gates.get(gateKey('segapsg',ch))==='code'){
+      api.envelopeKeyOff?.(ch);api.keyOff(ch);psgLatch(api,(ch<<1)|1);gates.delete(gateKey('segapsg',ch));
+    }
+    api?._releaseTimedNotes?.();
+    psgActive.clear();
+  }
   const psgOverrides={tone:psgTone,noteOn:(ch,note)=>psgTone(ch,{note}),
     keyOn:ch=>{
       integer(ch,3,'PSG channel');const api=required(getPsg,'PSG'),settings=settingsPsg();
@@ -226,7 +233,7 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
       psgLatch(api,(ch<<1)|1);
       claim('segapsg',ch);psgActive.set(ch,{source:ch===3?'noise':'tone'});
     },
-    off:psgOff,keyOff:psgOff,noteOff:psgOff,noiseOff:()=>psgOff(3),allNotesOff:stopPsg,dispose:stopPsg,
+    off:ch=>psgOff(ch),keyOff:ch=>psgOff(ch,false),noteOff:ch=>psgOff(ch),noiseOff:()=>psgOff(3),allNotesOff:stopPsg,dispose:stopPsg,
     noise(options={}) {
       const settings=settingsPsg(),api=required(getPsg,'PSG');
       const next={type:settings.noiseType,rate:settings.noiseRate,attenuation:settings.attenuation,...options};
@@ -291,7 +298,13 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     }
     lastPcmSettings=settingsPcm();pcmSeeded=true;
   }
-  function stopPcm() {pcmPending.clear();const pcm=getPcm();if(pcm)for(let ch=0;ch<8;ch++){pcm.keyOff(ch);claim('rf5c164',ch);}pcmActive.clear();}
+  function stopPcm() {
+    pcmPending.clear();const pcm=getPcm();
+    if(pcm)for(let ch=0;ch<8;ch++)if(gates.get(gateKey('rf5c164',ch))==='code'){
+      pcm.keyOff(ch);gates.delete(gateKey('rf5c164',ch));
+    }
+    pcmActive.clear();
+  }
   function pcmSourceChanged() {
     // The author has already stopped these channels and selected a new bank.
     // Other Code chips and the shared effects keep their current performance.
@@ -355,11 +368,17 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     const pending=keyOnPcm(ch,checkPcmNoteTuning);
     if(pending&&typeof pending.then==='function')return pending.then(()=>{});
   }
+  function releasePcm(ch,smooth) {
+    integer(ch,7,'PCM channel');pcmPending.delete(ch);pcmActive.delete(ch);
+    if(!canRelease('rf5c164',ch))return false;
+    const api=required(getPcm,'PCM');
+    if(smooth&&typeof api.releaseNote==='function')api.releaseNote(ch);
+    else api.keyOff(ch);
+  }
   const pcmOverrides={setChannel:setPcmChannel,setPitch:(ch,step)=>setPcmChannel(ch,{step}),
     setRootNote:setPcmRootNote,setNote:setNotePcm,noteOn:noteOnPcm,
     keyOn:keyOnPcm,
-    keyOff:ch=>{integer(ch,7,'PCM channel');pcmPending.delete(ch);if(!canRelease('rf5c164',ch)){pcmActive.delete(ch);return false;}const api=required(getPcm,'PCM');if(typeof api.releaseNote==='function')api.releaseNote(ch);else api.keyOff(ch);pcmActive.delete(ch);},
-    noteOff:ch=>pcmOverrides.keyOff(ch),allNotesOff:stopPcm,dispose:stopPcm,
+    keyOff:ch=>releasePcm(ch,false),noteOff:ch=>releasePcm(ch,true),allNotesOff:stopPcm,dispose:stopPcm,
     async loadMemory(bytes,address=0) {const pending=required(getPcm,'PCM').loadMemory(sampleBytes(bytes),address);pcmMemoryChanged=true;return pending;},
     async loadSample(source,{address=0,loopStart,endGuardBytes=0}={}) {
       const token=epoch,sourceGeneration=pcmSourceGeneration;
@@ -435,13 +454,21 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     return voice?.specialMode&&ch!==2?{...voice,specialMode:false,specialFrequencies:[]}:voice;
   }
   const fmTarget=createSynthPerformanceTarget({getSynth:getFm});
-  function stopFm() {const fm=getFm();if(fm)for(let ch=0;ch<6;ch++){fm.keyOff(ch);claim('ym2612',ch);}fmActive.clear();}
+  function stopFm() {
+    const fm=getFm();
+    if(fm)for(let ch=0;ch<6;ch++)if(gates.get(gateKey('ym2612',ch))==='code'){
+      fm.keyOff(ch);gates.delete(gateKey('ym2612',ch));
+    }
+    fm?.transport?._releaseTimedNotes?.();
+    fmActive.clear();
+  }
   function noteOnFm(ch,noteOrBlock,fnum) {
     const voice=fmVoice(ch),raw=required(getFm,'FM');
     const pitch=fnum===undefined?opnPitchFromHz(noteToHz(noteOrBlock),raw.clock??7670454,144,{clamp:true}):{block:noteOrBlock,fnum};
     const value=fmTarget.noteOn(ch,pitch.block,pitch.fnum,voice);claim('ym2612',ch);fmActive.add(ch);return value;
   }
   const fmOverrides={
+    read:undefined,readStatus:undefined,
     write(port,register,value){
       const result=required(getFm,'FM').write(port,register,value),encoded=value&7;
       if(register===0x28&&port===0&&encoded!==3&&encoded!==7)claim('ym2612',encoded>=4?encoded-1:encoded);
@@ -461,9 +488,14 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     },
     keyOff(ch,operators) {
       integer(ch,5,'FM channel');if(!canRelease('ym2612',ch)){fmActive.delete(ch);return false;}const raw=required(getFm,'FM'),value=raw.keyOff(ch,operators);
-      if(operators===undefined||!operators.length)fmActive.delete(ch);return value;
+      if(operators===undefined||raw._getTimedState?.().keyMasks[ch]===0)fmActive.delete(ch);return value;
     },
-    setFrequency(ch,block,fnum) {return fmTarget.setFrequency(ch,block,fnum,fmVoice(ch));},
+    setFrequency(ch,hzOrBlock,fnum) {
+      const voice=fmVoice(ch),raw=required(getFm,'FM');
+      const pitch=arguments.length===2?opnPitchFromHz(hzOrBlock,raw.clock??7670454,144):{block:hzOrBlock,fnum};
+      return fmTarget.setFrequency(ch,pitch.block,pitch.fnum,voice);
+    },
+    setNote(ch,note) {return fmOverrides.setFrequency(ch,noteToHz(note));},
     allNotesOff:stopFm,dispose:stopFm,
     reset() {fmActive.clear();return required(getFm,'FM').reset();},
   };

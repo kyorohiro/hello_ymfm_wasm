@@ -20,6 +20,10 @@ import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608Source
 import {createFm2608FmSsgMonitor} from './fm_ssg_monitor.js';
 import {createYm2608AdpcmRelease} from './adpcm_audio_receiver.js?v=audio-owned-release-1';
 
+const manual = Object.freeze({});
+const isCurrentSectionOwner = (current, next) => current?.owner === next.owner &&
+  (current?.patternName === undefined || current.patternName === next.patternName);
+
 class YM2608Processor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -43,6 +47,7 @@ class YM2608Processor extends AudioWorkletProcessor {
     this.performanceQueue = createPerformanceQueue({
       apply: (data, reply, _frame, performance) => handle(data, reply, performance, _frame),
       onCancelOwner: owner => { this.performanceOwnership.cancel(owner); this.cancelSectionOwner(owner); },
+      onReleasePattern: (name, context) => this.releasePatternVoices(name, context),
       nowFrame: () => currentFrame, sampleRate,
       patternCommandCost:command=>command.method==='applyTimedOperation'?command.writeCost:1,
       prepare: (data, reply) => {
@@ -66,34 +71,34 @@ class YM2608Processor extends AudioWorkletProcessor {
       if (this.fmSsgMonitor?.receive(data)) return;
       if(data.method==='ym2608Timed'){this.timed.receive(data,{postMessage:reply});return;}
       if(data.method==='applyTimedOperation'){this.timed.apply(data.operation,{postMessage:reply},frame,performance);return;}
+      if(data.type==='release-timed-notes'){this.releasePatternVoices();return;}
       if(data.method==='ym2608Retained'){
         const [channel,level]=data.args??[];
         if(Number.isInteger(channel)&&channel>=0&&channel<3&&Number.isInteger(level)&&level>=0&&level<=31&&this.timedChip)this.timedChip.getState().ssgLevels[channel]=level;
         return;
       }
       if(performance?.timedOperation&&data.type==='write'){
-        if(data.port===1&&data.register===0&&(data.value&0xc1)!==0x80&&this.adpcmActive&&this.sectionOwners.adpcm!==performance.owner)return;
+        if(data.port===1&&data.register===0&&(data.value&0xc1)!==0x80&&this.adpcmActive&&!isCurrentSectionOwner(this.sectionOwners.adpcm,performance))return;
         if(data.port===0&&data.register===0x10&&(data.value&0x80)){
           let mask=data.value&63;
-          for(let ch=0;ch<6;ch++)if((this.rhythmActiveMask&(1<<ch))&&this.sectionOwners.rhythm[ch]!==performance.owner)mask&=~(1<<ch);
+          for(let ch=0;ch<6;ch++)if((this.rhythmActiveMask&(1<<ch))&&!isCurrentSectionOwner(this.sectionOwners.rhythm[ch],performance))mask&=~(1<<ch);
           if((data.value&63)&&!mask)return;
           if(mask!==(data.value&63))data={...data,value:(data.value&0xc0)|mask};
         }
         if(!this.performanceOwnership.canApplyTimed(data,performance))return;
         if(data.port===0&&data.register>=8&&data.register<=10&&!(data.value&31)){
           const owner=this.sectionOwners.ssg[data.register-8];
-          if(owner!==null&&owner!==performance.owner)return;
+          if(owner!==null&&!isCurrentSectionOwner(owner,performance))return;
         }
-        const previous=this.rhythmWriteOwner;this.rhythmWriteOwner=performance?.owner??null;
+        const previous=this.sectionWriteOwner;this.sectionWriteOwner=performance;
         try {
           if(this.opnInspector&&!this.opnInspector.writeTimedRegister(data.register,data.value,data.port))return;
           if(!this.opnInspector)this.write(data.port,data.register,data.value,performance);
-        }finally{this.rhythmWriteOwner=previous;}
-        this.performanceOwnership.observe(data,performance);this.observeSectionOwnership(data,performance);return;
+        }finally{this.sectionWriteOwner=previous;}
+        this.performanceOwnership.observe(data,performance);return;
       }
       if (this.adpcmRelease.receive(data)) return;
       this.performanceOwnership.observe(data, performance);
-      this.observeSectionOwnership(data, performance);
       if(data.type==='clear-auditions')this.opnInspector?.clear();
       if (receiveOpnAuditionCommand(this.auditions, data, reply)) return;
       if (data.type === 'chip-clock') {
@@ -135,7 +140,10 @@ class YM2608Processor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "write" && this.chip) this.write(data.port, data.register, data.value, performance);
-      if (data.type === "reset") { this.adpcmRelease.reset(); this.chip?.reset(); this.fmSsgMonitor?.reset(); }
+      if (data.type === "reset") {
+        this.sectionOwners.ssg.fill(null); this.sectionOwners.rhythm.fill(null); this.sectionOwners.adpcm = null;
+        this.adpcmRelease.reset(); this.chip?.reset(); this.fmSsgMonitor?.reset();
+      }
     };
     this.port.onmessage = ({data}) => {
       if(data?.type==='chip-inspector'&&receiveChipInspector(data,this.port,this.opnInspector?(action,method,args)=>action==='read'?this.opnInspector.read():this.opnInspector.invoke(method,args):null))return;
@@ -167,7 +175,11 @@ class YM2608Processor extends AudioWorkletProcessor {
         onAdpcmRegister:(register,value)=>{this.timedChip.getState().adpcmRegisters[register]=value;},
         onRhythmLevel:(register,value) => {this.timedChip.getState().rhythmLevels[register-0x18]=value;},
       });
-      this.chip.writeRegister = (register,value,port = 0) => this.fmSsgMonitor.write(port,register,value);
+      this.chip.writeRegister = (register,value,port = 0) => {
+        if (port === 0 && register >= 8 && register <= 10)
+          this.sectionOwners.ssg[register - 8] = value & 31 ? this.sectionWriteOwner ?? manual : null;
+        return this.fmSsgMonitor.write(port,register,value);
+      };
       this.chip.setOutputGains(this.outputGains);
       if (Object.values(this.sourceGains).some(value => value !== 1)) this.chip.setSourceGains(this.sourceGains);
       this.auditions = createOpnAuditionGuard(this.chip, 6);
@@ -187,43 +199,47 @@ class YM2608Processor extends AudioWorkletProcessor {
   }
 
   write(port, register, value, performance) {
-    const previous=this.rhythmWriteOwner;this.rhythmWriteOwner=performance?.owner??null;
-    try { this.chip.writeRegister(register, value, port); } finally {this.rhythmWriteOwner=previous;}
+    const previous=this.sectionWriteOwner;this.sectionWriteOwner=performance;
+    try { this.chip.writeRegister(register, value, port); } finally {this.sectionWriteOwner=previous;}
   }
 
   observeAdpcmControl(value) {
     this.adpcmActive=(value&0xc1)===0x80;
-    this.sectionOwners.adpcm=this.adpcmActive?(this.rhythmWriteOwner??null):null;
+    this.sectionOwners.adpcm=this.adpcmActive?(this.sectionWriteOwner??manual):null;
   }
 
   observeRhythmGate(value) {
     for(let ch=0;ch<6;ch++)if(value&(1<<ch)){
       if(value&0x80){this.rhythmActiveMask&=~(1<<ch);this.sectionOwners.rhythm[ch]=null;}
-      else {this.rhythmActiveMask|=1<<ch;this.sectionOwners.rhythm[ch]=this.rhythmWriteOwner??null;}
+      else {this.rhythmActiveMask|=1<<ch;this.sectionOwners.rhythm[ch]=this.sectionWriteOwner??manual;}
     }
   }
 
-  observeSectionOwnership(data, performance) {
-    const owner = performance?.owner ?? null;
-    if (data.type === 'reset') { this.sectionOwners.ssg.fill(null); this.sectionOwners.rhythm.fill(null); this.sectionOwners.adpcm = null; }
-    if (data.type !== 'write') return;
-    const {register, value} = data;
-    if ((data.port ?? 0) === 0) {
-      if (register >= 8 && register <= 10) this.sectionOwners.ssg[register - 8] = value & 31 ? owner : null;
+  cancelSectionOwner(owner) {return this.releaseSectionVoices(entry => entry.owner === owner);}
 
-    }
+  releasePatternVoices(name, scope) {
+    const {owner,session} = scope ?? {};
+    const fm = this.performanceOwnership.releasePattern(name, scope);
+    const sections = this.releaseSectionVoices(entry => entry.patternName !== undefined &&
+      (name === undefined || entry.patternName === name) && (owner === undefined || entry.owner === owner) &&
+      (session === undefined || entry.session === session));
+    return fm || sections;
   }
 
-  cancelSectionOwner(owner) {
-    for (let ch = 0; ch < 3; ch++) if (this.sectionOwners.ssg[ch] === owner) {
+  releaseSectionVoices(matches) {
+    let released = false;
+    for (let ch = 0; ch < 3; ch++) if (this.sectionOwners.ssg[ch] && matches(this.sectionOwners.ssg[ch])) {
       this.sectionOwners.ssg[ch] = null; this.chip?.writeRegister(8 + ch, 0, 0);
+      released = true;
     }
     let rhythmMask = 0;
-    for (let ch = 0; ch < 6; ch++) if (this.sectionOwners.rhythm[ch] === owner) {
+    for (let ch = 0; ch < 6; ch++) if (this.sectionOwners.rhythm[ch] && matches(this.sectionOwners.rhythm[ch])) {
       this.sectionOwners.rhythm[ch] = null; rhythmMask |= 1 << ch;
     }
     if (rhythmMask) this.chip?.writeRegister(0x10, 0x80 | rhythmMask, 0);
-    if (this.sectionOwners.adpcm === owner) { this.sectionOwners.adpcm = null; if (this.chip) this.write(1,0,1); }
+    const adpcm = this.sectionOwners.adpcm;
+    if (adpcm && matches(adpcm)) { this.sectionOwners.adpcm = null; if (this.chip) this.write(1,0,1); }
+    return released || rhythmMask !== 0 || Boolean(adpcm && matches(adpcm));
   }
 
   process(_inputs, outputs) {

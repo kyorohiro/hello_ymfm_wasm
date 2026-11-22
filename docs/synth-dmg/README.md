@@ -218,6 +218,9 @@ snapshot for a local comparison. No new continuous state synchronization is adde
 Timed operations cover the existing root, Pulse, Wave and Noise register/note/Gate
 controls. Wave uploads require exactly 32 four-bit samples, stop the DAC and do
 not retrigger it: schedule `wave.noteOn()` or `wave.keyOn()` explicitly afterward.
+In immediate Code, root and voice `noteOff()` are aliases for `keyOff()` and
+resolve to `false` when a newer keyboard note owns the channel. `allNotesOff()`
+releases current Code-owned notes. Use `clearSchedule(name)` for a reservation.
 Hardware Envelope/Sweep side effects remain unchanged. Reset, initialize, clock
 changes and disposal remain immediate operations, outside the recorder. Native
 timed execution and authoritative capture are unavailable; the existing immediate

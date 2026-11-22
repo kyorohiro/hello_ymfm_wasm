@@ -35,6 +35,8 @@ test('OPNA Code forwards bound musical pitch and all hardware sections to the sa
 test('disposing borrowed OPNA notes preserves chip lifetime and rejects retired-session writes', () => {
   const {chip, writes} = fixture();
   let current = true;
+  let timedReleases = 0;
+  chip._releaseTimedNotes = () => {timedReleases++;};
   const {client, release} = createFm2608CodeClient(chip, {isCurrent:() => current});
   client.noteOn(1, 'C4');
   client.ssg.noteOn(2, 'E4');
@@ -42,6 +44,7 @@ test('disposing borrowed OPNA notes preserves chip lifetime and rejects retired-
   client.adpcm.keyOn();
   writes.length = 0;
   client.dispose();
+  assert.equal(timedReleases,1);
   assert(writes.some(write => write.port === 0 && write.register === 0x28 && write.value === 1));
   assert(writes.some(write => write.port === 0 && write.register === 10 && write.value === 0));
   assert(writes.some(write => write.port === 0 && write.register === 0x10 && write.value === 0x82));

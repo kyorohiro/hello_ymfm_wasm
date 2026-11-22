@@ -6,6 +6,7 @@ const addedSource = [
   "    this._timedState = createYm2612OperationResetState();\n    this._timedClientStateComplete = typeof this.transport.reset === 'function';\n",
   '    observeYm2612OperationWrite(this._timedState, port, register, value);\n',
   '    for (const command of commands) observeYm2612OperationWrite(this._timedState, command.port, command.register, command.value);\n',
+  "\n  _releaseTimedNotes() {\n    if (!this.disposed) this.node.port.postMessage({type:'release-timed-notes'});\n  }\n",
   '  // Private compilation baseline. The ordinary getState() UI shape is unchanged.\n' +
   '  _getTimedState() { return validateYm2612OperationState(this._timedState); }\n' +
   '  _adoptTimedState(state) {\n' +
@@ -19,6 +20,8 @@ const addedSource = [
  * remaining byte against the measured d620c38f source. No git history is needed
  * in CI; unrelated edits cannot silently become the historical baseline. */
 export function restoreHistoricalYm2612TimedSynth(source) {
+  source = source.replace('    const held = this._timedState.keyMasks[channel] << 4;\n    this._write(0, 0x28, (held & ~operatorMask) | KEY_CHANNEL_CODES[channel]);',
+    '    this._write(0, 0x28, operatorMask | KEY_CHANNEL_CODES[channel]);');
   for (const added of addedSource) {
     if (source.split(added).length !== 2) throw new Error('YM2612 timed Synth source revision changed');
     source = source.replace(added, '');

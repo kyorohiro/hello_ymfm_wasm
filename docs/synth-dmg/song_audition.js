@@ -77,7 +77,9 @@ export function createGameboySongAudition({ensureAudio,getAudio,getSelection,onU
       item.output=createOutput({getContext:()=>ownsOutput(item)?engine.context:null,getGain:()=>ownsOutput(item)?engine.codeFadeNode:null});
       check(item);await item.output.fadeOut();check(item);
       await item.client.initialize();check(item);
-      await item.client.allNotesOff();check(item);
+      for(let channel=0;channel<4;channel++){
+        await item.client.keyOff(channel);check(item);
+      }
       const {preset,source,channel}=item.prepared;
       if(source==='pulse'){
         const {duty,volume,envelope,sweep}=preset.pulse;

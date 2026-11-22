@@ -6,6 +6,6 @@ export { psgPeriodFromFrequency, psgPeriodFromNote } from './segapsgsynth.js';
  * @returns Bound SegaPSGSynth tone/noise, attenuation and reset methods. */
 export function createSegaPsgApi(transport) {
   const synth = new SegaPSGSynth({ transport });
-  return Object.fromEntries(['setFrequency', 'setNote', 'keyOn', 'keyOff', 'noteOn', 'setPeriod', 'setAttenuation', 'setNoise', 'write', 'reset', 'resetAll', 'tone', 'off', 'noise', 'noiseVolume', 'noiseOff', 'allNotesOff', '_forceKeyOff', '_getState', '_adoptState', ...(typeof transport.setStereo === 'function' ? ['setStereo'] : [])]
+  return Object.fromEntries(['setFrequency', 'setNote', 'keyOn', 'keyOff', 'noteOn', 'noteOff', 'setPeriod', 'setAttenuation', 'setNoise', 'write', 'reset', 'resetAll', 'tone', 'off', 'noise', 'noiseVolume', 'noiseOff', 'allNotesOff', '_forceKeyOff', '_getState', '_adoptState', ...(typeof transport.setStereo === 'function' ? ['setStereo'] : [])]
     .map(name => [name, synth[name].bind(synth)]));
 }

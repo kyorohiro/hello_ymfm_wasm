@@ -72,6 +72,12 @@ as the controls. There is no hidden YM2612. `liveLoop`, `livePrepare`, `tween`,
 Run starts a new performance; Apply preserves context and named loops. Code
 and reference playback are mutually exclusive; keyboard can accompany either.
 
+The PSG accepts note names or MIDI integers for Tone channels and returns the
+hardware period from `noteOn()`. Tone uses channel indices 0–2; Noise is channel
+3 and uses `noise()`, `keyOn(3)` and `keyOff(3)`. Code `allNotesOff()` releases
+its owned notes and drums. A stale Code release returns `false` while a newer
+keyboard note keeps sounding.
+
 Files reuses working/saved storage: Auto apply is On initially, dirty files have
 ●, Save/Save all/Discard/Discard all and Cmd/Ctrl+S are available. Cassette ZIPs
 retain accepted files plus working differences. Import never runs source.

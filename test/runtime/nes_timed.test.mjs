@@ -223,8 +223,12 @@ for(const file of ['playground_nes_worklet.js','../../docs/synth-2a03/processor.
  await p.rpc({action:'releaseOwner',owner:'tables'});assert.equal(p.core.getState().registers[0x83]&128,128);
  }finally{p.close();}
 });
-test('FDS table recorder detaches byte arrays and rejects malformed data before compilation',()=>{
+test('FDS table recorder detaches numeric ArrayLike data and rejects malformed tables',()=>{
  const wave=new Uint8Array(64).fill(20),p=build(b=>b.fds.setWave(wave));wave.fill(0);assert.equal(compile(p,reset(),{fds:true}).find(w=>w.register===0x4040).value,20);
+ const typed=new Float32Array(64).fill(17),table={...new Uint16Array(32).fill(3),length:32};
+ const plan=build(b=>{b.fds.setWave(typed);b.fds.setModulation({table});});typed.fill(0);table[0]=0;
+ const clone=structuredClone(plan),trace=compile(clone,reset(),{fds:true});
+ assert.equal(trace.find(w=>w.register===0x4040).value,17);assert.equal(trace.find(w=>w.register===0x4088).value,3);
  for(const table of [Array(31).fill(0),Array(32).fill(8)])assert.throws(()=>compile(build(b=>b.fds.setModulation({table})),reset(),{fds:true}));
  assert.throws(()=>compile(build(b=>b.fds.setWave(Array(64).fill(64))),reset(),{fds:true}));
 });

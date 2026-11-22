@@ -180,6 +180,10 @@ class Processor extends AudioWorkletProcessor {
 			else this.timed.receive(data, port);
 			return;
 		}
+		if (data?.method === "releaseTimedNotes") {
+			this.timed?.releaseNotes();
+			return;
+		}
 		if (
 			data?.type === "chip-inspector" &&
 			receiveChipInspector(
@@ -276,7 +280,8 @@ class Processor extends AudioWorkletProcessor {
 						? register
 						: this.inspector.latched;
 			this.chip.write(byte);
-			this.timed?.observeWrite(target, byte, metadata, port);
+			if (!metadata?.preserveOwner)
+				this.timed?.observeWrite(target, byte, metadata, port);
 		}
 		if (data.method === "setStereo" && this.stereoEnabled) {
 			this.chip.setStereo(...data.args);

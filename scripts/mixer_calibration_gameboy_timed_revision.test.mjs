@@ -9,7 +9,9 @@ import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_r
 import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
 import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
-const root=new URL('../',import.meta.url),metadata=createNpmReleaseMetadataReadContext(),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sidContext=createSidTimedRevisionReadContext(connection.readSource);
+import {createCodeApiConsistencyRevisionReadContext} from './mixer_calibration_code_api_consistency_revision.mjs';
+const root=new URL('../',import.meta.url),latest=createCodeApiConsistencyRevisionReadContext(readFileSync);
+const metadata=createNpmReleaseMetadataReadContext(latest.readSource),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sidContext=createSidTimedRevisionReadContext(connection.readSource);
 // Authenticate and remove the later SID promotion before testing this older
 // receipt against its own unchanged strict source/dependency identities.
 const read=name=>sidContext.readSource(new URL(name,root));

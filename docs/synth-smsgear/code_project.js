@@ -815,10 +815,10 @@ export function createSmsGearCodeProject({
 			workspace.restore(candidate.snapshot());
 		},
 	};
-	Object.assign(project, createSynthCodeProject(project));
+	Object.assign(project, createSynthCodeProject(project, { channelCount: 9 }));
 	// Prepared for the Files acceptance UI. The current host still uses working
 	// readers until Save/Discard and active sound acceptance ship together.
-	const savedCode = createSynthCodeProject(project, { version: "saved" });
+	const savedCode = createSynthCodeProject(project, { version: "saved", channelCount: 9 });
 	project.readSavedFile = savedCode.readFile;
 	project.prepareSavedSource = savedCode.prepareSource;
 	if (starterCode === undefined && !snapshot && getStarterCode)

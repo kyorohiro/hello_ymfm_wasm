@@ -1,5 +1,5 @@
 import {validateYm2612Operations, ym2612OperationOffsetSeconds, createYm2612OperationResolver,
-  createYm2612OperationResetState, observeYm2612OperationWrite} from './ym2612_operations.js';
+  createYm2612OperationResetState, observeYm2612OperationWrite} from './ym2612_operations.js?v=audio-stability-2';
 import {createYm2612TimedSnapshot} from './ym2612_timed_state.js';
 
 const identity = (value, label) => {
@@ -132,7 +132,8 @@ export function createYm2612TimedProcessor({performance: timeline, getState, get
       const result = resolver.resolve(operation, getState());
       for (const {port:registerPort,register,value} of result.writes) {
         dispatch({type:'write',port:registerPort,register,value}, port, frame,
-          {...metadata,timedOperation:true,preserveOwner:!(registerPort===0&&register===0x28)});
+          {...metadata,timedOperation:true,releasingGate:operation.method==='keyOff'||operation.method==='noteOff',
+            preserveOwner:!(registerPort===0&&register===0x28)});
       }
     },
     clear() { staged.clear(); },

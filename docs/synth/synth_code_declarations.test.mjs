@@ -42,7 +42,16 @@ assembleScspDsp(dspWords);
 pg.disassembleScspDsp(new Uint8Array(512));
 fm.setPreset(CH1, FM_PRESETS.sine);
 fm.noteOn(CH1, 'C4'); fm.noteOff(CH1);
+fm.setFrequency(CH1, 440); fm.keyOff(CH1,[OP1]); fm.allNotesOff();
+// @ts-expect-error Code uses a Worklet without synchronous bus reads.
+fm.read(0);
+// @ts-expect-error Code has no synchronous status read.
+fm.readStatus();
 const psg = await useSoundChip('segapsg'); psg.tone(PSG1,{note:'C4'}); psg.keyOn(3); psg.noteOff(3);
+const psgPeriod:number=psg.noteOn(PSG1,60);
+const psgProgram=psg.build(b=>{b.noteOn(PSG1,60);b.atSample(441).noteOff(PSG1);});
+const psgTrace=await psg.compile(psgProgram,{initialState:await psg.captureState()});
+await psg.schedule(psgProgram,{name:'tone'}); await psg.clearSchedule('tone');
 const pcm = await useSoundChip('rf5c164');
 pcm.setChannel(7,{volume:64,pan:{left:15,right:0}}); pcm.keyOn(7); pcm.noteOff(7);
 const rawStep:number = pcm.setNote(0,'E1'); pcm.setPitch(0,rawStep);
@@ -129,6 +138,8 @@ log(CH7);
 pg.midi.output('tetorica-ym2612',{});
 // @ts-expect-error Synth PSG has no stereo register
 psg.setStereo(255);
+// @ts-expect-error Genesis's mono PSG has no scheduled stereo register either.
+psg.build(b=>b.setStereo(255));
 // @ts-expect-error borrowed YM2612 has no clock setter
 fm.setClock(8000000);
 // @ts-expect-error PCM loading accepts local data, never a URL

@@ -79,9 +79,15 @@ liveLoop("melody", async () => {
 
 The default example follows the selected Wave / Sweep / Noise / PCM source.
 Its `beat()` timing lets you hear a tempo change by editing `setBpm()`.
-`keyOff()` is a raw hardware gate operation; `noteOff()` uses the Synth's
-software release. `setVoiceMode()` / `writeVoice()` expose the raw DAC latch,
-while playing the editor's PCM sample uses the host's audio-thread streamer.
+`keyOn()` and `keyOff()` gate the hardware at the configured timer and volume.
+`noteOn()` and `noteOff()` use the Synth's software envelope. When an editor
+PCM sample is selected, `keyOn()` also starts that sample's audio-thread
+streamer for compatibility. `setVoiceMode()` / `writeVoice()` expose the DAC
+latch directly. `allNotesOff()` releases Code-owned notes and leaves scheduled
+operations available for later execution.
+`setVolume(CH1, left, right)` and `setPan(CH1, left, right)` address the same
+two hardware output levels. Both range from 0 to 15. CH2's level register
+holds the eight-bit DAC sample in Voice PCM mode.
 `liveFx` is a separate software effect rack, not ASWAN hardware.
 
 **Files** keeps `/index.js`, local JavaScript modules, text, `/presets/` JSON

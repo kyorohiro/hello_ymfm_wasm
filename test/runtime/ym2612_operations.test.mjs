@@ -126,7 +126,12 @@ test('same-value key writes and repeated operator entries are retained in order'
   ]);
   assert.deepEqual(rows.map(row => row.writeIndex), [0, 0, 0, 0, 0, 1, 2]);
   const partial = buildYm2612Operations(b => b.keyOff(0, [1, 3]));
-  assert.equal(compileYm2612Operations(partial, baseline())[0].value, 0xa0, 'Preserve the existing immediate keyOff mask contract');
+  assert.equal(compileYm2612Operations(partial, baseline())[0].value, 0, 'Partial release must never start another operator');
+  assert.equal(compileYm2612Operations(partial, baseline([[0,0x28,0xf0]]))[0].value, 0x50);
+  const immediate=[];
+  const synth=new YM2612Synth({transport:{write:(port,register,value)=>immediate.push({port,register,value})}});
+  synth.keyOn(0,[0]);synth.keyOff(0,[1,3]);
+  assert.equal(immediate.at(-1).value,0x10,'preserves the active operator without starting another');
 });
 
 test('global normal/special frequency latches survive port changes and high-only writes', () => {
@@ -232,7 +237,7 @@ test('private client shadow tracks writes/reset without changing ordinary getSta
   assert.equal(incomplete._timedClientStateComplete, false, 'Write-only transports have no guaranteed initial hardware baseline');
 });
 
-test('immediate API traces exactly match the authenticated predecessor without git history', async () => {
+test('immediate API traces match the authenticated predecessor except for corrected operator release', async () => {
   const sourceUrl = new URL('../../tetorica_src/runtime/ym2612synth.js', import.meta.url);
   const source = readFileSync(sourceUrl, 'utf8');
   const historical = restoreHistoricalYm2612TimedSynth(source);
@@ -241,7 +246,9 @@ test('immediate API traces exactly match the authenticated predecessor without g
   const Old = (await import(`data:text/javascript;base64,${Buffer.from(loadable).toString('base64')}`)).YM2612Synth;
   const before = ym2612ImmediateCompatibilityTrace(Old);
   const after = ym2612ImmediateCompatibilityTrace(YM2612Synth);
-  assert.deepEqual(after, before);
+  const expected=before.map(row=>row.register===0x28&&row.port===0&&(row.value&0xf0)===0xa0
+    ? {...row,value:0x50|(row.value&7)} : row);
+  assert.deepEqual(after, expected);
   assert.equal(before.length, 539);
   assert.equal(createHash('sha256').update(JSON.stringify(before)).digest('hex'),
     '6d6124e71aef5ebb371461ffb8da51f6c9e662f10c36f49fd19731daf8b07416');

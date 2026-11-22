@@ -8,7 +8,9 @@ import {restoreMixerCalibrationSidTimedRevision as restoreSid,createSidTimedRevi
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
 import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
 import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_gameboy_public_timed_revision.mjs';
-const root=new URL('../',import.meta.url),metadata=createNpmReleaseMetadataReadContext(),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource);
+import {createCodeApiConsistencyRevisionReadContext} from './mixer_calibration_code_api_consistency_revision.mjs';
+const root=new URL('../',import.meta.url),latest=createCodeApiConsistencyRevisionReadContext(readFileSync);
+const metadata=createNpmReleaseMetadataReadContext(latest.readSource),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource);
 const read=name=>connection.readSource(new URL(name,root));
 const restore=(path,bytes,options={})=>restoreSid(path,bytes,{read,...options});
 const createSidTimedRevisionReadContext=()=>createSidContext(connection.readSource);

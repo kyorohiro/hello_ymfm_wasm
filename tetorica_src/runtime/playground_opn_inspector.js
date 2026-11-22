@@ -44,8 +44,8 @@ export class OpnKeyboardInspector {
   /** Explicit timed edits bypass the manual pitch lease, then update the
    * authored inspector shadow without issuing a second native write. A new
    * timed Gate retires the corresponding stale manual release identity. */
-  writeTimedRegister(register,value,port=0) {
-    if(!this.guard.writeTimedRegister(register,value,port))return false;
+  writeTimedRegister(register,value,port=0,releasingGate=false) {
+    if(!this.guard.writeTimedRegister(register,value,port,releasingGate))return false;
     this.observe(register,value,port);
     if(this.kind==='ym2608'&&port===1&&register===0&&(value&0xc1)===0x80)this.held.delete('adpcm-b:0');
     if(this.kind==='ym2608'&&port===0&&register===0x10&&!(value&128))for(let ch=0;ch<6;ch++)if(value&(1<<ch))this.held.delete(`rhythm:${ch}`);

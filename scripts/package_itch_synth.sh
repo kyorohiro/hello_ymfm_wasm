@@ -141,6 +141,9 @@ playground_keyboard_channels.js
 playground_gameboy.js
 gameboysynth.js
 gameboyapu.js
+gameboy_operations.js
+gameboy_timed_client.js
+gameboy_timed_state.js
 ym2610bsynth.js
 ym2610b.js
 nesapusynth.js
@@ -184,6 +187,10 @@ opn_runtime_synth.js
 pitch.js
 segapsg.js
 segapsg_api.js
+segapsg_operations.js
+segapsg_timed_client.js
+segapsg_timed_processor.js
+segapsg_timed_state.js
 playground_segapsg_audio.js
 playground_segapsg_worklet.js
 segapsgsynth.js
@@ -199,7 +206,13 @@ ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+opn_ssg_retained.js
 adpcm_b_sample.js
+ym2608_operations.js
+ym2608_operation_state.js
+ym2608_timed_client.js
+ym2608_timed_processor.js
+ym2608_timed_state.js
 ym2608-worklet.js
 ym2612.js
 ym2612_dac.js

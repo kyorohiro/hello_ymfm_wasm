@@ -523,6 +523,7 @@ export function createOpllTimedProcessor({
 				reservation: command.reservation,
 			});
 		},
+		releaseNotes: releaseAll,
 		clear() {
 			timeline.clearPatterns();
 			staged.clear();

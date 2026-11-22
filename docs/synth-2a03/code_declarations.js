@@ -38,7 +38,7 @@ type NesCodeClient=Omit<PlaygroundNes,'dispose'|'noteOn'|'keyOn'> & {
   getState():Promise<NesCodeState>;
   allNotesOff():Promise<void>;
   /** End this lease and restore the editor sound while keeping its AudioContext. */
-  dispose():Promise<void>;
+  dispose():Promise<NesCodeState | boolean | undefined>;
 };
 type NesCodeSoundChipMap={nes:NesCodeClient};
 type PlaygroundLivePrepareAPI=NesCodeAPI;
@@ -56,11 +56,11 @@ export function selectNesCodeDeclarations(source){
       if(!nes)throw Error('Shared NES declarations are missing.');
       types.set(nes.name,{...nes,text:nes.text
         .replace(/\):\s*void\s*\|\s*Promise<unknown>;/g,'):Promise<unknown>;')
-        .replace(/\):\s*void;/g,'):Promise<void>;')
+        .replace(/\):\s*void(?=;|\})/g,'):Promise<void>')
         .replace(/\):\s*number;/g,'):Promise<number>;')
         .replace(/(\bsetNote\([^)]*\)):\s*Promise<void>;/g,'$1:Promise<number>;')
-        .replace(/(\b(?:noteOn|keyOn)\([^)]*\)):\s*Promise<void>;/g,'$1:Promise<{channel:NesCodeChannel}>;')
-        .replace(/(\b(?:noteOff|keyOff|stop)\([^)]*\)):\s*Promise<void>;/g,'$1:Promise<boolean>;')
+        .replace(/(\b(?:noteOn|keyOn)\([^)]*\)):\s*Promise<void>(?=;|\})/g,'$1:Promise<{channel:NesCodeChannel}>')
+        .replace(/(\b(?:noteOff|keyOff|stop)\([^)]*\)):\s*Promise<void>(?=;|\})/g,'$1:Promise<boolean>')
         .replace(/(\bplay\([^)]*\)):\s*Promise<void>;/g,'$1:Promise<void|{channel:NesCodeChannel}>;')});
     }});
 }

@@ -39,6 +39,7 @@ export function createYmBorrowedClient(engine, isCurrent, dispose) {
             if (name === 'clock') return 2000000;
             if (name === 'dispose') return () => { if (isCurrent()) dispose(); };
             if (name === 'getState') return () => { check(); return {...engine.instrument.read(), registers:Array.from(engine.client.getRegisterSnapshot()), clock:2000000, initialized:true}; };
+            if (name === 'allNotesOff') return () => { check(); stopCodeVoices(engine); };
             if (name === '_timedOperations') { check(); return engine.client._timedOperations; }
             if (!AY_METHODS.has(name)) return undefined;
             if (!methods.has(name)) methods.set(name, (...args) => { check(); return engine.client[name](...args); });

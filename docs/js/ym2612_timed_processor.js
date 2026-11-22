@@ -132,7 +132,8 @@ export function createYm2612TimedProcessor({performance: timeline, getState, get
       const result = resolver.resolve(operation, getState());
       for (const {port:registerPort,register,value} of result.writes) {
         dispatch({type:'write',port:registerPort,register,value}, port, frame,
-          {...metadata,timedOperation:true,preserveOwner:!(registerPort===0&&register===0x28)});
+          {...metadata,timedOperation:true,releasingGate:operation.method==='keyOff'||operation.method==='noteOff',
+            preserveOwner:!(registerPort===0&&register===0x28)});
       }
     },
     clear() { staged.clear(); },

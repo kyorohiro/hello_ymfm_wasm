@@ -32,9 +32,12 @@ export function createSnesCodeClient({command,isCurrent=()=>true,onActivity=()=>
         check();onActivity(result);return result;
       });
     },
-    noteOff(channel){check();lane(channel);return enqueue(async()=>{check();const id=notes.get(channel);notes.delete(channel);if(id)await command('noteOff',[id]);onActivity();});},
+    noteOff(channel){check();lane(channel);return enqueue(async()=>{check();const id=notes.get(channel);notes.delete(channel);const released=id?await command('noteOff',[id]):false;onActivity();return released;});},
     getState(){check();return enqueue(async()=>{check();return command('read');});},
-    allNotesOff(){check();return enqueue(releaseAll);},
+    allNotesOff(){check();return enqueue(async()=>{
+      check();await releaseAll();
+      if(timedPort){check();await command('releaseTimedCodeNotes');}
+    });},
     dispose(){if(closed)return queue;closed=true;return enqueue(releaseAll);},
   };
   Object.defineProperty(client,'_requestControl',{value:(method,args)=>{check();return command(method,args);}});

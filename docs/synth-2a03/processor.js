@@ -19,7 +19,8 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     this.performanceQueue=createPerformanceQueue({nowFrame:()=>this.renderFrame,sampleRate,
       patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,
       apply:(data,reply,frame,metadata)=>this.timed.apply(data.operation,{postMessage:reply??(message=>this.port.postMessage(message))},frame,metadata),
-      onCancelOwner:owner=>{if(!this.instrument)return;const before=this.instrument.owners.slice();this.instrument.cancelTimedOwner(owner);this.ownedTransition(before);}});
+      onCancelOwner:owner=>this.releaseTimed(owner),
+      onReleasePattern:(name,{owner}={})=>this.releaseTimed(owner,name)});
     this.timed=createNesTimedProcessor({performance:{...this.performanceQueue,receive:(data,port)=>this.performanceQueue.receive(data,message=>port.postMessage(message))},
       getState:()=>{const state=this.instrument.core.getState();return {...this.instrument.synth._getState(),registers:state.registers,enabled:(state.registers[0x15]&15)|(state.dmcRemaining>0?16:0),sample:this.instrument.synth._getState().sample??this.instrument.dmcTimedSelection};},getConfig:()=>({instanceId:this.instanceId,clock:this.instrument.synth.clock,engine:'nes-wasm',fds:true}),
       dispatch:(data,port,frame,metadata)=>{const before=this.instrument.owners.slice();this.instrument.applyTimedWrite(data.args[0],data.args[1],metadata.owner,metadata);this.ownedTransition(before);},nowFrame:()=>this.renderFrame,sampleRate});
@@ -87,6 +88,14 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     else if(!guarded&&(previous[4]||previous[5]))this.clickGuard.release();
   }
 
+  releaseTimed(owner,name) {
+    if(!this.instrument)return false;
+    const before=this.instrument.owners.slice();
+    const released=this.instrument.cancelTimedOwner(owner,name);
+    if(released)this.ownedTransition(before);
+    return released;
+  }
+
   receive(data) {
     if (data?.method === 'dispose') { this.dispose(); return; }
     if (this.dead) return;
@@ -110,7 +119,7 @@ class NesSynthProcessor extends AudioWorkletProcessor {
         // Public DMC upload has an acknowledgement Promise. Complete it before
         // a following trigger/reset/session close may touch the same sample.
         if(value&&typeof value.then==='function')value=await value;
-        if((['beginCode','stop','loadPreset'].includes(data.method)||data.method==='endCode'&&value!==false||data.method==='code'&&['reset','resetRegisters','allNotesOff'].includes(args[1]))){this.performanceQueue.clear();this.timed.clear();}
+        if((['beginCode','stop','loadPreset'].includes(data.method)||data.method==='endCode'&&value!==false||data.method==='code'&&['reset','resetRegisters'].includes(args[1]))){this.performanceQueue.clear();this.timed.clear();}
         // Only successful commands change the output bridge. In particular,
         // a stale noteOff(false) cannot fade a replacement voice.
         if(data.method!=='read'&&data.method!=='setClickGuard') {

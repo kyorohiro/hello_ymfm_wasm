@@ -379,6 +379,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     const physicalWrite = chip.transport.write.bind(chip.transport);
     const physicalBatch = chip.transport.writeBatch?.bind(chip.transport);
     const monitorPort = chip._timedOperations && runtime.node?.port;
+    if (monitorPort?.postMessage) chip._releaseTimedNotes = () => monitorPort.postMessage({type:'release-timed-notes'});
     const fmSsgBackend = monitorPort?.postMessage ? {
       setMute:(section,channel,value) => monitorPort.postMessage({type:'synth-fm-ssg-monitor',action:'mute',section,channel,value}),
       stopFm:() => monitorPort.postMessage({type:'synth-fm-ssg-monitor',action:'stop-fm'}),

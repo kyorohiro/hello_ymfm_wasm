@@ -4,10 +4,13 @@ import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {createVirtualFileReader} from '../js/tetorica_virtual_files/reader.js';
 import {resolveVirtualDynamicImports,createVirtualFileRuntimeSource} from '../playground/playground_virtual_files.js';
 
-export function createSynthCodeProject(project,{version='working'}={}) {
+export function createSynthCodeProject(project,{version='working',channelCount=6}={}) {
   if(!['working','saved'].includes(version))throw TypeError('Unknown Code file version');
   const fs=version==='saved'?project?.savedFs:project?.fs;
   if(typeof fs?.snapshot!=='function')throw TypeError('Code needs the Synth file project');
+  const channels=Array.from({length:Math.max(0,channelCount-6)},(_,index)=>`CH${index+7}`);
+  const channelBindings=channels.length ?
+    `const ${channels.map((name,index)=>`${name}=${index+6}`).join(',')}; if (typeof pg === 'object') Object.assign(pg,{${channels.join(',')}});\n` : '';
   return {
     readFile(path,options={},entry={}) {
       return createVirtualFileReader(fs,entry.path??'/index.js')(path,options);
@@ -30,7 +33,7 @@ export function createSynthCodeProject(project,{version='working'}={}) {
       // A natural `const sample = await ps1.loadADPCM(...)` (or `const midi`)
       // must not put those adapters' typeof checks in a temporal dead zone.
       // The user block still inherits this snapshot's relative file reader.
-      return `{\n${createVirtualFileRuntimeSource(files,path,{install:true})}\n{\n${resolved}\n}\n}`;
+      return `${channelBindings}{\n${createVirtualFileRuntimeSource(files,path,{install:true})}\n{\n${resolved}\n}\n}`;
     },
   };
 }

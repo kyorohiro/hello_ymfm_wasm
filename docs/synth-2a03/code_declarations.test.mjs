@@ -34,6 +34,10 @@ const timer:Promise<number>=nes.fds.setFrequency(440);await timer;
 const pitch:Promise<number>=nes.pulse.setNote(CH1,'E3');await pitch;
 const attack:Promise<{channel:NesCodeChannel}>=nes.triangle.noteOn('E3');await attack;
 const released:Promise<boolean>=nes.keyOff(CH3);await released;
+const triReleased:Promise<boolean>=nes.triangle.noteOff(),noiseReleased:Promise<boolean>=nes.noise.noteOff();await triReleased;await noiseReleased;
+// @ts-expect-error builders execute synchronously
+nes.build(async b=>b.keyOff(CH1));
+nes.build(b=>b.fds.setWave(new Float32Array(64)).fds.setModulation({table:new Float32Array(32)}));
 await nes.noteOn(CH3,'E3');await nes.noteOn(CH4,60);await nes.keyOn(CH5);await nes.noteOff(CH6);
 await nes.fds.setWave(Array(64).fill(32));await nes.fds.setModulation({table:Array(32).fill(0),rate:256});
 await nes.dmc.loadSample(Uint8Array.of(0));await nes.dmc.play({rate:15,level:64});

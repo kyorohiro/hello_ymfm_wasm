@@ -101,7 +101,8 @@ test('borrowed allNotesOff retires actual Gate ownership rather than being obser
   };
   await f.code('noteOn',[0,'E3']);events.length=0;
   await f.code('allNotesOff');
-  assert.equal(events.length,3);assert(events.every(event=>!(event.value&1)&&event.preserveOwner===false));
+  assert.deepEqual(events.map(event=>event.register),[4]);
+  assert(events.every(event=>!(event.value&1)&&event.preserveOwner===false));
 });
 
 test('SID timed examples become accepted Files defaults, preserve edits and reappear only in a new project',()=>{

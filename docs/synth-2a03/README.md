@@ -558,6 +558,10 @@ liveLoop("melody", async () => {
 Code borrows the existing NES + FDS APU and final Master. The latest attack owns
 a physical channel. Releasing an older keyboard or Code note leaves its
 replacement playing. Explicit register writes still control physical hardware.
+`allNotesOff()` releases currently sounding Code-owned notes and keeps future
+reservations. `clearSchedule(name)` cancels a named reservation and releases any
+gate it still owns. Timed FDS Wave and modulation tables accept numeric
+`ArrayLike` input, including typed arrays, which the builder copies when recorded.
 `liveFx()` applies software effects after the APU. **Auto update** follows
 physical values in the same source editor. Click **Code**'s maximize button to
 place the editor beside Files.

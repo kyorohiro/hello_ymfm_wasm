@@ -26,7 +26,7 @@ test('ASWAN declarations expose one four-channel borrowed chip and shared timing
 		/declare (?:function|const) (?:fm|sid|play|createSoundChip|CH5|CH6|OP1)\b/,
 	);
 	assert.doesNotMatch(selected, /interface Playground(?:Sid|Ps1|Nes|Snes)|type FMApi/);
-	assert.match(selected, /keyOn\(channel:PlaygroundWonderSwanChannel\):Promise<void>/);
+	assert.match(selected, /keyOn\(channel:PlaygroundWonderSwanChannel\):Promise<PlaygroundWonderSwanChannel>/);
 });
 test('ASWAN async controls, valid source types and channel limits typecheck, including starter', async () => {
 	const work = await mkdtemp(join(tmpdir(), 'aswan-code-types-'));
@@ -49,6 +49,9 @@ const snapshot=await ws.captureState();
 await ws.compile(plan,{initialState:snapshot});await ws.compile(plan,{initialState:'reset'});
 await ws.schedule(plan,{name:'test',repeatSeconds:.1});await ws.clearSchedule('test');
 ws.build(b=>{b.noteOn(CH1,'C4');b.noteOff(CH1);b.keyOn(CH2);b.keyOff(CH2);});
+// @ts-expect-error builders execute synchronously
+ws.build(async b=>b.keyOff(CH1));
+const atk:PlaygroundWonderSwanChannel=await ws.noteOn(CH1,'E4');const rel:boolean=await ws.noteOff(atk);
 // @ts-expect-error RAM transfers are outside timed parameter operations
 ws.build(b=>b.setWaveform(CH1,[0,1]));
 const state=await ws.getState();const source:'wave'|'noise'|'pcm'=state.editorSource;state.registers[0];state.memory[0];state.channels[0];

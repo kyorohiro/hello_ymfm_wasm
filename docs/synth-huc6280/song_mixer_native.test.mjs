@@ -20,7 +20,13 @@ function chunk(player,frames=64){const left=new Float32Array(frames),right=new F
 async function previewPcm(bytes,{enabled=Array(6).fill(true),toggle}={}){
   const graph=fakeAudio(),preview=createHuc6280SongPreview({getAudio:()=>graph.audio,createEngine:native,schedule:graph.schedule,cancel:graph.cancel,nowMs:()=>0});
   try{
-    enabled.forEach((on,ch)=>preview.setChannelEnabled(ch,on));await preview.load(bytes);assert(await preview.play());toggle?.({graph,preview});
+    enabled.forEach((on,ch)=>preview.setChannelEnabled(ch,on));await preview.load(bytes);assert(await preview.play());
+    if(toggle){
+      // Under load the initial native budget can yield before producing PCM.
+      for(let i=0;i<20&&!graph.buffers.length;i++)graph.tick(.008);
+      assert(graph.buffers.length,'Reference playback buffered PCM before the edit');
+      toggle({graph,preview});
+    }
     for(let i=0;i<100&&preview.read().playing;i++)graph.tick(.008);
     assert.equal(preview.read().playback,'ended');
     const pcm={left:[],right:[]};for(const buffer of graph.buffers)for(let ch=0;ch<2;ch++)pcm[sides[ch]].push(...buffer.data[ch]);

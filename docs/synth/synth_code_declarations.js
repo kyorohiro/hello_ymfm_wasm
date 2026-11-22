@@ -39,19 +39,29 @@ function declarations(source) {
 
 const CODE_TYPES=`
 /** Borrowed Synth instruments; methods use the upper editor's current sound. */
-type SynthCodeFm = Omit<YM2612FMApi, 'setClock'> & {readonly id:string; dispose():void};
-type SynthCodePsg = Omit<PSGApi, 'keyOn'|'keyOff'|'resetAll'> & {
+type SynthCodeFm = Omit<YM2612FMApi, 'setClock'|'read'|'readStatus'|'keyOff'|'noteOff'> & {
+  readonly id:string;
+  keyOff(channel:YM2612Channel,operators?:YM2612Operator[]):void|false;
+  noteOff(channel:YM2612Channel):void|false;
+  allNotesOff():void;
+  dispose():void;
+};
+type SynthCodePsgBuilder = {[K in Exclude<keyof PlaygroundSegaPsgOperationRecorder,'setStereo'>]:
+  (...args:Parameters<PlaygroundSegaPsgOperationRecorder[K]>)=>SynthCodePsgBuilder};
+type SynthCodePsg = Omit<PSGApi, 'keyOff'|'noteOff'|'off'|'resetAll'> & Omit<PlaygroundSegaPsgTimedApi,'build'> & {
   readonly id:string; readonly clock:number;
   /** Tone 0..2 or Noise 3, using the current Synth attenuation/envelope. */
   keyOn(channel:0|1|2|3):void;
-  keyOff(channel:0|1|2|3):void;
-  noteOff(channel:0|1|2|3):void;
+  keyOff(channel:0|1|2|3):void|false;
+  noteOff(channel:0|1|2|3):void|false;
+  off(channel:0|1|2|3):void|false;
   allNotesOff():void;
   /** Reset this PSG only. */
   resetAll():void;
+  build(callback:(recorder:SynthCodePsgBuilder)=>void|SynthCodePsgBuilder,options?:{referenceSampleRate?:number}):PlaygroundSegaPsgOperationProgram;
   dispose():void;
 };
-type SynthCodePcm = Omit<PlaygroundRf5c164, 'setRootNote'|'setNote'|'noteOn'|'noteOff'> & {
+type SynthCodePcm = Omit<PlaygroundRf5c164, 'setRootNote'|'setNote'|'noteOn'|'noteOff'|'keyOn'|'keyOff'> & {
   readonly id:string; readonly clock:number;
   /** Code-only software Root note override: note name or integer MIDI 0..127.
    * null inherits the upper PCM editor's Root note. Returns the effective MIDI
@@ -66,8 +76,12 @@ type SynthCodePcm = Omit<PlaygroundRf5c164, 'setRootNote'|'setNote'|'noteOn'|'no
   /** Set the software-tuned note and start the current editor sample.
    * Await when sample preparation may still be pending. */
   noteOn(channel:SynthCodePcmChannel,note:string|number):void|Promise<void>;
-  /** Short software release; hard Stop belongs to allNotesOff. */
-  noteOff(channel:SynthCodePcmChannel):void;
+  /** Warm sample RAM if needed before opening the raw hardware gate. */
+  keyOn(channel:SynthCodePcmChannel):void|Promise<void|false>;
+  /** Immediate hardware key off. False if a newer keyboard note owns the channel. */
+  keyOff(channel:SynthCodePcmChannel):void|false;
+  /** Short software release on the Code-owned channel. */
+  noteOff(channel:SynthCodePcmChannel):void|false;
   allNotesOff():void;
 };
 type SynthCodePcmChannel = 0|1|2|3|4|5|6|7;

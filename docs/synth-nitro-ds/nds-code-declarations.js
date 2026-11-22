@@ -29,7 +29,8 @@ interface NdsCodeVoiceSettings {
   loop?: boolean;
   bytes?: Uint8Array;
   loopStartWords?: number;
-  lengthWords?: number;
+  /** Omit or pass null to use the remaining words in the sample. */
+  lengthWords?: number | null;
   /** Sample-cycle length for software MIDI pitch conversion. */
   frames?: number | null;
   /** Source sample rate in Hz for imported PCM/ADPCM. Provide with rootNote. */
@@ -50,7 +51,7 @@ interface NdsCodeChannelState extends NdsCodePitch {
   duty: number;
   loop: boolean;
   loopStartWords: number;
-  lengthWords: number;
+  lengthWords: number | null;
   byteLength: number;
   position: number;
   releasing: boolean;
@@ -196,7 +197,7 @@ interface NdsCodeClient {
   configure(channel: NdsCodeChannel, patch: NdsCodeVoiceSettings): Promise<NdsCodeChannelState>;
   /** Apply a saved .nds.json without starting playback. Use keyOn() for a fixed preset timer or noteOn() for a musical note. */
   loadPreset(channel: NdsCodeChannel, preset: string | NdsCodePreset): Promise<NdsCodeChannelState>;
-  /** Round musical pitch to the hardware timer. Imported samples use source rate at their root note. */
+  /** Round Hz to the hardware timer. In Noise mode Hz is the LFSR clock. Imported samples use source rate at their root note. */
   setFrequency(channel: NdsCodeChannel, hz: number): Promise<NdsCodePitch>;
   setNote(channel: NdsCodeChannel, note: string | number): Promise<NdsCodePitch>;
   /** Prepare the configured sample in bounded chunks without starting playback. */
@@ -226,7 +227,7 @@ interface NdsCodeClient {
   compile(operations: NdsOperationProgram, options?: { initialState?: 'current' | 'reset' | 'client' | NdsTimedSnapshot }): Promise<NdsCompiledWrite[]>;
   /** Add or replace a named AudioWorklet reservation. */
   schedule(operations: NdsOperationProgram, options: { name: string; repeatSeconds?: number }): Promise<NdsScheduleReceipt>;
-  /** Cancel future operations from this reservation. */
+  /** Cancel future operations and release voices still owned by this reservation. */
   clearSchedule(name: string): Promise<boolean>;
 }
 type PlaygroundLivePrepareAPI = NdsCodeAPI;

@@ -65,6 +65,7 @@ export function createSynthPsgEnvelope({sampleRate,setAttenuation}={}) {
       channel(ch);const voice=voices.get(ch);if(!voice||voice.releaseFrame!==null)return false;
       voice.releaseLevel=levelAt(voice);voice.releaseFrame=frame;writeLevel(voice);return true;
     },
+    clearVoice(ch) {return voices.delete(channel(ch));},
     setAttenuation(value) {
       integer(value,15,'PSG attenuation');
       for(const voice of voices.values()){voice.baseAttenuation=value;writeLevel(voice);}

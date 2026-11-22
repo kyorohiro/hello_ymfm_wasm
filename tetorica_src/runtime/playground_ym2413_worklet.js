@@ -221,6 +221,10 @@ class Processor extends AudioWorkletProcessor {
 			else this.timed.receive(data, port);
 			return;
 		}
+		if (data?.method === "releaseTimedNotes") {
+			this.timed?.releaseNotes();
+			return;
+		}
 		// Immediate authored Gate intent and parameter-only edits share bytes,
 		// but only the former acquires/releases note ownership.
 		if (

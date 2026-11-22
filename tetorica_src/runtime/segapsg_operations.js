@@ -12,6 +12,7 @@ const arity = Object.freeze({
 	tone: [2, 2],
 	keyOn: [1, 1],
 	keyOff: [1, 1],
+	noteOff: [1, 1],
 	off: [1, 1],
 	setAttenuation: [2, 2],
 	setNoise: [0, 1],

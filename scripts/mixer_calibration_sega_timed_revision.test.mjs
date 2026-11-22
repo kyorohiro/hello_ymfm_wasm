@@ -9,7 +9,8 @@ import {
   SEGA_TIMED_REVISION_RECEIPT as receiptPath, SEGA_TIMED_REVISION_PIN as pin,
   SEGA_TIMED_REVISION_REPORTS as reports,
 } from './mixer_calibration_sega_timed_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+import {readCodeApiPredecessorFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import {createGameboyTimedRevisionReadContext} from './mixer_calibration_gameboy_timed_revision.mjs';
 import {createSidTimedRevisionReadContext} from './mixer_calibration_sid_timed_revision.mjs';
 import {createNpmReleaseMetadataReadContext} from './mixer_calibration_npm_release_metadata.mjs';
@@ -17,7 +18,8 @@ import {createGameboyPublicTimedRevisionReadContext} from './mixer_calibration_g
 
 // This historical audit still checks its original bytes. Remove the separately
 // authenticated later SID and DMG promotions before its own strict guards.
-const metadata=createNpmReleaseMetadataReadContext(),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sidContext=createSidTimedRevisionReadContext(connection.readSource);
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs',{mode:'pre-code-api'});
+const metadata=createNpmReleaseMetadataReadContext(readCodeApiPredecessorFileSync),connection=createGameboyPublicTimedRevisionReadContext(metadata.readSource),sidContext=createSidTimedRevisionReadContext(connection.readSource);
 const gameboyContext=createGameboyTimedRevisionReadContext(sidContext.readSource);
 const read = name => gameboyContext.readSource(new URL('../' + name, import.meta.url));
 const restore=(path,bytes,options={})=>restoreSega(path,bytes,{read,...options});

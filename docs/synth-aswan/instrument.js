@@ -346,9 +346,14 @@ export class AswanInstrument {
 			return this.noteOff(voice.id);
 		}
 		if (method === 'noteOn' || method === 'keyOn') {
-			const channel = args[0],
-				state = this.read().channels[channel],
-				value =
+			const channel = args[0], state = this.read().channels[channel];
+			const softwarePcm = state.preset.source === 'pcm' && this.channelPresets[channel].source === 'pcm';
+			if (method === 'keyOn' && !softwarePcm) {
+				this.synth.keyOn(channel);
+				this._rawOwner(channel);
+				return channel;
+			}
+			const value =
 					method === 'noteOn'
 						? midi(args[1])
 						: 69 + 12 * Math.log2(state.frequency / 440) - this.pitch;

@@ -79,6 +79,10 @@ liveLoop("melody", async () => {
 `CH1`, `CH2` and `CH3` are zero-based constants for the three physical channels.
 Use the object returned by `useSoundChip("ay8910")`. Its hardware controls are
 synchronous; `await beat()` advances the performance in musical time.
+`setMixer(CH1, {tone: true, noise: true})` lets one channel mix the tone and
+shared noise together. One `keyOn(CH1)` gates both through that channel's
+volume or hardware envelope. `allNotesOff()` releases Code gates and keeps
+keyboard notes and future reservations.
 **Run** starts fresh; **Apply** updates named loops while retaining context.
 **Stop** ends Code playback. Changing a tab or instrument setting keeps Code
 running. **Stop all sound** is the main performance stop.
@@ -279,8 +283,9 @@ recording of manual edits that may interleave during actual playback.
 
 `schedule()` resolves when a reservation is accepted. A repeating reservation
 stores one compact pattern; partial register edits resolve from actual state
-at each occurrence. Reusing its name replaces future work atomically;
-`await ym.clearSchedule("buzzer")` cancels future occurrences. In Synth Code,
+at each occurrence. Reusing its name replaces the pattern atomically.
+`await ym.clearSchedule("buzzer")` cancels future occurrences and releases
+any note the pattern still owns. In Synth Code,
 entry reservations commit only after successful Run / Apply, omitted entry
 names are removed on successful Apply, and failed Apply preserves the previous
 pattern. A staged receipt has `staged: true`; its final start frame is chosen

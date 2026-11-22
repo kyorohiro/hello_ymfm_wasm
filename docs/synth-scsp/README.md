@@ -419,7 +419,11 @@ reject Cycle data. Non-Cycle sounds retain their existing export formats.
 
 The scoped API also provides `setPreset`, `getPCM`, `loadPCM`, `setNote`,
 `setFrequency`, `keyOn`, `keyOff`, `allNotesOff`, `getState`, `setEffect`,
-`exportPatch` and `loadPatch`. Await mutations to preserve their execution
+`exportPatch` and `loadPatch`. When patching an authored operator with
+`setPreset()`, omit `sample` to keep its assignment or pass a sample already
+loaded into the bank. `getState().channels` lists physical slots, and
+`getState().dspRoutingOverrides` reports which slots and sources inherit their
+routing (`null`) and which have an override. Await mutations to preserve their execution
 order. Monaco supplies types, completion and implementation navigation.
 Monaco loads from a CDN, and a visible textarea remains available when it
 cannot load. Expand places Code beside Files. The live runtime supports

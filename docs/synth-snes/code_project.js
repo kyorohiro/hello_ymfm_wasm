@@ -95,7 +95,7 @@ export function createSnesCodeProject({settings=createDefaultPreset(),snapshot,s
       return createPlaygroundCassetteZip([...fs.list(),{path:SNES_PROJECT_MANIFEST,type:'text',data:JSON.stringify(manifest,null,2)+'\n'}],{directories:fs.listDirectories(),preserveMetadataFiles:true});
     },
   };
-  Object.assign(project,createSynthCodeProject(project));
+  Object.assign(project,createSynthCodeProject(project,{channelCount:8}));
   if(starterCode===undefined&&!snapshot&&getStarterCode)starterCode=getStarterCode();
   if(starterCode!==undefined){if(typeof starterCode!=='string')throw TypeError('Starter code must be text.');fs.writeText('/index.js',starterCode);}
   if(snapshot)project.restore(snapshot);else if(starterCode!==undefined)fs.writeText('/examples/timed-sdsp.js',SNES_TIMED_EXAMPLE);

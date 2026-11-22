@@ -35,6 +35,7 @@ export function createFm2608CodeClient(chip, {isCurrent = () => true} = {}) {
   function allNotesOff() {
     assertCurrent();
     release();
+    chip._releaseTimedNotes?.();
   }
 
   function dispose() {

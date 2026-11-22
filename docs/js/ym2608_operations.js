@@ -11,7 +11,7 @@ export {createYm2608OperationResetState, validateYm2608OperationState, observeYm
 /** @typedef {{port:number,register:number,value:number}} YM2608RegisterWrite */
 /** @typedef {YM2608RegisterWrite & {offsetSeconds:number,operationIndex:number,writeIndex:number}} YM2608CompiledWrite */
 /** @typedef {'write'|'rawWrite'|'setPreset'|'setOperator'|'setOperators'|'setAlgo'|'setPan'|'setLfo'|'setChannel3SpecialMode'|'setChannel3SpecialFrequency'|'setFrequency'|'setNote'|'setBlockFnum'|'keyOn'|'keyOff'|'noteOn'|'noteOnRaw'|'noteOff'|'setModulation'} YM2608FmRecordedMethod */
-/** @typedef {'write'|'tone'|'noise'|'setMixer'|'setVolume'|'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'off'} YM2608SsgRecordedMethod */
+/** @typedef {'write'|'tone'|'noise'|'setMixer'|'setVolume'|'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'noteOff'|'off'} YM2608SsgRecordedMethod */
 /** @typedef {{[K in 'setSample'|'setDeltaN'|'setPlaybackRate'|'setVolume'|'setPan'|'keyOn'|'keyOff']:(...args:Parameters<YM2608Synth['adpcm'][K]>)=>YM2608OperationRecorder}} YM2608AdpcmRecorder */
 /** @typedef {{[K in 'setVolume'|'setVoice'|'keyOn'|'keyOff']:(...args:Parameters<YM2608Synth['rhythm'][K]>)=>YM2608OperationRecorder}} YM2608RhythmRecorder */
 /** @typedef {{[K in YM2608SsgRecordedMethod]:(...args:Parameters<YM2608Synth['ssg'][K]>)=>YM2608OperationRecorder}} YM2608SsgRecorder */
@@ -40,7 +40,7 @@ const arity = Object.freeze({
   'ssg.setMixer':[2,2], 'ssg.setVolume':[2,3], 'ssg.setEnvelope':[1,1],
   'ssg.setTonePeriod':[2,2],
   'ssg.setFrequency':[2,2], 'ssg.setNote':[2,2],
-  'ssg.keyOn':[1,1], 'ssg.keyOff':[1,1], 'ssg.noteOn':[2,2], 'ssg.off':[1,1],
+  'ssg.keyOn':[1,1], 'ssg.keyOff':[1,1], 'ssg.noteOn':[2,2], 'ssg.noteOff':[1,1], 'ssg.off':[1,1],
 });
 
 export const YM2608_OPERATION_METHODS = Object.freeze(Object.keys(arity));

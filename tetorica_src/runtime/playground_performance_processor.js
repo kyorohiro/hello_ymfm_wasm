@@ -251,7 +251,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
   }
   if(method==='reset')return 'all';return null;
 }
-export function createProcessorPerformance({apply,prepare,validate,patternCommandCost,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,getOplRegisters,getWonderSwanRegisters,getPokeyRegisters,getNesEnableMask,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
+export function createProcessorPerformance({apply,prepare,validate,patternCommandCost,onDiscard,onBlocked,chip,releaseNote,releasePatternNotes=false,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,getOplRegisters,getWonderSwanRegisters,getPokeyRegisters,getNesEnableMask,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map(),auditions=new Map();
   let psgLatch=0,nesEnabled=0;
@@ -369,6 +369,10 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     const physical=chipName()==='ym2413'&&typeof key==='string'&&key.startsWith('rhythm:')?[6,7,8,8,7][Number(key.slice(7))]:key;
     return auditions.has(physical)&&auditions.get(physical)===metadata?.owner;
   }
+  function differentNoteOwner(previous,metadata){
+    return previous.owner!==metadata.owner||(releasePatternNotes&&previous.patternName!==undefined&&
+      metadata.patternName!==undefined&&previous.patternName!==metadata.patternName);
+  }
   function note(command,port,metadata) {
     noteState.nesEnabled=getNesEnableMask?.()??nesEnabled;
     noteState.psgLatch=getPsgLatch?.()??psgLatch;
@@ -377,6 +381,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     noteState.wonderswanRegisters=getWonderSwanRegisters?.();
     const event=identifyPerformanceNote(chipName(),command,noteState);
     if(!event)return true;
+    const noteOwner={owner:metadata?.owner??null,session:metadata?.session,patternName:metadata?.patternName,port};
     if(event.allOff){owners.clear();return true;}
     if(event.events){
       if(chipName()==='ym2608'&&metadata?.timedOperation&&command.method==='write'&&command.args?.[0]===0&&command.args[1]===0x10&&(command.args[2]&128)){
@@ -384,9 +389,9 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
         if(event.events.length&&!allowed.length)return false;
         if(allowed.length!==event.events.length){command.args[2]=(command.args[2]&0xc0)|allowed.reduce((mask,entry)=>mask|(1<<Number(entry.key.slice(7))),0);event.events=allowed;}
       }
-      if(event.events.some(event=>!event.on&&metadata&&owners.has(event.key)&&owners.get(event.key).owner!==metadata.owner&&!manualNoteOwner(event.key,metadata)&&!(chipName()==='nes'&&metadata.nesRetriggerDmc&&event.key===4)))return false;
+      if(event.events.some(event=>!event.on&&metadata&&owners.has(event.key)&&differentNoteOwner(owners.get(event.key),metadata)&&!manualNoteOwner(event.key,metadata)&&!(chipName()==='nes'&&metadata.nesRetriggerDmc&&event.key===4)))return false;
       for(const entry of event.events){
-        if(entry.on)owners.set(entry.key,{owner:metadata?.owner??null,port});else owners.delete(entry.key);
+        if(entry.on)owners.set(entry.key,noteOwner);else owners.delete(entry.key);
       }
       return true;
     }
@@ -394,10 +399,18 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     // A newly acquired editor lease may release the old physical key before
     // retriggering it. Other owners still cannot send a stale release.
     const manualOwner=manualNoteOwner(event.key,metadata);
-    if(!event.on&&metadata&&previous&&previous.owner!==metadata.owner&&!manualOwner&&
+    if(!event.on&&metadata&&previous&&differentNoteOwner(previous,metadata)&&!manualOwner&&
       !(chipName()==='sid'&&metadata.timedOperation&&metadata.sidReleaseAllowed===true))return false;
-    if(event.on)owners.set(event.key,{owner:metadata?.owner??null,port});else owners.delete(event.key);
+    if(event.on)owners.set(event.key,noteOwner);else owners.delete(event.key);
     return true;
+  }
+  function releaseOwned(matches) {
+    let released=false;
+    for(const [key,entry] of owners)if(matches(entry)){
+      owners.delete(key);
+      released=applyTracked(releaseNote?releaseNote(key):performanceNoteRelease(chipName(),key),entry.port)||released;
+    }
+    return released;
   }
   const queue = createPerformanceQueue({sampleRate:rate,nowFrame,validate,patternCommandCost,
     onDiscard(command,metadata) {
@@ -406,9 +419,10 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
       onDiscard?.(command,metadata);
     },
     apply(command,reply,frame,metadata) {pendingRPC.delete(command);const port=ports.get(reply);applyTracked(command,port,frame,metadata);},
-    onCancelOwner(owner) {
-      for(const [key,entry]of owners)if(entry.owner===owner){owners.delete(key);applyTracked(releaseNote?releaseNote(key):performanceNoteRelease(chipName(),key),entry.port);}
-    },
+    onCancelOwner:owner=>releaseOwned(entry=>entry.owner===owner),
+    onReleasePattern:releasePatternNotes ? (name,{owner,session}={})=>releaseOwned(entry=>entry.patternName!==undefined&&
+      (name===undefined||entry.patternName===name)&&(owner===undefined||entry.owner===owner)&&
+      (session===undefined||entry.session===session)) : undefined,
     prepare(command,reply,performance) {
       const port = ports.get(reply);
       let deferred;
@@ -486,6 +500,7 @@ export function createProcessorPerformance({apply,prepare,validate,patternComman
     },
     beginAudition(channel,owner){auditions.set(channel,owner);},
     endAudition(channel,owner){if(auditions.get(channel)===owner)auditions.delete(channel);},
+    forgetNote(channel){owners.delete(channel);},
     applyImmediate(command,port,metadata){return applyTracked(command,port,nowFrame(),metadata);},
     schedulePattern:queue.schedulePattern,
     validatePattern:queue.validatePattern,

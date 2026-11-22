@@ -23,6 +23,20 @@ async function make(t, rate = 48000) {
 	return instrument;
 }
 const peak = (values) => values.reduce((n, value) => Math.max(n, Math.abs(value)), 0);
+test('Code keyOn keeps the hardware period and level while noteOn uses the software envelope', async (t) => {
+	const i = await make(t), p = i.read().preset;
+	p.envelope = { enabled: true, attack: .25, decay: 0, sustain: 1, release: .25 };
+	i.setPreset(p);
+	const { session } = i.beginCode();
+	assert(Math.abs(i.code(session, 'setNote', [0, 'A4']) - 440) < 1);
+	const before = i.synth._getState().registers;
+	assert.equal(i.code(session, 'keyOn', [0]), 0);
+	assert.deepEqual(i.synth._getState().registers.slice(0, 9), before.slice(0, 9));
+	assert.equal(i.code(session, 'keyOff', [0]), true);
+	assert.equal(i.code(session, 'noteOn', [0, 'A4']), 0);
+	assert.equal(i.synth._getState().registers[8], 0);
+	assert.equal(i.code(session, 'noteOff', [0]), true);
+});
 test('portable ASWAN presets detach nested fields and strictly validate complete PCM/wave data', () => {
 	const p = createDefaultPreset(),
 		read = readPreset(p);

@@ -40,6 +40,8 @@ test('seconds and reference samples share absolute offsets and validation reject
  assert.throws(()=>compile(plan,{...reset(),clock:4000000}),/Incompatible/);
  const malformed=structuredClone(plan);malformed.operations[1].order=0;assert.throws(()=>compile(malformed,reset()),/order/);
 });
-test('browser mirror is byte-identical to the canonical operation compiler',async()=>{
- assert.deepEqual(await readFile(new URL('../../docs/js/huc6280_operations.js',import.meta.url)),await readFile(new URL('../../tetorica_src/runtime/huc6280_operations.js',import.meta.url)));
+test('browser mirror uses the canonical operation compiler with a cache-versioned import',async()=>{
+ const browser=await readFile(new URL('../../docs/js/huc6280_operations.js',import.meta.url),'utf8');
+ const canonical=await readFile(new URL('../../tetorica_src/runtime/huc6280_operations.js',import.meta.url),'utf8');
+ assert.equal(browser.replace(/(from '\.\/huc6280synth\.js)\?v=[\w-]+(')/,'$1$2'),canonical);
 });

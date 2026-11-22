@@ -48,6 +48,15 @@ test('manual CH ownership and Code gates protect each performer from older relea
   assert.equal(i.observeCode().registers[3][4]&128,128);assert.equal(i.observeCode().registers[4][4]&128,0);
 });
 
+test('Code allNotesOff follows software release while a held keyboard channel keeps its gate',async t=>{
+  const i=await setup(t),p=i.read().preset;p.envelope={enabled:true,attack:0,decay:0,sustain:1,release:.025};i.loadPreset(p);
+  const {session}=i.beginCode();i.code(session,'noteOn',[0,'A4']);i.noteOn('hand',64,2);
+  i.generateStereo(128);i.code(session,'allNotesOff',[]);
+  assert(i.slots[0].released);assert.equal(i.slots[2].released,false);
+  i.generateStereo(1600);
+  assert.equal(i.observeCode().registers[0][4]&128,0);assert.equal(i.observeCode().registers[2][4]&128,128);
+});
+
 test('keyboard cleanup clears released hand tails without ending Code tails or the session',async t=>{
   const i=await setup(t),p=i.read().preset;p.envelope={enabled:true,attack:0,decay:0,sustain:1,release:.1};i.loadPreset(p);
   const {session}=i.beginCode();i.code(session,'noteOn',[0,'C4']);i.noteOn('hand-tail',64,2);

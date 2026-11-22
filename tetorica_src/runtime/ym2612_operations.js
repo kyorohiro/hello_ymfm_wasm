@@ -200,6 +200,7 @@ export function createYm2612OperationResolver({clock = 7670454} = {}) {
     resolve(operation, state) {
       const input = validateYm2612OperationState(state), call = copyCall(operation);
       adoptYm2612OperationState(synth, input);
+      synth._timedState.keyMasks = input.keyMasks.slice();
       writes = [];
       synth[call.method](...call.args);
       for (const write of writes) observeYm2612OperationWrite(input, write.port, write.register, write.value);

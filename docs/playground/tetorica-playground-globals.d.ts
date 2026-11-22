@@ -754,14 +754,14 @@ interface PlaygroundYm2612TimedApi {
 
 /** YM2608 FM/SSG/Rhythm/ADPCM-B playback operations: no ROM/ADPCM transfer, timers or prescaler changes.
  * Uses a standard prescaler. Each SSG operation returns the common time cursor. */
-type PlaygroundYm2608SsgRecordedMethod = 'write'|'tone'|'noise'|'setMixer'|'setVolume'|'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'off';
+type PlaygroundYm2608SsgRecordedMethod = 'write'|'tone'|'noise'|'setMixer'|'setVolume'|'setEnvelope'|'setTonePeriod'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'noteOff'|'off';
 interface PlaygroundYm2608SsgRecorder {
   write(register:number,value:number):PlaygroundYm2608OperationRecorder;
-  tone(channel:0|1|2,options?:{frequency?:number;period?:number;volume?:number;envelope?:boolean}):PlaygroundYm2608OperationRecorder;
+  tone(channel:0|1|2,options?:{frequency?:number;note?:string|number;period?:number;volume?:number;envelope?:boolean}):PlaygroundYm2608OperationRecorder;
   noise(channel:0|1|2,options?:{period?:number;volume?:number;envelope?:boolean}):PlaygroundYm2608OperationRecorder;
-  setMixer(channel:0|1|2,options:{tone:boolean;noise:boolean}):PlaygroundYm2608OperationRecorder;
+  setMixer(channel:0|1|2,options:{tone?:boolean;noise?:boolean}):PlaygroundYm2608OperationRecorder;
   setVolume(channel:0|1|2,volume:number,envelope?:boolean):PlaygroundYm2608OperationRecorder;
-  setEnvelope(options:{period:number;shape:number}):PlaygroundYm2608OperationRecorder;
+  setEnvelope(options:{period?:number;shape?:number}):PlaygroundYm2608OperationRecorder;
   setTonePeriod(channel:0|1|2,period:number):PlaygroundYm2608OperationRecorder;
   setFrequency(channel:0|1|2,hz:number):PlaygroundYm2608OperationRecorder;
   setNote(channel:0|1|2,note:string|number):PlaygroundYm2608OperationRecorder;
@@ -769,6 +769,7 @@ interface PlaygroundYm2608SsgRecorder {
   keyOff(channel:0|1|2):PlaygroundYm2608OperationRecorder;
   off(channel:0|1|2):PlaygroundYm2608OperationRecorder;
   noteOn(channel:0|1|2,note:string|number):PlaygroundYm2608OperationRecorder;
+  noteOff(channel:0|1|2):PlaygroundYm2608OperationRecorder;
 }
 interface PlaygroundYm2608RhythmRecorder {
   /** Larger codes are louder. Global hardware level 0..63. */
@@ -972,10 +973,11 @@ type PSGApi = {
   /** Configure a note name or integer MIDI 0..127 without triggering. */
   setNote(channel: 0 | 1 | 2, note: string | number): number;
   /** Restore configured attenuation, retaining pitch. */
-  keyOn(channel: 0 | 1 | 2): void;
+  keyOn(channel: 0 | 1 | 2 | 3): void;
   /** Silence while remembering configured attenuation and pitch. */
-  keyOff(channel: 0 | 1 | 2): void;
-  noteOn(channel: 0 | 1 | 2, note: string | number): void;
+  keyOff(channel: 0 | 1 | 2 | 3): void;
+  noteOn(channel: 0 | 1 | 2, note: string | number): number;
+  noteOff(channel: 0 | 1 | 2 | 3): void;
   /** Exact 10-bit period (0..1023), without changing attenuation. Writes latch then data. */
   setPeriod(channel: 0 | 1 | 2, period: number): number;
   /** 0 = loudest, 15 = silent. Channel 3 is noise; no noise reset. */
@@ -992,12 +994,12 @@ type PSGApi = {
   tone(channel: 0 | 1 | 2, options: {
     period?: number;
     frequency?: number;
-    note?: string;
+    note?: string | number;
     volume?: number;
     attenuation?: number;
   }): number;
   /** Silence one tone channel while keeping its last frequency. */
-  off(channel: 0 | 1 | 2): void;
+  off(channel: 0 | 1 | 2 | 3): void;
   /** Set and enable the PSG noise channel. */
   noise(options?: {
     type?: "white" | "periodic";
@@ -1856,13 +1858,14 @@ type PlaygroundYm2608 = PlaygroundYm2608TimedApi & {setClock(clock: number): Pro
     keyOn(ch: number): void;
     keyOff(ch: number): void;
     noteOn(ch: number, note: string | number): void;
-    tone(ch: number, options: {frequency?: number; period?: number; volume?: number; envelope?: boolean}): number;
+    noteOff(ch: number): void;
+    tone(ch: number, options?: {frequency?: number; note?:string|number;period?: number; volume?: number; envelope?: boolean}): number;
     noise(ch: number, options: {period: number; volume?: number; envelope?: boolean}): void;
     setTonePeriod(ch: number, period: number): void;
-    setMixer(ch: number, options: {tone: boolean; noise: boolean}): void;
+    setMixer(ch: number, options: {tone?: boolean; noise?: boolean}): void;
     off(ch: number): void;
     setVolume(ch: number, volume: number, envelope?: boolean): void;
-    setEnvelope(options: {period: number; shape: number}): void;
+    setEnvelope(options: {period?: number; shape?: number}): void;
     reset(): void;
   };
   rhythm: {
@@ -2277,11 +2280,12 @@ type PlaygroundSnesOperationRecorder = {atSample(value:number):PlaygroundSnesOpe
 interface PlaygroundSnesOperationProgram {version:1;chip:'snes';referenceSampleRate:number;operations:readonly {time:{unit:'seconds'|'sample';value:number};order:number;method:string;args:readonly unknown[]}[];}
 type PlaygroundSnesTimedSnapshot = Readonly<Omit<PlaygroundSnesState,'sampleRate'> & {format:'tetorica-snes-state';version:1;instanceId:string|number;clock:32000;engine:'snes-wasm';registers:readonly number[];nativeFrames:number;pendingKon:number;konFrame:number;koff:number;frame:number;sampleRate:number}>;
 interface PlaygroundSnesCompiledWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
+interface PlaygroundSnesScheduleReceipt {name:string;startFrame?:number;sampleRate:number;entries:number;repeatSeconds?:number;staged?:boolean;}
 interface PlaygroundSnes {
-  build(callback:(builder:PlaygroundSnesOperationRecorder)=>void,options?:{referenceSampleRate?:number}):PlaygroundSnesOperationProgram;
+  build<Result>(callback:(builder:PlaygroundSnesOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundSnesOperationProgram;
   captureState():Promise<PlaygroundSnesTimedSnapshot>;
   compile(operations:PlaygroundSnesOperationProgram,options?:{initialState?:'current'|'reset'|'client'|PlaygroundSnesTimedSnapshot}):Promise<PlaygroundSnesCompiledWrite[]>;
-  schedule(operations:PlaygroundSnesOperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;startFrame:number;sampleRate:number}>;
+  schedule(operations:PlaygroundSnesOperationProgram,options:{name:string;repeatSeconds?:number}):Promise<PlaygroundSnesScheduleReceipt>;
   clearSchedule(name:string):Promise<boolean>;
   /** AudioContext output sample rate in Hz, independent of nativeSampleRate. */
   readonly sampleRate:number;
@@ -2626,10 +2630,11 @@ interface PlaygroundSegaPsgOperationRecorder {
   setFrequency(channel:0|1|2,hz:number):PlaygroundSegaPsgOperationRecorder;
   setNote(channel:0|1|2,note:string|number):PlaygroundSegaPsgOperationRecorder;
   noteOn(channel:0|1|2,note:string|number):PlaygroundSegaPsgOperationRecorder;
-  tone(channel:0|1|2,options:{period?:number;frequency?:number;note?:string;volume?:number;attenuation?:number}):PlaygroundSegaPsgOperationRecorder;
-  keyOn(channel:0|1|2):PlaygroundSegaPsgOperationRecorder;
-  keyOff(channel:0|1|2):PlaygroundSegaPsgOperationRecorder;
-  off(channel:0|1|2):PlaygroundSegaPsgOperationRecorder;
+  tone(channel:0|1|2,options:{period?:number;frequency?:number;note?:string|number;volume?:number;attenuation?:number}):PlaygroundSegaPsgOperationRecorder;
+  keyOn(channel:0|1|2|3):PlaygroundSegaPsgOperationRecorder;
+  keyOff(channel:0|1|2|3):PlaygroundSegaPsgOperationRecorder;
+  noteOff(channel:0|1|2|3):PlaygroundSegaPsgOperationRecorder;
+  off(channel:0|1|2|3):PlaygroundSegaPsgOperationRecorder;
   setAttenuation(channel:0|1|2|3,attenuation:number):PlaygroundSegaPsgOperationRecorder;
   setNoise(options?:{type?:'white'|'periodic';rate?:'low'|'medium'|'high'|'tone3'}):PlaygroundSegaPsgOperationRecorder;
   noise(options?:{type?:'white'|'periodic';rate?:'low'|'medium'|'high'|'tone3';attenuation?:number;volume?:number}):PlaygroundSegaPsgOperationRecorder;
@@ -3067,7 +3072,7 @@ type PlaygroundPWM32X = {
 declare function createSoundChip(name: 'pwm', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundPWM32X & PlaygroundChipClock & {readonly id: string}>;
 
 /** NES APU; primary NES mode enables FDS. Independent instances opt in with {fds:true}. */
-/** Timed Pulse/Triangle/Noise and prepared DMC playback. No FDS, RAM transfer or frame-counter writes. */
+/** Timed Pulse/Triangle/Noise/FDS controls and prepared DMC playback. No DMC memory transfer or frame-counter writes. */
 interface PlaygroundNesOperationRecorder {
   atSample(sample:number):PlaygroundNesOperationRecorder;
   atSeconds(seconds:number):PlaygroundNesOperationRecorder;
@@ -3088,7 +3093,7 @@ interface PlaygroundNesOperationProgram {version:1;chip:'nes';referenceSampleRat
 interface PlaygroundNesStateSnapshot {readonly format:'tetorica-nes-state';readonly version:1;readonly instanceId:string|number;readonly clock:number;readonly engine:'nes-wasm';readonly registers:readonly number[];readonly enabled:number;readonly fdsActive:boolean;readonly fdsGain:number;readonly fdsMaster:number;readonly sample:Readonly<{address:number;length:number}>|null;readonly frame:number;readonly sampleRate:number;}
 interface PlaygroundNesTimedWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
 interface PlaygroundNes {
-  build(callback:(builder:PlaygroundNesOperationRecorder)=>void,options?:{referenceSampleRate?:number}):PlaygroundNesOperationProgram;
+  build<Result>(callback:(builder:PlaygroundNesOperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundNesOperationProgram;
   compile(operations:PlaygroundNesOperationProgram,options?:{initialState?:'current'|'client'|'reset'|PlaygroundNesStateSnapshot}):Promise<PlaygroundNesTimedWrite[]>;
   captureState():Promise<PlaygroundNesStateSnapshot>;
   schedule(operations:PlaygroundNesOperationProgram,options:{name:string;repeatSeconds?:number}):Promise<{name:string;startFrame?:number;sampleRate:number;entries:number;repeatSeconds?:number;staged?:boolean}>;

@@ -25,13 +25,13 @@ type Huc6280OperationState={clock:number;initialized:boolean;selectedChannel:num
 /** Detached sent-register/control state; not oscillator phase or a native save-state. */
 type Huc6280TimedSnapshot={readonly format:'tetorica-huc6280-state';readonly version:1;readonly instanceId:string|number;readonly frame:number;readonly sampleRate:number;readonly state:Huc6280OperationState};
 type Huc6280TimedWrite={offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number};
-type Huc6280Reservation={name:string;startFrame:number;entries:number;repeatSeconds?:number};
+type Huc6280Reservation={name:string;sampleRate:number;startFrame?:number;entries:number;repeatSeconds?:number;staged?:boolean};
 /** The editor's one physical HuC6280. Await commands. CH5/CH6 support Noise;
  * shared hardware LFO uses CH2 to modulate CH1. Scheduling/FX are software. */
-type Huc6280CodeClient=Omit<PlaygroundHuc6280,'dispose'|'noteOn'|'noteOff'|'build'|'compile'|'schedule'|'clearSchedule'|'captureState'> & {
+type Huc6280CodeClient=Omit<PlaygroundHuc6280,'dispose'|'noteOn'|'noteOff'|'keyOff'|'build'|'compile'|'schedule'|'clearSchedule'|'captureState'> & {
   readonly id:string;readonly chip:'huc6280';readonly channels:6;readonly clock:number;
   /** Record raw hardware calls once without changing the chip. Times are absolute offsets; sample reference defaults to 44100 Hz. Use setNote + keyOn/keyOff instead of software-envelope noteOn/off. */
-  build(callback:(builder:Huc6280TimedRecorder)=>void,options?:{referenceSampleRate?:number}):Huc6280Operations;
+  build<Result>(callback:(builder:Huc6280TimedRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):Huc6280Operations;
   /** Apply in AudioWorklet at sample boundaries. Same-name replacement is atomic; repeatSeconds exceeds the last offset. */
   schedule(operations:Huc6280Operations,options:{name:string;repeatSeconds?:number}):Promise<Huc6280Reservation>;
   clearSchedule(name:string):Promise<boolean>;
@@ -41,19 +41,26 @@ type Huc6280CodeClient=Omit<PlaygroundHuc6280,'dispose'|'noteOn'|'noteOff'|'buil
   /** Detached sent-register state, not live hardware oscillator readback. */
   getState():Promise<Huc6280CodeState>;
   /** Start the current waveform or loaded DDA sample with the authored Software Envelope. */
-  noteOn(channel:PlaygroundHuc6280Channel,note:string|number):Promise<void>;
+  noteOn(channel:PlaygroundHuc6280Channel,note:string|number):Promise<{channel:PlaygroundHuc6280Channel;stolenId:string|null}>;
   /** Software envelope release of this Code-owned note. keyOff is a raw gate. */
   noteOff(channel:PlaygroundHuc6280Channel):Promise<boolean>;
+  /** Raw gate. Returns false when a keyboard voice owns this channel. */
+  keyOff(channel:PlaygroundHuc6280Channel):Promise<boolean>;
   /** Restore the authored instrument without closing its AudioContext. */
-  dispose():Promise<void>;
+  dispose():Promise<unknown>;
 };
-type Huc6280CodeMsm5205=PlaygroundMsm5205API & {
+type Huc6280CodeMsm5205LoadOptions={rate?:PlaygroundMsm5205Rate;signal?:AbortSignal;name?:string;path?:string};
+type Huc6280CodeMsm5205=Omit<PlaygroundMsm5205API,'loadMemory'|'loadSample'> & {
   readonly id:string;readonly chip:'msm5205';readonly sourceId:string;
+  loadMemory(source:ArrayBuffer|Uint8Array|Blob|string,options?:Huc6280CodeMsm5205LoadOptions):Promise<Readonly<PlaygroundMsm5205Sample>>;
+  loadSample(source:PlaygroundMsm5205PCM|AudioBuffer|ArrayBuffer|Uint8Array|Blob|string,
+    options?:Huc6280CodeMsm5205LoadOptions & {decodeAudio?:(bytes:ArrayBuffer)=>Promise<AudioBuffer|PlaygroundMsm5205PCM>}):Promise<Readonly<PlaygroundMsm5205Sample>>;
   /** Release this Code lease; the UI's authored sample and clock remain. */
   dispose():Promise<void>;
 };
-type Huc6280CodeCdda=PlaygroundCddaAPI & {
+type Huc6280CodeCdda=Omit<PlaygroundCddaAPI,'list'> & {
   readonly id:string;readonly chip:'cdda';readonly sourceId:string;
+  list():ReadonlyArray<PlaygroundCddaTrack>;
   /** Release this Code lease; the UI's track selection and Synth clock remain. */
   dispose():Promise<void>;
 };

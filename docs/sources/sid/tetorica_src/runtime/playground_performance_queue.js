@@ -58,6 +58,7 @@ export function createPerformanceQueue({
   prepare,
   onDiscard,
   onCancelOwner,
+  onReleasePattern,
 }) {
   if (typeof apply !== 'function' || typeof nowFrame !== 'function' ||
       !Number.isFinite(sampleRate) || sampleRate <= 0 ||
@@ -95,6 +96,7 @@ export function createPerformanceQueue({
   function clear() {
     for (const event of heap) if (!event.pattern) discard(event);
     for (const pattern of [...patterns.values()]) discardPattern(pattern);
+    releasePattern();
     heap.length = 0;
     queuedCommands = 0;
   }
@@ -175,7 +177,14 @@ export function createPerformanceQueue({
       throw new RangeError('Performance repeat interval is invalid or exceeds the operation rate limit');
     }
     return {name: spec.name, entries, repeatSeconds, startFrame, cost,
-      performance: {session: performance.session, owner: performance.owner, time: performance.time}};
+      performance: {session: performance.session, owner: performance.owner, time: performance.time,
+        patternName: spec.name}};
+  }
+  function releasePattern(name, context, reply) {
+    // Transport cancellation and voice release are independent. The chip
+    // checks that the note still belongs to this reservation before releasing.
+    try { return Boolean(onReleasePattern?.(name, context)); }
+    catch (error) { sendError(reply, context, error); return false; }
   }
   function discardPattern(pattern) {
     if (patterns.get(pattern.name) !== pattern) return;
@@ -186,6 +195,7 @@ export function createPerformanceQueue({
     if (patterns.size === 0) patternRate = patternCostRate = 0;
     discard({commands: pattern.entries.map(entry => entry.command),
       performance: pattern.performance, reply: pattern.reply});
+    releasePattern(pattern.name, pattern.performance, pattern.reply);
   }
   function rebuildWithout(removed) {
     const retained = heap.filter(event => !removed.has(event.pattern));
@@ -225,6 +235,8 @@ export function createPerformanceQueue({
     if (removed.size) rebuildWithout(removed);
     const receipts = [];
     for (const spec of prepared) {
+      // A completed one-shot can still own a held note with this name.
+      releasePattern(spec.name, {session: spec.performance.session}, reply);
       const pattern = {...spec, reply, index: 0, cycle: 0, serial: serial++,
         rate: spec.repeatSeconds === undefined ? 0 : spec.entries.length / spec.repeatSeconds,
         costRate: spec.repeatSeconds === undefined ? 0 : spec.cost / spec.repeatSeconds};
@@ -249,14 +261,16 @@ export function createPerformanceQueue({
     const removed = new Set(patterns.values());
     for (const pattern of removed) discardPattern(pattern);
     if (removed.size) rebuildWithout(removed);
+    releasePattern();
   }
   function clearPattern(name, {session, owner} = {}) {
     if (!validName(name)) throw new TypeError('Invalid performance pattern name');
     if (session !== undefined && !validSession(session)) throw new TypeError('Invalid performance session');
     if (owner !== undefined && !validOwner(owner)) throw new TypeError('Invalid performance owner');
     const pattern = patterns.get(name);
-    if (!pattern || (session !== undefined && session !== activeSession) ||
-        (owner !== undefined && owner !== pattern.performance.owner)) return false;
+    if (session !== undefined && session !== activeSession) return false;
+    if (!pattern || (owner !== undefined && owner !== pattern.performance.owner))
+      return releasePattern(name, {session, owner});
     discardPattern(pattern);
     rebuildWithout(new Set([pattern]));
     return true;
@@ -269,6 +283,7 @@ export function createPerformanceQueue({
     const removed = new Set([...patterns.values()].filter(pattern => pattern.performance.owner === owner));
     for (const pattern of removed) discardPattern(pattern);
     if (removed.size) rebuildWithout(removed);
+    releasePattern(undefined, {session, owner});
     return true;
   }
   function commitPatterns(changes, {session, owner, dryRun = false} = {}, reply) {
@@ -299,6 +314,7 @@ export function createPerformanceQueue({
     }
     checkPatternCapacity(prepared, removed);
     const cleared = [...removed].map(pattern => pattern.name);
+    if (!dryRun) releasePattern(undefined, {session, owner}, reply);
     const reservations = dryRun ? prepared.map(patternReceipt) : installPatterns(prepared, removed, reply);
     return {session, owner, reservations, cleared};
   }
@@ -472,9 +488,28 @@ export function createPerformanceChipOwnership({writeFm, writePsg, channelCount 
   const fmOwners = new Array(channelCount).fill(null), fmActive = new Array(channelCount).fill(false), psgOwners = new Array(4).fill(null);
   let psgLatch = 0;
   const reset = () => {fmOwners.fill(null); fmActive.fill(false); psgOwners.fill(null); psgLatch = 0;};
+  function releaseWhere(matches) {
+    let released = false;
+    for (let channel = 0; channel < fmOwners.length; channel++) {
+      if (!fmOwners[channel] || !matches(fmOwners[channel])) continue;
+      fmOwners[channel] = null; fmActive[channel] = false;
+      writeFm(0x28, channel < 3 ? channel : channel + 1, 0);
+      released = true;
+    }
+    for (let channel = 0; channel < psgOwners.length; channel++) {
+      if (!psgOwners[channel] || !matches(psgOwners[channel])) continue;
+      psgOwners[channel] = null;
+      writePsg?.(0x90 | (channel << 5) | 15);
+      psgLatch = channel * 2 + 1;
+      released = true;
+    }
+    return released;
+  }
   return {
     observe(command, performance) {
-      const owner = performance?.owner ?? null;
+      const owner = performance?.owner == null ? null : {
+        owner: performance.owner, session: performance.session, patternName: performance.patternName,
+      };
       if (command.type === 'reset') {reset(); return;}
       if (command.type === 'write' && command.register === 0x28 && (command.port ?? 0) === 0) {
         const code = command.value & 7, channel = (code & 3) + (code & 4 ? 3 : 0);
@@ -497,23 +532,20 @@ export function createPerformanceChipOwnership({writeFm, writePsg, channelCount 
     // while parameter-only edits never acquire or discard a voice owner.
     canApplyTimed(command, performance) {
       if (command.type !== 'write' || command.register !== 0x28 ||
-          (command.port ?? 0) !== 0 || command.value & 0xf0) return true;
+          (command.port ?? 0) !== 0 || (command.value & 0xf0 && !performance?.releasingGate)) return true;
       const code = command.value & 7, channel = (code & 3) + (code & 4 ? 3 : 0);
-      return (code & 3) === 3 || channel >= channelCount || !fmActive[channel] ||
-        fmOwners[channel] === (performance?.owner ?? null);
+      if ((code & 3) === 3 || channel >= channelCount || !fmActive[channel]) return true;
+      const previous = fmOwners[channel];
+      return (previous?.owner ?? null) === (performance?.owner ?? null) &&
+        (previous?.patternName === undefined || performance?.patternName === undefined ||
+          previous.patternName === performance.patternName);
     },
-    cancel(owner) {
-      for (let channel = 0; channel < fmOwners.length; channel++) {
-        if (fmOwners[channel] !== owner) continue;
-        fmOwners[channel] = null; fmActive[channel] = false;
-        writeFm(0x28, channel < 3 ? channel : channel + 1, 0);
-      }
-      for (let channel = 0; channel < psgOwners.length; channel++) {
-        if (psgOwners[channel] !== owner) continue;
-        psgOwners[channel] = null;
-        writePsg?.(0x90 | (channel << 5) | 15);
-        psgLatch = channel * 2 + 1;
-      }
+    cancel(owner) { return releaseWhere(entry => entry.owner === owner); },
+    releasePattern(name, {owner,session} = {}) {
+      return releaseWhere(entry => entry.patternName !== undefined &&
+        (name === undefined || entry.patternName === name) &&
+        (owner === undefined || entry.owner === owner) &&
+        (session === undefined || entry.session === session));
     },
     reset,
   };

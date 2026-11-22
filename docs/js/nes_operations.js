@@ -102,12 +102,28 @@ function copyTime(time) {
   return {unit, value};
 }
 
+function copyFdsTable(value) {
+  const length = value?.length;
+  // Defer the chip-specific length and range validation to the resolver.
+  // The recorder only makes an independent, bounded serializable copy.
+  if (!Number.isInteger(length) || length < 0 || length > 64)
+    throw new RangeError('FDS table must be array-like with at most 64 entries');
+  return Array.from({length}, (_, index) => value[index]);
+}
+
 function copyCall(operation) {
   const method = operation?.method;
   if (typeof method !== 'string' || !Object.hasOwn(arity, method)) throw new TypeError(`Unsupported NES operation: ${String(method)}`);
   if (!Array.isArray(operation.args)) throw new TypeError('NES operation args must be an array');
   const [min, max] = arity[method];
   if (operation.args.length < min || operation.args.length > max) throw new TypeError(`Invalid argument count for NES ${method}`);
+  if (method === 'fds.setWave')
+    return {method, args: copyValue([copyFdsTable(operation.args[0])])};
+  if (method === 'fds.setModulation') {
+    const options = operation.args[0];
+    fields(options, ['table','rate','depth','bias','enabled'], 'FDS modulation');
+    return {method, args: copyValue([{...options, table: copyFdsTable(options.table)}])};
+  }
   return {method, args: copyValue(operation.args)};
 }
 

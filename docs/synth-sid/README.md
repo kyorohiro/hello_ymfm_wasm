@@ -159,13 +159,17 @@ edit the authored sound and use its keyboard allocation. Stop restores the
 authored display. Observing alone never replaces a saved preset or Files sound.
 
 Keyboard can play alongside Code. The most recent Key On owns a physical
-channel: an older Code Note Off or keyboard key-up cannot stop its newer owner,
-and old notes do not return automatically. Keyboard Pitch only retunes keyboard
-owners. Parameter edits do not claim a gate; raw register writes and explicit
-allNotesOff remain physical controls. Blur releases keyboard notes while Code
+channel. Code `noteOff()` and `keyOff()` return `false` when the keyboard owns
+the channel. Code `allNotesOff()` releases its own channels. Raw
+`writeRegister()` still writes directly to the chip. Keyboard Pitch only
+retunes keyboard owners, and parameter edits leave gate ownership unchanged.
+Blur releases keyboard notes while Code
 keeps running. Updates are limited
 to 20/s, so register writes between observations can be missed; 8580 continues
 to show its unavailable Envelope as unavailable.
+
+`getRegisterSnapshot()` returns a copy of the register shadow. Use
+`captureState()` to reuse the renderer's state as the basis for `compile()`.
 
 **Files** keeps `/index.js`, local modules, text/JSON and opaque binary files.
 Text and JSON use the same Code editor as JavaScript. Selecting a file does not
@@ -448,8 +452,9 @@ names, `off`, or canonical combinations such as `triangle+saw` and
 `triangle+saw+pulse`. Names are normalized in Triangle / Saw / Pulse / Noise
 order. The API and **Copy JavaScript** use the same values, for example
 `sid.setVoice(0, {waveform:'triangle+saw'})`. Existing single-wave presets retain
-their format and values. The selected core approximates the chip's combined
-waveform behavior; it does not mix extra software voices.
+their format and values. A single Gate starts the selected waveform
+combination on that oscillator. The selected core approximates the chip's
+combined waveform behavior, so combinations with Noise can be nearly silent.
 
 The separate `tetorica-sid-channels`, **version 2**, setup contains three portable
 version-2 voice presets, `target` (`0`, `1`, `2` or `'round-robin'`) and

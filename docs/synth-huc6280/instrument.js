@@ -435,13 +435,20 @@ export class Huc6280Instrument {
     }
     if(method==='keyOff'){
       if(this.gateOwners[args[0]]?.owner==='keyboard')return false;
-      this._forgetLiveVoice(args[0]);this.gateOwners[args[0]]=null;this.synth.keyOff(args[0]);return;
+      this._forgetLiveVoice(args[0]);this.gateOwners[args[0]]=null;this.synth.keyOff(args[0]);return true;
     }
     if(method==='keyOn'){
       this._forgetLiveVoice(args[0]);this.gateOwners[args[0]]={owner:'code'};this.synth.keyOn(args[0]);return;
     }
     if(method==='allNotesOff'){
-      this.synth.allNotesOff();this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);return;
+      for(let channel=0;channel<6;channel++){
+        const gate=this.gateOwners[channel];
+        if(gate?.owner==='code'&&gate===this.slots[channel]) this.noteOff(gate.id);
+        else if(gate?.owner==='code'||gate?.owner==='timed'){
+          this._forgetLiveVoice(channel);this.synth.keyOff(channel);this.gateOwners[channel]=null;
+        }
+      }
+      return;
     }
     if(method==='initialize'||method==='reset'){
       this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);this.levels.fill(null);this.ddaValues.fill(null);

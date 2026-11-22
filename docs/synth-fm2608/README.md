@@ -213,6 +213,18 @@ SSG, Rhythm and ADPCM-B are available through `opna.ssg`, `opna.rhythm` and
 `opna.adpcm`. Hardware channel numbers in Code are zero-based. The `CH1` to
 `CH6` constants correspond to FM channels 0 to 5.
 
+SSG `setMixer(CH1, {tone:true, noise:true})` can enable both generators on one
+channel. A partial mixer update changes only the supplied fields. `setVolume()`
+preserves hardware envelope selection when its last argument is omitted; pass
+`false` to switch back to fixed level. `noteOff()` and `keyOff()` both silence a
+channel while retaining its configured level for the next key. Passing only
+`period` to `setEnvelope()` preserves the current shape. Passing `shape`
+restarts the envelope, including when the shape stays the same. These operations
+are available in the timed builder.
+
+Code `allNotesOff()` releases its sounding notes, including notes triggered
+by a reservation. Future scheduled operations remain active.
+
 `opna.capturePreset()` returns a validated portable sound, including Code-loaded
 ADPCM data and its selected range. Memory transfers must finish before capture.
 The Synth Code capture supports uploaded 8-bit DRAM samples. A raw CPU-data

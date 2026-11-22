@@ -14,7 +14,7 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
     super();this.synth=null;this.dead=false;this.remote=null;this.timelineCompletion=null;
     this.validation=new SnesSynth({core:{reset(){},loadRam(){},writeDsp(){},dispose(){}}});
     this.renderSegment=this.renderSegment.bind(this);
-    this.performance=createProcessorPerformance({chip:'snes',patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,apply:(data,port,frame,metadata)=>{if(data.method==='applyTimedOperation')this.timed.apply(data.operation,port,frame,metadata);else this.apply(data,port,true,metadata);},
+    this.performance=createProcessorPerformance({chip:'snes',releasePatternNotes:true,patternCommandCost:c=>c.method==='applyTimedOperation'?c.writeCost:1,apply:(data,port,frame,metadata)=>{if(data.method==='applyTimedOperation')this.timed.apply(data.operation,port,frame,metadata);else this.apply(data,port,true,metadata);},
       prepare:(data,port)=>{
         if(RESOURCE_METHODS.has(data.method)){this.apply(data,port);return null;}
         if(data.method==='playTimeline'||data.id===undefined)return data;

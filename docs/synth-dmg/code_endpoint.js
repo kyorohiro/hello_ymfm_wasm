@@ -61,6 +61,8 @@ export function createGameboyCodeClient({metadata, invoke, isCurrent, ownsOutput
       return Promise.resolve(pending).then(value => {check();return value;});
     };
   }
+  // The APU has a raw hardware gate. Both spelling conventions use it.
+  for (const target of [client, client.pulse, client.wave, client.noise]) target.noteOff = target.keyOff;
   client.isCurrent = current;
   // The audio owner may retain a neutral output lease after this client's own
   // successful disposal. It must reject that lease as soon as a newer owner

@@ -121,6 +121,10 @@ const updatedDsp:ScspCodeDspCoefficients=await scsp.setDspCoefficients({1:3072,2
 await scsp.setDspCoefficients({0:-4096});
 await scsp.setEnvelope(0,{loopLink:true});
 await scsp.setPreset(0,{envelope:{loopLink:false}});
+const active:boolean=state.channels[31].active;
+const routingOverride:ScspCodeDspSend|null=state.dspRoutingOverrides.slots[31];
+// @ts-expect-error authored operators require a sample from the current bank
+await scsp.setPreset(0,{sample:null});
 await scsp.setLfo(0,{pitchDepth:2});await scsp.setMix(0,{totalLevel:9});
 await scsp.applyPCM(0,new Int16Array([0,1]),{rootNote:'C4'});
 await scsp.getPCM(5);await scsp.exportPatch();await scsp.keyOn(31);await scsp.keyOff(31);

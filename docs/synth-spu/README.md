@@ -134,8 +134,7 @@ await beat(1.12);
 await ps1.keyOff(channel);
 ```
 
-Raw KOFF still follows the programmed ADSR release; it is not an immediate
-transport Stop. `noteOn()` / `noteOff()` follow the app's Click guard preference
+Raw KOFF follows the programmed ADSR release. `noteOn()` / `noteOff()` follow the app's Click guard preference
 only in this Synth. The ordinary Playground / npm API retains its existing raw
 behavior.
 
@@ -183,13 +182,18 @@ per second, so intermediate writes can be missed.
 
 In Keyboard with Live On, keys play the selected CH. Live Off uses the existing
 round robin over the same 24 physical voices. The latest Note On owns a CH:
-old keyboard key-up / blur cannot stop a newer Code note, and an old Code
-`noteOff()` cannot stop a newer keyboard note. The previous note is not resumed.
-Raw `keyOff()` and `allNotesOff()` remain explicit physical gate actions. Code
-parameter automation does not steal a keyboard note; when Code and a knob both
+old keyboard key-up / blur cannot stop a newer Code note. Code `noteOff()` and
+`keyOff()` both return `false` when the keyboard owns that physical voice.
+Code `allNotesOff()` affects only Code-owned voices. Use the UI's
+**Stop all sound** to release every owner. Code parameter automation leaves
+gate ownership unchanged. When Code and a knob both
 write the same setting, the last write wins. No extra SPU or virtual voice is
 created. PSF playback has its own CPU-write ownership for selected-channel
 manual controls, described below.
+
+`snapshot()` includes the current SPU register and RAM snapshot. Its
+`sampleRate` is the AudioContext rate and `nativeSampleRate` is the SPU's
+44,100 Hz.
 
 **Files** stores `/index.js`, local modules, text/JSON and binary data separately
 from other Synths. **Auto apply** is On by default: file edits are accepted
