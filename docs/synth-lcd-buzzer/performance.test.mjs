@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createBuzzerVoice } from './performance.js';
 
-function fixture(ensureAudio = async () => {}) {
+function fixture(ensureAudio = async () => {}, getChip) {
 	const sources = [], changes = [], output = {};
 	const context = {
 		currentTime: 0,
@@ -28,7 +28,8 @@ function fixture(ensureAudio = async () => {}) {
 	};
 	const voice = createBuzzerVoice({
 		ensureAudio,
-		getOutput: () => ({ context, master: output }),
+		getChip,
+		getOutput: chip => ({ chip, context, master: output }),
 		onBeforeNote: () => {},
 		onNoteChange: note => changes.push(note),
 	});
@@ -75,4 +76,22 @@ test('releasing or stopping before audio resumes cancels the pending gate', asyn
 	assert.deepEqual(await Promise.all([superseded, stopped]), [false, false]);
 	assert.deepEqual(sources, []);
 	assert.deepEqual(changes, []);
+});
+
+test('a newer transport cancels a pending note only on its own chip', async () => {
+	const resume = [];
+	let selected = 'sm511';
+	const { voice, sources } = fixture(() => new Promise(resolve => resume.push(resolve)), () => selected);
+	const owner = Symbol('keyboard');
+	const first = voice.noteOn(60, owner);
+	selected = 'sm510';
+	voice.cancelPending('sm510');
+	resume.shift()();
+	assert.equal(await first, true);
+	const second = voice.noteOn(64, owner);
+	voice.cancelPending('sm510');
+	resume.shift()();
+	assert.equal(await second, false);
+	assert.equal(sources.length, 1);
+	assert.equal(voice.getNote(), 60);
 });

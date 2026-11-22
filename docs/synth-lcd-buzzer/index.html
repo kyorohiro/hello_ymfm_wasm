@@ -16,7 +16,7 @@
 			<img src="./icon.png" width="82" height="82" alt="">
 			<div>
 				<h1>Tetorica SM510 Synth</h1>
-				<p>Explore the SM510 buzzer and make one-bit beeps and jingles.</p>
+				<p>Explore SM510 buzzer output and SM511 ROM melodies.</p>
 			</div>
 		</header>
 
@@ -59,15 +59,48 @@
 			</section>
 			<div class="hinge" aria-hidden="true"></div>
 		</div>
-		<div class="tone-source">
-			<label for="toneSource">Tone source</label>
-			<select id="toneSource" aria-describedby="toneSourceDetail">
-				<option value="direct" selected>SM510 Direct R</option>
-				<option value="dk52">DK-52 Divider</option>
-				<option value="equal">Equal temperament</option>
-			</select>
-			<span id="toneSourceDetail">Pitches use whole SM510 machine cycles.</span>
-		</div>
+		<section class="chip-controls" aria-label="Sound chip controls">
+			<div id="buzzerChipTabs" class="input-tabs" role="tablist" aria-label="Sound chip">
+				<button id="buzzerSm510Tab" type="button" role="tab" aria-selected="true" aria-controls="buzzerSm510Panel">SM510</button>
+				<button id="buzzerSm511Tab" type="button" role="tab" aria-selected="false" aria-controls="buzzerSm511Panel" tabindex="-1">SM511</button>
+				<button id="buzzerMixerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerMixerPanel" tabindex="-1">Mixer</button>
+			</div>
+			<div id="buzzerSm510Panel" role="tabpanel" aria-labelledby="buzzerSm510Tab" class="tone-source">
+				<label for="toneSource">Tone source</label>
+				<select id="toneSource" aria-describedby="toneSourceDetail">
+					<option value="direct" selected>SM510 Direct R</option>
+					<option value="dk52">DK-52 Divider</option>
+					<option value="equal">Equal temperament</option>
+				</select>
+				<span id="toneSourceDetail">Pitches use whole SM510 machine cycles.</span>
+			</div>
+			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
+				<div class="tone-source">
+					<button id="sm511Play" class="primary" type="button">Play melody</button>
+					<button id="sm511Stop" type="button" disabled>Stop melody</button>
+					<span id="sm511Status" role="status"></span>
+				</div>
+				<p class="chip-note">Melody ROM uses C♯5–C7 and 62.5 or 125 ms commands. Step Sequencer maps notes to those octaves and rounds timing to 62.5 ms.</p>
+			</div>
+			<div id="buzzerMixerPanel" role="tabpanel" aria-labelledby="buzzerMixerTab" hidden>
+				<div class="mixer-controls">
+					<div>
+						<label for="sm510Mix">SM510 <output id="sm510MixValue" for="sm510Mix">100%</output></label>
+						<input id="sm510Mix" type="range" min="0" max="100" value="100">
+						<label class="mixer-mute"><input id="sm510Mute" type="checkbox"> Mute SM510</label>
+					</div>
+					<div>
+						<label for="sm511Mix">SM511 <output id="sm511MixValue" for="sm511Mix">100%</output></label>
+						<input id="sm511Mix" type="range" min="0" max="100" value="100">
+						<label class="mixer-mute"><input id="sm511Mute" type="checkbox"> Mute SM511</label>
+					</div>
+					<div>
+						<label for="buzzerMasterMix">Master <output id="buzzerMasterMixValue" for="buzzerMasterMix">60%</output></label>
+						<input id="buzzerMasterMix" type="range" min="0" max="100" value="60">
+					</div>
+				</div>
+			</div>
+		</section>
 		<div id="synthWorkspace" class="synth-workspace">
 			<aside id="buzzerFilesPanel" class="buzzer-files" aria-label="Project files" hidden></aside>
 			<div class="performance">
@@ -107,7 +140,7 @@
 							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
 							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
 						</div>
-						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> to play notes with the selected tone source. For R writes use <code>sm510</code> for DK-52 or <code>sm510-direct</code> for direct output.</p>
+						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> to play the selected chip, <code>sm510</code> and <code>sm510-direct</code> for R writes, or <code>sm511</code> for melody ROM commands.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
 						<pre id="synthCodeLog" class="code-log" aria-label="Code output"></pre>
 					</div>

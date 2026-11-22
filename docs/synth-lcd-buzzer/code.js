@@ -4,6 +4,7 @@ import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
 import { selectCodeHostDeclarations } from '../synth/synth_code_declarations.js';
 import { buzzerMidi } from './buzzer.js';
 import { DIRECT_R, DK52_R, createSm510CodeChip } from './sm510.js';
+import { validateMelody } from './sm511.js';
 
 export const BUZZER_STARTER = `const buzzer = await useSoundChip("lcd-buzzer");
 setBpm(120);
@@ -56,10 +57,17 @@ interface Sm510CodeChip<Id extends 'sm510' | 'sm510-direct' = 'sm510' | 'sm510-d
   build(record: (sequence: Sm510CycleBuilder) => void): Sm510CycleSequence;
   playCycles(sequence: Sm510CycleSequence): Promise<boolean>;
 }
+interface Sm511CodeChip {
+  readonly id: 'sm511';
+  readonly clock: 32768;
+  playMelody(commands: readonly number[] | Uint8Array): Promise<boolean>;
+  stopMelody(): void;
+}
 type BuzzerCodeChipMap = {
   'lcd-buzzer': BuzzerCodeChip;
   sm510: Sm510CodeChip<'sm510'>;
   'sm510-direct': Sm510CodeChip<'sm510-direct'>;
+  sm511: Sm511CodeChip;
 };
 declare function useSoundChip<Name extends keyof BuzzerCodeChipMap>(name: Name): Promise<BuzzerCodeChipMap[Name]>;
 declare const pg: BuzzerCodeGlobals;
@@ -74,7 +82,7 @@ function checkChannel(channel) {
 
 const patternNote = note => note === null ? null : buzzerMidi(note);
 
-export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequence, r1, setStatus, onExpandedChange, onViewChange }) {
+export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequence, r1, melody, setStatus, onExpandedChange, onViewChange }) {
 	const { project, files } = workspace;
 	const owner = Symbol('LCD Buzzer Code');
 	const client = {
@@ -106,16 +114,23 @@ export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequ
 		},
 		stopPattern() { sequence.stop(owner); },
 	};
+	const sm511 = {
+		id: 'sm511',
+		get clock() { return 32768; },
+		playMelody(commands) { return melody.play(validateMelody(commands)); },
+		stopMelody: melody.stop,
+	};
 	const registerClients = new Map();
-	const release = () => { performance.noteOff(owner); sequence.stop(owner); r1.stop(); };
+	const release = () => { performance.noteOff(owner); sequence.stop(owner); r1.stop(); melody.stop(); };
 	let controls, runtime;
 	function getRuntime() {
 		runtime ??= createPlaygroundCodeRuntime({
-			supportedSoundChips: ['lcd-buzzer', 'sm510', 'sm510-direct'],
+			supportedSoundChips: ['lcd-buzzer', 'sm510', 'sm510-direct', 'sm511'],
 			ensureReady: ensureAudio,
 			now,
 			async useSoundChip(name) {
 				if (name === 'lcd-buzzer') return client;
+				if (name === 'sm511') return sm511;
 				const core = await r1.prepare();
 				if (!registerClients.has(name)) {
 					const mode = name === 'sm510-direct' ? DIRECT_R : DK52_R;
@@ -131,7 +146,7 @@ export function setupBuzzerCode({ workspace, performance, ensureAudio, now, sequ
 			readFile: (...args) => project.readSavedFile(...args),
 			onLog: line => controls?.appendLog(line),
 			onState(state) {
-				if (state.state === 'error') r1.stop();
+				if (state.state === 'error') { r1.stop(); melody.stop(); }
 				controls?.updateRuntimeState(state);
 			},
 			beforeStopSoundChips: release,

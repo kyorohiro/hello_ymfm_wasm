@@ -130,10 +130,16 @@ input { accent-color: #9a3c13; }
 .synth-menu-panel button { width: 100%; text-align: left; }
 
 .synth-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 14px; color-scheme: light; color: var(--ink); }
-.tone-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; margin: 12px 0 0; font-size: .84rem; }
+.chip-controls { color: var(--ink); color-scheme: light; margin-top: 12px; padding: 12px 16px; border: 1px solid #d38a58; border-radius: 14px; background: var(--cream); }
+.tone-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; margin: 10px 0 0; font-size: .84rem; }
 .tone-source label { font-weight: 700; }
-.tone-source select { color-scheme: light; }
-#toneSourceDetail { color: #e2d2bb; }
+#toneSourceDetail, .chip-note, #sm511Status { color: #5d4c3b; }
+.chip-note { margin: 8px 0 0; font-size: .82rem; }
+.mixer-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.mixer-controls > div { display: grid; align-content: start; gap: 3px; min-width: 0; }
+.mixer-controls label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3px; font-size: .82rem; }
+.mixer-controls input[type="range"] { width: 100%; margin: 0; }
+.mixer-controls .mixer-mute { justify-content: flex-start; }
 .synth-workspace:has(#buzzerFilesPanel:not([hidden])) { grid-template-columns: minmax(200px, 255px) minmax(0, 1fr); }
 .buzzer-files, .performance {
 	min-width: 0;
@@ -150,7 +156,6 @@ input { accent-color: #9a3c13; }
 #synthCodeExpandButton { font-size: .85rem; }
 #synthCodeExpandIcon::before { content: 'Expand'; }
 #synthCodeExpandButton[aria-pressed="true"] #synthCodeExpandIcon::before { content: 'Restore'; }
-#synthKeyboardPanel:not([hidden]) + #synthCodePanel:not([hidden]) { margin-top: 14px; }
 .keyboard-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 12px; margin: 0 0 9px; font-size: .83rem; }
 .keyboard-settings [role="group"] { display: flex; align-items: center; gap: 5px; }
 .keyboard-settings button { padding: 0 7px; min-width: 30px; min-height: 29px; }

@@ -1,17 +1,19 @@
 # Tetorica SM510 Synth
 
-Tetorica SM510 Synth is a monophonic instrument for exploring the Sharp SM510's direct and divided buzzer outputs alongside a software-tuned square wave.
+Tetorica SM510 Synth combines the Sharp SM510 buzzer and SM511 melody voices.
+Use the upper **SM510**, **SM511**, and **Mixer** tabs to choose a voice or
+adjust the mix. Use the lower **Keyboard**, **Code**, and **Step Sequencer**
+tabs to perform and edit. The selected chip supplies the Keyboard, computer
+keys, step previews, Step Sequencer, WAV export, and the `lcd-buzzer` Code
+client. Cassette and pattern files store the MIDI notes and rests.
 
 - Choose an original pattern or enter a note or **Rest** in each of the eight steps. Click a step number to audition its note.
 - Set the tempo, note length and volume. Each step represents an eighth note. Editing a note, tempo or note length during playback starts the updated pattern from step one.
-- Use **Play**, **Stop** and **Loop** to listen. **Export WAV** saves one pass through the sequence as 48 kHz mono PCM16 using the selected tone source and volume.
+- Use **Play**, **Stop** and **Loop** to listen. **Export WAV** saves one pass through the sequence as 48 kHz mono PCM16 using the selected chip's mixer level, mute state, and Master.
 
-## Tone source
+## SM510 tone source
 
-The **Tone source** selector applies to the on-screen Keyboard, computer keys,
-Step Sequencer and its previews, and the `useSoundChip('lcd-buzzer')` note
-and pattern API. It is a playback preference. Cassette and pattern files
-store the same MIDI notes and rests in all three modes.
+The **Tone source** selector in **SM510** sets how that voice renders notes.
 
 | Tone source | What you hear |
 | --- | --- |
@@ -19,13 +21,50 @@ store the same MIDI notes and rests in all three modes.
 | **DK-52 Divider** | Each playable note opens the gate on the DK-52’s fixed 4,096 Hz R1 carrier. Changing notes leaves the carrier frequency fixed. Rests close the gate. |
 | **Equal temperament** | A software square wave uses standard equal-tempered pitches with A4 at 440 Hz. |
 
+## SM511 melody voice
+
+The SM511 uses a dedicated melody controller with a 256-step ROM and six bits
+per step. The stored commands describe notes, rests, and stops. The controller
+generates 12 chromatic pitches in either of two octaves from the 32.768 kHz
+clock, with timing units of 62.5 ms or 125 ms. The browser's SM511 voice
+renders the controller's output in WASM built from the same C++ source as
+the native core.
+[Sharp Microcomputers Data Book, SM511/SM512 p. 166](https://ftpmirror.your.org/pub/misc/bitsavers/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
+
+Open **SM511** and use **Play melody** and **Stop melody** to audition the
+included original tune. Its data is built in. SM511 performance maps the
+existing MIDI keys and steps two octaves up and folds them into C♯5–C7.
+For example, C4 sounds as C6. SM511 sequence playback rounds note and rest
+boundaries to 62.5 ms ticks and packs them into 62.5 ms or 125 ms commands.
+
+### SM511 from Code
+
+`useSoundChip('sm511')` plays melody commands on the SM511 bus.
+`playMelody()` accepts 1–256 six-bit commands. In the low nibble,
+`0x0` is a rest, `0x1` ends playback, and `0x2`–`0xD` are pitches.
+Bit 4 selects the upper octave and bit 5 selects the 125 ms duration.
+A clear bit 5 gives a 62.5 ms note or rest. The player ends on the first stop
+command or after the last command. Use `stopMelody()` to stop it early.
+
+```js
+const chip = await useSoundChip('sm511');
+await chip.playMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
+```
+
+## Mixer
+
+**Mixer** gives the SM510 and SM511 their own level and mute controls before
+the shared **Master**. Master and the Step Sequencer's **Volume** adjust the
+same gain. Opening Mixer keeps playback running on the selected chip.
+Code can play SM510 register writes and SM511 melodies together on their
+respective buses.
+
 ## Synth and Code
 
-The performance tabs are **Keyboard**, **Code**, and **Step Sequencer**. The
-oscilloscope stays above them. Play the on-screen pads or their matching
-computer keys and use Octave and Fret to move the pitches. Keyboard stays
-available while Code is open. With focus in the editor, typing edits the
-script. Click a pad or the Code tab to play with the computer keys again.
+Open **Keyboard** to play the on-screen pads or their matching computer
+keys. Use Octave and Fret to move the pitches. In **Code**, type in the
+editor to edit the script, or focus the **Code** tab to play with the computer
+keys.
 The top **Code** button opens the workspace beside Files. **Run** starts a
 session, **Apply** updates it, and **Stop Code** releases Code-owned sound.
 
@@ -40,10 +79,11 @@ buzzer.configure({ bpm: 144, gate: 0.4 });
 await buzzer.playPattern({ loop: false });
 ```
 
-Use `setStep(0, 'C4')` to change the first step and `null` for a rest. Notes
-accept a name or integer MIDI value from C3 through C6. `configure()` accepts
-tempo (`bpm`), note length (`gate`), `volume`, and `loop`. Gate and volume use
-fractions. Keyboard, Code and sequence playback take turns using one voice.
+Existing `useSoundChip('lcd-buzzer')` scripts use the note and pattern
+performance API. Use `setStep(0, 'C4')` to change the first step and `null`
+for a rest. Notes accept a name or integer MIDI value from C3 through C6.
+`configure()` accepts tempo (`bpm`), note length (`gate`), `volume`, and
+`loop`. Gate and volume use fractions.
 
 ## SM510 buzzer demo
 
@@ -126,12 +166,14 @@ const pulse = direct.build(b => {
 await direct.playCycles(pulse);
 ```
 
-SM510 playback uses a [C++ core](../../tetorica_src/native/sm510/sm510.cpp)
-that averages the digital signal over each PCM sample interval, including
-writes between sample boundaries. Run `sh scripts/build_sm510.sh "" build/sm510`
-to build the browser `sm510.wasm` and the native `build/sm510/libsm510.a`.
-The [C ABI](../../tetorica_src/native/sm510/sm510.h) accepts writes as
-master-tick offsets and exposes both divider and direct pin states.
+## Native and WASM audio cores
+
+Both C++ cores average the pin signal over each PCM sample interval using
+the chip's master clock. Run `sh scripts/build_sm510.sh "" build/sm510` to
+build the browser `sm510.wasm` and the native `build/sm510/libsm510.a` with
+both voices. The C ABI exposes SM510 pin states and timed writes, and SM511
+pitch and melody rendering.
+[SM510 core](../../tetorica_src/native/sm510/sm510.cpp) · [SM511 core](../../tetorica_src/native/sm510/sm511.cpp) · [C ABI](../../tetorica_src/native/sm510/sm510.h)
 
 ## Files and Menu
 
@@ -145,7 +187,7 @@ that part of the tree. **Sound chip** opens the hardware guide.
 New Cassettes include editable Code examples in **Files → examples**.
 Run `short-beep.js`, `chirp.js`, or `trill.js` to hear the selected tone
 source. Run `sm510-r1.js` or `sm510-cycles.js` for immediate or cycle-timed
-DK-52 R1 writes. In an existing Cassette, **Add examples** fills unused
+DK-52 R1 writes, or `sm511-melody.js` for a Melody ROM phrase. In an existing Cassette, **Add examples** fills unused
 example paths with ready-to-run copies. An existing file, directory or
 pending deletion keeps its path.
 

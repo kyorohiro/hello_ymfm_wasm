@@ -37,6 +37,23 @@ void sm510_render_direct_note(float *output, uint32_t frames, uint32_t sample_ra
 void sm510_render_direct_r1(float *output, uint32_t frames, uint32_t sample_rate,
                             const uint32_t *events, uint32_t write_count);
 
+/* Return the nominal SM511 pitch, averaged over the four waveform phases
+ * of a six-bit melody word. Ignore the length bit. Return 0 for a rest,
+ * stop, or invalid command. */
+double sm511_pitch_hz(uint32_t command);
+
+/* Render a continuous SM511 tone starting at phase zero. Average the
+ * low (0) and high (0.16) levels over each output sample interval. */
+void sm511_render_tone(float *output, uint32_t frames, uint32_t sample_rate,
+                       uint32_t command);
+
+/* Play up to 256 SM511 melody words from an aligned 62.5 ms slot boundary.
+ * Each byte holds one six-bit word. Bit 5 doubles the slot length. Preserve
+ * phase across notes and freeze it during silent slots. Treat reserved
+ * words as rests. This one-shot player ends at the stop marker or ROM end. */
+void sm511_render_melody(float *output, uint32_t frames, uint32_t sample_rate,
+                         const uint8_t *rom, uint32_t count);
+
 #ifdef __cplusplus
 }
 #endif

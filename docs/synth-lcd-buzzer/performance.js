@@ -14,7 +14,7 @@ const MAX_FRET = 12;
 const KEYBOARD_HINT = 'Play the pads or their matching keys';
 
 /** One software voice with ownership shared by the Code and Keyboard inputs. */
-export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, onBeforeNote, onNoteChange }) {
+export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip, onRequestNote, onBeforeNote, onNoteChange }) {
 	let active = null, pending = null, disposed = false;
 	let waveContext, waveform, silenceAt = 0;
 
@@ -35,13 +35,14 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, onBefor
 		const midi = buzzerMidi(note), frequency = noteToHz(midi);
 		if (owner == null) throw new TypeError('A buzzer note needs an owner.');
 		if (disposed) return false;
-		const token = { owner };
+		const token = { owner, chip: getChip?.() };
 		pending = token;
 		try {
+			onRequestNote?.(token.chip);
 			await ensureAudio();
 			if (pending !== token || disposed) return false;
-			const { context, master } = getOutput();
-			const tone = prepareTone ? await prepareTone(frequency, context) : null;
+			const { context, master, chip } = getOutput(token.chip);
+			const tone = prepareTone ? await prepareTone(frequency, context, midi, chip) : null;
 			if (pending !== token || disposed) return false;
 			if (!tone && context !== waveContext) {
 				waveform = context.createBuffer(1, PERIOD_FRAMES, context.sampleRate);
@@ -51,7 +52,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, onBefor
 				waveContext = context;
 				silenceAt = 0;
 			}
-			const previousOutputEnd = onBeforeNote() ?? 0;
+			const previousOutputEnd = onBeforeNote(chip) ?? 0;
 			// The host retires the sequencer before this gate takes ownership.
 			if (pending !== token || disposed) return false;
 			release();
@@ -67,7 +68,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, onBefor
 			source.onended = () => { source.disconnect(); gain.disconnect(); };
 			source.start(start);
 			active = { source, gain, context, start, owner, midi };
-			onNoteChange(midi);
+			onNoteChange(midi, chip);
 			return true;
 		} catch (error) {
 			if (pending === token && !disposed) throw error;
@@ -93,6 +94,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, onBefor
 
 	return {
 		noteOn, noteOff, stopAll,
+		cancelPending(chip) { if (pending?.chip === chip) pending = null; },
 		getNote: () => active?.midi ?? null,
 		isIdle: () => !active && !pending,
 		dispose() { disposed = true; stopAll(); },
@@ -100,10 +102,11 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, onBefor
 }
 
 export function setupBuzzerPerformance({
-	document, ensureAudio, getOutput, prepareTone, onBeforeNote = () => {}, onNoteChange = () => {}, onError = () => {},
+	document, ensureAudio, getOutput, prepareTone, canPlayKeyboard, displayNote = note => labels.get(note),
+	getChip, onRequestNote, onBeforeNote = () => {}, onNoteChange = () => {}, onError = () => {},
 }) {
 	const byId = id => document.getElementById(id), window = document.defaultView;
-	const keyboard = byId('buzzerKeyboard'), panel = byId('synthKeyboardPanel');
+	const keyboard = byId('buzzerKeyboard');
 	const status = byId('buzzerKeyboardStatus'), octaveValue = byId('buzzerOctaveValue'), fretValue = byId('buzzerFretValue');
 	const octaveDown = byId('buzzerOctaveDown'), octaveUp = byId('buzzerOctaveUp');
 	const fretDown = byId('buzzerFretDown'), fretUp = byId('buzzerFretUp');
@@ -111,10 +114,10 @@ export function setupBuzzerPerformance({
 	const fretboard = createFretboardState();
 	let octave = 1, entries = new Map();
 	const voice = createBuzzerVoice({
-		ensureAudio, getOutput, prepareTone, onBeforeNote,
-		onNoteChange(note) {
-			status.textContent = note === null ? KEYBOARD_HINT : `Playing ${labels.get(note)}`;
-			onNoteChange(note);
+		ensureAudio, getOutput, prepareTone, getChip, onRequestNote, onBeforeNote,
+		onNoteChange(note, chip) {
+			status.textContent = note === null ? KEYBOARD_HINT : `Playing ${displayNote(note, chip)}`;
+			onNoteChange(note, chip);
 		},
 	});
 
@@ -140,7 +143,7 @@ export function setupBuzzerPerformance({
 	}
 
 	function press(id, entry) {
-		if (panel.hidden || held.has(id) || !labels.has(entry.midi)) return;
+		if (!canPlayKeyboard() || held.has(id) || !labels.has(entry.midi)) return;
 		const input = { id, entry, owner: Symbol(id) };
 		held.set(id, input);
 		showHeld();
@@ -170,6 +173,15 @@ export function setupBuzzerPerformance({
 		showHeld();
 	}
 
+	function refreshLabels() {
+		for (const key of keyboard.querySelectorAll('.key')) {
+			const entry = entries.get(key.dataset.key);
+			const name = labels.has(entry.midi) ? displayNote(entry.midi) : entry.noteName;
+			key.querySelector('span').textContent = name;
+			key.setAttribute('aria-label', `${entry.label} · ${name}`);
+		}
+	}
+
 	function drawKeys() {
 		const layout = createFretboardLayout({ state: fretboard, octave });
 		entries = new Map(layout.entries.map(entry => [entry.key, entry]));
@@ -186,7 +198,6 @@ export function setupBuzzerPerformance({
 		for (const key of keyboard.querySelectorAll('.key')) {
 			const entry = entries.get(key.dataset.key), id = `button:${entry.key}`;
 			key.disabled = !labels.has(entry.midi);
-			key.setAttribute('aria-label', `${entry.label} · ${entry.noteName}`);
 			key.addEventListener('keydown', event => {
 				if (event.key !== ' ' && event.key !== 'Enter') return;
 				event.preventDefault();
@@ -206,6 +217,7 @@ export function setupBuzzerPerformance({
 		fretDown.disabled = fretboard.horizontalFretPosition === 0;
 		fretUp.disabled = fretboard.horizontalFretPosition === MAX_FRET;
 		showHeld();
+		refreshLabels();
 	}
 
 	function changePosition(nextOctave, nextFret) {
@@ -220,7 +232,7 @@ export function setupBuzzerPerformance({
 	listen(fretDown, 'click', () => changePosition(octave, fretboard.horizontalFretPosition - 1));
 	listen(fretUp, 'click', () => changePosition(octave, fretboard.horizontalFretPosition + 1));
 	listen(document, 'keydown', event => {
-		if (panel.hidden || event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey
+		if (!canPlayKeyboard() || event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey
 			|| event.target?.closest?.('input, textarea, select, [contenteditable], dialog[open], .monaco-editor, #synthCodeEditorHost, .synth-menu-panel')
 			|| document.querySelector('dialog[open]')) return;
 		const entry = entries.get(event.key.toLowerCase());
@@ -235,7 +247,8 @@ export function setupBuzzerPerformance({
 	drawKeys();
 
 	return {
-		noteOn: voice.noteOn, noteOff: voice.noteOff, stopAll, stopKeyboard, getNote: voice.getNote,
+		noteOn: voice.noteOn, noteOff: voice.noteOff, stopAll, stopKeyboard, refreshLabels,
+		cancelPending: voice.cancelPending, getNote: voice.getNote,
 		dispose() { listeners.abort(); stopKeyboard(); voice.dispose(); },
 	};
 }

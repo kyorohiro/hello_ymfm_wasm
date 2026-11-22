@@ -116,11 +116,13 @@ export function createR1Voice(context, output, render) {
 export function createSm510AudioCore({
 	memory, __heap_base, sm510_render_r1, sm510_direct_half_cycles,
 	sm510_render_direct_note, sm510_render_direct_r1,
+	sm511_pitch_hz, sm511_render_tone, sm511_render_melody,
 }) {
 	if (!(memory instanceof WebAssembly.Memory) || !Number.isInteger(__heap_base?.value) ||
-		[sm510_render_r1, sm510_direct_half_cycles, sm510_render_direct_note, sm510_render_direct_r1]
+		[sm510_render_r1, sm510_direct_half_cycles, sm510_render_direct_note, sm510_render_direct_r1,
+			sm511_pitch_hz, sm511_render_tone, sm511_render_melody]
 			.some(render => typeof render !== 'function')) {
-		throw new Error('The installed SM510 audio core does not support Direct R.');
+		throw new Error('The installed audio core does not support SM510 and SM511.');
 	}
 	const start = __heap_base.value;
 	function reserve(bytes) {
@@ -135,14 +137,28 @@ export function createSm510AudioCore({
 			return new Float32Array(memory.buffer, output, frameCount).slice();
 		};
 	}
+	function renderTone(render, command, frames, sampleRate) {
+		reserve(start + frames * Float32Array.BYTES_PER_ELEMENT);
+		render(start, frames, sampleRate, command);
+		return new Float32Array(memory.buffer, start, frames).slice();
+	}
 	return {
 		directHalfCycles: sm510_direct_half_cycles,
 		renderR1: r1Renderer(sm510_render_r1),
 		renderDirectR1: r1Renderer(sm510_render_direct_r1),
 		renderDirectNote(halfCycles, frames, sampleRate) {
-			reserve(start + frames * Float32Array.BYTES_PER_ELEMENT);
-			sm510_render_direct_note(start, frames, sampleRate, halfCycles);
-			return new Float32Array(memory.buffer, start, frames).slice();
+			return renderTone(sm510_render_direct_note, halfCycles, frames, sampleRate);
+		},
+		sm511PitchHz: sm511_pitch_hz,
+		renderSm511Tone(command, frames, sampleRate) {
+			return renderTone(sm511_render_tone, command, frames, sampleRate);
+		},
+		renderSm511Melody(commands, frames, sampleRate) {
+			const output = start + Math.ceil(commands.length / 4) * 4;
+			reserve(output + frames * Float32Array.BYTES_PER_ELEMENT);
+			new Uint8Array(memory.buffer, start, commands.length).set(commands);
+			sm511_render_melody(output, frames, sampleRate, start, commands.length);
+			return new Float32Array(memory.buffer, output, frames).slice();
 		},
 	};
 }
