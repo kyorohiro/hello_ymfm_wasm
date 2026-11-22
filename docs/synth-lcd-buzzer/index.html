@@ -40,10 +40,15 @@
 					</section>
 				</div>
 			</details>
+			<button id="buzzerFilesToggle" type="button" aria-controls="buzzerFilesPanel" aria-expanded="false">Files</button>
 			<div class="workspace-mode" role="group" aria-label="Workspace layout">
 				<button id="synthWorkspaceSynthButton" type="button" aria-pressed="true" aria-controls="buzzerInstrument">Synth</button>
 				<button id="synthWorkspaceCodeButton" type="button" aria-pressed="false" aria-controls="synthExpandedCodeSlot">Code</button>
 			</div>
+			<label class="master-control" for="volume">Master
+				<input id="volume" type="range" min="0" max="100" value="60" aria-label="Master volume">
+				<output id="volume-value" for="volume">60%</output>
+			</label>
 		</div>
 
 		<div class="instrument" id="buzzerInstrument">
@@ -58,20 +63,17 @@
 			</section>
 			<div class="hinge" aria-hidden="true"></div>
 		</div>
-		<section class="chip-controls" aria-label="Sound chip controls">
+		<section id="buzzerChipControls" class="chip-controls" aria-label="Sound chip controls">
 			<div id="buzzerWorkspaceNavigation" class="workspace-navigation">
-				<div class="chip-tab-row">
-					<div id="buzzerChipTabs" class="input-tabs" role="tablist" aria-label="Sound chip">
-						<button id="buzzerSm510Tab" type="button" role="tab" aria-selected="true" aria-controls="buzzerSm510Panel">SM510</button>
-						<button id="buzzerSm511Tab" type="button" role="tab" aria-selected="false" aria-controls="buzzerSm511Panel" tabindex="-1">SM511</button>
-						<button id="buzzerLcdTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerLcdPanel" tabindex="-1">lcd-buzzer</button>
-						<button id="buzzerMixerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerMixerPanel" tabindex="-1">Mixer</button>
-					</div>
-					<button id="buzzerFilesToggle" type="button" aria-controls="buzzerFilesPanel" aria-expanded="false">Files</button>
+				<div id="buzzerChipTabs" class="input-tabs" role="tablist" aria-label="Sound chip">
+					<button id="buzzerSm510Tab" type="button" role="tab" aria-selected="true" aria-controls="buzzerSm510Panel">SM510</button>
+					<button id="buzzerSm511Tab" type="button" role="tab" aria-selected="false" aria-controls="buzzerSm511Panel" tabindex="-1">SM511</button>
+					<button id="buzzerLcdTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerLcdPanel" tabindex="-1">lcd-buzzer</button>
+					<button id="buzzerMixerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerMixerPanel" tabindex="-1">Mixer</button>
 				</div>
 			</div>
 			<div id="buzzerSm510Panel" role="tabpanel" aria-labelledby="buzzerSm510Tab">
-				<div id="toneSource" class="tone-source" role="group" aria-label="Tone source" aria-describedby="toneSourceDetail">
+				<div id="toneSource" class="tone-source" role="group" aria-label="Tone source">
 					<button type="button" data-tone-mode="direct" aria-pressed="true">Direct R</button>
 					<button type="button" data-tone-mode="dk52" aria-pressed="false">DK-52 Divider</button>
 				</div>
@@ -82,22 +84,24 @@
 							<span>Drive</span>
 							<button id="sm510PulseR1" type="button" aria-pressed="true">R1</button>
 							<button id="sm510PulseR2" type="button" aria-pressed="false">R2</button>
+							<output id="sm510PulseDriveValue" for="sm510PulseR1 sm510PulseR2">1× swing</output>
 						</div>
 					</div>
 					<label class="pulse-key-tracking"><input id="sm510KeyTracking" type="checkbox" checked> Key tracking · Software</label>
 					<div class="cpu-pulse-sliders">
 						<label for="sm510PulseCycles">On/off interval <output id="sm510PulseInterval" for="sm510KeyTracking sm510PulseCycles">Key tracking</output></label>
 						<input id="sm510PulseCycles" type="range" min="4" max="63" value="19">
-						<label for="sm510PulseVolume">Volume <output id="sm510PulseVolumeValue" for="sm510PulseVolume">65%</output></label>
-						<input id="sm510PulseVolume" type="range" min="0" max="100" value="65">
 					</div>
 					<p id="sm510PulseTiming" class="chip-note">Play a key to hear the CPU pulse.</p>
-					<p class="chip-note">Moving the interval slider switches to manual timing. Drive one pin for a smaller signal or both for twice the swing.</p>
 				</section>
-				<dl class="chip-details">
-					<dt>Hardware</dt><dd><code>ATR</code> copies the low two accumulator bits to R. Direct R holds each pin at its latched level. The DK-52 divider gates a 4,096 Hz signal on each pin, with R2 in opposite phase.</dd>
-					<dt>App playback</dt><dd><span id="toneSourceDetail">Direct R switches the output at whole SM510 machine cycles to set each pitch.</span></dd>
-				</dl>
+				<details class="chip-help">
+					<summary aria-label="SM510 help" title="SM510 help">?</summary>
+					<p class="chip-note">Moving the interval slider switches to manual timing. Drive sets the voltage swing across R1 and R2.</p>
+					<dl class="chip-details">
+						<dt>Hardware</dt><dd><code>ATR</code> copies the low two accumulator bits to R. Direct R holds each pin at its latched level. The DK-52 divider gates a 4,096 Hz signal on each pin, with R2 in opposite phase.</dd>
+						<dt>App playback</dt><dd id="toneSourceDetail">Direct R switches the output at whole SM510 machine cycles to set each pitch.</dd>
+					</dl>
+				</details>
 				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
 			</div>
 			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
@@ -150,13 +154,9 @@
 						<input id="lcd-buzzerMix" type="range" min="0" max="100" value="100">
 						<label class="mixer-mute"><input id="lcd-buzzerMute" type="checkbox"> Mute lcd-buzzer</label>
 					</div>
-					<div>
-						<label for="buzzerMasterMix">Master <output id="buzzerMasterMixValue" for="buzzerMasterMix">60%</output></label>
-						<input id="buzzerMasterMix" type="range" min="0" max="100" value="60">
-					</div>
 				</div>
 				<dl class="chip-details">
-					<dt>App output</dt><dd>Level and mute adjust each voice after synthesis. Master sets the combined output and mirrors Step Sequencer Volume.</dd>
+					<dt>App output</dt><dd>Level and mute adjust each voice after synthesis. The toolbar’s Master sets the combined output.</dd>
 				</dl>
 			</div>
 		</section>
@@ -189,15 +189,15 @@
 						<div id="buzzerKeyboard" class="performance-keyboard"></div>
 					</div>
 					<div id="synthCodePanel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
-						<div class="code-editors">
-							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
-							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
-						</div>
 						<div class="code-transport" data-code-transport="panel">
 							<button id="synthCodeRunButton" type="button" class="primary">Run</button>
 							<button id="synthCodeApplyButton" type="button" disabled>Apply</button>
 							<button id="synthCodeStopButton" type="button" title="Stop Code and Step Sequencer" disabled>Stop Code</button>
 							<span id="synthCodeState" role="status">Idle</span>
+						</div>
+						<div class="code-editors">
+							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
 						</div>
 						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> to play the selected chip, <code>sm510</code> and <code>sm510-direct</code> for R writes, or <code>sm511</code> for melody ROM commands.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
@@ -216,9 +216,6 @@
 								</label>
 								<label for="gate">Note length <output id="gate-value" for="gate">65%</output>
 									<input id="gate" type="range" min="10" max="100" value="65">
-								</label>
-								<label for="volume">Volume <output id="volume-value" for="volume">60%</output>
-									<input id="volume" type="range" min="0" max="100" value="60">
 								</label>
 							</div>
 							<div class="transport">

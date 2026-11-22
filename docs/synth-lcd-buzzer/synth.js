@@ -16,7 +16,6 @@ const byId = id => document.getElementById(id);
 const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=sm511-melody', import.meta.url));
 const tempo = byId('tempo'), gate = byId('gate'), volume = byId('volume'), loop = byId('loop');
 const sequencerPanel = byId('buzzerStepSequencerPanel');
-const masterMix = byId('buzzerMasterMix');
 const mix = Object.fromEntries(['sm510', 'sm511', 'lcd-buzzer'].map(chip => [chip, {
 	level: byId(chip + 'Mix'), mute: byId(chip + 'Mute'), readout: byId(chip + 'MixValue'), output: null,
 }]));
@@ -25,11 +24,11 @@ const canvas = byId('waveform'), drawing = canvas.getContext('2d');
 const pitch = byId('pitch');
 const toneButtons = [...byId('toneSource').querySelectorAll('[data-tone-mode]')];
 const keyTracking = byId('sm510KeyTracking');
-const pulseCycles = byId('sm510PulseCycles'), pulseVolume = byId('sm510PulseVolume');
+const pulseCycles = byId('sm510PulseCycles'), pulseDriveValue = byId('sm510PulseDriveValue');
 const pulsePins = [byId('sm510PulseR1'), byId('sm510PulseR2')];
 pulseCycles.min = MIN_PULSE_HALF_CYCLES;
 pulseCycles.max = MAX_PULSE_HALF_CYCLES;
-let pulseDrive = 1, manualPulseCycles = pulseCycles.valueAsNumber, pulseGain, heldPulse;
+let pulseDrive = 1, manualPulseCycles = pulseCycles.valueAsNumber, heldPulse;
 const rMonitorButtons = [byId('sm510MonitorR1'), byId('sm510MonitorR2'), byId('sm510MonitorDiff')];
 const rMonitorModes = [
 	{ label: 'R1', weights: [1, 0] },
@@ -66,6 +65,7 @@ let audio, master, clip = null, pending = null, request = 0, frame = 0;
 let inspectedStep = 0, activeStep = -1, activeR1Step = -1, heldNote = null;
 let heldChip = null, heldToneMode, melodyClip = null, melodyPending = null;
 let workspace, controls;
+let workspaceExpanded = false, showingExpandedChip = false;
 let codeActive = false, stepStarting = false, stepRequest = 0, handoffEnd = 0;
 let rVoice, rMode, rValue = 0, coreLoading, audioCore;
 const defaultOwner = Symbol('LCD Buzzer transport');
@@ -78,6 +78,7 @@ const transportRelease = .008;
 const displayNote = (note, chip = selectedChip) => chip === 'sm511' ? sm511Label(note) : noteLabels.get(note);
 const mixLevel = chip => mix[chip].mute.checked ? 0 : Number(mix[chip].level.value) / 100;
 const modeFor = chip => chip === 'lcd-buzzer' ? EQUAL_TEMPERAMENT : toneMode;
+const isSequencerVisible = () => !showingExpandedChip && !sequencerPanel.hidden;
 const formatHz = frequency => frequency.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 preset.add(new Option('Custom', 'custom'));
@@ -119,7 +120,7 @@ function drawWave() {
 	const showingR = rMode && (rAmplitude || (selectedChip === 'sm510' && !heldChip && !clip && !melodyClip));
 	const rawMode = showingR ? rMode : clip?.r1Mode;
 	const pulse = rawMode ? null : heldPulse;
-	const idlePulse = selectedChip === 'sm510' && !heldChip && !clip && !rawMode && !melodyClip && sequencerPanel.hidden;
+	const idlePulse = selectedChip === 'sm510' && !heldChip && !clip && !rawMode && !melodyClip && !isSequencerVisible();
 	const chip = rawMode ? 'sm510' : heldChip ?? clip?.chip ?? selectedChip;
 	const mode = rawMode ?? (heldChip ? heldToneMode : clip?.toneMode) ?? modeFor(chip);
 	const sm511 = chip === 'sm511';
@@ -270,9 +271,6 @@ async function ensureAudio() {
 			output.connect(mix.sm510.output);
 			return output;
 		});
-		pulseGain = audio.createGain();
-		pulseGain.gain.value = Number(pulseVolume.value) / 100;
-		pulseGain.connect(mix.sm510.output);
 	}
 	if (audio.state !== 'running') await audio.resume();
 }
@@ -604,8 +602,6 @@ function refreshControls() {
 	byId('tempo-value').value = `${tempo.value} BPM`;
 	byId('gate-value').value = `${gate.value}%`;
 	byId('volume-value').value = `${volume.value}%`;
-	masterMix.value = volume.value;
-	byId('buzzerMasterMixValue').value = `${volume.value}%`;
 }
 
 function refreshStep(index) {
@@ -661,11 +657,6 @@ volume.addEventListener('input', () => {
 	master?.gain.setTargetAtTime(Number(volume.value) / 100, audio.currentTime, .008);
 });
 volume.addEventListener('change', () => workspace.patternChanged());
-masterMix.addEventListener('input', () => {
-	volume.value = masterMix.value;
-	volume.dispatchEvent(new Event('input'));
-});
-masterMix.addEventListener('change', () => workspace.patternChanged());
 for (const [chip, channel] of Object.entries(mix)) {
 	const updateMix = () => {
 		channel.readout.value = `${channel.level.value}%`;
@@ -775,7 +766,7 @@ function setStatus(message) { byId('workspace-status').textContent = message; }
 function stopPerformance() { cancelStepStart(); stopPlayback(); stopMelody(); performance.stopAll(); }
 const performance = setupBuzzerPerformance({
 	document, ensureAudio,
-	canPlayKeyboard: () => sequencerPanel.hidden,
+	canPlayKeyboard: () => !isSequencerVisible(),
 	displayNote,
 	getChip: () => selectedChip,
 	onRequestNote: cancelPendingChipWork,
@@ -801,7 +792,7 @@ const performance = setupBuzzerPerformance({
 			const tick = plan.loopStart + frame;
 			samples[frame] = r1[tick] - r2[tick];
 		}
-		return { buffer, output: pulseGain, toneMode: mode, halfCycles, startup: plan.loopStart / MASTER_CLOCK_HZ };
+		return { buffer, toneMode: mode, halfCycles, startup: plan.loopStart / MASTER_CLOCK_HZ };
 	},
 	onBeforeNote(chip) {
 		const end = stopPlayback(undefined, { chip });
@@ -853,14 +844,11 @@ pulseCycles.addEventListener('input', () => {
 	keyTracking.checked = false;
 	retunePulse();
 });
-pulseVolume.addEventListener('input', () => {
-	byId('sm510PulseVolumeValue').value = `${pulseVolume.value}%`;
-	pulseGain?.gain.setTargetAtTime(Number(pulseVolume.value) / 100, audio.currentTime, .005);
-});
 pulsePins.forEach((button, index) => button.addEventListener('click', () => {
 	const bit = 1 << index;
 	pulseDrive ^= bit;
 	button.setAttribute('aria-pressed', String(Boolean(pulseDrive & bit)));
+	pulseDriveValue.value = ['Off', '1× swing', '1× swing', '2× swing'][pulseDrive];
 	retunePulse();
 }));
 rMonitorButtons.forEach((button, index) => button.addEventListener('click', () => {
@@ -890,8 +878,11 @@ workspace = setupBuzzerWorkspace({
 	getStarterCode: () => BUZZER_STARTER,
 });
 const synthButton = byId('synthWorkspaceSynthButton'), codeButton = byId('synthWorkspaceCodeButton');
+const workspacePanel = byId('synthWorkspace'), expandedCodeSlot = byId('synthExpandedCodeSlot');
+const chipControls = byId('buzzerChipControls');
 const navigation = byId('buzzerWorkspaceNavigation'), inputHeading = byId('buzzerInputHeading');
 const inputTablist = byId('buzzerInputTabs'), expandButton = byId('synthCodeExpandButton');
+const chipTablist = byId('buzzerChipTabs');
 const keyboardPanel = byId('synthKeyboardPanel');
 const keyboardTab = byId('synthInputKeyboardTab'), codeTab = byId('synthInputCodeTab');
 const sequencerTab = byId('buzzerStepSequencerTab');
@@ -902,8 +893,25 @@ const chipTabs = [
 	['lcd-buzzer', byId('buzzerLcdTab'), byId('buzzerLcdPanel')],
 	['mixer', byId('buzzerMixerTab'), byId('buzzerMixerPanel')],
 ];
+const chipButtons = chipTabs.map(([, tab]) => tab);
+const workspaceTabs = [...inputTabs, ...chipButtons];
+let inputViewTab = keyboardTab, chipView = selectedChip;
+
+function setTabSelected(tab, selected) {
+	tab.setAttribute('aria-selected', String(selected));
+	tab.tabIndex = selected ? 0 : -1;
+}
+
+function syncWorkspaceView() {
+	chipControls.hidden = workspaceExpanded && !showingExpandedChip;
+	expandedCodeSlot.hidden = !workspaceExpanded || showingExpandedChip;
+	for (const tab of inputTabs) setTabSelected(tab, !showingExpandedChip && tab === inputViewTab);
+	for (const [name, tab] of chipTabs) setTabSelected(tab, !chipControls.hidden && name === chipView);
+}
 
 function showChipView(view) {
+	chipView = view;
+	showingExpandedChip = workspaceExpanded;
 	if (view !== 'mixer') {
 		selectedChip = view;
 		performance.refreshLabels();
@@ -911,11 +919,8 @@ function showChipView(view) {
 		if (view === 'sm511' || (view === 'sm510' && toneMode === DIRECT_R))
 			void prepareSm510().catch(error => setStatus(error.message));
 	}
-	for (const [name, button, panel] of chipTabs) {
-		button.setAttribute('aria-selected', String(name === view));
-		button.tabIndex = name === view ? 0 : -1;
-		panel.hidden = name !== view;
-	}
+	for (const [name, , panel] of chipTabs) panel.hidden = name !== view;
+	syncWorkspaceView();
 	drawWave();
 }
 for (const [view, tab] of chipTabs) tab.addEventListener('click', () => {
@@ -928,14 +933,12 @@ for (const [view, tab] of chipTabs) tab.addEventListener('click', () => {
 showChipView(selectedChip);
 
 function showInputView(view) {
-	const selectedTab = view === 'sequencer' ? sequencerTab : view === 'code' ? codeTab : keyboardTab;
-	for (const tab of inputTabs) {
-		tab.setAttribute('aria-selected', String(tab === selectedTab));
-		tab.tabIndex = tab === selectedTab ? 0 : -1;
-	}
+	inputViewTab = view === 'sequencer' ? sequencerTab : view === 'code' ? codeTab : keyboardTab;
+	showingExpandedChip = false;
 	sequencerPanel.hidden = view !== 'sequencer';
 	keyboardPanel.hidden = view !== 'keyboard';
 	if (view === 'sequencer') performance.stopKeyboard();
+	syncWorkspaceView();
 	drawWave();
 }
 
@@ -966,14 +969,32 @@ controls = setupBuzzerCode({
 	onExpandedChange(expanded) {
 		codeButton.setAttribute('aria-pressed', String(expanded));
 		synthButton.setAttribute('aria-pressed', String(!expanded));
-		if (expanded === (inputTablist.parentNode === navigation)) return;
+		if (expanded === workspaceExpanded) {
+			syncWorkspaceView();
+			return;
+		}
+		workspaceExpanded = expanded;
+		showingExpandedChip = false;
 		const focused = document.activeElement;
 		if (expanded) {
+			inputTablist.append(...chipButtons);
+			inputTablist.setAttribute('aria-label', 'Synth workspace');
 			navigation.prepend(inputTablist);
 			navigation.append(expandButton);
-		} else inputHeading.append(inputTablist, expandButton);
+			expandedCodeSlot.before(navigation);
+			expandedCodeSlot.after(chipControls);
+		} else {
+			chipTablist.append(...chipButtons);
+			inputTablist.setAttribute('aria-label', 'Performance input');
+			inputHeading.append(inputTablist, expandButton);
+			chipControls.prepend(navigation);
+			workspacePanel.before(chipControls);
+		}
+		chipTablist.hidden = expanded;
 		inputHeading.hidden = expanded;
-		if (inputTablist.contains(focused) || focused === expandButton) focused.focus({ preventScroll: true });
+		syncWorkspaceView();
+		if (document.activeElement !== focused && (inputHeading.contains(focused) || navigation.contains(focused) || chipControls.contains(focused)))
+			focused.focus({ preventScroll: true });
 	},
 	onViewChange: showInputView,
 });
@@ -987,8 +1008,9 @@ sequencerTab.addEventListener('click', async () => {
 		}
 	} catch (error) { setStatus(error.message); }
 });
-function navigateTabs(tabList, tabs) {
+function navigateTabs(tabList, getTabs) {
 	tabList.addEventListener('keydown', event => {
+		const tabs = getTabs();
 		const index = tabs.indexOf(event.target);
 		if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
 		event.preventDefault();
@@ -999,11 +1021,12 @@ function navigateTabs(tabList, tabs) {
 		tabs[next].click();
 	}, true);
 }
-navigateTabs(byId('buzzerChipTabs'), chipTabs.map(([, tab]) => tab));
-navigateTabs(inputTablist, inputTabs);
+navigateTabs(chipTablist, () => chipButtons);
+navigateTabs(inputTablist, () => workspaceExpanded ? workspaceTabs : inputTabs);
 codeButton.addEventListener('click', async () => {
 	try {
-		if (await controls.setExpanded(true, { focusEditor: false })) codeTab.focus({ preventScroll: true });
+		if (await controls.setMode('code', { focusEditor: false }) && await controls.setExpanded(true, { focusEditor: false }))
+			codeTab.focus({ preventScroll: true });
 	} catch (error) { setStatus(error.message); }
 });
 synthButton.addEventListener('click', async () => {

@@ -60,9 +60,9 @@ await chip.playMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 
 ## Mixer
 
-**Mixer** gives SM510, SM511, and lcd-buzzer their own level and mute controls before
-the shared **Master**. Master and the Step Sequencer's **Volume** adjust the
-same gain. Opening Mixer keeps playback running on the selected chip.
+**Mixer** gives SM510, SM511, and lcd-buzzer their own level and mute controls.
+The **Master** in the top toolbar adjusts the combined output in Synth and
+Code. Opening Mixer keeps playback running on the selected chip.
 Code can play SM510 register writes and SM511 melodies together on their
 respective buses.
 
@@ -73,10 +73,13 @@ keys. Use Octave and Fret to move the pitches. In **Code**, type in the
 editor to edit the script, or focus the **Code** tab to play with the computer
 keys. The physical note keys also work while source buttons, switches, or
 sliders have focus. Use the arrow keys to adjust focused sliders.
-The top **Code** button moves **Keyboard**, **Code**, and **Step Sequencer**
-next to the chip tabs. **Run** starts a session and **Apply** updates it.
-Both controls sit below the Code editor with
-**Stop Code**. **Play** and **Stop** sit below the Step Sequencer. Run or
+The top **Code** button opens **Files** and the editor side by side below
+**Pulse output**. The performance and chip tabs share the top of the editor
+column. Select a chip tab to show its controls in that column. Select
+**Code** to return to the editor. Code playback continues across these
+views. **Run** starts a session and **Apply** updates it.
+Both controls sit above the Code editor with **Stop Code** and the Code
+status. **Play** and **Stop** sit below the Step Sequencer. Run or
 Apply stops manual sequence playback. Play stops the Code session, including
 a running script that is waiting between notes. Either Stop stops both
 transports. A script can still use `playPattern()` as part of Code playback.
@@ -110,7 +113,7 @@ board's R1 output, using the 32,768 Hz clock divided by eight to give a nominal
 beeps**, toggle individual gates, or move **Step time**. Longer on intervals
 and different gaps change the effect while the carrier stays fixed.
 
-The demo shares the instrument's **Volume** control. **Play R1** always uses
+The demo shares the toolbar's **Master** control. **Play R1** always uses
 the DK-52 divider, and its eight gates and step time belong to the demo.
 [MAME DK-52 wiring](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800) · [SM510 R output](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510.cpp#L43-L69)
 
@@ -130,8 +133,10 @@ In **DK-52 Divider**, the same CPU timing gates a 4,096 Hz carrier.
 **Drive** selects which pins participate. The voice auditions across R1 and
 R2. With both pins selected in Direct R, the CPU alternates `0x1` and `0x2`.
 In Divider mode it alternates `0x3` and `0x0`, and the enabled pins have
-opposite phase. Both-pin drive gives twice the voltage swing of one pin
-in this wiring. **Drive** and **Volume** can both change while a key is held.
+opposite phase. **Drive** shows **Off** with both pins disabled, **1× swing**
+with one pin, and **2× swing** with both. The readout describes the voltage
+across the pins in this wiring. Change **Drive** while holding a key. The
+app's **Mixer → SM510** level adjusts playback volume after synthesis.
 
 ### R latch and Code
 
@@ -218,7 +223,7 @@ pitch and melody rendering.
 
 ## Files and Menu
 
-The **Files** button sits next to **Mixer** in both views. Use it to open or
+The **Files** button sits next to **Menu** in both views. Use it to open or
 close the file panel. `/index.js` contains the starter Code
 and `/pattern.json` holds the active sequence. Select a saved pattern to load
 it into the sequencer. **＋ Pattern** keeps a named copy alongside Code and

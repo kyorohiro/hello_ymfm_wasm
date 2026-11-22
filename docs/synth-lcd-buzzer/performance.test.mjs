@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { createBuzzerVoice } from './performance.js';
 
 function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
-	const sources = [], changes = [], connections = [], output = {};
+	const sources = [], changes = [], output = {};
 	const context = {
 		currentTime: 0,
 		sampleRate: 48000,
@@ -25,7 +25,7 @@ function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 		createGain() {
 			return {
 				gain: { cancelScheduledValues() {}, setValueAtTime() {}, linearRampToValueAtTime() {} },
-				connect(destination) { connections.push(destination); },
+				connect() {},
 				disconnect() {},
 			};
 		},
@@ -38,7 +38,7 @@ function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 		onNoteChange: note => changes.push(note),
 		...voiceOptions,
 	});
-	return { voice, sources, changes, connections, context };
+	return { voice, sources, changes, context };
 }
 
 test('held notes use a two-level pulse and replacing the gate preserves the newer owner', async () => {
@@ -114,12 +114,11 @@ test('the note callback reports the mode and prepared tone', async () => {
 	assert.deepEqual(sounding, [[69, 'sm510', 'dk52', tone], [null]]);
 });
 
-test('retuning replaces the held tone and output without changing note ownership', async () => {
+test('retuning replaces the held tone without changing note ownership', async () => {
 	const owner = Symbol('keyboard'), other = Symbol('code');
 	const callbacks = [], prepared = [];
-	const output = {};
 	let settings = { buffer: { length: 8 }, toneMode: 'dk52' };
-	const { voice, sources, connections, context } = fixture(undefined, () => 'sm510', {
+	const { voice, sources, context } = fixture(undefined, () => 'sm510', {
 		prepareTone(frequency, _context, note, chip) {
 			prepared.push([frequency, note, chip]);
 			return settings;
@@ -128,14 +127,13 @@ test('retuning replaces the held tone and output without changing note ownership
 		onBeforeNote: chip => { callbacks.push(['before', chip]); },
 	});
 	await voice.noteOn('A4', owner);
-	settings = { buffer: { length: 32 }, toneMode: 'direct', output };
+	settings = { buffer: { length: 32 }, toneMode: 'direct' };
 	context.currentTime = .25;
 	assert.equal(await voice.retune('sm510'), true);
 	assert.deepEqual(prepared, [[440, 69, 'sm510'], [440, 69, 'sm510']]);
 	assert.deepEqual(callbacks, [['request', 'sm510'], ['before', 'sm510']]);
 	assert.equal(sources[0].stopped, sources[1].started);
 	assert.equal(sources[1].buffer, settings.buffer);
-	assert.equal(connections.at(-1), output);
 	voice.noteOff(other);
 	assert.equal(voice.getNote(), 69);
 	voice.noteOff(owner);

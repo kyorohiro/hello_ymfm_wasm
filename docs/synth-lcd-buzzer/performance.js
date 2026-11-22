@@ -54,7 +54,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 		gain.gain.setValueAtTime(0, start);
 		gain.gain.linearRampToValueAtTime(1, start + ATTACK);
 		source.connect(gain);
-		gain.connect(tone?.output ?? master);
+		gain.connect(master);
 		source.onended = () => { source.disconnect(); gain.disconnect(); };
 		source.start(start);
 		active = { source, gain, context, master, chip, start, owner, midi, frequency };

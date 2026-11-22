@@ -78,7 +78,7 @@ button:not(:disabled):hover { filter: brightness(.92); }
 button:disabled { opacity: .52; cursor: default; }
 :focus-visible { outline: 2px solid #93400e; outline-offset: 3px; }
 nav a:focus-visible { outline-color: #ffbc86; }
-.settings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 17px 0; }
+.settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 17px 0; }
 .settings label { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px; min-width: 0; font-size: .82rem; font-weight: 650; }
 .settings output { font: 700 .77rem var(--mono); }
 .settings input { grid-column: 1 / -1; width: 100%; margin: 0; min-height: 20px; }
@@ -91,8 +91,11 @@ input { accent-color: #9a3c13; }
 #status { min-height: 1.25em; margin: 10px 0 0; color: #57463a; font-size: .82rem; }
 
 [hidden] { display: none !important; }
-.workspace-toolbar { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; }
-.workspace-mode { display: flex; gap: 3px; margin-left: auto; }
+.workspace-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.workspace-mode { display: flex; gap: 3px; }
+.master-control { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: .85rem; font-weight: 650; }
+.master-control input { width: clamp(5rem, 18vw, 10rem); margin: 0; }
+.master-control output { min-width: 4ch; text-align: right; font: .8rem var(--mono); }
 .workspace-mode button[aria-pressed="true"] { color: #fffaf0; background: #963b14; border-color: #783110; }
 .synth-menu { position: relative; color-scheme: light; }
 .synth-menu summary {
@@ -131,10 +134,12 @@ input { accent-color: #9a3c13; }
 
 .synth-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 14px; color-scheme: light; color: var(--ink); }
 .chip-controls { color: var(--ink); color-scheme: light; margin-top: 12px; padding: 12px 16px; border: 1px solid #d38a58; border-radius: 14px; background: var(--cream); }
-.workspace-navigation, .chip-tab-row { display: flex; align-items: center; gap: 6px; }
-.workspace-navigation { flex-wrap: wrap; column-gap: 12px; }
-.chip-tab-row { min-width: 0; }
-.chip-tab-row button { white-space: nowrap; }
+.workspace-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.performance > .workspace-navigation { margin-bottom: 12px; }
+.performance > .workspace-navigation .input-tabs { min-width: 0; flex-wrap: wrap; }
+.performance > .workspace-navigation button { font-size: .83rem; padding-inline: 8px; }
+.performance > .chip-controls { margin: 0; padding: 0; border: 0; }
+#buzzerChipTabs button { white-space: nowrap; }
 #buzzerFilesToggle[aria-expanded="true"] { background: #ead9c5; }
 .tone-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; margin: 10px 0 0; font-size: .84rem; }
 .tone-source label { font-weight: 700; }
@@ -144,6 +149,10 @@ input { accent-color: #9a3c13; }
 .chip-controls .chip-details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; margin: 9px 0 0; color: #5d4c3b; font-size: .82rem; line-height: 1.45; }
 .chip-controls .chip-details dt { color: var(--ink); font-weight: 700; }
 .chip-controls .chip-details dd { margin: 0; }
+.chip-help { margin-top: 8px; }
+.chip-help summary { display: inline-grid; place-items: center; width: 1.75rem; min-height: 1.75rem; border: 1px solid #ad9b83; border-radius: 7px; background: #fffaf0; font-weight: 700; cursor: pointer; }
+.chip-help summary::-webkit-details-marker { display: none; }
+.chip-help[open] summary { background: #443a2f; color: #fff8e9; }
 .cpu-pulse { margin-top: 10px; padding: 8px 10px; border: 1px solid #bba58c; border-radius: 6px; }
 .cpu-pulse-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .cpu-pulse-controls .tone-source { margin: 0; }
@@ -159,15 +168,17 @@ input { accent-color: #9a3c13; }
 .rom-controls .tone-source { margin: 0; }
 .rom-note { display: grid; grid-template-columns: 1fr auto; gap: 3px 9px; min-width: 125px; }
 .rom-note input { grid-column: 1 / -1; width: 100%; margin: 0; }
-.mixer-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.mixer-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
 .mixer-controls > div { display: grid; align-content: start; gap: 3px; min-width: 0; }
 .mixer-controls label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3px; font-size: .82rem; }
 .mixer-controls input[type="range"] { width: 100%; margin: 0; }
 .mixer-controls .mixer-mute { justify-content: flex-start; }
 @media (max-width: 520px) {
+	.workspace-mode { margin-left: auto; }
+	.master-control { flex-basis: 100%; justify-content: flex-end; }
 	.chip-controls { padding-inline: 10px; }
-	.workspace-navigation, .chip-tab-row, .chip-tab-row .input-tabs { gap: 4px; }
-	.chip-tab-row .input-tabs { flex-wrap: wrap; }
+	.workspace-navigation, #buzzerChipTabs { gap: 4px; }
+	#buzzerChipTabs { flex-wrap: wrap; }
 	.mixer-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .synth-workspace:has(#buzzerFilesPanel:not([hidden])) { grid-template-columns: minmax(200px, 255px) minmax(0, 1fr); }
@@ -180,7 +191,7 @@ input { accent-color: #9a3c13; }
 }
 .input-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 12px; }
 .input-tabs, .code-transport { display: flex; align-items: center; gap: 6px; }
-.code-transport { flex-wrap: wrap; margin-top: 9px; }
+.code-transport { flex-wrap: wrap; }
 .input-tabs button[aria-selected="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
 #synthCodeExpandButton { font-size: .85rem; }
 #synthCodeExpandIcon::before { content: 'Expand'; }
@@ -190,6 +201,7 @@ input { accent-color: #9a3c13; }
 .keyboard-settings button { padding: 0 7px; min-width: 30px; min-height: 29px; }
 .keyboard-settings output { font-family: var(--mono); }
 #buzzerKeyboardStatus, #synthCodeState { font-size: .82rem; color: #5d4c3b; }
+#synthCodeState { margin-inline-start: auto; }
 .performance-keyboard { display: grid; gap: 4px; }
 .key-row { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
 .key {
@@ -302,7 +314,7 @@ input { accent-color: #9a3c13; }
 	.lcd { padding: 10px; }
 	#waveform { height: 88px; }
 	.input-tabs button { font-size: .85rem; padding-inline: 8px; }
-	.chip-tab-row button { font-size: .8rem; padding-inline: 3px; }
+	#buzzerChipTabs button { font-size: .8rem; padding-inline: 3px; }
 	.steps { gap: 6px; }
 	.step select { font-size: .82rem; }
 	.settings { gap: 9px; }
