@@ -362,6 +362,8 @@ def desktop_installer_name(product, version, channel, suffix):
 
 
 def github_desktop(version, notes, publish, selection=None, *, batch=None):
+    import fcntl
+
     plan = committed_desktop(version, selection, batch=batch)
     tag = f"v{version}"
     ci = state_path(ROOT, version, batch).parent / "ci"
@@ -374,7 +376,9 @@ def github_desktop(version, notes, publish, selection=None, *, batch=None):
         releases.append((product, repo, f"{product['metadata']['product']} {tag}", installers))
     # Check each selected product's tag and packages before the first upload.
     for product, repo, title, installers in releases:
-        with tempfile.TemporaryDirectory(prefix=f"{product['repo']}-desktop-") as output:
+        lock_path = ci.parent / f".github-desktop-{product['id']}.lock"
+        with lock_path.open("a") as lock, tempfile.TemporaryDirectory(prefix=f"{product['repo']}-desktop-") as output:
+            fcntl.flock(lock, fcntl.LOCK_EX)
             folder = Path(output)
             records = []
             for channel, original in installers.items():
