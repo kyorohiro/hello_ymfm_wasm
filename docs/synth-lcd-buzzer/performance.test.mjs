@@ -5,17 +5,13 @@ import { createBuzzerVoice } from './performance.js';
 
 function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 	const sources = [], changes = [], output = {};
+	const buffer = { length: 76, sampleRate: 32768 };
 	const context = {
 		currentTime: 0,
 		sampleRate: 48000,
-		createBuffer(channels, length) {
-			assert.equal(channels, 1);
-			const data = new Float32Array(length);
-			return { length, getChannelData: () => data };
-		},
 		createBufferSource() {
 			const source = {
-				playbackRate: {}, connect() {},
+				playbackRate: { value: 1 }, connect() {},
 				disconnect() { source.disconnected = true; },
 				start(time) { source.started = time; },
 				stop(time) { source.stopped = time; },
@@ -35,23 +31,22 @@ function fixture(ensureAudio = async () => {}, getChip, voiceOptions = {}) {
 		ensureAudio,
 		getChip,
 		getOutput: chip => ({ chip, context, master: output }),
+		prepareTone: () => ({ buffer }),
 		onBeforeNote: () => {},
 		onNoteChange: note => changes.push(note),
 		...voiceOptions,
 	});
-	return { voice, sources, changes, context };
+	return { voice, sources, changes, context, buffer };
 }
 
-test('held notes use a two-level pulse and replacing the gate preserves the newer owner', async () => {
-	const { voice, sources, changes, context } = fixture();
+test('held notes play prepared chip buffers and replacing the gate preserves the newer owner', async () => {
+	const { voice, sources, changes, context, buffer } = fixture();
 	const code = Symbol('code'), keyboard = Symbol('keyboard');
 	assert.equal(await voice.noteOn('A4', code), true);
 	assert.equal(voice.getNote(), 69);
-	const waveform = sources[0].buffer;
-	const level = Math.fround(.2);
-	assert.deepEqual(new Set(waveform.getChannelData()), new Set([level, -level]));
+	assert.equal(sources[0].buffer, buffer);
 	assert.equal(sources[0].loop, true);
-	assert.equal(sources[0].playbackRate.value * context.sampleRate / waveform.length, 440);
+	assert.equal(sources[0].playbackRate.value, 1);
 
 	context.currentTime = .25;
 	assert.equal(await voice.noteOn('D♯5', keyboard), true);
@@ -102,16 +97,26 @@ test('a newer transport cancels a pending note only on its own chip', async () =
 	assert.equal(voice.getNote(), 60);
 });
 
-test('the note callback reports the mode and prepared tone', async () => {
-	const sounding = [];
+test('an explicit chip takes ownership independently of the selected chip', async () => {
+	let resume;
+	const sounding = [], requests = [], prepared = [];
 	const tone = { buffer: { length: 8 }, toneMode: 'dk52' };
-	const { voice } = fixture(undefined, () => 'sm510', {
-		prepareTone: () => tone,
+	const { voice } = fixture(() => new Promise(resolve => { resume = resolve; }), () => 'sm511', {
+		prepareTone(frequency, _context, note, chip, options) {
+			prepared.push([frequency, note, chip, options]);
+			return tone;
+		},
+		onRequestNote: chip => requests.push(chip),
 		onNoteChange: (...args) => sounding.push(args),
 	});
-	const owner = Symbol('keyboard');
-	assert.equal(await voice.noteOn('A4', owner), true);
+	const owner = Symbol('code');
+	const start = voice.noteOn('A4', owner, { chip: 'sm510' });
+	voice.cancelPending('sm511');
+	resume();
+	assert.equal(await start, true);
 	voice.noteOff(owner);
+	assert.deepEqual(requests, ['sm510']);
+	assert.deepEqual(prepared, [[440, 69, 'sm510', { keyboard: false }]]);
 	assert.deepEqual(sounding, [[69, 'sm510', 'dk52', tone], [null]]);
 });
 
@@ -119,9 +124,9 @@ test('finite keyboard slots end naturally and retiring sources leave the current
 	const keyboard = Symbol('key'), code = Symbol('code');
 	const contexts = [];
 	const { voice, sources, changes } = fixture(undefined, () => 'sm511', {
-		prepareTone(_frequency, context, _note, _chip, options) {
+		prepareTone(_frequency, _context, _note, _chip, options) {
 			contexts.push(options);
-			return { buffer: context.createBuffer(1, 3000), loop: !options.keyboard };
+			return { buffer: { length: 3000, sampleRate: 48000 }, loop: !options.keyboard };
 		},
 	});
 	assert.equal(await voice.noteOn(60, keyboard, { keyboard: true }), true);

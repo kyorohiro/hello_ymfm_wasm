@@ -15,7 +15,7 @@ const render = core.renderR1;
 test('Code declarations expose the note client and both R output masks', () => {
 	const types = buzzerCodeDeclarations('');
 	assert.match(types, /'lcd-buzzer': BuzzerCodeChip/);
-	assert.match(types, /sm510: Sm510CodeChip<'sm510'>/);
+	assert.match(types, /sm510: Sm510CodeChip<'sm510'> & BuzzerPerformance/);
 	assert.match(types, /'sm510-direct': Sm510CodeChip<'sm510-direct'>/);
 	assert.match(types, /readonly REG_R: 0/);
 	assert.match(types, /noteOn\(channel: typeof CH1/);

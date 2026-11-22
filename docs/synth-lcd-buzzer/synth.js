@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { NOTE_OPTIONS, PATTERNS, renderPattern, validateBuzzerPattern } from './buzzer.js';
+import { NOTE_OPTIONS, PATTERNS, validateBuzzerPattern } from './buzzer.js';
 import { encodeWav } from '../js/wav.js';
 import { noteToHz } from '../js/soundchip_pitch.js';
 import { BUZZER_STARTER, setupBuzzerCode } from './code.js';
 import { setupBuzzerWorkspace } from './files.js';
 import { setupBuzzerPerformance } from './performance.js';
 import {
-	DIRECT_R, DK52_R, EQUAL_TEMPERAMENT, GATE_PRESETS, GATE_STEP_COUNT, MIN_PULSE_HALF_CYCLES, MAX_PULSE_HALF_CYCLES,
+	DIRECT_R, DK52_R, GATE_PRESETS, GATE_STEP_COUNT, MIN_PULSE_HALF_CYCLES, MAX_PULSE_HALF_CYCLES,
 	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
 	buildSm510Pulse, connectRChannels, createSm510AudioCore, createRVoice, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
@@ -16,7 +16,7 @@ import { setupSm511MelodyEditor } from './melody_editor.js';
 const byId = id => document.getElementById(id);
 const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=sm511-melody', import.meta.url));
 const volume = byId('volume'), status = byId('status');
-const mix = Object.fromEntries(['sm510', 'sm511', 'lcd-buzzer'].map(chip => [chip, {
+const mix = Object.fromEntries(['sm510', 'sm511'].map(chip => [chip, {
 	level: byId(chip + 'Mix'), mute: byId(chip + 'Mute'), readout: byId(chip + 'MixValue'), output: null,
 }]));
 const canvas = byId('waveform'), drawing = canvas.getContext('2d');
@@ -45,9 +45,13 @@ let toneMode = DIRECT_R, selectedChip = 'sm510';
 try {
 	const rememberedMode = localStorage.getItem(tonePreference);
 	const rememberedChip = localStorage.getItem(chipPreference);
-	if (Object.hasOwn(toneHints, rememberedMode)) toneMode = rememberedMode;
-	if (Object.hasOwn(mix, rememberedChip)) selectedChip = rememberedChip;
-	else if (rememberedMode === EQUAL_TEMPERAMENT) selectedChip = 'lcd-buzzer';
+	if (rememberedChip === 'lcd-buzzer') {
+		localStorage.setItem(chipPreference, selectedChip);
+		localStorage.setItem(tonePreference, toneMode);
+	} else {
+		if (Object.hasOwn(toneHints, rememberedMode)) toneMode = rememberedMode;
+		if (Object.hasOwn(mix, rememberedChip)) selectedChip = rememberedChip;
+	}
 } catch {}
 const sm510Play = byId('sm510Play'), sm510Stop = byId('sm510Stop'), sm510Controls = byId('sm510Controls');
 const sm510Preset = byId('sm510Preset'), sm510StepTime = byId('sm510StepTime'), sm510StepValue = byId('sm510StepValue');
@@ -80,7 +84,6 @@ function displayNote(note, chip = selectedChip, tone) {
 	return tone?.command === undefined ? sm511Label(note) : sm511CommandLabel(tone.command);
 }
 const mixLevel = chip => mix[chip].mute.checked ? 0 : Number(mix[chip].level.value) / 100;
-const modeFor = chip => chip === 'lcd-buzzer' ? EQUAL_TEMPERAMENT : toneMode;
 const formatHz = frequency => frequency.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 function syncTransport() {
@@ -115,7 +118,7 @@ function drawWave() {
 	const idleInstrument = !heldChip && !clip && !rawMode && !melodyClip;
 	const idlePulse = idleInstrument && selectedChip === 'sm510';
 	const chip = rawMode ? 'sm510' : heldChip ?? clip?.chip ?? selectedChip;
-	const mode = rawMode ?? (heldChip ? heldToneMode : clip?.toneMode) ?? modeFor(chip);
+	const mode = rawMode ?? (heldChip ? heldToneMode : clip?.toneMode) ?? toneMode;
 	const sm511 = chip === 'sm511';
 	const idleRom = idleInstrument && sm511;
 	const showingMelody = sm511 && melodyClip && heldNote === null && !clip;
@@ -124,8 +127,7 @@ function drawWave() {
 	const half = !sm511 && mode === DIRECT_R && target && audioCore?.directHalfCycles(target);
 	const sounding = rawMode ? rAmplitude !== 0 : target !== null;
 	const frequency = !idlePulse && !idleRom && !showingMelody && sounding && (sm511 ? audioCore?.sm511PitchHz(romCommand)
-		: mode === DK52_R ? R1_HZ : rawMode ? null
-		: mode === EQUAL_TEMPERAMENT ? target : half ? directPitchHz(half) : null);
+		: mode === DK52_R ? R1_HZ : !rawMode && half ? directPitchHz(half) : null);
 	pitch.title = pulse ? '8 ms waveform view' : half && !rawMode ? `${half} machine cycles per half-wave` : '';
 	if (pulse) {
 		const rate = formatHz(directPitchHz(pulse.halfCycles));
@@ -284,20 +286,19 @@ const targetHz = note => note === null ? null : noteToHz(note);
 function renderSequence(sampleRate, chip, mode, core) {
 	const { notes, bpm, gate } = pattern;
 	if (chip === 'sm511') return renderSm511Pattern(core, notes, { stepSeconds: 30 / bpm, gate, sampleRate });
-	return mode === EQUAL_TEMPERAMENT ? renderPattern(notes, { bpm, gate, sampleRate })
-		: renderSm510Notes(core, mode, notes.map(targetHz), { stepSeconds: 30 / bpm, gate, sampleRate });
+	return renderSm510Notes(core, mode, notes.map(targetHz), { stepSeconds: 30 / bpm, gate, sampleRate });
 }
 
 async function start(kind, { owner, loopOverride, r1Plan, r1Mode, chip = r1Mode ? 'sm510' : selectedChip }) {
 	cancelPendingChipWork(chip);
 	performance.cancelPending(chip);
 	const token = ++request;
-	const mode = modeFor(chip);
+	const mode = toneMode;
 	pending = { kind, owner, loopOverride, r1Mode, chip };
 	syncTransport();
 	try {
 		await ensureAudio();
-		const core = r1Mode || chip === 'sm511' || mode !== EQUAL_TEMPERAMENT ? await prepareSm510() : null;
+		const core = await prepareSm510();
 		if (token !== request) return false;
 		const { sampleRate } = audio;
 		let rendered, r2Samples;
@@ -690,9 +691,9 @@ loadR1Preset();
 async function exportWav() {
 	const sampleRate = 48000;
 	const chip = selectedChip;
-	const mode = modeFor(chip);
+	const mode = toneMode;
 	const melody = chip === 'sm511' ? Uint8Array.from(romEditor.getMelody()) : null;
-	const core = chip === 'sm511' || mode !== EQUAL_TEMPERAMENT ? await prepareSm510() : null;
+	const core = await prepareSm510();
 	const samples = melody ? renderSm511Melody(core, melody, sampleRate) : renderSequence(sampleRate, chip, mode, core).samples;
 	const bytes = encodeWav({ sampleRate, channels: [samples] }, { gain: Number(volume.value) / 100 * mixLevel(chip) });
 	const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
@@ -719,9 +720,8 @@ const performance = setupBuzzerPerformance({
 	},
 	getOutput: chip => ({ context: audio, master: mix[chip].output, chip }),
 	async prepareTone(frequency, context, note, chip, { keyboard }) {
-		if (chip === 'lcd-buzzer') return null;
 		const core = await prepareSm510();
-		const mode = modeFor(chip);
+		const mode = toneMode;
 		if (chip === 'sm511') {
 			const pitch = sm511KeyTracking.checked ? sm511Command(note) : sm511ManualPitch;
 			const command = pitch | (sm511LongNote ? 0x20 : 0);
@@ -842,7 +842,6 @@ const inputTabs = [keyboardTab, codeTab];
 const chipTabs = [
 	['sm510', byId('buzzerSm510Tab'), byId('buzzerSm510Panel')],
 	['sm511', byId('buzzerSm511Tab'), byId('buzzerSm511Panel')],
-	['lcd-buzzer', byId('buzzerLcdTab'), byId('buzzerLcdPanel')],
 	['mixer', byId('buzzerMixerTab'), byId('buzzerMixerPanel')],
 ];
 const chipButtons = chipTabs.map(([, tab]) => tab);
@@ -903,7 +902,7 @@ controls = setupBuzzerCode({
 	},
 	sequence: {
 		getPattern, update: updatePattern,
-		play: (owner, loopOverride) => start('pattern', { owner, loopOverride }),
+		play: (owner, loopOverride, chip) => start('pattern', { owner, loopOverride, chip }),
 		stop: stopPlayback,
 	},
 	r1: {

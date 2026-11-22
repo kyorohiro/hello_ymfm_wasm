@@ -8,7 +8,6 @@ export const R1_HZ = MASTER_CLOCK_HZ / R1_DIVISOR;
 export const GATE_STEP_COUNT = 8;
 export const DIRECT_R = 'direct';
 export const DK52_R = 'dk52';
-export const EQUAL_TEMPERAMENT = 'equal';
 export const R_WRITE_CYCLES = 2; // LAX followed by ATR
 export const MIN_PULSE_HALF_CYCLES = 4;
 export const MAX_PULSE_HALF_CYCLES = 63;

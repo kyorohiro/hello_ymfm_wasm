@@ -8,7 +8,6 @@ import {
 const labels = new Map(NOTE_OPTIONS.map(({ value, label }) => [value, label]));
 const ATTACK = .002;
 const RELEASE = .008;
-const PERIOD_FRAMES = 512;
 const MAX_OCTAVE = 2;
 const MAX_FRET = 12;
 const KEYBOARD_HINT = 'Play the pads or their matching keys';
@@ -17,10 +16,10 @@ const PERFORMANCE_KEY_EXCLUSIONS = [
 	'textarea', 'select', '[contenteditable]', '.monaco-editor', '#synthCodeEditorHost', '.synth-menu-panel',
 ].join(', ');
 
-/** One software voice with ownership shared by the Code and Keyboard inputs. */
+/** Play prepared chip tones with ownership shared by the Code and Keyboard inputs. */
 export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip, onRequestNote, onBeforeNote, onNoteChange }) {
 	let active = null, pending = null, disposed = false;
-	let waveContext, waveform, silenceAt = 0;
+	let silenceAt = 0;
 	let retuneRequest = 0;
 
 	function release() {
@@ -37,20 +36,12 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 	}
 
 	function startTone({ midi, frequency, owner, context, master, chip, keyboard }, tone, previousOutputEnd = 0) {
-		if (!tone && context !== waveContext) {
-			waveform = context.createBuffer(1, PERIOD_FRAMES, context.sampleRate);
-			const samples = waveform.getChannelData(0);
-			samples.fill(.2, 0, PERIOD_FRAMES / 2);
-			samples.fill(-.2, PERIOD_FRAMES / 2);
-			waveContext = context;
-			silenceAt = 0;
-		}
+		const { buffer, loop, startup = 0, toneMode } = tone;
 		release();
-		const start = Math.max(context.currentTime, silenceAt, previousOutputEnd) + (tone?.startup ?? 0);
+		const start = Math.max(context.currentTime, silenceAt, previousOutputEnd) + startup;
 		const source = context.createBufferSource(), gain = context.createGain();
-		source.buffer = tone?.buffer ?? waveform;
-		source.loop = tone?.loop !== false;
-		source.playbackRate.value = tone ? 1 : frequency * PERIOD_FRAMES / context.sampleRate;
+		source.buffer = buffer;
+		source.loop = loop !== false;
 		gain.gain.setValueAtTime(0, start);
 		gain.gain.linearRampToValueAtTime(1, start + ATTACK);
 		source.connect(gain);
@@ -65,15 +56,15 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 		};
 		source.start(start);
 		active = sounding;
-		onNoteChange(midi, chip, tone?.toneMode, tone);
+		onNoteChange(midi, chip, toneMode, tone);
 	}
 
-	async function noteOn(note, owner, { keyboard = false } = {}) {
+	async function noteOn(note, owner, { chip: targetChip, keyboard = false } = {}) {
 		const midi = buzzerMidi(note), frequency = noteToHz(midi);
 		if (owner == null) throw new TypeError('A buzzer note needs an owner.');
 		if (disposed) return false;
 		retuneRequest++;
-		const token = { owner, chip: getChip?.(), keyboard };
+		const token = { owner, chip: targetChip ?? getChip?.(), keyboard };
 		pending = token;
 		try {
 			onRequestNote?.(token.chip);
@@ -81,7 +72,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 			if (pending !== token || disposed) return false;
 			const output = getOutput(token.chip);
 			const { context, chip } = output;
-			const tone = prepareTone ? await prepareTone(frequency, context, midi, chip, { keyboard: token.keyboard }) : null;
+			const tone = await prepareTone(frequency, context, midi, chip, { keyboard: token.keyboard });
 			if (pending !== token || disposed) return false;
 			const previousOutputEnd = onBeforeNote(chip) ?? 0;
 			// The host retires the sequencer before this gate takes ownership.
@@ -99,7 +90,7 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 	async function retune(chip) {
 		const previous = active;
 		const selected = () => !getChip || getChip() === chip;
-		if (disposed || pending || !prepareTone || !previous || previous.chip !== chip || !selected()) return false;
+		if (disposed || pending || !previous || previous.chip !== chip || !selected()) return false;
 		const request = ++retuneRequest;
 		const isCurrent = () => request === retuneRequest && active === previous && !pending && !disposed && selected();
 		let tone;

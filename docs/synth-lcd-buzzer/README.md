@@ -1,11 +1,9 @@
 # Tetorica SM510 Synth
 
-Tetorica SM510 Synth combines the Sharp SM510 buzzer, SM511 melody voice,
-and an equal-tempered square wave. Use the upper **SM510**, **SM511**,
-**lcd-buzzer**, and **Mixer** tabs to choose a voice or adjust the mix.
-Use **Keyboard** and **Code** to perform and edit. The selected chip supplies
-the keyboard and the `lcd-buzzer` Code client. Use **SM511 → Melody ROM** to
-edit and play the chip's 256 melody commands.
+Tetorica SM510 Synth combines the Sharp SM510 buzzer and SM511 melody voice.
+Use the upper **SM510**, **SM511**, and **Mixer** tabs to choose a voice or
+adjust the mix. Use **Keyboard** and **Code** to perform and edit, or
+**SM511 → Melody ROM** to edit and play the chip's 256 melody commands.
 
 ## SM510 tone source
 
@@ -16,9 +14,6 @@ A held note keeps its original tone until release.
 | --- | --- |
 | **Direct R** (default) | The direct-output mask lets the program toggle R1. Each note uses an integer number of SM510 machine cycles per half-wave, so the pitch may differ from the note’s equal-tempered frequency. |
 | **DK-52 Divider** | Each playable note opens the gate on the DK-52’s fixed 4,096 Hz R1 carrier. Changing notes leaves the carrier frequency fixed. Rests close the gate. |
-
-The **lcd-buzzer** tab plays the software square wave in equal temperament
-from C3 to C6, with A4 at 440 Hz. It has its own level and mute in **Mixer**.
 
 ## SM511 melody voice
 
@@ -39,13 +34,14 @@ the key is held. The waveform continues across the repeated slots.
 C♯5–C7. For example, C4 sounds as C6. Moving **ROM note** or choosing an
 octave switches to one fixed ROM pitch for every key. Check **Key tracking**
 again to follow the keys. The hexadecimal readout shows the command that
-can be used from Code. The app's `lcd-buzzer.noteOn()` follows the pitch
-controls for SM511 and holds the tone until `noteOff()`.
+can be used from Code. When SM511 is selected, existing `lcd-buzzer.noteOn()`
+scripts follow its pitch controls and hold the tone until `noteOff()`.
 
 ### Melody ROM editor
 
 Select a ROM address from `0x00` to `0xFF` and choose a note, **Rest**, or
-**Stop**. Notes and rests use **62.5 ms** or **125 ms**. The editor opens with
+**Stop**. Use **Lower octave** or **Upper octave** for each note. Notes and
+rests use **62.5 ms** or **125 ms**. The editor opens with
 the original demo and fills the remaining addresses with Stop commands.
 **Play melody** starts at `0x00`. **Play from** starts at the selected address.
 Playback ends at the first Stop or at the end of the address range.
@@ -70,7 +66,7 @@ await chip.playMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 
 ## Mixer
 
-**Mixer** gives SM510, SM511, and lcd-buzzer their own level and mute controls.
+**Mixer** gives SM510 and SM511 their own level and mute controls.
 The **Master** in the top toolbar adjusts the combined output in Synth and
 Code. Opening Mixer keeps playback running on the selected chip.
 Code can play SM510 register writes and SM511 melodies together on their
@@ -95,10 +91,9 @@ Either Stop ends Code and Melody ROM editor playback.
 
 The SM510 and SM511 tabs distinguish each chip’s hardware behavior from app
 controls. The Melody ROM editor, Keyboard, Code, and Mixer belong to the app.
-The lcd-buzzer comparison voice also runs in software.
 
 ```js
-const buzzer = await useSoundChip('lcd-buzzer');
+const buzzer = await useSoundChip('sm510');
 await buzzer.noteOn(CH1, 'C4');
 await beat(0.25);
 buzzer.noteOff(CH1);
@@ -108,10 +103,14 @@ buzzer.configure({ bpm: 144, gate: 0.4 });
 await buzzer.playPattern({ loop: false });
 ```
 
-Existing `useSoundChip('lcd-buzzer')` scripts can load and play eight-step
-patterns. Use `setStep(0, 'C4')` to change the first step and `null` for a
-rest. Notes accept a name or integer MIDI value from C3 through C6.
-`configure()` accepts tempo (`bpm`), note length (`gate`), `volume`, and
+`sm510.noteOn()` and `sm510.playPattern()` use the SM510 tone source set in
+the app. The `sm510` register and cycle methods use the DK-52 divider. The
+`sm510-direct` register and cycle methods use the direct mask.
+
+Existing `useSoundChip('lcd-buzzer')` scripts play notes and patterns on the
+selected SM510 or SM511. Use `setStep(0, 'C4')` to change the first step and
+`null` for a rest. Notes accept a name or integer MIDI value from C3 through
+C6. `configure()` accepts tempo (`bpm`), note length (`gate`), `volume`, and
 `loop`. Gate and volume use fractions.
 
 ## SM510 buzzer demo
@@ -191,7 +190,7 @@ timing between R1 transitions.
 A full period takes `2 × N` machine cycles, giving `16,384 / (2 × N)` Hz.
 The synth picks the realizable frequency closest to the requested note in Hz.
 For example, C3 uses `N = 63` (130.03 Hz), and the A4 key uses `N = 19`
-(431.16 Hz). Select **lcd-buzzer** to hear A4 at 440 Hz.
+(431.16 Hz).
 The sequencer plays complete direct R periods within each note's time
 window. Live keyboard playback uses a short gain fade on release.
 
@@ -241,7 +240,7 @@ folder for Duplicate, Rename, and Delete, or to create a file or folder in
 that part of the tree. **Sound chip** opens the hardware guide.
 
 New Cassettes include editable Code examples in **Files → examples**.
-Run `short-beep.js`, `chirp.js`, or `trill.js` to hear the selected tone
+Run `short-beep.js`, `chirp.js`, or `trill.js` to hear the SM510 tone
 source. Run `sm510-r1.js` or `sm510-cycles.js` for immediate or cycle-timed
 DK-52 R1 writes, or `sm511-melody.js` for a Melody ROM phrase. In an existing Cassette, **Add examples** fills unused
 example paths with ready-to-run copies. An existing file, directory or

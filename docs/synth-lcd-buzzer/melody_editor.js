@@ -4,28 +4,29 @@ import { SM511_DEMO, SM511_ROM_STEPS, sm511Command, sm511CommandLabel, validateM
 const PAGE_SIZE = 16;
 const REST = 0;
 const STOP = 1;
+const PITCH_MASK = 0xf;
+const OCTAVE_BIT = 0x10;
 const LENGTH_BIT = 0x20;
 const PITCH_OPTIONS = [
 	[REST, 'Rest'], [STOP, 'Stop'],
-	...Array.from({ length: 24 }, (_, index) => {
+	...Array.from({ length: 12 }, (_, index) => {
 		const pitch = sm511Command(49 + index);
-		return [pitch, sm511CommandLabel(pitch)];
+		return [pitch, sm511CommandLabel(pitch).slice(0, -1)];
 	}),
 ];
-const PITCH_LABELS = new Map(PITCH_OPTIONS);
 const ADDRESS_MOVES = new Map([
 	['ArrowLeft', -1], ['ArrowUp', -4], ['ArrowRight', 1], ['ArrowDown', 4],
 	['PageUp', -PAGE_SIZE], ['PageDown', PAGE_SIZE],
 ]);
 
 const hexByte = value => `0x${value.toString(16).toUpperCase().padStart(2, '0')}`;
-const pitchField = word => (word & 0xf) <= STOP ? word & 0xf : word & 0x1f;
 
 export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 	const byId = id => document.getElementById(id);
 	const slots = byId('sm511RomSlots'), prev = byId('sm511RomPrev'), next = byId('sm511RomNext');
 	const page = byId('sm511RomPage'), addressOutput = byId('sm511RomAddress');
 	const pitch = byId('sm511RomPitch'), length = byId('sm511RomLength'), wordOutput = byId('sm511RomWord');
+	const lower = byId('sm511RomLower'), upper = byId('sm511RomUpper');
 	const playFrom = byId('sm511PlayFrom');
 	const rom = new Uint8Array(SM511_ROM_STEPS);
 	let address = 0;
@@ -63,22 +64,29 @@ export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 		next.disabled = start + PAGE_SIZE >= SM511_ROM_STEPS;
 		page.value = `${hexByte(start)}–${hexByte(start + PAGE_SIZE - 1)}`;
 		const word = rom[address];
+		const command = word & PITCH_MASK;
+		const isNote = command > STOP;
+		const upperOctave = Boolean(word & OCTAVE_BIT);
 		const selectedAddress = hexByte(address);
 		addressOutput.value = selectedAddress;
 		wordOutput.value = hexByte(word);
-		pitch.value = String(pitchField(word));
+		pitch.value = String(command);
+		lower.disabled = upper.disabled = !isNote;
+		lower.setAttribute('aria-pressed', String(isNote && !upperOctave));
+		upper.setAttribute('aria-pressed', String(isNote && upperOctave));
 		length.value = String(word & LENGTH_BIT);
-		length.disabled = (word & 0xf) === STOP;
+		length.disabled = command === STOP;
 		playFrom.textContent = `Play from ${selectedAddress}`;
 
 		for (const [index, { button, slotAddress, slotLabel }] of buttons.entries()) {
 			const current = start + index;
 			const command = rom[current];
-			const tone = pitchField(command);
+			const tone = command & PITCH_MASK;
 			const pressed = current === address;
-			const label = tone === STOP ? 'Stop' : `${PITCH_LABELS.get(tone)} · ${command & LENGTH_BIT ? '125' : '62.5'} ms`;
+			const name = tone === REST ? 'Rest' : tone === STOP ? 'Stop' : sm511CommandLabel(command);
+			const label = tone === STOP ? name : `${name} · ${command & LENGTH_BIT ? '125' : '62.5'} ms`;
 			slotAddress.textContent = hexByte(current);
-			slotLabel.textContent = PITCH_LABELS.get(tone);
+			slotLabel.textContent = name;
 			button.title = `${hexByte(command)} · ${label}`;
 			button.setAttribute('aria-label', `${hexByte(current)} · ${label}`);
 			button.setAttribute('aria-pressed', String(pressed));
@@ -109,8 +117,12 @@ export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 	}
 	pitch.addEventListener('change', () => {
 		const command = Number(pitch.value);
-		writeWord(command === STOP ? STOP : command | (rom[address] & LENGTH_BIT));
+		const current = rom[address];
+		const octave = command > STOP && (current & PITCH_MASK) > STOP ? current & OCTAVE_BIT : 0;
+		writeWord(command === STOP ? STOP : command | octave | (current & LENGTH_BIT));
 	});
+	lower.addEventListener('click', () => writeWord(rom[address] & ~OCTAVE_BIT));
+	upper.addEventListener('click', () => writeWord(rom[address] | OCTAVE_BIT));
 	length.addEventListener('change', () => {
 		if (!length.disabled) writeWord((rom[address] & ~LENGTH_BIT) | Number(length.value));
 	});

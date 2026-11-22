@@ -4,7 +4,7 @@ import { SM511_DEMO } from './sm511.js';
 export const BUZZER_EXAMPLES = [
 	{
 		path: '/examples/short-beep.js',
-		data: `const buzzer = await useSoundChip("lcd-buzzer");
+		data: `const buzzer = await useSoundChip("sm510");
 
 // A pair of short beeps. Change a pitch or the silence between them.
 const notes = ["E5", null, "E5"];
@@ -24,7 +24,7 @@ for (const note of notes) {
 	},
 	{
 		path: '/examples/chirp.js',
-		data: `const buzzer = await useSoundChip("lcd-buzzer");
+		data: `const buzzer = await useSoundChip("sm510");
 
 // Step through nearby pitches quickly. Reverse the array for a falling chirp.
 const pitches = ["E4", "F#4", "G#4", "A4", "B4", "C#5"];
@@ -39,7 +39,7 @@ buzzer.noteOff(CH1);
 	},
 	{
 		path: '/examples/trill.js',
-		data: `const buzzer = await useSoundChip("lcd-buzzer");
+		data: `const buzzer = await useSoundChip("sm510");
 
 // Alternate two pitches, then rest before repeating the phrase.
 setBpm(150);

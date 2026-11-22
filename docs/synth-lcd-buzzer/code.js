@@ -6,7 +6,7 @@ import { buzzerMidi } from './buzzer.js';
 import { DIRECT_R, DK52_R, createSm510CodeChip } from './sm510.js';
 import { validateMelody } from './sm511.js';
 
-export const BUZZER_STARTER = `const buzzer = await useSoundChip("lcd-buzzer");
+export const BUZZER_STARTER = `const buzzer = await useSoundChip("sm510");
 setBpm(120);
 
 liveLoop("signal", async () => {
@@ -29,8 +29,7 @@ type BuzzerNote = string | number;
 interface BuzzerPattern {
   notes: Array<number | null>; bpm: number; gate: number; volume: number; loop: boolean;
 }
-interface BuzzerCodeChip {
-  readonly id: 'lcd-buzzer';
+interface BuzzerPerformance {
   noteOn(channel: typeof CH1, note: BuzzerNote): Promise<boolean>;
   noteOff(channel: typeof CH1): void;
   allNotesOff(): void;
@@ -40,6 +39,9 @@ interface BuzzerCodeChip {
   configure(settings: Partial<Omit<BuzzerPattern, 'notes'>>): BuzzerPattern;
   playPattern(options?: { loop?: boolean }): Promise<boolean>;
   stopPattern(): void;
+}
+interface BuzzerCodeChip extends BuzzerPerformance {
+  readonly id: 'lcd-buzzer';
 }
 interface Sm510CycleBuilder {
   atCycle(machineCycle: number): Sm510CycleBuilder;
@@ -64,8 +66,9 @@ interface Sm511CodeChip {
   stopMelody(): void;
 }
 type BuzzerCodeChipMap = {
+  /** @deprecated Use sm510 for pitched SM510 playback. */
   'lcd-buzzer': BuzzerCodeChip;
-  sm510: Sm510CodeChip<'sm510'>;
+  sm510: Sm510CodeChip<'sm510'> & BuzzerPerformance;
   'sm510-direct': Sm510CodeChip<'sm510-direct'>;
   sm511: Sm511CodeChip;
 };
@@ -87,36 +90,38 @@ export function setupBuzzerCode({
 	onRunRequest, onStopRequest, onPlaybackChange,
 }) {
 	const { project, files } = workspace;
-	const owner = Symbol('LCD Buzzer Code');
-	const client = {
-		id: 'lcd-buzzer',
-		noteOn(channel, note) { checkChannel(channel); return performance.noteOn(note, owner); },
-		noteOff(channel) { checkChannel(channel); performance.noteOff(owner); },
-		allNotesOff() { performance.noteOff(owner); },
-		getPattern: sequence.getPattern,
-		setPattern(notes) {
-			if (!Array.isArray(notes)) throw new TypeError('Expected eight notes or rests.');
-			return sequence.update({ notes: notes.map(patternNote) });
-		},
-		setStep(index, note) {
-			const notes = sequence.getPattern().notes;
-			if (!Number.isInteger(index) || index < 0 || index >= notes.length)
-				throw new RangeError('Choose a step from 0 to 7.');
-			notes[index] = patternNote(note);
-			return sequence.update({ notes });
-		},
-		configure(settings) {
-			if (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
-				Object.keys(settings).some(key => !['bpm', 'gate', 'volume', 'loop'].includes(key)))
-				throw new TypeError('Configure accepts bpm, gate, volume, and loop.');
-			return sequence.update(settings);
-		},
-		playPattern({ loop } = {}) {
-			if (loop !== undefined && typeof loop !== 'boolean') throw new TypeError('Loop must be on or off.');
-			return sequence.play(owner, loop);
-		},
-		stopPattern() { sequence.stop(owner); },
-	};
+	const legacyOwner = Symbol('Legacy buzzer Code'), sm510Owner = Symbol('SM510 performance Code');
+	function performanceMethods(owner, chip) {
+		return {
+			noteOn(channel, note) { checkChannel(channel); return performance.noteOn(note, owner, { chip }); },
+			noteOff(channel) { checkChannel(channel); performance.noteOff(owner); },
+			allNotesOff() { performance.noteOff(owner); },
+			getPattern: sequence.getPattern,
+			setPattern(notes) {
+				if (!Array.isArray(notes)) throw new TypeError('Expected eight notes or rests.');
+				return sequence.update({ notes: notes.map(patternNote) });
+			},
+			setStep(index, note) {
+				const notes = sequence.getPattern().notes;
+				if (!Number.isInteger(index) || index < 0 || index >= notes.length)
+					throw new RangeError('Choose a step from 0 to 7.');
+				notes[index] = patternNote(note);
+				return sequence.update({ notes });
+			},
+			configure(settings) {
+				if (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
+					Object.keys(settings).some(key => !['bpm', 'gate', 'volume', 'loop'].includes(key)))
+					throw new TypeError('Configure accepts bpm, gate, volume, and loop.');
+				return sequence.update(settings);
+			},
+			playPattern({ loop } = {}) {
+				if (loop !== undefined && typeof loop !== 'boolean') throw new TypeError('Loop must be on or off.');
+				return sequence.play(owner, loop, chip);
+			},
+			stopPattern() { sequence.stop(owner); },
+		};
+	}
+	const legacy = { id: 'lcd-buzzer', ...performanceMethods(legacyOwner) };
 	const sm511 = {
 		id: 'sm511',
 		get clock() { return 32768; },
@@ -124,7 +129,14 @@ export function setupBuzzerCode({
 		stopMelody: melody.stop,
 	};
 	const registerClients = new Map();
-	const release = () => { performance.noteOff(owner); sequence.stop(owner); r1.stop(); melody.stop(); };
+	const release = () => {
+		for (const owner of [legacyOwner, sm510Owner]) {
+			performance.noteOff(owner);
+			sequence.stop(owner);
+		}
+		r1.stop();
+		melody.stop();
+	};
 	let controls, runtime;
 	function getRuntime() {
 		runtime ??= createPlaygroundCodeRuntime({
@@ -132,16 +144,18 @@ export function setupBuzzerCode({
 			ensureReady: ensureAudio,
 			now,
 			async useSoundChip(name) {
-				if (name === 'lcd-buzzer') return client;
+				if (name === 'lcd-buzzer') return legacy;
 				if (name === 'sm511') return sm511;
 				const core = await r1.prepare();
 				if (!registerClients.has(name)) {
 					const mode = name === 'sm510-direct' ? DIRECT_R : DK52_R;
-					registerClients.set(name, createSm510CodeChip({
+					const chip = createSm510CodeChip({
 						id: name,
 						write: value => r1.write(value, core, mode),
 						playCycles: plan => r1.playCycles(plan, mode),
-					}));
+					});
+					if (name === 'sm510') Object.assign(chip, performanceMethods(sm510Owner, name));
+					registerClients.set(name, chip);
 				}
 				return registerClients.get(name);
 			},
@@ -161,7 +175,7 @@ export function setupBuzzerCode({
 		project, files, getRuntime, setStatus, onExpandedChange, onViewChange,
 		onRunRequest, onStopRequest, onPlaybackChange,
 		getStarterCode: () => BUZZER_STARTER,
-		editorChip: 'lcd-buzzer',
+		editorChip: 'sm510',
 		journalKey: 'tetorica-lcd-buzzer-pending-code',
 		transformDeclarations: buzzerCodeDeclarations,
 		keepRunningOnKeyboard: true,

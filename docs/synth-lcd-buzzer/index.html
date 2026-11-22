@@ -68,7 +68,6 @@
 				<div id="buzzerChipTabs" class="input-tabs" role="tablist" aria-label="Sound chip">
 					<button id="buzzerSm510Tab" type="button" role="tab" aria-selected="true" aria-controls="buzzerSm510Panel">SM510</button>
 					<button id="buzzerSm511Tab" type="button" role="tab" aria-selected="false" aria-controls="buzzerSm511Panel" tabindex="-1">SM511</button>
-					<button id="buzzerLcdTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerLcdPanel" tabindex="-1">lcd-buzzer</button>
 					<button id="buzzerMixerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerMixerPanel" tabindex="-1">Mixer</button>
 				</div>
 			</div>
@@ -138,6 +137,10 @@
 					<div class="sm511-rom-edit">
 						<output id="sm511RomAddress" aria-label="Selected ROM address">0x00</output>
 						<label>Command <select id="sm511RomPitch"></select></label>
+						<div class="tone-source sm511-rom-octave" role="group" aria-label="Selected ROM step octave">
+							<button id="sm511RomLower" type="button" aria-pressed="true">Lower octave</button>
+							<button id="sm511RomUpper" type="button" aria-pressed="false">Upper octave</button>
+						</div>
 						<label>Length <select id="sm511RomLength"><option value="0">62.5 ms</option><option value="32">125 ms</option></select></label>
 						<output id="sm511RomWord" aria-label="ROM command byte">0x0D</output>
 					</div>
@@ -156,11 +159,6 @@
 					</dl>
 				</details>
 			</div>
-			<div id="buzzerLcdPanel" role="tabpanel" aria-labelledby="buzzerLcdTab" hidden>
-				<dl class="chip-details">
-					<dt>Software voice</dt><dd>The app generates an equal-tempered square wave from C3 to C6, with A4 at 440 Hz. Use it to compare against the hardware models.</dd>
-				</dl>
-			</div>
 			<div id="buzzerMixerPanel" role="tabpanel" aria-labelledby="buzzerMixerTab" hidden>
 				<div class="mixer-controls">
 					<div>
@@ -172,11 +170,6 @@
 						<label for="sm511Mix">SM511 <output id="sm511MixValue" for="sm511Mix">100%</output></label>
 						<input id="sm511Mix" type="range" min="0" max="100" value="100">
 						<label class="mixer-mute"><input id="sm511Mute" type="checkbox"> Mute SM511</label>
-					</div>
-					<div>
-						<label for="lcd-buzzerMix">lcd-buzzer <output id="lcd-buzzerMixValue" for="lcd-buzzerMix">100%</output></label>
-						<input id="lcd-buzzerMix" type="range" min="0" max="100" value="100">
-						<label class="mixer-mute"><input id="lcd-buzzerMute" type="checkbox"> Mute lcd-buzzer</label>
 					</div>
 				</div>
 				<dl class="chip-details">
@@ -222,7 +215,7 @@
 							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
 							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
 						</div>
-						<p id="synthCodeEditorNote">Use <code>lcd-buzzer</code> to play the selected chip, <code>sm510</code> and <code>sm510-direct</code> for R writes, or <code>sm511</code> for melody ROM commands.</p>
+						<p id="synthCodeEditorNote">Use <code>sm510</code> for notes, patterns, or divider R writes, <code>sm510-direct</code> for direct R writes, or <code>sm511</code> for melody ROM commands.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
 						<pre id="synthCodeLog" class="code-log" aria-label="Code output"></pre>
 					</div>
@@ -287,12 +280,11 @@ await sm510.playCycles(pulse);</code></pre>
 							<p>In the app, the keyboard previews one command and <strong>Play melody</strong> plays an original phrase. Try <strong>Files → examples → sm511-melody.js</strong> to play the same commands from Code.</p>
 							<h3>App instrument and output</h3>
 						<dl>
-								<dt>lcd-buzzer</dt><dd>Software square wave in equal temperament from C3 to C6.</dd>
 								<dt>Melody ROM</dt><dd>Edit the 256 command addresses in the SM511 tab. Playback stops at a Stop command or the end of the ROM.</dd>
 								<dt>Mixer and WAV</dt><dd>Level, mute and Master apply to the finished audio. WAV export renders one pass on the selected voice with its mix settings.</dd>
 						</dl>
 						<h3>Effects to try</h3>
-						<p>Choose <strong>SM510 → Direct R</strong>, <strong>SM511</strong>, or <strong>lcd-buzzer</strong> to hear the pitch changes in these <strong>Files → examples</strong> scripts.</p>
+						<p>Choose <strong>SM510 → Direct R</strong> to hear the pitch changes in these <strong>Files → examples</strong> scripts.</p>
 						<ul>
 							<li><strong>Short beep.</strong> <code>short-beep.js</code> separates two notes with a rest.</li>
 							<li><strong>Chirp.</strong> <code>chirp.js</code> climbs quickly through a series of pitches.</li>
