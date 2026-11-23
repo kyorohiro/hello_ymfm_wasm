@@ -22,6 +22,7 @@ test('Code declarations expose the note, R output, and timed playback clients', 
 	assert.match(types, /'sm510-direct': Sm510DirectCodeChip/);
 	assert.match(types, /'sm510-dk52': Sm510CodeChip<'sm510-dk52'> & BuzzerPerformance/);
 	assert.match(types, /interface Sm510DirectCodeChip extends Sm510CodeChip<'sm510-direct'>, BuzzerPerformance/);
+	assert.match(types, /interface Sm511CodeChip extends BuzzerTimedPlayback<Sm511MelodySequence \| Sm511InstructionSequence>, BuzzerNotePerformance/);
 	assert.match(types, /pulseTiming\(frequencyHz: number, duty\?: number\): Sm510PulseTiming/);
 	assert.match(types, /readonly REG_R: 0/);
 	assert.match(types, /noteOn\(channel: typeof CH1/);

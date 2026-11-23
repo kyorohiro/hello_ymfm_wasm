@@ -79,6 +79,21 @@ await sm510.playCycles(pulse);
 `,
 	},
 	{
+		path: '/examples/sm511-notes.js',
+		data: `const sm511 = await useSoundChip("sm511");
+
+await sm511.noteOn(CH1, "A5", { slotMs: 62.5 });
+await sleep(0.2);
+await sm511.noteOn(CH1, "A6", { slotMs: 125 });
+await sleep(0.25);
+
+// Without slotMs, the app holds the note until noteOff.
+await sm511.noteOn(CH1, "C7");
+await sleep(0.4);
+sm511.noteOff(CH1);
+`,
+	},
+	{
 		path: '/examples/sm511-melody.js',
 		data: `// Low nibble is note, rest or stop. Bit 4 is octave. Bit 5 doubles the length.
 ${formatSm511MelodyCode(SM511_DEMO)}`,
@@ -118,6 +133,31 @@ const plan = sm511.build(b => {
 
 console.table(await sm511.compile(plan));
 await sm511.schedule(plan, { name: "sm511-timed", repeatSeconds: 1 });
+`,
+	},
+	{
+		path: '/examples/sm511-rom-groove.js',
+		data: `// The real SM511 has a factory-programmed Melody ROM. It cannot rewrite it.
+// What if each repeat could rewrite 0x01 while keeping 0x00 at G#5?
+const sm511 = await useSoundChip("sm511");
+const slotSeconds = 0.0625;
+const descending = [
+  0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, // C7 to C#6
+  0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, // C6 to C#5
+  0x00, 0x01, // Rest, then Stop.
+];
+const sweep = [...descending, ...descending.slice(1, -1).reverse()];
+
+// Lay out successive two-word ROM images to keep the groove on the audio clock.
+const words = sweep.flatMap(secondWord => [0x06, secondWord]);
+sm511.setMelody(words);
+
+// Keep R enabled through Stop. It sets the flag and gives a silent slot.
+const plan = sm511.build(b => {
+  b.pre(0x00).sme();
+  b.atCycle(words.length * slotSeconds * sm511.machineCycleHz);
+});
+await sm511.schedule(plan, { name: "sm511-rom-groove", repeatSeconds: words.length * slotSeconds });
 `,
 	},
 ];

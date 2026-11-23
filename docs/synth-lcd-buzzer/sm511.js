@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { noteToHz } from '../js/soundchip_pitch.js';
 import { MASTER_CLOCK_HZ } from './sm510.js';
 
 export const SM511_ROM_STEPS = 256;
@@ -10,7 +11,12 @@ export const SM511_PRE_SECONDS = INSTRUCTION_CYCLES / SM511_MACHINE_CYCLE_HZ;
 export const SM511_PRE = 0, SM511_SME = 1, SM511_RME = 2, SM511_TMEL = 3;
 export const SM511_DEMO = Object.freeze([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const LOWEST_ROM_MIDI = 73;
+const UPPER_ROM_OCTAVE = LOWEST_ROM_MIDI + 12;
+const HIGHEST_ROM_MIDI = 96;
 const SHORT_TICKS = SM511_SHORT_SECONDS * MASTER_CLOCK_HZ;
+const SHORT_MS = SM511_SHORT_SECONDS * 1000;
+const LONG_MS = 2 * SHORT_MS;
 const STOP = 0x01;
 const melodySequences = new WeakMap();
 const instructionSequences = new WeakMap();
@@ -21,7 +27,7 @@ const MAX_MACHINE_CYCLES = 30 * SM511_MACHINE_CYCLE_HZ;
 // the SM511's two ROM octaves. C♯3–C5 maps two octaves up.
 export function sm511Midi(note) {
 	const shifted = note + 24;
-	return shifted < 73 ? shifted + 12 : shifted > 96 ? shifted - 12 : shifted;
+	return shifted < LOWEST_ROM_MIDI ? shifted + 12 : shifted > HIGHEST_ROM_MIDI ? shifted - 12 : shifted;
 }
 
 export function sm511Label(note) {
@@ -29,13 +35,30 @@ export function sm511Label(note) {
 	return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
 }
 
+function sm511PitchCommand(midi) {
+	return 2 + (12 - midi % 12) % 12 + (midi >= UPPER_ROM_OCTAVE ? 0x10 : 0);
+}
+
 export function sm511Command(note) {
-	const midi = sm511Midi(note);
-	return 2 + (12 - midi % 12) % 12 + (midi >= 85 ? 0x10 : 0);
+	return sm511PitchCommand(sm511Midi(note));
 }
 
 export function sm511CommandLabel(command) {
 	return sm511Label(49 + 0xd - (command & 0xf) + (command & 0x10 ? 12 : 0));
+}
+
+export function sm511CodeNote(note, options = {}) {
+	if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(key => key !== 'slotMs'))
+		throw new TypeError('The SM511 note option is slotMs.');
+	const { slotMs } = options;
+	if (slotMs !== undefined && slotMs !== SHORT_MS && slotMs !== LONG_MS)
+		throw new RangeError('SM511 slotMs must be 62.5 or 125.');
+	const midi = typeof note === 'string'
+		? Math.round(69 + 12 * Math.log2(noteToHz(note.replace('♯', '#').replace('♭', 'b')) / 440))
+		: note;
+	if (!Number.isInteger(midi) || midi < LOWEST_ROM_MIDI || midi > HIGHEST_ROM_MIDI)
+		throw new RangeError('Choose an SM511 note from C♯5 to C7 (MIDI 73–96).');
+	return { midi, command: sm511PitchCommand(midi) | (slotMs === LONG_MS ? 0x20 : 0), singleSlot: slotMs !== undefined };
 }
 
 export function validateMelody(commands) {

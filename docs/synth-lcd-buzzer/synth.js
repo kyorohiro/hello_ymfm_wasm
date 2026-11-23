@@ -969,6 +969,7 @@ function refreshRomNote() {
 }
 function retuneRomNote() {
 	refreshRomNote();
+	if (heldRomTone?.romNote) return;
 	void performance.retune('sm511').catch(error => setStatus(error.message));
 }
 function setManualRomPitch(upper) {
@@ -1074,17 +1075,18 @@ const performance = setupBuzzerPerformance({
 		cancelPendingChipWork(chip);
 	},
 	getOutput: chip => ({ context: audio, master: chipOutput(chip), chip }),
-	async prepareTone(frequency, context, note, chip, { keyboard, toneMode: fixedMode }) {
+	async prepareTone(frequency, context, note, chip, { keyboard, toneMode: fixedMode, romNote }) {
 		const core = await prepareSm510();
 		const mode = fixedMode ?? toneMode;
 		if (chip === 'sm511') {
-			const pitch = sm511KeyTracking.checked ? sm511Command(note) : sm511ManualPitch;
-			const command = pitch | (sm511LongNote ? 0x20 : 0);
-			const singleSlot = keyboard && !sm511Repeat.checked;
+			const { command, singleSlot } = romNote ?? {
+				command: (sm511KeyTracking.checked ? sm511Command(note) : sm511ManualPitch) | (sm511LongNote ? 0x20 : 0),
+				singleSlot: keyboard && !sm511Repeat.checked,
+			};
 			const samples = singleSlot ? renderSm511Melody(core, [command], MASTER_CLOCK_HZ) : renderSm511CommandCycle(core, command);
 			const buffer = context.createBuffer(1, samples.length, MASTER_CLOCK_HZ);
 			buffer.copyToChannel(samples, 0);
-			return { buffer, toneMode: mode, command, keyboard, loop: !singleSlot };
+			return { buffer, toneMode: mode, command, keyboard, romNote, loop: !singleSlot };
 		}
 		const direct = mode === DIRECT_R;
 		const continuous = !direct && dividerContinuous;

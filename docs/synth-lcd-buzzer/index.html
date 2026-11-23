@@ -312,12 +312,12 @@ await sm510.playCycles(pulse);</code></pre>
 							<h3>SM510 Direct R</h3>
 							<p>The direct-output mask sends the latch to R1 and R2. Duty divides the pitch's existing period between the two output states. Each state lasts at least two machine cycles for the next <code>LAX</code> and <code>ATR</code>. No-ops and <code>T</code> or <code>TL</code> branches fit the selected timing into up to three ROM pages. CPU Pulse shows the resulting duty and pitch.</p>
 							<h3>SM511 melody controller</h3>
-							<p>The SM511 has a 256-word melody ROM. The low nibble of each six-bit word selects rest (<code>0x0</code>), stop (<code>0x1</code>) or one of 12 pitches (<code>0x2</code>–<code>0xD</code>). Bit 4 selects the octave and bit 5 selects a 62.5 or 125 ms slot.</p>
-							<p>The keyboard previews one command and <strong>Play melody</strong> plays a phrase. In <strong>Files → examples</strong>, <code>sm511-melody.js</code> plays a phrase from Code and <code>sm511-instructions.js</code> controls the melody using PRE, SME, TMEL and RME.</p>
+							<p>The SM511 has a 256-word melody ROM fixed at manufacture. The low nibble of each six-bit word selects rest (<code>0x0</code>), stop (<code>0x1</code>) or one of 12 pitches (<code>0x2</code>–<code>0xD</code>). Bit 4 selects the octave and bit 5 selects a 62.5 or 125 ms slot.</p>
+							<p>In <strong>Files → examples</strong>, <code>sm511-notes.js</code> plays individual notes, <code>sm511-melody.js</code> plays a ROM phrase, and <code>sm511-instructions.js</code> controls the melody using PRE, SME, TMEL and RME.</p>
 						<p>In a new Cassette, <code>sm511-timed.js</code> schedules PRE, SME and RME in machine cycles. Listen for the pitch change when the output returns after a muted slot.</p>
 							<h3>App instrument and output</h3>
 						<dl>
-								<dt>Melody ROM</dt><dd>Edit the 256 command addresses in the SM511 tab. Playback stops at a Stop command or the end of the ROM.</dd>
+								<dt>Melody ROM</dt><dd>The app lets you edit the ROM image during Play melody, including while Repeat is on.</dd>
 								<dt>Mixer and WAV</dt><dd>Level, mute and Master apply to the finished audio. WAV export renders one pass on the selected voice with its mix settings.</dd>
 						</dl>
 						<h3>Effects to try</h3>

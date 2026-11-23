@@ -59,14 +59,15 @@ export function createBuzzerVoice({ ensureAudio, getOutput, prepareTone, getChip
 		onNoteChange(midi, chip, toneMode, tone);
 	}
 
-	async function noteOn(note, owner, { chip: targetChip, keyboard = false, toneMode: fixedMode } = {}) {
-		const midi = buzzerMidi(note), frequency = noteToHz(midi);
+	async function noteOn(note, owner, { chip: targetChip, keyboard = false, toneMode: fixedMode, romNote } = {}) {
+		const midi = romNote?.midi ?? buzzerMidi(note), frequency = noteToHz(midi);
 		if (owner == null) throw new TypeError('A buzzer note needs an owner.');
 		if (disposed) return false;
 		retuneRequest++;
 		const token = { owner, chip: targetChip ?? getChip?.() };
 		const toneOptions = { keyboard };
 		if (fixedMode !== undefined) toneOptions.toneMode = fixedMode;
+		if (romNote) toneOptions.romNote = romNote;
 		pending = token;
 		try {
 			onRequestNote?.(token.chip);

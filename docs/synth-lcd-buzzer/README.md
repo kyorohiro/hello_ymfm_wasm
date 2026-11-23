@@ -68,12 +68,13 @@ playback. Turn Repeat off to finish the current pass or end the silent
 wait. Melody ROM Repeat defaults on and is independent of the keyboard's
 Repeat switch. Press **Stop melody** to end playback.
 
-Changes to a note, rest, or duration take effect during playback. Start
-address changes and ROM edits share a preview update. It uses the latest
-values at most once per browser frame, with at least 8 ms between audio
+The 256 words are fixed at manufacture on a physical SM511. The Synth lets
+you edit its ROM image while **Play melody** is running, including during
+**Repeat · Software**. Start address changes and ROM edits share a preview
+update. It uses the latest values at most once per browser frame, with at
+least 8 ms between audio
 updates for the transition. This exceeds the roughly 244 µs of a two-cycle
-`PRE` instruction at the SM511's reset CPU clock. ROM editing is an app
-feature for previewing changes to the hardware's fixed ROM contents.
+`PRE` instruction at the SM511's reset CPU clock.
 [Sharp SM511/SM512 timing, p. 166](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=175)
 
 The player keeps its current address and elapsed position when the edited
@@ -166,6 +167,12 @@ console.table(await sm511.compile(plan));
 await sm511.schedule(plan, { name: 'sm511-timed', repeatSeconds: 1 });
 ```
 
+Try `sm511-rom-groove.js` in a new Cassette's **Files → examples**. It
+imagines a ROM whose second word can change on every repeat. Two 62.5 ms
+slots alternate a fixed G♯5 with a sweep from C7 down through Rest and Stop
+and back up. The example lays out the successive pairs in one ROM image
+and repeats them on the audio clock.
+
 `play(address)` plays one pass through the first Stop. Instruction playback
 keeps clocking until Code stops, `stop()` is called, or another SM511 voice
 takes over. The two playback modes share the SM511 output and its Mixer level.
@@ -209,11 +216,31 @@ controls. The Melody ROM editor, Keyboard, Code, and Mixer belong to the app.
 | --- | --- | --- |
 | `sm510-direct` | `write(REG_R, value)` for the R latch. `noteOn()` and `noteOff()` for pitched pulses. | `build()` records `atCycle().write()` operations. `pulseTiming()` reports an executable pulse width. `playCycles()` plays a plan once. |
 | `sm510-dk52` | `write(REG_R, value)` for the divider gate. `noteOn()` and `noteOff()` for gated beeps. | `build()` records `atCycle().write()` operations. `playCycles()` plays a plan once. |
-| `sm511` | `setMelody(words)`, `play(address)` and `stop()` for one-shot playback. `pre()`, `sme()`, `rme()` and `tmel()` for instruction control. | `build(address)` snapshots the ROM from an address. `build(words)` makes a standalone plan. `build(b => …)` records timed instructions. |
+| `sm511` | `noteOn()` and `noteOff()` for individual notes. `setMelody(words)`, `play(address)` and `stop()` for Melody ROM playback. `pre()`, `sme()`, `rme()` and `tmel()` for instruction control. | `build(address)` snapshots the ROM from an address. `build(words)` makes a standalone plan. `build(b => …)` records timed instructions. |
 
 All three clients use `compile(plan)` to inspect timing, `schedule(plan, options)`
 to start a named reservation and `clearSchedule(name)` to cancel it. The two
 SM510 clients also expose the app's `setPattern()` and `playPattern()` helpers.
+
+All three clients also expose `noteOn(CH1, note)`, `noteOff(CH1)` and
+`allNotesOff()`. They share one performance note at a time. SM511 Code
+accepts the actual ROM pitches C♯5–C7 (MIDI 73–96). The optional `slotMs`
+plays one ROM slot of 62.5 ms or 125 ms. Without it, the app sustains the
+note until release or until another performance takes over. `noteOff()`
+also ends a slot early. This plays the requested note independently of the
+Melody ROM loaded with `setMelody()`. Try `sm511-notes.js` in a new Cassette's
+**Files → examples**.
+
+```js
+const sm511 = await useSoundChip('sm511');
+await sm511.noteOn(CH1, 'A5', { slotMs: 62.5 });
+await sleep(0.2);
+await sm511.noteOn(CH1, 'A6', { slotMs: 125 });
+await sleep(0.25);
+await sm511.noteOn(CH1, 'C7');
+await sleep(0.4);
+sm511.noteOff(CH1);
+```
 
 ```js
 const buzzer = await useSoundChip('sm510-direct');

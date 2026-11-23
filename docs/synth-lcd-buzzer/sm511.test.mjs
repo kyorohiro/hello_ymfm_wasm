@@ -9,7 +9,7 @@ import {
 	buildSm511MelodySequence, compileSm511MelodySequence, createSm511CodeChip, createSm511Controller,
 	formatSm511MelodyCode, readSm511InstructionSequence, readSm511MelodySequence,
 	renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
-	sm511Command, sm511CommandLabel, sm511Label, traceSm511Melody, validateMelody,
+	sm511CodeNote, sm511Command, sm511CommandLabel, sm511Label, traceSm511Melody, validateMelody,
 } from './sm511.js';
 
 const { instance, module } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
@@ -100,6 +100,34 @@ test('the bundled SM511 timed example resumes at a later ROM pitch after a muted
 	assert(samples.subarray(12288).every(sample => sample === 0));
 });
 
+test('the bundled SM511 ROM groove keeps the same 62.5 ms slots through Rest and Stop', async () => {
+	const { data } = BUZZER_EXAMPLES.find(({ path }) => path === '/examples/sm511-rom-groove.js');
+	const chip = createSm511CodeChip({});
+	let sequence;
+	chip.schedule = (plan, options) => {
+		assert.deepEqual(options, { name: 'sm511-rom-groove', repeatSeconds: 6.25 });
+		sequence = readSm511InstructionSequence(plan);
+	};
+	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+	await new AsyncFunction('useSoundChip', data)(async name => {
+		assert.equal(name, 'sm511');
+		return chip;
+	});
+	const slots = sequence.words.slice(0, 100);
+	const secondWords = slots.filter((_command, index) => index % 2 !== 0);
+	assert.equal(secondWords[0], 0x12);
+	assert.deepEqual([...secondWords.slice(23, 28)], [0x0d, 0x00, 0x01, 0x00, 0x0d]);
+	assert.deepEqual(secondWords.slice(1, 25), secondWords.slice(26).reverse());
+	assert(slots.filter((_command, index) => index % 2 === 0).every(command => command === 0x06));
+	assert.equal(sequence.end, slots.length * 2048);
+	const samples = new Float32Array(sequence.end), controller = newController();
+	controller.load(sequence.words);
+	controller.renderInto(samples, MASTER_CLOCK_HZ, sequence.events);
+	const silentSlots = [...slots.keys()].filter(index =>
+		samples.subarray(index * 2048, (index + 1) * 2048).every(sample => sample === 0));
+	assert.deepEqual(silentSlots, [49, 51, 53]);
+});
+
 test('SM511 live Code forwards instruction operands and reads TMEL independently', async () => {
 	const operations = [];
 	const state = { address: 2, enabled: true, stopFlag: true, pin: 0, masterTick: 24 };
@@ -130,6 +158,25 @@ test('SM511 maps legacy note values to the two real ROM octaves', () => {
 	assert.equal(loop.length, 62);
 	assert.deepEqual([...loop], Array.from({ length: 62 }, (_, i) => i >= 14 && i < 30 || i >= 46 ? Math.fround(.16) : 0));
 	assert.equal(core.sm511PitchHz(0x12), 2 * MASTER_CLOCK_HZ / 31);
+});
+
+test('SM511 Code uses actual ROM pitches and supports both one-slot durations', () => {
+	assert.deepEqual(sm511CodeNote('A5', { slotMs: 62.5 }), { midi: 81, command: 0x05, singleSlot: true });
+	assert.deepEqual(sm511CodeNote('A6', { slotMs: 125 }), { midi: 93, command: 0x35, singleSlot: true });
+	assert.deepEqual(sm511CodeNote(96), { midi: 96, command: 0x12, singleSlot: false });
+	assert.equal(sm511CodeNote('D♭5').command, 0x0d);
+	assert.equal(sm511CodeNote('C♯6').command, 0x1d);
+	for (const note of ['A4', 'C5', 'C#7', 85.5]) assert.throws(() => sm511CodeNote(note), /C♯5 to C7/);
+	for (const slotMs of [0, 64, '125', null]) assert.throws(() => sm511CodeNote('A6', { slotMs }), /62.5 or 125/);
+	assert.throws(() => sm511CodeNote('A6', { repeat: true }), /slotMs/);
+	const short = sm511CodeNote('A6', { slotMs: 62.5 });
+	const long = sm511CodeNote('A6', { slotMs: 125 });
+	const shortPcm = renderSm511Melody(core, [short.command, 0x01], MASTER_CLOCK_HZ);
+	const longPcm = renderSm511Melody(core, [long.command, 0x01], MASTER_CLOCK_HZ);
+	assert.equal(shortPcm.length, 2048);
+	assert.equal(longPcm.length, 4096);
+	assert.deepEqual(longPcm.subarray(0, shortPcm.length), shortPcm);
+	assert.match(buzzerCodeDeclarations(''), /slotMs\?: 62\.5 \| 125/);
 });
 
 test('SM511 melody playback respects ROM rests, slot lengths, and first stop', () => {

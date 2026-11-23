@@ -4,7 +4,7 @@ import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
 import { selectCodeHostDeclarations } from '../synth/synth_code_declarations.js';
 import { buzzerMidi } from './buzzer.js';
 import { DIRECT_R, DK52_R, createSm510CodeChip, readSm510CycleSequence } from './sm510.js';
-import { createSm511CodeChip, readSm511InstructionSequence, readSm511MelodySequence } from './sm511.js';
+import { createSm511CodeChip, readSm511InstructionSequence, readSm511MelodySequence, sm511CodeNote } from './sm511.js';
 
 export const BUZZER_STARTER = `const buzzer = await useSoundChip("sm510-direct");
 setBpm(120);
@@ -35,10 +35,12 @@ type BuzzerNote = string | number;
 interface BuzzerPattern {
   notes: Array<number | null>; bpm: number; gate: number; volume: number; loop: boolean;
 }
-interface BuzzerPerformance {
+interface BuzzerNotePerformance {
   noteOn(channel: typeof CH1, note: BuzzerNote): Promise<boolean>;
   noteOff(channel: typeof CH1): void;
   allNotesOff(): void;
+}
+interface BuzzerPerformance extends BuzzerNotePerformance {
   getPattern(): BuzzerPattern;
   setPattern(notes: Array<BuzzerNote | null>): BuzzerPattern;
   setStep(index: number, note: BuzzerNote | null): BuzzerPattern;
@@ -111,12 +113,15 @@ interface Sm510CodeChip<Id extends Sm510CodeId = Sm510CodeId> extends BuzzerTime
   compile(sequence: Sm510CycleSequence): Sm510CycleWrite[];
   playCycles(sequence: Sm510CycleSequence): Promise<boolean>;
 }
-interface Sm511CodeChip extends BuzzerTimedPlayback<Sm511MelodySequence | Sm511InstructionSequence> {
+interface Sm511CodeChip extends BuzzerTimedPlayback<Sm511MelodySequence | Sm511InstructionSequence>, BuzzerNotePerformance {
   readonly id: 'sm511';
   readonly clock: 32768;
   readonly machineCycleHz: 8192;
+  /** Play C♯5–C7 (MIDI 73–96). Omit slotMs to hold until released. */
+  noteOn(channel: typeof CH1, note: BuzzerNote, options?: { slotMs?: 62.5 | 125 }): Promise<boolean>;
   setMelody(words: readonly number[] | Uint8Array): void;
   play(startAddress?: number): Promise<boolean>;
+  /** Stop immediate Melody ROM playback or CPU control. */
   stop(): void;
   /** PRE presets the ROM pointer and clears the step counter. */
   pre(address: number): Promise<void>;
@@ -132,9 +137,10 @@ interface Sm511CodeChip extends BuzzerTimedPlayback<Sm511MelodySequence | Sm511I
   build(record: (program: Sm511InstructionBuilder) => void): Sm511InstructionSequence;
   compile(sequence: Sm511MelodySequence): Sm511MelodySlot[];
   compile(sequence: Sm511InstructionSequence): Sm511Instruction[];
-  /** Play a standalone command array while keeping the loaded ROM. */
+  /** Play a standalone command array while keeping the loaded ROM.
+   * @deprecated Use setMelody() and play() for new scripts. */
   playMelody(commands: readonly number[] | Uint8Array): Promise<boolean>;
-  /** Compatibility name for stop(), which stops immediate playback. */
+  /** @deprecated Use stop(). */
   stopMelody(): void;
 }
 type BuzzerCodeChipMap = {
@@ -169,12 +175,17 @@ export function setupBuzzerCode({
 	onRunRequest, onStopRequest, onPlaybackChange,
 }) {
 	const { project, files } = workspace;
-	const performanceOwners = Object.fromEntries(['lcd-buzzer', ...sm510Ids].map(id => [id, Symbol(`${id} performance Code`)]));
-	function performanceMethods(owner, chip, toneMode) {
+	const performanceOwners = Object.fromEntries(['lcd-buzzer', ...sm510Ids, 'sm511'].map(id => [id, Symbol(`${id} performance Code`)]));
+	function noteMethods(owner, startNote) {
 		return {
-			noteOn(channel, note) { checkChannel(channel); return performance.noteOn(note, owner, { chip, toneMode }); },
+			noteOn(channel, note, options) { checkChannel(channel); return startNote(note, options); },
 			noteOff(channel) { checkChannel(channel); performance.noteOff(owner); },
 			allNotesOff() { performance.noteOff(owner); },
+		};
+	}
+	function performanceMethods(owner, chip, toneMode) {
+		return {
+			...noteMethods(owner, note => performance.noteOn(note, owner, { chip, toneMode })),
 			getPattern: sequence.getPattern,
 			setPattern(notes) {
 				if (!Array.isArray(notes)) throw new TypeError('Expected eight notes or rests.');
@@ -216,7 +227,12 @@ export function setupBuzzerCode({
 			return melody.prepareScheduled(readSm511MelodySequence(plan), repeatSeconds);
 		},
 	});
-	const sm511 = withTimedPlayback(createSm511CodeChip(melody), sm511Timed);
+	const sm511NoteOwner = performanceOwners.sm511;
+	const sm511 = Object.assign(withTimedPlayback(createSm511CodeChip(melody), sm511Timed),
+		noteMethods(sm511NoteOwner, (note, options) => {
+			const romNote = sm511CodeNote(note, options);
+			return performance.noteOn(romNote.midi, sm511NoteOwner, { chip: 'sm511', romNote });
+		}));
 	const registerClients = new Map();
 	const release = () => {
 		for (const owner of Object.values(performanceOwners)) {
