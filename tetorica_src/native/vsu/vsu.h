@@ -20,6 +20,11 @@ void vsu_write(void *state, uint32_t offset, uint32_t value);
  * only the mixer. Muted channels still advance and enforce RAM write locks. */
 void vsu_set_mix_mask(void *state, uint32_t mask);
 
+/* Scale the centered stereo contribution of one output before mixing.
+ * Gain runs from 0 to 1 and defaults to unity on reset. The chip's
+ * programmed registers, oscillator timing and write locks are unaffected. */
+void vsu_set_channel_gain(void *state, uint32_t channel, float gain);
+
 /* Packed channel state: stereo level in bits 0..7 (LRV), enabled in bit 8,
  * CH5 effect mode in bits 9..10 (0 off, 1 sweep, 2 modulation). */
 uint32_t vsu_get_channel(const void *state, uint32_t channel);

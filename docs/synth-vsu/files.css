@@ -1,35 +1,62 @@
 .vsu-files { margin-bottom: 12px; }
-.vsu-files-heading, .vsu-files-actions {
+.vsu-files-heading, .vsu-files-actions, .vsu-files-save-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 .vsu-files-heading { justify-content: space-between; margin-bottom: 8px; }
-.vsu-files-heading button, .vsu-file-menu summary, .vsu-file-context-menu button {
+.vsu-files-heading h2 { font-size: .8rem; letter-spacing: .12em; }
+.vsu-files-save-controls { padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
+.vsu-files-heading button, .vsu-files-save-controls button, .vsu-file-context-menu button {
   min-height: 31px;
   padding: 4px 8px;
   font-size: .8rem;
 }
-.vsu-file-menu { position: relative; }
-.vsu-file-menu summary { display: flex; align-items: center; gap: .45ch; padding-inline: 8px; }
+.vsu-file-menu { position: relative; flex: none; }
+.vsu-file-menu summary {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  list-style: none;
+}
 .vsu-file-menu summary::-webkit-details-marker { display: none; }
-.vsu-file-menu summary::after {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-right: 1px solid currentColor;
-  border-bottom: 1px solid currentColor;
-  transform: rotate(45deg);
+.vsu-file-menu summary .menu-glyph {
+  width: 15px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  box-shadow: 0 -5px currentColor, 0 5px currentColor;
 }
 .vsu-file-menu summary, .vsu-files-dialog input {
   color: inherit;
   background: #381c27;
   border: 1px solid #744051;
-  border-radius: 7px;
   cursor: pointer;
 }
-.vsu-file-menu .synth-menu-panel, .vsu-file-context-menu {
+.vsu-file-menu[open] summary, .vsu-file-menu summary:hover { background: #542536; border-color: #c86a80; }
+.vsu-file-menu .synth-menu-panel {
+  position: absolute;
+  z-index: 6;
+  inset-inline-start: 0;
+  top: calc(100% + 8px);
+  width: min(19rem, calc(100vw - 36px));
+  max-height: min(70vh, 34rem);
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px #10050bcc;
+}
+.vsu-file-menu:not([open]) .synth-menu-panel { display: none; }
+.vsu-menu-section { display: grid; gap: 6px; }
+.vsu-menu-section + .vsu-menu-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.vsu-menu-section h2 { color: var(--muted); font-size: .76rem; }
+.vsu-menu-section button { width: 100%; min-height: 32px; font-size: .84rem; }
+.vsu-file-context-menu {
   display: grid;
   min-width: 10rem;
   gap: 3px;
@@ -38,9 +65,8 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 6px 14px #10050b99;
+  z-index: 5;
 }
-.vsu-file-menu .synth-menu-panel { position: absolute; z-index: 3; right: 0; top: calc(100% + 4px); }
-.vsu-file-context-menu { z-index: 5; }
 .vsu-file-menu .synth-menu-panel button, .vsu-file-context-menu button { text-align: left; }
 #vsuFilesTree { max-height: min(50vh, 22rem); overflow: auto; }
 #vsuFilesTree .file-tree { list-style: none; padding: 0; margin: 0; }
@@ -75,5 +101,5 @@
 }
 .vsu-files-dialog::backdrop { background: #10050bcc; }
 .vsu-files-dialog form { display: grid; gap: 12px; }
-.vsu-files-dialog input { cursor: text; padding: 6px; min-width: 0; width: 100%; font: inherit; }
+.vsu-files-dialog input { cursor: text; padding: 6px; min-width: 0; width: 100%; border-radius: 7px; font: inherit; }
 .vsu-files-dialog .vsu-files-actions { justify-content: end; }

@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
-import { buildKeyboard, createFretboardLayout, createFretboardState } from '../synth/synth_keyboard.js';
+import {
+  buildKeyboard, createFretboardLayout, createFretboardState, renderFretboardControls,
+  setFretPosition, setInstrument, setStringWindowIndex,
+} from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js';
+import { createVsuAudio } from './audio.js?v=vsu-mixer';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js';
 import {
@@ -11,8 +14,8 @@ import {
 } from './ch5.js';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js';
-import { setupVsuFiles } from './files.js';
-import { setupAuthorMixer } from './mixer-view.js';
+import { setupVsuFiles } from './files.js?v=vsu-mixer';
+import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
 import { createDefaultVsuPatch, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js';
 import { createVsuClient, createVsuWave, vsuChannelRegister, vsuNoteOnWrites, VSU_REGISTERS } from './vsu.js';
 import { createVsuVoicePool } from './voice-pool.js';
@@ -71,9 +74,15 @@ let vgmActivity = [];
 let liveTarget = null, liveVoice = null, lastLiveVoice = null, liveSettingsKey = '';
 let comparison = null;
 let soundContext = null, scopeMode = 'waveform', scopeFrame = null;
+let lastPcmScope = 'waveform', restoreEnvelope = false;
 let codeHandoff = Promise.resolve(), keys = new Map(), nextLiveKey = 0;
 const fretboard = createFretboardState();
-const editingTarget = 'input, textarea, select, [contenteditable]';
+const fretboardTools = {
+  instrumentRoot: byId('instrumentControls'), positionRoot: byId('positionControls'),
+  fretDisplayRoot: byId('fretDisplay'), stringDisplayRoot: byId('stringDisplay'), stringWindowRoot: byId('stringWindowControls'),
+};
+let keyboardOctave = 0;
+const editingTarget = 'input:not([type="range"]), textarea, select, [contenteditable]';
 const canWrite = () => soundContext !== null && soundContext === audio.context;
 
 const starterCode = `const vsu = await useSoundChip("vsu");
@@ -402,7 +411,6 @@ async function applyPatch(patch) {
   releaseKeyboard();
   next.banks.forEach((wave, bank) => banks[bank].set(wave));
   next.channels.forEach((settings, channel) => Object.assign(channels[channel], settings));
-  channels.forEach((settings, channel) => authorMixer.drawLevels(channel, settings));
   selectedNoiseTap = next.noiseTap;
   ch5Settings = next.ch5;
   const source = next.preferredChannel === undefined ? autoSource
@@ -680,7 +688,7 @@ function releaseKey(owner) {
 
 function redrawKeyboard() {
   releaseKeyboard();
-  const { rowDefs, entries } = createFretboardLayout({ state: fretboard, octave: Number(byId('octave').value) });
+  const { rowDefs, entries } = createFretboardLayout({ state: fretboard, octave: keyboardOctave });
   buildKeyboard({
     root: keyboard, rowDefs, layoutEntries: entries, showPitch: false,
     onPointerDown(event, entry, button) {
@@ -708,6 +716,28 @@ function redrawKeyboard() {
     });
     button.addEventListener('blur', () => releaseKey(owner));
   }
+  renderKeyboardControls();
+}
+
+function renderKeyboardControls() {
+  const { instrumentRoot, positionRoot, stringWindowRoot } = fretboardTools;
+  const groups = [instrumentRoot, positionRoot, stringWindowRoot];
+  const focusedGroup = groups.find(group => group.contains(document.activeElement));
+  renderFretboardControls({
+    ...fretboardTools, state: fretboard,
+    onInstrumentChange(instrument) { setInstrument(fretboard, instrument); redrawKeyboard(); },
+    onPositionPresetSelect(fret) { setFretPosition(fretboard, fret); redrawKeyboard(); },
+    onStringWindowChange(index) { setStringWindowIndex(fretboard, index); redrawKeyboard(); },
+  });
+  for (const group of groups) {
+    for (const button of group.querySelectorAll('button')) {
+      button.setAttribute('aria-pressed', String(button.classList.contains('is-selected')));
+    }
+  }
+  focusedGroup?.querySelector('.is-selected')?.focus();
+  byId('octaveValue').value = keyboardOctave > 0 ? '+' + keyboardOctave : keyboardOctave;
+  byId('octaveDown').disabled = keyboardOctave <= -2;
+  byId('octaveUp').disabled = keyboardOctave >= 2;
 }
 
 function writeEditedBank(bank) {
@@ -886,15 +916,14 @@ for (const side of ['left', 'right']) {
     if (liveTarget) {
       if (side === 'left') updateLiveRegister('LRV', 0xf0, value << 4);
       else updateLiveRegister('LRV', 0x0f, value);
-    } else setChannelLevel(Number(channelSelect.value), side, value);
+      return;
+    }
+    const index = Number(channelSelect.value);
+    if (index === CH5) stopComparison();
+    channels[index][side] = value;
+    byId(side + 'Value').value = value;
+    sendChannelLevels(index);
   });
-}
-function setChannelLevel(index, side, value) {
-  if (index === CH5) stopComparison();
-  channels[index][side] = value;
-  if (!liveTarget && Number(channelSelect.value) === index) byId(side + 'Level').value = byId(side + 'Value').value = value;
-  authorMixer.drawLevels(index, channels[index]);
-  sendChannelLevels(index);
 }
 byId('master').addEventListener('input', event => {
   const volume = event.currentTarget.valueAsNumber;
@@ -907,49 +936,76 @@ function showMode(buttons, id) {
 }
 const envelopeCanvas = byId('envelopeCanvas');
 const envelopeMonitor = setupEnvelopeMonitor(envelopeCanvas, fitCanvas, applyEnvelopeEdit);
-const authorMixer = setupAuthorMixer(byId('vsuAuthorChannels'), setChannelLevel);
-const scopeModes = { showEnvelope: 'envelope', showWaveform: 'waveform', showSpectrum: 'spectrum' };
-const scopes = Object.keys(scopeModes).map(byId);
-for (const button of scopes) button.addEventListener('click', () => {
-  showMode(scopes, button.id);
-  scopeMode = scopeModes[button.id];
+setupOutputMixer(byId('vsuOutputChannels'), (channel, settings) => audio.setChannelMix(channel, settings));
+const scopeButtonIds = { envelope: 'showEnvelope', waveform: 'showWaveform', spectrum: 'showSpectrum' };
+const scopes = Object.values(scopeButtonIds).map(byId);
+function setScopeMode(mode) {
+  showMode(scopes, scopeButtonIds[mode]);
+  scopeMode = mode;
+  if (mode !== 'envelope') lastPcmScope = mode;
   outputCanvas.hidden = scopeMode === 'envelope';
   envelopeCanvas.hidden = !outputCanvas.hidden;
-  outputCanvas.setAttribute('aria-label', 'Output ' + scopeMode);
-  drawOutput();
-  scheduleScope();
-});
+  if (!outputCanvas.hidden) outputCanvas.setAttribute('aria-label', 'Output ' + mode);
+}
+for (const [mode, id] of Object.entries(scopeButtonIds)) {
+  byId(id).addEventListener('click', () => {
+    setScopeMode(mode);
+    drawOutput();
+    scheduleScope();
+  });
+}
 const inputs = [byId('showKeyboard'), byId('showCode')];
 function showInput(showCode) {
-  showMode(inputs, inputs[showCode ? 1 : 0].id);
-  byId('codePanel').hidden = !showCode;
-  byId('keyboardPanel').hidden = showCode;
+  selectPairedTab(inputs, showCode);
   if (showCode) releaseKeyboard();
 }
-inputs[0].addEventListener('click', () => showInput(false));
-inputs[1].addEventListener('click', () => showInput(true));
+bindPairedTabs(inputs, showInput);
 
 const chipTabs = [byId('vsuChipTab'), byId('vsuMixerTab')];
-function selectChipPanel(showMixer) {
-  for (const [index, button] of chipTabs.entries()) {
-    const active = index === Number(showMixer);
+function selectPairedTab(tabs, selectSecond) {
+  for (const [index, button] of tabs.entries()) {
+    const active = index === Number(selectSecond);
     button.setAttribute('aria-selected', String(active));
     button.tabIndex = active ? 0 : -1;
     byId(button.getAttribute('aria-controls')).hidden = !active;
   }
+}
+
+function bindPairedTabs(tabs, select) {
+  for (const [index, button] of tabs.entries()) {
+    function show(index) {
+      select(index === 1);
+      tabs[index].focus();
+    }
+    button.addEventListener('click', () => show(index));
+    button.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      show(event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index);
+    });
+  }
+}
+
+function selectChipPanel(showMixer) {
+  selectPairedTab(chipTabs, showMixer);
+  byId('vsuChannelBar').hidden = showMixer;
+  byId('showEnvelope').hidden = showMixer;
+  byId('vsuEnvelopeControls').hidden = showMixer;
+  const monitor = byId('vsuOutputMonitor');
+  const container = byId(showMixer ? 'vsuMixerPanel' : 'vsuSynthControls');
+  if (monitor.parentElement !== container) {
+    container.prepend(monitor);
+    if (showMixer) {
+      restoreEnvelope = scopeMode === 'envelope';
+      if (restoreEnvelope) setScopeMode(lastPcmScope);
+    } else if (restoreEnvelope) {
+      setScopeMode('envelope');
+    }
+  }
   drawOutput();
   scheduleScope();
 }
-for (const [index, button] of chipTabs.entries()) {
-  button.addEventListener('click', () => selectChipPanel(index === 1));
-  button.addEventListener('keydown', event => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index;
-    selectChipPanel(next === 1);
-    chipTabs[next].focus();
-  });
-}
+bindPairedTabs(chipTabs, selectChipPanel);
 
 const workspaceModes = [byId('workspaceSynth'), byId('workspaceCode')];
 function syncWorkspaceControls() {
@@ -1020,7 +1076,12 @@ run.addEventListener('click', () => void execute(false));
 apply.addEventListener('click', () => void execute(true));
 stop.addEventListener('click', () => void stopCode());
 
-byId('octave').addEventListener('change', redrawKeyboard);
+for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) {
+  byId(id).addEventListener('click', () => {
+    keyboardOctave = Math.max(-2, Math.min(2, keyboardOctave + delta));
+    redrawKeyboard();
+  });
+}
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey ||
       (byId('keyboardPanel').hidden && !(codeRunning && liveTarget?.source === 'synth')) ||
@@ -1044,6 +1105,5 @@ new ResizeObserver(drawWaveRam).observe(waveCanvas);
 setupCh5Controls();
 editorReady = true;
 selectChannel(null);
-channels.forEach((settings, channel) => authorMixer.drawLevels(channel, settings));
 redrawKeyboard();
 drawOutput();

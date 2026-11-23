@@ -1,6 +1,6 @@
 # Tetorica VSU Synth
 
-Play the Virtual Sound Unit (VSU) from Nintendo's Virtual Boy with the on-screen keyboard, PC keys, or JavaScript. The five wavetable voices share five banks of 32 six-bit samples. Each voice has four-bit left and right levels. Waveform and Spectrum show the output after the app's Master control.
+Play the Virtual Sound Unit (VSU) from Nintendo's Virtual Boy with the on-screen keyboard, PC keys, or JavaScript. The five wavetable voices share five banks of 32 six-bit samples. Each voice has four-bit left and right levels.
 
 The VSU blocks wavetable writes while voices are active. The editor issues the VSU's global stop command before uploading the edited bank. JavaScript can do the same with `vsu.allNotesOff()` followed by `vsu.setWave(bank, samples)`.
 
@@ -10,7 +10,7 @@ Choose **VGM / VGZ…** in **Reference playback** or the Files menu to import Vi
 
 Drag the seek bar to jump to a position. When focused, the arrow keys move one second and Page Up and Page Down move five seconds. Seeking during playback resumes at the chosen point. Seeking while stopped or paused opens that point paused so you can copy a sound. The VSU rebuilds its state from the timed register stream, including wave RAM, envelope progression and CH5 modulation.
 
-Select **CH1–6** during reference playback to inspect a channel. **Mute** and **Solo** above the channel settings change the VGM mix while the recorded chip state keeps advancing. The **Mixer** tab adjusts the Synth's channel levels.
+Select **CH1–6** during reference playback to inspect a channel. **Mute** and **Solo** above the channel settings change the VGM mix while the recorded chip state keeps advancing.
 
 To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's wave bank, stereo levels and programmed envelope into the matching editor channel and opens it in **AUTO**. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope at the chosen note. Use **Files → ＋ Patch** to keep the result.
 
@@ -26,6 +26,12 @@ Play a key on a numbered channel while VGM or Code is running to retrigger that 
 
 **Wave bank** selects the shared RAM bank the channel plays and shows its 32 samples in the graph. Draw on the graph to edit those samples. With the graph focused, Left and Right select a sample and Up and Down change its level. **Shape** chooses a preset waveform, and **Apply shape** fills the selected bank with it. Each channel using that bank reads the same samples.
 
+## Mixer
+
+Set **On / Off** and **Volume** for each of the six VSU voices. These controls apply to the keyboard, Code and VGM after the chip's stereo levels. A muted voice keeps its envelope and timing, and turning it on again uses the slider's current level. The VGM **Mute** and **Solo** controls also apply during reference playback.
+
+**Waveform** and **Spectrum** in both tabs use the actual rendered PCM after the channel levels and Master volume. The display combines the left and right output for analysis. The **Wave RAM** graph shows the selected bank's 32 source samples and follows the selected live channel when **Auto update** is enabled.
+
 ## CH5 Sweep and Modulation
 
 Select **CH5** or **AUTO → Sweep / Modulation**, choose an effect, and play a key.
@@ -37,9 +43,13 @@ Select **CH5** or **AUTO → Sweep / Modulation**, choose an effect, and play a 
 
 ## Files
 
-Open **Files** beside the editor, then use **＋ Patch** to save the five wave banks, six channels' settings and envelopes, noise tap, and CH5 parameters as a named `.vsu.json` patch. Open a patch from the tree to restore it. Use **＋ JS** to create a script and **Save** to keep your changes locally. The Files menu imports patches and scripts and exchanges projects as Cassette ZIPs.
+Open **Files** beside the editor, then use **＋ Patch** to save the five wave banks, six channels' settings and envelopes, noise tap, and CH5 parameters as a named `.vsu.json` patch. Open a patch from the tree to restore it. Use **＋ JS** to create a script and **Save** to keep your changes locally. The header menu also provides creation and save commands and imports and exports project files. You can open it with Files closed.
 
 The top **Synth / Code** buttons switch between the full instrument and focused Code workspace. The **Code / Keyboard** tabs below the instrument pick the performance input.
+
+## Keyboard
+
+The fretboard shares FM2612's computer-key layout. Choose **Guitar**, **Bass**, or **Ukulele**, then **Open**, **5th**, or **12th**. Guitar also offers strings **6–3**, **5–2**, and **4–1**. The octave buttons transpose the keyboard from −2 to +2 octaves. Very low notes reach the wavetable voice's hardware floor at about 76.3 Hz.
 
 ## JavaScript
 

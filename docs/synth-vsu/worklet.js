@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createVgmTransport } from './vgm-transport.js?v=vsu-live-keyboard';
-import { VSU_REGISTERS, VSU_SOUND_STOP, vsuChannelRegister } from './vsu.js';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, vsuChannelRegister } from './vsu.js';
 
 const LIVE_REPORT_FRAMES = Math.ceil(sampleRate / 30);
 const WAVE_BANK_COUNT = 5;
@@ -21,6 +21,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.stateBytes = exports.vsu_size();
 			const stateSize = Math.ceil(this.stateBytes / 4) * 4;
 			this.vgmState = this.state + stateSize;
+			this.channelGains = Array(VSU_CHANNEL_COUNT).fill(1);
 			this.synthKeyOwners = new Map();
 			this.vgmKeyOwners = new Map();
 			this.captureAddress = this.vgmState + stateSize;
@@ -37,6 +38,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 				reset: () => {
 					this.vgmKeyOwners.clear();
 					exports.vsu_reset(this.vgmState);
+					this.applyChannelGains(this.vgmState);
 				},
 				restore: bytes => {
 					if (!(bytes instanceof Uint8Array) || bytes.byteLength !== this.stateBytes)
@@ -44,6 +46,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 					// Both wasm instances use the same binary and the state has no pointers.
 					new Uint8Array(exports.memory.buffer, this.vgmState, this.stateBytes).set(bytes);
 					this.vgmKeyOwners.clear();
+					this.applyChannelGains(this.vgmState);
 				},
 				write: (offset, value) => this.writeSource(this.vgmState, this.vgmKeyOwners, offset, value),
 				setMask: mask => exports.vsu_set_mix_mask(this.vgmState, mask),
@@ -57,6 +60,10 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.port.onmessage = ({ data }) => this.handle(data);
 			this.port.postMessage({ type: 'ready' });
 		} catch (error) { this.fail(error); }
+	}
+
+	applyChannelGains(state) {
+		for (const [channel, gain] of this.channelGains.entries()) this.core.vsu_set_channel_gain(state, channel, gain);
 	}
 
 	writeSource(state, owners, offset, value) {
@@ -205,7 +212,15 @@ class VsuProcessor extends AudioWorkletProcessor {
 			case 'reset':
 				this.synthKeyOwners.clear();
 				this.core.vsu_reset(this.state);
+				this.applyChannelGains(this.state);
 				break;
+			case 'channel-gain': {
+				const { channel, gain } = message;
+				this.channelGains[channel] = gain;
+				this.core.vsu_set_channel_gain(this.state, channel, gain);
+				if (this.vgm.ownsOutput) this.core.vsu_set_channel_gain(this.vgmState, channel, gain);
+				break;
+			}
 			case 'write':
 				this.writeSource(this.state, this.synthKeyOwners, message.offset, message.value);
 				break;

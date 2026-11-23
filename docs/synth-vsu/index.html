@@ -6,15 +6,21 @@
   <meta name="theme-color" content="#150b0f">
   <title>Tetorica VSU Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
-  <link rel="stylesheet" href="./synth.css">
-  <link rel="stylesheet" href="./files.css">
-  <script type="module" src="./synth.js"></script>
+  <link rel="stylesheet" href="./synth.css?v=vsu-mixer">
+  <link rel="stylesheet" href="./files.css?v=vsu-mixer">
+  <script type="module" src="./synth.js?v=vsu-mixer"></script>
 </head>
 <body>
   <main class="shell">
     <nav><a href="../index.html">← Tetorica</a></nav>
     <header class="header">
       <div class="header-brand">
+        <details id="synthMenu" class="vsu-file-menu">
+          <summary id="synthMenuButton" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="vsuFilesMenuActions">
+            <span class="menu-glyph" aria-hidden="true"></span>
+          </summary>
+          <div id="vsuFilesMenuActions" class="synth-menu-panel"></div>
+        </details>
         <img class="product-icon" src="../tetorica_vsu_synth.webp" width="80" height="80" alt="" decoding="async">
         <div>
           <h1>Tetorica VSU Synth</h1>
@@ -25,42 +31,40 @@
         <label class="level">Master <input id="master" type="range" min="0" max="100" value="60">
           <output id="masterValue" for="master">60%</output>
         </label>
+        <div class="workspace-actions">
+          <button id="filesToggle" type="button" aria-controls="filesPanel" aria-expanded="false">Files</button>
+          <div class="workspace-switch" role="group" aria-label="Workspace layout">
+            <button id="workspaceCode" type="button" aria-label="Code workspace" aria-pressed="false" aria-controls="codePanel">Code</button>
+            <button id="workspaceSynth" type="button" aria-label="Synth workspace" aria-pressed="true" aria-controls="vsuSynthControls">Synth</button>
+          </div>
+        </div>
       </div>
     </header>
 
-    <div class="workspace-toolbar">
-      <button id="filesToggle" type="button" aria-controls="filesPanel" aria-expanded="false">Files</button>
-
-      <details id="vgmReference" class="panel vgm-reference" open>
-        <summary>Reference playback</summary>
-        <div class="vgm-transport">
-          <label class="vgm-song">Song <select id="vgmSong" aria-label="Reference song" disabled></select></label>
-          <button id="vgmImport" type="button" disabled>VGM / VGZ…</button>
-          <div class="switches" role="group" aria-label="Reference transport">
-            <button id="vgmPlay" type="button" disabled>Play</button>
-            <button id="vgmPause" type="button" disabled>Pause</button>
-            <button id="vgmStop" type="button" disabled>Stop</button>
-            <label><input id="vgmLoop" type="checkbox"> Loop</label>
-          </div>
+    <details id="vgmReference" class="panel vgm-reference" open>
+      <summary>Reference playback</summary>
+      <div class="vgm-transport">
+        <label class="vgm-song">Song <select id="vgmSong" aria-label="Reference song" disabled></select></label>
+        <button id="vgmImport" type="button" disabled>VGM / VGZ…</button>
+        <div class="switches" role="group" aria-label="Reference transport">
+          <button id="vgmPlay" type="button" disabled>Play</button>
+          <button id="vgmPause" type="button" disabled>Pause</button>
+          <button id="vgmStop" type="button" disabled>Stop</button>
+          <label><input id="vgmLoop" type="checkbox"> Loop</label>
         </div>
-        <div class="vgm-position">
-          <div id="vgmSeekTrack" class="vgm-seek-track">
-            <input id="vgmProgress" type="range" min="0" max="1" step="1" value="0"
-              aria-label="Reference playback position" aria-describedby="vgmLoopTime" disabled>
-            <span id="vgmLoopMarker" class="vgm-loop-marker" aria-hidden="true" hidden></span>
-          </div>
-          <output id="vgmTime" for="vgmProgress" aria-label="Reference playback time">0:00 / 0:00</output>
-          <output id="vgmLoopTime" class="vgm-loop-time" hidden></output>
-        </div>
-        <p id="vgmStatus" role="status">Choose a Virtual Boy VGM or VGZ.</p>
-        <p id="vgmError" role="alert" hidden></p>
-      </details>
-
-      <div class="workspace-switch" role="group" aria-label="Workspace layout">
-        <button id="workspaceCode" type="button" aria-label="Code workspace" aria-pressed="false" aria-controls="codePanel">Code</button>
-        <button id="workspaceSynth" type="button" aria-label="Synth workspace" aria-pressed="true" aria-controls="vsuSynthControls">Synth</button>
       </div>
-    </div>
+      <div class="vgm-position">
+        <div id="vgmSeekTrack" class="vgm-seek-track">
+          <input id="vgmProgress" type="range" min="0" max="1" step="1" value="0"
+            aria-label="Reference playback position" aria-describedby="vgmLoopTime" disabled>
+          <span id="vgmLoopMarker" class="vgm-loop-marker" aria-hidden="true" hidden></span>
+        </div>
+        <output id="vgmTime" for="vgmProgress" aria-label="Reference playback time">0:00 / 0:00</output>
+        <output id="vgmLoopTime" class="vgm-loop-time" hidden></output>
+      </div>
+      <p id="vgmStatus" role="status">Choose a Virtual Boy VGM or VGZ.</p>
+      <p id="vgmError" role="alert" hidden></p>
+    </details>
 
     <div id="vsuWorkspace" class="workspace">
       <aside id="filesPanel" class="panel" aria-label="Project files" hidden></aside>
@@ -70,7 +74,7 @@
           <button id="vsuMixerTab" type="button" role="tab" aria-selected="false" aria-controls="vsuMixerPanel" tabindex="-1">Mixer</button>
         </div>
 
-        <div class="panel channel-bar">
+        <div id="vsuChannelBar" class="panel channel-bar">
           <div id="vsuChannelTabs" class="channel-tabs" role="tablist" aria-label="Keyboard and parameter channel"></div>
           <select id="channel" aria-label="Performance channel" hidden></select>
           <div class="capture-tools">
@@ -81,18 +85,13 @@
             </div>
             <button id="vgmCapture" type="button" title="Pause the reference and select a sounding channel." disabled hidden>Copy to Synth</button>
           </div>
-          <div id="vsuAutoTypes" class="channel-tabs auto-types" role="tablist" aria-label="AUTO keyboard voice">
-            <button id="vsuAutoWave" type="button" role="tab" aria-selected="true" aria-controls="vsuWavePanel">Wave (PCM)</button>
-            <button id="vsuAutoEffect" type="button" role="tab" aria-selected="false" aria-controls="ch5Panel" tabindex="-1">Sweep / Modulation</button>
-            <button id="vsuAutoNoise" type="button" role="tab" aria-selected="false" aria-controls="noiseTapGroup" tabindex="-1">Noise</button>
-          </div>
           <output id="vsuChannelStatus" class="channel-source" aria-label="Channel settings source"></output>
           <output id="vgmCaptureStatus" role="status"></output>
         </div>
 
         <div id="vsuChipPanel" role="tabpanel" aria-labelledby="vsuChipTab">
           <div id="vsuSynthControls">
-            <section class="panel monitor" aria-label="Audio output">
+            <section id="vsuOutputMonitor" class="panel monitor" aria-label="Audio output">
               <div class="switches monitor-modes" role="group" aria-label="Output display">
                 <button id="showEnvelope" type="button" aria-pressed="false">Envelope</button>
                 <button id="showWaveform" type="button" aria-pressed="true">Waveform</button>
@@ -119,6 +118,12 @@
                 <output id="envStep" for="envEnabled envRate">Off</output>
               </fieldset>
             </section>
+
+            <div id="vsuAutoTypes" class="channel-tabs auto-types" role="tablist" aria-label="AUTO keyboard voice">
+              <button id="vsuAutoWave" type="button" role="tab" aria-selected="true" aria-controls="vsuWavePanel">Wave (PCM)</button>
+              <button id="vsuAutoEffect" type="button" role="tab" aria-selected="false" aria-controls="ch5Panel" tabindex="-1">Sweep / Modulation</button>
+              <button id="vsuAutoNoise" type="button" role="tab" aria-selected="false" aria-controls="noiseTapGroup" tabindex="-1">Noise</button>
+            </div>
 
             <div class="instrument">
               <section class="panel voice-panel" aria-labelledby="vsuVoiceTitle">
@@ -212,27 +217,38 @@
         </div>
 
         <div id="vsuMixerPanel" role="tabpanel" aria-labelledby="vsuMixerTab" hidden>
-          <section id="vsuAuthorMixer" class="panel" aria-labelledby="vsuAuthorMixerTitle">
-            <h2 id="vsuAuthorMixerTitle">Synth mixer</h2>
-            <div id="vsuAuthorChannels" class="author-channels"></div>
+          <section id="vsuOutputMixer" class="panel" aria-labelledby="vsuOutputMixerTitle">
+            <h2 id="vsuOutputMixerTitle">Channel output</h2>
+            <div id="vsuOutputChannels" class="output-channels"></div>
           </section>
         </div>
 
         <section id="performance" class="panel performance" aria-label="Performance">
-          <div class="switches" role="group" aria-label="Input view">
-            <button id="showCode" type="button" aria-controls="codePanel" aria-pressed="false">Code</button>
-            <button id="showKeyboard" type="button" aria-controls="keyboardPanel" aria-pressed="true">Keyboard</button>
+          <div class="chip-tabs" role="tablist" aria-label="Performance input">
+            <button id="showKeyboard" type="button" role="tab" aria-controls="keyboardPanel" aria-selected="true">Keyboard</button>
+            <button id="showCode" type="button" role="tab" aria-controls="codePanel" aria-selected="false" tabindex="-1">Code</button>
           </div>
-          <div id="keyboardPanel">
-            <div class="panel-head keyboard-head">
-              <label>Octave <select id="octave">
-                <option value="0">Default</option><option value="1">+1</option><option value="2">+2</option>
-              </select></label>
-              <output id="playingNote" aria-live="off"></output>
+          <div id="keyboardPanel" role="tabpanel" aria-labelledby="showKeyboard">
+            <div class="fretboard-toolbar">
+              <div class="fretboard-row">
+                <div class="octave-control" role="group" aria-label="Keyboard octave">
+                  <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
+                  <span>Octave <output id="octaveValue">0</output></span>
+                  <button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button>
+                </div>
+                <span class="fret-display" id="fretDisplay">Fret: 0</span>
+                <span class="fret-display" id="stringDisplay">String 6-3</span>
+                <output id="playingNote" aria-live="off"></output>
+              </div>
+              <div class="fretboard-row">
+                <div id="instrumentControls" class="fretboard-group" role="group" aria-label="Instrument tuning"></div>
+                <div id="positionControls" class="fretboard-group" role="group" aria-label="Fret position"></div>
+                <div id="stringWindowControls" class="fretboard-group" role="group" aria-label="String range"></div>
+              </div>
             </div>
             <div id="keyboard" class="keyboard"></div>
           </div>
-          <div id="codePanel" hidden>
+          <div id="codePanel" role="tabpanel" aria-labelledby="showCode" hidden>
             <textarea id="code" aria-label="JavaScript performance code" spellcheck="false"
               autocapitalize="off" autocomplete="off"></textarea>
             <div class="switches transport">

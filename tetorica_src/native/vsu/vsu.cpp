@@ -26,6 +26,9 @@ constexpr uint32_t noise_channel = 5;
 constexpr uint32_t sweep_channel = 4;
 constexpr uint32_t pitch_mask = 0x7ff;
 constexpr uint16_t noise_seed = 0x7fff;
+constexpr uint32_t mix_gain_bits = 8;
+constexpr uint32_t mix_gain_one = 1u << mix_gain_bits;
+constexpr uint32_t mix_output_shift = 3 + mix_gain_bits;
 
 enum register_offset {
     interval_control = 0x00,
@@ -104,6 +107,7 @@ struct vsu {
     uint8_t sweep = 0;
     uint8_t modulation_position = 0;
     uint8_t mix_mask = all_channels;
+    uint16_t mix_gain[channel_count];
     int32_t held_left = 0;
     int32_t held_right = 0;
 
@@ -113,6 +117,8 @@ struct vsu {
             value = 0;
         for (volatile uint8_t &value : modulation)
             value = 0;
+        for (uint16_t &gain : mix_gain)
+            gain = mix_gain_one;
     }
 
     static uint32_t oscillator_period(const channel &voice, uint32_t index) {
@@ -347,18 +353,26 @@ struct vsu {
         for (uint32_t index = 0; index < channel_count; ++index) {
             if (!(mix_mask & (1u << index)))
                 continue;
-            left += held[index].left;
-            right += held[index].right;
-            center_left += held[index].center_left;
-            center_right += held[index].center_right;
+            const uint32_t gain = mix_gain[index];
+            left += held[index].left * gain;
+            right += held[index].right * gain;
+            center_left += held[index].center_left * gain;
+            center_right += held[index].center_right * gain;
         }
-        held_left = static_cast<int32_t>(left >> 3) - static_cast<int32_t>(center_left >> 3);
-        held_right = static_cast<int32_t>(right >> 3) - static_cast<int32_t>(center_right >> 3);
+        held_left = static_cast<int32_t>(left >> mix_output_shift) - static_cast<int32_t>(center_left >> mix_output_shift);
+        held_right = static_cast<int32_t>(right >> mix_output_shift) - static_cast<int32_t>(center_right >> mix_output_shift);
     }
 
     void set_mix_mask(uint32_t mask) {
         mix_mask = mask & all_channels;
         // The new mix uses the current held DAC values, preserving DAC phase.
+        mix_held();
+    }
+
+    void set_channel_gain(uint32_t index, float gain) {
+        if (index >= channel_count || !(gain >= 0.0f && gain <= 1.0f))
+            return;
+        mix_gain[index] = static_cast<uint16_t>(gain * mix_gain_one + 0.5f);
         mix_held();
     }
 
@@ -432,6 +446,11 @@ void vsu_write(void *state, uint32_t offset, uint32_t value) {
 void vsu_set_mix_mask(void *state, uint32_t mask) {
     if (state)
         static_cast<vsu *>(state)->set_mix_mask(mask);
+}
+
+void vsu_set_channel_gain(void *state, uint32_t channel, float gain) {
+    if (state)
+        static_cast<vsu *>(state)->set_channel_gain(channel, gain);
 }
 
 uint32_t vsu_get_channel(const void *state, uint32_t channel) {

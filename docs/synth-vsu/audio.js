@@ -39,6 +39,7 @@ function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
 
 export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {}, onLiveState = () => {} } = {}) {
 	validateVolume(volume);
+	const channelGains = Array(VSU_CHANNEL_COUNT).fill(1);
 	let session = null;
 	let disposed = false;
 	let nextVgmId = 0;
@@ -119,12 +120,12 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			if (!context.audioWorklet) throw new Error('VSU audio requires AudioWorklet over HTTPS or localhost.');
 			output.gain.value = volume;
 			output.connect(context.destination);
-			const bytes = fetch(new URL('./vsu.wasm?v=vsu-live', import.meta.url), { signal: current.abort.signal }).then(response => {
+			const bytes = fetch(new URL('./vsu.wasm?v=vsu-mixer', import.meta.url), { signal: current.abort.signal }).then(response => {
 				if (!response.ok) throw new Error(`Unable to load the VSU core (HTTP ${response.status}).`);
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live-keyboard', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-mixer', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -161,6 +162,9 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			current.abort.signal.throwIfAborted();
 			clearTimeout(current.timer);
 			current.active = true;
+			for (const [channel, gain] of channelGains.entries()) {
+				if (gain !== 1) send({ type: 'channel-gain', channel, gain });
+			}
 			if (liveChannel !== null) send({ type: 'live-watch', channel: liveChannel, revision: liveRevision });
 		})();
 		current.ready = Promise.race([load, failure]).catch(async error => {
@@ -345,6 +349,16 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			validateMask(mask);
 			if (session?.vgmSeek) session.vgmSeek.mask = mask;
 			sendToVgm({ type: 'vgm-mask', mask });
+		},
+		setChannelMix(channel, { enabled, volume }) {
+			if (!Number.isInteger(channel) || channel < 0 || channel >= VSU_CHANNEL_COUNT)
+				throw new RangeError('Choose a VSU channel from 0 to 5.');
+			if (typeof enabled !== 'boolean' || !Number.isFinite(volume) || volume < 0 || volume > 1)
+				throw new RangeError('Choose a VSU channel volume from 0 to 1 and an enabled state.');
+			const gain = enabled ? volume : 0;
+			if (gain === channelGains[channel]) return;
+			channelGains[channel] = gain;
+			if (session?.active) send({ type: 'channel-gain', channel, gain });
 		},
 		setVolume(level) {
 			validateVolume(level);

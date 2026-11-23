@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { createVgmSeekRenderer } from './vgm-seek.js';
 import { vsuFrequencyRegister, vsuNoteOnWrites } from './vsu.js';
 
 const rate = 48000;
@@ -305,4 +306,75 @@ test('live VGM keys apply to the running transport and respect scheduled gate wr
 	keyboard.off(4);
 	render();
 	assert.deepEqual([live().at(-1).playbackId, voice().active, voice().frequency], [12, true, vsuFrequencyRegister(0, 75)]);
+});
+
+const mixerVoiceWrites = [
+	...Array.from({ length: 32 }, (_, cell) => [cell * 4, cell < 16 ? 63 : 0]),
+	[0x404, 0xf0], [0x410, 0xf0], ...vsuNoteOnWrites(0, 'A4'),
+	[0x544, 0x0f], [0x550, 0xf0], ...vsuNoteOnWrites(5, 'A4'),
+];
+
+function stereoPeaks() {
+	return outputs[0].map(channel => Math.max(...channel.map(Math.abs)));
+}
+
+test('the output mixer changes one channel without changing its stereo registers or its gate', () => {
+	const { send, render, live } = setup();
+	send({ type: 'batch', writes: mixerVoiceWrites.flat() });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	render();
+	const [left, right] = stereoPeaks();
+	assert.ok(left > 0 && right > 0);
+	send({ type: 'channel-gain', channel: 0, gain: 0.5 });
+	render();
+	const [quieter, unaffected] = stereoPeaks();
+	assert.ok(Math.abs(quieter * 2 - left) <= 1 / 512);
+	assert.equal(unaffected, right);
+	send({ type: 'channel-gain', channel: 0, gain: 0 });
+	render(24);
+	assert.deepEqual(stereoPeaks(), [0, right]);
+	const { active, left: lrvLeft, right: lrvRight } = live().at(-1).voice;
+	assert.deepEqual([active, lrvLeft, lrvRight], [true, 15, 0]);
+
+	send({ type: 'reset' });
+	send({ type: 'batch', writes: mixerVoiceWrites.flat() });
+	render();
+	assert.deepEqual(stereoPeaks(), [0, right]);
+	send({ type: 'channel-gain', channel: 0, gain: 1 });
+	render();
+	assert.deepEqual(stereoPeaks(), [left, right]);
+});
+
+test('VGM play and seek retain output gain alongside the VGM audition mask', async () => {
+	const { send, render, live } = setup();
+	const plan = {
+		writes: new Uint32Array(mixerVoiceWrites.flatMap(([offset, value]) => [0, offset, value])),
+		durationTicks: 8000, loopTick: null, loopIndex: 0,
+	};
+	const { instance } = await WebAssembly.instantiate(wasmBinary);
+	const checkpoint = await createVgmSeekRenderer(instance.exports, rate).seek(plan, 1200);
+	send({ type: 'channel-gain', channel: 0, gain: 0 });
+	send({ type: 'vgm-play', id: 1, mask: 63, plan });
+	render();
+	const [muted, right] = stereoPeaks();
+	assert.equal(muted, 0);
+	assert.ok(right > 0);
+	send({ type: 'vgm-mask', id: 1, mask: 1 });
+	render();
+	assert.deepEqual(stereoPeaks(), [0, 0]);
+
+	send({ type: 'vgm-play', id: 2, mask: 63, checkpoint });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	render();
+	assert.deepEqual(stereoPeaks(), [0, right]);
+	const { active, left } = live().at(-1).voice;
+	assert.deepEqual([active, left], [true, 15]);
+	send({ type: 'channel-gain', channel: 0, gain: 0.4 });
+	render();
+	const [quieter] = stereoPeaks();
+	assert.ok(quieter > 0);
+	send({ type: 'channel-gain', channel: 0, gain: 1 });
+	render();
+	const [full] = stereoPeaks();
+	assert.ok(full > quieter);
 });

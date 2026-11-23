@@ -184,32 +184,44 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   const saveButton = button('vsuFileSave', 'Save', save);
   saveButton.title = 'Save the selected file (Ctrl/Cmd+S)';
   saveButton.setAttribute('aria-keyshortcuts', 'Control+S Meta+S');
-  const patchButton = button('vsuFilePatch', '＋ Patch', () => saveNewPatch('/patches'));
-  const codeButton = button('vsuFileNew', '＋ JS', () => newCode('/'));
+  const newPatch = () => saveNewPatch('/patches');
+  const patchButton = button('vsuFilePatch', '＋ Patch', newPatch);
+  const codeButton = button('vsuFileNew', '＋ JS', newCode);
+  const saveControls = element('div', { className: 'vsu-files-save-controls' });
+  saveControls.setAttribute('role', 'group');
+  saveControls.setAttribute('aria-label', 'File saving');
+  saveControls.append(saveButton);
+  actions.append(patchButton, codeButton);
+  heading.append(element('h2', { textContent: 'FILES' }), actions);
 
-  const menu = element('details', { id: 'synthMenu', className: 'vsu-file-menu' });
-  const menuToggle = element('summary', { id: 'synthMenuButton', textContent: 'Menu' });
-  menuToggle.setAttribute('aria-expanded', 'false');
-  menuToggle.setAttribute('aria-controls', 'vsuFilesMenuActions');
-  const menuActions = element('div', { id: 'vsuFilesMenuActions', className: 'synth-menu-panel' });
+  const menuActions = doc.getElementById('vsuFilesMenuActions');
+  function menuSection(title, ...commands) {
+    const section = element('section', { className: 'vsu-menu-section' });
+    if (title) section.append(element('h2', { textContent: title }));
+    for (const command of commands) command.setAttribute('data-close-synth-menu', '');
+    section.append(...commands);
+    menuActions.append(section);
+  }
+  const menuCodeButton = button('vsuMenuNewCode', 'JavaScript…', newCode);
+  const menuPatchButton = button('vsuMenuNewPatch', 'Patch…', newPatch);
+  const menuSaveButton = button('vsuMenuSave', 'Save', save);
   const fileInput = element('input', { id: 'vsuFileImportInput', type: 'file', multiple: true, hidden: true });
   const vgmInput = element('input', { id: 'vsuVgmImportInput', type: 'file', multiple: true, hidden: true });
   vgmInput.accept = '.vgm,.vgz';
   fileInput.accept = '.vsu.json,.json,.js,.mjs,.zip,' + vgmInput.accept;
-  const importButton = element('button', { id: 'vsuFileImport', type: 'button', textContent: 'Import…' });
+  const importButton = element('button', { id: 'vsuFileImport', type: 'button', textContent: 'Patch / JavaScript / Cassette…' });
   importButton.addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
   const vgmImportButton = element('button', { id: 'vsuFileImportVgm', type: 'button', textContent: 'VGM / VGZ…' });
   vgmImportButton.addEventListener('click', requestVgmImport);
-  const exportButton = button('vsuFileExport', 'Export Cassette…', downloadCassette);
+  const exportButton = button('vsuFileExport', 'Cassette · ZIP', downloadCassette);
   exportButton.title = 'Export the files in this project as a Cassette';
-  for (const command of [importButton, vgmImportButton, exportButton]) command.setAttribute('data-close-synth-menu', '');
-  menuActions.append(importButton, vgmImportButton, exportButton);
-  menu.append(menuToggle, menuActions);
-  actions.append(patchButton, codeButton, saveButton, menu);
-  heading.append(element('h2', { textContent: 'Files' }), actions);
+  menuSection('New', menuCodeButton, menuPatchButton);
+  menuSection('Import', vgmImportButton, importButton);
+  menuSection('Export', exportButton);
+  menuSection(null, menuSaveButton);
   const tree = element('div', { id: 'vsuFilesTree' });
   panel.classList.add('panel', 'vsu-files');
-  panel.append(heading, tree, fileInput, vgmInput);
+  panel.append(heading, saveControls, tree, fileInput, vgmInput);
   setupSynthMenu({ document: doc, window: win });
 
   const dialog = element('dialog', { className: 'vsu-files-dialog' });
@@ -298,9 +310,9 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       row.toggleAttribute('data-modified', dirty.has(path));
       if (row.matches('summary') && expanded.has(path)) row.parentElement.open = expanded.get(path);
     }
-    for (const command of [patchButton, codeButton, importButton, vgmImportButton, exportButton])
+    for (const command of [patchButton, codeButton, menuPatchButton, menuCodeButton, importButton, vgmImportButton, exportButton])
       command.disabled = loading || busy;
-    saveButton.disabled = loading || busy || !saveTarget();
+    saveButton.disabled = menuSaveButton.disabled = loading || busy || !saveTarget();
     onVgmAvailability(!loading && !busy);
   }
 
