@@ -96,14 +96,6 @@ function commandDurationTicks(command) {
 	return command & 0x20 ? 2 * SHORT_TICKS : SHORT_TICKS;
 }
 
-export function sm511RepeatStart(commands, startAddress) {
-	for (let offset = 0; offset < commands.length; offset++) {
-		const address = (startAddress + offset) % commands.length;
-		if (commandDurationTicks(commands[address])) return address;
-	}
-	return startAddress;
-}
-
 // Commands already start at the requested address. Their playback clock
 // starts at zero, while trace rows retain the original addresses in the ROM.
 export function traceSm511Melody(commands, startAddress = 0) {

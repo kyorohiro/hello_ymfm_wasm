@@ -4,9 +4,9 @@ import { formatSm511MelodyCode, SM511_DEMO } from './sm511.js';
 export const BUZZER_EXAMPLES = [
 	{
 		path: '/examples/short-beep.js',
-		data: `const buzzer = await useSoundChip("sm510");
+		data: `const buzzer = await useSoundChip("sm510-dk52");
 
-// A pair of short beeps. Change a pitch or the silence between them.
+// A pair of short beeps. Change the gate note or the silence between them.
 const notes = ["E5", null, "E5"];
 const beepSeconds = 0.06;
 const restSeconds = 0.18;
@@ -24,7 +24,7 @@ for (const note of notes) {
 	},
 	{
 		path: '/examples/chirp.js',
-		data: `const buzzer = await useSoundChip("sm510");
+		data: `const buzzer = await useSoundChip("sm510-direct");
 
 // Step through nearby pitches quickly. Reverse the array for a falling chirp.
 const pitches = ["E4", "F#4", "G#4", "A4", "B4", "C#5"];
@@ -39,7 +39,7 @@ buzzer.noteOff(CH1);
 	},
 	{
 		path: '/examples/trill.js',
-		data: `const buzzer = await useSoundChip("sm510");
+		data: `const buzzer = await useSoundChip("sm510-direct");
 
 // Alternate two pitches, then rest before repeating the phrase.
 setBpm(150);
@@ -62,7 +62,7 @@ for (let phrase = 0; phrase < 2; phrase++) {
 	},
 	{
 		path: '/examples/sm510-r1.js',
-		data: `const sm510 = await useSoundChip("sm510");
+		data: `const sm510 = await useSoundChip("sm510-dk52");
 await sm510.write(sm510.REG_R, 0x1);
 await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);
@@ -70,7 +70,7 @@ await sm510.write(sm510.REG_R, 0x0);
 	},
 	{
 		path: '/examples/sm510-cycles.js',
-		data: `const sm510 = await useSoundChip("sm510");
+		data: `const sm510 = await useSoundChip("sm510-dk52");
 const pulse = sm510.build(b => {
   b.atCycle(2).write(sm510.REG_R, 0x1);
   b.atCycle(1640).write(sm510.REG_R, 0x0);

@@ -65,53 +65,63 @@
 		</div>
 		<section id="buzzerChipControls" class="chip-controls" aria-label="Sound chip controls">
 			<div id="buzzerWorkspaceNavigation" class="workspace-navigation">
-				<div id="buzzerChipTabs" class="input-tabs" role="tablist" aria-label="Sound chip">
-					<button id="buzzerSm510Tab" type="button" role="tab" aria-selected="true" aria-controls="buzzerSm510Panel">SM510</button>
+				<div id="buzzerChipTabs" class="workspace-tabs" role="tablist" aria-label="Sound chip">
+					<button id="buzzerSm510Tab" type="button" role="tab" aria-selected="true" aria-controls="buzzerSm510Panel">SM510 (Direct R)</button>
+					<button id="buzzerSm510Dk52Tab" type="button" role="tab" aria-selected="false" aria-controls="buzzerSm510Dk52Panel" tabindex="-1">SM510 (DK-52 Divider)</button>
 					<button id="buzzerSm511Tab" type="button" role="tab" aria-selected="false" aria-controls="buzzerSm511Panel" tabindex="-1">SM511</button>
 					<button id="buzzerMixerTab" type="button" role="tab" aria-selected="false" aria-controls="buzzerMixerPanel" tabindex="-1">Mixer</button>
 				</div>
 			</div>
 			<div id="buzzerSm510Panel" role="tabpanel" aria-labelledby="buzzerSm510Tab">
-				<div id="toneSource" class="tone-source" role="group" aria-label="Tone source">
-					<button type="button" data-tone-mode="direct" aria-pressed="true">Direct R</button>
-					<button type="button" data-tone-mode="dk52" aria-pressed="false">DK-52 Divider</button>
+				<div id="buzzerSm510Controls">
+					<section class="cpu-pulse" aria-labelledby="sm510PulseHeading">
+						<div class="cpu-pulse-controls">
+							<h3 id="sm510PulseHeading">CPU Pulse</h3>
+							<div class="tone-source" role="group" aria-label="Pins driven by CPU pulse">
+								<span>Drive</span>
+								<button id="sm510PulseR1" type="button" aria-pressed="true">R1</button>
+								<button id="sm510PulseR2" type="button" aria-pressed="false">R2</button>
+								<output id="sm510PulseDriveValue" for="sm510PulseR1 sm510PulseR2">1× swing</output>
+							</div>
+							<button id="sm510ContinuousGate" type="button" aria-pressed="false" aria-describedby="sm510PulseInterval" hidden>Continuous</button>
+						</div>
+						<label class="chip-key-tracking"><input id="sm510KeyTracking" type="checkbox" checked> Key tracking · Software</label>
+						<div class="cpu-pulse-sliders">
+							<label for="sm510PulseCycles"><span id="sm510PulseCyclesLabel">Pulse period</span><output id="sm510PulseInterval" for="sm510KeyTracking sm510PulseCycles sm510ContinuousGate">Key tracking</output></label>
+							<input id="sm510PulseCycles" type="range" min="8" max="126" step="2" value="38">
+						</div>
+						<div id="sm510DutyControls" class="cpu-pulse-sliders">
+							<label for="sm510Duty"><span id="sm510DutyLabel">R1 phase duty</span><output id="sm510DutyValue" for="sm510Duty">50%</output></label>
+							<input id="sm510Duty" type="range" min="0" max="100" step="0.5" value="50" aria-describedby="sm510PulseTiming">
+						</div>
+						<p id="sm510PulseTiming" class="chip-note">Play a key to hear the CPU pulse.</p>
+					</section>
+					<details class="chip-help">
+						<summary aria-label="SM510 help" title="SM510 help">?</summary>
+						<p class="chip-note">Moving the timing slider switches to manual timing. Drive sets the voltage swing across R1 and R2.</p>
+						<dl class="chip-details">
+							<dt>Hardware</dt><dd>The mask option fixes how the R pins are driven. <code>ATR</code> copies the low two accumulator bits to R. Direct R holds each pin at its latched level. The DK-52 divider gates a 4,096 Hz signal on each pin, with R2 in opposite phase.</dd>
+							<dt>App playback</dt><dd id="toneSourceDetail">Duty sets the share of the period spent in the R1 phase. When driven, R2 is high in the other phase.</dd>
+						</dl>
+					</details>
+					<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
 				</div>
-				<section class="cpu-pulse" aria-labelledby="sm510PulseHeading">
+			</div>
+			<div id="buzzerSm510Dk52Panel" role="tabpanel" aria-labelledby="buzzerSm510Dk52Tab" hidden></div>
+			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
+				<section class="cpu-pulse" aria-labelledby="sm511PulseHeading">
 					<div class="cpu-pulse-controls">
-						<h3 id="sm510PulseHeading">CPU Pulse</h3>
-						<div class="tone-source" role="group" aria-label="Pins driven by CPU pulse">
+						<h3 id="sm511PulseHeading">CPU Pulse</h3>
+						<div class="tone-source" role="group" aria-label="SM511 melody output drive">
 							<span>Drive</span>
-							<button id="sm510PulseR1" type="button" aria-pressed="true">R1</button>
-							<button id="sm510PulseR2" type="button" aria-pressed="false">R2</button>
-							<output id="sm510PulseDriveValue" for="sm510PulseR1 sm510PulseR2">1× swing</output>
+							<button id="sm511PulseR" type="button" aria-label="Drive SM511 output R" aria-pressed="true">R</button>
+							<output id="sm511PulseDriveValue" for="sm511PulseR">1× swing</output>
 						</div>
 					</div>
-					<label class="chip-key-tracking"><input id="sm510KeyTracking" type="checkbox" checked> Key tracking · Software</label>
-					<div class="cpu-pulse-sliders">
-						<label for="sm510PulseCycles"><span id="sm510PulseCyclesLabel">Pulse period</span><output id="sm510PulseInterval" for="sm510KeyTracking sm510PulseCycles">Key tracking</output></label>
-						<input id="sm510PulseCycles" type="range" min="8" max="126" step="2" value="38">
-					</div>
-					<div id="sm510DutyControls" class="cpu-pulse-sliders">
-						<label for="sm510Duty">R1 phase duty <output id="sm510DutyValue" for="sm510Duty">50%</output></label>
-						<input id="sm510Duty" type="range" min="0" max="100" step="0.5" value="50" aria-describedby="sm510PulseTiming">
-					</div>
-					<p id="sm510PulseTiming" class="chip-note">Play a key to hear the CPU pulse.</p>
 				</section>
-				<details class="chip-help">
-					<summary aria-label="SM510 help" title="SM510 help">?</summary>
-					<p class="chip-note">Moving the timing slider switches to manual timing. Drive sets the voltage swing across R1 and R2.</p>
-					<dl class="chip-details">
-						<dt>Hardware</dt><dd><code>ATR</code> copies the low two accumulator bits to R. Direct R holds each pin at its latched level. The DK-52 divider gates a 4,096 Hz signal on each pin, with R2 in opposite phase.</dd>
-						<dt>App playback</dt><dd id="toneSourceDetail">Duty sets the share of the period spent in the R1 phase. When driven, R2 is high in the other phase.</dd>
-					</dl>
-				</details>
-				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
-			</div>
-			<div id="buzzerSm511Panel" role="tabpanel" aria-labelledby="buzzerSm511Tab" hidden>
 				<div class="rom-keyboard-options">
 					<label class="chip-key-tracking"><input id="sm511KeyTracking" type="checkbox" checked> Key tracking · Software</label>
 					<label class="chip-key-tracking"><input id="sm511Repeat" type="checkbox"> Repeat · Software</label>
-					<span class="sm511-output">Melody output <strong>R</strong> · 1 pin</span>
 				</div>
 				<div class="rom-controls">
 					<div class="rom-note">
@@ -155,7 +165,7 @@
 							<output id="sm511RomStartValue" for="sm511RomStart" aria-live="off">0x00</output>
 							<input id="sm511RomStart" type="range" min="0" max="255" step="1" value="0" aria-valuetext="0x00">
 						</div>
-						<label class="chip-key-tracking sm511-rom-repeat"><input id="sm511RomRepeat" type="checkbox" aria-label="Repeat melody"> Repeat</label>
+						<label class="chip-key-tracking sm511-rom-repeat"><input id="sm511RomRepeat" type="checkbox" aria-label="Repeat melody"> Repeat · Software</label>
 					</div>
 					<div class="transport sm511-rom-transport">
 						<button id="sm511Play" class="primary" type="button">Play melody</button>
@@ -170,8 +180,9 @@
 					<summary aria-label="SM511 help" title="SM511 help">?</summary>
 					<dl class="chip-details">
 						<dt>Hardware ROM</dt><dd>The 256-word ROM stores six-bit commands for pitches, rests and stops. Bit 4 chooses the octave and bit 5 selects 62.5 or 125 ms.</dd>
-						<dt>Hardware output</dt><dd>The melody controller drives the single R pin. SM510’s 2× swing uses the voltage across two pins. Use Mixer → SM511 to adjust playback level.</dd>
-						<dt>App playback</dt><dd>Press a key to play one ROM command. Keyboard repeat continues the same note until you release the key. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. Play melody runs from Start address to the first Stop or the end of the ROM. Repeat advances past Stop at the start address and plays the resulting section again.</dd>
+						<dt>Hardware output</dt><dd>The melody controller supplies the waveform timing. The CPU enables the single R output with <code>SME</code> and disables it with <code>RME</code>. The melody clock keeps advancing when R is off. SM510’s 2× swing uses the voltage across two pins.</dd>
+						<dt>Drive</dt><dd>R switches the output on or off during playback. Use Mixer → SM511 to adjust playback level.</dd>
+						<dt>App playback</dt><dd>Press a key to play one ROM command. Keyboard repeat continues the same note until you release the key. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. Play melody runs from Start address to the first Stop or the end of the ROM. Repeat loops from Start address. If it contains Stop, playback waits silently until you edit that step, seek to another start, or press Stop melody.</dd>
 					</dl>
 				</details>
 			</div>
@@ -198,7 +209,7 @@
 			<div class="performance">
 				<section id="synthInputSection" aria-label="Performance input">
 					<div id="buzzerInputHeading" class="input-heading">
-						<div id="buzzerInputTabs" class="input-tabs" role="tablist" aria-label="Performance input">
+						<div id="buzzerInputTabs" class="workspace-tabs" role="tablist" aria-label="Performance input">
 							<button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
 							<button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
 						</div>
@@ -233,7 +244,7 @@
 							<textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
 							<div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
 						</div>
-						<p id="synthCodeEditorNote">Use <code>sm510</code> for notes, patterns, or divider R writes, <code>sm510-direct</code> for direct R writes, or <code>sm511</code> for melody ROM commands.</p>
+						<p id="synthCodeEditorNote">Choose <code>sm510-direct</code> or <code>sm510-dk52</code> for SM510 notes, patterns, and R writes. Use <code>sm511</code> for melody ROM commands.</p>
 						<pre id="synthCodeError" class="code-log" role="alert"></pre>
 						<pre id="synthCodeLog" class="code-log" aria-label="Code output"></pre>
 					</div>
@@ -279,7 +290,7 @@
 							<button id="sm510MonitorDiff" type="button" aria-pressed="false">R1 − R2</button>
 						</div>
 						<p>Open <strong>Files → examples → sm510-r1.js</strong> and press <strong>Run</strong>. Bit 0 of <code>REG_R</code> gates the fixed R1 carrier. The wait sets the beep length in seconds.</p>
-						<pre id="sm510CodeExample" class="code-log"><code>const sm510 = await useSoundChip("sm510");
+						<pre id="sm510CodeExample" class="code-log"><code>const sm510 = await useSoundChip("sm510-dk52");
 await sm510.write(sm510.REG_R, 0x1);
 await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);</code></pre>
@@ -302,9 +313,9 @@ await sm510.playCycles(pulse);</code></pre>
 								<dt>Mixer and WAV</dt><dd>Level, mute and Master apply to the finished audio. WAV export renders one pass on the selected voice with its mix settings.</dd>
 						</dl>
 						<h3>Effects to try</h3>
-						<p>Choose <strong>SM510 → Direct R</strong> to hear the pitch changes in these <strong>Files → examples</strong> scripts.</p>
+						<p>Open these scripts in <strong>Files → examples</strong>.</p>
 						<ul>
-							<li><strong>Short beep.</strong> <code>short-beep.js</code> separates two notes with a rest.</li>
+							<li><strong>Short beep.</strong> <code>short-beep.js</code> gates the DK-52 carrier twice.</li>
 							<li><strong>Chirp.</strong> <code>chirp.js</code> climbs quickly through a series of pitches.</li>
 							<li><strong>Trill or alarm.</strong> <code>trill.js</code> alternates two pitches, pauses, and repeats.</li>
 						</ul>

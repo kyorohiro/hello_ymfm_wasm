@@ -1,17 +1,20 @@
 # Tetorica SM510 Synth
 
 Tetorica SM510 Synth combines the Sharp SM510 buzzer and SM511 melody voice.
-Use the upper **SM510**, **SM511**, and **Mixer** tabs to choose a voice or
-adjust the mix. Use **Keyboard** and **Code** to perform and edit, or
-**SM511 → Melody ROM** to edit and play the chip's 256 melody commands.
+Use the upper **SM510 (Direct R)**, **SM510 (DK-52 Divider)**, **SM511**,
+and **Mixer** tabs to choose a configuration or adjust the mix. Use
+**Keyboard** and **Code** to perform and edit, or **SM511 → Melody ROM**
+to edit and play the chip's 256 melody commands.
 
 ## SM510 tone source
 
-The **Tone source** buttons in **SM510** set how that voice renders new notes.
+The two SM510 tabs model separate factory mask options for the R outputs.
+Both use the SM510 Mixer channel. On the chip, `ATR` can change which of its
+two R pins are driven while the mask fixes the output source.
 
-| Tone source | What you hear |
+| SM510 tab | What you hear |
 | --- | --- |
-| **Direct R** (default) | The program toggles the R latch at whole SM510 machine cycles. **Duty** changes the pulse width while keeping the chip's realized pitch. |
+| **Direct R** (default) | The program toggles the R latch at whole SM510 machine cycles. **Duty** changes the pulse width. At 0% and 100% the latch holds a steady level and the audio is silent. |
 | **DK-52 Divider** | Each playable note opens the gate on the DK-52’s fixed 4,096 Hz R1 carrier. Changing notes leaves the carrier frequency fixed. Rests close the gate. |
 
 ## SM511 melody voice
@@ -20,12 +23,14 @@ The SM511 uses a dedicated melody controller with a 256-step ROM and six bits
 per step. The stored commands describe notes, rests, and stops. The controller
 generates 12 chromatic pitches in either of two octaves from the 32.768 kHz
 clock, with timing units of 62.5 ms or 125 ms. The controller drives a
-single melody output pin, **R**. Use **Mixer → SM511** to adjust the app's
-playback level. SM512 shares this melody controller and expands the LCD
-segment map. The browser's SM511 voice
+single melody output pin, **R**. Use **CPU Pulse → Drive R** to switch the
+output between **1× swing** and **Off** while the melody clock keeps running.
+On the chip, `SME` enables melody output and `RME` disables it. Use
+**Mixer → SM511** to adjust the app's playback level. SM512 shares this
+melody controller and expands the LCD segment map. The browser's SM511 voice
 renders the controller's output in WASM built from the same C++ source as the
 native core.
-[Sharp Microcomputers Data Book, SM511/SM512 pp. 161–166](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=170)
+[Sharp Microcomputers Data Book, SM511/SM512 pp. 161–170](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=170)
 
 With **SM511** selected, press an on-screen pad or computer key to play one
 ROM note for **62.5 ms** or **125 ms**. Releasing the key can stop it early.
@@ -53,23 +58,24 @@ with Stop commands.
 Choose a **Start address** from `0x00` to `0xFF` and press **Play melody**.
 The address selected in the grid is the one you edit. During playback,
 **Start address** updates the hexadecimal readout as you move the slider
-and seeks when you finish adjusting it. Playback ends at the first Stop
-or at the end of the ROM. Turn on **Repeat** to play the phrase again.
-If the start address contains Stop, Repeat advances to the next note or
-rest, wrapping to `0x00` if needed. Turn Repeat off to finish the current
-pass. Melody ROM Repeat defaults off and is independent of the keyboard's
-**Repeat · Software** switch. Press **Stop melody** to end playback.
+and seeks when you finish adjusting it. Each pass ends at the first Stop
+or at the end of the ROM. **Repeat · Software** repeats the phrase from
+the selected start address. If that address contains Stop, Repeat waits
+silently there. Edit that command or choose a new start address to resume
+playback. Turn Repeat off to finish the current pass or end the silent
+wait. Melody ROM Repeat defaults off and is independent of the keyboard's
+Repeat switch. Press **Stop melody** to end playback.
 
 Changes to a note, rest, or duration take effect during playback. The
 player keeps its current address and elapsed position when the edited ROM
-allows it. If a Stop edit cuts off the current position, playback ends or
-restarts the phrase when Repeat is on. **Copy as Code**
+allows it. If a Stop edit cuts off the current position, Repeat returns to
+the selected start address. **Copy as Code**
 copies all 256 commands and the chosen start address into a one-pass script
 that calls `sm511.setMelody()` and `sm511.play()`.
 
 The edited ROM is saved with the Cassette. Select SM511 and choose
 **Menu → Export → Melody ROM · WAV** to export playback from `0x00` as
-48 kHz mono PCM16 at the current SM511 Mixer and Master levels.
+48 kHz mono PCM16 with the current Drive R, SM511 Mixer and Master settings.
 
 ### SM511 from Code
 
@@ -127,7 +133,7 @@ The SM510 and SM511 tabs distinguish each chip’s hardware behavior from app
 controls. The Melody ROM editor, Keyboard, Code, and Mixer belong to the app.
 
 ```js
-const buzzer = await useSoundChip('sm510');
+const buzzer = await useSoundChip('sm510-direct');
 await buzzer.noteOn(CH1, 'C4');
 await beat(0.25);
 buzzer.noteOff(CH1);
@@ -137,10 +143,10 @@ buzzer.configure({ bpm: 144, gate: 0.4 });
 await buzzer.playPattern({ loop: false });
 ```
 
-`sm510.noteOn()` and `sm510.playPattern()` use the SM510 tone source set in
-the app, including **Duty** in Direct R. The `sm510` register and cycle methods
-use the DK-52 divider. The `sm510-direct` register and cycle methods use the
-direct mask.
+`useSoundChip('sm510-direct')` and `useSoundChip('sm510-dk52')` each fix the
+mask for notes, patterns, register writes, and cycle playback. Existing
+`useSoundChip('sm510')` scripts use the current SM510 tab for notes and
+patterns and the DK-52 divider for register and cycle playback.
 
 Existing `useSoundChip('lcd-buzzer')` scripts play notes and patterns on the
 selected SM510 or SM511. Use `setStep(0, 'C4')` to change the first step and
@@ -168,18 +174,29 @@ to the closest available rate. Moving the timing slider switches to a fixed
 rate for every key. Check **Key tracking** again to follow the pitch of the
 held key.
 
-In **Direct R**, the slider sets an 8–126 machine-cycle period in steps of
-two, for pitches from 2,048 Hz down to about 130 Hz. In **DK-52 Divider**,
-the slider sets the gate's on and off intervals from 4 to 63 cycles. The
-gate controls a fixed 4,096 Hz carrier.
+Both configurations set an 8–126 machine-cycle period in steps of two.
+In **Direct R**, this gives pitches from 2,048 Hz down to about 130 Hz.
+In **DK-52 Divider**, the period sets how often the gate opens on a fixed
+4,096 Hz carrier.
 
 In **Direct R**, adjust **R1 phase duty** to change the fraction of each period spent
 in the phase where R1 is high. Duty defaults to 50%. It can change while
 you hold a note, and the panel shows the realized pitch, duty and cycle
-counts for the high and low phases. Each phase takes at least two cycles,
-so a request of 0% or 100% gives the closest available pulse. Keyboard,
-pattern playback and Pattern WAV export use the same duty setting in
-Direct R. Pattern `gate` still controls how much of a sequencer step sounds.
+counts for the high and low phases. Each phase of a repeating pulse takes
+at least two cycles. At 100%, the latch holds the R1 phase. At 0%, it holds
+the R2 phase. The scope shows the enabled pins' steady level and the audio
+is silent. Keyboard, pattern playback and Pattern WAV export use the same
+duty setting in Direct R. Pattern `gate` controls how much of a step sounds.
+
+In **DK-52 Divider**, **R1 gate duty** sets the share of each period for which
+the gate is open. The readout shows the actual duty and the **ON / OFF** cycle
+counts. At **100%** the gate stays open for a continuous 4,096 Hz carrier on
+the enabled pins. At **0%** the gate stays closed. A gate that switches on
+and off takes at least two machine cycles in each phase. **Continuous** sets
+the gate period to **0 cycles** and holds the gate open. Switch Continuous off
+to return to the previous gate settings. The Direct R and DK-52 duty values
+are saved separately. CPU Pulse applies to keyboard and Code `noteOn()`
+playback. Divider patterns use their own per-step `gate`.
 
 **Drive** selects which pins participate. The voice auditions across R1 and
 R2. With both pins selected in Direct R, the CPU alternates `0x1` and `0x2`.
@@ -198,9 +215,8 @@ to Pulse output and mono audio for explicit Code register writes. The monitor
 defaults to R1 to match the DK-52 board wiring, and the R1 gate demo uses that
 same pin. In Direct R, a steady pin level gives no sustained tone.
 
-Use `useSoundChip('sm510')` for the DK-52 divider and
-`useSoundChip('sm510-direct')` for the direct mask. Each client keeps its
-mask regardless of the **Tone source** selector. Both expose immediate writes,
+Use `useSoundChip('sm510-dk52')` for the DK-52 divider and
+`useSoundChip('sm510-direct')` for the direct mask. Both expose immediate writes,
 one-shot cycle playback, and [named timed playback](#named-timed-playback).
 
 Open `examples/sm510-r1.js` in **Files** and press **Run** for a DK-52 beep.
@@ -208,7 +224,7 @@ Bit 0 of `REG_R` gates the fixed R1 carrier. Write `0x1` to open the gate
 and `0x0` to close it. Change the wait in seconds to shape the beep.
 
 ```js
-const sm510 = await useSoundChip("sm510");
+const sm510 = await useSoundChip("sm510-dk52");
 await sm510.write(sm510.REG_R, 0x1);
 await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);
@@ -223,11 +239,12 @@ sustained tone. Successive writes that alternate the level produce the tone.
 
 The app picks a period `P = 2 × N` for `N` from 4 to 63, to get the closest
 available pitch in Hz. C3 uses 126 cycles (130.03 Hz), and A4 uses 38 cycles
-(431.16 Hz). The pitch is `16,384 / P`. For a requested duty fraction `d`,
-the app rounds `P × d` to the nearest cycle and limits the result to
-`2` through `P − 2`. The remaining cycles make up the low phase. The
-actual duty is `highCycles / P`. An A4 with 25% requested duty has 10 high
-and 28 low cycles, giving about 26.32% at the same 431.16 Hz.
+(431.16 Hz). The pitch of a repeating pulse is `16,384 / P`. For duty
+fractions between 0 and 1, the app rounds `P × d` to the nearest cycle
+and limits the result to `2` through `P − 2`. The remaining cycles make up
+the low phase. The actual duty is `highCycles / P`. An A4 with 25% requested
+duty has 10 high and 28 low cycles, giving about 26.32% at 431.16 Hz.
+At 0 and 1, the latch holds one phase and the frequency is zero.
 
 An SM510 program can realize these timings using `LAX` and `ATR` to change
 the latch in two cycles. It places one-cycle no-ops in the gaps and uses a
@@ -258,8 +275,9 @@ operations, so include instruction costs in the offsets when representing a prog
 
 `sm510-direct.pulseTiming(frequency, duty)` takes a target in Hz and a duty
 fraction from 0 to 1. It returns `highCycles`, `lowCycles`, `periodCycles`,
-`frequency` in Hz and the realized `duty` fraction. Use those lengths to
-place explicit writes when building a sequence. The raw methods play at
+`frequency` in Hz and the realized `duty` fraction. Duty 0 or 1 gives
+`frequency: 0` and keeps the target period as a reference. Use those lengths
+to place explicit writes when building a sequence. The raw methods play at
 the cycle offsets you specify.
 
 ```js
@@ -299,7 +317,7 @@ their own Mixer channels. Each phrase takes a quarter of a second and starts
 again every second.
 
 ```js
-const sm510 = await useSoundChip('sm510');
+const sm510 = await useSoundChip('sm510-dk52');
 const sm511 = await useSoundChip('sm511');
 
 const pulse = sm510.build(b => {
@@ -327,10 +345,10 @@ frames, with room for the complete phrase. Each repeat plays the phrase
 from reset on the browser's `AudioContext` clock.
 
 Each chip can play one timed reservation at a time. A new reservation on
-that chip replaces the current one, even with a different name. `sm510` and
-`sm510-direct` share this reservation. Each plan uses the DK-52 or Direct R
-mode of the client that built it. SM511 can play independently. Playing a key
-or using an immediate playback method on the same chip can interrupt
+that chip replaces the current one, even with a different name. `sm510`,
+`sm510-direct`, and `sm510-dk52` share this reservation. Each plan uses the
+DK-52 or Direct R mode of the client that built it. SM511 can play
+independently. Playing a key or using an immediate playback method on the same chip can interrupt
 scheduled playback. Use
 `await chip.clearSchedule(name)` from the script or loop that owns the
 reservation to cancel a matching name.

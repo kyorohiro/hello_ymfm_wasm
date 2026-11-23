@@ -119,17 +119,25 @@ export function readRAtTick({ writes }, tick) {
 export function buildSm510Pulse(mode, halfCycles, driveMask, highCycles = halfCycles) {
 	const direct = mode === DIRECT_R;
 	if (!direct && mode !== DK52_R) throw new RangeError('Choose Direct R or the DK-52 divider.');
-	if (!Number.isInteger(halfCycles) || halfCycles < MIN_PULSE_HALF_CYCLES || halfCycles > MAX_PULSE_HALF_CYCLES)
-		throw new RangeError(`Use ${MIN_PULSE_HALF_CYCLES}–${MAX_PULSE_HALF_CYCLES} machine cycles per half-period.`);
 	if (!Number.isInteger(driveMask) || driveMask < 0 || driveMask > 3)
 		throw new RangeError('Use a two-bit R pin mask.');
-	if (direct && (!Number.isInteger(highCycles) || highCycles < R_WRITE_CYCLES ||
-		2 * halfCycles - highCycles < R_WRITE_CYCLES))
-		throw new RangeError('Allow at least two machine cycles for each Direct R phase.');
-
 	const loopStart = R_WRITE_CYCLES * TICKS_PER_MACHINE_CYCLE;
+	const continuous = !direct && halfCycles === 0 && highCycles === 0;
+	if (!continuous && (!Number.isInteger(halfCycles) || halfCycles < MIN_PULSE_HALF_CYCLES || halfCycles > MAX_PULSE_HALF_CYCLES))
+		throw new RangeError(`Use ${MIN_PULSE_HALF_CYCLES}–${MAX_PULSE_HALF_CYCLES} machine cycles per half-period.`);
 	const halfTicks = halfCycles * TICKS_PER_MACHINE_CYCLE;
-	const highTicks = direct ? highCycles * TICKS_PER_MACHINE_CYCLE : halfTicks;
+	if (highCycles === 0 || highCycles === 2 * halfCycles) {
+		let latch;
+		if (direct) latch = driveMask & (highCycles > 0 ? 1 : 2);
+		else latch = continuous || highCycles > 0 ? driveMask : 0;
+		const loopLength = direct ? 2 * halfTicks : R1_DIVISOR;
+		return { end: loopStart + loopLength, writes: Uint32Array.of(loopStart, latch), loopStart, halfTicks };
+	}
+	if (!Number.isInteger(highCycles) || highCycles < R_WRITE_CYCLES ||
+		2 * halfCycles - highCycles < R_WRITE_CYCLES)
+		throw new RangeError('Allow at least two machine cycles for each R phase.');
+
+	const highTicks = highCycles * TICKS_PER_MACHINE_CYCLE;
 	const period = 2 * halfTicks;
 	// An odd number of machine cycles per half-period flips the divider phase
 	// after one pulse period, so the loop must include both phases.
@@ -237,20 +245,25 @@ export function createSm510AudioCore({
 		render(start, frames, sampleRate, command);
 		return new Float32Array(memory.buffer, start, frames).slice();
 	}
+	function pulseTiming(halfCycles, duty = .5) {
+		if (!Number.isInteger(halfCycles) || halfCycles < MIN_PULSE_HALF_CYCLES || halfCycles > MAX_PULSE_HALF_CYCLES)
+			throw new RangeError(`Use ${MIN_PULSE_HALF_CYCLES}–${MAX_PULSE_HALF_CYCLES} machine cycles per half-period.`);
+		if (!Number.isFinite(duty) || duty < 0 || duty > 1)
+			throw new RangeError('R duty must be between 0 and 1.');
+		const periodCycles = 2 * halfCycles;
+		const steadyLatch = duty === 0 || duty === 1;
+		// LAX and ATR have the same timing under both R output masks.
+		const highCycles = steadyLatch ? periodCycles * duty : sm510_direct_high_cycles(periodCycles, duty);
+		return {
+			highCycles, lowCycles: periodCycles - highCycles, periodCycles,
+			frequency: steadyLatch ? 0 : directPitchHz(halfCycles), duty: highCycles / periodCycles,
+		};
+	}
 	return {
 		directHalfCycles: sm510_direct_half_cycles,
-		directPulseTiming(halfCycles, duty = .5) {
-			if (!Number.isInteger(halfCycles) || halfCycles < MIN_PULSE_HALF_CYCLES || halfCycles > MAX_PULSE_HALF_CYCLES)
-				throw new RangeError(`Use ${MIN_PULSE_HALF_CYCLES}–${MAX_PULSE_HALF_CYCLES} machine cycles per half-period.`);
-			if (!Number.isFinite(duty) || duty < 0 || duty > 1)
-				throw new RangeError('Direct R duty must be between 0 and 1.');
-			const periodCycles = 2 * halfCycles;
-			const highCycles = sm510_direct_high_cycles(periodCycles, duty);
-			return {
-				highCycles, lowCycles: periodCycles - highCycles, periodCycles,
-				frequency: directPitchHz(halfCycles), duty: highCycles / periodCycles,
-			};
-		},
+		pulseTiming,
+		directPulseTiming: pulseTiming,
+		dividerPulseTiming: pulseTiming,
 		renderR1: pinRenderer(sm510_render_r1),
 		renderR2: pinRenderer(sm510_render_r1, { r2: true, invert: true }),
 		renderDirectR1: pinRenderer(sm510_render_direct_r1),
@@ -287,6 +300,7 @@ export function renderSm510Notes(core, mode, frequencies, { stepSeconds, gate = 
 			const half = core.directHalfCycles(frequency);
 			if (!half) throw new RangeError('The direct R note needs a positive frequency.');
 			pulse = directPulses[step] = core.directPulseTiming(half, duty);
+			if (!pulse.frequency) continue; // A held pin level produces no sustained tone.
 		}
 		// The first pin change occurs after LAX and ATR finish. At release, the
 		// direct routine leaves R1 low after its last complete period.

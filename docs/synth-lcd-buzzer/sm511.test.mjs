@@ -7,7 +7,7 @@ import { createSm510AudioCore, MASTER_CLOCK_HZ } from './sm510.js';
 import {
 	buildSm511MelodySequence, compileSm511MelodySequence, createSm511CodeChip, formatSm511MelodyCode, readSm511MelodySequence,
 	renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
-	sm511Command, sm511CommandLabel, sm511Label, sm511RepeatStart, traceSm511Melody, validateMelody,
+	sm511Command, sm511CommandLabel, sm511Label, traceSm511Melody, validateMelody,
 } from './sm511.js';
 
 const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
@@ -134,15 +134,16 @@ test('repeating the SM511 waveform matches adjacent identical ROM commands', () 
 	}
 });
 
-test('SM511 editor Repeat can start on Stop and wrap to the next timed slot', () => {
-	const rom = new Uint8Array(256).fill(0x01);
-	assert.equal(sm511RepeatStart(rom, 0xff), 0xff);
-	rom[0] = 0x09;
-	rom[0x14] = 0x20; // A long rest is a timed slot.
-	rom[0x18] = 0x2d;
-	assert.equal(sm511RepeatStart(rom, 0x12), 0x14);
-	assert.equal(sm511RepeatStart(rom, 0x18), 0x18);
-	assert.equal(sm511RepeatStart(rom, 0xff), 0x00);
+test('SM511 playback at a Stop is silent even when a later ROM address has a note', () => {
+	const rom = Uint8Array.of(0x01, 0x21, 0x12, 0x01, 0x2d);
+	for (const address of [0, 1]) {
+		const words = rom.subarray(address);
+		assert.deepEqual(traceSm511Melody(words, address).map(row => [row.address, row.durationTicks]), [[address, 0]]);
+		assert.equal(renderSm511Melody(core, words, MASTER_CLOCK_HZ).length, 0);
+	}
+	const c7 = renderSm511Melody(core, rom.subarray(2), MASTER_CLOCK_HZ);
+	assert.equal(c7.length, 2048);
+	assert(c7.some(sample => sample > 0));
 });
 
 test('a full SM511 ROM can play its last address without a trailing Stop', () => {

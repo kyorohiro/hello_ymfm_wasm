@@ -172,6 +172,25 @@ test('retuning replaces the held tone without changing note ownership', async ()
 	assert.equal(voice.getNote(), null);
 });
 
+test('switching the selected SM510 mask preserves a fixed Code note and its later retunes', async () => {
+	const prepared = [];
+	const { voice, sources, buffer } = fixture(undefined, () => 'sm510', {
+		prepareTone(_frequency, _context, _note, _chip, options) {
+			prepared.push(options.toneMode);
+			return { buffer, toneMode: options.toneMode };
+		},
+	});
+	await voice.noteOn('A4', Symbol('Code'), { chip: 'sm510', toneMode: 'direct' });
+	assert.equal(await voice.retune('sm510', { followSelectionOnly: true }), false);
+	assert.equal(sources.length, 1);
+	assert.equal(await voice.retune('sm510'), true);
+	assert.deepEqual(prepared, ['direct', 'direct']);
+
+	await voice.noteOn('A4', Symbol('Keyboard'), { keyboard: true });
+	assert.equal(await voice.retune('sm510', { followSelectionOnly: true }), true);
+	assert.deepEqual(prepared, ['direct', 'direct', undefined, undefined]);
+});
+
 test('retune ignores other chips, pending notes, and preparations superseded or released', async () => {
 	const owner = Symbol('keyboard'), other = Symbol('code');
 	const preparations = [];

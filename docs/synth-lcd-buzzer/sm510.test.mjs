@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { buzzerCodeDeclarations } from './code.js';
+import { encodeWav } from '../js/wav.js';
+import { BUZZER_STARTER, buzzerCodeDeclarations } from './code.js';
+import { BUZZER_EXAMPLES } from './code_examples.js';
 import {
 	DIRECT_R, DK52_R, MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, MAX_PULSE_HALF_CYCLES, MIN_PULSE_HALF_CYCLES,
 	R1_DIVISOR, R1_HZ, buildSm510Pulse,
@@ -18,6 +20,8 @@ test('Code declarations expose the note, R output, and timed playback clients', 
 	assert.match(types, /'lcd-buzzer': BuzzerCodeChip/);
 	assert.match(types, /sm510: Sm510CodeChip<'sm510'> & BuzzerPerformance/);
 	assert.match(types, /'sm510-direct': Sm510DirectCodeChip/);
+	assert.match(types, /'sm510-dk52': Sm510CodeChip<'sm510-dk52'> & BuzzerPerformance/);
+	assert.match(types, /interface Sm510DirectCodeChip extends Sm510CodeChip<'sm510-direct'>, BuzzerPerformance/);
 	assert.match(types, /pulseTiming\(frequencyHz: number, duty\?: number\): Sm510PulseTiming/);
 	assert.match(types, /readonly REG_R: 0/);
 	assert.match(types, /noteOn\(channel: typeof CH1/);
@@ -26,6 +30,21 @@ test('Code declarations expose the note, R output, and timed playback clients', 
 	assert.match(types, /compile\(sequence: Sm511MelodySequence\): Sm511MelodySlot\[\]/);
 	assert.match(types, /schedule\(sequence: Sequence, options: BuzzerScheduleOptions\)/);
 	assert.match(types, /clearSchedule\(name: string\): Promise<boolean>/);
+});
+
+test('the starter and SM510 examples specify their tone source in Code', () => {
+	assert.match(BUZZER_STARTER, /useSoundChip\("sm510-direct"\)/);
+	const clients = {
+		'/examples/short-beep.js': 'sm510-dk52',
+		'/examples/chirp.js': 'sm510-direct',
+		'/examples/trill.js': 'sm510-direct',
+		'/examples/sm510-r1.js': 'sm510-dk52',
+		'/examples/sm510-cycles.js': 'sm510-dk52',
+	};
+	for (const [path, name] of Object.entries(clients)) {
+		const example = BUZZER_EXAMPLES.find(example => example.path === path);
+		assert(example?.data.includes(`useSoundChip("${name}")`), path);
+	}
 });
 
 test('DK-52 R1 uses the same 4,096 Hz carrier at different step times and browser sample rates', () => {
@@ -130,6 +149,92 @@ test('DK-52 CPU pulses retain divider phase when the loop wraps', () => {
 	}
 });
 
+test('DK-52 interval zero holds the selected R bits and loops the continuous carrier', () => {
+	const level = Math.fround(.16);
+	const carrier = Float32Array.of(level, level, level, level, -level, -level, -level, -level);
+	for (const driveMask of [0, 1, 2, 3]) {
+		const pulse = buildSm510Pulse(DK52_R, 0, driveMask);
+		assert.deepEqual(pulse, { end: 12, writes: Uint32Array.of(4, driveMask), loopStart: 4, halfTicks: 0 });
+		const loopLength = pulse.end - pulse.loopStart;
+		const continuous = { ...pulse, end: pulse.end + loopLength };
+		for (const [bit, renderPin] of [[1, core.renderR1], [2, core.renderR2]]) {
+			const expected = driveMask & bit ? carrier.map(sample => bit === 1 ? sample : -sample) : new Float32Array(8);
+			const pcm = renderR1Timeline(continuous, MASTER_CLOCK_HZ, renderPin);
+			assert(pcm.slice(0, 4).every(sample => sample === 0));
+			assert.deepEqual(pcm.slice(4, 12), expected);
+			assert.deepEqual(pcm.slice(12), expected);
+		}
+	}
+	assert.throws(() => buildSm510Pulse(DIRECT_R, 0, 1), /machine cycles/);
+});
+
+test('DK-52 at 126 cycles uses exact closed and continuous duty endpoints', () => {
+	const halfCycles = 63;
+	const closed = core.dividerPulseTiming(halfCycles, 0);
+	const open = core.dividerPulseTiming(halfCycles, 1);
+	assert.deepEqual(closed, { highCycles: 0, lowCycles: 126, periodCycles: 126, frequency: 0, duty: 0 });
+	assert.deepEqual(open, { highCycles: 126, lowCycles: 0, periodCycles: 126, frequency: 0, duty: 1 });
+
+	const mask = 3;
+	const closedPlan = buildSm510Pulse(DK52_R, halfCycles, mask, closed.highCycles);
+	const openPlan = buildSm510Pulse(DK52_R, halfCycles, mask, open.highCycles);
+	assert.deepEqual([...openPlan.writes], [4, mask]);
+	assert.equal(openPlan.end - openPlan.loopStart, R1_DIVISOR);
+	const continuous = buildSm510Pulse(DK52_R, 0, mask);
+	// Listen beyond the configured interval to catch a falling edge at wrap.
+	const end = 4 + 2 * open.periodCycles + 2 * R1_DIVISOR;
+	for (const renderPin of [core.renderR1, core.renderR2]) {
+		const silence = renderR1Timeline({ ...closedPlan, end }, MASTER_CLOCK_HZ, renderPin);
+		assert(silence.every(sample => sample === 0));
+		assert.deepEqual(renderR1Timeline({ ...openPlan, end }, MASTER_CLOCK_HZ, renderPin),
+			renderR1Timeline({ ...continuous, end }, MASTER_CLOCK_HZ, renderPin));
+	}
+	assert.equal(core.dividerPulseTiming(halfCycles, .001).highCycles, 2);
+	assert.equal(core.dividerPulseTiming(halfCycles, .999).lowCycles, 2);
+});
+
+test('DK-52 gate duty changes the R-write width and preserves carrier phase across an odd loop', () => {
+	const timing = core.pulseTiming(5, .3);
+	assert.deepEqual(timing, {
+		highCycles: 3, lowCycles: 7, periodCycles: 10, frequency: MACHINE_CYCLE_HZ / 10, duty: .3,
+	});
+	const pulse = buildSm510Pulse(DK52_R, 5, 3, timing.highCycles);
+	assert.deepEqual(pulse, {
+		end: 44, writes: Uint32Array.of(4, 3, 10, 0, 24, 3, 30, 0), loopStart: 4, halfTicks: 10,
+	});
+	const cpuWrites = pulseRomWrites(buildPulseRom(3, 7, 3, 0), 22);
+	assert.deepEqual([...pulse.writes], cpuWrites.slice(0, -1).flatMap(([cycle, value]) => [2 * cycle, value]));
+
+	const loopTicks = pulse.end - pulse.loopStart;
+	const nextWrites = pulse.writes.map((value, index) => index % 2 === 0 ? value + loopTicks : value);
+	const repeated = { end: pulse.end + loopTicks, writes: Uint32Array.from([...pulse.writes, ...nextWrites]) };
+	const level = Math.fround(.16);
+	const expected = Float32Array.from({ length: loopTicks }, (_, offset) => {
+		if (offset % 20 >= 6) return 0;
+		return (pulse.loopStart + offset) % 8 >= 4 ? level : -level;
+	});
+	for (const [renderPin, pinLoop] of [
+		[core.renderR1, expected], [core.renderR2, expected.map(sample => sample === 0 ? 0 : -sample)],
+	]) {
+		const pcm = renderR1Timeline(repeated, MASTER_CLOCK_HZ, renderPin);
+		assert(pcm.slice(0, pulse.loopStart).every(sample => sample === 0));
+		assert.deepEqual(pcm.slice(pulse.loopStart, pulse.end), pinLoop);
+		assert.deepEqual(pcm.slice(pulse.end), pinLoop);
+	}
+});
+
+test('DK-52 pulse timing clamps to executable gate widths and preserves the pattern gate', () => {
+	assert.equal(core.pulseTiming(4, .001).highCycles, 2);
+	assert.equal(core.pulseTiming(4, .999).lowCycles, 2);
+	assert.deepEqual(core.pulseTiming(5, .3), core.directPulseTiming(5, .3));
+	for (const duty of [-.01, 1.01, NaN]) assert.throws(() => core.pulseTiming(4, duty), /duty/i);
+	for (const highCycles of [1, 7, 2.5])
+		assert.throws(() => buildSm510Pulse(DK52_R, 4, 1, highCycles), /machine cycles/);
+	const notes = [440, null, 220], settings = { stepSeconds: .1, gate: .65, sampleRate: MASTER_CLOCK_HZ };
+	assert.deepEqual(renderSm510Notes(core, DK52_R, notes, { ...settings, duty: .25 }),
+		renderSm510Notes(core, DK52_R, notes, settings));
+});
+
 test('SM510 CPU pulse inputs are limited to executable half-periods and two-pin masks', () => {
 	assert.equal(buildSm510Pulse(DK52_R, MAX_PULSE_HALF_CYCLES, 1).halfTicks, 126);
 	for (const halfCycles of [MIN_PULSE_HALF_CYCLES - 1, 4.5, MAX_PULSE_HALF_CYCLES + 1]) {
@@ -210,7 +315,7 @@ function nextAddress(address) {
 	return address - withinPage + prepend + Math.floor(withinPage / 2);
 }
 
-function buildDirectRom(high, low) {
+function buildPulseRom(high, low, highValue, lowValue) {
 	const rom = new Map();
 	function writePage(page, bytes) {
 		assert(bytes.length <= 63);
@@ -230,7 +335,7 @@ function buildDirectRom(high, low) {
 	const highFirst = high <= low;
 	const short = Math.min(high, low), long = Math.max(high, low);
 	const period = high + low;
-	const shortLatch = latch(highFirst ? 1 : 2), longLatch = latch(highFirst ? 2 : 1);
+	const shortLatch = latch(highFirst ? highValue : lowValue), longLatch = latch(highFirst ? lowValue : highValue);
 	const shortBody = [...shortLatch, ...pad(short - 2)];
 	let longEntry;
 	if (period <= 63) {
@@ -258,7 +363,7 @@ function buildDirectRom(high, low) {
 	return { rom, entry: highFirst ? 0 : longEntry };
 }
 
-function directRomWrites({ rom, entry }, endCycle) {
+function pulseRomWrites({ rom, entry }, endCycle) {
 	let pc = entry, cycle = 0, acc = 0, previousLax = false;
 	const writes = [];
 	function fetch() {
@@ -290,7 +395,7 @@ test('each allowed Direct R HIGH/LOW split has an executable SM510 ROM loop', ()
 	for (let half = MIN_PULSE_HALF_CYCLES; half <= MAX_PULSE_HALF_CYCLES; half++) {
 		const period = 2 * half;
 		for (let high = 2; high <= period - 2; high++) {
-			const writes = directRomWrites(buildDirectRom(high, period - high), 2 + 2 * period);
+			const writes = pulseRomWrites(buildPulseRom(high, period - high, 1, 2), 2 + 2 * period);
 			assert.deepEqual(writes, [
 				[2, 1], [2 + high, 2], [2 + period, 1], [2 + period + high, 2], [2 + 2 * period, 1],
 			], `${high}/${period - high} cycles`);
@@ -321,6 +426,45 @@ test('Direct R duty rounds to machine cycles without moving the existing pitch',
 	assert.equal(core.directHalfCycles(130.81278265), 63);
 	assert.equal(core.directHalfCycles(1046.5022612), 8);
 	assert.equal(core.directHalfCycles(1830), 5);
+});
+
+test('Direct R exact duty endpoints hold one phase without periodic R writes', () => {
+	const halfCycles = 63, periodCycles = 2 * halfCycles;
+	const level = Math.fround(.16);
+	for (const duty of [0, 1]) {
+		const timing = core.directPulseTiming(halfCycles, duty);
+		assert.deepEqual(timing, { highCycles: duty * periodCycles, lowCycles: (1 - duty) * periodCycles, periodCycles, frequency: 0, duty });
+		assert.deepEqual(core.pulseTiming(halfCycles, duty), timing);
+		for (const driveMask of [0, 1, 2, 3]) {
+			const plan = buildSm510Pulse(DIRECT_R, halfCycles, driveMask, timing.highCycles);
+			const latch = driveMask & (duty === 1 ? 1 : 2);
+			assert.deepEqual([...plan.writes], [4, latch]);
+			assert.equal(plan.end - plan.loopStart, 2 * periodCycles);
+			for (const [pin, renderPin] of [[1, core.renderDirectR1], [2, core.renderDirectR2]]) {
+				const pcm = renderR1Timeline(plan, MASTER_CLOCK_HZ, renderPin);
+				assert(pcm.slice(0, plan.loopStart).every(sample => sample === 0));
+				assert(pcm.slice(plan.loopStart).every(sample => sample === (latch & pin ? level : 0)));
+			}
+		}
+	}
+});
+
+test('Direct R patterns and WAV are silent at exact duty endpoints and retain a tone near them', () => {
+	const halfCycles = 63, sampleRate = 48000;
+	const frequencies = [directPitchHz(halfCycles), null];
+	const settings = { stepSeconds: .1, gate: 1, sampleRate };
+	const near = renderSm510Notes(core, DIRECT_R, frequencies, { ...settings, duty: .99 });
+	assert.equal(near.directPulses[0].lowCycles, 2);
+	assert.equal(near.directPulses[0].frequency, directPitchHz(halfCycles));
+	assert(near.samples.some(sample => sample > 0));
+	for (const duty of [0, 1]) {
+		const { samples, directPulses } = renderSm510Notes(core, DIRECT_R, frequencies, { ...settings, duty });
+		assert.equal(directPulses[0].frequency, 0);
+		assert.equal(samples.length, near.samples.length);
+		assert(samples.every(sample => sample === 0));
+		const wav = encodeWav({ sampleRate, channels: [samples] });
+		assert(wav.subarray(44).every(byte => byte === 0));
+	}
 });
 
 test('hardware steps and sustained notes share the direct pin waveform at native timing', () => {
