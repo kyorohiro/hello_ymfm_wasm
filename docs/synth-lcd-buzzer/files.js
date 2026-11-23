@@ -60,7 +60,7 @@ function checkSize(entries) {
 function validateProjectSnapshot(snapshot) {
 	const workspace = createVirtualFileWorkspace();
 	if (!snapshot || snapshot.format !== WORKSPACE_FORMAT || snapshot.version !== 1)
-		throw Error('Unsupported Tetorica SM510 Synth project.');
+		throw Error('Unsupported Tetorica SM5xx Synth project.');
 	for (const layer of [snapshot.workspace?.working, snapshot.workspace?.saved]) {
 		if (!Array.isArray(layer?.files) || !Array.isArray(layer?.directories))
 			throw Error('Invalid Cassette file list.');
@@ -125,7 +125,7 @@ export function encodeBuzzerCassette(state) {
 export async function decodeBuzzerCassette(bytes) {
 	const cassette = await loadPlaygroundCassette(bytes);
 	const state = cassette.metadata.lcdBuzzer;
-	if (!state || state.format !== WORKSPACE_FORMAT || state.version !== 1) throw Error('Choose a Tetorica SM510 Synth Cassette.');
+	if (!state || state.format !== WORKSPACE_FORMAT || state.version !== 1) throw Error('Choose a Tetorica SM5xx Synth Cassette.');
 	if (!Array.isArray(state.textPaths) || !Array.isArray(state.changed) || !Array.isArray(state.deleted) ||
 		!Array.isArray(state.workingDirectories)) throw Error('Invalid Cassette file metadata.');
 	const textPaths = new Set(state.textPaths.map(userPath));

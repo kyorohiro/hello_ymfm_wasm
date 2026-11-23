@@ -1,6 +1,6 @@
-# Tetorica SM510 Synth
+# Tetorica SM5xx Synth
 
-Tetorica SM510 Synth combines the Sharp SM510 buzzer and SM511 melody voice.
+Tetorica SM5xx Synth combines the Sharp SM510 buzzer and SM511 melody voice.
 Use the upper **SM510 (Direct R)**, **SM510 (DK-52 Divider)**, **SM511**,
 and **Mixer** tabs to choose a configuration or adjust the mix. Use
 **Keyboard** and **Code** to perform and edit, or **SM511 → Melody ROM**
@@ -501,7 +501,7 @@ to accept edits. **Menu → New → Cassette…** starts a new project. Use
 **Import → Cassette · ZIP…** and **Export → Cassette · ZIP** to move the
 project, including both saved files and working drafts, between browsers.
 
-To try the browser app from a local checkout, run `python3 -m http.server --directory docs 8000` and open [Tetorica SM510 Synth](http://localhost:8000/synth-lcd-buzzer/). Run `npm run test:lcd-buzzer-synth` for the audio and Cassette tests.
+To try the browser app from a local checkout, run `python3 -m http.server --directory docs 8000` and open [Tetorica SM5xx Synth](http://localhost:8000/synth-lcd-buzzer/). Run `npm run test:lcd-buzzer-synth` for the audio and Cassette tests.
 
 The software oscillator and example sources are original. The source is available under the repository's [BSD 3-Clause license](../../LICENSE).
 

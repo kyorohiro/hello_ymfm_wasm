@@ -81,7 +81,7 @@ test('version 1 Cassettes accept a short Melody ROM and default to the demo when
 
 test('LCD Buzzer Cassette rejects incompatible projects and unsafe state', async () => {
 	const plain = createPlaygroundCassetteZip([{ path: '/index.js', type: 'text', data: 'test' }]);
-	await assert.rejects(decodeBuzzerCassette(plain), /Choose a Tetorica SM510 Synth Cassette/);
+	await assert.rejects(decodeBuzzerCassette(plain), /Choose a Tetorica SM5xx Synth Cassette/);
 	const workspace = createVirtualFileWorkspace([
 		{ path: '/index.js', data: 'test' },
 		{ path: '/pattern.json', data: JSON.stringify(pattern) },

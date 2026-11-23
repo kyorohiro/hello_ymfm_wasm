@@ -156,11 +156,11 @@ declare function useSoundChip<Name extends keyof BuzzerCodeChipMap>(name: Name):
 declare const pg: BuzzerCodeGlobals;
 `;
 export const buzzerCodeDeclarations = source => selectCodeHostDeclarations(source, {
-	globals, customTypes: types, apiName: 'BuzzerCodeGlobals', banner: 'Tetorica SM510 Synth Code',
+	globals, customTypes: types, apiName: 'BuzzerCodeGlobals', banner: 'Tetorica SM5xx Synth Code',
 });
 
 function checkChannel(channel) {
-	if (channel !== 0) throw new RangeError('Tetorica SM510 Synth uses CH1.');
+	if (channel !== 0) throw new RangeError('Tetorica SM5xx Synth uses CH1.');
 }
 
 const patternNote = note => note === null ? null : buzzerMidi(note);

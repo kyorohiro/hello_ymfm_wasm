@@ -79,7 +79,7 @@ export async function packageSm5xxSynth({ version = 'dev', releaseDir = join(roo
 			/\b(href|src)="\.\/(icon\.png|synth\.(?:css|js))([?#][^"]*)?"/g,
 			`$1="./${app}/$2$3"`,
 		));
-		await writeFile(join(web, 'README.md'), `# Tetorica SM510 Synth
+		await writeFile(join(web, 'README.md'), `# Tetorica SM5xx Synth
 
 Serve this directory over HTTPS or localhost and open index.html.
 For itch.io, upload ${htmlName} as the playable HTML project.
@@ -102,7 +102,7 @@ The editable JavaScript and CSS ship with the browser app. The C++ audio cores a
 			devDependencies: { esbuild: esbuildVersion },
 			scripts: { test: `node --test docs/${app}/*.test.mjs`, pack: 'sh scripts/package_itch_sm5xx_synth.sh' },
 		}, null, 2) + '\n');
-		await writeFile(join(source, 'README.md'), `# Tetorica SM510 Synth source
+		await writeFile(join(source, 'README.md'), `# Tetorica SM5xx Synth source
 
 See [the Synth guide](docs/${app}/README.md) for the hardware controls and Code API.
 Run \`python3 -m http.server --directory docs 8000\` and open
