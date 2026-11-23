@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const wasm = await WebAssembly.compile(await readFile(new URL('../../docs/synth-virtual-boy/vsu.wasm', import.meta.url)));
+const wasm = await WebAssembly.compile(await readFile(new URL('../../docs/synth-vsu/vsu.wasm', import.meta.url)));
 const testRate = 125_000; // Three 40-clock host samples per VSU DAC sample.
 
 function createVsu() {

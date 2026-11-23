@@ -24,8 +24,10 @@
   "scripts": {
     "test:introductions": "node --test docs/introductions/*.test.mjs",
     "test:lcd-buzzer-synth": "node --test docs/synth-lcd-buzzer/*.test.mjs",
-    "build:virtual-boy-synth": "sh scripts/build_vsu.sh",
-    "test:virtual-boy-synth": "node --test docs/synth-virtual-boy/vsu.test.mjs test/runtime/vsu-native.test.mjs",
+    "build:vsu-synth": "sh scripts/build_vsu.sh",
+    "test:vsu-synth": "node --test docs/synth-vsu/*.test.mjs test/runtime/vsu-native.test.mjs",
+    "build:virtual-boy-synth": "npm run build:vsu-synth --",
+    "test:virtual-boy-synth": "npm run test:vsu-synth --",
     "psf:batch": "node scripts/check_psf_batch.mjs",
     "test:psf-batch": "node --test scripts/psf_batch_inputs.test.mjs scripts/psf_batch_worker.test.mjs scripts/check_psf_batch.test.mjs",
     "test:psf-capture-loop": "node scripts/check_psf_capture_loop_layout.mjs",

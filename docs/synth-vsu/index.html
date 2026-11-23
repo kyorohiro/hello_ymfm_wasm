@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#150b0f">
+  <title>Tetorica VSU Synth</title>
+  <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
+  <link rel="stylesheet" href="./synth.css">
+  <link rel="stylesheet" href="./files.css">
+  <script type="module" src="./synth.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <nav><a href="../index.html">← Tetorica</a></nav>
+    <header class="header">
+      <div class="header-brand">
+        <img class="product-icon" src="../tetorica_vsu_synth.webp" width="80" height="80" alt="" decoding="async">
+        <div>
+          <h1>Tetorica VSU Synth</h1>
+          <p>Virtual Sound Unit from Nintendo’s Virtual Boy</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <button id="filesToggle" type="button" aria-controls="filesPanel" aria-expanded="false">Files</button>
+        <label class="level">Master <input id="master" type="range" min="0" max="100" value="60">
+          <output id="masterValue" for="master">60%</output>
+        </label>
+      </div>
+    </header>
+
+    <aside id="filesPanel" class="panel" aria-label="Project files" hidden></aside>
+
+    <section class="panel monitor" aria-label="Audio output">
+      <div class="switches" role="group" aria-label="Output display">
+        <button id="showWaveform" type="button" aria-pressed="true">Waveform</button>
+        <button id="showSpectrum" type="button" aria-pressed="false">Spectrum</button>
+      </div>
+      <canvas id="outputCanvas" width="720" height="200" role="img" aria-label="Output waveform"></canvas>
+    </section>
+
+    <div class="instrument">
+      <section class="panel" aria-labelledby="waveTitle">
+        <div class="panel-head">
+          <h2 id="waveTitle">Wave RAM</h2>
+          <label>Bank <select id="editBank" aria-label="Wave RAM bank">
+            <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4</option>
+          </select></label>
+        </div>
+        <canvas id="waveCanvas" width="460" height="142" role="img" aria-label="Wave RAM samples, 32 × 6 bit"></canvas>
+        <div class="wave-controls">
+          <label>Sample <input id="sampleIndex" type="number" min="0" max="31" value="0"></label>
+          <label>Value <input id="sampleValue" type="number" min="0" max="63" value="32"></label>
+          <label>Shape <select id="waveShape">
+            <option value="sine">Sine</option><option value="triangle">Triangle</option>
+            <option value="square">Square</option><option value="saw">Saw</option>
+          </select></label>
+          <button id="loadShape" type="button">Load shape</button>
+        </div>
+        <p class="hint">Editing Wave RAM stops the active voices.</p>
+      </section>
+      <section class="panel channels" aria-labelledby="channelTitle">
+        <h2 id="channelTitle">Channel</h2>
+        <label>Voice <select id="channel" aria-label="Performance channel"></select></label>
+        <label id="channelWaveGroup">Wave bank <select id="channelWave">
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4</option>
+        </select></label>
+        <label id="noiseTapGroup" hidden>Noise tap <select id="noiseTap"></select></label>
+        <label class="level">Left <input id="leftLevel" type="range" min="0" max="15" value="10">
+          <output id="leftValue" for="leftLevel">10</output>
+        </label>
+        <label class="level">Right <input id="rightLevel" type="range" min="0" max="15" value="10">
+          <output id="rightValue" for="rightLevel">10</output>
+        </label>
+      </section>
+    </div>
+
+    <section id="ch5Panel" class="panel ch5-panel" aria-labelledby="ch5Title" hidden>
+      <div class="panel-head">
+        <h2 id="ch5Title">CH5 Sweep / Modulation</h2>
+        <label>Mode <select id="ch5Mode">
+          <option value="off">Off</option>
+          <option value="sweep">Sweep</option>
+          <option value="modulation">Modulation</option>
+        </select></label>
+      </div>
+      <div id="ch5Timing" class="ch5-controls" role="group" aria-label="Timing" hidden>
+        <label>Base clock <select id="ch5Clock">
+          <option value="fast">0.96 ms</option>
+          <option value="slow">7.68 ms</option>
+        </select></label>
+        <label>Multiplier <select id="ch5Rate">
+          <option value="0">0 (Off)</option>
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+        </select></label>
+        <div class="ch5-interval">Step interval <output id="ch5Step" for="ch5Mode ch5Clock ch5Rate">Off</output></div>
+      </div>
+      <div id="ch5Sweep" class="ch5-controls" role="group" aria-label="Sweep settings" hidden>
+        <label>Direction <select id="ch5Direction">
+          <option value="up">Up</option><option value="down">Down</option>
+        </select></label>
+        <label>Shift (bits) <select id="ch5Shift">
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+        </select></label>
+      </div>
+      <div id="ch5Modulation" class="ch5-modulation" hidden>
+        <div class="panel-head">
+          <h3 id="ch5ModTitle">Modulation RAM</h3>
+          <label><input id="ch5Repeat" type="checkbox"> Repeat</label>
+        </div>
+        <div id="ch5ModGrid" class="ch5-mod-grid" role="group" aria-labelledby="ch5ModTitle" aria-describedby="ch5ModHint"></div>
+        <p id="ch5ModHint" class="hint">Enter offsets from −127 to +127. Editing RAM restarts a held CH5 note.</p>
+      </div>
+      <div class="ch5-compare">
+        <div class="switches" role="group" aria-label="CH5 comparison">
+          <button id="ch5Compare" type="button" aria-describedby="ch5CompareHint">Play comparison</button>
+          <button id="ch5CompareStop" type="button" disabled>Stop</button>
+          <output id="ch5CompareStatus" aria-live="polite"></output>
+        </div>
+        <p id="ch5CompareHint" class="hint">Compare Normal, Sweep, and Modulation at A4 on the selected wave bank.</p>
+      </div>
+    </section>
+
+    <section class="panel performance" aria-label="Performance">
+      <div class="switches" role="group" aria-label="Input view">
+        <button id="showKeyboard" type="button" aria-controls="keyboardPanel" aria-pressed="true">Keyboard</button>
+        <button id="showCode" type="button" aria-controls="codePanel" aria-pressed="false">Code</button>
+      </div>
+      <div id="keyboardPanel">
+        <div class="panel-head keyboard-head">
+          <label>Octave <select id="octave">
+            <option value="0">Default</option><option value="1">+1</option><option value="2">+2</option>
+          </select></label>
+          <output id="playingNote" aria-live="off"></output>
+        </div>
+        <div id="keyboard" class="keyboard"></div>
+      </div>
+      <div id="codePanel" hidden>
+        <textarea id="code" aria-label="JavaScript performance code" spellcheck="false"
+          autocapitalize="off" autocomplete="off"></textarea>
+        <div class="switches transport">
+          <button id="run" class="primary" type="button">Run</button>
+          <button id="apply" type="button" disabled>Apply</button>
+          <button id="stop" type="button" disabled>Stop Code</button>
+        </div>
+        <pre id="codeOutput" aria-label="Code output" aria-live="polite"></pre>
+      </div>
+      <p id="status" role="status">Ready</p>
+    </section>
+  </main>
+</body>
+</html>

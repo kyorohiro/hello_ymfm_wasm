@@ -1,8 +1,21 @@
-# Tetorica Virtual Boy Synth
+# Tetorica VSU Synth
 
-Play the Virtual Boy's Virtual Sound Unit (VSU) with the on-screen keyboard, PC keys, or JavaScript. The five wavetable voices share five banks of 32 six-bit samples. Draw a waveform or edit one sample at a time. Choose a voice to adjust its four-bit left and right levels, select its wave bank, or choose one of the eight noise taps on channel 6. Waveform and Spectrum show the output after the app's Master control.
+Play the Virtual Sound Unit (VSU) from Nintendo's Virtual Boy with the on-screen keyboard, PC keys, or JavaScript. The five wavetable voices share five banks of 32 six-bit samples. Draw a waveform or edit one sample at a time. Choose a voice to adjust its four-bit left and right levels, select its wave bank, or choose one of the eight noise taps on channel 6. Waveform and Spectrum show the output after the app's Master control.
 
 The VSU blocks wavetable writes while voices are active. The editor issues the VSU's global stop command before uploading the edited bank. JavaScript can do the same with `vsu.allNotesOff()` followed by `vsu.setWave(bank, samples)`.
+
+## CH5 Sweep and Modulation
+
+Select **CH5** in the channel selector and play a key.
+
+- **Sweep** adds or subtracts the pitch register shifted by 0–7 bits at each step. A smaller shift makes a larger change. An upward sweep can silence the voice if it overflows the 11-bit pitch register.
+- **Modulation** applies 32 signed offsets (−127 to +127) to the original pitch register. Enable **Repeat** to cycle the table. Editing the table during a held CH5 note stops and retriggers that voice so the RAM write takes effect.
+- **Base clock** chooses 0.96 ms or 7.68 ms and **Multiplier** sets the number of clock periods per step. A multiplier of 0 disables the effect.
+- **Play comparison** plays A4 on CH5 in Normal, Sweep, and Modulation order. All three use the selected wave bank and stereo levels. Sweep and Modulation use fixed comparison settings, and the editor keeps your values.
+
+## Files
+
+Open **Files**, then use **＋ Patch** to save the five wave banks, six channels' settings, noise tap, and CH5 parameters as a named `.vsu.json` patch. Open a patch from the tree to restore it. Use **＋ JS** to create a script and **Save** to keep your changes locally. The Files menu imports patches and scripts and exchanges projects as Cassette ZIPs.
 
 ## JavaScript
 
@@ -30,7 +43,7 @@ The helpers also accept zero-based channel numbers and MIDI note numbers. For wa
 
 ## Run and build
 
-Serve `docs/` over localhost, then open `http://localhost:8000/synth-virtual-boy/`.
+Serve `docs/` over localhost, then open `http://localhost:8000/synth-vsu/`.
 
 ```sh
 python3 -m http.server 8000 --directory docs
@@ -39,8 +52,8 @@ python3 -m http.server 8000 --directory docs
 Build the checked-in WASM with Emscripten on your PATH.
 
 ```sh
-npm run build:virtual-boy-synth
-npm run test:virtual-boy-synth
+npm run build:vsu-synth
+npm run test:vsu-synth
 ```
 
 The browser AudioWorklet and native callers use the same BSD-3-Clause C++ core in [`tetorica_src/native/vsu`](../../tetorica_src/native/vsu). The core models the VSU's digital timing and exposes centered stereo PCM for playback. This version uses a held DAC output and leaves the console's analog output filters and exact per-channel DAC interleave outside the model.

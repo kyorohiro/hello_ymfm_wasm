@@ -38,6 +38,16 @@ export function vsuFrequencyRegister(channel, note) {
 	return DIVISOR_LIMIT - Math.max(1, Math.min(DIVISOR_LIMIT, divisor));
 }
 
+export function vsuNoteOnWrites(channel, note) {
+	const frequency = vsuFrequencyRegister(channel, note);
+	const base = vsuChannelRegister(channel, 0);
+	return [
+		[base + VSU_REGISTERS.FQL, frequency & 0xff],
+		[base + VSU_REGISTERS.FQH, frequency >> 8],
+		[base + VSU_REGISTERS.INT, 0x80],
+	];
+}
+
 const WAVE_SHAPES = {
 	sine: phase => Math.sin(2 * Math.PI * phase),
 	triangle: phase => 1 - Math.abs(4 * phase - 2),
@@ -89,13 +99,7 @@ export function createVsuClient(audio) {
 			return write(vsuChannelRegister(channel, VSU_REGISTERS.RAM), bank);
 		},
 		noteOn(channel, note) {
-			const frequency = vsuFrequencyRegister(channel, note);
-			const base = vsuChannelRegister(channel, 0);
-			return audio.writeBatch([
-				[base + VSU_REGISTERS.FQL, frequency & 0xff],
-				[base + VSU_REGISTERS.FQH, frequency >> 8],
-				[base + VSU_REGISTERS.INT, 0x80],
-			]);
+			return audio.writeBatch(vsuNoteOnWrites(channel, note));
 		},
 		noteOff(channel) {
 			return write(vsuChannelRegister(channel, VSU_REGISTERS.INT), 0);

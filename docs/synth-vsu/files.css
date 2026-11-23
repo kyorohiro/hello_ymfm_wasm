@@ -1,0 +1,79 @@
+.vsu-files { margin-bottom: 12px; }
+.vsu-files-heading, .vsu-files-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.vsu-files-heading { justify-content: space-between; margin-bottom: 8px; }
+.vsu-files-heading button, .vsu-file-menu summary, .vsu-file-context-menu button {
+  min-height: 31px;
+  padding: 4px 8px;
+  font-size: .8rem;
+}
+.vsu-file-menu { position: relative; }
+.vsu-file-menu summary { display: flex; align-items: center; gap: .45ch; padding-inline: 8px; }
+.vsu-file-menu summary::-webkit-details-marker { display: none; }
+.vsu-file-menu summary::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+.vsu-file-menu summary, .vsu-files-dialog input {
+  color: inherit;
+  background: #381c27;
+  border: 1px solid #744051;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.vsu-file-menu .synth-menu-panel, .vsu-file-context-menu {
+  display: grid;
+  min-width: 10rem;
+  gap: 3px;
+  padding: 6px;
+  background: #23131a;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 14px #10050b99;
+}
+.vsu-file-menu .synth-menu-panel { position: absolute; z-index: 3; right: 0; top: calc(100% + 4px); }
+.vsu-file-context-menu { z-index: 5; }
+.vsu-file-menu .synth-menu-panel button, .vsu-file-context-menu button { text-align: left; }
+#vsuFilesTree { max-height: min(50vh, 22rem); overflow: auto; }
+#vsuFilesTree .file-tree { list-style: none; padding: 0; margin: 0; }
+#vsuFilesTree .file-tree .file-tree { padding-inline-start: 12px; }
+#vsuFilesTree summary, #vsuFilesTree .file-tree-root {
+  padding: 5px 6px;
+  font-size: .8rem;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+#vsuFilesTree .file-tree-root { color: var(--muted); border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+#vsuFilesTree .file-entry {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border-color: transparent;
+  text-align: left;
+  font-size: .8rem;
+  overflow-wrap: anywhere;
+}
+#vsuFilesTree .file-entry:hover, #vsuFilesTree summary:hover { background: #442131; }
+#vsuFilesTree [aria-current="true"] { background: #542536; }
+#vsuFilesTree [data-modified]::after { content: " •"; color: #ffbf85; }
+#vsuFilesTree .file-drop-target { background: #542536; outline: 1px solid var(--accent); }
+.vsu-files-dialog {
+  inset-inline: 12px;
+  width: min(26rem, calc(100% - 24px));
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.vsu-files-dialog::backdrop { background: #10050bcc; }
+.vsu-files-dialog form { display: grid; gap: 12px; }
+.vsu-files-dialog input { cursor: text; padding: 6px; min-width: 0; width: 100%; font: inherit; }
+.vsu-files-dialog .vsu-files-actions { justify-content: end; }

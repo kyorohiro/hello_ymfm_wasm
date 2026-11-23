@@ -3,7 +3,7 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-WASM_DIR="${1:-$ROOT_DIR/docs/synth-virtual-boy}"
+WASM_DIR="${1:-$ROOT_DIR/docs/synth-vsu}"
 EMXX="${EMXX:-em++}"
 WASM_CXX="${WASM_CXX:-$("$EMXX" -print-prog-name=clang++)}"
 
