@@ -10,6 +10,7 @@ import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSynthProjectStore } from '../synth/synth_project_store.js';
 import { looksLikeGzip } from '../js/vgm_file.js';
 import { loadVsuVgm } from './vgm.js';
+import { extractVsuVgmPresets } from './vgm-presets.js';
 
 const ENTRY_PATH = '/index.js';
 const PROJECT_FORMAT = 'tetorica-vsu-project';
@@ -21,6 +22,7 @@ const PATCH_PATH = /\.vsu\.json$/i;
 const VGM_PATH = /\.vg[mz]$/i;
 const FILE_SUFFIX = /\.(?:vsu\.json|m?js|vg[mz])$/i;
 const VGM_DIRECTORY = '/vgm';
+const PRESET_DIRECTORY = '/presets';
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const encoder = new TextEncoder();
 
@@ -50,12 +52,13 @@ function parsePatch(text, validatePatch) {
   return validatePatch(JSON.parse(text));
 }
 
+function fileBytes(entries) {
+  return entries.reduce((size, { data }) => size +
+    (typeof data === 'string' ? encoder.encode(data).byteLength : data.byteLength), 0);
+}
+
 function checkSize(entries) {
-  let size = 0;
-  for (const { data } of entries) {
-    size += typeof data === 'string' ? encoder.encode(data).byteLength : data.byteLength;
-    if (size > MAX_BYTES) throw new Error('Project files exceed the 16 MiB limit.');
-  }
+  if (fileBytes(entries) > MAX_BYTES) throw new Error('Project files exceed the 16 MiB limit.');
 }
 
 function validateEntries(entries, validatePatch) {
@@ -74,18 +77,40 @@ function validateEntries(entries, validatePatch) {
   checkSize(entries);
 }
 
-async function validateVgmInputs(entries, activePath) {
+async function validateVgmInputs(entries, activePath, onPlan) {
   let activePlan;
   for (const { path, data } of entries) {
     if (!VGM_PATH.test(path)) continue;
     try {
       const plan = await loadVsuVgm(data);
       if (path === activePath) activePlan = plan;
+      if (onPlan) await onPlan(path, plan);
     } catch (error) {
       throw new Error(basename(path) + ': ' + error.message, { cause: error });
     }
   }
   return activePlan;
+}
+
+const foldedPath = path => path.normalize('NFC').toLowerCase();
+
+function presetFolder(source, paths) {
+  const cleaned = basename(source).replace(VGM_PATH, '').normalize('NFC')
+    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*\ud800-\udfff]/gu, '_').trim().replace(/^\.+/, '');
+  const base = Array.from(cleaned).slice(0, 48).join('').replace(/[. ]+$/, '') || 'Untitled';
+  const stem = /^(?:__proto__|con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(base.split('.')[0]) ? '_' + base : base;
+  let index = 1, folder = join(PRESET_DIRECTORY, stem);
+  while (paths.has(foldedPath(folder))) folder = join(PRESET_DIRECTORY, `${stem} (${++index})`);
+  paths.add(foldedPath(folder));
+  return folder;
+}
+
+function presetEntry(folder, { channel, patch }, index, validatePatch) {
+  const tone = validatePatch(patch);
+  const labels = { sweep: 'Sweep', modulation: 'Modulation' };
+  const kind = channel === 5 ? 'Noise' : channel === 4 ? labels[tone.ch5.mode] ?? 'Wave' : 'Wave';
+  const fileName = `${String(index + 1).padStart(3, '0')} ${kind} CH${channel + 1}.vsu.json`;
+  return { path: userPath(join(folder, fileName)), data: JSON.stringify(tone, null, 2) + '\n' };
 }
 
 function base64(bytes) {
@@ -133,7 +158,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       return true;
     },
   });
-  const expanded = new Map([['/patches', true], [VGM_DIRECTORY, true]]);
+  const expanded = new Map([['/patches', true], [PRESET_DIRECTORY, true], [VGM_DIRECTORY, true]]);
   let selected = ENTRY_PATH, codePath = ENTRY_PATH, activePatch = null, activeVgm = null;
   let vgmFiles = [];
   let loading = true, busy = false, draftTimer = null;
@@ -506,11 +531,51 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       paths.add(entry.path);
     }
     validateEntries(incoming, validatePatch);
-    const plan = await validateVgmInputs(incoming, incoming[0].path);
-    writeAccepted(incoming);
+    const firstSong = incoming.find(({ path }) => VGM_PATH.test(path));
+    const activePath = firstSong?.path ?? incoming[0].path;
+    let plan;
+    const presets = [], folders = [];
+    let capacityReached = false, extractionError = null;
+    if (firstSong) {
+      const working = fs.list(), saved = workspace.saved.list();
+      let available = MAX_BYTES - fileBytes(incoming) - Math.max(fileBytes(working), fileBytes(saved));
+      if (available < 0) throw new Error('Project files exceed the 16 MiB limit.');
+      const occupied = new Set([...working.map(file => file.path), ...saved.map(file => file.path),
+        ...fs.listDirectories(), ...workspace.saved.listDirectories(), ...paths].map(foldedPath));
+      setStatus('Extracting VGM presets…');
+      plan = await validateVgmInputs(incoming, activePath, async (path, parsed) => {
+        if (available <= 0) { capacityReached = true; return; }
+        try {
+          const voices = await extractVsuVgmPresets(parsed);
+          if (!voices.length) return;
+          const folder = presetFolder(path, occupied);
+          const files = voices.map((voice, index) => presetEntry(folder, voice, index, validatePatch));
+          const start = presets.length;
+          for (const entry of files) {
+            const size = encoder.encode(entry.data).byteLength;
+            if (size > available) { capacityReached = true; continue; }
+            presets.push(entry);
+            available -= size;
+          }
+          if (presets.length > start) folders.push(folder);
+        } catch (error) {
+          extractionError ??= basename(path) + ': ' + error.message;
+        }
+      });
+    }
+    writeAccepted([...incoming, ...presets]);
+    if (folders.length) {
+      expanded.set(PRESET_DIRECTORY, true);
+      for (const folder of folders) expanded.set(folder, true);
+    }
     show(true);
-    await open(incoming[0].path, plan);
-    setStatus('Imported ' + incoming.length + (incoming.length === 1 ? ' file.' : ' files.'));
+    await open(activePath, plan);
+    const messages = ['Imported ' + incoming.length + (incoming.length === 1 ? ' file.' : ' files.')];
+    if (presets.length) messages.push(`Saved ${presets.length} ${presets.length === 1 ? 'sound' : 'sounds'} in /presets.`);
+    else if (firstSong && !capacityReached && !extractionError) messages.push('No playable VSU sounds found.');
+    if (capacityReached) messages.push('Preset storage reached the 16 MiB project limit.');
+    if (extractionError) messages.push('Preset extraction failed for ' + extractionError);
+    setStatus(messages.join(' '));
   }
 
   async function importCassette(file) {

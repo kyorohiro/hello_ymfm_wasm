@@ -13,7 +13,7 @@ function timeLabel(ticks) {
     '.' + String(hundredths % 100).padStart(2, '0');
 }
 
-export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, openSong, selectChannel, copyVoice }) {
+export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, openSong, selectChannel, copyVoice, onPlaybackChange }) {
   const doc = root.ownerDocument;
   const byId = id => doc.getElementById(id);
   const picker = byId('vgmSong'), importButton = byId('vgmImport');
@@ -22,7 +22,7 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   const seek = byId('vgmProgress'), time = byId('vgmTime'), status = byId('vgmStatus'), errorOutput = byId('vgmError');
   const loopMarker = byId('vgmLoopMarker'), loopTime = byId('vgmLoopTime');
   const mixer = byId('vgmMixer'), channelList = byId('vgmChannels');
-  const copy = byId('vgmCapture'), selectedOutput = byId('vgmSelectedChannel'), captureStatus = byId('vgmCaptureStatus');
+  const copy = byId('vgmCapture'), captureStatus = byId('vgmCaptureStatus');
   let paths = [];
   let available = false;
   const titles = new Map();
@@ -30,6 +30,7 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   let positionTick = 0, scrubTick = null, pendingSeek = null;
   let muted = 0, solo = 0;
   let channelIndex = 0, liveChannels = [], capturePending = false;
+  let reportedPlayback = '';
 
   function make(tag, text) {
     const element = doc.createElement(tag);
@@ -140,13 +141,16 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     seek.disabled = !song || state === 'preparing';
     mixer.hidden = !song;
     drawCapture();
+    const playback = state + ':' + playbackId;
+    if (playback !== reportedPlayback) {
+      reportedPlayback = playback;
+      onPlaybackChange({ state, id: playbackId });
+    }
   }
 
   function drawCapture() {
     const paused = state === 'paused';
-    const active = liveChannels[channelIndex]?.active;
-    const label = paused || state === 'playing' ? 'VGM · CH' + (channelIndex + 1) : '';
-    if (selectedOutput.value !== label) selectedOutput.value = label;
+    const active = channelIndex !== null && liveChannels[channelIndex]?.active;
     copy.disabled = capturePending || !paused || !active;
     copy.title = paused && !active ? 'Choose an active VGM channel.' : 'Copy an active channel from paused playback.';
   }

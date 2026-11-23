@@ -76,12 +76,13 @@
         </div>
 
         <div class="panel channel-bar">
-          <div id="vsuChannelTabs" class="channel-tabs" role="group" aria-label="Channel"></div>
+          <div id="vsuChannelTabs" class="channel-tabs" role="tablist" aria-label="Keyboard and parameter channel"></div>
           <select id="channel" aria-label="Performance channel" hidden></select>
           <div class="capture-tools">
-            <output id="vgmSelectedChannel" aria-label="Reference channel"></output>
+            <label><input id="vsuLiveEnabled" type="checkbox" checked> Auto update</label>
             <button id="vgmCapture" type="button" title="Pause the reference and select a sounding channel." disabled>Copy to Synth</button>
           </div>
+          <output id="vsuChannelStatus" class="channel-source" aria-label="Channel settings source"></output>
           <output id="vgmCaptureStatus" role="status"></output>
         </div>
 
@@ -95,7 +96,7 @@
               </div>
               <canvas id="envelopeCanvas" width="720" height="200" role="img" aria-label="Channel envelope" hidden></canvas>
               <canvas id="outputCanvas" width="720" height="200" role="img" aria-label="Output waveform"></canvas>
-              <div class="envelope-controls" aria-label="Channel envelope" role="group">
+              <fieldset id="vsuEnvelopeControls" class="envelope-controls" aria-label="Channel envelope">
                 <label class="level">Level <input id="envInitial" type="range" min="0" max="15" value="15">
                   <output id="envInitialValue" for="envInitial">15</output>
                 </label>
@@ -111,7 +112,7 @@
                 </select></label>
                 <label><input id="envRepeat" type="checkbox"> Repeat</label>
                 <output id="envStep" for="envEnabled envRate">Off</output>
-              </div>
+              </fieldset>
             </section>
 
             <div class="instrument">
@@ -133,10 +134,11 @@
                   </select></label>
                   <button id="loadShape" type="button">Load shape</button>
                 </div>
-                <p class="hint">Editing Wave RAM stops the active voices.</p>
+                <p id="vsuWaveEditHint" class="hint">Editing Wave RAM stops the active voices.</p>
               </section>
               <section class="panel channels" aria-labelledby="channelTitle">
                 <h2 id="channelTitle">Sound chip</h2>
+                <output id="vsuLiveRegisters" class="live-registers" aria-label="Current register values" aria-live="off" hidden></output>
                 <label id="channelWaveGroup">Wave bank <select id="channelWave">
                   <option value="0">0</option><option value="1">1</option><option value="2">2</option>
                   <option value="3">3</option><option value="4">4</option>

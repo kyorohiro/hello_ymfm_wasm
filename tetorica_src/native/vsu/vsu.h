@@ -42,6 +42,17 @@ typedef struct {
 uint32_t vsu_snapshot_size(void);
 uint32_t vsu_snapshot_voice(const void *state, uint32_t channel, vsu_voice_snapshot *output);
 
+typedef struct {
+    vsu_voice_snapshot voice;
+    uint32_t working_frequency;
+    uint32_t current_envelope;
+} vsu_live_voice_snapshot;
+
+/* Observe both configured and current oscillator/envelope values. Invalid
+ * wave selections retain the bank code and return an empty waveform. */
+uint32_t vsu_live_snapshot_size(void);
+uint32_t vsu_snapshot_live_voice(const void *state, uint32_t channel, vsu_live_voice_snapshot *output);
+
 /* Average the held VSU stereo output over each host sample interval.
  * Output is normalized around the waveform midpoint for audition. */
 void vsu_render(void *state, float *left, float *right, uint32_t frames, uint32_t sample_rate);

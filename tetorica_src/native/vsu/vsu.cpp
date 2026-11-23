@@ -136,13 +136,14 @@ struct vsu {
         return voice.stereo | (voice.enabled ? 0x100 : 0) | (mode << 9);
     }
 
-    bool snapshot_voice(uint32_t index, vsu_voice_snapshot &output) const {
+    bool snapshot_voice(uint32_t index, vsu_voice_snapshot &output, bool require_wave = true) const {
         if (index >= channel_count)
             return false;
         const channel &voice = channels[index];
         const bool has_wave = index != noise_channel;
+        const bool valid_wave = has_wave && voice.wave < wave_count;
         const bool has_sweep = index == sweep_channel;
-        if (has_wave && voice.wave >= wave_count)
+        if (require_wave && has_wave && !valid_wave)
             return false;
 
         output.frequency = voice.frequency;
@@ -154,9 +155,18 @@ struct vsu {
         output.ev1 = voice.control;
         output.swp = has_sweep ? sweep : 0;
         for (uint32_t cell = 0; cell < wave_size; ++cell) {
-            output.wave[cell] = has_wave ? waves[voice.wave * wave_size + cell] : 0;
+            output.wave[cell] = valid_wave ? waves[voice.wave * wave_size + cell] : 0;
             output.modulation[cell] = has_sweep ? modulation[cell] : 0;
         }
+        return true;
+    }
+
+    bool snapshot_live_voice(uint32_t index, vsu_live_voice_snapshot &output) const {
+        if (!snapshot_voice(index, output.voice, false))
+            return false;
+        const channel &voice = channels[index];
+        output.working_frequency = voice.working_frequency;
+        output.current_envelope = voice.envelope;
         return true;
     }
 
@@ -434,6 +444,14 @@ uint32_t vsu_snapshot_size(void) {
 
 uint32_t vsu_snapshot_voice(const void *state, uint32_t channel, vsu_voice_snapshot *output) {
     return state && output && static_cast<const vsu *>(state)->snapshot_voice(channel, *output);
+}
+
+uint32_t vsu_live_snapshot_size(void) {
+    return sizeof(vsu_live_voice_snapshot);
+}
+
+uint32_t vsu_snapshot_live_voice(const void *state, uint32_t channel, vsu_live_voice_snapshot *output) {
+    return state && output && static_cast<const vsu *>(state)->snapshot_live_voice(channel, *output);
 }
 
 void vsu_render(void *state, float *left, float *right, uint32_t frames, uint32_t sample_rate) {

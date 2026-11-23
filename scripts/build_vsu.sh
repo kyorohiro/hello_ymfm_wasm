@@ -17,6 +17,7 @@ trap 'rm -rf "$WASM_STAGE"' EXIT
   -Wl,--export=vsu_size,--export=vsu_reset,--export=vsu_write,--export=vsu_render \
   -Wl,--export=vsu_set_mix_mask,--export=vsu_get_channel \
   -Wl,--export=vsu_snapshot_size,--export=vsu_snapshot_voice \
+  -Wl,--export=vsu_live_snapshot_size,--export=vsu_snapshot_live_voice \
   -o "$WASM_STAGE/vsu.wasm"
 
 mv -f "$WASM_STAGE/vsu.wasm" "$WASM_DIR/vsu.wasm"

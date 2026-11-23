@@ -31,12 +31,14 @@ function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
 	return { writes, durationTicks, loopTick, loopIndex };
 }
 
-export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {} } = {}) {
+export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {}, onLiveState = () => {} } = {}) {
 	validateVolume(volume);
 	let session = null;
 	let disposed = false;
 	let nextVgmId = 0;
 	let nextCaptureRequest = 0;
+	let liveChannel = null;
+	let liveRevision = 0;
 
 	function takeCapture(current, request) {
 		const pending = current.captures.get(request);
@@ -53,6 +55,15 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 
 	function cancelSeek(current, error = new DOMException('VGM playback changed before the seek completed.', 'AbortError')) {
 		current?.vgmSeek?.controller.abort(error);
+	}
+
+	function reportLive(current, { source, channel, voice, playbackId, revision }) {
+		if (channel !== liveChannel || revision !== liveRevision || current.vgmSeek) return;
+		const vgmOwnsOutput = current.vgmId && current.vgmState !== 'ended';
+		if (source === 'vgm') {
+			if (!vgmOwnsOutput || current.vgmStopping || current.vgmId !== playbackId) return;
+		} else if (vgmOwnsOutput) return;
+		onLiveState({ source, channel, voice, playbackId });
 	}
 
 	async function close(current, error) {
@@ -99,12 +110,12 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			if (!context.audioWorklet) throw new Error('VSU audio requires AudioWorklet over HTTPS or localhost.');
 			output.gain.value = volume;
 			output.connect(context.destination);
-			const bytes = fetch(new URL('./vsu.wasm?v=vgm-capture', import.meta.url), { signal: current.abort.signal }).then(response => {
+			const bytes = fetch(new URL('./vsu.wasm?v=vsu-live', import.meta.url), { signal: current.abort.signal }).then(response => {
 				if (!response.ok) throw new Error(`Unable to load the VSU core (HTTP ${response.status}).`);
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vgm-seek', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -118,7 +129,12 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				node.port.onmessage = ({ data }) => {
 					if (data.type === 'ready') resolve();
 					if (data.type === 'error') fail(new Error(data.error));
-					if (session !== current || data.id !== current.vgmId) return;
+					if (session !== current) return;
+					if (data.type === 'live-state') {
+						reportLive(current, data);
+						return;
+					}
+					if (data.id !== current.vgmId) return;
 					if (data.type === 'vgm-state' && (!current.vgmStopping || data.state === 'stopped')) {
 						current.vgmState = data.state;
 						if (data.state !== 'paused') cancelCaptures(current);
@@ -136,6 +152,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			current.abort.signal.throwIfAborted();
 			clearTimeout(current.timer);
 			current.active = true;
+			if (liveChannel !== null) send({ type: 'live-watch', channel: liveChannel, revision: liveRevision });
 		})();
 		current.ready = Promise.race([load, failure]).catch(async error => {
 			await close(current, error).catch(() => {});
@@ -199,6 +216,14 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			send({ type: 'batch', writes }, [writes.buffer]);
 		},
 		reset() { send({ type: 'reset' }); },
+		setLiveChannel(channel) {
+			if (channel !== null && (!Number.isInteger(channel) || channel < 0 || channel >= 6))
+				throw new RangeError('Choose a VSU channel from 0 to 5.');
+			if (channel === liveChannel) return;
+			liveChannel = channel;
+			liveRevision++;
+			if (session?.active) send({ type: 'live-watch', channel, revision: liveRevision });
+		},
 		playVgm(source, { loop = false, mask = 63 } = {}) {
 			validateMask(mask);
 			const plan = validateVgmPlan(source);

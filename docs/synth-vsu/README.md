@@ -12,9 +12,13 @@ Drag the seek bar to jump to a position. When focused, the arrow keys move one s
 
 **Reference channels**, below **Reference playback**, shows the gate state and recorded left and right levels for CH1–6, and shows Sweep or Modulation on CH5 when enabled. **Mute** and **Solo** change the reference mix while the recorded chip state keeps advancing. The player uses a separate VSU state so your authored patch and wave RAM are available when you return to Keyboard or Code. The **Mixer** tab adjusts the Synth's channel levels.
 
-To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's wave bank, stereo levels and programmed envelope into the matching editor channel. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope at the chosen note. Use **Files → ＋ Patch** to keep the result.
+To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's wave bank, stereo levels and programmed envelope into the matching editor channel and opens it in **AUTO**. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope at the chosen note. Use **Files → ＋ Patch** to keep the result.
 
-The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps imported songs with the project and includes them in Cassette export.
+The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps the original song with the project and saves distinct sounds recovered at note starts under **presets/<file name>/**. Select a preset to load it into **AUTO** on its original channel. Extraction scans the first 15 minutes and saves up to 512 sounds per song within the project storage limit. Cassette export includes the song and the saved presets.
+
+## Channel selection
+
+**AUTO** shows the authored instrument. Choose **CH1–CH6** during VGM or Code playback to follow that physical channel's waveform RAM, stereo levels, envelope and frequency registers. CH5 shows its Sweep or Modulation settings, and CH6 shows its noise tap. The channel view is read-only during playback. Turn **Auto update** off to freeze the view. Selecting another channel, pausing, or seeking reads a fresh snapshot. A numbered channel shows and edits its authored settings when playback is stopped.
 
 ## CH5 Sweep and Modulation
 

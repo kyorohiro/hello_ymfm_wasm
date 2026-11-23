@@ -6,13 +6,13 @@ import { createVsuAudio } from './audio.js';
 import { captureVsuVoice } from './capture.js';
 import {
   CH5, CH5_MODULATION_MAX, CH5_MODULATION_MIN,
-  createCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
+  decodeCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
 } from './ch5.js';
-import { createVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
+import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js';
 import { setupVsuFiles } from './files.js';
 import { setupAuthorMixer } from './mixer-view.js';
-import { validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js';
+import { createDefaultVsuPatch, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js';
 import { createVsuClient, createVsuWave, vsuChannelRegister, vsuNoteOnWrites, VSU_REGISTERS } from './vsu.js';
 import { loadVsuVgm } from './vgm.js';
 import { setupVgmPlayer } from './vgm-player.js';
@@ -24,6 +24,8 @@ const keyboard = byId('keyboard'), playingNote = byId('playingNote');
 const channelSelect = byId('channel'), channelWave = byId('channelWave');
 const noiseTap = byId('noiseTap');
 const editBank = byId('editBank'), sampleIndex = byId('sampleIndex'), sampleValue = byId('sampleValue');
+const liveEnabled = byId('vsuLiveEnabled'), channelStatus = byId('vsuChannelStatus');
+const liveRegisters = byId('vsuLiveRegisters');
 const outputCanvas = byId('outputCanvas'), waveCanvas = byId('waveCanvas');
 const compare = byId('ch5Compare'), compareStop = byId('ch5CompareStop'), compareStatus = byId('ch5CompareStatus');
 const ch5Controls = {
@@ -41,16 +43,26 @@ const audio = createVsuAudio({
     void stopCode();
     status.textContent = error.message;
   },
-  onVgmState(update) { reference.onAudioState(update); },
+  onVgmState(update) {
+    reference.onAudioState(update);
+    if (update.id === referenceState.id) {
+      vgmActivity = update.channels;
+      drawChannelActivity();
+    }
+  },
+  onLiveState: acceptLiveState,
 });
 const chip = createVsuClient(audio);
-const banks = ['triangle', 'sine', 'square', 'saw', 'triangle'].map(shape => createVsuWave(shape));
-let selectedNoiseTap = 0;
-let ch5Settings = createCh5Settings();
+const factoryPatch = createDefaultVsuPatch();
+const banks = factoryPatch.banks.map(wave => Uint8Array.from(wave));
+const channels = factoryPatch.channels;
+let selectedNoiseTap = factoryPatch.noiseTap;
+let ch5Settings = factoryPatch.ch5;
+let autoChannel = 0, selectedChannel = null, authorBank = 0;
+let codeRunning = false, referenceState = { state: 'empty', id: null }, editorReady = false;
+let vgmActivity = [];
+let liveTarget = null, liveVoice = null, lastLiveVoice = null, liveSettingsKey = '';
 let comparison = null;
-const channels = Array.from({ length: 6 }, (_, index) => ({
-  wave: index < 5 ? index : null, left: 10, right: 10, envelope: createVsuEnvelope(),
-}));
 let soundContext = null, scopeMode = 'waveform', scopeFrame = null;
 let held = null, codeHandoff = Promise.resolve(), keys = new Map();
 const fretboard = createFretboardState();
@@ -106,10 +118,11 @@ function scheduleScope() {
 
 function drawWaveRam() {
   const { width, height, context } = fitCanvas(waveCanvas);
-  const samples = banks[Number(editBank.value)];
-  const column = width / samples.length;
+  const samples = displayedWave();
   context.fillStyle = '#18090f';
   context.fillRect(0, 0, width, height);
+  if (!samples?.length) return;
+  const column = width / samples.length;
   context.strokeStyle = '#5c293b';
   context.beginPath();
   context.moveTo(0, height / 2);
@@ -122,25 +135,94 @@ function drawWaveRam() {
   });
 }
 
+function displayedWave() {
+  return liveTarget ? liveVoice?.wave : banks[authorBank];
+}
+
 function showSample() {
-  const bank = banks[Number(editBank.value)], index = sampleIndex.valueAsNumber;
-  if (Number.isInteger(index) && index >= 0 && index < bank.length) sampleValue.value = bank[index];
+  const wave = displayedWave(), index = sampleIndex.valueAsNumber;
+  sampleValue.value = wave?.[index] ?? '';
   drawWaveRam();
 }
 
 function channelSettings(index = Number(channelSelect.value)) {
+  const observing = Boolean(liveTarget);
+  const voice = liveVoice;
   const settings = channels[index];
-  channelWave.disabled = settings.wave === null;
-  byId('channelWaveGroup').hidden = settings.wave === null;
-  byId('noiseTapGroup').hidden = settings.wave !== null;
-  byId('ch5Panel').hidden = index !== CH5;
-  if (settings.wave !== null) channelWave.value = settings.wave;
-  byId('leftLevel').value = byId('leftValue').value = settings.left;
-  byId('rightLevel').value = byId('rightValue').value = settings.right;
-  envelopeMonitor.setSettings(settings.envelope);
-  updateChannelTabs(index);
-  authorMixer.drawLevels(index, settings);
-  reference.setChannel(index);
+  const wave = observing ? voice?.waveBank ?? '' : settings.wave;
+  const noise = index === channels.length - 1;
+  const effect = observing && voice?.modulation ? decodeCh5Settings(voice.ev1, voice.swp, voice.modulation) : ch5Settings;
+
+  byId('channelWaveGroup').hidden = noise;
+  byId('noiseTapGroup').hidden = !noise;
+  byId('ch5Panel').hidden = index !== CH5 || (observing && !voice);
+  channelWave.value = noise ? '' : wave;
+  noiseTap.value = observing ? (voice ? (voice.ev1 >> 4) & 7 : '') : selectedNoiseTap;
+  editBank.value = observing ? wave ?? '' : authorBank;
+  for (const side of ['left', 'right']) {
+    const level = observing ? voice?.[side] : settings[side];
+    byId(side + 'Level').value = level ?? 0;
+    byId(side + 'Value').value = level ?? '—';
+  }
+  const envelope = observing ? voice ? decodeVsuEnvelope(voice.ev0, voice.ev1) : createVsuEnvelope() : settings.envelope;
+  envelopeMonitor.setSettings(envelope);
+  refreshCh5Controls(effect);
+  for (const field of [channelWave, noiseTap, editBank, sampleValue, byId('waveShape'), byId('loadShape'),
+    byId('leftLevel'), byId('rightLevel'), byId('vsuEnvelopeControls'), ...Object.values(ch5Controls), ...ch5ModInputs]) {
+    field.disabled = observing;
+  }
+  compare.disabled = observing || Boolean(comparison);
+  sampleIndex.disabled = observing && !voice?.wave;
+  waveCanvas.dataset.live = String(observing);
+  byId('vsuWaveEditHint').hidden = observing;
+  channelStatus.value = observing
+    ? (liveTarget.source === 'vgm' ? 'VGM' : 'Code') + ' · CH' + (index + 1) +
+      (voice ? liveEnabled.checked ? ' · Live' : ' · Frozen' : ' · Waiting for channel settings…')
+    : selectedChannel === null ? 'AUTO · Synth CH' + (index + 1) : 'Synth · CH' + (index + 1);
+  syncWorkspaceControls();
+  showSample();
+}
+
+function drawLiveRegisters(voice) {
+  drawChannelActivity();
+  liveRegisters.hidden = !voice;
+  if (!voice) return;
+  const hex = value => '0x' + value.toString(16).toUpperCase().padStart(3, '0');
+  liveRegisters.value = (voice.active ? 'Active' : 'Idle') + ' · FQ ' + hex(voice.frequency) +
+    (voice.workingFrequency === undefined ? '' : ' · Current ' + hex(voice.workingFrequency)) +
+    (voice.currentEnvelope === undefined ? '' : ' · Envelope ' + voice.currentEnvelope);
+}
+
+function syncLiveTarget() {
+  if (!editorReady) return false;
+  const vgm = ['playing', 'paused', 'seeking'].includes(referenceState.state);
+  const source = selectedChannel !== null && (vgm ? 'vgm' : codeRunning ? 'synth' : null);
+  const key = source ? [source, selectedChannel, vgm ? referenceState.id : '', vgm ? referenceState.state : ''].join(':') : '';
+  if ((liveTarget?.key ?? '') === key) return false;
+  liveTarget = source ? { key, source, channel: selectedChannel, id: vgm ? referenceState.id : null } : null;
+  liveVoice = lastLiveVoice = null;
+  liveSettingsKey = '';
+  audio.setLiveChannel(liveTarget?.channel ?? null);
+  drawLiveRegisters(null);
+  channelSettings();
+  return true;
+}
+
+function showLiveVoice(voice) {
+  liveVoice = voice;
+  const key = JSON.stringify([voice.waveBank, voice.wave, voice.left, voice.right, voice.ev0, voice.ev1, voice.swp, voice.modulation]);
+  if (key !== liveSettingsKey) {
+    liveSettingsKey = key;
+    channelSettings();
+  }
+  drawLiveRegisters(voice);
+}
+
+function acceptLiveState({ source, channel, voice, playbackId }) {
+  if (!liveTarget || source !== liveTarget.source || channel !== liveTarget.channel ||
+      playbackId !== liveTarget.id || referenceState.state === 'seeking') return;
+  lastLiveVoice = voice;
+  if (liveEnabled.checked || !liveVoice) showLiveVoice(voice);
 }
 
 function sendChannelLevels(index) {
@@ -158,6 +240,7 @@ function envelopeWrites(index, settings = channels[index].envelope, effect = ch5
 }
 
 function applyEnvelopeEdit(envelope, control) {
+  if (liveTarget) return;
   const index = Number(channelSelect.value);
   channels[index].envelope = envelope;
   const { running, stopping } = runtime.getState();
@@ -202,8 +285,12 @@ const runtime = createPlaygroundCodeRuntime({
     run.disabled = state.busy;
     apply.disabled = !state.running || state.busy;
     stop.disabled = !state.running || state.stopping;
+    if (codeRunning !== state.running) {
+      codeRunning = state.running;
+      syncLiveTarget();
+    }
   },
-  stopSoundChips() { if (canWrite()) chip.allNotesOff(); },
+  stopSoundChips() { if (canWrite()) writePatchToChip(); },
 });
 
 function stopCode() {
@@ -219,6 +306,7 @@ function getPatch() {
   return validateVsuPatch({
     format: VSU_PATCH_FORMAT, version: 1, banks: banks.map(wave => Array.from(wave)),
     channels, noiseTap: selectedNoiseTap, ch5: ch5Settings,
+    preferredChannel: liveTarget ? autoChannel : selectedChannel ?? autoChannel,
   });
 }
 
@@ -233,22 +321,16 @@ async function applyPatch(patch) {
   next.channels.forEach((settings, channel) => Object.assign(channels[channel], settings));
   channels.forEach((settings, channel) => authorMixer.drawLevels(channel, settings));
   selectedNoiseTap = next.noiseTap;
-  noiseTap.value = selectedNoiseTap;
   ch5Settings = next.ch5;
-  channelSettings();
-  showSample();
-  refreshCh5Controls();
+  autoChannel = next.preferredChannel ?? autoChannel;
+  authorBank = channels[autoChannel].wave ?? authorBank;
+  selectChannel(null);
   if (canWrite()) writePatchToChip();
 }
 
 async function copyReferenceVoice(snapshot) {
   const result = captureVsuVoice(getPatch(), snapshot);
-  await applyPatch(result.patch);
-  selectChannel(result.channel);
-  if (result.bank !== null) {
-    editBank.value = result.bank;
-    showSample();
-  }
+  await applyPatch({ ...result.patch, preferredChannel: result.channel });
   selectChipPanel(false);
   setWorkspaceMode(false);
 }
@@ -269,17 +351,17 @@ function selectedCh5ControlWrites() {
   return ch5ControlWrites(ch5Settings, ev1);
 }
 
-function refreshCh5Controls() {
+function refreshCh5Controls(settings = ch5Settings) {
   for (const [key, input] of Object.entries(ch5Controls)) {
-    if (key === 'repeat') input.checked = ch5Settings[key];
-    else input.value = ch5Settings[key];
+    if (key === 'repeat') input.checked = settings[key];
+    else input.value = settings[key];
   }
-  byId('ch5Timing').hidden = ch5Settings.mode === 'off';
-  byId('ch5Sweep').hidden = ch5Settings.mode !== 'sweep';
-  byId('ch5Modulation').hidden = ch5Settings.mode !== 'modulation';
-  const interval = ch5StepMs(ch5Settings);
+  byId('ch5Timing').hidden = settings.mode === 'off';
+  byId('ch5Sweep').hidden = settings.mode !== 'sweep';
+  byId('ch5Modulation').hidden = settings.mode !== 'modulation';
+  const interval = ch5StepMs(settings);
   byId('ch5Step').value = interval ? `${interval.toFixed(2)} ms / step` : 'Off';
-  ch5ModInputs.forEach((input, index) => { input.value = ch5Settings.modulation[index]; });
+  ch5ModInputs.forEach((input, index) => { input.value = settings.modulation[index]; });
 }
 
 function updateCh5Audio({ restart = false, table = false } = {}) {
@@ -298,6 +380,7 @@ function updateCh5Audio({ restart = false, table = false } = {}) {
 
 function setupCh5Controls() {
   for (const [key, input] of Object.entries(ch5Controls)) input.addEventListener('change', () => {
+    if (liveTarget) return;
     const previous = ch5Settings[key];
     ch5Settings[key] = key === 'repeat' ? input.checked
       : key === 'rate' || key === 'shift' ? Number(input.value) : input.value;
@@ -318,6 +401,7 @@ function setupCh5Controls() {
     input.value = value;
     input.setAttribute('aria-label', 'Modulation step ' + index);
     input.addEventListener('change', () => {
+      if (liveTarget) return;
       const sample = input.valueAsNumber;
       if (!Number.isInteger(sample) || !input.validity.valid) {
         input.value = ch5Settings.modulation[index];
@@ -476,17 +560,17 @@ function redrawKeyboard() {
 }
 
 function writeEditedBank() {
+  if (liveTarget) return;
   stopComparison();
   if (!canWrite()) return;
   releaseKeyboard();
   chip.allNotesOff();
-  const bank = Number(editBank.value);
-  chip.setWave(bank, banks[bank]);
+  chip.setWave(authorBank, banks[authorBank]);
 }
 
 function setSample(index, value) {
-  if (!Number.isInteger(index) || index < 0 || index > 31 || !Number.isInteger(value) || value < 0 || value > 63) return false;
-  banks[Number(editBank.value)][index] = value;
+  if (liveTarget || !Number.isInteger(index) || index < 0 || index > 31 || !Number.isInteger(value) || value < 0 || value > 63) return false;
+  banks[authorBank][index] = value;
   if (sampleIndex.valueAsNumber !== index) sampleIndex.value = index;
   if (sampleValue.valueAsNumber !== value) sampleValue.value = value;
   drawWaveRam();
@@ -501,7 +585,7 @@ function drawAtPointer(event) {
   setSample(index, value);
 }
 waveCanvas.addEventListener('pointerdown', event => {
-  if (event.button !== 0 || drawPointer !== null) return;
+  if (liveTarget || event.button !== 0 || drawPointer !== null) return;
   drawPointer = event.pointerId;
   waveCanvas.setPointerCapture(event.pointerId);
   drawAtPointer(event);
@@ -514,48 +598,91 @@ waveCanvas.addEventListener('lostpointercapture', event => {
   drawPointer = null;
   writeEditedBank();
 });
-editBank.addEventListener('change', showSample);
+editBank.addEventListener('change', () => {
+  if (liveTarget) return;
+  authorBank = Number(editBank.value);
+  showSample();
+});
 sampleIndex.addEventListener('change', showSample);
 sampleValue.addEventListener('change', () => {
   if (setSample(sampleIndex.valueAsNumber, sampleValue.valueAsNumber)) writeEditedBank();
 });
 byId('loadShape').addEventListener('click', () => {
-  banks[Number(editBank.value)] = createVsuWave(byId('waveShape').value);
+  if (liveTarget) return;
+  banks[authorBank] = createVsuWave(byId('waveShape').value);
   showSample();
   writeEditedBank();
 });
 
-const channelTabs = [];
 for (const [index, settings] of channels.entries()) {
   const option = document.createElement('option');
   option.value = index;
   const mode = settings.wave === null ? 'Noise' : index === CH5 ? 'Wave / Sweep / Modulation' : 'Wave';
   option.textContent = 'CH' + (index + 1) + ' · ' + mode;
   channelSelect.append(option);
+}
+const channelChoices = [null, ...channels.keys()];
+const channelTabs = channelChoices.map((index, position) => {
   const button = document.createElement('button');
   button.type = 'button';
-  button.textContent = 'CH' + (index + 1);
-  button.title = mode;
-  button.setAttribute('aria-label', option.textContent);
+  button.dataset.channel = index ?? 'auto';
+  button.textContent = index === null ? 'AUTO' : 'CH' + (index + 1);
+  if (index !== null) button.title = channelSelect.options[index].textContent;
+  button.setAttribute('role', 'tab');
+  button.setAttribute('aria-controls', 'vsuSynthControls');
   button.addEventListener('click', () => selectChannel(index));
+  button.addEventListener('keydown', event => {
+    const count = channelChoices.length;
+    const next = { Home: 0, End: count - 1, ArrowLeft: (position + count - 1) % count, ArrowRight: (position + 1) % count }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    selectChannel(channelChoices[next]);
+    channelTabs[next].focus();
+  });
   byId('vsuChannelTabs').append(button);
-  channelTabs.push(button);
-}
-function updateChannelTabs(index) {
-  channelTabs.forEach((button, channel) => {
-    button.setAttribute('aria-pressed', String(index === channel));
+  return button;
+});
+function updateChannelTabs() {
+  channelTabs.forEach((button, position) => {
+    const active = channelChoices[position] === selectedChannel;
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
   });
 }
 
+function drawChannelActivity() {
+  if (!editorReady) return;
+  const vgm = ['playing', 'paused'].includes(referenceState.state);
+  for (const [index, button] of channelTabs.slice(1).entries()) {
+    const active = vgm ? vgmActivity[index]?.active : liveTarget?.source === 'synth' && liveTarget.channel === index && liveVoice?.active;
+    const value = String(Boolean(active));
+    if (button.dataset.active !== value) button.dataset.active = value;
+  }
+}
+
 function selectChannel(index) {
-  channelSelect.value = index;
   stopComparison();
   releaseKeyboard();
-  channelSettings(index);
+  selectedChannel = index;
+  const physical = index ?? autoChannel;
+  channelSelect.value = physical;
+  updateChannelTabs();
+  reference.setChannel(index);
+  const refreshed = syncLiveTarget();
+  if (!liveTarget) {
+    authorBank = channels[physical].wave ?? authorBank;
+    channelSettings(physical);
+  } else if (!refreshed) channelSettings(physical);
 }
+
+liveEnabled.addEventListener('change', () => {
+  if (liveEnabled.checked && lastLiveVoice) showLiveVoice(lastLiveVoice);
+  channelSettings();
+});
 
 for (let tap = 0; tap < 8; tap += 1) noiseTap.add(new Option(String(tap), String(tap)));
 noiseTap.addEventListener('change', () => {
+  if (liveTarget) return;
   selectedNoiseTap = Number(noiseTap.value);
   if (canWrite()) {
     const [address, value] = envelopeWrites(5).at(-1);
@@ -564,6 +691,7 @@ noiseTap.addEventListener('change', () => {
 });
 channelSelect.addEventListener('change', () => selectChannel(Number(channelSelect.value)));
 channelWave.addEventListener('change', () => {
+  if (liveTarget) return;
   stopComparison();
   const index = Number(channelSelect.value), wave = Number(channelWave.value);
   channels[index].wave = wave;
@@ -571,12 +699,14 @@ channelWave.addEventListener('change', () => {
 });
 for (const side of ['left', 'right']) {
   const control = byId(side + 'Level');
-  control.addEventListener('input', () => setChannelLevel(Number(channelSelect.value), side, control.valueAsNumber));
+  control.addEventListener('input', () => {
+    if (!liveTarget) setChannelLevel(Number(channelSelect.value), side, control.valueAsNumber);
+  });
 }
 function setChannelLevel(index, side, value) {
   if (index === CH5) stopComparison();
   channels[index][side] = value;
-  if (Number(channelSelect.value) === index) byId(side + 'Level').value = byId(side + 'Value').value = value;
+  if (!liveTarget && Number(channelSelect.value) === index) byId(side + 'Level').value = byId(side + 'Value').value = value;
   authorMixer.drawLevels(index, channels[index]);
   sendChannelLevels(index);
 }
@@ -636,9 +766,13 @@ for (const [index, button] of chipTabs.entries()) {
 }
 
 const workspaceModes = [byId('workspaceSynth'), byId('workspaceCode')];
+function syncWorkspaceControls() {
+  const expanded = workspaceModes[1].getAttribute('aria-pressed') === 'true';
+  byId('vsuSynthControls').hidden = expanded && !liveTarget;
+}
 function setWorkspaceMode(showCode) {
   showMode(workspaceModes, workspaceModes[Number(showCode)].id);
-  byId('vsuSynthControls').hidden = showCode;
+  syncWorkspaceControls();
   showInput(showCode);
   drawOutput();
   scheduleScope();
@@ -658,6 +792,12 @@ const reference = setupVgmPlayer({
   openSong: path => files.openVgm(path),
   selectChannel,
   copyVoice: copyReferenceVoice,
+  onPlaybackChange(next) {
+    referenceState = next;
+    if (next.state !== 'playing' && next.state !== 'paused') vgmActivity = [];
+    syncLiveTarget();
+    drawChannelActivity();
+  },
 });
 const files = setupVsuFiles({
   panel: byId('filesPanel'), toggle: byId('filesToggle'), starterCode,
@@ -715,9 +855,9 @@ document.addEventListener('visibilitychange', () => {
 new ResizeObserver(drawOutput).observe(outputCanvas);
 new ResizeObserver(drawWaveRam).observe(waveCanvas);
 
-channelSettings();
-channels.forEach((settings, channel) => authorMixer.drawLevels(channel, settings));
 setupCh5Controls();
-showSample();
+editorReady = true;
+selectChannel(null);
+channels.forEach((settings, channel) => authorMixer.drawLevels(channel, settings));
 redrawKeyboard();
 drawOutput();

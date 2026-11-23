@@ -1,9 +1,20 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { validateCh5Settings } from './ch5.js';
+import { createCh5Settings, validateCh5Settings } from './ch5.js';
 import { createVsuEnvelope, validateVsuEnvelope } from './envelope.js';
-import { VSU_CHANNEL_COUNT, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH } from './vsu.js';
+import { createVsuWave, VSU_CHANNEL_COUNT, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH } from './vsu.js';
 
 export const VSU_PATCH_FORMAT = 'tetorica-vsu-patch';
+
+export function createDefaultVsuPatch() {
+	return {
+		format: VSU_PATCH_FORMAT, version: 1,
+		banks: ['triangle', 'sine', 'square', 'saw', 'triangle'].map(shape => Array.from(createVsuWave(shape))),
+		channels: Array.from({ length: VSU_CHANNEL_COUNT }, (_, index) => ({
+			wave: index < VSU_WAVE_BANK_COUNT ? index : null, left: 10, right: 10, envelope: createVsuEnvelope(),
+		})),
+		noiseTap: 0, ch5: createCh5Settings(),
+	};
+}
 
 function boundedInteger(value, min, max, name) {
 	if (!Number.isInteger(value) || value < min || value > max)
@@ -38,5 +49,8 @@ export function validateVsuPatch(patch) {
 		format: VSU_PATCH_FORMAT, version: 1, banks, channels,
 		noiseTap: boundedInteger(patch.noiseTap, 0, 7, 'Noise tap'),
 		ch5: validateCh5Settings(patch.ch5),
+		...(patch.preferredChannel === undefined ? {} : {
+			preferredChannel: boundedInteger(patch.preferredChannel, 0, VSU_CHANNEL_COUNT - 1, 'Preferred channel'),
+		}),
 	};
 }
