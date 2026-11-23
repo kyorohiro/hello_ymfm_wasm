@@ -178,6 +178,11 @@ Code. Opening Mixer keeps playback running on the selected chip.
 Code can play SM510 register writes and SM511 melodies together on their
 respective buses.
 
+The LCD switches between **Pulse output**, **Waveform**, and **Spectrum**.
+**Pulse output** previews the chip's pulse timing. **Waveform** shows the
+combined audio after Mixer and Master, and **Spectrum** shows its frequency
+levels in dB. Both follow live Keyboard, Code and Melody ROM playback.
+
 ## Synth and Code
 
 Open **Keyboard** to play the on-screen pads or their matching computer
@@ -186,7 +191,7 @@ editor to edit the script, or focus the **Code** tab to play with the computer
 keys. The physical note keys also work while source buttons, switches, or
 sliders have focus. Use the arrow keys to adjust focused sliders.
 The top **Code** button opens **Files** and the editor side by side below
-**Pulse output**. The performance and chip tabs share the top of the editor
+the output display. The performance and chip tabs share the top of the editor
 column. Select a chip tab to show its controls in that column. Select
 **Code** to return to the editor. Code playback continues across these
 views. **Run** starts a session and **Apply** updates it.

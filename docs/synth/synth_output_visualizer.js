@@ -1,6 +1,8 @@
 // Observe the supplied output bus (live + looper + reference songs) without
 // routing audio through the canvas monitor or adding another speaker edge.
-export function createSynthOutputVisualizer() {
+export function createSynthOutputVisualizer({
+  background = '#10191a', grid = '#284642', labels = '#a8bfba', trace = '#7be0d6',
+} = {}) {
   let analyser = null;
   let sources = [];
   const waveform = new Float32Array(2048);
@@ -26,23 +28,22 @@ export function createSynthOutputVisualizer() {
     for (const source of sources) source.connect(analyser);
   }
 
-  function draw(canvas, context, mode) {
-    const {width, height} = canvas;
+  function draw({width, height}, context, mode) {
     const left = 38, right = width - 18, top = 14, bottom = height - 25;
     const w = right - left, h = bottom - top;
     context.clearRect(0, 0, width, height);
-    context.fillStyle = '#10191a';
+    context.fillStyle = background;
     context.fillRect(0, 0, width, height);
     context.font = '11px sans-serif';
     context.lineWidth = 1;
-    context.strokeStyle = '#284642';
-    context.fillStyle = '#a8bfba';
+    context.strokeStyle = grid;
+    context.fillStyle = labels;
     for (let i = 0; i <= 4; i++) {
       const y = top + h * i / 4;
       context.beginPath(); context.moveTo(left, y); context.lineTo(right, y); context.stroke();
       context.fillText(mode === 'waveform' ? (1 - i / 2).toFixed(1) : String(-i * 22.5), 2, y + 4);
     }
-    context.strokeStyle = '#7be0d6';
+    context.strokeStyle = trace;
     context.lineWidth = 2;
     context.beginPath();
     if (mode === 'waveform') {
@@ -51,7 +52,7 @@ export function createSynthOutputVisualizer() {
       // Anchor to a rising zero crossing to keep held notes easier to inspect.
       let start = 0;
       for (let i = 1; i < waveform.length / 2; i++) {
-        if (waveform[i - 1] < 0 && waveform[i] >= 0) { start = i; break; }
+        if (waveform[i - 1] <= 0 && waveform[i] > 0) { start = i; break; }
       }
       const count = waveform.length / 2;
       for (let i = 0; i < count; i++) {

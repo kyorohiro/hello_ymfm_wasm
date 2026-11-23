@@ -5,6 +5,7 @@ import { noteToHz } from '../js/soundchip_pitch.js';
 import { BUZZER_STARTER, setupBuzzerCode } from './code.js';
 import { setupBuzzerWorkspace } from './files.js';
 import { setupBuzzerPerformance } from './performance.js';
+import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
 import {
 	DIRECT_R, DK52_R, GATE_PRESETS, GATE_STEP_COUNT,
 	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
@@ -26,6 +27,13 @@ const mix = Object.fromEntries(['sm510', 'sm511'].map(chip => [chip, {
 }]));
 const canvas = byId('waveform'), drawing = canvas.getContext('2d');
 const pitch = byId('pitch');
+const outputCanvas = byId('outputScope'), outputDrawing = outputCanvas.getContext('2d');
+const outputScopeLabel = byId('outputScopeLabel');
+const scopeButtons = [...document.querySelectorAll('[data-scope-mode]')];
+const outputVisualizer = createSynthOutputVisualizer({
+	background: '#a7ab79', grid: '#59603f80', labels: '#343a24', trace: '#202b19',
+});
+let scopeMode = 'pulse', scopeFrame = null;
 const keyTracking = byId('sm510KeyTracking');
 const pulseCycles = byId('sm510PulseCycles'), pulseDriveValue = byId('sm510PulseDriveValue');
 const dutyControl = byId('sm510Duty'), dutyValue = byId('sm510DutyValue');
@@ -188,6 +196,7 @@ function drawWave() {
 	else if (frequency) pitch.textContent = `${sm511 ? sm511CommandLabel(romCommand) : displayNote(note, chip)} · ${frequency.toFixed(2)} Hz`;
 	else if (!sounding) pitch.textContent = rawMode ? `SM510 ${monitor.label} · Off` : 'Rest · silence';
 	else pitch.textContent = `${displayNote(note, chip)} · ${sm511 ? 'SM511' : 'Direct R'}`;
+	if (canvas.hidden) return;
 	const { width, height } = canvas.getBoundingClientRect();
 	if (!drawing || !width || !height) return;
 	const scale = window.devicePixelRatio || 1;
@@ -241,6 +250,27 @@ function drawWave() {
 		drawing.lineTo(right, y);
 	}
 	drawing.stroke();
+}
+
+function drawOutputScope() {
+	if (outputCanvas.hidden || !outputDrawing) return;
+	const { width, height } = outputCanvas.getBoundingClientRect();
+	if (!width || !height) return;
+	const scale = window.devicePixelRatio || 1;
+	const pixelWidth = Math.round(width * scale), pixelHeight = Math.round(height * scale);
+	if (outputCanvas.width !== pixelWidth) outputCanvas.width = pixelWidth;
+	if (outputCanvas.height !== pixelHeight) outputCanvas.height = pixelHeight;
+	outputDrawing.setTransform(scale, 0, 0, scale, 0, 0);
+	outputVisualizer.draw({ width, height }, outputDrawing, scopeMode);
+}
+
+function scheduleOutputScope() {
+	if (scopeFrame !== null || outputCanvas.hidden || audio?.state !== 'running') return;
+	scopeFrame = requestAnimationFrame(() => {
+		scopeFrame = null;
+		drawOutputScope();
+		scheduleOutputScope();
+	});
 }
 
 function showStep(index) {
@@ -301,6 +331,8 @@ async function ensureAudio() {
 		master = audio.createGain();
 		master.gain.value = Number(volume.value) / 100;
 		master.connect(audio.destination);
+		outputVisualizer.connect(audio, [master]);
+		audio.addEventListener('statechange', scheduleOutputScope);
 		for (const [chip, channel] of Object.entries(mix)) {
 			channel.output = audio.createGain();
 			channel.output.gain.value = mixLevel(chip);
@@ -317,6 +349,7 @@ async function ensureAudio() {
 		});
 	}
 	if (audio.state !== 'running') await audio.resume();
+	scheduleOutputScope();
 }
 
 function loadSm510Wasm() {
@@ -1187,6 +1220,23 @@ refreshToneSource();
 refreshPulseTiming();
 
 new ResizeObserver(drawWave).observe(canvas);
+new ResizeObserver(drawOutputScope).observe(outputCanvas);
+for (const button of scopeButtons) button.addEventListener('click', () => {
+	scopeMode = button.dataset.scopeMode;
+	const pulse = scopeMode === 'pulse';
+	for (const choice of scopeButtons) choice.setAttribute('aria-pressed', String(choice === button));
+	canvas.hidden = pitch.hidden = !pulse;
+	outputCanvas.hidden = outputScopeLabel.hidden = pulse;
+	if (pulse) {
+		if (scopeFrame !== null) cancelAnimationFrame(scopeFrame);
+		scopeFrame = null;
+		drawWave();
+	} else {
+		outputCanvas.setAttribute('aria-label', scopeMode === 'spectrum' ? 'Final output frequency spectrum' : 'Final output waveform');
+		drawOutputScope();
+		scheduleOutputScope();
+	}
+});
 workspace = setupBuzzerWorkspace({
 	document, setStatus, getPattern, stopPerformance,
 	applyPattern(pattern) { applyPattern(pattern); restartPattern(); },

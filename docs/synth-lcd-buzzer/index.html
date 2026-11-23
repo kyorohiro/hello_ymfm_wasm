@@ -55,10 +55,17 @@
 			<section class="scope" aria-labelledby="scope-title">
 				<div class="lcd">
 					<header class="scope-header">
-						<h2 id="scope-title">Pulse output</h2>
+						<h2 id="scope-title" class="visually-hidden">Output display</h2>
+						<div class="scope-modes" role="group" aria-label="Output display mode">
+							<button type="button" data-scope-mode="pulse" aria-pressed="true" aria-controls="waveform">Pulse output</button>
+							<button type="button" data-scope-mode="waveform" aria-pressed="false" aria-controls="outputScope">Waveform</button>
+							<button type="button" data-scope-mode="spectrum" aria-pressed="false" aria-controls="outputScope">Spectrum</button>
+						</div>
 						<p id="pitch">—</p>
+						<p id="outputScopeLabel" hidden>After Mixer and Master</p>
 					</header>
 					<canvas id="waveform" width="900" height="135" aria-hidden="true"></canvas>
+					<canvas id="outputScope" width="900" height="135" role="img" aria-label="Final output waveform" hidden></canvas>
 				</div>
 			</section>
 			<div class="hinge" aria-hidden="true"></div>
