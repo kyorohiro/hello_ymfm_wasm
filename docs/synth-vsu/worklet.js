@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isVsuEnvelopeEdit } from './envelope.js?v=vsu-code-envelope';
 import { createVgmTransport } from './vgm-transport.js?v=vsu-live-keyboard';
-import { createVsuTimedProcessor } from './timed-processor.js';
-import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister } from './vsu.js';
+import { createVsuTimedProcessor } from './timed-processor.js?v=vsu-envelope-level';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget } from './vsu.js?v=vsu-envelope-level';
 
 const LIVE_REPORT_FRAMES = Math.ceil(sampleRate / 30);
+const ENVELOPE_REPORT_FRAMES = Math.ceil(sampleRate / 60);
 const WAVE_SAMPLE_COUNT = VSU_WAVE_BANK_COUNT * VSU_WAVE_LENGTH;
 const MODULATION_CHANNEL = 4;
 const NOISE_CHANNEL = 5;
@@ -31,12 +32,17 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.codeWaveEditId = 0;
 			this.codeWaveStateDirty = false;
 			this.captureAddress = this.vgmState + stateSize;
+			this.liveValuesAddress = this.captureAddress + exports.vsu_snapshot_size();
 			this.pcm = this.captureAddress + Math.ceil(exports.vsu_live_snapshot_size() / 4) * 4;
 			this.liveChannel = null;
 			this.liveWriteSequence = 0;
 			this.nextLiveReport = 0;
 			this.lastLiveId = null;
 			this.liveDirty = false;
+			this.envelopeLevels = Array(VSU_CHANNEL_COUNT).fill(null);
+			this.envelopeWatch = false;
+			this.envelopePlaybackId = undefined;
+			this.nextEnvelopeReport = 0;
 			this.prepareBuffers(128);
 			exports.vsu_reset(this.state);
 			this.vgm = createVgmTransport({
@@ -69,7 +75,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.timed = createVsuTimedProcessor({
 				nowFrame: () => currentFrame,
 				sampleRate,
-				write: (offset, value, owner) => this.writeSource(this.state, this.synthKeyOwners, offset, value, owner),
+				write: (offset, value, owner, mask) => this.writeSource(this.state, this.synthKeyOwners, offset, value, owner, mask),
 				release: (name, owner) => this.releaseTimedNotes(name, owner),
 				vgmOwnsOutput: () => this.vgm.ownsOutput,
 				reportError: detail => this.port.postMessage({ type: 'timed-error', ...detail }),
@@ -130,7 +136,15 @@ class VsuProcessor extends AudioWorkletProcessor {
 			pendingWrites: [...this.pendingCodeWaveWrites], appliedWrites });
 	}
 
-	writeSource(state, owners, offset, value, timed) {
+	writeSource(state, owners, offset, value, timed, mask) {
+		if (mask !== undefined) {
+			const target = vsuMaskedEnvelopeTarget(offset, mask, value);
+			if (!target) return;
+			const { channel, register } = target;
+			const previous = this.envelopeByte(state, channel, register);
+			if (previous !== undefined) this.writeMaskedRegister(state, channel, register, mask, value, previous);
+			return;
+		}
 		// Only a source write to the gate takes ownership from a held key.
 		if (offset === VSU_SOUND_STOP && (value & 1)) owners.clear();
 		else if (offset >= FIRST_CHANNEL_INT && offset < VSU_SOUND_STOP && (offset - FIRST_CHANNEL_INT) % CHANNEL_STRIDE === 0) {
@@ -285,7 +299,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 				? Array.from(new Int8Array(buffer, ramAddress + VSU_WAVE_LENGTH, VSU_WAVE_LENGTH)) : null,
 		};
 		if (live) {
-			const values = new Uint32Array(buffer, this.captureAddress + this.core.vsu_snapshot_size(), 2);
+			const values = new Uint32Array(buffer, this.liveValuesAddress, 2);
 			[voice.workingFrequency, voice.currentEnvelope] = values;
 		}
 		return voice;
@@ -350,6 +364,25 @@ class VsuProcessor extends AudioWorkletProcessor {
 		});
 	}
 
+	reportEnvelopeLevels() {
+		if (!this.envelopeWatch || currentFrame < this.nextEnvelopeReport) return;
+		this.nextEnvelopeReport = currentFrame + ENVELOPE_REPORT_FRAMES;
+		const playbackId = this.vgm.outputId;
+		const state = playbackId === null ? this.state : this.vgmState;
+		const values = new Uint32Array(this.core.memory.buffer, this.liveValuesAddress, 2);
+		let changed = playbackId !== this.envelopePlaybackId;
+		this.envelopePlaybackId = playbackId;
+		for (let channel = 0; channel < VSU_CHANNEL_COUNT; channel++) {
+			const active = this.core.vsu_get_channel(state, channel) & 0x100;
+			const level = active && this.core.vsu_snapshot_live_voice(state, channel, this.captureAddress)
+				? values[1] : null;
+			if (level !== this.envelopeLevels[channel]) changed = true;
+			this.envelopeLevels[channel] = level;
+		}
+		if (changed) this.port.postMessage({ type: 'envelope-levels', playbackId,
+			revision: this.envelopeRevision, levels: this.envelopeLevels.slice() });
+	}
+
 	handle(message) {
 		try {
 			switch (message.type) {
@@ -381,6 +414,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 			case 'batch':
 				for (let index = 0; index < message.writes.length; index += 2)
 					this.writeSource(this.state, this.synthKeyOwners, message.writes[index], message.writes[index + 1]);
+				break;
+			case 'envelope-writes':
+				if (this.vgm.ownsOutput) break;
+				for (const [offset, value, mask] of message.writes)
+					this.writeSource(this.state, this.synthKeyOwners, offset, value, undefined, mask);
+				this.liveDirty = true;
 				break;
 			case 'code-wave-write':
 				this.queueCodeWave(message);
@@ -419,6 +458,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 				this.liveRevision = message.revision;
 				this.liveDirty = true;
 				break;
+			case 'envelope-watch':
+				this.envelopeWatch = message.enabled;
+				this.envelopeRevision = message.revision;
+				this.envelopePlaybackId = undefined;
+				this.nextEnvelopeReport = 0;
+				break;
 			case 'live-write':
 				this.editLive(message);
 				break;
@@ -456,6 +501,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 			right.set(this.right);
 			this.reportCodeWave();
 			this.reportLive();
+			this.reportEnvelopeLevels();
 		} catch (error) {
 			this.fail(error);
 			return false;

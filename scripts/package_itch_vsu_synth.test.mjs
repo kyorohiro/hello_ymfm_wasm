@@ -31,6 +31,7 @@ test('VSU playable and source ZIPs contain the same editable browser assets', as
 
 	const html = unzipSync(htmlBytes), source = unzipSync(sourceBytes);
 	assert(Object.keys(html).length <= 1000);
+	assert.match(JSON.parse(text(source['package.json'])).devDependencies.typescript, /^\d+\.\d+\.\d+/);
 	for (const path of ['index.html', 'synth-vsu/index.html']) {
 		const page = text(html[path]);
 		assert.match(page, /<title>Tetorica VSU Synth<\/title>/);
@@ -41,11 +42,12 @@ test('VSU playable and source ZIPs contain the same editable browser assets', as
 		}
 	}
 	for (const [path, bytes] of Object.entries(html)) {
-		if (/\.(?:css|js|wasm|webp)$/.test(path)) assert.deepEqual(bytes, source[`docs/${path}`], path);
+		if (/\.(?:css|js|wasm|webp|d\.ts)$/.test(path)) assert.deepEqual(bytes, source[`docs/${path}`], path);
 	}
 	for (const path of [
 		'synth-vsu/worklet.js', 'synth-vsu/vgm-presets-worker.js', 'synth-vsu/vgm-seek-worker.js',
 		'synth-vsu/vsu.wasm', 'synth-vsu/files.css', 'playground/vendor/fflate.js', 'tetorica_vsu_synth.webp',
+		'synth-vsu/code_declarations.js', 'playground/playground_monaco.js', 'playground/tetorica-playground-globals.d.ts',
 		'LICENSE', 'licenses/tetorica-virtual-files/LICENSE', 'playground/vendor/fflate-LICENSE',
 	]) assert(html[path], path);
 	for (const path of [

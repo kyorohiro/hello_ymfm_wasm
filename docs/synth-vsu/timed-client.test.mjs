@@ -59,6 +59,29 @@ test('the VSU plan rejects invalid timing, incomplete writes, and asynchronous c
 	assert.throws(() => escaped.noteOff(0), /no longer active/);
 });
 
+test('compile preserves envelope masks whose final values depend on playback-time registers', async () => {
+	const api = attachVsuTimedClient({}, () => assert.fail('Compilation must not use the Worklet.'));
+	const plan = api.build(builder => builder
+		.write(0x554, 0x50)
+		.setEnvelope(5, { level: 9, rate: 4, direction: 'down', enabled: true, repeat: false })
+		.atSeconds(0.25).resetEnvelope(5));
+	const rows = await api.compile(JSON.parse(JSON.stringify(plan)));
+	assert.deepEqual(rows, [
+		{ offsetSeconds: 0, register: 0x554, value: 0x50, operationIndex: 0, writeIndex: 0 },
+		{ offsetSeconds: 0, register: 0x550, value: 0x94, operationIndex: 1, writeIndex: 0 },
+		{ offsetSeconds: 0, register: 0x554, value: 1, mask: 3, operationIndex: 1, writeIndex: 1 },
+		{ offsetSeconds: 0.25, register: 0x550, value: 0, mask: 0, operationIndex: 2, writeIndex: 0 },
+	]);
+	for (const change of [{ register: 0x54c }, { mask: 1 }, { value: 4 }]) {
+		const invalid = structuredClone(plan);
+		Object.assign(invalid.writes[2], change);
+		assert.throws(() => validateVsuOperations(invalid), /masked envelope/);
+	}
+	const invalidReset = structuredClone(plan);
+	invalidReset.writes[3].value = 1;
+	assert.throws(() => validateVsuOperations(invalidReset), /masked envelope/);
+});
+
 test('the VSU client sends detached schedules and supports Code stage, commit and cleanup', async () => {
 	const requests = [];
 	const api = attachVsuTimedClient({}, async request => { requests.push(request); return true; });

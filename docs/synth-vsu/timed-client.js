@@ -7,7 +7,7 @@ import {
 	validateVsuScheduleOwner,
 	validateVsuScheduleTransaction,
 	validateVsuTimedFields,
-} from './timed-operations.js';
+} from './timed-operations.js?v=vsu-envelope-level';
 
 /** Attach stateless register plans and the Code runtime's reservation lifecycle. */
 export function attachVsuTimedClient(api, request) {

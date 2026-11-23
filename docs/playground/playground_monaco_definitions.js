@@ -374,7 +374,7 @@ export function createDefinitionViewer(monaco, mainEditor, libraryModels, option
       const model=libraryModels.get(resource.toString())??sources.get(resource.toString());
       if(model){ownerChip=sourceChip(source,ownerChip);revision++;show(model,position);return true;}
       if(resource.scheme==='file'&&resource.path.startsWith('/project/')&&options.openVirtualFile){
-        options.openVirtualFile(resource.path.slice('/project'.length));
+        await options.openVirtualFile(resource.path.slice('/project'.length));
         if(position?.startLineNumber){mainEditor.setSelection(position);mainEditor.revealLineInCenter(position.startLineNumber);}
         else if(position){mainEditor.setPosition(position);mainEditor.revealLineInCenter(position.lineNumber);}
         if(dialog.open)dialog.close();mainEditor.focus();return true;

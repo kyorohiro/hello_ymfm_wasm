@@ -5,6 +5,7 @@ import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFi
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { version as esbuildVersion } from 'esbuild';
+import typescriptPackage from 'typescript/package.json' with { type: 'json' };
 import { copyReadableModules } from './copy_readable_modules.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -62,6 +63,7 @@ export async function packageVsuSynth({ version = 'dev', releaseDir = join(root,
 			['LICENSE', 'LICENSE'],
 			[`docs/${icon}`, icon],
 			[`docs/${app}/vsu.wasm`, `${app}/vsu.wasm`],
+			['docs/playground/tetorica-playground-globals.d.ts', 'playground/tetorica-playground-globals.d.ts'],
 			['docs/playground/vendor/fflate-LICENSE', 'playground/vendor/fflate-LICENSE'],
 			['packages/virtual-files/LICENSE', 'licenses/tetorica-virtual-files/LICENSE'],
 		]) {
@@ -84,6 +86,7 @@ Serve this directory over HTTPS or localhost and open index.html.
 For itch.io, upload ${htmlName} as the playable HTML project.
 Play the Virtual Boy sound chip from Keyboard or Code, or import a VGM file to explore its voices.
 The editable JavaScript and CSS ship with the browser app. The C++ audio core and build script are in ${sourceName}.
+Code completion uses the pinned Monaco CDN and the included declarations. Plain text editing works offline.
 `);
 
 		const appFiles = await readdir(join(root, 'docs', app));
@@ -99,7 +102,7 @@ The editable JavaScript and CSS ship with the browser app. The C++ audio core an
 		]) await copy(join(root, path), join(source, path));
 		await writeFile(join(source, 'package.json'), JSON.stringify({
 			name: slug, private: true, type: 'module', license: 'BSD-3-Clause',
-			devDependencies: { esbuild: esbuildVersion },
+			devDependencies: { esbuild: esbuildVersion, typescript: typescriptPackage.version },
 			scripts: { build: 'sh scripts/build_vsu.sh', test: `node --test docs/${app}/*.test.mjs test/runtime/vsu-native.test.mjs`, pack: 'node scripts/package_itch_vsu_synth.mjs' },
 		}, null, 2) + '\n');
 		await writeFile(join(source, 'README.md'), `# Tetorica VSU Synth source

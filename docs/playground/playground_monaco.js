@@ -1,5 +1,5 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=sid-timed-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=ps1-vab-api-1";
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=vsu-monaco';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=vsu-monaco";
 import {selectPlaygroundDeclarations} from './playground_declarations.js?v=ps1-vab-api-1';
 // Asset loading must remain trusted while user liveLoop callbacks install the
 // execution guard over global fetch. Loading Monaco itself is still lazy.
@@ -64,7 +64,8 @@ function registerMonacoHover(
 }
 
 function registerMonacoSignatureHelp(
-  monaco
+  monaco,
+  chip
 ) {
   const signatures = [
     {
@@ -153,6 +154,7 @@ function registerMonacoSignatureHelp(
     },
     {
       prefixes: ["write("],
+      fm: true,
       label:
         "write(register: number, value: number): void",
       parameters: [
@@ -170,6 +172,7 @@ function registerMonacoSignatureHelp(
     },
     {
       prefixes: ["write("],
+      fm: true,
       label:
         "write(port: number, register: number, value: number): void",
       parameters: [
@@ -209,6 +212,7 @@ function registerMonacoSignatureHelp(
     },
     {
       prefixes: ["fm.write("],
+      fm: true,
       label:
         "fm.write(port: number, register: number, value: number): void",
       parameters: [
@@ -231,6 +235,7 @@ function registerMonacoSignatureHelp(
     },
     {
       prefixes: ["fm.setOperator("],
+      fm: true,
       label:
         "fm.setOperator(channel: number, operator: number, params: YM2612OperatorParams): void",
       parameters: [
@@ -275,6 +280,7 @@ function registerMonacoSignatureHelp(
 
         let bestMatch = null;
         for (const signature of signatures) {
+          if (chip === 'vsu' && signature.fm) continue;
           for (const prefix of signature.prefixes) {
             const index =
               linePrefix.lastIndexOf(
@@ -436,6 +442,24 @@ function loadMonacoLoader() {
   );
 }
 
+async function checkJavaScriptWorker(monaco) {
+  const probe = monaco.editor.createModel('', 'javascript');
+  let timeout;
+  try {
+    const check = async () => {
+      const getWorker = await monaco.languages.typescript.getJavaScriptWorker();
+      const worker = await getWorker(probe.uri);
+      await worker.getSyntacticDiagnostics(probe.uri.toString());
+    };
+    await Promise.race([check(), new Promise((_, reject) => {
+      timeout = setTimeout(() => reject(new Error('Monaco JavaScript worker did not respond.')), 8000);
+    })]);
+  } finally {
+    clearTimeout(timeout);
+    probe.dispose();
+  }
+}
+
 export async function initializePlaygroundMonaco(
   options
 ) {
@@ -537,9 +561,11 @@ export async function initializePlaygroundMonaco(
     );
     registerMonacoHover(monaco);
     registerMonacoSignatureHelp(
-      monaco
+      monaco,
+      options.chip
     );
     const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip, options);
+    if (options.requireJavaScriptWorker) await checkJavaScriptWorker(monaco);
 
     const monacoModel = getModelForVirtualPath(
       options.getActiveVirtualPath?.() ?? '/index.js', getEditorValue()
@@ -622,7 +648,7 @@ export async function initializePlaygroundMonaco(
     let currentModel = monacoModel;
 
     function getModelForVirtualPath(path, source) {
-      const language = /\.json$/i.test(path) ? 'json' : /\.js$/i.test(path) ? 'javascript' : 'plaintext';
+      const language = /\.json$/i.test(path) ? 'json' : /\.m?js$/i.test(path) ? 'javascript' : 'plaintext';
       const uri = monaco.Uri.parse(
         `file:///project${path}`
       );
@@ -649,7 +675,7 @@ export async function initializePlaygroundMonaco(
         // Script models provide cross-file completion and definition lookup.
         // Preset JSON and other text get a model when opened in the editor.
         // Importing an instrument library therefore creates no JSON listeners.
-        if (file.type === "text" && /\.js$/i.test(file.path)) {
+        if (file.type === "text" && /\.m?js$/i.test(file.path)) {
           paths.add(file.path);
           const model = getModelForVirtualPath(
             file.path,

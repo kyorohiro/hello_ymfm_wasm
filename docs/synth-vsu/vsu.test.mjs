@@ -8,6 +8,7 @@ function captureWrites() {
 	const client = createVsuClient({
 		write(offset, value) { operations.push([offset, value]); },
 		writeBatch(writes) { operations.push(writes); },
+		writeEnvelope(writes) { operations.push(writes); },
 	});
 	return { client, operations };
 }
@@ -68,4 +69,22 @@ test('channel volume, wave selection, and raw writes respect the VSU register la
 	assert.throws(() => client.write(0x401, 0x80), /aligned/);
 	assert.throws(() => client.write(0x400, 256), /Register byte/);
 	assert.equal(operations.length, 3);
+});
+
+test('envelope helpers encode hardware writes per channel and validate settings before enqueueing', () => {
+	const { client, operations } = captureWrites();
+	const options = { level: 12, rate: 7, direction: 'up', enabled: true, repeat: true };
+	client.setEnvelope(4, options);
+	client.resetEnvelope(5);
+	assert.deepEqual(operations, [
+		[[0x510, 0xcf], [0x514, 3, 3]],
+		[[0x550, 0, 0]],
+	]);
+	assert.throws(() => client.setEnvelope(6, options), /Channel/);
+	assert.throws(() => client.setEnvelope(0, { ...options, level: 16 }), /Envelope initial level/);
+	assert.throws(() => client.setEnvelope(0, { ...options, rate: 8 }), /Envelope rate/);
+	assert.throws(() => client.setEnvelope(0, { ...options, direction: 'attack' }), /direction/);
+	assert.throws(() => client.setEnvelope(0, { ...options, enabled: 1 }), /enable/);
+	assert.throws(() => client.resetEnvelope(-1), /Channel/);
+	assert.equal(operations.length, 2);
 });

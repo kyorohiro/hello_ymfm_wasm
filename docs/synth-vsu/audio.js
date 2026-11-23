@@ -2,7 +2,7 @@
 import { createVgmSeekClient } from './vgm-seek-client.js';
 import { CH5 } from './ch5.js';
 import { isVsuEnvelopeEdit } from './envelope.js?v=vsu-code-envelope';
-import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuNoteOnWrites } from './vsu.js';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget, vsuNoteOnWrites } from './vsu.js?v=vsu-envelope-level';
 
 const PROCESSOR = 'tetorica-vsu';
 const WORKLET_TIMEOUT_MS = 10000;
@@ -71,7 +71,7 @@ function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
 }
 
 export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {}, onLiveState = () => {},
-	onCodeWaveState = () => {}, onTimedError = () => {} } = {}) {
+	onEnvelopeLevels = () => {}, onCodeWaveState = () => {}, onTimedError = () => {} } = {}) {
 	validateVolume(volume);
 	const channelGains = Array(VSU_CHANNEL_COUNT).fill(1);
 	let session = null;
@@ -82,6 +82,8 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 	let nextCodeWaveEdit = 0;
 	let liveChannel = null;
 	let liveRevision = 0;
+	let envelopeMonitor = false;
+	let envelopeRevision = 0;
 
 	function takeRequest(requests, request) {
 		const pending = requests.get(request);
@@ -162,7 +164,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-code-envelope', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-envelope-level', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -179,6 +181,12 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 					if (session !== current) return;
 					if (data.type === 'live-state') {
 						reportLive(current, data);
+						return;
+					}
+					if (data.type === 'envelope-levels') {
+						const playbackId = current.vgmState === 'ended' ? null : current.vgmId ?? null;
+						if (envelopeMonitor && data.revision === envelopeRevision && data.playbackId === playbackId &&
+							!current.vgmSeek && !(playbackId && current.vgmStopping)) onEnvelopeLevels(data.levels);
 						return;
 					}
 					if (data.type === 'code-wave-state') {
@@ -218,6 +226,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				if (gain !== 1) send({ type: 'channel-gain', channel, gain });
 			}
 			if (liveChannel !== null) send({ type: 'live-watch', channel: liveChannel, revision: liveRevision });
+			if (envelopeMonitor) send({ type: 'envelope-watch', enabled: true, revision: envelopeRevision });
 		})();
 		current.ready = Promise.race([load, failure]).catch(async error => {
 			await close(current, error).catch(() => {});
@@ -282,6 +291,16 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			const writes = packWrites(pairs);
 			send({ type: 'batch', writes }, [writes.buffer]);
 		},
+		writeEnvelope(writes) {
+			if (!Array.isArray(writes) || !writes.length) throw new TypeError('Provide VSU envelope writes.');
+			for (const [offset, value, mask] of writes) {
+				validateWrite(offset, value);
+				const target = mask === undefined
+					? vsuMaskedEnvelopeTarget(offset, 0, 0) : vsuMaskedEnvelopeTarget(offset, mask, value);
+				if (!target) throw new RangeError('Choose a valid VSU envelope write.');
+			}
+			send({ type: 'envelope-writes', writes });
+		},
 		writeCodeEnvelope(channels, register, mask, value) {
 			const current = session;
 			if (!current?.active || current.vgmSeek || (current.vgmId && current.vgmState !== 'ended')) return;
@@ -325,6 +344,12 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			liveChannel = channel;
 			liveRevision++;
 			if (session?.active) send({ type: 'live-watch', channel, revision: liveRevision });
+		},
+		setEnvelopeMonitor(enabled) {
+			if (enabled === envelopeMonitor) return;
+			envelopeMonitor = enabled;
+			envelopeRevision++;
+			if (session?.active) send({ type: 'envelope-watch', enabled, revision: envelopeRevision });
 		},
 		writeLiveChannel({ source, channel, playbackId, register, mask, value }) {
 			const current = session;

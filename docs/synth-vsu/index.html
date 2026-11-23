@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#150b0f">
   <title>Tetorica VSU Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=vsu-live-wave">
+  <link rel="stylesheet" href="./synth.css?v=vsu-envelope-level">
   <link rel="stylesheet" href="./files.css?v=vsu-noise">
-  <script type="module" src="./synth.js?v=vsu-code-envelope"></script>
+  <script type="module" src="./synth.js?v=vsu-envelope-level"></script>
 </head>
 <body>
   <main class="shell">
@@ -162,7 +162,7 @@
                 </div>
                 <fieldset id="vsuEnvelopeControls" class="envelope-controls">
                   <legend>Envelope</legend>
-                  <label class="level">Level <input id="envInitial" type="range" min="0" max="15" value="15">
+                  <label class="level">Initial level <input id="envInitial" type="range" min="0" max="15" value="15">
                     <output id="envInitialValue" for="envInitial">15</output>
                   </label>
                   <label><input id="envEnabled" type="checkbox" aria-label="Enable envelope"> Enable</label>
@@ -179,6 +179,10 @@
                   <label><input id="envRepeat" type="checkbox"> Repeat</label>
                   <output id="envStep" for="envEnabled envRate">Off</output>
                 </fieldset>
+                <div class="envelope-readback">
+                  <span id="envCurrentLabel">Current level</span>
+                  <output id="envCurrentLevel" aria-labelledby="envCurrentLabel" aria-live="off">—</output>
+                </div>
                 <details class="envelope-preview">
                   <summary id="showEnvelope">Envelope curve</summary>
                   <canvas id="envelopeCanvas" width="600" height="132" role="img" aria-label="Channel envelope"></canvas>
@@ -291,8 +295,10 @@
               <button id="apply" type="button" title="Apply edits to the running session (Ctrl/Cmd+Shift+Enter)" aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter" disabled>Apply</button>
               <button id="stop" type="button" disabled>Stop Code</button>
             </div>
+            <div id="codeEditorHost"></div>
             <textarea id="code" aria-label="JavaScript performance code" spellcheck="false"
               autocapitalize="off" autocomplete="off"></textarea>
+            <p id="codeEditorNote" class="hint" role="status" hidden></p>
             <pre id="codeOutput" aria-label="Code output" aria-live="polite"></pre>
           </div>
           <p id="status" role="status">Ready</p>

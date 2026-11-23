@@ -37,6 +37,7 @@ function setup() {
 			}
 		},
 		live: () => processor.messages.filter(message => message.type === 'live-state'),
+		levels: () => processor.messages.filter(message => message.type === 'envelope-levels'),
 		captures: () => processor.messages.filter(message => message.type === 'vgm-capture'),
 		codeWave: () => processor.messages.filter(message => message.type === 'code-wave-state'),
 	};
@@ -48,6 +49,42 @@ function liveKeyboard(send, source, playbackId, channel = 0, revision = 1) {
 		off: owner => send({ type: 'live-note-off', source, playbackId, channel, owner }),
 	};
 }
+
+test('current envelope levels follow physical gates and the output source independently of channel watch', () => {
+	const { send, render, levels } = setup();
+	send({ type: 'batch', writes: [
+		0x410, 0xf0, 0x414, 1, 0x400, 0x80,
+		0x510, 0x70, 0x500, 0x80,
+	] });
+	send({ type: 'channel-gain', channel: 0, gain: 0 });
+	render();
+	assert.deepEqual(levels(), []);
+	send({ type: 'envelope-watch', enabled: true, revision: 1 });
+	render();
+	assert.deepEqual(levels().at(-1), { type: 'envelope-levels', playbackId: null, revision: 1,
+		levels: [15, null, null, null, 7, null] });
+	render(95);
+	assert.equal(levels().at(-1).levels[0], 0);
+	send({ type: 'write', offset: 0x400, value: 0 });
+	render(8);
+	assert.equal(levels().at(-1).levels[0], null);
+
+	send({ type: 'vgm-play', id: 8, mask: 63, plan: {
+		writes: new Uint32Array([0, 0x450, 0x90, 0, 0x440, 0x80]), durationTicks: 8000, loopTick: null, loopIndex: 0,
+	} });
+	render(8);
+	assert.deepEqual(levels().at(-1), { type: 'envelope-levels', playbackId: 8, revision: 1,
+		levels: [null, 9, null, null, null, null] });
+	send({ type: 'envelope-watch', enabled: false, revision: 2 });
+	const count = levels().length;
+	send({ type: 'vgm-stop', id: 8 });
+	render(8);
+	assert.equal(levels().length, count);
+	send({ type: 'envelope-watch', enabled: true, revision: 3 });
+	render();
+	assert.deepEqual(levels().at(-1), { type: 'envelope-levels', playbackId: null, revision: 3,
+		levels: [null, null, null, null, 7, null] });
+});
 
 test('Code monitoring reports configuration and the advancing envelope and pitch for one selected voice', () => {
 	const { send, render, live } = setup();
@@ -185,6 +222,36 @@ test('AUTO envelope edits reach sounding Code voices and preserve unrelated regi
 	send({ type: 'write', offset: 0x410, value: 0x94 });
 	assert.deepEqual(read(0, 4), { active: true, ev0: 0x94, ev1: 0 });
 	assert(outputs[0][0].at(-1) > 0);
+});
+
+test('immediate envelope controls preserve Noise tap and can restart a decayed envelope', () => {
+	const { send, render, live } = setup();
+	const voice = () => live().at(-1).voice;
+	send({ type: 'batch', writes: [0x544, 0xff, 0x554, 0x60, 0x540, 0x80] });
+	send({ type: 'envelope-writes', writes: [[0x550, 0x40], [0x554, 1, 3]] });
+	send({ type: 'live-watch', channel: 5, revision: 1 });
+	render();
+	assert.deepEqual([voice().active, voice().ev0, voice().ev1, voice().currentEnvelope], [true, 0x40, 0x61, 4]);
+	render(48);
+	assert.equal(voice().currentEnvelope, 0);
+	send({ type: 'envelope-writes', writes: [[0x550, 0, 0]] });
+	render();
+	assert.deepEqual([voice().active, voice().ev0, voice().ev1, voice().currentEnvelope], [true, 0x40, 0x61, 4]);
+});
+
+test('scheduled envelope writes merge EV1 with the state at their playback frame', () => {
+	const { send, render, live } = setup();
+	const plan = buildVsuOperations(b => b.setEnvelope(4, {
+		level: 9, rate: 3, direction: 'up', enabled: true, repeat: false,
+	}));
+	send({ type: 'batch', writes: [0x510, 0x10, 0x514, 0x40, 0x500, 0x80] });
+	send({ type: 'timed-request', id: 1, request: { action: 'schedule', plan, options: { name: 'envelope' } } });
+	send({ type: 'write', offset: 0x514, value: 0x72 });
+	render(2);
+	send({ type: 'live-watch', channel: 4, revision: 1 });
+	render();
+	const { active, ev0, ev1, currentEnvelope } = live().at(-1).voice;
+	assert.deepEqual([active, ev0, ev1, currentEnvelope], [true, 0x9b, 0x71, 9]);
 });
 
 test('Code live Wave bank selection switches the sounding data without taking the manual gate', () => {

@@ -131,6 +131,8 @@ h2 { margin: 0; font-size: 1rem; }
 .vsu-output-channel output { text-align: right; color: var(--muted); }
 .envelope-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding-top: 9px; margin-top: 8px; border-top: 1px solid var(--border); }
 .envelope-controls > legend { padding-inline: 0 8px; font-size: .84rem; font-weight: 650; }
+.envelope-readback { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; color: var(--muted); font-size: .84rem; }
+.envelope-readback output { color: #ffe9e5; font-family: var(--mono); }
 .envelope-preview { margin-top: 8px; }
 .envelope-preview summary { color: var(--muted); font-size: .86rem; cursor: pointer; }
 .choice-control { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
@@ -226,8 +228,11 @@ canvas { display: block; width: 100%; border-radius: 6px; }
 .code-toolbar { margin-bottom: 8px; }
 #code { display: block; width: 100%; min-height: 250px; resize: vertical; background: #180d12; color: #ffe9e5; border: 1px solid var(--border);
   border-radius: 8px; padding: 12px; font: .88rem/1.45 var(--mono); }
+#codeEditorHost { height: 290px; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; }
+#codeEditorHost:not([data-ready="true"]) { display: none; }
 .workspace-main[data-layout="code"] .performance { margin-top: 0; }
 .workspace-main[data-layout="code"] #code { min-height: clamp(290px, 52dvh, 640px); }
+.workspace-main[data-layout="code"] #codeEditorHost { height: clamp(290px, 52dvh, 640px); }
 #codeOutput { white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0 0; color: var(--muted); }
 #codeOutput:empty { display: none; }
 #status { margin: 12px 0 0; color: var(--muted); font-size: .85rem; }

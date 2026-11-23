@@ -28,7 +28,7 @@ Play a key on a numbered channel while VGM or Code is running to retrigger that 
 
 During Code playback, **Wave bank** switches immediately for the selected wave channel. Wave RAM edits show a preview and apply when every hardware channel is idle. The pending message stays visible while the chip's write lock is active, including when a sounding channel is muted in the Mixer. Use **AUTO** to retain waveform edits in the authored patch.
 
-The **Envelope** controls sit under the active **Wave RAM** or **Noise** settings. Open **Envelope curve** to see that channel's configured volume curve alongside the output display.
+The **Envelope** controls sit under the active **Wave RAM** or **Noise** settings. **Initial level** is the starting value. **Current level** shows the hardware envelope for each active channel in the selection, including a gate that is still on after decaying to zero. Open **Envelope curve** to see the configured volume curve.
 
 With Code running, an **AUTO** Envelope edit applies the changed field to the current source's physical voices. **Wave (PCM)** edits CH1–5, **Sweep / Modulation** edits CH5, and **Noise** edits CH6. Select a numbered channel to edit just that voice. Later Code writes can change the same envelope registers again.
 
@@ -63,6 +63,8 @@ The top **Code** button opens a workspace beside Files with **Code / VSU / Mixer
 
 The Code toolbar sits above the editor. Use **Ctrl/Cmd+Enter** to Run or **Ctrl/Cmd+Shift+Enter** to Apply changes to the running session.
 
+Code loads Monaco when you open the editor. Type `.` after a VSU client or press **Ctrl+Space** to see completions. When the Monaco CDN is unavailable, the local text editor still supports editing, saving, and running Code.
+
 In the Code workspace, select **VSU → AUTO**, then **Wave (PCM)**, **Sweep / Modulation**, or **Noise**. Use the **Keyboard** tab for on-screen keys, or use PC keys when focus is outside the editor and other text fields. AUTO keys and running Code share the physical VSU channels. The latest trigger on a channel takes over that channel's gate. When Code takes over a held key's channel, releasing the key leaves the new note playing.
 
 ## Keyboard
@@ -93,6 +95,21 @@ The helpers also accept zero-based channel numbers and MIDI note numbers. For wa
 | `0x18` | Wave bank on channels 1–5 |
 | `0x1c` | Sweep timing, shift, and direction on channel 5 |
 
+### Envelope
+
+`setEnvelope()` sets the starting level (0–15), rate (0–7), direction (`up` or `down`), and the Enable and Repeat flags. `resetEnvelope()` reloads the channel's programmed starting level and restarts its envelope timer, without changing the note gate. Call it before each `noteOn()` when you want a fresh envelope on each attack.
+
+```javascript
+const vsu = await useSoundChip("vsu");
+vsu.setEnvelope(CH1, { level: 15, rate: 0, direction: 'down', enabled: true, repeat: false });
+for (const note of ['C4', 'E4']) {
+  vsu.resetEnvelope(CH1);
+  vsu.noteOn(CH1, note);
+  await sleep(0.4);
+  vsu.noteOff(CH1);
+}
+```
+
 ### Timed playback
 
 `build()` records writes and helpers such as `setWave()`, `noteOn()` and `noteOff()` in one synchronous callback. Use `atSeconds()` or `atSample()` for offsets from the start of the pattern. `atSample()` uses 44,100 Hz by default, or the `referenceSampleRate` passed to `build()`. Writes at the same time run in recorder order.
@@ -109,6 +126,8 @@ await vsu.schedule(taps, { name: "noise", repeatSeconds: 0.5 });
 ```
 
 `compile()` lists the planned VSU register offsets and bytes without changing playback. The shared Wave RAM and Modulation RAM write locks apply at execution. `schedule()` accepts a named one-shot or repeating pattern for the Web AudioWorklet. Its result confirms acceptance. **Apply** replaces the entry's patterns after the updated script succeeds. `clearSchedule(name)` and **Stop Code** cancel future writes and release notes still owned by the affected pattern. A scheduled channel stop leaves a later keyboard or Code note sounding. An explicit write of `1` to `0x580` uses the chip's global stop.
+
+The `build()` recorder also supports `setEnvelope()` and `resetEnvelope()`. A compiled row with `mask: 3` updates only the envelope bits of EV1. A row with `mask: 0` reloads EV0. Both read the chip's current register settings at the scheduled time.
 
 Fresh projects and **New → Cassette** include `examples/timed-modulation-noise.js`. Open it from Files and run it for a one-second pattern with CH5 Modulation and short CH6 Noise hits. Use the Mixer to listen to each output independently.
 

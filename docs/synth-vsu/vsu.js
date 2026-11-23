@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
+import { vsuEnvelopeRegisterValues } from './envelope.js';
 
 export const VSU_CHANNEL_COUNT = 6;
 export const VSU_WAVE_BANK_COUNT = 5;
@@ -14,6 +15,8 @@ export const VSU_REGISTERS = Object.freeze({
 const WAVETABLE_TONE_CLOCK = 5_000_000 / VSU_WAVE_LENGTH;
 const NOISE_SHIFT_CLOCK = 500_000;
 const DIVISOR_LIMIT = 2048;
+const FIRST_CHANNEL_REGISTER = 0x400;
+const CHANNEL_REGISTER_STRIDE = 0x40;
 
 function checkInteger(value, min, max, name) {
 	if (!Number.isInteger(value) || value < min || value > max)
@@ -24,7 +27,18 @@ export function vsuChannelRegister(channel, offset) {
 	checkInteger(channel, 0, VSU_CHANNEL_COUNT - 1, 'Channel');
 	checkInteger(offset, 0, VSU_REGISTERS.SWP, 'Channel register offset');
 	if (offset % 4 !== 0) throw new RangeError('The VSU register offset must be four-byte aligned.');
-	return 0x400 + channel * 0x40 + offset;
+	return FIRST_CHANNEL_REGISTER + channel * CHANNEL_REGISTER_STRIDE + offset;
+}
+
+export function vsuMaskedEnvelopeTarget(offset, mask, value) {
+	if (!Number.isInteger(offset) || offset < FIRST_CHANNEL_REGISTER || offset >= VSU_SOUND_STOP) return null;
+	const relative = offset - FIRST_CHANNEL_REGISTER;
+	const channel = Math.floor(relative / CHANNEL_REGISTER_STRIDE);
+	const registerOffset = relative % CHANNEL_REGISTER_STRIDE;
+	if (registerOffset === VSU_REGISTERS.EV0 && mask === 0 && value === 0) return { channel, register: 'EV0' };
+	if (registerOffset === VSU_REGISTERS.EV1 && mask === 3 && Number.isInteger(value) && value >= 0 && value <= mask)
+		return { channel, register: 'EV1' };
+	return null;
 }
 
 export function vsuWaveOffset(bank, index) {
@@ -113,6 +127,16 @@ export function createVsuClient(audio) {
 			checkInteger(channel, 0, VSU_CHANNEL_COUNT - 2, 'Wave channel');
 			checkInteger(bank, 0, VSU_WAVE_BANK_COUNT - 1, 'Wave bank');
 			return write(vsuChannelRegister(channel, VSU_REGISTERS.RAM), bank);
+		},
+		setEnvelope(channel, options) {
+			const ev0Offset = vsuChannelRegister(channel, VSU_REGISTERS.EV0);
+			const ev1Offset = vsuChannelRegister(channel, VSU_REGISTERS.EV1);
+			const { level, rate, direction, enabled, repeat } = options ?? {};
+			const { ev0, ev1 } = vsuEnvelopeRegisterValues({ initial: level, rate, direction, enabled, repeat });
+			return audio.writeEnvelope([[ev0Offset, ev0], [ev1Offset, ev1, 3]]);
+		},
+		resetEnvelope(channel) {
+			return audio.writeEnvelope([[vsuChannelRegister(channel, VSU_REGISTERS.EV0), 0, 0]]);
 		},
 		noteOn(channel, note) {
 			return audio.writeBatch(vsuNoteOnWrites(channel, note));

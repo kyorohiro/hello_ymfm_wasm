@@ -1,27 +1,29 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
+import { initializePlaygroundMonaco } from '../playground/playground_monaco.js?v=vsu-monaco';
 import {
   buildKeyboard, createFretboardLayout, createFretboardState, renderFretboardControls,
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-code-envelope';
+import { createVsuAudio } from './audio.js?v=vsu-envelope-level';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
   CH5, CH5_MODULATION_MAX, CH5_MODULATION_MIN,
   decodeCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
 } from './ch5.js';
+import { registerVsuCodeCompletions, selectVsuCodeDeclarations } from './code_declarations.js?v=vsu-envelope-level';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js?v=vsu-wave-controls';
 import { setupVsuFiles } from './files.js?v=vsu-timed';
 import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
 import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js?v=vsu-noise';
-import { attachVsuTimedClient } from './timed-client.js';
+import { attachVsuTimedClient } from './timed-client.js?v=vsu-envelope-level';
 import {
   createVsuClient, createVsuWave, vsuChannelRegister, vsuFrequencyRegister, vsuFrequencyWrites,
   vsuNoiseShiftRate, vsuNoteOnWrites, vsuStartWrites, vsuWaveOffset, VSU_INTERVAL_STEP_MS, VSU_NOISE_PATTERN_LENGTHS, VSU_REGISTERS,
-} from './vsu.js?v=vsu-noise';
+} from './vsu.js?v=vsu-envelope-level';
 import { createVsuVoicePool } from './voice-pool.js';
 import { loadVsuVgm } from './vgm.js';
 import { setupVgmPlayer } from './vgm-player.js';
@@ -29,6 +31,7 @@ import { setupVgmPlayer } from './vgm-player.js';
 const byId = id => document.getElementById(id);
 const status = byId('status'), code = byId('code'), codeOutput = byId('codeOutput');
 const codePanel = byId('codePanel'), codeTransport = byId('codeTransport'), performancePanel = byId('performance');
+const codeEditorHost = byId('codeEditorHost'), codeEditorNote = byId('codeEditorNote');
 const run = byId('run'), apply = byId('apply'), stop = byId('stop');
 const keyboard = byId('keyboard'), playingNote = byId('playingNote');
 const channelSelect = byId('channel'), channelWave = byId('channelWave'), waveShape = byId('waveShape');
@@ -39,6 +42,7 @@ const noiseInterval = byId('noiseInterval'), noiseIntervalValue = byId('noiseInt
 const noiseKeyTracking = byId('noiseKeyTracking'), noisePattern = byId('noisePattern');
 const liveEnabled = byId('vsuLiveEnabled'), channelStatus = byId('vsuChannelStatus');
 const liveRegisters = byId('vsuLiveRegisters');
+const envelopeLevelOutput = byId('envCurrentLevel');
 const envelopeFields = {
   initial: ['EV0', 0xf0], rate: ['EV0', 0x07], direction: ['EV0', 0x08],
   enabled: ['EV1', 0x01], repeat: ['EV1', 0x02],
@@ -58,6 +62,7 @@ const audio = createVsuAudio({
     stopComparison();
     releaseKeyboard();
     void stopCode();
+    clearEnvelopeReadback();
     status.textContent = error.message;
   },
   onVgmState(update) {
@@ -68,6 +73,10 @@ const audio = createVsuAudio({
     }
   },
   onLiveState: acceptLiveState,
+  onEnvelopeLevels(levels) {
+    currentEnvelopeLevels = levels;
+    drawEnvelopeReadback();
+  },
   onCodeWaveState: acceptCodeWaveState,
   onTimedError({ message }) { if (codeRunning) appendCodeLog('[VSU schedule] ' + message); },
 });
@@ -83,19 +92,21 @@ let ch5Settings = factoryPatch.ch5;
 let autoSource = 'wave', autoWaveChannel = 0, autoChannel = 0, selectedChannel = null, waveSample = 0;
 let codeRunning = false, referenceState = { state: 'empty', id: null }, editorReady = false;
 let vgmActivity = [];
+let currentEnvelopeLevels = [];
 let liveTarget = null, liveVoice = null, lastLiveVoice = null, liveSettingsKey = '';
 let drawPointer = null, pendingWaveWrites = new Map();
 const submittedWaveWrites = new Map();
 let comparison = null;
 let soundContext = null, scopeMode = 'waveform', scopeFrame = null;
 let codeHandoff = Promise.resolve(), keys = new Map(), nextLiveKey = 0;
+let codeEditorLoading = false, codeEditor = null, codeEditorAdapter = null, settingCode = false;
 const fretboard = createFretboardState();
 const fretboardTools = {
   instrumentRoot: byId('instrumentControls'), positionRoot: byId('positionControls'),
   fretDisplayRoot: byId('fretDisplay'), stringDisplayRoot: byId('stringDisplay'), stringWindowRoot: byId('stringWindowControls'),
 };
 let keyboardOctave = 0;
-const editingTarget = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable]';
+const editingTarget = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable], .monaco-editor, #codeEditorHost, dialog[open]';
 const canWrite = () => soundContext !== null && soundContext === audio.context;
 
 const starterCode = `const vsu = await useSoundChip("vsu");
@@ -305,8 +316,7 @@ function drawLiveRegisters(voice) {
   if (liveTarget?.channel === noiseChannel) drawNoiseTiming();
   const hex = value => '0x' + value.toString(16).toUpperCase().padStart(3, '0');
   liveRegisters.value = (voice.active ? 'Active' : 'Idle') + ' · FQ ' + hex(voice.frequency) +
-    (voice.workingFrequency === undefined ? '' : ' · Current ' + hex(voice.workingFrequency)) +
-    (voice.currentEnvelope === undefined ? '' : ' · Envelope ' + voice.currentEnvelope);
+    (voice.workingFrequency === undefined ? '' : ' · Current ' + hex(voice.workingFrequency));
 }
 
 function syncLiveTarget() {
@@ -706,6 +716,27 @@ function keyboardChannels() {
   return selectedChannel === null ? vsuAutoVoiceChannels(autoSource) : [selectedChannel];
 }
 
+function drawEnvelopeReadback() {
+  const labels = [];
+  for (const channel of keyboardChannels()) {
+    const level = currentEnvelopeLevels[channel];
+    if (level != null) labels.push('CH' + (channel + 1) + ' ' + level);
+  }
+  const value = labels.join(' · ') || '—';
+  if (envelopeLevelOutput.value !== value) envelopeLevelOutput.value = value;
+}
+
+function clearEnvelopeReadback() {
+  currentEnvelopeLevels = [];
+  drawEnvelopeReadback();
+}
+
+function syncEnvelopeMonitor() {
+  const enabled = !byId('vsuChipPanel').hidden && !['preparing', 'seeking'].includes(referenceState.state);
+  audio.setEnvelopeMonitor(enabled);
+  if (!enabled) clearEnvelopeReadback();
+}
+
 function autoChannelLabel() {
   const pool = vsuAutoVoiceChannels(autoSource);
   if (pool.length > 1) return 'AUTO · Wave · ' + pool.length + ' voices round robin';
@@ -1025,6 +1056,7 @@ function selectChannel(index) {
   reference.setChannel(index);
   const refreshed = syncLiveTarget();
   if (!refreshed) channelSettings(physical);
+  drawEnvelopeReadback();
 }
 
 liveEnabled.addEventListener('change', () => {
@@ -1157,9 +1189,14 @@ function renderWorkspace() {
   }
   byId('vsuChannelBar').hidden = !showVsu;
   byId('vsuChipPanel').hidden = !showVsu;
+  syncEnvelopeMonitor();
   byId('vsuMixerPanel').hidden = !showMixer;
   byId('keyboardPanel').hidden = inputView !== inputs[0];
   codePanel.hidden = inputView !== inputs[1];
+  if (!codePanel.hidden) {
+    if (codeEditor) codeEditor.layout();
+    else if (!codeEditorLoading) void loadCodeEditor();
+  }
   performancePanel.hidden = !inputs.includes(inputView);
   const statusParent = codePanel.hidden ? performancePanel : codeTransport;
   if (status.parentElement !== statusParent) statusParent.append(status);
@@ -1226,7 +1263,11 @@ const reference = setupVgmPlayer({
   openSong: path => files.openVgm(path),
   copyVoice: copyReferenceVoice,
   onPlaybackChange(next) {
+    const previousVgmId = referenceState.state === 'playing' || referenceState.state === 'paused' ? referenceState.id : null;
+    const nextVgmId = next.state === 'playing' || next.state === 'paused' ? next.id : null;
+    if (previousVgmId !== nextVgmId) clearEnvelopeReadback();
     referenceState = next;
+    syncEnvelopeMonitor();
     if (next.state !== 'playing' && next.state !== 'paused') vgmActivity = [];
     syncLiveTarget();
     drawChannelActivity();
@@ -1236,20 +1277,76 @@ const files = setupVsuFiles({
   panel: byId('filesPanel'), toggle: byId('filesToggle'), starterCode,
   getPatch, applyPatch, validatePatch: validateVsuPatch,
   getCode: () => code.value,
+  onCodeFilesChanged: () => codeEditorAdapter?.syncVirtualFiles(files.listCodeFiles()),
   async openVgm(bytes, path, { show, plan } = {}) {
     reference.setSong(path, path ? plan ?? await loadVsuVgm(bytes) : null, { show });
   },
   onVgmFilesChanged: reference.setFiles,
   onVgmError: reference.showError,
   onVgmAvailability: reference.setAvailability,
-  async setCode(source, _path, { show = false, stop: stopPlayback = show } = {}) {
+  async setCode(source, path, { show = false, stop: stopPlayback = show } = {}) {
     if (stopPlayback) await waitForCodeStop();
     code.value = source;
+    if (codeEditorAdapter) {
+      settingCode = true;
+      try {
+        codeEditorAdapter.openVirtualFile(path, source);
+        if (codeEditorAdapter.getValue() !== source) codeEditorAdapter.setValue(source);
+      } finally { settingCode = false; }
+    }
     if (show) selectWorkspaceTab(inputs[1]);
   },
   setStatus(message) { status.textContent = message; },
 });
 code.addEventListener('input', () => files.markCodeEdited());
+
+function setCodeEditorNote(message) {
+  codeEditorNote.textContent = message;
+  codeEditorNote.hidden = !message;
+}
+
+async function loadCodeEditor() {
+  codeEditorLoading = true;
+  let selection;
+  await files.ready;
+  await initializePlaygroundMonaco({
+    chip: 'vsu', editor: code, editorHost: codeEditorHost,
+    requireJavaScriptWorker: true,
+    declarationFiles: ['tetorica-playground-globals'],
+    transformDeclarations: selectVsuCodeDeclarations,
+    definitionRuntimeFile: 'playground_code_runtime.js',
+    getEditorValue() {
+      if (document.activeElement === code) selection = [code.selectionStart, code.selectionEnd];
+      return code.value;
+    },
+    getActiveVirtualPath: () => files.codePath,
+    listVirtualFiles: files.listCodeFiles,
+    openVirtualFile: files.openCodeFile,
+    setEditorNote: setCodeEditorNote,
+    setEditorAdapter(adapter) { codeEditorAdapter = adapter; },
+    onMonacoEditorReady({ monaco, monacoEditor: editor, monacoModel }) {
+      codeEditor = editor;
+      setCodeEditorNote('');
+      editor.updateOptions({ ariaLabel: 'JavaScript performance code', occurrencesHighlight: 'off' });
+      editor.onDidChangeModelContent(() => {
+        if (settingCode) return;
+        code.value = codeEditorAdapter.getValue();
+        files.markCodeEdited();
+      });
+      const runKeys = monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter;
+      editor.addCommand(runKeys, () => { if (!run.disabled) void execute(false); });
+      editor.addCommand(runKeys | monaco.KeyMod.Shift, () => { if (!apply.disabled) void execute(true); });
+      registerVsuCodeCompletions({ monaco, monacoEditor: editor });
+      if (codePanel.hidden) return;
+      editor.layout();
+      if (selection) {
+        const [start, end] = selection.map(offset => monacoModel.getPositionAt(offset));
+        editor.setSelection(new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column));
+        editor.focus();
+      }
+    },
+  });
+}
 
 async function execute(isApply) {
   reference.interrupt();
@@ -1272,7 +1369,8 @@ for (const [button, action] of [[run, () => execute(false)], [apply, () => execu
 }
 
 function handleCodeShortcut(event) {
-  if (codePanel.hidden || event.isComposing || event.altKey || !(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return;
+  if (codePanel.hidden || codeEditorHost.contains(event.target) || event.isComposing || event.altKey ||
+      !(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return;
   event.preventDefault();
   const button = event.shiftKey ? apply : run;
   if (!event.repeat && !button.disabled) void execute(event.shiftKey);
@@ -1309,4 +1407,4 @@ setupCh5Controls();
 editorReady = true;
 selectChannel(null);
 redrawKeyboard();
-drawOutput();
+renderWorkspace();

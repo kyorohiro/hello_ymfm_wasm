@@ -145,6 +145,7 @@ function checkSelections(fs, view = {}) {
 }
 
 export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePatch, getCode, setCode, starterCode, setStatus,
+  onCodeFilesChanged = () => {},
   openVgm = async () => {}, onVgmFilesChanged = () => {}, onVgmError = () => {}, onVgmAvailability = () => {} }) {
   const doc = panel.ownerDocument, win = doc.defaultView;
   const starterFiles = [
@@ -693,7 +694,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     refresh();
     try { await action(); }
     catch (error) { onError(error); }
-    finally { busy = false; refresh(); }
+    finally { busy = false; refresh(); onCodeFilesChanged(); }
   }
 
   const menuCommands = [
@@ -739,6 +740,12 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     .catch(report).finally(() => { loading = false; refresh(); });
   return {
     ...codeProject, get codePath() { return codePath ?? ENTRY_PATH; }, markCodeEdited, ready,
+    listCodeFiles: () => fs.list().filter(file => file.type === 'text' && JS_PATH.test(file.path)),
+    openCodeFile: path => operation(() => {
+      path = userPath(path);
+      if (!JS_PATH.test(path) || fs.get(path)?.type !== 'text') throw new Error('Choose a JavaScript file in Files.');
+      return open(path);
+    }),
     requestVgmImport, importVgm, listVgmFiles: () => vgmFiles.slice(),
     openVgm: path => operation(() => {
       path = userPath(path);
