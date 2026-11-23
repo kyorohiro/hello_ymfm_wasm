@@ -38,6 +38,7 @@ function setup() {
 		},
 		live: () => processor.messages.filter(message => message.type === 'live-state'),
 		captures: () => processor.messages.filter(message => message.type === 'vgm-capture'),
+		codeWave: () => processor.messages.filter(message => message.type === 'code-wave-state'),
 	};
 }
 
@@ -156,6 +157,165 @@ test('Code live edits preserve the other stereo nibble and shared envelope bits'
 	assert.deepEqual([live().at(-1).voice.left, live().at(-1).voice.right], [15, 0]);
 	assert.equal(live().at(-1).edit, undefined);
 	assert.equal(outputs[0][1].some(sample => sample !== 0), false);
+});
+
+test('Code live Wave bank selection switches the sounding data without taking the manual gate', () => {
+	const { send, render, live } = setup();
+	const upperWave = Array(32).fill(63);
+	send({ type: 'batch', writes: [
+		...upperWave.flatMap((value, cell) => [cell * 4, value]),
+		0x404, 0xff, 0x410, 0xf0, 0x418, 0,
+	] });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	const keyboard = liveKeyboard(send, 'synth', null);
+	keyboard.on(1, 'A4');
+	render();
+	assert.ok(outputs[0][0].at(-1) > 0);
+	const before = live().at(-1).voice;
+	const edit = (sequence, value, mask = 7, revision = 1) =>
+		send({ type: 'live-write', source: 'synth', channel: 0, playbackId: null, revision,
+			sequence, register: 'RAM', mask, value });
+	const count = live().length;
+	edit(1, 5);
+	edit(2, 1, 1);
+	edit(3, 1, 7, 0);
+	assert.equal(live().length, count);
+	edit(4, 1);
+	assert.deepEqual(live().at(-1).edit, { register: 'RAM', mask: 7, value: 1 });
+	assert.deepEqual(live().at(-1).voice, { ...before, waveBank: 1, wave: Array(32).fill(0) });
+	render();
+	assert.ok(outputs[0][0].at(-1) < 0);
+
+	send({ type: 'write', offset: 0x418, value: 0 });
+	render(16);
+	assert.equal(live().at(-1).voice.waveBank, 0);
+	assert.deepEqual(live().at(-1).voice.wave, upperWave);
+	assert.ok(outputs[0][0].at(-1) > 0);
+	keyboard.off(1);
+	render(16);
+	assert.equal(live().at(-1).voice.active, false);
+	assert.equal(outputs[0][0].at(-1), 0);
+
+	send({ type: 'live-watch', channel: 5, revision: 2 });
+	render();
+	const noise = live().at(-1);
+	send({ type: 'live-write', source: 'synth', channel: 5, playbackId: null, revision: 2,
+		sequence: 5, register: 'RAM', mask: 7, value: 2 });
+	assert.equal(live().at(-1), noise);
+});
+
+test('VGM Wave banks remain read-only in live controls and continue to follow song writes', () => {
+	const { send, render, live, captures } = setup();
+	send({ type: 'live-watch', channel: 2, revision: 1 });
+	send({ type: 'vgm-play', id: 4, mask: 63, plan: {
+		writes: new Uint32Array([
+			0, 0, 20, 0, 0x100, 45, 0, 0x498, 2,
+			0, 0x484, 0xae, 0, 0x490, 0xf0, 0, 0x480, 0x80,
+			1750, 0x498, 0,
+		]),
+		durationTicks: 8000, loopTick: null, loopIndex: 0,
+	} });
+	render();
+	send({ type: 'vgm-pause', id: 4, paused: true });
+	render();
+	const previous = live().at(-1);
+	assert.equal(previous.voice.wave[0], 45);
+	send({ type: 'live-write', source: 'vgm', channel: 2, playbackId: 4,
+		revision: 1, sequence: 1, register: 'RAM', mask: 7, value: 0 });
+	assert.equal(live().at(-1), previous);
+	send({ type: 'vgm-capture', id: 4, request: 1, channel: 2 });
+	assert.equal(captures().at(-1).voice.waveBank, 2);
+	assert.equal(captures().at(-1).voice.wave[0], 45);
+	send({ type: 'vgm-pause', id: 4, paused: false });
+	render(32);
+	assert.equal(live().at(-1).voice.waveBank, 0);
+	assert.equal(live().at(-1).voice.wave[0], 20);
+});
+
+test('shared Wave RAM waits for all VSU gates, including muted Noise, and coalesces edits', () => {
+	const { send, render, live, codeWave } = setup();
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	send({ type: 'batch', writes: [0, 1, 4, 1, 0x400, 0x80, 0x540, 0x80] });
+	send({ type: 'channel-gain', channel: 5, gain: 0 });
+	render();
+	send({ type: 'code-wave-write', editId: 1, writes: Uint16Array.of(0, 22, 4, 42) });
+	send({ type: 'code-wave-write', editId: 2, writes: Uint16Array.of(0, 63, 0x27c, 18) });
+	send({ type: 'code-wave-write', editId: 1, writes: Uint16Array.of(0, 10) });
+	assert.equal(codeWave().length, 2);
+	const locked = codeWave().at(-1);
+	assert.deepEqual(locked, { type: 'code-wave-state', editId: 2,
+		pendingWrites: [[0, 63], [4, 42], [0x27c, 18]], appliedWrites: [] });
+	send({ type: 'write', offset: 0x400, value: 0 });
+	send({ type: 'write', offset: 0, value: 12 });
+	render(20);
+	assert.equal(codeWave().at(-1), locked);
+	assert.deepEqual(live().at(-1).voice.wave.slice(0, 2), [1, 1]);
+	send({ type: 'write', offset: 0x540, value: 0 });
+	assert.deepEqual(codeWave().at(-1), { type: 'code-wave-state', editId: 2,
+		pendingWrites: [], appliedWrites: [[0, 63], [4, 42], [0x27c, 18]] });
+	render();
+	assert.deepEqual(live().at(-1).voice.wave.slice(0, 2), [63, 42]);
+});
+
+test('a later accepted Code write supersedes only its queued Wave RAM sample within a batch', () => {
+	const { send, render, live, codeWave } = setup();
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	send({ type: 'batch', writes: [0, 1, 4, 1, 0x400, 0x80] });
+	render();
+	send({ type: 'code-wave-write', editId: 1, writes: Uint16Array.of(0, 63, 4, 33) });
+	send({ type: 'batch', writes: [0x580, 1, 0, 12, 0x400, 0x80] });
+	assert.deepEqual(codeWave().at(-1), { type: 'code-wave-state', editId: 1,
+		pendingWrites: [[4, 33]], appliedWrites: [] });
+	render();
+	assert.equal(live().at(-1).voice.active, true);
+	assert.deepEqual(live().at(-1).voice.wave.slice(0, 2), [12, 1]);
+	send({ type: 'write', offset: 0x580, value: 1 });
+	render();
+	assert.deepEqual(codeWave().at(-1), { type: 'code-wave-state', editId: 1,
+		pendingWrites: [], appliedWrites: [[4, 33]] });
+	assert.deepEqual(live().at(-1).voice.wave.slice(0, 2), [12, 33]);
+});
+
+test('a queued Wave RAM edit can apply in the idle interval between render-timed notes', () => {
+	const { send, render, live, codeWave } = setup();
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	send({ type: 'batch', writes: [0, 1, 0x400, 0xa0] });
+	send({ type: 'code-wave-write', editId: 1, writes: Uint16Array.of(0, 63) });
+	const plan = buildVsuOperations(b => b.atSample(96).noteOn(0, 'C5'), { referenceSampleRate: rate });
+	send({ type: 'timed-request', id: 1, request: { action: 'schedule', plan, options: { name: 'next' } } });
+	render(2);
+	assert.deepEqual(codeWave().at(-1), { type: 'code-wave-state', editId: 1,
+		pendingWrites: [], appliedWrites: [[0, 63]] });
+	assert.equal(live().at(-1).voice.wave[0], 63);
+	render(16);
+	assert.equal(live().at(-1).voice.active, true);
+});
+
+test('Wave RAM edits are cleared on reset and acknowledged without writing while VGM owns output', () => {
+	const { send, render, live, codeWave } = setup();
+	const queue = (editId, value) => send({ type: 'code-wave-write', editId, writes: Uint16Array.of(0, value) });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	send({ type: 'write', offset: 0x400, value: 0x80 });
+	queue(1, 56);
+	send({ type: 'reset' });
+	assert.deepEqual(codeWave().at(-1), { type: 'code-wave-state', editId: 1,
+		pendingWrites: [], appliedWrites: [] });
+	send({ type: 'write', offset: 0x400, value: 0x80 });
+	queue(2, 61);
+	send({ type: 'vgm-play', id: 1, mask: 63, paused: true, plan: {
+		writes: Uint32Array.of(0, 0, 13), durationTicks: 8000, loopTick: null, loopIndex: 0,
+	} });
+	assert.deepEqual(codeWave().at(-1), { type: 'code-wave-state', editId: 2,
+		pendingWrites: [], appliedWrites: [] });
+	queue(3, 10);
+	assert.deepEqual(codeWave().at(-1), { type: 'code-wave-state', editId: 3,
+		pendingWrites: [], appliedWrites: [] });
+	render();
+	assert.equal(live().at(-1).voice.wave[0], 13);
+	send({ type: 'vgm-stop', id: 1 });
+	send({ type: 'write', offset: 0x580, value: 1 });
+	render();
+	assert.equal(live().at(-1).voice.wave[0], 0);
 });
 
 test('VGM live edits affect the active timeline and a paused capture before later writes take over', () => {

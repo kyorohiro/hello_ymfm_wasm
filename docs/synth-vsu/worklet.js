@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createVgmTransport } from './vgm-transport.js?v=vsu-live-keyboard';
 import { createVsuTimedProcessor } from './timed-processor.js';
-import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, vsuChannelRegister } from './vsu.js';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister } from './vsu.js';
 
 const LIVE_REPORT_FRAMES = Math.ceil(sampleRate / 30);
-const WAVE_BANK_COUNT = 5;
-const WAVE_LENGTH = 32;
+const WAVE_SAMPLE_COUNT = VSU_WAVE_BANK_COUNT * VSU_WAVE_LENGTH;
 const MODULATION_CHANNEL = 4;
 const NOISE_CHANNEL = 5;
 const FIRST_CHANNEL_INT = vsuChannelRegister(0, VSU_REGISTERS.INT);
@@ -26,6 +25,10 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.channelGains = Array(VSU_CHANNEL_COUNT).fill(1);
 			this.synthKeyOwners = new Map();
 			this.vgmKeyOwners = new Map();
+			this.pendingCodeWaveWrites = new Map();
+			this.appliedCodeWaveWrites = [];
+			this.codeWaveEditId = 0;
+			this.codeWaveStateDirty = false;
 			this.captureAddress = this.vgmState + stateSize;
 			this.pcm = this.captureAddress + Math.ceil(exports.vsu_live_snapshot_size() / 4) * 4;
 			this.liveChannel = null;
@@ -56,7 +59,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 				renderFrames: (offset, frames) => this.renderFrames(this.vgmState, offset, frames),
 				onState: state => this.port.postMessage({ type: 'vgm-state', ...state }),
 			});
-			this.renderSynthFrames = (offset, frames) => this.renderFrames(this.state, offset, frames);
+			this.renderSynthFrames = (offset, frames) => {
+				// Each timed frame applies its entire set of commands before rendering.
+				this.flushCodeWave();
+				this.renderFrames(this.state, offset, frames);
+				this.flushCodeWave();
+			};
 			this.timed = createVsuTimedProcessor({
 				nowFrame: () => currentFrame,
 				sampleRate,
@@ -74,6 +82,53 @@ class VsuProcessor extends AudioWorkletProcessor {
 		for (const [channel, gain] of this.channelGains.entries()) this.core.vsu_set_channel_gain(state, channel, gain);
 	}
 
+	synthWaveCanWrite() {
+		// Wave RAM is locked while any hardware gate is open, even on a muted channel.
+		for (let channel = 0; channel < VSU_CHANNEL_COUNT; channel++) {
+			if (this.core.vsu_get_channel(this.state, channel) & 0x100) return false;
+		}
+		return true;
+	}
+
+	queueCodeWave({ editId, writes }) {
+		if (!Number.isSafeInteger(editId) || editId <= this.codeWaveEditId) return;
+		this.codeWaveEditId = editId;
+		this.codeWaveStateDirty = true;
+		if (this.vgm.ownsOutput || !(writes instanceof Uint16Array) || !writes.length ||
+			writes.length % 2 !== 0 || writes.length > WAVE_SAMPLE_COUNT * 2) return;
+		for (let index = 0; index < writes.length; index += 2) {
+			const offset = writes[index];
+			if (offset % 4 !== 0 || offset >= WAVE_SAMPLE_COUNT * 4 || writes[index + 1] > 63) return;
+		}
+		for (let index = 0; index < writes.length; index += 2)
+			this.pendingCodeWaveWrites.set(writes[index], writes[index + 1]);
+	}
+
+	clearCodeWave() {
+		if (!this.pendingCodeWaveWrites.size) return;
+		this.pendingCodeWaveWrites.clear();
+		this.codeWaveStateDirty = true;
+	}
+
+	flushCodeWave() {
+		if (!this.pendingCodeWaveWrites.size || this.vgm.ownsOutput || !this.synthWaveCanWrite()) return;
+		for (const [offset, value] of this.pendingCodeWaveWrites) {
+			this.core.vsu_write(this.state, offset, value);
+			this.appliedCodeWaveWrites.push([offset, value]);
+		}
+		this.clearCodeWave();
+		this.liveDirty = true;
+	}
+
+	reportCodeWave() {
+		if (!this.codeWaveStateDirty) return;
+		this.codeWaveStateDirty = false;
+		const appliedWrites = this.appliedCodeWaveWrites;
+		this.appliedCodeWaveWrites = [];
+		this.port.postMessage({ type: 'code-wave-state', editId: this.codeWaveEditId,
+			pendingWrites: [...this.pendingCodeWaveWrites], appliedWrites });
+	}
+
 	writeSource(state, owners, offset, value, timed) {
 		// Only a source write to the gate takes ownership from a held key.
 		if (offset === VSU_SOUND_STOP && (value & 1)) owners.clear();
@@ -88,6 +143,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 			}
 		}
 		this.core.vsu_write(state, offset, value);
+		if (state === this.state && this.pendingCodeWaveWrites.has(offset) && this.synthWaveCanWrite()) {
+			// A successful source write supersedes the waiting edit at that address.
+			this.pendingCodeWaveWrites.delete(offset);
+			this.codeWaveStateDirty = true;
+			this.liveDirty = true;
+		}
 	}
 
 	envelopeByte(state, channel, register) {
@@ -199,9 +260,9 @@ class VsuProcessor extends AudioWorkletProcessor {
 			channel, frequency, active: Boolean(active), left, right, ev0, ev1, swp,
 			interval: this.readInterval(state, channel),
 			waveBank: waveBank === 0xffffffff ? null : waveBank,
-			wave: waveBank < WAVE_BANK_COUNT ? Array.from(new Uint8Array(buffer, ramAddress, WAVE_LENGTH)) : null,
+			wave: waveBank < VSU_WAVE_BANK_COUNT ? Array.from(new Uint8Array(buffer, ramAddress, VSU_WAVE_LENGTH)) : null,
 			modulation: channel === MODULATION_CHANNEL
-				? Array.from(new Int8Array(buffer, ramAddress + WAVE_LENGTH, WAVE_LENGTH)) : null,
+				? Array.from(new Int8Array(buffer, ramAddress + VSU_WAVE_LENGTH, VSU_WAVE_LENGTH)) : null,
 		};
 		if (live) {
 			const values = new Uint32Array(buffer, this.captureAddress + this.core.vsu_snapshot_size(), 2);
@@ -226,6 +287,9 @@ class VsuProcessor extends AudioWorkletProcessor {
 		const id = this.vgm.outputId;
 		if (this.liveChannel === null || channel !== this.liveChannel || revision !== this.liveRevision ||
 			playbackId !== id || source !== (id === null ? 'synth' : 'vgm')) return;
+		const allowedMask = register === 'EV1' ? 3 : 255;
+		if (!Number.isInteger(mask) || mask < 1 || mask > allowedMask ||
+			!Number.isInteger(value) || value < 0 || value > 255) return;
 		const state = id === null ? this.state : this.vgmState;
 		let previous;
 		switch (register) {
@@ -237,12 +301,14 @@ class VsuProcessor extends AudioWorkletProcessor {
 			previous = this.envelopeByte(state, channel, register);
 			if (previous === undefined) return;
 			break;
+		case 'RAM':
+			if (source !== 'synth' || channel >= NOISE_CHANNEL || mask !== 7 || value >= VSU_WAVE_BANK_COUNT) return;
+			previous = this.readVoice(state, channel, true)?.waveBank;
+			if (previous === null || previous === undefined) return;
+			break;
 		default:
 			return;
 		}
-		const allowedMask = register === 'EV1' ? 3 : 255;
-		if (!Number.isInteger(mask) || mask < 1 || mask > allowedMask ||
-			!Number.isInteger(value) || value < 0 || value > 255) return;
 		const next = (previous & ~mask) | (value & mask);
 		if (next !== previous) this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS[register]), next);
 		this.reportLive({ register, mask, value: next });
@@ -278,8 +344,10 @@ class VsuProcessor extends AudioWorkletProcessor {
 			case 'reset':
 				this.timed.clear();
 				this.synthKeyOwners.clear();
+				this.clearCodeWave();
 				this.core.vsu_reset(this.state);
 				this.applyChannelGains(this.state);
+				this.liveDirty = true;
 				break;
 			case 'channel-gain': {
 				const { channel, gain } = message;
@@ -295,9 +363,13 @@ class VsuProcessor extends AudioWorkletProcessor {
 				for (let index = 0; index < message.writes.length; index += 2)
 					this.writeSource(this.state, this.synthKeyOwners, message.writes[index], message.writes[index + 1]);
 				break;
+			case 'code-wave-write':
+				this.queueCodeWave(message);
+				break;
 			case 'vgm-play':
 				this.timed.clear();
 				this.releaseLiveNotes(this.state, this.synthKeyOwners);
+				this.clearCodeWave();
 				if (message.plan) this.vgmPlan = message.plan;
 				this.vgm.play({ ...message, plan: this.vgmPlan });
 				this.liveDirty = true;
@@ -339,6 +411,9 @@ class VsuProcessor extends AudioWorkletProcessor {
 				this.writeSynthKey(message, message.type === 'synth-key-edit');
 				break;
 			}
+			// Flush only after a complete host batch has applied its writes and gates.
+			this.flushCodeWave();
+			this.reportCodeWave();
 		} catch (error) { this.fail(error); }
 	}
 
@@ -357,6 +432,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 			}
 			left.set(this.left);
 			right.set(this.right);
+			this.reportCodeWave();
 			this.reportLive();
 		} catch (error) {
 			this.fail(error);

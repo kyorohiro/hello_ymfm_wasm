@@ -77,5 +77,5 @@ export function setupEnvelopeMonitor(canvas, fitCanvas, onEdit) {
     });
   }
   new ResizeObserver(draw).observe(canvas);
-  return { setSettings, draw };
+  return { setSettings };
 }

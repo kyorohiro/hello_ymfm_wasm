@@ -2,7 +2,7 @@
 
 Play the Virtual Sound Unit (VSU) from Nintendo's Virtual Boy with the on-screen keyboard, PC keys, or JavaScript. The five wavetable voices share five banks of 32 six-bit samples. Each voice has four-bit left and right levels.
 
-The VSU blocks wavetable writes while voices are active. The editor issues the VSU's global stop command before uploading the edited bank. JavaScript can do the same with `vsu.allNotesOff()` followed by `vsu.setWave(bank, samples)`.
+The VSU blocks wavetable writes while voices are active. With Code stopped, the editor issues the VSU's global stop command before uploading the edited bank. JavaScript can do the same with `vsu.allNotesOff()` followed by `vsu.setWave(bank, samples)`.
 
 ## Reference playback
 
@@ -25,6 +25,10 @@ During VGM or Code playback, choose **CH1–6** to inspect its waveform, stereo 
 Play a key on a numbered channel while VGM or Code is running to retrigger that channel with its current settings. The key selects pitch for CH1–5 and triggers the programmed shift rate and duration on CH6. Playback continues. A later write to the channel's gate, or a global stop, takes control of the channel again. Releasing an earlier key leaves that later note sounding. In the Code workspace, PC keys work when focus is outside the editor and text-entry fields.
 
 **Wave bank** selects the shared RAM bank the channel plays and shows its 32 samples in the graph. Draw on the graph to edit those samples. With the graph focused, Left and Right select a sample and Up and Down change its level. **Shape** chooses a preset waveform, and **Apply shape** fills the selected bank with it. Each channel using that bank reads the same samples.
+
+During Code playback, **Wave bank** switches immediately for the selected wave channel. Wave RAM edits show a preview and apply when every hardware channel is idle. The pending message stays visible while the chip's write lock is active, including when a sounding channel is muted in the Mixer. Use **AUTO** to retain waveform edits in the authored patch.
+
+The **Envelope** controls sit under the active **Wave RAM** or **Noise** settings. Open **Envelope curve** to see that channel's configured volume curve alongside the output display.
 
 ## Mixer
 
@@ -54,6 +58,8 @@ Open **Files** beside the editor, then use **＋ Patch** to save the five wave b
 Use **Menu → New → Cassette · ZIP** to start a fresh project with the starter Code and default instrument. The dialog offers to export the current Cassette first.
 
 The top **Code** button opens a workspace beside Files with **Code / VSU / Mixer / Keyboard** tabs. The **Synth** button restores the standard layout and its previous chip and performance panels. Switching tabs keeps Code and VGM playback running.
+
+The Code toolbar sits above the editor. Use **Ctrl/Cmd+Enter** to Run or **Ctrl/Cmd+Shift+Enter** to Apply changes to the running session.
 
 In the Code workspace, select **VSU → AUTO**, then **Wave (PCM)**, **Sweep / Modulation**, or **Noise**. Use the **Keyboard** tab for on-screen keys, or use PC keys when focus is outside the editor and other text fields. AUTO keys and running Code share the physical VSU channels. The latest trigger on a channel takes over that channel's gate. When Code takes over a held key's channel, releasing the key leaves the new note playing.
 

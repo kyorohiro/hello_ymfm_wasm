@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#150b0f">
   <title>Tetorica VSU Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=vsu-inline-controls">
+  <link rel="stylesheet" href="./synth.css?v=vsu-live-wave">
   <link rel="stylesheet" href="./files.css?v=vsu-noise">
-  <script type="module" src="./synth.js?v=vsu-inline-controls"></script>
+  <script type="module" src="./synth.js?v=vsu-live-wave"></script>
 </head>
 <body>
   <main class="shell">
@@ -94,31 +94,10 @@
           <div id="vsuSynthControls">
             <section id="vsuOutputMonitor" class="panel monitor" aria-label="Audio output">
               <div class="switches monitor-modes" role="group" aria-label="Output display">
-                <button id="showEnvelope" type="button" aria-pressed="false">Envelope</button>
                 <button id="showWaveform" type="button" aria-pressed="true">Waveform</button>
                 <button id="showSpectrum" type="button" aria-pressed="false">Spectrum</button>
               </div>
-              <canvas id="envelopeCanvas" width="720" height="200" role="img" aria-label="Channel envelope" hidden></canvas>
               <canvas id="outputCanvas" width="720" height="200" role="img" aria-label="Output waveform"></canvas>
-              <fieldset id="vsuEnvelopeControls" class="envelope-controls">
-                <legend>Envelope</legend>
-                <label class="level">Level <input id="envInitial" type="range" min="0" max="15" value="15">
-                  <output id="envInitialValue" for="envInitial">15</output>
-                </label>
-                <label><input id="envEnabled" type="checkbox" aria-label="Enable envelope"> Enable</label>
-                <fieldset id="envDirection" class="choice-control">
-                  <legend>Direction</legend>
-                  <div class="choice-options">
-                    <label><input type="radio" name="envDirection" value="up"><span>Grow</span></label>
-                    <label><input type="radio" name="envDirection" value="down" checked><span>Decay</span></label>
-                  </div>
-                </fieldset>
-                <label class="parameter-range">Rate <input id="envRate" aria-label="Rate" type="range" min="0" max="7" step="1" value="0">
-                  <output id="envRateValue" for="envRate" aria-live="off">0</output>
-                </label>
-                <label><input id="envRepeat" type="checkbox"> Repeat</label>
-                <output id="envStep" for="envEnabled envRate">Off</output>
-              </fieldset>
             </section>
 
             <div id="vsuAutoTypes" class="channel-tabs auto-types" role="tablist" aria-label="AUTO keyboard voice">
@@ -131,10 +110,16 @@
               <section class="panel voice-panel" aria-labelledby="vsuVoiceTitle">
                 <div class="panel-head">
                   <h2 id="vsuVoiceTitle">Wave</h2>
-                  <label id="channelWaveGroup">Wave bank <select id="channelWave" data-keyboard-performance>
-                    <option value="0">0</option><option value="1">1</option><option value="2">2</option>
-                    <option value="3">3</option><option value="4">4</option>
-                  </select></label>
+                  <fieldset id="channelWave" class="choice-control">
+                    <legend>Wave bank</legend>
+                    <div class="choice-options">
+                      <label><input type="radio" name="channelWave" value="0" checked><span>0</span></label>
+                      <label><input type="radio" name="channelWave" value="1"><span>1</span></label>
+                      <label><input type="radio" name="channelWave" value="2"><span>2</span></label>
+                      <label><input type="radio" name="channelWave" value="3"><span>3</span></label>
+                      <label><input type="radio" name="channelWave" value="4"><span>4</span></label>
+                    </div>
+                  </fieldset>
                 </div>
                 <section id="vsuWavePanel" class="wave-editor" aria-labelledby="waveTitle">
                   <h3 id="waveTitle">Wave RAM</h3>
@@ -142,13 +127,19 @@
                     aria-label="Wave RAM sample level" aria-valuemin="0" aria-valuemax="63" aria-valuenow="32"
                     aria-description="Use left and right to choose a sample. Use up and down to change its level."></canvas>
                   <div class="wave-controls">
-                    <label>Shape <select id="waveShape" data-keyboard-performance>
-                      <option value="sine">Sine</option><option value="triangle">Triangle</option>
-                      <option value="square">Square</option><option value="saw">Saw</option>
-                    </select></label>
+                    <fieldset id="waveShape" class="choice-control">
+                      <legend>Shape</legend>
+                      <div class="choice-options">
+                        <label><input type="radio" name="waveShape" value="sine" checked><span>Sine</span></label>
+                        <label><input type="radio" name="waveShape" value="triangle"><span>Triangle</span></label>
+                        <label><input type="radio" name="waveShape" value="square"><span>Square</span></label>
+                        <label><input type="radio" name="waveShape" value="saw"><span>Saw</span></label>
+                      </div>
+                    </fieldset>
                     <button id="loadShape" type="button">Apply shape</button>
                   </div>
                   <p id="vsuWaveEditHint" class="hint">Drag to draw a waveform. Editing Wave RAM stops the active voices.</p>
+                  <output id="vsuWaveWriteStatus" class="wave-write-status" role="status" hidden>Pending until all channels are idle.</output>
                 </section>
                 <div id="noiseTapGroup" class="noise-controls" hidden>
                   <div class="noise-control">
@@ -169,6 +160,29 @@
                     <output id="noiseIntervalValue" for="noiseInterval" aria-live="off">Hold</output>
                   </div>
                 </div>
+                <fieldset id="vsuEnvelopeControls" class="envelope-controls">
+                  <legend>Envelope</legend>
+                  <label class="level">Level <input id="envInitial" type="range" min="0" max="15" value="15">
+                    <output id="envInitialValue" for="envInitial">15</output>
+                  </label>
+                  <label><input id="envEnabled" type="checkbox" aria-label="Enable envelope"> Enable</label>
+                  <fieldset id="envDirection" class="choice-control">
+                    <legend>Direction</legend>
+                    <div class="choice-options">
+                      <label><input type="radio" name="envDirection" value="up"><span>Grow</span></label>
+                      <label><input type="radio" name="envDirection" value="down" checked><span>Decay</span></label>
+                    </div>
+                  </fieldset>
+                  <label class="parameter-range">Rate <input id="envRate" aria-label="Rate" type="range" min="0" max="7" step="1" value="0">
+                    <output id="envRateValue" for="envRate" aria-live="off">0</output>
+                  </label>
+                  <label><input id="envRepeat" type="checkbox"> Repeat</label>
+                  <output id="envStep" for="envEnabled envRate">Off</output>
+                </fieldset>
+                <details class="envelope-preview">
+                  <summary id="showEnvelope">Envelope curve</summary>
+                  <canvas id="envelopeCanvas" width="600" height="132" role="img" aria-label="Channel envelope"></canvas>
+                </details>
               </section>
               <section class="panel channels" aria-labelledby="vsuStereoTitle">
                 <h2 id="vsuStereoTitle">Stereo levels</h2>
@@ -272,13 +286,13 @@
             <div id="keyboard" class="keyboard"></div>
           </div>
           <div id="codePanel" role="tabpanel" aria-labelledby="showCode" hidden>
-            <textarea id="code" aria-label="JavaScript performance code" spellcheck="false"
-              autocapitalize="off" autocomplete="off"></textarea>
-            <div class="switches transport">
-              <button id="run" class="primary" type="button">Run</button>
-              <button id="apply" type="button" disabled>Apply</button>
+            <div id="codeTransport" class="switches code-toolbar" role="group" aria-label="Code playback">
+              <button id="run" class="primary" type="button" title="Run a new Code session (Ctrl/Cmd+Enter)" aria-keyshortcuts="Control+Enter Meta+Enter">Run</button>
+              <button id="apply" type="button" title="Apply edits to the running session (Ctrl/Cmd+Shift+Enter)" aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter" disabled>Apply</button>
               <button id="stop" type="button" disabled>Stop Code</button>
             </div>
+            <textarea id="code" aria-label="JavaScript performance code" spellcheck="false"
+              autocapitalize="off" autocomplete="off"></textarea>
             <pre id="codeOutput" aria-label="Code output" aria-live="polite"></pre>
           </div>
           <p id="status" role="status">Ready</p>

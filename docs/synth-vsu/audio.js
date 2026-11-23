@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createVgmSeekClient } from './vgm-seek-client.js';
 import { CH5 } from './ch5.js';
-import { VSU_CHANNEL_COUNT, VSU_REGISTERS, vsuChannelRegister, vsuNoteOnWrites } from './vsu.js';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuNoteOnWrites } from './vsu.js';
 
 const PROCESSOR = 'tetorica-vsu';
 const WORKLET_TIMEOUT_MS = 10000;
+const WAVE_SAMPLE_COUNT = VSU_WAVE_BANK_COUNT * VSU_WAVE_LENGTH;
 
 function validateVolume(level) {
 	if (!Number.isFinite(level) || level < 0 || level > 1)
@@ -69,7 +70,7 @@ function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
 }
 
 export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {}, onLiveState = () => {},
-	onTimedError = () => {} } = {}) {
+	onCodeWaveState = () => {}, onTimedError = () => {} } = {}) {
 	validateVolume(volume);
 	const channelGains = Array(VSU_CHANNEL_COUNT).fill(1);
 	let session = null;
@@ -77,6 +78,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 	let nextVgmId = 0;
 	let nextCaptureRequest = 0;
 	let nextTimedRequest = 0;
+	let nextCodeWaveEdit = 0;
 	let liveChannel = null;
 	let liveRevision = 0;
 
@@ -159,7 +161,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-inline-controls', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live-wave', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -176,6 +178,11 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 					if (session !== current) return;
 					if (data.type === 'live-state') {
 						reportLive(current, data);
+						return;
+					}
+					if (data.type === 'code-wave-state') {
+						const { editId, pendingWrites, appliedWrites } = data;
+						onCodeWaveState({ editId, pendingWrites, appliedWrites });
 						return;
 					}
 					if (data.type === 'timed-response') {
@@ -274,6 +281,21 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			const writes = packWrites(pairs);
 			send({ type: 'batch', writes }, [writes.buffer]);
 		},
+		writeCodeWave(pairs) {
+			const current = session;
+			if (!current?.active || current.vgmSeek || (current.vgmId && current.vgmState !== 'ended')) return false;
+			if (!Array.isArray(pairs) || !pairs.length || pairs.length > WAVE_SAMPLE_COUNT)
+				throw new RangeError('Choose from 1 to 160 VSU Wave RAM samples.');
+			const writes = packWrites(pairs);
+			for (let index = 0; index < writes.length; index += 2) {
+				const offset = writes[index];
+				if (offset % 4 !== 0 || offset >= WAVE_SAMPLE_COUNT * 4 || writes[index + 1] > 63)
+					throw new RangeError('Choose an aligned VSU Wave RAM offset and a sample from 0 to 63.');
+			}
+			const editId = ++nextCodeWaveEdit;
+			send({ type: 'code-wave-write', editId, writes }, [writes.buffer]);
+			return editId;
+		},
 		reset() { send({ type: 'reset' }); },
 		async requestTimed(request) {
 			const current = session;
@@ -305,12 +327,19 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				if (current.vgmStopping || current.vgmId !== playbackId ||
 					(current.vgmState !== 'playing' && current.vgmState !== 'paused')) return false;
 			} else if (source !== 'synth' || vgmOwnsOutput || playbackId !== null) return false;
-			if (register !== 'LRV' && register !== 'EV0' && register !== 'EV1')
-				throw new RangeError('Choose a live level or envelope register.');
-			const allowedMask = register === 'EV1' ? 3 : 255;
-			if (!Number.isInteger(mask) || mask < 1 || mask > allowedMask ||
-				!Number.isInteger(value) || value < 0 || value > 255)
-				throw new RangeError('Choose a valid live register value and mask.');
+			if (register === 'RAM') {
+				if (source !== 'synth') return false;
+				if (channel >= VSU_CHANNEL_COUNT - 1 || mask !== 7 ||
+					!Number.isInteger(value) || value < 0 || value >= VSU_WAVE_BANK_COUNT)
+					throw new RangeError('Choose a live wave bank from 0 to 4 for a wave channel.');
+			} else {
+				if (register !== 'LRV' && register !== 'EV0' && register !== 'EV1')
+					throw new RangeError('Choose a live level, envelope or wave bank register.');
+				const allowedMask = register === 'EV1' ? 3 : 255;
+				if (!Number.isInteger(mask) || mask < 1 || mask > allowedMask ||
+					!Number.isInteger(value) || value < 0 || value > 255)
+					throw new RangeError('Choose a valid live register value and mask.');
+			}
 			send({ type: 'live-write', source, channel, playbackId, register, mask, value,
 				revision: liveRevision, sequence: ++current.liveWriteSequence });
 			return true;
