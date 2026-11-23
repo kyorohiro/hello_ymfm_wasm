@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#150b0f">
+  <title>Tetorica Virtual Boy Synth</title>
+  <link rel="stylesheet" href="./synth.css">
+  <script type="module" src="./synth.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <nav><a href="../index.html">← Tetorica</a></nav>
+    <header class="header">
+      <div>
+        <h1>Tetorica Virtual Boy Synth</h1>
+        <p>Virtual Sound Unit</p>
+      </div>
+      <label class="level">Master <input id="master" type="range" min="0" max="100" value="60">
+        <output id="masterValue" for="master">60%</output>
+      </label>
+    </header>
+
+    <section class="panel monitor" aria-label="Audio output">
+      <div class="switches" role="group" aria-label="Output display">
+        <button id="showWaveform" type="button" aria-pressed="true">Waveform</button>
+        <button id="showSpectrum" type="button" aria-pressed="false">Spectrum</button>
+      </div>
+      <canvas id="outputCanvas" width="720" height="200" role="img" aria-label="Output waveform"></canvas>
+    </section>
+
+    <div class="instrument">
+      <section class="panel" aria-labelledby="waveTitle">
+        <div class="panel-head">
+          <h2 id="waveTitle">Wave RAM</h2>
+          <label>Bank <select id="editBank" aria-label="Wave RAM bank">
+            <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4</option>
+          </select></label>
+        </div>
+        <canvas id="waveCanvas" width="460" height="142" role="img" aria-label="Wave RAM samples, 32 × 6 bit"></canvas>
+        <div class="wave-controls">
+          <label>Sample <input id="sampleIndex" type="number" min="0" max="31" value="0"></label>
+          <label>Value <input id="sampleValue" type="number" min="0" max="63" value="32"></label>
+          <label>Shape <select id="waveShape">
+            <option value="sine">Sine</option><option value="triangle">Triangle</option>
+            <option value="square">Square</option><option value="saw">Saw</option>
+          </select></label>
+          <button id="loadShape" type="button">Load shape</button>
+        </div>
+        <p class="hint">Editing Wave RAM stops the active voices.</p>
+      </section>
+      <section class="panel channels" aria-labelledby="channelTitle">
+        <h2 id="channelTitle">Channel</h2>
+        <label>Voice <select id="channel" aria-label="Performance channel"></select></label>
+        <label id="channelWaveGroup">Wave bank <select id="channelWave">
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4</option>
+        </select></label>
+        <label id="noiseTapGroup" hidden>Noise tap <select id="noiseTap"></select></label>
+        <label class="level">Left <input id="leftLevel" type="range" min="0" max="15" value="10">
+          <output id="leftValue" for="leftLevel">10</output>
+        </label>
+        <label class="level">Right <input id="rightLevel" type="range" min="0" max="15" value="10">
+          <output id="rightValue" for="rightLevel">10</output>
+        </label>
+      </section>
+    </div>
+
+    <section class="panel performance" aria-label="Performance">
+      <div class="switches" role="group" aria-label="Input view">
+        <button id="showKeyboard" type="button" aria-controls="keyboardPanel" aria-pressed="true">Keyboard</button>
+        <button id="showCode" type="button" aria-controls="codePanel" aria-pressed="false">Code</button>
+      </div>
+      <div id="keyboardPanel">
+        <div class="panel-head keyboard-head">
+          <label>Octave <select id="octave">
+            <option value="0">Default</option><option value="1">+1</option><option value="2">+2</option>
+          </select></label>
+          <output id="playingNote" aria-live="off"></output>
+        </div>
+        <div id="keyboard" class="keyboard"></div>
+      </div>
+      <div id="codePanel" hidden>
+        <textarea id="code" aria-label="JavaScript performance code" spellcheck="false"
+          autocapitalize="off" autocomplete="off"></textarea>
+        <div class="switches transport">
+          <button id="run" class="primary" type="button">Run</button>
+          <button id="apply" type="button" disabled>Apply</button>
+          <button id="stop" type="button" disabled>Stop Code</button>
+        </div>
+        <pre id="codeOutput" aria-label="Code output" aria-live="polite"></pre>
+      </div>
+      <p id="status" role="status">Ready</p>
+    </section>
+  </main>
+</body>
+</html>
