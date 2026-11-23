@@ -2,7 +2,8 @@
 import { createParamControl } from '../synth/synth_controls.js';
 import { SM511_DEMO, SM511_ROM_STEPS, sm511Command, sm511CommandLabel, validateMelody } from './sm511.js';
 
-const PAGE_SIZE = 16;
+const COLUMNS = 8;
+const PAGE_SIZE = 4 * COLUMNS;
 const REST = 0;
 const STOP = 1;
 const PITCH_MASK = 0xf;
@@ -136,7 +137,13 @@ export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 		}
 		address = clamped;
 		render();
-		if (focus) cells[address % PAGE_SIZE].valueButton.focus({ preventScroll: true });
+		if (focus) focusSelectedCell();
+	}
+
+	function focusSelectedCell() {
+		const { element, valueButton } = cells[address % PAGE_SIZE];
+		valueButton.focus({ preventScroll: true });
+		element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 	}
 
 	function moveSelection(event, current) {
@@ -144,13 +151,8 @@ export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 		switch (event.key) {
 			case 'ArrowLeft': target = current - 1; break;
 			case 'ArrowRight': target = current + 1; break;
-			case 'ArrowUp':
-			case 'ArrowDown': {
-				const rowEnd = cells.findIndex(({ element }) => element.offsetTop !== cells[0].element.offsetTop);
-				const columns = rowEnd === -1 ? PAGE_SIZE : rowEnd;
-				target = current + (event.key === 'ArrowUp' ? -columns : columns);
-				break;
-			}
+			case 'ArrowUp': target = current - COLUMNS; break;
+			case 'ArrowDown': target = current + COLUMNS; break;
 			case 'PageUp': target = current - PAGE_SIZE; break;
 			case 'PageDown': target = current + PAGE_SIZE; break;
 			case 'Home': target = 0; break;
@@ -164,7 +166,7 @@ export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 	function movePage(offset, button) {
 		const hadFocus = document.activeElement === button;
 		selectAddress(address + offset);
-		if (hadFocus && button.disabled) cells[address % PAGE_SIZE].valueButton.focus();
+		if (hadFocus && button.disabled) focusSelectedCell();
 	}
 	prev.addEventListener('click', () => movePage(-PAGE_SIZE, prev));
 	next.addEventListener('click', () => movePage(PAGE_SIZE, next));
@@ -194,6 +196,7 @@ export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 		rom.fill(STOP);
 		rom.set(validated);
 		selectAddress(0);
+		slots.scrollLeft = 0;
 	}
 	setMelody(SM511_DEMO);
 

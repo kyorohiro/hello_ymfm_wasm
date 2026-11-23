@@ -45,7 +45,9 @@ scripts follow its pitch controls and hold the tone until `noteOff()`.
 
 ### Melody ROM editor
 
-Each ROM address from `0x00` to `0xFF` has its own **− / +** control.
+The ROM shows 32 addresses per page in four rows of eight. Scroll the grid
+sideways on narrow screens. Each address from `0x00` to `0xFF` has its own
+**− / +** control.
 Drag its center label left or right, or press **−** or **+**, to step through
 **Stop**, **Rest**, and the notes in both SM511 octaves. Click the center to
 select the address, or navigate between addresses with the arrow keys.
