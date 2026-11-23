@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { createVgmSeekClient } from './vgm-seek-client.js';
+
 const PROCESSOR = 'tetorica-vsu';
 const WORKLET_TIMEOUT_MS = 10000;
 
@@ -19,14 +21,14 @@ function validateMask(mask) {
 		throw new RangeError('Choose a VSU channel mask from 0 to 63.');
 }
 
-function copyVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
+function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
 	if (!(writes instanceof Uint32Array) || writes.length % 3 !== 0 ||
 		!Number.isInteger(durationTicks) || durationTicks < 1 || durationTicks > 0xffffffff)
 		throw new TypeError('Choose a valid VSU VGM timeline.');
 	if (loopTick !== null && (!Number.isInteger(loopTick) || loopTick < 0 || loopTick >= durationTicks ||
 		!Number.isInteger(loopIndex) || loopIndex < 0 || loopIndex > writes.length / 3))
 		throw new TypeError('Choose a valid VGM loop point.');
-	return { writes: writes.slice(), durationTicks, loopTick, loopIndex };
+	return { writes, durationTicks, loopTick, loopIndex };
 }
 
 export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {} } = {}) {
@@ -49,12 +51,18 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		for (const request of current.captures.keys()) takeCapture(current, request).reject(error);
 	}
 
+	function cancelSeek(current, error = new DOMException('VGM playback changed before the seek completed.', 'AbortError')) {
+		current?.vgmSeek?.controller.abort(error);
+	}
+
 	async function close(current, error) {
 		if (session !== current) return;
 		session = null;
 		clearTimeout(current.timer);
 		current.abort.abort();
 		cancelCaptures(current, error);
+		cancelSeek(current, error);
+		current.seekClient?.dispose();
 		current.reject(error);
 		current.context.removeEventListener('statechange', current.stateChanged);
 		if (current.node) {
@@ -96,9 +104,10 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vgm-capture', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vgm-seek', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
+			current.wasmBinary = wasmBinary;
 			const node = new AudioWorkletNode(context, PROCESSOR, {
 				numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { wasmBinary },
 			});
@@ -115,7 +124,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 						if (data.state !== 'paused') cancelCaptures(current);
 						if (data.state === 'stopped') current.vgmId = null;
 						const { type, ...playback } = data;
-						onVgmState(playback);
+						if (!current.vgmSeek) onVgmState(playback);
 					}
 					if (data.type === 'vgm-capture') {
 						const pending = takeCapture(current, data.request);
@@ -143,6 +152,23 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 	function sendToVgm(message) {
 		if (!session?.active || !session.vgmId || session.vgmStopping) return;
 		send({ ...message, id: session.vgmId });
+	}
+
+	function startVgm(current, source, plan, { loop, mask, paused = false }, checkpoint) {
+		const id = ++nextVgmId;
+		// An ordinary Play starts with the supplied timeline. Subsequent seeks on
+		// the same parsed song need to send only the reconstructed chip state.
+		const timeline = checkpoint && current.vgmSource === source ? undefined : { ...plan, writes: plan.writes.slice() };
+		const transfer = [];
+		if (timeline) transfer.push(timeline.writes.buffer);
+		if (checkpoint) transfer.push(checkpoint.bytes.buffer);
+		send({ type: 'vgm-play', id, plan: timeline, mask, loop, paused, checkpoint }, transfer);
+		cancelCaptures(current);
+		current.vgmId = id;
+		current.vgmSource = source;
+		current.vgmStopping = false;
+		current.vgmState = null;
+		return id;
 	}
 
 	return {
@@ -175,16 +201,41 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		reset() { send({ type: 'reset' }); },
 		playVgm(source, { loop = false, mask = 63 } = {}) {
 			validateMask(mask);
-			const plan = copyVgmPlan(source);
-			const id = ++nextVgmId;
-			send({ type: 'vgm-play', id, plan, mask, loop: Boolean(loop) }, [plan.writes.buffer]);
-			cancelCaptures(session);
-			session.vgmId = id;
-			session.vgmStopping = false;
-			session.vgmState = null;
-			return id;
+			const plan = validateVgmPlan(source);
+			cancelSeek(session);
+			return startVgm(session, source, plan, { loop: Boolean(loop), mask });
+		},
+		async seekVgm(source, tick, { loop = false, mask = 63, paused = true, signal } = {}) {
+			validateMask(mask);
+			const plan = validateVgmPlan(source);
+			if (!Number.isInteger(tick) || tick < 0 || tick > plan.durationTicks)
+				throw new RangeError('Choose a position within the VGM.');
+			const current = session;
+			if (!current?.active) throw new Error('Call ensureReady() before using VSU audio.');
+			signal?.throwIfAborted();
+			cancelSeek(current);
+			cancelCaptures(current);
+			const controller = new AbortController();
+			const seek = { controller, loop: Boolean(loop), mask, paused: Boolean(paused) };
+			current.vgmSeek = seek;
+			const abort = () => controller.abort(signal.reason);
+			signal?.addEventListener('abort', abort, { once: true });
+			try {
+				sendToVgm({ type: 'vgm-pause', paused: true });
+				current.seekClient ??= createVgmSeekClient({
+					wasmBinary: current.wasmBinary, sampleRate: current.context.sampleRate,
+				});
+				const checkpoint = await current.seekClient.seek(source, tick, { signal: controller.signal });
+				controller.signal.throwIfAborted();
+				return startVgm(current, source, plan, seek, checkpoint);
+			} finally {
+				signal?.removeEventListener('abort', abort);
+				if (current.vgmSeek === seek) current.vgmSeek = null;
+			}
 		},
 		pauseVgm(paused) {
+			if (!paused) cancelSeek(session);
+			else if (session?.vgmSeek) session.vgmSeek.paused = true;
 			sendToVgm({ type: 'vgm-pause', paused: Boolean(paused) });
 			if (!paused && session?.active) {
 				session.vgmState = null;
@@ -192,6 +243,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			}
 		},
 		stopVgm() {
+			cancelSeek(session);
 			if (!session?.active || !session.vgmId || session.vgmStopping) return;
 			sendToVgm({ type: 'vgm-stop' });
 			session.vgmStopping = true;
@@ -201,7 +253,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			if (!Number.isInteger(channel) || channel < 0 || channel >= 6)
 				throw new RangeError('Choose a VSU channel from 0 to 5.');
 			const current = session;
-			if (!current?.active || current.vgmState !== 'paused' || current.vgmStopping)
+			if (!current?.active || current.vgmState !== 'paused' || current.vgmStopping || current.vgmSeek)
 				throw new Error('Pause a VGM before copying a channel.');
 			const request = ++nextCaptureRequest;
 			return new Promise((resolve, reject) => {
@@ -213,9 +265,14 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				catch (error) { takeCapture(current, request).reject(error); }
 			});
 		},
-		setVgmLoop(loop) { sendToVgm({ type: 'vgm-loop', loop: Boolean(loop) }); },
+		setVgmLoop(loop) {
+			const repeat = Boolean(loop);
+			if (session?.vgmSeek) session.vgmSeek.loop = repeat;
+			sendToVgm({ type: 'vgm-loop', loop: repeat });
+		},
 		setVgmMask(mask) {
 			validateMask(mask);
+			if (session?.vgmSeek) session.vgmSeek.mask = mask;
 			sendToVgm({ type: 'vgm-mask', mask });
 		},
 		setVolume(level) {

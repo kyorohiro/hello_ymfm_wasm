@@ -3,7 +3,7 @@ const TICKS_PER_SECOND = 44100;
 const STOP_ALL = 0x580;
 const EFFECT_MODES = ['off', 'sweep', 'modulation'];
 
-export function createVgmTransport({ sampleRate, reset, write, renderFrames, setMask, readChannel, onState }) {
+export function createVgmTransport({ sampleRate, reset, restore, write, renderFrames, setMask, readChannel, onState }) {
 	const reportInterval = Math.ceil(sampleRate / 30);
 	let current = null;
 
@@ -52,18 +52,29 @@ export function createVgmTransport({ sampleRate, reset, write, renderFrames, set
 		}
 	}
 
+	function finish(song) {
+		write(STOP_ALL, 1);
+		song.state = 'ended';
+		song.writes = null;
+		notify(song, song.durationTicks);
+	}
+
 	return {
 		get ownsOutput() { return current?.state === 'playing' || current?.state === 'paused'; },
 		isPaused(id) { return current?.id === id && current.state === 'paused'; },
-		play({ id, plan, loop, mask }) {
+		play({ id, plan, loop, mask, checkpoint, paused = false }) {
 			current = {
-				...plan, id, loop, mask, state: 'playing', cursor: 0,
-				frame: 0, originTicks: 0, startTick: 0, reportAt: 0,
+				...plan, id, loop, mask, state: paused ? 'paused' : 'playing',
+				cursor: checkpoint?.cursor ?? 0, frame: checkpoint?.frame ?? 0,
+				originTicks: 0, startTick: 0, reportAt: 0,
 			};
-			reset();
+			if (checkpoint) restore(checkpoint.bytes);
+			else reset();
 			setMask(mask);
 			applyDueWrites(current);
-			notify(current, 0);
+			const tick = checkpoint?.tick ?? 0;
+			if (tick === current.durationTicks && (paused || !loop)) finish(current);
+			else notify(current, tick);
 		},
 		pause(id, paused) {
 			if (current?.id !== id || !this.ownsOutput) return;
@@ -97,10 +108,7 @@ export function createVgmTransport({ sampleRate, reset, write, renderFrames, set
 						rewind(song);
 						continue;
 					}
-					write(STOP_ALL, 1);
-					song.state = 'ended';
-					song.writes = null;
-					notify(song, song.durationTicks);
+					finish(song);
 					return rendered;
 				}
 				if (rendered === frames) break;

@@ -11,6 +11,7 @@ function transportFixture(sampleRate = 48000) {
 	const player = createVgmTransport({
 		sampleRate,
 		reset: () => calls.push([frame, 'reset']),
+		restore: bytes => calls.push([frame, 'restore', ...bytes]),
 		write: (address, value) => calls.push([frame, address, value]),
 		renderFrames: (_offset, count) => { frame += count; },
 		setMask: mask => calls.push([frame, 'mask', mask]),
@@ -86,6 +87,52 @@ test('pause holds position, replay without a native loop resets the same mix and
 	assert.equal(player.ownsOutput, false);
 	assert.equal(messages.at(-1).state, 'stopped');
 	assert.equal(messages.at(-1).positionTicks, 0);
+});
+
+test('a restored seek starts at the exact tick with only later writes remaining', () => {
+	const { player, calls, messages } = transportFixture();
+	const track = plan([[0, 0x400, 0x80], [1, 0x404, 0xf0], [137, 0x404, 0x0f], [224, 0x400, 0]], 225);
+	player.play({
+		id: 4, plan: track, paused: true, mask: 12, loop: false,
+		checkpoint: { tick: 137, frame: 149, cursor: 9, bytes: Uint8Array.of(7, 8) },
+	});
+	assert.equal(player.ownsOutput, true);
+	assert.equal(player.isPaused(4), true);
+	assert.equal(player.render(128), 0);
+	assert.deepEqual(calls, [[0, 'restore', 7, 8], [0, 'mask', 12]]);
+	assert.equal(messages.at(-1).state, 'paused');
+	assert.equal(messages.at(-1).positionTicks, 137);
+	player.pause(4, false);
+	assert.equal(player.render(128), 96);
+	assert.deepEqual(calls.slice(2), [[95, 0x400, 0], [96, 0x580, 1]]);
+	assert.equal(messages.at(-1).state, 'ended');
+	assert.equal(messages.at(-1).positionTicks, 225);
+});
+
+test('a running seek preserves native loop timing and seeking paused to the end clears active gates', () => {
+	const track = plan([[0, 0x400, 0x80], [5, 0x404, 0xF0], [8, 0x404, 0x0F]], 9, 4, 1);
+	const { player, calls, messages } = transportFixture();
+	player.play({
+		id: 1, plan: track, mask: 63, loop: true,
+		checkpoint: { tick: 7, frame: 8, cursor: 6, bytes: Uint8Array.of(1) },
+	});
+	assert.equal(messages.at(-1).state, 'playing');
+	assert.equal(messages.at(-1).positionTicks, 7);
+	assert.equal(player.render(14), 14);
+	assert.deepEqual(calls, [
+		[0, 'restore', 1], [0, 'mask', 63], [1, 0x404, 0x0f], [3, 0x404, 0xf0],
+		[6, 0x404, 0x0f], [8, 0x404, 0xf0], [12, 0x404, 0x0f],
+		[14, 0x404, 0xf0],
+	]);
+	player.play({
+		id: 2, plan: track, paused: true, mask: 63, loop: true,
+		checkpoint: { tick: 9, frame: 10, cursor: 9, bytes: Uint8Array.of(2) },
+	});
+	assert.equal(player.ownsOutput, false);
+	assert.equal(player.isPaused(2), false);
+	assert.deepEqual(calls.at(-1), [14, 0x580, 1]);
+	assert.equal(messages.at(-1).positionTicks, 9);
+	assert.equal(messages.at(-1).state, 'ended');
 });
 
 test('voice snapshots preserve raw VGM values and obey wave and modulation RAM locks', async () => {

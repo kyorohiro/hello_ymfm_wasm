@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { createVgmTransport } from './vgm-transport.js?v=vgm-capture';
+import { createVgmTransport } from './vgm-transport.js?v=vgm-seek';
 
 class VsuProcessor extends AudioWorkletProcessor {
 	constructor({ processorOptions: { wasmBinary } }) {
@@ -10,7 +10,8 @@ class VsuProcessor extends AudioWorkletProcessor {
 			const { exports } = new WebAssembly.Instance(module);
 			this.core = exports;
 			this.state = exports.__heap_base.value;
-			const stateSize = Math.ceil(exports.vsu_size() / 4) * 4;
+			this.stateBytes = exports.vsu_size();
+			const stateSize = Math.ceil(this.stateBytes / 4) * 4;
 			this.vgmState = this.state + stateSize;
 			this.captureAddress = this.vgmState + stateSize;
 			this.pcm = this.captureAddress + Math.ceil(exports.vsu_snapshot_size() / 4) * 4;
@@ -19,6 +20,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.vgm = createVgmTransport({
 				sampleRate,
 				reset: () => exports.vsu_reset(this.vgmState),
+				restore: bytes => {
+					if (!(bytes instanceof Uint8Array) || bytes.byteLength !== this.stateBytes)
+						throw new Error('Invalid VSU seek checkpoint.');
+					// Both wasm instances use the same binary and the state has no pointers.
+					new Uint8Array(exports.memory.buffer, this.vgmState, this.stateBytes).set(bytes);
+				},
 				write: (offset, value) => exports.vsu_write(this.vgmState, offset, value),
 				setMask: mask => exports.vsu_set_mix_mask(this.vgmState, mask),
 				readChannel: channel => exports.vsu_get_channel(this.vgmState, channel),
@@ -88,7 +95,8 @@ class VsuProcessor extends AudioWorkletProcessor {
 					this.core.vsu_write(this.state, message.writes[index], message.writes[index + 1]);
 				break;
 			case 'vgm-play':
-				this.vgm.play(message);
+				if (message.plan) this.vgmPlan = message.plan;
+				this.vgm.play({ ...message, plan: this.vgmPlan });
 				break;
 			case 'vgm-pause':
 				this.vgm.pause(message.id, message.paused);

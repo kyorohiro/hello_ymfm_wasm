@@ -6,9 +6,11 @@ The VSU blocks wavetable writes while voices are active. The editor issues the V
 
 ## Reference playback
 
-Choose **VGM / VGZ…** in **Reference playback** or the Files menu to import Virtual Boy logs. Select a song and press **Play**. **Pause** keeps the current position for **Resume**. **Loop** repeats from the loop point stored in the song, or from the beginning when there is no loop point.
+Choose **VGM / VGZ…** in **Reference playback** or the Files menu to import Virtual Boy logs. Select a song and press **Play**. **Pause** keeps the current position for **Resume**. **Loop** repeats from the loop point stored in the song, or from the beginning when there is no loop point. The seek bar marks the loop start when the song provides one.
 
-**Mixer → Reference channels** shows the gate state and recorded left and right levels for CH1–6, and shows Sweep or Modulation on CH5 when enabled. **Mute** and **Solo** change the reference mix while the recorded chip state keeps advancing. The player uses a separate VSU state so your authored patch and wave RAM are available when you return to Keyboard or Code.
+Drag the seek bar to jump to a position. When focused, the arrow keys move one second and Page Up and Page Down move five seconds. Seeking during playback resumes at the chosen point. Seeking while stopped or paused opens that point paused so you can copy a sound. The VSU rebuilds its state from the timed register stream, including wave RAM, envelope progression and CH5 modulation.
+
+**Reference channels**, below **Reference playback**, shows the gate state and recorded left and right levels for CH1–6, and shows Sweep or Modulation on CH5 when enabled. **Mute** and **Solo** change the reference mix while the recorded chip state keeps advancing. The player uses a separate VSU state so your authored patch and wave RAM are available when you return to Keyboard or Code. The **Mixer** tab adjusts the Synth's channel levels.
 
 To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's wave bank, stereo levels and programmed envelope into the matching editor channel. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope at the chosen note. Use **Files → ＋ Patch** to keep the result.
 

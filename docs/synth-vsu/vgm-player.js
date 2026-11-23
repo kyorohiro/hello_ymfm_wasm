@@ -7,8 +7,10 @@ const ALL_CHANNELS = (1 << VSU_CHANNEL_COUNT) - 1;
 const TRACK_MODE = { off: 'Wave', sweep: 'Sweep', modulation: 'Modulation' };
 
 function timeLabel(ticks) {
-  const seconds = Math.floor(ticks / VGM_SAMPLE_RATE);
-  return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+  const hundredths = Math.floor(ticks * 100 / VGM_SAMPLE_RATE);
+  const seconds = Math.floor(hundredths / 100);
+  return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') +
+    '.' + String(hundredths % 100).padStart(2, '0');
 }
 
 export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, openSong, selectChannel, copyVoice }) {
@@ -17,13 +19,15 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   const picker = byId('vgmSong'), importButton = byId('vgmImport');
   const playButton = byId('vgmPlay'), pauseButton = byId('vgmPause'), stopButton = byId('vgmStop');
   const loop = byId('vgmLoop');
-  const progress = byId('vgmProgress'), time = byId('vgmTime'), status = byId('vgmStatus'), errorOutput = byId('vgmError');
+  const seek = byId('vgmProgress'), time = byId('vgmTime'), status = byId('vgmStatus'), errorOutput = byId('vgmError');
+  const loopMarker = byId('vgmLoopMarker'), loopTime = byId('vgmLoopTime');
   const mixer = byId('vgmMixer'), channelList = byId('vgmChannels');
   const copy = byId('vgmCapture'), selectedOutput = byId('vgmSelectedChannel'), captureStatus = byId('vgmCaptureStatus');
   let paths = [];
   let available = false;
   const titles = new Map();
   let song = null, state = 'empty', playbackId = null, playAttempt = 0;
+  let positionTick = 0, scrubTick = null, pendingSeek = null;
   let muted = 0, solo = 0;
   let channelIndex = 0, liveChannels = [], capturePending = false;
 
@@ -105,18 +109,35 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     picker.disabled = !available || !paths.length;
   }
 
-  function drawPosition(ticks = 0) {
+  function drawPosition() {
     const total = song?.plan.durationTicks ?? 0;
-    progress.max = total || 1;
-    progress.value = ticks;
+    const ticks = scrubTick ?? positionTick;
+    seek.value = ticks;
+    seek.style.setProperty('--seek-position', (total ? ticks * 100 / total : 0) + '%');
     time.value = timeLabel(ticks) + ' / ' + timeLabel(total);
+    seek.setAttribute('aria-valuetext', time.value);
+  }
+
+  function drawSeekRange() {
+    const total = song?.plan.durationTicks ?? 0;
+    const loopTick = song?.plan.loopTick ?? null;
+    seek.max = total || 1;
+    loopMarker.hidden = loopTick === null;
+    loopTime.hidden = loopTick === null;
+    if (loopTick !== null) {
+      loopMarker.style.setProperty('--loop-position', (loopTick * 100 / total) + '%');
+      loopMarker.title = 'Loop starts at ' + timeLabel(loopTick);
+      loopTime.value = 'Loop ' + timeLabel(loopTick);
+    } else loopTime.value = '';
+    drawPosition();
   }
 
   function drawTransport() {
-    playButton.disabled = !song || state === 'playing' || state === 'preparing';
+    playButton.disabled = !song || ['playing', 'preparing', 'seeking'].includes(state);
     playButton.textContent = state === 'paused' ? 'Resume' : 'Play';
     pauseButton.disabled = state !== 'playing';
-    stopButton.disabled = !['preparing', 'playing', 'paused', 'ended'].includes(state);
+    stopButton.disabled = !['preparing', 'seeking', 'playing', 'paused', 'ended'].includes(state);
+    seek.disabled = !song || state === 'preparing';
     mixer.hidden = !song;
     drawCapture();
   }
@@ -156,9 +177,13 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
 
   function stop() {
     playAttempt += 1;
-    if (playbackId !== null) audio.stopVgm();
+    pendingSeek?.controller.abort();
+    pendingSeek = null;
+    audio.stopVgm();
     playbackId = null;
     state = song ? 'stopped' : 'empty';
+    positionTick = 0;
+    scrubTick = null;
     liveChannels = [];
     status.textContent = song ? 'Stopped.' : 'Choose a Virtual Boy VGM or VGZ.';
     drawPosition();
@@ -167,20 +192,22 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   }
 
   function interrupt(error) {
-    if (['preparing', 'playing', 'paused'].includes(state)) {
+    if (['preparing', 'seeking', 'playing', 'paused'].includes(state)) {
       stop();
       if (error) status.textContent = error.message;
     }
   }
 
   function onAudioState(update) {
-    if (playbackId === null || update.id !== playbackId) return;
+    if (playbackId === null || update.id !== playbackId || (pendingSeek && pendingSeek.id !== update.id)) return;
+    pendingSeek = null;
     state = update.state;
     liveChannels = update.channels;
+    positionTick = update.positionTicks;
     if (state === 'stopped') playbackId = null;
     const next = { playing: 'Playing.', paused: 'Paused.', ended: 'Finished.', stopped: 'Stopped.' }[state];
     if (status.textContent !== next) status.textContent = next;
-    drawPosition(update.positionTicks);
+    drawPosition();
     drawChannels(liveChannels);
     drawTransport();
   }
@@ -190,6 +217,7 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     if (path) titles.set(path, plan.title);
     stop();
     captureStatus.value = '';
+    drawSeekRange();
     showError();
     if (show) root.open = true;
     if (song) status.textContent = 'Ready.';
@@ -235,6 +263,35 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     }
   }
 
+  async function seekTo(tick) {
+    if (!song || state === 'preparing') return;
+    const resume = pendingSeek ? pendingSeek.resume : state === 'playing';
+    const target = Math.max(0, Math.min(song.plan.durationTicks, tick));
+    pendingSeek?.controller.abort();
+    const request = { controller: new AbortController(), resume, id: null };
+    pendingSeek = request;
+    state = 'seeking';
+    scrubTick = null;
+    positionTick = target;
+    captureStatus.value = '';
+    status.textContent = 'Seeking…';
+    drawPosition();
+    drawTransport();
+    try {
+      await preparePlayback();
+      if (pendingSeek !== request) return;
+      const id = await audio.seekVgm(song.plan, target, {
+        loop: loop.checked, mask: mixerMask(), paused: !request.resume, signal: request.controller.signal,
+      });
+      if (pendingSeek !== request) return;
+      request.id = playbackId = id;
+    } catch (error) {
+      if (pendingSeek !== request) return;
+      stop();
+      status.textContent = error.message;
+    }
+  }
+
   importButton.addEventListener('click', importSongs);
   picker.addEventListener('change', async () => {
     try {
@@ -250,9 +307,32 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   stopButton.addEventListener('click', stop);
   copy.addEventListener('click', () => void capture());
   loop.addEventListener('change', () => audio.setVgmLoop(loop.checked));
+  seek.addEventListener('input', () => {
+    scrubTick = seek.valueAsNumber;
+    drawPosition();
+  });
+  seek.addEventListener('change', () => void seekTo(seek.valueAsNumber));
+  function cancelScrub() {
+    if (scrubTick === null) return;
+    scrubTick = null;
+    drawPosition();
+  }
+  seek.addEventListener('pointercancel', cancelScrub);
+  seek.addEventListener('blur', cancelScrub);
+  seek.addEventListener('keydown', event => {
+    if (seek.disabled) return;
+    const increments = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1, PageDown: -5, PageUp: 5 };
+    const seconds = increments[event.key];
+    if (seconds === undefined && event.key !== 'Home' && event.key !== 'End') return;
+    event.preventDefault();
+    const target = seconds === undefined ? event.key === 'Home' ? 0 : song.plan.durationTicks
+      : seek.valueAsNumber + seconds * VGM_SAMPLE_RATE;
+    void seekTo(target);
+  });
   drawMixerButtons();
   setChannel(0);
   drawSongs();
+  drawSeekRange();
   drawTransport();
   return { setFiles, setSong, setChannel, setAvailability, showError, onAudioState, interrupt };
 }

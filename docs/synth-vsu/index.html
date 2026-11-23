@@ -44,8 +44,13 @@
           </div>
         </div>
         <div class="vgm-position">
-          <progress id="vgmProgress" value="0" max="1" aria-label="Reference playback position"></progress>
-          <output id="vgmTime" aria-label="Reference playback time">0:00 / 0:00</output>
+          <div id="vgmSeekTrack" class="vgm-seek-track">
+            <input id="vgmProgress" type="range" min="0" max="1" step="1" value="0"
+              aria-label="Reference playback position" aria-describedby="vgmLoopTime" disabled>
+            <span id="vgmLoopMarker" class="vgm-loop-marker" aria-hidden="true" hidden></span>
+          </div>
+          <output id="vgmTime" for="vgmProgress" aria-label="Reference playback time">0:00 / 0:00</output>
+          <output id="vgmLoopTime" class="vgm-loop-time" hidden></output>
         </div>
         <p id="vgmStatus" role="status">Choose a Virtual Boy VGM or VGZ.</p>
         <p id="vgmError" role="alert" hidden></p>
@@ -56,6 +61,11 @@
         <button id="workspaceSynth" type="button" aria-label="Synth workspace" aria-pressed="true" aria-controls="vsuSynthControls">Synth</button>
       </div>
     </div>
+
+    <details id="vgmMixer" class="panel vgm-mixer" open hidden>
+      <summary>Reference channels</summary>
+      <div id="vgmChannels" class="vgm-channels"></div>
+    </details>
 
     <div id="vsuWorkspace" class="workspace">
       <aside id="filesPanel" class="panel" aria-label="Project files" hidden></aside>
@@ -196,10 +206,6 @@
             <h2 id="vsuAuthorMixerTitle">Synth mixer</h2>
             <div id="vsuAuthorChannels" class="author-channels"></div>
           </section>
-          <details id="vgmMixer" class="panel vgm-mixer" open hidden>
-            <summary>Reference channels</summary>
-            <div id="vgmChannels" class="vgm-channels"></div>
-          </details>
         </div>
 
         <section id="performance" class="panel performance" aria-label="Performance">
