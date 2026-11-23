@@ -20,6 +20,7 @@ constexpr uint32_t envelope_unit = 76800;
 constexpr uint32_t sweep_unit = 4800;
 constexpr uint32_t wave_count = 5;
 constexpr uint32_t channel_count = 6;
+constexpr uint32_t all_channels = (1u << channel_count) - 1;
 constexpr uint32_t wave_size = 32;
 constexpr uint32_t noise_channel = 5;
 constexpr uint32_t sweep_channel = 4;
@@ -82,8 +83,16 @@ uint32_t volume(uint8_t side, uint8_t envelope) {
     return product ? (product >> 3) + 1 : 0;
 }
 
+struct dac_voice {
+    uint16_t left = 0;
+    uint16_t right = 0;
+    uint16_t center_left = 0;
+    uint16_t center_right = 0;
+};
+
 struct vsu {
     channel channels[channel_count];
+    dac_voice held[channel_count];
     uint8_t waves[wave_count * wave_size];
     uint8_t modulation[wave_size];
     uint32_t dac_left = 0;
@@ -94,6 +103,7 @@ struct vsu {
     uint8_t noise_value = 63;
     uint8_t sweep = 0;
     uint8_t modulation_position = 0;
+    uint8_t mix_mask = all_channels;
     int32_t held_left = 0;
     int32_t held_right = 0;
 
@@ -114,6 +124,16 @@ struct vsu {
         if (!(voice.control & 0x40))
             return 0;
         return ((sweep >> 4) & 7) * (sweep & 0x80 ? 8 * sweep_unit : sweep_unit);
+    }
+
+    uint32_t get_channel(uint32_t index) const {
+        if (index >= channel_count)
+            return 0;
+        const channel &voice = channels[index];
+        uint32_t mode = 0;
+        if (index == sweep_channel && sweep_period(voice))
+            mode = voice.control & 0x10 ? 2 : 1;
+        return voice.stereo | (voice.enabled ? 0x100 : 0) | (mode << 9);
     }
 
     void reset_noise() {
@@ -287,23 +307,44 @@ struct vsu {
         }
     }
 
-    void sample_dac() {
+    void mix_held() {
         uint32_t left = 0, right = 0;
         uint32_t center_left = 0, center_right = 0;
         for (uint32_t index = 0; index < channel_count; ++index) {
-            const channel &voice = channels[index];
-            if (!voice.enabled)
+            if (!(mix_mask & (1u << index)))
                 continue;
-            const uint32_t sample = index == noise_channel ? noise_value : waves[voice.wave * wave_size + voice.position];
-            const uint32_t gain_left = volume(voice.stereo >> 4, voice.envelope);
-            const uint32_t gain_right = volume(voice.stereo & 15, voice.envelope);
-            left += (sample * gain_left) >> 1;
-            right += (sample * gain_right) >> 1;
-            center_left += (63 * gain_left) >> 2;
-            center_right += (63 * gain_right) >> 2;
+            left += held[index].left;
+            right += held[index].right;
+            center_left += held[index].center_left;
+            center_right += held[index].center_right;
         }
         held_left = static_cast<int32_t>(left >> 3) - static_cast<int32_t>(center_left >> 3);
         held_right = static_cast<int32_t>(right >> 3) - static_cast<int32_t>(center_right >> 3);
+    }
+
+    void set_mix_mask(uint32_t mask) {
+        mix_mask = mask & all_channels;
+        // The new mix uses the current held DAC values, preserving DAC phase.
+        mix_held();
+    }
+
+    void sample_dac() {
+        for (uint32_t index = 0; index < channel_count; ++index) {
+            const channel &voice = channels[index];
+            dac_voice &output = held[index];
+            if (!voice.enabled) {
+                output = {};
+                continue;
+            }
+            const uint32_t sample = index == noise_channel ? noise_value : waves[voice.wave * wave_size + voice.position];
+            const uint32_t gain_left = volume(voice.stereo >> 4, voice.envelope);
+            const uint32_t gain_right = volume(voice.stereo & 15, voice.envelope);
+            output.left = (sample * gain_left) >> 1;
+            output.right = (sample * gain_right) >> 1;
+            output.center_left = (63 * gain_left) >> 2;
+            output.center_right = (63 * gain_right) >> 2;
+        }
+        mix_held();
         dac_left = dac_period;
     }
 
@@ -352,6 +393,15 @@ void vsu_reset(void *state) {
 void vsu_write(void *state, uint32_t offset, uint32_t value) {
     if (state)
         static_cast<vsu *>(state)->write(offset, static_cast<uint8_t>(value));
+}
+
+void vsu_set_mix_mask(void *state, uint32_t mask) {
+    if (state)
+        static_cast<vsu *>(state)->set_mix_mask(mask);
+}
+
+uint32_t vsu_get_channel(const void *state, uint32_t channel) {
+    return state ? static_cast<const vsu *>(state)->get_channel(channel) : 0;
 }
 
 void vsu_render(void *state, float *left, float *right, uint32_t frames, uint32_t sample_rate) {

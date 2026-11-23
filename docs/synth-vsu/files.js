@@ -8,6 +8,8 @@ import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSynthProjectStore } from '../synth/synth_project_store.js';
+import { looksLikeGzip } from '../js/vgm_file.js';
+import { loadVsuVgm } from './vgm.js';
 
 const ENTRY_PATH = '/index.js';
 const PROJECT_FORMAT = 'tetorica-vsu-project';
@@ -16,6 +18,9 @@ const STORAGE_NAME = 'tetorica-vsu-synth-project';
 const MAX_BYTES = 16 * 1024 * 1024;
 const JS_PATH = /\.m?js$/i;
 const PATCH_PATH = /\.vsu\.json$/i;
+const VGM_PATH = /\.vg[mz]$/i;
+const FILE_SUFFIX = /\.(?:vsu\.json|m?js|vg[mz])$/i;
+const VGM_DIRECTORY = '/vgm';
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const encoder = new TextEncoder();
 
@@ -48,7 +53,7 @@ function parsePatch(text, validatePatch) {
 function checkSize(entries) {
   let size = 0;
   for (const { data } of entries) {
-    size += encoder.encode(data).byteLength;
+    size += typeof data === 'string' ? encoder.encode(data).byteLength : data.byteLength;
     if (size > MAX_BYTES) throw new Error('Project files exceed the 16 MiB limit.');
   }
 }
@@ -56,11 +61,38 @@ function checkSize(entries) {
 function validateEntries(entries, validatePatch) {
   for (const { path, data } of entries) {
     userPath(path);
-    if (typeof data !== 'string' || (!PATCH_PATH.test(path) && !JS_PATH.test(path)))
-      throw new Error('Choose a VSU patch or JavaScript file.');
-    if (PATCH_PATH.test(path)) parsePatch(data, validatePatch);
+    if (VGM_PATH.test(path)) {
+      if (!(data instanceof Uint8Array) || data.byteLength < 10 ||
+          (!looksLikeGzip(data) && ![0x56, 0x67, 0x6d, 0x20].every((byte, index) => byte === data[index])))
+        throw new Error('Choose a VGM or VGZ file.');
+    } else {
+      if (typeof data !== 'string' || (!PATCH_PATH.test(path) && !JS_PATH.test(path)))
+        throw new Error('Choose a VSU patch, JavaScript, VGM or VGZ file.');
+      if (PATCH_PATH.test(path)) parsePatch(data, validatePatch);
+    }
   }
   checkSize(entries);
+}
+
+async function validateVgmInputs(entries, activePath) {
+  let activePlan;
+  for (const { path, data } of entries) {
+    if (!VGM_PATH.test(path)) continue;
+    try {
+      const plan = await loadVsuVgm(data);
+      if (path === activePath) activePlan = plan;
+    } catch (error) {
+      throw new Error(basename(path) + ': ' + error.message, { cause: error });
+    }
+  }
+  return activePlan;
+}
+
+function base64(bytes) {
+  let text = '';
+  for (let offset = 0; offset < bytes.length; offset += 32768)
+    text += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+  return btoa(text);
 }
 
 function validateLayer(layer, validatePatch) {
@@ -71,32 +103,46 @@ function validateLayer(layer, validatePatch) {
 }
 
 function checkSelections(fs, view = {}) {
+  view ??= {};
   const valid = (path, kind) => typeof path === 'string' && kind.test(path) && fs.has(path);
   const codePath = valid(view.codePath, JS_PATH) ? view.codePath :
     fs.list().find(file => JS_PATH.test(file.path))?.path ?? null;
   return {
     codePath,
     activePatch: valid(view.activePatch, PATCH_PATH) ? view.activePatch : null,
-    selected: fs.has(view.selected ?? '/') || fs.listDirectories().includes(view.selected) ? view.selected : codePath,
+    activeVgm: valid(view.activeVgm, VGM_PATH) ? view.activeVgm : null,
+    selected: typeof view.selected === 'string' && (fs.has(view.selected) || fs.listDirectories().includes(view.selected))
+      ? view.selected : codePath,
     visible: view.visible === true,
   };
 }
 
-export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePatch, getCode, setCode, starterCode, setStatus }) {
+export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePatch, getCode, setCode, starterCode, setStatus,
+  openVgm = async () => {}, onVgmFilesChanged = () => {}, onVgmError = () => {}, onVgmAvailability = () => {} }) {
   const doc = panel.ownerDocument, win = doc.defaultView;
   const workspace = createVirtualFileWorkspace([{ path: ENTRY_PATH, data: starterCode }], { autoSave: false });
   const fs = workspace.working;
   const codeProject = createSynthCodeProject({ fs });
   const store = createSynthProjectStore({
     indexedDB: win.indexedDB, name: STORAGE_NAME,
-    readFallback: () => JSON.parse(win.localStorage.getItem(STORAGE_NAME)),
-    writeFallback(snapshot) { win.localStorage.setItem(STORAGE_NAME, JSON.stringify(snapshot)); return true; },
+    readFallback: () => JSON.parse(win.localStorage.getItem(STORAGE_NAME), (_key, value) =>
+      typeof value?.vsuBytes === 'string' ? Uint8Array.from(atob(value.vsuBytes), char => char.charCodeAt(0)) : value),
+    writeFallback(snapshot) {
+      win.localStorage.setItem(STORAGE_NAME, JSON.stringify(snapshot, (_key, value) =>
+        value instanceof Uint8Array ? { vsuBytes: base64(value) } : value));
+      return true;
+    },
   });
-  const expanded = new Map([['/patches', true]]);
-  let selected = ENTRY_PATH, codePath = ENTRY_PATH, activePatch = null;
+  const expanded = new Map([['/patches', true], [VGM_DIRECTORY, true]]);
+  let selected = ENTRY_PATH, codePath = ENTRY_PATH, activePatch = null, activeVgm = null;
+  let vgmFiles = [];
   let loading = true, busy = false, draftTimer = null;
   let renderedEntries = '';
   const report = error => setStatus(error?.message || String(error));
+  function reportVgm(error) {
+    report(error);
+    onVgmError(error);
+  }
 
   function element(tag, properties = {}) {
     return Object.assign(doc.createElement(tag), properties);
@@ -122,19 +168,23 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   menuToggle.setAttribute('aria-controls', 'vsuFilesMenuActions');
   const menuActions = element('div', { id: 'vsuFilesMenuActions', className: 'synth-menu-panel' });
   const fileInput = element('input', { id: 'vsuFileImportInput', type: 'file', multiple: true, hidden: true });
-  fileInput.accept = '.vsu.json,.json,.js,.mjs,.zip';
+  const vgmInput = element('input', { id: 'vsuVgmImportInput', type: 'file', multiple: true, hidden: true });
+  vgmInput.accept = '.vgm,.vgz';
+  fileInput.accept = '.vsu.json,.json,.js,.mjs,.zip,' + vgmInput.accept;
   const importButton = element('button', { id: 'vsuFileImport', type: 'button', textContent: 'Import…' });
   importButton.addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
+  const vgmImportButton = element('button', { id: 'vsuFileImportVgm', type: 'button', textContent: 'VGM / VGZ…' });
+  vgmImportButton.addEventListener('click', requestVgmImport);
   const exportButton = button('vsuFileExport', 'Export Cassette…', downloadCassette);
   exportButton.title = 'Export the files in this project as a Cassette';
-  for (const command of [importButton, exportButton]) command.setAttribute('data-close-synth-menu', '');
-  menuActions.append(importButton, exportButton);
+  for (const command of [importButton, vgmImportButton, exportButton]) command.setAttribute('data-close-synth-menu', '');
+  menuActions.append(importButton, vgmImportButton, exportButton);
   menu.append(menuToggle, menuActions);
   actions.append(patchButton, codeButton, saveButton, menu);
   heading.append(element('h2', { textContent: 'Files' }), actions);
   const tree = element('div', { id: 'vsuFilesTree' });
   panel.classList.add('panel', 'vsu-files');
-  panel.append(heading, tree, fileInput);
+  panel.append(heading, tree, fileInput, vgmInput);
   setupSynthMenu({ document: doc, window: win });
 
   const dialog = element('dialog', { className: 'vsu-files-dialog' });
@@ -174,7 +224,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   function snapshot() {
     return {
       format: PROJECT_FORMAT, version: 1, workspace: workspace.snapshot(),
-      view: { codePath, activePatch, selected, visible: !panel.hidden },
+      view: { codePath, activePatch, activeVgm, selected, visible: !panel.hidden },
     };
   }
 
@@ -191,8 +241,15 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   }
 
   function refresh() {
-    const entries = [...fs.list(), ...fs.listDirectories().filter(path => path !== '/')
-      .map(path => ({ path, type: 'directory' }))];
+    const directories = new Set(fs.listDirectories());
+    const entries = [];
+    for (const directory of directories) {
+      if (directory !== '/') entries.push({ path: directory, type: 'directory' });
+      for (const name of fs.readdir(directory)) {
+        const path = join(directory, name);
+        if (!directories.has(path)) entries.push({ path, type: 'file' });
+      }
+    }
     const structure = JSON.stringify(entries.map(({ path, type }) => [path, type]));
     if (structure !== renderedEntries) {
       renderFileTree(tree, entries, {
@@ -203,6 +260,11 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       });
       tree.querySelector('.file-tree-root').tabIndex = 0;
       renderedEntries = structure;
+      const paths = entries.filter(entry => entry.type === 'file' && VGM_PATH.test(entry.path)).map(({ path }) => path);
+      if (paths.length !== vgmFiles.length || paths.some((path, i) => path !== vgmFiles[i])) {
+        vgmFiles = paths;
+        onVgmFilesChanged(vgmFiles.slice());
+      }
     }
     const dirty = new Set(workspace.getDirtyPaths());
     for (const row of tree.querySelectorAll('[data-file-path]')) {
@@ -211,8 +273,10 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       row.toggleAttribute('data-modified', dirty.has(path));
       if (row.matches('summary') && expanded.has(path)) row.parentElement.open = expanded.get(path);
     }
-    for (const command of [patchButton, codeButton, importButton, exportButton]) command.disabled = loading || busy;
+    for (const command of [patchButton, codeButton, importButton, vgmImportButton, exportButton])
+      command.disabled = loading || busy;
     saveButton.disabled = loading || busy || !saveTarget();
+    onVgmAvailability(!loading && !busy);
   }
 
   function select(path) {
@@ -225,13 +289,22 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     codePath = path;
   }
 
-  async function open(path) {
+  async function openReference(path, { show = true, plan } = {}) {
+    const file = path ? fs.get(path) : null;
+    if (path && (!file || file.type !== 'binary' || !VGM_PATH.test(path)))
+      throw new Error('Choose a VGM or VGZ in Files.');
+    await openVgm(file?.data ?? null, path, { show, plan });
+    activeVgm = path;
+  }
+
+  async function open(path, plan) {
     const file = fs.get(path);
     if (!file) return;
     if (PATCH_PATH.test(path)) {
       await applyPatch(parsePatch(file.data, validatePatch));
       activePatch = path;
-    } else await openCode(path);
+    } else if (VGM_PATH.test(path)) await openReference(path, { plan });
+    else await openCode(path);
     select(path);
     await persist();
   }
@@ -306,6 +379,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   function saveTarget(preferCode) {
     if (preferCode) return codePath;
     if (PATCH_PATH.test(selected ?? '')) return selected === activePatch ? selected : null;
+    if (VGM_PATH.test(selected ?? '')) return null;
     return JS_PATH.test(selected ?? '') ? selected : codePath;
   }
 
@@ -344,6 +418,8 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       const movedCode = renamedPath(codePath, from, to);
       if (movedCode !== codePath) await openCode(movedCode, { show: false, stop: true });
       activePatch = renamedPath(activePatch, from, to);
+      const movedVgm = renamedPath(activeVgm, from, to);
+      if (movedVgm !== activeVgm) await openReference(movedVgm, { show: false });
     }
     select(to);
     await persist();
@@ -357,14 +433,14 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   async function rename(path) {
     const label = await askName('Rename…', basename(path));
     if (label === null) return;
-    const extension = JS_PATH.test(path) ? path.match(JS_PATH)[0] : '.vsu.json';
-    const kind = fs.has(path) ? JS_PATH.test(path) ? JS_PATH : PATCH_PATH : null;
-    const destination = namedPath(dirname(path), label, kind ? extension : null, kind);
+    const extension = fs.has(path) ? path.match(FILE_SUFFIX)[0] : null;
+    const kind = VGM_PATH.test(path) ? VGM_PATH : JS_PATH.test(path) ? JS_PATH : PATCH_PATH;
+    const destination = namedPath(dirname(path), label, extension, kind);
     await transfer(path, destination, false);
   }
 
   async function duplicate(path) {
-    const suffix = fs.has(path) ? basename(path).match(JS_PATH)?.[0] ?? path.slice(-'.vsu.json'.length) : '';
+    const suffix = fs.has(path) ? path.match(FILE_SUFFIX)[0] : '';
     const original = basename(path).slice(0, basename(path).length - suffix.length);
     let name = original + ' copy' + suffix;
     const directory = dirname(path);
@@ -378,6 +454,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     if (workspace.saved.has(path) || workspace.saved.listDirectories().includes(path)) workspace.save(path);
     if (isInside(codePath, path)) await openCode(checkSelections(fs).codePath, { show: false, stop: true });
     if (isInside(activePatch, path)) activePatch = null;
+    if (isInside(activeVgm, path)) await openReference(null, { show: false });
     selected = codePath;
     await persist();
     setStatus('Deleted ' + basename(path) + '.');
@@ -406,10 +483,11 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     setStatus('Exported Cassette.');
   }
 
-  async function importFiles(files, directory = '') {
+  async function importFiles(files, directory = '/', { reference = false } = {}) {
     if (!files.length) return;
     if (files.reduce((sum, file) => sum + file.size, 0) > MAX_BYTES)
       throw new Error('Selected files exceed the 16 MiB limit.');
+    if (reference && files.some(file => !VGM_PATH.test(file.name))) throw new Error('Choose VGM or VGZ files.');
     if (files.some(file => /\.zip$/i.test(file.name))) {
       if (files.length !== 1) throw new Error('Import one Cassette at a time.');
       await importCassette(files[0]);
@@ -417,7 +495,9 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     }
     const incoming = await Promise.all(files.map(async file => {
       const filename = PATCH_PATH.test(file.name) ? file.name : file.name.replace(/\.json$/i, '.vsu.json');
-      return { path: userPath(directory + '/' + filename), data: decoder.decode(await file.arrayBuffer()) };
+      const path = namedPath(directory || '/', filename);
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      return { path, data: VGM_PATH.test(path) ? bytes : decoder.decode(bytes) };
     }));
     const paths = new Set();
     for (const entry of incoming) {
@@ -426,9 +506,10 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       paths.add(entry.path);
     }
     validateEntries(incoming, validatePatch);
+    const plan = await validateVgmInputs(incoming, incoming[0].path);
     writeAccepted(incoming);
     show(true);
-    await open(incoming[0].path);
+    await open(incoming[0].path, plan);
     setStatus('Imported ' + incoming.length + (incoming.length === 1 ? ' file.' : ' files.'));
   }
 
@@ -438,40 +519,43 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     if (metadata?.format !== PROJECT_FORMAT || metadata.version !== 1)
       throw new Error('Choose a Tetorica VSU Synth Cassette.');
     const entries = [...cassette.files].filter(([path]) => path !== 'metadata.json')
-      .map(([path, data]) => ({ path: '/' + path, data: decoder.decode(data) }));
+      .map(([path, data]) => ({ path: '/' + path, data: VGM_PATH.test(path) ? data : decoder.decode(data) }));
     validateEntries(entries, validatePatch);
+    const plan = await validateVgmInputs(entries, metadata.view?.activeVgm);
     const fresh = createVirtualFileWorkspace([], { autoSave: false });
     fresh.working.replace(entries, cassette.directories);
     fresh.saveAll();
     if (!win.confirm('Replace the current project with this Cassette?')) return;
-    await restore({ format: PROJECT_FORMAT, version: 1, workspace: fresh.snapshot(), view: metadata.view }, { stop: true });
+    await restore({ format: PROJECT_FORMAT, version: 1, workspace: fresh.snapshot(), view: metadata.view }, { stop: true, plan });
     show(true);
     await persist();
     setStatus('Imported Cassette.');
   }
 
-  async function restore(state, { stop = false } = {}) {
+  async function restore(state, { stop = false, plan } = {}) {
     if (state.format !== PROJECT_FORMAT || state.version !== 1) throw new Error('Unsupported VSU project.');
     validateLayer(state.workspace?.working, validatePatch);
     validateLayer(state.workspace?.saved, validatePatch);
     const checked = createVirtualFileWorkspace();
     checked.restore(state.workspace);
     const savedView = checkSelections(checked.working, state.view);
+    if (savedView.activeVgm && !plan) plan = await loadVsuVgm(checked.working.get(savedView.activeVgm).data);
     if (savedView.activePatch) await applyPatch(parsePatch(checked.working.get(savedView.activePatch).data, validatePatch));
     workspace.restore(checked.snapshot());
     activePatch = savedView.activePatch;
     await openCode(savedView.codePath, { show: false, stop });
+    await openReference(savedView.activeVgm, { show: false, plan });
     if (savedView.selected) select(savedView.selected);
     else selected = null;
     show(savedView.visible);
   }
 
-  async function operation(action) {
+  async function operation(action, onError = report) {
     if (loading || busy) return;
     busy = true;
     refresh();
     try { await action(); }
-    catch (error) { report(error); }
+    catch (error) { onError(error); }
     finally { busy = false; refresh(); }
   }
 
@@ -489,6 +573,13 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   });
   contextMenu.element.id = 'vsuFileContextMenu';
   contextMenu.element.classList.add('vsu-file-context-menu');
+  function requestVgmImport() {
+    if (loading || busy) return;
+    vgmInput.value = '';
+    vgmInput.click();
+  }
+  const importVgm = files => operation(() => importFiles([...files], VGM_DIRECTORY, { reference: true }), reportVgm);
+  vgmInput.addEventListener('change', () => void importVgm(vgmInput.files));
   fileInput.addEventListener('change', () => void operation(() => importFiles([...fileInput.files])));
   toggle.addEventListener('click', () => {
     show(panel.hidden);
@@ -509,5 +600,13 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   refresh();
   const ready = store.read().then(state => state && restore(state))
     .catch(report).finally(() => { loading = false; refresh(); });
-  return { ...codeProject, get codePath() { return codePath ?? ENTRY_PATH; }, markCodeEdited, ready };
+  return {
+    ...codeProject, get codePath() { return codePath ?? ENTRY_PATH; }, markCodeEdited, ready,
+    requestVgmImport, importVgm, listVgmFiles: () => vgmFiles.slice(),
+    openVgm: path => operation(() => {
+      path = userPath(path);
+      if (!VGM_PATH.test(path) || !fs.has(path)) throw new Error('Choose a VGM or VGZ in Files.');
+      return open(path);
+    }, reportVgm),
+  };
 }

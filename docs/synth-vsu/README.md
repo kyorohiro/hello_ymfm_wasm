@@ -4,6 +4,14 @@ Play the Virtual Sound Unit (VSU) from Nintendo's Virtual Boy with the on-screen
 
 The VSU blocks wavetable writes while voices are active. The editor issues the VSU's global stop command before uploading the edited bank. JavaScript can do the same with `vsu.allNotesOff()` followed by `vsu.setWave(bank, samples)`.
 
+## Reference playback
+
+Choose **VGM / VGZ…** in **Reference playback** or the Files menu to import Virtual Boy logs. Select a song and press **Play**. **Pause** keeps the current position for **Resume**. **Loop** repeats from the loop point stored in the song, or from the beginning when there is no loop point.
+
+**Live channels** shows the gate state and recorded left and right levels for CH1–6, and shows Sweep or Modulation on CH5 when enabled. **Mute** and **Solo** change the reference mix while the recorded chip state keeps advancing. The player uses a separate VSU state so your authored patch and wave RAM are available when you return to Keyboard or Code.
+
+The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps imported songs with the project and includes them in Cassette export.
+
 ## CH5 Sweep and Modulation
 
 Select **CH5** in the channel selector and play a key.
@@ -62,3 +70,4 @@ The browser AudioWorklet and native callers use the same BSD-3-Clause C++ core i
 
 - Nintendo's 1995 *Virtual Boy Development Manual*, revision C, section 6, describes the VSU memory map, timing, mixing, and sound registers. [Original manual scan](https://cdn3.guidessimo.com/view/1144/1144575-virtual_boy.pdf#page=133)
 - Hardware captures by dasi and Guy Perfect document the noise generator's initial state and feedback. [Noise generator measurements](https://www.virtual-boy.com/forums/t/the-secrets-of-the-noise-generator/)
+- The VGM specification documents VSU register writes, wait commands, and loop offsets. [VGM specification](https://vgmrips.net/wiki/VGM_Specification)

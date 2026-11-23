@@ -14,10 +14,26 @@ function validateWrite(offset, value) {
 		throw new RangeError('VSU writes take one byte.');
 }
 
-export function createVsuAudio({ volume = .6, onError = () => {} } = {}) {
+function validateMask(mask) {
+	if (!Number.isInteger(mask) || mask < 0 || mask > 63)
+		throw new RangeError('Choose a VSU channel mask from 0 to 63.');
+}
+
+function copyVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
+	if (!(writes instanceof Uint32Array) || writes.length % 3 !== 0 ||
+		!Number.isInteger(durationTicks) || durationTicks < 1 || durationTicks > 0xffffffff)
+		throw new TypeError('Choose a valid VSU VGM timeline.');
+	if (loopTick !== null && (!Number.isInteger(loopTick) || loopTick < 0 || loopTick >= durationTicks ||
+		!Number.isInteger(loopIndex) || loopIndex < 0 || loopIndex > writes.length / 3))
+		throw new TypeError('Choose a valid VGM loop point.');
+	return { writes: writes.slice(), durationTicks, loopTick, loopIndex };
+}
+
+export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {} } = {}) {
 	validateVolume(volume);
 	let session = null;
 	let disposed = false;
+	let nextVgmId = 0;
 
 	async function close(current, error) {
 		if (session !== current) return;
@@ -78,6 +94,12 @@ export function createVsuAudio({ volume = .6, onError = () => {} } = {}) {
 				node.port.onmessage = ({ data }) => {
 					if (data.type === 'ready') resolve();
 					if (data.type === 'error') fail(new Error(data.error));
+					if (data.type === 'vgm-state' && session === current && data.id === current.vgmId &&
+						(!current.vgmStopping || data.state === 'stopped')) {
+						if (data.state === 'stopped') current.vgmId = null;
+						const { type, ...playback } = data;
+						onVgmState(playback);
+					}
 				};
 				node.connect(output);
 			})]);
@@ -95,6 +117,11 @@ export function createVsuAudio({ volume = .6, onError = () => {} } = {}) {
 	function send(message, transfer = []) {
 		if (!session?.active) throw new Error('Call ensureReady() before using VSU audio.');
 		session.node.port.postMessage(message, transfer);
+	}
+
+	function sendToVgm(message) {
+		if (!session?.active || !session.vgmId || session.vgmStopping) return;
+		send({ ...message, id: session.vgmId });
 	}
 
 	return {
@@ -125,6 +152,26 @@ export function createVsuAudio({ volume = .6, onError = () => {} } = {}) {
 			send({ type: 'batch', writes }, [writes.buffer]);
 		},
 		reset() { send({ type: 'reset' }); },
+		playVgm(source, { loop = false, mask = 63 } = {}) {
+			validateMask(mask);
+			const plan = copyVgmPlan(source);
+			const id = ++nextVgmId;
+			send({ type: 'vgm-play', id, plan, mask, loop: Boolean(loop) }, [plan.writes.buffer]);
+			session.vgmId = id;
+			session.vgmStopping = false;
+			return id;
+		},
+		pauseVgm(paused) { sendToVgm({ type: 'vgm-pause', paused: Boolean(paused) }); },
+		stopVgm() {
+			if (!session?.active || !session.vgmId || session.vgmStopping) return;
+			sendToVgm({ type: 'vgm-stop' });
+			session.vgmStopping = true;
+		},
+		setVgmLoop(loop) { sendToVgm({ type: 'vgm-loop', loop: Boolean(loop) }); },
+		setVgmMask(mask) {
+			validateMask(mask);
+			sendToVgm({ type: 'vgm-mask', mask });
+		},
 		setVolume(level) {
 			validateVolume(level);
 			volume = level;

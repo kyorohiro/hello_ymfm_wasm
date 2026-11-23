@@ -31,6 +31,30 @@
 
     <aside id="filesPanel" class="panel" aria-label="Project files" hidden></aside>
 
+    <details id="vgmReference" class="panel vgm-reference" open>
+      <summary>Reference playback</summary>
+      <div class="vgm-transport">
+        <label class="vgm-song">Song <select id="vgmSong" aria-label="Reference song" disabled></select></label>
+        <button id="vgmImport" type="button" disabled>VGM / VGZ…</button>
+        <div class="switches" role="group" aria-label="Reference transport">
+          <button id="vgmPlay" type="button" disabled>Play</button>
+          <button id="vgmPause" type="button" disabled>Pause</button>
+          <button id="vgmStop" type="button" disabled>Stop</button>
+          <label><input id="vgmLoop" type="checkbox"> Loop</label>
+        </div>
+      </div>
+      <div class="vgm-position">
+        <progress id="vgmProgress" value="0" max="1" aria-label="Reference playback position"></progress>
+        <output id="vgmTime" aria-label="Reference playback time">0:00 / 0:00</output>
+      </div>
+      <p id="vgmStatus" role="status">Choose a Virtual Boy VGM or VGZ.</p>
+      <p id="vgmError" role="alert" hidden></p>
+      <details id="vgmMixer" class="vgm-mixer" open hidden>
+        <summary>Live channels</summary>
+        <div id="vgmChannels" class="vgm-channels"></div>
+      </details>
+    </details>
+
     <section class="panel monitor" aria-label="Audio output">
       <div class="switches" role="group" aria-label="Output display">
         <button id="showWaveform" type="button" aria-pressed="true">Waveform</button>

@@ -15,6 +15,7 @@ trap 'rm -rf "$WASM_STAGE"' EXIT
   -std=c++17 -O2 -ffreestanding -fno-exceptions -fno-rtti -nostdlib \
   -Wl,--no-entry,--export-memory,--export=__heap_base \
   -Wl,--export=vsu_size,--export=vsu_reset,--export=vsu_write,--export=vsu_render \
+  -Wl,--export=vsu_set_mix_mask,--export=vsu_get_channel \
   -o "$WASM_STAGE/vsu.wasm"
 
 mv -f "$WASM_STAGE/vsu.wasm" "$WASM_DIR/vsu.wasm"

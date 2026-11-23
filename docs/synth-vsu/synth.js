@@ -10,6 +10,8 @@ import {
 import { setupVsuFiles } from './files.js';
 import { validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js';
 import { createVsuClient, createVsuWave, vsuChannelRegister, vsuNoteOnWrites, VSU_REGISTERS } from './vsu.js';
+import { loadVsuVgm } from './vgm.js';
+import { setupVgmPlayer } from './vgm-player.js';
 
 const byId = id => document.getElementById(id);
 const status = byId('status'), code = byId('code'), codeOutput = byId('codeOutput');
@@ -27,12 +29,16 @@ const ch5Controls = {
 const visualizer = createSynthOutputVisualizer({
   background: '#18090f', grid: '#5c293b', labels: '#e9b3be', trace: '#ff6978',
 });
-const audio = createVsuAudio({ onError(error) {
-  stopComparison();
-  releaseKeyboard();
-  void stopCode();
-  status.textContent = error.message;
-} });
+const audio = createVsuAudio({
+  onError(error) {
+    reference.interrupt(error);
+    stopComparison();
+    releaseKeyboard();
+    void stopCode();
+    status.textContent = error.message;
+  },
+  onVgmState(update) { reference.onAudioState(update); },
+});
 const chip = createVsuClient(audio);
 const banks = ['triangle', 'sine', 'square', 'saw', 'triangle'].map(shape => createVsuWave(shape));
 let selectedNoiseTap = 0;
@@ -313,6 +319,7 @@ function stopComparison(message = 'Comparison stopped.') {
 
 async function playComparison() {
   if (comparison) return;
+  reference.interrupt();
   releaseKeyboard();
   const active = { controller: new AbortController(), started: false };
   comparison = active;
@@ -358,6 +365,7 @@ function releaseKeyboard() {
 
 async function playKeyboard(owner, entry, button) {
   if (held?.owner === owner) return;
+  reference.interrupt();
   stopComparison();
   releaseKeyboard();
   const voice = { owner, button, channel: Number(channelSelect.value), note: entry.midi, started: false };
@@ -527,10 +535,27 @@ function showInput(showCode) {
 inputs[0].addEventListener('click', () => showInput(false));
 inputs[1].addEventListener('click', () => showInput(true));
 
+const reference = setupVgmPlayer({
+  root: byId('vgmReference'), audio,
+  async preparePlayback() {
+    stopComparison();
+    releaseKeyboard();
+    await waitForCodeStop();
+    await ensureVsu();
+  },
+  importSongs: () => files.requestVgmImport(),
+  openSong: path => files.openVgm(path),
+});
 const files = setupVsuFiles({
   panel: byId('filesPanel'), toggle: byId('filesToggle'), starterCode,
   getPatch, applyPatch, validatePatch: validateVsuPatch,
   getCode: () => code.value,
+  async openVgm(bytes, path, { show, plan } = {}) {
+    reference.setSong(path, path ? plan ?? await loadVsuVgm(bytes) : null, { show });
+  },
+  onVgmFilesChanged: reference.setFiles,
+  onVgmError: reference.showError,
+  onVgmAvailability: reference.setAvailability,
   async setCode(source, _path, { show = false, stop: stopPlayback = show } = {}) {
     if (stopPlayback) await waitForCodeStop();
     code.value = source;
@@ -541,6 +566,7 @@ const files = setupVsuFiles({
 code.addEventListener('input', () => files.markCodeEdited());
 
 async function execute(isApply) {
+  reference.interrupt();
   stopComparison();
   releaseKeyboard();
   if (!isApply) codeOutput.textContent = '';

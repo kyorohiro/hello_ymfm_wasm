@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { createVgmTransport } from './vgm-transport.js';
+
 class VsuProcessor extends AudioWorkletProcessor {
 	constructor({ processorOptions: { wasmBinary } }) {
 		super();
@@ -8,9 +10,23 @@ class VsuProcessor extends AudioWorkletProcessor {
 			const { exports } = new WebAssembly.Instance(module);
 			this.core = exports;
 			this.state = exports.__heap_base.value;
-			this.pcm = this.state + Math.ceil(exports.vsu_size() / 4) * 4;
+			const stateSize = Math.ceil(exports.vsu_size() / 4) * 4;
+			this.vgmState = this.state + stateSize;
+			this.pcm = this.vgmState + stateSize;
 			this.prepareBuffers(128);
 			exports.vsu_reset(this.state);
+			this.vgm = createVgmTransport({
+				sampleRate,
+				reset: () => exports.vsu_reset(this.vgmState),
+				write: (offset, value) => exports.vsu_write(this.vgmState, offset, value),
+				setMask: mask => exports.vsu_set_mix_mask(this.vgmState, mask),
+				readChannel: channel => exports.vsu_get_channel(this.vgmState, channel),
+				renderFrames: (offset, frames) => {
+					const byteOffset = offset * Float32Array.BYTES_PER_ELEMENT;
+					exports.vsu_render(this.vgmState, this.pcm + byteOffset, this.rightOffset + byteOffset, frames, sampleRate);
+				},
+				onState: state => this.port.postMessage({ type: 'vgm-state', ...state }),
+			});
 			this.port.onmessage = ({ data }) => this.handle(data);
 			this.port.postMessage({ type: 'ready' });
 		} catch (error) { this.fail(error); }
@@ -33,13 +49,34 @@ class VsuProcessor extends AudioWorkletProcessor {
 		this.right = new Float32Array(memory.buffer, this.rightOffset, frames);
 	}
 
-	handle({ type, offset, value, writes }) {
+	handle(message) {
 		try {
-			if (type === 'reset') this.core.vsu_reset(this.state);
-			else if (type === 'write') this.core.vsu_write(this.state, offset, value);
-			else if (type === 'batch') {
-				for (let index = 0; index < writes.length; index += 2)
-					this.core.vsu_write(this.state, writes[index], writes[index + 1]);
+			switch (message.type) {
+			case 'reset':
+				this.core.vsu_reset(this.state);
+				break;
+			case 'write':
+				this.core.vsu_write(this.state, message.offset, message.value);
+				break;
+			case 'batch':
+				for (let index = 0; index < message.writes.length; index += 2)
+					this.core.vsu_write(this.state, message.writes[index], message.writes[index + 1]);
+				break;
+			case 'vgm-play':
+				this.vgm.play(message);
+				break;
+			case 'vgm-pause':
+				this.vgm.pause(message.id, message.paused);
+				break;
+			case 'vgm-stop':
+				this.vgm.stop(message.id);
+				break;
+			case 'vgm-loop':
+				this.vgm.setLoop(message.id, message.loop);
+				break;
+			case 'vgm-mask':
+				this.vgm.setMask(message.id, message.mask);
+				break;
 			}
 		} catch (error) { this.fail(error); }
 	}
@@ -50,7 +87,13 @@ class VsuProcessor extends AudioWorkletProcessor {
 		if (!left?.length || !right) return true;
 		try {
 			if (this.left.length !== left.length) this.prepareBuffers(left.length);
-			this.core.vsu_render(this.state, this.pcm, this.rightOffset, left.length, sampleRate);
+			if (this.vgm.ownsOutput) {
+				const rendered = this.vgm.render(left.length);
+				this.left.fill(0, rendered);
+				this.right.fill(0, rendered);
+			} else {
+				this.core.vsu_render(this.state, this.pcm, this.rightOffset, left.length, sampleRate);
+			}
 			left.set(this.left);
 			right.set(this.right);
 		} catch (error) {

@@ -71,13 +71,20 @@ export function looksLikeGzip(source) {
  * @param {ArrayBuffer | Uint8Array} source
  * Detect gzip by its header and decompress VGZ using DecompressionStream.
  * Uncompressed input is copied; this does not validate the VGM command stream.
+ * @param {{maxBytes?: number}} options Optional maximum uncompressed size.
  * @throws {Error} If gzip decoding is unavailable or fails.
  * @returns {Promise<ArrayBuffer>} Uncompressed bytes owned by the caller.
  */
-export async function maybeDecodeVgmFile(source) {
+export async function maybeDecodeVgmFile(source, { maxBytes = Infinity } = {}) {
   const bytes = toBytes(source);
+  const checkSize = size => {
+    if (size > maxBytes) throw new RangeError("VGM exceeds the uncompressed size limit.");
+  };
+  if (maxBytes !== Infinity && (!Number.isSafeInteger(maxBytes) || maxBytes < 0))
+    throw new RangeError("VGM size limit must be a non-negative integer.");
 
   if (!looksLikeGzip(bytes)) {
+    checkSize(bytes.byteLength);
     return bytes.buffer.slice(
       bytes.byteOffset,
       bytes.byteOffset + bytes.byteLength
@@ -91,5 +98,30 @@ export async function maybeDecodeVgmFile(source) {
   const stream = new Blob([bytes]).stream().pipeThrough(
     new DecompressionStream("gzip")
   );
-  return await new Response(stream).arrayBuffer();
+  if (maxBytes === Infinity) return new Response(stream).arrayBuffer();
+
+  const reader = stream.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      checkSize(size);
+      chunks.push(value);
+    }
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+  const result = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result.buffer;
 }
