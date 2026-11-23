@@ -8,7 +8,9 @@ The VSU blocks wavetable writes while voices are active. The editor issues the V
 
 Choose **VGM / VGZ…** in **Reference playback** or the Files menu to import Virtual Boy logs. Select a song and press **Play**. **Pause** keeps the current position for **Resume**. **Loop** repeats from the loop point stored in the song, or from the beginning when there is no loop point.
 
-**Live channels** shows the gate state and recorded left and right levels for CH1–6, and shows Sweep or Modulation on CH5 when enabled. **Mute** and **Solo** change the reference mix while the recorded chip state keeps advancing. The player uses a separate VSU state so your authored patch and wave RAM are available when you return to Keyboard or Code.
+**Mixer → Reference channels** shows the gate state and recorded left and right levels for CH1–6, and shows Sweep or Modulation on CH5 when enabled. **Mute** and **Solo** change the reference mix while the recorded chip state keeps advancing. The player uses a separate VSU state so your authored patch and wave RAM are available when you return to Keyboard or Code.
+
+To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's wave bank, stereo levels and programmed envelope into the matching editor channel. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope at the chosen note. Use **Files → ＋ Patch** to keep the result.
 
 The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps imported songs with the project and includes them in Cassette export.
 
@@ -17,13 +19,15 @@ The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps impor
 Select **CH5** in the channel selector and play a key.
 
 - **Sweep** adds or subtracts the pitch register shifted by 0–7 bits at each step. A smaller shift makes a larger change. An upward sweep can silence the voice if it overflows the 11-bit pitch register.
-- **Modulation** applies 32 signed offsets (−127 to +127) to the original pitch register. Enable **Repeat** to cycle the table. Editing the table during a held CH5 note stops and retriggers that voice so the RAM write takes effect.
+- **Modulation** applies 32 signed byte offsets to the original pitch register. The development manual documents −127 to +127, and the editor also preserves a raw `0x80` (−128) from a VGM capture. Enable **Repeat** to cycle the table. Editing the table during a held CH5 note stops and retriggers that voice so the RAM write takes effect.
 - **Base clock** chooses 0.96 ms or 7.68 ms and **Multiplier** sets the number of clock periods per step. A multiplier of 0 disables the effect.
 - **Play comparison** plays A4 on CH5 in Normal, Sweep, and Modulation order. All three use the selected wave bank and stereo levels. Sweep and Modulation use fixed comparison settings, and the editor keeps your values.
 
 ## Files
 
-Open **Files**, then use **＋ Patch** to save the five wave banks, six channels' settings, noise tap, and CH5 parameters as a named `.vsu.json` patch. Open a patch from the tree to restore it. Use **＋ JS** to create a script and **Save** to keep your changes locally. The Files menu imports patches and scripts and exchanges projects as Cassette ZIPs.
+Open **Files** beside the editor, then use **＋ Patch** to save the five wave banks, six channels' settings and envelopes, noise tap, and CH5 parameters as a named `.vsu.json` patch. Open a patch from the tree to restore it. Use **＋ JS** to create a script and **Save** to keep your changes locally. The Files menu imports patches and scripts and exchanges projects as Cassette ZIPs.
+
+The top **Synth / Code** buttons switch between the full instrument and focused Code workspace. The **Code / Keyboard** tabs below the instrument pick the performance input.
 
 ## JavaScript
 

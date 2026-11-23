@@ -11,19 +11,21 @@ function timeLabel(ticks) {
   return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
 }
 
-export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, openSong }) {
+export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, openSong, selectChannel, copyVoice }) {
   const doc = root.ownerDocument;
-  const byId = id => root.querySelector('#' + id);
+  const byId = id => doc.getElementById(id);
   const picker = byId('vgmSong'), importButton = byId('vgmImport');
   const playButton = byId('vgmPlay'), pauseButton = byId('vgmPause'), stopButton = byId('vgmStop');
   const loop = byId('vgmLoop');
   const progress = byId('vgmProgress'), time = byId('vgmTime'), status = byId('vgmStatus'), errorOutput = byId('vgmError');
   const mixer = byId('vgmMixer'), channelList = byId('vgmChannels');
+  const copy = byId('vgmCapture'), selectedOutput = byId('vgmSelectedChannel'), captureStatus = byId('vgmCaptureStatus');
   let paths = [];
   let available = false;
   const titles = new Map();
   let song = null, state = 'empty', playbackId = null, playAttempt = 0;
   let muted = 0, solo = 0;
+  let channelIndex = 0, liveChannels = [], capturePending = false;
 
   function make(tag, text) {
     const element = doc.createElement(tag);
@@ -47,7 +49,11 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     const strip = make('div');
     strip.className = 'vgm-channel';
     strip.dataset.channel = String(index + 1);
-    const heading = make('h3', 'CH' + (index + 1));
+    const heading = make('h3'), choose = make('button', 'CH' + (index + 1));
+    choose.type = 'button';
+    choose.setAttribute('aria-label', 'Select reference CH' + (index + 1));
+    choose.addEventListener('click', () => selectChannel(index));
+    heading.append(choose);
     const mode = make('output');
     const levels = make('output');
     const buttons = make('div');
@@ -61,7 +67,7 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     }
     strip.append(heading, mode, levels, buttons);
     channelList.append(strip);
-    return { strip, mode, levels, mute, solo: soloButton };
+    return { strip, choose, mode, levels, mute, solo: soloButton };
   });
 
   function drawMixerButtons() {
@@ -112,6 +118,40 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     pauseButton.disabled = state !== 'playing';
     stopButton.disabled = !['preparing', 'playing', 'paused', 'ended'].includes(state);
     mixer.hidden = !song;
+    drawCapture();
+  }
+
+  function drawCapture() {
+    const paused = state === 'paused';
+    const active = liveChannels[channelIndex]?.active;
+    const label = paused || state === 'playing' ? 'VGM · CH' + (channelIndex + 1) : '';
+    if (selectedOutput.value !== label) selectedOutput.value = label;
+    copy.disabled = capturePending || !paused || !active;
+    copy.title = paused && !active ? 'Choose an active VGM channel.' : 'Copy an active channel from paused playback.';
+  }
+
+  function setChannel(index) {
+    channelIndex = index;
+    channels.forEach(({ choose }, i) => choose.setAttribute('aria-pressed', String(i === index)));
+    drawCapture();
+  }
+
+  async function capture() {
+    if (copy.disabled) return;
+    const index = channelIndex;
+    capturePending = true;
+    captureStatus.value = '';
+    drawCapture();
+    try {
+      const snapshot = await audio.captureVgmChannel(index);
+      await copyVoice(snapshot);
+      captureStatus.value = 'Copied CH' + (index + 1) + ' to Synth.';
+    } catch (error) {
+      captureStatus.value = error.message;
+    } finally {
+      capturePending = false;
+      drawCapture();
+    }
   }
 
   function stop() {
@@ -119,9 +159,10 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     if (playbackId !== null) audio.stopVgm();
     playbackId = null;
     state = song ? 'stopped' : 'empty';
+    liveChannels = [];
     status.textContent = song ? 'Stopped.' : 'Choose a Virtual Boy VGM or VGZ.';
     drawPosition();
-    drawChannels();
+    drawChannels(liveChannels);
     drawTransport();
   }
 
@@ -135,11 +176,12 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   function onAudioState(update) {
     if (playbackId === null || update.id !== playbackId) return;
     state = update.state;
+    liveChannels = update.channels;
     if (state === 'stopped') playbackId = null;
     const next = { playing: 'Playing.', paused: 'Paused.', ended: 'Finished.', stopped: 'Stopped.' }[state];
     if (status.textContent !== next) status.textContent = next;
     drawPosition(update.positionTicks);
-    drawChannels(update.channels);
+    drawChannels(liveChannels);
     drawTransport();
   }
 
@@ -147,6 +189,7 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     song = path ? { path, plan } : null;
     if (path) titles.set(path, plan.title);
     stop();
+    captureStatus.value = '';
     showError();
     if (show) root.open = true;
     if (song) status.textContent = 'Ready.';
@@ -205,9 +248,11 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   playButton.addEventListener('click', () => void play());
   pauseButton.addEventListener('click', () => audio.pauseVgm(true));
   stopButton.addEventListener('click', stop);
+  copy.addEventListener('click', () => void capture());
   loop.addEventListener('change', () => audio.setVgmLoop(loop.checked));
   drawMixerButtons();
+  setChannel(0);
   drawSongs();
   drawTransport();
-  return { setFiles, setSong, setAvailability, showError, onAudioState, interrupt };
+  return { setFiles, setSong, setChannel, setAvailability, showError, onAudioState, interrupt };
 }

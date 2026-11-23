@@ -17,6 +17,9 @@ test('CH5 control encodes the hardware clock, enable, direction, shift and repea
 		[[0x51c, 0xf0], [0x514, 0x50]]);
 	assert.deepEqual(ch5ControlWrites({ ...settings, mode: 'modulation', rate: 0 }),
 		[[0x51c, 0x80], [0x514, 0x70]]);
+	assert.deepEqual(ch5ControlWrites({ ...settings, mode: 'sweep' }, 3),
+		[[0x51c, 0xfe], [0x514, 0x43]]);
+	assert.throws(() => ch5ControlWrites(settings, 4), /CH5 envelope control/);
 });
 
 test('CH5 step time honors Off, the zero multiplier, and both clock bases', () => {
@@ -38,8 +41,9 @@ test('CH5 modulation validates every signed value and writes the correct byte to
 	assert.deepEqual(writes[2], [0x288, 0x00]);
 	assert.deepEqual(writes[31], [0x2fc, 0x7f]);
 	assert.throws(() => ch5ModulationWrites(values.slice(0, 31)), /32 signed offsets/);
-	assert.throws(() => ch5ModulationWrites([...values.slice(0, 31), -128]), /-127 to 127/);
-	assert.throws(() => ch5ModulationWrites([...values.slice(0, 31), 128]), /-127 to 127/);
+	assert.deepEqual(ch5ModulationWrites([...values.slice(0, 31), -128])[31], [0x2fc, 0x80]);
+	assert.throws(() => ch5ModulationWrites([...values.slice(0, 31), -129]), /-128 to 127/);
+	assert.throws(() => ch5ModulationWrites([...values.slice(0, 31), 128]), /-128 to 127/);
 	assert.throws(() => ch5ModulationWrites(Array(32)), /CH5 modulation offset/);
 });
 

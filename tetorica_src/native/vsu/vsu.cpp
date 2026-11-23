@@ -136,6 +136,30 @@ struct vsu {
         return voice.stereo | (voice.enabled ? 0x100 : 0) | (mode << 9);
     }
 
+    bool snapshot_voice(uint32_t index, vsu_voice_snapshot &output) const {
+        if (index >= channel_count)
+            return false;
+        const channel &voice = channels[index];
+        const bool has_wave = index != noise_channel;
+        const bool has_sweep = index == sweep_channel;
+        if (has_wave && voice.wave >= wave_count)
+            return false;
+
+        output.frequency = voice.frequency;
+        output.active = voice.enabled;
+        output.wave_bank = has_wave ? voice.wave : UINT32_MAX;
+        output.left = voice.stereo >> 4;
+        output.right = voice.stereo & 15;
+        output.ev0 = voice.envelope_settings;
+        output.ev1 = voice.control;
+        output.swp = has_sweep ? sweep : 0;
+        for (uint32_t cell = 0; cell < wave_size; ++cell) {
+            output.wave[cell] = has_wave ? waves[voice.wave * wave_size + cell] : 0;
+            output.modulation[cell] = has_sweep ? modulation[cell] : 0;
+        }
+        return true;
+    }
+
     void reset_noise() {
         noise_shift = noise_seed;
         noise_value = 63;
@@ -402,6 +426,14 @@ void vsu_set_mix_mask(void *state, uint32_t mask) {
 
 uint32_t vsu_get_channel(const void *state, uint32_t channel) {
     return state ? static_cast<const vsu *>(state)->get_channel(channel) : 0;
+}
+
+uint32_t vsu_snapshot_size(void) {
+    return sizeof(vsu_voice_snapshot);
+}
+
+uint32_t vsu_snapshot_voice(const void *state, uint32_t channel, vsu_voice_snapshot *output) {
+    return state && output && static_cast<const vsu *>(state)->snapshot_voice(channel, *output);
 }
 
 void vsu_render(void *state, float *left, float *right, uint32_t frames, uint32_t sample_rate) {

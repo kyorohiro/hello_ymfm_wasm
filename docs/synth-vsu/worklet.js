@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { createVgmTransport } from './vgm-transport.js';
+import { createVgmTransport } from './vgm-transport.js?v=vgm-capture';
 
 class VsuProcessor extends AudioWorkletProcessor {
 	constructor({ processorOptions: { wasmBinary } }) {
@@ -12,7 +12,8 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.state = exports.__heap_base.value;
 			const stateSize = Math.ceil(exports.vsu_size() / 4) * 4;
 			this.vgmState = this.state + stateSize;
-			this.pcm = this.vgmState + stateSize;
+			this.captureAddress = this.vgmState + stateSize;
+			this.pcm = this.captureAddress + Math.ceil(exports.vsu_snapshot_size() / 4) * 4;
 			this.prepareBuffers(128);
 			exports.vsu_reset(this.state);
 			this.vgm = createVgmTransport({
@@ -49,6 +50,30 @@ class VsuProcessor extends AudioWorkletProcessor {
 		this.right = new Float32Array(memory.buffer, this.rightOffset, frames);
 	}
 
+	captureVgm({ id, request, channel }) {
+		if (!this.vgm.isPaused(id)) {
+			this.port.postMessage({ type: 'vgm-capture', id, request, error: 'Pause a VGM before copying a channel.' });
+			return;
+		}
+		if (!this.core.vsu_snapshot_voice(this.vgmState, channel, this.captureAddress)) {
+			this.port.postMessage({ type: 'vgm-capture', id, request, error: 'That channel uses an unavailable waveform bank.' });
+			return;
+		}
+		// Matches vsu_voice_snapshot in vsu.h. Copy the RAM out before the next capture.
+		const buffer = this.core.memory.buffer;
+		const words = new Uint32Array(buffer, this.captureAddress, 8);
+		const [frequency, active, waveBank, left, right, ev0, ev1, swp] = words;
+		const ramAddress = this.captureAddress + words.byteLength;
+		const hasWave = waveBank !== 0xffffffff;
+		const voice = {
+			channel, frequency, active: Boolean(active), left, right, ev0, ev1, swp,
+			waveBank: hasWave ? waveBank : null,
+			wave: hasWave ? Array.from(new Uint8Array(buffer, ramAddress, 32)) : null,
+			modulation: channel === 4 ? Array.from(new Int8Array(buffer, ramAddress + 32, 32)) : null,
+		};
+		this.port.postMessage({ type: 'vgm-capture', id, request, voice });
+	}
+
 	handle(message) {
 		try {
 			switch (message.type) {
@@ -76,6 +101,9 @@ class VsuProcessor extends AudioWorkletProcessor {
 				break;
 			case 'vgm-mask':
 				this.vgm.setMask(message.id, message.mask);
+				break;
+			case 'vgm-capture':
+				this.captureVgm(message);
 				break;
 			}
 		} catch (error) { this.fail(error); }

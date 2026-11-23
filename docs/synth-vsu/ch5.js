@@ -3,7 +3,8 @@ import { vsuChannelRegister, VSU_REGISTERS } from './vsu.js';
 
 export const CH5 = 4;
 export const CH5_MODULATION_LENGTH = 32;
-export const CH5_MODULATION_MIN = -127;
+// Preserve the complete signed byte range when copying Modulation RAM from a VGM.
+export const CH5_MODULATION_MIN = -128;
 export const CH5_MODULATION_MAX = 127;
 
 const MODULATION_RAM = 0x280;
@@ -50,13 +51,28 @@ export function validateCh5Settings(settings) {
 	return { ...validateControls(settings), modulation: validateModulation(settings.modulation) };
 }
 
+export function decodeCh5Settings(ev1, swp, modulation) {
+	integer(ev1, 0, 255, 'CH5 EV1');
+	integer(swp, 0, 255, 'CH5 SWP');
+	return validateCh5Settings({
+		mode: !(ev1 & 0x40) ? 'off' : (ev1 & 0x10) ? 'modulation' : 'sweep',
+		clock: (swp & 0x80) ? 'slow' : 'fast',
+		rate: (swp >> 4) & 7,
+		direction: (swp & 8) ? 'up' : 'down',
+		shift: swp & 7,
+		repeat: Boolean(ev1 & 0x20),
+		modulation,
+	});
+}
+
 export function ch5StepMs(settings) {
 	const { mode, clock, rate } = validateControls(settings);
 	return mode === 'off' ? 0 : CLOCK_MS[clock] * rate;
 }
 
-export function ch5ControlWrites(settings) {
+export function ch5ControlWrites(settings, envelopeBits = 0) {
 	const { mode, clock, rate, direction, shift, repeat } = validateControls(settings);
+	integer(envelopeBits, 0, 3, 'CH5 envelope control');
 	// Nintendo's Virtual Boy Development Manual, §6.4.14.
 	const timing = (clock === 'slow' ? 0x80 : 0) | (rate << 4);
 	const sweep = mode === 'sweep' ? (direction === 'up' ? 8 : 0) | shift : 0;
@@ -64,7 +80,7 @@ export function ch5ControlWrites(settings) {
 	if (mode === 'modulation') control |= repeat ? 0x30 : 0x10;
 	return [
 		[vsuChannelRegister(CH5, VSU_REGISTERS.SWP), timing | sweep],
-		[vsuChannelRegister(CH5, VSU_REGISTERS.EV1), control],
+		[vsuChannelRegister(CH5, VSU_REGISTERS.EV1), control | envelopeBits],
 	];
 }
 

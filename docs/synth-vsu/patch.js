@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { validateCh5Settings } from './ch5.js';
+import { createVsuEnvelope, validateVsuEnvelope } from './envelope.js';
 import { VSU_CHANNEL_COUNT, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH } from './vsu.js';
 
 export const VSU_PATCH_FORMAT = 'tetorica-vsu-patch';
@@ -29,6 +30,7 @@ export function validateVsuPatch(patch) {
 			wave: index === VSU_CHANNEL_COUNT - 1 ? null : boundedInteger(channel?.wave, 0, VSU_WAVE_BANK_COUNT - 1, 'Wave bank'),
 			left: boundedInteger(channel?.left, 0, 15, 'Left level'),
 			right: boundedInteger(channel?.right, 0, 15, 'Right level'),
+			envelope: channel.envelope === undefined ? createVsuEnvelope() : validateVsuEnvelope(channel.envelope),
 		};
 	});
 

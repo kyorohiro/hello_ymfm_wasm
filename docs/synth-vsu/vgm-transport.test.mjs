@@ -65,8 +65,11 @@ test('a native loop continues chip state and keeps its fractional sample phase a
 test('pause holds position, replay without a native loop resets the same mix and stop relinquishes output', () => {
 	const { player, calls, messages } = transportFixture(44100);
 	player.play({ id: 1, plan: plan([[0, 0x400, 0x80]], 8), loop: false, mask: 63 });
+	assert.equal(player.isPaused(1), false);
 	player.render(3);
 	player.pause(1, true);
+	assert.equal(player.isPaused(1), true);
+	assert.equal(player.isPaused(2), false);
 	assert.equal(player.ownsOutput, true);
 	assert.equal(player.render(128), 0);
 	assert.equal(messages.at(-1).state, 'paused');
@@ -74,6 +77,7 @@ test('pause holds position, replay without a native loop resets the same mix and
 	player.setLoop(1, true);
 	player.setMask(1, 10);
 	player.pause(1, false);
+	assert.equal(player.isPaused(1), false);
 	player.render(6);
 	assert.deepEqual(calls.slice(3), [[3, 'mask', 10], [8, 'reset'], [8, 'mask', 10], [8, 0x400, 0x80]]);
 	player.stop(9);
@@ -82,6 +86,38 @@ test('pause holds position, replay without a native loop resets the same mix and
 	assert.equal(player.ownsOutput, false);
 	assert.equal(messages.at(-1).state, 'stopped');
 	assert.equal(messages.at(-1).positionTicks, 0);
+});
+
+test('voice snapshots preserve raw VGM values and obey wave and modulation RAM locks', async () => {
+	const bytes = await readFile(new URL('./vsu.wasm', import.meta.url));
+	const { instance: { exports: core } } = await WebAssembly.instantiate(bytes);
+	const state = core.__heap_base.value;
+	const output = state + Math.ceil(core.vsu_size() / 4) * 4;
+	assert.equal(core.vsu_snapshot_size(), 96);
+	core.vsu_reset(state);
+	const wave = Array.from({ length: 32 }, (_, cell) => (cell * 3) & 63);
+	const modulation = Array.from({ length: 32 }, (_, cell) => cell * 7 - 128);
+	for (let cell = 0; cell < 32; cell++) {
+		core.vsu_write(state, 0x200 + cell * 4, wave[cell]);
+		core.vsu_write(state, 0x280 + cell * 4, modulation[cell] & 255);
+	}
+	for (const [address, value] of [
+		[0x518, 4], [0x504, 0xb7], [0x508, 0x9d], [0x50c, 6], [0x510, 0x3b], [0x514, 0x73], [0x51c, 0xee], [0x500, 0x80],
+		[0x544, 0x68], [0x548, 0x12], [0x54c, 1], [0x550, 0xd2], [0x554, 0x61], [0x540, 0x80],
+	]) core.vsu_write(state, address, value);
+	core.vsu_set_mix_mask(state, 0);
+	core.vsu_write(state, 0x200, 37);
+	core.vsu_write(state, 0x280, 18);
+	const words = () => Array.from(new Uint32Array(core.memory.buffer, output, 8));
+	assert.equal(core.vsu_snapshot_voice(state, 4, output), 1);
+	assert.deepEqual(words(), [0x69d, 1, 4, 11, 7, 0x3b, 0x73, 0xee]);
+	assert.deepEqual(Array.from(new Uint8Array(core.memory.buffer, output + 32, 32)), wave);
+	assert.deepEqual(Array.from(new Int8Array(core.memory.buffer, output + 64, 32)), modulation);
+	assert.equal(core.vsu_snapshot_voice(state, 5, output), 1);
+	assert.deepEqual(words(), [0x112, 1, 0xffffffff, 6, 8, 0xd2, 0x61, 0]);
+	assert.equal(core.vsu_snapshot_voice(state, 6, output), 0);
+	core.vsu_write(state, 0x418, 7);
+	assert.equal(core.vsu_snapshot_voice(state, 0, output), 0);
 });
 
 test('native mix masking preserves voice and DAC phase and keeps register monitoring independent', async () => {

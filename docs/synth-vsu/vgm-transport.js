@@ -54,6 +54,7 @@ export function createVgmTransport({ sampleRate, reset, write, renderFrames, set
 
 	return {
 		get ownsOutput() { return current?.state === 'playing' || current?.state === 'paused'; },
+		isPaused(id) { return current?.id === id && current.state === 'paused'; },
 		play({ id, plan, loop, mask }) {
 			current = {
 				...plan, id, loop, mask, state: 'playing', cursor: 0,

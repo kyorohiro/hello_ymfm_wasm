@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 const PROCESSOR = 'tetorica-vsu';
-const STARTUP_TIMEOUT_MS = 10000;
+const WORKLET_TIMEOUT_MS = 10000;
 
 function validateVolume(level) {
 	if (!Number.isFinite(level) || level < 0 || level > 1)
@@ -34,12 +34,27 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 	let session = null;
 	let disposed = false;
 	let nextVgmId = 0;
+	let nextCaptureRequest = 0;
+
+	function takeCapture(current, request) {
+		const pending = current.captures.get(request);
+		if (pending) {
+			current.captures.delete(request);
+			clearTimeout(pending.timer);
+		}
+		return pending;
+	}
+
+	function cancelCaptures(current, error = new DOMException('VGM playback changed before the channel could be copied.', 'AbortError')) {
+		for (const request of current.captures.keys()) takeCapture(current, request).reject(error);
+	}
 
 	async function close(current, error) {
 		if (session !== current) return;
 		session = null;
 		clearTimeout(current.timer);
 		current.abort.abort();
+		cancelCaptures(current, error);
 		current.reject(error);
 		current.context.removeEventListener('statechange', current.stateChanged);
 		if (current.node) {
@@ -59,7 +74,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			throw new Error('VSU audio requires AudioWorklet over HTTPS or localhost.');
 		const context = new Context({ latencyHint: 'interactive' });
 		const output = context.createGain();
-		const current = { context, output, abort: new AbortController() };
+		const current = { context, output, abort: new AbortController(), captures: new Map() };
 		session = current;
 		const fail = error => {
 			if (session !== current) return;
@@ -71,17 +86,17 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		};
 		context.addEventListener('statechange', current.stateChanged);
 		const failure = new Promise((_, reject) => { current.reject = reject; });
-		current.timer = setTimeout(() => fail(new Error('VSU audio did not become ready.')), STARTUP_TIMEOUT_MS);
+		current.timer = setTimeout(() => fail(new Error('VSU audio did not become ready.')), WORKLET_TIMEOUT_MS);
 		const load = (async () => {
 			if (!context.audioWorklet) throw new Error('VSU audio requires AudioWorklet over HTTPS or localhost.');
 			output.gain.value = volume;
 			output.connect(context.destination);
-			const bytes = fetch(new URL('./vsu.wasm', import.meta.url), { signal: current.abort.signal }).then(response => {
+			const bytes = fetch(new URL('./vsu.wasm?v=vgm-capture', import.meta.url), { signal: current.abort.signal }).then(response => {
 				if (!response.ok) throw new Error(`Unable to load the VSU core (HTTP ${response.status}).`);
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vgm-capture', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			const node = new AudioWorkletNode(context, PROCESSOR, {
@@ -94,11 +109,17 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				node.port.onmessage = ({ data }) => {
 					if (data.type === 'ready') resolve();
 					if (data.type === 'error') fail(new Error(data.error));
-					if (data.type === 'vgm-state' && session === current && data.id === current.vgmId &&
-						(!current.vgmStopping || data.state === 'stopped')) {
+					if (session !== current || data.id !== current.vgmId) return;
+					if (data.type === 'vgm-state' && (!current.vgmStopping || data.state === 'stopped')) {
+						current.vgmState = data.state;
+						if (data.state !== 'paused') cancelCaptures(current);
 						if (data.state === 'stopped') current.vgmId = null;
 						const { type, ...playback } = data;
 						onVgmState(playback);
+					}
+					if (data.type === 'vgm-capture') {
+						const pending = takeCapture(current, data.request);
+						if (pending) data.error ? pending.reject(new Error(data.error)) : pending.resolve(data.voice);
 					}
 				};
 				node.connect(output);
@@ -157,15 +178,40 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			const plan = copyVgmPlan(source);
 			const id = ++nextVgmId;
 			send({ type: 'vgm-play', id, plan, mask, loop: Boolean(loop) }, [plan.writes.buffer]);
+			cancelCaptures(session);
 			session.vgmId = id;
 			session.vgmStopping = false;
+			session.vgmState = null;
 			return id;
 		},
-		pauseVgm(paused) { sendToVgm({ type: 'vgm-pause', paused: Boolean(paused) }); },
+		pauseVgm(paused) {
+			sendToVgm({ type: 'vgm-pause', paused: Boolean(paused) });
+			if (!paused && session?.active) {
+				session.vgmState = null;
+				cancelCaptures(session);
+			}
+		},
 		stopVgm() {
 			if (!session?.active || !session.vgmId || session.vgmStopping) return;
 			sendToVgm({ type: 'vgm-stop' });
 			session.vgmStopping = true;
+			cancelCaptures(session);
+		},
+		async captureVgmChannel(channel) {
+			if (!Number.isInteger(channel) || channel < 0 || channel >= 6)
+				throw new RangeError('Choose a VSU channel from 0 to 5.');
+			const current = session;
+			if (!current?.active || current.vgmState !== 'paused' || current.vgmStopping)
+				throw new Error('Pause a VGM before copying a channel.');
+			const request = ++nextCaptureRequest;
+			return new Promise((resolve, reject) => {
+				const timer = setTimeout(() => {
+					takeCapture(current, request)?.reject(new Error('The VGM channel could not be read.'));
+				}, WORKLET_TIMEOUT_MS);
+				current.captures.set(request, { timer, resolve, reject });
+				try { sendToVgm({ type: 'vgm-capture', request, channel }); }
+				catch (error) { takeCapture(current, request).reject(error); }
+			});
 		},
 		setVgmLoop(loop) { sendToVgm({ type: 'vgm-loop', loop: Boolean(loop) }); },
 		setVgmMask(mask) {
