@@ -160,4 +160,45 @@ const plan = sm511.build(b => {
 await sm511.schedule(plan, { name: "sm511-rom-groove", repeatSeconds: words.length * slotSeconds });
 `,
 	},
+	{
+		path: '/examples/sm5xx-duet.js',
+		data: `const sm510 = await useSoundChip("sm510-dk52");
+const sm511 = await useSoundChip("sm511");
+
+const slotSeconds = 0.0625;
+const repeatSeconds = 32 * slotSeconds; // Four beats at 120 BPM.
+const cyclesPerSlot = sm510.machineCycleHz * slotSeconds;
+const accent = 256, tap = 96; // Gate lengths in SM510 machine cycles.
+const hits = [
+  [0, accent], [6, tap],
+  [8, accent], [12, tap],
+  [16, accent], [22, tap],
+  [24, accent], [28, tap], [30, tap],
+];
+
+// Gate the fixed 4,096 Hz R1 carrier in short bursts.
+const rhythm = sm510.build(b => {
+  for (const [slot, gateCycles] of hits) {
+    const at = slot * cyclesPerSlot + 2; // Allow two cycles for LAX and ATR.
+    b.atCycle(at).write(sm510.REG_R, 0x01);
+    b.atCycle(at + gateCycles).write(sm510.REG_R, 0x00);
+  }
+  b.atCycle(repeatSeconds * sm510.machineCycleHz);
+});
+
+// Each row uses eight slots. Bit 5 doubles a note's length.
+sm511.setMelody([
+  0x22, 0x00, 0x1a, 0x37, 0x00, 0x07, // C6, rest, E6, G6, rest, G5
+  0x35, 0x17, 0x00, 0x3a, 0x1c, 0x00, // A6, G6, rest, E6, D6, rest
+  0x22, 0x00, 0x1a, 0x37, 0x15, 0x00, // C6, rest, E6, G6, A6, rest
+  0x37, 0x1a, 0x00, 0x3c, 0x22,       // G6, E6, rest, D6, C6
+  0x01, // Stop.
+]);
+const melody = sm511.build();
+
+// Run or Apply starts both reservations together. Try each Mute in Mixer.
+await sm510.schedule(rhythm, { name: "dk52-rhythm", repeatSeconds });
+await sm511.schedule(melody, { name: "sm511-melody", repeatSeconds });
+`,
+	},
 ];

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { BUZZER_EXAMPLES } from './code_examples.js';
+import { createSm510CodeChip, readSm510CycleSequence } from './sm510.js';
+import { createSm511CodeChip, readSm511MelodySequence, sm511MelodyDuration } from './sm511.js';
 import { createTimedSchedule } from './timed-schedule.js';
 
 function fixture() {
@@ -21,6 +24,31 @@ function fixture() {
 	}
 	return { broker, sm510, sm511, events, sequence, setTime: value => { time = value; } };
 }
+
+test('the bundled duet stages one two-second loop per chip on a shared clock', async () => {
+	const { data } = BUZZER_EXAMPLES.find(({ path }) => path === '/examples/sm5xx-duet.js');
+	const schedules = fixture(), rhythm = createSm510CodeChip({ id: 'sm510-dk52' }), melody = createSm511CodeChip({});
+	rhythm.schedule = (plan, options) => {
+		const { end } = readSm510CycleSequence(plan);
+		assert.deepEqual(rhythm.compile(plan).filter(write => write.value === 1).map(write => write.machineCycle),
+			[0, 6, 8, 12, 16, 22, 24, 28, 30].map(slot => slot * 1024 + 2));
+		return schedules.sm510.stage('run', 'entry', 'schedule', [schedules.sequence('rhythm', end / rhythm.clock), options]);
+	};
+	melody.schedule = (plan, options) => {
+		const duration = sm511MelodyDuration(readSm511MelodySequence(plan));
+		return schedules.sm511.stage('run', 'entry', 'schedule', [schedules.sequence('melody', duration), options]);
+	};
+	const chips = { 'sm510-dk52': rhythm, sm511: melody };
+	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+	await new AsyncFunction('useSoundChip', data)(async id => chips[id]);
+	assert.deepEqual(schedules.events, []);
+	schedules.setTime(1);
+	const { reservations } = schedules.sm510.commit('run', 'entry');
+	assert.deepEqual(reservations, [
+		{ name: 'dk52-rhythm', duration: 2, repeatSeconds: 2, startTime: 1 },
+		{ name: 'sm511-melody', duration: 2, repeatSeconds: 2, startTime: 1 },
+	]);
+});
 
 test('Apply commits prepared channel reservations together and removes omitted names', async () => {
 	const { sm510, sm511, events, sequence, setTime } = fixture();

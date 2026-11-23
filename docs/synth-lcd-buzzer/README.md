@@ -422,6 +422,11 @@ absolute ROM addresses. Timing starts at zero at the plan's start address.
 The first Stop ends the trace with a zero-duration row.
 On both chips one master tick lasts 1/32,768 second.
 
+Open `sm5xx-duet.js` under **Files → examples** in a new Cassette and press
+**Run**. It layers short DK-52 buzzer hits with an SM511 melody over the
+same two-second loop. Toggle **Mute SM510** or **Mute SM511** in **Mixer**
+to hear either part on its own. **Stop Code** stops both parts.
+
 The following example reserves a DK-52 beep pattern and an SM511 melody on
 their own Mixer channels. Each phrase takes a quarter of a second and starts
 again every second.
