@@ -139,12 +139,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 		this.liveDirty = true;
 	}
 
-	synthKeyOn({ channel, owner, writes }) {
-		if (this.vgm.ownsOutput) return;
+	writeSynthKey({ channel, owner, writes }, edit) {
+		// A Code or scheduled attack may have taken the channel since the UI last saw this key.
+		if (this.vgm.ownsOutput || (edit && this.synthKeyOwners.get(channel) !== owner)) return;
 		for (let index = 0; index < writes.length; index += 2)
 			this.core.vsu_write(this.state, writes[index], writes[index + 1]);
-		// The batch programs the selected channel and starts its new gate.
-		this.synthKeyOwners.set(channel, owner);
+		if (!edit) this.synthKeyOwners.set(channel, owner);
 		this.liveDirty = true;
 	}
 
@@ -335,7 +335,8 @@ class VsuProcessor extends AudioWorkletProcessor {
 				this.liveNoteOff(message);
 				break;
 			case 'synth-key-on':
-				this.synthKeyOn(message);
+			case 'synth-key-edit':
+				this.writeSynthKey(message, message.type === 'synth-key-edit');
 				break;
 			}
 		} catch (error) { this.fail(error); }

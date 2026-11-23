@@ -31,17 +31,21 @@ function packWrites(pairs) {
 	return writes;
 }
 
-function validateSynthKeyWrites(channel, writes) {
+function validateSynthKeyWrites(channel, writes, edit) {
 	const gate = vsuChannelRegister(channel, VSU_REGISTERS.INT);
-	if (writes[0] !== gate || writes[1] !== 0 || writes.at(-2) !== gate || !(writes.at(-1) & 0x80))
-		throw new RangeError('Start a keyboard batch with key-off and end with key-on.');
+	let gateWrites = 0;
 	for (let index = 0; index < writes.length; index += 2) {
 		const offset = writes[index];
+		if (offset === gate) gateWrites++;
 		const channelRegister = offset >= gate && offset <= gate + VSU_REGISTERS.SWP;
 		const modulationCell = channel === CH5 && offset >= 0x280 && offset < 0x300;
 		if (offset % 4 !== 0 || (!channelRegister && !modulationCell))
 			throw new RangeError('A keyboard batch may program only its VSU channel and CH5 Modulation RAM.');
 	}
+	if (!writes.length) throw new RangeError('A keyboard batch needs at least one register write.');
+	if (edit && gateWrites === 0) return;
+	if (writes[0] !== gate || writes[1] !== 0 || writes.at(-2) !== gate || !(writes.at(-1) & 0x80) || (edit && gateWrites !== 2))
+		throw new RangeError('Start a keyboard retrigger with key-off and end with key-on.');
 }
 
 function validateMask(mask) {
@@ -155,7 +159,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-timed', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-inline-controls', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -241,6 +245,16 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		return id;
 	}
 
+	function sendSynthKey({ channel, owner, writes: pairs }, edit) {
+		const current = session;
+		if (!current?.active || current.vgmSeek || (current.vgmId && current.vgmState !== 'ended') ||
+			!validLiveNoteOwner(channel, owner)) return false;
+		const writes = packWrites(pairs);
+		validateSynthKeyWrites(channel, writes, edit);
+		send({ type: edit ? 'synth-key-edit' : 'synth-key-on', channel, owner, writes }, [writes.buffer]);
+		return true;
+	}
+
 	return {
 		get context() { return session?.context ?? null; },
 		get output() { return session?.output ?? null; },
@@ -311,15 +325,8 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				writes: vsuNoteOnWrites(channel, note) });
 			return true;
 		},
-		synthKeyOn({ channel, owner, writes: pairs }) {
-			const current = session;
-			if (!current?.active || current.vgmSeek || (current.vgmId && current.vgmState !== 'ended') ||
-				!validLiveNoteOwner(channel, owner)) return false;
-			const writes = packWrites(pairs);
-			validateSynthKeyWrites(channel, writes);
-			send({ type: 'synth-key-on', channel, owner, writes }, [writes.buffer]);
-			return true;
-		},
+		synthKeyOn(settings) { return sendSynthKey(settings, false); },
+		editSynthKey(settings) { return sendSynthKey(settings, true); },
 		liveNoteOff({ source, channel, playbackId, owner }) {
 			const current = session;
 			if (!current?.active || !validLiveNoteOwner(channel, owner)) return false;

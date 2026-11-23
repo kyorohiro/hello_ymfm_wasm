@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createVgmSeekRenderer } from './vgm-seek.js';
+import { buildVsuOperations } from './timed-operations.js';
 import { vsuFrequencyRegister, vsuNoteOnWrites, vsuStartWrites } from './vsu.js';
 
 const rate = 48000;
@@ -258,6 +259,56 @@ test('authored AUTO keys program CH5 and CH6 without a watch or interrupting oth
 	send({ type: 'vgm-stop', id: 1 });
 	render();
 	assert.deepEqual([voice().frequency, voice().left, voice().right], [2001, 0, 15]);
+});
+
+test('held AUTO edits and retriggers belong to the current keyboard gate', () => {
+	const { send, render, live } = setup();
+	const voice = () => live().at(-1).voice;
+	const keyWrites = (type, owner, writes) => send({ type, channel: 4, owner, writes: Uint16Array.from(writes.flat()) });
+	const on = (owner, note) => keyWrites('synth-key-on', owner, [[0x500, 0], [0x510, 0xf0], ...vsuNoteOnWrites(4, note)]);
+	const edit = (owner, writes) => keyWrites('synth-key-edit', owner, writes);
+	const off = owner => liveKeyboard(send, 'synth', null, 4).off(owner);
+	const retrigger = [[0x500, 0], [0x280, 0x20], [0x514, 0x50], ...vsuNoteOnWrites(4, 'C5')];
+	send({ type: 'live-watch', channel: 4, revision: 1 });
+	on(1, 'A4');
+	edit(1, [[0x510, 0x78], [0x51c, 0x10]]);
+	edit(2, [[0x510, 0xf0]]);
+	render();
+	assert.deepEqual([voice().active, voice().ev0, voice().swp], [true, 0x78, 0x10]);
+	edit(1, retrigger);
+	render();
+	assert.deepEqual([voice().active, voice().frequency, voice().modulation[0], voice().ev1],
+		[true, vsuFrequencyRegister(4, 'C5'), 0x20, 0x50]);
+	off(1);
+	render();
+	assert.equal(voice().active, false);
+
+	on(2, 'D5');
+	send({ type: 'batch', writes: [[0x510, 0xa1], ...vsuNoteOnWrites(4, 'F5')].flat() });
+	edit(2, retrigger);
+	off(2);
+	render();
+	assert.deepEqual([voice().active, voice().frequency, voice().ev0], [true, vsuFrequencyRegister(4, 'F5'), 0xa1]);
+
+	on(3, 'D5');
+	const plan = buildVsuOperations(b => b.write(0x510, 0x93).noteOn(4, 'G5'));
+	send({ type: 'timed-request', id: 1, request: { action: 'schedule', plan, options: { name: 'CH5' } } });
+	render(3);
+	edit(3, retrigger);
+	off(3);
+	render(15);
+	assert.deepEqual([voice().active, voice().frequency, voice().ev0], [true, vsuFrequencyRegister(4, 'G5'), 0x93]);
+
+	on(4, 'D5');
+	send({ type: 'vgm-play', id: 1, mask: 63, plan: {
+		writes: Uint32Array.of(0, 0x510, 0xb0, 0, 0x500, 0x80), durationTicks: 500, loopTick: null, loopIndex: 0,
+	} });
+	edit(4, retrigger);
+	render();
+	assert.deepEqual([live().at(-1).source, voice().active, voice().ev0], ['vgm', true, 0xb0]);
+	send({ type: 'vgm-stop', id: 1 });
+	render();
+	assert.deepEqual([live().at(-1).source, voice().active, voice().ev0], ['synth', false, 0xf0]);
 });
 
 test('live Code keys preserve the programmed voice and only the latest owner can release it', () => {

@@ -5,7 +5,7 @@ import {
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-timed';
+import { createVsuAudio } from './audio.js?v=vsu-inline-controls';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
@@ -13,7 +13,7 @@ import {
   decodeCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
 } from './ch5.js';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
-import { setupEnvelopeMonitor } from './envelope-view.js';
+import { setupEnvelopeMonitor } from './envelope-view.js?v=vsu-inline-controls';
 import { setupVsuFiles } from './files.js?v=vsu-timed';
 import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
 import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js?v=vsu-noise';
@@ -91,7 +91,7 @@ const fretboardTools = {
   fretDisplayRoot: byId('fretDisplay'), stringDisplayRoot: byId('stringDisplay'), stringWindowRoot: byId('stringWindowControls'),
 };
 let keyboardOctave = 0;
-const editingTarget = 'input:not([type="range"], [type="checkbox"]), textarea, select:not([data-keyboard-performance]), [contenteditable]';
+const editingTarget = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select:not([data-keyboard-performance]), [contenteditable]';
 const canWrite = () => soundContext !== null && soundContext === audio.context;
 
 const starterCode = `const vsu = await useSoundChip("vsu");
@@ -371,13 +371,21 @@ function applyEnvelopeEdit(envelope, field) {
   const index = Number(channelSelect.value);
   channels[index].envelope = envelope;
   const { running, stopping } = runtime.getState();
-  if (!canWrite() || running || stopping) return;
+  if (!canWrite() || stopping) return;
   stopComparison();
-  audio.writeBatch(authoredOutputs(index).map(channel => {
+  const parameterWrite = channel => {
     const note = voicePool.voiceOn(channel);
     const writes = keyboardEnvelopeWrites(channel, index, note?.started ? note.useCh5Effect : index === CH5);
     return register === 'EV0' ? writes[0] : writes.at(-1);
-  }));
+  };
+  if (running) {
+    for (const note of voicePool.voices()) {
+      if (note.started && note.sharedCode && note.instrument === index)
+        audio.editSynthKey({ ...note.sharedCode, writes: [parameterWrite(note.channel)] });
+    }
+    return;
+  }
+  audio.writeBatch(authoredOutputs(index).map(parameterWrite));
 }
 
 function writePatchToChip() {
@@ -479,12 +487,16 @@ async function copyReferenceVoice(snapshot) {
 const ch5Gate = vsuChannelRegister(CH5, VSU_REGISTERS.INT);
 const ch5ModInputs = [];
 
-function startCh5Note(note, settings, envelope = channels[CH5].envelope) {
+function ch5NoteWrites(note, settings, envelope) {
   const writes = [[ch5Gate, 0]];
   if (settings.mode === 'modulation') writes.push(...ch5ModulationWrites(settings.modulation));
   // Off, Sweep and Modulation all restart at the same base note.
   writes.push(...envelopeWrites(CH5, envelope, settings), ...vsuNoteOnWrites(CH5, note));
-  audio.writeBatch(writes);
+  return writes;
+}
+
+function startCh5Note(note, settings, envelope = channels[CH5].envelope) {
+  audio.writeBatch(ch5NoteWrites(note, settings, envelope));
 }
 
 function selectedCh5ControlWrites() {
@@ -495,8 +507,15 @@ function selectedCh5ControlWrites() {
 function refreshCh5Controls(settings = ch5Settings) {
   for (const [key, input] of Object.entries(ch5Controls)) {
     if (key === 'repeat') input.checked = settings[key];
+    else if (input.type === 'fieldset') {
+      for (const radio of input.querySelectorAll('input[type="radio"]')) radio.checked = radio.value === settings[key];
+    }
     else input.value = settings[key];
   }
+  const multiplier = settings.rate || 'Off';
+  byId('ch5RateValue').value = multiplier;
+  ch5Controls.rate.setAttribute('aria-valuetext', multiplier);
+  byId('ch5ShiftValue').value = settings.shift;
   byId('ch5Timing').hidden = settings.mode === 'off';
   byId('ch5Sweep').hidden = settings.mode !== 'sweep';
   byId('ch5Modulation').hidden = settings.mode !== 'modulation';
@@ -508,25 +527,29 @@ function refreshCh5Controls(settings = ch5Settings) {
 function updateCh5Audio({ restart = false, table = false } = {}) {
   stopComparison();
   const { running, stopping } = runtime.getState();
-  if (!canWrite() || running || stopping) return;
+  if (!canWrite() || stopping) return;
   const note = voicePool.voiceOn(CH5);
   if (note?.started) {
     if (!note.useCh5Effect) return;
-    if (restart || table) startCh5Note(note.note, ch5Settings);
-    else audio.writeBatch(selectedCh5ControlWrites());
+    const writes = restart || table ? ch5NoteWrites(note.note, ch5Settings, channels[CH5].envelope) : selectedCh5ControlWrites();
+    if (note.sharedCode) audio.editSynthKey({ ...note.sharedCode, writes });
+    else if (!running) audio.writeBatch(writes);
     return;
   }
+  if (running) return;
   // The modulation RAM remains writable whenever CH5 is stopped.
   const writes = table ? ch5ModulationWrites(ch5Settings.modulation) : [];
   audio.writeBatch([...writes, ...selectedCh5ControlWrites()]);
 }
 
 function setupCh5Controls() {
-  for (const [key, input] of Object.entries(ch5Controls)) input.addEventListener('change', () => {
-    if (liveTarget) return;
+  for (const [key, input] of Object.entries(ch5Controls)) input.addEventListener(input.type === 'range' ? 'input' : 'change', event => {
+    if (liveTarget || (input.type === 'fieldset' && !event.target.checked)) return;
     const previous = ch5Settings[key];
-    ch5Settings[key] = key === 'repeat' ? input.checked
-      : key === 'rate' || key === 'shift' ? Number(input.value) : input.value;
+    const value = input.type === 'checkbox' ? input.checked : input.type === 'range' ? input.valueAsNumber
+      : event.target.value;
+    if (value === previous) return;
+    ch5Settings[key] = value;
     // Changing mode or switching the interval off/on begins again at base pitch.
     const rateToggled = key === 'rate' && (previous === 0 || ch5Settings.rate === 0);
     updateCh5Audio({ restart: key === 'mode' || rateToggled });

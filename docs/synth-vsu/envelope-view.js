@@ -8,7 +8,8 @@ export function setupEnvelopeMonitor(canvas, fitCanvas, onEdit) {
     initial: byId('envInitial'), rate: byId('envRate'), direction: byId('envDirection'),
     enabled: byId('envEnabled'), repeat: byId('envRepeat'),
   };
-  const initialValue = byId('envInitialValue'), step = byId('envStep');
+  const initialValue = byId('envInitialValue'), rateValue = byId('envRateValue'), step = byId('envStep');
+  const directions = controls.direction.querySelectorAll('input[type="radio"]');
   let current = createVsuEnvelope();
 
   function draw() {
@@ -57,8 +58,8 @@ export function setupEnvelopeMonitor(canvas, fitCanvas, onEdit) {
   function setSettings(envelope) {
     current = envelope;
     controls.initial.value = initialValue.value = envelope.initial;
-    controls.rate.value = envelope.rate;
-    controls.direction.value = envelope.direction;
+    controls.rate.value = rateValue.value = envelope.rate;
+    for (const input of directions) input.checked = input.value === envelope.direction;
     controls.enabled.checked = envelope.enabled;
     controls.repeat.checked = envelope.repeat;
     step.value = envelope.enabled ? envelopeStepMs(envelope).toFixed(2) + ' ms / step' : 'Fixed level';
@@ -67,8 +68,9 @@ export function setupEnvelopeMonitor(canvas, fitCanvas, onEdit) {
 
   for (const [key, input] of Object.entries(controls)) {
     const parameter = key === 'enabled' || key === 'repeat' ? 'ev1' : 'ev0';
-    input.addEventListener(key === 'initial' ? 'input' : 'change', () => {
-      const value = parameter === 'ev1' ? input.checked : key === 'direction' ? input.value : Number(input.value);
+    input.addEventListener(input.type === 'range' ? 'input' : 'change', event => {
+      if (key === 'direction' && !event.target.checked) return;
+      const value = parameter === 'ev1' ? input.checked : key === 'direction' ? event.target.value : input.valueAsNumber;
       const next = { ...current, [key]: value };
       setSettings(next);
       onEdit(next, key);
