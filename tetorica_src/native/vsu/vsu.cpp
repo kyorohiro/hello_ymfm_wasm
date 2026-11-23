@@ -53,6 +53,7 @@ struct channel {
     uint8_t envelope = 0;
     uint8_t envelope_settings = 0;
     uint8_t control = 0;
+    uint8_t interval = 0;
     bool enabled = false;
 
     uint32_t envelope_period() const {
@@ -142,6 +143,12 @@ struct vsu {
         return voice.stereo | (voice.enabled ? 0x100 : 0) | (mode << 9);
     }
 
+    uint32_t get_interval(uint32_t index) const {
+        if (index >= channel_count || !(channels[index].interval & 0x20))
+            return UINT32_MAX;
+        return channels[index].interval & 0x1f;
+    }
+
     bool snapshot_voice(uint32_t index, vsu_voice_snapshot &output, bool require_wave = true) const {
         if (index >= channel_count)
             return false;
@@ -182,6 +189,7 @@ struct vsu {
     }
 
     void start(channel &voice, uint32_t index, uint8_t value) {
+        voice.interval = value & 0x3f;
         voice.enabled = (value & 0x80) && (index == noise_channel || voice.wave < wave_count);
         if (!voice.enabled)
             return;
@@ -455,6 +463,10 @@ void vsu_set_channel_gain(void *state, uint32_t channel, float gain) {
 
 uint32_t vsu_get_channel(const void *state, uint32_t channel) {
     return state ? static_cast<const vsu *>(state)->get_channel(channel) : 0;
+}
+
+uint32_t vsu_get_interval(const void *state, uint32_t channel) {
+    return state ? static_cast<const vsu *>(state)->get_interval(channel) : UINT32_MAX;
 }
 
 uint32_t vsu_snapshot_size(void) {

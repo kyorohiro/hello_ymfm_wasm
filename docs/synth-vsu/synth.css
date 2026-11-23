@@ -136,9 +136,11 @@ h2 { margin: 0; font-size: 1rem; }
 .panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .wave-editor { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 9px; }
 .wave-editor h3 { margin: 0; font-size: .87rem; }
-.noise-tap { display: grid; grid-template-columns: max-content minmax(0, 1fr) 2ch; align-items: center; gap: 8px; width: min(100%, 23rem); margin-top: 10px; }
-.noise-tap input { width: 100%; min-width: 0; margin: 0; }
-.noise-tap output { font: .8rem var(--mono); text-align: right; }
+.noise-controls { display: grid; gap: 10px; width: min(100%, 30rem); margin-top: 10px; }
+.noise-control { display: grid; grid-template-columns: 6em minmax(0, 1fr) 11ch; align-items: center; gap: 8px; }
+.noise-control input { width: 100%; min-width: 0; margin: 0; }
+.noise-control output { font: .8rem var(--mono); text-align: right; }
+.noise-pattern { justify-self: end; }
 .switches, .wave-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .wave-controls { gap: 6px 12px; }
 .hint { margin: 10px 0 0; color: var(--muted); font-size: .78rem; }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { scanVsuVgmPresets } from './vgm-presets.js';
+import { scanVsuVgmPresets } from './vgm-presets.js?v=vsu-noise';
 
 self.onmessage = async ({ data: { writes, durationTicks, limit } }) => {
   try {
-    const response = await fetch(new URL('./vsu.wasm?v=vsu-live', import.meta.url));
+    const response = await fetch(new URL('./vsu.wasm?v=vsu-noise', import.meta.url));
     if (!response.ok) throw new Error('Unable to load the VSU core (HTTP ' + response.status + ').');
     const { instance } = await WebAssembly.instantiate(await response.arrayBuffer());
     const presets = scanVsuVgmPresets(instance.exports, { writes, durationTicks }, { limit });

@@ -4,7 +4,7 @@ import test from 'node:test';
 import { captureVsuVoice } from './capture.js';
 import { CH5, ch5ControlWrites, createCh5Settings } from './ch5.js';
 import { createVsuEnvelope, decodeVsuEnvelope, envelopeLevels, envelopeStepMs, vsuEnvelopeRegisterValues } from './envelope.js';
-import { validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js';
+import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js';
 
 function originalPatch() {
 	return {
@@ -47,6 +47,20 @@ test('old patches load the original fixed envelope for each channel', () => {
 		/Envelope initial level/);
 });
 
+test('noise settings round trip and remain optional for earlier patches', () => {
+	const patch = createDefaultVsuPatch();
+	assert.deepEqual(patch.noise, { keyTracking: false, frequency: 0x7f0, interval: null });
+	assert.deepEqual(createLegacyVsuNoiseSettings(), { keyTracking: true, frequency: 0x7f0, interval: null });
+	assert.equal(Object.hasOwn(validateVsuPatch(originalPatch()), 'noise'), false);
+	for (const noise of [patch.noise, { keyTracking: true, frequency: 0, interval: 0 },
+		{ keyTracking: false, frequency: 0x7ff, interval: 31 }]) {
+		assert.deepEqual(validateVsuPatch(JSON.parse(JSON.stringify({ ...patch, noise }))).noise, noise);
+	}
+	assert.throws(() => validateVsuPatch({ ...patch, noise: { ...patch.noise, keyTracking: 1 } }), /key tracking/);
+	assert.throws(() => validateVsuPatch({ ...patch, noise: { ...patch.noise, frequency: 0x800 } }), /Noise frequency/);
+	assert.throws(() => validateVsuPatch({ ...patch, noise: { ...patch.noise, interval: 32 } }), /Noise interval/);
+});
+
 test('capture uses a spare or identical bank without altering other authored voices', () => {
 	const source = originalPatch();
 	source.channels[0].wave = 1;
@@ -73,7 +87,7 @@ test('capture uses a spare or identical bank without altering other authored voi
 	assert.throws(() => captureVsuVoice(source, snapshot({ wave: Array(32).fill(64) })), /Wave sample/);
 });
 
-test('capture keeps CH5 signed offsets and CH6 noise tap with their original envelope bits', () => {
+test('capture keeps CH5 signed offsets and CH6 noise settings with their original envelope bits', () => {
 	const source = originalPatch();
 	const modulation = [0, -128, -127, 127, ...Array(28).fill(0)];
 	const captured = captureVsuVoice(source, snapshot({ channel: CH5, ev1: 0x73, swp: 0xa9, modulation })).patch;
@@ -84,9 +98,12 @@ test('capture keeps CH5 signed offsets and CH6 noise tap with their original env
 		[[0x51c, 0xa0], [0x514, 0x73]]);
 	assert.equal(captured.noiseTap, source.noiseTap);
 
-	const noise = captureVsuVoice(captured, snapshot({ channel: 5, ev1: 0x51, wave: null, waveBank: null }));
+	const noiseSnapshot = snapshot({ channel: 5, ev1: 0x51, wave: null, waveBank: null, interval: 0 });
+	const noise = captureVsuVoice(captured, noiseSnapshot);
 	assert.equal(noise.bank, null);
 	assert.equal(noise.patch.noiseTap, 5);
+	assert.deepEqual(noise.patch.noise, { keyTracking: false, frequency: 1550, interval: 0 });
+	assert.equal(captureVsuVoice(captured, { ...noiseSnapshot, interval: undefined }).patch.noise.interval, null);
 	assert.deepEqual(noise.patch.banks, captured.banks);
 	assert.deepEqual(noise.patch.ch5, captured.ch5);
 	assert.deepEqual(vsuEnvelopeRegisterValues(noise.patch.channels[5].envelope), { ev0: 0xec, ev1: 1 });

@@ -6,6 +6,10 @@ import { createVsuWave, VSU_CHANNEL_COUNT, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH 
 
 export const VSU_PATCH_FORMAT = 'tetorica-vsu-patch';
 
+export function createLegacyVsuNoiseSettings() {
+	return { keyTracking: true, frequency: 0x7f0, interval: null };
+}
+
 export function createDefaultVsuPatch() {
 	return {
 		format: VSU_PATCH_FORMAT, version: 1,
@@ -13,7 +17,7 @@ export function createDefaultVsuPatch() {
 		channels: Array.from({ length: VSU_CHANNEL_COUNT }, (_, index) => ({
 			wave: index < VSU_WAVE_BANK_COUNT ? index : null, left: 10, right: 10, envelope: createVsuEnvelope(),
 		})),
-		noiseTap: 0, ch5: createCh5Settings(),
+		noiseTap: 0, noise: { ...createLegacyVsuNoiseSettings(), keyTracking: false }, ch5: createCh5Settings(),
 	};
 }
 
@@ -27,6 +31,16 @@ function items(value, length, name, transform) {
 	if (!Array.isArray(value) || value.length !== length)
 		throw new Error(`${name} must contain ${length} entries.`);
 	return Array.from(value, transform);
+}
+
+function validateNoiseSettings(noise) {
+	if (typeof noise?.keyTracking !== 'boolean')
+		throw new Error('Noise key tracking must be on or off.');
+	return {
+		keyTracking: noise.keyTracking,
+		frequency: boundedInteger(noise.frequency, 0, 0x7ff, 'Noise frequency register'),
+		interval: noise.interval === null ? null : boundedInteger(noise.interval, 0, 31, 'Noise interval'),
+	};
 }
 
 export function validateVsuPatch(patch) {
@@ -55,6 +69,7 @@ export function validateVsuPatch(patch) {
 	return {
 		format: VSU_PATCH_FORMAT, version: 1, banks, channels,
 		noiseTap: boundedInteger(patch.noiseTap, 0, 7, 'Noise tap'),
+		...(patch.noise === undefined ? {} : { noise: validateNoiseSettings(patch.noise) }),
 		ch5: validateCh5Settings(patch.ch5),
 		...(preferredChannel === undefined ? {} : { preferredChannel }),
 		...(preferredSource === undefined ? {} : { preferredSource }),

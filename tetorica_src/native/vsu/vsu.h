@@ -29,6 +29,10 @@ void vsu_set_channel_gain(void *state, uint32_t channel, float gain);
  * CH5 effect mode in bits 9..10 (0 off, 1 sweep, 2 modulation). */
 uint32_t vsu_get_channel(const void *state, uint32_t channel);
 
+/* Configured SxINT interval index (0..31), or UINT32_MAX when continuous
+ * or the channel is invalid. A one-shot retains its setting after expiry. */
+uint32_t vsu_get_interval(const void *state, uint32_t channel);
+
 typedef struct {
     uint32_t frequency;
     uint32_t active;

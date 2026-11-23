@@ -9,8 +9,9 @@ import { createSynthCodeProject } from '../synth/synth_code_project.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSynthProjectStore } from '../synth/synth_project_store.js';
 import { looksLikeGzip } from '../js/vgm_file.js';
+import { createDefaultVsuPatch } from './patch.js?v=vsu-noise';
 import { loadVsuVgm } from './vgm.js';
-import { extractVsuVgmPresets } from './vgm-presets.js';
+import { extractVsuVgmPresets } from './vgm-presets.js?v=vsu-noise';
 
 const ENTRY_PATH = '/index.js';
 const PROJECT_FORMAT = 'tetorica-vsu-project';
@@ -145,7 +146,8 @@ function checkSelections(fs, view = {}) {
 export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePatch, getCode, setCode, starterCode, setStatus,
   openVgm = async () => {}, onVgmFilesChanged = () => {}, onVgmError = () => {}, onVgmAvailability = () => {} }) {
   const doc = panel.ownerDocument, win = doc.defaultView;
-  const workspace = createVirtualFileWorkspace([{ path: ENTRY_PATH, data: starterCode }], { autoSave: false });
+  const starterFiles = [{ path: ENTRY_PATH, data: starterCode }];
+  const workspace = createVirtualFileWorkspace(starterFiles, { autoSave: false });
   const fs = workspace.working;
   const codeProject = createSynthCodeProject({ fs });
   const store = createSynthProjectStore({
@@ -202,8 +204,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     section.append(...commands);
     menuActions.append(section);
   }
-  const menuCodeButton = button('vsuMenuNewCode', 'JavaScript…', newCode);
-  const menuPatchButton = button('vsuMenuNewPatch', 'Patch…', newPatch);
+  const menuCassetteButton = button('vsuMenuNewCassette', 'Cassette · ZIP', newCassette);
   const menuSaveButton = button('vsuMenuSave', 'Save', save);
   const fileInput = element('input', { id: 'vsuFileImportInput', type: 'file', multiple: true, hidden: true });
   const vgmInput = element('input', { id: 'vsuVgmImportInput', type: 'file', multiple: true, hidden: true });
@@ -215,7 +216,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   vgmImportButton.addEventListener('click', requestVgmImport);
   const exportButton = button('vsuFileExport', 'Cassette · ZIP', downloadCassette);
   exportButton.title = 'Export the files in this project as a Cassette';
-  menuSection('New', menuCodeButton, menuPatchButton);
+  menuSection('New', menuCassetteButton);
   menuSection('Import', vgmImportButton, importButton);
   menuSection('Export', exportButton);
   menuSection(null, menuSaveButton);
@@ -239,6 +240,23 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   dialog.append(dialogForm);
   dialog.setAttribute('aria-labelledby', dialogTitle.id);
   doc.body.append(dialog);
+
+  const cassetteDialog = element('dialog', { className: 'vsu-files-dialog', id: 'vsuNewCassetteDialog' });
+  const cassetteForm = element('form', { method: 'dialog' });
+  const cassetteTitle = element('h2', { id: 'vsuNewCassetteTitle', textContent: 'Create a new Cassette?' });
+  const cassetteDescription = element('p', { id: 'vsuNewCassetteDescription',
+    textContent: 'This replaces the current browser project and stops its performance. The new project starts with the default sound and starter Code. Export first to keep your current project.',
+  });
+  const cassetteActions = element('div', { className: 'vsu-files-actions' });
+  const cassetteCancel = element('button', { type: 'submit', value: 'cancel', textContent: 'Cancel' });
+  cassetteActions.append(cassetteCancel,
+    element('button', { type: 'submit', value: 'export', textContent: 'Export current & create' }),
+    element('button', { type: 'submit', value: 'new', textContent: 'Create without export' }));
+  cassetteForm.append(cassetteTitle, cassetteDescription, cassetteActions);
+  cassetteDialog.append(cassetteForm);
+  cassetteDialog.setAttribute('aria-labelledby', cassetteTitle.id);
+  cassetteDialog.setAttribute('aria-describedby', cassetteDescription.id);
+  doc.body.append(cassetteDialog);
 
   function askName(title, suggestion) {
     dialogTitle.textContent = title;
@@ -310,7 +328,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
       row.toggleAttribute('data-modified', dirty.has(path));
       if (row.matches('summary') && expanded.has(path)) row.parentElement.open = expanded.get(path);
     }
-    for (const command of [patchButton, codeButton, menuPatchButton, menuCodeButton, importButton, vgmImportButton, exportButton])
+    for (const command of [patchButton, codeButton, menuCassetteButton, importButton, vgmImportButton, exportButton])
       command.disabled = loading || busy;
     saveButton.disabled = menuSaveButton.disabled = loading || busy || !saveTarget();
     onVgmAvailability(!loading && !busy);
@@ -347,17 +365,21 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
   }
 
   function markCodeEdited() {
-    if (loading) return;
+    if (loading) return false;
     const source = getCode();
     const path = codePath ?? ENTRY_PATH;
-    if (fs.get(path)?.data === source) return;
+    if (fs.get(path)?.data === source) return true;
     try {
       checkSize([...fs.list().filter(file => file.path !== path), { data: source }]);
       fs.writeFile(userPath(path), source);
       codePath = path;
       refresh();
       queueDraft();
-    } catch (error) { report(error); }
+      return true;
+    } catch (error) {
+      report(error);
+      return false;
+    }
   }
 
   function occupied(path) {
@@ -520,6 +542,39 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     setStatus('Exported Cassette.');
   }
 
+  async function newCassette() {
+    cassetteDialog.returnValue = '';
+    cassetteDialog.showModal();
+    cassetteCancel.focus();
+    const result = await new Promise(resolve => {
+      cassetteDialog.addEventListener('close', () => resolve(cassetteDialog.returnValue), { once: true });
+    });
+    if (result !== 'new' && result !== 'export') return;
+
+    if ((codePath || getCode()) && !markCodeEdited()) return;
+    const previous = snapshot(), previousPatch = getPatch();
+    const fresh = createVirtualFileWorkspace(starterFiles, { autoSave: false });
+    const view = { codePath: ENTRY_PATH, selected: ENTRY_PATH, visible: true };
+    const patch = { ...createDefaultVsuPatch(), preferredChannel: 0, preferredSource: 'wave' };
+    const main = panel.closest('main');
+    const wasInert = main.inert;
+    let replacing = false;
+    main.inert = true;
+    try {
+      if (result === 'export') downloadCassette();
+      if (!await persist()) throw new Error('Local project storage is unavailable.');
+      replacing = true;
+      await restore({ ...previous, workspace: fresh.snapshot(), view }, { stop: true, patch });
+      if (!await persist()) throw new Error('Local project storage is unavailable.');
+    } catch (error) {
+      if (replacing) await restore(previous, { stop: true, patch: previousPatch });
+      throw new Error('Could not create Cassette. The previous project was kept. ' + error.message, { cause: error });
+    } finally {
+      main.inert = wasInert;
+    }
+    setStatus('New Cassette created. Starter Code is ready to edit.');
+  }
+
   async function importFiles(files, directory = '/', { reference = false } = {}) {
     if (!files.length) return;
     if (files.reduce((sum, file) => sum + file.size, 0) > MAX_BYTES)
@@ -609,7 +664,7 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     setStatus('Imported Cassette.');
   }
 
-  async function restore(state, { stop = false, plan } = {}) {
+  async function restore(state, { stop = false, plan, patch } = {}) {
     if (state.format !== PROJECT_FORMAT || state.version !== 1) throw new Error('Unsupported VSU project.');
     validateLayer(state.workspace?.working, validatePatch);
     validateLayer(state.workspace?.saved, validatePatch);
@@ -617,7 +672,8 @@ export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePat
     checked.restore(state.workspace);
     const savedView = checkSelections(checked.working, state.view);
     if (savedView.activeVgm && !plan) plan = await loadVsuVgm(checked.working.get(savedView.activeVgm).data);
-    if (savedView.activePatch) await applyPatch(parsePatch(checked.working.get(savedView.activePatch).data, validatePatch));
+    if (patch) await applyPatch(patch);
+    else if (savedView.activePatch) await applyPatch(parsePatch(checked.working.get(savedView.activePatch).data, validatePatch));
     workspace.restore(checked.snapshot());
     activePatch = savedView.activePatch;
     await openCode(savedView.codePath, { show: false, stop });

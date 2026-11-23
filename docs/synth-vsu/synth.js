@@ -5,19 +5,22 @@ import {
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-mixer';
+import { createVsuAudio } from './audio.js?v=vsu-noise';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
-import { captureVsuVoice } from './capture.js';
+import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
   CH5, CH5_MODULATION_MAX, CH5_MODULATION_MIN,
   decodeCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
 } from './ch5.js';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js';
-import { setupVsuFiles } from './files.js?v=vsu-mixer';
+import { setupVsuFiles } from './files.js?v=vsu-noise';
 import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
-import { createDefaultVsuPatch, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js';
-import { createVsuClient, createVsuWave, vsuChannelRegister, vsuNoteOnWrites, VSU_REGISTERS } from './vsu.js';
+import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js?v=vsu-noise';
+import {
+  createVsuClient, createVsuWave, vsuChannelRegister, vsuFrequencyRegister, vsuFrequencyWrites,
+  vsuNoiseShiftRate, vsuNoteOnWrites, vsuStartWrites, VSU_INTERVAL_STEP_MS, VSU_NOISE_PATTERN_LENGTHS, VSU_REGISTERS,
+} from './vsu.js?v=vsu-noise';
 import { createVsuVoicePool } from './voice-pool.js';
 import { loadVsuVgm } from './vgm.js';
 import { setupVgmPlayer } from './vgm-player.js';
@@ -28,6 +31,9 @@ const run = byId('run'), apply = byId('apply'), stop = byId('stop');
 const keyboard = byId('keyboard'), playingNote = byId('playingNote');
 const channelSelect = byId('channel'), channelWave = byId('channelWave');
 const noiseTap = byId('noiseTap'), noiseTapValue = byId('noiseTapValue');
+const noiseFrequency = byId('noiseFrequency'), noiseRateValue = byId('noiseRateValue');
+const noiseInterval = byId('noiseInterval'), noiseIntervalValue = byId('noiseIntervalValue');
+const noiseKeyTracking = byId('noiseKeyTracking'), noisePattern = byId('noisePattern');
 const liveEnabled = byId('vsuLiveEnabled'), channelStatus = byId('vsuChannelStatus');
 const liveRegisters = byId('vsuLiveRegisters');
 const envelopeFields = {
@@ -67,6 +73,7 @@ const channels = factoryPatch.channels;
 const noiseChannel = channels.length - 1;
 const voicePool = createVsuVoicePool();
 let selectedNoiseTap = factoryPatch.noiseTap;
+let noiseSettings = factoryPatch.noise;
 let ch5Settings = factoryPatch.ch5;
 let autoSource = 'wave', autoWaveChannel = 0, autoChannel = 0, selectedChannel = null, waveSample = 0;
 let codeRunning = false, referenceState = { state: 'empty', id: null }, editorReady = false;
@@ -82,7 +89,7 @@ const fretboardTools = {
   fretDisplayRoot: byId('fretDisplay'), stringDisplayRoot: byId('stringDisplay'), stringWindowRoot: byId('stringWindowControls'),
 };
 let keyboardOctave = 0;
-const editingTarget = 'input:not([type="range"]), textarea, select, [contenteditable]';
+const editingTarget = 'input:not([type="range"], [type="checkbox"]), textarea, select:not(#channelWave, #waveShape), [contenteditable]';
 const canWrite = () => soundContext !== null && soundContext === audio.context;
 
 const starterCode = `const vsu = await useSoundChip("vsu");
@@ -172,6 +179,35 @@ function refreshWave() {
   drawWaveRam();
 }
 
+function noiseRegisterFor(note) {
+  return noiseSettings.keyTracking && note !== undefined ? vsuFrequencyRegister(noiseChannel, note) : noiseSettings.frequency;
+}
+
+function drawNoiseTiming() {
+  const note = voicePool.voiceOn(noiseChannel);
+  const trackedNote = note?.started ? note.note : undefined;
+  const tracking = !liveTarget && noiseSettings.keyTracking;
+  const register = liveTarget ? liveVoice?.frequency : tracking && trackedNote === undefined ? undefined : noiseRegisterFor(trackedNote);
+  const interval = liveTarget ? liveVoice?.interval : noiseSettings.interval;
+  const rate = register === undefined ? null : vsuNoiseShiftRate(register);
+  noiseFrequency.value = register ?? noiseSettings.frequency;
+  noiseRateValue.value = rate === null ? (tracking ? 'By key' : '—') : rate >= 1000
+    ? (rate / 1000).toFixed(2) + ' kHz' : rate.toFixed(2) + ' Hz';
+  noiseFrequency.setAttribute('aria-valuetext', noiseRateValue.value);
+  noiseFrequency.title = register === undefined ? '' : 'S6FQ 0x' + register.toString(16).toUpperCase().padStart(3, '0');
+  noiseInterval.value = interval == null ? 0 : interval + 1;
+  noiseIntervalValue.value = interval === undefined ? '—' : interval === null ? 'Hold'
+    : ((interval + 1) * VSU_INTERVAL_STEP_MS).toFixed(2) + ' ms';
+  noiseInterval.setAttribute('aria-valuetext', noiseIntervalValue.value);
+  noiseKeyTracking.checked = tracking;
+}
+
+function drawNoiseTap(tap) {
+  noiseTap.value = tap ?? 0;
+  noiseTapValue.value = tap ?? '—';
+  noisePattern.textContent = tap === null ? '' : VSU_NOISE_PATTERN_LENGTHS[tap].toLocaleString('en-US') + ' bits per cycle';
+}
+
 function channelSettings(index = Number(channelSelect.value)) {
   const observing = Boolean(liveTarget);
   const voice = liveVoice;
@@ -188,9 +224,10 @@ function channelSettings(index = Number(channelSelect.value)) {
   byId('noiseTapGroup').hidden = !noise;
   byId('ch5Panel').hidden = !canUseEffect || (observing && !voice);
   channelWave.value = noise ? '' : wave;
-  const tap = observing ? (voice ? (voice.ev1 >> 4) & 7 : null) : selectedNoiseTap;
-  noiseTap.value = tap ?? 0;
-  noiseTapValue.value = tap ?? '—';
+  if (noise) {
+    drawNoiseTap(observing ? (voice ? (voice.ev1 >> 4) & 7 : null) : selectedNoiseTap);
+    drawNoiseTiming();
+  }
   for (const side of ['left', 'right']) {
     const level = observing ? voice?.[side] : settings[side];
     byId(side + 'Level').value = level ?? 0;
@@ -199,7 +236,7 @@ function channelSettings(index = Number(channelSelect.value)) {
   const envelope = observing ? voice ? decodeVsuEnvelope(voice.ev0, voice.ev1) : createVsuEnvelope() : settings.envelope;
   envelopeMonitor.setSettings(envelope);
   refreshCh5Controls(effect);
-  for (const field of [channelWave, noiseTap, byId('waveShape'), byId('loadShape'),
+  for (const field of [channelWave, noiseTap, noiseFrequency, noiseInterval, noiseKeyTracking, byId('waveShape'), byId('loadShape'),
     ...Object.values(ch5Controls), ...ch5ModInputs]) {
     field.disabled = observing;
   }
@@ -222,6 +259,7 @@ function drawLiveRegisters(voice) {
   drawChannelActivity();
   liveRegisters.hidden = !voice;
   if (!voice) return;
+  if (liveTarget?.channel === noiseChannel) drawNoiseTiming();
   const hex = value => '0x' + value.toString(16).toUpperCase().padStart(3, '0');
   liveRegisters.value = (voice.active ? 'Active' : 'Idle') + ' · FQ ' + hex(voice.frequency) +
     (voice.workingFrequency === undefined ? '' : ' · Current ' + hex(voice.workingFrequency)) +
@@ -348,6 +386,7 @@ function writePatchToChip() {
     chip.setVolume(channel, left, right);
     if (wave !== null) chip.setWaveBank(channel, wave);
   });
+  if (!noiseSettings.keyTracking) audio.writeBatch(vsuFrequencyWrites(noiseChannel, noiseSettings.frequency));
   audio.writeBatch([...ch5ModulationWrites(ch5Settings.modulation), ...channels.flatMap((_, index) => envelopeWrites(index))]);
 }
 
@@ -396,7 +435,7 @@ function getPatch() {
   const useAuto = liveTarget || selectedChannel === null;
   return validateVsuPatch({
     format: VSU_PATCH_FORMAT, version: 1, banks: banks.map(wave => Array.from(wave)),
-    channels, noiseTap: selectedNoiseTap, ch5: ch5Settings,
+    channels, noiseTap: selectedNoiseTap, noise: noiseSettings, ch5: ch5Settings,
     preferredChannel: useAuto ? autoChannel : selectedChannel,
     preferredSource: useAuto ? autoSource : vsuAutoSourceForChannel(selectedChannel, ch5Settings),
   });
@@ -412,6 +451,7 @@ async function applyPatch(patch) {
   next.banks.forEach((wave, bank) => banks[bank].set(wave));
   next.channels.forEach((settings, channel) => Object.assign(channels[channel], settings));
   selectedNoiseTap = next.noiseTap;
+  noiseSettings = next.noise ?? createLegacyVsuNoiseSettings();
   ch5Settings = next.ch5;
   const source = next.preferredChannel === undefined ? autoSource
     : next.preferredSource ?? vsuAutoSourceForChannel(next.preferredChannel, ch5Settings);
@@ -625,6 +665,7 @@ function syncKeyboardVoices() {
     button.setAttribute('aria-pressed', String(pressed));
   }
   playingNote.value = voices.filter(voice => voice.started).map(voice => voice.noteName).join(' + ');
+  if (!liveTarget && Number(channelSelect.value) === noiseChannel) drawNoiseTiming();
   drawChannelActivity();
 }
 
@@ -669,7 +710,9 @@ async function playKeyboard(owner, entry, button) {
     const writes = [[vsuChannelRegister(channel, VSU_REGISTERS.INT), 0], ...keyboardVoiceRegisters(channel, instrument, useCh5Effect)];
     if (useCh5Effect && ch5Settings.mode === 'modulation')
       writes.push(...ch5ModulationWrites(ch5Settings.modulation));
-    audio.writeBatch([...writes, ...vsuNoteOnWrites(channel, voice.note)]);
+    const trigger = channel === noiseChannel ? vsuStartWrites(channel, noiseRegisterFor(voice.note), noiseSettings.interval)
+      : vsuNoteOnWrites(channel, voice.note);
+    audio.writeBatch([...writes, ...trigger]);
     voice.started = true;
     syncKeyboardVoices();
     status.textContent = 'Ready';
@@ -891,11 +934,35 @@ liveEnabled.addEventListener('change', () => {
 noiseTap.addEventListener('input', () => {
   if (liveTarget) return;
   selectedNoiseTap = noiseTap.valueAsNumber;
-  noiseTapValue.value = selectedNoiseTap;
+  drawNoiseTap(selectedNoiseTap);
   if (canWrite() && !codeRunning) {
     const [address, value] = envelopeWrites(noiseChannel).at(-1);
     chip.write(address, value);
   }
+});
+function applyNoiseRate() {
+  const note = voicePool.voiceOn(noiseChannel);
+  if (canWrite() && !codeRunning && (!noiseSettings.keyTracking || note?.started)) {
+    audio.writeBatch(vsuFrequencyWrites(noiseChannel, noiseRegisterFor(note?.note)));
+  }
+  drawNoiseTiming();
+}
+noiseFrequency.addEventListener('input', () => {
+  if (liveTarget) return;
+  noiseSettings.frequency = noiseFrequency.valueAsNumber;
+  noiseSettings.keyTracking = false;
+  applyNoiseRate();
+});
+noiseKeyTracking.addEventListener('change', () => {
+  if (liveTarget) return;
+  noiseSettings.keyTracking = noiseKeyTracking.checked;
+  applyNoiseRate();
+});
+noiseInterval.addEventListener('input', () => {
+  if (liveTarget) return;
+  const steps = noiseInterval.valueAsNumber;
+  noiseSettings.interval = steps ? steps - 1 : null;
+  drawNoiseTiming();
 });
 channelSelect.addEventListener('change', () => selectChannel(Number(channelSelect.value)));
 channelWave.addEventListener('change', () => {

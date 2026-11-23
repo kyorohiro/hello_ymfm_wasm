@@ -12,7 +12,7 @@ Drag the seek bar to jump to a position. When focused, the arrow keys move one s
 
 Select **CH1–6** during reference playback to inspect a channel. **Mute** and **Solo** above the channel settings change the VGM mix while the recorded chip state keeps advancing.
 
-To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's wave bank, stereo levels and programmed envelope into the matching editor channel and opens it in **AUTO**. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope at the chosen note. Use **Files → ＋ Patch** to keep the result.
+To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's stereo levels and programmed envelope into the matching editor channel and opens it in **AUTO**. Wave voices bring their wave bank. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap, shift rate, and duration. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope. Use **Files → ＋ Patch** to keep the result.
 
 The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps the original song with the project and saves distinct sounds recovered at note starts under **presets/<file name>/**. Select a preset to load it into **AUTO** on its original channel. Extraction scans the first 15 minutes and saves up to 512 sounds per song within the project storage limit. Cassette export includes the song and the saved presets.
 
@@ -22,7 +22,7 @@ The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps the o
 
 During VGM or Code playback, choose **CH1–6** to inspect its waveform, stereo levels, envelope and frequency registers. The stereo and envelope controls write to the selected playing channel. VGM or Code can replace those values with subsequent register writes. Turn **Auto update** off to freeze the readback while keeping the controls available. Selecting another channel, pausing, or seeking reads a fresh snapshot. Use **AUTO** to edit the authored sound, or pause a VGM and use **Copy to Synth** to keep the selected sound with its latest settings.
 
-Play a key on a numbered channel while VGM or Code is running to retrigger that channel at the new pitch with its current settings. Playback continues. A later write to the channel's gate, or a global stop, takes control of the channel again. Releasing an earlier key leaves that later note sounding. In the Code workspace, PC keys work when focus is outside the editor and other input fields.
+Play a key on a numbered channel while VGM or Code is running to retrigger that channel with its current settings. The key selects pitch for CH1–5 and triggers the programmed shift rate and duration on CH6. Playback continues. A later write to the channel's gate, or a global stop, takes control of the channel again. Releasing an earlier key leaves that later note sounding. In the Code workspace, PC keys work when focus is outside the editor and text-entry fields.
 
 **Wave bank** selects the shared RAM bank the channel plays and shows its 32 samples in the graph. Draw on the graph to edit those samples. With the graph focused, Left and Right select a sample and Up and Down change its level. **Shape** chooses a preset waveform, and **Apply shape** fills the selected bank with it. Each channel using that bank reads the same samples.
 
@@ -41,9 +41,17 @@ Select **CH5** or **AUTO → Sweep / Modulation**, choose an effect, and play a 
 - **Base clock** chooses 0.96 ms or 7.68 ms and **Multiplier** sets the number of clock periods per step. A multiplier of 0 disables the effect.
 - **Play comparison** plays A4 on CH5 in Normal, Sweep, and Modulation order. All three use the selected wave bank and stereo levels. Sweep and Modulation use fixed comparison settings, and the editor keeps your values.
 
+## CH6 Noise
+
+- **Noise tap** selects one of eight feedback patterns (0–7). Tap 0 repeats after 32,767 bits and tap 7 repeats after 28 bits.
+- **Shift rate** writes the 11-bit `S6FQ` value and shows the resulting rate, from about 244.14 Hz to 500 kHz. **Key tracking · Software** maps notes to the same register. Moving the slider while holding a key switches to a fixed rate immediately. New projects start at 31.25 kHz, while old patches open with key tracking enabled.
+- **Duration** applies to the next note. **Hold** sounds while a key is held. The one-shot settings use the chip's interval counter in 3.84 ms steps up to 122.88 ms. The envelope and stereo controls also apply to CH6. For a short hiss, try tap 0 at 31.25 kHz and 23.04 ms.
+
 ## Files
 
-Open **Files** beside the editor, then use **＋ Patch** to save the five wave banks, six channels' settings and envelopes, noise tap, and CH5 parameters as a named `.vsu.json` patch. Open a patch from the tree to restore it. Use **＋ JS** to create a script and **Save** to keep your changes locally. The header menu also provides creation and save commands and imports and exports project files. You can open it with Files closed.
+Open **Files** beside the editor, then use **＋ Patch** to save the five wave banks, six channels' settings and envelopes, noise settings, and CH5 parameters as a named `.vsu.json` patch. Open a patch from the tree to restore it. Use **＋ JS** to create a script and **Save** to keep your changes locally. The header menu also provides creation and save commands and imports and exports project files. You can open it with Files closed.
+
+Use **Menu → New → Cassette · ZIP** to start a fresh project with the starter Code and default instrument. The dialog offers to export the current Cassette first.
 
 The top **Synth / Code** buttons switch between the full instrument and focused Code workspace. The **Code / Keyboard** tabs below the instrument pick the performance input.
 

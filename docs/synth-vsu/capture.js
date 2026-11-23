@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { CH5, decodeCh5Settings } from './ch5.js';
 import { decodeVsuEnvelope } from './envelope.js';
-import { validateVsuPatch } from './patch.js';
+import { validateVsuPatch } from './patch.js?v=vsu-noise';
 import { VSU_CHANNEL_COUNT, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH } from './vsu.js';
 
 const NOISE_CHANNEL = VSU_CHANNEL_COUNT - 1;
@@ -22,7 +22,7 @@ function captureBank(patch, channel, wave) {
 }
 
 export function captureVsuVoice(source, snapshot) {
-	const { channel, active, waveBank, wave, left, right, ev0, ev1, swp, modulation } = snapshot ?? {};
+	const { channel, active, waveBank, wave, left, right, ev0, ev1, swp, modulation, frequency, interval } = snapshot ?? {};
 	if (!Number.isInteger(channel) || channel < 0 || channel >= VSU_CHANNEL_COUNT)
 		throw new RangeError('Choose a VSU channel to copy.');
 	if (active !== true) throw new Error('Choose a channel that is active in the paused VGM.');
@@ -32,6 +32,7 @@ export function captureVsuVoice(source, snapshot) {
 	let bank = null;
 	if (channel === NOISE_CHANNEL) {
 		patch.noiseTap = (ev1 >> 4) & 7;
+		patch.noise = { keyTracking: false, frequency, interval: interval ?? null };
 	} else {
 		if (!Number.isInteger(waveBank) || waveBank < 0 || waveBank >= VSU_WAVE_BANK_COUNT ||
 			(!Array.isArray(wave) && !ArrayBuffer.isView(wave)) || wave.length !== VSU_WAVE_LENGTH)

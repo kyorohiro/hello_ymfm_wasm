@@ -120,12 +120,12 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			if (!context.audioWorklet) throw new Error('VSU audio requires AudioWorklet over HTTPS or localhost.');
 			output.gain.value = volume;
 			output.connect(context.destination);
-			const bytes = fetch(new URL('./vsu.wasm?v=vsu-mixer', import.meta.url), { signal: current.abort.signal }).then(response => {
+			const bytes = fetch(new URL('./vsu.wasm?v=vsu-noise', import.meta.url), { signal: current.abort.signal }).then(response => {
 				if (!response.ok) throw new Error(`Unable to load the VSU core (HTTP ${response.status}).`);
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-mixer', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-noise', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;

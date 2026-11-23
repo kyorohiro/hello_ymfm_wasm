@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createVsuClient, createVsuWave, vsuFrequencyRegister } from './vsu.js';
+import { createVsuClient, createVsuWave, vsuFrequencyRegister, vsuNoiseShiftRate, vsuStartWrites } from './vsu.js';
 
 function captureWrites() {
 	const operations = [];
@@ -28,6 +28,15 @@ test('note helpers use the tone and noise clocks and gate without resetting the 
 	]);
 	assert(Math.abs(5_000_000 / (32 * (2048 - vsuFrequencyRegister(0, 'A4'))) - 440) < 1);
 	assert(Math.abs(500_000 / (2048 - vsuFrequencyRegister(5, 'A4')) - 440) < 1);
+});
+
+test('CH6 fixed-rate playback writes the hardware divider and one-shot interval', () => {
+	assert.equal(vsuNoiseShiftRate(0), 244.140625);
+	assert.equal(vsuNoiseShiftRate(0x7f0), 31250);
+	assert.equal(vsuNoiseShiftRate(0x7ff), 500000);
+	assert.deepEqual(vsuStartWrites(5, 0x7f0, 0), [[0x548, 0xf0], [0x54c, 7], [0x540, 0xa0]]);
+	assert.deepEqual(vsuStartWrites(5, 0x7f0, 31), [[0x548, 0xf0], [0x54c, 7], [0x540, 0xbf]]);
+	assert.throws(() => vsuStartWrites(5, 0x7f0, 32), /interval/);
 });
 
 test('shared wave uploads use physical offsets and reject incomplete or invalid data before writing', () => {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { captureVsuVoice } from './capture.js';
+import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import { CH5 } from './ch5.js';
-import { createDefaultVsuPatch } from './patch.js';
+import { createDefaultVsuPatch } from './patch.js?v=vsu-noise';
 import { VGM_SAMPLE_RATE } from './vgm.js';
 import { VSU_CHANNEL_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, VSU_REGISTERS } from './vsu.js';
 
@@ -50,8 +50,10 @@ function captureState(core) {
       const [frequency, active, waveBank, left, right, ev0, ev1, swp] = words;
       const canGrow = (ev1 & 1) && (ev0 & 8);
       if (!active || (!left && !right) || (!(ev0 >> 4) && !canGrow)) return null;
+      const interval = channel === NOISE_CHANNEL ? core.vsu_get_interval(address, channel) >>> 0 : 0xffffffff;
       return {
         channel, frequency, active: true, left, right, ev0, ev1, swp,
+        interval: interval === 0xffffffff ? null : interval,
         waveBank: channel === NOISE_CHANNEL ? null : waveBank,
         wave: channel === NOISE_CHANNEL ? null : wave,
         modulation: channel === CH5 ? modulation : null,
@@ -61,10 +63,10 @@ function captureState(core) {
 }
 
 function toneKey(voice) {
-  const { channel, wave, left, right, ev0, ev1, swp, modulation } = voice;
+  const { channel, wave, left, right, ev0, ev1, swp, modulation, frequency, interval } = voice;
   const envelope = ev1 & 1 ? [ev0, ev1 & 3] : [ev0 >> 4];
   let effect = null;
-  if (channel === NOISE_CHANNEL) effect = (ev1 >> 4) & 7;
+  if (channel === NOISE_CHANNEL) effect = [(ev1 >> 4) & 7, frequency, interval];
   else if (channel === CH5 && (ev1 & 0x40) && ((swp >> 4) & 7)) {
     effect = ev1 & 0x10 ? [ev1 & 0x30, swp >> 4, Array.from(modulation)] : [swp];
   }
@@ -117,7 +119,7 @@ export async function extractVsuVgmPresets(plan, { signal, limit = MAX_VSU_VGM_P
   checkPlan(plan, limit);
   signal?.throwIfAborted();
   if (!limit) return [];
-  const worker = new Worker(new URL('./vgm-presets-worker.js', import.meta.url), { type: 'module' });
+  const worker = new Worker(new URL('./vgm-presets-worker.js?v=vsu-noise', import.meta.url), { type: 'module' });
   const writes = plan.writes.slice();
   return new Promise((resolve, reject) => {
     const finish = callback => value => {

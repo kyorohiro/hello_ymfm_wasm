@@ -52,7 +52,7 @@ test('progresses hardware intervals and ignores wave RAM writes while a channel 
   assert.deepEqual(tones.map(tone => waveform(tone, 0)[0]), [13, 33]);
 });
 
-test('preserves CH5 signed modulation and CH6 noise tap in playable default editor patches', () => {
+test('preserves CH5 signed modulation and CH6 noise settings in playable default editor patches', () => {
   const events = [
     [0, 0, 24], [0, 4, 55], [0, 0x280, 0x80], [0, 0x284, 0x7f],
     write(0, 4, 'LRV', 0x81),
@@ -63,7 +63,9 @@ test('preserves CH5 signed modulation and CH6 noise tap in playable default edit
     write(0, 5, 'LRV', 0xa5),
     write(0, 5, 'EV0', 0xf2),
     write(0, 5, 'EV1', 0x53),
-    write(0, 5, 'INT', 0x80),
+    write(0, 5, 'FQL', 0xf0),
+    write(0, 5, 'FQH', 7),
+    write(0, 5, 'INT', 0xa2),
   ];
   const [wave, noise] = scanVsuVgmPresets(chip(), plan(events));
   assert.deepEqual([wave.channel, noise.channel], [4, 5]);
@@ -79,6 +81,24 @@ test('preserves CH5 signed modulation and CH6 noise tap in playable default edit
   assert.equal(noise.patch.preferredChannel, 5);
   assert.equal(noise.patch.channels[5].wave, null);
   assert.equal(noise.patch.noiseTap, 5);
+  assert.deepEqual(noise.patch.noise, { keyTracking: false, frequency: 0x7f0, interval: 2 });
+});
+
+test('deduplicates CH6 by final clock and interval at each audible trigger', () => {
+  const events = [
+    write(0, 5, 'LRV', 0xff), write(0, 5, 'EV0', 0xf0),
+    write(0, 5, 'FQL', 0xf0), write(0, 5, 'FQH', 7),
+    write(0, 5, 'INT', 0xa1), write(0, 5, 'INT', 0xa2),
+    write(50, 5, 'INT', 0xa2),
+    write(100, 5, 'FQL', 0xf8), write(100, 5, 'INT', 0xa2),
+    write(150, 5, 'INT', 0xa0),
+    write(200, 5, 'INT', 0x9f),
+    write(250, 5, 'INT', 0x80),
+    write(300, 5, 'INT', 0xbf), write(300, 5, 'INT', 0),
+  ];
+  assert.deepEqual(scanVsuVgmPresets(chip(), plan(events)).map(({ patch }) => [patch.noise.frequency, patch.noise.interval]), [
+    [0x7f0, 2], [0x7f8, 2], [0x7f8, 0], [0x7f8, null],
+  ]);
 });
 
 test('keeps valid silent logs importable and bounds the first distinct presets in chronological order', () => {

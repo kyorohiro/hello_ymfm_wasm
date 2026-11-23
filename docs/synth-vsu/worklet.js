@@ -6,6 +6,7 @@ const LIVE_REPORT_FRAMES = Math.ceil(sampleRate / 30);
 const WAVE_BANK_COUNT = 5;
 const WAVE_LENGTH = 32;
 const MODULATION_CHANNEL = 4;
+const NOISE_CHANNEL = 5;
 const FIRST_CHANNEL_INT = vsuChannelRegister(0, VSU_REGISTERS.INT);
 const CHANNEL_STRIDE = vsuChannelRegister(1, VSU_REGISTERS.INT) - FIRST_CHANNEL_INT;
 
@@ -81,6 +82,17 @@ class VsuProcessor extends AudioWorkletProcessor {
 		return new Uint32Array(this.core.memory.buffer, this.captureAddress + 4 * word, 1)[0];
 	}
 
+	readInterval(state, channel) {
+		const interval = this.core.vsu_get_interval(state, channel) >>> 0;
+		return interval === 0xffffffff ? null : interval;
+	}
+
+	writeLiveGate(state, channel, enabled) {
+		const interval = channel === NOISE_CHANNEL ? this.readInterval(state, channel) : null;
+		const duration = interval === null ? 0 : 0x20 | interval;
+		this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS.INT), (enabled ? 0x80 : 0) | duration);
+	}
+
 	liveNoteOn({ source, channel, playbackId, revision, owner, writes }) {
 		const id = this.vgm.outputId;
 		if (this.liveChannel === null || channel !== this.liveChannel || revision !== this.liveRevision || playbackId !== id ||
@@ -91,7 +103,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 		if (ev0 === undefined) return;
 		// Reload the programmed initial envelope level so every press can retrigger it.
 		this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS.EV0), ev0);
-		for (const [offset, value] of writes) this.core.vsu_write(state, offset, value);
+		if (channel === NOISE_CHANNEL) {
+			// A live Noise key auditions the source's programmed shift rate and interval.
+			this.writeLiveGate(state, channel, true);
+		} else {
+			for (const [offset, value] of writes) this.core.vsu_write(state, offset, value);
+		}
 		owners.set(channel, owner);
 		this.liveDirty = true;
 	}
@@ -102,13 +119,13 @@ class VsuProcessor extends AudioWorkletProcessor {
 		const owners = isSynth ? this.synthKeyOwners : this.vgmKeyOwners;
 		if (!owners.has(channel) || owners.get(channel) !== owner) return;
 		const state = isSynth ? this.state : this.vgmState;
-		this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS.INT), 0);
+		this.writeLiveGate(state, channel, false);
 		owners.delete(channel);
 		this.liveDirty = true;
 	}
 
 	releaseLiveNotes(state, owners) {
-		for (const channel of owners.keys()) this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS.INT), 0);
+		for (const channel of owners.keys()) this.writeLiveGate(state, channel, false);
 		owners.clear();
 	}
 
@@ -139,6 +156,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 		const ramAddress = this.captureAddress + words.byteLength;
 		const voice = {
 			channel, frequency, active: Boolean(active), left, right, ev0, ev1, swp,
+			interval: this.readInterval(state, channel),
 			waveBank: waveBank === 0xffffffff ? null : waveBank,
 			wave: waveBank < WAVE_BANK_COUNT ? Array.from(new Uint8Array(buffer, ramAddress, WAVE_LENGTH)) : null,
 			modulation: channel === MODULATION_CHANNEL

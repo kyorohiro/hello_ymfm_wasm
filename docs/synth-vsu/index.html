@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#150b0f">
   <title>Tetorica VSU Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=vsu-mixer">
-  <link rel="stylesheet" href="./files.css?v=vsu-mixer">
-  <script type="module" src="./synth.js?v=vsu-mixer"></script>
+  <link rel="stylesheet" href="./synth.css?v=vsu-noise">
+  <link rel="stylesheet" href="./files.css?v=vsu-noise">
+  <script type="module" src="./synth.js?v=vsu-noise"></script>
 </head>
 <body>
   <main class="shell">
@@ -148,10 +148,24 @@
                   </div>
                   <p id="vsuWaveEditHint" class="hint">Drag to draw a waveform. Editing Wave RAM stops the active voices.</p>
                 </section>
-                <div id="noiseTapGroup" class="noise-tap" hidden>
-                  <label for="noiseTap">Noise tap</label>
-                  <input id="noiseTap" type="range" min="0" max="7" step="1" value="0">
-                  <output id="noiseTapValue" for="noiseTap" aria-live="off">0</output>
+                <div id="noiseTapGroup" class="noise-controls" hidden>
+                  <div class="noise-control">
+                    <label for="noiseTap">Noise tap</label>
+                    <input id="noiseTap" type="range" min="0" max="7" step="1" value="0" aria-describedby="noisePattern">
+                    <output id="noiseTapValue" for="noiseTap" aria-live="off">0</output>
+                  </div>
+                  <span id="noisePattern" class="noise-pattern hint"></span>
+                  <div class="noise-control">
+                    <label for="noiseFrequency">Shift rate</label>
+                    <input id="noiseFrequency" type="range" min="0" max="2047" step="1" value="2032">
+                    <output id="noiseRateValue" for="noiseFrequency" aria-live="off">31.25 kHz</output>
+                  </div>
+                  <label title="Map keyboard notes to the shift rate. Moving the rate slider switches to manual control."><input id="noiseKeyTracking" type="checkbox"> Key tracking · Software</label>
+                  <div class="noise-control">
+                    <label for="noiseInterval">Duration</label>
+                    <input id="noiseInterval" type="range" min="0" max="32" step="1" value="0">
+                    <output id="noiseIntervalValue" for="noiseInterval" aria-live="off">Hold</output>
+                  </div>
                 </div>
               </section>
               <section class="panel channels" aria-labelledby="vsuStereoTitle">

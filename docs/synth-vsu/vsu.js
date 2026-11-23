@@ -5,6 +5,8 @@ export const VSU_CHANNEL_COUNT = 6;
 export const VSU_WAVE_BANK_COUNT = 5;
 export const VSU_WAVE_LENGTH = 32;
 export const VSU_SOUND_STOP = 0x580;
+export const VSU_NOISE_PATTERN_LENGTHS = Object.freeze([32767, 1953, 254, 217, 73, 63, 42, 28]);
+export const VSU_INTERVAL_STEP_MS = 3.84;
 export const VSU_REGISTERS = Object.freeze({
 	INT: 0x00, LRV: 0x04, FQL: 0x08, FQH: 0x0c, EV0: 0x10, EV1: 0x14, RAM: 0x18, SWP: 0x1c,
 });
@@ -38,14 +40,28 @@ export function vsuFrequencyRegister(channel, note) {
 	return DIVISOR_LIMIT - Math.max(1, Math.min(DIVISOR_LIMIT, divisor));
 }
 
-export function vsuNoteOnWrites(channel, note) {
-	const frequency = vsuFrequencyRegister(channel, note);
+export function vsuNoiseShiftRate(frequency) {
+	checkInteger(frequency, 0, DIVISOR_LIMIT - 1, 'VSU frequency register');
+	return NOISE_SHIFT_CLOCK / (DIVISOR_LIMIT - frequency);
+}
+
+export function vsuFrequencyWrites(channel, frequency) {
+	checkInteger(frequency, 0, DIVISOR_LIMIT - 1, 'VSU frequency register');
 	const base = vsuChannelRegister(channel, 0);
 	return [
 		[base + VSU_REGISTERS.FQL, frequency & 0xff],
 		[base + VSU_REGISTERS.FQH, frequency >> 8],
-		[base + VSU_REGISTERS.INT, 0x80],
 	];
+}
+
+export function vsuStartWrites(channel, frequency, interval = null) {
+	if (interval !== null) checkInteger(interval, 0, 31, 'VSU interval index');
+	return [...vsuFrequencyWrites(channel, frequency),
+		[vsuChannelRegister(channel, VSU_REGISTERS.INT), interval === null ? 0x80 : 0xa0 | interval]];
+}
+
+export function vsuNoteOnWrites(channel, note) {
+	return vsuStartWrites(channel, vsuFrequencyRegister(channel, note));
 }
 
 const WAVE_SHAPES = {

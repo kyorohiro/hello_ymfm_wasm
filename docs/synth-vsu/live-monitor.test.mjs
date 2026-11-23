@@ -163,7 +163,7 @@ test('VGM live edits affect the active timeline and a paused capture before late
 	send({ type: 'live-watch', channel: 5, revision: 1 });
 	const plan = {
 		writes: new Uint32Array([
-			0, 0x544, 0x47, 0, 0x550, 0xb5, 0, 0x554, 0x70, 0, 0x540, 0x80,
+			0, 0x544, 0x47, 0, 0x550, 0xb5, 0, 0x554, 0x70, 0, 0x540, 0xa2,
 			200, 0x544, 0xab, 200, 0x550, 0x23, 200, 0x554, 0x30,
 		]),
 		durationTicks: 8000, loopTick: null, loopIndex: 0,
@@ -184,6 +184,7 @@ test('VGM live edits affect the active timeline and a paused capture before late
 	send({ type: 'vgm-capture', id: 3, request: 1, channel: 5 });
 	const { voice } = captures().at(-1);
 	assert.deepEqual([voice.left, voice.right, voice.ev0, voice.ev1], [4, 13, 0xb2, 0x71]);
+	assert.equal(voice.interval, 2);
 	render(32);
 	assert.equal(live().at(-1).voice.ev1, 0x71);
 
@@ -194,6 +195,25 @@ test('VGM live edits affect the active timeline and a paused capture before late
 	send({ type: 'vgm-stop', id: 3 });
 	render();
 	assert.deepEqual([live().at(-1).source, live().at(-1).voice.left, live().at(-1).voice.right], ['synth', 8, 1]);
+});
+
+test('CH6 live keys keep the configured noise clock and one-shot length', () => {
+	const { send, render, live } = setup();
+	const voice = () => live().at(-1).voice;
+	const keyboard = liveKeyboard(send, 'synth', null, 5);
+	send({ type: 'batch', writes: [0x544, 0xff, 0x548, 0xce, 0x54c, 7, 0x550, 0xf0, 0x540, 0x20] });
+	send({ type: 'live-watch', channel: 5, revision: 1 });
+	keyboard.on(1, 'A4');
+	render();
+	assert.deepEqual([voice().active, voice().frequency, voice().interval], [true, 1998, 0]);
+	keyboard.off(1);
+	render();
+	assert.deepEqual([voice().active, voice().interval], [false, 0]);
+	keyboard.on(2, 'C6');
+	render();
+	assert.deepEqual([voice().active, voice().frequency, voice().interval], [true, 1998, 0]);
+	render(16);
+	assert.deepEqual([voice().active, voice().interval], [false, 0]);
 });
 
 test('live Code keys preserve the programmed voice and only the latest owner can release it', () => {
