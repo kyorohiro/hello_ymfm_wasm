@@ -53,7 +53,9 @@ Open **Files** beside the editor, then use **＋ Patch** to save the five wave b
 
 Use **Menu → New → Cassette · ZIP** to start a fresh project with the starter Code and default instrument. The dialog offers to export the current Cassette first.
 
-The top **Synth / Code** buttons switch between the full instrument and focused Code workspace. The **Code / Keyboard** tabs below the instrument pick the performance input.
+The top **Code** button opens a workspace beside Files with **Code / VSU / Mixer / Keyboard** tabs. The **Synth** button restores the standard layout and its previous chip and performance panels. Switching tabs keeps Code and VGM playback running.
+
+In the Code workspace, select **VSU → AUTO**, then **Wave (PCM)**, **Sweep / Modulation**, or **Noise**. Use the **Keyboard** tab for on-screen keys, or use PC keys when focus is outside the editor and other text fields. AUTO keys and running Code share the physical VSU channels. The latest trigger on a channel takes over that channel's gate. When Code takes over a held key's channel, releasing the key leaves the new note playing.
 
 ## Keyboard
 

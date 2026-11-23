@@ -5,7 +5,7 @@ import {
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-noise';
+import { createVsuAudio } from './audio.js?v=vsu-code-workspace';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
@@ -251,7 +251,6 @@ function channelSettings(index = Number(channelSelect.value)) {
     ? (liveTarget.source === 'vgm' ? 'VGM' : 'Code') + ' · CH' + (index + 1) +
       (voice ? liveEnabled.checked ? ' · Live' : ' · Frozen' : ' · Waiting for channel settings…')
     : selectedChannel === null ? autoChannelLabel() : 'Synth · CH' + (index + 1);
-  syncWorkspaceControls();
   refreshWave();
 }
 
@@ -337,7 +336,7 @@ function authoredOutputs(instrument) {
 }
 
 function sendChannelLevels(index) {
-  if (!canWrite()) return;
+  if (!canWrite() || codeRunning) return;
   const { left, right } = channels[index];
   audio.writeBatch(authoredOutputs(index).map(channel => [
     vsuChannelRegister(channel, VSU_REGISTERS.LRV), (left << 4) | right,
@@ -416,6 +415,9 @@ const runtime = createPlaygroundCodeRuntime({
     stop.disabled = !state.running || state.stopping;
     if (codeRunning !== state.running) {
       codeRunning = state.running;
+      if (!codeRunning) {
+        for (const voice of voicePool.voices()) if (voice.sharedCode) releaseKey(voice.owner);
+      }
       syncLiveTarget();
     }
   },
@@ -465,8 +467,7 @@ async function copyReferenceVoice(snapshot) {
     ...result.patch, preferredChannel: result.channel,
     preferredSource: vsuAutoSourceForChannel(result.channel, result.patch.ch5),
   });
-  selectChipPanel(false);
-  setWorkspaceMode(false);
+  selectWorkspaceTab(chipTabs[0]);
 }
 
 const ch5Gate = vsuChannelRegister(CH5, VSU_REGISTERS.INT);
@@ -644,8 +645,9 @@ function keyboardVoiceRegisters(channel, instrument, useCh5Effect) {
 
 function stopKeyboardVoice(voice) {
   if (!voice.started) return;
-  if (voice.live) {
-    audio.liveNoteOff(voice.live);
+  const owner = voice.live ?? voice.sharedCode;
+  if (owner) {
+    audio.liveNoteOff(owner);
     return;
   }
   if (!canWrite()) return;
@@ -686,12 +688,15 @@ async function playKeyboard(owner, entry, button) {
   if (selectedChannel !== null && ['preparing', 'seeking'].includes(referenceState.state)) return;
   const target = liveTarget && { source: liveTarget.source, channel: liveTarget.channel, playbackId: liveTarget.id };
   const live = target && matchesLiveKeyboardTarget(target) ? { ...target, owner: ++nextLiveKey } : null;
+  const sharedCode = expandedTab && codeRunning && selectedChannel === null
+    ? { source: 'synth', playbackId: null, owner: ++nextLiveKey } : null;
   const useCh5Effect = instrument === CH5 && (selectedChannel !== null || autoSource === 'effect');
   const allocation = voicePool.acquire(keyboardChannels(), {
-    owner, button, instrument, note: entry.midi, noteName: entry.noteName, live, useCh5Effect,
+    owner, button, instrument, note: entry.midi, noteName: entry.noteName, live, sharedCode, useCh5Effect,
   });
   if (!allocation) return;
   const { voice, displaced } = allocation;
+  if (voice.sharedCode) voice.sharedCode.channel = voice.channel;
   if (displaced) stopKeyboardVoice(displaced);
   if (live) {
     voice.started = audio.liveNoteOn({ ...live, note: voice.note });
@@ -699,11 +704,13 @@ async function playKeyboard(owner, entry, button) {
     syncKeyboardVoices();
     return;
   }
-  reference.interrupt();
-  stopComparison();
+  if (!sharedCode) {
+    reference.interrupt();
+    stopComparison();
+  }
   syncKeyboardVoices();
   try {
-    await waitForCodeStop();
+    if (!sharedCode) await waitForCodeStop();
     await ensureVsu();
     if (!voicePool.isCurrent(voice)) return;
     const { channel } = voice;
@@ -712,10 +719,15 @@ async function playKeyboard(owner, entry, button) {
       writes.push(...ch5ModulationWrites(ch5Settings.modulation));
     const trigger = channel === noiseChannel ? vsuStartWrites(channel, noiseRegisterFor(voice.note), noiseSettings.interval)
       : vsuNoteOnWrites(channel, voice.note);
-    audio.writeBatch([...writes, ...trigger]);
-    voice.started = true;
+    if (sharedCode) {
+      voice.started = audio.synthKeyOn({ ...sharedCode, writes: [...writes, ...trigger] });
+      if (!voice.started) voicePool.releaseVoice(voice);
+    } else {
+      audio.writeBatch([...writes, ...trigger]);
+      voice.started = true;
+      status.textContent = 'Ready';
+    }
     syncKeyboardVoices();
-    status.textContent = 'Ready';
   } catch (error) {
     if (voicePool.releaseVoice(voice)) syncKeyboardVoices();
     status.textContent = error.message;
@@ -1022,40 +1034,23 @@ for (const [mode, id] of Object.entries(scopeButtonIds)) {
   });
 }
 const inputs = [byId('showKeyboard'), byId('showCode')];
-function showInput(showCode) {
-  selectPairedTab(inputs, showCode);
-  if (showCode) releaseKeyboard();
-}
-bindPairedTabs(inputs, showInput);
-
 const chipTabs = [byId('vsuChipTab'), byId('vsuMixerTab')];
-function selectPairedTab(tabs, selectSecond) {
-  for (const [index, button] of tabs.entries()) {
-    const active = index === Number(selectSecond);
-    button.setAttribute('aria-selected', String(active));
-    button.tabIndex = active ? 0 : -1;
-    byId(button.getAttribute('aria-controls')).hidden = !active;
+const workspaceModes = [byId('workspaceSynth'), byId('workspaceCode')];
+const synthChipList = byId('vsuSynthChipTabs'), synthInputList = byId('vsuSynthPerformanceTabs');
+const expandedList = byId('vsuCodeWorkspaceTabs');
+const expandedTabs = [inputs[1], ...chipTabs, inputs[0]];
+const workspaceMain = expandedList.parentElement;
+let synthChipTab = chipTabs[0], synthInputTab = inputs[0], expandedTab = null;
+
+function markSelectedTabs(tabs, selected) {
+  for (const tab of tabs) {
+    const active = tab === selected;
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
   }
 }
 
-function bindPairedTabs(tabs, select) {
-  for (const [index, button] of tabs.entries()) {
-    function show(index) {
-      select(index === 1);
-      tabs[index].focus();
-    }
-    button.addEventListener('click', () => show(index));
-    button.addEventListener('keydown', event => {
-      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-      event.preventDefault();
-      show(event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index);
-    });
-  }
-}
-
-function selectChipPanel(showMixer) {
-  selectPairedTab(chipTabs, showMixer);
-  byId('vsuChannelBar').hidden = showMixer;
+function selectMonitor(showMixer) {
   byId('showEnvelope').hidden = showMixer;
   byId('vsuEnvelopeControls').hidden = showMixer;
   const monitor = byId('vsuOutputMonitor');
@@ -1069,22 +1064,69 @@ function selectChipPanel(showMixer) {
       setScopeMode('envelope');
     }
   }
-  drawOutput();
-  scheduleScope();
 }
-bindPairedTabs(chipTabs, selectChipPanel);
 
-const workspaceModes = [byId('workspaceSynth'), byId('workspaceCode')];
-function syncWorkspaceControls() {
-  const expanded = workspaceModes[1].getAttribute('aria-pressed') === 'true';
-  byId('vsuSynthControls').hidden = expanded && !liveTarget;
-}
-function setWorkspaceMode(showCode) {
-  showMode(workspaceModes, workspaceModes[Number(showCode)].id);
-  syncWorkspaceControls();
-  showInput(showCode);
+function renderWorkspace() {
+  const chipView = expandedTab ?? synthChipTab;
+  const inputView = expandedTab ?? synthInputTab;
+  const showVsu = chipView === chipTabs[0], showMixer = chipView === chipTabs[1];
+  showMode(workspaceModes, workspaceModes[Number(expandedTab !== null)].id);
+  if (expandedTab) markSelectedTabs(expandedTabs, expandedTab);
+  else {
+    markSelectedTabs(chipTabs, synthChipTab);
+    markSelectedTabs(inputs, synthInputTab);
+  }
+  byId('vsuChannelBar').hidden = !showVsu;
+  byId('vsuChipPanel').hidden = !showVsu;
+  byId('vsuMixerPanel').hidden = !showMixer;
+  byId('keyboardPanel').hidden = inputView !== inputs[0];
+  byId('codePanel').hidden = inputView !== inputs[1];
+  byId('performance').hidden = !inputs.includes(inputView);
+  if (showVsu || showMixer) selectMonitor(showMixer);
   drawOutput();
   scheduleScope();
+}
+
+function selectWorkspaceTab(tab) {
+  if (expandedTab) expandedTab = tab;
+  else if (chipTabs.includes(tab)) synthChipTab = tab;
+  else synthInputTab = tab;
+  renderWorkspace();
+}
+
+function setWorkspaceMode(showCode) {
+  if (showCode && !expandedTab) {
+    expandedList.append(...expandedTabs);
+    synthChipList.hidden = synthInputList.hidden = true;
+    expandedList.hidden = false;
+    workspaceMain.dataset.layout = 'code';
+  } else if (!showCode && expandedTab) {
+    synthChipList.append(...chipTabs);
+    synthInputList.append(...inputs);
+    synthChipList.hidden = synthInputList.hidden = false;
+    expandedList.hidden = true;
+    delete workspaceMain.dataset.layout;
+  }
+  expandedTab = showCode ? inputs[1] : null;
+  renderWorkspace();
+}
+
+for (const tab of expandedTabs) {
+  tab.addEventListener('click', () => {
+    selectWorkspaceTab(tab);
+    tab.focus();
+  });
+  tab.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const tabs = expandedTab ? expandedTabs : chipTabs.includes(tab) ? chipTabs : inputs;
+    const index = tabs.indexOf(tab);
+    const step = event.key === 'ArrowLeft' ? -1 : 1;
+    const next = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs.at(-1)
+      : tabs[(index + step + tabs.length) % tabs.length];
+    selectWorkspaceTab(next);
+    next.focus();
+  });
 }
 workspaceModes[0].addEventListener('click', () => setWorkspaceMode(false));
 workspaceModes[1].addEventListener('click', () => setWorkspaceMode(true));
@@ -1120,7 +1162,7 @@ const files = setupVsuFiles({
   async setCode(source, _path, { show = false, stop: stopPlayback = show } = {}) {
     if (stopPlayback) await waitForCodeStop();
     code.value = source;
-    if (show) showInput(true);
+    if (show) selectWorkspaceTab(inputs[1]);
   },
   setStatus(message) { status.textContent = message; },
 });
@@ -1151,7 +1193,7 @@ for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) {
 }
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey ||
-      (byId('keyboardPanel').hidden && !(codeRunning && liveTarget?.source === 'synth')) ||
+      (!expandedTab && byId('keyboardPanel').hidden && !(codeRunning && liveTarget?.source === 'synth')) ||
       event.target.closest(editingTarget)) return;
   const entry = keys.get(event.key.toLowerCase());
   if (!entry) return;

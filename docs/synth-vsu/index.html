@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#150b0f">
   <title>Tetorica VSU Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=vsu-noise">
+  <link rel="stylesheet" href="./synth.css?v=vsu-code-workspace">
   <link rel="stylesheet" href="./files.css?v=vsu-noise">
-  <script type="module" src="./synth.js?v=vsu-noise"></script>
+  <script type="module" src="./synth.js?v=vsu-code-workspace"></script>
 </head>
 <body>
   <main class="shell">
@@ -34,8 +34,8 @@
         <div class="workspace-actions">
           <button id="filesToggle" type="button" aria-controls="filesPanel" aria-expanded="false">Files</button>
           <div class="workspace-switch" role="group" aria-label="Workspace layout">
-            <button id="workspaceCode" type="button" aria-label="Code workspace" aria-pressed="false" aria-controls="codePanel">Code</button>
-            <button id="workspaceSynth" type="button" aria-label="Synth workspace" aria-pressed="true" aria-controls="vsuSynthControls">Synth</button>
+            <button id="workspaceCode" type="button" aria-label="Code workspace" aria-pressed="false" aria-controls="vsuCodeWorkspaceTabs">Code</button>
+            <button id="workspaceSynth" type="button" aria-label="Synth workspace" aria-pressed="true" aria-controls="vsuSynthChipTabs">Synth</button>
           </div>
         </div>
       </div>
@@ -69,7 +69,8 @@
     <div id="vsuWorkspace" class="workspace">
       <aside id="filesPanel" class="panel" aria-label="Project files" hidden></aside>
       <div class="workspace-main">
-        <div class="chip-tabs" role="tablist" aria-label="VSU workspace">
+        <div id="vsuCodeWorkspaceTabs" class="chip-tabs code-workspace-tabs" role="tablist" aria-label="Code workspace" hidden></div>
+        <div id="vsuSynthChipTabs" class="chip-tabs" role="tablist" aria-label="VSU workspace">
           <button id="vsuChipTab" type="button" role="tab" aria-selected="true" aria-controls="vsuChipPanel">VSU</button>
           <button id="vsuMixerTab" type="button" role="tab" aria-selected="false" aria-controls="vsuMixerPanel" tabindex="-1">Mixer</button>
         </div>
@@ -238,7 +239,7 @@
         </div>
 
         <section id="performance" class="panel performance" aria-label="Performance">
-          <div class="chip-tabs" role="tablist" aria-label="Performance input">
+          <div id="vsuSynthPerformanceTabs" class="chip-tabs" role="tablist" aria-label="Performance input">
             <button id="showKeyboard" type="button" role="tab" aria-controls="keyboardPanel" aria-selected="true">Keyboard</button>
             <button id="showCode" type="button" role="tab" aria-controls="codePanel" aria-selected="false" tabindex="-1">Code</button>
           </div>

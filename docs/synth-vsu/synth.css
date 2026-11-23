@@ -39,6 +39,7 @@ h2 { margin: 0; font-size: 1rem; }
 .chip-tabs { display: flex; gap: 4px; align-items: end; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
 .chip-tabs button { border-radius: 8px 8px 0 0; border-bottom: 0; min-width: 4.6rem; }
 .chip-tabs button[aria-selected="true"] { background: var(--accent); color: #190509; border-color: #ff7885; }
+.code-workspace-tabs button { width: 5.5rem; min-width: max-content; padding-inline: clamp(7px, 2vw, 12px); }
 .channel-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding: 8px 10px; }
 .channel-tabs, .capture-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .channel-tabs button { min-height: 30px; padding: 4px 9px; font: 650 .84rem var(--mono); }
@@ -209,7 +210,8 @@ canvas { display: block; width: 100%; border-radius: 6px; }
 .key span { font-size: .71rem; font-weight: 400; }
 #code { width: 100%; min-height: 250px; resize: vertical; background: #180d12; color: #ffe9e5; border: 1px solid var(--border);
   border-radius: 8px; margin: 10px 0 5px; padding: 12px; font: .88rem/1.45 var(--mono); }
-.shell:has(#workspaceCode[aria-pressed="true"]) #code { min-height: clamp(290px, 52dvh, 640px); }
+.workspace-main[data-layout="code"] .performance { margin-top: 0; }
+.workspace-main[data-layout="code"] #code { min-height: clamp(290px, 52dvh, 640px); }
 #codeOutput { white-space: pre-wrap; margin: 10px 0 0; color: var(--muted); }
 #codeOutput:empty { display: none; }
 #status { margin: 12px 0 0; color: var(--muted); font-size: .85rem; }

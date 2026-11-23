@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createVgmSeekClient } from './vgm-seek-client.js';
-import { VSU_CHANNEL_COUNT, vsuNoteOnWrites } from './vsu.js';
+import { CH5 } from './ch5.js';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, vsuChannelRegister, vsuNoteOnWrites } from './vsu.js';
 
 const PROCESSOR = 'tetorica-vsu';
 const WORKLET_TIMEOUT_MS = 10000;
@@ -15,6 +16,32 @@ function validateWrite(offset, value) {
 		throw new RangeError('Choose a VSU-relative register offset from 0x000 to 0x5FF.');
 	if (!Number.isInteger(value) || value < 0 || value > 0xff)
 		throw new RangeError('VSU writes take one byte.');
+}
+
+function packWrites(pairs) {
+	if (!Array.isArray(pairs)) throw new TypeError('Provide an array of [offset, value] VSU writes.');
+	const writes = new Uint16Array(pairs.length * 2);
+	for (const [index, pair] of pairs.entries()) {
+		if (!Array.isArray(pair) || pair.length !== 2) throw new TypeError('Provide each VSU write as [offset, value].');
+		const [offset, value] = pair;
+		validateWrite(offset, value);
+		writes[index * 2] = offset;
+		writes[index * 2 + 1] = value;
+	}
+	return writes;
+}
+
+function validateSynthKeyWrites(channel, writes) {
+	const gate = vsuChannelRegister(channel, VSU_REGISTERS.INT);
+	if (writes[0] !== gate || writes[1] !== 0 || writes.at(-2) !== gate || !(writes.at(-1) & 0x80))
+		throw new RangeError('Start a keyboard batch with key-off and end with key-on.');
+	for (let index = 0; index < writes.length; index += 2) {
+		const offset = writes[index];
+		const channelRegister = offset >= gate && offset <= gate + VSU_REGISTERS.SWP;
+		const modulationCell = channel === CH5 && offset >= 0x280 && offset < 0x300;
+		if (offset % 4 !== 0 || (!channelRegister && !modulationCell))
+			throw new RangeError('A keyboard batch may program only its VSU channel and CH5 Modulation RAM.');
+	}
 }
 
 function validateMask(mask) {
@@ -125,7 +152,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-noise', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-code-workspace', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -217,15 +244,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			send({ type: 'write', offset, value });
 		},
 		writeBatch(pairs) {
-			if (!Array.isArray(pairs)) throw new TypeError('Provide an array of [offset, value] VSU writes.');
-			const writes = new Uint16Array(pairs.length * 2);
-			for (const [index, pair] of pairs.entries()) {
-				if (!Array.isArray(pair) || pair.length !== 2) throw new TypeError('Provide each VSU write as [offset, value].');
-				const [offset, value] = pair;
-				validateWrite(offset, value);
-				writes[index * 2] = offset;
-				writes[index * 2 + 1] = value;
-			}
+			const writes = packWrites(pairs);
 			send({ type: 'batch', writes }, [writes.buffer]);
 		},
 		reset() { send({ type: 'reset' }); },
@@ -263,6 +282,15 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			} else if (source !== 'synth' || playbackId !== null || (current.vgmId && current.vgmState !== 'ended')) return false;
 			send({ type: 'live-note-on', source, channel, playbackId, owner, revision: liveRevision,
 				writes: vsuNoteOnWrites(channel, note) });
+			return true;
+		},
+		synthKeyOn({ channel, owner, writes: pairs }) {
+			const current = session;
+			if (!current?.active || current.vgmSeek || (current.vgmId && current.vgmState !== 'ended') ||
+				!validLiveNoteOwner(channel, owner)) return false;
+			const writes = packWrites(pairs);
+			validateSynthKeyWrites(channel, writes);
+			send({ type: 'synth-key-on', channel, owner, writes }, [writes.buffer]);
 			return true;
 		},
 		liveNoteOff({ source, channel, playbackId, owner }) {

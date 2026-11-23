@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createVgmSeekRenderer } from './vgm-seek.js';
-import { vsuFrequencyRegister, vsuNoteOnWrites } from './vsu.js';
+import { vsuFrequencyRegister, vsuNoteOnWrites, vsuStartWrites } from './vsu.js';
 
 const rate = 48000;
 const quantum = 128;
@@ -214,6 +214,50 @@ test('CH6 live keys keep the configured noise clock and one-shot length', () => 
 	assert.deepEqual([voice().active, voice().frequency, voice().interval], [true, 1998, 0]);
 	render(16);
 	assert.deepEqual([voice().active, voice().interval], [false, 0]);
+});
+
+test('authored AUTO keys program CH5 and CH6 without a watch or interrupting other Code channels', () => {
+	const { send, render, live } = setup();
+	const off = (channel, owner) => liveKeyboard(send, 'synth', null, channel).off(owner);
+	const on = (channel, owner, writes) => send({ type: 'synth-key-on', channel, owner, writes: Uint16Array.from(writes.flat()) });
+	send({ type: 'batch', writes: [0, 63, 0x404, 0xf0, 0x410, 0xf0, 0x400, 0x80, 0x500, 0x80] });
+
+	// Code left CH5 on. AUTO turns it off before uploading its own Modulation RAM.
+	on(4, 1, [
+		[0x500, 0], [0x504, 0x0f], [0x510, 0xf0], [0x514, 0x52], [0x51c, 0x10],
+		[0x280, 0x7f], ...vsuNoteOnWrites(4, 'C5'),
+	]);
+	render();
+	assert.deepEqual(live(), []);
+	assert.ok(outputs[0].every(samples => samples.some(value => value !== 0)));
+	send({ type: 'live-watch', channel: 4, revision: 1 });
+	render();
+	const voice = () => live().at(-1).voice;
+	assert.equal(voice().modulation[0], 127);
+	assert.equal(voice().frequency, vsuFrequencyRegister(4, 'C5'));
+	assert.equal(voice().ev1, 0x52);
+	off(4, 1);
+	render();
+	assert.equal(voice().active, false);
+	assert.ok(outputs[0][0].some(value => value !== 0));
+
+	send({ type: 'live-watch', channel: null, revision: 2 });
+	on(5, 2, [[0x540, 0], [0x544, 0x0f], [0x550, 0xf0], [0x554, 0x60], ...vsuStartWrites(5, 1998, 4)]);
+	send({ type: 'live-watch', channel: 5, revision: 3 });
+	render();
+	assert.deepEqual([voice().active, voice().frequency, voice().interval, voice().ev1], [true, 1998, 4, 0x60]);
+	send({ type: 'batch', writes: vsuStartWrites(5, 2001).flat() });
+	off(5, 2);
+	render(13);
+	assert.deepEqual([voice().active, voice().frequency, voice().interval], [true, 2001, null]);
+
+	send({ type: 'vgm-play', id: 1, mask: 63, plan: {
+		writes: new Uint32Array(), durationTicks: 500, loopTick: null, loopIndex: 0,
+	} });
+	on(5, 3, [[0x540, 0], [0x544, 0xff], ...vsuStartWrites(5, 1600)]);
+	send({ type: 'vgm-stop', id: 1 });
+	render();
+	assert.deepEqual([voice().frequency, voice().left, voice().right], [2001, 0, 15]);
 });
 
 test('live Code keys preserve the programmed voice and only the latest owner can release it', () => {
