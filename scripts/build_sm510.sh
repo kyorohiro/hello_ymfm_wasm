@@ -20,6 +20,8 @@ trap 'rm -rf "$WASM_STAGE"' EXIT
   -Wl,--export=sm510_direct_half_cycles,--export=sm510_direct_high_cycles \
   -Wl,--export=sm510_render_direct_note,--export=sm510_render_direct_r1 \
   -Wl,--export=sm511_pitch_hz,--export=sm511_render_tone,--export=sm511_render_melody \
+  -Wl,--export=sm511_controller_size,--export=sm511_controller_reset,--export=sm511_controller_load \
+  -Wl,--export=sm511_controller_apply,--export=sm511_controller_state,--export=sm511_controller_render \
   -o "$WASM_STAGE/sm510.wasm"
 
 if [ -n "$NATIVE_DIR" ]; then

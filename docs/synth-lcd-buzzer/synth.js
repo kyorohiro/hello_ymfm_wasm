@@ -11,14 +11,15 @@ import {
 	buildSm510Pulse, connectRChannels, createSm510AudioCore, createRVoice, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
 import {
-	formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
+	SM511_PRE_SECONDS, createSm511Controller, formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
 	sm511Command, sm511CommandLabel, sm511Label, sm511MelodyDuration, traceSm511Melody,
 } from './sm511.js';
+import { createSm511ControlAudio } from './sm511-control-audio.js';
 import { setupSm511MelodyEditor } from './melody_editor.js';
 import { createTimedSchedule } from './timed-schedule.js';
 
 const byId = id => document.getElementById(id);
-const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=direct-duty', import.meta.url));
+const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=sm511-control', import.meta.url));
 const volume = byId('volume'), status = byId('status');
 const mix = Object.fromEntries(['sm510', 'sm511'].map(chip => [chip, {
 	level: byId(chip + 'Mix'), mute: byId(chip + 'Mute'), readout: byId(chip + 'MixValue'), output: null,
@@ -72,10 +73,10 @@ const sm511RomRepeat = byId('sm511RomRepeat');
 const sm511CodePreview = byId('sm511CodePreview'), sm511CopyStatus = byId('sm511CopyStatus');
 const romEditor = setupSm511MelodyEditor({
 	document,
-	onChange(commands, changedAddress) {
+	onChange() {
 		clearRomCopy();
 		workspace?.melodyChanged();
-		refreshRomPlayback(commands, { changedAddress });
+		queueRomRefresh();
 	},
 });
 const sm511Pitch = byId('sm511Pitch'), sm511KeyTracking = byId('sm511KeyTracking');
@@ -97,12 +98,15 @@ let workspace, controls;
 let workspaceExpanded = false, showingExpandedChip = false;
 let codeActive = false, romStarting = false, romRequest = 0, handoffEnd = 0;
 let romWaitAddress = null;
-let rVoice, rMode, rValue = 0, coreLoading, audioCore;
+let romRefreshFrame = null, romRefreshedAt = -Infinity;
+let rVoice, rMode, rValue = 0, wasmLoading, coreLoading, audioCore, sm510Module;
+let sm511Control = null;
 const sm510Owner = Symbol('SM510 R1 demo');
 const sm510CodeOwner = Symbol('SM510 Code');
 const sm511EditorOwner = Symbol('SM511 Melody ROM editor');
 const sm511CodeOwner = Symbol('SM511 Code');
 const transportRelease = .008;
+const romRefreshIntervalMs = Math.max(SM511_PRE_SECONDS, transportRelease) * 1000;
 
 function displayNote(note, chip = selectedChip, tone) {
 	if (chip !== 'sm511') return noteLabels.get(note);
@@ -123,7 +127,7 @@ function syncTransport() {
 	sm510Stop.disabled = !playingR1;
 	sm510Controls.disabled = playingR1;
 	sm511Play.disabled = playingRom;
-	sm511Stop.disabled = !playingRom && !melodyClip && !melodyPending && !codeActive;
+	sm511Stop.disabled = !playingRom && !melodyClip && !melodyPending && !sm511Control && !codeActive;
 }
 
 function currentR() {
@@ -172,6 +176,7 @@ function drawWave() {
 		else pitch.textContent = '4,096 Hz · Continuous';
 	} else if (idlePulse) pitch.textContent = 'CPU pulse · Ready';
 	else if (sm511DriveOff) pitch.textContent = 'SM511 · R off';
+	else if (sm511 && sm511Control) pitch.textContent = 'SM511 · CPU control';
 	else if (idleRom) pitch.textContent = 'SM511 · Ready';
 	else if (showingMelody) pitch.textContent = 'SM511 · Melody ROM';
 	else if (rawMode === DIRECT_R) {
@@ -314,15 +319,23 @@ async function ensureAudio() {
 	if (audio.state !== 'running') await audio.resume();
 }
 
-function prepareSm510() {
-	coreLoading ??= fetchSm510().then(async response => {
+function loadSm510Wasm() {
+	wasmLoading ??= fetchSm510().then(response => {
 		if (!response.ok) throw new Error(`Unable to load the SM510 audio core (HTTP ${response.status}).`);
-		const { instance } = await WebAssembly.instantiate(await response.arrayBuffer());
+		return response.arrayBuffer();
+	}).catch(error => { wasmLoading = undefined; throw error; });
+	return wasmLoading;
+}
+
+function prepareSm510() {
+	coreLoading ??= loadSm510Wasm().then(async binary => {
+		const { instance, module } = await WebAssembly.instantiate(binary);
+		sm510Module = module;
 		audioCore = createSm510AudioCore(instance.exports);
 		refreshPulseTiming();
 		drawWave();
 		return audioCore;
-	}).catch(error => { coreLoading = undefined; throw error; });
+	}).catch(error => { coreLoading = undefined; wasmLoading = undefined; throw error; });
 	return coreLoading;
 }
 
@@ -500,6 +513,7 @@ function cancelRomStart() {
 function stopRomEditor() {
 	const wasStarting = romStarting;
 	cancelRomStart();
+	cancelRomRefresh();
 	handoffEnd = Math.max(handoffEnd, stopMelody(sm511EditorOwner) ?? 0);
 	if (wasStarting && !melodyClip && !melodyPending) sm511Status.textContent = 'Stopped';
 	syncTransport();
@@ -516,12 +530,14 @@ async function playRomEditor() {
 		const [, stopped] = await Promise.all([ensureAudio().then(prepareSm510), retired]);
 		if (token !== romRequest) return;
 		if (stopped) {
+			stopSm511Control();
 			if (retiringCode) handoffEnd = Math.max(handoffEnd, audio.currentTime + transportRelease);
 			cancelPendingChipWork('sm511');
 			performance.cancelPending('sm511');
 			playRomSnapshot(romEditor.getMelody(), sm511RomStart.valueAsNumber, {
 				notBefore: scheduler.stop('sm511'),
 			});
+			romRefreshedAt = window.performance.now();
 		} else sm511Status.textContent = 'Stopped';
 	} catch (error) {
 		if (token === romRequest) {
@@ -551,11 +567,8 @@ function resumeRomOffset(current, slots, repeat) {
 	return edited.offsetSeconds + Math.min(cursor - previous.offsetSeconds, edited.durationSeconds);
 }
 
-function playRomSnapshot(commands, address, { current, notBefore, changedAddress } = {}) {
+function playRomSnapshot(commands, address, { current, notBefore, fadeIn = false } = {}) {
 	const loop = sm511RomRepeat.checked;
-	const previousSlots = current?.rom.slots;
-	if (previousSlots && changedAddress !== undefined &&
-		(changedAddress < address || changedAddress > previousSlots.at(-1).address)) return;
 	const words = Uint8Array.from(commands.slice(address));
 	const slots = traceSm511Melody(words, address);
 	const buffer = createPlaybackBuffer(renderSm511Melody(audioCore, words, audio.sampleRate));
@@ -571,19 +584,38 @@ function playRomSnapshot(commands, address, { current, notBefore, changedAddress
 		return;
 	}
 	romWaitAddress = null;
-	playPreparedMelody(buffer, sm511EditorOwner, { loop, notBefore, offset, rom: { address, slots } });
+	playPreparedMelody(buffer, sm511EditorOwner, { loop, notBefore, offset, fadeIn, rom: { address, slots } });
 }
 
-function refreshRomPlayback(commands, { seekAddress, changedAddress } = {}) {
+function queueRomRefresh() {
+	if (romRefreshFrame !== null || (!melodyClip?.rom && romWaitAddress === null)) return;
+	romRefreshFrame = requestAnimationFrame(refreshRomPlayback);
+}
+
+function cancelRomRefresh() {
+	if (romRefreshFrame !== null) cancelAnimationFrame(romRefreshFrame);
+	romRefreshFrame = null;
+}
+
+function refreshRomPlayback(frameTime) {
+	romRefreshFrame = null;
 	const current = melodyClip?.rom ? melodyClip : null;
-	const address = current?.rom.address ?? romWaitAddress;
-	if (address === null || seekAddress === address) return;
-	// A Stop at the start leaves the loop waiting for that word to change.
-	if (!current && changedAddress !== undefined && changedAddress !== address) return;
+	const previousAddress = current?.rom.address ?? romWaitAddress;
+	if (previousAddress === null) return;
+	// Coalesce seek and ROM inputs. Leave time for the chip's PRE instruction
+	// and for the Web Audio handoff before preparing another replacement.
+	if (frameTime - romRefreshedAt < romRefreshIntervalMs) {
+		queueRomRefresh();
+		return;
+	}
+	const address = sm511RomStart.valueAsNumber;
+	const commands = romEditor.getMelody();
+	const sameStart = address === previousAddress;
+	if (sameStart && current && current.source.loop === sm511RomRepeat.checked &&
+		current.rom.slots.every(slot => commands[slot.address] === slot.command)) return;
 	try {
-		playRomSnapshot(commands, seekAddress ?? address, {
-			current: seekAddress === undefined ? current : null, changedAddress,
-		});
+		playRomSnapshot(commands, address, { current: sameStart ? current : null, fadeIn: true });
+		romRefreshedAt = window.performance.now();
 	} catch (error) {
 		setStatus(error.message);
 	}
@@ -597,14 +629,14 @@ async function stopTransports() {
 
 function releaseMelody() {
 	if (!melodyClip) return;
-	const { source, gain, start, offset } = melodyClip;
+	const { source, gain, start, fadeIn } = melodyClip;
 	const now = audio.currentTime, end = now + transportRelease;
 	melodyClip = null;
 	if (now < start) {
 		source.stop(now);
 		return start;
 	}
-	const level = offset > 0 ? Math.min(1, (now - start) / transportRelease) : 1;
+	const level = fadeIn ? Math.min(1, (now - start) / transportRelease) : 1;
 	gain.gain.cancelScheduledValues(now);
 	gain.gain.setValueAtTime(level, now);
 	gain.gain.linearRampToValueAtTime(0, end);
@@ -614,11 +646,14 @@ function releaseMelody() {
 
 function stopMelody(owner) {
 	const owns = playback => playback && (owner === undefined || playback.owner === owner);
+	if (owner === undefined || owner === sm511CodeOwner) stopSm511Control();
 	const canceled = owns(melodyPending);
 	if (canceled) melodyPending = null;
 	const wasWaiting = romWaitAddress !== null && (owner === undefined || owner === sm511EditorOwner);
 	if (wasWaiting) romWaitAddress = null;
-	const end = owns(melodyClip) ? releaseMelody() : undefined;
+	const ownedClip = owns(melodyClip) ? melodyClip : null;
+	if (wasWaiting || ownedClip?.rom) cancelRomRefresh();
+	const end = ownedClip ? releaseMelody() : undefined;
 	if (canceled || wasWaiting || end !== undefined) {
 		sm511Status.textContent = 'Stopped';
 		syncTransport();
@@ -628,6 +663,7 @@ function stopMelody(owner) {
 }
 
 async function playMelody(commands, owner) {
+	stopSm511Control();
 	cancelPendingChipWork('sm511');
 	performance.cancelPending('sm511');
 	const token = { owner };
@@ -661,7 +697,8 @@ async function playMelody(commands, owner) {
 	}
 }
 
-function playPreparedMelody(buffer, owner, { loop = false, notBefore = 0, offset = 0, rom = null } = {}) {
+function playPreparedMelody(buffer, owner, { loop = false, notBefore = 0, offset = 0, rom = null, fadeIn = false } = {}) {
+	stopSm511Control();
 	const source = audio.createBufferSource(), gain = audio.createGain();
 	source.buffer = buffer;
 	source.loop = loop;
@@ -669,17 +706,18 @@ function playPreparedMelody(buffer, owner, { loop = false, notBefore = 0, offset
 	gain.connect(sm511PinGain);
 	const previous = releaseMelody();
 	const start = Math.max(releaseClipAndKeys('sm511'), previous ?? 0, handoffEnd, notBefore);
-	const current = { source, gain, owner, start, offset, rom };
+	const current = { source, gain, owner, start, offset, rom, fadeIn };
 	source.onended = () => {
 		source.disconnect();
 		gain.disconnect();
 		if (melodyClip !== current) return;
 		melodyClip = null;
+		if (rom) cancelRomRefresh();
 		sm511Status.textContent = 'Melody finished';
 		syncTransport();
 		drawWave();
 	};
-	if (offset > 0) {
+	if (fadeIn) {
 		gain.gain.setValueAtTime(0, start);
 		gain.gain.linearRampToValueAtTime(1, start + transportRelease);
 	}
@@ -717,8 +755,23 @@ async function prepareScheduledMelody(commands, repeatSeconds) {
 	const core = await prepareSm510();
 	const samples = renderSm511Melody(core, commands, audio.sampleRate);
 	const buffer = samples.length ? createPlaybackBuffer(samples, null, repeatSeconds) : null;
+	return makeScheduledMelody(buffer, sm511MelodyDuration(commands), repeatSeconds);
+}
+
+async function prepareSm511Instructions({ words, end, events }, repeatSeconds) {
+	await ensureAudio();
+	await prepareSm510();
+	const controller = createSm511Controller(new WebAssembly.Instance(sm510Module).exports);
+	const duration = end / MASTER_CLOCK_HZ;
+	const samples = new Float32Array(Math.ceil(duration * audio.sampleRate));
+	controller.load(words);
+	controller.renderInto(samples, audio.sampleRate, events);
+	return makeScheduledMelody(createPlaybackBuffer(samples, null, repeatSeconds), duration, repeatSeconds);
+}
+
+function makeScheduledMelody(buffer, duration, repeatSeconds) {
 	return {
-		duration: sm511MelodyDuration(commands),
+		duration,
 		play(notBefore) {
 			const owner = Symbol('SM511 schedule');
 			cancelPendingChipWork('sm511');
@@ -731,6 +784,57 @@ async function prepareScheduledMelody(commands, repeatSeconds) {
 			return { startTime, stop: () => stopMelody(owner) };
 		},
 	};
+}
+
+function stopSm511Control() {
+	const current = sm511Control;
+	if (!current) return;
+	sm511Control = null;
+	current.client?.dispose();
+	current.gate?.disconnect();
+	sm511Status.textContent = 'Stopped';
+	syncTransport();
+	drawWave();
+}
+
+function ensureSm511Control(words) {
+	if (sm511Control) return sm511Control.ready;
+	const rom = words.slice();
+	const previous = stopMelody();
+	const scheduledEnd = scheduler.stop('sm511');
+	cancelPendingChipWork('sm511');
+	performance.cancelPending('sm511');
+	const keyEnd = audio ? releaseClipAndKeys('sm511') : 0;
+	handoffEnd = Math.max(handoffEnd, previous ?? 0, scheduledEnd ?? 0, keyEnd);
+	const current = {};
+	sm511Control = current;
+	const verify = () => {
+		if (sm511Control !== current) throw new DOMException('SM511 playback was replaced.', 'AbortError');
+	};
+	current.ready = (async () => {
+		await ensureAudio();
+		const binary = await loadSm510Wasm();
+		verify();
+		const gate = audio.createGain();
+		gate.gain.value = 0;
+		gate.connect(sm511PinGain);
+		current.gate = gate;
+		const client = await createSm511ControlAudio(audio, gate, binary);
+		if (sm511Control !== current) client.dispose();
+		verify();
+		current.client = client;
+		await client.activate(rom);
+		verify();
+		gate.gain.setValueAtTime(1, Math.max(audio.currentTime, handoffEnd));
+		sm511Status.textContent = 'SM511 CPU control';
+		drawWave();
+		return client;
+	})().catch(error => {
+		if (sm511Control === current) stopSm511Control();
+		throw error;
+	});
+	syncTransport();
+	return current.ready;
 }
 
 function restartPattern() {
@@ -784,13 +888,11 @@ function refreshRomStart() {
 	sm511RomStartValue.value = address;
 	sm511RomStart.setAttribute('aria-valuetext', address);
 	clearRomCopy();
+	queueRomRefresh();
 }
 sm511RomStart.addEventListener('input', refreshRomStart);
-sm511RomStart.addEventListener('change', () => {
-	refreshRomStart();
-	refreshRomPlayback(romEditor.getMelody(), { seekAddress: sm511RomStart.valueAsNumber });
-});
-sm511RomRepeat.addEventListener('change', () => refreshRomPlayback(romEditor.getMelody()));
+sm511RomStart.addEventListener('change', refreshRomStart);
+sm511RomRepeat.addEventListener('change', queueRomRefresh);
 function clearRomCopy() {
 	sm511CodePreview.hidden = true;
 	sm511CopyStatus.textContent = '';
@@ -1191,7 +1293,16 @@ controls = setupBuzzerCode({
 	melody: {
 		play: commands => playMelody(commands, sm511CodeOwner),
 		prepareScheduled: prepareScheduledMelody,
+		prepareInstructions: prepareSm511Instructions,
 		stop: () => stopMelody(sm511CodeOwner),
+		control: {
+			reset: stopSm511Control,
+			async command(words, op, operand) { return (await ensureSm511Control(words)).command(op, operand); },
+			async captureState() {
+				if (!sm511Control) throw new Error('Start SM511 CPU control before capturing its state.');
+				return (await sm511Control.ready).getState();
+			},
+		},
 	},
 	onExpandedChange(expanded) {
 		codeButton.setAttribute('aria-pressed', String(expanded));

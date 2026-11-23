@@ -83,4 +83,15 @@ await sm510.playCycles(pulse);
 		data: `// Low nibble is note, rest or stop. Bit 4 is octave. Bit 5 doubles the length.
 ${formatSm511MelodyCode(SM511_DEMO)}`,
 	},
+	{
+		path: '/examples/sm511-instructions.js',
+		data: `const sm511 = await useSoundChip("sm511");
+sm511.setMelody([0x0d, 0x29, 0x12, 0x01]);
+await sm511.pre(0x00);
+await sm511.tmel(); // Clear a flag left by the previous address.
+await sm511.sme();
+while (!(await sm511.tmel())) await sleep(0.002);
+await sm511.rme();
+`,
+	},
 ];

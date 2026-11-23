@@ -59,6 +59,38 @@ void sm511_render_tone(float *output, uint32_t frames, uint32_t sample_rate,
 void sm511_render_melody(float *output, uint32_t frames, uint32_t sample_rate,
                          const uint8_t *rom, uint32_t count);
 
+enum sm511_controller_command {
+    SM511_PRE = 0,
+    SM511_SME = 1,
+    SM511_RME = 2,
+    SM511_TMEL = 3,
+};
+
+/* Allocate this many bytes aligned for uint32_t. Reset initializes that
+ * storage with the melody disabled and a ROM full of Stop commands. */
+uint32_t sm511_controller_size(void);
+void sm511_controller_reset(void *storage);
+
+/* Install up to 256 six-bit ROM words and fill the tail with Stop.
+ * Preserve the clock, ROM pointer, phase and flags. */
+void sm511_controller_load(void *storage, const uint8_t *rom, uint32_t count);
+
+/* PRE uses the low eight bits of arg. TMEL returns the old stop flag and
+ * clears it. The other operations return 0. Pin updates on a master tick. */
+uint32_t sm511_controller_apply(void *storage, uint32_t op, uint32_t arg);
+
+/* Write five words: address, enabled, stop flag, last pin level (0 or 1),
+ * and whole elapsed 32,768 Hz master ticks. */
+void sm511_controller_state(void *storage, uint32_t *output);
+
+/* Integrate the R pin over each output sample. Pass a shared timeline of
+ * count [absolute master tick, op, arg] triples sorted by tick. Keep its
+ * consumed prefix stable across blocks. Same-tick operations run in order
+ * before sampling the next ROM word. Null events skip the timeline for
+ * this block. Late events are discarded when encountered. */
+void sm511_controller_render(void *storage, float *output, uint32_t frames, uint32_t sample_rate,
+                              const uint32_t *events, uint32_t count);
+
 #ifdef __cplusplus
 }
 #endif

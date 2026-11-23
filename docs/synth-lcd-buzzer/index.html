@@ -165,7 +165,7 @@
 							<output id="sm511RomStartValue" for="sm511RomStart" aria-live="off">0x00</output>
 							<input id="sm511RomStart" type="range" min="0" max="255" step="1" value="0" aria-valuetext="0x00">
 						</div>
-						<label class="chip-key-tracking sm511-rom-repeat"><input id="sm511RomRepeat" type="checkbox" aria-label="Repeat melody"> Repeat · Software</label>
+						<label class="chip-key-tracking sm511-rom-repeat"><input id="sm511RomRepeat" type="checkbox" aria-label="Repeat melody" checked> Repeat · Software</label>
 					</div>
 					<div class="transport sm511-rom-transport">
 						<button id="sm511Play" class="primary" type="button">Play melody</button>
@@ -306,7 +306,7 @@ await sm510.playCycles(pulse);</code></pre>
 							<p>The direct-output mask sends the latch to R1 and R2. Duty divides the pitch's existing period between the two output states. Each state lasts at least two machine cycles for the next <code>LAX</code> and <code>ATR</code>. No-ops and <code>T</code> or <code>TL</code> branches fit the selected timing into up to three ROM pages. CPU Pulse shows the resulting duty and pitch.</p>
 							<h3>SM511 melody controller</h3>
 							<p>The SM511 has a 256-word melody ROM. The low nibble of each six-bit word selects rest (<code>0x0</code>), stop (<code>0x1</code>) or one of 12 pitches (<code>0x2</code>–<code>0xD</code>). Bit 4 selects the octave and bit 5 selects a 62.5 or 125 ms slot.</p>
-							<p>In the app, the keyboard previews one command and <strong>Play melody</strong> plays an original phrase. Try <strong>Files → examples → sm511-melody.js</strong> to play the same commands from Code.</p>
+							<p>The keyboard previews one command and <strong>Play melody</strong> plays a phrase. In <strong>Files → examples</strong>, <code>sm511-melody.js</code> plays a phrase from Code and <code>sm511-instructions.js</code> controls the melody using PRE, SME, TMEL and RME.</p>
 							<h3>App instrument and output</h3>
 						<dl>
 								<dt>Melody ROM</dt><dd>Edit the 256 command addresses in the SM511 tab. Playback stops at a Stop command or the end of the ROM.</dd>

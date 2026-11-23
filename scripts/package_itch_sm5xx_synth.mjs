@@ -55,7 +55,7 @@ export async function packageSm5xxSynth({ version = 'dev', releaseDir = join(roo
 	const htmlName = `${slug}-html.zip`, sourceName = `${slug}-source.zip`;
 	try {
 		const { modules } = await copyReadableModules({
-			root, stage: web, entries: [`docs/${app}/synth.js`, `docs/${app}/synth.css`], factories: [],
+			root, stage: web, entries: [`docs/${app}/synth.js`, `docs/${app}/synth.css`, `docs/${app}/sm511-control-worklet.js`], factories: [],
 		});
 		for (const { path, sourcePath } of modules) await copy(join(web, path), join(source, sourcePath));
 		for (const [input, path] of [

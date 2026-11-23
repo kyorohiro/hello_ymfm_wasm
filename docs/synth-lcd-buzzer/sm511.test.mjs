@@ -5,13 +5,84 @@ import { buzzerCodeDeclarations } from './code.js';
 import { BUZZER_EXAMPLES } from './code_examples.js';
 import { createSm510AudioCore, MASTER_CLOCK_HZ } from './sm510.js';
 import {
-	buildSm511MelodySequence, compileSm511MelodySequence, createSm511CodeChip, formatSm511MelodyCode, readSm511MelodySequence,
+	SM511_PRE, SM511_SME, SM511_RME, SM511_TMEL,
+	buildSm511MelodySequence, compileSm511MelodySequence, createSm511CodeChip, createSm511Controller,
+	formatSm511MelodyCode, readSm511InstructionSequence, readSm511MelodySequence,
 	renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
 	sm511Command, sm511CommandLabel, sm511Label, traceSm511Melody, validateMelody,
 } from './sm511.js';
 
-const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
+const { instance, module } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
 const core = createSm510AudioCore(instance.exports);
+const newController = () => createSm511Controller(new WebAssembly.Instance(module).exports);
+
+test('SM511 instruction control keeps the ROM cursor clocked while R is disabled', () => {
+	const controller = newController();
+	const render = ticks => {
+		const samples = new Float32Array(ticks);
+		controller.renderInto(samples, MASTER_CLOCK_HZ);
+		return samples;
+	};
+	controller.load([0x12, 0x01, 0x29]);
+	controller.apply(SM511_PRE, 0);
+	controller.apply(SM511_SME);
+	assert(render(64).some(value => value > 0));
+	controller.apply(SM511_RME);
+	assert(render(2048 - 64).every(value => value === 0));
+	assert.equal(controller.getState().address, 1);
+	assert.equal(controller.getState().enabled, false);
+	assert.equal(controller.apply(SM511_TMEL), 0);
+	render(1);
+	assert.equal(controller.getState().stopFlag, true);
+	assert.equal(controller.getState().stopFlag, true, 'observing state retains MES');
+	assert.equal(controller.apply(SM511_TMEL), 1);
+	assert.equal(controller.apply(SM511_TMEL), 0);
+	render(1);
+	assert.equal(controller.apply(SM511_TMEL), 1, 'Stop can set MES again');
+	controller.apply(SM511_PRE, 2);
+	controller.apply(SM511_SME);
+	assert.equal(controller.getState().address, 2);
+	assert(render(64).some(value => value > 0));
+});
+
+test('SM511 timed instructions reserve two cycles and render a detached ROM snapshot', () => {
+	const chip = createSm511CodeChip({});
+	chip.setMelody([0x01, 0x12, 0x01]);
+	const plan = chip.build(b => b.pre(1).sme().atCycle(22).rme().atCycle(30));
+	chip.setMelody([0x01]);
+	const trace = chip.compile(plan);
+	assert.deepEqual(trace.map(({ operation, address, machineCycle, masterTick }) =>
+		[operation, address, machineCycle, masterTick]), [['PRE', 1, 2, 8], ['SME', undefined, 4, 16], ['RME', undefined, 24, 96]]);
+	const { words, events, end } = readSm511InstructionSequence(plan);
+	assert.deepEqual([...words.slice(0, 4)], [0x01, 0x12, 0x01, 0x01]);
+	assert.equal(end, 120);
+	const samples = new Float32Array(end), controller = newController();
+	controller.load(words);
+	controller.renderInto(samples, MASTER_CLOCK_HZ, events);
+	assert(samples.subarray(0, 16).every(sample => sample === 0));
+	assert(samples.subarray(16, 96).some(sample => sample > 0));
+	assert(samples.subarray(96).every(sample => sample === 0));
+	assert.throws(() => chip.build(b => b.pre(0).atCycle(1)), /two cycles/);
+	assert.throws(() => chip.build(b => b.pre(256)), /0x00 to 0xFF/);
+});
+
+test('SM511 live Code forwards instruction operands and reads TMEL independently', async () => {
+	const operations = [];
+	const state = { address: 2, enabled: true, stopFlag: true, pin: 0, masterTick: 24 };
+	const chip = createSm511CodeChip({ control: {
+		reset() { operations.push('load'); },
+		command(rom, operation, operand) { operations.push([rom[0], operation, operand]); return operation === SM511_TMEL ? 1 : 0; },
+		captureState() { return state; },
+	} });
+	chip.setMelody([0x12, 0x01]);
+	await chip.pre(0);
+	await chip.sme();
+	assert.equal(await chip.tmel(), true);
+	await chip.rme();
+	assert.equal(await chip.captureState(), state);
+	assert.deepEqual(operations, ['load', [0x12, SM511_PRE, 0], [0x12, SM511_SME, undefined],
+		[0x12, SM511_TMEL, undefined], [0x12, SM511_RME, undefined]]);
+});
 
 test('SM511 maps legacy note values to the two real ROM octaves', () => {
 	assert.deepEqual([48, 49, 60, 61, 72, 84].map(sm511Label), ['C6', 'C♯5', 'C6', 'C♯6', 'C7', 'C7']);

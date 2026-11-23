@@ -176,7 +176,7 @@ export function setupSm511MelodyEditor({ document, onChange = () => {} }) {
 		if (rom[address] === word) return;
 		rom[address] = word;
 		render();
-		onChange(getMelody(), address);
+		onChange();
 	}
 	pitch.addEventListener('change', () => {
 		const command = Number(pitch.value);

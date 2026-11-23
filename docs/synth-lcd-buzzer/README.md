@@ -59,19 +59,26 @@ with Stop commands.
 
 Choose a **Start address** from `0x00` to `0xFF` and press **Play melody**.
 The address selected in the grid is the one you edit. During playback,
-**Start address** updates the hexadecimal readout as you move the slider
-and seeks when you finish adjusting it. Each pass ends at the first Stop
-or at the end of the ROM. **Repeat · Software** repeats the phrase from
+**Start address** updates the hexadecimal readout and seeks as you move the
+slider. Each pass ends at the first Stop or at the end of the ROM.
+**Repeat · Software** repeats the phrase from
 the selected start address. If that address contains Stop, Repeat waits
 silently there. Edit that command or choose a new start address to resume
 playback. Turn Repeat off to finish the current pass or end the silent
-wait. Melody ROM Repeat defaults off and is independent of the keyboard's
+wait. Melody ROM Repeat defaults on and is independent of the keyboard's
 Repeat switch. Press **Stop melody** to end playback.
 
-Changes to a note, rest, or duration take effect during playback. The
-player keeps its current address and elapsed position when the edited ROM
-allows it. If a Stop edit cuts off the current position, Repeat returns to
-the selected start address. **Copy as Code**
+Changes to a note, rest, or duration take effect during playback. Start
+address changes and ROM edits share a preview update. It uses the latest
+values at most once per browser frame, with at least 8 ms between audio
+updates for the transition. This exceeds the roughly 244 µs of a two-cycle
+`PRE` instruction at the SM511's reset CPU clock. ROM editing is an app
+feature for previewing changes to the hardware's fixed ROM contents.
+[Sharp SM511/SM512 timing, p. 166](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=175)
+
+The player keeps its current address and elapsed position when the edited
+ROM allows it. If a Stop edit cuts off the current position, Repeat returns
+to the selected start address. **Copy as Code**
 copies all 256 commands and the chosen start address into a one-pass script
 that calls `sm511.setMelody()` and `sm511.play()`.
 
@@ -99,12 +106,56 @@ sm511.setMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 await sm511.play(0x02);
 ```
 
-Existing scripts can also use `playMelody(words)` and `stopMelody()` to
-play a command array directly. To inspect or schedule playback of the loaded
-ROM, make a snapshot with `build(address)`. The address defaults to `0x00`.
+`playMelody(words)` plays a standalone command array and keeps the loaded
+ROM. `stopMelody()` is a compatibility name for `stop()`, which stops
+immediate playback. To inspect or schedule playback of the loaded ROM, make
+a snapshot with `build(address)`. The address defaults to `0x00`.
 `build(words)` also accepts a command array directly at `0x00`. See
 [Named timed playback](#named-timed-playback) for `compile()`, `schedule()`,
 and `clearSchedule()`.
+
+#### SM511 melody controller instructions
+
+`setMelody(words)` supplies the emulated chip's mask ROM. It resets an
+existing instruction session. The first instruction starts a C++ controller
+in an AudioWorklet. Use `pre(address)` to set the ROM pointer and clear the
+step counter, `sme()` to enable the R output, and `rme()` to disable it while
+the controller clock continues. `tmel()` tests and clears the Stop flag.
+The controller sets the flag again while its address still contains Stop.
+`captureState()` observes the active controller's address, enable flag,
+Stop flag, R pin and elapsed master ticks. It keeps the Stop flag intact.
+
+```js
+const sm511 = await useSoundChip('sm511');
+sm511.setMelody([0x0d, 0x09, 0x12, 0x01]);
+await sm511.pre(0x00);
+await sm511.tmel(); // Clear any flag left by the previous address.
+await sm511.sme();
+while (!(await sm511.tmel())) await sleep(0.002);
+await sm511.rme();
+```
+
+Code acknowledges live instructions on the audio render clock. For
+deterministic timing, pass an instruction recorder to `build()`.
+`atCycle()` sets the time the instruction begins. Each `PRE`, `SME` or `RME`
+uses two machine cycles at the 8,192 Hz reset CPU clock. The plan includes
+the loaded ROM and the final cycle. `compile()` reports instruction
+completion times. Use live `tmel()` for firmware-style decisions based on
+the Stop flag. A timed plan records a fixed sequence of instructions.
+
+```js
+const plan = sm511.build(b => {
+  b.pre(0x02).sme();
+  b.atCycle(400).rme();
+  b.atCycle(512);
+});
+console.table(sm511.compile(plan));
+await sm511.schedule(plan, { name: 'sm511-pulse' });
+```
+
+`play(address)` plays one pass through the first Stop. Instruction playback
+keeps clocking until Code stops, `stop()` is called, or another SM511 voice
+takes over. The two playback modes share the SM511 output and its Mixer level.
 
 ## Mixer
 
@@ -133,6 +184,18 @@ Either Stop ends Code and Melody ROM editor playback.
 
 The SM510 and SM511 tabs distinguish each chip’s hardware behavior from app
 controls. The Melody ROM editor, Keyboard, Code, and Mixer belong to the app.
+
+### JavaScript API quick reference
+
+| `useSoundChip()` ID | Immediate playback | Prepare timed playback |
+| --- | --- | --- |
+| `sm510-direct` | `write(REG_R, value)` for the R latch. `noteOn()` and `noteOff()` for pitched pulses. | `build()` records `atCycle().write()` operations. `pulseTiming()` reports an executable pulse width. `playCycles()` plays a plan once. |
+| `sm510-dk52` | `write(REG_R, value)` for the divider gate. `noteOn()` and `noteOff()` for gated beeps. | `build()` records `atCycle().write()` operations. `playCycles()` plays a plan once. |
+| `sm511` | `setMelody(words)`, `play(address)` and `stop()` for one-shot playback. `pre()`, `sme()`, `rme()` and `tmel()` for instruction control. | `build(address)` snapshots the ROM from an address. `build(words)` makes a standalone plan. `build(b => …)` records timed instructions. |
+
+All three clients use `compile(plan)` to inspect timing, `schedule(plan, options)`
+to start a named reservation and `clearSchedule(name)` to cancel it. The two
+SM510 clients also expose the app's `setPattern()` and `playPattern()` helpers.
 
 ```js
 const buzzer = await useSoundChip('sm510-direct');
@@ -258,7 +321,7 @@ more cycles, the program can put them on separate pages and use a third
 page to extend a phase beyond 63 cycles. These layouts follow the SM510's
 polynomial program-counter order. The app renders the resulting latch
 timing with the WASM core.
-[Sharp Microcomputers Data Book, SM510 pp. 149, 152–153, 157](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
+[Sharp Microcomputers Data Book, SM510 pp. 149–158](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=158)
 
 The sequencer plays complete Direct R periods within each note's time
 window. Live keyboard playback uses a short gain fade on release.
@@ -396,3 +459,64 @@ project, including both saved files and working drafts, between browsers.
 To try the browser app from a local checkout, run `python3 -m http.server --directory docs 8000` and open [Tetorica SM510 Synth](http://localhost:8000/synth-lcd-buzzer/). Run `npm run test:lcd-buzzer-synth` for the audio and Cassette tests.
 
 The software oscillator and example sources are original. The source is available under the repository's [BSD 3-Clause license](../../LICENSE).
+
+## References
+
+### Sharp Hardware Documentation
+
+- Sharp's original data book covers the SM510, SM511 and SM512 CPU architecture,
+  instruction sets, buzzer circuits, Melody ROM and development equipment.
+  The page numbers below are printed on the pages. The links open the
+  corresponding pages in the PDF scan.
+  [Sharp Microcomputers Data Book (1990)](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
+- **SM510**. See pp. 149–158 for the chip description, p. 155 for R1/R2 and
+  the buzzer circuit, and p. 157 for the `ATR` opcode and accumulator transfer.
+  [SM510 chapter](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=158) ·
+  [Buzzer output, p. 155](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=164) ·
+  [Instruction table, p. 157](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=166)
+- **SM511 / SM512**. See p. 161 for the single `R` output, p. 166 for the two
+  CPU clock rates, the 256 × 6-bit Melody ROM and the waveforms in Fig. 5, and
+  p. 170 for `PRE`, `SME`, `RME` and `TMEL`.
+  [Pins, p. 161](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=170) ·
+  [Clock and Melody ROM, p. 166](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=175) ·
+  [Instruction table, p. 170](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=179)
+
+### MAME — SM5xx CPU Emulation
+
+- SM510 CPU behavior, including the Direct R and divided output paths and
+  R2's inverted divider phase.
+  [SM510 CPU implementation](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510.cpp) ·
+  [R output mask options](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510base.h#L36-L41)
+- Shared CPU behavior, timers, divider and program counter. The execution
+  loop accounts separately for the second byte of a two-byte instruction.
+  [SM510 common CPU implementation](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510base.cpp) ·
+  [Instruction fetch and cycle accounting](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510base.cpp#L282-L308)
+- SM511/SM512 CPU behavior and the melody controller, including the waveform
+  phase table, Stop flag and address timing.
+  [SM511 / SM512 implementation](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm511.cpp)
+- Instruction effects for the R latch and the melody controller. The
+  disassembler tables help match byte encodings to SM510 and SM511 mnemonics.
+  [SM5xx instruction implementation](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510op.cpp) ·
+  [MAME disassembler tables](https://github.com/mamedev/mame/blob/master/src/devices/cpu/sm510/sm510d.cpp)
+
+### MAME — LCD Handheld Games
+
+- The handheld drivers identify chip variants, mask options and buzzer wiring
+  for individual Game & Watch and other LCD units. The Donkey Kong DK-52
+  configuration routes R1 to the piezo. Mickey & Donald DM-53 routes R2.
+  [Handheld LCD game drivers](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp) ·
+  [DK-52 configuration](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800) ·
+  [DM-53 R2 connection](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1852-L1858)
+
+### Development Tools
+
+- Sharp lists the **SME-30** emulator as **LU4DH300**, the SM510 evaluation
+  board as **LU510H2A**, and its evaluation card as **LU510H4A**. The same
+  product table lists breadboard emulation for the SM511/SM512.
+  [Development support tools, p. 6](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=15)
+- The evaluation-board and emulator sections describe the historical
+  workflow for testing programs before mask-ROM production. A host PC ran
+  the development tools and connected to the emulator over RS-232C. The
+  emulator supported single-step execution, breakpoints and tracing.
+  [SM-series evaluation boards, pp. 254–258](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=263) ·
+  [SME-30 emulator, p. 259](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=268)

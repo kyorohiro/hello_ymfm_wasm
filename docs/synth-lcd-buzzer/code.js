@@ -4,7 +4,7 @@ import { setupSynthCodeControls } from '../synth/synth_code_controls.js';
 import { selectCodeHostDeclarations } from '../synth/synth_code_declarations.js';
 import { buzzerMidi } from './buzzer.js';
 import { DIRECT_R, DK52_R, createSm510CodeChip, readSm510CycleSequence } from './sm510.js';
-import { createSm511CodeChip, readSm511MelodySequence } from './sm511.js';
+import { createSm511CodeChip, readSm511InstructionSequence, readSm511MelodySequence } from './sm511.js';
 
 export const BUZZER_STARTER = `const buzzer = await useSoundChip("sm510-direct");
 setBpm(120);
@@ -74,6 +74,22 @@ interface Sm511MelodySlot {
   address: number; command: number; masterTick: number; durationTicks: number;
   offsetSeconds: number; durationSeconds: number;
 }
+interface Sm511ControllerState {
+  address: number; enabled: boolean; stopFlag: boolean; pin: number; masterTick: number;
+}
+interface Sm511InstructionBuilder {
+  atCycle(machineCycle: number): Sm511InstructionBuilder;
+  pre(address: number): Sm511InstructionBuilder;
+  sme(): Sm511InstructionBuilder;
+  rme(): Sm511InstructionBuilder;
+}
+interface Sm511InstructionSequence {
+  readonly machineCycles: number;
+}
+interface Sm511Instruction {
+  operation: 'PRE' | 'SME' | 'RME'; address?: number;
+  machineCycle: number; masterTick: number; offsetSeconds: number;
+}
 interface BuzzerScheduleOptions {
   name: string; repeatSeconds?: number;
 }
@@ -95,16 +111,30 @@ interface Sm510CodeChip<Id extends Sm510CodeId = Sm510CodeId> extends BuzzerTime
   compile(sequence: Sm510CycleSequence): Sm510CycleWrite[];
   playCycles(sequence: Sm510CycleSequence): Promise<boolean>;
 }
-interface Sm511CodeChip extends BuzzerTimedPlayback<Sm511MelodySequence> {
+interface Sm511CodeChip extends BuzzerTimedPlayback<Sm511MelodySequence | Sm511InstructionSequence> {
   readonly id: 'sm511';
   readonly clock: 32768;
+  readonly machineCycleHz: 8192;
   setMelody(words: readonly number[] | Uint8Array): void;
   play(startAddress?: number): Promise<boolean>;
   stop(): void;
+  /** PRE presets the ROM pointer and clears the step counter. */
+  pre(address: number): Promise<void>;
+  /** SME enables the melody output. */
+  sme(): Promise<void>;
+  /** RME disables the melody output. The controller clock continues. */
+  rme(): Promise<void>;
+  /** TMEL reports the melody stop flag and clears it. */
+  tmel(): Promise<boolean>;
+  captureState(): Promise<Sm511ControllerState>;
   build(startAddress?: number): Sm511MelodySequence;
   build(commands: readonly number[] | Uint8Array): Sm511MelodySequence;
+  build(record: (program: Sm511InstructionBuilder) => void): Sm511InstructionSequence;
   compile(sequence: Sm511MelodySequence): Sm511MelodySlot[];
+  compile(sequence: Sm511InstructionSequence): Sm511Instruction[];
+  /** Play a standalone command array while keeping the loaded ROM. */
   playMelody(commands: readonly number[] | Uint8Array): Promise<boolean>;
+  /** Compatibility name for stop(), which stops immediate playback. */
   stopMelody(): void;
 }
 type BuzzerCodeChipMap = {
@@ -181,6 +211,8 @@ export function setupBuzzerCode({
 	const sm511Timed = scheduler.createClient({
 		channel: 'sm511',
 		prepare(plan, repeatSeconds) {
+			const instructions = readSm511InstructionSequence(plan);
+			if (instructions) return melody.prepareInstructions(instructions, repeatSeconds);
 			return melody.prepareScheduled(readSm511MelodySequence(plan), repeatSeconds);
 		},
 	});
