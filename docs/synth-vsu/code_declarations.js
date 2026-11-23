@@ -36,13 +36,19 @@ interface VsuRegisterControls<Result> {
   setVolume(channel: VsuChannel, left: number, right: number): Result;
   /** Select a bank for CH1–5. The Noise channel has no wave bank. */
   setWaveBank(channel: VsuWaveChannel, bank: VsuWaveBank): Result;
+  /** Write the 11-bit VSU frequency register (0–2047). */
+  setFrequencyRegister(channel: VsuChannel, value: number): Result;
+  /** Open the hardware gate. Omit the interval for continuous output, or pass the register index 0–31. */
+  keyOn(channel: VsuChannel, interval?: number | null): Result;
+  /** Close the hardware gate immediately. */
+  keyOff(channel: VsuChannel): Result;
   /** Update the supplied settings. Writing level, rate, or direction reloads the envelope. */
   setEnvelope(channel: VsuChannel, settings: VsuEnvelopeSettings): Result;
   /** Reload the currently programmed EV0 without changing the note gate. */
   resetEnvelope(channel: VsuChannel): Result;
-  /** Start a note by name (e.g. C4) or MIDI 0–127. On CH6 the note sets the Noise shift rate. */
+  /** Set pitch and reload the envelope before opening the gate. On CH6 the note sets the Noise shift rate. */
   noteOn(channel: VsuChannel, note: string | number): Result;
-  /** Close this channel's gate. */
+  /** Release a PCM voice with an 8 ms software fade. Release CH6 immediately. */
   noteOff(channel: VsuChannel): Result;
   /** Write the chip's global stop register. */
   allNotesOff(): Result;
@@ -60,6 +66,8 @@ interface VsuTimedWrite {
   value: number;
   /** Merge the marked bits at playback time. Mask 0 reloads the current EV0 byte. */
   mask?: number;
+  /** Start an 8 ms PCM release at this row's time. The gate closes when the fade ends. */
+  fadeMs?: 8;
   operationIndex: number;
   writeIndex: number;
 }

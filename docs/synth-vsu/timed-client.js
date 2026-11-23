@@ -7,7 +7,7 @@ import {
 	validateVsuScheduleOwner,
 	validateVsuScheduleTransaction,
 	validateVsuTimedFields,
-} from './timed-operations.js?v=vsu-envelope-patch';
+} from './timed-operations.js?v=vsu-note-gate';
 
 /** Attach stateless register plans and the Code runtime's reservation lifecycle. */
 export function attachVsuTimedClient(api, request) {

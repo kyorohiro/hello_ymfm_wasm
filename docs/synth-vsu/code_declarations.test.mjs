@@ -35,22 +35,33 @@ const chip = await useSoundChip('vsu');
 chip.setWave(2, new Uint8Array(32));
 chip.setWaveSample(2, 31, 63);
 chip.setWaveBank(CH5, 2);
+chip.setFrequencyRegister(CH6, 0x7f0);
+chip.keyOn(CH6, 31);
+chip.keyOff(CH6);
+chip.keyOn(CH1);
 chip.setEnvelope(CH6, { level: 15, rate: 3, direction: 'down', enabled: true, repeat: false });
 chip.setEnvelope(CH1, { level: 15 });
 chip.setEnvelope(CH1, { enabled: false });
 chip.resetEnvelope(CH6);
 chip.noteOn(CH6, 60);
-const plan = chip.build(b => b.atSample(0).setEnvelope(CH1, { level: 8 }).noteOn(CH1, 'C4').atSeconds(0.2).noteOff(CH1));
-const value: number = (await chip.compile(plan))[0].value;
+const plan = chip.build(b => b.atSample(0).setFrequencyRegister(CH6, 0x7f0).keyOn(CH6, 0).keyOff(CH6)
+  .setEnvelope(CH1, { level: 8 }).noteOn(CH1, 'C4').atSeconds(0.2).noteOff(CH1));
+const rows = await chip.compile(plan);
+const value: number = rows[0].value;
+const fadeMs: 8 | undefined = rows.at(-1)?.fadeMs;
 const accepted: VsuScheduleReceipt = await chip.schedule(plan, { name: 'phrase', repeatSeconds: 0.5 });
 const cleared: boolean = await chip.clearSchedule(accepted.name);
 const patch = await file<{ name: string }>('patch.vsu.json', { type: 'json' });
 await livePrepare('test', api => api.useSoundChip('vsu'));
-pg.log(cleared, value, patch.name);
+pg.log(cleared, value, fadeMs, patch.name);
 // @ts-expect-error only VSU is available
 useSoundChip('ym2612');
 // @ts-expect-error only six channels
 chip.noteOn(6, 60);
+// @ts-expect-error keyOn takes a hardware interval rather than a note name
+chip.keyOn(CH1, 'C4');
+// @ts-expect-error keyOff is an immediate hardware gate close
+chip.keyOff(CH1, 8);
 // @ts-expect-error CH6 is Noise
 chip.setWaveBank(CH6, 0);
 // @ts-expect-error only five banks

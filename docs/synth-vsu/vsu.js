@@ -8,6 +8,7 @@ export const VSU_WAVE_LENGTH = 32;
 export const VSU_SOUND_STOP = 0x580;
 export const VSU_NOISE_PATTERN_LENGTHS = Object.freeze([32767, 1953, 254, 217, 73, 63, 42, 28]);
 export const VSU_INTERVAL_STEP_MS = 3.84;
+export const VSU_PCM_RELEASE_MS = 8;
 export const VSU_REGISTERS = Object.freeze({
 	INT: 0x00, LRV: 0x04, FQL: 0x08, FQH: 0x0c, EV0: 0x10, EV1: 0x14, RAM: 0x18, SWP: 0x1c,
 });
@@ -45,6 +46,13 @@ export function vsuMaskedEnvelopeTarget(offset, mask, value) {
 	return { channel, register };
 }
 
+export function vsuPcmReleaseTarget(offset, value, fadeMs) {
+	if (value !== 0 || fadeMs !== VSU_PCM_RELEASE_MS || !Number.isInteger(offset)) return null;
+	const relative = offset - FIRST_CHANNEL_REGISTER;
+	const channel = relative / CHANNEL_REGISTER_STRIDE;
+	return Number.isInteger(channel) && channel >= 0 && channel < VSU_CHANNEL_COUNT - 1 ? channel : null;
+}
+
 export function vsuWaveOffset(bank, index) {
 	checkInteger(bank, 0, VSU_WAVE_BANK_COUNT - 1, 'Wave bank');
 	checkInteger(index, 0, VSU_WAVE_LENGTH - 1, 'Wave sample index');
@@ -72,14 +80,21 @@ export function vsuFrequencyWrites(channel, frequency) {
 	];
 }
 
-export function vsuStartWrites(channel, frequency, interval = null) {
+function vsuKeyOnWrite(channel, interval) {
 	if (interval !== null) checkInteger(interval, 0, 31, 'VSU interval index');
-	return [...vsuFrequencyWrites(channel, frequency),
-		[vsuChannelRegister(channel, VSU_REGISTERS.INT), interval === null ? 0x80 : 0xa0 | interval]];
+	return [vsuChannelRegister(channel, VSU_REGISTERS.INT), interval === null ? 0x80 : 0xa0 | interval];
+}
+
+export function vsuStartWrites(channel, frequency, interval = null) {
+	return [...vsuFrequencyWrites(channel, frequency), vsuKeyOnWrite(channel, interval)];
 }
 
 export function vsuNoteOnWrites(channel, note) {
 	return vsuStartWrites(channel, vsuFrequencyRegister(channel, note));
+}
+
+function vsuResetEnvelopeWrite(channel) {
+	return [vsuChannelRegister(channel, VSU_REGISTERS.EV0), 0, 0];
 }
 
 const WAVE_SHAPES = {
@@ -132,6 +147,15 @@ export function createVsuClient(audio) {
 			checkInteger(bank, 0, VSU_WAVE_BANK_COUNT - 1, 'Wave bank');
 			return write(vsuChannelRegister(channel, VSU_REGISTERS.RAM), bank);
 		},
+		setFrequencyRegister(channel, value) {
+			return audio.writeBatch(vsuFrequencyWrites(channel, value));
+		},
+		keyOn(channel, interval = null) {
+			return write(...vsuKeyOnWrite(channel, interval));
+		},
+		keyOff(channel) {
+			return write(vsuChannelRegister(channel, VSU_REGISTERS.INT), 0);
+		},
 		setEnvelope(channel, options) {
 			const ev0Offset = vsuChannelRegister(channel, VSU_REGISTERS.EV0);
 			const ev1Offset = vsuChannelRegister(channel, VSU_REGISTERS.EV1);
@@ -154,13 +178,16 @@ export function createVsuClient(audio) {
 			if (writes.length) return audio.writeEnvelope(writes);
 		},
 		resetEnvelope(channel) {
-			return audio.writeEnvelope([[vsuChannelRegister(channel, VSU_REGISTERS.EV0), 0, 0]]);
+			return audio.writeEnvelope([vsuResetEnvelopeWrite(channel)]);
 		},
 		noteOn(channel, note) {
-			return audio.writeBatch(vsuNoteOnWrites(channel, note));
+			const [low, high, gate] = vsuNoteOnWrites(channel, note);
+			return audio.writeNote([low, high, vsuResetEnvelopeWrite(channel), gate]);
 		},
 		noteOff(channel) {
-			return write(vsuChannelRegister(channel, VSU_REGISTERS.INT), 0);
+			const gate = vsuChannelRegister(channel, VSU_REGISTERS.INT);
+			if (channel === VSU_CHANNEL_COUNT - 1) return write(gate, 0);
+			return audio.writeNote([[gate, 0, undefined, VSU_PCM_RELEASE_MS]]);
 		},
 		allNotesOff() {
 			return write(VSU_SOUND_STOP, 1);

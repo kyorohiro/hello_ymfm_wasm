@@ -10,6 +10,7 @@ test('the VSU recorder matches immediate writes and preserves equal-time and hel
 	const api = attachVsuTimedClient(createVsuClient({
 		write(offset, value) { immediate.push([offset, value]); },
 		writeBatch(writes) { immediate.push(...writes); },
+		writeNote(writes) { immediate.push(...writes); },
 	}), () => assert.fail('Building or compiling must not call the Worklet.'));
 	const wave = Uint8Array.from({ length: 32 }, (_, index) => index * 2);
 	const groups = [
@@ -30,13 +31,33 @@ test('the VSU recorder matches immediate writes and preserves equal-time and hel
 	wave.fill(0);
 
 	const rows = await api.compile(JSON.parse(JSON.stringify(plan)));
-	assert.deepEqual(rows.map(({ register, value }) => [register, value]), immediate);
-	assert.deepEqual(rows.slice(-4).map(({ offsetSeconds, operationIndex, writeIndex }) =>
+	assert.deepEqual(rows.map(({ register, value, mask, fadeMs }) => [register, value, mask, fadeMs]),
+		immediate.map(([register, value, mask, fadeMs]) => [register, value, mask, fadeMs]));
+	assert.deepEqual(rows.slice(-5).map(({ offsetSeconds, operationIndex, writeIndex }) =>
 		[offsetSeconds, operationIndex, writeIndex]), [
-		[0.05, 6, 0], [0.05, 6, 1], [0.05, 6, 2], [0.075, 7, 0],
+		[0.05, 6, 0], [0.05, 6, 1], [0.05, 6, 2], [0.05, 6, 3], [0.075, 7, 0],
 	]);
+	assert.deepEqual(rows.at(-3), { offsetSeconds: 0.05, register: 0x510, value: 0, mask: 0, operationIndex: 6, writeIndex: 2 });
+	assert.deepEqual(rows.at(-1), { offsetSeconds: 0.075, register: 0x500, value: 0, fadeMs: 8, operationIndex: 7, writeIndex: 0 });
 	rows[0].value = 0;
 	assert.equal(plan.writes[0].value, 1);
+});
+
+test('timed key helpers preserve raw INT writes and accept fades only on PCM gate-off rows', async () => {
+	const api = attachVsuTimedClient({}, () => assert.fail('Compilation must not use the Worklet.'));
+	const plan = api.build(builder => builder
+		.setFrequencyRegister(5, 0x7f0).keyOn(5, 31).atSeconds(0.125).noteOff(5)
+		.keyOn(0).atSeconds(0.25).keyOff(0).noteOff(0));
+	const rows = await api.compile(JSON.parse(JSON.stringify(plan)));
+	assert.deepEqual(rows.map(({ register, value, fadeMs }) => [register, value, fadeMs]), [
+		[0x548, 0xf0, undefined], [0x54c, 7, undefined], [0x540, 0xbf, undefined], [0x540, 0, undefined],
+		[0x400, 0x80, undefined], [0x400, 0, undefined], [0x400, 0, 8],
+	]);
+	for (const change of [{ register: 0x540 }, { register: 0x404 }, { register: 0x410, mask: 0 }, { value: 0x80 }, { fadeMs: 7 }]) {
+		const invalid = structuredClone(plan);
+		Object.assign(invalid.writes.at(-1), change);
+		assert.throws(() => validateVsuOperations(invalid), /VSU PCM release/);
+	}
 });
 
 test('the VSU plan rejects invalid timing, incomplete writes, and asynchronous callbacks', () => {

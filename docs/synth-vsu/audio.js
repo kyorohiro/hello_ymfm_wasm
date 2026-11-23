@@ -2,7 +2,7 @@
 import { createVgmSeekClient } from './vgm-seek-client.js';
 import { CH5 } from './ch5.js';
 import { isVsuEnvelopeEdit } from './envelope.js?v=vsu-code-envelope';
-import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget, vsuNoteOnWrites } from './vsu.js?v=vsu-envelope-patch';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget, vsuNoteOnWrites, vsuPcmReleaseTarget } from './vsu.js?v=vsu-note-gate';
 
 const PROCESSOR = 'tetorica-vsu';
 const WORKLET_TIMEOUT_MS = 10000;
@@ -164,7 +164,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-envelope-patch', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-note-gate', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -301,6 +301,15 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			}
 			send({ type: 'envelope-writes', writes });
 		},
+		writeNote(writes) {
+			for (const [offset, value, mask, fadeMs] of writes) {
+				validateWrite(offset, value);
+				if (offset % 4 || (mask !== undefined && !vsuMaskedEnvelopeTarget(offset, mask, value)) ||
+					(fadeMs !== undefined && (mask !== undefined || vsuPcmReleaseTarget(offset, value, fadeMs) === null)))
+					throw new RangeError('Choose a valid VSU note write.');
+			}
+			send({ type: 'note-writes', writes });
+		},
 		writeCodeEnvelope(channels, register, mask, value) {
 			const current = session;
 			if (!current?.active || current.vgmSeek || (current.vgmId && current.vgmState !== 'ended')) return;
@@ -388,13 +397,23 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		},
 		synthKeyOn(settings) { return sendSynthKey(settings, false); },
 		editSynthKey(settings) { return sendSynthKey(settings, true); },
-		liveNoteOff({ source, channel, playbackId, owner }) {
+		keyboardNoteOff(channel, pairs) {
+			const gate = vsuChannelRegister(channel, VSU_REGISTERS.INT);
+			const writes = packWrites(pairs);
+			for (let index = 0; index < writes.length; index += 2) {
+				const offset = writes[index];
+				if (offset % 4 || offset <= gate || offset > gate + VSU_REGISTERS.SWP)
+					throw new RangeError('Keyboard release can restore only its VSU channel settings.');
+			}
+			send({ type: 'keyboard-note-off', channel, writes }, [writes.buffer]);
+		},
+		liveNoteOff({ source, channel, playbackId, owner, immediate = false }) {
 			const current = session;
 			if (!current?.active || !validLiveNoteOwner(channel, owner)) return false;
 			if (source === 'vgm') {
 				if (current.vgmSeek || current.vgmStopping || current.vgmId === null || current.vgmId !== playbackId) return false;
 			} else if (source !== 'synth' || playbackId !== null) return false;
-			send({ type: 'live-note-off', source, channel, playbackId, owner });
+			send({ type: 'live-note-off', source, channel, playbackId, owner, immediate });
 			return true;
 		},
 		playVgm(source, { loop = false, mask = 63 } = {}) {

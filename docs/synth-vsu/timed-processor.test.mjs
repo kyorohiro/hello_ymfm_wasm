@@ -36,6 +36,7 @@ function setup() {
 		},
 		write: (offset, value) => send({ type: 'write', offset, value }),
 		batch: pairs => send({ type: 'batch', writes: pairs.flat() }),
+		gate: channel => Boolean(worklet.core.vsu_get_channel(worklet.state, channel) & 0x100),
 		render(frames = 128) {
 			const left = new Float32Array(frames), right = new Float32Array(frames);
 			assert.equal(worklet.process([], [[left, right]]), true);
@@ -78,6 +79,36 @@ test('the Worklet splits WASM rendering at exact frames for repeated raw writes'
 	assert.deepEqual(mixed, expected);
 });
 
+test('a scheduled PCM note releases for eight milliseconds starting at the requested frame', () => {
+	const chip = setup();
+	configure(chip);
+	const releaseAt = 177;
+	const phrase = plan(b => b.atSample(19).noteOn(0, 'C4').atSample(releaseAt).noteOff(0));
+	const receipt = chip.request('schedule', { plan: phrase, options: { name: 'release' } });
+	const start = receipt.startFrame + releaseAt;
+	const end = start + Math.round(rate * .008);
+	const samples = chip.render(end - 1);
+	const peak = samples[start - 1];
+	assert(peak > 0);
+	assert.equal(samples[start], peak);
+	assert(Math.abs(samples[start + 192] / peak - .5) < .02);
+	assert(chip.gate(0));
+	assert.equal(chip.render(1)[0], 0);
+	assert.equal(chip.gate(0), false);
+	assert.equal(audible(chip.render()), false);
+});
+
+test('scheduled keyOff on the same channel closes an in-progress note release immediately', () => {
+	const chip = setup();
+	configure(chip);
+	const phrase = plan(b => b.keyOn(0).atSample(96).noteOff(0).atSample(160).keyOff(0));
+	const receipt = chip.request('schedule', { plan: phrase, options: { name: 'hard-stop' } });
+	const samples = chip.render(768);
+	const stop = receipt.startFrame + 160;
+	assert(samples[stop - 1] > 0);
+	assert(samples.subarray(stop + 2).every(value => value === 0));
+});
+
 test('stage validates without firing and commit atomically anchors a new manifest', () => {
 	const chip = setup();
 	configure(chip);
@@ -115,7 +146,7 @@ test('timed gate-off and cancellation keep a newer manual key, and VGM retires S
 	assert.equal(audible(chip.render(160).subarray(100)), true);
 	assert.equal(chip.request('clear', { name: 'pulse' }), true);
 	assert.equal(audible(chip.render()), true);
-	chip.send({ type: 'live-note-off', source: 'synth', playbackId: null, channel: 0, owner: 99 });
+	chip.send({ type: 'live-note-off', source: 'synth', playbackId: null, channel: 0, owner: 99, immediate: true });
 	assert.equal(audible(chip.render(128).subarray(20)), false);
 	chip.request('schedule', { plan: phrase, options: { name: 'pulse', repeatSeconds: 0.05 } });
 	chip.send({ type: 'vgm-play', id: 1, mask: 63, plan: {

@@ -3,7 +3,7 @@ import { createPerformanceQueue } from '../js/playground_performance_queue.js';
 import {
 	validateVsuOperations, validateVsuScheduleName, validateVsuScheduleOptions,
 	validateVsuScheduleOwner, validateVsuScheduleTransaction,
-} from './timed-operations.js?v=vsu-envelope-patch';
+} from './timed-operations.js?v=vsu-note-gate';
 
 const LEAD_FRAMES = 128;
 const MAX_TRANSACTIONS = 128;
@@ -14,7 +14,7 @@ const DEFAULT_OWNER = 'vsu:client';
 export function createVsuTimedProcessor({ nowFrame, sampleRate, write, release, vgmOwnsOutput, reportError }) {
 	const timeline = createPerformanceQueue({
 		nowFrame, sampleRate,
-		apply({ register, value, mask }, _reply, _frame, owner) { write(register, value, owner, mask); },
+		apply({ register, value, mask, fadeMs }, _reply, _frame, owner) { write(register, value, owner, mask, fadeMs); },
 		onReleasePattern: release,
 	});
 	const staged = new Map();
@@ -29,8 +29,9 @@ export function createVsuTimedProcessor({ nowFrame, sampleRate, write, release, 
 		return {
 			...options,
 			performance: { session, owner, time },
-			entries: plan.writes.map(({ offsetSeconds, register, value, mask }) => ({
-				offsetSeconds, command: { type: 'write', register, value, ...(mask === undefined ? {} : { mask }) },
+			entries: plan.writes.map(({ offsetSeconds, register, value, mask, fadeMs }) => ({
+				offsetSeconds, command: { type: 'write', register, value,
+					...(mask === undefined ? {} : { mask }), ...(fadeMs === undefined ? {} : { fadeMs }) },
 			})),
 		};
 	}

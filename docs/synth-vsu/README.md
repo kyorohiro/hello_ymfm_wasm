@@ -95,15 +95,18 @@ The helpers also accept zero-based channel numbers and MIDI note numbers. For wa
 | `0x18` | Wave bank on channels 1–5 |
 | `0x1c` | Sweep timing, shift, and direction on channel 5 |
 
+`setFrequencyRegister(channel, value)` writes the 11-bit `SxFQL` and `SxFQH` value (0–2047). `keyOn(channel)` writes `SxINT` for continuous output. An optional second argument of 0–31 sets the hardware interval in 3.84 ms steps. `keyOff(channel)` closes the gate immediately via `SxINT`. Use `keyOff()` or `allNotesOff()` before writing Wave RAM if the chip must be idle at the next write.
+
+`noteOn(channel, note)` sets the pitch, reloads the programmed envelope, and opens the gate. `noteOff(channel)` fades that PCM voice for 8 ms through the software mixer before closing its gate. CH6 Noise closes immediately. The keyboard uses the same PCM release on key-up.
+
 ### Envelope
 
-`setEnvelope()` accepts any combination of `level` (0–15), `rate` (0–7), `direction` (`up` or `down`), `enabled`, and `repeat`. The chip keeps its current settings for omitted fields. For example, `vsu.setEnvelope(CH1, { level: 15 })` updates the starting level and reloads the envelope. `resetEnvelope()` reloads the programmed starting level and restarts the envelope timer. Call it before `noteOn()` for a fresh envelope on each attack.
+`setEnvelope()` accepts any combination of `level` (0–15), `rate` (0–7), `direction` (`up` or `down`), `enabled`, and `repeat`. The chip keeps its current settings for omitted fields. For example, `vsu.setEnvelope(CH1, { level: 15 })` updates the starting level and reloads the envelope. Call `resetEnvelope()` directly to reload the programmed level and restart the envelope timer on a held note, or before a `keyOn()` that needs an explicit reload.
 
 ```javascript
 const vsu = await useSoundChip("vsu");
 vsu.setEnvelope(CH1, { level: 15, rate: 0, direction: 'down', enabled: true, repeat: false });
 for (const note of ['C4', 'E4']) {
-  vsu.resetEnvelope(CH1);
   vsu.noteOn(CH1, note);
   await sleep(0.4);
   vsu.noteOff(CH1);
@@ -128,6 +131,8 @@ await vsu.schedule(taps, { name: "noise", repeatSeconds: 0.5 });
 `compile()` lists the planned VSU register offsets and bytes without changing playback. The shared Wave RAM and Modulation RAM write locks apply at execution. `schedule()` accepts a named one-shot or repeating pattern for the Web AudioWorklet. Its result confirms acceptance. **Apply** replaces the entry's patterns after the updated script succeeds. `clearSchedule(name)` and **Stop Code** cancel future writes and release notes still owned by the affected pattern. A scheduled channel stop leaves a later keyboard or Code note sounding. An explicit write of `1` to `0x580` uses the chip's global stop.
 
 The `build()` recorder also supports `setEnvelope()` and `resetEnvelope()`. A compiled row's `mask` selects the bits to update using the chip's register at the scheduled time. For example, `mask: 0xf0` updates the starting level in EV0, and `mask: 0` reloads EV0.
+
+`noteOff()` for CH1–5 compiles to a row with `fadeMs: 8`. That row starts the fade at its scheduled time. `keyOff()` compiles to an immediate gate write.
 
 Fresh projects and **New → Cassette** include `examples/timed-modulation-noise.js`. Open it from Files and run it for a one-second pattern with CH5 Modulation and short CH6 Noise hits. Use the Mixer to listen to each output independently.
 

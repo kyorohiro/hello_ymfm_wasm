@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { PERFORMANCE_PATTERN_LIMITS } from '../js/playground_performance_queue.js';
-import { createVsuClient, VSU_SOUND_STOP, vsuMaskedEnvelopeTarget } from './vsu.js?v=vsu-envelope-patch';
+import { createVsuClient, VSU_SOUND_STOP, vsuMaskedEnvelopeTarget, vsuPcmReleaseTarget } from './vsu.js?v=vsu-note-gate';
 
 const DEFAULT_SAMPLE_RATE = 44100;
 const MAX_WRITES = PERFORMANCE_PATTERN_LIMITS.maxPatternEntries;
@@ -42,8 +42,8 @@ export function validateVsuOperations(plan) {
 		throw new RangeError(`A VSU plan must contain an array of at most ${MAX_WRITES} writes.`);
 	let lastOffset = 0, lastOperation = -1, lastWrite = -1;
 	const writes = Array.from(plan.writes, row => {
-		validateVsuTimedFields(row, ['offsetSeconds', 'register', 'value', 'mask', 'operationIndex', 'writeIndex'], 'VSU write');
-		const { offsetSeconds, register, value, mask, operationIndex, writeIndex } = row;
+		validateVsuTimedFields(row, ['offsetSeconds', 'register', 'value', 'mask', 'fadeMs', 'operationIndex', 'writeIndex'], 'VSU write');
+		const { offsetSeconds, register, value, mask, fadeMs, operationIndex, writeIndex } = row;
 		if (!validOffset(offsetSeconds) || offsetSeconds < lastOffset)
 			throw new RangeError('VSU operation offsets must be nonnegative and nondecreasing.');
 		const ordered = operationIndex === lastOperation && lastOperation >= 0
@@ -53,10 +53,13 @@ export function validateVsuOperations(plan) {
 		validateWrite(register, value);
 		if (mask !== undefined && !vsuMaskedEnvelopeTarget(register, mask, value))
 			throw new RangeError('Invalid VSU masked envelope write.');
+		if (fadeMs !== undefined && (mask !== undefined || vsuPcmReleaseTarget(register, value, fadeMs) === null))
+			throw new RangeError('Invalid VSU PCM release.');
 		lastOffset = offsetSeconds;
 		lastOperation = operationIndex;
 		lastWrite = writeIndex;
-		return { offsetSeconds, register, value, operationIndex, writeIndex, ...(mask === undefined ? {} : { mask }) };
+		return { offsetSeconds, register, value, operationIndex, writeIndex,
+			...(mask === undefined ? {} : { mask }), ...(fadeMs === undefined ? {} : { fadeMs }) };
 	});
 	return { version: 1, chip: 'vsu', referenceSampleRate: rate, writes };
 }
@@ -89,14 +92,16 @@ export function buildVsuOperations(callback, options = {}) {
 	function record(pairs) {
 		if (writes.length + pairs.length > MAX_WRITES)
 			throw new RangeError(`A VSU plan can contain at most ${MAX_WRITES} writes.`);
-		for (const [writeIndex, [register, value, mask]] of pairs.entries())
-			writes.push({ offsetSeconds, register, value, operationIndex, writeIndex, ...(mask === undefined ? {} : { mask }) });
+		for (const [writeIndex, [register, value, mask, fadeMs]] of pairs.entries())
+			writes.push({ offsetSeconds, register, value, operationIndex, writeIndex,
+				...(mask === undefined ? {} : { mask }), ...(fadeMs === undefined ? {} : { fadeMs }) });
 		operationIndex++;
 	}
 	const recorder = createVsuClient({
 		write(register, value) { record([[register, value]]); },
 		writeBatch: record,
 		writeEnvelope: record,
+		writeNote: record,
 	});
 	for (const [name, method] of Object.entries(recorder)) {
 		if (typeof method !== 'function') continue;

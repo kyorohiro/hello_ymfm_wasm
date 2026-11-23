@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createVgmSeekRenderer } from './vgm-seek.js';
 import { buildVsuOperations } from './timed-operations.js';
-import { createVsuClient, vsuFrequencyRegister, vsuNoteOnWrites, vsuStartWrites } from './vsu.js';
+import { createVsuClient, VSU_PCM_RELEASE_MS, vsuFrequencyRegister, vsuNoteOnWrites, vsuStartWrites } from './vsu.js';
 
 const rate = 48000;
 const quantum = 128;
@@ -538,7 +538,7 @@ test('authored AUTO keys program CH5 and CH6 without a watch or interrupting oth
 	assert.equal(voice().frequency, vsuFrequencyRegister(4, 'C5'));
 	assert.equal(voice().ev1, 0x52);
 	off(4, 1);
-	render();
+	render(3);
 	assert.equal(voice().active, false);
 	assert.ok(outputs[0][0].some(value => value !== 0));
 
@@ -580,7 +580,7 @@ test('held AUTO edits and retriggers belong to the current keyboard gate', () =>
 	assert.deepEqual([voice().active, voice().frequency, voice().modulation[0], voice().ev1],
 		[true, vsuFrequencyRegister(4, 'C5'), 0x20, 0x50]);
 	off(1);
-	render();
+	render(3);
 	assert.equal(voice().active, false);
 
 	on(2, 'D5');
@@ -638,7 +638,7 @@ test('live Code keys preserve the programmed voice and only the latest owner can
 	send({ type: 'live-watch', channel: 1, revision: 2 });
 	keyboard.off(2);
 	send({ type: 'live-watch', channel: 0, revision: 3 });
-	render();
+	render(4);
 	assert.equal(voice().active, false);
 	assert.ok(outputs[0][0].every(value => value === 0));
 	keyboard.on(3, 'E5');
@@ -655,7 +655,7 @@ test('raw Code pitch changes retain keyboard ownership and gate writes take it o
 	send({ type: 'write', offset: 0x580, value: 0 });
 	send({ type: 'write', offset: 0x408, value: 0x57 });
 	keyboard.off(1);
-	render();
+	render(3);
 	assert.equal(voice().active, false);
 	assert.equal(voice().frequency & 255, 0x57);
 
@@ -680,7 +680,7 @@ test('live VGM keys apply to the running transport and respect scheduled gate wr
 	const plan = {
 		writes: new Uint32Array([
 			0, 0x404, 0xfe, 0, 0x410, 0xd0,
-			200, 0x408, 0x52, 550, 0x400, 0x80, 800, 0x580, 1, 800, 0x400, 0x80,
+			200, 0x408, 0x52, 800, 0x400, 0x80, 1040, 0x580, 1, 1040, 0x400, 0x80,
 		]),
 		durationTicks: 8000, loopTick: null, loopIndex: 0,
 	};
@@ -691,6 +691,8 @@ test('live VGM keys apply to the running transport and respect scheduled gate wr
 	assert.equal(voice().active, true);
 	keyboard.off(1);
 	render();
+	assert.equal(voice().active, true);
+	render(2);
 	assert.equal(voice().active, false);
 	assert.equal(voice().frequency & 255, 0x52);
 
@@ -732,6 +734,79 @@ const mixerVoiceWrites = [
 function stereoPeaks() {
 	return outputs[0].map(channel => Math.max(...channel.map(Math.abs)));
 }
+
+test('Code PCM note release takes eight milliseconds without changing the mixer or another channel', () => {
+	const { send, render, live } = setup();
+	const { noteOn, noteOff } = createVsuClient({
+		writeNote(writes) { send({ type: 'note-writes', writes }); },
+	});
+	send({ type: 'batch', writes: [
+		...Array.from({ length: 32 }, (_, cell) => [cell * 4, 63]).flat(),
+		0x404, 0xf0, 0x410, 0xf0, 0x444, 0x0f, 0x450, 0xf0, 0x440, 0x80,
+	] });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	send({ type: 'channel-gain', channel: 0, gain: 0.5 });
+	noteOn(0, 'C4');
+	render();
+	const [left, right] = stereoPeaks();
+	assert.ok(left > 0 && right > 0);
+	noteOff(0);
+	const fadeFrames = rate * VSU_PCM_RELEASE_MS / 1000;
+	const release = new Float32Array(fadeFrames);
+	for (let offset = 0; offset < fadeFrames; offset += quantum) {
+		render();
+		release.set(outputs[0][0], offset);
+		assert.equal(stereoPeaks()[1], right);
+		assert.equal(live().at(-1).voice.active, offset + quantum < fadeFrames);
+	}
+	assert.equal(release[0], left);
+	assert.ok(Math.abs(release[fadeFrames / 2] - left / 2) < 1 / 512);
+	assert.equal(release.at(-1), 0);
+	render();
+	assert.deepEqual(stereoPeaks(), [0, right]);
+	noteOn(0, 'D4');
+	render();
+	assert.deepEqual(stereoPeaks(), [left, right]);
+});
+
+test('an authored key defers its register restoration until release and a retrigger cancels it', () => {
+	const { send, render, live } = setup();
+	const keyboard = liveKeyboard(send, 'synth', null);
+	const voice = () => live().at(-1).voice;
+	const off = () => send({ type: 'keyboard-note-off', channel: 0, writes: Uint16Array.of(0x404, 0x27, 0x410, 0x80) });
+	send({ type: 'batch', writes: [0x404, 0xff, 0x410, 0xf0, 0x400, 0x80] });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	render();
+	off();
+	render();
+	assert.deepEqual([voice().active, voice().ev0, voice().left], [true, 0xf0, 15]);
+	keyboard.on(1, 'G4');
+	render(4);
+	assert.deepEqual([voice().active, voice().ev0, voice().left], [true, 0xf0, 15]);
+	keyboard.off(1);
+	render();
+	send({ type: 'batch', writes: [0x404, 0xed, ...vsuNoteOnWrites(0, 'C4').flat()] });
+	render(4);
+	assert.deepEqual([voice().active, voice().ev0, voice().left], [true, 0xf0, 14]);
+	off();
+	render(4);
+	assert.deepEqual([voice().active, voice().ev0, voice().left], [false, 0x80, 2]);
+});
+
+test('a raw PCM key-off cancels a fading note immediately', () => {
+	const { send, render, live } = setup();
+	send({ type: 'batch', writes: [0x404, 0xff, 0x410, 0xf0, 0x400, 0x80] });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	render();
+	send({ type: 'note-writes', writes: [[0x400, 0, undefined, VSU_PCM_RELEASE_MS]] });
+	render();
+	assert.ok(stereoPeaks()[0] > 0);
+	send({ type: 'write', offset: 0x400, value: 0 });
+	send({ type: 'live-watch', channel: 0, revision: 2 });
+	render();
+	assert.equal(live().at(-1).voice.active, false);
+	assert.deepEqual(stereoPeaks(), [0, 0]);
+});
 
 test('the output mixer changes one channel without changing its stereo registers or its gate', () => {
 	const { send, render, live } = setup();

@@ -9,26 +9,48 @@ function captureWrites() {
 		write(offset, value) { operations.push([offset, value]); },
 		writeBatch(writes) { operations.push(writes); },
 		writeEnvelope(writes) { operations.push(writes); },
+		writeNote(writes) { operations.push(writes); },
 	});
 	return { client, operations };
 }
 
-test('note helpers use the tone and noise clocks and gate without resetting the envelope', () => {
+test('note helpers tune and reload EV0 before key-on and fade only PCM voices on release', () => {
 	const { client, operations } = captureWrites();
 	assert.equal(client.id, 'vsu');
 	assert.equal(vsuFrequencyRegister(0, 0), 0, 'unreachable low pitches clamp to the hardware minimum');
 	client.noteOn(0, 'A4');
 	client.noteOn(5, 69);
+	client.noteOff(0);
+	client.noteOff(4);
 	client.noteOff(5);
 	client.allNotesOff();
 	assert.deepEqual(operations, [
-		[[0x408, 0x9d], [0x40c, 0x06], [0x400, 0x80]],
-		[[0x548, 0x90], [0x54c, 0x03], [0x540, 0x80]],
+		[[0x408, 0x9d], [0x40c, 0x06], [0x410, 0, 0], [0x400, 0x80]],
+		[[0x548, 0x90], [0x54c, 0x03], [0x550, 0, 0], [0x540, 0x80]],
+		[[0x400, 0x00, undefined, 8]],
+		[[0x500, 0x00, undefined, 8]],
 		[0x540, 0x00],
 		[0x580, 0x01],
 	]);
 	assert(Math.abs(5_000_000 / (32 * (2048 - vsuFrequencyRegister(0, 'A4'))) - 440) < 1);
 	assert(Math.abs(500_000 / (2048 - vsuFrequencyRegister(5, 'A4')) - 440) < 1);
+});
+
+test('frequency and key helpers write only the requested frequency or gate registers', () => {
+	const { client, operations } = captureWrites();
+	client.setFrequencyRegister(0, 0x79d);
+	client.keyOn(0);
+	client.keyOff(0);
+	client.keyOn(5, 0);
+	client.keyOn(5, 31);
+	client.keyOff(5);
+	assert.deepEqual(operations, [
+		[[0x408, 0x9d], [0x40c, 7]], [0x400, 0x80], [0x400, 0], [0x540, 0xa0], [0x540, 0xbf], [0x540, 0],
+	]);
+	assert.throws(() => client.setFrequencyRegister(0, 2048), /frequency register/);
+	assert.throws(() => client.keyOn(0, 32), /interval/);
+	assert.throws(() => client.keyOff(6), /Channel/);
+	assert.equal(operations.length, 6);
 });
 
 test('CH6 fixed-rate playback writes the hardware divider and one-shot interval', () => {

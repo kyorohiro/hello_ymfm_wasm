@@ -6,24 +6,24 @@ import {
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-envelope-patch';
+import { createVsuAudio } from './audio.js?v=vsu-note-gate';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
   CH5, CH5_MODULATION_MAX, CH5_MODULATION_MIN,
   decodeCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
 } from './ch5.js';
-import { registerVsuCodeCompletions, selectVsuCodeDeclarations } from './code_declarations.js?v=vsu-envelope-patch';
+import { registerVsuCodeCompletions, selectVsuCodeDeclarations } from './code_declarations.js?v=vsu-note-gate';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js?v=vsu-wave-controls';
 import { setupVsuFiles } from './files.js?v=vsu-timed';
 import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
 import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js?v=vsu-noise';
-import { attachVsuTimedClient } from './timed-client.js?v=vsu-envelope-patch';
+import { attachVsuTimedClient } from './timed-client.js?v=vsu-note-gate';
 import {
   createVsuClient, createVsuWave, vsuChannelRegister, vsuFrequencyRegister, vsuFrequencyWrites,
   vsuNoiseShiftRate, vsuNoteOnWrites, vsuStartWrites, vsuWaveOffset, VSU_INTERVAL_STEP_MS, VSU_NOISE_PATTERN_LENGTHS, VSU_REGISTERS,
-} from './vsu.js?v=vsu-envelope-patch';
+} from './vsu.js?v=vsu-note-gate';
 import { createVsuVoicePool } from './voice-pool.js';
 import { loadVsuVgm } from './vgm.js';
 import { setupVgmPlayer } from './vgm-player.js';
@@ -777,19 +777,19 @@ function keyboardVoiceRegisters(channel, instrument, useCh5Effect) {
   return [...writes, ...keyboardEnvelopeWrites(channel, instrument, useCh5Effect)];
 }
 
-function stopKeyboardVoice(voice) {
+function stopKeyboardVoice(voice, immediate = false) {
   if (!voice.started) return;
   const owner = voice.live ?? voice.sharedCode;
   if (owner) {
-    audio.liveNoteOff(owner);
+    audio.liveNoteOff({ ...owner, immediate });
     return;
   }
   if (!canWrite()) return;
   const { channel, instrument } = voice;
-  const writes = [[vsuChannelRegister(channel, VSU_REGISTERS.INT), 0]];
-  if (channel !== instrument || (channel === CH5 && !voice.useCh5Effect))
-    writes.push(...keyboardVoiceRegisters(channel, channel));
-  audio.writeBatch(writes);
+  const restore = channel !== instrument || (channel === CH5 && !voice.useCh5Effect);
+  const writes = restore ? keyboardVoiceRegisters(channel, channel) : [];
+  if (immediate) audio.writeBatch([[vsuChannelRegister(channel, VSU_REGISTERS.INT), 0], ...writes]);
+  else audio.keyboardNoteOff(channel, writes);
 }
 
 function syncKeyboardVoices() {
@@ -808,7 +808,7 @@ function syncKeyboardVoices() {
 function releaseKeyboard() {
   const voices = voicePool.clear();
   if (!voices.length) return;
-  voices.forEach(stopKeyboardVoice);
+  for (const voice of voices) stopKeyboardVoice(voice, true);
   syncKeyboardVoices();
 }
 
