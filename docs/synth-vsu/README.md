@@ -10,7 +10,7 @@ Choose **VGM / VGZ…** in **Reference playback** or the Files menu to import Vi
 
 Drag the seek bar to jump to a position. When focused, the arrow keys move one second and Page Up and Page Down move five seconds. Seeking during playback resumes at the chosen point. Seeking while stopped or paused opens that point paused so you can copy a sound. The VSU rebuilds its state from the timed register stream, including wave RAM, envelope progression and CH5 modulation.
 
-**Reference channels**, below **Reference playback**, shows the gate state and recorded left and right levels for CH1–6, and shows Sweep or Modulation on CH5 when enabled. **Mute** and **Solo** change the reference mix while the recorded chip state keeps advancing. The player uses a separate VSU state so your authored patch and wave RAM are available when you return to Keyboard or Code. The **Mixer** tab adjusts the Synth's channel levels.
+Select **CH1–6** during reference playback to inspect a channel. **Mute** and **Solo** above the channel settings change the VGM mix while the recorded chip state keeps advancing. The **Mixer** tab adjusts the Synth's channel levels.
 
 To capture a sound, pause the song and select an active **CH1–6**. **Copy to Synth** loads that channel's wave bank, stereo levels and programmed envelope into the matching editor channel and opens it in **AUTO**. CH5 also brings its Sweep and Modulation settings, including the full Modulation RAM. CH6 brings its noise tap. The editor reuses an identical wave bank or uses a bank available to the copied voice so other authored voices retain their waves. Play a key to trigger the captured settings from the beginning of the envelope at the chosen note. Use **Files → ＋ Patch** to keep the result.
 
@@ -18,7 +18,11 @@ The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps the o
 
 ## Channel selection
 
-**AUTO** shows the authored instrument. Choose **CH1–CH6** during VGM or Code playback to follow that physical channel's waveform RAM, stereo levels, envelope and frequency registers. CH5 shows its Sweep or Modulation settings, and CH6 shows its noise tap. The channel view is read-only during playback. Turn **Auto update** off to freeze the view. Selecting another channel, pausing, or seeking reads a fresh snapshot. A numbered channel shows and edits its authored settings when playback is stopped.
+**AUTO** plays the authored instrument. It uses CH1–5 in round robin for plain Wave sounds and replaces the oldest note if all five voices are held. Sweep and Modulation use CH5. Noise uses CH6. Choosing a numbered channel plays that physical voice.
+
+During VGM or Code playback, choose **CH1–6** to inspect its waveform, stereo levels, envelope and frequency registers. The stereo and envelope controls write to the selected playing channel. VGM or Code can replace those values with subsequent register writes. Turn **Auto update** off to freeze the readback while keeping the controls available. Selecting another channel, pausing, or seeking reads a fresh snapshot. Use **AUTO** to edit the authored sound, or pause a VGM and use **Copy to Synth** to keep the selected sound with its latest settings.
+
+**Wave** controls show a playback bank and the shared Wave RAM editor. CH5 also has **Sweep / Modulation**. CH6 shows **Noise** and its noise tap.
 
 ## CH5 Sweep and Modulation
 

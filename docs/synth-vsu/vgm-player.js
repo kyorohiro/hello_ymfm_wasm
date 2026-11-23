@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { VSU_CHANNEL_COUNT } from './vsu.js';
-import { CH5 } from './ch5.js';
 import { VGM_SAMPLE_RATE } from './vgm.js';
 
 const ALL_CHANNELS = (1 << VSU_CHANNEL_COUNT) - 1;
-const TRACK_MODE = { off: 'Wave', sweep: 'Sweep', modulation: 'Modulation' };
 
 function timeLabel(ticks) {
   const hundredths = Math.floor(ticks * 100 / VGM_SAMPLE_RATE);
@@ -13,7 +11,7 @@ function timeLabel(ticks) {
     '.' + String(hundredths % 100).padStart(2, '0');
 }
 
-export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, openSong, selectChannel, copyVoice, onPlaybackChange }) {
+export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, openSong, copyVoice, onPlaybackChange }) {
   const doc = root.ownerDocument;
   const byId = id => doc.getElementById(id);
   const picker = byId('vgmSong'), importButton = byId('vgmImport');
@@ -21,7 +19,7 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   const loop = byId('vgmLoop');
   const seek = byId('vgmProgress'), time = byId('vgmTime'), status = byId('vgmStatus'), errorOutput = byId('vgmError');
   const loopMarker = byId('vgmLoopMarker'), loopTime = byId('vgmLoopTime');
-  const mixer = byId('vgmMixer'), channelList = byId('vgmChannels');
+  const channelMix = byId('vgmChannelMix'), muteButton = byId('vgmMute'), soloButton = byId('vgmSolo');
   const copy = byId('vgmCapture'), captureStatus = byId('vgmCaptureStatus');
   let paths = [];
   let available = false;
@@ -29,70 +27,31 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   let song = null, state = 'empty', playbackId = null, playAttempt = 0;
   let positionTick = 0, scrubTick = null, pendingSeek = null;
   let muted = 0, solo = 0;
-  let channelIndex = 0, liveChannels = [], capturePending = false;
+  let channelIndex = null, liveChannels = [], capturePending = false;
   let reportedPlayback = '';
-
-  function make(tag, text) {
-    const element = doc.createElement(tag);
-    if (text !== undefined) element.textContent = text;
-    return element;
-  }
 
   function mixerMask() {
     return (solo || ALL_CHANNELS) & ~muted;
   }
 
-  function toggleMask(kind, index) {
-    const bit = 1 << index;
+  function toggleMask(kind) {
+    if (channelMix.hidden) return;
+    const bit = 1 << channelIndex;
     if (kind === 'mute') muted ^= bit;
     else solo ^= bit;
     audio.setVgmMask(mixerMask());
-    drawMixerButtons();
+    drawChannelMix();
   }
 
-  const channels = Array.from({ length: VSU_CHANNEL_COUNT }, (_, index) => {
-    const strip = make('div');
-    strip.className = 'vgm-channel';
-    strip.dataset.channel = String(index + 1);
-    const heading = make('h3'), choose = make('button', 'CH' + (index + 1));
-    choose.type = 'button';
-    choose.setAttribute('aria-label', 'Select reference CH' + (index + 1));
-    choose.addEventListener('click', () => selectChannel(index));
-    heading.append(choose);
-    const mode = make('output');
-    const levels = make('output');
-    const buttons = make('div');
-    buttons.className = 'switches';
-    const mute = make('button', 'Mute'), soloButton = make('button', 'Solo');
-    for (const [button, kind] of [[mute, 'Mute'], [soloButton, 'Solo']]) {
-      button.type = 'button';
-      button.setAttribute('aria-label', kind + ' CH' + (index + 1));
-      button.addEventListener('click', () => toggleMask(kind.toLowerCase(), index));
-      buttons.append(button);
+  function drawChannelMix() {
+    const hidden = channelIndex === null || (state !== 'playing' && state !== 'paused');
+    if (channelMix.hidden !== hidden) channelMix.hidden = hidden;
+    if (hidden) return;
+    const bit = 1 << channelIndex;
+    for (const [button, mask] of [[muteButton, muted], [soloButton, solo]]) {
+      const pressed = String(Boolean(mask & bit));
+      if (button.getAttribute('aria-pressed') !== pressed) button.setAttribute('aria-pressed', pressed);
     }
-    strip.append(heading, mode, levels, buttons);
-    channelList.append(strip);
-    return { strip, choose, mode, levels, mute, solo: soloButton };
-  });
-
-  function drawMixerButtons() {
-    channels.forEach((channel, index) => {
-      channel.mute.setAttribute('aria-pressed', String(Boolean(muted & (1 << index))));
-      channel.solo.setAttribute('aria-pressed', String(Boolean(solo & (1 << index))));
-    });
-  }
-
-  function drawChannels(values = []) {
-    channels.forEach(({ strip, mode, levels }, index) => {
-      const { active = false, left = 0, right = 0, mode: effect = 'off' } = values[index] ?? {};
-      if (strip.dataset.active !== String(active)) strip.dataset.active = String(active);
-      const voiceMode = index === CH5 ? TRACK_MODE[effect] ?? 'Wave'
-        : index === VSU_CHANNEL_COUNT - 1 ? 'Noise' : 'Wave';
-      const voice = voiceMode + (active ? ' · On' : ' · Off');
-      const volume = `L ${left} / R ${right}`;
-      if (mode.value !== voice) mode.value = voice;
-      if (levels.value !== volume) levels.value = volume;
-    });
   }
 
   function drawSongs() {
@@ -139,7 +98,7 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     pauseButton.disabled = state !== 'playing';
     stopButton.disabled = !['preparing', 'seeking', 'playing', 'paused', 'ended'].includes(state);
     seek.disabled = !song || state === 'preparing';
-    mixer.hidden = !song;
+    drawChannelMix();
     drawCapture();
     const playback = state + ':' + playbackId;
     if (playback !== reportedPlayback) {
@@ -151,13 +110,18 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   function drawCapture() {
     const paused = state === 'paused';
     const active = channelIndex !== null && liveChannels[channelIndex]?.active;
+    if (copy.hidden !== channelMix.hidden) copy.hidden = channelMix.hidden;
     copy.disabled = capturePending || !paused || !active;
     copy.title = paused && !active ? 'Choose an active VGM channel.' : 'Copy an active channel from paused playback.';
   }
 
   function setChannel(index) {
     channelIndex = index;
-    channels.forEach(({ choose }, i) => choose.setAttribute('aria-pressed', String(i === index)));
+    if (index !== null) {
+      muteButton.setAttribute('aria-label', 'Mute VGM CH' + (index + 1));
+      soloButton.setAttribute('aria-label', 'Solo VGM CH' + (index + 1));
+    }
+    drawChannelMix();
     drawCapture();
   }
 
@@ -191,7 +155,6 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     liveChannels = [];
     status.textContent = song ? 'Stopped.' : 'Choose a Virtual Boy VGM or VGZ.';
     drawPosition();
-    drawChannels(liveChannels);
     drawTransport();
   }
 
@@ -212,7 +175,6 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
     const next = { playing: 'Playing.', paused: 'Paused.', ended: 'Finished.', stopped: 'Stopped.' }[state];
     if (status.textContent !== next) status.textContent = next;
     drawPosition();
-    drawChannels(liveChannels);
     drawTransport();
   }
 
@@ -310,6 +272,8 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
   pauseButton.addEventListener('click', () => audio.pauseVgm(true));
   stopButton.addEventListener('click', stop);
   copy.addEventListener('click', () => void capture());
+  muteButton.addEventListener('click', () => toggleMask('mute'));
+  soloButton.addEventListener('click', () => toggleMask('solo'));
   loop.addEventListener('change', () => audio.setVgmLoop(loop.checked));
   seek.addEventListener('input', () => {
     scrubTick = seek.valueAsNumber;
@@ -333,8 +297,6 @@ export function setupVgmPlayer({ root, audio, preparePlayback, importSongs, open
       : seek.valueAsNumber + seconds * VGM_SAMPLE_RATE;
     void seekTo(target);
   });
-  drawMixerButtons();
-  setChannel(0);
   drawSongs();
   drawSeekRange();
   drawTransport();

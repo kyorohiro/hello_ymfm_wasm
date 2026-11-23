@@ -41,6 +41,7 @@ h2 { margin: 0; font-size: 1rem; }
 .channel-tabs button { min-height: 30px; padding: 4px 9px; font: 650 .84rem var(--mono); }
 .channel-tabs button[data-active="true"] { box-shadow: inset 0 -2px #ff8f9c; }
 .capture-tools button { min-height: 30px; font-size: .8rem; }
+.vgm-channel-mix { display: inline-flex; gap: 4px; }
 #vgmCaptureStatus { color: var(--muted); font: .8rem var(--mono); }
 .channel-source, .live-registers { color: var(--muted); font: .8rem var(--mono); }
 .channel-source { flex: 1 1 100%; }
@@ -108,24 +109,20 @@ h2 { margin: 0; font-size: 1rem; }
 .vgm-position .vgm-loop-time { color: #ffd089; font-size: .72rem; }
 #vgmStatus { margin: 6px 0 0; color: var(--muted); font-size: .82rem; }
 #vgmError { margin: 6px 0 0; color: #ffa5ae; font-size: .82rem; }
-.vgm-mixer { margin-bottom: 12px; }
-.vgm-mixer summary { font-size: .9rem; font-weight: 650; cursor: pointer; }
-.vgm-channels, .author-channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(8.3rem, 100%), 1fr)); gap: 6px; margin-top: 8px; }
-.vgm-channels { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.vgm-channel, .vsu-author-channel { display: grid; gap: 6px; min-width: 0; padding: 7px; border: 1px solid var(--border); border-radius: 8px; background: #1b1015; }
-.vgm-channel[data-active="true"] { border-color: #a64b60; box-shadow: inset 0 2px var(--accent); }
-.vgm-channel[data-selected="true"] { outline: 1px solid var(--accent); }
-.vgm-channel h3, .vsu-author-channel h3 { margin: 0; font: 650 .84rem var(--mono); }
-.vgm-channel output { white-space: nowrap; font: .72rem var(--mono); color: var(--muted); }
-.vgm-channel .switches { gap: 4px; }
-.vgm-channel button { padding-inline: 6px; min-height: 28px; font-size: .73rem; }
+.author-channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(8.3rem, 100%), 1fr)); gap: 6px; margin-top: 8px; }
+.vsu-author-channel { display: grid; gap: 6px; min-width: 0; padding: 7px; border: 1px solid var(--border); border-radius: 8px; background: #1b1015; }
+.vsu-author-channel h3 { margin: 0; font: 650 .84rem var(--mono); }
 .vsu-author-channel label { display: grid; grid-template-columns: 1ch minmax(0, 1fr) 2ch; font: .75rem var(--mono); }
 .vsu-author-channel input { min-width: 0; width: 100%; }
 .envelope-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding-top: 9px; margin-top: 8px; border-top: 1px solid var(--border); }
+.envelope-controls legend { padding-inline: 0 8px; font-size: .84rem; font-weight: 650; }
 .envelope-controls select { min-height: 30px; }
 #envStep { font: .8rem var(--mono); }
 .instrument { display: grid; grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); gap: 12px; margin-block: 12px; }
 .panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.wave-editor { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 9px; }
+.wave-editor h3 { margin: 0; font-size: .87rem; }
+.voice-panel > label { margin-top: 10px; }
 .switches, .wave-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .wave-controls { gap: 6px 12px; }
 .hint { margin: 10px 0 0; color: var(--muted); font-size: .78rem; }
@@ -182,9 +179,6 @@ canvas { display: block; width: 100%; border-radius: 6px; }
 #codeOutput:empty { display: none; }
 #status { margin: 12px 0 0; color: var(--muted); font-size: .85rem; }
 [hidden] { display: none !important; }
-@media (max-width: 900px) {
-  .vgm-channels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
 @media (max-width: 760px) {
   .workspace:has(> #filesPanel:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
   .workspace > #filesPanel { position: static; }
@@ -202,9 +196,6 @@ canvas { display: block; width: 100%; border-radius: 6px; }
   .panel { padding: 10px; }
   .key-row { gap: 2px; }
   .key span { font-size: .59rem; }
-}
-@media (max-width: 460px) {
-  .vgm-channels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 380px) {
   .shell { width: calc(100% - 20px); }

@@ -57,13 +57,16 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		current?.vgmSeek?.controller.abort(error);
 	}
 
-	function reportLive(current, { source, channel, voice, playbackId, revision }) {
+	function reportLive(current, { source, channel, voice, playbackId, revision, sequence, edit }) {
 		if (channel !== liveChannel || revision !== liveRevision || current.vgmSeek) return;
 		const vgmOwnsOutput = current.vgmId && current.vgmState !== 'ended';
 		if (source === 'vgm') {
 			if (!vgmOwnsOutput || current.vgmStopping || current.vgmId !== playbackId) return;
 		} else if (vgmOwnsOutput) return;
-		onLiveState({ source, channel, voice, playbackId });
+		// An ordinary snapshot can already be queued when the user moves a
+		// control. Preserve edits on other fields even when a later edit is pending.
+		if (!edit && sequence < current.liveWriteSequence) return;
+		onLiveState({ source, channel, voice, playbackId, ...(edit ? { edit } : {}) });
 	}
 
 	async function close(current, error) {
@@ -93,7 +96,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			throw new Error('VSU audio requires AudioWorklet over HTTPS or localhost.');
 		const context = new Context({ latencyHint: 'interactive' });
 		const output = context.createGain();
-		const current = { context, output, abort: new AbortController(), captures: new Map() };
+		const current = { context, output, abort: new AbortController(), captures: new Map(), liveWriteSequence: 0 };
 		session = current;
 		const fail = error => {
 			if (session !== current) return;
@@ -115,7 +118,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live-edits', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -223,6 +226,24 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			liveChannel = channel;
 			liveRevision++;
 			if (session?.active) send({ type: 'live-watch', channel, revision: liveRevision });
+		},
+		writeLiveChannel({ source, channel, playbackId, register, mask, value }) {
+			const current = session;
+			if (!current?.active || current.vgmSeek || liveChannel === null || channel !== liveChannel) return false;
+			const vgmOwnsOutput = Boolean(current.vgmId) && current.vgmState !== 'ended';
+			if (source === 'vgm') {
+				if (current.vgmStopping || current.vgmId !== playbackId ||
+					(current.vgmState !== 'playing' && current.vgmState !== 'paused')) return false;
+			} else if (source !== 'synth' || vgmOwnsOutput || playbackId !== null) return false;
+			if (register !== 'LRV' && register !== 'EV0' && register !== 'EV1')
+				throw new RangeError('Choose a live level or envelope register.');
+			const allowedMask = register === 'EV1' ? 3 : 255;
+			if (!Number.isInteger(mask) || mask < 1 || mask > allowedMask ||
+				!Number.isInteger(value) || value < 0 || value > 255)
+				throw new RangeError('Choose a valid live register value and mask.');
+			send({ type: 'live-write', source, channel, playbackId, register, mask, value,
+				revision: liveRevision, sequence: ++current.liveWriteSequence });
+			return true;
 		},
 		playVgm(source, { loop = false, mask = 63 } = {}) {
 			validateMask(mask);

@@ -62,15 +62,10 @@
       </div>
     </div>
 
-    <details id="vgmMixer" class="panel vgm-mixer" open hidden>
-      <summary>Reference channels</summary>
-      <div id="vgmChannels" class="vgm-channels"></div>
-    </details>
-
     <div id="vsuWorkspace" class="workspace">
       <aside id="filesPanel" class="panel" aria-label="Project files" hidden></aside>
       <div class="workspace-main">
-        <div class="chip-tabs" role="tablist" aria-label="Sound chip">
+        <div class="chip-tabs" role="tablist" aria-label="VSU workspace">
           <button id="vsuChipTab" type="button" role="tab" aria-selected="true" aria-controls="vsuChipPanel">VSU</button>
           <button id="vsuMixerTab" type="button" role="tab" aria-selected="false" aria-controls="vsuMixerPanel" tabindex="-1">Mixer</button>
         </div>
@@ -80,7 +75,11 @@
           <select id="channel" aria-label="Performance channel" hidden></select>
           <div class="capture-tools">
             <label><input id="vsuLiveEnabled" type="checkbox" checked> Auto update</label>
-            <button id="vgmCapture" type="button" title="Pause the reference and select a sounding channel." disabled>Copy to Synth</button>
+            <div id="vgmChannelMix" class="vgm-channel-mix" role="group" aria-label="VGM channel mix" hidden>
+              <button id="vgmMute" type="button" aria-pressed="false">Mute</button>
+              <button id="vgmSolo" type="button" aria-pressed="false">Solo</button>
+            </div>
+            <button id="vgmCapture" type="button" title="Pause the reference and select a sounding channel." disabled hidden>Copy to Synth</button>
           </div>
           <output id="vsuChannelStatus" class="channel-source" aria-label="Channel settings source"></output>
           <output id="vgmCaptureStatus" role="status"></output>
@@ -96,7 +95,8 @@
               </div>
               <canvas id="envelopeCanvas" width="720" height="200" role="img" aria-label="Channel envelope" hidden></canvas>
               <canvas id="outputCanvas" width="720" height="200" role="img" aria-label="Output waveform"></canvas>
-              <fieldset id="vsuEnvelopeControls" class="envelope-controls" aria-label="Channel envelope">
+              <fieldset id="vsuEnvelopeControls" class="envelope-controls">
+                <legend>Envelope</legend>
                 <label class="level">Level <input id="envInitial" type="range" min="0" max="15" value="15">
                   <output id="envInitialValue" for="envInitial">15</output>
                 </label>
@@ -116,46 +116,51 @@
             </section>
 
             <div class="instrument">
-              <section class="panel" aria-labelledby="waveTitle">
+              <section class="panel voice-panel" aria-labelledby="vsuVoiceTitle">
                 <div class="panel-head">
-                  <h2 id="waveTitle">Wave RAM</h2>
-                  <label>Bank <select id="editBank" aria-label="Wave RAM bank">
+                  <h2 id="vsuVoiceTitle">Wave</h2>
+                  <label id="channelWaveGroup">Playback bank <select id="channelWave">
                     <option value="0">0</option><option value="1">1</option><option value="2">2</option>
                     <option value="3">3</option><option value="4">4</option>
                   </select></label>
                 </div>
-                <canvas id="waveCanvas" width="460" height="142" role="img" aria-label="Wave RAM samples, 32 × 6 bit"></canvas>
-                <div class="wave-controls">
-                  <label>Sample <input id="sampleIndex" type="number" min="0" max="31" value="0"></label>
-                  <label>Value <input id="sampleValue" type="number" min="0" max="63" value="32"></label>
-                  <label>Shape <select id="waveShape">
-                    <option value="sine">Sine</option><option value="triangle">Triangle</option>
-                    <option value="square">Square</option><option value="saw">Saw</option>
-                  </select></label>
-                  <button id="loadShape" type="button">Load shape</button>
-                </div>
-                <p id="vsuWaveEditHint" class="hint">Editing Wave RAM stops the active voices.</p>
-              </section>
-              <section class="panel channels" aria-labelledby="channelTitle">
-                <h2 id="channelTitle">Sound chip</h2>
-                <output id="vsuLiveRegisters" class="live-registers" aria-label="Current register values" aria-live="off" hidden></output>
-                <label id="channelWaveGroup">Wave bank <select id="channelWave">
-                  <option value="0">0</option><option value="1">1</option><option value="2">2</option>
-                  <option value="3">3</option><option value="4">4</option>
-                </select></label>
+                <section id="vsuWavePanel" class="wave-editor" aria-labelledby="waveTitle">
+                  <div class="panel-head">
+                    <h3 id="waveTitle">Wave RAM</h3>
+                    <label>RAM bank <select id="editBank" aria-label="Wave RAM bank">
+                      <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+                      <option value="3">3</option><option value="4">4</option>
+                    </select></label>
+                  </div>
+                  <canvas id="waveCanvas" width="460" height="142" role="img" aria-label="Wave RAM samples, 32 × 6 bit"></canvas>
+                  <div class="wave-controls">
+                    <label>Sample <input id="sampleIndex" type="number" min="0" max="31" value="0"></label>
+                    <label>Value <input id="sampleValue" type="number" min="0" max="63" value="32"></label>
+                    <label>Shape <select id="waveShape">
+                      <option value="sine">Sine</option><option value="triangle">Triangle</option>
+                      <option value="square">Square</option><option value="saw">Saw</option>
+                    </select></label>
+                    <button id="loadShape" type="button">Load shape</button>
+                  </div>
+                  <p id="vsuWaveEditHint" class="hint">Editing Wave RAM stops the active voices.</p>
+                </section>
                 <label id="noiseTapGroup" hidden>Noise tap <select id="noiseTap"></select></label>
+              </section>
+              <section class="panel channels" aria-labelledby="vsuStereoTitle">
+                <h2 id="vsuStereoTitle">Stereo levels</h2>
                 <label class="level">Left <input id="leftLevel" type="range" min="0" max="15" value="10">
                   <output id="leftValue" for="leftLevel">10</output>
                 </label>
                 <label class="level">Right <input id="rightLevel" type="range" min="0" max="15" value="10">
                   <output id="rightValue" for="rightLevel">10</output>
                 </label>
+                <output id="vsuLiveRegisters" class="live-registers" aria-label="Current register values" aria-live="off" hidden></output>
               </section>
             </div>
 
             <section id="ch5Panel" class="panel ch5-panel" aria-labelledby="ch5Title" hidden>
               <div class="panel-head">
-                <h2 id="ch5Title">CH5 Sweep / Modulation</h2>
+                <h2 id="ch5Title">Sweep / Modulation</h2>
                 <label>Mode <select id="ch5Mode">
                   <option value="off">Off</option>
                   <option value="sweep">Sweep</option>

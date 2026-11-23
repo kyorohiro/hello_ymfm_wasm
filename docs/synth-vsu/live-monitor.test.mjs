@@ -34,6 +34,7 @@ function setup() {
 			}
 		},
 		live: () => processor.messages.filter(message => message.type === 'live-state'),
+		captures: () => processor.messages.filter(message => message.type === 'vgm-capture'),
 	};
 }
 
@@ -113,4 +114,75 @@ test('reference monitoring follows VGM playback identities and freezes the exact
 	render();
 	const author = live().at(-1);
 	assert.deepEqual([author.source, author.playbackId, author.voice.right], ['synth', null, 4]);
+});
+
+test('Code live edits preserve the other stereo nibble and shared envelope bits', () => {
+	const { send, render, live } = setup();
+	send({ type: 'batch', writes: [
+		0, 63, 0x4, 0, 0x504, 0x34, 0x510, 0x52,
+		0x514, 0x53, 0x518, 0, 0x500, 0x80,
+	] });
+	send({ type: 'live-watch', channel: 4, revision: 1 });
+	render();
+	const edit = (sequence, register, mask, value, revision = 1) =>
+		send({ type: 'live-write', source: 'synth', channel: 4, playbackId: null, revision, sequence, register, mask, value });
+
+	edit(1, 'LRV', 0xf0, 0xa0);
+	assert.deepEqual([live().at(-1).voice.left, live().at(-1).voice.right], [10, 4]);
+	assert.deepEqual(live().at(-1).edit, { register: 'LRV', mask: 0xf0, value: 0xa4 });
+	assert.equal(live().at(-1).sequence, 1);
+	edit(2, 'EV0', 0xf0, 0xb0);
+	assert.equal(live().at(-1).voice.ev0, 0xb2);
+	edit(3, 'EV1', 2, 0);
+	assert.equal(live().at(-1).voice.ev1, 0x51);
+	assert.equal(live().at(-1).voice.currentEnvelope, 11);
+	const accepted = live().length;
+	edit(4, 'EV1', 0xf0, 0);
+	edit(5, 'LRV', 0xf0, 0, 0);
+	assert.equal(live().length, accepted);
+
+	send({ type: 'write', offset: 0x504, value: 0xf0 });
+	render(16);
+	assert.deepEqual([live().at(-1).voice.left, live().at(-1).voice.right], [15, 0]);
+	assert.equal(live().at(-1).edit, undefined);
+	assert.equal(outputs[0][1].some(sample => sample !== 0), false);
+});
+
+test('VGM live edits affect the active timeline and a paused capture before later writes take over', () => {
+	const { send, render, live, captures } = setup();
+	send({ type: 'write', offset: 0x544, value: 0x81 });
+	send({ type: 'live-watch', channel: 5, revision: 1 });
+	const plan = {
+		writes: new Uint32Array([
+			0, 0x544, 0x47, 0, 0x550, 0xb5, 0, 0x554, 0x70, 0, 0x540, 0x80,
+			200, 0x544, 0xab, 200, 0x550, 0x23, 200, 0x554, 0x30,
+		]),
+		durationTicks: 8000, loopTick: null, loopIndex: 0,
+	};
+	send({ type: 'vgm-play', id: 3, mask: 63, plan });
+	render();
+	const edit = (sequence, register, mask, value, playbackId = 3, source = 'vgm') =>
+		send({ type: 'live-write', source, channel: 5, playbackId, revision: 1, sequence, register, mask, value });
+	const playing = live().at(-1);
+	edit(1, 'LRV', 15, 13, null, 'synth');
+	edit(2, 'LRV', 15, 13, 2);
+	assert.equal(live().at(-1), playing);
+	edit(3, 'LRV', 15, 13);
+	assert.deepEqual([live().at(-1).voice.left, live().at(-1).voice.right], [4, 13]);
+	send({ type: 'vgm-pause', id: 3, paused: true });
+	edit(4, 'EV0', 7, 2);
+	edit(5, 'EV1', 1, 1);
+	send({ type: 'vgm-capture', id: 3, request: 1, channel: 5 });
+	const { voice } = captures().at(-1);
+	assert.deepEqual([voice.left, voice.right, voice.ev0, voice.ev1], [4, 13, 0xb2, 0x71]);
+	render(32);
+	assert.equal(live().at(-1).voice.ev1, 0x71);
+
+	send({ type: 'vgm-pause', id: 3, paused: false });
+	render(32);
+	const later = live().at(-1).voice;
+	assert.deepEqual([later.left, later.right, later.ev0, later.ev1], [10, 11, 0x23, 0x30]);
+	send({ type: 'vgm-stop', id: 3 });
+	render();
+	assert.deepEqual([live().at(-1).source, live().at(-1).voice.left, live().at(-1).voice.right], ['synth', 8, 1]);
 });

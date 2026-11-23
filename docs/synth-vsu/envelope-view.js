@@ -71,7 +71,7 @@ export function setupEnvelopeMonitor(canvas, fitCanvas, onEdit) {
       const value = parameter === 'ev1' ? input.checked : key === 'direction' ? input.value : Number(input.value);
       const next = { ...current, [key]: value };
       setSettings(next);
-      onEdit(next, parameter);
+      onEdit(next, key);
     });
   }
   new ResizeObserver(draw).observe(canvas);
