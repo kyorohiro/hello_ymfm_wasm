@@ -116,16 +116,20 @@ export function readRAtTick({ writes }, tick) {
 	return first ? writes[first * 2 - 1] & 3 : 0;
 }
 
-export function buildSm510Pulse(mode, halfCycles, driveMask) {
+export function buildSm510Pulse(mode, halfCycles, driveMask, highCycles = halfCycles) {
 	const direct = mode === DIRECT_R;
 	if (!direct && mode !== DK52_R) throw new RangeError('Choose Direct R or the DK-52 divider.');
 	if (!Number.isInteger(halfCycles) || halfCycles < MIN_PULSE_HALF_CYCLES || halfCycles > MAX_PULSE_HALF_CYCLES)
 		throw new RangeError(`Use ${MIN_PULSE_HALF_CYCLES}–${MAX_PULSE_HALF_CYCLES} machine cycles per half-period.`);
 	if (!Number.isInteger(driveMask) || driveMask < 0 || driveMask > 3)
 		throw new RangeError('Use a two-bit R pin mask.');
+	if (direct && (!Number.isInteger(highCycles) || highCycles < R_WRITE_CYCLES ||
+		2 * halfCycles - highCycles < R_WRITE_CYCLES))
+		throw new RangeError('Allow at least two machine cycles for each Direct R phase.');
 
 	const loopStart = R_WRITE_CYCLES * TICKS_PER_MACHINE_CYCLE;
 	const halfTicks = halfCycles * TICKS_PER_MACHINE_CYCLE;
+	const highTicks = direct ? highCycles * TICKS_PER_MACHINE_CYCLE : halfTicks;
 	const period = 2 * halfTicks;
 	// An odd number of machine cycles per half-period flips the divider phase
 	// after one pulse period, so the loop must include both phases.
@@ -134,7 +138,7 @@ export function buildSm510Pulse(mode, halfCycles, driveMask) {
 	const high = direct ? driveMask & 1 : driveMask;
 	const low = direct ? driveMask & 2 : 0;
 	const writes = [];
-	for (let tick = loopStart; tick < end; tick += period) writes.push(tick, high, tick + halfTicks, low);
+	for (let tick = loopStart; tick < end; tick += period) writes.push(tick, high, tick + highTicks, low);
 	return { end, writes: Uint32Array.from(writes), loopStart, halfTicks };
 }
 
@@ -195,11 +199,11 @@ export function createRVoice(context, outputs, renderR1, renderR2) {
 
 export function createSm510AudioCore({
 	memory, __heap_base, sm510_render_r1, sm510_direct_half_cycles,
-	sm510_render_direct_note, sm510_render_direct_r1,
+	sm510_direct_high_cycles, sm510_render_direct_note, sm510_render_direct_r1,
 	sm511_pitch_hz, sm511_render_tone, sm511_render_melody,
 }) {
 	if (!(memory instanceof WebAssembly.Memory) || !Number.isInteger(__heap_base?.value) ||
-		[sm510_render_r1, sm510_direct_half_cycles, sm510_render_direct_note, sm510_render_direct_r1,
+		[sm510_render_r1, sm510_direct_half_cycles, sm510_direct_high_cycles, sm510_render_direct_note, sm510_render_direct_r1,
 			sm511_pitch_hz, sm511_render_tone, sm511_render_melody]
 			.some(render => typeof render !== 'function')) {
 		throw new Error('The installed audio core does not support SM510 and SM511.');
@@ -235,6 +239,18 @@ export function createSm510AudioCore({
 	}
 	return {
 		directHalfCycles: sm510_direct_half_cycles,
+		directPulseTiming(halfCycles, duty = .5) {
+			if (!Number.isInteger(halfCycles) || halfCycles < MIN_PULSE_HALF_CYCLES || halfCycles > MAX_PULSE_HALF_CYCLES)
+				throw new RangeError(`Use ${MIN_PULSE_HALF_CYCLES}–${MAX_PULSE_HALF_CYCLES} machine cycles per half-period.`);
+			if (!Number.isFinite(duty) || duty < 0 || duty > 1)
+				throw new RangeError('Direct R duty must be between 0 and 1.');
+			const periodCycles = 2 * halfCycles;
+			const highCycles = sm510_direct_high_cycles(periodCycles, duty);
+			return {
+				highCycles, lowCycles: periodCycles - highCycles, periodCycles,
+				frequency: directPitchHz(halfCycles), duty: highCycles / periodCycles,
+			};
+		},
 		renderR1: pinRenderer(sm510_render_r1),
 		renderR2: pinRenderer(sm510_render_r1, { r2: true, invert: true }),
 		renderDirectR1: pinRenderer(sm510_render_direct_r1),
@@ -258,34 +274,41 @@ export function createSm510AudioCore({
 
 export const directPitchHz = halfCycles => MACHINE_CYCLE_HZ / (2 * halfCycles);
 
-export function renderSm510Notes(core, mode, frequencies, { stepSeconds, gate = 1, sampleRate }) {
+export function renderSm510Notes(core, mode, frequencies, { stepSeconds, gate = 1, sampleRate, duty = .5 }) {
 	const stepCycles = MACHINE_CYCLE_HZ * stepSeconds;
 	const end = Math.round(frequencies.length * stepCycles) * TICKS_PER_MACHINE_CYCLE;
 	const writes = [];
+	const directPulses = mode === DK52_R ? null : Array(frequencies.length).fill(null);
 	const write = (cycle, value) => writes.push(cycle * TICKS_PER_MACHINE_CYCLE, value);
 	for (const [step, frequency] of frequencies.entries()) {
 		if (frequency === null) continue;
+		let pulse;
+		if (directPulses) {
+			const half = core.directHalfCycles(frequency);
+			if (!half) throw new RangeError('The direct R note needs a positive frequency.');
+			pulse = directPulses[step] = core.directPulseTiming(half, duty);
+		}
 		// The first pin change occurs after LAX and ATR finish. At release, the
-		// direct two-page routine leaves R1 low after its last complete period.
+		// direct routine leaves R1 low after its last complete period.
 		const on = Math.round(step * stepCycles) + R_WRITE_CYCLES;
 		const off = Math.round((step + gate) * stepCycles);
 		if (off - on < R_WRITE_CYCLES) continue;
-		if (mode === DK52_R) {
+		if (!pulse) {
 			write(on, 1);
 			write(off, 0);
 		} else {
-			const half = core.directHalfCycles(frequency);
-			if (!half) throw new RangeError('The direct R note needs a positive frequency.');
-			const period = half * 2;
-			for (let high = on; high + period <= off; high += period) {
+			const { highCycles, periodCycles } = pulse;
+			for (let high = on; high + periodCycles <= off; high += periodCycles) {
 				write(high, 1);
-				write(high + half, 0);
+				write(high + highCycles, 0);
 			}
 		}
 	}
 	const render = mode === DK52_R ? core.renderR1 : core.renderDirectR1;
 	const samples = renderR1Timeline({ end, writes: Uint32Array.from(writes) }, sampleRate, render);
-	return { samples, stepFrames: sampleRate * stepSeconds, duration: samples.length / sampleRate };
+	const rendered = { samples, stepFrames: sampleRate * stepSeconds, duration: samples.length / sampleRate };
+	if (directPulses) rendered.directPulses = directPulses;
+	return rendered;
 }
 
 export function renderR1Timeline({ end, writes }, sampleRate, render) {

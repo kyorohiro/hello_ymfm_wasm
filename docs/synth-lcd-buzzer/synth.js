@@ -10,12 +10,15 @@ import {
 	MACHINE_CYCLE_HZ, MASTER_CLOCK_HZ, R1_DIVISOR, R1_HZ,
 	buildSm510Pulse, connectRChannels, createSm510AudioCore, createRVoice, directPitchHz, readRAtTick, renderR1Pattern, renderR1Timeline, renderSm510Notes,
 } from './sm510.js';
-import { formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern, sm511Command, sm511CommandLabel, sm511Label, sm511MelodyDuration } from './sm511.js';
+import {
+	formatSm511MelodyCode, renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
+	sm511Command, sm511CommandLabel, sm511Label, sm511MelodyDuration, sm511RepeatStart, traceSm511Melody,
+} from './sm511.js';
 import { setupSm511MelodyEditor } from './melody_editor.js';
 import { createTimedSchedule } from './timed-schedule.js';
 
 const byId = id => document.getElementById(id);
-const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=sm511-melody', import.meta.url));
+const fetchSm510 = window.fetch.bind(window, new URL('./sm510.wasm?v=direct-duty', import.meta.url));
 const volume = byId('volume'), status = byId('status');
 const mix = Object.fromEntries(['sm510', 'sm511'].map(chip => [chip, {
 	level: byId(chip + 'Mix'), mute: byId(chip + 'Mute'), readout: byId(chip + 'MixValue'), output: null,
@@ -25,10 +28,9 @@ const pitch = byId('pitch');
 const toneButtons = [...byId('toneSource').querySelectorAll('[data-tone-mode]')];
 const keyTracking = byId('sm510KeyTracking');
 const pulseCycles = byId('sm510PulseCycles'), pulseDriveValue = byId('sm510PulseDriveValue');
+const dutyControl = byId('sm510Duty'), dutyValue = byId('sm510DutyValue');
 const pulsePins = [byId('sm510PulseR1'), byId('sm510PulseR2')];
-pulseCycles.min = MIN_PULSE_HALF_CYCLES;
-pulseCycles.max = MAX_PULSE_HALF_CYCLES;
-let pulseDrive = 1, manualPulseCycles = pulseCycles.valueAsNumber, heldPulse;
+let pulseDrive = 1, manualPulseCycles = pulseCycles.valueAsNumber / 2, heldPulse;
 const rMonitorButtons = [byId('sm510MonitorR1'), byId('sm510MonitorR2'), byId('sm510MonitorDiff')];
 const rMonitorModes = [
 	{ label: 'R1', weights: [1, 0] },
@@ -37,15 +39,19 @@ const rMonitorModes = [
 ];
 let rMonitor = rMonitorModes[0], rMonitorOutputs;
 const toneHints = {
-	[DIRECT_R]: 'Direct R switches the output at whole SM510 machine cycles to set each pitch.',
+	[DIRECT_R]: 'Duty sets the share of the period spent in the R1 phase. When driven, R2 is high in the other phase.',
 	[DK52_R]: 'The CPU switches the fixed 4,096 Hz carrier on and off. Key tracking sets the keyboard’s gate rate.',
 };
 const tonePreference = 'tetorica-sm510-tone-source';
+const dutyPreference = 'tetorica-sm510-direct-duty';
 const chipPreference = 'tetorica-buzzer-selected-chip';
 let toneMode = DIRECT_R, selectedChip = 'sm510';
 try {
 	const rememberedMode = localStorage.getItem(tonePreference);
 	const rememberedChip = localStorage.getItem(chipPreference);
+	const rememberedDuty = Number(localStorage.getItem(dutyPreference) ?? dutyControl.value);
+	if (Number.isInteger(rememberedDuty * 2) && rememberedDuty >= 0 && rememberedDuty <= 100)
+		dutyControl.value = String(rememberedDuty);
 	if (rememberedChip === 'lcd-buzzer') {
 		localStorage.setItem(chipPreference, selectedChip);
 		localStorage.setItem(tonePreference, toneMode);
@@ -58,11 +64,16 @@ const sm510Play = byId('sm510Play'), sm510Stop = byId('sm510Stop'), sm510Control
 const sm510Preset = byId('sm510Preset'), sm510StepTime = byId('sm510StepTime'), sm510StepValue = byId('sm510StepValue');
 const sm510Gates = Array(GATE_STEP_COUNT).fill(false), sm510Buttons = [];
 const sm511Play = byId('sm511Play'), sm511Stop = byId('sm511Stop'), sm511Status = byId('sm511Status');
-const sm511PlayFrom = byId('sm511PlayFrom');
+const sm511RomStart = byId('sm511RomStart'), sm511RomStartValue = byId('sm511RomStartValue');
+const sm511RomRepeat = byId('sm511RomRepeat');
 const sm511CodePreview = byId('sm511CodePreview'), sm511CopyStatus = byId('sm511CopyStatus');
 const romEditor = setupSm511MelodyEditor({
 	document,
-	onChange() { clearRomCopy(); workspace?.melodyChanged(); },
+	onChange(commands, changedAddress) {
+		clearRomCopy();
+		workspace?.melodyChanged();
+		refreshRomPlayback(commands, { changedAddress });
+	},
 });
 const sm511Pitch = byId('sm511Pitch'), sm511KeyTracking = byId('sm511KeyTracking');
 const sm511Repeat = byId('sm511Repeat');
@@ -93,6 +104,8 @@ function displayNote(note, chip = selectedChip, tone) {
 }
 const mixLevel = chip => mix[chip].mute.checked ? 0 : Number(mix[chip].level.value) / 100;
 const formatHz = frequency => frequency.toLocaleString('en-US', { maximumFractionDigits: 2 });
+const formatDuty = duty => `${formatHz(duty * 100)}%`;
+const requestedDuty = () => dutyControl.valueAsNumber / 100;
 
 function syncTransport() {
 	const playingR1 = clip?.kind === 'sm510' || pending?.kind === 'sm510';
@@ -101,7 +114,7 @@ function syncTransport() {
 	sm510Play.disabled = playingR1 || !sm510Gates.some(Boolean);
 	sm510Stop.disabled = !playingR1;
 	sm510Controls.disabled = playingR1;
-	sm511Play.disabled = sm511PlayFrom.disabled = playingRom;
+	sm511Play.disabled = playingRom;
 	sm511Stop.disabled = !playingRom && !melodyClip && !melodyPending && !codeActive;
 }
 
@@ -134,14 +147,16 @@ function drawWave() {
 	const showingMelody = sm511 && melodyClip && heldNote === null && !clip;
 	const target = note === null ? null : noteToHz(note);
 	const romCommand = sm511 && note !== null ? heldRomTone?.command ?? sm511Command(note) : null;
-	const half = !sm511 && mode === DIRECT_R && target && audioCore?.directHalfCycles(target);
+	const directTiming = rawMode ? null : pulse?.directTiming ?? clip?.directPulses?.[activeStep];
 	const sounding = rawMode ? rAmplitude !== 0 : target !== null;
 	const frequency = !idlePulse && !idleRom && !showingMelody && sounding && (sm511 ? audioCore?.sm511PitchHz(romCommand)
-		: mode === DK52_R ? R1_HZ : !rawMode && half ? directPitchHz(half) : null);
-	pitch.title = pulse ? '8 ms waveform view' : half && !rawMode ? `${half} machine cycles per half-wave` : '';
+		: mode === DK52_R ? R1_HZ : directTiming?.frequency);
+	pitch.title = pulse ? '8 ms waveform view' : directTiming ? `${directTiming.periodCycles} machine cycles per period` : '';
 	if (pulse) {
 		const rate = formatHz(directPitchHz(pulse.halfCycles));
-		pitch.textContent = mode === DIRECT_R ? `CPU pulse · ${rate} Hz` : `4,096 Hz · ${rate} Hz gate`;
+		pitch.textContent = directTiming
+			? `CPU pulse · ${rate} Hz · ${formatDuty(directTiming.duty)} duty`
+			: `4,096 Hz · ${rate} Hz gate`;
 	} else if (idlePulse) pitch.textContent = 'CPU pulse · Ready';
 	else if (idleRom) pitch.textContent = 'SM511 · Ready';
 	else if (showingMelody) pitch.textContent = 'SM511 · Melody ROM';
@@ -150,6 +165,7 @@ function drawWave() {
 		const level = monitor === rMonitorModes[2] ? differentialLevels[rAmplitude + 1] : sounding ? 'High' : 'Low';
 		pitch.textContent = `Direct ${monitor.label} · ${level}`;
 	} else if (frequency && rawMode) pitch.textContent = `SM510 ${monitor.label} · 4,096 Hz`;
+	else if (frequency && directTiming) pitch.textContent = `${displayNote(note, chip)} · ${formatHz(frequency)} Hz · ${formatDuty(directTiming.duty)} duty`;
 	else if (frequency) pitch.textContent = `${sm511 ? sm511CommandLabel(romCommand) : displayNote(note, chip)} · ${frequency.toFixed(2)} Hz`;
 	else if (!sounding) pitch.textContent = rawMode ? `SM510 ${monitor.label} · Off` : 'Rest · silence';
 	else pitch.textContent = `${displayNote(note, chip)} · ${sm511 ? 'SM511' : 'Direct R'}`;
@@ -184,9 +200,9 @@ function drawWave() {
 		const waveform = sm511 ? renderSm511CommandCycle(audioCore, romCommand) : null;
 		const level = frame => {
 			if (pulseSamples) return pulseSamples[frame % pulseSamples.length] * 1.1;
-			const firstHalf = Math.floor(frame * frequency * 2 / sampleRate) % 2 === 0;
-			if (rawMode) return (firstHalf ? -rAmplitude : rAmplitude) * .18;
-			const high = waveform ? waveform[Math.floor(frame * MASTER_CLOCK_HZ / sampleRate) % waveform.length] > 0 : firstHalf;
+			const highPhase = frame * frequency / sampleRate % 1 < (directTiming?.duty ?? .5);
+			if (rawMode) return (highPhase ? -rAmplitude : rAmplitude) * .18;
+			const high = waveform ? waveform[Math.floor(frame * MASTER_CLOCK_HZ / sampleRate) % waveform.length] > 0 : highPhase;
 			return high ? .24 : -.24;
 		};
 		let y = center - level(0) * height;
@@ -286,6 +302,7 @@ function prepareSm510() {
 		if (!response.ok) throw new Error(`Unable to load the SM510 audio core (HTTP ${response.status}).`);
 		const { instance } = await WebAssembly.instantiate(await response.arrayBuffer());
 		audioCore = createSm510AudioCore(instance.exports);
+		refreshPulseTiming();
 		drawWave();
 		return audioCore;
 	}).catch(error => { coreLoading = undefined; throw error; });
@@ -296,7 +313,7 @@ const targetHz = note => note === null ? null : noteToHz(note);
 function renderSequence(sampleRate, chip, mode, core) {
 	const { notes, bpm, gate } = pattern;
 	if (chip === 'sm511') return renderSm511Pattern(core, notes, { stepSeconds: 30 / bpm, gate, sampleRate });
-	return renderSm510Notes(core, mode, notes.map(targetHz), { stepSeconds: 30 / bpm, gate, sampleRate });
+	return renderSm510Notes(core, mode, notes.map(targetHz), { stepSeconds: 30 / bpm, gate, sampleRate, duty: requestedDuty() });
 }
 
 function renderCycleSequence(core, plan, mode) {
@@ -365,6 +382,7 @@ function playPreparedClip(kind, {
 	const current = {
 		kind, source, gain, owner, loopOverride, r1Plan, r1Mode, chip, toneMode: mode,
 		start: time, duration: buffer.duration, stepFrames: rendered?.stepFrames, boundaries: rendered?.boundaries,
+		directPulses: rendered?.directPulses,
 	};
 	source.connect(gain);
 	const splitter = r1Plan ? connectRChannels(gain, audio, rMonitorOutputs) : null;
@@ -470,8 +488,7 @@ function stopRomEditor() {
 	syncTransport();
 }
 
-async function playRomEditor(address = 0) {
-	const commands = Uint8Array.from(romEditor.getMelody().slice(address));
+async function playRomEditor() {
 	const token = ++romRequest;
 	romStarting = true;
 	sm511Status.textContent = 'Preparing melody';
@@ -479,11 +496,15 @@ async function playRomEditor(address = 0) {
 	try {
 		const retiringCode = codeActive;
 		const retired = retiringCode ? controls.stop() : true;
-		const [, stopped] = await Promise.all([ensureAudio(), retired]);
+		const [, stopped] = await Promise.all([ensureAudio().then(prepareSm510), retired]);
 		if (token !== romRequest) return;
 		if (stopped) {
 			if (retiringCode) handoffEnd = Math.max(handoffEnd, audio.currentTime + transportRelease);
-			await playMelody(commands, sm511EditorOwner);
+			cancelPendingChipWork('sm511');
+			performance.cancelPending('sm511');
+			playRomSnapshot(romEditor.getMelody(), sm511RomStart.valueAsNumber, {
+				notBefore: scheduler.stop('sm511'),
+			});
 		} else sm511Status.textContent = 'Stopped';
 	} catch (error) {
 		if (token === romRequest) {
@@ -498,6 +519,57 @@ async function playRomEditor(address = 0) {
 	}
 }
 
+function resumeRomOffset(current, slots, repeat) {
+	// Follow the old clip up to the end of its short release. When Repeat is
+	// switched off, finish the current pass even if release crosses its end.
+	const now = audio.currentTime, duration = current.source.buffer.duration;
+	const fromStart = current.offset + Math.max(0, now - current.start);
+	const elapsed = current.source.loop ? fromStart % duration : fromStart;
+	const advance = now >= current.start ? transportRelease : 0;
+	const cursor = current.source.loop && repeat ? (elapsed + advance) % duration : elapsed + advance;
+	const previous = current.rom.slots.findLast(slot => slot.offsetSeconds <= cursor);
+	if (!previous || cursor >= previous.offsetSeconds + previous.durationSeconds) return null;
+	const edited = slots.find(slot => slot.address === previous.address);
+	if (!edited?.durationSeconds) return null;
+	return edited.offsetSeconds + Math.min(cursor - previous.offsetSeconds, edited.durationSeconds);
+}
+
+function playRomSnapshot(commands, address, { current, notBefore, changedAddress } = {}) {
+	const loop = sm511RomRepeat.checked;
+	const previousSlots = current?.rom.slots;
+	const startAddress = loop ? sm511RepeatStart(commands, address) : previousSlots?.[0].address ?? address;
+	if (startAddress === previousSlots?.[0].address && changedAddress !== undefined &&
+		(changedAddress < startAddress || changedAddress > previousSlots.at(-1).address)) return;
+	const words = Uint8Array.from(commands.slice(startAddress));
+	const slots = traceSm511Melody(words, startAddress);
+	const buffer = createPlaybackBuffer(renderSm511Melody(audioCore, words, audio.sampleRate));
+	let offset = current ? resumeRomOffset(current, slots, loop) : 0;
+	if (loop && buffer && (offset === null || offset >= buffer.duration)) offset = 0;
+	if (!buffer || offset === null || offset >= buffer.duration) {
+		handoffEnd = Math.max(handoffEnd, releaseMelody() ?? 0);
+		sm511Status.textContent = loop && !buffer ? 'ROM contains only Stop commands'
+			: current ? 'Melody finished' : `Stop at ${formatRomAddress(address)}`;
+		syncTransport();
+		drawWave();
+		return;
+	}
+	playPreparedMelody(buffer, sm511EditorOwner, { loop, notBefore, offset, rom: { address, slots } });
+}
+
+function refreshRomPlayback(commands, { seekAddress, changedAddress } = {}) {
+	const current = melodyClip;
+	if (!current?.rom) return;
+	const { address } = current.rom;
+	if (seekAddress === address) return;
+	try {
+		playRomSnapshot(commands, seekAddress ?? address, {
+			current: seekAddress === undefined ? current : null, changedAddress,
+		});
+	} catch (error) {
+		setStatus(error.message);
+	}
+}
+
 async function stopTransports() {
 	stopRomEditor();
 	stopMelody();
@@ -506,10 +578,16 @@ async function stopTransports() {
 
 function releaseMelody() {
 	if (!melodyClip) return;
-	const { source, gain } = melodyClip;
+	const { source, gain, start, offset } = melodyClip;
 	const now = audio.currentTime, end = now + transportRelease;
 	melodyClip = null;
-	gain.gain.setValueAtTime(1, now);
+	if (now < start) {
+		source.stop(now);
+		return start;
+	}
+	const level = offset > 0 ? Math.min(1, (now - start) / transportRelease) : 1;
+	gain.gain.cancelScheduledValues(now);
+	gain.gain.setValueAtTime(level, now);
 	gain.gain.linearRampToValueAtTime(0, end);
 	source.stop(end);
 	return end;
@@ -550,7 +628,7 @@ async function playMelody(commands, owner) {
 			drawWave();
 			return false;
 		}
-		playPreparedMelody(buffer, owner, false, scheduledEnd);
+		playPreparedMelody(buffer, owner, { notBefore: scheduledEnd });
 		melodyPending = null;
 		return true;
 	} catch (error) {
@@ -562,7 +640,7 @@ async function playMelody(commands, owner) {
 	}
 }
 
-function playPreparedMelody(buffer, owner, loop = false, notBefore = 0) {
+function playPreparedMelody(buffer, owner, { loop = false, notBefore = 0, offset = 0, rom = null } = {}) {
 	const source = audio.createBufferSource(), gain = audio.createGain();
 	source.buffer = buffer;
 	source.loop = loop;
@@ -570,7 +648,7 @@ function playPreparedMelody(buffer, owner, loop = false, notBefore = 0) {
 	gain.connect(mix.sm511.output);
 	const previous = releaseMelody();
 	const start = Math.max(releaseClipAndKeys('sm511'), previous ?? 0, handoffEnd, notBefore);
-	const current = { source, gain, owner };
+	const current = { source, gain, owner, start, offset, rom };
 	source.onended = () => {
 		source.disconnect();
 		gain.disconnect();
@@ -580,9 +658,15 @@ function playPreparedMelody(buffer, owner, loop = false, notBefore = 0) {
 		syncTransport();
 		drawWave();
 	};
-	source.start(start);
+	if (offset > 0) {
+		gain.gain.setValueAtTime(0, start);
+		gain.gain.linearRampToValueAtTime(1, start + transportRelease);
+	}
+	source.start(start, offset);
 	melodyClip = current;
-	sm511Status.textContent = loop ? 'Looping melody' : 'Playing melody';
+	if (loop && rom && rom.address !== rom.slots[0].address)
+		sm511Status.textContent = `Looping from ${formatRomAddress(rom.slots[0].address)}`;
+	else sm511Status.textContent = loop ? 'Looping melody' : 'Playing melody';
 	syncTransport();
 	drawWave();
 	return start;
@@ -624,7 +708,7 @@ async function prepareScheduledMelody(commands, repeatSeconds) {
 				stopMelody();
 				return { startTime: notBefore, stop: () => {} };
 			}
-			const startTime = playPreparedMelody(buffer, owner, repeatSeconds !== undefined, notBefore);
+			const startTime = playPreparedMelody(buffer, owner, { loop: repeatSeconds !== undefined, notBefore });
 			return { startTime, stop: () => stopMelody(owner) };
 		},
 	};
@@ -674,14 +758,26 @@ for (const [chip, channel] of Object.entries(mix)) {
 sm510Play.addEventListener('click', () => void start('sm510', { owner: sm510Owner, r1Mode: DK52_R }));
 sm510Stop.addEventListener('click', () => stopPlayback(sm510Owner));
 sm511Play.addEventListener('click', () => void playRomEditor());
-sm511PlayFrom.addEventListener('click', () => void playRomEditor(romEditor.getAddress()));
 sm511Stop.addEventListener('click', () => void stopTransports());
+const formatRomAddress = address => `0x${address.toString(16).toUpperCase().padStart(2, '0')}`;
+function refreshRomStart() {
+	const address = formatRomAddress(sm511RomStart.valueAsNumber);
+	sm511RomStartValue.value = address;
+	sm511RomStart.setAttribute('aria-valuetext', address);
+	clearRomCopy();
+}
+sm511RomStart.addEventListener('input', refreshRomStart);
+sm511RomStart.addEventListener('change', () => {
+	refreshRomStart();
+	refreshRomPlayback(romEditor.getMelody(), { seekAddress: sm511RomStart.valueAsNumber });
+});
+sm511RomRepeat.addEventListener('change', () => refreshRomPlayback(romEditor.getMelody()));
 function clearRomCopy() {
 	sm511CodePreview.hidden = true;
 	sm511CopyStatus.textContent = '';
 }
 byId('sm511CopyCode').addEventListener('click', async () => {
-	const code = formatSm511MelodyCode(romEditor.getMelody());
+	const code = formatSm511MelodyCode(romEditor.getMelody(), sm511RomStart.valueAsNumber);
 	try {
 		await navigator.clipboard.writeText(code);
 		sm511CodePreview.hidden = true;
@@ -827,8 +923,9 @@ const performance = setupBuzzerPerformance({
 			return { buffer, toneMode: mode, command, keyboard, loop: !singleSlot };
 		}
 		const halfCycles = keyTracking.checked ? core.directHalfCycles(frequency) : manualPulseCycles;
-		const plan = buildSm510Pulse(mode, halfCycles, pulseDrive);
 		const direct = mode === DIRECT_R;
+		const directTiming = direct ? core.directPulseTiming(halfCycles, requestedDuty()) : null;
+		const plan = buildSm510Pulse(mode, halfCycles, pulseDrive, directTiming?.highCycles);
 		const r1 = renderR1Timeline(plan, MASTER_CLOCK_HZ, direct ? core.renderDirectR1 : core.renderR1);
 		const r2 = renderR1Timeline(plan, MASTER_CLOCK_HZ, direct ? core.renderDirectR2 : core.renderR2);
 		const buffer = context.createBuffer(1, plan.end - plan.loopStart, MASTER_CLOCK_HZ);
@@ -837,7 +934,7 @@ const performance = setupBuzzerPerformance({
 			const tick = plan.loopStart + frame;
 			samples[frame] = r1[tick] - r2[tick];
 		}
-		return { buffer, toneMode: mode, halfCycles, startup: plan.loopStart / MASTER_CLOCK_HZ };
+		return { buffer, toneMode: mode, halfCycles, directTiming, startup: plan.loopStart / MASTER_CLOCK_HZ };
 	},
 	onBeforeNote(chip) {
 		const scheduledEnd = scheduler.stop(chip);
@@ -863,22 +960,34 @@ function refreshToneSource() {
 		button.setAttribute('aria-pressed', String(button.dataset.toneMode === toneMode));
 	byId('toneSourceDetail').textContent = toneHints[toneMode];
 	byId('buzzerR1DemoLink').hidden = toneMode !== DK52_R;
+	const direct = toneMode === DIRECT_R, cyclesPerStep = direct ? 2 : 1;
+	byId('sm510DutyControls').hidden = !direct;
+	byId('sm510PulseCyclesLabel').textContent = direct ? 'Pulse period' : 'On/off interval';
+	pulseCycles.min = MIN_PULSE_HALF_CYCLES * cyclesPerStep;
+	pulseCycles.max = MAX_PULSE_HALF_CYCLES * cyclesPerStep;
+	pulseCycles.step = cyclesPerStep;
 	drawWave();
 }
 function refreshPulseTiming() {
 	const cycles = keyTracking.checked ? heldPulse?.halfCycles : manualPulseCycles;
-	pulseCycles.value = cycles ?? manualPulseCycles;
+	const direct = toneMode === DIRECT_R;
+	pulseCycles.value = (cycles ?? manualPulseCycles) * (direct ? 2 : 1);
+	dutyValue.value = formatDuty(requestedDuty());
+	const interval = byId('sm510PulseInterval'), output = byId('sm510PulseTiming');
 	if (cycles === undefined) {
-		byId('sm510PulseInterval').value = 'Key tracking';
-		byId('sm510PulseTiming').textContent = 'Play a key to hear the CPU pulse.';
+		interval.value = 'Key tracking';
+		output.textContent = 'Play a key to hear the CPU pulse.';
 		return;
 	}
-	const intervalMs = cycles * 1000 / MACHINE_CYCLE_HZ;
-	const rate = `${formatHz(directPitchHz(cycles))} Hz`;
-	byId('sm510PulseInterval').value = `${cycles} cycles · ${intervalMs.toFixed(2)} ms`;
-	byId('sm510PulseTiming').textContent = toneMode === DIRECT_R
-		? `${rate} pitch · 16,384 machine cycles/s`
-		: `${rate} gate · 4,096 Hz carrier · 16,384 machine cycles/s`;
+	const displayedCycles = direct ? cycles * 2 : cycles;
+	const intervalMs = displayedCycles * 1000 / MACHINE_CYCLE_HZ;
+	interval.value = `${displayedCycles} cycles · ${intervalMs.toFixed(2)} ms`;
+	if (direct) {
+		const timing = audioCore?.directPulseTiming(cycles, requestedDuty());
+		output.textContent = timing
+			? `Actual ${formatDuty(timing.duty)} duty · ${formatHz(timing.frequency)} Hz · HIGH ${timing.highCycles} / LOW ${timing.lowCycles} cycles`
+			: 'Loading SM510 timing…';
+	} else output.textContent = `${formatHz(directPitchHz(cycles))} Hz gate · 4,096 Hz carrier · 16,384 machine cycles/s`;
 }
 function retunePulse() {
 	refreshPulseTiming();
@@ -889,8 +998,12 @@ keyTracking.addEventListener('change', () => {
 	retunePulse();
 });
 pulseCycles.addEventListener('input', () => {
-	manualPulseCycles = pulseCycles.valueAsNumber;
+	manualPulseCycles = pulseCycles.valueAsNumber / (toneMode === DIRECT_R ? 2 : 1);
 	keyTracking.checked = false;
+	retunePulse();
+});
+dutyControl.addEventListener('input', () => {
+	try { localStorage.setItem(dutyPreference, dutyControl.value); } catch {}
 	retunePulse();
 });
 pulsePins.forEach((button, index) => button.addEventListener('click', () => {

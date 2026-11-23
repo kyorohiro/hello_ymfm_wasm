@@ -142,7 +142,9 @@ input { accent-color: #9a3c13; }
 .cpu-pulse-sliders output { font-family: var(--mono); }
 .cpu-pulse-sliders input { width: 100%; margin: 0; }
 .tone-source button[aria-pressed="true"] { background: #443a2f; border-color: #382c21; color: #fff8e9; }
-.rom-keyboard-options { display: flex; flex-wrap: wrap; column-gap: 14px; }
+.rom-keyboard-options { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 8px; }
+.rom-keyboard-options .chip-key-tracking { margin: 0; }
+.sm511-output { color: #5d4c3b; font-size: .82rem; }
 .rom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; margin-top: 10px; font-size: .84rem; }
 .rom-controls .tone-source { margin: 0; }
 #sm511Command { font: .82rem var(--mono); align-self: center; }
@@ -152,13 +154,24 @@ input { accent-color: #9a3c13; }
 .sm511-rom-heading h3 { margin: 0; font-size: .98rem; }
 .sm511-rom output { font: .8rem var(--mono); }
 .sm511-rom-pages button { min-height: 30px; min-width: 30px; padding: 0 6px; }
-.sm511-rom-slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 8px 0; }
-.sm511-rom-slot { display: grid; justify-items: start; align-content: center; min-height: 42px; padding: 4px 6px; font-size: .84rem; }
-.sm511-rom-slot span:first-child { font: .7rem var(--mono); }
-.sm511-rom-slot[aria-pressed="true"] { color: #fff8e9; background: #443a2f; border-color: #382c21; }
+.sm511-rom-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(4.8rem, 1fr)); gap: 6px; margin: 8px 0; }
+.sm511-rom-slot { display: grid; min-width: 0; gap: 3px; text-align: center; }
+.sm511-rom-slot > span { color: #5d4c3b; font: .7rem var(--mono); }
+.sm511-rom-slot .param-control { display: grid; grid-template-columns: 20px minmax(0, 1fr) 20px; align-items: center; gap: 1px; padding: 0 2px; border: 1px solid #ad9b83; border-radius: 999px; background: #fffaf0; font-size: .82rem; }
+.sm511-rom-slot.is-selected .param-control { color: #fff8e9; background: #443a2f; border-color: #382c21; }
+.sm511-rom-slot button { min-height: 30px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: inherit; line-height: 1; }
+.sm511-rom-slot button:not(:disabled):hover { background: #ca642f25; }
+.sm511-rom-slot button:focus-visible { outline-offset: -2px; }
+.sm511-rom-slot.is-selected button:focus-visible { outline-color: #ffb77c; }
+.sm511-rom-slot .param-value { cursor: ew-resize; touch-action: pan-y; user-select: none; }
+.sm511-rom-slot .param-value.is-dragging { text-decoration: underline; text-underline-offset: 3px; }
 .sm511-rom-edit label { display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; }
-.sm511-rom-edit select, .sm511-rom-octave button { min-height: 31px; padding-inline: 6px; }
-.sm511-rom-octave { margin: 0; gap: 4px; }
+.sm511-rom-edit select, .sm511-rom-edit .tone-source button { min-height: 31px; padding-inline: 6px; }
+.sm511-rom-edit .tone-source { margin: 0; gap: 4px; }
+.sm511-rom-playback { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 12px; }
+.sm511-rom-start { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 3px 9px; font-size: .84rem; }
+.sm511-rom-start input { grid-column: 1 / -1; width: 100%; margin: 0; }
+.sm511-rom-repeat { margin: 0; }
 .sm511-rom-transport { margin-top: 9px; }
 .sm511-code-preview { display: block; width: 100%; min-height: 12em; margin-top: 8px; padding: 8px; border: 1px solid #bba58c; border-radius: 6px; background: #f4ead9; color: var(--ink); font: .8rem/1.45 var(--mono); resize: vertical; }
 .rom-note { display: grid; grid-template-columns: 1fr auto; gap: 3px 9px; min-width: 125px; }

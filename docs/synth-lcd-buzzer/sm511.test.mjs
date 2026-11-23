@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { buzzerCodeDeclarations } from './code.js';
+import { BUZZER_EXAMPLES } from './code_examples.js';
 import { createSm510AudioCore, MASTER_CLOCK_HZ } from './sm510.js';
 import {
-	buildSm511MelodySequence, compileSm511MelodySequence, formatSm511MelodyCode, readSm511MelodySequence,
+	buildSm511MelodySequence, compileSm511MelodySequence, createSm511CodeChip, formatSm511MelodyCode, readSm511MelodySequence,
 	renderSm511Melody, renderSm511CommandCycle, renderSm511Pattern,
-	sm511Command, sm511CommandLabel, sm511Label, validateMelody,
+	sm511Command, sm511CommandLabel, sm511Label, sm511RepeatStart, traceSm511Melody, validateMelody,
 } from './sm511.js';
 
 const { instance } = await WebAssembly.instantiate(await readFile(new URL('./sm510.wasm', import.meta.url)));
@@ -36,7 +37,13 @@ test('SM511 melody playback respects ROM rests, slot lengths, and first stop', (
 	assert.equal(renderSm511Melody(core, validateMelody([0x01, 0x12]), 44100).length, 0);
 	assert.throws(() => validateMelody([0x0e]), /6-bit/);
 	assert.throws(() => validateMelody(new Uint8Array(257)), /1–256/);
-	assert.match(buzzerCodeDeclarations(''), /sm511: Sm511CodeChip/);
+	const declarations = buzzerCodeDeclarations('');
+	assert.match(declarations, /sm511: Sm511CodeChip/);
+	assert.match(declarations, /setMelody\(words: readonly number\[\] \| Uint8Array\): void/);
+	assert.match(declarations, /play\(startAddress\?: number\): Promise<boolean>/);
+	assert.match(declarations, /stop\(\): void/);
+	assert.match(declarations, /build\(startAddress\?: number\): Sm511MelodySequence/);
+	assert.match(declarations, /build\(commands: readonly number\[\] \| Uint8Array\): Sm511MelodySequence/);
 });
 
 test('SM511 compilation traces playback through Stop while preserving the full ROM', () => {
@@ -63,12 +70,79 @@ test('SM511 compilation traces playback through Stop while preserving the full R
 	assert.throws(() => buildSm511MelodySequence([0x01, 0x0f]), /6-bit/);
 });
 
+test('SM511 Code loads privately, snapshots playback, and pads short ROM data with Stop', async () => {
+	const played = [];
+	let finish;
+	let stops = 0;
+	const chip = createSm511CodeChip({
+		play(words) {
+			played.push(words);
+			return new Promise(resolve => { finish = resolve; });
+		},
+		stop() { stops++; finish?.(false); },
+	});
+	assert.deepEqual([...readSm511MelodySequence(chip.build(0xff))], [0x01]);
+	const input = Uint8Array.of(0x01, 0x12, 0x20, 0x0c);
+	chip.setMelody(input);
+	input.fill(0);
+	assert.equal(played.length, 0);
+	const playing = chip.play(1);
+	assert.equal(played[0].length, 255);
+	chip.setMelody([0x2d]);
+	assert.deepEqual([...played[0].slice(0, 5)], [0x12, 0x20, 0x0c, 0x01, 0x01]);
+	chip.stop();
+	assert.equal(await playing, false);
+	assert.equal(stops, 1);
+	assert.throws(() => chip.setMelody([0x0e]), /6-bit/);
+	assert.deepEqual([...readSm511MelodySequence(chip.build()).slice(0, 4)], [0x2d, 0x01, 0x01, 0x01]);
+	for (const address of [-1, 256, 1.5, NaN]) {
+		assert.throws(() => chip.play(address), /0x00 to 0xFF/);
+		assert.throws(() => chip.build(address), /0x00 to 0xFF/);
+	}
+	const legacy = chip.playMelody([0x1d]);
+	assert.deepEqual([...played[1]], [0x1d]);
+	chip.stopMelody();
+	assert.equal(await legacy, false);
+	assert.equal(stops, 2);
+	assert.equal(chip.compile(chip.build())[0].command, 0x2d);
+});
+
+test('SM511 build(address) keeps a schedulable ROM suffix and absolute trace addresses', () => {
+	const chip = createSm511CodeChip({});
+	const rom = new Uint8Array(256).fill(0x01);
+	rom.set([0x1d, 0x20, 0x02, 0x01, 0x2c], 0xfb);
+	chip.setMelody(rom);
+	const plan = chip.build(0xfb);
+	chip.setMelody([0x2d]);
+	assert.equal(plan.commandCount, 5);
+	const suffix = readSm511MelodySequence(plan);
+	assert.deepEqual([...suffix], [0x1d, 0x20, 0x02, 0x01, 0x2c]);
+	const trace = chip.compile(plan);
+	assert.deepEqual(trace, traceSm511Melody(suffix, 0xfb));
+	assert.deepEqual(trace.map(row => [row.address, row.command, row.masterTick, row.durationTicks]), [
+		[0xfb, 0x1d, 0, 2048], [0xfc, 0x20, 2048, 4096], [0xfd, 0x02, 6144, 2048], [0xfe, 0x01, 8192, 0],
+	]);
+	assert.equal(renderSm511Melody(core, suffix, MASTER_CLOCK_HZ).length, trace.at(-1).masterTick);
+	assert.deepEqual(chip.compile(chip.build([0x1d])).map(row => row.address), [0]);
+});
+
 test('repeating the SM511 waveform matches adjacent identical ROM commands', () => {
 	for (const command of [0x02, 0x1d, 0x22, 0x3d]) {
 		const cycle = renderSm511CommandCycle(core, command);
 		const phrase = renderSm511Melody(core, Array(4).fill(command), MASTER_CLOCK_HZ);
 		assert(phrase.every((sample, frame) => sample === cycle[frame % cycle.length]));
 	}
+});
+
+test('SM511 editor Repeat can start on Stop and wrap to the next timed slot', () => {
+	const rom = new Uint8Array(256).fill(0x01);
+	assert.equal(sm511RepeatStart(rom, 0xff), 0xff);
+	rom[0] = 0x09;
+	rom[0x14] = 0x20; // A long rest is a timed slot.
+	rom[0x18] = 0x2d;
+	assert.equal(sm511RepeatStart(rom, 0x12), 0x14);
+	assert.equal(sm511RepeatStart(rom, 0x18), 0x18);
+	assert.equal(sm511RepeatStart(rom, 0xff), 0x00);
 });
 
 test('a full SM511 ROM can play its last address without a trailing Stop', () => {
@@ -87,23 +161,31 @@ test('Copy as Code runs with the entire SM511 ROM, including edits after Stop', 
 	rom[0] = 0x1d;
 	rom[0x80] = 0x20;
 	rom[0xff] = 0x3d;
-	const source = formatSm511MelodyCode(rom);
-	assert.match(source, /^const sm511 = await useSoundChip\("sm511"\);\nawait sm511\.playMelody\(\[/);
+	const source = formatSm511MelodyCode(rom, 0xff);
+	assert.match(source, /^const sm511 = await useSoundChip\("sm511"\);\nsm511\.setMelody\(\[/);
+	assert.match(source, /await sm511\.play\(0xFF\);\n$/);
 	const rows = source.split('\n').filter(line => /^  0x/.test(line));
 	assert.equal(rows.length, 16);
 	assert(rows.every(row => row.match(/0x[\dA-F]{2}/g)?.length === 16));
 	assert(rows.at(-1).endsWith('0x3D,'));
 	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 	let played;
+	const chip = createSm511CodeChip({ play(words) { played = words; } });
 	await new AsyncFunction('useSoundChip', source)(async name => {
 		assert.equal(name, 'sm511');
-		return { playMelody: commands => { played = commands; } };
+		return chip;
 	});
-	assert.deepEqual(played, [...rom]);
-	assert.deepEqual(validateMelody(played), rom);
+	assert.deepEqual(played, Uint8Array.of(0x3d));
+	assert.deepEqual(readSm511MelodySequence(chip.build()), rom);
+	assert.equal(renderSm511Melody(core, played, MASTER_CLOCK_HZ).length, 4096);
+	assert.match(formatSm511MelodyCode(rom), /await sm511\.play\(0x00\);\n$/);
+	const example = BUZZER_EXAMPLES.find(({ path }) => path === '/examples/sm511-melody.js');
+	assert.match(example.data, /sm511\.setMelody\(\[/);
+	assert.match(example.data, /await sm511\.play\(0x00\);\n$/);
 	assert.throws(() => formatSm511MelodyCode(Uint8Array.of(0x40)), /6-bit/);
 	assert.throws(() => formatSm511MelodyCode([0x2e]), /6-bit/);
 	assert.throws(() => formatSm511MelodyCode(new Uint8Array(257)), /1–256/);
+	assert.throws(() => formatSm511MelodyCode(rom, 256), /0x00 to 0xFF/);
 });
 
 test('SM511 pattern timing keeps each quantized step and gives short notes one ROM command', () => {

@@ -11,6 +11,7 @@ constexpr uint32_t machine_cycle_hz = master_clock_hz / ticks_per_machine_cycle;
 constexpr uint32_t half_period_ticks = 4;
 constexpr uint32_t min_direct_half_cycles = 4;
 constexpr uint32_t max_direct_half_cycles = 63;
+constexpr uint32_t min_direct_phase_cycles = 2;
 constexpr uint32_t r1_pin = 1;
 constexpr uint32_t r2_pin = 2;
 
@@ -84,6 +85,20 @@ uint32_t sm510_direct_half_cycles(double target_hz) {
         higher_hz = lower_hz;
     }
     return max_direct_half_cycles;
+}
+
+uint32_t sm510_direct_high_cycles(uint32_t period_cycles, double duty) {
+    if (period_cycles < 2 * min_direct_half_cycles || period_cycles > 2 * max_direct_half_cycles ||
+        period_cycles % 2 != 0 || !(duty >= 0 && duty <= 1))
+        return 0;
+
+    const uint32_t high_cycles = static_cast<uint32_t>(period_cycles * duty + 0.5);
+    const uint32_t max_high_cycles = period_cycles - min_direct_phase_cycles;
+    if (high_cycles < min_direct_phase_cycles)
+        return min_direct_phase_cycles;
+    if (high_cycles > max_high_cycles)
+        return max_high_cycles;
+    return high_cycles;
 }
 
 void sm510_render_direct_note(float *output, uint32_t frames, uint32_t sample_rate,

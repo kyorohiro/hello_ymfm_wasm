@@ -6,6 +6,7 @@ export const SM511_SHORT_SECONDS = 1 / 16;
 export const SM511_DEMO = Object.freeze([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
 const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
 const SHORT_TICKS = SM511_SHORT_SECONDS * MASTER_CLOCK_HZ;
+const STOP = 0x01;
 const melodySequences = new WeakMap();
 
 // Keep the MIDI values in existing projects and map their pitch classes onto
@@ -39,35 +40,79 @@ export function validateMelody(commands) {
 	return Uint8Array.from(commands);
 }
 
-function getMelodySequence(plan) {
-	const commands = melodySequences.get(plan);
-	if (!commands) throw new TypeError('Provide an SM511 melody sequence from build().');
-	return commands;
+function validateStartAddress(address) {
+	if (!Number.isInteger(address) || address < 0 || address >= SM511_ROM_STEPS)
+		throw new RangeError('Choose an SM511 ROM address from 0x00 to 0xFF.');
 }
 
-export function buildSm511MelodySequence(commands) {
-	const words = validateMelody(commands);
+function getMelodySequence(plan) {
+	const sequence = melodySequences.get(plan);
+	if (!sequence) throw new TypeError('Provide an SM511 melody sequence from build().');
+	return sequence;
+}
+
+function storeMelodySequence(words, startAddress) {
 	const plan = Object.freeze({ commandCount: words.length });
-	melodySequences.set(plan, words);
+	melodySequences.set(plan, { words, startAddress });
 	return plan;
 }
 
+export function buildSm511MelodySequence(commands) {
+	return storeMelodySequence(validateMelody(commands), 0);
+}
+
 export function readSm511MelodySequence(plan) {
-	return getMelodySequence(plan).slice();
+	return getMelodySequence(plan).words.slice();
+}
+
+export function createSm511CodeChip({ play, stop }) {
+	const rom = new Uint8Array(SM511_ROM_STEPS).fill(STOP);
+	function snapshotFrom(address) {
+		validateStartAddress(address);
+		return rom.slice(address);
+	}
+	return {
+		id: 'sm511',
+		get clock() { return MASTER_CLOCK_HZ; },
+		setMelody(commands) {
+			const words = validateMelody(commands);
+			rom.fill(STOP);
+			rom.set(words);
+		},
+		play(startAddress = 0) { return play(snapshotFrom(startAddress)); },
+		stop,
+		build(source = 0) {
+			if (typeof source === 'number') return storeMelodySequence(snapshotFrom(source), source);
+			return buildSm511MelodySequence(source);
+		},
+		compile: compileSm511MelodySequence,
+		playMelody(commands) { return play(validateMelody(commands)); },
+		stopMelody: stop,
+	};
 }
 
 function commandDurationTicks(command) {
-	if ((command & 0xf) === 1) return 0;
+	if ((command & 0xf) === STOP) return 0;
 	return command & 0x20 ? 2 * SHORT_TICKS : SHORT_TICKS;
 }
 
-export function compileSm511MelodySequence(plan) {
+export function sm511RepeatStart(commands, startAddress) {
+	for (let offset = 0; offset < commands.length; offset++) {
+		const address = (startAddress + offset) % commands.length;
+		if (commandDurationTicks(commands[address])) return address;
+	}
+	return startAddress;
+}
+
+// Commands already start at the requested address. Their playback clock
+// starts at zero, while trace rows retain the original addresses in the ROM.
+export function traceSm511Melody(commands, startAddress = 0) {
 	const trace = [];
 	let masterTick = 0;
-	for (const [address, command] of getMelodySequence(plan).entries()) {
+	for (const [index, command] of commands.entries()) {
 		const durationTicks = commandDurationTicks(command);
 		trace.push({
-			address, command, masterTick, durationTicks,
+			address: startAddress + index, command, masterTick, durationTicks,
 			offsetSeconds: masterTick / MASTER_CLOCK_HZ,
 			durationSeconds: durationTicks / MASTER_CLOCK_HZ,
 		});
@@ -77,15 +122,23 @@ export function compileSm511MelodySequence(plan) {
 	return trace;
 }
 
-export function formatSm511MelodyCode(commands) {
+export function compileSm511MelodySequence(plan) {
+	const { words, startAddress } = getMelodySequence(plan);
+	return traceSm511Melody(words, startAddress);
+}
+
+const hexByte = value => `0x${value.toString(16).toUpperCase().padStart(2, '0')}`;
+
+export function formatSm511MelodyCode(commands, startAddress = 0) {
 	const melody = validateMelody(commands);
+	validateStartAddress(startAddress);
 	const lines = [];
 	for (let start = 0; start < melody.length; start += 16) {
 		const words = melody.subarray(start, start + 16);
-		const hex = Array.from(words, word => `0x${word.toString(16).toUpperCase().padStart(2, '0')}`);
+		const hex = Array.from(words, hexByte);
 		lines.push(`  ${hex.join(', ')},`);
 	}
-	return `const sm511 = await useSoundChip("sm511");\nawait sm511.playMelody([\n${lines.join('\n')}\n]);\n`;
+	return `const sm511 = await useSoundChip("sm511");\nsm511.setMelody([\n${lines.join('\n')}\n]);\nawait sm511.play(${hexByte(startAddress)});\n`;
 }
 
 export function sm511MelodyDuration(commands) {

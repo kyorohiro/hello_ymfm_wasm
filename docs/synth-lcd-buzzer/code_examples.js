@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { SM511_DEMO } from './sm511.js';
+import { formatSm511MelodyCode, SM511_DEMO } from './sm511.js';
 
 export const BUZZER_EXAMPLES = [
 	{
@@ -80,10 +80,7 @@ await sm510.playCycles(pulse);
 	},
 	{
 		path: '/examples/sm511-melody.js',
-		data: `const sm511 = await useSoundChip("sm511");
-
-// Low nibble is note, rest or stop. Bit 4 is octave. Bit 5 doubles the length.
-await sm511.playMelody([${SM511_DEMO.map(command => '0x' + command.toString(16).padStart(2, '0')).join(', ')}]);
-`,
+		data: `// Low nibble is note, rest or stop. Bit 4 is octave. Bit 5 doubles the length.
+${formatSm511MelodyCode(SM511_DEMO)}`,
 	},
 ];

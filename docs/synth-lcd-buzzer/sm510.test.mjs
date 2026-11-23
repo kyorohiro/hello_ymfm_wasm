@@ -17,7 +17,8 @@ test('Code declarations expose the note, R output, and timed playback clients', 
 	const types = buzzerCodeDeclarations('');
 	assert.match(types, /'lcd-buzzer': BuzzerCodeChip/);
 	assert.match(types, /sm510: Sm510CodeChip<'sm510'> & BuzzerPerformance/);
-	assert.match(types, /'sm510-direct': Sm510CodeChip<'sm510-direct'>/);
+	assert.match(types, /'sm510-direct': Sm510DirectCodeChip/);
+	assert.match(types, /pulseTiming\(frequencyHz: number, duty\?: number\): Sm510PulseTiming/);
 	assert.match(types, /readonly REG_R: 0/);
 	assert.match(types, /noteOn\(channel: typeof CH1/);
 	assert.match(types, /atCycle\(machineCycle: number\)/);
@@ -201,42 +202,119 @@ test('SM510 compilation preserves authored write order and keeps playback data d
 	assert.throws(() => dk52.playCycles(plan), /from build/);
 });
 
-test('direct note half-periods fit executable SM510 instruction loops', () => {
-	// ROM addresses advance via the SM510 polynomial counter, not linearly.
-	const nextAddress = address => {
-		const bits = address & 63;
-		const feedback = (bits & 1) === ((bits >> 1) & 1) ? 32 : 0;
-		return (address & ~63) | feedback | (bits >> 1);
-	};
-	for (let half = 4; half <= 63; half++) {
-		const rom = new Map();
-		for (const [page, value, branch] of [[0, 1, 0x71], [64, 0, 0x70]]) {
-			let address = page;
-			const program = [0x20 + value, 0x61, ...Array(half - 4).fill(0x00), branch, 0x00];
-			for (const opcode of program) {
-				assert(!rom.has(address));
-				rom.set(address, opcode);
-				address = nextAddress(address);
-			}
+// Sharp Microcomputers Data Book (1990), SM510 pp. 149–157. Opcodes
+// and their operand bytes follow the same 63-position page counter.
+function nextAddress(address) {
+	const withinPage = address & 63;
+	const prepend = withinPage % 2 === Math.floor(withinPage / 2) % 2 ? 32 : 0;
+	return address - withinPage + prepend + Math.floor(withinPage / 2);
+}
+
+function buildDirectRom(high, low) {
+	const rom = new Map();
+	function writePage(page, bytes) {
+		assert(bytes.length <= 63);
+		const addresses = [];
+		let address = page * 64;
+		for (const byte of bytes) {
+			assert(!rom.has(address));
+			addresses.push(address);
+			rom.set(address, byte);
+			address = nextAddress(address);
 		}
-		let pc = 0, cycle = 0, acc = 0;
-		const writes = [];
-		while (writes.length < 5) {
-			const opcode = rom.get(pc);
-			assert.notEqual(opcode, undefined);
-			pc = nextAddress(pc);
-			cycle++;
-			if ((opcode & 0xf0) === 0x20) acc = opcode & 0xf;
-			else if (opcode === 0x61) writes.push([cycle, acc]);
-			else if (opcode === 0x70 || opcode === 0x71) {
-				const operand = rom.get(pc);
-				assert.equal(operand, 0x00);
-				pc = (opcode & 1) * 64;
-				cycle++;
-			} else assert.equal(opcode, 0x00);
+		return addresses;
+	}
+	const pad = cycles => Array(cycles).fill(0x00); // SKIP
+	const latch = value => [0x20 + value, 0x61]; // LAX, ATR
+	const jump = page => [0x70 + page, 0]; // TL to a page in the same bank
+	const highFirst = high <= low;
+	const short = Math.min(high, low), long = Math.max(high, low);
+	const period = high + low;
+	const shortLatch = latch(highFirst ? 1 : 2), longLatch = latch(highFirst ? 2 : 1);
+	const shortBody = [...shortLatch, ...pad(short - 2)];
+	let longEntry;
+	if (period <= 63) {
+		// T fits in one cycle and returns to the start of this page.
+		const addresses = writePage(0, [...shortBody, ...longLatch, ...pad(long - 3), 0x80]);
+		longEntry = addresses[short];
+	} else if (short <= 59) {
+		// Put both writes in the first page. Two TLs are inside the longer phase.
+		const firstPage = Math.min(63, period - 2);
+		const addresses = writePage(0, [...shortBody, ...longLatch, ...pad(firstPage - short - 4), ...jump(1)]);
+		writePage(1, [...pad(period - firstPage - 2), ...jump(0)]);
+		longEntry = addresses[short];
+	} else {
+		writePage(0, [...shortLatch, ...pad(short - 4), ...jump(1)]);
+		if (long <= 63) {
+			writePage(1, [...longLatch, ...pad(long - 4), ...jump(0)]);
+		} else {
+			// Leave at least two cycles for the final TL in the third page.
+			const firstLongPage = Math.min(63, long - 2);
+			writePage(1, [...longLatch, ...pad(firstLongPage - 4), ...jump(2)]);
+			writePage(2, [...pad(long - firstLongPage - 2), ...jump(0)]);
 		}
-		assert.deepEqual(writes, [1, 0, 1, 0, 1].map((value, i) => [2 + i * half, value]));
+		longEntry = 64;
+	}
+	return { rom, entry: highFirst ? 0 : longEntry };
+}
+
+function directRomWrites({ rom, entry }, endCycle) {
+	let pc = entry, cycle = 0, acc = 0, previousLax = false;
+	const writes = [];
+	function fetch() {
+		const byte = rom.get(pc);
+		assert.notEqual(byte, undefined, `unpopulated ROM address ${pc.toString(16)}`);
+		cycle++;
+		pc = nextAddress(pc);
+		return byte;
+	}
+	while (cycle < endCycle) {
+		const opcode = fetch();
+		const lax = opcode >= 0x20 && opcode <= 0x2f;
+		if (lax) {
+			if (!previousLax) acc = opcode - 0x20;
+		} else if (opcode === 0x61) {
+			writes.push([cycle, acc & 3]);
+		} else if (opcode >= 0x80 && opcode <= 0xbf) {
+			pc = pc - pc % 64 + opcode - 0x80;
+		} else if (opcode >= 0x70 && opcode <= 0x7b) {
+			const operand = fetch();
+			pc = Math.floor(operand / 64) * 1024 + (opcode - 0x70) * 64 + operand % 64;
+		} else assert.equal(opcode, 0x00);
+		previousLax = lax;
+	}
+	return writes;
+}
+
+test('each allowed Direct R HIGH/LOW split has an executable SM510 ROM loop', () => {
+	for (let half = MIN_PULSE_HALF_CYCLES; half <= MAX_PULSE_HALF_CYCLES; half++) {
+		const period = 2 * half;
+		for (let high = 2; high <= period - 2; high++) {
+			const writes = directRomWrites(buildDirectRom(high, period - high), 2 + 2 * period);
+			assert.deepEqual(writes, [
+				[2, 1], [2 + high, 2], [2 + period, 1], [2 + period + high, 2], [2 + 2 * period, 1],
+			], `${high}/${period - high} cycles`);
+			const pulse = buildSm510Pulse(DIRECT_R, half, 3, high);
+			assert.deepEqual([...pulse.writes], [4, 1, 2 * (2 + high), 2]);
+			assert.equal(pulse.end, 2 * (2 + period));
+		}
+	}
+});
+
+test('Direct R duty rounds to machine cycles without moving the existing pitch', () => {
+	for (let half = MIN_PULSE_HALF_CYCLES; half <= MAX_PULSE_HALF_CYCLES; half++) {
+		const period = 2 * half;
 		assert.equal(core.directHalfCycles(directPitchHz(half)), half);
+		assert.deepEqual(core.directPulseTiming(half), {
+			highCycles: half, lowCycles: half, periodCycles: period, frequency: directPitchHz(half), duty: .5,
+		});
+		for (const duty of [.01, .237, .681, .99]) {
+			const highCycles = Math.max(2, Math.min(period - 2, Math.round(period * duty)));
+			assert.deepEqual(core.directPulseTiming(half, duty), {
+				highCycles, lowCycles: period - highCycles, periodCycles: period,
+				frequency: directPitchHz(half), duty: highCycles / period,
+			});
+		}
 	}
 	assert.equal(core.directHalfCycles(440), 19);
 	assert.equal(directPitchHz(19).toFixed(2), '431.16');
@@ -261,4 +339,31 @@ test('hardware steps and sustained notes share the direct pin waveform at native
 		.16, .16, .16, .16, -.16, -.16, -.16, -.16,
 	]));
 	assert.deepEqual(divider.slice(4, 12), divider.slice(164, 172));
+});
+
+test('Direct R note and sequence playback write the asymmetric falling edge at the same cycle', () => {
+	const stepSeconds = 80 / MACHINE_CYCLE_HZ;
+	const duty = .32;
+	const options = { duty, stepSeconds, sampleRate: MASTER_CLOCK_HZ };
+	const half = core.directHalfCycles(440);
+	const timing = core.directPulseTiming(half, duty);
+	const { samples, directPulses } = renderSm510Notes(core, DIRECT_R, [440, null, 440], options);
+	assert.deepEqual(directPulses, [timing, null, timing]);
+
+	const pulse = buildSm510Pulse(DIRECT_R, half, 3, timing.highCycles);
+	const pin1 = renderR1Timeline(pulse, MASTER_CLOCK_HZ, core.renderDirectR1);
+	const pin2 = renderR1Timeline(pulse, MASTER_CLOCK_HZ, core.renderDirectR2);
+	const level = Math.fround(.16), firstFall = pulse.loopStart + 2 * timing.highCycles;
+	assert.deepEqual(samples.subarray(pulse.loopStart, pulse.end), pin1.subarray(pulse.loopStart));
+	assert.equal(samples[firstFall - 1], level);
+	assert.equal(samples[firstFall], 0);
+	assert.equal(pin2[firstFall - 1], 0);
+	assert.equal(pin2[firstFall], level);
+	assert.equal(samples[firstFall + 2 * timing.periodCycles - 1], level);
+	assert.equal(samples[firstFall + 2 * timing.periodCycles], 0);
+	assert(samples.slice(160, 320).every(sample => sample === 0));
+
+	const divider = renderSm510Notes(core, DK52_R, [440, null, 440], options);
+	const original = renderSm510Notes(core, DK52_R, [440, null, 440], { stepSeconds, sampleRate: MASTER_CLOCK_HZ });
+	assert.deepEqual(divider.samples, original.samples);
 });

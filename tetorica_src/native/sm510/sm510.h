@@ -25,6 +25,11 @@ void sm510_render_r1(float *output, uint32_t frames, uint32_t sample_rate,
  * nonfinite or nonpositive target. */
 uint32_t sm510_direct_half_cycles(double target_hz);
 
+/* Quantize a requested direct duty in [0, 1] while keeping the period fixed.
+ * Periods are even 8–126 machine cycles. Each phase reserves at least two
+ * cycles for LAX and ATR. Round half-cycle ties upward. Invalid inputs return 0. */
+uint32_t sm510_direct_high_cycles(uint32_t period_cycles, double duty);
+
 /* Render a direct-output note in steady state with equal half-periods.
  * Start high at 0.16 and then alternate with 0, averaging over each sample
  * interval just like the direct R1 timeline. */

@@ -65,6 +65,19 @@ test('a one-value interval stays fixed and read-only nonnumeric displays survive
  control.updateVisual('—');control.updateRange(1,100);assert.equal(value.textContent,'—');
  assert.deepEqual(changes,[0]);
 });
+test('formatted values change the display while buttons and drag still emit numeric steps',()=>{
+ const labels=['C♯5','D5','D♯5'];
+ const {control,changes,buttons:[minus,value,plus]}=setup({max:2,value:0,formatValue:index=>labels[index]});
+ assert.equal(value.textContent,'C♯5');
+ plus.listeners.click();assert.equal(value.textContent,'D5');
+ value.listeners.pointerdown({pointerId:1,clientX:0});
+ value.listeners.pointermove({pointerId:1,clientX:80});
+ value.listeners.pointerup({pointerId:1});
+ assert.equal(value.textContent,'D♯5');
+ minus.listeners.click();assert.equal(value.textContent,'D5');
+ control.updateVisual(0);
+ assert.equal(value.textContent,'C♯5');assert.deepEqual(changes,[1,2,1]);
+});
 test('externally synchronized boolean toggles from displayed value',()=>{
  const {control,changes,buttons:[value]}=setup({booleanMode:true,value:false,min:0,max:1});
  control.updateVisual(true);

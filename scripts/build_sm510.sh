@@ -17,7 +17,8 @@ trap 'rm -rf "$WASM_STAGE"' EXIT
 "$WASM_CXX" --target=wasm32-unknown-unknown "$CORE/sm510.cpp" "$CORE/sm511.cpp" \
   -std=c++17 -O2 -ffreestanding -fno-exceptions -fno-rtti -nostdlib \
   -Wl,--no-entry,--export-memory,--export=__heap_base,--export=sm510_output_pins,--export=sm510_render_r1 \
-  -Wl,--export=sm510_direct_half_cycles,--export=sm510_render_direct_note,--export=sm510_render_direct_r1 \
+  -Wl,--export=sm510_direct_half_cycles,--export=sm510_direct_high_cycles \
+  -Wl,--export=sm510_render_direct_note,--export=sm510_render_direct_r1 \
   -Wl,--export=sm511_pitch_hz,--export=sm511_render_tone,--export=sm511_render_melody \
   -o "$WASM_STAGE/sm510.wasm"
 

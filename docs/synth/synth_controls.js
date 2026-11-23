@@ -37,6 +37,7 @@ export function createParamControl(config) {
     booleanMode = false,
     category = "",
     wheelAdjust = true,
+    formatValue = String,
   } = config;
   let min=initialMin,max=initialMax;
 
@@ -96,7 +97,7 @@ export function createParamControl(config) {
         );
         return;
       }
-      const text=String(nextValue);
+      const text=formatValue(nextValue);
       if(valueElement.textContent!==text)valueElement.textContent=text;
     };
 

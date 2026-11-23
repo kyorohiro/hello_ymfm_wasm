@@ -87,6 +87,19 @@ int main(int argc, char **argv) {
     assert(sm510_direct_half_cycles(0) == 0 && sm510_direct_half_cycles(-1) == 0);
     assert(sm510_direct_half_cycles(INFINITY) == 0 && sm510_direct_half_cycles(NAN) == 0);
 
+    for (uint32_t period = 8; period <= 126; period += 2) {
+        assert(sm510_direct_high_cycles(period, 0) == 2);
+        assert(sm510_direct_high_cycles(period, 0.5) == period / 2);
+        assert(sm510_direct_high_cycles(period, 1) == period - 2);
+    }
+    assert(sm510_direct_high_cycles(38, 0.25) == 10);
+    assert(sm510_direct_high_cycles(8, 0.125) == 2);
+    assert(sm510_direct_high_cycles(126, 0.125) == 16);
+    assert(sm510_direct_high_cycles(7, 0.5) == 0 && sm510_direct_high_cycles(9, 0.5) == 0);
+    assert(sm510_direct_high_cycles(128, 0.5) == 0);
+    assert(sm510_direct_high_cycles(8, -0.01) == 0 && sm510_direct_high_cycles(8, 1.01) == 0);
+    assert(sm510_direct_high_cycles(8, NAN) == 0 && sm510_direct_high_cycles(8, INFINITY) == 0);
+
     float direct_note[18];
     sm510_render_direct_note(direct_note, 18, 16384, 8);
     for (uint32_t frame = 0; frame < 18; ++frame)

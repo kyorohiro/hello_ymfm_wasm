@@ -88,17 +88,21 @@
 					</div>
 					<label class="chip-key-tracking"><input id="sm510KeyTracking" type="checkbox" checked> Key tracking · Software</label>
 					<div class="cpu-pulse-sliders">
-						<label for="sm510PulseCycles">On/off interval <output id="sm510PulseInterval" for="sm510KeyTracking sm510PulseCycles">Key tracking</output></label>
-						<input id="sm510PulseCycles" type="range" min="4" max="63" value="19">
+						<label for="sm510PulseCycles"><span id="sm510PulseCyclesLabel">Pulse period</span><output id="sm510PulseInterval" for="sm510KeyTracking sm510PulseCycles">Key tracking</output></label>
+						<input id="sm510PulseCycles" type="range" min="8" max="126" step="2" value="38">
+					</div>
+					<div id="sm510DutyControls" class="cpu-pulse-sliders">
+						<label for="sm510Duty">R1 phase duty <output id="sm510DutyValue" for="sm510Duty">50%</output></label>
+						<input id="sm510Duty" type="range" min="0" max="100" step="0.5" value="50" aria-describedby="sm510PulseTiming">
 					</div>
 					<p id="sm510PulseTiming" class="chip-note">Play a key to hear the CPU pulse.</p>
 				</section>
 				<details class="chip-help">
 					<summary aria-label="SM510 help" title="SM510 help">?</summary>
-					<p class="chip-note">Moving the interval slider switches to manual timing. Drive sets the voltage swing across R1 and R2.</p>
+					<p class="chip-note">Moving the timing slider switches to manual timing. Drive sets the voltage swing across R1 and R2.</p>
 					<dl class="chip-details">
 						<dt>Hardware</dt><dd><code>ATR</code> copies the low two accumulator bits to R. Direct R holds each pin at its latched level. The DK-52 divider gates a 4,096 Hz signal on each pin, with R2 in opposite phase.</dd>
-						<dt>App playback</dt><dd id="toneSourceDetail">Direct R switches the output at whole SM510 machine cycles to set each pitch.</dd>
+						<dt>App playback</dt><dd id="toneSourceDetail">Duty sets the share of the period spent in the R1 phase. When driven, R2 is high in the other phase.</dd>
 					</dl>
 				</details>
 				<p id="buzzerR1DemoLink" class="chip-note" hidden><a href="#buzzerChipGuide">Open the R1 gate demo</a></p>
@@ -107,6 +111,7 @@
 				<div class="rom-keyboard-options">
 					<label class="chip-key-tracking"><input id="sm511KeyTracking" type="checkbox" checked> Key tracking · Software</label>
 					<label class="chip-key-tracking"><input id="sm511Repeat" type="checkbox"> Repeat · Software</label>
+					<span class="sm511-output">Melody output <strong>R</strong> · 1 pin</span>
 				</div>
 				<div class="rom-controls">
 					<div class="rom-note">
@@ -144,9 +149,16 @@
 						<label>Length <select id="sm511RomLength"><option value="0">62.5 ms</option><option value="32">125 ms</option></select></label>
 						<output id="sm511RomWord" aria-label="ROM command byte">0x0D</output>
 					</div>
+					<div class="sm511-rom-playback">
+						<div class="sm511-rom-start">
+							<label for="sm511RomStart">Start address</label>
+							<output id="sm511RomStartValue" for="sm511RomStart" aria-live="off">0x00</output>
+							<input id="sm511RomStart" type="range" min="0" max="255" step="1" value="0" aria-valuetext="0x00">
+						</div>
+						<label class="chip-key-tracking sm511-rom-repeat"><input id="sm511RomRepeat" type="checkbox" aria-label="Repeat melody"> Repeat</label>
+					</div>
 					<div class="transport sm511-rom-transport">
 						<button id="sm511Play" class="primary" type="button">Play melody</button>
-						<button id="sm511PlayFrom" type="button">Play from 0x00</button>
 						<button id="sm511Stop" type="button" disabled>Stop melody</button>
 						<button id="sm511CopyCode" type="button">Copy as Code</button>
 						<span id="sm511Status" role="status"></span>
@@ -158,7 +170,8 @@
 					<summary aria-label="SM511 help" title="SM511 help">?</summary>
 					<dl class="chip-details">
 						<dt>Hardware ROM</dt><dd>The 256-word ROM stores six-bit commands for pitches, rests and stops. Bit 4 chooses the octave and bit 5 selects 62.5 or 125 ms.</dd>
-						<dt>App playback</dt><dd>Press a key to play one ROM command. Repeat continues the same note until you release the key. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. The ROM editor plays from the chosen address to the first Stop or the end of the ROM.</dd>
+						<dt>Hardware output</dt><dd>The melody controller drives the single R pin. SM510’s 2× swing uses the voltage across two pins. Use Mixer → SM511 to adjust playback level.</dd>
+						<dt>App playback</dt><dd>Press a key to play one ROM command. Keyboard repeat continues the same note until you release the key. Moving ROM note or choosing an octave switches to a fixed pitch for all keys. Play melody runs from Start address to the first Stop or the end of the ROM. Repeat advances past Stop at the start address and plays the resulting section again.</dd>
 					</dl>
 				</details>
 			</div>
@@ -279,7 +292,7 @@ await sm510.write(sm510.REG_R, 0x0);</code></pre>
 });
 await sm510.playCycles(pulse);</code></pre>
 							<h3>SM510 Direct R</h3>
-							<p>The direct-output mask sends the latch to R1 and R2. The app picks a whole number of machine cycles per half-wave. Each half-wave fits a ROM page with <code>LAX</code>, <code>ATR</code>, no-ops and a two-cycle <code>TL</code>. The pulse display shows the resulting pitch.</p>
+							<p>The direct-output mask sends the latch to R1 and R2. Duty divides the pitch's existing period between the two output states. Each state lasts at least two machine cycles for the next <code>LAX</code> and <code>ATR</code>. No-ops and <code>T</code> or <code>TL</code> branches fit the selected timing into up to three ROM pages. CPU Pulse shows the resulting duty and pitch.</p>
 							<h3>SM511 melody controller</h3>
 							<p>The SM511 has a 256-word melody ROM. The low nibble of each six-bit word selects rest (<code>0x0</code>), stop (<code>0x1</code>) or one of 12 pitches (<code>0x2</code>–<code>0xD</code>). Bit 4 selects the octave and bit 5 selects a 62.5 or 125 ms slot.</p>
 							<p>In the app, the keyboard previews one command and <strong>Play melody</strong> plays an original phrase. Try <strong>Files → examples → sm511-melody.js</strong> to play the same commands from Code.</p>

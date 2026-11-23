@@ -8,11 +8,10 @@ adjust the mix. Use **Keyboard** and **Code** to perform and edit, or
 ## SM510 tone source
 
 The **Tone source** buttons in **SM510** set how that voice renders new notes.
-A held note keeps its original tone until release.
 
 | Tone source | What you hear |
 | --- | --- |
-| **Direct R** (default) | The direct-output mask lets the program toggle R1. Each note uses an integer number of SM510 machine cycles per half-wave, so the pitch may differ from the note’s equal-tempered frequency. |
+| **Direct R** (default) | The program toggles the R latch at whole SM510 machine cycles. **Duty** changes the pulse width while keeping the chip's realized pitch. |
 | **DK-52 Divider** | Each playable note opens the gate on the DK-52’s fixed 4,096 Hz R1 carrier. Changing notes leaves the carrier frequency fixed. Rests close the gate. |
 
 ## SM511 melody voice
@@ -20,11 +19,13 @@ A held note keeps its original tone until release.
 The SM511 uses a dedicated melody controller with a 256-step ROM and six bits
 per step. The stored commands describe notes, rests, and stops. The controller
 generates 12 chromatic pitches in either of two octaves from the 32.768 kHz
-clock, with timing units of 62.5 ms or 125 ms. SM512 shares this melody
-controller and expands the LCD segment map. The browser's SM511 voice
+clock, with timing units of 62.5 ms or 125 ms. The controller drives a
+single melody output pin, **R**. Use **Mixer → SM511** to adjust the app's
+playback level. SM512 shares this melody controller and expands the LCD
+segment map. The browser's SM511 voice
 renders the controller's output in WASM built from the same C++ source as the
 native core.
-[Sharp Microcomputers Data Book, SM511/SM512 p. 166](https://ftpmirror.your.org/pub/misc/bitsavers/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
+[Sharp Microcomputers Data Book, SM511/SM512 pp. 161–166](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=170)
 
 With **SM511** selected, press an on-screen pad or computer key to play one
 ROM note for **62.5 ms** or **125 ms**. Releasing the key can stop it early.
@@ -39,13 +40,32 @@ scripts follow its pitch controls and hold the tone until `noteOff()`.
 
 ### Melody ROM editor
 
-Select a ROM address from `0x00` to `0xFF` and choose a note, **Rest**, or
-**Stop**. Use **Lower octave** or **Upper octave** for each note. Notes and
-rests use **62.5 ms** or **125 ms**. The editor opens with
-the original demo and fills the remaining addresses with Stop commands.
-**Play melody** starts at `0x00`. **Play from** starts at the selected address.
-Playback ends at the first Stop or at the end of the address range.
-**Copy as Code** copies all 256 commands as JavaScript for `sm511.playMelody()`.
+Each ROM address from `0x00` to `0xFF` has its own **− / +** control.
+Drag its center label left or right, or press **−** or **+**, to step through
+**Stop**, **Rest**, and the notes in both SM511 octaves. Click the center to
+select the address, or navigate between addresses with the arrow keys.
+The **Command** menu below the grid also edits the selected address.
+Use **Lower octave** and **Upper octave** to keep the pitch class when
+changing octaves. Notes and rests use **62.5 ms** or **125 ms**.
+The editor opens with the original demo and fills the remaining addresses
+with Stop commands.
+
+Choose a **Start address** from `0x00` to `0xFF` and press **Play melody**.
+The address selected in the grid is the one you edit. During playback,
+**Start address** updates the hexadecimal readout as you move the slider
+and seeks when you finish adjusting it. Playback ends at the first Stop
+or at the end of the ROM. Turn on **Repeat** to play the phrase again.
+If the start address contains Stop, Repeat advances to the next note or
+rest, wrapping to `0x00` if needed. Turn Repeat off to finish the current
+pass. Melody ROM Repeat defaults off and is independent of the keyboard's
+**Repeat · Software** switch. Press **Stop melody** to end playback.
+
+Changes to a note, rest, or duration take effect during playback. The
+player keeps its current address and elapsed position when the edited ROM
+allows it. If a Stop edit cuts off the current position, playback ends or
+restarts the phrase when Repeat is on. **Copy as Code**
+copies all 256 commands and the chosen start address into a one-pass script
+that calls `sm511.setMelody()` and `sm511.play()`.
 
 The edited ROM is saved with the Cassette. Select SM511 and choose
 **Menu → Export → Melody ROM · WAV** to export playback from `0x00` as
@@ -54,19 +74,29 @@ The edited ROM is saved with the Cassette. Select SM511 and choose
 ### SM511 from Code
 
 `useSoundChip('sm511')` plays melody commands on the SM511 bus.
-`playMelody()` accepts 1–256 six-bit commands. In the low nibble,
-`0x0` is a rest, `0x1` ends playback, and `0x2`–`0xD` are pitches.
+`setMelody(words)` loads 1–256 six-bit commands into Code's own 256-word ROM.
+Before the first load, every address contains Stop. Each load fills the
+unused addresses with Stop commands. In the low nibble, `0x0` is a rest,
+`0x1` ends playback, and `0x2`–`0xD` are pitches.
 Bit 4 selects the upper octave and bit 5 selects the 125 ms duration.
-A clear bit 5 gives a 62.5 ms note or rest. The player ends on the first stop
-command or after the last command. Use `stopMelody()` to stop it early.
+A clear bit 5 gives a 62.5 ms note or rest.
+
+`await sm511.play(address)` plays from an address between `0x00` and `0xFF`.
+The default is `0x00`. Playback ends at the first Stop or the end of the
+ROM. Use `sm511.stop()` to stop it early.
 
 ```js
-const chip = await useSoundChip('sm511');
-await chip.playMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
+const sm511 = await useSoundChip('sm511');
+sm511.setMelody([0x0d, 0x09, 0x27, 0x00, 0x15, 0x12, 0x01]);
+await sm511.play(0x02);
 ```
 
-Use [`build()`, `compile()`, and `schedule()`](#named-timed-playback) to
-inspect the ROM timing or reserve playback on the audio clock.
+Existing scripts can also use `playMelody(words)` and `stopMelody()` to
+play a command array directly. To inspect or schedule playback of the loaded
+ROM, make a snapshot with `build(address)`. The address defaults to `0x00`.
+`build(words)` also accepts a command array directly at `0x00`. See
+[Named timed playback](#named-timed-playback) for `compile()`, `schedule()`,
+and `clearSchedule()`.
 
 ## Mixer
 
@@ -108,8 +138,9 @@ await buzzer.playPattern({ loop: false });
 ```
 
 `sm510.noteOn()` and `sm510.playPattern()` use the SM510 tone source set in
-the app. The `sm510` register and cycle methods use the DK-52 divider. The
-`sm510-direct` register and cycle methods use the direct mask.
+the app, including **Duty** in Direct R. The `sm510` register and cycle methods
+use the DK-52 divider. The `sm510-direct` register and cycle methods use the
+direct mask.
 
 Existing `useSoundChip('lcd-buzzer')` scripts play notes and patterns on the
 selected SM510 or SM511. Use `setStep(0, 'C4')` to change the first step and
@@ -133,22 +164,32 @@ the DK-52 divider, and its eight gates and step time belong to the demo.
 
 With **SM510** selected, press and hold a keyboard pad or its matching
 computer key to play a CPU pulse. **Key tracking · Software** maps the note
-to the closest available rate. Moving **On/off interval** switches to a
-fixed rate for every key. Check **Key tracking** again to follow the pitch
-of the held key.
+to the closest available rate. Moving the timing slider switches to a fixed
+rate for every key. Check **Key tracking** again to follow the pitch of the
+held key.
 
-The voice uses the two-page `LAX` / `ATR` / padding / `TL` routine, with
-4–63 machine cycles per half-period at 16,384 machine cycles per second.
-**Direct R** plays the resulting pitch, from 2,048 Hz down to about 130 Hz.
-In **DK-52 Divider**, the same CPU timing gates a 4,096 Hz carrier.
+In **Direct R**, the slider sets an 8–126 machine-cycle period in steps of
+two, for pitches from 2,048 Hz down to about 130 Hz. In **DK-52 Divider**,
+the slider sets the gate's on and off intervals from 4 to 63 cycles. The
+gate controls a fixed 4,096 Hz carrier.
+
+In **Direct R**, adjust **R1 phase duty** to change the fraction of each period spent
+in the phase where R1 is high. Duty defaults to 50%. It can change while
+you hold a note, and the panel shows the realized pitch, duty and cycle
+counts for the high and low phases. Each phase takes at least two cycles,
+so a request of 0% or 100% gives the closest available pulse. Keyboard,
+pattern playback and Pattern WAV export use the same duty setting in
+Direct R. Pattern `gate` still controls how much of a sequencer step sounds.
 
 **Drive** selects which pins participate. The voice auditions across R1 and
 R2. With both pins selected in Direct R, the CPU alternates `0x1` and `0x2`.
-In Divider mode it alternates `0x3` and `0x0`, and the enabled pins have
-opposite phase. **Drive** shows **Off** with both pins disabled, **1× swing**
-with one pin, and **2× swing** with both. The readout describes the voltage
-across the pins in this wiring. Change **Drive** while holding a key. The
-app's **Mixer → SM510** level adjusts playback volume after synthesis.
+With only R2 enabled, it is high during the complementary phase.
+In Divider mode with both pins selected, the CPU alternates `0x3` and `0x0`,
+and the two carriers have opposite phase. **Drive** shows **Off** with both
+pins disabled, **1× swing** with one pin, and **2× swing** with both. The
+readout describes the voltage across the pins in this wiring. Change
+**Drive** while holding a key. The app's **Mixer → SM510** level adjusts
+playback volume after synthesis.
 
 ### R latch and Code
 
@@ -173,29 +214,34 @@ await sleep(0.1);
 await sm510.write(sm510.REG_R, 0x0);
 ```
 
-### Direct R pitch
+### Direct R pitch and duty
 
 The SM510 oscillator is nominally 32,768 Hz. One CPU machine cycle takes two
 oscillator ticks, so the CPU runs at 16,384 machine cycles per second. With
 the direct mask, R1 follows bit 0 of the latch. A held level gives no
 sustained tone. Successive writes that alternate the level produce the tone.
 
-One realizable program puts the high and low half-waves on separate ROM
-pages. The high page runs `LAX 1`, `ATR`, `N − 4` no-ops, then `TL` to
-the low page. The low page runs `LAX 0`, `ATR`, the same number of no-ops,
-then `TL` back. `LAX` and `ATR` each take one cycle, the no-op (called
-`SKIP` in the Sharp data book) takes one, and the two-byte `TL` takes two.
-Each page therefore uses `N` cycles and `N` ROM steps. The program fits
-for integer `N` from 4 through 63, with instructions laid out in the
-chip's polynomial program-counter order. The SM510 voice uses the same
-timing between R1 transitions.
-[Sharp Microcomputers Data Book, SM510 pp. 153–157](https://bitsavers.org/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
+The app picks a period `P = 2 × N` for `N` from 4 to 63, to get the closest
+available pitch in Hz. C3 uses 126 cycles (130.03 Hz), and A4 uses 38 cycles
+(431.16 Hz). The pitch is `16,384 / P`. For a requested duty fraction `d`,
+the app rounds `P × d` to the nearest cycle and limits the result to
+`2` through `P − 2`. The remaining cycles make up the low phase. The
+actual duty is `highCycles / P`. An A4 with 25% requested duty has 10 high
+and 28 low cycles, giving about 26.32% at the same 431.16 Hz.
 
-A full period takes `2 × N` machine cycles, giving `16,384 / (2 × N)` Hz.
-The synth picks the realizable frequency closest to the requested note in Hz.
-For example, C3 uses `N = 63` (130.03 Hz), and the A4 key uses `N = 19`
-(431.16 Hz).
-The sequencer plays complete direct R periods within each note's time
+An SM510 program can realize these timings using `LAX` and `ATR` to change
+the latch in two cycles. It places one-cycle no-ops in the gaps and uses a
+one-cycle `T` to loop within a ROM page, or two-cycle `TL` jumps between
+pages. A period of up to 63 cycles fits on one page. For longer periods
+with a short phase of up to 59 cycles, both latch updates fit on one page
+and a second page holds the remaining delay. When both phases take 60 or
+more cycles, the program can put them on separate pages and use a third
+page to extend a phase beyond 63 cycles. These layouts follow the SM510's
+polynomial program-counter order. The app renders the resulting latch
+timing with the WASM core.
+[Sharp Microcomputers Data Book, SM510 pp. 149, 152–153, 157](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
+
+The sequencer plays complete Direct R periods within each note's time
 window. Live keyboard playback uses a short gain fade on release.
 
 ### Machine-cycle timing in Code
@@ -210,17 +256,26 @@ one finite sequence. Cycle zero starts with the divider and latch cleared.
 The last `atCycle()` sets the end, up to 30 seconds. Writes are external latch
 operations, so include instruction costs in the offsets when representing a program.
 
+`sm510-direct.pulseTiming(frequency, duty)` takes a target in Hz and a duty
+fraction from 0 to 1. It returns `highCycles`, `lowCycles`, `periodCycles`,
+`frequency` in Hz and the realized `duty` fraction. Use those lengths to
+place explicit writes when building a sequence. The raw methods play at
+the cycle offsets you specify.
+
 ```js
 const direct = await useSoundChip('sm510-direct');
+const t = direct.pulseTiming(440, 0.25);
 const firstWrite = 2; // LAX and ATR complete
-const halfPeriod = 19; // machine cycles per half-wave
-const halfWaves = 128;
+const periods = 64;
 const pulse = direct.build(b => {
-  for (let i = 0; i < halfWaves; i++) {
-    b.atCycle(firstWrite + i * halfPeriod).write(direct.REG_R, i % 2 === 0 ? 1 : 0);
+  for (let i = 0; i < periods; i++) {
+    const high = firstWrite + i * t.periodCycles;
+    b.atCycle(high).write(direct.REG_R, 1);
+    b.atCycle(high + t.highCycles).write(direct.REG_R, 0);
   }
-  b.atCycle(firstWrite + halfWaves * halfPeriod);
+  b.atCycle(firstWrite + periods * t.periodCycles);
 });
+console.log(t.frequency, t.duty);
 await direct.playCycles(pulse);
 ```
 
@@ -234,8 +289,9 @@ The SM510 trace lists the recorded external R writes in order. Each row has
 `operationIndex`, and `writeIndex`. `value` preserves the four-bit write
 operand. The automatic end-of-phrase latch clear is outside the trace.
 The SM511 trace lists `address`, `command`, `masterTick`, `durationTicks`,
-`offsetSeconds`, and `durationSeconds` for each ROM entry. The first Stop
-ends the trace with a zero-duration row.
+`offsetSeconds`, and `durationSeconds` for each ROM entry. The addresses are
+absolute ROM addresses. Timing starts at zero at the plan's start address.
+The first Stop ends the trace with a zero-duration row.
 On both chips one master tick lasts 1/32,768 second.
 
 The following example reserves a DK-52 beep pattern and an SM511 melody on
@@ -253,7 +309,8 @@ const pulse = sm510.build(b => {
   b.atCycle(4000).write(sm510.REG_R, 0x0);
   b.atCycle(4096);
 });
-const melody = sm511.build([0x0d, 0x20, 0x12, 0x01]);
+sm511.setMelody([0x0d, 0x20, 0x12, 0x01]);
+const melody = sm511.build();
 
 console.table(await sm510.compile(pulse));
 console.table(await sm511.compile(melody));
