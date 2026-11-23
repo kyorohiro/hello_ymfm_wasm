@@ -5,7 +5,7 @@ import {
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-code-workspace';
+import { createVsuAudio } from './audio.js?v=vsu-timed';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
@@ -14,9 +14,10 @@ import {
 } from './ch5.js';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js';
-import { setupVsuFiles } from './files.js?v=vsu-noise';
+import { setupVsuFiles } from './files.js?v=vsu-timed';
 import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
 import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js?v=vsu-noise';
+import { attachVsuTimedClient } from './timed-client.js';
 import {
   createVsuClient, createVsuWave, vsuChannelRegister, vsuFrequencyRegister, vsuFrequencyWrites,
   vsuNoiseShiftRate, vsuNoteOnWrites, vsuStartWrites, VSU_INTERVAL_STEP_MS, VSU_NOISE_PATTERN_LENGTHS, VSU_REGISTERS,
@@ -65,8 +66,9 @@ const audio = createVsuAudio({
     }
   },
   onLiveState: acceptLiveState,
+  onTimedError({ message }) { if (codeRunning) appendCodeLog('[VSU schedule] ' + message); },
 });
-const chip = createVsuClient(audio);
+const chip = attachVsuTimedClient(createVsuClient(audio), audio.requestTimed);
 const factoryPatch = createDefaultVsuPatch();
 const banks = factoryPatch.banks.map(wave => Uint8Array.from(wave));
 const channels = factoryPatch.channels;
@@ -89,7 +91,7 @@ const fretboardTools = {
   fretDisplayRoot: byId('fretDisplay'), stringDisplayRoot: byId('stringDisplay'), stringWindowRoot: byId('stringWindowControls'),
 };
 let keyboardOctave = 0;
-const editingTarget = 'input:not([type="range"], [type="checkbox"]), textarea, select:not(#channelWave, #waveShape), [contenteditable]';
+const editingTarget = 'input:not([type="range"], [type="checkbox"]), textarea, select:not([data-keyboard-performance]), [contenteditable]';
 const canWrite = () => soundContext !== null && soundContext === audio.context;
 
 const starterCode = `const vsu = await useSoundChip("vsu");
@@ -400,6 +402,10 @@ async function ensureVsu() {
   scheduleScope();
 }
 
+function appendCodeLog(line) {
+  codeOutput.textContent = (codeOutput.textContent + line + '\n').slice(-12000);
+}
+
 const runtime = createPlaygroundCodeRuntime({
   ensureReady: ensureVsu,
   now: () => audio.context?.currentTime ?? 0,
@@ -407,7 +413,7 @@ const runtime = createPlaygroundCodeRuntime({
   useSoundChip: () => chip,
   readFile: (...args) => files.readFile(...args),
   prepareSource: (...args) => files.prepareSource(...args),
-  onLog(line) { codeOutput.textContent = (codeOutput.textContent + line + '\n').slice(-12000); },
+  onLog: appendCodeLog,
   onState(state) {
     status.textContent = state.status;
     run.disabled = state.busy;

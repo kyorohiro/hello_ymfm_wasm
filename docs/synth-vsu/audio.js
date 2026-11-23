@@ -64,27 +64,29 @@ function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
 	return { writes, durationTicks, loopTick, loopIndex };
 }
 
-export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {}, onLiveState = () => {} } = {}) {
+export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {}, onLiveState = () => {},
+	onTimedError = () => {} } = {}) {
 	validateVolume(volume);
 	const channelGains = Array(VSU_CHANNEL_COUNT).fill(1);
 	let session = null;
 	let disposed = false;
 	let nextVgmId = 0;
 	let nextCaptureRequest = 0;
+	let nextTimedRequest = 0;
 	let liveChannel = null;
 	let liveRevision = 0;
 
-	function takeCapture(current, request) {
-		const pending = current.captures.get(request);
+	function takeRequest(requests, request) {
+		const pending = requests.get(request);
 		if (pending) {
-			current.captures.delete(request);
+			requests.delete(request);
 			clearTimeout(pending.timer);
 		}
 		return pending;
 	}
 
 	function cancelCaptures(current, error = new DOMException('VGM playback changed before the channel could be copied.', 'AbortError')) {
-		for (const request of current.captures.keys()) takeCapture(current, request).reject(error);
+		for (const request of current.captures.keys()) takeRequest(current.captures, request).reject(error);
 	}
 
 	function cancelSeek(current, error = new DOMException('VGM playback changed before the seek completed.', 'AbortError')) {
@@ -109,6 +111,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		clearTimeout(current.timer);
 		current.abort.abort();
 		cancelCaptures(current, error);
+		for (const id of current.timedRequests.keys()) takeRequest(current.timedRequests, id).reject(error);
 		cancelSeek(current, error);
 		current.seekClient?.dispose();
 		current.reject(error);
@@ -130,7 +133,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			throw new Error('VSU audio requires AudioWorklet over HTTPS or localhost.');
 		const context = new Context({ latencyHint: 'interactive' });
 		const output = context.createGain();
-		const current = { context, output, abort: new AbortController(), captures: new Map(), liveWriteSequence: 0 };
+		const current = { context, output, abort: new AbortController(), captures: new Map(), timedRequests: new Map(), liveWriteSequence: 0 };
 		session = current;
 		const fail = error => {
 			if (session !== current) return;
@@ -152,7 +155,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-code-workspace', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-timed', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -171,6 +174,16 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 						reportLive(current, data);
 						return;
 					}
+					if (data.type === 'timed-response') {
+						const pending = takeRequest(current.timedRequests, data.id);
+						if (data.error !== undefined) pending?.reject(Object.assign(new Error(data.error), { name: data.name || 'Error' }));
+						else pending?.resolve(data.value);
+						return;
+					}
+					if (data.type === 'timed-error') {
+						onTimedError(data);
+						return;
+					}
 					if (data.id !== current.vgmId) return;
 					if (data.type === 'vgm-state' && (!current.vgmStopping || data.state === 'stopped')) {
 						current.vgmState = data.state;
@@ -180,7 +193,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 						if (!current.vgmSeek) onVgmState(playback);
 					}
 					if (data.type === 'vgm-capture') {
-						const pending = takeCapture(current, data.request);
+						const pending = takeRequest(current.captures, data.request);
 						if (pending) data.error ? pending.reject(new Error(data.error)) : pending.resolve(data.voice);
 					}
 				};
@@ -248,6 +261,20 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			send({ type: 'batch', writes }, [writes.buffer]);
 		},
 		reset() { send({ type: 'reset' }); },
+		async requestTimed(request) {
+			const current = session;
+			if (!current?.active) throw new Error('Call ensureReady() before using VSU timed playback.');
+			const id = ++nextTimedRequest;
+			const requests = current.timedRequests;
+			return new Promise((resolve, reject) => {
+				const timer = setTimeout(() => {
+					takeRequest(requests, id)?.reject(new Error('VSU timed playback did not respond.'));
+				}, WORKLET_TIMEOUT_MS);
+				requests.set(id, { timer, resolve, reject });
+				try { send({ type: 'timed-request', id, request }); }
+				catch (error) { takeRequest(requests, id)?.reject(error); }
+			});
+		},
 		setLiveChannel(channel) {
 			if (channel !== null && (!Number.isInteger(channel) || channel < 0 || channel >= 6))
 				throw new RangeError('Choose a VSU channel from 0 to 5.');
@@ -361,11 +388,11 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 			const request = ++nextCaptureRequest;
 			return new Promise((resolve, reject) => {
 				const timer = setTimeout(() => {
-					takeCapture(current, request)?.reject(new Error('The VGM channel could not be read.'));
+					takeRequest(current.captures, request)?.reject(new Error('The VGM channel could not be read.'));
 				}, WORKLET_TIMEOUT_MS);
 				current.captures.set(request, { timer, resolve, reject });
 				try { sendToVgm({ type: 'vgm-capture', request, channel }); }
-				catch (error) { takeCapture(current, request).reject(error); }
+				catch (error) { takeRequest(current.captures, request)?.reject(error); }
 			});
 		},
 		setVgmLoop(loop) {

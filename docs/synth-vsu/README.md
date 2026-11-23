@@ -85,6 +85,25 @@ The helpers also accept zero-based channel numbers and MIDI note numbers. For wa
 | `0x18` | Wave bank on channels 1–5 |
 | `0x1c` | Sweep timing, shift, and direction on channel 5 |
 
+### Timed playback
+
+`build()` records writes and helpers such as `setWave()`, `noteOn()` and `noteOff()` in one synchronous callback. Use `atSeconds()` or `atSample()` for offsets from the start of the pattern. `atSample()` uses 44,100 Hz by default, or the `referenceSampleRate` passed to `build()`. Writes at the same time run in recorder order.
+
+```javascript
+const vsu = await useSoundChip("vsu");
+const taps = vsu.build(b => {
+  b.atSample(0).write(0x544, 0x8f).write(0x548, 0xf0).write(0x54c, 7);
+  b.write(0x550, 0xf0).write(0x554, 0x01).write(0x540, 0xa5);
+  b.atSeconds(0.25).write(0x540, 0xa2);
+});
+console.table(await vsu.compile(taps));
+await vsu.schedule(taps, { name: "noise", repeatSeconds: 0.5 });
+```
+
+`compile()` lists the planned VSU register offsets and bytes without changing playback. The shared Wave RAM and Modulation RAM write locks apply at execution. `schedule()` accepts a named one-shot or repeating pattern for the Web AudioWorklet. Its result confirms acceptance. **Apply** replaces the entry's patterns after the updated script succeeds. `clearSchedule(name)` and **Stop Code** cancel future writes and release notes still owned by the affected pattern. A scheduled channel stop leaves a later keyboard or Code note sounding. An explicit write of `1` to `0x580` uses the chip's global stop.
+
+Fresh projects and **New → Cassette** include `examples/timed-modulation-noise.js`. Open it from Files and run it for a one-second pattern with CH5 Modulation and short CH6 Noise hits. Use the Mixer to listen to each output independently.
+
 ## Run and build
 
 Serve `docs/` over localhost, then open `http://localhost:8000/synth-vsu/`.

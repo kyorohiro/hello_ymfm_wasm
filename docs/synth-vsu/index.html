@@ -8,7 +8,7 @@
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
   <link rel="stylesheet" href="./synth.css?v=vsu-code-workspace">
   <link rel="stylesheet" href="./files.css?v=vsu-noise">
-  <script type="module" src="./synth.js?v=vsu-code-workspace"></script>
+  <script type="module" src="./synth.js?v=vsu-timed"></script>
 </head>
 <body>
   <main class="shell">
@@ -130,7 +130,7 @@
               <section class="panel voice-panel" aria-labelledby="vsuVoiceTitle">
                 <div class="panel-head">
                   <h2 id="vsuVoiceTitle">Wave</h2>
-                  <label id="channelWaveGroup">Wave bank <select id="channelWave">
+                  <label id="channelWaveGroup">Wave bank <select id="channelWave" data-keyboard-performance>
                     <option value="0">0</option><option value="1">1</option><option value="2">2</option>
                     <option value="3">3</option><option value="4">4</option>
                   </select></label>
@@ -141,7 +141,7 @@
                     aria-label="Wave RAM sample level" aria-valuemin="0" aria-valuemax="63" aria-valuenow="32"
                     aria-description="Use left and right to choose a sample. Use up and down to change its level."></canvas>
                   <div class="wave-controls">
-                    <label>Shape <select id="waveShape">
+                    <label>Shape <select id="waveShape" data-keyboard-performance>
                       <option value="sine">Sine</option><option value="triangle">Triangle</option>
                       <option value="square">Square</option><option value="saw">Saw</option>
                     </select></label>
@@ -184,18 +184,18 @@
             <section id="ch5Panel" class="panel ch5-panel" aria-labelledby="ch5Title" hidden>
               <div class="panel-head">
                 <h2 id="ch5Title">Sweep / Modulation</h2>
-                <label>Mode <select id="ch5Mode">
+                <label>Mode <select id="ch5Mode" data-keyboard-performance>
                   <option value="off">Off</option>
                   <option value="sweep">Sweep</option>
                   <option value="modulation">Modulation</option>
                 </select></label>
               </div>
               <div id="ch5Timing" class="ch5-controls" role="group" aria-label="Timing" hidden>
-                <label>Base clock <select id="ch5Clock">
+                <label>Base clock <select id="ch5Clock" data-keyboard-performance>
                   <option value="fast">0.96 ms</option>
                   <option value="slow">7.68 ms</option>
                 </select></label>
-                <label>Multiplier <select id="ch5Rate">
+                <label>Multiplier <select id="ch5Rate" data-keyboard-performance>
                   <option value="0">0 (Off)</option>
                   <option value="1">1</option><option value="2">2</option><option value="3">3</option>
                   <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
@@ -203,10 +203,10 @@
                 <div class="ch5-interval">Step interval <output id="ch5Step" for="ch5Mode ch5Clock ch5Rate">Off</output></div>
               </div>
               <div id="ch5Sweep" class="ch5-controls" role="group" aria-label="Sweep settings" hidden>
-                <label>Direction <select id="ch5Direction">
+                <label>Direction <select id="ch5Direction" data-keyboard-performance>
                   <option value="up">Up</option><option value="down">Down</option>
                 </select></label>
-                <label>Shift (bits) <select id="ch5Shift">
+                <label>Shift (bits) <select id="ch5Shift" data-keyboard-performance>
                   <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
                   <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
                 </select></label>

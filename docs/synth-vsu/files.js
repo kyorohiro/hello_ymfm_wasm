@@ -9,6 +9,7 @@ import { createSynthCodeProject } from '../synth/synth_code_project.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSynthProjectStore } from '../synth/synth_project_store.js';
 import { looksLikeGzip } from '../js/vgm_file.js';
+import { VSU_TIMED_MODULATION_NOISE } from './code_examples.js';
 import { createDefaultVsuPatch } from './patch.js?v=vsu-noise';
 import { loadVsuVgm } from './vgm.js';
 import { extractVsuVgmPresets } from './vgm-presets.js?v=vsu-noise';
@@ -146,7 +147,10 @@ function checkSelections(fs, view = {}) {
 export function setupVsuFiles({ panel, toggle, getPatch, applyPatch, validatePatch, getCode, setCode, starterCode, setStatus,
   openVgm = async () => {}, onVgmFilesChanged = () => {}, onVgmError = () => {}, onVgmAvailability = () => {} }) {
   const doc = panel.ownerDocument, win = doc.defaultView;
-  const starterFiles = [{ path: ENTRY_PATH, data: starterCode }];
+  const starterFiles = [
+    { path: ENTRY_PATH, data: starterCode },
+    { path: '/examples/timed-modulation-noise.js', data: VSU_TIMED_MODULATION_NOISE },
+  ];
   const workspace = createVirtualFileWorkspace(starterFiles, { autoSave: false });
   const fs = workspace.working;
   const codeProject = createSynthCodeProject({ fs });

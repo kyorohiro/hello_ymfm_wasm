@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createVgmTransport } from './vgm-transport.js?v=vsu-live-keyboard';
+import { createVsuTimedProcessor } from './timed-processor.js';
 import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, vsuChannelRegister } from './vsu.js';
 
 const LIVE_REPORT_FRAMES = Math.ceil(sampleRate / 30);
@@ -52,11 +53,17 @@ class VsuProcessor extends AudioWorkletProcessor {
 				write: (offset, value) => this.writeSource(this.vgmState, this.vgmKeyOwners, offset, value),
 				setMask: mask => exports.vsu_set_mix_mask(this.vgmState, mask),
 				readChannel: channel => exports.vsu_get_channel(this.vgmState, channel),
-				renderFrames: (offset, frames) => {
-					const byteOffset = offset * Float32Array.BYTES_PER_ELEMENT;
-					exports.vsu_render(this.vgmState, this.pcm + byteOffset, this.rightOffset + byteOffset, frames, sampleRate);
-				},
+				renderFrames: (offset, frames) => this.renderFrames(this.vgmState, offset, frames),
 				onState: state => this.port.postMessage({ type: 'vgm-state', ...state }),
+			});
+			this.renderSynthFrames = (offset, frames) => this.renderFrames(this.state, offset, frames);
+			this.timed = createVsuTimedProcessor({
+				nowFrame: () => currentFrame,
+				sampleRate,
+				write: (offset, value, owner) => this.writeSource(this.state, this.synthKeyOwners, offset, value, owner),
+				release: (name, owner) => this.releaseTimedNotes(name, owner),
+				vgmOwnsOutput: () => this.vgm.ownsOutput,
+				reportError: detail => this.port.postMessage({ type: 'timed-error', ...detail }),
 			});
 			this.port.onmessage = ({ data }) => this.handle(data);
 			this.port.postMessage({ type: 'ready' });
@@ -67,11 +74,19 @@ class VsuProcessor extends AudioWorkletProcessor {
 		for (const [channel, gain] of this.channelGains.entries()) this.core.vsu_set_channel_gain(state, channel, gain);
 	}
 
-	writeSource(state, owners, offset, value) {
+	writeSource(state, owners, offset, value, timed) {
 		// Only a source write to the gate takes ownership from a held key.
 		if (offset === VSU_SOUND_STOP && (value & 1)) owners.clear();
-		else if (offset >= FIRST_CHANNEL_INT && offset < VSU_SOUND_STOP && (offset - FIRST_CHANNEL_INT) % CHANNEL_STRIDE === 0)
-			owners.delete((offset - FIRST_CHANNEL_INT) / CHANNEL_STRIDE);
+		else if (offset >= FIRST_CHANNEL_INT && offset < VSU_SOUND_STOP && (offset - FIRST_CHANNEL_INT) % CHANNEL_STRIDE === 0) {
+			const channel = (offset - FIRST_CHANNEL_INT) / CHANNEL_STRIDE;
+			if (timed && (value & 0x80)) owners.set(channel, timed);
+			else {
+				const previous = owners.get(channel);
+				if (timed && (this.core.vsu_get_channel(state, channel) & 0x100) &&
+					(previous?.owner !== timed.owner || previous.patternName !== timed.patternName)) return;
+				owners.delete(channel);
+			}
+		}
 		this.core.vsu_write(state, offset, value);
 	}
 
@@ -138,6 +153,18 @@ class VsuProcessor extends AudioWorkletProcessor {
 		owners.clear();
 	}
 
+	releaseTimedNotes(name, { session, owner } = {}) {
+		let released = false;
+		for (const [channel, gate] of this.synthKeyOwners) {
+			if (gate.patternName === undefined || (name !== undefined && gate.patternName !== name) ||
+				(session !== undefined && gate.session !== session) || (owner !== undefined && gate.owner !== owner)) continue;
+			this.writeLiveGate(this.state, channel, false);
+			this.synthKeyOwners.delete(channel);
+			released = this.liveDirty = true;
+		}
+		return released;
+	}
+
 	fail(error) {
 		this.failed = true;
 		this.port.onmessage = null;
@@ -153,6 +180,11 @@ class VsuProcessor extends AudioWorkletProcessor {
 		if (end > memory.buffer.byteLength) memory.grow(Math.ceil((end - memory.buffer.byteLength) / 65536));
 		this.left = new Float32Array(memory.buffer, this.pcm, frames);
 		this.right = new Float32Array(memory.buffer, this.rightOffset, frames);
+	}
+
+	renderFrames(state, offset, frames) {
+		const byteOffset = offset * Float32Array.BYTES_PER_ELEMENT;
+		this.core.vsu_render(state, this.pcm + byteOffset, this.rightOffset + byteOffset, frames, sampleRate);
 	}
 
 	readVoice(state, channel, live = false) {
@@ -236,7 +268,15 @@ class VsuProcessor extends AudioWorkletProcessor {
 	handle(message) {
 		try {
 			switch (message.type) {
+			case 'timed-request': {
+				const response = { type: 'timed-response', id: message.id };
+				try { response.value = this.timed.request(message.request); }
+				catch (error) { response.error = error.message; response.name = error.name; }
+				this.port.postMessage(response);
+				break;
+			}
 			case 'reset':
+				this.timed.clear();
 				this.synthKeyOwners.clear();
 				this.core.vsu_reset(this.state);
 				this.applyChannelGains(this.state);
@@ -256,6 +296,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 					this.writeSource(this.state, this.synthKeyOwners, message.writes[index], message.writes[index + 1]);
 				break;
 			case 'vgm-play':
+				this.timed.clear();
 				this.releaseLiveNotes(this.state, this.synthKeyOwners);
 				if (message.plan) this.vgmPlan = message.plan;
 				this.vgm.play({ ...message, plan: this.vgmPlan });
@@ -311,7 +352,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 				this.left.fill(0, rendered);
 				this.right.fill(0, rendered);
 			} else {
-				this.core.vsu_render(this.state, this.pcm, this.rightOffset, left.length, sampleRate);
+				this.timed.render(left.length, this.renderSynthFrames);
 			}
 			left.set(this.left);
 			right.set(this.right);
