@@ -66,6 +66,40 @@ test('SM511 timed instructions reserve two cycles and render a detached ROM snap
 	assert.throws(() => chip.build(b => b.pre(256)), /0x00 to 0xFF/);
 });
 
+test('the bundled SM511 timed example resumes at a later ROM pitch after a muted slot', async () => {
+	const { data } = BUZZER_EXAMPLES.find(({ path }) => path === '/examples/sm511-timed.js');
+	const chip = createSm511CodeChip({});
+	let sequence, trace;
+	chip.schedule = (plan, options) => {
+		assert.deepEqual(options, { name: 'sm511-timed', repeatSeconds: 1 });
+		sequence = readSm511InstructionSequence(plan);
+	};
+	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+	await new AsyncFunction('useSoundChip', 'console', data)(async name => {
+		assert.equal(name, 'sm511');
+		return chip;
+	}, { table(rows) { trace = rows; } });
+	assert.deepEqual(trace.map(({ operation, address, masterTick }) => [operation, address, masterTick]), [
+		['PRE', 1, 8], ['SME', undefined, 16], ['RME', undefined, 4096],
+		['SME', undefined, 8192], ['RME', undefined, 12288],
+	]);
+	assert.equal(sequence.end, MASTER_CLOCK_HZ / 2);
+	const samples = new Float32Array(sequence.end), controller = newController();
+	controller.load(sequence.words);
+	controller.renderInto(samples, MASTER_CLOCK_HZ, sequence.events);
+	function measuredPitch(from, to) {
+		let risingEdges = 0;
+		for (let i = from + 1; i < to; i++) {
+			if (samples[i] > 0 && samples[i - 1] === 0) risingEdges++;
+		}
+		return risingEdges * MASTER_CLOCK_HZ / (to - from);
+	}
+	assert(Math.abs(measuredPitch(128, 4096) - core.sm511PitchHz(0x2d)) < 10);
+	assert(samples.subarray(4096, 8192).every(sample => sample === 0));
+	assert(Math.abs(measuredPitch(8192, 12288) - core.sm511PitchHz(0x32)) < 10);
+	assert(samples.subarray(12288).every(sample => sample === 0));
+});
+
 test('SM511 live Code forwards instruction operands and reads TMEL independently', async () => {
 	const operations = [];
 	const state = { address: 2, enabled: true, stopFlag: true, pin: 0, masterTick: 24 };

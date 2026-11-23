@@ -143,14 +143,27 @@ the loaded ROM and the final cycle. `compile()` reports instruction
 completion times. Use live `tmel()` for firmware-style decisions based on
 the Stop flag. A timed plan records a fixed sequence of instructions.
 
+Open `sm511-timed.js` in **Files → examples** in a new Cassette and press
+**Run**. The three ROM notes are each 125 ms long. `RME` silences the middle
+slot while the ROM continues advancing, so `SME` brings back the third
+note. Code output shows when each instruction completes. Change `0x32` to
+`0x35` and press **Apply** to change the returning note from C7 to A6.
+Save before applying if **Auto apply** is off. Use **Stop Code** to end the
+repeat. You can also paste this into a Code file.
+
 ```js
+const sm511 = await useSoundChip('sm511');
+sm511.setMelody([0x01, 0x2d, 0x29, 0x32, 0x01]);
+const slotCycles = sm511.machineCycleHz / 8;
 const plan = sm511.build(b => {
-  b.pre(0x02).sme();
-  b.atCycle(400).rme();
-  b.atCycle(512);
+  b.pre(0x01).sme();
+  b.atCycle(slotCycles - 2).rme();
+  b.atCycle(2 * slotCycles - 2).sme();
+  b.atCycle(3 * slotCycles - 2).rme();
+  b.atCycle(4 * slotCycles);
 });
-console.table(sm511.compile(plan));
-await sm511.schedule(plan, { name: 'sm511-pulse' });
+console.table(await sm511.compile(plan));
+await sm511.schedule(plan, { name: 'sm511-timed', repeatSeconds: 1 });
 ```
 
 `play(address)` plays one pass through the first Stop. Instruction playback
@@ -469,17 +482,26 @@ The software oscillator and example sources are original. The source is availabl
   The page numbers below are printed on the pages. The links open the
   corresponding pages in the PDF scan.
   [Sharp Microcomputers Data Book (1990)](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf)
-- **SM510**. See pp. 149–158 for the chip description, p. 155 for R1/R2 and
-  the buzzer circuit, and p. 157 for the `ATR` opcode and accumulator transfer.
-  [SM510 chapter](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=158) ·
+- **SM510**. The chip description spans pp. 149–158. The oscillator frequency
+  and typical instruction cycle are on p. 149, the R output mask options on
+  p. 152, the clock and divider on p. 154, the buzzer circuits on p. 155, and
+  the `ATR` instruction on p. 157.
+  [SM510 chapter and timing summary, p. 149](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=158) ·
+  [R output options, p. 152](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=161) ·
+  [Clock and divider, p. 154](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=163) ·
   [Buzzer output, p. 155](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=164) ·
   [Instruction table, p. 157](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=166)
-- **SM511 / SM512**. See p. 161 for the single `R` output, p. 166 for the two
-  CPU clock rates, the 256 × 6-bit Melody ROM and the waveforms in Fig. 5, and
-  p. 170 for `PRE`, `SME`, `RME` and `TMEL`.
-  [Pins, p. 161](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=170) ·
+- **SM511 / SM512**. See p. 163 for the single melody `R` output, p. 166
+  for the two CPU clock rates, the 256 × 6-bit Melody ROM and Fig. 5's
+  waveforms, p. 169 for a comparison with the SM510, and p. 170 for
+  `PRE`, `SME`, `RME` and `TMEL`.
+  [R output pin function, p. 163](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=172) ·
   [Clock and Melody ROM, p. 166](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=175) ·
+  [SM510 / SM511 / SM512 comparison, p. 169](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=178) ·
   [Instruction table, p. 170](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=179)
+- The earlier Sharp data book includes the SM510 on pp. 89–92, the SM511 on
+  pp. 93–97 and the SM-series software development guide on pp. 160–163.
+  [Sharp MOS Semiconductor Data Book (1986)](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1986_Sharp_MOS_Semiconductor_Data_Book.pdf)
 
 ### MAME — SM5xx CPU Emulation
 
@@ -506,6 +528,7 @@ The software oscillator and example sources are original. The source is availabl
   configuration routes R1 to the piezo. Mickey & Donald DM-53 routes R2.
   [Handheld LCD game drivers](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp) ·
   [DK-52 configuration](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1754-L1800) ·
+  [Shared R1 speaker routing](https://github.com/mamedev/mame/blob/mame0289/src/mame/handheld/hh_sm510.cpp#L458-L469) ·
   [DM-53 R2 connection](https://github.com/mamedev/mame/blob/master/src/mame/handheld/hh_sm510.cpp#L1852-L1858)
 
 ### Development Tools
@@ -519,4 +542,8 @@ The software oscillator and example sources are original. The source is availabl
   the development tools and connected to the emulator over RS-232C. The
   emulator supported single-step execution, breakpoints and tracing.
   [SM-series evaluation boards, pp. 254–258](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=263) ·
-  [SME-30 emulator, p. 259](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=268)
+  [SME-30 emulator, pp. 259–262](https://bitsavers.trailing-edge.com/components/sharp/_dataBooks/1990_Sharp_Microcomputers_Data_Book.pdf#page=268)
+- MAME's `unidasm` has `sm510` and `sm511` targets for CPU program ROMs.
+  Use the Melody ROM format on Sharp's p. 166 to read melody data.
+  [MAME unidasm documentation](https://docs.mamedev.org/tools/othertools.html#unidasm) ·
+  [Supported SM5xx targets](https://github.com/mamedev/mame/blob/mame0289/src/tools/unidasm.cpp#L608-L609)

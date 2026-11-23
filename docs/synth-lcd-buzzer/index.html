@@ -307,6 +307,7 @@ await sm510.playCycles(pulse);</code></pre>
 							<h3>SM511 melody controller</h3>
 							<p>The SM511 has a 256-word melody ROM. The low nibble of each six-bit word selects rest (<code>0x0</code>), stop (<code>0x1</code>) or one of 12 pitches (<code>0x2</code>–<code>0xD</code>). Bit 4 selects the octave and bit 5 selects a 62.5 or 125 ms slot.</p>
 							<p>The keyboard previews one command and <strong>Play melody</strong> plays a phrase. In <strong>Files → examples</strong>, <code>sm511-melody.js</code> plays a phrase from Code and <code>sm511-instructions.js</code> controls the melody using PRE, SME, TMEL and RME.</p>
+						<p>In a new Cassette, <code>sm511-timed.js</code> schedules PRE, SME and RME in machine cycles. Listen for the pitch change when the output returns after a muted slot.</p>
 							<h3>App instrument and output</h3>
 						<dl>
 								<dt>Melody ROM</dt><dd>Edit the 256 command addresses in the SM511 tab. Playback stops at a Stop command or the end of the ROM.</dd>

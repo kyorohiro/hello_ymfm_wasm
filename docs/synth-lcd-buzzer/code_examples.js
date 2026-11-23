@@ -94,4 +94,30 @@ while (!(await sm511.tmel())) await sleep(0.002);
 await sm511.rme();
 `,
 	},
+	{
+		path: '/examples/sm511-timed.js',
+		data: `const sm511 = await useSoundChip("sm511");
+
+sm511.setMelody([
+  0x01, // 0x00 Stop. PRE starts at 0x01.
+  0x2d, // 0x01 C♯5
+  0x29, // 0x02 F5, while R is muted
+  0x32, // 0x03 C7. Try 0x35 for A6 and press Apply.
+  0x01, // 0x04 Stop
+]);
+
+const slotCycles = sm511.machineCycleHz / 8; // 125 ms for each note above.
+const plan = sm511.build(b => {
+  b.pre(0x01).sme();
+  // Each instruction takes two cycles. Complete it on a slot boundary.
+  b.atCycle(slotCycles - 2).rme();
+  b.atCycle(2 * slotCycles - 2).sme(); // The ROM has advanced to 0x03.
+  b.atCycle(3 * slotCycles - 2).rme();
+  b.atCycle(4 * slotCycles);
+});
+
+console.table(await sm511.compile(plan));
+await sm511.schedule(plan, { name: "sm511-timed", repeatSeconds: 1 });
+`,
+	},
 ];
