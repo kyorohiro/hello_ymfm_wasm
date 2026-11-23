@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { createVgmTransport } from './vgm-transport.js?v=vsu-live';
-import { VSU_REGISTERS, vsuChannelRegister } from './vsu.js';
+import { createVgmTransport } from './vgm-transport.js?v=vsu-live-keyboard';
+import { VSU_REGISTERS, VSU_SOUND_STOP, vsuChannelRegister } from './vsu.js';
 
 const LIVE_REPORT_FRAMES = Math.ceil(sampleRate / 30);
 const WAVE_BANK_COUNT = 5;
 const WAVE_LENGTH = 32;
 const MODULATION_CHANNEL = 4;
+const FIRST_CHANNEL_INT = vsuChannelRegister(0, VSU_REGISTERS.INT);
+const CHANNEL_STRIDE = vsuChannelRegister(1, VSU_REGISTERS.INT) - FIRST_CHANNEL_INT;
 
 class VsuProcessor extends AudioWorkletProcessor {
 	constructor({ processorOptions: { wasmBinary } }) {
@@ -19,6 +21,8 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.stateBytes = exports.vsu_size();
 			const stateSize = Math.ceil(this.stateBytes / 4) * 4;
 			this.vgmState = this.state + stateSize;
+			this.synthKeyOwners = new Map();
+			this.vgmKeyOwners = new Map();
 			this.captureAddress = this.vgmState + stateSize;
 			this.pcm = this.captureAddress + Math.ceil(exports.vsu_live_snapshot_size() / 4) * 4;
 			this.liveChannel = null;
@@ -30,14 +34,18 @@ class VsuProcessor extends AudioWorkletProcessor {
 			exports.vsu_reset(this.state);
 			this.vgm = createVgmTransport({
 				sampleRate,
-				reset: () => exports.vsu_reset(this.vgmState),
+				reset: () => {
+					this.vgmKeyOwners.clear();
+					exports.vsu_reset(this.vgmState);
+				},
 				restore: bytes => {
 					if (!(bytes instanceof Uint8Array) || bytes.byteLength !== this.stateBytes)
 						throw new Error('Invalid VSU seek checkpoint.');
 					// Both wasm instances use the same binary and the state has no pointers.
 					new Uint8Array(exports.memory.buffer, this.vgmState, this.stateBytes).set(bytes);
+					this.vgmKeyOwners.clear();
 				},
-				write: (offset, value) => exports.vsu_write(this.vgmState, offset, value),
+				write: (offset, value) => this.writeSource(this.vgmState, this.vgmKeyOwners, offset, value),
 				setMask: mask => exports.vsu_set_mix_mask(this.vgmState, mask),
 				readChannel: channel => exports.vsu_get_channel(this.vgmState, channel),
 				renderFrames: (offset, frames) => {
@@ -49,6 +57,52 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.port.onmessage = ({ data }) => this.handle(data);
 			this.port.postMessage({ type: 'ready' });
 		} catch (error) { this.fail(error); }
+	}
+
+	writeSource(state, owners, offset, value) {
+		// Only a source write to the gate takes ownership from a held key.
+		if (offset === VSU_SOUND_STOP && (value & 1)) owners.clear();
+		else if (offset >= FIRST_CHANNEL_INT && offset < VSU_SOUND_STOP && (offset - FIRST_CHANNEL_INT) % CHANNEL_STRIDE === 0)
+			owners.delete((offset - FIRST_CHANNEL_INT) / CHANNEL_STRIDE);
+		this.core.vsu_write(state, offset, value);
+	}
+
+	envelopeByte(state, channel, register) {
+		// The live ABI retains envelope bytes for voices with unavailable waveform banks.
+		if (!this.core.vsu_snapshot_live_voice(state, channel, this.captureAddress)) return undefined;
+		const word = register === 'EV0' ? 5 : 6;
+		return new Uint32Array(this.core.memory.buffer, this.captureAddress + 4 * word, 1)[0];
+	}
+
+	liveNoteOn({ source, channel, playbackId, revision, owner, writes }) {
+		const id = this.vgm.outputId;
+		if (this.liveChannel === null || channel !== this.liveChannel || revision !== this.liveRevision || playbackId !== id ||
+			source !== (id === null ? 'synth' : 'vgm') || (id !== null && !this.vgm.isPlaying(id))) return;
+		const state = id === null ? this.state : this.vgmState;
+		const owners = id === null ? this.synthKeyOwners : this.vgmKeyOwners;
+		const ev0 = this.envelopeByte(state, channel, 'EV0');
+		if (ev0 === undefined) return;
+		// Reload the programmed initial envelope level so every press can retrigger it.
+		this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS.EV0), ev0);
+		for (const [offset, value] of writes) this.core.vsu_write(state, offset, value);
+		owners.set(channel, owner);
+		this.liveDirty = true;
+	}
+
+	liveNoteOff({ source, channel, playbackId, owner }) {
+		const isSynth = source === 'synth' && playbackId === null;
+		if (!isSynth && (source !== 'vgm' || playbackId === null || playbackId !== this.vgm.outputId)) return;
+		const owners = isSynth ? this.synthKeyOwners : this.vgmKeyOwners;
+		if (!owners.has(channel) || owners.get(channel) !== owner) return;
+		const state = isSynth ? this.state : this.vgmState;
+		this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS.INT), 0);
+		owners.delete(channel);
+		this.liveDirty = true;
+	}
+
+	releaseLiveNotes(state, owners) {
+		for (const channel of owners.keys()) this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS.INT), 0);
+		owners.clear();
 	}
 
 	fail(error) {
@@ -113,14 +167,10 @@ class VsuProcessor extends AudioWorkletProcessor {
 			previous = this.core.vsu_get_channel(state, channel) & 255;
 			break;
 		case 'EV0':
-		case 'EV1': {
-			// The live ABI retains the configured envelope bytes for every
-			// channel, including voices with unavailable waveform banks.
-			if (!this.core.vsu_snapshot_live_voice(state, channel, this.captureAddress)) return;
-			const word = register === 'EV0' ? 5 : 6;
-			previous = new Uint32Array(this.core.memory.buffer, this.captureAddress + 4 * word, 1)[0];
+		case 'EV1':
+			previous = this.envelopeByte(state, channel, register);
+			if (previous === undefined) return;
 			break;
-		}
 		default:
 			return;
 		}
@@ -153,21 +203,24 @@ class VsuProcessor extends AudioWorkletProcessor {
 		try {
 			switch (message.type) {
 			case 'reset':
+				this.synthKeyOwners.clear();
 				this.core.vsu_reset(this.state);
 				break;
 			case 'write':
-				this.core.vsu_write(this.state, message.offset, message.value);
+				this.writeSource(this.state, this.synthKeyOwners, message.offset, message.value);
 				break;
 			case 'batch':
 				for (let index = 0; index < message.writes.length; index += 2)
-					this.core.vsu_write(this.state, message.writes[index], message.writes[index + 1]);
+					this.writeSource(this.state, this.synthKeyOwners, message.writes[index], message.writes[index + 1]);
 				break;
 			case 'vgm-play':
+				this.releaseLiveNotes(this.state, this.synthKeyOwners);
 				if (message.plan) this.vgmPlan = message.plan;
 				this.vgm.play({ ...message, plan: this.vgmPlan });
 				this.liveDirty = true;
 				break;
 			case 'vgm-pause':
+				if (message.paused && this.vgm.isPlaying(message.id)) this.releaseLiveNotes(this.vgmState, this.vgmKeyOwners);
 				this.vgm.pause(message.id, message.paused);
 				this.liveDirty = true;
 				break;
@@ -191,6 +244,12 @@ class VsuProcessor extends AudioWorkletProcessor {
 				break;
 			case 'live-write':
 				this.editLive(message);
+				break;
+			case 'live-note-on':
+				this.liveNoteOn(message);
+				break;
+			case 'live-note-off':
+				this.liveNoteOff(message);
 				break;
 			}
 		} catch (error) { this.fail(error); }

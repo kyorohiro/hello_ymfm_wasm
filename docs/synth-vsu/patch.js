@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { vsuAutoVoiceChannels } from './auto-source.js';
 import { createCh5Settings, validateCh5Settings } from './ch5.js';
 import { createVsuEnvelope, validateVsuEnvelope } from './envelope.js';
 import { createVsuWave, VSU_CHANNEL_COUNT, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH } from './vsu.js';
@@ -45,12 +46,17 @@ export function validateVsuPatch(patch) {
 		};
 	});
 
+	const { preferredSource } = patch;
+	const preferredChannel = patch.preferredChannel === undefined ? undefined :
+		boundedInteger(patch.preferredChannel, 0, VSU_CHANNEL_COUNT - 1, 'Preferred channel');
+	if (preferredSource !== undefined && !vsuAutoVoiceChannels(preferredSource).includes(preferredChannel))
+		throw new Error('The preferred source must support the preferred channel.');
+
 	return {
 		format: VSU_PATCH_FORMAT, version: 1, banks, channels,
 		noiseTap: boundedInteger(patch.noiseTap, 0, 7, 'Noise tap'),
 		ch5: validateCh5Settings(patch.ch5),
-		...(patch.preferredChannel === undefined ? {} : {
-			preferredChannel: boundedInteger(patch.preferredChannel, 0, VSU_CHANNEL_COUNT - 1, 'Preferred channel'),
-		}),
+		...(preferredChannel === undefined ? {} : { preferredChannel }),
+		...(preferredSource === undefined ? {} : { preferredSource }),
 	};
 }

@@ -1,6 +1,6 @@
 # Tetorica VSU Synth
 
-Play the Virtual Sound Unit (VSU) from Nintendo's Virtual Boy with the on-screen keyboard, PC keys, or JavaScript. The five wavetable voices share five banks of 32 six-bit samples. Draw a waveform or edit one sample at a time. Choose a voice to adjust its four-bit left and right levels, select its wave bank, or choose one of the eight noise taps on channel 6. Waveform and Spectrum show the output after the app's Master control.
+Play the Virtual Sound Unit (VSU) from Nintendo's Virtual Boy with the on-screen keyboard, PC keys, or JavaScript. The five wavetable voices share five banks of 32 six-bit samples. Each voice has four-bit left and right levels. Waveform and Spectrum show the output after the app's Master control.
 
 The VSU blocks wavetable writes while voices are active. The editor issues the VSU's global stop command before uploading the edited bank. JavaScript can do the same with `vsu.allNotesOff()` followed by `vsu.setWave(bank, samples)`.
 
@@ -18,15 +18,17 @@ The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps the o
 
 ## Channel selection
 
-**AUTO** plays the authored instrument. It uses CH1–5 in round robin for plain Wave sounds and replaces the oldest note if all five voices are held. Sweep and Modulation use CH5. Noise uses CH6. Choosing a numbered channel plays that physical voice.
+**AUTO** plays the authored instrument. **Wave (PCM)** uses CH1–5 in round robin and replaces the oldest note if all five voices are held. **Sweep / Modulation** uses CH5 with the effect selected in its controls. **Noise** uses CH6, whose **Noise tap** slider selects one of eight feedback taps. Choosing a numbered channel plays that physical voice.
 
 During VGM or Code playback, choose **CH1–6** to inspect its waveform, stereo levels, envelope and frequency registers. The stereo and envelope controls write to the selected playing channel. VGM or Code can replace those values with subsequent register writes. Turn **Auto update** off to freeze the readback while keeping the controls available. Selecting another channel, pausing, or seeking reads a fresh snapshot. Use **AUTO** to edit the authored sound, or pause a VGM and use **Copy to Synth** to keep the selected sound with its latest settings.
 
-**Wave** controls show a playback bank and the shared Wave RAM editor. CH5 also has **Sweep / Modulation**. CH6 shows **Noise** and its noise tap.
+Play a key on a numbered channel while VGM or Code is running to retrigger that channel at the new pitch with its current settings. Playback continues. A later write to the channel's gate, or a global stop, takes control of the channel again. Releasing an earlier key leaves that later note sounding. In the Code workspace, PC keys work when focus is outside the editor and other input fields.
+
+**Wave bank** selects the shared RAM bank the channel plays and shows its 32 samples in the graph. Draw on the graph to edit those samples. With the graph focused, Left and Right select a sample and Up and Down change its level. **Shape** chooses a preset waveform, and **Apply shape** fills the selected bank with it. Each channel using that bank reads the same samples.
 
 ## CH5 Sweep and Modulation
 
-Select **CH5** in the channel selector and play a key.
+Select **CH5** or **AUTO → Sweep / Modulation**, choose an effect, and play a key.
 
 - **Sweep** adds or subtracts the pitch register shifted by 0–7 bits at each step. A smaller shift makes a larger change. An upward sweep can silence the voice if it overflows the 11-bit pitch register.
 - **Modulation** applies 32 signed byte offsets to the original pitch register. The development manual documents −127 to +127, and the editor also preserves a raw `0x80` (−128) from a VGM capture. Enable **Repeat** to cycle the table. Editing the table during a held CH5 note stops and retriggers that voice so the RAM write takes effect.

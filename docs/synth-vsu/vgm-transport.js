@@ -62,6 +62,7 @@ export function createVgmTransport({ sampleRate, reset, restore, write, renderFr
 	return {
 		get ownsOutput() { return current?.state === 'playing' || current?.state === 'paused'; },
 		get outputId() { return this.ownsOutput ? current.id : null; },
+		isPlaying(id) { return current?.state === 'playing' && current.id === id; },
 		isPaused(id) { return current?.id === id && current.state === 'paused'; },
 		play({ id, plan, loop, mask, checkpoint, paused = false }) {
 			current = {

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { vsuFrequencyRegister, vsuNoteOnWrites } from './vsu.js';
 
 const rate = 48000;
 const quantum = 128;
@@ -35,6 +36,13 @@ function setup() {
 		},
 		live: () => processor.messages.filter(message => message.type === 'live-state'),
 		captures: () => processor.messages.filter(message => message.type === 'vgm-capture'),
+	};
+}
+
+function liveKeyboard(send, source, playbackId, channel = 0, revision = 1) {
+	return {
+		on: (owner, note) => send({ type: 'live-note-on', source, playbackId, channel, revision, owner, writes: vsuNoteOnWrites(channel, note) }),
+		off: owner => send({ type: 'live-note-off', source, playbackId, channel, owner }),
 	};
 }
 
@@ -185,4 +193,116 @@ test('VGM live edits affect the active timeline and a paused capture before late
 	send({ type: 'vgm-stop', id: 3 });
 	render();
 	assert.deepEqual([live().at(-1).source, live().at(-1).voice.left, live().at(-1).voice.right], ['synth', 8, 1]);
+});
+
+test('live Code keys preserve the programmed voice and only the latest owner can release it', () => {
+	const { send, render, live } = setup();
+	const voice = () => live().at(-1).voice;
+	const keyboard = liveKeyboard(send, 'synth', null);
+	send({ type: 'batch', writes: [
+		...Array.from({ length: 32 }, (_, cell) => [0x100 + cell * 4, cell < 16 ? 63 : 0]).flat(),
+		0x404, 0xed, 0x410, 0xb0, 0x414, 1, 0x418, 2,
+	] });
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	keyboard.on(1, 'C5');
+	render();
+	assert.equal(voice().active, true);
+	assert.equal(voice().frequency, vsuFrequencyRegister(0, 'C5'));
+	assert.deepEqual([voice().waveBank, voice().left, voice().right, voice().ev0, voice().ev1], [2, 14, 13, 0xb0, 1]);
+	assert.ok(outputs[0][0].some(value => value !== 0));
+	render(16);
+	assert.ok(voice().currentEnvelope < 11);
+
+	keyboard.on(2, 'D5');
+	keyboard.off(1);
+	render();
+	assert.equal(voice().active, true);
+	assert.equal(voice().currentEnvelope, 11);
+	assert.equal(voice().frequency, vsuFrequencyRegister(0, 'D5'));
+	send({ type: 'live-watch', channel: 1, revision: 2 });
+	keyboard.off(2);
+	send({ type: 'live-watch', channel: 0, revision: 3 });
+	render();
+	assert.equal(voice().active, false);
+	assert.ok(outputs[0][0].every(value => value === 0));
+	keyboard.on(3, 'E5');
+	render();
+	assert.equal(voice().active, false);
+});
+
+test('raw Code pitch changes retain keyboard ownership and gate writes take it over', () => {
+	const { send, render, live } = setup();
+	const voice = () => live().at(-1).voice;
+	const keyboard = liveKeyboard(send, 'synth', null);
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	keyboard.on(1, 69);
+	send({ type: 'write', offset: 0x580, value: 0 });
+	send({ type: 'write', offset: 0x408, value: 0x57 });
+	keyboard.off(1);
+	render();
+	assert.equal(voice().active, false);
+	assert.equal(voice().frequency & 255, 0x57);
+
+	keyboard.on(2, 69);
+	send({ type: 'batch', writes: [0x408, 0x34, 0x40c, 0x07, 0x400, 0x80] });
+	keyboard.off(2);
+	render();
+	assert.equal(voice().active, true);
+	assert.equal(voice().frequency, 0x734);
+
+	keyboard.on(3, 69);
+	send({ type: 'batch', writes: [0x580, 1, 0x400, 0x80] });
+	keyboard.off(3);
+	render();
+	assert.equal(voice().active, true);
+});
+
+test('live VGM keys apply to the running transport and respect scheduled gate writes and pause', () => {
+	const { send, render, live, captures } = setup();
+	const voice = () => live().at(-1).voice;
+	const keyboard = liveKeyboard(send, 'vgm', 11);
+	const plan = {
+		writes: new Uint32Array([
+			0, 0x404, 0xfe, 0, 0x410, 0xd0,
+			200, 0x408, 0x52, 550, 0x400, 0x80, 800, 0x580, 1, 800, 0x400, 0x80,
+		]),
+		durationTicks: 8000, loopTick: null, loopIndex: 0,
+	};
+	send({ type: 'live-watch', channel: 0, revision: 1 });
+	send({ type: 'vgm-play', id: 11, mask: 63, plan });
+	keyboard.on(1, 69);
+	render(2);
+	assert.equal(voice().active, true);
+	keyboard.off(1);
+	render();
+	assert.equal(voice().active, false);
+	assert.equal(voice().frequency & 255, 0x52);
+
+	keyboard.on(2, 71);
+	render(2);
+	keyboard.off(2);
+	render();
+	assert.equal(voice().active, true);
+	keyboard.on(3, 72);
+	render(2);
+	keyboard.off(3);
+	render();
+	assert.equal(voice().active, true);
+
+	keyboard.on(4, 73);
+	send({ type: 'vgm-pause', id: 11, paused: true });
+	keyboard.on(5, 74);
+	send({ type: 'vgm-capture', id: 11, request: 1, channel: 0 });
+	assert.equal(captures().at(-1).voice.active, false);
+	assert.equal(captures().at(-1).voice.frequency, vsuFrequencyRegister(0, 73));
+	send({ type: 'vgm-pause', id: 11, paused: false });
+	render();
+	assert.equal(voice().active, false);
+
+	send({ type: 'vgm-play', id: 12, mask: 63, plan });
+	const nextKeyboard = liveKeyboard(send, 'vgm', 12);
+	nextKeyboard.on(4, 75);
+	keyboard.off(4);
+	render();
+	assert.deepEqual([live().at(-1).playbackId, voice().active, voice().frequency], [12, true, vsuFrequencyRegister(0, 75)]);
 });

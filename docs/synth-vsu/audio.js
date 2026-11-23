@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createVgmSeekClient } from './vgm-seek-client.js';
+import { VSU_CHANNEL_COUNT, vsuNoteOnWrites } from './vsu.js';
 
 const PROCESSOR = 'tetorica-vsu';
 const WORKLET_TIMEOUT_MS = 10000;
@@ -19,6 +20,11 @@ function validateWrite(offset, value) {
 function validateMask(mask) {
 	if (!Number.isInteger(mask) || mask < 0 || mask > 63)
 		throw new RangeError('Choose a VSU channel mask from 0 to 63.');
+}
+
+function validLiveNoteOwner(channel, owner) {
+	return Number.isInteger(channel) && channel >= 0 && channel < VSU_CHANNEL_COUNT &&
+		Number.isSafeInteger(owner) && owner > 0;
 }
 
 function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
@@ -118,7 +124,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live-edits', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live-keyboard', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -243,6 +249,25 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				throw new RangeError('Choose a valid live register value and mask.');
 			send({ type: 'live-write', source, channel, playbackId, register, mask, value,
 				revision: liveRevision, sequence: ++current.liveWriteSequence });
+			return true;
+		},
+		liveNoteOn({ source, channel, playbackId, owner, note }) {
+			const current = session;
+			if (!current?.active || current.vgmSeek || channel !== liveChannel || !validLiveNoteOwner(channel, owner)) return false;
+			if (source === 'vgm') {
+				if (current.vgmStopping || current.vgmId !== playbackId || current.vgmState !== 'playing') return false;
+			} else if (source !== 'synth' || playbackId !== null || (current.vgmId && current.vgmState !== 'ended')) return false;
+			send({ type: 'live-note-on', source, channel, playbackId, owner, revision: liveRevision,
+				writes: vsuNoteOnWrites(channel, note) });
+			return true;
+		},
+		liveNoteOff({ source, channel, playbackId, owner }) {
+			const current = session;
+			if (!current?.active || !validLiveNoteOwner(channel, owner)) return false;
+			if (source === 'vgm') {
+				if (current.vgmSeek || current.vgmStopping || current.vgmId === null || current.vgmId !== playbackId) return false;
+			} else if (source !== 'synth' || playbackId !== null) return false;
+			send({ type: 'live-note-off', source, channel, playbackId, owner });
 			return true;
 		},
 		playVgm(source, { loop = false, mask = 63 } = {}) {

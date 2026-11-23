@@ -81,6 +81,11 @@
             </div>
             <button id="vgmCapture" type="button" title="Pause the reference and select a sounding channel." disabled hidden>Copy to Synth</button>
           </div>
+          <div id="vsuAutoTypes" class="channel-tabs auto-types" role="tablist" aria-label="AUTO keyboard voice">
+            <button id="vsuAutoWave" type="button" role="tab" aria-selected="true" aria-controls="vsuWavePanel">Wave (PCM)</button>
+            <button id="vsuAutoEffect" type="button" role="tab" aria-selected="false" aria-controls="ch5Panel" tabindex="-1">Sweep / Modulation</button>
+            <button id="vsuAutoNoise" type="button" role="tab" aria-selected="false" aria-controls="noiseTapGroup" tabindex="-1">Noise</button>
+          </div>
           <output id="vsuChannelStatus" class="channel-source" aria-label="Channel settings source"></output>
           <output id="vgmCaptureStatus" role="status"></output>
         </div>
@@ -119,32 +124,30 @@
               <section class="panel voice-panel" aria-labelledby="vsuVoiceTitle">
                 <div class="panel-head">
                   <h2 id="vsuVoiceTitle">Wave</h2>
-                  <label id="channelWaveGroup">Playback bank <select id="channelWave">
+                  <label id="channelWaveGroup">Wave bank <select id="channelWave">
                     <option value="0">0</option><option value="1">1</option><option value="2">2</option>
                     <option value="3">3</option><option value="4">4</option>
                   </select></label>
                 </div>
                 <section id="vsuWavePanel" class="wave-editor" aria-labelledby="waveTitle">
-                  <div class="panel-head">
-                    <h3 id="waveTitle">Wave RAM</h3>
-                    <label>RAM bank <select id="editBank" aria-label="Wave RAM bank">
-                      <option value="0">0</option><option value="1">1</option><option value="2">2</option>
-                      <option value="3">3</option><option value="4">4</option>
-                    </select></label>
-                  </div>
-                  <canvas id="waveCanvas" width="460" height="142" role="img" aria-label="Wave RAM samples, 32 × 6 bit"></canvas>
+                  <h3 id="waveTitle">Wave RAM</h3>
+                  <canvas id="waveCanvas" width="460" height="142" tabindex="0" role="slider"
+                    aria-label="Wave RAM sample level" aria-valuemin="0" aria-valuemax="63" aria-valuenow="32"
+                    aria-description="Use left and right to choose a sample. Use up and down to change its level."></canvas>
                   <div class="wave-controls">
-                    <label>Sample <input id="sampleIndex" type="number" min="0" max="31" value="0"></label>
-                    <label>Value <input id="sampleValue" type="number" min="0" max="63" value="32"></label>
                     <label>Shape <select id="waveShape">
                       <option value="sine">Sine</option><option value="triangle">Triangle</option>
                       <option value="square">Square</option><option value="saw">Saw</option>
                     </select></label>
-                    <button id="loadShape" type="button">Load shape</button>
+                    <button id="loadShape" type="button">Apply shape</button>
                   </div>
-                  <p id="vsuWaveEditHint" class="hint">Editing Wave RAM stops the active voices.</p>
+                  <p id="vsuWaveEditHint" class="hint">Drag to draw a waveform. Editing Wave RAM stops the active voices.</p>
                 </section>
-                <label id="noiseTapGroup" hidden>Noise tap <select id="noiseTap"></select></label>
+                <div id="noiseTapGroup" class="noise-tap" hidden>
+                  <label for="noiseTap">Noise tap</label>
+                  <input id="noiseTap" type="range" min="0" max="7" step="1" value="0">
+                  <output id="noiseTapValue" for="noiseTap" aria-live="off">0</output>
+                </div>
               </section>
               <section class="panel channels" aria-labelledby="vsuStereoTitle">
                 <h2 id="vsuStereoTitle">Stereo levels</h2>
