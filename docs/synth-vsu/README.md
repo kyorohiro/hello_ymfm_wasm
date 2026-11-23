@@ -28,7 +28,7 @@ Play a key on a numbered channel while VGM or Code is running to retrigger that 
 
 During Code playback, **Wave bank** switches immediately for the selected wave channel. Wave RAM edits show a preview and apply when every hardware channel is idle. The pending message stays visible while the chip's write lock is active, including when a sounding channel is muted in the Mixer. Use **AUTO** to retain waveform edits in the authored patch.
 
-The **Envelope** controls sit under the active **Wave RAM** or **Noise** settings. **Initial level** is the starting value. **Current level** shows the hardware envelope for each active channel in the selection, including a gate that is still on after decaying to zero. Open **Envelope curve** to see the configured volume curve.
+The **Envelope** controls sit under the active **Wave RAM** or **Noise** settings. **Initial level** is the starting value. **Current level** shows the hardware's current value, including zero while a gate is still open. After release, an updated level remains visible with an **idle** indicator. In AUTO or with Auto update frozen, **Chip settings** shows each selected channel's actual settings during Code or VGM playback. Open **Envelope curve** to see the curve for the settings in the controls above.
 
 With Code running, an **AUTO** Envelope edit applies the changed field to the current source's physical voices. **Wave (PCM)** edits CH1–5, **Sweep / Modulation** edits CH5, and **Noise** edits CH6. Select a numbered channel to edit just that voice. Later Code writes can change the same envelope registers again.
 
@@ -97,7 +97,7 @@ The helpers also accept zero-based channel numbers and MIDI note numbers. For wa
 
 ### Envelope
 
-`setEnvelope()` sets the starting level (0–15), rate (0–7), direction (`up` or `down`), and the Enable and Repeat flags. `resetEnvelope()` reloads the channel's programmed starting level and restarts its envelope timer, without changing the note gate. Call it before each `noteOn()` when you want a fresh envelope on each attack.
+`setEnvelope()` accepts any combination of `level` (0–15), `rate` (0–7), `direction` (`up` or `down`), `enabled`, and `repeat`. The chip keeps its current settings for omitted fields. For example, `vsu.setEnvelope(CH1, { level: 15 })` updates the starting level and reloads the envelope. `resetEnvelope()` reloads the programmed starting level and restarts the envelope timer. Call it before `noteOn()` for a fresh envelope on each attack.
 
 ```javascript
 const vsu = await useSoundChip("vsu");
@@ -127,7 +127,7 @@ await vsu.schedule(taps, { name: "noise", repeatSeconds: 0.5 });
 
 `compile()` lists the planned VSU register offsets and bytes without changing playback. The shared Wave RAM and Modulation RAM write locks apply at execution. `schedule()` accepts a named one-shot or repeating pattern for the Web AudioWorklet. Its result confirms acceptance. **Apply** replaces the entry's patterns after the updated script succeeds. `clearSchedule(name)` and **Stop Code** cancel future writes and release notes still owned by the affected pattern. A scheduled channel stop leaves a later keyboard or Code note sounding. An explicit write of `1` to `0x580` uses the chip's global stop.
 
-The `build()` recorder also supports `setEnvelope()` and `resetEnvelope()`. A compiled row with `mask: 3` updates only the envelope bits of EV1. A row with `mask: 0` reloads EV0. Both read the chip's current register settings at the scheduled time.
+The `build()` recorder also supports `setEnvelope()` and `resetEnvelope()`. A compiled row's `mask` selects the bits to update using the chip's register at the scheduled time. For example, `mask: 0xf0` updates the starting level in EV0, and `mask: 0` reloads EV0.
 
 Fresh projects and **New → Cassette** include `examples/timed-modulation-noise.js`. Open it from Files and run it for a one-second pattern with CH5 Modulation and short CH6 Noise hits. Use the Mixer to listen to each output independently.
 

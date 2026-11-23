@@ -72,7 +72,7 @@ test('compile preserves envelope masks whose final values depend on playback-tim
 		{ offsetSeconds: 0, register: 0x554, value: 1, mask: 3, operationIndex: 1, writeIndex: 1 },
 		{ offsetSeconds: 0.25, register: 0x550, value: 0, mask: 0, operationIndex: 2, writeIndex: 0 },
 	]);
-	for (const change of [{ register: 0x54c }, { mask: 1 }, { value: 4 }]) {
+	for (const change of [{ register: 0x54c }, { mask: 4 }, { value: 4 }]) {
 		const invalid = structuredClone(plan);
 		Object.assign(invalid.writes[2], change);
 		assert.throws(() => validateVsuOperations(invalid), /masked envelope/);
@@ -80,6 +80,24 @@ test('compile preserves envelope masks whose final values depend on playback-tim
 	const invalidReset = structuredClone(plan);
 	invalidReset.writes[3].value = 1;
 	assert.throws(() => validateVsuOperations(invalidReset), /masked envelope/);
+});
+
+test('partial envelope settings retain only their field masks and an empty edit is a no-op', async () => {
+	const immediate = [];
+	const api = attachVsuTimedClient(createVsuClient({
+		writeEnvelope(writes) { immediate.push(...writes); },
+	}), () => assert.fail('Building or compiling must not call the Worklet.'));
+	const settings = [{}, { level: 15 }, { repeat: true }, { enabled: false }];
+	api.setEnvelope(4, settings[0]);
+	assert.deepEqual(immediate, []);
+	for (const options of settings.slice(1)) api.setEnvelope(4, options);
+	assert.deepEqual(immediate, [[0x510, 0xf0, 0xf0], [0x514, 2, 2], [0x514, 0, 1]]);
+	const plan = api.build(builder => {
+		for (const options of settings) builder.setEnvelope(4, options);
+	});
+	const rows = await api.compile(JSON.parse(JSON.stringify(plan)));
+	assert.deepEqual(rows.map(({ register, value, mask }) => [register, value, mask]), immediate);
+	assert.deepEqual(rows.map(({ operationIndex, writeIndex }) => [operationIndex, writeIndex]), [[0, 0], [1, 0], [2, 0]]);
 });
 
 test('the VSU client sends detached schedules and supports Code stage, commit and cleanup', async () => {

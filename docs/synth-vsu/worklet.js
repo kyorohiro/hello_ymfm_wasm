@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { isVsuEnvelopeEdit } from './envelope.js?v=vsu-code-envelope';
 import { createVgmTransport } from './vgm-transport.js?v=vsu-live-keyboard';
-import { createVsuTimedProcessor } from './timed-processor.js?v=vsu-envelope-level';
-import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget } from './vsu.js?v=vsu-envelope-level';
+import { createVsuTimedProcessor } from './timed-processor.js?v=vsu-envelope-patch';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget } from './vsu.js?v=vsu-envelope-patch';
 
 const LIVE_REPORT_FRAMES = Math.ceil(sampleRate / 30);
 const ENVELOPE_REPORT_FRAMES = Math.ceil(sampleRate / 60);
@@ -33,13 +33,14 @@ class VsuProcessor extends AudioWorkletProcessor {
 			this.codeWaveStateDirty = false;
 			this.captureAddress = this.vgmState + stateSize;
 			this.liveValuesAddress = this.captureAddress + exports.vsu_snapshot_size();
+			this.liveEnvelopeWord = (this.liveValuesAddress - this.captureAddress) / Uint32Array.BYTES_PER_ELEMENT + 1;
 			this.pcm = this.captureAddress + Math.ceil(exports.vsu_live_snapshot_size() / 4) * 4;
 			this.liveChannel = null;
 			this.liveWriteSequence = 0;
 			this.nextLiveReport = 0;
 			this.lastLiveId = null;
 			this.liveDirty = false;
-			this.envelopeLevels = Array(VSU_CHANNEL_COUNT).fill(null);
+			this.envelopeStates = Array(VSU_CHANNEL_COUNT).fill(null);
 			this.envelopeWatch = false;
 			this.envelopePlaybackId = undefined;
 			this.nextEnvelopeReport = 0;
@@ -275,6 +276,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 		if (end > memory.buffer.byteLength) memory.grow(Math.ceil((end - memory.buffer.byteLength) / 65536));
 		this.left = new Float32Array(memory.buffer, this.pcm, frames);
 		this.right = new Float32Array(memory.buffer, this.rightOffset, frames);
+		this.envelopeSnapshot = new Uint32Array(memory.buffer, this.captureAddress, this.liveEnvelopeWord + 1);
 	}
 
 	renderFrames(state, offset, frames) {
@@ -364,23 +366,24 @@ class VsuProcessor extends AudioWorkletProcessor {
 		});
 	}
 
-	reportEnvelopeLevels() {
+	reportEnvelopeState() {
 		if (!this.envelopeWatch || currentFrame < this.nextEnvelopeReport) return;
 		this.nextEnvelopeReport = currentFrame + ENVELOPE_REPORT_FRAMES;
 		const playbackId = this.vgm.outputId;
 		const state = playbackId === null ? this.state : this.vgmState;
-		const values = new Uint32Array(this.core.memory.buffer, this.liveValuesAddress, 2);
+		const words = this.envelopeSnapshot;
 		let changed = playbackId !== this.envelopePlaybackId;
 		this.envelopePlaybackId = playbackId;
 		for (let channel = 0; channel < VSU_CHANNEL_COUNT; channel++) {
-			const active = this.core.vsu_get_channel(state, channel) & 0x100;
-			const level = active && this.core.vsu_snapshot_live_voice(state, channel, this.captureAddress)
-				? values[1] : null;
-			if (level !== this.envelopeLevels[channel]) changed = true;
-			this.envelopeLevels[channel] = level;
+			this.core.vsu_snapshot_live_voice(state, channel, this.captureAddress);
+			const active = Boolean(words[1]), ev0 = words[5], ev1 = words[6] & 3, level = words[this.liveEnvelopeWord];
+			const previous = this.envelopeStates[channel];
+			if (previous && active === previous.active && ev0 === previous.ev0 && ev1 === previous.ev1 && level === previous.level) continue;
+			this.envelopeStates[channel] = { ev0, ev1, level, active };
+			changed = true;
 		}
-		if (changed) this.port.postMessage({ type: 'envelope-levels', playbackId,
-			revision: this.envelopeRevision, levels: this.envelopeLevels.slice() });
+		if (changed) this.port.postMessage({ type: 'envelope-state', playbackId,
+			revision: this.envelopeRevision, states: this.envelopeStates.slice() });
 	}
 
 	handle(message) {
@@ -501,7 +504,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 			right.set(this.right);
 			this.reportCodeWave();
 			this.reportLive();
-			this.reportEnvelopeLevels();
+			this.reportEnvelopeState();
 		} catch (error) {
 			this.fail(error);
 			return false;

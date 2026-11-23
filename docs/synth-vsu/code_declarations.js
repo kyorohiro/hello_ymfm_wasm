@@ -17,12 +17,12 @@ type VsuWaveSamples = readonly number[] | (ArrayBufferView & ArrayLike<number>);
 
 interface VsuEnvelopeSettings {
   /** Initial envelope level, 0–15. */
-  level: number;
+  level?: number;
   /** Hardware step time is 15.36 ms × (rate + 1), rate 0–7. */
-  rate: number;
-  direction: 'up' | 'down';
-  enabled: boolean;
-  repeat: boolean;
+  rate?: number;
+  direction?: 'up' | 'down';
+  enabled?: boolean;
+  repeat?: boolean;
 }
 
 interface VsuRegisterControls<Result> {
@@ -36,7 +36,7 @@ interface VsuRegisterControls<Result> {
   setVolume(channel: VsuChannel, left: number, right: number): Result;
   /** Select a bank for CH1–5. The Noise channel has no wave bank. */
   setWaveBank(channel: VsuWaveChannel, bank: VsuWaveBank): Result;
-  /** Set and restart the envelope, preserving the other bits of EV1. */
+  /** Update the supplied settings. Writing level, rate, or direction reloads the envelope. */
   setEnvelope(channel: VsuChannel, settings: VsuEnvelopeSettings): Result;
   /** Reload the currently programmed EV0 without changing the note gate. */
   resetEnvelope(channel: VsuChannel): Result;
@@ -58,8 +58,8 @@ interface VsuTimedWrite {
   offsetSeconds: number;
   register: number;
   value: number;
-  /** 3 updates EV1's envelope bits; 0 rewrites the EV0 byte read at playback time. */
-  mask?: 0 | 3;
+  /** Merge the marked bits at playback time. Mask 0 reloads the current EV0 byte. */
+  mask?: number;
   operationIndex: number;
   writeIndex: number;
 }

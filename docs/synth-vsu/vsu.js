@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { vsuEnvelopeRegisterValues } from './envelope.js';
+import { createVsuEnvelope, isVsuEnvelopeEdit, vsuEnvelopeRegisterValues } from './envelope.js?v=vsu-code-envelope';
 
 export const VSU_CHANNEL_COUNT = 6;
 export const VSU_WAVE_BANK_COUNT = 5;
@@ -17,6 +17,10 @@ const NOISE_SHIFT_CLOCK = 500_000;
 const DIVISOR_LIMIT = 2048;
 const FIRST_CHANNEL_REGISTER = 0x400;
 const CHANNEL_REGISTER_STRIDE = 0x40;
+const ENVELOPE_FIELDS = {
+	level: ['initial', 'EV0', 0xf0], rate: ['rate', 'EV0', 0x07], direction: ['direction', 'EV0', 0x08],
+	enabled: ['enabled', 'EV1', 0x01], repeat: ['repeat', 'EV1', 0x02],
+};
 
 function checkInteger(value, min, max, name) {
 	if (!Number.isInteger(value) || value < min || value > max)
@@ -35,10 +39,10 @@ export function vsuMaskedEnvelopeTarget(offset, mask, value) {
 	const relative = offset - FIRST_CHANNEL_REGISTER;
 	const channel = Math.floor(relative / CHANNEL_REGISTER_STRIDE);
 	const registerOffset = relative % CHANNEL_REGISTER_STRIDE;
-	if (registerOffset === VSU_REGISTERS.EV0 && mask === 0 && value === 0) return { channel, register: 'EV0' };
-	if (registerOffset === VSU_REGISTERS.EV1 && mask === 3 && Number.isInteger(value) && value >= 0 && value <= mask)
-		return { channel, register: 'EV1' };
-	return null;
+	const register = registerOffset === VSU_REGISTERS.EV0 ? 'EV0' : registerOffset === VSU_REGISTERS.EV1 ? 'EV1' : null;
+	if (register === 'EV0' && mask === 0 && value === 0) return { channel, register };
+	if (!isVsuEnvelopeEdit(register, mask, value) || (value & ~mask) !== 0) return null;
+	return { channel, register };
 }
 
 export function vsuWaveOffset(bank, index) {
@@ -131,9 +135,23 @@ export function createVsuClient(audio) {
 		setEnvelope(channel, options) {
 			const ev0Offset = vsuChannelRegister(channel, VSU_REGISTERS.EV0);
 			const ev1Offset = vsuChannelRegister(channel, VSU_REGISTERS.EV1);
-			const { level, rate, direction, enabled, repeat } = options ?? {};
-			const { ev0, ev1 } = vsuEnvelopeRegisterValues({ initial: level, rate, direction, enabled, repeat });
-			return audio.writeEnvelope([[ev0Offset, ev0], [ev1Offset, ev1, 3]]);
+			if (!options || typeof options !== 'object' || Array.isArray(options))
+				throw new TypeError('Provide VSU envelope settings.');
+			const settings = createVsuEnvelope();
+			const masks = { EV0: 0, EV1: 0 };
+			for (const [name, value] of Object.entries(options)) {
+				if (!Object.hasOwn(ENVELOPE_FIELDS, name)) throw new TypeError(`Unknown envelope field: ${name}.`);
+				if (value === undefined) continue;
+				const [field, register, mask] = ENVELOPE_FIELDS[name];
+				settings[field] = value;
+				masks[register] |= mask;
+			}
+			const { ev0, ev1 } = vsuEnvelopeRegisterValues(settings);
+			const writes = [];
+			if (masks.EV0 === 0xff) writes.push([ev0Offset, ev0]);
+			else if (masks.EV0) writes.push([ev0Offset, ev0 & masks.EV0, masks.EV0]);
+			if (masks.EV1) writes.push([ev1Offset, ev1 & masks.EV1, masks.EV1]);
+			if (writes.length) return audio.writeEnvelope(writes);
 		},
 		resetEnvelope(channel) {
 			return audio.writeEnvelope([[vsuChannelRegister(channel, VSU_REGISTERS.EV0), 0, 0]]);

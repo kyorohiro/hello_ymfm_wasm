@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { PERFORMANCE_PATTERN_LIMITS } from '../js/playground_performance_queue.js';
-import { createVsuClient, VSU_SOUND_STOP, vsuMaskedEnvelopeTarget } from './vsu.js?v=vsu-envelope-level';
+import { createVsuClient, VSU_SOUND_STOP, vsuMaskedEnvelopeTarget } from './vsu.js?v=vsu-envelope-patch';
 
 const DEFAULT_SAMPLE_RATE = 44100;
 const MAX_WRITES = PERFORMANCE_PATTERN_LIMITS.maxPatternEntries;

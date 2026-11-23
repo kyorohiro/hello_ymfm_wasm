@@ -6,24 +6,24 @@ import {
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-envelope-level';
+import { createVsuAudio } from './audio.js?v=vsu-envelope-patch';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
   CH5, CH5_MODULATION_MAX, CH5_MODULATION_MIN,
   decodeCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
 } from './ch5.js';
-import { registerVsuCodeCompletions, selectVsuCodeDeclarations } from './code_declarations.js?v=vsu-envelope-level';
+import { registerVsuCodeCompletions, selectVsuCodeDeclarations } from './code_declarations.js?v=vsu-envelope-patch';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js?v=vsu-wave-controls';
 import { setupVsuFiles } from './files.js?v=vsu-timed';
 import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
 import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js?v=vsu-noise';
-import { attachVsuTimedClient } from './timed-client.js?v=vsu-envelope-level';
+import { attachVsuTimedClient } from './timed-client.js?v=vsu-envelope-patch';
 import {
   createVsuClient, createVsuWave, vsuChannelRegister, vsuFrequencyRegister, vsuFrequencyWrites,
   vsuNoiseShiftRate, vsuNoteOnWrites, vsuStartWrites, vsuWaveOffset, VSU_INTERVAL_STEP_MS, VSU_NOISE_PATTERN_LENGTHS, VSU_REGISTERS,
-} from './vsu.js?v=vsu-envelope-level';
+} from './vsu.js?v=vsu-envelope-patch';
 import { createVsuVoicePool } from './voice-pool.js';
 import { loadVsuVgm } from './vgm.js';
 import { setupVgmPlayer } from './vgm-player.js';
@@ -43,6 +43,7 @@ const noiseKeyTracking = byId('noiseKeyTracking'), noisePattern = byId('noisePat
 const liveEnabled = byId('vsuLiveEnabled'), channelStatus = byId('vsuChannelStatus');
 const liveRegisters = byId('vsuLiveRegisters');
 const envelopeLevelOutput = byId('envCurrentLevel');
+const envelopeChipSettings = byId('envChipSettings'), envelopeChipSettingsRow = byId('envChipSettingsRow');
 const envelopeFields = {
   initial: ['EV0', 0xf0], rate: ['EV0', 0x07], direction: ['EV0', 0x08],
   enabled: ['EV1', 0x01], repeat: ['EV1', 0x02],
@@ -73,8 +74,8 @@ const audio = createVsuAudio({
     }
   },
   onLiveState: acceptLiveState,
-  onEnvelopeLevels(levels) {
-    currentEnvelopeLevels = levels;
+  onEnvelopeState(states) {
+    currentEnvelopeStates = states;
     drawEnvelopeReadback();
   },
   onCodeWaveState: acceptCodeWaveState,
@@ -92,7 +93,7 @@ let ch5Settings = factoryPatch.ch5;
 let autoSource = 'wave', autoWaveChannel = 0, autoChannel = 0, selectedChannel = null, waveSample = 0;
 let codeRunning = false, referenceState = { state: 'empty', id: null }, editorReady = false;
 let vgmActivity = [];
-let currentEnvelopeLevels = [];
+let currentEnvelopeStates = [];
 let liveTarget = null, liveVoice = null, lastLiveVoice = null, liveSettingsKey = '';
 let drawPointer = null, pendingWaveWrites = new Map();
 const submittedWaveWrites = new Map();
@@ -495,6 +496,7 @@ const runtime = createPlaygroundCodeRuntime({
         for (const voice of voicePool.voices()) if (voice.sharedCode) releaseKey(voice.owner);
       }
       if (editorReady && !syncLiveTarget()) channelSettings();
+      drawEnvelopeReadback();
     }
   },
   stopSoundChips() { if (canWrite()) writePatchToChip(); },
@@ -717,17 +719,39 @@ function keyboardChannels() {
 }
 
 function drawEnvelopeReadback() {
-  const labels = [];
+  const levels = [], settingsByRegister = new Map();
+  const observing = codeRunning || ['playing', 'paused'].includes(referenceState.state);
+  const showSettings = observing && (selectedChannel === null || !liveEnabled.checked);
   for (const channel of keyboardChannels()) {
-    const level = currentEnvelopeLevels[channel];
-    if (level != null) labels.push('CH' + (channel + 1) + ' ' + level);
+    const state = currentEnvelopeStates[channel];
+    if (!state) continue;
+    const { ev0, ev1, level, active } = state;
+    const label = 'CH' + (channel + 1);
+    if (active || selectedChannel !== null || level !== (ev0 >> 4))
+      levels.push(label + ' ' + level + (active ? '' : ' (idle)'));
+    if (!showSettings) continue;
+    const key = ev0 | (ev1 << 8);
+    const channelLabels = settingsByRegister.get(key) ?? [];
+    channelLabels.push(label);
+    settingsByRegister.set(key, channelLabels);
   }
-  const value = labels.join(' · ') || '—';
+  const value = levels.join(' · ') || '—';
   if (envelopeLevelOutput.value !== value) envelopeLevelOutput.value = value;
+  const settings = [];
+  for (const [key, labels] of settingsByRegister) {
+    const { initial, rate, direction, enabled, repeat } = decodeVsuEnvelope(key & 255, key >> 8);
+    settings.push(`${labels.join(', ')} · Initial ${initial} · ${enabled ? 'Enabled' : 'Disabled'} · ` +
+      `${direction === 'up' ? 'Grow' : 'Decay'} · Rate ${rate} · Repeat ${repeat ? 'on' : 'off'}`);
+  }
+  const text = settings.join('\n');
+  if (envelopeChipSettings.value !== text) {
+    envelopeChipSettings.value = text;
+    envelopeChipSettingsRow.hidden = !text;
+  }
 }
 
 function clearEnvelopeReadback() {
-  currentEnvelopeLevels = [];
+  currentEnvelopeStates = [];
   drawEnvelopeReadback();
 }
 
@@ -1062,6 +1086,7 @@ function selectChannel(index) {
 liveEnabled.addEventListener('change', () => {
   if (liveEnabled.checked && lastLiveVoice) showLiveVoice(lastLiveVoice);
   channelSettings();
+  drawEnvelopeReadback();
 });
 
 noiseTap.addEventListener('input', () => {
@@ -1268,6 +1293,7 @@ const reference = setupVgmPlayer({
     if (previousVgmId !== nextVgmId) clearEnvelopeReadback();
     referenceState = next;
     syncEnvelopeMonitor();
+    drawEnvelopeReadback();
     if (next.state !== 'playing' && next.state !== 'paused') vgmActivity = [];
     syncLiveTarget();
     drawChannelActivity();

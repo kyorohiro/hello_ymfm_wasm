@@ -2,7 +2,7 @@
 import { createVgmSeekClient } from './vgm-seek-client.js';
 import { CH5 } from './ch5.js';
 import { isVsuEnvelopeEdit } from './envelope.js?v=vsu-code-envelope';
-import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget, vsuNoteOnWrites } from './vsu.js?v=vsu-envelope-level';
+import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuMaskedEnvelopeTarget, vsuNoteOnWrites } from './vsu.js?v=vsu-envelope-patch';
 
 const PROCESSOR = 'tetorica-vsu';
 const WORKLET_TIMEOUT_MS = 10000;
@@ -71,7 +71,7 @@ function validateVgmPlan({ writes, durationTicks, loopTick, loopIndex } = {}) {
 }
 
 export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = () => {}, onLiveState = () => {},
-	onEnvelopeLevels = () => {}, onCodeWaveState = () => {}, onTimedError = () => {} } = {}) {
+	onEnvelopeState = () => {}, onCodeWaveState = () => {}, onTimedError = () => {} } = {}) {
 	validateVolume(volume);
 	const channelGains = Array(VSU_CHANNEL_COUNT).fill(1);
 	let session = null;
@@ -164,7 +164,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-envelope-level', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-envelope-patch', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -183,10 +183,10 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 						reportLive(current, data);
 						return;
 					}
-					if (data.type === 'envelope-levels') {
+					if (data.type === 'envelope-state') {
 						const playbackId = current.vgmState === 'ended' ? null : current.vgmId ?? null;
 						if (envelopeMonitor && data.revision === envelopeRevision && data.playbackId === playbackId &&
-							!current.vgmSeek && !(playbackId && current.vgmStopping)) onEnvelopeLevels(data.levels);
+							!current.vgmSeek && !(playbackId && current.vgmStopping)) onEnvelopeState(data.states);
 						return;
 					}
 					if (data.type === 'code-wave-state') {

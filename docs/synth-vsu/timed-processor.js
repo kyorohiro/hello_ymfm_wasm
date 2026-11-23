@@ -3,7 +3,7 @@ import { createPerformanceQueue } from '../js/playground_performance_queue.js';
 import {
 	validateVsuOperations, validateVsuScheduleName, validateVsuScheduleOptions,
 	validateVsuScheduleOwner, validateVsuScheduleTransaction,
-} from './timed-operations.js?v=vsu-envelope-level';
+} from './timed-operations.js?v=vsu-envelope-patch';
 
 const LEAD_FRAMES = 128;
 const MAX_TRANSACTIONS = 128;

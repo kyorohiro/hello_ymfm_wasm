@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createVgmSeekRenderer } from './vgm-seek.js';
 import { buildVsuOperations } from './timed-operations.js';
-import { vsuFrequencyRegister, vsuNoteOnWrites, vsuStartWrites } from './vsu.js';
+import { createVsuClient, vsuFrequencyRegister, vsuNoteOnWrites, vsuStartWrites } from './vsu.js';
 
 const rate = 48000;
 const quantum = 128;
@@ -37,7 +37,7 @@ function setup() {
 			}
 		},
 		live: () => processor.messages.filter(message => message.type === 'live-state'),
-		levels: () => processor.messages.filter(message => message.type === 'envelope-levels'),
+		envelopes: () => processor.messages.filter(message => message.type === 'envelope-state'),
 		captures: () => processor.messages.filter(message => message.type === 'vgm-capture'),
 		codeWave: () => processor.messages.filter(message => message.type === 'code-wave-state'),
 	};
@@ -50,40 +50,54 @@ function liveKeyboard(send, source, playbackId, channel = 0, revision = 1) {
 	};
 }
 
-test('current envelope levels follow physical gates and the output source independently of channel watch', () => {
-	const { send, render, levels } = setup();
+test('envelope telemetry includes idle registers and follows physical gates and the output source', () => {
+	const { send, render, envelopes } = setup();
+	const idle = { ev0: 0, ev1: 0, level: 0, active: false };
+	const latest = () => envelopes().at(-1).states;
 	send({ type: 'batch', writes: [
 		0x410, 0xf0, 0x414, 1, 0x400, 0x80,
-		0x510, 0x70, 0x500, 0x80,
+		0x510, 0x70, 0x514, 0x60, 0x500, 0x80,
 	] });
 	send({ type: 'channel-gain', channel: 0, gain: 0 });
 	render();
-	assert.deepEqual(levels(), []);
+	assert.deepEqual(envelopes(), []);
 	send({ type: 'envelope-watch', enabled: true, revision: 1 });
 	render();
-	assert.deepEqual(levels().at(-1), { type: 'envelope-levels', playbackId: null, revision: 1,
-		levels: [15, null, null, null, 7, null] });
-	render(95);
-	assert.equal(levels().at(-1).levels[0], 0);
-	send({ type: 'write', offset: 0x400, value: 0 });
+	const first = envelopes().at(-1);
+	assert.deepEqual(first, { type: 'envelope-state', playbackId: null, revision: 1,
+		states: [{ ev0: 0xf0, ev1: 1, level: 15, active: true }, idle, idle, idle,
+			{ ev0: 0x70, ev1: 0, level: 7, active: true }, idle] });
+	send({ type: 'batch', writes: [0x450, 0xa9, 0x454, 0x42] });
 	render(8);
-	assert.equal(levels().at(-1).levels[0], null);
+	const configured = { ev0: 0xa9, ev1: 2, level: 10, active: false };
+	assert.deepEqual(latest()[1], configured);
+	assert.deepEqual(first.states[1], idle);
+	render(95);
+	assert.deepEqual(latest()[0], { ev0: 0xf0, ev1: 1, level: 0, active: true });
+	send({ type: 'batch', writes: [0x400, 0, 0x500, 0] });
+	render(8);
+	const stopped = [{ ev0: 0xf0, ev1: 1, level: 0, active: false }, configured, idle, idle,
+		{ ev0: 0x70, ev1: 0, level: 7, active: false }, idle];
+	assert.deepEqual(latest(), stopped);
+	const unchanged = envelopes().length;
+	render(16);
+	assert.equal(envelopes().length, unchanged);
 
 	send({ type: 'vgm-play', id: 8, mask: 63, plan: {
 		writes: new Uint32Array([0, 0x450, 0x90, 0, 0x440, 0x80]), durationTicks: 8000, loopTick: null, loopIndex: 0,
 	} });
 	render(8);
-	assert.deepEqual(levels().at(-1), { type: 'envelope-levels', playbackId: 8, revision: 1,
-		levels: [null, 9, null, null, null, null] });
+	assert.deepEqual(envelopes().at(-1), { type: 'envelope-state', playbackId: 8, revision: 1,
+		states: [idle, { ev0: 0x90, ev1: 0, level: 9, active: true }, idle, idle, idle, idle] });
 	send({ type: 'envelope-watch', enabled: false, revision: 2 });
-	const count = levels().length;
+	const count = envelopes().length;
 	send({ type: 'vgm-stop', id: 8 });
 	render(8);
-	assert.equal(levels().length, count);
+	assert.equal(envelopes().length, count);
 	send({ type: 'envelope-watch', enabled: true, revision: 3 });
 	render();
-	assert.deepEqual(levels().at(-1), { type: 'envelope-levels', playbackId: null, revision: 3,
-		levels: [null, null, null, null, 7, null] });
+	assert.deepEqual(envelopes().at(-1), { type: 'envelope-state', playbackId: null, revision: 3,
+		states: stopped });
 });
 
 test('Code monitoring reports configuration and the advancing envelope and pitch for one selected voice', () => {
@@ -252,6 +266,37 @@ test('scheduled envelope writes merge EV1 with the state at their playback frame
 	render();
 	const { active, ev0, ev1, currentEnvelope } = live().at(-1).voice;
 	assert.deepEqual([active, ev0, ev1, currentEnvelope], [true, 0x9b, 0x71, 9]);
+});
+
+test('partial envelope writes preserve later raw settings both immediately and at the scheduled frame', () => {
+	const { send, render, live } = setup();
+	const api = createVsuClient({
+		write(offset, value) { send({ type: 'write', offset, value }); },
+		writeEnvelope(writes) { send({ type: 'envelope-writes', writes }); },
+	});
+	const plan = buildVsuOperations(b => b.atSample(64).setEnvelope(4, { level: 15, repeat: true }), { referenceSampleRate: rate });
+	const state = () => {
+		const { active, ev0, ev1, currentEnvelope } = live().at(-1).voice;
+		return [active, ev0, ev1, currentEnvelope];
+	};
+	send({ type: 'batch', writes: [0x510, 0x12, 0x514, 0x40, 0x500, 0x80] });
+	send({ type: 'live-watch', channel: 4, revision: 1 });
+	render();
+	assert.deepEqual(state(), [true, 0x12, 0x40, 1]);
+	send({ type: 'timed-request', id: 1, request: { action: 'schedule', plan, options: { name: 'partial-envelope' } } });
+	api.write(0x510, 0x3c);
+	api.write(0x514, 0x51);
+	send({ type: 'live-watch', channel: 4, revision: 2 });
+	render();
+	assert.deepEqual(state(), [true, 0x3c, 0x51, 3]);
+	send({ type: 'live-watch', channel: 4, revision: 3 });
+	render();
+	assert.deepEqual(state(), [true, 0xfc, 0x53, 15]);
+	api.write(0x510, 0xab);
+	api.write(0x514, 0x72);
+	api.setEnvelope(4, { level: 5, enabled: true });
+	render();
+	assert.deepEqual(state(), [true, 0x5b, 0x73, 5]);
 });
 
 test('Code live Wave bank selection switches the sounding data without taking the manual gate', () => {

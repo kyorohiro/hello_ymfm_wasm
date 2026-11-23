@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#150b0f">
   <title>Tetorica VSU Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=vsu-envelope-level">
+  <link rel="stylesheet" href="./synth.css?v=vsu-envelope-patch">
   <link rel="stylesheet" href="./files.css?v=vsu-noise">
-  <script type="module" src="./synth.js?v=vsu-envelope-level"></script>
+  <script type="module" src="./synth.js?v=vsu-envelope-patch"></script>
 </head>
 <body>
   <main class="shell">
@@ -182,6 +182,10 @@
                 <div class="envelope-readback">
                   <span id="envCurrentLabel">Current level</span>
                   <output id="envCurrentLevel" aria-labelledby="envCurrentLabel" aria-live="off">—</output>
+                </div>
+                <div id="envChipSettingsRow" class="envelope-readback" hidden>
+                  <span id="envChipSettingsLabel">Chip settings</span>
+                  <output id="envChipSettings" aria-labelledby="envChipSettingsLabel" aria-live="off"></output>
                 </div>
                 <details class="envelope-preview">
                   <summary id="showEnvelope">Envelope curve</summary>
