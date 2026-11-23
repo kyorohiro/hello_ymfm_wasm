@@ -41,6 +41,12 @@ export function vsuEnvelopeRegisterValues(envelope) {
 	};
 }
 
+export function isVsuEnvelopeEdit(register, mask, value) {
+	return (register === 'EV0' || register === 'EV1') &&
+		Number.isInteger(mask) && mask > 0 && mask <= (register === 'EV1' ? 3 : 255) &&
+		Number.isInteger(value) && value >= 0 && value <= 255;
+}
+
 export function envelopeStepMs(envelope) {
 	return (validateVsuEnvelope(envelope).rate + 1) * ENVELOPE_STEP_MS;
 }

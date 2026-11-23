@@ -159,6 +159,34 @@ test('Code live edits preserve the other stereo nibble and shared envelope bits'
 	assert.equal(outputs[0][1].some(sample => sample !== 0), false);
 });
 
+test('AUTO envelope edits reach sounding Code voices and preserve unrelated register bits', () => {
+	const { send, render, live } = setup();
+	send({ type: 'batch', writes: [
+		...Array.from({ length: 32 }, (_, index) => [index * 4, 63]).flat(),
+		0x404, 0xf0, 0x410, 0xa4, 0x400, 0x80,
+		0x504, 0x0f, 0x510, 0xb6, 0x514, 0x52, 0x500, 0x80,
+		0x550, 0x91, 0x554, 0x50,
+	] });
+	render();
+	assert(outputs[0][0].at(-1) > 0 && outputs[0][1].at(-1) > 0);
+	send({ type: 'code-envelope-write', channels: [0, 1, 2, 3, 4], register: 'EV0', mask: 0xf0, value: 0 });
+	send({ type: 'code-envelope-write', channels: [4], register: 'EV1', mask: 1, value: 1 });
+	render();
+	assert(outputs[0].every(side => side.at(-1) === 0));
+	function read(channel, revision) {
+		send({ type: 'live-watch', channel, revision });
+		render();
+		const { active, ev0, ev1 } = live().at(-1).voice;
+		return { active, ev0, ev1 };
+	}
+	assert.deepEqual(read(0, 1), { active: true, ev0: 0x04, ev1: 0 });
+	assert.deepEqual(read(4, 2), { active: true, ev0: 0x06, ev1: 0x53 });
+	assert.deepEqual(read(5, 3), { active: false, ev0: 0x91, ev1: 0x50 });
+	send({ type: 'write', offset: 0x410, value: 0x94 });
+	assert.deepEqual(read(0, 4), { active: true, ev0: 0x94, ev1: 0 });
+	assert(outputs[0][0].at(-1) > 0);
+});
+
 test('Code live Wave bank selection switches the sounding data without taking the manual gate', () => {
 	const { send, render, live } = setup();
 	const upperWave = Array(32).fill(63);

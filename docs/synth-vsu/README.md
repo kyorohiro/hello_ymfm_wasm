@@ -22,13 +22,15 @@ The player supports VGM 1.71 and later logs for one 5 MHz VSU. Files keeps the o
 
 During VGM or Code playback, choose **CH1–6** to inspect its waveform, stereo levels, envelope and frequency registers. The stereo and envelope controls write to the selected playing channel. VGM or Code can replace those values with subsequent register writes. Turn **Auto update** off to freeze the readback while keeping the controls available. Selecting another channel, pausing, or seeking reads a fresh snapshot. Use **AUTO** to edit the authored sound, or pause a VGM and use **Copy to Synth** to keep the selected sound with its latest settings.
 
-Play a key on a numbered channel while VGM or Code is running to retrigger that channel with its current settings. The key selects pitch for CH1–5 and triggers the programmed shift rate and duration on CH6. Playback continues. A later write to the channel's gate, or a global stop, takes control of the channel again. Releasing an earlier key leaves that later note sounding. In the Code workspace, PC keys work when focus is outside the editor and text-entry fields.
+Play a key on a numbered channel while VGM or Code is running to retrigger that channel with its current settings. The key selects pitch for CH1–5 and triggers the programmed shift rate and duration on CH6. Playback continues. A later write to the channel's gate, or a global stop, takes control of the channel again. Releasing an earlier key leaves that later note sounding. PC keys work in both workspaces when focus is outside the editor and text-entry fields, including after **Stop** on the Code tab.
 
 **Wave bank** selects the shared RAM bank the channel plays and shows its 32 samples in the graph. Draw on the graph to edit those samples. With the graph focused, Left and Right select a sample and Up and Down change its level. **Shape** chooses a preset waveform, and **Apply shape** fills the selected bank with it. Each channel using that bank reads the same samples.
 
 During Code playback, **Wave bank** switches immediately for the selected wave channel. Wave RAM edits show a preview and apply when every hardware channel is idle. The pending message stays visible while the chip's write lock is active, including when a sounding channel is muted in the Mixer. Use **AUTO** to retain waveform edits in the authored patch.
 
 The **Envelope** controls sit under the active **Wave RAM** or **Noise** settings. Open **Envelope curve** to see that channel's configured volume curve alongside the output display.
+
+With Code running, an **AUTO** Envelope edit applies the changed field to the current source's physical voices. **Wave (PCM)** edits CH1–5, **Sweep / Modulation** edits CH5, and **Noise** edits CH6. Select a numbered channel to edit just that voice. Later Code writes can change the same envelope registers again.
 
 ## Mixer
 

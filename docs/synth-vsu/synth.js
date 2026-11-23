@@ -5,7 +5,7 @@ import {
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { createVsuAudio } from './audio.js?v=vsu-live-wave';
+import { createVsuAudio } from './audio.js?v=vsu-code-envelope';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
@@ -419,14 +419,18 @@ function keyboardEnvelopeWrites(channel, instrument, useCh5Effect = instrument =
 
 function applyEnvelopeEdit(envelope, field) {
   const [register, mask] = envelopeFields[field];
+  const value = vsuEnvelopeRegisterValues(envelope)[register.toLowerCase()] & mask;
   if (liveTarget) {
-    const value = vsuEnvelopeRegisterValues(envelope)[register.toLowerCase()];
-    updateLiveRegister(register, mask, value & mask);
+    updateLiveRegister(register, mask, value);
     return;
   }
   const index = Number(channelSelect.value);
   channels[index].envelope = envelope;
   stopComparison();
+  if (codeRunning) {
+    audio.writeCodeEnvelope(keyboardChannels(), register, mask, value);
+    return;
+  }
   sendAuthoredParameter(index, channel => {
     const note = voicePool.voiceOn(channel);
     const writes = keyboardEnvelopeWrites(channel, index, note?.started ? note.useCh5Effect : index === CH5);
@@ -763,7 +767,7 @@ async function playKeyboard(owner, entry, button) {
   if (selectedChannel !== null && ['preparing', 'seeking'].includes(referenceState.state)) return;
   const target = liveTarget && { source: liveTarget.source, channel: liveTarget.channel, playbackId: liveTarget.id };
   const live = target && matchesLiveKeyboardTarget(target) ? { ...target, owner: ++nextLiveKey } : null;
-  const sharedCode = expandedTab && codeRunning && selectedChannel === null
+  const sharedCode = codeRunning && selectedChannel === null
     ? { source: 'synth', playbackId: null, owner: ++nextLiveKey } : null;
   const useCh5Effect = instrument === CH5 && (selectedChannel !== null || autoSource === 'effect');
   const allocation = voicePool.acquire(keyboardChannels(), {
@@ -1284,7 +1288,6 @@ for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) {
 }
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey ||
-      (!expandedTab && byId('keyboardPanel').hidden && !(codeRunning && liveTarget?.source === 'synth')) ||
       event.target.closest(editingTarget)) return;
   const entry = keys.get(event.key.toLowerCase());
   if (!entry) return;

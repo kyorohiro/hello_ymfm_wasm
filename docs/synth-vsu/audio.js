@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createVgmSeekClient } from './vgm-seek-client.js';
 import { CH5 } from './ch5.js';
+import { isVsuEnvelopeEdit } from './envelope.js?v=vsu-code-envelope';
 import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister, vsuNoteOnWrites } from './vsu.js';
 
 const PROCESSOR = 'tetorica-vsu';
@@ -161,7 +162,7 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 				return response.arrayBuffer();
 			});
 			const [wasmBinary] = await Promise.all([
-				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-live-wave', import.meta.url)),
+				bytes, context.resume(), context.audioWorklet.addModule(new URL('./worklet.js?v=vsu-code-envelope', import.meta.url)),
 			]);
 			current.abort.signal.throwIfAborted();
 			current.wasmBinary = wasmBinary;
@@ -280,6 +281,12 @@ export function createVsuAudio({ volume = .6, onError = () => {}, onVgmState = (
 		writeBatch(pairs) {
 			const writes = packWrites(pairs);
 			send({ type: 'batch', writes }, [writes.buffer]);
+		},
+		writeCodeEnvelope(channels, register, mask, value) {
+			const current = session;
+			if (!current?.active || current.vgmSeek || (current.vgmId && current.vgmState !== 'ended')) return;
+			if (!isVsuEnvelopeEdit(register, mask, value)) throw new RangeError('Choose a valid envelope register edit.');
+			send({ type: 'code-envelope-write', channels, register, mask, value });
 		},
 		writeCodeWave(pairs) {
 			const current = session;

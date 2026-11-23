@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { isVsuEnvelopeEdit } from './envelope.js?v=vsu-code-envelope';
 import { createVgmTransport } from './vgm-transport.js?v=vsu-live-keyboard';
 import { createVsuTimedProcessor } from './timed-processor.js';
 import { VSU_CHANNEL_COUNT, VSU_REGISTERS, VSU_SOUND_STOP, VSU_WAVE_BANK_COUNT, VSU_WAVE_LENGTH, vsuChannelRegister } from './vsu.js';
@@ -158,6 +159,25 @@ class VsuProcessor extends AudioWorkletProcessor {
 		return new Uint32Array(this.core.memory.buffer, this.captureAddress + 4 * word, 1)[0];
 	}
 
+	writeMaskedRegister(state, channel, register, mask, value, previous) {
+		const next = (previous & ~mask) | (value & mask);
+		// An EV0 write reloads the running envelope even when its programmed byte is the same.
+		if (next !== previous || register === 'EV0')
+			this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS[register]), next);
+		return next;
+	}
+
+	editCodeEnvelope({ channels, register, mask, value }) {
+		if (this.vgm.ownsOutput || !isVsuEnvelopeEdit(register, mask, value) ||
+			!Array.isArray(channels) || channels.length > VSU_CHANNEL_COUNT) return;
+		for (const channel of channels) {
+			if (!Number.isInteger(channel) || channel < 0 || channel >= VSU_CHANNEL_COUNT) continue;
+			const previous = this.envelopeByte(this.state, channel, register);
+			if (previous !== undefined) this.writeMaskedRegister(this.state, channel, register, mask, value, previous);
+		}
+		this.liveDirty = true;
+	}
+
 	readInterval(state, channel) {
 		const interval = this.core.vsu_get_interval(state, channel) >>> 0;
 		return interval === 0xffffffff ? null : interval;
@@ -309,8 +329,7 @@ class VsuProcessor extends AudioWorkletProcessor {
 		default:
 			return;
 		}
-		const next = (previous & ~mask) | (value & mask);
-		if (next !== previous) this.core.vsu_write(state, vsuChannelRegister(channel, VSU_REGISTERS[register]), next);
+		const next = this.writeMaskedRegister(state, channel, register, mask, value, previous);
 		this.reportLive({ register, mask, value: next });
 	}
 
@@ -365,6 +384,9 @@ class VsuProcessor extends AudioWorkletProcessor {
 				break;
 			case 'code-wave-write':
 				this.queueCodeWave(message);
+				break;
+			case 'code-envelope-write':
+				this.editCodeEnvelope(message);
 				break;
 			case 'vgm-play':
 				this.timed.clear();
