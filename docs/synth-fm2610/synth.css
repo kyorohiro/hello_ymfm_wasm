@@ -96,7 +96,20 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .panel-heading, .section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 #scope { display: block; width: 100%; height: 145px; margin-top: 9px; border: 1px solid #433724; border-radius: 6px; }
 .tabs { display: flex; gap: 4px; margin: -3px 0 12px; border-bottom: 1px solid var(--border); }
+.editor > .tabs { flex-wrap: wrap; }
 .tabs button { min-height: 35px; border-radius: 7px 7px 0 0; border-bottom: 0; }
+.mixer-sources { display: grid; gap: 6px; margin-top: 8px; }
+.mixer-source {
+  display: grid; grid-template-columns: 5.4rem minmax(0, 1fr) 5ch auto; align-items: center; gap: 8px;
+  padding: 8px; border: 1px solid var(--border); border-radius: 7px;
+}
+.mixer-source input { width: 100%; min-width: 0; margin: 0; }
+.mixer-source output { text-align: end; color: var(--muted); font: .8rem var(--mono); }
+.mixer-source button, .mixer-help { font-size: .82rem; }
+.mixer-help[open] { width: 100%; }
+.mixer-help summary { width: fit-content; border-radius: 50%; border: 1px solid var(--border); padding: 0 7px; cursor: pointer; list-style: none; }
+.mixer-help summary::-webkit-details-marker { display: none; }
+.mixer-help p { margin-block: 5px 2px; color: var(--muted); }
 .presets { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; color: var(--muted); }
 .presets button, .fm-heading button, .keyboard-toolbar button { min-height: 30px; font-size: .83rem; }
 #fmChannels { margin-top: 9px; }

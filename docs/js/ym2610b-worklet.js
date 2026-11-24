@@ -10,13 +10,14 @@ import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stabilit
  * 依存: AudioWorkletProcessor / registerProcessor と MessagePort。
  * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
  */
-import ym2610bModuleFactory from "../generated/ym2610b_wasm.js";
-import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=audio-stability-2";
+import ym2610bModuleFactory from "../generated/ym2610b_wasm.js?v=ym2610-source-mix-1";
+import { normalizeYm2610BSourceGains, Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=ym2610-source-mix-1";
 
 class YM2610BProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.chip = null;
+    this.sourceGains = [1, 1, 1, 1];
     this.auditions = null;
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
@@ -52,6 +53,14 @@ class YM2610BProcessor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "initialize") void this.initialize(data.wasmBinary, data.variant);
+      if (data.type === 'source-gains') {
+        try {
+          const gains = normalizeYm2610BSourceGains(data.gains);
+          this.chip?.setSourceGains(gains);
+          this.sourceGains = gains;
+        } catch (error) { reply({type: 'error', message: String(error.message ?? error)}); }
+        return;
+      }
       if (data.type === 'loadAdpcmMemory') {
         try {
           if (!this.chip) throw new Error('YM2610 is not ready');
@@ -75,6 +84,7 @@ class YM2610BProcessor extends AudioWorkletProcessor {
   async initialize(wasmBinary, variant = true) {
     try {
       this.chip = await Ym2610B.create({ moduleFactory: ym2610bModuleFactory, moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) }, variant });
+      this.chip.setSourceGains(this.sourceGains);
       this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.opnInspector = new OpnKeyboardInspector(this.chip,{kind:variant?'ym2610b':'ym2610',guard:this.auditions,clock:()=>this.clock??8000000,sampleRate});
       this.chipRate = this.chip.sampleRate(YM2610B_CLOCK);

@@ -6,6 +6,18 @@
  */
 export const YM2610B_CLOCK = 8000000;
 
+/** Validate FM, SSG, ADPCM-A and ADPCM-B faders in that order. */
+export function normalizeYm2610BSourceGains(gains) {
+  if (!Array.isArray(gains) || gains.length !== 4) {
+    throw new RangeError('Expected four YM2610 source gains.');
+  }
+  const values = [...gains];
+  if (values.some(gain => !Number.isFinite(gain) || gain < 0 || gain > 3.8)) {
+    throw new RangeError('YM2610 source gains must be from 0 to 3.8.');
+  }
+  return values;
+}
+
 /**
  * Ym2610B chip instance backed by WASM. No AudioContext or playback device is created.
  * Use create() to initialize and dispose() to release native resources.
@@ -13,6 +25,7 @@ export const YM2610B_CLOCK = 8000000;
  */
 export class Ym2610B {
   #states = new WeakMap();
+  #sourceGains = [1, 1, 1, 1];
   /**
    * Wrap native resources allocated by create(); prefer the asynchronous factory.
    * @param {Object} module Initialized Emscripten module.
@@ -45,6 +58,8 @@ export class Ym2610B {
       loadRom: module.cwrap("ym2610b_load_rom", "number", ["number","number","number","number","number","number"]),
       clearRoms: module.cwrap("ym2610b_clear_roms", null, ["number"]),
       mute: module.cwrap("ym2610b_set_source_mute_mask", null, ["number","number"]),
+      sourceGains: typeof module._ym2610b_set_source_gains === 'function' ?
+        module.cwrap('ym2610b_set_source_gains', 'number', Array(5).fill('number')) : null,
       create: module.cwrap("ym2610b_create", "number", []),
       destroy: module.cwrap("ym2610b_destroy", null, ["number"]),
       reset: module.cwrap("ym2610b_reset", null, ["number"]),
@@ -71,7 +86,9 @@ export class Ym2610B {
     try {
       this.module._ym2610b_save_state(this.handle, ptr);
       const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
-      const state = Object.freeze({byteLength: size}); this.#states.set(state, bytes); return state;
+      const state = Object.freeze({byteLength: size});
+      this.#states.set(state, {bytes, gains: this.#sourceGains});
+      return state;
     } finally { this.module._free(ptr); }
   }
   /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
@@ -81,11 +98,13 @@ export class Ym2610B {
   /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);
-    const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
+    const {bytes, gains} = this.#states.get(state);
+    const ptr = this.module._malloc(bytes.length);
     if (!ptr) throw new Error('State allocation failed');
     try {
       new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
       if (!this.module._ym2610b_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
+      this.#sourceGains = gains;
     } finally { this.module._free(ptr); }
   }
 
@@ -111,6 +130,17 @@ export class Ym2610B {
   clearAdpcmRoms() { this.api.clearRoms(this.handle); }
   /** @param {number} mask */
   setSourceMuteMask(mask) { this.api.mute(this.handle, mask); }
+  /** @param {number[]} gains Independent output multipliers, ordered FM, SSG, ADPCM-A, ADPCM-B. */
+  setSourceGains(gains) {
+    const next = normalizeYm2610BSourceGains(gains);
+    if (!this.handle) throw new Error('YM2610B is disposed');
+    const applied = this.api.sourceGains
+      ? this.api.sourceGains(this.handle, ...next)
+      : next.every(gain => gain === 1);
+    if (!applied) throw new Error('YM2610 source mixing unavailable');
+    this.#sourceGains = next;
+  }
+  getSourceGains() { return [...this.#sourceGains]; }
   /** @param {Uint8Array} bytes
    * @param {0|1} type
    * @param {number} size

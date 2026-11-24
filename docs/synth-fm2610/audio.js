@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { NeoGeoSynth, YM2610BRuntimeSynth } from '../js/ym2610bsynth.js';
+import { normalizeYm2610BSourceGains } from '../js/ym2610b.js?v=ym2610-source-mix-1';
 import { createYm2612RegisterState } from '../synth/synth_song_state.js';
 
-const workletUrl = new URL('../js/ym2610b-worklet.js', import.meta.url).href;
-const wasmUrl = new URL('../generated/ym2610b_wasm.wasm', import.meta.url).href;
+const workletUrl = new URL('../js/ym2610b-worklet.js?v=ym2610-source-mix-1', import.meta.url).href;
+const wasmUrl = new URL('../generated/ym2610b_wasm.wasm?v=ym2610-source-mix-1', import.meta.url).href;
 
 // Monitor the commands accepted by the shared Worklet transport. Observing at
 // the transport includes raw writes and the high/low frequency write batches.
@@ -99,6 +100,7 @@ export function createFm2610Audio() {
   let closeRevision = 0;
   let masterVolume = 0.7;
   let muted = false;
+  let sourceGains = [1, 1, 1, 1];
 
   function close() {
     closeRevision++;
@@ -134,6 +136,7 @@ export function createFm2610Audio() {
     session = current;
     current.ready = synth.start().then(() => {
       if (session !== current) throw new DOMException('YM2610 audio was closed.', 'AbortError');
+      synth.node.port.postMessage({type: 'source-gains', gains: sourceGains});
       const context = synth.audioContext;
       const analyser = context.createAnalyser();
       synth.audio.connectOutputMonitor(analyser);
@@ -161,6 +164,10 @@ export function createFm2610Audio() {
       if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('Master volume must be from 0 to 3.8.');
       masterVolume = value;
       session?.synth.setMasterVolume(value);
+    },
+    setSourceGains(gains) {
+      sourceGains = normalizeYm2610BSourceGains(gains);
+      session?.synth.node?.port.postMessage({type: 'source-gains', gains: sourceGains});
     },
     setMuted(source, value) {
       if (source !== 'chip' || typeof value !== 'boolean') throw new TypeError('Choose the chip output and a boolean mute state.');

@@ -49,6 +49,7 @@ const ssgGateMethods = new Set([...gateMethods, 'tone', 'noise', 'off']);
 const codeEndpoints = new WeakMap();
 const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable]';
 let variant = 'ym2610b', switching = false, chip = null, source = 'fm';
+let keyboardSource = 'fm';
 let fmChannel = null, ssgChannel = null, octave = 0, keys = new Map();
 let scopeMode = 'waveform', scopeFrame = null;
 let songState = {playback: 'stopped'}, fmView = null, auditionVoice = null;
@@ -622,6 +623,52 @@ byId('muteOutput').addEventListener('click', event => {
   audio.setMuted('chip', muted);
   button.setAttribute('aria-pressed', String(muted));
 });
+
+function setupOutputMixer() {
+  const mixer = byId('mixerSources');
+  const sources = [['fm', 'FM'], ['ssg', 'SSG'], ['adpcm-a', 'ADPCM-A'], ['adpcm-b', 'ADPCM-B']];
+  const levels = sources.map(() => ({gain: 1, muted: false}));
+  function apply() {
+    const gains = levels.map(level => level.muted ? 0 : level.gain);
+    try {
+      audio.setSourceGains(gains);
+      audition.setSourceGains(gains);
+      songs.setSourceGains(gains);
+    } catch (error) { report(error); }
+  }
+  for (const [index, [sourceId, name]] of sources.entries()) {
+    const row = document.createElement('div');
+    row.className = 'mixer-source';
+    row.dataset.mixerSource = sourceId;
+    const label = document.createElement('label');
+    label.textContent = name;
+    const input = document.createElement('input');
+    Object.assign(input, {type: 'range', min: '0', max: '3.8', step: '0.01', value: '1'});
+    input.id = 'mixer-' + sourceId + '-gain';
+    label.htmlFor = input.id;
+    input.setAttribute('aria-label', name + ' volume');
+    const value = document.createElement('output');
+    value.value = '100%';
+    value.setAttribute('for', input.id);
+    const level = levels[index];
+    input.addEventListener('input', () => {
+      level.gain = Number(input.value);
+      value.value = Math.round(level.gain * 100) + '%';
+      apply();
+    });
+    const mute = makeButton('Mute', () => {
+      level.muted = !level.muted;
+      mute.setAttribute('aria-pressed', String(level.muted));
+      apply();
+    });
+    mute.setAttribute('aria-label', 'Mute ' + name);
+    mute.setAttribute('aria-pressed', 'false');
+    row.append(label, input, value, mute);
+    mixer.append(row);
+  }
+}
+setupOutputMixer();
+
 const scopeButtons = [...byId('scopeModes').querySelectorAll('button')];
 for (const button of scopeButtons) button.addEventListener('click', () => {
   scopeMode = button.dataset.scope;
@@ -632,10 +679,12 @@ for (const button of scopeButtons) button.addEventListener('click', () => {
 new ResizeObserver(drawScope).observe(scope);
 
 setupTabs('sourceTabs', tab => {
-  source = tab.dataset.source;
-  envelope.setVisible(source === 'fm');
+  const section = tab.dataset.source;
+  if (voicePools[section]) keyboardSource = section;
+  source = section === 'mixer' ? keyboardSource : section;
+  envelope.setVisible(section === 'fm');
   if (source !== 'fm') stopAudition();
-  else refreshFmView(true);
+  if (section === 'fm') refreshFmView(true);
   renderKeys();
 });
 setupTabs('performanceTabs');

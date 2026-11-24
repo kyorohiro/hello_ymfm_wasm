@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
   "name": "tetorica-soundchip-native",
-  "version": "0.1.8-fm2608-source-mixer",
+  "version": "0.1.8-fm2610-source-mixer",
   "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-  "archiveName": "tetorica-soundchip-native-0.1.8-fm2608-source-mixer-sources.zip",
-  "archiveSha256": "2664067b9c4e652ecc58bf9fdf5db2ee40d9ef4038403fcefb53a6964e7df34f",
-  "manifestSha256": "83c0adec744e8ddd04cbf733c6e83460bc5ff69eff39d7d772f4df454ca5f1cf",
+  "archiveName": "tetorica-soundchip-native-0.1.8-fm2610-source-mixer-sources.zip",
+  "archiveSha256": "cd1a737c2946ce9d8205a7d642840995cc733b5711c3eebc89cfeeaceac53716",
+  "manifestSha256": "2a44ae65b589035a871c5163dcedd9181a943621b54fb1f27b17ed62d7e15a86",
   "fileCount": 486,
+  "unpublished": true,
   "localCandidate": {
     "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
     "changedPaths": [
@@ -27,6 +28,7 @@
       "scripts/build_spc_wasm.sh",
       "scripts/build_ym2413_wasm.sh",
       "scripts/build_ym2608_wasm.sh",
+      "scripts/build_ym2610b_wasm.sh",
       "sdk.json",
       "tests/huc6280_state_wasm_smoke.mjs",
       "tests/ym2413_state_wasm_smoke.mjs",
@@ -44,7 +46,8 @@
       "wasm/huc6280_wasm.cpp",
       "wasm/spc_wasm.cpp",
       "wasm/ym2413_wasm.cpp",
-      "wasm/ym2608_wasm.cpp"
+      "wasm/ym2608_wasm.cpp",
+      "wasm/ym2610b_wasm.cpp"
     ]
   }
 }

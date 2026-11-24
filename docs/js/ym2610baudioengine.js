@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=audio-stability-2";
+import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=ym2610-source-mix-1";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
@@ -48,7 +48,7 @@ export class Ym2610BAudioEngine {
   }
 
   supportsState() { return !this.writeOki6258 && Boolean(this.chip.supportsState?.()); }
-  stateSettingsKey() { return JSON.stringify([this.chipSampleRate, this.outputSampleRate, this.masterVolume, this.sourceMuteMask]); }
+  stateSettingsKey() { return JSON.stringify([this.chipSampleRate, this.outputSampleRate, this.masterVolume, this.sourceMuteMask, this.getSourceGains()]); }
   /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('OPN state saving unavailable');
@@ -96,6 +96,11 @@ export class Ym2610BAudioEngine {
    * @returns {number} Gain multiplier, not a dB value.
    */
   getMasterVolume() { return this.masterVolume; }
+
+  /** @param {number[]} gains Linear host gains in FM, SSG, ADPCM-A, ADPCM-B order. */
+  setSourceGains(gains) { this.chip.setSourceGains(gains); }
+  /** Return independent source gains without exposing the chip's settings. */
+  getSourceGains() { return this.chip.getSourceGains?.() ?? [1, 1, 1, 1]; }
   /**
    * Dispatch a VGM register/command write to the corresponding sound chip.
    * @param {number} port Chip register bank/port (not a MIDI channel).

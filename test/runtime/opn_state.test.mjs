@@ -103,6 +103,29 @@ test('YM2608 external rhythm replacement invalidates old engine/checkpoint state
  }finally{e.dispose();}
 });
 
+for(const kind of ['ym2610','ym2610b'])test(`${kind}: muting preserves phase and checkpoints retain the source mix`,async()=>{
+ const engine=await make(kind),reference=await make(kind);
+ try{
+  const bytes=fixture(kind,'mix');prepare(engine,bytes);prepare(reference,bytes);
+  engine.setSourceGains([0,0,0,0]);
+  const muted=engine.processFrames(4117);
+  assert(muted.left.every(value=>value===0)&&muted.right.every(value=>value===0));
+  reference.processFrames(4117);
+  engine.setSourceGains([1,1,1,1]);
+  assert.deepEqual(engine.processFrames(389),reference.processFrames(389));
+
+  const mix=[.5,.25,.75,0];
+  engine.setSourceGains(mix);
+  const checkpoint=engine.saveState(),expected=engine.processFrames(509);
+  assert(expected.left.some(value=>value!==0));
+  engine.reset();
+  engine.loadState(checkpoint);
+  assert.deepEqual(engine.processFrames(509),expected);
+  engine.setSourceGains([1,1,1,1]);
+  assert.throws(()=>engine.loadState(checkpoint),/Incompatible/);
+ }finally{engine.dispose();reference.dispose();}
+});
+
 test('native OPN loaders reject truncated/oversized memory states without changing audio',async()=>{
  for(const kind of ['ym2203','ym2608','ym2610b']){
   const e=await make(kind);try{
@@ -115,12 +138,12 @@ test('native OPN loaders reject truncated/oversized memory states without changi
     assert.deepEqual(e.processFrames(300),expected);
     if(kind!=='ym2203'){
      e.loadState(s);save(c.handle,ptr);
-     // Locate the actual memory-length fields, excluding YM2608's current
-     // two-float output-gain trailer. Assert both lengths before corrupting a
-     // field: an outdated layout must fail here rather than edit sample data.
+     // Locate the memory-length fields ahead of the source-mixer state.
+     // Check both lengths so a stale state layout cannot corrupt sample data.
      const memoryLengths=kind==='ym2608'?[8192,0x200000]:[256,256];
-     const gainTrailerBytes=kind==='ym2608'?2*Float32Array.BYTES_PER_ELEMENT:0;
      const lengthBytes=Uint32Array.BYTES_PER_ELEMENT;
+     const sourceStateWords=4+3*2+1; // Gains, held stereo frames and format tag.
+     const gainTrailerBytes=(sourceStateWords+(kind==='ym2608'?3:0))*lengthBytes; // Two bus gains and a version.
      const prefix=size-gainTrailerBytes-memoryLengths.reduce((sum,length)=>sum+length+lengthBytes,0);
      const view=new DataView(m.HEAPU8.buffer);
      let offset=ptr+prefix;

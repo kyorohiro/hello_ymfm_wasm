@@ -2,14 +2,16 @@
 import { attachChipClock } from '../js/playground_chip_clock.js';
 import { midiToOpnPitch } from '../js/soundchip_pitch.js';
 import { NeoGeoSynth, YM2610BRuntimeSynth } from '../js/ym2610bsynth.js';
+import { normalizeYm2610BSourceGains } from '../js/ym2610b.js?v=ym2610-source-mix-1';
 import { setSynthSongVoiceFrequency } from '../synth/synth_song_voice.js';
 
-const workletUrl = new URL('../js/ym2610b-worklet.js', import.meta.url).href;
-const wasmUrl = new URL('../generated/ym2610b_wasm.wasm', import.meta.url).href;
+const workletUrl = new URL('../js/ym2610b-worklet.js?v=ym2610-source-mix-1', import.meta.url).href;
+const wasmUrl = new URL('../generated/ym2610b_wasm.wasm?v=ym2610-source-mix-1', import.meta.url).href;
 
 /** A keyboard chip with the reference clock and its own registers and gates. */
 export function createFm2610SongAudition() {
   let session;
+  let sourceGains = [1, 1, 1, 1];
 
   function close() {
     if (!session) return;
@@ -31,6 +33,7 @@ export function createFm2610SongAudition() {
       session = current;
       current.ready = runtime.start().then(async () => {
         if (session !== current) throw new DOMException('Reference audition stopped.', 'AbortError');
+        runtime.node.port.postMessage({type: 'source-gains', gains: sourceGains});
         if (clockHz !== runtime.fm.clock) {
           current.clock = attachChipClock({dispose() {}}, runtime.node.port, runtime.fm.clock, {primary: true});
           await current.clock.setClock(clockHz);
@@ -66,5 +69,10 @@ export function createFm2610SongAudition() {
     };
   }
 
-  return {prepare, close};
+  function setSourceGains(gains) {
+    sourceGains = normalizeYm2610BSourceGains(gains);
+    session?.runtime.node?.port.postMessage({type: 'source-gains', gains: sourceGains});
+  }
+
+  return {prepare, close, setSourceGains};
 }

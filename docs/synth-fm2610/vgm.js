@@ -3,7 +3,7 @@
 import {maybeDecodeVgmFile,parseVgmMetadata} from '../js/vgm_file.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {VgmPlayer} from '../js/vgmplayer.js';
-import {Ym2610BAudioEngine} from '../js/ym2610baudioengine.js';
+import {Ym2610BAudioEngine} from '../js/ym2610baudioengine.js?v=ym2610-source-mix-1';
 import {createYm2612RegisterState,isYm2612ViewRegister} from '../synth/synth_song_state.js';
 import {readFmPreset} from '../synth-fm2608/preset.js';
 
@@ -220,8 +220,8 @@ export async function createFm2610VgmEngine(prepared,{outputSampleRate,masterVol
   signal?.throwIfAborted();
   if (!moduleFactory) {
     const [module,response] = await Promise.all([
-      import('../generated/ym2610b_wasm.js'),
-      fetch(new URL('../generated/ym2610b_wasm.wasm',import.meta.url),{signal}),
+      import('../generated/ym2610b_wasm.js?v=ym2610-source-mix-1'),
+      fetch(new URL('../generated/ym2610b_wasm.wasm?v=ym2610-source-mix-1',import.meta.url),{signal}),
     ]);
     if (!response.ok) throw new Error(`YM2610 audio processor could not be loaded (${response.status}).`);
     moduleFactory = module.default;

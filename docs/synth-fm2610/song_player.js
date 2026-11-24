@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { normalizeYm2610BSourceGains } from '../js/ym2610b.js?v=ym2610-source-mix-1';
 import { createFm2610SongTimeline, createFm2610VgmEngine, createFm2610VgmPlayer } from './vgm.js';
 
 const workletUrl = new URL('../js/vgm-output-worklet.js?v=fm2610-position-1', import.meta.url).href;
@@ -19,6 +20,7 @@ function loadOutputWorklet(context) {
 
 export function createFm2610SongTransport({sound, beforePlay, onState, onError}) {
   let run = null;
+  let sourceGains = [1, 1, 1, 1];
   let state = {playback: 'stopped', position: 0, snapshot: null};
 
   function publish(playback, position, snapshot = null) {
@@ -67,16 +69,17 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
       enqueue(current, left, right, 1);
     }
     while (current.sent - current.consumed < bufferFrames) {
-      const left = new Float32Array(framesPerChunk);
-      const right = new Float32Array(framesPerChunk);
-      const count = current.player.process(left, right, framesPerChunk, {budgetMs: 5});
+      const frames = Math.min(framesPerChunk, bufferFrames - (current.sent - current.consumed));
+      const left = new Float32Array(frames);
+      const right = new Float32Array(frames);
+      const count = current.player.process(left, right, frames, {budgetMs: 5});
       if (count) enqueue(current, left, right, count);
       if (!current.player.isPlaying() && !current.player.queuedFrames) {
         current.endSent = true;
         current.node.port.postMessage({type: 'end'});
         break;
       }
-      if (count < framesPerChunk) break;
+      if (count < frames) break;
     }
   }
 
@@ -129,7 +132,9 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
         current.engine.dispose();
         signal.throwIfAborted();
       }
+      current.engine.setSourceGains(sourceGains);
       current.player = createFm2610VgmPlayer(current.engine, source);
+      current.player.setPrefetchFactor(1);
       current.timeline = createFm2610SongTimeline(current.engine, source);
       current.player.play();
       const duration = source.totalSamples / 44100;
@@ -190,5 +195,14 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     try { fill(run); } catch (error) { fail(error); }
   }
 
-  return {play, pause, resume, stop, getState: () => state, getSnapshot: () => state.snapshot};
+  function setSourceGains(gains) {
+    const next = normalizeYm2610BSourceGains(gains);
+    if (sourceGains.every((gain, index) => gain === next[index])) return;
+    // Drain the existing bounded queue at its recorded mix to keep the PCM
+    // position, FM envelopes and ADPCM decoder phase intact.
+    run?.engine?.setSourceGains(next);
+    sourceGains = next;
+  }
+
+  return {play, pause, resume, stop, setSourceGains, getState: () => state, getSnapshot: () => state.snapshot};
 }

@@ -89,6 +89,7 @@
         <button type="button" id="ssgTab" role="tab" aria-selected="false" aria-controls="ssgPanel" data-source="ssg" tabindex="-1">SSG</button>
         <button type="button" id="adpcmATab" role="tab" aria-selected="false" aria-controls="adpcmAPanel" data-source="adpcm-a" tabindex="-1">ADPCM-A</button>
         <button type="button" id="adpcmBTab" role="tab" aria-selected="false" aria-controls="adpcmBPanel" data-source="adpcm-b" tabindex="-1">ADPCM-B</button>
+        <button type="button" id="mixerTab" role="tab" aria-selected="false" aria-controls="mixerPanel" data-source="mixer" tabindex="-1">Mixer</button>
       </div>
       <div id="fmPanel" role="tabpanel" aria-labelledby="fmTab">
         <div class="panel-heading fm-heading">
@@ -132,6 +133,16 @@
       <div id="ssgPanel" role="tabpanel" aria-labelledby="ssgTab" hidden></div>
       <div id="adpcmAPanel" role="tabpanel" aria-labelledby="adpcmATab" hidden></div>
       <div id="adpcmBPanel" role="tabpanel" aria-labelledby="adpcmBTab" hidden></div>
+      <div id="mixerPanel" role="tabpanel" aria-labelledby="mixerTab" hidden>
+        <div class="section-heading">
+          <h2>Output levels</h2>
+          <details class="mixer-help">
+            <summary aria-label="About Mixer">?</summary>
+            <p>These software levels apply to Keyboard, Code, and VGM. Master adjusts their combined output.</p>
+          </details>
+        </div>
+        <div id="mixerSources" class="mixer-sources"></div>
+      </div>
     </section>
 
     <section class="panel performance" aria-label="Performance">

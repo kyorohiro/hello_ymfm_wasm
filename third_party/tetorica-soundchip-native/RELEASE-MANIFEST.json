@@ -45,8 +45,8 @@
       "size": 52978
     },
     "catalog/source_inventory.json": {
-      "sha256": "fc055c2b3445afd9c102f9a6e750a480dc86eab3d19ebba60edb7a862f79b2c3",
-      "size": 157268
+      "sha256": "0302d456e743fd5809fef082dd51f8df67b60758f557d08285980c36483ce426",
+      "size": 157517
     },
     "docs/architecture.md": {
       "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda",
@@ -813,8 +813,8 @@
       "size": 1292
     },
     "scripts/build_ym2610b_wasm.sh": {
-      "sha256": "cab13d11416f6c0ede3bbfacdb9e73fa4feb6eb4127947ba54c76fb11ab373e5",
-      "size": 1305
+      "sha256": "7f36fa5bd05a9192a7ed07b847b441e737fb6425d58fab592474dca7848754dd",
+      "size": 1333
     },
     "scripts/build_ym2612_wasm.sh": {
       "sha256": "e62bc0f95f1cd38814480f9a1b7d925987f6cd69b74f947337680972c409d21f",
@@ -873,7 +873,7 @@
       "size": 15168
     },
     "sdk.json": {
-      "sha256": "48b53d9cfee9ee7f8f9c6501fce6edfd5c530bd1e9878c8523285d4a7aaac2cf",
+      "sha256": "54708c79c36126dedbf5e147538b578555c7c755ff69c1062b8fcbe11f905deb",
       "size": 305
     },
     "tests/README.md": {
@@ -1913,8 +1913,8 @@
       "size": 12371
     },
     "wasm/ym2610b_wasm.cpp": {
-      "sha256": "aeda15e37d3336028f46a8daf9ae48d092d7188f079d74a3492db25d21f6f849",
-      "size": 3606
+      "sha256": "58b9e9a5a47cac5e5d0ddf0fa341927891e808410140a63bd156ba3d744d3b0b",
+      "size": 8224
     },
     "wasm/ym2612_wasm.cpp": {
       "sha256": "97a475b0c042693133e5ee2016bc229d259deb576365f7d3e54cd2b9d4292a35",
@@ -1944,5 +1944,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.8-fm2608-source-mixer"
+  "version": "0.1.8-fm2610-source-mixer"
 }
