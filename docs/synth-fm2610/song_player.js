@@ -185,7 +185,7 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
   function pause() {
     if (state.playback !== 'playing') return;
     run.node.port.postMessage({type: 'pause'});
-    publish('pausing', state.position);
+    publish('pausing', state.position, state.snapshot);
   }
 
   function resume() {
@@ -204,5 +204,16 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     sourceGains = next;
   }
 
-  return {play, pause, resume, stop, setSourceGains, getState: () => state, getSnapshot: () => state.snapshot};
+  function readAdpcmABytes(snapshot, channel) {
+    if (!snapshot || snapshot !== state.snapshot) return null;
+    return run?.timeline?.readAdpcmABytes(channel,snapshot.adpcm.adpcmA) ?? null;
+  }
+
+  function readAdpcmBBytes(snapshot = state.snapshot) {
+    if (!snapshot || snapshot !== state.snapshot) return null;
+    return run?.timeline?.readAdpcmBBytes(snapshot.adpcm.adpcmB) ?? null;
+  }
+
+  return {play, pause, resume, stop, setSourceGains, readAdpcmABytes, readAdpcmBBytes,
+    getState: () => state, getSnapshot: () => state.snapshot};
 }

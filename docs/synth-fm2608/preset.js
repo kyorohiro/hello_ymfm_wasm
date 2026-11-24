@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {FM_PRESETS} from '../js/megasynth-fm-presets.js';
+import {visitAdpcmBFrames} from '../js/adpcm_b_sample.js';
 
 export {FM_PRESETS};
 export const PRESET_FORMAT = 'tetorica-fm2608-synth';
@@ -46,15 +47,8 @@ export function decodeBase64(value) {
 export function decodeAdpcm(value) {
   const bytes = typeof value === 'string' ? decodeBase64(value) : value;
   if (!(bytes instanceof Uint8Array)) throw new TypeError('Expected ADPCM-B bytes');
-  const result = new Float32Array(bytes.length * 2), scales = [57,57,57,57,77,102,128,153];
-  let predictor = 0, step = 127;
-  for (let index = 0; index < result.length; index++) {
-    const code = bytes[index >> 1] >> (index & 1 ? 0 : 4) & 15;
-    const delta = Math.floor((2 * (code & 7) + 1) * step / 8) * (code & 8 ? -1 : 1);
-    predictor = Math.max(-32768, Math.min(32767, predictor + delta));
-    result[index] = predictor / 32768;
-    step = Math.max(127, Math.min(24576, Math.floor(step * scales[code & 7] / 64)));
-  }
+  const result = new Float32Array(bytes.length * 2);
+  visitAdpcmBFrames(bytes, (sample, index) => { result[index] = sample; });
   return result;
 }
 

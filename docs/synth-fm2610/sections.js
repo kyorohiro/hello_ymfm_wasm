@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {encodeAdpcmA} from '../js/adpcm_a_sample.js';
-import {encodeAdpcmB, readSamplePCM} from '../js/adpcm_b_sample.js';
+import {readSamplePCM} from '../js/adpcm_b_sample.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
+import {createParamControl} from '../synth/synth_controls.js';
+import {midiToNoteName} from '../synth/synth_keyboard.js';
 import {ADPCM_A_KIT_MAX_SAMPLE_BYTES, normalizeAdpcmAKit} from './adpcm_a_kit.js';
+import {createFm2610AdpcmB, FM2610_ADPCM_B_MAX_RATE, getFm2610AdpcmBWaveform} from './adpcm_b.js';
+import {getFm2610AdpcmAWaveform} from './song_adpcm_a_waveform.js';
+import {createFm2610AdpcmReadouts} from './song_adpcm_view.js';
 
 const MASTER_CLOCK = 8_000_000;
 const SAMPLE_ADDRESS = 0x10000;
@@ -10,9 +15,9 @@ const A_RATE = MASTER_CLOCK / 432;
 const A_CUSTOM_START = 0x800000;
 const A_SLOT_BYTES = 0x100000;
 const A_MAX_FILE_BYTES = 64 * 1024 * 1024;
-const B_SOURCE_RATE = 12000;
 const DRUMS = ['Kick', 'Snare', 'Closed hat', 'Tom', 'Block', 'Shaker'];
 const A_VOICES = DRUMS.map((_, index) => index);
+export const ADPCM_A_KEYS = 'fghjkl';
 
 function encodeDrumSample(audio, signal) {
   signal.throwIfAborted();
@@ -96,21 +101,79 @@ function drumBank(rate) {
   return {bytes, ranges: samples.map(sample => sample.range)};
 }
 
-function bSample() {
-  // An original plucked tone. A multiple of 512 frames makes the 256-byte
-  // address range exact, without adding unencoded bytes between repeats.
-  const pcm = new Float32Array(4096);
-  for (let frame = 0; frame < pcm.length; frame++) {
-    const seconds = frame / B_SOURCE_RATE;
-    const angle = 2 * Math.PI * 196 * seconds;
-    const fade = Math.min(1, frame / 24, (pcm.length - 1 - frame) / 240);
-    pcm[frame] = (.62 * Math.sin(angle) + .2 * Math.sin(angle * 2) * Math.exp(-seconds * 18)) *
-      Math.exp(-seconds * 9) * fade;
+function drawAdpcmWaveform(canvas, peaks) {
+  const context = canvas.getContext('2d');
+  if (!context) return;
+  const {width, height} = canvas;
+  context.fillStyle = '#18150f';
+  context.fillRect(0, 0, width, height);
+  context.strokeStyle = '#4b3b26';
+  context.lineWidth = 1;
+  context.beginPath();
+  for (const fraction of [.25, .5, .75]) {
+    const y = height * fraction + .5;
+    context.moveTo(0, y);
+    context.lineTo(width, y);
   }
-  return encodeAdpcmB({channels: [pcm], sampleRate: B_SOURCE_RATE}, B_SOURCE_RATE).bytes;
+  context.stroke();
+  if (!peaks?.length) return;
+  const columnWidth = width / (peaks.length / 2);
+  const middle = height / 2, amplitude = middle - 4;
+  context.strokeStyle = '#ffcc78';
+  context.lineWidth = columnWidth;
+  context.beginPath();
+  for (let index = 0; index < peaks.length; index += 2) {
+    const x = (index / 2 + .5) * columnWidth;
+    context.moveTo(x, middle - peaks[index + 1] * amplitude - .5);
+    context.lineTo(x, middle - peaks[index] * amplitude + .5);
+  }
+  context.stroke();
 }
 
-export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, saveAdpcmAKit, report = () => {}}) {
+function createSongWaveView(canvas, prepareWaveform, report) {
+  let request, activeKey;
+  const cache = new Map();
+
+  function cancel() {
+    request?.abort();
+    request = activeKey = undefined;
+  }
+
+  async function show(key, readBytes) {
+    if (key === activeKey) return;
+    cancel();
+    activeKey = key;
+    const cached = cache.get(key);
+    drawAdpcmWaveform(canvas, cached);
+    if (key === null || cached) return;
+
+    const pending = new AbortController();
+    request = pending;
+    try {
+      const bytes = readBytes();
+      if (!bytes) {
+        activeKey = undefined;
+        return;
+      }
+      const peaks = await prepareWaveform(bytes, pending.signal, {transfer: true});
+      if (pending.signal.aborted) return;
+      if (cache.size >= 12) cache.delete(cache.keys().next().value);
+      cache.set(key, peaks);
+      drawAdpcmWaveform(canvas, peaks);
+    } catch (error) {
+      if (!pending.signal.aborted) report(error);
+    } finally {
+      if (request === pending) request = undefined;
+    }
+  }
+
+  return {show, cancel, reset() { cancel(); cache.clear(); }};
+}
+
+export function setupFm2610Sections({
+  ssgPanel, adpcmAPanel, adpcmBPanel, sound, releaseAdpcmBKeyboard,
+  saveAdpcmAKit, saveAdpcmBSample, onAdpcmLiveChange, playSongAdpcmA, stopSongAdpcmA, report = () => {},
+}) {
   const doc = ssgPanel.ownerDocument;
   const element = (tag, text, className) => {
     const node = doc.createElement(tag);
@@ -144,9 +207,11 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     });
     return {
       label,
-      setValue(next) {
+      setValue(next, display = null) {
         input.value = String(next);
-        output.value = String(next);
+        output.value = display ?? String(next);
+        if (display === null) input.removeAttribute('aria-valuetext');
+        else input.setAttribute('aria-valuetext', display);
       },
     };
   };
@@ -164,9 +229,26 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     return heading;
   };
 
+  const adpcmReadouts = createFm2610AdpcmReadouts(doc, selectSongAdpcmA);
+  function changeAdpcmLive() {
+    refreshSongAdpcmView();
+    onAdpcmLiveChange();
+  }
+  const aLive = toggle('Live', true, changeAdpcmLive);
+  const bLive = toggle('Live', true, changeAdpcmLive);
+  const aLiveInput = aLive.querySelector('input');
+  const bLiveInput = bLive.querySelector('input');
+  aLive.className = bLive.className = 'fm-live-toggle';
+  aLiveInput.id = 'adpcmALive';
+  bLiveInput.id = 'adpcmBLive';
+  aLive.title = bLive.title = 'Follow the ADPCM registers during VGM playback';
+  let songSnapshot = null, readSongAdpcmA, readSongAdpcmB, visibleAdpcm, songPaused = false;
+  let aPinnedVoice = null, aPreviewVoice = 0, aAuditionSnapshot = null;
+
   const voices = Array.from({length: 3}, () => ({tone: true, noise: false, level: 10, gate: false, request: 0}));
   let ssgChip;
   let noisePeriod = 16;
+  let ssgEditChannel = null;
 
   function updateSsg(channel) {
     const voice = voices[channel];
@@ -196,17 +278,38 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     voice.gate = false;
   }
 
+  function editSsg(key, value) {
+    voices.forEach((voice, channel) => {
+      if (ssgEditChannel !== null && channel !== ssgEditChannel) return;
+      voice[key] = value;
+      updateSsg(channel);
+    });
+    showSSGChannel(ssgEditChannel);
+  }
+
   const ssgControls = element('div', '', 'fm2610-section-grid');
-  voices.forEach((voice, channel) => {
-    const card = element('section', '', 'fm2610-voice');
-    card.append(element('h3', `SSG ${channel + 1}`),
-      toggle('Tone', voice.tone, value => { voice.tone = value; updateSsg(channel); }),
-      toggle('Noise', voice.noise, value => { voice.noise = value; updateSsg(channel); }),
-      slider('Level', 0, 15, 1, voice.level, value => { voice.level = value; updateSsg(channel); }).label);
-    ssgControls.append(card);
-  });
-  ssgPanel.append(title('SSG · 3 voices', 'Play the selected SSG voice from the keyboard. The noise period is shared by all three voices.'),
-    ssgControls, slider('Noise period', 1, 31, 1, noisePeriod, value => {
+  const ssgVoice = element('section', '', 'fm2610-voice');
+  ssgVoice.setAttribute('aria-label', 'SSG voice settings');
+  const ssgTone = toggle('Tone', voices[0].tone, value => editSsg('tone', value));
+  const ssgNoise = toggle('Noise', voices[0].noise, value => editSsg('noise', value));
+  const ssgLevel = slider('Level', 0, 15, 1, voices[0].level, value => editSsg('level', value));
+  const ssgSwitches = [['tone', ssgTone.querySelector('input')], ['noise', ssgNoise.querySelector('input')]];
+
+  function showSSGChannel(channel) {
+    ssgEditChannel = channel;
+    const voice = voices[channel ?? 0];
+    const mixed = key => channel === null && voices.some(other => other[key] !== voice[key]);
+    for (const [key, input] of ssgSwitches) {
+      input.indeterminate = mixed(key);
+      input.checked = !input.indeterminate && voice[key];
+    }
+    ssgLevel.setValue(voice.level, mixed('level') ? 'Mixed' : null);
+  }
+
+  ssgVoice.append(ssgTone, ssgNoise, ssgLevel.label);
+  ssgControls.append(ssgVoice);
+  ssgPanel.append(title('SSG · 3 voices', 'AUTO cycles through all three channels and applies edits to all of them.'),
+    ssgControls, slider('Noise period (shared)', 1, 31, 1, noisePeriod, value => {
       noisePeriod = value;
       if (voices.some(voice => voice.gate)) ssgChip.write(6, noisePeriod);
     }).label);
@@ -282,11 +385,15 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     const state = aPads[channel];
     const pad = element('section', '', 'fm2610-voice');
     const voice = `A${channel + 1}`;
+    const shortcut = ADPCM_A_KEYS[channel].toUpperCase();
+    const heading = element('h3', voice);
+    heading.append(' ', element('kbd', shortcut, 'drum-shortcut'));
     const sampleName = element('p', '', 'fm2610-sample-name');
     sampleName.setAttribute('aria-live', 'polite');
     const picker = element('input');
     Object.assign(picker, {type: 'file', accept: 'audio/*,.wav,.flac,.m4a', hidden: true});
     const play = button('Play', () => playDrum(channel));
+    play.setAttribute('aria-keyshortcuts', shortcut);
     const off = button('Stop', () => stopDrums([channel]));
     const select = button('Load sample…', () => picker.click());
     select.setAttribute('aria-label', `Load sample for ${voice}`);
@@ -335,7 +442,7 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     showSample();
     const controls = element('div', '', 'fm2610-sample-controls');
     controls.append(play, off, select, reset);
-    pad.append(element('h3', voice), sampleName, controls, picker);
+    pad.append(heading, sampleName, controls, picker);
     drumPads.append(pad);
   });
   const aToolbar = element('div', '', 'fm2610-inline-controls');
@@ -350,7 +457,64 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     aToolbar.append(save);
   }
   aToolbar.append(button('Stop all drums', () => stopDrums()));
-  adpcmAPanel.append(title('ADPCM-A · 6 voices', 'Load one-shot samples up to about 113 seconds per voice. Playback is fixed at 8 MHz ÷ 432.'), drumPads, aToolbar);
+  const aHeader = title('ADPCM-A · 6 voices', 'Load one-shot samples up to about 113 seconds per voice. Playback is fixed at 8 MHz ÷ 432.');
+  aHeader.append(aLive);
+  const aEditor = element('div');
+  aEditor.append(drumPads, aToolbar);
+  adpcmAPanel.append(aHeader, aEditor, adpcmReadouts.aPanel);
+
+  const aWaveform = element('canvas');
+  Object.assign(aWaveform, {id: 'adpcmAWaveform', width: 900, height: 144});
+  aWaveform.setAttribute('role', 'img');
+  aWaveform.setAttribute('aria-label', 'Decoded ADPCM-A sample waveform');
+  const aWave = createSongWaveView(aWaveform, getFm2610AdpcmAWaveform, report);
+  const aPreviewInfo = element('p', '', 'fm2610-sample-name');
+  aPreviewInfo.id = 'adpcmAPreviewInfo';
+  const aAuto = button('AUTO', () => selectSongAdpcmA(null));
+  aAuto.title = 'Follow the last ADPCM-A voice triggered by the VGM';
+  const aPreviewPlay = button('Play sample', () => auditionSongAdpcmA(aPreviewVoice));
+  aPreviewPlay.id = 'adpcmAAuditionPlay';
+  const aPreviewStop = button('Stop audition', stopSongAdpcmA);
+  aPreviewStop.id = 'adpcmAAuditionStop';
+  const aPreviewToolbar = element('div', '', 'fm2610-inline-controls');
+  aPreviewToolbar.append(aAuto, aPreviewPlay, aPreviewStop);
+  adpcmReadouts.aPanel.append(aPreviewToolbar, aWaveform, aPreviewInfo);
+
+  function selectSongAdpcmA(channel) {
+    aPinnedVoice = channel;
+    refreshSongAdpcmView();
+  }
+
+  function updateSongAdpcmA() {
+    const state = songSnapshot.adpcm.adpcmA;
+    const recent = state.voices.reduce((best, voice) => voice.lastTrigger > best.lastTrigger ? voice : best);
+    aPreviewVoice = aPinnedVoice ?? (recent.lastTrigger ? recent.channel : state.voices.find(voice => voice.available)?.channel ?? 0);
+    const voice = state.voices[aPreviewVoice];
+    adpcmReadouts.updateA(state, aPreviewVoice);
+    aAuto.setAttribute('aria-pressed', String(aPinnedVoice === null));
+    aPreviewPlay.disabled = !aAuditionSnapshot || !voice.available;
+    aPreviewStop.disabled = !aAuditionSnapshot;
+    const length = 2 * (voice.playbackEnd - voice.start) / state.sampleRate;
+    const details = voice.available ? `${length.toFixed(3)} s` : 'ROM data unavailable';
+    const preview = `A${aPreviewVoice + 1} · ${details}` + (songPaused ? '' : ' · Pause VGM to audition');
+    if (aPreviewInfo.textContent !== preview) aPreviewInfo.textContent = preview;
+    const key = voice.available ? `${state.rom.revision}:${voice.start}:${voice.playbackEnd}` : null;
+    void aWave.show(key, () => readSongAdpcmA(songSnapshot, aPreviewVoice));
+  }
+
+  function auditionSongAdpcmA(channel) {
+    const snapshot = aAuditionSnapshot;
+    if (!snapshot) return;
+    const bytes = readSongAdpcmA(snapshot, channel);
+    if (bytes) return playSongAdpcmA(snapshot, channel, bytes);
+  }
+
+  function playAdpcmAKey(channel) {
+    if (!isFollowingAdpcm('adpcm-a')) return playDrum(channel);
+    if (!aAuditionSnapshot) return;
+    selectSongAdpcmA(channel);
+    return auditionSongAdpcmA(channel);
+  }
 
   function getAdpcmAKit() {
     return {
@@ -373,73 +537,211 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     for (const pad of aPads) pad.render();
   }
 
-  let bState;
-  let encodedB;
-  let bRate = B_SOURCE_RATE;
-  let bLevel = 176;
-  let bRepeat = false;
-  let bRequest = 0;
-  let bPlayed = false;
+  const adpcmB = createFm2610AdpcmB({sound});
+  const bDefault = adpcmB.getSettings();
+  const bName = element('p', '', 'fm2610-sample-name');
+  bName.setAttribute('aria-live', 'polite');
+  const bWaveform = element('canvas');
+  Object.assign(bWaveform, {id: 'adpcmBWaveform', width: 900, height: 144});
+  bWaveform.setAttribute('role', 'img');
+  bWaveform.setAttribute('aria-label', 'Decoded ADPCM-B sample waveform');
+  const bDuration = element('p');
+  bDuration.id = 'adpcmBSampleDuration';
+  const bPicker = element('input');
+  Object.assign(bPicker, {type: 'file', accept: '.wav,audio/wav,audio/x-wav', hidden: true, id: 'adpcmBWavInput'});
+  let bPending;
+  let bWaveRequest;
+  let bEditorPeaks;
+  const bWave = createSongWaveView(bWaveform, getFm2610AdpcmBWaveform, report);
 
-  async function playSample() {
-    const request = ++bRequest;
-    const {adpcmB} = await sound();
-    if (request !== bRequest) return;
-    if (bState?.chip !== adpcmB) {
-      encodedB ??= bSample();
-      bState = {chip: adpcmB};
-      bPlayed = false;
-      const state = bState;
-      state.ready = Promise.resolve().then(() => adpcmB.loadMemory(encodedB, SAMPLE_ADDRESS)).catch(error => {
-        if (bState === state) bState = undefined;
-        throw error;
-      });
+  const bRoot = createParamControl({label: 'Root note', min: 0, max: 127, step: 1,
+    value: bDefault.rootNote, formatValue: midiToNoteName, wheelAdjust: false,
+    onChange: rootNote => adpcmB.setSettings({rootNote})});
+  const bRate = slider('Base rate (Hz)', 1, FM2610_ADPCM_B_MAX_RATE, 1, bDefault.sampleRate,
+    sampleRate => showAdpcmBDuration(adpcmB.setSettings({sampleRate})));
+  const bVolume = slider('ADPCM-B level', 0, 255, 1, bDefault.volume,
+    volume => adpcmB.setSettings({volume}));
+  const bRepeat = toggle('Repeat', bDefault.repeat, repeat => adpcmB.setSettings({repeat}));
+  const bSave = button('Save sample…', () => saveAdpcmBSample(adpcmB.getSample()));
+
+  function showAdpcmBDuration({byteLength, sampleRate}) {
+    bDuration.textContent = (2 * byteLength / sampleRate).toFixed(3) + ' s at base rate';
+  }
+
+  async function refreshAdpcmBWaveform() {
+    bWaveRequest?.abort();
+    const request = new AbortController();
+    bWaveRequest = request;
+    bEditorPeaks = undefined;
+    if (!isFollowingAdpcm('adpcm-b')) drawAdpcmWaveform(bWaveform);
+    try {
+      const peaks = await adpcmB.getWaveform(request.signal);
+      if (!request.signal.aborted) {
+        bEditorPeaks = peaks;
+        if (!isFollowingAdpcm('adpcm-b')) drawAdpcmWaveform(bWaveform, peaks);
+      }
+    } catch (error) {
+      if (!request.signal.aborted) report(error);
+    } finally {
+      if (bWaveRequest === request) bWaveRequest = null;
     }
-    const state = bState;
-    await state.ready;
-    if (state !== bState || request !== bRequest) return;
-    adpcmB.keyOff();
-    adpcmB.setSample({start: SAMPLE_ADDRESS, end: SAMPLE_ADDRESS + encodedB.length});
-    adpcmB.setPlaybackRate(bRate);
-    adpcmB.setVolume(bLevel);
-    adpcmB.setPan(true, true);
-    adpcmB.keyOn({repeat: bRepeat});
-    bPlayed = true;
   }
 
-  function stopSample() {
-    bRequest++;
-    if (bPlayed) bState.chip.keyOff();
-    bPlayed = false;
+  function renderAdpcmB() {
+    const settings = adpcmB.getSettings();
+    const {name, rootNote, sampleRate, volume, repeat} = settings;
+    bRoot.updateVisual(rootNote);
+    bRate.setValue(sampleRate);
+    bVolume.setValue(volume);
+    bRepeat.querySelector('input').checked = repeat;
+    bSave.disabled = Boolean(bPending);
+    if (!isFollowingAdpcm('adpcm-b')) {
+      bName.textContent = bPending ? 'Preparing WAV…' : name;
+      bName.title = name;
+      showAdpcmBDuration(settings);
+    }
   }
 
+  function applyAdpcmBSample(sample) {
+    bPending?.abort();
+    bPending = null;
+    releaseAdpcmBKeyboard();
+    adpcmB.applySample(sample);
+    renderAdpcmB();
+    void refreshAdpcmBWaveform();
+  }
+
+  bPicker.addEventListener('change', async () => {
+    const file = bPicker.files[0];
+    bPicker.value = '';
+    if (!file) return;
+    bPending?.abort();
+    const controller = new AbortController();
+    bPending = controller;
+    renderAdpcmB();
+    try {
+      await adpcmB.loadSample(file, {signal: controller.signal});
+      releaseAdpcmBKeyboard();
+      void refreshAdpcmBWaveform();
+    } catch (error) {
+      if (!controller.signal.aborted) report(error);
+    } finally {
+      if (bPending === controller) {
+        bPending = null;
+        renderAdpcmB();
+      }
+    }
+  });
   const bToolbar = element('div', '', 'fm2610-inline-controls');
-  bToolbar.append(button('Play sample', playSample), button('Stop sample', stopSample),
-    toggle('Repeat', bRepeat, value => { bRepeat = value; }),
-    slider('Playback rate (Hz)', 2000, 48000, 100, bRate, value => {
-      bRate = value;
-      if (bPlayed) bState.chip.setPlaybackRate(value);
-    }).label,
-    slider('ADPCM-B level', 0, 255, 1, bLevel, value => {
-      bLevel = value;
-      if (bPlayed) bState.chip.setVolume(value);
-    }).label);
-  adpcmBPanel.append(title('ADPCM-B · 1 voice', 'A generated pluck plays at the chosen rate. Repeat applies on the next Play.'), bToolbar);
+  bToolbar.append(button('Load WAV…', () => bPicker.click()), button('Play sample', () => {
+    releaseAdpcmBKeyboard();
+    return adpcmB.play();
+  }), button('Stop sample', () => {
+    releaseAdpcmBKeyboard();
+    adpcmB.stop();
+  }), button('Reset to pluck', () => applyAdpcmBSample(null)), bSave);
+  const bParameters = element('div', '', 'fm2610-inline-controls');
+  bParameters.append(bRoot.element, bRate.label, bVolume.label, bRepeat);
+  const bHeader = title('ADPCM-B · 1 voice', 'Set the root note for keyboard playback. Repeat applies when the next note starts.');
+  bHeader.append(bLive);
+  adpcmBPanel.append(bHeader, bName, bToolbar, adpcmReadouts.bPanel, bWaveform, bDuration, bParameters, bPicker);
+  renderAdpcmB();
+  void refreshAdpcmBWaveform();
 
-  function stopAdpcm() {
+  function isFollowingAdpcm(source) {
+    if (!songSnapshot?.adpcm) return false;
+    if (source === 'adpcm-a') return aLiveInput.checked;
+    return source === 'adpcm-b' && bLiveInput.checked;
+  }
+
+  function refreshSongAdpcmView() {
+    const followA = isFollowingAdpcm('adpcm-a');
+    const followB = isFollowingAdpcm('adpcm-b');
+    const wasFollowingA = !adpcmReadouts.aPanel.hidden;
+    const wasFollowingB = !adpcmReadouts.bPanel.hidden;
+    if (followA !== wasFollowingA) {
+      aEditor.hidden = followA;
+      adpcmReadouts.aPanel.hidden = !followA;
+    }
+    const showingA = followA && visibleAdpcm === 'adpcm-a';
+    const nextAuditionSnapshot = showingA && songPaused ? songSnapshot : null;
+    if (aAuditionSnapshot && aAuditionSnapshot !== nextAuditionSnapshot) stopSongAdpcmA();
+    aAuditionSnapshot = nextAuditionSnapshot;
+    if (showingA) updateSongAdpcmA();
+    else aWave.cancel();
+
+    if (followB !== wasFollowingB) {
+      adpcmReadouts.bPanel.hidden = !followB;
+      bToolbar.hidden = bParameters.hidden = followB;
+    }
+    if (!followB && wasFollowingB) {
+      bWave.cancel();
+      renderAdpcmB();
+      drawAdpcmWaveform(bWaveform, bEditorPeaks);
+    }
+    if (!followB || visibleAdpcm !== 'adpcm-b') {
+      bWave.cancel();
+      return;
+    }
+
+    const state = songSnapshot.adpcm.adpcmB;
+    const name = 'VGM sample';
+    if (bName.textContent !== name) {
+      bName.textContent = name;
+      bName.title = name;
+    }
+    const duration = state.available && state.sampleRate > 0
+      ? (2 * (state.end - state.start) / state.sampleRate).toFixed(3) + ' s at playback rate' : '';
+    if (bDuration.textContent !== duration) bDuration.textContent = duration;
+    adpcmReadouts.updateB(state);
+    const key = state.available ? `${state.rom.revision}:${state.start}:${state.end}` : null;
+    void bWave.show(key, () => readSongAdpcmB(songSnapshot));
+  }
+
+  function setSongAdpcm(snapshot, {readAdpcmA, readAdpcmB, visible, paused}) {
+    if (songSnapshot && !snapshot) {
+      aWave.reset();
+      bWave.reset();
+    }
+    songSnapshot = snapshot;
+    readSongAdpcmA = readAdpcmA;
+    readSongAdpcmB = readAdpcmB;
+    visibleAdpcm = visible;
+    songPaused = paused;
+    refreshSongAdpcmView();
+  }
+
+  function showAdpcmEditor(source) {
+    if (!isFollowingAdpcm(source)) return;
+    (source === 'adpcm-a' ? aLiveInput : bLiveInput).checked = false;
+    changeAdpcmLive();
+  }
+
+  function stopAdpcm({invalidateB = false} = {}) {
     stopDrums();
-    stopSample();
+    if (invalidateB) adpcmB.invalidate();
+    else adpcmB.stop();
   }
 
   return {
     noteOnSSG,
     noteOffSSG,
+    showSSGChannel,
+    playAdpcmAKey,
+    canAuditionAdpcmA: () => Boolean(aAuditionSnapshot),
     applyAdpcmAKit,
     getAdpcmAKit,
+    noteOnAdpcmB: adpcmB.noteOn,
+    noteOffAdpcmB: adpcmB.noteOff,
+    applyAdpcmBSample,
+    getAdpcmBSample: adpcmB.getSample,
+    setSongAdpcm,
+    isFollowingAdpcm,
+    showAdpcmEditor,
     stopAdpcm,
-    stop() {
+    stop(options) {
       voices.forEach((_, channel) => noteOffSSG(channel));
-      stopAdpcm();
+      stopAdpcm(options);
     },
   };
 }

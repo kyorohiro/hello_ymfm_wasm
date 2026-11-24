@@ -1,6 +1,21 @@
 /** Browser / Worker / Node: decode PCM WAV and encode Yamaha ADPCM-B.
  * No AudioContext is created. Other formats can use an injected decodeAudio.
  */
+const STEP_SCALES = [57, 57, 57, 57, 77, 102, 128, 153];
+
+/** Visit each normalized frame of the first decode pass after a reset. */
+export function visitAdpcmBFrames(bytes, visit) {
+  if (!(bytes instanceof Uint8Array)) throw new TypeError('Expected ADPCM-B bytes');
+  let predictor = 0, step = 127;
+  for (let frame = 0; frame < bytes.length * 2; frame++) {
+    const code = bytes[frame >> 1] >> (frame & 1 ? 0 : 4) & 15;
+    const delta = Math.floor((2 * (code & 7) + 1) * step / 8) * (code & 8 ? -1 : 1);
+    predictor = Math.max(-32768, Math.min(32767, predictor + delta));
+    visit(predictor / 32768, frame);
+    step = Math.max(127, Math.min(24576, Math.floor(step * STEP_SCALES[code & 7] / 64)));
+  }
+}
+
 /** @param {unknown} source @param {{signal?: AbortSignal, decodeAudio?: (bytes: ArrayBuffer) => Promise<AudioBuffer | import("./wav.js").ChannelPCM>}} [options] */
 export async function readSamplePCM(source, {signal, decodeAudio} = {}) {
   signal?.throwIfAborted();
@@ -98,7 +113,7 @@ export function encodeAdpcmB({channels, sampleRate}, outputRate, maxBytes = 0x20
     }
     mono[i] = value;
   }
-  const bytes = new Uint8Array(byteLength), scales = [57, 57, 57, 57, 77, 102, 128, 153];
+  const bytes = new Uint8Array(byteLength);
   let predictor = 0, step = 127;
   for (let i = 0; i < byteLength * 2; i++) {
     let target = 0;
@@ -116,7 +131,7 @@ export function encodeAdpcmB({channels, sampleRate}, outputRate, maxBytes = 0x20
     }
     bytes[i >> 1] |= best << (i & 1 ? 0 : 4);
     predictor = bestValue;
-    step = Math.max(127, Math.min(24576, Math.floor(step * scales[best & 7] / 64)));
+    step = Math.max(127, Math.min(24576, Math.floor(step * STEP_SCALES[best & 7] / 64)));
   }
   return {bytes, frames, paddedFrames: byteLength * 2, sampleRate: outputRate};
 }

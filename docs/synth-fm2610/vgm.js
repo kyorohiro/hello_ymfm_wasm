@@ -5,7 +5,8 @@ import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {VgmPlayer} from '../js/vgmplayer.js';
 import {Ym2610BAudioEngine} from '../js/ym2610baudioengine.js?v=ym2610-source-mix-1';
 import {createYm2612RegisterState,isYm2612ViewRegister} from '../synth/synth_song_state.js';
-import {readFmPreset} from '../synth-fm2608/preset.js';
+import {readFm2610Patch} from './fm_patch.js';
+import {createFm2610SongAdpcmState,isFm2610SongAdpcmRegister} from './song_adpcm_state.js';
 
 const MAX_BYTES = 64 * 1024 * 1024;
 const MAX_SAMPLES = 44100 * 3600;
@@ -40,11 +41,14 @@ function collectFmPresets(clock, variant, warnings) {
     },
     capture(firstSample) {
       if (!keyedChannels.size) return;
-      const {channels} = state.snapshot(firstSample);
+      const {channels,lfo} = state.snapshot(firstSample);
       for (const physicalChannel of keyedChannels) {
         const {gate,keyMask,preset:voice} = channels[physicalChannel];
         if (!gate || !(voice.pan.left || voice.pan.right)) continue;
-        const preset = readFmPreset({...voice,keyMask,operators:Object.values(voice.operators)});
+        const operators = Object.values(voice.operators);
+        // Only patches that use modulation need to override the chip-wide LFO.
+        const usesLfo = voice.pms > 0 || (voice.ams > 0 && operators.some(operator => operator.am));
+        const preset = readFm2610Patch({...voice,keyMask,operators,lfo:usesLfo ? lfo : undefined});
         const signature = JSON.stringify([physicalChannel,preset]);
         const previous = seen.get(signature);
         if (previous) {
@@ -64,14 +68,17 @@ function collectFmPresets(clock, variant, warnings) {
   };
 }
 
-/** Trace register writes at the frames rendered by the existing player.
+/** Trace register and ROM writes at the frames rendered by the existing player.
  * Only expose writes whose frames the caller has reached in the output.
  */
 export function createFm2610SongTimeline(engine,{variant,clock}) {
   const shadow = createYm2612RegisterState(clock);
+  const adpcm = createFm2610SongAdpcmState({clock});
   resetFmState(shadow);
   const slots = variant === 'ym2610b' ? YM2610B_FM_CHANNELS : NEO_GEO_FM_CHANNELS;
   const originalWrite = engine.writeYm2610B;
+  const originalLoadRom = engine.loadAdpcmRom;
+  const originalClearRom = engine.clearAdpcmRoms;
   const originalProcess = engine.processFrames;
   const originalReset = engine.reset;
   let generatedFrames = 0, lastFrame = -1, events = [], head = 0, normalized;
@@ -80,8 +87,21 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
     const result = originalWrite.call(this,port,register,value);
     // YM2610 does not expose the YM2612 DAC register.
     if (!(port === 0 && register === 0x2b) && isYm2612ViewRegister(port,register)) {
-      events.push({frame:generatedFrames,port,register,value});
+      events.push({frame:generatedFrames,kind:'fm',port,register,value});
+    } else if (isFm2610SongAdpcmRegister(port,register)) {
+      events.push({frame:generatedFrames,kind:'adpcm',port,register,value});
     }
+    return result;
+  }
+  function loadRom(type,bytes,offset,size) {
+    const result = originalLoadRom.call(this,type,bytes,offset,size);
+    // The VGM parser owns each ROM block. Retain it until its frame is audible.
+    events.push({frame:generatedFrames,kind:'rom',type,bytes,offset,size});
+    return result;
+  }
+  function clearRom() {
+    const result = originalClearRom.call(this);
+    events.push({frame:generatedFrames,kind:'clear-rom'});
     return result;
   }
   function process(frames) {
@@ -97,9 +117,12 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
     head = 0;
     normalized = undefined;
     resetFmState(shadow);
+    adpcm.reset();
     return result;
   }
   engine.writeYm2610B = write;
+  if (typeof originalLoadRom === 'function') engine.loadAdpcmRom = loadRom;
+  if (typeof originalClearRom === 'function') engine.clearAdpcmRoms = clearRom;
   engine.processFrames = process;
   engine.reset = reset;
 
@@ -108,8 +131,13 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
     const next = Math.max(-1,Math.min(generatedFrames - 1,frame));
     if (next < lastFrame) throw new RangeError('The VGM register timeline can only advance.');
     while (head < events.length && events[head].frame <= next) {
-      const {port,register,value} = events[head++];
-      shadow.write(port,register,value);
+      const event = events[head++];
+      switch (event.kind) {
+        case 'fm': shadow.write(event.port,event.register,event.value); break;
+        case 'adpcm': adpcm.write(event.port,event.register,event.value); break;
+        case 'rom': adpcm.loadRom(event.type,event.bytes,event.offset,event.size); break;
+        case 'clear-rom': adpcm.clearRom(); break;
+      }
     }
     lastFrame = next;
     if (head === events.length) {
@@ -136,12 +164,17 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
         });
         normalized = {variant,clockHz,revision,lfo,modeRegister,csmEnabled,channels:Object.freeze(channels)};
       }
-      return Object.freeze({...normalized,frame:lastFrame});
+      return Object.freeze({...normalized,adpcm:adpcm.snapshot(),frame:lastFrame});
     },
+    readAdpcmABytes: adpcm.readAdpcmABytes,
+    readAdpcmBBytes: adpcm.readAdpcmBBytes,
     dispose() {
       events = [];
       head = 0;
+      adpcm.reset();
       if (engine.writeYm2610B === write) engine.writeYm2610B = originalWrite;
+      if (engine.loadAdpcmRom === loadRom) engine.loadAdpcmRom = originalLoadRom;
+      if (engine.clearAdpcmRoms === clearRom) engine.clearAdpcmRoms = originalClearRom;
       if (engine.processFrames === process) engine.processFrames = originalProcess;
       if (engine.reset === reset) engine.reset = originalReset;
     },

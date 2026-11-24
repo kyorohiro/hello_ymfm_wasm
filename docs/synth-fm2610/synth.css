@@ -184,6 +184,8 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .key strong, .key span { display: block; font-family: var(--mono); }
 .key span { color: var(--muted); font-size: .73rem; font-weight: 450; }
 .key[aria-pressed="true"] span { color: var(--ink); }
+#adpcmAKeyboard .key-row { grid-template-columns: repeat(6,minmax(0,1fr)); }
+.drum-shortcut { margin-left: 4px; color: var(--muted); font: .78rem var(--mono); }
 .fm2610-section-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 13rem),1fr)); gap: 8px; margin-block: 10px; }
 .fm2610-voice { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; }
 .fm2610-voice h3 { flex-basis: 100%; }
@@ -194,6 +196,17 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .fm2610-inline-controls label, .fm2610-voice label { display: inline-flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: .85rem; }
 .fm2610-inline-controls input[type="range"], .fm2610-voice input[type="range"] { width: 7rem; margin: 0; }
 .fm2610-section-note { color: var(--muted); margin-block: 6px; font-size: .84rem; }
+#adpcmAWaveform, #adpcmBWaveform { display: block; width: 100%; height: clamp(92px, 16vw, 144px); margin-top: 8px; border: 1px solid var(--border); border-radius: 6px; }
+#adpcmAPreviewInfo { margin-top: 4px; }
+#adpcmAVgm .fm2610-voice h3 button { min-height: 28px; }
+#adpcmBSampleDuration { margin-block: 4px 8px; color: var(--muted); font: .78rem var(--mono); }
+#adpcmBSampleDuration:empty { display: none; }
+.adpcm-readout {
+  display: grid; grid-template-columns: max-content minmax(0,1fr); gap: 4px 9px;
+  margin: 6px 0 0; font: .78rem var(--mono);
+}
+.adpcm-readout dt { color: var(--muted); }
+.adpcm-readout dd { margin: 0; overflow-wrap: anywhere; }
 #code { display: block; width: 100%; min-height: 225px; resize: vertical; padding: 10px; color: #fff5df; background: #171512; border: 1px solid var(--border); border-radius: 7px; font: .86rem/1.55 var(--mono); }
 .workspace[data-mode="code"] #code { min-height: clamp(340px, 57dvh, 760px); }
 .code-transport { margin-top: 8px; }

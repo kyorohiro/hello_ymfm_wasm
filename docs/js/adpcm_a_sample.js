@@ -25,6 +25,21 @@ const DELTAS = Int16Array.from({length:49 * 16}, (_, index) => {
 const NEXT_STEPS = Uint8Array.from({length:49 * 16}, (_, index) =>
   Math.max(0, Math.min(48, (index >> 4) + STEP_INCREMENTS[index & 7])));
 
+/** Visit normalized predictor samples in the encoded ADPCM-A stream.
+ * Like an OPNB key-on, the predictor and step index start at zero. */
+export function visitAdpcmAFrames(bytes, visit) {
+  if (!(bytes instanceof Uint8Array)) throw new TypeError('Expected ADPCM-A bytes');
+  if (typeof visit !== 'function') throw new TypeError('Expected an ADPCM-A frame visitor');
+  let predictor = 0, stepIndex = 0;
+  for (let frame = 0; frame < bytes.length * 2; frame++) {
+    const code = (bytes[frame >> 1] >> (frame & 1 ? 0 : 4)) & 15;
+    const lookup = (stepIndex << 4) + code;
+    predictor = ((predictor + DELTAS[lookup]) << 20) >> 20;
+    stepIndex = NEXT_STEPS[lookup];
+    visit(predictor / 2048, frame);
+  }
+}
+
 /** Encode normalized mono Float32 PCM as complete 256-byte ADPCM-A units.
  *
  * Input values must be finite and in [-1, 1]. The caller must supply PCM at

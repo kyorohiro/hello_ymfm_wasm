@@ -7,6 +7,7 @@ import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
 import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
+import {prepareFm2610Vgm} from '../docs/synth-fm2610/vgm.js';
 const fixture=(chip,name)=>new URL(`./fixtures/${chip}-${name}.vgz`,import.meta.url);
 for(const chip of ['ym2610','ym2610b'])test(`${chip} FM/SSG/ADPCM-A/B and mix match the Browser engine`,async()=>{
   const outputs=[];
@@ -44,4 +45,34 @@ test('YM2610 variants reject dual chips, invalid flags and invalid embedded ROM 
     const bad=original.slice();new DataView(bad.buffer).setUint32(267,256,true);
     await assert.rejects(renderSource(bad),/Invalid YM2610 ROM range/);
   }
+});
+
+test('VGM FM presets retain the LFO setting when a voice uses modulation',async()=>{
+  const attack = [0x58,0x28,0x01,0x58,0x28,0xf1,0x62]; // Retrigger CH2 and advance time.
+  const commands = [
+    0x58,0xb5,0xc7, // Enable pitch modulation sensitivity.
+    0x58,0x22,0x0a,...attack,...attack,
+    0x58,0x22,0x02,...attack,
+    0x58,0x22,0x0f,0x58,0xb5,0xd0,...attack, // AMS alone has no effect.
+    0x58,0x61,0x80,...attack, // Enable AM for OP1.
+    0x66,
+  ];
+  const dataOffset = 0x80;
+  const source = new Uint8Array(dataOffset + commands.length);
+  source.set([0x56,0x67,0x6d,0x20]);
+  source.set(commands,dataOffset);
+  const header = new DataView(source.buffer);
+  header.setUint32(4,source.length - 4,true);
+  header.setUint32(8,0x151,true);
+  header.setUint32(0x34,dataOffset - 0x34,true);
+  header.setUint32(0x4c,8000000,true);
+
+  const {presets} = await prepareFm2610Vgm(source);
+  assert.deepEqual(presets.map(({preset}) => preset.lfo),[
+    {enabled:true,frequency:2},
+    {enabled:false,frequency:2},
+    undefined,
+    {enabled:true,frequency:7},
+  ]);
+  assert.deepEqual(presets.map(({occurrences}) => occurrences),[2,1,1,1]);
 });

@@ -8,8 +8,8 @@ import { setSynthSongVoiceFrequency } from '../synth/synth_song_voice.js';
 const workletUrl = new URL('../js/ym2610b-worklet.js?v=ym2610-source-mix-1', import.meta.url).href;
 const wasmUrl = new URL('../generated/ym2610b_wasm.wasm?v=ym2610-source-mix-1', import.meta.url).href;
 
-/** A keyboard chip with the reference clock and its own registers and gates. */
-export function createFm2610SongAudition() {
+/** An isolated chip connected to the reference output bus. */
+export function createFm2610SongAuditionChip() {
   let session;
   let sourceGains = [1, 1, 1, 1];
 
@@ -39,7 +39,7 @@ export function createFm2610SongAudition() {
           await current.clock.setClock(clockHz);
           runtime.fm.clock = clockHz;
         }
-        return runtime.fm;
+        return runtime;
       }).catch(async error => {
         if (session === current) await close();
         else throw new DOMException('Reference audition stopped.', 'AbortError');
@@ -47,13 +47,25 @@ export function createFm2610SongAudition() {
       });
     }
     const current = session;
-    const fm = await current.ready;
+    const runtime = await current.ready;
     if (session !== current) throw new DOMException('Reference audition stopped.', 'AbortError');
-    return fm;
+    return runtime;
   }
 
+  function setSourceGains(gains) {
+    sourceGains = normalizeYm2610BSourceGains(gains);
+    session?.runtime.node?.port.postMessage({type: 'source-gains', gains: sourceGains});
+  }
+
+  return {load, close, setSourceGains, current: () => session?.runtime};
+}
+
+/** A keyboard chip with the reference clock and its own registers and gates. */
+export function createFm2610SongAudition() {
+  const {load, close, setSourceGains} = createFm2610SongAuditionChip();
+
   async function prepare(endpoint, snapshot, voice, preset) {
-    const fm = await load(endpoint, snapshot);
+    const {fm} = await load(endpoint, snapshot);
     const channel = snapshot.channels.indexOf(voice);
     return {
       play(midi) {
@@ -67,11 +79,6 @@ export function createFm2610SongAudition() {
       },
       stop() { fm.keyOff(channel); },
     };
-  }
-
-  function setSourceGains(gains) {
-    sourceGains = normalizeYm2610BSourceGains(gains);
-    session?.runtime.node?.port.postMessage({type: 'source-gains', gains: sourceGains});
   }
 
   return {prepare, close, setSourceGains};

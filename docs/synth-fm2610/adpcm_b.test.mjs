@@ -1,0 +1,157 @@
+// SPDX-License-Identifier: BSD-3-Clause
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import factory from '../generated/ym2610b_wasm.js';
+import { Ym2610B } from '../js/ym2610b.js';
+import { YM2610BDirectTransport, YM2610BSynth } from '../js/ym2610bsynth.js';
+import { encodeSampleWav } from '../js/playground_sample_edit.js';
+import { decodeAdpcm } from '../synth-fm2608/preset.js';
+import { FM2610_ADPCM_B_MAX_RATE, createFm2610AdpcmB } from './adpcm_b.js';
+
+const wav = encodeSampleWav({
+  sampleRate: 16000,
+  channels: [Float32Array.from({length: 513}, (_, frame) => .8 * Math.sin(frame / 16))],
+});
+
+test('ADPCM-B sample imports align to hardware pages and replacement fences earlier decodes', async () => {
+  const adapter = createFm2610AdpcmB({sound: () => assert.fail('Sample selection should not open audio.')});
+  const builtin = adapter.getSample();
+  let finish;
+  class DelayedWav extends Blob {
+    arrayBuffer() { return new Promise(resolve => { finish = resolve; }); }
+  }
+  const pending = adapter.loadSample(new DelayedWav([wav]), {name: 'Earlier.wav'});
+  adapter.setSettings({rootNote: 60, volume: 21, repeat: true});
+  const settings = await adapter.loadSample(wav, {name: 'Later.wav'});
+  finish(wav.buffer);
+  await assert.rejects(pending, {name: 'AbortError'});
+  assert.deepEqual(settings, {name: 'Later.wav', sampleRate: 16000, rootNote: 60, volume: 21, repeat: true, byteLength: 512});
+  const sample = adapter.getSample();
+  assert.throws(() => adapter.applySample({...sample, bytes: sample.bytes.subarray(1)}), /aligned/);
+  assert.deepEqual(adapter.getSample(), sample);
+  sample.bytes[0] ^= 255;
+  assert.notEqual(adapter.getSample().bytes[0], sample.bytes[0]);
+
+  const caller = new AbortController();
+  const canceled = adapter.loadSample(new DelayedWav([wav]), {name: 'Canceled.wav', signal: caller.signal});
+  caller.abort();
+  finish(wav.buffer);
+  await assert.rejects(canceled, {name: 'AbortError'});
+  assert.equal(adapter.getSettings().name, 'Later.wav');
+  adapter.applySample(null);
+  assert.deepEqual(adapter.getSample(), builtin);
+});
+
+test('ADPCM-B waveform summarizes every decoded frame and survives sample restoration', async () => {
+  const adapter = createFm2610AdpcmB({sound: () => assert.fail('A waveform preview should not open audio.')});
+  const {signal} = new AbortController();
+  const builtin = await adapter.getWaveform(signal);
+  await adapter.loadSample(wav, {name: 'Sine.wav'});
+  const sample = adapter.getSample();
+  const frames = decodeAdpcm(sample.bytes);
+  const peaks = await adapter.getWaveform(signal);
+  const columns = peaks.length / 2;
+  assert.equal(columns, 768);
+  for (let column = 0; column < columns; column++) {
+    const bucket = frames.subarray(Math.floor(column * frames.length / columns),
+      Math.floor((column + 1) * frames.length / columns));
+    assert.equal(peaks[2 * column], Math.min(...bucket));
+    assert.equal(peaks[2 * column + 1], Math.max(...bucket));
+  }
+  assert.notDeepEqual(peaks, builtin);
+  adapter.applySample(null);
+  assert.deepEqual(await adapter.getWaveform(signal), builtin);
+  adapter.applySample(sample);
+  adapter.setSettings({sampleRate: 8000, volume: 0, repeat: true});
+  assert.deepEqual(await adapter.getWaveform(signal), peaks);
+});
+
+test('ADPCM-B mono ownership cancels a pending ROM trigger on replacement or key-up', async () => {
+  let finish;
+  const calls = [];
+  const chip = {
+    clock: 8000000,
+    loadMemory() { return new Promise(resolve => { finish = resolve; }); },
+    keyOff() { calls.push('off'); },
+    keyOn() { calls.push('on'); },
+    setSample() {},
+    setDeltaN() {},
+    setVolume() {},
+    setPan() {},
+  };
+  const adapter = createFm2610AdpcmB({sound: async () => ({adpcmB: chip})});
+  const previous = adapter.noteOn(60, 'first');
+  await Promise.resolve();
+  const current = adapter.noteOn(63, 'latest');
+  adapter.noteOff('first');
+  finish();
+  assert.equal(await previous, false);
+  assert.equal(await current, true);
+  assert.deepEqual(calls, ['off', 'on']);
+  adapter.noteOff('latest');
+  assert.equal(calls.at(-1), 'off');
+
+  adapter.invalidate();
+  const pending = adapter.noteOn(60, 'held');
+  await Promise.resolve();
+  adapter.noteOff('held');
+  finish();
+  assert.equal(await pending, false);
+  assert.equal(calls.filter(call => call === 'on').length, 1);
+
+  adapter.invalidate();
+  const replaced = adapter.play();
+  await Promise.resolve();
+  adapter.applySample(null);
+  finish();
+  assert.equal(await replaced, false);
+  assert.equal(calls.filter(call => call === 'on').length, 1);
+});
+
+for (const variant of [false, true]) {
+  test(`${variant ? 'YM2610B' : 'YM2610'} ADPCM-B plays and loops the reserved ROM with quantized keyboard pitch`, async () => {
+    const wasmBinary = await readFile(new URL('../generated/ym2610b_wasm.wasm', import.meta.url));
+    const core = await Ym2610B.create({moduleFactory: factory, moduleOptions: {wasmBinary}, variant});
+    try {
+      const transport = new YM2610BDirectTransport(core);
+      const load = transport.loadAdpcmMemory.bind(transport);
+      let uploads = 0;
+      transport.loadAdpcmMemory = (type, ...args) => {
+        assert.equal(type, 1);
+        uploads++;
+        return load(type, ...args);
+      };
+      const {adpcmB} = new YM2610BSynth({transport});
+      const adapter = createFm2610AdpcmB({sound: async () => ({adpcmB})});
+      await adapter.loadSample(wav, {name: 'Sine.wav'});
+      adapter.setSettings({rootNote: 60, repeat: true});
+      assert.equal(await adapter.noteOn(72, 'upper'), true);
+      const deltaN = () => adpcmB.registers[9] | adpcmB.registers[10] << 8;
+      assert.equal(deltaN(), Math.round(32000 * 144 * 65536 / 8000000));
+      assert.equal(adpcmB.registers[0], 0xb0);
+      assert.equal(adpcmB.registers[2] | adpcmB.registers[3] << 8, 0xc000);
+      assert.equal(adpcmB.registers[4] | adpcmB.registers[5] << 8, 0xc001);
+      core.generateStereo(50000);
+      assert.ok(core.generateStereo(1024).left.some(value => Math.abs(value) > .01), 'Repeat runs beyond the first pass');
+      adapter.setSettings({volume: 42, sampleRate: FM2610_ADPCM_B_MAX_RATE});
+      assert.equal(adpcmB.registers[11], 42);
+      assert.equal(deltaN(), 65535);
+      adapter.noteOff('wrong-owner');
+      assert.equal(adpcmB.registers[0], 0xb0);
+      adapter.noteOff('upper');
+      assert.equal(adpcmB.registers[0], 1);
+      adapter.setSettings({sampleRate: 1, rootNote: 127, repeat: false});
+      assert.equal(await adapter.noteOn(0, 'lower'), true);
+      assert.equal(deltaN(), 1);
+      assert.equal(adpcmB.registers[0], 0xa0);
+      assert.equal(uploads, 1, 'Metadata and note changes retain the loaded ROM');
+      adapter.invalidate();
+      assert.equal(await adapter.play(), true);
+      assert.equal(uploads, 2);
+      adapter.stop();
+    } finally {
+      core.dispose();
+    }
+  });
+}
