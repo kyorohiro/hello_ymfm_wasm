@@ -51,7 +51,11 @@
       </div>
       <div class="inline-controls">
         <button id="silence" type="button">Stop sound</button>
-        <button id="filesToggle" type="button" aria-controls="filesPanel" aria-expanded="false">Files</button>
+        <div class="workspace-switch" role="group" aria-label="Workspace layout">
+          <button id="filesMode" type="button" aria-controls="filesPanel" aria-pressed="false">Files</button>
+          <button id="synthMode" type="button" aria-controls="synthWorkbench" aria-pressed="true">Synth</button>
+        </div>
+        <button id="filesToggle" type="button" aria-label="Files sidebar" aria-controls="filesPanel" aria-expanded="false" title="Show or hide the Files sidebar in Synth">Sidebar</button>
       </div>
     </div>
     <p id="status" class="status" role="status">Play a key or trigger a sample to start audio.</p>
@@ -69,9 +73,9 @@
       <p id="songStatus" class="status" role="status"></p>
     </section>
 
-    <div class="workspace">
+    <div id="workspace" class="workspace" data-mode="synth">
       <aside id="filesPanel" class="panel fm2610-files" aria-label="Cassette files" hidden></aside>
-      <div class="workbench">
+      <div id="synthWorkbench" class="workbench">
     <section class="panel monitor" aria-label="Audio output">
       <div class="panel-heading">
         <h2>Output</h2>

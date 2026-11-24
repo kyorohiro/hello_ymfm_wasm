@@ -135,6 +135,7 @@ export function setupFm2610Files({
   });
   const expanded = new Map([[PATCHES, true], [KITS, true], [SONGS, true]]);
   let codePath = ENTRY, activePatch = null, activeKit = null, selected = ENTRY;
+  let sidebarVisible = !panel.hidden, fullWidth = false;
   let loading = true, busy = false, storageReady = false, draftTimer = null, lastStructure = '';
   let operationTail = Promise.resolve();
   const report = error => setStatus(error?.message ?? String(error), true);
@@ -216,7 +217,7 @@ export function setupFm2610Files({
     return {
       version: 1,
       workspace: workspace.snapshot(),
-      view: { codePath, activePatch, activeKit, selected, visible: !panel.hidden },
+      view: { codePath, activePatch, activeKit, selected, visible: sidebarVisible },
     };
   }
   function persist() {
@@ -265,12 +266,24 @@ export function setupFm2610Files({
     }
   }
 
-  function show(visible = true) {
+  function renderVisibility() {
+    const visible = sidebarVisible || fullWidth;
     panel.hidden = !visible;
     toggle?.setAttribute('aria-expanded', String(visible));
     toggle?.setAttribute('aria-pressed', String(visible));
     if (!visible) contextMenu.close();
+  }
+
+  function show(visible = true) {
+    sidebarVisible = Boolean(visible);
+    renderVisibility();
     queueDraft();
+  }
+
+  function setFullWidth(value) {
+    fullWidth = value;
+    contextMenu.close();
+    renderVisibility();
   }
 
   function operation(task) {
@@ -343,7 +356,7 @@ export function setupFm2610Files({
       await setCode(file.data, path, { show: true });
       codePath = path;
     } else if (PATCH_PATH.test(path)) {
-      await applyPatch(readFm2610Patch(JSON.parse(file.data)));
+      await applyPatch(readFm2610Patch(JSON.parse(file.data)), {show: true});
       activePatch = path;
     } else if (kit) {
       await applyAdpcmAKit(kit, { show: true });
@@ -438,7 +451,7 @@ export function setupFm2610Files({
       ? validatedKit ?? await readAdpcmAKit(next.working.get(target.activeKit).data)
       : createDefaultAdpcmAKit();
     if (replace) await beforeReplace();
-    if (patch) await applyPatch(patch);
+    if (patch) await applyPatch(patch, {show: false});
     await applyAdpcmAKit(kit, { show: false });
     await setCode(next.working.get(target.codePath)?.data ?? '', target.codePath, { show: false });
     workspace.restore(next.snapshot());
@@ -669,7 +682,7 @@ export function setupFm2610Files({
   contextMenu.element.classList.add('fm2610-file-context-menu');
 
   chooser.addEventListener('change', () => drive(() => importFiles([...chooser.files])));
-  toggle?.addEventListener('click', () => show(panel.hidden));
+  toggle?.addEventListener('click', () => show(!sidebarVisible));
   doc.addEventListener('keydown', event => {
     if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey || event.isComposing ||
         event.key.toLowerCase() !== 's' || busy || loading) return;
@@ -681,7 +694,7 @@ export function setupFm2610Files({
   win.addEventListener('pagehide', () => {
     if (draftTimer !== null) drive(persist);
   });
-  show(!panel.hidden);
+  renderVisibility();
   refresh();
   const ready = store.read().then(async state => {
     if (state) {
@@ -707,7 +720,7 @@ export function setupFm2610Files({
   });
 
   return {
-    ...codeProject, ready, markCodeEdited, save, show, addVgmFiles, listVgm, readBinary, saveAdpcmAKit,
+    ...codeProject, ready, markCodeEdited, save, show, setFullWidth, addVgmFiles, listVgm, readBinary, saveAdpcmAKit,
     getEntryPath: () => codePath,
     detachFmPatch() {
       activePatch = null;

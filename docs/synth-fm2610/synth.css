@@ -64,6 +64,8 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .chip-bar { justify-content: space-between; }
 .chip-modes button { padding-inline: 12px; }
 .chip-modes span { display: inline-block; margin-left: 4px; font: .72rem var(--mono); }
+.workspace-switch { display: inline-flex; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+.workspace-switch button { min-height: 29px; padding: 3px 11px; border-color: transparent; border-radius: 5px; }
 .status { margin: 8px 0 12px; min-height: 1.2em; color: var(--muted); font-size: .84rem; }
 .status[data-error="true"] { color: #ffb4a3; }
 .panel { min-width: 0; margin-block: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 11px; background: var(--panel); }
@@ -74,13 +76,14 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .reference-song .status { margin-bottom: 0; overflow-wrap: anywhere; }
 .reference-song .status:empty { display: none; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.workspace:has(> .fm2610-files:not([hidden])) { grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); }
+.workspace[data-mode="synth"]:has(> .fm2610-files:not([hidden])) { grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); }
 .workbench { min-width: 0; }
 .fm2610-files { align-self: start; }
 .fm2610-files-heading { font-size: .9rem; overflow-wrap: anywhere; }
 .fm2610-files-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-block: 8px; }
 .fm2610-files button { font-size: .8rem; }
 .fm2610-files-tree { max-height: 60vh; overflow-y: auto; }
+.workspace[data-mode="files"] .fm2610-files-tree { max-height: none; }
 .fm2610-files-tree ul { padding: 0; margin: 0; list-style: none; }
 .fm2610-files-tree ul ul { padding-inline-start: 12px; }
 .fm2610-files-tree summary { cursor: pointer; padding-block: 4px; font-size: .82rem; overflow-wrap: anywhere; }
@@ -198,7 +201,7 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 @media (max-width: 790px) {
   .app-header { grid-template-columns: auto minmax(0, 1fr); }
   .master { grid-column: 1 / -1; }
-  .workspace:has(> .fm2610-files:not([hidden])) { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .workspace[data-mode="synth"]:has(> .fm2610-files:not([hidden])) { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .fm2610-files { margin-bottom: 0; }
   .fm2610-files-tree { max-height: 36vh; }
 }
