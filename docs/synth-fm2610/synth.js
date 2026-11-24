@@ -7,11 +7,15 @@ import {
 } from '../synth/synth_keyboard.js';
 import { createOperatorEnvelopeView } from '../synth/synth_operator_envelope.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
+import { setSynthSongVoiceFrequency } from '../synth/synth_song_voice.js';
+import { midiToOpnPitch } from '../js/soundchip_pitch.js';
 import { createVsuVoicePool } from '../synth-vsu/voice-pool.js';
 import { createFm2610Audio } from './audio.js';
 import { setupFm2610Code } from './code.js';
 import { setupFm2610Files } from './files.js';
+import { captureFm2610Patch, fmCaptureReason, readFm2610Patch } from './fm_patch.js';
 import { setupFm2610Sections } from './sections.js';
+import { createFm2610SongAudition } from './song_audition.js';
 import { setupFm2610SongControls } from './song_controls.js';
 
 const byId = id => document.getElementById(id);
@@ -19,7 +23,11 @@ const modeButtons = [...byId('chipModes').querySelectorAll('button')];
 const status = byId('status');
 const keyboard = byId('keyboard');
 const scope = byId('scope');
+const liveToggle = byId('fmLive');
+const captureButton = byId('fmCapture');
+const envelopeRoot = byId('fmEnvelope');
 const audio = createFm2610Audio();
+const audition = createFm2610SongAudition();
 const visualizer = createSynthOutputVisualizer({
   background: '#18150f', grid: '#4b3b26', labels: '#bfaf91', trace: '#ffcc78',
 });
@@ -34,6 +42,7 @@ const operatorDefinitions = [
 ].map(([id, label, max]) => ({ id, label, min: 0, max, step: 1, booleanMode: id === 'am' }));
 const commonControls = new Map(), operatorControls = new Map();
 const operatorGates = new Map();
+const lfoControls = new Map();
 const lfo = { enabled: false, frequency: 0 };
 const gateMethods = new Set(['keyOn', 'keyOff', 'noteOn', 'noteOnRaw', 'noteOff']);
 const ssgGateMethods = new Set([...gateMethods, 'tone', 'noise', 'off']);
@@ -42,11 +51,16 @@ const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]),
 let variant = 'ym2610b', switching = false, chip = null, source = 'fm';
 let fmChannel = null, ssgChannel = null, octave = 0, keys = new Map();
 let scopeMode = 'waveform', scopeFrame = null;
+let songState = {playback: 'stopped'}, fmView = null, auditionVoice = null;
+let channelProfile = '';
+const liveChannels = {};
 const envelope = createOperatorEnvelopeView({
-  root: byId('fmEnvelope'),
-  getOperators: () => [null, ...presetFor(fmChannel ?? 0).operators],
-  getSelectionKey: () => variant + ':' + fmChannel,
-  onEdit: editOperator,
+  root: envelopeRoot,
+  getOperators: () => [null, ...(fmView?.voice.preset ?? presetFor(fmChannel ?? 0)).operators],
+  getSelectionKey: () => fmView ? fmView.kind + ':' + fmView.voice.physicalChannel : variant + ':' + fmChannel,
+  onEdit(operator, patch) {
+    if (!fmView) editOperator(operator, patch);
+  },
 });
 
 function announce(message, error = false) {
@@ -75,6 +89,7 @@ function monitorOutput() {
   scopeFrame = requestAnimationFrame(() => {
     scopeFrame = null;
     drawScope();
+    if (source === 'fm' && songState.playback !== 'playing') refreshFmView();
     monitorOutput();
   });
 }
@@ -84,8 +99,13 @@ function fmTargets() {
   return fmChannel === null ? physicalSlots[variant].map((_, channel) => channel) : [fmChannel];
 }
 
+function applyFmChannel(fm, channel, preset) {
+  fm.setPreset(channel, preset);
+  if (physicalSlots[variant][channel] === 2) fm.setChannel3SpecialMode(Boolean(preset.specialFrequencies));
+}
+
 function applyFmSettings(fm) {
-  physicalSlots[variant].forEach((_, channel) => fm.setPreset(channel, presetFor(channel)));
+  physicalSlots[variant].forEach((_, channel) => applyFmChannel(fm, channel, presetFor(channel)));
   fm.setLfo(lfo.enabled, lfo.frequency);
 }
 
@@ -146,6 +166,7 @@ const code = setupFm2610Code({
   status: byId('codeStatus'), output: byId('codeOutput'), sound: codeSound,
   getMode: () => variant, stopSound: stopCodeSound,
   beforeRun: () => songs.stop(),
+  onState: () => queueMicrotask(() => refreshFmView()),
   prepareSource: (...args) => files.prepareSource(...args),
   readFile: (...args) => files.readFile(...args),
   getEntryPath: () => files.getEntryPath(),
@@ -153,20 +174,81 @@ const code = setupFm2610Code({
 const songs = setupFm2610SongControls({
   getFiles: () => files,
   sound,
-  beforePlay: () => code.stop(),
+  beforePlay() {
+    releaseKeyboard();
+    return code.stop();
+  },
+  onPlayback(state) {
+    songState = state;
+    refreshFmView();
+  },
   announce,
   report,
 });
 
+function autoLiveVoice(kind, voices) {
+  if (kind === 'code') {
+    const active = voices.reduce((best, voice) => voice.codeGate &&
+      (!best || voice.codeKeyOnOrder > best.codeKeyOnOrder) ? voice : best, null);
+    if (active) return active;
+    const recent = voices.reduce((best, voice) => voice.codeKeyOnOrder > best.codeKeyOnOrder ? voice : best);
+    if (recent.codeKeyOnOrder) return recent;
+  }
+  return voices.find(voice => voice.gate) ?? voices.find(voice => voice.lastKeyMask) ?? voices[0];
+}
+
+function currentFmView() {
+  if (!liveToggle.checked) return null;
+  const kind = songState.snapshot ? 'vgm' : 'code';
+  const snapshot = songState.snapshot ?? code.getFmSnapshot();
+  if (!snapshot?.channels?.length) return null;
+  const selection = Object.hasOwn(liveChannels, kind) ?
+    liveChannels[kind] : physicalSlots[variant][fmChannel];
+  const selected = snapshot.channels.find(voice => voice.physicalChannel === selection);
+  const voice = selected ?? autoLiveVoice(kind, snapshot.channels);
+  const paused = kind === 'vgm' && songState.playback === 'paused';
+  return {kind, snapshot, selection: selected?.physicalChannel ?? null, voice, paused};
+}
+
+function refreshFmView(force = false) {
+  const previous = fmView, next = currentFmView();
+  if (previous?.paused && (!next?.paused || next.voice.physicalChannel !== previous.voice.physicalChannel ||
+      next.snapshot.revision !== previous.snapshot.revision)) stopAudition();
+  fmView = next;
+  if (force || previous?.kind !== next?.kind || previous?.snapshot.variant !== next?.snapshot.variant ||
+      previous?.snapshot.revision !== next?.snapshot.revision || previous?.voice.physicalChannel !== next?.voice.physicalChannel ||
+      previous?.paused !== next?.paused) {
+    renderFmChannels();
+    renderFm();
+    renderKeys();
+  }
+}
+
 function renderFm() {
-  const preset = presetFor(fmChannel ?? 0);
+  const voice = fmView?.voice;
+  const preset = voice?.preset ?? presetFor(fmChannel ?? 0);
   for (const [key, control] of commonControls) control.updateVisual(preset[key] ?? preset.pan[key]);
+  for (const [key, control] of lfoControls) control.updateVisual((fmView?.snapshot.lfo ?? lfo)[key]);
   for (const [operator, controls] of operatorControls) {
     for (const [key, control] of controls) control.updateVisual(preset.operators[operator - 1][key]);
   }
   for (const [operator, button] of operatorGates) {
-    button.setAttribute('aria-pressed', String(Boolean(preset.keyMask & (1 << (operator - 1)))));
+    button.setAttribute('aria-pressed', String(Boolean((voice?.keyMask ?? preset.keyMask) & (1 << (operator - 1)))));
   }
+  envelopeRoot.toggleAttribute('data-live', Boolean(voice));
+  envelopeRoot.querySelector('.operator-envelope-plot').inert = Boolean(voice);
+  byId('fmParameters').disabled = Boolean(voice);
+  captureButton.hidden = fmView?.kind !== 'vgm';
+  const reason = fmView?.paused ? fmCaptureReason(fmView.snapshot, voice) : '';
+  captureButton.disabled = !fmView?.paused || Boolean(reason);
+  captureButton.title = reason || (fmView?.paused ? '' : 'Pause VGM to capture the current sound.');
+  const physical = voice?.physicalChannel ?? physicalSlots[variant][fmChannel];
+  const channelName = physical === undefined ? 'AUTO' : 'CH' + (physical + 1);
+  const phase = voice?.gate ? 'Key on · OP ' + operators.filter(op => voice.keyMask & (1 << (op - 1))).join('/') : 'Key off';
+  byId('fmChannelState').textContent = voice ?
+    [fmView.kind === 'vgm' ? 'VGM' : 'Code', fmView.snapshot.variant.toUpperCase(), channelName,
+      phase, voice.specialMode ? 'CH3 Special' : '', reason].filter(Boolean).join(' · ') :
+    'Synth · ' + channelName + (preset.specialFrequencies ? ' · CH3 Special' : '');
   envelope.invalidate();
 }
 
@@ -206,10 +288,23 @@ function editOperator(operator, patch) {
 }
 
 function applyFmPreset(preset) {
-  editPreset(target => Object.assign(target, readFmPreset(preset)), (fm, channel, next) => {
-    fm.setPreset(channel, next);
+  const {lfo: patchLfo, ...patch} = readFm2610Patch(preset);
+  if (patch.specialFrequencies) {
+    releaseKeyboard();
+    fmChannel = physicalSlots[variant].indexOf(2);
+  }
+  if (patchLfo) {
+    Object.assign(lfo, patchLfo);
+    chip?.fm.setLfo(lfo.enabled, lfo.frequency);
+  }
+  editPreset(target => {
+    delete target.specialFrequencies;
+    Object.assign(target, readFm2610Patch(patch));
+  }, (fm, channel, next) => {
+    applyFmChannel(fm, channel, next);
     updateHeldMask(fm, channel, next);
   });
+  renderFmChannels();
 }
 
 function editCommon(key, value) {
@@ -242,11 +337,13 @@ function buildFmControls() {
     common.append(control.element);
   }
   for (const [key, label, max] of [['enabled', 'LFO', 1], ['frequency', 'LFO rate', 7]]) {
-    common.append(createParamControl({ label, min: 0, max, step: 1, value: lfo[key], wheelAdjust: false,
+    const control = createParamControl({ label, min: 0, max, step: 1, value: lfo[key], wheelAdjust: false,
       booleanMode: key === 'enabled', onChange(value) {
         lfo[key] = value;
         chip?.fm.setLfo(lfo.enabled, lfo.frequency);
-      } }).element);
+      } });
+    lfoControls.set(key, control);
+    common.append(control.element);
   }
   buildHeader(byId('operatorHeader'), operatorDefinitions);
   buildOperatorControls({ root: byId('operatorControls'), operatorNumbers: operators, defs: operatorDefinitions,
@@ -276,10 +373,26 @@ function renderChannels(root, labels, current, onSelect) {
 }
 
 function renderFmChannels() {
-  renderChannels(byId('fmChannels'), physicalSlots[variant].map(slot => 'CH' + (slot + 1)), fmChannel, channel => {
-    fmChannel = channel;
-    renderFm();
-  });
+  const observed = fmView?.snapshot;
+  const slots = physicalSlots[observed?.variant ?? variant];
+  const profile = (fmView?.kind ?? 'synth') + ':' + (observed?.variant ?? variant);
+  const root = byId('fmChannels');
+  if (channelProfile !== profile) {
+    channelProfile = profile;
+    root.replaceChildren(...['AUTO', ...slots.map(slot => 'CH' + (slot + 1))].map((label, index) =>
+      makeButton(label, () => {
+        if (fmView) liveChannels[fmView.kind] = slots[index - 1] ?? null;
+        else fmChannel = index ? index - 1 : null;
+        refreshFmView(true);
+      })));
+  }
+  const selection = fmView ? fmView.selection : slots[fmChannel] ?? null;
+  for (const [index, button] of [...root.children].entries()) {
+    const physical = slots[index - 1] ?? null;
+    const keyed = observed?.channels.find(voice => voice.physicalChannel === physical)?.gate;
+    button.setAttribute('aria-pressed', String(selection === physical));
+    button.dataset.keyed = String(Boolean(keyed));
+  }
 }
 
 function stopVoice(section, voice) {
@@ -290,22 +403,56 @@ function stopVoice(section, voice) {
 
 function renderKeys() {
   const voices = [...voicePools.fm.voices(), ...voicePools.ssg.voices()];
+  if (auditionVoice) voices.push(auditionVoice);
   const down = new Set(voices.map(voice => voice.entry.key));
   for (const button of keyboard.querySelectorAll('.key')) button.setAttribute('aria-pressed', String(down.has(button.dataset.key)));
-  byId('keyboardStatus').textContent = !voicePools[source]
-    ? 'Use the sample controls above.'
-    : voices.filter(voice => voice.started).map(voice => voice.entry.noteName).join(' · ') ||
-      (source === 'fm' ? 'Play the FM channels with the keys below.' : 'Play the SSG voices with the keys below.');
+  const liveSong = source === 'fm' && fmView?.kind === 'vgm';
+  const guidance = liveSong ? (fmView.paused ? 'Play the paused VGM channel with the keys below.' : 'Pause VGM to play the selected channel.') :
+    (source === 'fm' ? 'Play the FM channels with the keys below.' : 'Play the SSG voices with the keys below.');
+  byId('keyboardStatus').textContent = !voicePools[source] ? 'Use the sample controls above.' :
+    voices.filter(voice => voice.started).map(voice => voice.entry.noteName).join(' · ') || guidance;
 }
 
 function releaseKey(owner) {
+  if (auditionVoice?.owner === owner) {
+    auditionVoice.player?.stop();
+    auditionVoice = null;
+  }
   for (const [section, pool] of Object.entries(voicePools)) stopVoice(section, pool.release(owner));
   renderKeys();
 }
 
+function stopAudition() {
+  auditionVoice = null;
+  void audition.close()?.catch(report);
+}
+
 function releaseKeyboard() {
+  stopAudition();
   for (const [section, pool] of Object.entries(voicePools)) {
     for (const voice of pool.clear()) stopVoice(section, voice);
+  }
+  renderKeys();
+}
+
+async function playAudition(owner, entry) {
+  const {snapshot, voice} = fmView;
+  if (auditionVoice?.owner === owner || fmCaptureReason(snapshot, voice)) return;
+  auditionVoice?.player?.stop();
+  const current = {owner, entry};
+  auditionVoice = current;
+  try {
+    const endpoint = await sound();
+    if (auditionVoice !== current) return;
+    const player = await audition.prepare(endpoint, snapshot, voice, captureFm2610Patch(snapshot, voice));
+    if (auditionVoice !== current) return;
+    current.player = player;
+    player.play(entry.midi);
+    current.started = true;
+  } catch (error) {
+    if (auditionVoice !== current) return;
+    auditionVoice = null;
+    report(error);
   }
   renderKeys();
 }
@@ -313,6 +460,10 @@ function releaseKeyboard() {
 async function playKey(owner, entry) {
   const section = source, pool = voicePools[section];
   if (!pool || switching || Object.values(voicePools).some(voices => voices.voices().some(voice => voice.owner === owner))) return;
+  if (section === 'fm' && liveToggle.checked && ['playing', 'paused', 'pausing', 'loading'].includes(songState.playback)) {
+    if (fmView?.paused) await playAudition(owner, entry);
+    return;
+  }
   const choices = section === 'fm' ? fmTargets() : ssgChannel === null ? [0, 1, 2] : [ssgChannel];
   const { voice, displaced } = pool.acquire(choices, { owner, entry });
   stopVoice(section, displaced);
@@ -321,8 +472,12 @@ async function playKey(owner, entry) {
     const ready = await sound();
     if (!pool.isCurrent(voice)) return;
     if (section === 'fm') {
-      ready.fm.setNote(voice.channel, entry.midi);
-      writeKeyMask(ready.fm, voice.channel, presetFor(voice.channel).keyMask);
+      const preset = presetFor(voice.channel);
+      if (preset.specialFrequencies) {
+        const {block, fnum} = midiToOpnPitch(entry.midi, ready.fm.clock);
+        setSynthSongVoiceFrequency(ready.fm, voice.channel, block, fnum, preset.specialFrequencies);
+      } else ready.fm.setNote(voice.channel, entry.midi);
+      writeKeyMask(ready.fm, voice.channel, preset.keyMask);
     } else {
       await sections.noteOnSSG(voice.channel, entry.midi);
     }
@@ -410,8 +565,7 @@ async function selectVariant(next) {
     variant = next;
     fmChannel = null;
     if (code.setMode()) files.markCodeEdited();
-    renderFmChannels();
-    renderFm();
+    refreshFmView(true);
     byId('chipSummary').textContent = next === 'ym2610b' ? 'YM2610B · 6 FM channels · 8 MHz' : 'Neo Geo · YM2610 · 4 FM channels · 8 MHz';
     modeButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.variant === variant)));
     announce('Play a key or trigger a sample to start audio.');
@@ -476,11 +630,16 @@ new ResizeObserver(drawScope).observe(scope);
 setupTabs('sourceTabs', tab => {
   source = tab.dataset.source;
   envelope.setVisible(source === 'fm');
+  if (source !== 'fm') stopAudition();
+  else refreshFmView(true);
   renderKeys();
 });
 setupTabs('performanceTabs');
 envelope.setVisible(true);
-window.addEventListener('pagehide', event => { if (!event.persisted) envelope.dispose(); });
+window.addEventListener('pagehide', event => {
+  stopAudition();
+  if (!event.persisted) envelope.dispose();
+});
 const ssgChannels = document.createElement('div');
 ssgChannels.className = 'inline-controls ssg-channels';
 ssgChannels.setAttribute('role', 'group');
@@ -500,8 +659,15 @@ const files = setupFm2610Files({
   panel: byId('filesPanel'),
   toggle: byId('filesToggle'),
   menuMount: {new: byId('projectNew'), import: byId('projectImport'), export: byId('projectExport')},
-  getPatch: () => presetFor(fmChannel ?? 0),
+  getPatch() {
+    if (fmView) throw new Error('Switch to Synth or capture the paused VGM channel before saving.');
+    return {...presetFor(fmChannel ?? 0), lfo};
+  },
   applyPatch(preset) {
+    if (fmView) {
+      liveToggle.checked = false;
+      refreshFmView(true);
+    }
     applyFmPreset(preset);
     byId('fmTab').click();
     byId('keyboardTab').click();
@@ -523,6 +689,23 @@ const files = setupFm2610Files({
   importVgm: file => songs.importFile(file),
 });
 editor.addEventListener('input', () => files.markCodeEdited());
+liveToggle.addEventListener('change', () => refreshFmView(true));
+captureButton.addEventListener('click', () => {
+  if (!fmView?.paused || captureButton.disabled) return;
+  try {
+    const {snapshot, voice} = fmView;
+    const preset = captureFm2610Patch(snapshot, voice);
+    releaseKeyboard();
+    fmChannel = null;
+    liveToggle.checked = false;
+    refreshFmView(true);
+    applyFmPreset(preset);
+    files.detachFmPatch();
+    files.show(true);
+    byId('keyboardTab').click();
+    announce('Captured ' + snapshot.variant.toUpperCase() + ' CH' + (voice.physicalChannel + 1) + ' to Synth.');
+  } catch (error) { report(error); }
+});
 void files.ready.then(() => {
   editor.readOnly = false;
   runCode.disabled = code.getState().busy;

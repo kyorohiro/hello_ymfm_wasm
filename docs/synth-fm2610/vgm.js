@@ -4,22 +4,28 @@ import {maybeDecodeVgmFile,parseVgmMetadata} from '../js/vgm_file.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {VgmPlayer} from '../js/vgmplayer.js';
 import {Ym2610BAudioEngine} from '../js/ym2610baudioengine.js';
-import {createYm2612RegisterState} from '../synth/synth_song_state.js';
+import {createYm2612RegisterState,isYm2612ViewRegister} from '../synth/synth_song_state.js';
 import {readFmPreset} from '../synth-fm2608/preset.js';
 
 const MAX_BYTES = 64 * 1024 * 1024;
 const MAX_SAMPLES = 44100 * 3600;
 const MAX_PRESETS = 4096;
 const NEO_GEO_FM_CHANNELS = [1,2,4,5];
+const YM2610B_FM_CHANNELS = [0,1,2,3,4,5];
 const COMMANDS = new Set([0x58,0x59,0x61,0x62,0x63,0x66,0x67]);
 const parserOptions = {logger:{warn:message => {throw new Error(message);}}};
 
-function collectFmPresets(clock, variant, warnings) {
-  const state = createYm2612RegisterState(clock);
+function resetFmState(state) {
+  state.reset();
   // ymfm initializes the OPN stereo outputs enabled.
   for (let port = 0; port < 2; port++) {
     for (let channel = 0; channel < 3; channel++) state.write(port,0xb4 + channel,0xc0);
   }
+}
+
+function collectFmPresets(clock, variant, warnings) {
+  const state = createYm2612RegisterState(clock);
+  resetFmState(state);
   const keyedChannels = new Set();
   const seen = new Map();
   const presets = [];
@@ -54,6 +60,90 @@ function collectFmPresets(clock, variant, warnings) {
         }
       }
       keyedChannels.clear();
+    },
+  };
+}
+
+/** Trace register writes at the frames rendered by the existing player.
+ * Only expose writes whose frames the caller has reached in the output.
+ */
+export function createFm2610SongTimeline(engine,{variant,clock}) {
+  const shadow = createYm2612RegisterState(clock);
+  resetFmState(shadow);
+  const slots = variant === 'ym2610b' ? YM2610B_FM_CHANNELS : NEO_GEO_FM_CHANNELS;
+  const originalWrite = engine.writeYm2610B;
+  const originalProcess = engine.processFrames;
+  const originalReset = engine.reset;
+  let generatedFrames = 0, lastFrame = -1, events = [], head = 0, normalized;
+
+  function write(port,register,value) {
+    const result = originalWrite.call(this,port,register,value);
+    // YM2610 does not expose the YM2612 DAC register.
+    if (!(port === 0 && register === 0x2b) && isYm2612ViewRegister(port,register)) {
+      events.push({frame:generatedFrames,port,register,value});
+    }
+    return result;
+  }
+  function process(frames) {
+    const result = originalProcess.call(this,frames);
+    generatedFrames += frames;
+    return result;
+  }
+  function reset() {
+    const result = originalReset.call(this);
+    generatedFrames = 0;
+    lastFrame = -1;
+    events = [];
+    head = 0;
+    normalized = undefined;
+    resetFmState(shadow);
+    return result;
+  }
+  engine.writeYm2610B = write;
+  engine.processFrames = process;
+  engine.reset = reset;
+
+  function advance(frame) {
+    // Writes at the render cursor have not necessarily produced any PCM yet.
+    const next = Math.max(-1,Math.min(generatedFrames - 1,frame));
+    if (next < lastFrame) throw new RangeError('The VGM register timeline can only advance.');
+    while (head < events.length && events[head].frame <= next) {
+      const {port,register,value} = events[head++];
+      shadow.write(port,register,value);
+    }
+    lastFrame = next;
+    if (head === events.length) {
+      events = [];
+      head = 0;
+    } else if (head > 512) {
+      events = events.slice(head);
+      head = 0;
+    }
+  }
+
+  return {
+    advance,
+    read(frame) {
+      advance(frame);
+      const raw = shadow.snapshot(lastFrame);
+      if (normalized?.revision !== raw.revision) {
+        const {clockHz,revision,lfo,modeRegister,csmEnabled} = raw;
+        const channels = slots.map(physicalChannel => {
+          const {preset,...voice} = raw.channels[physicalChannel];
+          const operators = Object.freeze(Object.values(preset.operators));
+          const patch = Object.freeze({...preset,operators,keyMask:voice.keyMask});
+          return Object.freeze({...voice,physicalChannel,preset:patch});
+        });
+        normalized = {variant,clockHz,revision,lfo,modeRegister,csmEnabled,channels:Object.freeze(channels)};
+      }
+      return Object.freeze({...normalized,frame:lastFrame});
+    },
+    dispose() {
+      events = [];
+      head = 0;
+      if (engine.writeYm2610B === write) engine.writeYm2610B = originalWrite;
+      if (engine.processFrames === process) engine.processFrames = originalProcess;
+      if (engine.reset === reset) engine.reset = originalReset;
     },
   };
 }

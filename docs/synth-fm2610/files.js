@@ -4,7 +4,7 @@ import { dirname, normalizeVirtualPath } from '../js/tetorica_virtual_files/path
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
 import { createPlaygroundCassetteZip, loadPlaygroundCassette } from '../playground/playground_cassette.js';
 import { renderFileTree } from '../playground/playground_file_tree.js';
-import { readFmPreset } from '../synth-fm2608/preset.js';
+import { readFm2610Patch } from './fm_patch.js';
 import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
 import { createSynthProjectStore } from '../synth/synth_project_store.js';
@@ -63,7 +63,7 @@ function checkEntry({ path, data }) {
   if (typeof data !== 'string' || (!PATCH_PATH.test(path) && !CODE_PATH.test(path))) {
     throw new Error('Choose an FM patch, JavaScript, VGM or VGZ file.');
   }
-  if (PATCH_PATH.test(path)) readFmPreset(JSON.parse(data));
+  if (PATCH_PATH.test(path)) readFm2610Patch(JSON.parse(data));
 }
 
 function checkCapacity(entries) {
@@ -320,7 +320,7 @@ export function setupFm2610Files({
       await setCode(file.data, path, { show: true });
       codePath = path;
     } else if (PATCH_PATH.test(path)) {
-      await applyPatch(readFmPreset(JSON.parse(file.data)));
+      await applyPatch(readFm2610Patch(JSON.parse(file.data)));
       activePatch = path;
     } else await openVgm?.(path);
     select(path);
@@ -332,7 +332,7 @@ export function setupFm2610Files({
       flushCode();
       const path = !preferCode && PATCH_PATH.test(selected) ? selected : codePath;
       if (path === activePatch) {
-        writeAccepted([{ path, data: JSON.stringify(readFmPreset(getPatch()), null, 2) + '\n' }]);
+        writeAccepted([{ path, data: JSON.stringify(readFm2610Patch(getPatch()), null, 2) + '\n' }]);
       } else if (CODE_PATH.test(path)) {
         if (!fs.has(path)) writeAccepted([{ path, data: getCode() }]);
         else workspace.save(path);
@@ -360,7 +360,7 @@ export function setupFm2610Files({
     if (value === null) return;
     const path = namedPath(directory, value, PATCH_PATH.test(value.trim()) ? '' : '.fm.json');
     requireNew(path);
-    writeAccepted([{ path, data: JSON.stringify(readFmPreset(getPatch()), null, 2) + '\n' }]);
+    writeAccepted([{ path, data: JSON.stringify(readFm2610Patch(getPatch()), null, 2) + '\n' }]);
     activePatch = path;
     select(path);
     await persist();
@@ -380,7 +380,7 @@ export function setupFm2610Files({
 
   async function restore(next, view, replace = false) {
     const target = viewFor(next.working, view);
-    const patch = target.activePatch && readFmPreset(JSON.parse(next.working.get(target.activePatch).data));
+    const patch = target.activePatch && readFm2610Patch(JSON.parse(next.working.get(target.activePatch).data));
     if (replace) await beforeReplace();
     if (patch) await applyPatch(patch);
     await setCode(next.working.get(target.codePath)?.data ?? '', target.codePath, { show: false });
@@ -574,7 +574,7 @@ export function setupFm2610Files({
         let stem = base, index = 1;
         while (used.has(stem.toLowerCase())) stem = base + ' (' + ++index + ')';
         used.add(stem.toLowerCase());
-        return { path: join(folder, stem + '.fm.json'), data: JSON.stringify(readFmPreset(patch), null, 2) + '\n' };
+        return { path: join(folder, stem + '.fm.json'), data: JSON.stringify(readFm2610Patch(patch), null, 2) + '\n' };
       });
       const data = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes;
       flushCode();
@@ -639,5 +639,11 @@ export function setupFm2610Files({
   return {
     ...codeProject, ready, markCodeEdited, save, show, addVgmFiles, listVgm, readBinary,
     getEntryPath: () => codePath,
+    detachFmPatch() {
+      activePatch = null;
+      if (PATCH_PATH.test(selected)) select(codePath);
+      refresh();
+      queueDraft();
+    },
   };
 }

@@ -10,6 +10,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     // Hold queued samples intact until the configured output buffer is ready.
     const requested = options.processorOptions?.startupFrames ?? 0;
     this.startupFrames = Number.isSafeInteger(requested) && requested > 0 ? requested : 0;
+    const interval = options.processorOptions?.positionReportFrames ?? 0;
+    this.positionReportFrames = Number.isSafeInteger(interval) && interval > 0 ? interval : 0;
+    this.lastPositionReport = 0;
     this.buffering = this.startupFrames > 0;
     this.fadeFrames = Math.max(0, Math.floor(options.processorOptions?.fadeFrames || 0));
     this.recoveryFrames = Math.max(0, Math.floor(options.processorOptions?.recoveryFrames || 0));
@@ -48,6 +51,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       }
       if (data.type === "pause" || data.type === "resume") {
         this.paused = data.type === "pause";
+        if (this.paused && this.positionReportFrames) {
+          this.port.postMessage({type: "paused", queueRevision: this.queueRevision, consumedFrames: this.consumedFrames});
+        }
         return;
       }
       if (data.type === "enqueue") {
@@ -74,6 +80,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         this.queue = [];
         this.queuedFrames = 0;
         this.consumedFrames = 0;
+        this.lastPositionReport = 0;
         this.fadePosition = 0;
         this.stopRemaining = null;
         this.currentChunk = null;
@@ -207,9 +214,11 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     if (
       this.stopRemaining === 0 ||
       this.queuedFrames <= 4096 ||
+      (this.positionReportFrames > 0 && this.consumedFrames - this.lastPositionReport >= this.positionReportFrames) ||
       (this.endRequested &&
         this.queuedFrames === 0)
     ) {
+      this.lastPositionReport = this.consumedFrames;
       this.port.postMessage({
         type: "state",
         queueRevision: this.queueRevision,

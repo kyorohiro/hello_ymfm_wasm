@@ -99,6 +99,18 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .tabs button { min-height: 35px; border-radius: 7px 7px 0 0; border-bottom: 0; }
 .presets { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; color: var(--muted); }
 .presets button, .fm-heading button, .keyboard-toolbar button { min-height: 30px; font-size: .83rem; }
+#fmChannels { margin-top: 9px; }
+.fm-live-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: .84rem; }
+#fmChannelState { display: block; margin-top: 7px; color: var(--muted); font: .78rem var(--mono); }
+#fmParameters { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+#fmChannels [data-keyed="true"]::after {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 5px;
+  border-radius: 50%; background: currentColor; vertical-align: middle;
+}
+.fm-envelope[data-live] .param-control .param-value:disabled { opacity: 1; cursor: default; }
+.fm-envelope[data-live] .operator-gate { opacity: 1; }
+.fm-envelope[data-live] .operator-gate[aria-pressed="false"] { opacity: .55; }
+.fm-envelope[data-live] .envelope-handle { visibility: hidden; }
 .common-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; margin: 10px 0 14px; }
 .param-label { margin: 0 0 3px 3px; font-size: .73rem; color: var(--muted); }
 .param-control { display: grid; grid-template-columns: 20px minmax(27px, 1fr) 20px; align-items: stretch; border: 1px solid var(--border); border-radius: 999px; background: #30281e; }

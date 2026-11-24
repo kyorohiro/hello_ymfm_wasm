@@ -23,10 +23,23 @@ liveLoop("duet", async () => {
 `;
 }
 
+function makeCodeFm(audio) {
+	const fm = audio.fm;
+	if (!audio.withCodeFmWrites) return fm;
+	return new Proxy(fm, {
+		get(target, property) {
+			const value = Reflect.get(target, property, target);
+			return typeof value === 'function'
+				? (...args) => audio.withCodeFmWrites(() => Reflect.apply(value, target, args))
+				: value;
+		},
+	});
+}
+
 /** Bind the Code panel to the selected YM2610 variant and the page's audio owner. */
 export function setupFm2610Code({
 	textarea, runButton, stopButton, status, output, sound, getMode, stopSound,
-	beforeRun = () => {}, prepareSource, readFile, getEntryPath = () => '/index.js',
+	beforeRun = () => {}, onState = () => {}, prepareSource, readFile, getEntryPath = () => '/index.js',
 }) {
 	let starter = starterCode(getMode());
 	if (!textarea.value) textarea.value = starter;
@@ -52,8 +65,9 @@ export function setupFm2610Code({
 			if (token !== revision || mode !== getMode()) {
 				throw new DOMException('Code stopped', 'AbortError');
 			}
-			const { fm, ssg, adpcmA, adpcmB } = nextAudio;
-			chip = { id: mode, fm, ssg, adpcmA, adpcmB };
+			const { ssg, adpcmA, adpcmB } = nextAudio;
+			nextAudio.resetCodeFmActivity?.();
+			chip = { id: mode, fm: makeCodeFm(nextAudio), ssg, adpcmA, adpcmB };
 			audio = nextAudio;
 		},
 		now: () => audio?.context.currentTime ?? 0,
@@ -64,7 +78,10 @@ export function setupFm2610Code({
 			}
 			return chip;
 		},
-		onState: updateControls,
+		onState(state) {
+			updateControls(state);
+			onState(state);
+		},
 		onLog(line) {
 			log.push(line);
 			if (log.length > 100) log.shift();
@@ -92,6 +109,11 @@ export function setupFm2610Code({
 		return runtime.stop();
 	}
 
+	function getFmSnapshot() {
+		const state = runtime.getState();
+		return state.running && !state.stopping ? audio?.getFmSnapshot?.() ?? null : null;
+	}
+
 	function setMode() {
 		const updated = starterCode(getMode());
 		const changed = textarea.value === starter;
@@ -106,5 +128,5 @@ export function setupFm2610Code({
 
 	runButton.addEventListener('click', () => void run().catch(report));
 	stopButton.addEventListener('click', () => void stop().catch(report));
-	return { run, stop, setMode, getStarter: () => starter, getState: runtime.getState };
+	return { run, stop, setMode, getStarter: () => starter, getState: runtime.getState, getFmSnapshot };
 }

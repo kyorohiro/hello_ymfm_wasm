@@ -7,22 +7,28 @@ function timeLabel(seconds) {
   return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
 }
 
-export function setupFm2610SongControls({getFiles, sound, beforePlay, announce, report}) {
+export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback = () => {}, announce, report}) {
   const node = id => document.getElementById(id);
   const input = node('vgmInput'), select = node('songSelect'), seek = node('songSeek');
   const playButton = node('songPlay'), pauseButton = node('songPause'), stopButton = node('songStop');
   const messages = node('songStatus');
   let path = '', source = null, loading = null, seekDraft = false, errorText = '';
-  const player = createFm2610SongTransport({sound, beforePlay, onState: render, onError: showError});
+  const player = createFm2610SongTransport({
+    sound, beforePlay, onError: showError,
+    onState(state) {
+      render();
+      onPlayback(state);
+    },
+  });
 
   function render() {
     const {playback, position} = player.getState();
     const duration = (source?.totalSamples ?? 0) / 44100;
-    const busy = Boolean(loading) || playback === 'loading';
+    const busy = Boolean(loading) || ['loading', 'pausing'].includes(playback);
     playButton.disabled = !source || busy || playback === 'playing';
     playButton.textContent = playback === 'paused' ? 'Resume' : 'Play';
     pauseButton.disabled = playback !== 'playing';
-    stopButton.disabled = !['playing', 'paused', 'loading'].includes(playback);
+    stopButton.disabled = !['playing', 'paused', 'loading', 'pausing'].includes(playback);
     seek.max = String(duration);
     seek.disabled = !duration || busy;
     if (!seekDraft) seek.value = String(position);

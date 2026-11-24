@@ -93,19 +93,15 @@
       <div id="fmPanel" role="tabpanel" aria-labelledby="fmTab">
         <div class="panel-heading fm-heading">
           <h2>FM channels</h2>
-          <div id="fmChannels" class="inline-controls" role="group" aria-label="FM channel"></div>
+          <div class="inline-controls">
+            <label class="fm-live-toggle" title="Follow FM registers during VGM or Code playback"><input id="fmLive" type="checkbox" checked> Live</label>
+            <button id="fmCapture" type="button" hidden disabled>Capture to Synth</button>
+          </div>
         </div>
-        <div class="presets">
-          <h3>Presets</h3>
-          <div id="fmPresets" class="inline-controls" role="group" aria-label="FM presets"></div>
-        </div>
-        <div id="fmCommon" class="common-controls"></div>
-        <div class="operators" aria-label="FM operators" role="group">
-          <div class="operator-heading"><span title="Click an operator to toggle its key gate">OP</span><div id="operatorHeader"></div></div>
-          <div id="operatorControls"></div>
-        </div>
+        <div id="fmChannels" class="inline-controls" role="group" aria-label="FM channel"></div>
+        <output id="fmChannelState" aria-live="off"></output>
         <details id="fmEnvelope" class="fm-envelope" open>
-          <summary>Operator envelope</summary>
+          <summary>Envelope</summary>
           <div class="inline-controls envelope-toolbar" role="group" aria-label="Operator envelope selection">
             <button type="button" class="op-color-1" data-envelope-operator="1" aria-pressed="false">OP1</button>
             <button type="button" class="op-color-2" data-envelope-operator="2" aria-pressed="false">OP2</button>
@@ -120,6 +116,17 @@
             <button type="button" class="envelope-handle" data-envelope-handle="sustain" aria-label="Sustain">S</button>
             <button type="button" class="envelope-handle" data-envelope-handle="release" aria-label="Release">R</button>
           </div>
+          <fieldset id="fmParameters" aria-label="FM parameters">
+            <div class="presets">
+              <h3>Presets</h3>
+              <div id="fmPresets" class="inline-controls" role="group" aria-label="FM presets"></div>
+            </div>
+            <div id="fmCommon" class="common-controls"></div>
+            <div class="operators" aria-label="FM operators" role="group">
+              <div class="operator-heading"><span title="Click an operator to toggle its key gate">OP</span><div id="operatorHeader"></div></div>
+              <div id="operatorControls"></div>
+            </div>
+          </fieldset>
         </details>
       </div>
       <div id="ssgPanel" role="tabpanel" aria-labelledby="ssgTab" hidden></div>
