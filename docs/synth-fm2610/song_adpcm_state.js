@@ -5,6 +5,8 @@ const MAX_ROM_BYTES = 0x1000000;
 const ROM_PAGE_BYTES = 0x10000;
 const A_END_MASK = 0xfffff;
 const A_VOICES = 6;
+// A retained view shares its current pages until a later upload edits one.
+const sharedRomPages = new WeakSet();
 
 /** Start is a byte address, end is the exclusive conversion of the
  * programmed inclusive register. OPNB compares only the low 20 end bits. */
@@ -24,13 +26,13 @@ export function isFm2610SongAdpcmRegister(port, register) {
     (register >= 0x08 && register <= 0x2d && (register & 7) < A_VOICES));
 }
 
-function createRomBank() {
+function createRomBank(share) {
   // Track recorded coverage separately from the core's zero-filled ROM size.
   // Own only populated pages. A block near the top of a large bank does not
   // allocate memory for the ROM addresses before it.
-  let rom = Object.freeze({size: 0, revision: 0});
-  const ranges = [];
-  const pages = new Map();
+  let rom = share?.rom ?? Object.freeze({size: 0, revision: 0});
+  const ranges = share?.ranges.slice() ?? [];
+  const pages = new Map(share?.pages);
 
   function clear() {
     ranges.length = 0;
@@ -45,7 +47,9 @@ function createRomBank() {
     }
     if (size < rom.size) {
       while (ranges.length && ranges.at(-1).start >= size) ranges.pop();
-      if (ranges.length) ranges.at(-1).end = Math.min(size, ranges.at(-1).end);
+      if (ranges.length && ranges.at(-1).end > size) {
+        ranges[ranges.length - 1] = {start: ranges.at(-1).start, end: size};
+      }
       for (const index of pages.keys()) {
         if (index * ROM_PAGE_BYTES >= size) pages.delete(index);
       }
@@ -57,8 +61,8 @@ function createRomBank() {
         const index = Math.floor(address / ROM_PAGE_BYTES), at = address % ROM_PAGE_BYTES;
         const count = Math.min(ROM_PAGE_BYTES - at, data.length - copied);
         let page = pages.get(index);
-        if (!page) {
-          page = new Uint8Array(ROM_PAGE_BYTES);
+        if (!page || sharedRomPages.has(page)) {
+          page = page ? page.slice() : new Uint8Array(ROM_PAGE_BYTES);
           pages.set(index, page);
         }
         page.set(data.subarray(copied, copied + count), at);
@@ -86,6 +90,10 @@ function createRomBank() {
   return {
     load, clear, covers,
     get descriptor() { return rom; },
+    fork() {
+      for (const page of pages.values()) sharedRomPages.add(page);
+      return createRomBank({rom, ranges, pages});
+    },
     read(start, end) {
       if (!covers(start, end)) return null;
       const result = new Uint8Array(end - start);
@@ -104,11 +112,15 @@ function createRomBank() {
  * `keyed` follows the last recorded trigger/reset request. The song log cannot
  * report live EOS or the decoder's current position.
  */
-export function createFm2610SongAdpcmState({clock = 8000000, outputSampleRate = 44100} = {}) {
+export function createFm2610SongAdpcmState(options = {}) {
+  return createAdpcmState(options);
+}
+
+function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBanks) {
   if (!Number.isFinite(clock) || clock <= 0) throw new RangeError('YM2610 clock must be positive.');
   if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0) throw new RangeError('Output sample rate must be positive.');
   const a = new Uint8Array(0x30), b = new Uint8Array(0x0c);
-  const banks = [createRomBank(), createRomBank()];
+  let banks = sharedBanks ?? [createRomBank(), createRomBank()];
   const lastTrigger = new Uint32Array(A_VOICES);
   const triggerFrames = Array(A_VOICES).fill(null);
   let aKeyed = 0, triggerOrder = 0, eosMask = 0, revision = 0, cached = null;
@@ -123,7 +135,7 @@ export function createFm2610SongAdpcmState({clock = 8000000, outputSampleRate = 
     invalidate();
   }
 
-  function reset() {
+  function resetRegisters() {
     a.fill(0);
     // The OPNB core resets all six A voices to maximum level and stereo.
     a.fill(0xdf, 0x08, 0x0e);
@@ -133,6 +145,11 @@ export function createFm2610SongAdpcmState({clock = 8000000, outputSampleRate = 
     lastTrigger.fill(0);
     triggerFrames.fill(null);
     eosMask = 0;
+    invalidate();
+  }
+
+  function reset() {
+    resetRegisters();
     clearRom();
   }
 
@@ -184,7 +201,10 @@ export function createFm2610SongAdpcmState({clock = 8000000, outputSampleRate = 
   }
 
   function snapshot() {
-    if (cached) return cached;
+    if (cached) {
+      if (cached.adpcmA.rom === banks[0].descriptor && cached.adpcmB.rom === banks[1].descriptor) return cached;
+      invalidate();
+    }
     const voices = Array.from({length: A_VOICES}, (_, channel) => {
       const start = (a[0x10 + channel] | a[0x18 + channel] << 8) * ADDRESS_UNIT;
       const end = ((a[0x20 + channel] | a[0x28 + channel] << 8) + 1) * ADDRESS_UNIT;
@@ -243,6 +263,11 @@ export function createFm2610SongAdpcmState({clock = 8000000, outputSampleRate = 
     return banks[1].read(sample.start, sample.end);
   }
 
-  reset();
-  return {write, loadRom, clearRom, reset, snapshot, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes};
+  if (sharedBanks) resetRegisters();
+  else reset();
+  return {write, loadRom, clearRom, reset, resetRegisters, snapshot, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
+    // Code runs get fresh register shadows over the same physical ROM.
+    observeSharedRom() { return createAdpcmState({clock, outputSampleRate}, banks); },
+    freezeSharedRom() { banks = banks.map(bank => bank.fork()); },
+  };
 }

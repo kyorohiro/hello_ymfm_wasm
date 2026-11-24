@@ -7,6 +7,7 @@ import {Ym2610BAudioEngine} from '../js/ym2610baudioengine.js?v=ym2610-source-mi
 import {createYm2612RegisterState,isYm2612ViewRegister} from '../synth/synth_song_state.js';
 import {readFm2610Patch} from './fm_patch.js';
 import {createFm2610SongAdpcmState,isFm2610SongAdpcmRegister} from './song_adpcm_state.js';
+import {createFm2610SongSsgState,isFm2610SongSsgRegister} from './song_ssg_state.js';
 
 const MAX_BYTES = 64 * 1024 * 1024;
 const MAX_SAMPLES = 44100 * 3600;
@@ -74,6 +75,7 @@ function collectFmPresets(clock, variant, warnings) {
 export function createFm2610SongTimeline(engine,{variant,clock}) {
   const shadow = createYm2612RegisterState(clock);
   const adpcm = createFm2610SongAdpcmState({clock,outputSampleRate:engine.sampleRate?.()});
+  const ssg = createFm2610SongSsgState();
   resetFmState(shadow);
   const slots = variant === 'ym2610b' ? YM2610B_FM_CHANNELS : NEO_GEO_FM_CHANNELS;
   const originalWrite = engine.writeYm2610B;
@@ -90,6 +92,8 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
       events.push({frame:generatedFrames,kind:'fm',port,register,value});
     } else if (isFm2610SongAdpcmRegister(port,register)) {
       events.push({frame:generatedFrames,kind:'adpcm',port,register,value});
+    } else if (isFm2610SongSsgRegister(port,register)) {
+      events.push({frame:generatedFrames,kind:'ssg',register,value});
     }
     return result;
   }
@@ -118,6 +122,7 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
     normalized = undefined;
     resetFmState(shadow);
     adpcm.reset();
+    ssg.reset();
     return result;
   }
   engine.writeYm2610B = write;
@@ -135,6 +140,7 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
       switch (event.kind) {
         case 'fm': shadow.write(event.port,event.register,event.value); break;
         case 'adpcm': adpcm.write(event.port,event.register,event.value,event.frame); break;
+        case 'ssg': ssg.write(event.register,event.value); break;
         case 'rom': adpcm.loadRom(event.type,event.bytes,event.offset,event.size); break;
         case 'clear-rom': adpcm.clearRom(); break;
       }
@@ -147,6 +153,23 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
       events = events.slice(head);
       head = 0;
     }
+  }
+
+  const adpcmReader = {
+    getAdpcmAWindow: adpcm.getAdpcmAWindow,
+    readAdpcmABytes: adpcm.readAdpcmABytes,
+    readAdpcmBBytes: adpcm.readAdpcmBBytes,
+  };
+
+  function detach() {
+    // Discard future writes and remove every reference installed on the renderer.
+    events = [];
+    head = 0;
+    if (engine.writeYm2610B === write) engine.writeYm2610B = originalWrite;
+    if (engine.loadAdpcmRom === loadRom) engine.loadAdpcmRom = originalLoadRom;
+    if (engine.clearAdpcmRoms === clearRom) engine.clearAdpcmRoms = originalClearRom;
+    if (engine.processFrames === process) engine.processFrames = originalProcess;
+    if (engine.reset === reset) engine.reset = originalReset;
   }
 
   return {
@@ -164,20 +187,17 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
         });
         normalized = {variant,clockHz,revision,lfo,modeRegister,csmEnabled,channels:Object.freeze(channels)};
       }
-      return Object.freeze({...normalized,adpcm:adpcm.snapshot(),frame:lastFrame});
+      return Object.freeze({...normalized,adpcm:adpcm.snapshot(),ssg:ssg.snapshot(),frame:lastFrame});
     },
-    getAdpcmAWindow: adpcm.getAdpcmAWindow,
-    readAdpcmABytes: adpcm.readAdpcmABytes,
-    readAdpcmBBytes: adpcm.readAdpcmBBytes,
+    ...adpcmReader,
+    retainAdpcm() {
+      detach();
+      // These readers close over the bounded ROM shadow, not the audio engine.
+      return adpcmReader;
+    },
     dispose() {
-      events = [];
-      head = 0;
+      detach();
       adpcm.reset();
-      if (engine.writeYm2610B === write) engine.writeYm2610B = originalWrite;
-      if (engine.loadAdpcmRom === loadRom) engine.loadAdpcmRom = originalLoadRom;
-      if (engine.clearAdpcmRoms === clearRom) engine.clearAdpcmRoms = originalClearRom;
-      if (engine.processFrames === process) engine.processFrames = originalProcess;
-      if (engine.reset === reset) engine.reset = originalReset;
     },
   };
 }

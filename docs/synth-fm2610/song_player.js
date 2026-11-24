@@ -20,16 +20,17 @@ function loadOutputWorklet(context) {
 
 export function createFm2610SongTransport({sound, beforePlay, onState, onError}) {
   let run = null;
+  let retainedAdpcm = null;
   let sourceGains = [1, 1, 1, 1];
-  let state = {playback: 'stopped', position: 0, snapshot: null};
+  let state = {playback: 'stopped', position: 0, snapshot: null, retained: false};
 
   function publish(playback, position, snapshot = null) {
-    state = {playback, position, snapshot};
+    state = {playback, position, snapshot, retained: Boolean(snapshot && retainedAdpcm)};
     onState(state);
   }
 
-  function release() {
-    if (!run) return;
+  function release({retain = false} = {}) {
+    if (!run) return null;
     const current = run;
     run = null;
     current.controller.abort();
@@ -38,17 +39,33 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
       current.node.port.close();
       current.node.disconnect();
     }
-    current.timeline?.dispose();
+    const reader = retain ? current.timeline?.retainAdpcm() ?? null : null;
+    if (!reader) current.timeline?.dispose();
     current.engine?.dispose();
+    return reader;
+  }
+
+  function finish(playback, position, snapshot) {
+    if (run) retainedAdpcm = release({retain: Boolean(snapshot)});
+    publish(playback, position, snapshot);
   }
 
   function stop() {
+    if (state.playback === 'stopped') return;
+    // Stop is immediate. Keep only the frame confirmed by the output worklet.
+    const position = run?.position ?? state.position;
+    const snapshot = run?.consumed && position !== state.position ? snapshotAtOutput(run) : state.snapshot;
+    finish('stopped', snapshot ? position : 0, snapshot);
+  }
+
+  function clear() {
     release();
-    if (state.playback !== 'stopped') publish('stopped', 0);
+    retainedAdpcm = null;
+    if (state.playback !== 'stopped' || state.snapshot) publish('stopped', 0);
   }
 
   function fail(error) {
-    stop();
+    clear();
     onError(error);
   }
 
@@ -118,7 +135,7 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
   }
 
   async function play(source, {position = 0, paused = false} = {}) {
-    stop();
+    clear();
     const controller = new AbortController(), {signal} = controller;
     const current = {controller, sent: 0, consumed: 0, offset: 0, endSent: false};
     run = current;
@@ -142,8 +159,8 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
       current.offset = await seekFrames(current, Math.round(target * sampleRate));
       signal.throwIfAborted();
       if (target === duration) {
-        release();
-        publish('ended', duration);
+        const snapshot = current.offset ? current.timeline.read(current.offset - 1) : null;
+        finish('ended', duration, snapshot);
         return;
       }
       if (paused) await primePausedSeek(current);
@@ -159,12 +176,12 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
         try {
           current.consumed = data.consumedFrames;
           const position = Math.min(duration, (current.offset + current.consumed) / sampleRate);
+          current.position = position;
           if (data.type === 'paused') {
             const snapshot = snapshotAtOutput(current) ?? (current.sent ? current.timeline.read(current.offset) : null);
             publish('paused', position, snapshot);
           } else if (data.ended) {
-            release();
-            publish('ended', duration);
+            finish('ended', duration, snapshotAtOutput(current));
           } else if (state.playback === 'playing') {
             publish('playing', position, snapshotAtOutput(current));
             fill(current);
@@ -205,25 +222,28 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
   }
 
   function currentAdpcmA(snapshot, customWindow) {
-    if (!snapshot || snapshot !== state.snapshot || (customWindow !== undefined && state.playback !== 'paused')) return null;
+    if (!snapshot || snapshot !== state.snapshot ||
+        (customWindow !== undefined && state.playback !== 'paused' && !state.retained)) return null;
     return snapshot.adpcm.adpcmA;
   }
 
   function getAdpcmAWindow(snapshot, channel, customWindow) {
     const adpcmA = currentAdpcmA(snapshot, customWindow);
-    return adpcmA ? run?.timeline?.getAdpcmAWindow(channel, adpcmA, customWindow) ?? null : null;
+    const reader = run?.timeline ?? retainedAdpcm;
+    return adpcmA ? reader?.getAdpcmAWindow(channel, adpcmA, customWindow) ?? null : null;
   }
 
   function readAdpcmABytes(snapshot, channel, customWindow) {
     const adpcmA = currentAdpcmA(snapshot, customWindow);
-    return adpcmA ? run?.timeline?.readAdpcmABytes(channel, adpcmA, customWindow) ?? null : null;
+    const reader = run?.timeline ?? retainedAdpcm;
+    return adpcmA ? reader?.readAdpcmABytes(channel, adpcmA, customWindow) ?? null : null;
   }
 
   function readAdpcmBBytes(snapshot = state.snapshot) {
     if (!snapshot || snapshot !== state.snapshot) return null;
-    return run?.timeline?.readAdpcmBBytes(snapshot.adpcm.adpcmB) ?? null;
+    return (run?.timeline ?? retainedAdpcm)?.readAdpcmBBytes(snapshot.adpcm.adpcmB) ?? null;
   }
 
-  return {play, pause, resume, stop, setSourceGains, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
+  return {play, pause, resume, stop, clear, setSourceGains, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
     getState: () => state, getSnapshot: () => state.snapshot};
 }

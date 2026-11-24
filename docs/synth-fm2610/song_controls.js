@@ -53,9 +53,9 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
   function refresh() {
     const entries = getFiles().listVgm();
     if (path && !entries.some(entry => entry.path === path)) {
-      player.stop();
       source = null;
       path = '';
+      player.clear();
     }
     select.replaceChildren(new Option('Choose a song…', ''), ...entries.map(entry => new Option(entry.name, entry.path)));
     select.value = path;
@@ -72,8 +72,8 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
     try {
       const result = await task(signal);
       signal.throwIfAborted();
-      player.stop();
       ({path, source} = result);
+      player.clear();
       refresh();
     } catch (error) {
       if (!signal.aborted) {
@@ -123,7 +123,7 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
     path = '';
     seekDraft = false;
     errorText = '';
-    stop();
+    player.clear();
     refresh();
   }
 
@@ -148,7 +148,7 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
   });
   for (const event of ['blur', 'pointercancel']) seek.addEventListener(event, () => { seekDraft = false; render(); });
 
-  return {refresh, importFile, selectFile, stop, clear,
+  return {refresh, importFile, selectFile, stop, clear, clearPlayback: player.clear,
     getAdpcmAWindow: player.getAdpcmAWindow,
     readAdpcmABytes: player.readAdpcmABytes, readAdpcmBBytes: player.readAdpcmBBytes,
     setSourceGains: gains => player.setSourceGains(gains)};

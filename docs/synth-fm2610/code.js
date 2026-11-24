@@ -23,14 +23,12 @@ liveLoop("duet", async () => {
 `;
 }
 
-function makeCodeFm(audio) {
-	const fm = audio.fm;
-	if (!audio.withCodeFmWrites) return fm;
-	return new Proxy(fm, {
+function makeCodeInstrument(audio, instrument) {
+	return new Proxy(instrument, {
 		get(target, property) {
 			const value = Reflect.get(target, property, target);
 			return typeof value === 'function'
-				? (...args) => audio.withCodeFmWrites(() => Reflect.apply(value, target, args))
+				? (...args) => audio.withCodeWrites(() => Reflect.apply(value, target, args))
 				: value;
 		},
 	});
@@ -46,12 +44,21 @@ export function setupFm2610Code({
 	let revision = 0;
 	let audio = null;
 	let chip = null;
+	let observation = null;
+	let retained = null;
 	const log = [];
 
 	function updateControls(state) {
 		status.textContent = state.status;
 		runButton.disabled = state.busy;
 		stopButton.disabled = !state.running;
+	}
+
+	function retainSnapshot() {
+		if (!observation) return;
+		observation.finish();
+		retained = observation;
+		observation = null;
 	}
 
 	const runtime = createPlaygroundCodeRuntime({
@@ -65,9 +72,12 @@ export function setupFm2610Code({
 			if (token !== revision || mode !== getMode()) {
 				throw new DOMException('Code stopped', 'AbortError');
 			}
-			const { ssg, adpcmA, adpcmB } = nextAudio;
-			nextAudio.resetCodeFmActivity?.();
-			chip = { id: mode, fm: makeCodeFm(nextAudio), ssg, adpcmA, adpcmB };
+			observation = nextAudio.beginCodeObservation();
+			retained = null;
+			chip = { id: mode };
+			for (const section of ['fm', 'ssg', 'adpcmA', 'adpcmB']) {
+				chip[section] = makeCodeInstrument(nextAudio, nextAudio[section]);
+			}
 			audio = nextAudio;
 		},
 		now: () => audio?.context.currentTime ?? 0,
@@ -87,6 +97,7 @@ export function setupFm2610Code({
 			if (log.length > 100) log.shift();
 			output.textContent = log.join('\n');
 		},
+		beforeStopSoundChips: retainSnapshot,
 		async stopSoundChips() {
 			const previous = audio;
 			audio = null;
@@ -97,6 +108,7 @@ export function setupFm2610Code({
 	updateControls(runtime.getState());
 
 	function run() {
+		retainSnapshot();
 		beforeRun();
 		revision++;
 		log.length = 0;
@@ -105,13 +117,25 @@ export function setupFm2610Code({
 	}
 
 	function stop() {
+		retainSnapshot();
 		revision++;
 		return runtime.stop();
 	}
 
-	function getFmSnapshot() {
+	function getSnapshot() {
+		return (observation ?? retained)?.getSnapshot() ?? null;
+	}
+
+	function hasRetainedSnapshot() {
 		const state = runtime.getState();
-		return state.running && !state.stopping ? audio?.getFmSnapshot?.() ?? null : null;
+		return Boolean(retained && !state.running && !state.stopping);
+	}
+
+	function observationFor(snapshot, customWindow) {
+		const current = observation ?? retained;
+		if (!snapshot || snapshot !== current?.getSnapshot() ||
+				(customWindow !== undefined && !hasRetainedSnapshot())) return null;
+		return current;
 	}
 
 	function setMode() {
@@ -128,5 +152,20 @@ export function setupFm2610Code({
 
 	runButton.addEventListener('click', () => void run().catch(report));
 	stopButton.addEventListener('click', () => void stop().catch(report));
-	return { run, stop, setMode, getStarter: () => starter, getState: runtime.getState, getFmSnapshot };
+	return {
+		run, stop, setMode, getStarter: () => starter, getState: runtime.getState,
+		getSnapshot, getFmSnapshot: getSnapshot, hasRetainedSnapshot,
+		clearSnapshot() { retained = null; },
+		getAdpcmAWindow(snapshot, channel, customWindow) {
+			return observationFor(snapshot, customWindow)
+				?.getAdpcmAWindow(channel, snapshot.adpcm.adpcmA, customWindow) ?? null;
+		},
+		readAdpcmABytes(snapshot, channel, customWindow) {
+			return observationFor(snapshot, customWindow)
+				?.readAdpcmABytes(channel, snapshot.adpcm.adpcmA, customWindow) ?? null;
+		},
+		readAdpcmBBytes(snapshot) {
+			return observationFor(snapshot)?.readAdpcmBBytes(snapshot.adpcm.adpcmB) ?? null;
+		},
+	};
 }

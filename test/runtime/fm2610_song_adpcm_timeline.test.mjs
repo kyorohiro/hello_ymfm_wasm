@@ -29,9 +29,11 @@ test('FM2610 timeline delays ADPCM register and ROM visibility to the output fra
     engine.writeYm2610B(1,0,1);
     engine.writeYm2610B(0,0x11,0xc0);
     engine.writeYm2610B(0,0x10,0xb0);
+    engine.writeYm2610B(0,0x08,0x0e);
     // The first writes have reached the engine before any PCM is available.
     const pending = timeline.read(0);
     assert.equal(pending.frame,-1);
+    assert.equal(pending.ssg,null);
     assert.equal(pending.adpcm.adpcmB.rom.size,0);
     assert.equal(timeline.readAdpcmABytes(0),null);
     assert.equal(timeline.readAdpcmBBytes(),null);
@@ -45,6 +47,7 @@ test('FM2610 timeline delays ADPCM register and ROM visibility to the output fra
     engine.processFrames(2);
 
     const first = timeline.read(3);
+    assert.equal(first.ssg.channels[0].level,14);
     assert(first.adpcm.adpcmA.voices[0].keyed);
     assert.equal(first.adpcm.adpcmA.voices[0].lastTriggerFrame,0);
     assert.equal(first.adpcm.adpcmA.voices[1].lastTriggerFrame,null);
@@ -77,6 +80,7 @@ test('FM2610 timeline delays ADPCM register and ROM visibility to the output fra
     engine.reset();
     const reset = timeline.read(0);
     assert.equal(reset.frame,-1);
+    assert.equal(reset.ssg,null);
     assert(!reset.adpcm.adpcmB.keyed);
     assert.equal(timeline.readAdpcmBBytes(),null);
   } finally {
@@ -117,19 +121,34 @@ test('FM2610 VGM playback keeps PCM unchanged while exposing both embedded ADPCM
   }
 });
 
-test('FM2610 confines custom ADPCM-A reads to the current acknowledged pause', async () => {
+function songOutputFixture(t) {
   const {fetch: originalFetch, AudioWorkletNode: OriginalNode} = globalThis;
+  const nodes = [];
   globalThis.fetch = async url => new Response(await readFile(url));
   globalThis.AudioWorkletNode = class {
+    constructor() { nodes.push(this); }
+    sent = 0;
+    consumed = 0;
+    closed = false;
+    disconnected = false;
+    ended = false;
     port = {
       postMessage: message => {
         if (message.type === 'pause') {
-          queueMicrotask(() => this.port.onmessage?.({data: {type:'paused',consumedFrames:0}}));
+          queueMicrotask(() => this.emit(this.consumed,{type:'paused'}));
+        } else if (message.type === 'enqueue') {
+          this.sent += message.left.byteLength / Float32Array.BYTES_PER_ELEMENT;
+        } else if (message.type === 'end') {
+          this.ended = true;
         }
       },
-      close() {},
+      close: () => { this.closed = true; },
     };
-    disconnect() {}
+    disconnect() { this.disconnected = true; }
+    emit(frames, extra = {}) {
+      this.consumed = frames;
+      this.port.onmessage?.({data: {type:'state',consumedFrames:frames,...extra}});
+    }
   };
   const errors = [];
   const context = {sampleRate:48000,audioWorklet: {addModule: async () => {}}};
@@ -137,32 +156,98 @@ test('FM2610 confines custom ADPCM-A reads to the current acknowledged pause', a
     sound: async () => ({context,connectSongOutput() {}}),
     beforePlay() {}, onState() {}, onError: error => errors.push(error),
   });
-  try {
-    const source = await prepareFm2610Vgm(await readSource(new URL('../fixtures/ym2610-mix.vgz',import.meta.url)));
-    const window = {start:0,end:0x100100};
-    await transport.play(source,{paused:true});
-    const initial = transport.getSnapshot();
-    assert.equal(transport.getState().playback,'paused');
-    assert.deepEqual(transport.getAdpcmAWindow(initial,0,window),
-      {...window,playbackEnd:0x100,rangeValid:true,available:true});
-    assert.deepEqual(transport.readAdpcmABytes(initial,0,window),transport.readAdpcmABytes(initial,0));
-
-    transport.resume();
-    assert.equal(transport.getSnapshot(),initial);
-    assert.equal(transport.readAdpcmABytes(initial,0).length,256);
-    assert.equal(transport.getAdpcmAWindow(initial,0,window),null);
-    assert.equal(transport.readAdpcmABytes(initial,0,window),null);
-    await transport.play(source,{position:.001,paused:true});
-    const resumed = transport.getSnapshot();
-    assert.notEqual(resumed,initial);
-    assert.equal(transport.getAdpcmAWindow(initial,0,window),null);
-    assert.equal(transport.readAdpcmABytes(initial,0,window),null);
-    assert.equal(transport.readAdpcmABytes(resumed,0,window).length,256);
-    assert.deepEqual(errors,[]);
-  } finally {
-    transport.stop();
+  t.after(() => {
+    transport.clear();
     globalThis.fetch = originalFetch;
     if (OriginalNode) globalThis.AudioWorkletNode = OriginalNode;
     else delete globalThis.AudioWorkletNode;
-  }
+  });
+  return {transport,errors,nodes};
+}
+
+const prepareMix = async () => prepareFm2610Vgm(await readSource(new URL('../fixtures/ym2610-mix.vgz',import.meta.url)));
+
+test('FM2610 confines custom ADPCM-A reads to the current paused or retained frame', async t => {
+  const {transport,errors,nodes} = songOutputFixture(t);
+  const source = await prepareMix();
+  const window = {start:0,end:0x100100};
+  await transport.play(source,{paused:true});
+  const initial = transport.getSnapshot();
+  assert.equal(transport.getState().playback,'paused');
+  assert.deepEqual(transport.getAdpcmAWindow(initial,0,window),
+    {...window,playbackEnd:0x100,rangeValid:true,available:true});
+  assert.deepEqual(transport.readAdpcmABytes(initial,0,window),transport.readAdpcmABytes(initial,0));
+
+  transport.resume();
+  assert.equal(transport.getSnapshot(),initial);
+  assert.equal(transport.readAdpcmABytes(initial,0).length,256);
+  assert.equal(transport.getAdpcmAWindow(initial,0,window),null);
+  assert.equal(transport.readAdpcmABytes(initial,0,window),null);
+  await transport.play(source,{position:.001,paused:true});
+  const resumed = transport.getSnapshot();
+  assert.notEqual(resumed,initial);
+  assert.equal(transport.getAdpcmAWindow(initial,0,window),null);
+  assert.equal(transport.readAdpcmABytes(initial,0,window),null);
+  assert.equal(transport.readAdpcmABytes(resumed,0,window).length,256);
+  transport.stop();
+  assert.equal(transport.getSnapshot(),resumed);
+  assert.equal(transport.getState().retained,true);
+  assert.equal(transport.readAdpcmABytes(resumed,0,window).length,256);
+  assert(nodes.at(-1).closed && nodes.at(-1).disconnected);
+  assert.deepEqual(errors,[]);
+});
+
+test('FM2610 Stop retains the last confirmed output and Play restarts without old readback', async t => {
+  const {transport,errors,nodes} = songOutputFixture(t);
+  const source = await prepareMix();
+  await transport.play(source);
+  const node = nodes.at(-1);
+  const confirmedFrames = 64;
+  assert(node.sent > confirmedFrames);
+  node.emit(confirmedFrames);
+  const expected = transport.getSnapshot();
+  assert.equal(expected.frame,confirmedFrames - 1);
+  const expectedBytes = transport.readAdpcmBBytes(expected);
+  transport.stop();
+  assert.deepEqual(transport.getState(),{
+    playback:'stopped', position:confirmedFrames / 48000, snapshot:expected, retained:true,
+  });
+  assert(node.closed && node.disconnected);
+  assert.deepEqual(transport.readAdpcmBBytes(expected),expectedBytes);
+  assert.equal(transport.readAdpcmABytes(expected,0).length,256);
+  node.emit(node.sent);
+  assert.equal(transport.getSnapshot(),expected);
+  await transport.play(source);
+  assert.deepEqual(transport.getState(),{playback:'playing',position:0,snapshot:null,retained:false});
+  assert.equal(transport.readAdpcmBBytes(expected),null);
+  assert.notEqual(nodes.at(-1),node);
+  assert.deepEqual(errors,[]);
+});
+
+test('FM2610 natural end and seek to end retain the final output until Clear', async t => {
+  const {transport,errors,nodes} = songOutputFixture(t);
+  const source = await prepareMix();
+  const duration = source.totalSamples / 44100;
+  await transport.play(source);
+  const node = nodes.at(-1);
+  for (let i = 0; i < 10 && !node.ended; i++) node.emit(node.sent);
+  assert(node.ended);
+  node.emit(node.sent,{ended:true});
+  const ended = transport.getSnapshot();
+  assert.equal(ended.frame,node.sent - 1);
+  assert.deepEqual(transport.getState(),{playback:'ended', position:duration, snapshot:ended, retained:true});
+  assert.equal(transport.readAdpcmBBytes(ended).length,256);
+  assert(node.closed && node.disconnected);
+  transport.clear();
+  assert.deepEqual(transport.getState(),{playback:'stopped',position:0,snapshot:null,retained:false});
+  assert.equal(transport.readAdpcmBBytes(ended),null);
+
+  await transport.play(source,{position:duration,paused:true});
+  const sought = transport.getSnapshot();
+  assert.notEqual(sought,ended);
+  assert.equal(sought.frame,ended.frame);
+  assert.equal(transport.getState().retained,true);
+  assert.equal(transport.readAdpcmABytes(sought,0).length,256);
+  assert.equal(nodes.length,1); // Seeking exactly to the end never starts an output node.
+  assert.deepEqual(errors,[]);
 });

@@ -2,17 +2,22 @@
 import { NeoGeoSynth, YM2610BRuntimeSynth } from '../js/ym2610bsynth.js';
 import { normalizeYm2610BSourceGains } from '../js/ym2610b.js?v=ym2610-source-mix-1';
 import { createYm2612RegisterState } from '../synth/synth_song_state.js';
+import { createFm2610SongAdpcmState, isFm2610SongAdpcmRegister } from './song_adpcm_state.js';
+import { createFm2610SongSsgState, isFm2610SongSsgRegister } from './song_ssg_state.js';
 
 const workletUrl = new URL('../js/ym2610b-worklet.js?v=ym2610-source-mix-1', import.meta.url).href;
 const wasmUrl = new URL('../generated/ym2610b_wasm.wasm?v=ym2610-source-mix-1', import.meta.url).href;
 
 // Monitor the commands accepted by the shared Worklet transport. Observing at
 // the transport includes raw writes and the high/low frequency write batches.
-function observeFmWrites(transport, variant, clock) {
+export function observeFm2610Writes(transport, variant, clock, context) {
   const slots = variant === 'ym2610' ? [1, 2, 4, 5] : [0, 1, 2, 3, 4, 5];
   const shadow = createYm2612RegisterState(clock);
+  const romShadow = createFm2610SongAdpcmState({clock, outputSampleRate: context.sampleRate});
+  const adpcmRegisters = new Map();
+  const ssgRegisters = new Map();
   const codeOwned = Array(6).fill(false), codeKeyOnOrder = Array(6).fill(0);
-  let revision = 0, codeScope = false, keyOrder = 0, cached = null;
+  let revision = 0, codeScope = false, keyOrder = 0, cached = null, recording = null;
 
   function invalidate() {
     revision++;
@@ -32,9 +37,32 @@ function observeFmWrites(transport, variant, clock) {
       for (let channel = 0; channel < 3; channel++) shadow.write(port, 0xb4 + channel, 0xc0);
     }
     resetCodeFmActivity();
+    if (recording && codeScope) {
+      const { adpcm, ssg } = recording;
+      adpcm.resetRegisters();
+      ssg.reset();
+    }
+    adpcmRegisters.clear();
+    ssgRegisters.clear();
   }
 
   function observe(port, register, value) {
+    if (isFm2610SongAdpcmRegister(port, register)) {
+      const triggerA = port === 1 && register === 0;
+      if (!triggerA) adpcmRegisters.set((port << 8) | register, value);
+      if (recording && codeScope) {
+        const frame = triggerA ? Math.round((context.currentTime - recording.startTime) * context.sampleRate) : 0;
+        recording.adpcm.write(port, register, value, frame);
+        if (port === 1 || register === 0x1c) recording.sources.a = true;
+        if (port === 0) recording.sources.b = true;
+      }
+    } else if (isFm2610SongSsgRegister(port, register)) {
+      ssgRegisters.set(register, value);
+      if (recording && codeScope) {
+        recording.ssg.write(register, value);
+        recording.ssgTouched = true;
+      }
+    }
     // OPNB does not route the OPN2 DAC register into the FM signal.
     if (port === 0 && register === 0x2b || !shadow.write(port, register, value)) return;
     if (port === 0 && register === 0x28 && (value & 3) !== 3) {
@@ -62,30 +90,89 @@ function observeFmWrites(transport, variant, clock) {
     reset();
     resetShadow();
   };
+  if (typeof transport.loadAdpcmMemory === 'function') {
+    const loadMemory = transport.loadAdpcmMemory.bind(transport);
+    transport.loadAdpcmMemory = (type, bytes, address = 0) => {
+      const upload = loadMemory(type, bytes, address);
+      if ((type === 0 || type === 1) && bytes instanceof Uint8Array &&
+          Number.isInteger(address) && address >= 0 && bytes.length <= 0x1000000 - address) {
+        const active = codeScope ? recording : null;
+        // postMessage has already cloned the upload; keep matching bytes even
+        // if user Code reuses its buffer before the Worklet acknowledges it.
+        const data = new Uint8Array(bytes);
+        Promise.resolve(upload).then(() => {
+          romShadow.loadRom(type, data, address, 0x1000000);
+          if (active && recording === active) active.sources[type === 0 ? 'a' : 'b'] = true;
+        }, () => {});
+      }
+      return upload;
+    };
+  }
   resetShadow();
 
-  return {
-    getFmSnapshot() {
-      if (cached) return cached;
-      const { clockHz, lfo, modeRegister, channels } = shadow.snapshot();
-      const compact = slots.map((physicalChannel, channel) => {
-        const state = channels[physicalChannel];
-        const codeGate = codeOwned[physicalChannel] && state.gate;
-        return Object.freeze({
-          ...state, channel, physicalChannel, codeGate,
-          codeKeyMask: codeGate ? state.keyMask : 0,
-          codeKeyOnOrder: codeKeyOnOrder[physicalChannel],
-          preset: Object.freeze({
-            ...state.preset, keyMask: state.keyMask,
-            operators: Object.freeze(Object.values(state.preset.operators)),
-          }),
-        });
+  function getFmSnapshot() {
+    if (cached) return cached;
+    const { clockHz, lfo, modeRegister, channels } = shadow.snapshot();
+    const compact = slots.map((physicalChannel, channel) => {
+      const state = channels[physicalChannel];
+      const codeGate = codeOwned[physicalChannel] && state.gate;
+      return Object.freeze({
+        ...state, channel, physicalChannel, codeGate,
+        codeKeyMask: codeGate ? state.keyMask : 0,
+        codeKeyOnOrder: codeKeyOnOrder[physicalChannel],
+        preset: Object.freeze({
+          ...state.preset, keyMask: state.keyMask,
+          operators: Object.freeze(Object.values(state.preset.operators)),
+        }),
       });
-      cached = Object.freeze({ variant, revision, clockHz, lfo, modeRegister, channels: Object.freeze(compact) });
-      return cached;
-    },
-    resetCodeFmActivity,
-    withCodeFmWrites(action) {
+    });
+    cached = Object.freeze({ variant, revision, clockHz, lfo, modeRegister, channels: Object.freeze(compact) });
+    return cached;
+  }
+
+  function beginCodeObservation() {
+    resetCodeFmActivity();
+    const adpcm = romShadow.observeSharedRom();
+    const ssg = createFm2610SongSsgState();
+    for (const [address, value] of adpcmRegisters) {
+      // ADPCM-B control issues a playback command rather than setting the
+      // sample, so a previous source's active trigger is outside this run.
+      if (address !== 0x10) adpcm.write(address >> 8, address & 255, value);
+    }
+    for (const [register, value] of ssgRegisters) ssg.write(register, value);
+    const observation = {startTime: context.currentTime, adpcm, ssg, sources: {a: false, b: false}, ssgTouched: false};
+    recording = observation;
+    let previousFm, snapshot;
+    function getSnapshot() {
+      if (recording !== observation) return snapshot;
+      const fm = getFmSnapshot();
+      const adpcmState = adpcm.snapshot();
+      const ssgState = observation.ssgTouched ? ssg.snapshot() : null;
+      const {a, b} = observation.sources;
+      if (!snapshot || previousFm !== fm || snapshot.adpcm !== adpcmState || snapshot.ssg !== ssgState ||
+          snapshot.adpcmSources.a !== a || snapshot.adpcmSources.b !== b) {
+        previousFm = fm;
+        snapshot = Object.freeze({...fm, adpcm: adpcmState, ssg: ssgState, adpcmSources: Object.freeze({a, b})});
+      }
+      return snapshot;
+    }
+    return {
+      getSnapshot,
+      finish() {
+        if (recording !== observation) return;
+        getSnapshot();
+        adpcm.freezeSharedRom();
+        recording = null;
+      },
+      getAdpcmAWindow: adpcm.getAdpcmAWindow,
+      readAdpcmABytes: adpcm.readAdpcmABytes,
+      readAdpcmBBytes: adpcm.readAdpcmBBytes,
+    };
+  }
+
+  return {
+    beginCodeObservation,
+    withCodeWrites(action) {
       const previous = codeScope;
       codeScope = true;
       try { return action(); }
@@ -149,7 +236,7 @@ export function createFm2610Audio() {
       return {
         fm: synth.fm, ssg, adpcmA, adpcmB, context, analyser,
         connectSongOutput: node => node.connect(songOutput),
-        ...observeFmWrites(rawFm.transport, variant, rawFm.clock),
+        ...observeFm2610Writes(rawFm.transport, variant, rawFm.clock, context),
       };
     }).catch(async error => {
       if (session === current) await close().catch(() => {});
