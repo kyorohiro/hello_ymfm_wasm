@@ -1221,7 +1221,7 @@ function isInsideCallObject(
 
 export function registerMonacoCompletions(
   monaco,
-  { listVirtualFiles = () => [], chip = "ym2612" } = {}
+  { listVirtualFiles = () => [], chip = "ym2612", playgroundHints = true } = {}
 ) {
   const kind =
     monaco.languages
@@ -1383,7 +1383,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          fmCompletionCapabilities(chip).channels.length > 0 && isAtPlayFirstArgument(
+          playgroundHints && fmCompletionCapabilities(chip).channels.length > 0 && isAtPlayFirstArgument(
             linePrefix
           )
         ) {
@@ -1437,7 +1437,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          (fmCompletionCapabilities(chip).channels.length > 0 || /(?:^|[^\w$])(?:pg\.)?scale\(/.test(linePrefix)) && isInsideNoteString(
+          ((playgroundHints && fmCompletionCapabilities(chip).channels.length > 0) || /(?:^|[^\w$])(?:pg\.)?scale\(/.test(linePrefix)) && isInsideNoteString(
             linePrefix
           )
         ) {
@@ -1450,7 +1450,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          isInsideSampleLoadString(
+          playgroundHints && isInsideSampleLoadString(
             linePrefix
           )
         ) {
@@ -1466,7 +1466,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          isInsideYm2612RegisterArgument(
+          playgroundHints && isInsideYm2612RegisterArgument(
             linePrefix
           )
         ) {
@@ -1483,7 +1483,7 @@ export function registerMonacoCompletions(
           detectYm2612ValueRegister(
             linePrefix
           );
-        if (registerValueContext) {
+        if (playgroundHints && registerValueContext) {
           suggestions.push(
             ...createRegisterValueSuggestions(
               registerValueContext,
@@ -1510,7 +1510,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          fmCompletionCapabilities(chip).channels.length > 0 && isInsideCallObject(
+          playgroundHints && fmCompletionCapabilities(chip).channels.length > 0 && isInsideCallObject(
             sourceBeforeCursor,
             ["play(", "pg.play("]
           )
@@ -1529,7 +1529,7 @@ export function registerMonacoCompletions(
           detectFxConfigContext(
             sourceBeforeCursor
           );
-        if (fxConfigType) {
+        if (playgroundHints && fxConfigType) {
           suggestions.push(
             ...createFxConfigSuggestions(
               fxConfigType,
@@ -1572,7 +1572,7 @@ export function registerMonacoCompletions(
               variableName
             );
 
-          if (effectType) {
+          if (playgroundHints && effectType) {
             for (const item of createFxUnitSuggestions(
               effectType,
               kind,
@@ -1597,7 +1597,7 @@ export function registerMonacoCompletions(
             propertyName
             ];
 
-          if (effectType) {
+          if (playgroundHints && effectType) {
             for (const item of createFxUnitSuggestions(
               effectType,
               kind,
@@ -1609,7 +1609,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          /\.(bass|mid|treble|cutoff|q|mix|feedback|time|tone|phase)\.$/.test(
+          playgroundHints && /\.(bass|mid|treble|cutoff|q|mix|feedback|time|tone|phase)\.$/.test(
             linePrefix
           )
         ) {
@@ -1640,7 +1640,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          /fx\.setChain\(\[\s*$/.test(
+          playgroundHints && /fx\.setChain\(\[\s*$/.test(
             linePrefix
           )
         ) {

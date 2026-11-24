@@ -1,12 +1,13 @@
 import {createDefinitionViewer} from './playground_monaco_definitions.js?v=vsu-monaco';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=vsu-monaco";
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=fm2610-code-monaco-1";
 import {selectPlaygroundDeclarations} from './playground_declarations.js?v=ps1-vab-api-1';
 // Asset loading must remain trusted while user liveLoop callbacks install the
 // execution guard over global fetch. Loading Monaco itself is still lazy.
 const nativeFetch=globalThis.fetch?.bind(globalThis);
 
 function registerMonacoHover(
-  monaco
+  monaco,
+  playgroundHints
 ) {
   monaco.languages.registerHoverProvider(
     "javascript",
@@ -20,7 +21,7 @@ function registerMonacoHover(
             position
           );
 
-        if (!word) {
+        if (!word || (!playgroundHints && ['fx', 'createTimeline'].includes(word.word))) {
           return null;
         }
 
@@ -65,7 +66,8 @@ function registerMonacoHover(
 
 function registerMonacoSignatureHelp(
   monaco,
-  chip
+  chip,
+  playgroundHints
 ) {
   const signatures = [
     {
@@ -96,6 +98,7 @@ function registerMonacoSignatureHelp(
     },
     {
       prefixes: ["play(", "pg.play("],
+      playground: true,
       label:
         "play(note: string, options?: PlaygroundPlayOptions): Promise<void>",
       parameters: [
@@ -280,7 +283,8 @@ function registerMonacoSignatureHelp(
 
         let bestMatch = null;
         for (const signature of signatures) {
-          if (chip === 'vsu' && signature.fm) continue;
+          if (signature.fm && (chip === 'vsu' || !playgroundHints)) continue;
+          if (signature.playground && !playgroundHints) continue;
           for (const prefix of signature.prefixes) {
             const index =
               linePrefix.lastIndexOf(
@@ -470,6 +474,7 @@ export async function initializePlaygroundMonaco(
     setEditorNote,
     setEditorAdapter,
     onMonacoEditorReady,
+    playgroundHints = true,
   } = options;
 
   try {
@@ -557,12 +562,13 @@ export async function initializePlaygroundMonaco(
     );
     registerMonacoCompletions(
       monaco,
-      { listVirtualFiles: options.listVirtualFiles, chip:options.chip }
+      { listVirtualFiles: options.listVirtualFiles, chip: options.chip, playgroundHints }
     );
-    registerMonacoHover(monaco);
+    registerMonacoHover(monaco, playgroundHints);
     registerMonacoSignatureHelp(
       monaco,
-      options.chip
+      options.chip,
+      playgroundHints
     );
     const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip, options);
     if (options.requireJavaScriptWorker) await checkJavaScriptWorker(monaco);

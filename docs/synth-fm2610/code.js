@@ -36,7 +36,7 @@ function makeCodeInstrument(audio, instrument) {
 
 /** Bind the Code panel to the selected YM2610 variant and the page's audio owner. */
 export function setupFm2610Code({
-	textarea, runButton, stopButton, status, output, sound, getMode, stopSound,
+	textarea, runButton, applyButton, stopButton, status, output, sound, getMode, stopSound,
 	beforeRun = () => {}, onState = () => {}, prepareSource, readFile, getEntryPath = () => '/index.js',
 }) {
 	let starter = starterCode(getMode());
@@ -51,6 +51,7 @@ export function setupFm2610Code({
 	function updateControls(state) {
 		status.textContent = state.status;
 		runButton.disabled = state.busy;
+		if (applyButton) applyButton.disabled = !state.running || state.busy;
 		stopButton.disabled = !state.running;
 	}
 
@@ -72,6 +73,7 @@ export function setupFm2610Code({
 			if (token !== revision || mode !== getMode()) {
 				throw new DOMException('Code stopped', 'AbortError');
 			}
+			if (observation && audio === nextAudio && chip?.id === mode) return;
 			observation = nextAudio.beginCodeObservation();
 			retained = null;
 			chip = { id: mode };
@@ -116,6 +118,12 @@ export function setupFm2610Code({
 		return runtime.run(textarea.value, {path: getEntryPath()});
 	}
 
+	function apply() {
+		const state = runtime.getState();
+		if (!state.running || state.busy) return Promise.resolve(state);
+		return runtime.apply(textarea.value, {path: getEntryPath()});
+	}
+
 	function stop() {
 		retainSnapshot();
 		revision++;
@@ -151,9 +159,10 @@ export function setupFm2610Code({
 	}
 
 	runButton.addEventListener('click', () => void run().catch(report));
+	applyButton?.addEventListener('click', () => void apply().catch(report));
 	stopButton.addEventListener('click', () => void stop().catch(report));
 	return {
-		run, stop, setMode, getStarter: () => starter, getState: runtime.getState,
+		run, apply, stop, setMode, getStarter: () => starter, getState: runtime.getState,
 		getSnapshot, getFmSnapshot: getSnapshot, hasRetainedSnapshot,
 		clearSnapshot() { retained = null; },
 		getAdpcmAWindow(snapshot, channel, customWindow) {

@@ -38,7 +38,7 @@ test('FM2610 produces self-contained HTML and matching source ZIPs', async t => 
   assert.match(text(html['index.html']), /src="\.\/tetorica_fm2610_synth\.webp"/);
   assert.match(text(html[`${app}/index.html`]), /src="\.\/synth\.js"/);
   for (const [path, bytes] of Object.entries(html)) {
-    if (/\.(?:css|js|wasm|webp)$/.test(path)) assert.deepEqual(bytes, source[`docs/${path}`], path);
+    if (/\.(?:css|js|d\.ts|wasm|webp)$/.test(path)) assert.deepEqual(bytes, source[`docs/${path}`], path);
   }
 
   const appFiles = await readdir(new URL(`docs/${app}/`, root));
@@ -49,6 +49,8 @@ test('FM2610 produces self-contained HTML and matching source ZIPs', async t => 
     'generated/ym2610b_wasm.js', 'generated/ym2610b_wasm.wasm', 'js/native_audio_effect.wasm',
     'tetorica_fm2610_synth.webp', 'LICENSE', 'licenses/ymfm/LICENSE', 'licenses/tetorica-soundchip-native/LICENSE',
     'playground/vendor/fflate-LICENSE', 'licenses/tetorica-virtual-files/LICENSE',
+    'synth-fm2610/code_declarations.js', 'synth-fm2610/code_editor.js',
+    'playground/playground_monaco.js', 'playground/tetorica-playground-globals.d.ts',
   ]) assert(html[path], path);
   for (const path of [
     `docs/${app}/index.html`, `${sdk}/wasm/ym2610b_wasm.cpp`, `${sdk}/wasm/opn_state.h`,

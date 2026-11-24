@@ -77,18 +77,28 @@ test('import paths use current project files and replace quoted contents without
   assert.deepEqual(paths('await import("', '/index.js'), []);
 });
 
-function chipSuggestions(source, chip) {
+function chipSuggestions(source, chip, options = {}) {
   let selectedProvider;
   registerMonacoCompletions({languages: {
     CompletionItemKind: {}, CompletionItemInsertTextRule: {InsertAsSnippet: 4},
     registerCompletionItemProvider(language, value) {if(language === 'javascript') selectedProvider = value;},
-  }}, {chip});
+  }}, {chip, ...options});
   const lines = source.split('\n'), line = lines.at(-1), column = line.length + 1;
   return selectedProvider.provideCompletionItems({
     getValue: () => source, getLineContent: () => line, getValueInRange: () => source,
     getWordUntilPosition: () => ({startColumn: column, endColumn: column, word: ''}),
   }, {lineNumber: lines.length, column})?.suggestions ?? [];
 }
+
+test('standalone Code can defer Playground-only hints to its own declarations', () => {
+  const standalone = {playgroundHints: false};
+  const raw = 'const opnb = await useSoundChip("ym2610b");\nopnb.fm.write(0, ';
+  assert.ok(chipSuggestions(raw, 'ym2610b').some(item => item.insertText === '0x2a'));
+  assert.deepEqual(chipSuggestions(raw, 'ym2610b', standalone), []);
+  assert.deepEqual(chipSuggestions('play(', 'ym2610b', standalone), []);
+  assert.ok(chipSuggestions('await im', 'ym2610b', standalone).some(item => item.label === 'await import'));
+  assert.ok(chipSuggestions('setBpm(', 'ym2610b', standalone).length > 0);
+});
 
 test('pg and global fm members defer to selected declarations without Genesis helper overrides', () => {
   for(const chip of ['ym2203', 'ym2610', 'ym2608', 'ym2612']) {

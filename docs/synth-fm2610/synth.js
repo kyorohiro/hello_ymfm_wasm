@@ -12,6 +12,7 @@ import { midiToOpnPitch } from '../js/soundchip_pitch.js';
 import { createVsuVoicePool } from '../synth-vsu/voice-pool.js';
 import { createFm2610Audio } from './audio.js';
 import { setupFm2610Code } from './code.js';
+import { setupFm2610CodeEditor } from './code_editor.js';
 import { setupFm2610Files } from './files.js';
 import { readFm2610Patch, readFm2610SnapshotPatches } from './fm_patch.js';
 import { ADPCM_A_KEYS, setupFm2610Sections } from './sections.js';
@@ -52,7 +53,7 @@ const lfo = { enabled: false, frequency: 0 };
 const gateMethods = new Set(['keyOn', 'keyOff', 'noteOn', 'noteOnRaw', 'noteOff']);
 const ssgGateMethods = new Set([...gateMethods, 'tone', 'noise', 'off']);
 const codeEndpoints = new WeakMap();
-const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable]';
+const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable], .monaco-editor, #codeEditorHost, dialog[open]';
 let variant = 'ym2610b', switching = false, chip = null, source = 'fm';
 let keyboardSource = 'fm';
 let fmSelection = null, ssgChannel = null, octave = 0, keys = new Map();
@@ -186,7 +187,7 @@ const sections = setupFm2610Sections({
   },
 });
 const code = setupFm2610Code({
-  textarea: byId('code'), runButton: byId('runCode'), stopButton: byId('stopCode'),
+  textarea: byId('code'), runButton: byId('runCode'), applyButton: byId('applyCode'), stopButton: byId('stopCode'),
   status: byId('codeStatus'), output: byId('codeOutput'), sound: codeSound,
   getMode: () => variant, stopSound: stopCodeSound,
   beforeRun() {
@@ -667,7 +668,10 @@ async function selectVariant(next) {
     drawScope();
     variant = next;
     if (!physicalSlots[variant].includes(fmSelection)) fmSelection = null;
-    if (code.setMode()) files.markCodeEdited();
+    if (code.setMode()) {
+      codeEditor.setSource(editor.value, files.getEntryPath());
+      files.markCodeEdited();
+    }
     refreshFmView(true);
     refreshReferencePanels();
     byId('chipSummary').textContent = next === 'ym2610b' ? 'YM2610B · 6 FM channels · 8 MHz' : 'Neo Geo · YM2610 · 4 FM channels · 8 MHz';
@@ -782,7 +786,10 @@ new ResizeObserver(drawScope).observe(scope);
 window.addEventListener('pagehide', event => {
   releaseKeyboard();
   sections.stop({invalidateB: !event.persisted});
-  if (!event.persisted) envelope.dispose();
+  if (!event.persisted) {
+    envelope.dispose();
+    codeEditor.dispose();
+  }
 });
 const ssgChannels = document.createElement('div');
 ssgChannels.className = 'inline-controls ssg-channels';
@@ -802,8 +809,20 @@ drawScope();
 
 const editor = byId('code');
 const runCode = byId('runCode');
+const applyCode = byId('applyCode');
 editor.readOnly = true;
 runCode.disabled = true;
+
+const codeEditor = setupFm2610CodeEditor({
+  textarea: editor, editorHost: byId('codeEditorHost'), editorNote: byId('codeEditorNote'),
+  whenReady: () => files.ready,
+  getPath: () => files.getEntryPath(),
+  listFiles: () => files.listCodeFiles(),
+  openFile: path => files.openCodeFile(path),
+  onEdit: () => files.markCodeEdited(),
+  run(apply = false) { (apply ? applyCode : runCode).click(); },
+  visible: () => !byId('codePanel').hidden,
+});
 
 const files = setupFm2610Files({
   panel: byId('filesPanel'),
@@ -838,10 +857,10 @@ const files = setupFm2610Files({
   getCode: () => editor.value,
   async setCode(source, path, {show}) {
     if (show) await code.stop();
-    editor.value = source;
+    codeEditor.setSource(source, path);
     if (show) {
       workspaceView.select('codeTab');
-      editor.focus({preventScroll: true});
+      codeEditor.focus();
     }
   },
   starterCode: code.getStarter,
@@ -857,6 +876,7 @@ const files = setupFm2610Files({
 });
 const workspaceView = setupFm2610Workspace({
   showFiles: () => files.show(true),
+  focusCode: codeEditor.focus,
   onViewChange({sourceTab, expanded, inputTab}) {
     const section = sourceTab.dataset.source;
     if (voicePools[section]) keyboardSource = section;
@@ -873,9 +893,12 @@ const workspaceView = setupFm2610Workspace({
     refreshReferencePanels();
     renderKeys();
     drawScope();
+    if (inputTab?.id === 'codeTab') {
+      codeEditor.layout();
+      void codeEditor.load().catch(report);
+    }
   },
 });
-editor.addEventListener('input', () => files.markCodeEdited());
 void files.ready.then(() => {
   editor.readOnly = false;
   runCode.disabled = code.getState().busy;

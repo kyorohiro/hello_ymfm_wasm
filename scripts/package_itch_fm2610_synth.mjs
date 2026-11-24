@@ -99,6 +99,7 @@ export async function packageFm2610Synth({ version = 'dev', releaseDir = join(ro
       [coreWasm, 'generated/ym2610b_wasm.wasm'],
       ['docs/js/native_audio_effect.wasm', 'js/native_audio_effect.wasm'],
       ['docs/playground/vendor/fflate-LICENSE', 'playground/vendor/fflate-LICENSE'],
+      ['docs/playground/tetorica-playground-globals.d.ts', 'playground/tetorica-playground-globals.d.ts'],
       ['packages/virtual-files/LICENSE', 'licenses/tetorica-virtual-files/LICENSE'],
     ]) {
       await copy(join(root, input), join(source, input));
@@ -120,6 +121,7 @@ export async function packageFm2610Synth({ version = 'dev', releaseDir = join(ro
 Serve this directory over HTTPS or localhost and open index.html.
 Upload ${htmlName} as a playable HTML project on itch.io.
 Play YM2610 or YM2610B with the keyboard and JavaScript, load your own samples and VGM files, and manage sounds in Files.
+The Code panel loads Monaco completion when online and provides a textarea when the editor service is unavailable.
 The browser app includes editable JavaScript and CSS. The native audio sources and build recipes are in ${sourceName}.
 `);
 

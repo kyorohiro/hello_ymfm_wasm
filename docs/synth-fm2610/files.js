@@ -169,13 +169,16 @@ export function setupFm2610Files({
   }
 
   const heading = element('div', { className: 'fm2610-files-heading' });
-  heading.append(element('h2', { textContent: 'Files' }));
-  const actions = element('div', { className: 'fm2610-files-actions' });
+  const actions = element('div', { className: 'fm2610-file-save-controls' });
+  actions.setAttribute('role', 'group');
+  actions.setAttribute('aria-label', 'File saving');
   const saveButton = button('fm2610SaveFile', 'Save', () => save());
   saveButton.setAttribute('aria-keyshortcuts', 'Control+S Meta+S');
-  const newCode = button('fm2610NewCode', '+ JS', () => operation(() => createCode('/')));
-  const newPatch = button('fm2610SavePatch', 'Save FM patch…', () => operation(() => createPatch(PATCHES)));
-  actions.append(newCode, newPatch, saveButton);
+  const newCode = button('fm2610NewCode', '＋ JS', () => operation(() => createCode('/')));
+  const newPatch = button('fm2610SavePatch', '＋ Instrument', () => operation(() => createPatch(PATCHES)));
+  newPatch.title = 'Save the current FM sound as a new instrument';
+  heading.append(element('h2', { textContent: 'FILES' }), newPatch, newCode);
+  actions.append(saveButton);
 
   const tree = element('div', { className: 'fm2610-files-tree', id: 'fm2610FilesTree' });
   tree.setAttribute('aria-label', 'Project files');
@@ -759,6 +762,15 @@ export function setupFm2610Files({
   return {
     ...codeProject, ready, markCodeEdited, save, show, addVgmFiles, listVgm, readBinary, saveAdpcmAKit, saveAdpcmBSample,
     getEntryPath: () => codePath,
+    listCodeFiles: () => describe(fs)
+      .filter(entry => entry.type === 'file' && CODE_PATH.test(entry.path))
+      .map(entry => fs.get(entry.path))
+      .filter(entry => entry.type === 'text'),
+    openCodeFile(path) {
+      return operation(() => {
+        if (CODE_PATH.test(path)) return open(path);
+      });
+    },
     detachFmPatch() {
       activePatch = null;
       if (PATCH_PATH.test(selected)) select(codePath);

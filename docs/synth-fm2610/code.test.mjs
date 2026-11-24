@@ -113,6 +113,41 @@ test('a late ADPCM upload reaches active chip memory and leaves the stopped snap
   assert.deepEqual(second.getSnapshot().adpcmSources, {a: false, b: false});
 });
 
+test('Apply keeps the Code session, its context and the observed chip state', async () => {
+  const {audio, writes} = audioFixture();
+  const button = () => ({addEventListener() {}});
+  const applyButton = button();
+  const textarea = {value: `
+    const chip = await useSoundChip("ym2610");
+    context.level = 7;
+    chip.ssg.tone(CH1, {period: 220, volume: context.level});
+  `};
+  let starts = 0, stops = 0;
+  const code = setupFm2610Code({
+    textarea, runButton: button(), applyButton, stopButton: button(), status: {}, output: {},
+    sound: () => audio, getMode: () => 'ym2610',
+    beforeRun() { starts++; },
+    stopSound() { stops++; },
+  });
+  assert.equal(applyButton.disabled, true);
+  await code.run();
+  assert.equal(applyButton.disabled, false);
+  textarea.value = `
+    const chip = await useSoundChip("ym2610");
+    chip.adpcmB.setVolume(++context.level);
+  `;
+  await code.apply();
+  assert.equal(starts, 1);
+  assert.equal(stops, 0);
+  assert.equal(code.getSnapshot().ssg.channels[0].level, 7);
+  assert.equal(code.getSnapshot().adpcm.adpcmB.volume, 8);
+  assert.ok(writes.some(({port, register, value}) => port === 0 && register === 0x1b && value === 8));
+  await code.stop();
+  assert.equal(stops, 1);
+  assert.equal(applyButton.disabled, true);
+  assert.equal(code.getSnapshot().adpcm.adpcmB.volume, 8);
+});
+
 test('later Code borrows existing ADPCM A/B ROM through reset and isolates overwritten pages', async () => {
   const {audio} = audioFixture();
   await audio.adpcmA.loadMemory(new Uint8Array(256).fill(0x22));

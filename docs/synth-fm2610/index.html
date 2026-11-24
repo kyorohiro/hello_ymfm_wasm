@@ -147,9 +147,14 @@
     </section>
 
     <section id="performancePanel" class="panel performance" aria-label="Performance">
-      <div id="performanceTabs" class="tabs" role="tablist" aria-label="Performance input">
-        <button type="button" id="keyboardTab" role="tab" aria-selected="true" aria-controls="keyboardPanel">Keyboard</button>
-        <button type="button" id="codeTab" role="tab" aria-selected="false" aria-controls="codePanel" tabindex="-1">Code</button>
+      <div id="performanceHeading" class="performance-heading">
+        <div id="performanceTabs" class="tabs" role="tablist" aria-label="Performance input">
+          <button type="button" id="keyboardTab" role="tab" aria-selected="true" aria-controls="keyboardPanel">Keyboard</button>
+          <button type="button" id="codeTab" role="tab" aria-selected="false" aria-controls="codePanel" tabindex="-1">Code</button>
+        </div>
+        <button id="codeExpand" type="button" aria-label="Maximize Code" title="Maximize Code beside Files" aria-pressed="false" aria-controls="codePanel" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"></path></svg>
+        </button>
       </div>
       <div id="keyboardPanel" role="tabpanel" aria-labelledby="keyboardTab">
         <div class="keyboard-toolbar">
@@ -167,13 +172,18 @@
         <div id="adpcmAKeyboard" role="group" aria-label="ADPCM-A drum keys" hidden></div>
       </div>
       <div id="codePanel" role="tabpanel" aria-labelledby="codeTab" hidden>
-        <textarea id="code" aria-label="JavaScript" spellcheck="false"></textarea>
-        <div class="code-transport inline-controls">
-          <button id="runCode" type="button" class="primary">Run</button>
-          <button id="stopCode" type="button" disabled>Stop Code</button>
+        <div class="code-transport inline-controls" role="group" aria-label="Code playback">
+          <button id="runCode" type="button" title="Run a new Code session" aria-keyshortcuts="Control+Enter Meta+Enter">Run</button>
+          <button id="applyCode" type="button" title="Apply edits while keeping the current Code session" aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter" disabled>Apply</button>
+          <button id="stopCode" type="button" title="Stop Code" disabled>Stop</button>
           <output id="codeStatus" role="status"></output>
         </div>
-        <pre id="codeOutput" aria-live="polite"></pre>
+        <div class="code-editor-wrap">
+          <textarea id="code" aria-label="JavaScript" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+          <div id="codeEditorHost" aria-label="JavaScript performance code editor"></div>
+        </div>
+        <p id="codeEditorNote" class="code-editor-note" role="status" hidden></p>
+        <pre id="codeOutput" aria-label="Code output" aria-live="polite"></pre>
       </div>
     </section>
       </div>
