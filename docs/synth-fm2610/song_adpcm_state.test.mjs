@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import factory from '../generated/ym2610b_wasm.js';
 import { Ym2610B } from '../js/ym2610b.js';
-import { createFm2610SongAdpcmState, isFm2610SongAdpcmRegister } from './song_adpcm_state.js';
+import { createFm2610SongAdpcmState, isFm2610SongAdpcmRegister, normalizeFm2610AdpcmAWindow } from './song_adpcm_state.js';
 import { getFm2610AdpcmAWaveform, summarizeFm2610AdpcmA } from './song_adpcm_a_waveform.js';
 
 test('ADPCM-A shadow decodes the six addresses, level, pan and key/flag masks', () => {
@@ -36,7 +36,8 @@ test('ADPCM-A shadow decodes the six addresses, level, pan and key/flag masks', 
   assert.equal(result.adpcmA.rom.size, 0x200000);
   assert.deepEqual(result.adpcmA.voices[0], {
     channel: 0, start: 0x123400, end: 0x323800, playbackEnd: 0x123800, rangeValid: true,
-    available: true, keyed: true, lastTrigger: 1, eosFlagEnabled: false, volume: 21, left: true, right: false,
+    available: true, keyed: true, lastTrigger: 1, lastTriggerFrame: 0, lastTriggerTime: 0,
+    eosFlagEnabled: false, volume: 21, left: true, right: false,
   });
   assert.deepEqual(result.adpcmA.voices.map(voice => voice.keyed), [true, false, false, false, false, true]);
   assert.equal(result.adpcmA.voices[1].lastTrigger, 1, 'Key-off preserves the last trigger order');
@@ -45,6 +46,32 @@ test('ADPCM-A shadow decodes the six addresses, level, pan and key/flag masks', 
   assert.equal(state.snapshot().adpcmA.voices[5].lastTrigger, 1);
   assert.equal(result.adpcmB.eosFlagEnabled, false);
   assert.equal(result.adpcmB.rom, original.adpcmB.rom, 'ADPCM-B ROM retains identity across writes and A-bank transfers');
+});
+
+test('custom ADPCM-A windows can select an alternate recorded range without modifying voice settings', () => {
+  const state = createFm2610SongAdpcmState();
+  const bankSize = 0x180000, wave = new Uint8Array(512).fill(0x17);
+  const window = {start: 0x12ff00, end: 0x030100};
+  const range = normalizeFm2610AdpcmAWindow(window);
+  assert.deepEqual(range, {...window, playbackEnd: 0x130100, rangeValid: true});
+  assert.throws(() => normalizeFm2610AdpcmAWindow({start: window.start + 1, end: window.end}), /256/);
+  assert.equal(normalizeFm2610AdpcmAWindow({start: 0x001000, end: 0x101000}).rangeValid, false);
+  assert.equal(normalizeFm2610AdpcmAWindow({start: 0xffff00, end: 0x10100}).rangeValid, false);
+  state.loadRom(0, wave.subarray(0, 256), window.start, bankSize);
+  assert.equal(state.getAdpcmAWindow(0, undefined, window).available, false);
+  assert.equal(state.readAdpcmABytes(0, undefined, window), null);
+  state.loadRom(0, wave.subarray(256), window.start + 256, bankSize);
+  const snapshot = state.snapshot();
+  const {adpcmA} = snapshot;
+  assert.equal(adpcmA.voices[0].start, 0);
+  assert.equal(state.readAdpcmABytes(0, adpcmA), null);
+  assert.deepEqual(state.getAdpcmAWindow(0, adpcmA, window), {...range, available: true});
+  assert.deepEqual(state.readAdpcmABytes(0, adpcmA, window), wave);
+  assert.equal(state.snapshot(), snapshot);
+  state.loadRom(0, Uint8Array.of(0x42), window.start, bankSize);
+  assert.equal(state.getAdpcmAWindow(0, adpcmA, window), null);
+  assert.equal(state.readAdpcmABytes(0, adpcmA, window), null);
+  assert.equal(state.readAdpcmABytes(0, state.snapshot().adpcmA, window)[0], 0x42);
 });
 
 test('ADPCM-A reads the fully recorded effective span across ROM pages', () => {

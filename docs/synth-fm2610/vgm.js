@@ -73,7 +73,7 @@ function collectFmPresets(clock, variant, warnings) {
  */
 export function createFm2610SongTimeline(engine,{variant,clock}) {
   const shadow = createYm2612RegisterState(clock);
-  const adpcm = createFm2610SongAdpcmState({clock});
+  const adpcm = createFm2610SongAdpcmState({clock,outputSampleRate:engine.sampleRate?.()});
   resetFmState(shadow);
   const slots = variant === 'ym2610b' ? YM2610B_FM_CHANNELS : NEO_GEO_FM_CHANNELS;
   const originalWrite = engine.writeYm2610B;
@@ -134,7 +134,7 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
       const event = events[head++];
       switch (event.kind) {
         case 'fm': shadow.write(event.port,event.register,event.value); break;
-        case 'adpcm': adpcm.write(event.port,event.register,event.value); break;
+        case 'adpcm': adpcm.write(event.port,event.register,event.value,event.frame); break;
         case 'rom': adpcm.loadRom(event.type,event.bytes,event.offset,event.size); break;
         case 'clear-rom': adpcm.clearRom(); break;
       }
@@ -166,6 +166,7 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
       }
       return Object.freeze({...normalized,adpcm:adpcm.snapshot(),frame:lastFrame});
     },
+    getAdpcmAWindow: adpcm.getAdpcmAWindow,
     readAdpcmABytes: adpcm.readAdpcmABytes,
     readAdpcmBBytes: adpcm.readAdpcmBBytes,
     dispose() {

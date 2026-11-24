@@ -84,3 +84,51 @@ test('retrigger and closing cancel old ADPCM-A transfers without issuing a stale
   assert.deepEqual(calls.filter(([event]) => event === 'on'),[['on', 1]]);
   await assert.rejects(audition.audition(endpoint,snapshot,0,sample.subarray(1)),/complete sample/);
 });
+
+test('ADPCM-A trial applies an edited hardware window and mix settings without changing the VGM snapshot', async () => {
+  const {audition, calls} = fixture();
+  const bytes = new Uint8Array(512).fill(0x18);
+  const changes = {start:0x120000, end:0x220200, volume:7, left:true, right:false, totalVolume:19};
+  assert.equal(await audition.audition(endpoint,snapshot,2,bytes,changes),true);
+  assert.deepEqual(calls.slice(1),[
+    ['memory', bytes, 0x200000],
+    ['level', 19],
+    ['sample', 2, {start:0x200000,end:0x200200}],
+    ['voice', 2, {volume:7,left:true,right:false}],
+    ['on', 2],
+  ]);
+  assert.equal(snapshot.adpcm.adpcmA.volume,48);
+  assert.equal(snapshot.adpcm.adpcmA.voices[2].volume,23);
+
+  const before = calls.length;
+  await assert.rejects(audition.audition(endpoint,snapshot,2,sample,changes),/complete sample/);
+  await assert.rejects(audition.audition(endpoint,snapshot,2,bytes,{...changes,start:0x120001}),RangeError);
+  await assert.rejects(audition.audition(endpoint,snapshot,2,bytes,{...changes,totalVolume:64}),RangeError);
+  await assert.rejects(audition.audition(endpoint,snapshot,2,bytes,{...changes,left:'left'}),TypeError);
+  assert.equal(calls.length,before);
+});
+
+test('pending trials use current voice and shared level edits without retriggering active drums', async () => {
+  const {audition, calls, transfers} = fixture({deferMemory:true});
+  const first = audition.audition(endpoint,snapshot,0,sample,{totalVolume:25});
+  await Promise.resolve();
+  const second = audition.audition(endpoint,snapshot,5,sample,{totalVolume:33});
+  await Promise.resolve();
+  audition.setVoice(0,{volume:15,left:true,right:false});
+  audition.setVoice(5,{right:false});
+  audition.setVolume(38);
+  assert(!calls.some(([event]) => event === 'on' || event === 'level' || event === 'voice'));
+
+  transfers[1]();
+  assert.equal(await second,true);
+  assert.deepEqual(calls.filter(([event]) => event === 'voice'),[['voice',5,{volume:23,left:false,right:false}]]);
+  audition.setVoice(5,{volume:8,left:true,right:true});
+  audition.setVolume(42);
+  assert.deepEqual(calls.slice(-2),[['voice',5,{volume:8,left:true,right:true}],['level',42]]);
+
+  transfers[0]();
+  assert.equal(await first,true);
+  assert.deepEqual(calls.filter(([event]) => event === 'level'),[['level',38],['level',42],['level',42]]);
+  assert.deepEqual(calls.slice(-2),[['voice',0,{volume:15,left:true,right:false}],['on',0]]);
+  assert.deepEqual(calls.filter(([event]) => event === 'on'),[['on',5],['on',0]]);
+});

@@ -6,6 +6,17 @@ const ROM_PAGE_BYTES = 0x10000;
 const A_END_MASK = 0xfffff;
 const A_VOICES = 6;
 
+/** Start is a byte address, end is the exclusive conversion of the
+ * programmed inclusive register. OPNB compares only the low 20 end bits. */
+export function normalizeFm2610AdpcmAWindow({start, end} = {}) {
+  if (!Number.isInteger(start) || start < 0 || start >= MAX_ROM_BYTES || start % ADDRESS_UNIT ||
+      !Number.isInteger(end) || end < ADDRESS_UNIT || end > MAX_ROM_BYTES || end % ADDRESS_UNIT) {
+    throw new RangeError('ADPCM-A ROM addresses must be aligned to 256 bytes.');
+  }
+  const playbackEnd = start + ((end - start) & A_END_MASK);
+  return {start, end, playbackEnd, rangeValid: playbackEnd > start && playbackEnd <= MAX_ROM_BYTES};
+}
+
 export function isFm2610SongAdpcmRegister(port, register) {
   if (!Number.isInteger(register)) return false;
   if (port === 0) return (register >= 0x10 && register <= 0x15) || (register >= 0x19 && register <= 0x1c);
@@ -93,11 +104,13 @@ function createRomBank() {
  * `keyed` follows the last recorded trigger/reset request. The song log cannot
  * report live EOS or the decoder's current position.
  */
-export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
+export function createFm2610SongAdpcmState({clock = 8000000, outputSampleRate = 44100} = {}) {
   if (!Number.isFinite(clock) || clock <= 0) throw new RangeError('YM2610 clock must be positive.');
+  if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0) throw new RangeError('Output sample rate must be positive.');
   const a = new Uint8Array(0x30), b = new Uint8Array(0x0c);
   const banks = [createRomBank(), createRomBank()];
   const lastTrigger = new Uint32Array(A_VOICES);
+  const triggerFrames = Array(A_VOICES).fill(null);
   let aKeyed = 0, triggerOrder = 0, eosMask = 0, revision = 0, cached = null;
 
   function invalidate() {
@@ -118,6 +131,7 @@ export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
     aKeyed = 0;
     triggerOrder = 0;
     lastTrigger.fill(0);
+    triggerFrames.fill(null);
     eosMask = 0;
     clearRom();
   }
@@ -128,7 +142,7 @@ export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
     invalidate();
   }
 
-  function write(port, register, value) {
+  function write(port, register, value, frame = 0) {
     if (!isFm2610SongAdpcmRegister(port, register)) return false;
     if (!Number.isInteger(value) || value < 0 || value > 255) throw new RangeError('Expected an 8-bit YM2610 register value.');
     if (port === 1 && register === 0) {
@@ -137,9 +151,13 @@ export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
       const next = off ? aKeyed & ~mask : aKeyed | mask;
       const triggered = !off && mask !== 0;
       if (triggered) {
+        if (!Number.isSafeInteger(frame) || frame < 0) throw new RangeError('Invalid ADPCM-A trigger frame.');
         triggerOrder++;
         for (let channel = 0; channel < A_VOICES; channel++) {
-          if (mask & (1 << channel)) lastTrigger[channel] = triggerOrder;
+          if (mask & (1 << channel)) {
+            lastTrigger[channel] = triggerOrder;
+            triggerFrames[channel] = frame;
+          }
         }
       }
       if (triggered || next !== aKeyed) {
@@ -170,15 +188,14 @@ export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
     const voices = Array.from({length: A_VOICES}, (_, channel) => {
       const start = (a[0x10 + channel] | a[0x18 + channel] << 8) * ADDRESS_UNIT;
       const end = ((a[0x20 + channel] | a[0x28 + channel] << 8) + 1) * ADDRESS_UNIT;
-      // The programmed end is inclusive. The actual stop uses only its low
-      // 20 address bits, so a raw register log can describe a different span.
-      const playbackEnd = start + ((end - start) & A_END_MASK);
+      const window = normalizeFm2610AdpcmAWindow({start, end});
       const pan = a[0x08 + channel], mask = 1 << channel;
+      const lastTriggerFrame = triggerFrames[channel];
       return Object.freeze({
-        channel, start, end, playbackEnd,
-        rangeValid: playbackEnd > start && playbackEnd <= MAX_ROM_BYTES,
-        available: banks[0].covers(start, playbackEnd),
+        channel, ...window,
+        available: banks[0].covers(start, window.playbackEnd),
         keyed: Boolean(aKeyed & mask), lastTrigger: lastTrigger[channel], eosFlagEnabled: !(eosMask & mask),
+        lastTriggerFrame, lastTriggerTime: lastTriggerFrame === null ? null : lastTriggerFrame / outputSampleRate,
         volume: pan & 31, left: Boolean(pan & 128), right: Boolean(pan & 64),
       });
     });
@@ -198,7 +215,7 @@ export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
     return cached;
   }
 
-  function readAdpcmABytes(channel, expected) {
+  function getAdpcmAWindow(channel, expected, customWindow) {
     if (!Number.isInteger(channel) || channel < 0 || channel >= A_VOICES) return null;
     const {adpcmA} = snapshot();
     const voice = adpcmA.voices[channel];
@@ -207,7 +224,17 @@ export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
       if (expected.rom !== adpcmA.rom || previous?.start !== voice.start ||
           previous?.playbackEnd !== voice.playbackEnd) return null;
     }
-    return banks[0].read(voice.start, voice.playbackEnd);
+    if (customWindow === undefined) {
+      const {start, end, playbackEnd, rangeValid, available} = voice;
+      return {start, end, playbackEnd, rangeValid, available};
+    }
+    const window = normalizeFm2610AdpcmAWindow(customWindow);
+    return {...window, available: banks[0].covers(window.start, window.playbackEnd)};
+  }
+
+  function readAdpcmABytes(channel, expected, customWindow) {
+    const window = getAdpcmAWindow(channel, expected, customWindow);
+    return window?.available ? banks[0].read(window.start, window.playbackEnd) : null;
   }
 
   function readAdpcmBBytes(expected) {
@@ -217,5 +244,5 @@ export function createFm2610SongAdpcmState({clock = 8000000} = {}) {
   }
 
   reset();
-  return {write, loadRom, clearRom, reset, snapshot, readAdpcmABytes, readAdpcmBBytes};
+  return {write, loadRom, clearRom, reset, snapshot, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes};
 }

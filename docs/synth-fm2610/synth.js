@@ -16,6 +16,7 @@ import { setupFm2610Files } from './files.js';
 import { captureFm2610Patch, fmCaptureReason, readFm2610Patch } from './fm_patch.js';
 import { ADPCM_A_KEYS, setupFm2610Sections } from './sections.js';
 import { createFm2610SongAdpcmAAudition } from './song_adpcm_a_audition.js';
+import { createFm2610SongAdpcmBAudition } from './song_adpcm_b_audition.js';
 import { createFm2610SongAudition } from './song_audition.js';
 import { setupFm2610SongControls } from './song_controls.js';
 import { setupFm2610Workspace } from './workspace.js';
@@ -33,7 +34,10 @@ const envelopeRoot = byId('fmEnvelope');
 const workspace = byId('workspace');
 const audio = createFm2610Audio();
 const audition = createFm2610SongAudition();
-const adpcmAAudition = createFm2610SongAdpcmAAudition();
+const adpcmAuditions = {
+  a: {voice: createFm2610SongAdpcmAAudition(), revision: 0},
+  b: {voice: createFm2610SongAdpcmBAudition(), revision: 0},
+};
 const visualizer = createSynthOutputVisualizer({
   background: '#18150f', grid: '#4b3b26', labels: '#bfaf91', trace: '#ffcc78',
 });
@@ -63,7 +67,6 @@ let keyboardSource = 'fm';
 let fmChannel = null, ssgChannel = null, octave = 0, keys = new Map();
 let scopeMode = 'waveform', scopeFrame = null;
 let songState = {playback: 'stopped'}, fmView = null, auditionVoice = null;
-let adpcmAAuditionEpoch = 0;
 let channelProfile = '';
 const liveChannels = {};
 const envelope = createOperatorEnvelopeView({
@@ -175,13 +178,13 @@ const sections = setupFm2610Sections({
   ssgPanel: byId('ssgPanel'), adpcmAPanel: byId('adpcmAPanel'), adpcmBPanel: byId('adpcmBPanel'), sound, report,
   releaseAdpcmBKeyboard,
   onAdpcmLiveChange: renderKeys,
-  async playSongAdpcmA(snapshot, channel, bytes) {
-    const epoch = adpcmAAuditionEpoch;
-    const endpoint = await sound();
-    if (epoch !== adpcmAAuditionEpoch || songState.snapshot !== snapshot || songState.playback !== 'paused') return;
-    await adpcmAAudition.audition(endpoint, snapshot, channel, bytes);
-  },
-  stopSongAdpcmA: stopAdpcmAAudition,
+  playSongAdpcmA: (snapshot, channel, bytes, readSettings) =>
+    playPausedAdpcm('a', snapshot, () => [channel, bytes, readSettings()]),
+  stopSongAdpcmA: () => stopPausedAdpcm('a'),
+  setSongAdpcmAVoice: adpcmAuditions.a.voice.setVoice,
+  setSongAdpcmALevel: adpcmAuditions.a.voice.setVolume,
+  playSongAdpcmB: (snapshot, bytes, options) => playPausedAdpcm('b', snapshot, () => [bytes, options]),
+  stopSongAdpcmB: () => stopPausedAdpcm('b'),
   async saveAdpcmAKit(kit) {
     await files.ready;
     return files.saveAdpcmAKit(kit);
@@ -219,17 +222,32 @@ const songs = setupFm2610SongControls({
 
 function refreshAdpcmView() {
   const following = sections.isFollowingAdpcm(source);
-  const auditioning = sections.canAuditionAdpcmA();
+  const auditioning = canAuditionAdpcm(source);
   const panel = {'adpcm-a': 'adpcmAPanel', 'adpcm-b': 'adpcmBPanel'}[source];
   const visible = panel && !byId(panel).closest('[hidden]') ? source : undefined;
-  sections.setSongAdpcm(songState.snapshot, {readAdpcmA: songs.readAdpcmABytes, readAdpcmB: songs.readAdpcmBBytes,
+  sections.setSongAdpcm(songState.snapshot, {getAdpcmAWindow: songs.getAdpcmAWindow,
+    readAdpcmA: songs.readAdpcmABytes, readAdpcmB: songs.readAdpcmBBytes,
     visible, paused: songState.playback === 'paused'});
-  if (following !== sections.isFollowingAdpcm(source) || auditioning !== sections.canAuditionAdpcmA()) renderKeys();
+  if (following !== sections.isFollowingAdpcm(source) || auditioning !== canAuditionAdpcm(source)) renderKeys();
 }
 
-function stopAdpcmAAudition() {
-  adpcmAAuditionEpoch++;
-  void adpcmAAudition.close()?.catch(report);
+function canAuditionAdpcm(section) {
+  if (section === 'adpcm-a') return sections.canAuditionAdpcmA();
+  return section === 'adpcm-b' && sections.canAuditionAdpcmB();
+}
+
+async function playPausedAdpcm(kind, snapshot, readArgs) {
+  const player = adpcmAuditions[kind];
+  const {revision} = player;
+  const endpoint = await sound();
+  if (revision !== player.revision || songState.snapshot !== snapshot || songState.playback !== 'paused') return;
+  return player.voice.audition(endpoint, snapshot, ...readArgs());
+}
+
+function stopPausedAdpcm(kind) {
+  const player = adpcmAuditions[kind];
+  player.revision++;
+  void player.voice.close()?.catch(report);
 }
 
 function autoLiveVoice(kind, voices) {
@@ -444,7 +462,10 @@ function renderFmChannels() {
 function stopVoice(section, voice) {
   if (!voice) return;
   if (section === 'ssg') sections.noteOffSSG(voice.channel);
-  else if (section === 'adpcm-b') sections.noteOffAdpcmB(voice);
+  else if (section === 'adpcm-b') {
+    if (voice.songSample) sections.noteOffSongAdpcmB(voice);
+    else sections.noteOffAdpcmB(voice);
+  }
   else if (voice.started) chip?.fm.noteOff(voice.channel);
 }
 
@@ -457,20 +478,22 @@ function renderKeys() {
   for (const button of drumKeyboard.querySelectorAll('.key')) {
     button.setAttribute('aria-pressed', String(drumHits.has(drumKeys.get(button.dataset.key))));
   }
-  const auditioningAdpcmA = source === 'adpcm-a' && sections.canAuditionAdpcmA();
-  if (sections.isFollowingAdpcm(source) && !auditioningAdpcmA) {
-    byId('keyboardStatus').textContent = 'Turn off Live to play the Synth samples from the keyboard.';
+  const auditioningAdpcm = canAuditionAdpcm(source);
+  if (sections.isFollowingAdpcm(source) && !auditioningAdpcm) {
+    byId('keyboardStatus').textContent = songState.playback === 'paused' ? 'The selected VGM sample is unavailable for audition.' :
+      'Pause VGM to audition, or turn off Live to play the Synth samples.';
     return;
   }
   if (source === 'adpcm-a') {
     byId('keyboardStatus').textContent = [...drumHits].map(entry => entry.noteName).join(' · ') ||
-      (auditioningAdpcmA ? 'Audition the paused VGM pads with these keys.' : 'Trigger the ADPCM-A pads with the six keys below.');
+      (auditioningAdpcm ? 'Audition the paused VGM pads with these keys.' : 'Trigger the ADPCM-A pads with the six keys below.');
     return;
   }
   const liveSong = source === 'fm' && fmView?.kind === 'vgm';
   const guidance = liveSong ? (fmView.paused ? 'Play the paused VGM channel with the keys below.' : 'Pause VGM to play the selected channel.') :
     ({fm: 'Play the FM channels with the keys below.', ssg: ssgChannel === null ? 'Play the SSG voices with the keys below.' : `Play SSG CH${ssgChannel + 1} with the keys below.`,
-      'adpcm-b': 'Play the ADPCM-B sample with the keys below.'})[source];
+      'adpcm-b': auditioningAdpcm ? 'Play the paused VGM sample. Reference note uses the recorded playback rate.' :
+        'Play the ADPCM-B sample with the keys below.'})[source];
   byId('keyboardStatus').textContent = !voicePools[source] ? 'Use the sample controls above.' :
     voices.filter(voice => voice.started).map(voice => voice.entry.noteName).join(' · ') || guidance;
 }
@@ -528,8 +551,8 @@ async function playAudition(owner, entry) {
 
 async function playKey(owner, entry) {
   const section = source, pool = voicePools[section];
-  const blockedByAdpcmLive = sections.isFollowingAdpcm(section) &&
-    !(section === 'adpcm-a' && sections.canAuditionAdpcmA());
+  const followingAdpcm = sections.isFollowingAdpcm(section);
+  const blockedByAdpcmLive = followingAdpcm && !canAuditionAdpcm(section);
   if (switching || blockedByAdpcmLive || drumKeysDown.has(owner) ||
       Object.values(voicePools).some(voices => voices.voices().some(voice => voice.owner === owner))) return;
   if (section === 'adpcm-a') {
@@ -547,12 +570,12 @@ async function playKey(owner, entry) {
   }
   const choices = section === 'fm' ? fmTargets() : section === 'adpcm-b' ? [0] :
     ssgChannel === null ? [0, 1, 2] : [ssgChannel];
-  const { voice, displaced } = pool.acquire(choices, { owner, entry });
+  const { voice, displaced } = pool.acquire(choices, { owner, entry, songSample: section === 'adpcm-b' && followingAdpcm });
   stopVoice(section, displaced);
   renderKeys();
   try {
     if (section === 'adpcm-b') {
-      voice.started = await sections.noteOnAdpcmB(entry.midi, voice);
+      voice.started = voice.songSample ? await sections.noteOnSongAdpcmB(entry.midi, voice) : await sections.noteOnAdpcmB(entry.midi, voice);
       if (!voice.started) pool.releaseVoice(voice);
     } else {
       const ready = await sound();
@@ -703,7 +726,7 @@ function setupOutputMixer() {
     try {
       audio.setSourceGains(gains);
       audition.setSourceGains(gains);
-      adpcmAAudition.setSourceGains(gains);
+      for (const {voice} of Object.values(adpcmAuditions)) voice.setSourceGains(gains);
       songs.setSourceGains(gains);
     } catch (error) { report(error); }
   }
@@ -751,7 +774,8 @@ new ResizeObserver(drawScope).observe(scope);
 
 window.addEventListener('pagehide', event => {
   stopAudition();
-  stopAdpcmAAudition();
+  stopPausedAdpcm('a');
+  stopPausedAdpcm('b');
   if (!event.persisted) envelope.dispose();
 });
 const ssgChannels = document.createElement('div');

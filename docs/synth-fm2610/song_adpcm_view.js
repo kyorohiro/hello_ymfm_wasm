@@ -56,7 +56,7 @@ export function createFm2610AdpcmReadouts(document, selectA) {
     select.setAttribute('aria-pressed', 'false');
     select.addEventListener('click', () => selectA(index));
     title.append(select);
-    const values = readout(fields);
+    const values = readout({...fields, trigger: 'Last key-on'});
     card.append(title, values.list);
     voices.append(card);
     return {values, select};
@@ -74,7 +74,7 @@ export function createFm2610AdpcmReadouts(document, selectA) {
       aSummary.update({'total-level': String(state.volume)});
       state.voices.forEach((voice, index) => {
         const {values, select} = aReadouts[index];
-        values.update(voiceFields(voice));
+        values.update({...voiceFields(voice), trigger: voice.lastTriggerTime === null ? '—' : `${voice.lastTriggerTime.toFixed(3)} s`});
         const pressed = String(index === channel);
         if (select.getAttribute('aria-pressed') !== pressed) select.setAttribute('aria-pressed', pressed);
       });

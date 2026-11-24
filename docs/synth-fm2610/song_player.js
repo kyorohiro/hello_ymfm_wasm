@@ -204,9 +204,19 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     sourceGains = next;
   }
 
-  function readAdpcmABytes(snapshot, channel) {
-    if (!snapshot || snapshot !== state.snapshot) return null;
-    return run?.timeline?.readAdpcmABytes(channel,snapshot.adpcm.adpcmA) ?? null;
+  function currentAdpcmA(snapshot, customWindow) {
+    if (!snapshot || snapshot !== state.snapshot || (customWindow !== undefined && state.playback !== 'paused')) return null;
+    return snapshot.adpcm.adpcmA;
+  }
+
+  function getAdpcmAWindow(snapshot, channel, customWindow) {
+    const adpcmA = currentAdpcmA(snapshot, customWindow);
+    return adpcmA ? run?.timeline?.getAdpcmAWindow(channel, adpcmA, customWindow) ?? null : null;
+  }
+
+  function readAdpcmABytes(snapshot, channel, customWindow) {
+    const adpcmA = currentAdpcmA(snapshot, customWindow);
+    return adpcmA ? run?.timeline?.readAdpcmABytes(channel, adpcmA, customWindow) ?? null : null;
   }
 
   function readAdpcmBBytes(snapshot = state.snapshot) {
@@ -214,6 +224,6 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     return run?.timeline?.readAdpcmBBytes(snapshot.adpcm.adpcmB) ?? null;
   }
 
-  return {play, pause, resume, stop, setSourceGains, readAdpcmABytes, readAdpcmBBytes,
+  return {play, pause, resume, stop, setSourceGains, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
     getState: () => state, getSnapshot: () => state.snapshot};
 }

@@ -149,6 +149,7 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
   for (const event of ['blur', 'pointercancel']) seek.addEventListener(event, () => { seekDraft = false; render(); });
 
   return {refresh, importFile, selectFile, stop, clear,
+    getAdpcmAWindow: player.getAdpcmAWindow,
     readAdpcmABytes: player.readAdpcmABytes, readAdpcmBBytes: player.readAdpcmBBytes,
     setSourceGains: gains => player.setSourceGains(gains)};
 }

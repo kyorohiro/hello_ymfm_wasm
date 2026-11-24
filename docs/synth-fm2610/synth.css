@@ -199,6 +199,8 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 #adpcmAWaveform, #adpcmBWaveform { display: block; width: 100%; height: clamp(92px, 16vw, 144px); margin-top: 8px; border: 1px solid var(--border); border-radius: 6px; }
 #adpcmAPreviewInfo { margin-top: 4px; }
 #adpcmAVgm .fm2610-voice h3 button { min-height: 28px; }
+.fm2610-adpcm-trial { margin-top: 9px; }
+.fm2610-adpcm-trial input[type="text"] { width: 11ch; font: .8rem var(--mono); }
 #adpcmBSampleDuration { margin-block: 4px 8px; color: var(--muted); font: .78rem var(--mono); }
 #adpcmBSampleDuration:empty { display: none; }
 .adpcm-readout {
