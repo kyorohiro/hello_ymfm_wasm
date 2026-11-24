@@ -20,6 +20,12 @@ export function createFm2610SongSsgState() {
       observed = true;
       registers[register] = value;
     },
+    saveState() { return {registers: registers.slice(), observed}; },
+    loadState(state) {
+      registers.set(state.registers);
+      observed = state.observed;
+      cached = null;
+    },
     snapshot() {
       if (!observed) return null;
       if (cached) return cached;

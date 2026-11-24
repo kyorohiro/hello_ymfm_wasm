@@ -11,6 +11,7 @@ import {
 } from './adpcm_b.js';
 import {getFm2610AdpcmAWaveform} from './song_adpcm_a_waveform.js';
 import {createFm2610AdpcmReadouts} from './song_adpcm_view.js';
+import {createDefaultSsgPreset, readSsgPreset} from './ssg_preset.js';
 
 const MASTER_CLOCK = 8_000_000;
 const SAMPLE_ADDRESS = 0x10000;
@@ -180,7 +181,7 @@ function createSongWaveView(canvas, prepareWaveform, report) {
 
 export function setupFm2610Sections({
   ssgPanel, adpcmAPanel, adpcmBPanel, sound, getMode, releaseAdpcmAKeyboard, releaseAdpcmBKeyboard,
-  saveAdpcmAKit, saveAdpcmBSample, onInstrumentEdited = () => {}, onInstrumentAdopted = () => {}, report = () => {},
+  saveSsgPreset, saveAdpcmAKit, saveAdpcmBSample, onInstrumentEdited = () => {}, onInstrumentAdopted = () => {}, report = () => {},
 }) {
   const doc = ssgPanel.ownerDocument;
   const element = (tag, text, className) => {
@@ -244,11 +245,10 @@ export function setupFm2610Sections({
   const aAppliedSnapshots = new WeakSet();
   const bAppliedSnapshots = new WeakMap();
 
-  const voices = Array.from({length: 3}, () =>
-    ({tone: true, noise: false, level: 10, envelope: false, period: 0, gate: false, request: 0}));
+  const defaultSsg = createDefaultSsgPreset();
+  const voices = defaultSsg.channels.map(voice => ({...voice, gate: false, request: 0}));
   let ssgChip;
-  let noisePeriod = 16;
-  let envelopePeriod = 512, envelopeShape = 10;
+  let {noisePeriod, envelopePeriod, envelopeShape} = defaultSsg;
   let ssgEditChannel = null;
   const ssgAppliedSnapshots = new WeakSet();
   let displayedSsg, displayedSsgKind;
@@ -295,6 +295,7 @@ export function setupFm2610Sections({
       if (key === 'period' && voices[channel].gate) ssgChip.setTonePeriod(channel, value);
       else if (key !== 'period') updateSsg(channel);
     }
+    onInstrumentEdited('ssg');
     showSSGChannel(ssgEditChannel);
   }
 
@@ -305,21 +306,26 @@ export function setupFm2610Sections({
   const ssgNoise = toggle('Noise', voices[0].noise, value => editSsg('noise', value));
   const ssgEnvelope = toggle('Envelope', voices[0].envelope, value => editSsg('envelope', value));
   const ssgLevel = slider('Level', 0, 15, 1, voices[0].level, value => editSsg('level', value));
-  const ssgTonePeriod = slider('Tone period', 0, 4095, 1, 0, value => editSsg('period', value));
+  const ssgTonePeriod = slider('Tone period', 0, 4095, 1, voices[0].period, value => editSsg('period', value));
   const ssgSwitches = [['tone', ssgTone], ['noise', ssgNoise], ['envelope', ssgEnvelope]]
     .map(([key, label]) => [key, label.querySelector('input')]);
   const ssgNoisePeriod = slider('Noise period (shared)', 0, 31, 1, noisePeriod, value => {
     noisePeriod = value;
     if (hasSsgGate()) ssgChip.write(6, noisePeriod);
+    onInstrumentEdited('ssg');
   });
   const ssgEnvelopePeriod = slider('Envelope period (shared)', 0, 65535, 1, envelopePeriod, value => {
     envelopePeriod = value;
     if (hasSsgEnvelope()) ssgChip.setEnvelope({period: envelopePeriod});
+    onInstrumentEdited('ssg');
   });
   const ssgEnvelopeShape = slider('Envelope shape (shared)', 0, 15, 1, envelopeShape, value => {
     envelopeShape = value;
     if (hasSsgEnvelope()) ssgChip.setEnvelope({shape: envelopeShape});
+    onInstrumentEdited('ssg');
   });
+  const ssgSave = saveSsgPreset ? button('Save preset…', () => saveSsgPreset(getSsgPreset())) : null;
+  if (ssgSave) ssgSave.id = 'ssgSavePreset';
   const ssgStatus = element('p', '', 'fm2610-sample-name');
   ssgStatus.id = 'ssgChannelState';
   const ssgParameters = [
@@ -344,6 +350,7 @@ export function setupFm2610Sections({
     ssgEnvelopePeriod.setValue(state?.envelopePeriod ?? envelopePeriod);
     ssgEnvelopeShape.setValue(state?.envelopeShape ?? envelopeShape);
     for (const input of ssgParameters) input.disabled = Boolean(state);
+    if (ssgSave) ssgSave.disabled = Boolean(state);
     ssgStatus.textContent = state ? (reference.kind === 'code' ? 'Code · Running' : 'VGM · Playing') : 'Edit';
   }
 
@@ -365,11 +372,23 @@ export function setupFm2610Sections({
     });
   }
 
+  function getSsgPreset() {
+    if (isFollowingSsg()) throw new Error(`${reference.kind === 'code' ? 'Stop Code' : 'Pause VGM'} to save the SSG preset.`);
+    return readSsgPreset({...defaultSsg, channels: voices, noisePeriod, envelopePeriod, envelopeShape});
+  }
+
+  function applySsgPreset(preset) {
+    if (isFollowingSsg()) throw new Error(`${reference.kind === 'code' ? 'Stop Code' : 'Pause VGM'} to open the SSG preset.`);
+    adoptSsg(readSsgPreset(preset));
+    showSSGChannel(ssgEditChannel);
+  }
+
   function refreshSsgReference() {
     const captured = songSnapshot?.ssg;
     const adopt = captured && reference.frozen && !ssgAppliedSnapshots.has(songSnapshot);
     if (adopt) {
       ssgAppliedSnapshots.add(songSnapshot);
+      onInstrumentAdopted('ssg');
       adoptSsg(captured);
     }
     if (visibleSource !== 'ssg' && !adopt) return;
@@ -385,6 +404,7 @@ export function setupFm2610Sections({
   ssgControls.append(ssgVoice);
   const ssgShared = element('div', '', 'fm2610-inline-controls');
   ssgShared.append(ssgNoisePeriod.label, ssgEnvelopePeriod.label, ssgEnvelopeShape.label);
+  if (ssgSave) ssgShared.append(ssgSave);
   ssgPanel.append(title('SSG · 3 voices', 'AUTO rotates notes across three channels and applies each edit to all three. Noise and envelope settings are shared.'),
     ssgControls, ssgShared, ssgStatus);
   showSSGChannel(ssgEditChannel);
@@ -830,6 +850,7 @@ export function setupFm2610Sections({
   let bPending;
   let bWaveRequest;
   let bEditorPeaks;
+  let bDrawMode = false, bStroke, bDrawJob, bExportJob;
   const bWave = createSongWaveView(bWaveform, getFm2610AdpcmBWaveform, report);
   let bPreparedSample;
   let bRangeSource = {}, bWasFollowing = false;
@@ -866,6 +887,19 @@ export function setupFm2610Sections({
   const bLeft = toggle('Left', true, left => editAdpcmBSettings({left}));
   const bRight = toggle('Right', true, right => editAdpcmBSettings({right}));
   const bSave = button('Save sample…', () => saveAdpcmBSample(adpcmB.getSample()));
+  const bExport = button('Export WAV', exportAdpcmBWave);
+  bExport.title = 'Export the selected ROM range as mono WAV at the base rate.';
+  const bRangeTool = button('Range', () => setAdpcmBWaveTool(false));
+  const bDrawTool = button('Draw', () => setAdpcmBWaveTool(true));
+  const bWaveTools = element('div', '', 'fm2610-inline-controls');
+  bWaveTools.setAttribute('role', 'group');
+  bWaveTools.setAttribute('aria-label', 'ADPCM-B waveform tool');
+  bWaveTools.append(bRangeTool, bDrawTool);
+  const bDrawHint = element('p', '', 'fm2610-sample-name fm2610-adpcm-range-hint');
+  bDrawHint.id = 'adpcmBDrawHint';
+  const bDrawStatus = element('output', '', 'fm2610-sample-name');
+  bDrawStatus.setAttribute('role', 'status');
+  bDrawStatus.hidden = true;
 
   function editAdpcmBSettings(settings) {
     adpcmB.setSettings(settings);
@@ -880,6 +914,133 @@ export function setupFm2610Sections({
     bStart.cancelDrag();
     bEnd.cancelDrag();
     bRangeView.cancelDrag();
+  }
+
+  function setAdpcmBWaveTool(draw) {
+    if (draw === bDrawMode) return;
+    cancelAdpcmBRangeDrag();
+    if (!draw) cancelAdpcmBDrawing();
+    bDrawMode = draw;
+    renderAdpcmB();
+  }
+
+  function releaseAdpcmBStroke() {
+    const stroke = bStroke;
+    if (!stroke) return null;
+    bStroke = null;
+    if (bWaveform.hasPointerCapture(stroke.pointer)) bWaveform.releasePointerCapture(stroke.pointer);
+    return stroke;
+  }
+
+  function cancelAdpcmBDrawing() {
+    if (!bStroke && !bDrawJob) return;
+    releaseAdpcmBStroke();
+    bDrawJob?.abort();
+    bDrawJob = null;
+    if (!isFollowingAdpcm('adpcm-b')) drawAdpcmWaveform(bWaveform, bEditorPeaks);
+    renderAdpcmB();
+  }
+
+  function paintAdpcmBStroke(event) {
+    const bounds = bWaveform.getBoundingClientRect();
+    const position = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+    const y = (event.clientY - bounds.top) * bWaveform.height / bounds.height;
+    const middle = bWaveform.height / 2;
+    const amplitude = Math.max(-1, Math.min(1, (middle - y) / (middle - 4)));
+    const {points, peaks} = bStroke;
+    const previous = points.at(-1) ?? {position, amplitude};
+    if (points.length && previous.position === position && previous.amplitude === amplitude) return;
+    points.push({position, amplitude});
+    // Preview the painted columns immediately; the committed plot is the actual decode.
+    const last = peaks.length / 2 - 1;
+    const from = Math.round(previous.position * last), to = Math.round(position * last);
+    for (let column = Math.min(from, to); column <= Math.max(from, to); column++) {
+      const amount = from === to ? 1 : (column - from) / (to - from);
+      peaks[column * 2] = peaks[column * 2 + 1] = previous.amplitude + (amplitude - previous.amplitude) * amount;
+    }
+    drawAdpcmWaveform(bWaveform, peaks);
+  }
+
+  bWaveform.addEventListener('pointerdown', event => {
+    if (!bDrawMode || !bEditorPeaks?.length || bPending || bDrawJob || bStroke ||
+        isFollowingAdpcm('adpcm-b') || event.button !== 0) return;
+    event.preventDefault();
+    bDrawStatus.hidden = true;
+    bStroke = {pointer: event.pointerId, points: [], peaks: bEditorPeaks.slice()};
+    bWaveform.setPointerCapture(event.pointerId);
+    paintAdpcmBStroke(event);
+  });
+  bWaveform.addEventListener('pointermove', event => {
+    if (bStroke?.pointer === event.pointerId) paintAdpcmBStroke(event);
+  });
+  bWaveform.addEventListener('pointerup', async event => {
+    if (bStroke?.pointer !== event.pointerId) return;
+    paintAdpcmBStroke(event);
+    const {points} = releaseAdpcmBStroke();
+    const job = new AbortController();
+    bDrawJob = job;
+    renderAdpcmB();
+    try {
+      if (await adpcmB.drawWave(points, job.signal)) {
+        bDrawStatus.textContent = 'Waveform updated. The next note uses the edited sample.';
+        bDrawStatus.hidden = false;
+        onInstrumentEdited('adpcm-b');
+        await refreshAdpcmBWaveform();
+      } else {
+        drawAdpcmWaveform(bWaveform, bEditorPeaks);
+      }
+    } catch (error) {
+      if (!job.signal.aborted) {
+        drawAdpcmWaveform(bWaveform, bEditorPeaks);
+        report(error);
+      }
+    } finally {
+      if (bDrawJob === job) {
+        bDrawJob = null;
+        renderAdpcmB();
+      }
+    }
+  });
+  for (const eventName of ['pointercancel', 'lostpointercapture']) {
+    bWaveform.addEventListener(eventName, event => {
+      if (bStroke?.pointer === event.pointerId) cancelAdpcmBDrawing();
+    });
+  }
+  const bWindow = bWaveform.ownerDocument.defaultView;
+  bWindow.addEventListener('blur', () => {
+    if (bStroke) cancelAdpcmBDrawing();
+  });
+  bWindow.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && bStroke) {
+      event.preventDefault();
+      cancelAdpcmBDrawing();
+    }
+  });
+
+  async function exportAdpcmBWave() {
+    const job = new AbortController();
+    bExportJob = job;
+    renderAdpcmB();
+    try {
+      const {name} = adpcmB.getSettings();
+      const bytes = await adpcmB.exportWave(job.signal);
+      const url = bWindow.URL.createObjectURL(new Blob([bytes], {type: 'audio/wav'}));
+      try {
+        const anchor = element('a');
+        anchor.href = url;
+        anchor.download = name.replace(/\.wav$/i, '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') + '.wav';
+        anchor.click();
+      } finally {
+        bWindow.setTimeout(() => bWindow.URL.revokeObjectURL(url), 1000);
+      }
+    } catch (error) {
+      if (!job.signal.aborted) report(error);
+    } finally {
+      if (bExportJob === job) {
+        bExportJob = null;
+        renderAdpcmB();
+      }
+    }
   }
 
   function editAdpcmBRange(field, address, view) {
@@ -912,6 +1073,7 @@ export function setupFm2610Sections({
       if (!request.signal.aborted) {
         bEditorPeaks = peaks;
         if (!isFollowingAdpcm('adpcm-b')) drawAdpcmWaveform(bWaveform, peaks);
+        renderAdpcmBControls(isFollowingAdpcm('adpcm-b'));
       }
     } catch (error) {
       if (!request.signal.aborted) report(error);
@@ -940,6 +1102,19 @@ export function setupFm2610Sections({
     for (const control of bToolbar.querySelectorAll('button')) {
       control.disabled = following || (control === bSave && Boolean(bPending));
     }
+    const preparing = Boolean(bPending || bDrawJob);
+    bSave.disabled ||= preparing;
+    bExport.disabled ||= preparing || Boolean(bExportJob);
+    bRangeTool.disabled = following;
+    bDrawTool.disabled = following || preparing || !bEditorPeaks?.length;
+    bRangeTool.setAttribute('aria-pressed', String(!bDrawMode));
+    bDrawTool.setAttribute('aria-pressed', String(bDrawMode));
+    const drawing = !following && bDrawMode;
+    bWaveform.classList.toggle('is-drawing', drawing && !preparing);
+    bWaveform.setAttribute('aria-describedby', drawing ? bDrawHint.id : bRangeView.hint.id);
+    bDrawHint.hidden = !drawing;
+    bDrawHint.textContent = bDrawJob ? 'Encoding waveform…' : 'Draw on the waveform and release to apply. Escape cancels the stroke.';
+    if (following) bDrawStatus.hidden = true;
     for (const control of bParameters.querySelectorAll('button, input')) control.disabled = following;
   }
 
@@ -954,7 +1129,7 @@ export function setupFm2610Sections({
     const {start, end, sampleStart, sampleEnd} = settings;
     bStart.updateRange(sampleStart, end - ADPCM_ADDRESS_STEP);
     bEnd.updateRange(start + ADPCM_ADDRESS_STEP, sampleEnd);
-    bRangeView.show({channel: 0, rom: bRangeSource, first: sampleStart, last: sampleEnd, start, end});
+    bRangeView.show(bDrawMode ? null : {channel: 0, rom: bRangeSource, first: sampleStart, last: sampleEnd, start, end});
     renderAdpcmBParameters(settings);
     bName.textContent = bPending ? 'Preparing WAV…' : settings.name;
     bName.title = settings.name;
@@ -963,6 +1138,8 @@ export function setupFm2610Sections({
   }
 
   function applyAdpcmBSample(sample) {
+    cancelAdpcmBDrawing();
+    bDrawStatus.hidden = true;
     bPending?.abort();
     bPending = null;
     releaseAdpcmBKeyboard();
@@ -978,6 +1155,8 @@ export function setupFm2610Sections({
     const file = bPicker.files[0];
     bPicker.value = '';
     if (!file) return;
+    cancelAdpcmBDrawing();
+    bDrawStatus.hidden = true;
     bPending?.abort();
     const controller = new AbortController();
     bPending = controller;
@@ -1010,7 +1189,7 @@ export function setupFm2610Sections({
   }), button('Reset to pluck', () => {
     applyAdpcmBSample(null);
     onInstrumentEdited('adpcm-b');
-  }), bSave);
+  }), bSave, bExport);
   const bParameters = element('div', '', 'fm2610-inline-controls');
   const bRangeControls = element('div', '', 'fm2610-inline-controls fm2610-adpcm-range');
   bRangeControls.append(bStart.element, bEnd.element);
@@ -1020,8 +1199,8 @@ export function setupFm2610Sections({
   bPan.append(element('span', 'Pan'), bLeft, bRight);
   bParameters.append(bRangeControls, bDelta.element, bRoot.element, bRate.label, bVolume.label, bPan, bRepeat);
   const bHeader = title('ADPCM-B · 1 voice', 'Set the root note for keyboard playback. Repeat applies when the next note starts.');
-  adpcmBPanel.append(bHeader, bName, bUnavailable, bToolbar, bRangeView.plot, bRangeView.hint, bDuration,
-    bParameters, adpcmReadouts.bPanel, bPicker);
+  adpcmBPanel.append(bHeader, bName, bUnavailable, bToolbar, bWaveTools, bRangeView.plot, bRangeView.hint,
+    bDrawHint, bDrawStatus, bDuration, bParameters, adpcmReadouts.bPanel, bPicker);
   renderAdpcmB();
   void refreshAdpcmBWaveform();
 
@@ -1109,6 +1288,7 @@ export function setupFm2610Sections({
       cancelAdpcmBRangeDrag();
       renderAdpcmB();
       if (followB) {
+        cancelAdpcmBDrawing();
         releaseAdpcmBKeyboard();
         adpcmB.stop();
       } else {
@@ -1144,7 +1324,10 @@ export function setupFm2610Sections({
       cancelAdpcmARangeDrag();
       cancelAdpcmBRangeDrag();
     }
-    if (visibleSource === 'adpcm-b' && visible !== 'adpcm-b') cancelAdpcmBRangeDrag();
+    if (visibleSource === 'adpcm-b' && visible !== 'adpcm-b') {
+      cancelAdpcmBRangeDrag();
+      cancelAdpcmBDrawing();
+    }
     if (reference?.kind !== next?.kind) {
       bWave.reset();
     }
@@ -1169,6 +1352,8 @@ export function setupFm2610Sections({
     noteOffSSG,
     showSSGChannel,
     isFollowingSsg,
+    getSsgPreset,
+    applySsgPreset,
     playAdpcmAKey,
     stopAdpcmAKey,
     applyAdpcmAKit,

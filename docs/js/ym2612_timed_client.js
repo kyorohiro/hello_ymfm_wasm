@@ -75,14 +75,19 @@ function scheduleOptions(value, program) {
  * @param {MessagePort} [port]
  * @returns {T & YM2612TimedApi}
  */
-export function attachYm2612TimedClient(api, configuration = {}, port) {
+export function attachYm2612TimedClient(api, configuration = {}, port, {
+  protocol = 'ym2612Timed', errorType = 'ym2612-timed-error',
+  build = buildYm2612Operations, validateOperations = validateYm2612Operations,
+  compile = compileYm2612Operations, createResetState = createYm2612OperationResetState,
+  validateState = validateYm2612OperationState, validateSnapshot = validateYm2612TimedSnapshot,
+} = {}) {
   let disposed = false, instanceId = configuration.instanceId;
   const errorListeners = new Set();
   const engine = validateYm2612Engine(configuration.engine ?? api.engine);
   const native = !!configuration.native;
   const check = () => { if (disposed) throw new Error('YM2612 disposed'); };
   const config = () => {
-    return {clock:validateChipClock(api.clock),engine};
+    return {clock:validateChipClock(api.clock),engine,variant:configuration.variant};
   };
   const requireLive = () => {
     check();
@@ -93,11 +98,12 @@ export function attachYm2612TimedClient(api, configuration = {}, port) {
   let requestSequence = 0;
   const request = payload => {
     requireLive();
-    if (typeof api._requestControl === 'function') return api._requestControl('ym2612Timed', [payload]);
-    const id = `ym2612-timed-client:${++requestSequence}`;
+    if (typeof api._requestControl === 'function') return api._requestControl(protocol, [payload]);
+    const prefix = protocol === 'ym2612Timed' ? 'ym2612-timed-client' : protocol;
+    const id = `${prefix}:${++requestSequence}`;
     return new Promise((resolve,reject) => {
       pending.set(id,{resolve,reject});
-      try { port.postMessage({method:'ym2612Timed',args:[payload],id}); }
+      try { port.postMessage({method:protocol,args:[payload],id}); }
       catch (error) { pending.delete(id); reject(error); }
     });
   };
@@ -108,15 +114,15 @@ export function attachYm2612TimedClient(api, configuration = {}, port) {
   const prepared = (operations, settings) => {
     // Only structural copying here. Backend admission validates at its actual
     // clock; local authoring may legitimately lag a renderer clock edit.
-    const program = validateYm2612Operations(operations, {validateArguments:false});
+    const program = validateOperations(operations, {...config(),validateArguments:false});
     return {operations: program, options: scheduleOptions(settings,program)};
   };
   const reportError = event => {
     const data = event.data;
     const entry = pending.get(data?.id);
     if (entry) { pending.delete(data.id); data.error ? entry.reject(new Error(data.error)) : entry.resolve(data.value); }
-    if (disposed || data?.type !== 'ym2612-timed-error') return;
-    const diagnostic = Object.freeze({type:'ym2612-timed-error',message:String(data.message ?? 'YM2612 timed operation failed'),
+    if (disposed || data?.type !== errorType) return;
+    const diagnostic = Object.freeze({type:errorType,message:String(data.message ?? 'YM2612 timed operation failed'),
       owner:data.owner,session:data.session});
     if (!errorListeners.size) { console.error(`[YM2612 timed] ${diagnostic.message}`); return; }
     for (const listener of [...errorListeners]) {
@@ -177,21 +183,21 @@ export function attachYm2612TimedClient(api, configuration = {}, port) {
     },
   });
 
-  api.build = (callback, settings) => { check(); return buildYm2612Operations(callback,settings); };
+  api.build = (callback, settings) => { check(); return build(callback,settings,config()); };
   api.captureState = async () => {
     requireLive();
     const value = await request({action:'capture'});
     check();
     // A renderer clock can differ from its last local acknowledgement. Return
     // the actual captured clock without silently adopting it into live state.
-    const snapshot = validateYm2612TimedSnapshot(value,{engine,...(instanceId === undefined ? {} : {instanceId})});
+    const snapshot = validateSnapshot(value,{engine,variant:configuration.variant,...(instanceId === undefined ? {} : {instanceId})});
     if (instanceId === undefined) instanceId = snapshot.instanceId;
     return snapshot;
   };
   api.compile = async (operations, settings = {}) => {
     check();
     options(settings, ['initialState'], 'YM2612 compile options');
-    const recorded = validateYm2612Operations(operations,{validateArguments:false});
+    const recorded = validateOperations(operations,{...config(),validateArguments:false});
     const initialState = settings.initialState === undefined ? 'current' : settings.initialState;
     let state, clock;
     if (initialState === 'current') {
@@ -202,18 +208,18 @@ export function attachYm2612TimedClient(api, configuration = {}, port) {
       if (api._timedClientStateComplete !== true || typeof api._getTimedState !== 'function') {
         throw new Error('Incomplete YM2612 client state: complete register bytes, frequency latches and key masks are unavailable');
       }
-      state = validateYm2612OperationState(api._getTimedState()); clock = current.clock;
+      state = validateState(api._getTimedState()); clock = current.clock;
     } else if (initialState === 'reset') {
-      clock = config().clock; state = createYm2612OperationResetState();
+      clock = config().clock; state = createResetState();
     } else if (initialState && typeof initialState === 'object') {
       if (instanceId === undefined) throw new Error('YM2612 snapshot chip identity is unknown; capture from this client first');
-      state = validateYm2612TimedSnapshot(initialState,{...config(),instanceId}); clock = state.clock;
+      state = validateSnapshot(initialState,{...config(),instanceId}); clock = state.clock;
     } else throw new TypeError('YM2612 initialState must be current, client, reset or a captured state snapshot');
     // Local/client/reset/supplied-snapshot paths reach here without an await or
     // RPC, so later local edits cannot alter this compilation's copied state.
     // Compilation itself validates every call through the shared resolver and
     // returns no partial trace on failure; do not run the same conversion twice.
-    return compileYm2612Operations(recorded,state,{clock});
+    return compile(recorded,state,{clock,variant:configuration.variant});
   };
   api.schedule = (operations, settings) => capability.schedule(operations,settings);
   api.clearSchedule = scheduleName => capability.clearSchedule(scheduleName);

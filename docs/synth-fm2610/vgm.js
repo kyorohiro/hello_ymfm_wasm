@@ -78,21 +78,24 @@ function collectFmPresets(clock, variant, warnings) {
  */
 export function createFm2610SongTimeline(engine,{variant,clock}) {
   const shadow = createYm2612RegisterState(clock);
+  const renderShadow = createYm2612RegisterState(clock);
   const adpcm = createFm2610SongAdpcmState({clock,outputSampleRate:engine.sampleRate?.()});
   const ssg = createFm2610SongSsgState();
   resetFmState(shadow);
+  resetFmState(renderShadow);
   const slots = variant === 'ym2610b' ? YM2610B_FM_CHANNELS : NEO_GEO_FM_CHANNELS;
   const originalWrite = engine.writeYm2610B;
   const originalLoadRom = engine.loadAdpcmRom;
   const originalClearRom = engine.clearAdpcmRoms;
   const originalProcess = engine.processFrames;
   const originalReset = engine.reset;
-  let generatedFrames = 0, lastFrame = -1, events = [], head = 0, normalized;
+  let generatedFrames = 0, lastFrame = -1, events = [], head = 0, normalized, normalizedRender;
 
   function write(port,register,value) {
     const result = originalWrite.call(this,port,register,value);
     // YM2610 does not expose the YM2612 DAC register.
     if (!(port === 0 && register === 0x2b) && isYm2612ViewRegister(port,register)) {
+      renderShadow.write(port,register,value);
       events.push({frame:generatedFrames,kind:'fm',port,register,value});
     } else if (isFm2610SongAdpcmRegister(port,register)) {
       events.push({frame:generatedFrames,kind:'adpcm',port,register,value});
@@ -123,8 +126,9 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
     lastFrame = -1;
     events = [];
     head = 0;
-    normalized = undefined;
+    normalized = normalizedRender = undefined;
     resetFmState(shadow);
+    resetFmState(renderShadow);
     adpcm.reset();
     ssg.reset();
     return result;
@@ -159,12 +163,48 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
     }
   }
 
-  const adpcmReader = {
-    getAdpcmAWindow: adpcm.getAdpcmAWindow,
-    readAdpcmABytes: adpcm.readAdpcmABytes,
-    readAdpcmBBytes: adpcm.readAdpcmBBytes,
-    retainAdpcmARom: adpcm.retainAdpcmARom,
-  };
+  function adpcmReader(state) {
+    const {getAdpcmAWindow,readAdpcmABytes,readAdpcmBBytes,retainAdpcmARom} = state;
+    return {getAdpcmAWindow,readAdpcmABytes,readAdpcmBBytes,retainAdpcmARom};
+  }
+
+  function normalizeFm(raw, cached) {
+    if (cached?.revision === raw.revision) return cached;
+    const {clockHz,revision,lfo,modeRegister,csmEnabled} = raw;
+    const channels = slots.map(physicalChannel => {
+      const {preset,...voice} = raw.channels[physicalChannel];
+      const operators = Object.freeze(Object.values(preset.operators));
+      const patch = Object.freeze({...preset,operators,keyMask:voice.keyMask});
+      return Object.freeze({...voice,physicalChannel,preset:patch});
+    });
+    return {variant,clockHz,revision,lfo,modeRegister,csmEnabled,channels:Object.freeze(channels)};
+  }
+
+  function writeFm(writes) {
+    if (!Array.isArray(writes) || writes.length > 256) throw new RangeError('Provide up to 256 FM register writes.');
+    const batch = Array.from(writes, command => {
+      const {port,register,value} = command ?? {};
+      if ((port !== 0 && port !== 1) || !Number.isInteger(register) || !Number.isInteger(value) ||
+          value < 0 || value > 255 || !isYm2612ViewRegister(port,register) ||
+          (port === 0 && (register === 0x28 || register === 0x2b))) {
+        throw new RangeError('Choose a valid YM2610 FM parameter register and byte value.');
+      }
+      const shared = port === 0 && (register === 0x22 || register === 0x27 ||
+        (register >= 0xa8 && register <= 0xae));
+      if (!shared && !slots.includes(port * 3 + (register & 3))) {
+        throw new RangeError('That FM channel is unavailable on this VGM chip.');
+      }
+      return {port,register,value};
+    });
+    for (const {port,register,value} of batch) {
+      // A keyboard Special switch owns bit 6 only. Keep the song's timers
+      // and CSM bit, and do not resubmit any flag-reset strobes.
+      const data = port === 0 && register === 0x27
+        ? (renderShadow.snapshot().modeRegister & 0x8f) | (value & 0x40) : value;
+      engine.writeYm2610B(port,register,data);
+    }
+    return batch.length > 0;
+  }
 
   function detach() {
     // Discard future writes and remove every reference installed on the renderer.
@@ -178,27 +218,35 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
   }
 
   return {
-    advance,
+    advance, writeFm,
     read(frame) {
       advance(frame);
-      const raw = shadow.snapshot(lastFrame);
-      if (normalized?.revision !== raw.revision) {
-        const {clockHz,revision,lfo,modeRegister,csmEnabled} = raw;
-        const channels = slots.map(physicalChannel => {
-          const {preset,...voice} = raw.channels[physicalChannel];
-          const operators = Object.freeze(Object.values(preset.operators));
-          const patch = Object.freeze({...preset,operators,keyMask:voice.keyMask});
-          return Object.freeze({...voice,physicalChannel,preset:patch});
-        });
-        normalized = {variant,clockHz,revision,lfo,modeRegister,csmEnabled,channels:Object.freeze(channels)};
-      }
+      normalized = normalizeFm(shadow.snapshot(lastFrame),normalized);
       return Object.freeze({...normalized,adpcm:adpcm.snapshot(),ssg:ssg.snapshot(),frame:lastFrame});
     },
-    ...adpcmReader,
+    readFmAtRenderFront() {
+      normalizedRender = normalizeFm(renderShadow.snapshot(),normalizedRender);
+      return Object.freeze({...normalizedRender,frame:generatedFrames});
+    },
+    saveState() {
+      return {generatedFrames,lastFrame,events:events.slice(head),fm:shadow.saveState(),renderFm:renderShadow.saveState(),
+        adpcm:adpcm.saveState(),ssg:ssg.saveState()};
+    },
+    loadState(state) {
+      shadow.loadState(state.fm);
+      renderShadow.loadState(state.renderFm);
+      adpcm.loadState(state.adpcm);
+      ssg.loadState(state.ssg);
+      ({generatedFrames,lastFrame,events} = state);
+      events = events.slice();
+      head = 0;
+      normalized = normalizedRender = undefined;
+    },
+    ...adpcmReader(adpcm),
     retainAdpcm() {
-      detach();
-      // These readers close over the bounded ROM shadow, not the audio engine.
-      return adpcmReader;
+      const retained = createFm2610SongAdpcmState({clock,outputSampleRate:engine.sampleRate?.()});
+      retained.loadState(adpcm.saveState());
+      return adpcmReader(retained);
     },
     dispose() {
       detach();

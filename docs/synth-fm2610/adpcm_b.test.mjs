@@ -6,6 +6,7 @@ import factory from '../generated/ym2610b_wasm.js';
 import { Ym2610B } from '../js/ym2610b.js';
 import { YM2610BDirectTransport, YM2610BSynth } from '../js/ym2610bsynth.js';
 import { encodeSampleWav } from '../js/playground_sample_edit.js';
+import { readSamplePCM } from '../js/adpcm_b_sample.js';
 import { decodeAdpcm } from '../synth-fm2608/preset.js';
 import { FM2610_ADPCM_B_MAX_RATE, createFm2610AdpcmB } from './adpcm_b.js';
 
@@ -69,6 +70,49 @@ test('ADPCM-B waveform summarizes every decoded frame and survives sample restor
   adapter.setSettings({sampleRate: 8000, volume: 0, repeat: true});
   adapter.setRange({start: adapter.getSettings().sampleStart + 256});
   assert.deepEqual(await adapter.getWaveform(signal), peaks);
+});
+
+test('drawing preserves ADPCM-B settings and the held ROM, and WAV exports the trimmed first pass', async () => {
+  const events = [];
+  const chip = {
+    clock: 8000000,
+    loadMemory(bytes, address) { events.push(['load', bytes.slice(), address]); },
+    keyOff() { events.push(['off']); },
+    keyOn({repeat}) { events.push(['on', repeat]); },
+    setSample(range) { events.push(['range', range]); },
+    setDeltaN() {},
+    setVolume() {},
+    setPan() {},
+  };
+  const adapter = createFm2610AdpcmB({sound: async () => ({adpcmB: chip})});
+  await adapter.loadSample(wav, {name: 'Drawing.wav'});
+  adapter.setSettings({rootNote: 66, volume: 127, repeat: true, left: false, right: true});
+  adapter.setDeltaN(13553);
+  adapter.setRange({start: 0xc00100});
+  const before = adapter.getSample();
+  await adapter.noteOn(66, 'held');
+  const held = events.slice();
+  const {signal} = new AbortController();
+  assert(await adapter.drawWave([{position: .55, amplitude: .85}, {position: .9, amplitude: -.85}], signal));
+  const after = adapter.getSample();
+  assert.equal(after.bytes.length, before.bytes.length);
+  assert.notDeepEqual(after.bytes, before.bytes);
+  assert.deepEqual({...after, bytes: before.bytes}, before, 'a drawing changes only the encoded sample');
+  assert.deepEqual(events, held, 'the held voice must keep its original differential stream');
+  assert.equal(adapter.getSettings().keyed, true);
+  assert.equal(await adapter.drawWave([], signal), false);
+
+  const exported = await readSamplePCM(await adapter.exportWave(signal));
+  const firstPass = decodeAdpcm(after.bytes.subarray(256));
+  assert.equal(exported.sampleRate, Math.round(after.sampleRate));
+  assert.equal(exported.channels.length, 1);
+  assert.equal(exported.channels[0].length, firstPass.length);
+  firstPass.forEach((value, frame) => assert.ok(Math.abs(exported.channels[0][frame] - value) <= 1 / 32768));
+
+  adapter.noteOff('held');
+  assert(await adapter.noteOn(66, 'edited'));
+  assert.deepEqual(events.filter(([kind]) => kind === 'load').at(-1), ['load', after.bytes, 0xc00000]);
+  assert.deepEqual(events.slice(-2), [['range', {start: 0xc00100, end: 0xc00200}], ['on', true]]);
 });
 
 test('ADPCM-B mono ownership cancels a pending ROM trigger on replacement or key-up', async () => {

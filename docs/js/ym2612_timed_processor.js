@@ -15,13 +15,15 @@ const transactionKey = value => {
  * No user functions cross this boundary; captures occur between complete batches.
  */
 export function createYm2612TimedProcessor({performance: timeline, getState, getConfig, dispatch,
-  nowFrame, sampleRate, leadFrames = 128}) {
+  nowFrame, sampleRate, leadFrames = 128, protocol = 'ym2612Timed', errorType = 'ym2612-timed-error',
+  validateOperations = validateYm2612Operations, createResolver = createYm2612OperationResolver,
+  createResetState = createYm2612OperationResetState, createSnapshot = createYm2612TimedSnapshot}) {
   const staged = new Map();
   let resolver, resolverClock;
   const freshTime = () => (nowFrame() + leadFrames) / sampleRate;
   const reportTo = (port,context) => event => {
     // Reservation failures are recoverable and must not retire the audio engine.
-    const message={type:'ym2612-timed-error',message:String(event.error),session:event.session,owner:context.owner};
+    const message={type:errorType,message:String(event.error),session:event.session,owner:context.owner};
     try { port.postMessage(message); } catch { console.error('[YM2612 timed reservation]',message.message); }
   };
   function context(payload, metadata) {
@@ -37,10 +39,10 @@ export function createYm2612TimedProcessor({performance: timeline, getState, get
   function specification(operations, options, ownerContext) {
     if (!options || typeof options !== 'object' || Array.isArray(options) ||
       Object.keys(options).some(key => !['name','repeatSeconds'].includes(key))) throw new TypeError('Invalid YM2612 schedule options');
-    const clock=getConfig().clock;
-    const plan = validateYm2612Operations(operations, {clock,validateArguments:false});
-    const admissionResolver=createYm2612OperationResolver({clock});
-    let admissionState=createYm2612OperationResetState();
+    const config=getConfig();
+    const plan = validateOperations(operations, {...config,validateArguments:false});
+    const admissionResolver=createResolver(config);
+    let admissionState=createResetState();
     const entries=plan.operations.map(operation=>{
       const resolved=admissionResolver.resolve(operation,admissionState);admissionState=resolved.state;
       return {offsetSeconds:ym2612OperationOffsetSeconds(operation,plan.referenceSampleRate),
@@ -65,7 +67,7 @@ export function createYm2612TimedProcessor({performance: timeline, getState, get
     if(metadata&&(!Number.isSafeInteger(metadata.session)||metadata.session<=0||
       !Number.isFinite(metadata.time)||metadata.time<0))throw new TypeError('Invalid YM2612 performance context');
     if(metadata)identity(metadata.owner,'owner');
-    if (payload.action === 'capture') return createYm2612TimedSnapshot(getState(), {
+    if (payload.action === 'capture') return createSnapshot(getState(), {
       ...getConfig(), frame:nowFrame(), sampleRate,
     });
     const ownerContext = context(payload, metadata);
@@ -88,7 +90,7 @@ export function createYm2612TimedProcessor({performance: timeline, getState, get
       if (payload.method === 'schedule') {
         if (payload.args.length !== 2) throw new TypeError('Invalid YM2612 staged schedule arguments');
         records.set(name, {method:payload.method,args:[
-          validateYm2612Operations(payload.args[0], {clock:getConfig().clock}), {...payload.args[1]},
+          validateOperations(payload.args[0], getConfig()), {...payload.args[1]},
         ]});
       } else {
         if (payload.args.length !== 1) throw new TypeError('Invalid YM2612 staged clear arguments');
@@ -121,14 +123,14 @@ export function createYm2612TimedProcessor({performance: timeline, getState, get
   }
   return {
     receive(data, port) {
-      if (data?.method !== 'ym2612Timed') return false;
+      if (data?.method !== protocol) return false;
       try { port.postMessage({id:data.id,value:invoke(data.args?.[0], data.timedPerformance, port)}); }
       catch (error) { port.postMessage({id:data.id,error:error.message,name:error.name}); }
       return true;
     },
     apply(operation, port, frame, metadata) {
-      const clock = getConfig().clock;
-      if (clock !== resolverClock) { resolver = createYm2612OperationResolver({clock}); resolverClock = clock; }
+      const config = getConfig();
+      if (config.clock !== resolverClock) { resolver = createResolver(config); resolverClock = config.clock; }
       const result = resolver.resolve(operation, getState());
       for (const {port:registerPort,register,value} of result.writes) {
         dispatch({type:'write',port:registerPort,register,value}, port, frame,

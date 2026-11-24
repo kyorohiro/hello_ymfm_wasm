@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
+import { createFm2610CodeEffects } from './code_fx.js';
 
 function starterCode(mode) {
 	return `const opnb = await useSoundChip("${mode}");
@@ -38,6 +39,7 @@ function makeCodeInstrument(audio, instrument) {
 export function setupFm2610Code({
 	textarea, runButton, applyButton, stopButton, status, output, sound, getMode, stopSound,
 	beforeRun = () => {}, onState = () => {}, prepareSource, readFile, getEntryPath = () => '/index.js',
+	createFxRack,
 }) {
 	let starter = starterCode(getMode());
 	if (!textarea.value) textarea.value = starter;
@@ -47,6 +49,12 @@ export function setupFm2610Code({
 	let observation = null;
 	let retained = null;
 	const log = [];
+	const appendLog = line => {
+		log.push(line);
+		if (log.length > 100) log.shift();
+		output.textContent = log.join('\n');
+	};
+	const effects = createFm2610CodeEffects({createRack: createFxRack, onLog: appendLog});
 
 	function updateControls(state) {
 		status.textContent = state.status;
@@ -64,6 +72,7 @@ export function setupFm2610Code({
 
 	const runtime = createPlaygroundCodeRuntime({
 		supportedSoundChips: ['ym2610', 'ym2610b'],
+		fx: effects.fx,
 		prepareSource,
 		readFile,
 		async ensureReady() {
@@ -74,6 +83,8 @@ export function setupFm2610Code({
 				throw new DOMException('Code stopped', 'AbortError');
 			}
 			if (observation && audio === nextAudio && chip?.id === mode) return;
+			await effects.prepare(nextAudio);
+			if (token !== revision || mode !== getMode()) throw new DOMException('Code stopped', 'AbortError');
 			observation = nextAudio.beginCodeObservation();
 			retained = null;
 			chip = { id: mode };
@@ -91,20 +102,18 @@ export function setupFm2610Code({
 			return chip;
 		},
 		onState(state) {
+			effects.setBpm(state.bpm);
 			updateControls(state);
 			onState(state);
 		},
-		onLog(line) {
-			log.push(line);
-			if (log.length > 100) log.shift();
-			output.textContent = log.join('\n');
-		},
+		onLog: appendLog,
 		beforeStopSoundChips: retainSnapshot,
 		async stopSoundChips() {
 			const previous = audio;
 			audio = null;
 			chip = null;
-			if (previous) await stopSound(previous);
+			try { if (previous) await stopSound(previous); }
+			finally { effects.stop(); }
 		},
 	});
 	updateControls(runtime.getState());

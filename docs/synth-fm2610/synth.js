@@ -11,6 +11,7 @@ import { modulationSettings } from '../synth/synth_modulation.js';
 import { bendPitch } from '../synth/synth_pitch_bend.js';
 import { transposeChannel3Pitches } from '../synth/synth_song_voice.js';
 import { midiToOpnPitch } from '../js/soundchip_pitch.js';
+import { YM2610BSynth } from '../js/ym2610bsynth.js';
 import { createVsuVoicePool } from '../synth-vsu/voice-pool.js';
 import { createFm2610Audio } from './audio.js';
 import { setupFm2610Code } from './code.js';
@@ -269,6 +270,7 @@ const sections = setupFm2610Sections({
   releaseAdpcmAKeyboard, releaseAdpcmBKeyboard,
   onInstrumentEdited: kind => files.markInstrumentEdited(kind),
   onInstrumentAdopted: kind => files.detachInstrument(kind),
+  saveSsgPreset: preset => files.saveSsgPreset(preset),
   async saveAdpcmAKit(kit) {
     await files.ready;
     return files.saveAdpcmAKit(kit);
@@ -369,6 +371,35 @@ function currentFmView(reference) {
   return {kind, snapshot, voice: selection ?? autoLiveVoice(kind, snapshot.channels)};
 }
 
+function liveFmSnapshot() {
+  if (fmPlayback === 'vgm') return songs.getFmEditSnapshot();
+  if (fmPlayback === 'code' && code.getState().running && !code.getState().busy) return code.getSnapshot();
+  return null;
+}
+
+function editLiveFm(edit) {
+  const snapshot = liveFmSnapshot();
+  const physical = fmView?.voice.physicalChannel;
+  const voice = snapshot?.channels.find(entry => entry.physicalChannel === physical);
+  if (!voice) return;
+  const writes = [];
+  const fm = new YM2610BSynth({clock: snapshot.clockHz, transport: {
+    write(port, register, value) { writes.push({port, register, value}); },
+  }});
+  const preset = readFm2610Patch(voice.preset);
+  fm.setPreset(physical, preset);
+  // Timer overflow clear strobes must not be repeated when the editor changes bit 6.
+  fm._modeRegister = snapshot.modeRegister & ~0x30;
+  writes.length = 0;
+  edit(fm, physical, preset, snapshot, voice);
+  if (!writes.length) return;
+  if (fmPlayback === 'vgm') songs.writeFm(writes);
+  else if (chip) {
+    chip.applyManualFmWrites(writes);
+    refreshFmView();
+  }
+}
+
 function adoptFmSnapshot({kind, snapshot, frozen}) {
   if (!frozen || !snapshot.channels.length || adoptedFmSnapshots.has(snapshot)) return false;
   const {channels: observed, lfo: observedLfo, channel3Notice} = readFm2610SnapshotPatches(snapshot);
@@ -403,8 +434,10 @@ function refreshFmView(force = false, reference = currentPlaybackReference()) {
   if (!playback && previousPlayback && !adopted && chip && modulationWheelValue) {
     applyFmModulation(chip.fm, modulationWheelValue);
   }
+  const readOnly = Boolean(playback && (!next?.voice || !liveFmSnapshot()));
   if (force || adopted || previousPlayback !== fmPlayback || previous?.snapshot.variant !== next?.snapshot.variant ||
-      previous?.snapshot.revision !== next?.snapshot.revision || previous?.voice.physicalChannel !== next?.voice.physicalChannel) {
+      previous?.snapshot.revision !== next?.snapshot.revision || previous?.voice.physicalChannel !== next?.voice.physicalChannel ||
+      byId('fmParameters').disabled !== readOnly) {
     renderFmChannels();
     renderFm();
     renderKeys();
@@ -419,29 +452,33 @@ function renderFm() {
   for (const [operator, controls] of operatorControls) {
     for (const [key, control] of controls) control.updateVisual(preset.operators[operator - 1][key]);
   }
+  const liveEditable = Boolean(voice && liveFmSnapshot());
+  const readOnly = Boolean(fmPlayback && !liveEditable);
   for (const [operator, button] of operatorGates) {
     button.setAttribute('aria-pressed', String(Boolean((voice?.keyMask ?? preset.keyMask) & (1 << (operator - 1)))));
+    button.disabled = Boolean(fmPlayback);
   }
-  envelopeRoot.toggleAttribute('data-live', Boolean(fmPlayback));
-  envelopeRoot.querySelector('.operator-envelope-plot').inert = Boolean(fmPlayback);
-  byId('fmParameters').disabled = Boolean(fmPlayback);
+  envelopeRoot.toggleAttribute('data-live', readOnly);
+  envelopeRoot.querySelector('.operator-envelope-plot').inert = readOnly;
+  byId('fmParameters').disabled = readOnly;
+  for (const button of byId('fmPresets').children) button.disabled = Boolean(fmPlayback);
   const physical = voice?.physicalChannel ?? fmSelection;
   const channelName = physical === null ? 'AUTO' : 'CH' + (physical + 1);
   const kind = fmPlayback ?? fmEditorReference?.kind;
   const origin = kind === 'vgm' ? 'VGM' : kind === 'code' ? 'Code' : '';
   const phase = voice?.gate ? 'Key on · OP ' + operators.filter(op => voice.keyMask & (1 << (op - 1))).join('/') : 'Key off';
-  const details = fmPlayback ? [origin, 'Playback', fmView?.snapshot.variant.toUpperCase(),
+  const details = fmPlayback ? [origin, liveEditable ? 'Live edit' : 'Playback', fmView?.snapshot.variant.toUpperCase(),
     voice && channelName, voice && phase, voice?.specialMode && 'CH3 Special'] :
     [origin, 'Editing', channelName, isFm2610Channel3Special(preset) && 'CH3 Special', fmEditorReference?.channel3Notice];
   byId('fmChannelState').textContent = details.filter(Boolean).join(' · ');
-  renderFmChannel3(physical === CH3, voice);
+  renderFmChannel3(physical === CH3, voice, readOnly);
   envelope.invalidate();
 }
 
-function renderFmChannel3(visible, observed) {
+function renderFmChannel3(visible, observed, readOnly = false) {
   const panel = byId('fmChannel3Special');
   panel.hidden = !visible;
-  if (!visible || fmPlayback) {
+  if (!visible || readOnly) {
     for (const pitch of ch3Controls.pitches) {
       pitch.block.cancelDrag();
       pitch.fnum.cancelDrag();
@@ -463,7 +500,18 @@ function renderFmChannel3(visible, observed) {
 }
 
 function editFmChannel3({enabled, operator, field, value}) {
-  if (fmPlayback || fmSelection !== CH3) return;
+  if (fmPlayback) {
+    editLiveFm((fm, physical, _preset, snapshot, voice) => {
+      if (physical !== CH3) return;
+      if (operator === undefined) fm.setChannel3SpecialMode(!(snapshot.modeRegister & 0x40));
+      else {
+        const pitch = {...voice.specialFrequencies[operator], [field]: value};
+        fm.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
+      }
+    });
+    return;
+  }
+  if (fmSelection !== CH3) return;
   const preset = channels[CH3];
   enabled ??= isFm2610Channel3Special(preset);
   const pitches = preset.specialFrequencies ?? defaultCh3Pitches.map(pitch => ({...pitch}));
@@ -519,8 +567,14 @@ function buildFmChannel3Controls() {
   }
 }
 
-function editPreset(update, write, {track = true} = {}) {
-  if (fmPlayback) return;
+function editPreset(update, write, {track = true, allowLive = true} = {}) {
+  if (fmPlayback) {
+    if (allowLive) editLiveFm((fm, channel, preset) => {
+      update(preset);
+      write(fm, channel, preset);
+    });
+    return;
+  }
   for (const channel of fmTargets()) {
     const preset = presetFor(channel);
     update(preset);
@@ -546,7 +600,7 @@ function toggleOperator(operator, enabled) {
   const bit = 1 << (operator - 1);
   editPreset(preset => {
     preset.keyMask = enabled ? preset.keyMask | bit : preset.keyMask & ~bit;
-  }, updateHeldMask);
+  }, updateHeldMask, {allowLive: false});
 }
 
 function editOperator(operator, patch) {
@@ -574,17 +628,17 @@ function applyFmPreset(preset) {
   }, (fm, channel, next) => {
     applyFmChannel(fm, channel, next);
     updateHeldMask(fm, channel, next);
-  }, {track: false});
+  }, {track: false, allowLive: false});
   renderFmChannels();
 }
 
 function editCommon(key, value) {
   if (key === 'left' || key === 'right') {
     editPreset(preset => { preset.pan[key] = value; }, (fm, channel, preset) =>
-      writeFmPan(fm, channel, preset, modulationWheelValue));
+      writeFmPan(fm, channel, preset, fmPlayback ? 0 : modulationWheelValue));
   } else if (key === 'ams' || key === 'pms') {
     editPreset(preset => { preset[key] = value; }, (fm, channel, preset) =>
-      writeFmPan(fm, channel, preset, modulationWheelValue));
+      writeFmPan(fm, channel, preset, fmPlayback ? 0 : modulationWheelValue));
   } else {
     editPreset(preset => { preset[key] = value; }, (fm, channel, preset) => fm.setAlgo(channel, preset.algorithm, preset.feedback));
   }
@@ -610,7 +664,13 @@ function buildFmControls() {
   for (const [key, label, max] of [['enabled', 'LFO', 1], ['frequency', 'LFO rate', 7]]) {
     const control = createParamControl({ label, min: 0, max, step: 1, value: lfo[key], wheelAdjust: false,
       booleanMode: key === 'enabled', onChange(value) {
-        if (fmPlayback) return;
+        if (fmPlayback) {
+          editLiveFm((fm, _channel, _preset, snapshot) => {
+            const settings = {...snapshot.lfo, [key]: value};
+            fm.setLfo(settings.enabled, settings.frequency);
+          });
+          return;
+        }
         lfo[key] = value;
         if (chip) writeFmLfo(chip.fm, modulationWheelValue);
         files.markInstrumentEdited('fm');
@@ -1089,6 +1149,14 @@ const files = setupFm2610Files({
     applyFmPreset(preset);
     workspaceView.select('fmTab', {focus: show, reveal: show});
     if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
+  },
+  getSsgPreset: sections.getSsgPreset,
+  applySsgPreset(preset, {show}) {
+    sections.applySsgPreset(preset);
+    if (show) {
+      workspaceView.select('ssgTab', {focus: true});
+      if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
+    }
   },
   getAdpcmAKit: sections.getAdpcmAKit,
   applyAdpcmAKit(kit, {show}) {

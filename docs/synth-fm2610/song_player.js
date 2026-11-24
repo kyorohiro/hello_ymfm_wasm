@@ -6,6 +6,9 @@ const workletUrl = new URL('../js/vgm-output-worklet.js?v=fm2610-position-1', im
 const worklets = new WeakMap();
 const framesPerChunk = 2048;
 const bufferFrames = 8192;
+const checkpointInterval = 2;
+const checkpointBytes = 64 * 1024 * 1024;
+const checkpointCount = 32;
 const yieldTask = () => new Promise(resolve => setTimeout(resolve, 0));
 
 function loadOutputWorklet(context) {
@@ -20,8 +23,10 @@ function loadOutputWorklet(context) {
 
 export function createFm2610SongTransport({sound, beforePlay, onState, onError}) {
   let run = null;
+  let renderer = null;
   let retainedAdpcm = null;
   let sourceGains = [1, 1, 1, 1];
+  let lastRestoreFrame = 0;
   let state = {playback: 'stopped', position: 0, snapshot: null, retained: false};
 
   function publish(playback, position, snapshot = null) {
@@ -39,10 +44,49 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
       current.node.port.close();
       current.node.disconnect();
     }
-    const reader = retain ? current.timeline?.retainAdpcm() ?? null : null;
-    if (!reader) current.timeline?.dispose();
-    current.engine?.dispose();
-    return reader;
+    return retain ? current.timeline?.retainAdpcm() ?? null : null;
+  }
+
+  function disposeRenderer() {
+    if (!renderer) return;
+    renderer.player.clearCheckpoints();
+    renderer.timeline.dispose();
+    renderer.engine.dispose();
+    renderer = null;
+  }
+
+  async function prepareRenderer(source, sampleRate, signal) {
+    if (renderer && renderer.source === source && renderer.sampleRate === sampleRate) return renderer;
+    disposeRenderer();
+    const engine = await createFm2610VgmEngine(source, {outputSampleRate: sampleRate, signal});
+    try {
+      signal.throwIfAborted();
+      engine.setSourceGains(sourceGains);
+      if (engine.supportsState()) {
+        const origin = engine.chip.saveState();
+        const reset = engine.reset;
+        // ymfm's soft reset can preserve the FM envelope sequencer phase.
+        // Cold seeks start from the same fresh chip state as the first play.
+        engine.reset = function () {
+          const gains = this.getSourceGains();
+          reset.call(this);
+          this.chip.loadState(origin);
+          this.setSourceGains(gains);
+        };
+      }
+      const player = createFm2610VgmPlayer(engine, source);
+      player.setPrefetchFactor(1);
+      player.checkpointMaxBytes = checkpointBytes;
+      player.checkpointMaxCount = checkpointCount;
+      const timeline = createFm2610SongTimeline(engine, source);
+      player.captureSeekState = timeline.saveState;
+      player.restoreSeekState = timeline.loadState;
+      renderer = {source, sampleRate, engine, player, timeline};
+      return renderer;
+    } catch (error) {
+      engine.dispose();
+      throw error;
+    }
   }
 
   function finish(playback, position, snapshot) {
@@ -60,6 +104,8 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
 
   function clear() {
     release();
+    disposeRenderer();
+    lastRestoreFrame = 0;
     retainedAdpcm = null;
     if (state.playback !== 'stopped' || state.snapshot) publish('stopped', 0);
   }
@@ -100,10 +146,9 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     }
   }
 
-  async function seekFrames(current, target) {
-    if (!target) return 0;
+  async function seekFrames(current, position, target) {
+    if (position >= target) return position;
     const left = new Float32Array(bufferFrames), right = new Float32Array(bufferFrames);
-    let position = 0;
     while (position < target) {
       current.controller.signal.throwIfAborted();
       position += current.player.process(left, right, Math.min(bufferFrames, target - position), {budgetMs: 8});
@@ -135,7 +180,11 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
   }
 
   async function play(source, {position = 0, paused = false} = {}) {
-    clear();
+    if (!Number.isFinite(position)) throw new RangeError('Choose a finite VGM position.');
+    release();
+    retainedAdpcm = null;
+    if (renderer?.source !== source) disposeRenderer();
+    lastRestoreFrame = 0;
     const controller = new AbortController(), {signal} = controller;
     const current = {controller, sent: 0, consumed: 0, offset: 0, endSent: false};
     run = current;
@@ -144,19 +193,22 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
       const [{context, connectSongOutput}] = await Promise.all([sound(), beforePlay()]);
       signal.throwIfAborted();
       const sampleRate = context.sampleRate;
-      current.engine = await createFm2610VgmEngine(source, {outputSampleRate: sampleRate, signal});
-      if (signal.aborted) {
-        current.engine.dispose();
-        signal.throwIfAborted();
-      }
-      current.engine.setSourceGains(sourceGains);
-      current.player = createFm2610VgmPlayer(current.engine, source);
-      current.player.setPrefetchFactor(1);
-      current.timeline = createFm2610SongTimeline(current.engine, source);
-      current.player.play();
+      const prepared = await prepareRenderer(source, sampleRate, signal);
+      signal.throwIfAborted();
+      const {player, timeline} = prepared;
+      current.player = player;
+      current.timeline = timeline;
       const duration = source.totalSamples / 44100;
       const target = Math.max(0, Math.min(position, duration));
-      current.offset = await seekFrames(current, Math.round(target * sampleRate));
+      const targetFrame = Math.round(target * sampleRate);
+      lastRestoreFrame = targetFrame ? player.restoreCheckpoint(targetFrame) : 0;
+      if (lastRestoreFrame) timeline.advance(lastRestoreFrame - 1);
+      else {
+        player.reset();
+        player.play();
+      }
+      player.checkpointIntervalSeconds = checkpointInterval;
+      current.offset = await seekFrames(current, lastRestoreFrame, targetFrame);
       signal.throwIfAborted();
       if (target === duration) {
         const snapshot = current.offset ? current.timeline.read(current.offset - 1) : null;
@@ -217,8 +269,35 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     if (sourceGains.every((gain, index) => gain === next[index])) return;
     // Drain the existing bounded queue at its recorded mix to keep the PCM
     // position, FM envelopes and ADPCM decoder phase intact.
-    run?.engine?.setSourceGains(next);
+    if (renderer) {
+      renderer.player.clearCheckpoints();
+      // This pass may still contain audio rendered at the previous mix.
+      renderer.player.checkpointIntervalSeconds = 0;
+      renderer.engine.setSourceGains(next);
+    }
     sourceGains = next;
+  }
+
+  function isFmEditable() {
+    return state.playback === 'playing' && run && !run.endSent;
+  }
+
+  function writeFm(writes) {
+    if (!isFmEditable()) return false;
+    if (!run.timeline.writeFm(writes)) return false;
+    // Clean earlier checkpoints still represent the original file. Never
+    // save a state containing a manual edit or its decoder history.
+    run.player.checkpointIntervalSeconds = 0;
+    return true;
+  }
+
+  function getFmEditSnapshot() {
+    return isFmEditable() ? run.timeline.readFmAtRenderFront() : null;
+  }
+
+  function getSeekCacheStats() {
+    return {...(renderer?.player.checkpointStats() ?? {count: 0, bytes: 0}), lastRestoreFrame,
+      maxBytes: checkpointBytes, maxCount: checkpointCount};
   }
 
   function currentAdpcmA(snapshot, customWindow) {
@@ -249,7 +328,8 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     return (run?.timeline ?? retainedAdpcm)?.retainAdpcmARom(snapshot.adpcm.adpcmA) ?? null;
   }
 
-  return {play, pause, resume, stop, clear, setSourceGains, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
+  return {play, pause, resume, stop, clear, setSourceGains, writeFm, getFmEditSnapshot, getSeekCacheStats,
+    getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
     retainAdpcmARom,
     getState: () => state, getSnapshot: () => state.snapshot};
 }

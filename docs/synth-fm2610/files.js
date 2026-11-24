@@ -2,8 +2,11 @@
 import { isCheckpointPath, transferVirtualFiles } from '../js/tetorica_virtual_files/filesystem.js';
 import { dirname, normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
+import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
+import { createVgiFromPreset, parseVgi } from '../js/vgi.js';
 import { createPlaygroundCassetteZip, loadPlaygroundCassette } from '../playground/playground_cassette.js';
 import { renderFileTree } from '../playground/playground_file_tree.js';
+import { getFm2610CodeExamples } from './code_examples.js';
 import { readFm2610Patch } from './fm_patch.js';
 import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
@@ -14,8 +17,10 @@ import {
 import {
   ADPCM_B_SAMPLE_SUFFIX, isAdpcmBSamplePath, readAdpcmBSample, writeAdpcmBSample,
 } from './adpcm_b_sample_document.js';
+import { createDefaultSsgPreset, isSsgPresetPath, readSsgPreset, SSG_PRESET_SUFFIX, writeSsgPreset } from './ssg_preset.js';
 
 const ENTRY = '/index.js';
+const EXAMPLES = '/examples';
 const PATCHES = '/presets';
 const KITS = '/kits';
 const SAMPLES = '/samples';
@@ -24,8 +29,9 @@ const STORAGE = 'tetorica-fm2610-synth-project';
 const MAX_BYTES = 16 * 1024 * 1024;
 const CODE_PATH = /\.m?js$/i;
 const PATCH_PATH = /\.fm\.json$/i;
+const PORTABLE_PATCH_PATH = /\.(?:tfi|vgi)$/i;
 const SONG_PATH = /\.vg[mz]$/i;
-const FILE_SUFFIX = /\.(?:fm\.json|m?js|vg[mz]|adpcm-a-kit\.zip|adpcm-b-sample\.zip)$/i;
+const FILE_SUFFIX = /\.(?:(?:fm|ssg)\.json|m?js|vg[mz]|adpcm-a-kit\.zip|adpcm-b-sample\.zip)$/i;
 const METADATA = new Set(['metadata.json', 'cassette.metadata.js']);
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -39,6 +45,21 @@ function audioDocumentReader(path) {
   if (isAdpcmAKitPath(path)) return readAdpcmAKit;
   if (isAdpcmBSamplePath(path)) return readAdpcmBSample;
   return null;
+}
+
+function readPortablePatch(filename, bytes) {
+  const parsed = /\.tfi$/i.test(filename) ? parseTfi(bytes) : parseVgi(bytes);
+  return readFm2610Patch({...parsed, operators: Object.values(parsed.operators)});
+}
+
+function portablePatchOmissions(patch, format) {
+  const omitted = [];
+  if (format === 'tfi' && (!patch.pan.left || !patch.pan.right || patch.ams || patch.pms)) omitted.push('pan and AMS/PMS');
+  if (patch.operators.some(operator => operator.am)) omitted.push('operator AM');
+  if (patch.keyMask !== 15) omitted.push('operator key mask');
+  if (patch.lfo?.enabled || patch.lfo?.frequency) omitted.push('LFO');
+  if (patch.specialFrequencies) omitted.push('CH3 Special settings');
+  return omitted;
 }
 
 function checkPath(path) {
@@ -79,10 +100,11 @@ function checkEntry({ path, data }) {
     if (!isVgm) throw new Error('Choose a VGM or VGZ file.');
     return;
   }
-  if (typeof data !== 'string' || (!PATCH_PATH.test(path) && !CODE_PATH.test(path))) {
-    throw new Error('Choose an FM patch, ADPCM-A kit, ADPCM-B sample, JavaScript, VGM or VGZ file.');
+  if (typeof data !== 'string' || (!PATCH_PATH.test(path) && !isSsgPresetPath(path) && !CODE_PATH.test(path))) {
+    throw new Error('Choose an FM patch, SSG preset, ADPCM-A kit, ADPCM-B sample, JavaScript, VGM or VGZ file.');
   }
   if (PATCH_PATH.test(path)) readFm2610Patch(JSON.parse(data));
+  if (isSsgPresetPath(path)) readSsgPreset(data);
 }
 
 async function checkAudioDocuments(entries, ...selectedPaths) {
@@ -126,6 +148,7 @@ export function setupFm2610Files({
   panel, toggle, menuMount, getPatch, applyPatch, getCode, setCode, starterCode,
   setStatus, beforeReplace = () => {}, onVgmChange = () => {}, openVgm,
   importVgm, getAdpcmAKit, applyAdpcmAKit = () => {}, getAdpcmBSample, applyAdpcmBSample = () => {},
+  getSsgPreset, applySsgPreset = () => {},
 }) {
   const doc = panel.ownerDocument;
   const win = doc.defaultView;
@@ -144,8 +167,8 @@ export function setupFm2610Files({
       return true;
     },
   });
-  const expanded = new Map([[PATCHES, true], [KITS, true], [SAMPLES, true], [SONGS, true]]);
-  let codePath = ENTRY, activePatch = null, activeKit = null, activeSample = null, selected = ENTRY;
+  const expanded = new Map([[EXAMPLES, true], [PATCHES, true], [KITS, true], [SAMPLES, true], [SONGS, true]]);
+  let codePath = ENTRY, activePatch = null, activeSsg = null, activeKit = null, activeSample = null, selected = ENTRY;
   let loading = true, busy = false, storageReady = false, draftTimer = null, lastStructure = '';
   let autoApplyRequest = null;
   let operationTail = Promise.resolve();
@@ -154,6 +177,8 @@ export function setupFm2610Files({
   const instruments = {
     fm: {path: () => activePatch, detach: () => { activePatch = null; },
       encode: () => JSON.stringify(readFm2610Patch(getPatch()), null, 2) + '\n'},
+    ssg: {path: () => activeSsg, detach: () => { activeSsg = null; },
+      encode: () => writeSsgPreset(getSsgPreset())},
     'adpcm-a': {path: () => activeKit, detach: () => { activeKit = null; },
       encode: () => writeAdpcmAKit(getAdpcmAKit())},
     'adpcm-b': {path: () => activeSample, detach: () => { activeSample = null; },
@@ -162,7 +187,9 @@ export function setupFm2610Files({
 
   function freshWorkspace() {
     const text = typeof starterCode === 'function' ? starterCode() : starterCode;
-    return createVirtualFileWorkspace([{ path: ENTRY, data: text ?? '' }], { autoSave: workspace.autoSave });
+    return createVirtualFileWorkspace([{ path: ENTRY, data: text ?? '' }, ...getFm2610CodeExamples()], {
+      autoSave: workspace.autoSave,
+    });
   }
   workspace.restore(freshWorkspace().snapshot());
 
@@ -196,15 +223,21 @@ export function setupFm2610Files({
   const tree = element('div', { className: 'fm2610-files-tree', id: 'fm2610FilesTree' });
   tree.setAttribute('aria-label', 'Project files');
   const chooser = element('input', { type: 'file', multiple: true, hidden: true,
-    accept: '.js,.mjs,.json,.zip,.vgm,.vgz' });
+    accept: '.js,.mjs,.json,.tfi,.vgi,.zip,.vgm,.vgz' });
   const importButton = button('fm2610ImportFiles', 'Import files…', () => {
     chooser.value = '';
     chooser.click();
   });
   const newButton = button('fm2610NewCassette', 'New Cassette…', () => operation(newCassette));
+  const examplesButton = button('fm2610AddCodeExamples', 'Code examples', () => operation(addCodeExamples));
   const exportButton = button('fm2610ExportCassette', 'Export Cassette · ZIP', () => operation(exportCassette));
+  const exportTfi = button('fm2610ExportTfi', 'Selected FM · TFI', () => operation(() => exportPatch('tfi')));
+  const exportVgi = button('fm2610ExportVgi', 'Selected FM · VGI', () => operation(() => exportPatch('vgi')));
   const projectActions = element('div', { className: 'fm2610-files-actions' });
-  for (const [action, command] of [['new', newButton], ['import', importButton], ['export', exportButton]]) {
+  for (const [action, command] of [
+    ['new', newButton], ['new', examplesButton], ['import', importButton],
+    ['export', exportButton], ['export', exportTfi], ['export', exportVgi],
+  ]) {
     const mount = menuMount?.[action] ?? (menuMount?.nodeType === 1 ? menuMount : null);
     if (mount) command.setAttribute('data-close-synth-menu', '');
     (mount ?? projectActions).append(command);
@@ -243,7 +276,7 @@ export function setupFm2610Files({
     return {
       version: 2,
       workspace: workspace.snapshot(),
-      view: { codePath, activePatch, activeKit, activeSample, selected, visible: !panel.hidden },
+      view: { codePath, activePatch, activeSsg, activeKit, activeSample, selected, visible: !panel.hidden },
     };
   }
   function persist() {
@@ -281,12 +314,13 @@ export function setupFm2610Files({
       row.toggleAttribute('data-modified', dirty.has(path));
       if (row.matches('summary') && expanded.has(path)) row.parentElement.open = expanded.get(path);
     }
-    for (const command of [newCode, newPatch, saveButton, importButton, newButton, exportButton]) {
+    for (const command of [newCode, newPatch, saveButton, importButton, newButton, examplesButton, exportButton, exportTfi, exportVgi]) {
       command.disabled = loading || busy;
     }
     autoApplyControl.checked = autoApplyRequest?.enabled ?? workspace.autoSave;
     autoApplyControl.disabled = loading || busy;
-    if ((isAdpcmAKitPath(selected) && (selected !== activeKit || typeof getAdpcmAKit !== 'function')) ||
+    if ((isSsgPresetPath(selected) && (selected !== activeSsg || typeof getSsgPreset !== 'function')) ||
+        (isAdpcmAKitPath(selected) && (selected !== activeKit || typeof getAdpcmAKit !== 'function')) ||
         (isAdpcmBSamplePath(selected) && (selected !== activeSample || typeof getAdpcmBSample !== 'function'))) {
       saveButton.disabled = true;
     }
@@ -359,7 +393,7 @@ export function setupFm2610Files({
     if (loading || !Object.hasOwn(instruments, kind) || !instruments[kind].path()) return false;
     const pending = instrumentEdits.has(kind);
     instrumentEdits.add(kind);
-    if (kind === 'fm') {
+    if (kind === 'fm' || kind === 'ssg') {
       try { flushInstrumentEdits([kind]); }
       catch (error) {
         instrumentEdits.delete(kind);
@@ -457,6 +491,9 @@ export function setupFm2610Files({
     } else if (PATCH_PATH.test(path)) {
       await applyPatch(readFm2610Patch(JSON.parse(file.data)), {show: true});
       activePatch = path;
+    } else if (isSsgPresetPath(path)) {
+      await applySsgPreset(readSsgPreset(file.data), {show: true});
+      activeSsg = path;
     } else if (isAdpcmAKitPath(path)) {
       await applyAdpcmAKit(audioDocument, { show: true });
       activeKit = path;
@@ -471,8 +508,12 @@ export function setupFm2610Files({
   async function save(preferCode = false) {
     return operation(async () => {
       flushProjectEdits();
-      const path = !preferCode && (PATCH_PATH.test(selected) || audioDocumentReader(selected)) ? selected : codePath;
-      if (isAdpcmAKitPath(path)) {
+      const selectedInstrument = PATCH_PATH.test(selected) || isSsgPresetPath(selected) || audioDocumentReader(selected);
+      const path = !preferCode && selectedInstrument ? selected : codePath;
+      if (isSsgPresetPath(path)) {
+        if (path !== activeSsg || typeof getSsgPreset !== 'function') throw new Error('Open an SSG preset before saving it.');
+        writeAccepted([{ path, data: writeSsgPreset(getSsgPreset()) }]);
+      } else if (isAdpcmAKitPath(path)) {
         if (path !== activeKit || typeof getAdpcmAKit !== 'function') {
           throw new Error('Open an ADPCM-A kit before saving it.');
         }
@@ -517,6 +558,27 @@ export function setupFm2610Files({
     select(path);
     await persist();
     setStatus('Saved ' + basename(path) + '.');
+  }
+
+  async function saveSsgPreset(preset) {
+    const data = writeSsgPreset(preset);
+    await ready;
+    return operation(async () => {
+      const suggestion = activeSsg ? basename(activeSsg).slice(0, -SSG_PRESET_SUFFIX.length) : 'Untitled SSG';
+      const value = await askName('Save SSG preset', suggestion);
+      if (value === null) return null;
+      const extension = isSsgPresetPath(value.trim()) ? '' : SSG_PRESET_SUFFIX;
+      const path = namedPath(activeSsg ? dirname(activeSsg) : PATCHES, value, extension);
+      if (path !== activeSsg) requireNew(path);
+      flushInstrumentEdits(['ssg']);
+      writeAccepted([{ path, data }]);
+      activeSsg = path;
+      select(path);
+      show();
+      await persist();
+      setStatus('Saved ' + basename(path) + '.');
+      return path;
+    });
   }
 
   async function saveAdpcmAKit(kit) {
@@ -569,16 +631,18 @@ export function setupFm2610Files({
       describe(layer).find(entry => entry.type === 'file' && CODE_PATH.test(entry.path))?.path ?? ENTRY;
     const exists = typeof view.selected === 'string' &&
       (layer.has(view.selected) || layer.listDirectories().includes(view.selected));
+    const ssg = isSsgPresetPath(view.activeSsg) && layer.has(view.activeSsg) ? view.activeSsg : null;
     const kit = typeof view.activeKit === 'string' && isAdpcmAKitPath(view.activeKit) && layer.has(view.activeKit)
       ? view.activeKit : null;
     const sample = isAdpcmBSamplePath(view.activeSample) && layer.has(view.activeSample) ? view.activeSample : null;
-    return { codePath: code, activePatch: matched('activePatch') ? view.activePatch : null, activeKit: kit, activeSample: sample,
+    return { codePath: code, activePatch: matched('activePatch') ? view.activePatch : null, activeSsg: ssg, activeKit: kit, activeSample: sample,
       selected: exists ? view.selected : code, visible: view.visible === true };
   }
 
   async function restore(next, view, { replace = false, validatedDocuments = new Map() } = {}) {
     const target = viewFor(next.working, view);
     const patch = target.activePatch && readFm2610Patch(JSON.parse(next.working.get(target.activePatch).data));
+    const ssg = target.activeSsg ? readSsgPreset(next.working.get(target.activeSsg).data) : createDefaultSsgPreset();
     const kit = target.activeKit
       ? validatedDocuments.get(target.activeKit) ?? await readAdpcmAKit(next.working.get(target.activeKit).data)
       : createDefaultAdpcmAKit();
@@ -588,12 +652,14 @@ export function setupFm2610Files({
     instrumentEdits.clear();
     if (replace) await beforeReplace();
     if (patch) await applyPatch(patch, {show: false});
+    await applySsgPreset(ssg, {show: false});
     await applyAdpcmAKit(kit, { show: false });
     await applyAdpcmBSample(sample, { show: false });
     await setCode(next.working.get(target.codePath)?.data ?? '', target.codePath, { show: false });
     workspace.restore(next.snapshot());
     codePath = target.codePath;
     activePatch = target.activePatch;
+    activeSsg = target.activeSsg;
     activeKit = target.activeKit;
     activeSample = target.activeSample;
     select(target.selected);
@@ -605,6 +671,18 @@ export function setupFm2610Files({
     const url = win.URL.createObjectURL(new win.Blob([bytes], { type }));
     element('a', { href: url, download: filename }).click();
     win.setTimeout(() => win.URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportPatch(format) {
+    const patch = readFm2610Patch(getPatch());
+    const operators = Object.fromEntries(patch.operators.map((operator, index) => [index + 1, operator]));
+    const portable = {...patch, operators};
+    const bytes = format === 'tfi' ? createTfiFromPreset(portable) : createVgiFromPreset(portable);
+    const filename = `${activePatch ? basename(activePatch).replace(PATCH_PATH, '') : 'fm2610-voice'}.${format}`;
+    const omitted = portablePatchOmissions(patch, format);
+    download(bytes, filename, 'application/octet-stream');
+    const notice = omitted.length ? ` Use .fm.json to keep ${omitted.join(', ')}.` : '';
+    setStatus(`Exported ${filename}.${notice}`);
   }
 
   async function exportCassette() {
@@ -634,6 +712,23 @@ export function setupFm2610Files({
     setStatus('New Cassette created.');
   }
 
+  async function addCodeExamples() {
+    const projectPaths = [...describe(fs), ...describe(workspace.saved)];
+    const existing = projectPaths.find(({path}) => path.toLowerCase() === EXAMPLES);
+    if (existing?.type === 'file') throw new Error('A project file is using the examples folder name.');
+    const directory = existing?.path ?? EXAMPLES;
+    const entries = getFm2610CodeExamples().map(({path, data}) => ({path: join(directory, basename(path)), data}))
+      .filter(({path}) => !occupied(path));
+    if (entries.length) {
+      flushProjectEdits();
+      writeAccepted(entries);
+      await persist();
+    }
+    expanded.set(directory, true);
+    show();
+    setStatus(entries.length ? `Added ${entries.length} Code examples.` : 'Code examples are already in Files.');
+  }
+
   async function importCassette(file) {
     const archive = await loadPlaygroundCassette(await file.arrayBuffer());
     const metadata = archive.metadata.fm2610;
@@ -652,7 +747,7 @@ export function setupFm2610Files({
     next.working.replace(entries, archive.directories);
     next.saveAll();
     const drafts = metadata.drafts.map(({path, data, base64}) => {
-      if ((!CODE_PATH.test(path) && !PATCH_PATH.test(path) && !audioDocumentReader(path)) || !next.saved.has(path)) {
+      if ((!CODE_PATH.test(path) && !PATCH_PATH.test(path) && !isSsgPresetPath(path) && !audioDocumentReader(path)) || !next.saved.has(path)) {
         throw new Error('Invalid Cassette file draft.');
       }
       const entry = {path, data: typeof base64 === 'string' && data === undefined
@@ -692,17 +787,28 @@ export function setupFm2610Files({
           requireNew(path);
           return { path, data: new Uint8Array(await file.arrayBuffer()) };
         }
-        const filename = PATCH_PATH.test(file.name) ? file.name : file.name.replace(/\.json$/i, '.fm.json');
+        if (PORTABLE_PATCH_PATH.test(file.name)) {
+          const path = namedPath(directory, file.name.replace(PORTABLE_PATCH_PATH, '.fm.json'));
+          requireNew(path);
+          const patch = readPortablePatch(file.name, new Uint8Array(await file.arrayBuffer()));
+          return { path, data: JSON.stringify(patch, null, 2) + '\n' };
+        }
+        const filename = PATCH_PATH.test(file.name) || isSsgPresetPath(file.name)
+          ? file.name : file.name.replace(/\.json$/i, '.fm.json');
         const path = namedPath(directory, filename);
         requireNew(path);
         return { path, data: decoder.decode(await file.arrayBuffer()) };
       }));
+      const names = new Set(entries.map(({path}) => path.toLowerCase()));
+      if (names.size !== entries.length) throw new Error('The selected files would use the same project path.');
       const validatedDocuments = await checkAudioDocuments(entries, entries[0].path);
       flushCode();
       writeAccepted(entries);
       show();
       await open(entries[0].path, validatedDocuments.get(entries[0].path));
-      setStatus('Imported ' + entries.length + (entries.length === 1 ? ' file.' : ' files.'));
+      setStatus(incoming.length === 1 && PORTABLE_PATCH_PATH.test(incoming[0].name)
+        ? `Imported ${incoming[0].name} as ${basename(entries[0].path)}.`
+        : 'Imported ' + entries.length + (entries.length === 1 ? ' file.' : ' files.'));
     });
   }
 
@@ -729,6 +835,7 @@ export function setupFm2610Files({
     const moved = path => inside(path, from) ? to + path.slice(from.length) : path;
     if (!copy) {
       activePatch = moved(activePatch);
+      activeSsg = moved(activeSsg);
       activeKit = moved(activeKit);
       activeSample = moved(activeSample);
       if (moved(codePath) !== codePath) {
@@ -763,6 +870,7 @@ export function setupFm2610Files({
     }
     commit(next);
     if (inside(activePatch, path)) activePatch = null;
+    if (inside(activeSsg, path)) activeSsg = null;
     if (inside(activeKit, path)) activeKit = null;
     if (inside(activeSample, path)) activeSample = null;
     select(codePath);
@@ -889,7 +997,7 @@ export function setupFm2610Files({
       flushProjectEdits();
       return codeProject.prepareSource(source, options);
     },
-    save, show, addVgmFiles, listVgm, readBinary, saveAdpcmAKit, saveAdpcmBSample,
+    save, show, addVgmFiles, listVgm, readBinary, saveSsgPreset, saveAdpcmAKit, saveAdpcmBSample,
     getEntryPath: () => codePath,
     listCodeFiles: () => describe(fs)
       .filter(entry => entry.type === 'file' && CODE_PATH.test(entry.path))

@@ -39,8 +39,10 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
     const message = errorText || (loading ? 'Reading VGM…' : playback === 'loading' ? 'Preparing playback…' : label);
     if (message !== messages.textContent) messages.textContent = message;
     messages.dataset.error = String(Boolean(errorText));
-    node('referenceSong').dataset.playback = playback;
-    node('referenceSong').hidden = !(select.options.length > 1 || loading);
+    const panel = node('referenceSong');
+    panel.dataset.playback = playback;
+    panel.dataset.seekRestoredFrame = String(player.getSeekCacheStats().lastRestoreFrame);
+    panel.hidden = !(select.options.length > 1 || loading);
   }
 
   function showError(error) {
@@ -152,5 +154,6 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
     getAdpcmAWindow: player.getAdpcmAWindow,
     retainAdpcmARom: player.retainAdpcmARom,
     readAdpcmABytes: player.readAdpcmABytes, readAdpcmBBytes: player.readAdpcmBBytes,
+    writeFm: player.writeFm, getFmEditSnapshot: player.getFmEditSnapshot,
     setSourceGains: gains => player.setSourceGains(gains)};
 }

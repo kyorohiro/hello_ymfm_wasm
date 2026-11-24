@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { selectCodeHostDeclarations, SYNTH_CODE_GLOBALS } from '../synth/synth_code_declarations.js';
 
-const globals = SYNTH_CODE_GLOBALS.filter(name => name !== 'fx' && name !== 'liveFx');
-
 const types = `
 /** OPNB FM operations. YM2610 logical channels 0–3 map to hardware slots 1, 2, 4, 5. */
-interface Fm2610CodeFm<Channel extends OPNFmChannel> {
+interface Fm2610CodeFm<Channel extends OPNFmChannel> extends Fm2610TimedApi<Channel> {
   readonly clock: number;
   readonly channelCount: 4 | 6;
   /** Reset the chip registers and retain both ADPCM ROM banks. */
@@ -31,6 +29,64 @@ interface Fm2610CodeFm<Channel extends OPNFmChannel> {
   noteOn(channel: Channel, block: number, fnum: number): void;
   noteOnRaw(channel: Channel, block: number, fnum: number): void;
   noteOff(channel: Channel): void;
+}
+
+type Fm2610TimedMethod =
+  'write' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' |
+  'setModulation' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' |
+  'setNote' | 'setBlockFnum' | 'keyOn' | 'keyOff' | 'noteOnRaw' | 'noteOff';
+type Fm2610OperationRecorder<Channel extends OPNFmChannel> = {
+  [Method in Fm2610TimedMethod]:
+    (...args: Parameters<Fm2610CodeFm<Channel>[Method]>) => Fm2610OperationRecorder<Channel>;
+} & {
+  atSample(offset: number): Fm2610OperationRecorder<Channel>;
+  atSeconds(offset: number): Fm2610OperationRecorder<Channel>;
+  rawWrite(port: 0 | 1, register: number, value: number): Fm2610OperationRecorder<Channel>;
+  setFrequency(channel: Channel, hz: number): Fm2610OperationRecorder<Channel>;
+  setFrequency(channel: Channel, block: number, fnum: number): Fm2610OperationRecorder<Channel>;
+  noteOn(channel: Channel, note: string | number): Fm2610OperationRecorder<Channel>;
+  noteOn(channel: Channel, block: number, fnum: number): Fm2610OperationRecorder<Channel>;
+};
+interface Fm2610OperationProgram {
+  readonly version: 1;
+  readonly chip: 'ym2610' | 'ym2610b';
+  readonly referenceSampleRate: number;
+  readonly operations: readonly unknown[];
+}
+interface Fm2610TimedSnapshot {
+  readonly format: 'tetorica-ym2610-state';
+  readonly variant: 'ym2610' | 'ym2610b';
+  readonly clock: number;
+  readonly frame: number;
+  readonly sampleRate: number;
+  readonly registers: readonly (readonly number[])[];
+}
+interface Fm2610CompiledWrite {
+  port: 0 | 1;
+  register: number;
+  value: number;
+  offsetSeconds: number;
+  operationIndex: number;
+  writeIndex: number;
+}
+interface Fm2610ScheduleReceipt {
+  name: string;
+  startFrame?: number;
+  sampleRate: number;
+  entries: number;
+  repeatSeconds?: number;
+  staged?: boolean;
+}
+interface Fm2610TimedApi<Channel extends OPNFmChannel> {
+  /** Build register operations without writing to the live chip. Offsets are relative to the pattern start. */
+  build(callback: (recorder: Fm2610OperationRecorder<Channel>) => void | Fm2610OperationRecorder<Channel>,
+    options?: {referenceSampleRate?: number}): Fm2610OperationProgram;
+  compile(program: Fm2610OperationProgram,
+    options?: {initialState?: 'current' | 'reset' | Fm2610TimedSnapshot}): Promise<Fm2610CompiledWrite[]>;
+  captureState(): Promise<Fm2610TimedSnapshot>;
+  schedule(program: Fm2610OperationProgram,
+    options: {name: string; repeatSeconds?: number}): Promise<Fm2610ScheduleReceipt>;
+  clearSchedule(name: string): Promise<boolean>;
 }
 
 interface Fm2610BCodeFm extends Fm2610CodeFm<OPNFmChannel> {
@@ -117,7 +173,7 @@ declare const pg: Fm2610CodeAPI;
 
 export function selectFm2610CodeDeclarations(source) {
   return selectCodeHostDeclarations(source, {
-    globals, customTypes: types, apiName: 'Fm2610CodeAPI',
+    globals: SYNTH_CODE_GLOBALS, customTypes: types, apiName: 'Fm2610CodeAPI',
     banner: 'FM2610 Synth Code borrows the selected YM2610 or YM2610B with FM, SSG and separate ADPCM-A/B banks.',
   });
 }

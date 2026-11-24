@@ -2,6 +2,7 @@
 import { encodeAdpcmB, readSamplePCM, visitAdpcmBFrames } from '../js/adpcm_b_sample.js';
 import { createOfflineAudioDecoder } from '../js/audio_decode.js';
 import { renderSampleEdit } from '../js/playground_sample_edit.js';
+import { encodeWav } from '../js/wav.js';
 import { YM2610B_CLOCK } from '../js/ym2610b.js?v=ym2610-source-mix-1';
 import { createFm2610SongAuditionChip } from './song_audition.js';
 
@@ -124,6 +125,43 @@ export function summarizeFm2610AdpcmB(bytes) {
   return peaks;
 }
 
+function decodeFm2610AdpcmB(bytes) {
+  const samples = new Float32Array(bytes.length * 2);
+  visitAdpcmBFrames(bytes, (value, frame) => { samples[frame] = value; });
+  return samples;
+}
+
+/** Paint a stroke in the full sample, keeping the existing 256-byte pages. */
+export function drawFm2610AdpcmB(bytes, points) {
+  const samples = decodeFm2610AdpcmB(bytes);
+  let previous, changed = false;
+  for (const {position, amplitude} of points) {
+    if (!Number.isFinite(position) || position < 0 || position > 1 ||
+        !Number.isFinite(amplitude) || amplitude < -1 || amplitude > 1) {
+      throw new RangeError('ADPCM-B drawing points must be inside the waveform.');
+    }
+    const frame = Math.round(position * (samples.length - 1));
+    const start = previous ?? {frame, amplitude};
+    for (let index = Math.min(frame, start.frame); index <= Math.max(frame, start.frame); index++) {
+      const amount = frame === start.frame ? 1 : (index - start.frame) / (frame - start.frame);
+      const next = Math.fround(start.amplitude + (amplitude - start.amplitude) * amount);
+      if (samples[index] !== next) {
+        samples[index] = next;
+        changed = true;
+      }
+    }
+    previous = {frame, amplitude};
+  }
+  if (!changed) return null;
+  // Both rates are equal: the drawing changes amplitude, never sample length or timing.
+  const {bytes: encoded} = encodeAdpcmB({channels: [samples], sampleRate: 1}, 1, bytes.length);
+  return encoded.some((value, index) => value !== bytes[index]) ? encoded : null;
+}
+
+export function exportFm2610AdpcmBWav(bytes, rate) {
+  return encodeWav({sampleRate: Math.max(1, Math.round(rate)), channels: [decodeFm2610AdpcmB(bytes)]});
+}
+
 let pluck;
 function defaultSample() {
   if (!pluck) {
@@ -144,7 +182,7 @@ function defaultSample() {
 function runSampleWorker(job, signal, transfers = []) {
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./adpcm_b_worker.js?v=sample-waveform-1', import.meta.url), {type: 'module'});
+    const worker = new Worker(new URL('./adpcm_b_worker.js?v=sample-edit-2', import.meta.url), {type: 'module'});
     function close() {
       signal.removeEventListener('abort', abort);
       worker.terminate();
@@ -305,6 +343,32 @@ export function createFm2610AdpcmB({
     }
   }
 
+  async function drawWave(points, signal) {
+    signal.throwIfAborted();
+    const {bytes} = sample;
+    const encoded = typeof Worker === 'function'
+      ? await runSampleWorker({bytes, points}, signal)
+      : drawFm2610AdpcmB(bytes, points);
+    signal.throwIfAborted();
+    if (!encoded || sample.bytes !== bytes) return false;
+    // The current decoder may be reading the original ROM. The next trigger
+    // uploads these bytes before enabling ADPCM-B, without disturbing that voice.
+    sample = {...sample, bytes: encoded};
+    return true;
+  }
+
+  async function exportWave(signal) {
+    signal.throwIfAborted();
+    const {bytes, sampleRate} = sample;
+    const {start, end, sampleStart} = sampleWindow(sample);
+    const selected = bytes.subarray(start - sampleStart, end - sampleStart);
+    const wav = selected.length > 0x10000 && typeof Worker === 'function'
+      ? await runSampleWorker({bytes: selected.slice(), wavRate: sampleRate}, signal)
+      : exportFm2610AdpcmBWav(selected, sampleRate);
+    signal.throwIfAborted();
+    return wav;
+  }
+
   function upload(chip, {bytes, clockHz}) {
     const address = clockHz === undefined ? SAMPLE_ADDRESS : 0;
     if (!bank || bank.chip !== chip || bank.bytes !== bytes) {
@@ -370,7 +434,7 @@ export function createFm2610AdpcmB({
 
   return {
     getSample, getSettings, getWaveform: signal => getFm2610AdpcmBWaveform(sample.bytes, signal),
-    applySample, loadSample, setSettings, setRange, setDeltaN, stop, invalidate, prepare,
+    applySample, loadSample, drawWave, exportWave, setSettings, setRange, setDeltaN, stop, invalidate, prepare,
     setSourceGains: referenceChip.setSourceGains,
     noteOn(midi, owner = midi) {
       return trigger(integer(midi, 0, 127, 'ADPCM-B MIDI note'), owner);

@@ -19,7 +19,7 @@ export {createYm2612OperationResetState, validateYm2612OperationState, observeYm
 
 /** Register-only authoring calls supported by the YM2612 operation recorder.
  * Validation and register conversion remain in YM2612Synth. */
-const arity = Object.freeze({
+export const YM2612_OPERATION_ARITY = Object.freeze({
   write: [3, 3], rawWrite: [3, 3], setPreset: [2, 2],
   setOperator: [3, 3], setOperators: [2, 2], setAlgo: [2, 3],
   setPan: [3, 5], setLfo: [2, 2], setChannel3SpecialMode: [1, 1],
@@ -29,7 +29,7 @@ const arity = Object.freeze({
   setDacEnabled: [1, 1], writeDac: [1, 1],
 });
 
-export const YM2612_OPERATION_METHODS = Object.freeze(Object.keys(arity));
+export const YM2612_OPERATION_METHODS = Object.freeze(Object.keys(YM2612_OPERATION_ARITY));
 export const MAX_YM2612_OPERATIONS = 4096;
 
 function object(value, label) {
@@ -108,7 +108,7 @@ function copyTime(time) {
   return {unit, value};
 }
 
-function copyCall(operation) {
+function copyCall(operation, arity = YM2612_OPERATION_ARITY) {
   const method = operation?.method;
   if (typeof method !== 'string' || !Object.hasOwn(arity, method)) throw new TypeError(`Unsupported YM2612 operation: ${String(method)}`);
   if (!Array.isArray(operation.args)) throw new TypeError('YM2612 operation args must be an array');
@@ -126,22 +126,22 @@ export function ym2612OperationOffsetSeconds(operation, referenceSampleRate = 44
 }
 
 /** Copies/validates data without evaluating chip operations or reading state. */
-function copyProgram(plan) {
+function copyProgram(plan, {chip = 'ym2612', arity = YM2612_OPERATION_ARITY} = {}) {
   fields(plan, ['version', 'chip', 'referenceSampleRate', 'operations'], 'YM2612 operation program');
-  if (plan.version !== 1 || plan.chip !== 'ym2612') throw new TypeError('Unsupported YM2612 operation program version or chip');
+  if (plan.version !== 1 || plan.chip !== chip) throw new TypeError(`Unsupported ${chip.toUpperCase()} operation program version or chip`);
   const rate = referenceRate(plan.referenceSampleRate);
   if (!Array.isArray(plan.operations) || plan.operations.length > MAX_YM2612_OPERATIONS) throw new RangeError(`YM2612 programs support at most ${MAX_YM2612_OPERATIONS} operations`);
   let previous = 0;
   const operations = Array.from(plan.operations, (operation, index) => {
     fields(operation, ['time', 'order', 'method', 'args'], 'YM2612 operation');
     if (operation.order !== index) throw new TypeError('YM2612 operation order must match authored order');
-    const time = copyTime(operation.time), call = copyCall(operation);
+    const time = copyTime(operation.time), call = copyCall(operation, arity);
     const offset = time.unit === 'sample' ? time.value / rate : time.value;
     if (offset < previous) throw new RangeError('YM2612 operation offsets must be nondecreasing');
     previous = offset;
     return {time, order: index, ...call};
   });
-  return {version: 1, chip: 'ym2612', referenceSampleRate: rate, operations};
+  return {version: 1, chip, referenceSampleRate: rate, operations};
 }
 
 /** Record once. This function never constructs a chip or resolves register bytes.
@@ -149,6 +149,11 @@ function copyProgram(plan) {
  * @param {(builder:YM2612OperationRecorder)=>void} callback
  * @param {YM2612BuildOptions} [options] @returns {YM2612OperationProgram} */
 export function buildYm2612Operations(callback, options = {}) {
+  return recordOpnOperations(callback, options);
+}
+
+/** Record register operations for an OPN profile using its supported methods. */
+export function recordOpnOperations(callback, options, {chip = 'ym2612', arity = YM2612_OPERATION_ARITY} = {}) {
   if (typeof callback !== 'function') throw new TypeError('YM2612 build requires a synchronous callback');
   fields(options, ['referenceSampleRate'], 'YM2612 build options');
   const rate = referenceRate(options.referenceSampleRate ?? 44100), operations = [];
@@ -168,10 +173,10 @@ export function buildYm2612Operations(callback, options = {}) {
     previous = seconds;
     return builder;
   };
-  for (const method of YM2612_OPERATION_METHODS) builder[method] = (...args) => {
+  for (const method of Object.keys(arity)) builder[method] = (...args) => {
     check();
     if (operations.length >= MAX_YM2612_OPERATIONS) throw new RangeError(`YM2612 programs support at most ${MAX_YM2612_OPERATIONS} operations`);
-    const call = copyCall({method, args});
+    const call = copyCall({method, args}, arity);
     operations.push({time: {...time}, order: operations.length, ...call});
     return builder;
   };
@@ -181,11 +186,13 @@ export function buildYm2612Operations(callback, options = {}) {
       Promise.resolve(result).catch(() => {});
       throw new TypeError('YM2612 build callbacks must be synchronous');
     }
-    return copyProgram({version: 1, chip: 'ym2612', referenceSampleRate: rate, operations});
+    return copyProgram({version: 1, chip, referenceSampleRate: rate, operations}, {chip, arity});
   } finally {
     active = false;
   }
 }
+
+export {copyProgram as copyOpnOperationProgram, copyCall as copyOpnOperationCall};
 
 /** A scratch chip shares existing parameter validation and register conversion.
  * State adoption and raw-shadow updates never touch the live SoundChip.

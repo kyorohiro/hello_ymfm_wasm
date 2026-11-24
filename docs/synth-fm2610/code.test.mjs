@@ -2,8 +2,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { NeoGeoFMSynth, YM2610BSynth } from '../js/ym2610bsynth.js';
+import { createNativeFXController } from '../js/native_fx.js';
 import { observeFm2610Writes } from './audio.js';
 import { setupFm2610Code } from './code.js';
+import { createFm2610CodeRoute } from './code_fx.js';
 
 function audioFixture({loadAdpcmMemory = () => Promise.resolve()} = {}) {
   const writes = [];
@@ -21,6 +23,71 @@ function audioFixture({loadAdpcmMemory = () => Promise.resolve()} = {}) {
     ...observeFm2610Writes(transport, 'ym2610', rawFm.clock, context)};
   return {audio, writes};
 }
+
+function routeNode() {
+  const outputs = new Set();
+  return {outputs, connect: node => outputs.add(node), disconnect: node => {
+    assert(outputs.delete(node), 'disconnect only an owned, connected route');
+  }};
+}
+
+test('Code FX rewires only the OPNB mixer input', () => {
+  const chip = routeNode(), analyser = routeNode(), mixer = routeNode(), wet = routeNode(), song = routeNode();
+  chip.connect(analyser);
+  song.connect(mixer);
+  const route = createFm2610CodeRoute(chip, mixer);
+  assert.deepEqual(chip.outputs, new Set([analyser, mixer]));
+  route.setEffect(wet);
+  assert.deepEqual(chip.outputs, new Set([analyser, wet]));
+  assert.deepEqual(wet.outputs, new Set([mixer]));
+  assert.deepEqual(song.outputs, new Set([mixer]));
+  route.setEffect(null);
+  assert.deepEqual(chip.outputs, new Set([analyser, mixer]));
+  assert.deepEqual(wet.outputs, new Set());
+  route.dispose();
+  route.setEffect(wet);
+  assert.deepEqual(chip.outputs, new Set([analyser]));
+});
+
+test('Code Run and Apply use the same native FX rack until Stop retires the route', async () => {
+  const {audio} = audioFixture();
+  const routes = [], messages = [], racks = [];
+  audio.setCodeEffect = output => routes.push(output);
+  const button = () => ({addEventListener() {}});
+  const textarea = {value: `
+    setBpm(96);
+    context.gain = fx.gain({gain: .4});
+    fx.setChain([context.gain]);
+    liveFx('level', {process(input, output) { output[0].set(input[0]); }});
+  `};
+  const code = setupFm2610Code({
+    textarea, runButton: button(), applyButton: button(), stopButton: button(), status: {}, output: {},
+    sound: () => audio, getMode: () => 'ym2610', stopSound() {},
+    createFxRack() {
+      const rack = {node: {}, stopped: false, closed: false,
+        stop() { this.stopped = true; }, dispose() { this.closed = true; }};
+      rack.controller = createNativeFXController(message => messages.push(message),
+        {getBeatSeconds: () => rack.getBeatSeconds()});
+      racks.push(rack);
+      return rack;
+    },
+  });
+  await code.run();
+  assert.equal(racks.length, 1);
+  assert.strictEqual(routes.at(-1), racks[0].node);
+  assert.equal(messages.find(message => message.op === 'chain').beatSeconds, .625);
+  assert.equal(messages.find(message => message.op === 'live-fx').name, 'level');
+  textarea.value = 'context.gain.gain.set(.2); fx.setChain([context.gain]);';
+  await code.apply();
+  assert.equal(racks.length, 1);
+  assert(messages.some(message => message.op === 'parameter' && message.value === .2));
+  assert(messages.some(message => message.op === 'live-fx' && message.action === 'remove'));
+  assert.strictEqual(routes.at(-1), racks[0].node);
+  await code.stop();
+  assert.equal(routes.at(-1), null);
+  assert.equal(racks[0].stopped, true);
+  assert.equal(racks[0].closed, true);
+});
 
 test('stopping Code first retains the final FM, SSG and ADPCM settings and uploaded data', async () => {
   const {audio, writes} = audioFixture();

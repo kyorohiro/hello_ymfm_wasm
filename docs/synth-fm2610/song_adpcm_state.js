@@ -30,9 +30,10 @@ function createRomBank(share) {
   // Track recorded coverage separately from the core's zero-filled ROM size.
   // Own only populated pages. A block near the top of a large bank does not
   // allocate memory for the ROM addresses before it.
-  let rom = share?.rom ?? Object.freeze({size: 0, revision: 0});
+  let rom = Object.freeze(share?.rom ?? {size: 0, revision: 0});
   const ranges = share?.ranges.slice() ?? [];
   const pages = new Map(share?.pages);
+  for (const page of pages.values()) sharedRomPages.add(page);
 
   function clear() {
     ranges.length = 0;
@@ -87,16 +88,19 @@ function createRomBank(share) {
     return end > start && end <= rom.size && ranges.some(range => range.start <= start && end <= range.end);
   }
 
+  function saveState() {
+    for (const page of pages.values()) sharedRomPages.add(page);
+    return {rom, ranges: ranges.slice(), pages: new Map(pages)};
+  }
+
   return {
     load, clear, covers,
     get descriptor() { return rom; },
     coveredRange(start, end) {
       return ranges.find(range => range.start <= start && end <= range.end);
     },
-    fork() {
-      for (const page of pages.values()) sharedRomPages.add(page);
-      return createRomBank({rom, ranges, pages});
-    },
+    saveState,
+    fork: () => createRomBank(saveState()),
     read(start, end) {
       if (!covers(start, end)) return null;
       const result = new Uint8Array(end - start);
@@ -289,9 +293,25 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
     });
   }
 
+  function saveState() {
+    return {a: a.slice(), b: b.slice(), lastTrigger: lastTrigger.slice(), triggerFrames: [...triggerFrames],
+      aKeyed, aProgrammed, aLevelWritten, triggerOrder, eosMask, revision, banks: banks.map(bank => bank.saveState())};
+  }
+
+  function loadState(state) {
+    a.set(state.a);
+    b.set(state.b);
+    lastTrigger.set(state.lastTrigger);
+    state.triggerFrames.forEach((frame, index) => { triggerFrames[index] = frame; });
+    ({aKeyed, aProgrammed, aLevelWritten, triggerOrder, eosMask, revision} = state);
+    banks = state.banks.map(createRomBank);
+    cached = null;
+  }
+
   if (sharedBanks) resetRegisters();
   else reset();
   return {write, loadRom, clearRom, reset, resetRegisters, snapshot, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes, retainAdpcmARom,
+    saveState, loadState,
     // Code runs get fresh register shadows over the same physical ROM.
     observeSharedRom() { return createAdpcmState({clock, outputSampleRate}, banks); },
     freezeSharedRom() { banks = banks.map(bank => bank.fork()); },

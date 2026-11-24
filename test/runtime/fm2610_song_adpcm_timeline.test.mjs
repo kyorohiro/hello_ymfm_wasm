@@ -132,12 +132,14 @@ function songOutputFixture(t) {
     closed = false;
     disconnected = false;
     ended = false;
+    chunks = [];
     port = {
       postMessage: message => {
         if (message.type === 'pause') {
           queueMicrotask(() => this.emit(this.consumed,{type:'paused'}));
         } else if (message.type === 'enqueue') {
           this.sent += message.left.byteLength / Float32Array.BYTES_PER_ELEMENT;
+          this.chunks.push({left: new Float32Array(message.left), right: new Float32Array(message.right)});
         } else if (message.type === 'end') {
           this.ended = true;
         }
@@ -166,6 +168,48 @@ function songOutputFixture(t) {
 }
 
 const prepareMix = async () => prepareFm2610Vgm(await readSource(new URL('../fixtures/ym2610-mix.vgz',import.meta.url)));
+
+async function prepareLongMix() {
+  const {bytes} = await prepareMix();
+  const commands = [0x58,0x08,0x02, 0x58,0x10,0xb0];
+  const waitSeconds = seconds => {
+    for (let second = 0; second < seconds; second++) commands.push(0x61,0x44,0xac);
+  };
+  const rom = (type, byte) => {
+    const block = new Uint8Array(15 + 256).fill(byte);
+    const view = new DataView(block.buffer);
+    block.set([0x67,0x66,type]);
+    view.setUint32(3,8 + 256,true);
+    view.setUint32(7,256,true);
+    view.setUint32(11,0,true);
+    commands.push(...block);
+  };
+  waitSeconds(3);
+  rom(0x82,0x21);
+  rom(0x83,0x32);
+  commands.push(0x58,0xb1,5, 0x58,0x08,0x0c, 0x59,0,1, 0x58,0x10,0xb0);
+  waitSeconds(5);
+  commands.push(0x66);
+  const body = Uint8Array.from(commands);
+  const result = new Uint8Array(bytes.length - 4 + body.length);
+  result.set(bytes.subarray(0,-4)); // Replace the fixture's last wait and end.
+  result.set(body,bytes.length - 4);
+  const view = new DataView(result.buffer);
+  view.setUint32(4,result.length - 4,true);
+  view.setUint32(0x18,44100 * 8,true);
+  return prepareFm2610Vgm(result);
+}
+
+function firstPcm(node, samples = 256) {
+  return ['left','right'].map(channel => node.chunks.flatMap(chunk => Array.from(chunk[channel])).slice(0,samples));
+}
+
+function outputUntil(node, frame) {
+  while (node.consumed < frame) {
+    assert(node.sent > node.consumed, 'more output must be queued');
+    node.emit(Math.min(frame,node.sent));
+  }
+}
 
 test('FM2610 confines custom ADPCM-A reads to the current paused or retained frame', async t => {
   const {transport,errors,nodes} = songOutputFixture(t);
@@ -249,5 +293,106 @@ test('FM2610 natural end and seek to end retain the final output until Clear', a
   assert.equal(transport.getState().retained,true);
   assert.equal(transport.readAdpcmABytes(sought,0).length,256);
   assert.equal(nodes.length,1); // Seeking exactly to the end never starts an output node.
+  assert.deepEqual(errors,[]);
+});
+
+test('FM2610 warm seeks restore exact PCM, FM/SSG registers and both replaced ADPCM ROMs', async t => {
+  const {transport,errors,nodes} = songOutputFixture(t);
+  const source = await prepareLongMix();
+  await transport.play(source,{position:6.2,paused:true});
+  const cache = transport.getSeekCacheStats();
+  assert(cache.count >= 2 && cache.count <= cache.maxCount);
+  assert(cache.bytes > 0 && cache.bytes <= cache.maxBytes);
+  assert.equal(cache.lastRestoreFrame,0);
+  transport.stop();
+
+  const target = 5.2;
+  async function capture() {
+    await transport.play(source,{position:target,paused:true});
+    const snapshot = transport.getSnapshot();
+    const adpcmA = transport.readAdpcmABytes(snapshot,0);
+    const adpcmB = transport.readAdpcmBBytes(snapshot);
+    transport.resume();
+    const node = nodes.at(-1);
+    return {frame:snapshot.frame, channels:snapshot.channels, ssg:snapshot.ssg,
+      voice:snapshot.adpcm.adpcmA.voices[0], adpcmA,adpcmB, pcm:firstPcm(node)};
+  }
+  const warm = await capture();
+  assert(transport.getSeekCacheStats().lastRestoreFrame > 3 * 48000, 'checkpoint includes the changed ROM banks');
+  assert.equal(warm.frame,Math.round(target * 48000));
+  assert.equal(warm.channels[0].preset.algorithm,5);
+  assert.equal(warm.ssg.channels[0].level,12);
+  assert.equal(warm.voice.lastTriggerFrame,3 * 48000);
+  assert.deepEqual(warm.adpcmA,new Uint8Array(256).fill(0x21));
+  assert.deepEqual(warm.adpcmB,new Uint8Array(256).fill(0x32));
+  assert(warm.pcm[0].some(Boolean));
+
+  transport.clear();
+  assert.equal(transport.getSeekCacheStats().count,0);
+  const cold = await capture();
+  assert.equal(transport.getSeekCacheStats().lastRestoreFrame,0);
+  assert.deepEqual(cold,warm);
+  assert.deepEqual(errors,[]);
+});
+
+test('FM2610 live edits affect only future PCM and later song writes override them', async t => {
+  const {transport,errors,nodes} = songOutputFixture(t);
+  const source = await prepareLongMix();
+  await transport.play(source);
+  const node = nodes.at(-1);
+  const initial = transport.getFmEditSnapshot();
+  const algorithm = snapshot => snapshot.channels[0].preset.algorithm;
+  assert.equal(algorithm(initial),7);
+  assert.throws(() => transport.writeFm([
+    {port:0,register:0xb1,value:1},{port:0,register:0x28,value:0xf1},
+  ]),/FM parameter register/);
+  assert.throws(() => transport.writeFm([{port:0,register:0xb0,value:1}]),/unavailable/);
+  assert.equal(algorithm(transport.getFmEditSnapshot()),7,'validation happens before any writes');
+
+  const fmWrite = [{port:0,register:0xb1,value:1}];
+  assert.equal(transport.writeFm(fmWrite),true);
+  assert.equal(algorithm(transport.getFmEditSnapshot()),1);
+  outputUntil(node,initial.frame);
+  assert.equal(algorithm(transport.getSnapshot()),7);
+  outputUntil(node,initial.frame + 1);
+  assert.equal(algorithm(transport.getSnapshot()),1);
+  outputUntil(node,3 * 48000 + 1);
+  assert.equal(algorithm(transport.getSnapshot()),5);
+  assert.equal(transport.getSeekCacheStats().count,0,'manual state never enters seek cache');
+
+  transport.pause();
+  await new Promise(resolve => queueMicrotask(resolve));
+  assert.equal(transport.getFmEditSnapshot(),null);
+  assert.equal(transport.writeFm(fmWrite),false);
+  await transport.play(source,{position:.35,paused:true});
+  assert.equal(algorithm(transport.getSnapshot()),7,'new seek gets original VGM settings');
+  assert.deepEqual(errors,[]);
+});
+
+test('FM2610 keeps clean checkpoints through live edits and invalidates changed mix/source', async t => {
+  const {transport,errors,nodes} = songOutputFixture(t);
+  const source = await prepareLongMix();
+  await transport.play(source,{position:4.6,paused:true});
+  const original = transport.getSeekCacheStats();
+  assert(original.count >= 2);
+  transport.resume();
+  assert.equal(transport.writeFm([{port:0,register:0xb1,value:2}]),true);
+  outputUntil(nodes.at(-1),18000);
+  assert.equal(transport.getSeekCacheStats().count,original.count);
+  await transport.play(source,{position:4.7,paused:true});
+  assert(transport.getSeekCacheStats().lastRestoreFrame > 0);
+  assert.equal(transport.getSnapshot().channels[0].preset.algorithm,5);
+
+  transport.setSourceGains([.5,1,1,1]);
+  assert.equal(transport.getSeekCacheStats().count,0);
+  const replacement = await prepareMix();
+  const staleSeek = transport.play(source,{position:6,paused:true});
+  await new Promise(resolve => setTimeout(resolve,0));
+  assert.equal(transport.getState().playback,'loading');
+  await transport.play(replacement,{paused:true});
+  await staleSeek;
+  assert.equal(transport.getSeekCacheStats().count,0);
+  assert.equal(transport.getSnapshot().frame,0);
+  assert.equal(transport.getSnapshot().channels[0].preset.algorithm,7);
   assert.deepEqual(errors,[]);
 });

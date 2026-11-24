@@ -4,6 +4,9 @@ import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stability-2";
+import {createYm2612TimedProcessor} from './ym2612_timed_processor.js?v=audio-stability-2';
+import {observeYm2612OperationWrite} from './ym2612_operation_state.js?v=audio-stability-2';
+import {ym2610Timing, createYm2610OperationResetState} from './ym2610_timed.js';
 /**
  * @file ym2610b-worklet.js
  * 実行環境: Browser（AudioWorkletGlobalScope）
@@ -21,14 +24,31 @@ class YM2610BProcessor extends AudioWorkletProcessor {
     this.auditions = null;
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
+    this.operationState = createYm2610OperationResetState();
+    this.variant = 'ym2610b';
+    this.instanceId = 'opnb';
+    this.observeTimedWrites = false;
+    this.timedObserverId = null;
+    this.timedWrites = [];
     this.sectionOwners = {ssg: new Array(3).fill(null), adpcmA: new Array(6).fill(null), adpcmB: null};
     this.performanceOwnership = createPerformanceChipOwnership({
-      writeFm: (register, value, port) => this.chip?.writeRegister(register, value, port),
+      writeFm: (register, value, port) => this.writeRegister(port, register, value, true),
       channelCount: 6,
     });
     this.performanceQueue = createPerformanceQueue({
-      apply: (data, reply, _frame, performance) => handle(data, reply, performance),
-      onCancelOwner: owner => { this.performanceOwnership.cancel(owner); this.cancelSectionOwner(owner); },
+      apply: (data, reply, frame, performance) => {
+        if (data.method === 'applyTimedOperation') this.timed.apply(data.operation, reply, frame, performance);
+        else handle(data, reply, performance);
+      },
+      onCancelOwner: owner => { this.performanceOwnership.cancel(owner); this.releaseSections(entry => entry.owner === owner); },
+      onReleasePattern: (name, scope) => {
+        const fm = this.performanceOwnership.releasePattern(name, scope);
+        const sections = this.releaseSections(entry => entry.patternName !== undefined &&
+          (name === undefined || entry.patternName === name) && (scope?.owner === undefined || entry.owner === scope.owner) &&
+          (scope?.session === undefined || entry.session === scope.session));
+        return fm || sections;
+      },
+      patternCommandCost: command => command.writeCost ?? 1,
       nowFrame: () => currentFrame, sampleRate,
       prepare: (data, reply) => {
         if (data.type === 'loadAdpcmMemory') { handle(data, reply); return null; }
@@ -41,8 +61,21 @@ class YM2610BProcessor extends AudioWorkletProcessor {
         } catch (error) { reply?.({type: 'chip-clock-result', id: data.id, error: error.message}); return null; }
       },
     });
-    const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply), undefined, {performanceQueue: this.performanceQueue});
+    this.timed = createYm2612TimedProcessor({
+      ...ym2610Timing,
+      performance: {...this.performanceQueue, receive: (data, port) =>
+        this.performanceQueue.receive(data, message => port.postMessage(message))},
+      getState: () => this.operationState,
+      getConfig: () => ({clock: this.clock ?? YM2610B_CLOCK, variant: this.variant, instanceId: this.instanceId}),
+      dispatch: (data, reply, _frame, performance) => handle(data, reply, performance),
+      nowFrame: () => currentFrame, sampleRate,
+    });
+    const receiveControl = (data, reply = message => this.port.postMessage(message)) =>
+      this.timed.receive(data, {postMessage:reply});
+    const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply), undefined,
+      {performanceQueue: this.performanceQueue, receiveControl});
     const handle = (data, reply = message => this.port.postMessage(message), performance) => {
+      if (performance?.timedOperation && !this.performanceOwnership.canApplyTimed(data, performance)) return;
       this.performanceOwnership.observe(data, performance);
       this.observeSectionOwnership(data, performance);
       if(data.type==='clear-auditions')this.opnInspector?.clear();
@@ -53,6 +86,12 @@ class YM2610BProcessor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "initialize") void this.initialize(data.wasmBinary, data.variant);
+      if (data.type === 'observe-timed-writes') {
+        this.observeTimedWrites = data.enabled === true;
+        this.timedObserverId = data.observerId ?? null;
+        this.timedWrites = [];
+        if (typeof data.instanceId === 'string') this.instanceId = data.instanceId;
+      }
       if (data.type === 'source-gains') {
         try {
           const gains = normalizeYm2610BSourceGains(data.gains);
@@ -71,11 +110,15 @@ class YM2610BProcessor extends AudioWorkletProcessor {
         }
         return;
       }
-      if (data.type === "write" && this.chip) this.chip.writeRegister(data.register, data.value, data.port);
-      if (data.type === "reset") this.chip?.reset();
+      if (data.type === "write") this.writeRegister(data.port ?? 0, data.register, data.value, performance?.timedOperation);
+      if (data.type === "reset") {
+        this.chip?.reset();
+        this.operationState = createYm2610OperationResetState();
+      }
     };
     this.port.onmessage = ({data}) => {
       if(data?.type==='chip-inspector'&&receiveChipInspector(data,this.port,this.opnInspector?(action,method,args)=>action==='read'?this.opnInspector.read():this.opnInspector.invoke(method,args):null))return;
+      if (receiveControl(data)) return;
       if (this.performanceQueue.receive(data, message => this.port.postMessage(message))) return;
       if (!receiveChipPort(data)) handle(data);
     };
@@ -84,6 +127,7 @@ class YM2610BProcessor extends AudioWorkletProcessor {
   async initialize(wasmBinary, variant = true) {
     try {
       this.chip = await Ym2610B.create({ moduleFactory: ym2610bModuleFactory, moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) }, variant });
+      this.variant = variant ? 'ym2610b' : 'ym2610';
       this.chip.setSourceGains(this.sourceGains);
       this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.opnInspector = new OpnKeyboardInspector(this.chip,{kind:variant?'ym2610b':'ym2610',guard:this.auditions,clock:()=>this.clock??8000000,sampleRate});
@@ -100,8 +144,17 @@ class YM2610BProcessor extends AudioWorkletProcessor {
     }
   }
 
+  writeRegister(port, register, value, timed = false) {
+    if (!this.chip) return;
+    this.chip.writeRegister(register, value, port);
+    observeYm2612OperationWrite(this.operationState, port, register, value);
+    if (timed && this.observeTimedWrites) this.timedWrites.push({port, register, value});
+  }
+
   observeSectionOwnership(data, performance) {
-    const owner = performance?.owner ?? null;
+    const owner = performance?.owner == null ? null : {
+      owner: performance.owner, session: performance.session, patternName: performance.patternName,
+    };
     if (data.type === 'reset') { this.sectionOwners.ssg.fill(null); this.sectionOwners.adpcmA.fill(null); this.sectionOwners.adpcmB = null; }
     if (data.type !== 'write') return;
     const {register, value} = data;
@@ -116,16 +169,27 @@ class YM2610BProcessor extends AudioWorkletProcessor {
     }
   }
 
-  cancelSectionOwner(owner) {
-    for (let ch = 0; ch < 3; ch++) if (this.sectionOwners.ssg[ch] === owner) {
-      this.sectionOwners.ssg[ch] = null; this.chip?.writeRegister(8 + ch, 0, 0);
+  releaseSections(matches) {
+    let released = false;
+    for (let ch = 0; ch < 3; ch++) if (this.sectionOwners.ssg[ch] && matches(this.sectionOwners.ssg[ch])) {
+      this.sectionOwners.ssg[ch] = null;
+      this.writeRegister(0, 8 + ch, 0, true);
+      released = true;
     }
     let adpcmAMask = 0;
-    for (let ch = 0; ch < 6; ch++) if (this.sectionOwners.adpcmA[ch] === owner) {
+    for (let ch = 0; ch < 6; ch++) if (this.sectionOwners.adpcmA[ch] && matches(this.sectionOwners.adpcmA[ch])) {
       this.sectionOwners.adpcmA[ch] = null; adpcmAMask |= 1 << ch;
     }
-    if (adpcmAMask) this.chip?.writeRegister(0, 0x80 | adpcmAMask, 1);
-    if (this.sectionOwners.adpcmB === owner) { this.sectionOwners.adpcmB = null; this.chip?.writeRegister(0x10, 1, 0); }
+    if (adpcmAMask) {
+      this.writeRegister(1, 0, 0x80 | adpcmAMask, true);
+      released = true;
+    }
+    if (this.sectionOwners.adpcmB && matches(this.sectionOwners.adpcmB)) {
+      this.sectionOwners.adpcmB = null;
+      this.writeRegister(0, 0x10, 1, true);
+      released = true;
+    }
+    return released;
   }
 
   process(_inputs, outputs) {
@@ -158,6 +222,10 @@ class YM2610BProcessor extends AudioWorkletProcessor {
         }
         left[frame] = this.lastLeft; right[frame] = this.lastRight;
       }
+    }
+    if (this.timedWrites.length) {
+      this.port.postMessage({type:'opnb-timed-writes', observerId:this.timedObserverId, writes:this.timedWrites});
+      this.timedWrites = [];
     }
     return true;
   }
