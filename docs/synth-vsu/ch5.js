@@ -10,6 +10,18 @@ export const CH5_MODULATION_MAX = 127;
 const MODULATION_RAM = 0x280;
 const MODES = ['off', 'sweep', 'modulation'];
 const CLOCK_MS = Object.freeze({ fast: 0.96, slow: 7.68 });
+const MODULATION_PRESETS = {
+	vibrato: {
+		label: 'Vibrato',
+		offset: index => Math.round(64 * Math.sin(2 * Math.PI * index / CH5_MODULATION_LENGTH)),
+	},
+	'rising-bend': { label: 'Rising bend', offset: index => 6 * Math.min(index, 16) },
+	trill: { label: 'Trill', offset: index => index % 8 < 4 ? 0 : 72 },
+};
+
+export const CH5_MODULATION_PRESETS = Object.freeze(
+	Object.entries(MODULATION_PRESETS).map(([id, { label }]) => Object.freeze({ id, label })),
+);
 
 function integer(value, min, max, label) {
 	if (!Number.isInteger(value) || value < min || value > max)
@@ -39,11 +51,16 @@ function validateModulation(values) {
 	return Array.from(values, value => integer(value, CH5_MODULATION_MIN, CH5_MODULATION_MAX, 'CH5 modulation offset'));
 }
 
+export function createCh5ModulationPreset(id) {
+	if (!Object.hasOwn(MODULATION_PRESETS, id)) throw new RangeError('Choose a CH5 modulation preset.');
+	const { offset } = MODULATION_PRESETS[id];
+	return validateModulation(Array.from({ length: CH5_MODULATION_LENGTH }, (_, index) => offset(index)));
+}
+
 export function createCh5Settings() {
 	return {
 		mode: 'off', clock: 'slow', rate: 7, direction: 'up', shift: 6, repeat: true,
-		modulation: Array.from({ length: CH5_MODULATION_LENGTH }, (_, index) =>
-			Math.round(64 * Math.sin(2 * Math.PI * index / CH5_MODULATION_LENGTH))),
+		modulation: createCh5ModulationPreset('vibrato'),
 	};
 }
 

@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#150b0f">
   <title>Tetorica VSU Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_vsu_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=vsu-envelope-patch">
+  <link rel="stylesheet" href="./synth.css?v=vsu-modulation-controls">
   <link rel="stylesheet" href="./files.css?v=vsu-noise">
-  <script type="module" src="./synth.js?v=vsu-note-gate"></script>
+  <script type="module" src="./synth.js?v=vsu-modulation-controls"></script>
 </head>
 <body>
   <main class="shell">
@@ -205,49 +205,55 @@
             </div>
 
             <section id="ch5Panel" class="panel ch5-panel" aria-labelledby="ch5Title" hidden>
-              <div class="panel-head">
-                <h2 id="ch5Title">Sweep / Modulation</h2>
-                <fieldset id="ch5Mode" class="choice-control">
-                  <legend>Mode</legend>
-                  <div class="choice-options">
-                    <label><input type="radio" name="ch5Mode" value="off" checked><span>Off</span></label>
-                    <label><input type="radio" name="ch5Mode" value="sweep"><span>Sweep</span></label>
-                    <label><input type="radio" name="ch5Mode" value="modulation"><span>Modulation</span></label>
-                  </div>
-                </fieldset>
+              <h2 id="ch5Title">Sweep / Modulation</h2>
+              <div id="ch5Mode" class="chip-tabs ch5-mode-tabs" role="tablist" aria-label="CH5 pitch effect">
+                <button id="ch5OffTab" type="button" role="tab" value="off" aria-selected="true" aria-controls="ch5Off">Off</button>
+                <button id="ch5SweepTab" type="button" role="tab" value="sweep" aria-selected="false" aria-controls="ch5Sweep" tabindex="-1">Sweep</button>
+                <button id="ch5ModulationTab" type="button" role="tab" value="modulation" aria-selected="false" aria-controls="ch5Modulation" tabindex="-1">Modulation</button>
               </div>
-              <div id="ch5Timing" class="ch5-controls" role="group" aria-label="Timing" hidden>
-                <fieldset id="ch5Clock" class="choice-control">
-                  <legend>Base clock</legend>
-                  <div class="choice-options">
-                    <label><input type="radio" name="ch5Clock" value="fast"><span>0.96 ms</span></label>
-                    <label><input type="radio" name="ch5Clock" value="slow" checked><span>7.68 ms</span></label>
-                  </div>
-                </fieldset>
-                <label class="parameter-range">Multiplier <input id="ch5Rate" aria-label="Multiplier" type="range" min="0" max="7" step="1" value="7">
-                  <output id="ch5RateValue" for="ch5Rate" aria-live="off">7</output>
-                </label>
-                <div class="ch5-interval">Step interval <output id="ch5Step" for="ch5Mode ch5Clock ch5Rate">Off</output></div>
+              <div id="ch5Off" role="tabpanel" aria-labelledby="ch5OffTab" tabindex="0">
+                <p class="hint">CH5 plays at its base pitch.</p>
               </div>
-              <div id="ch5Sweep" class="ch5-controls" role="group" aria-label="Sweep settings" hidden>
-                <fieldset id="ch5Direction" class="choice-control">
-                  <legend>Direction</legend>
-                  <div class="choice-options">
-                    <label><input type="radio" name="ch5Direction" value="up" checked><span>Up</span></label>
-                    <label><input type="radio" name="ch5Direction" value="down"><span>Down</span></label>
-                  </div>
-                </fieldset>
-                <label class="parameter-range">Shift (bits) <input id="ch5Shift" aria-label="Shift (bits)" type="range" min="0" max="7" step="1" value="6">
-                  <output id="ch5ShiftValue" for="ch5Shift" aria-live="off">6</output>
-                </label>
-              </div>
-              <div id="ch5Modulation" class="ch5-modulation" hidden>
-                <div class="panel-head">
-                  <h3 id="ch5ModTitle">Modulation RAM</h3>
-                  <label><input id="ch5Repeat" type="checkbox"> Repeat</label>
+              <div id="ch5Sweep" role="tabpanel" aria-labelledby="ch5SweepTab" hidden>
+                <div id="ch5Timing" class="ch5-controls" role="group" aria-label="Timing">
+                  <fieldset id="ch5Clock" class="choice-control">
+                    <legend>Base clock</legend>
+                    <div class="choice-options">
+                      <label><input type="radio" name="ch5Clock" value="fast"><span>0.96 ms</span></label>
+                      <label><input type="radio" name="ch5Clock" value="slow" checked><span>7.68 ms</span></label>
+                    </div>
+                  </fieldset>
+                  <label class="parameter-range">Multiplier <input id="ch5Rate" aria-label="Multiplier" type="range" min="0" max="7" step="1" value="7">
+                    <output id="ch5RateValue" for="ch5Rate" aria-live="off">7</output>
+                  </label>
+                  <div class="ch5-interval">Step interval <output id="ch5Step" for="ch5SweepTab ch5ModulationTab ch5Clock ch5Rate">Off</output></div>
                 </div>
-                <div id="ch5ModGrid" class="ch5-mod-grid" role="group" aria-labelledby="ch5ModTitle" aria-describedby="ch5ModHint"></div>
-                <p id="ch5ModHint" class="hint">Enter offsets from −128 to +127. Editing RAM restarts a held CH5 note.</p>
+                <div class="ch5-controls" role="group" aria-label="Sweep settings">
+                  <fieldset id="ch5Direction" class="choice-control">
+                    <legend>Direction</legend>
+                    <div class="choice-options">
+                      <label><input type="radio" name="ch5Direction" value="up" checked><span>Up</span></label>
+                      <label><input type="radio" name="ch5Direction" value="down"><span>Down</span></label>
+                    </div>
+                  </fieldset>
+                  <label class="parameter-range">Shift (bits) <input id="ch5Shift" aria-label="Shift (bits)" type="range" min="0" max="7" step="1" value="6">
+                    <output id="ch5ShiftValue" for="ch5Shift" aria-live="off">6</output>
+                  </label>
+                </div>
+              </div>
+              <div id="ch5Modulation" role="tabpanel" aria-labelledby="ch5ModulationTab" hidden>
+                <div class="ch5-modulation">
+                  <div class="panel-head">
+                    <h3 id="ch5ModTitle">Modulation RAM</h3>
+                    <label><input id="ch5Repeat" type="checkbox"> Repeat</label>
+                  </div>
+                  <div class="ch5-sample-row">
+                    <span id="ch5SampleLabel">Samples</span>
+                    <div id="ch5ModSamples" class="switches" role="group" aria-labelledby="ch5SampleLabel"></div>
+                  </div>
+                  <div id="ch5ModGrid" class="ch5-mod-grid" role="group" aria-labelledby="ch5ModTitle" aria-describedby="ch5ModHint"></div>
+                  <p id="ch5ModHint" class="hint">Drag a value left or right, or use − and +. Hold a key to hear a sample.</p>
+                </div>
               </div>
               <div class="ch5-compare">
                 <div class="switches" role="group" aria-label="CH5 comparison">

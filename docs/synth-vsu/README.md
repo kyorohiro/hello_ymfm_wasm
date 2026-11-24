@@ -44,6 +44,7 @@ Select **CH5** or **AUTO → Sweep / Modulation**, choose an effect, and play a 
 
 - **Sweep** adds or subtracts the pitch register shifted by 0–7 bits at each step. A smaller shift makes a larger change. An upward sweep can silence the voice if it overflows the 11-bit pitch register.
 - **Modulation** applies 32 signed byte offsets to the original pitch register. The development manual documents −127 to +127, and the editor also preserves a raw `0x80` (−128) from a VGM capture. Enable **Repeat** to cycle the table. Editing the table during a held CH5 note stops and retriggers that voice so the RAM write takes effect.
+- Drag a Modulation RAM value left or right, or click **−** or **+** to change it by one. Dragging previews the value until release. Try **Vibrato**, **Rising bend**, or **Trill** while holding a key. Samples load the 32 offsets into the current timing. Turn **Repeat** off to hear Rising bend once and hold its final pitch.
 - **Base clock** chooses 0.96 ms or 7.68 ms and **Multiplier** sets the number of clock periods per step. A multiplier of 0 disables the effect.
 - **Play comparison** plays A4 on CH5 in Normal, Sweep, and Modulation order. All three use the selected wave bank and stereo levels. Sweep and Modulation use fixed comparison settings, and the editor keeps your values.
 

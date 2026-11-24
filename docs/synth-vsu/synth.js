@@ -10,14 +10,15 @@ import { createVsuAudio } from './audio.js?v=vsu-note-gate';
 import { VSU_AUTO_SOURCES, vsuAutoChannel, vsuAutoSourceForChannel, vsuAutoVoiceChannels } from './auto-source.js';
 import { captureVsuVoice } from './capture.js?v=vsu-noise';
 import {
-  CH5, CH5_MODULATION_MAX, CH5_MODULATION_MIN,
-  decodeCh5Settings, createCh5DemoSettings, ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
-} from './ch5.js';
+  CH5, decodeCh5Settings, createCh5DemoSettings, createCh5ModulationPreset,
+  ch5ControlWrites, ch5ModulationWrites, ch5StepMs,
+} from './ch5.js?v=vsu-modulation-controls';
 import { registerVsuCodeCompletions, selectVsuCodeDeclarations } from './code_declarations.js?v=vsu-note-gate';
 import { createVsuEnvelope, decodeVsuEnvelope, vsuEnvelopeRegisterValues } from './envelope.js';
 import { setupEnvelopeMonitor } from './envelope-view.js?v=vsu-wave-controls';
 import { setupVsuFiles } from './files.js?v=vsu-timed';
 import { setupOutputMixer } from './mixer-view.js?v=vsu-mixer';
+import { setupVsuModulationEditor } from './modulation-view.js';
 import { createDefaultVsuPatch, createLegacyVsuNoiseSettings, validateVsuPatch, VSU_PATCH_FORMAT } from './patch.js?v=vsu-noise';
 import { attachVsuTimedClient } from './timed-client.js?v=vsu-note-gate';
 import {
@@ -50,8 +51,10 @@ const envelopeFields = {
 };
 const outputCanvas = byId('outputCanvas'), waveCanvas = byId('waveCanvas');
 const compare = byId('ch5Compare'), compareStop = byId('ch5CompareStop'), compareStatus = byId('ch5CompareStatus');
+const ch5ModeTabs = [...byId('ch5Mode').querySelectorAll('button')];
+const ch5Timing = byId('ch5Timing');
 const ch5Controls = {
-  mode: byId('ch5Mode'), clock: byId('ch5Clock'), rate: byId('ch5Rate'),
+  clock: byId('ch5Clock'), rate: byId('ch5Rate'),
   direction: byId('ch5Direction'), shift: byId('ch5Shift'), repeat: byId('ch5Repeat'),
 };
 const visualizer = createSynthOutputVisualizer({
@@ -288,7 +291,7 @@ function channelSettings(index = Number(channelSelect.value)) {
   envelopeMonitor.setSettings(envelope);
   refreshCh5Controls(effect);
   for (const field of [noiseTap, noiseFrequency, noiseInterval, noiseKeyTracking,
-    ...Object.values(ch5Controls), ...ch5ModInputs]) {
+    ...ch5ModeTabs, ...Object.values(ch5Controls)]) {
     field.disabled = observing;
   }
   channelWave.disabled = observing && !(editingLive && liveTarget.source === 'synth');
@@ -549,7 +552,22 @@ async function copyReferenceVoice(snapshot) {
 }
 
 const ch5Gate = vsuChannelRegister(CH5, VSU_REGISTERS.INT);
-const ch5ModInputs = [];
+const ch5ModulationEditor = setupVsuModulationEditor({
+  grid: byId('ch5ModGrid'), samples: byId('ch5ModSamples'),
+  onEdit(index, value) {
+    if (liveTarget || value === ch5Settings.modulation[index]) return;
+    ch5Settings.modulation[index] = value;
+    updateCh5Audio({ table: true });
+  },
+  onSample(id) {
+    if (liveTarget) return;
+    const values = createCh5ModulationPreset(id);
+    if (values.every((value, index) => value === ch5Settings.modulation[index])) return;
+    ch5Settings.modulation = values;
+    refreshCh5Controls();
+    updateCh5Audio({ table: true });
+  },
+});
 
 function ch5NoteWrites(note, settings, envelope) {
   const writes = [[ch5Gate, 0]];
@@ -578,12 +596,16 @@ function refreshCh5Controls(settings = ch5Settings) {
   byId('ch5RateValue').value = multiplier;
   ch5Controls.rate.setAttribute('aria-valuetext', multiplier);
   byId('ch5ShiftValue').value = settings.shift;
-  byId('ch5Timing').hidden = settings.mode === 'off';
-  byId('ch5Sweep').hidden = settings.mode !== 'sweep';
-  byId('ch5Modulation').hidden = settings.mode !== 'modulation';
+  markSelectedTabs(ch5ModeTabs, ch5ModeTabs.find(tab => tab.value === settings.mode));
+  for (const tab of ch5ModeTabs) {
+    const panel = byId(tab.getAttribute('aria-controls'));
+    panel.hidden = tab.value !== settings.mode;
+    if (!panel.hidden && settings.mode !== 'off' && ch5Timing.parentElement !== panel) panel.prepend(ch5Timing);
+  }
   const interval = ch5StepMs(settings);
   byId('ch5Step').value = interval ? `${interval.toFixed(2)} ms / step` : 'Off';
-  ch5ModInputs.forEach((input, index) => { input.value = settings.modulation[index]; });
+  ch5ModulationEditor.refresh(settings.modulation,
+    !liveTarget && settings.mode === 'modulation' && !byId('ch5Panel').hidden);
 }
 
 function updateCh5Audio({ restart = false, table = false } = {}) {
@@ -605,6 +627,24 @@ function updateCh5Audio({ restart = false, table = false } = {}) {
 }
 
 function setupCh5Controls() {
+  for (const [position, tab] of ch5ModeTabs.entries()) {
+    tab.addEventListener('click', () => {
+      if (liveTarget) return;
+      tab.focus();
+      if (tab.value === ch5Settings.mode) return;
+      ch5Settings.mode = tab.value;
+      updateCh5Audio({ restart: true });
+      channelSettings();
+    });
+    tab.addEventListener('keydown', event => {
+      if (event.altKey || event.metaKey || event.ctrlKey) return;
+      const count = ch5ModeTabs.length;
+      const next = { Home: 0, End: count - 1, ArrowLeft: (position + count - 1) % count, ArrowRight: (position + 1) % count }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      ch5ModeTabs[next].click();
+    });
+  }
   for (const [key, input] of Object.entries(ch5Controls)) input.addEventListener(input.type === 'range' ? 'input' : 'change', event => {
     if (liveTarget || (input.type === 'fieldset' && !event.target.checked)) return;
     const previous = ch5Settings[key];
@@ -612,38 +652,12 @@ function setupCh5Controls() {
       : event.target.value;
     if (value === previous) return;
     ch5Settings[key] = value;
-    // Changing mode or switching the interval off/on begins again at base pitch.
+    // Switching the interval off/on begins again at base pitch.
     const rateToggled = key === 'rate' && (previous === 0 || ch5Settings.rate === 0);
-    updateCh5Audio({ restart: key === 'mode' || rateToggled });
+    updateCh5Audio({ restart: rateToggled });
     channelSettings();
   });
 
-  const grid = byId('ch5ModGrid');
-  for (const [index, value] of ch5Settings.modulation.entries()) {
-    const label = document.createElement('label'), input = document.createElement('input');
-    label.textContent = String(index).padStart(2, '0');
-    input.type = 'number';
-    input.min = CH5_MODULATION_MIN;
-    input.max = CH5_MODULATION_MAX;
-    input.step = 1;
-    input.value = value;
-    input.setAttribute('aria-label', 'Modulation step ' + index);
-    input.addEventListener('change', () => {
-      if (liveTarget) return;
-      const sample = input.valueAsNumber;
-      if (!Number.isInteger(sample) || !input.validity.valid) {
-        input.value = ch5Settings.modulation[index];
-        return;
-      }
-      if (sample !== ch5Settings.modulation[index]) {
-        ch5Settings.modulation[index] = sample;
-        updateCh5Audio({ table: true });
-      }
-    });
-    label.append(input);
-    grid.append(label);
-    ch5ModInputs.push(input);
-  }
   refreshCh5Controls();
 }
 
