@@ -14,7 +14,7 @@ import { createFm2610Audio } from './audio.js';
 import { setupFm2610Code } from './code.js';
 import { setupFm2610CodeEditor } from './code_editor.js';
 import { setupFm2610Files } from './files.js';
-import { readFm2610Patch, readFm2610SnapshotPatches } from './fm_patch.js';
+import { isFm2610Channel3Special, readFm2610Patch, readFm2610SnapshotPatches } from './fm_patch.js';
 import { ADPCM_A_KEYS, setupFm2610Sections } from './sections.js';
 import { setupFm2610SongControls } from './song_controls.js';
 import { setupFm2610Workspace } from './workspace.js';
@@ -41,7 +41,10 @@ const drumKeysDown = new Map();
 const fretboard = createFretboardState();
 const physicalSlots = { ym2610b: [0, 1, 2, 3, 4, 5], ym2610: [1, 2, 4, 5] };
 const channels = physicalSlots.ym2610b.map(() => readFmPreset(FM_PRESETS['one-op-basic']));
+const CH3 = 2;
 const operators = [1, 2, 3, 4];
+const defaultCh3Pitch = midiToOpnPitch(60, 8000000);
+const defaultCh3Pitches = operators.map(() => ({block: defaultCh3Pitch.block, fnum: defaultCh3Pitch.fnum}));
 const operatorDefinitions = [
   ['dt', 'DT', 7], ['multi', 'MULT', 15], ['tl', 'TL', 127], ['rs', 'RS', 3], ['ar', 'AR', 31],
   ['am', 'AM', 1], ['d1r', 'D1R', 31], ['d2r', 'D2R', 31], ['sl', 'SL', 15], ['rr', 'RR', 15], ['ssg', 'SSG-EG', 15],
@@ -49,6 +52,7 @@ const operatorDefinitions = [
 const commonControls = new Map(), operatorControls = new Map();
 const operatorGates = new Map();
 const lfoControls = new Map();
+const ch3Controls = {pitches: []};
 const lfo = { enabled: false, frequency: 0 };
 const gateMethods = new Set(['keyOn', 'keyOff', 'noteOn', 'noteOnRaw', 'noteOff']);
 const ssgGateMethods = new Set([...gateMethods, 'tone', 'noise', 'off']);
@@ -114,7 +118,27 @@ function fmTargets() {
 
 function applyFmChannel(fm, channel, preset) {
   fm.setPreset(channel, preset);
-  if (physicalSlots[variant][channel] === 2) fm.setChannel3SpecialMode(Boolean(preset.specialFrequencies));
+  if (physicalSlots[variant][channel] === CH3) applyFmChannel3(fm, channel, preset);
+}
+
+function setFmVoicePitch(fm, channel, midi) {
+  const preset = presetFor(channel);
+  if (physicalSlots[variant][channel] !== CH3 || !isFm2610Channel3Special(preset)) {
+    fm.setNote(channel, midi);
+    return;
+  }
+  const {block, fnum} = midiToOpnPitch(midi, fm.clock);
+  setSynthSongVoiceFrequency(fm, channel, block, fnum, preset.specialFrequencies);
+}
+
+function applyFmChannel3(fm, channel, preset) {
+  const enabled = isFm2610Channel3Special(preset);
+  fm.setChannel3SpecialMode(enabled);
+  const held = voicePools.fm.voiceOn(channel);
+  if (held?.started) setFmVoicePitch(fm, channel, held.entry.midi);
+  else if (enabled) {
+    preset.specialFrequencies.forEach(({block, fnum}, operator) => fm.setChannel3SpecialFrequency(operator, block, fnum));
+  }
 }
 
 function applyFmSettings(fm) {
@@ -177,6 +201,8 @@ const sections = setupFm2610Sections({
   ssgPanel: byId('ssgPanel'), adpcmAPanel: byId('adpcmAPanel'), adpcmBPanel: byId('adpcmBPanel'), sound, report,
   getMode: () => variant,
   releaseAdpcmAKeyboard, releaseAdpcmBKeyboard,
+  onInstrumentEdited: kind => files.markInstrumentEdited(kind),
+  onInstrumentAdopted: kind => files.detachInstrument(kind),
   async saveAdpcmAKit(kit) {
     await files.ready;
     return files.saveAdpcmAKit(kit);
@@ -332,12 +358,85 @@ function renderFm() {
   const phase = voice?.gate ? 'Key on · OP ' + operators.filter(op => voice.keyMask & (1 << (op - 1))).join('/') : 'Key off';
   const details = fmPlayback ? [origin, 'Playback', fmView?.snapshot.variant.toUpperCase(),
     voice && channelName, voice && phase, voice?.specialMode && 'CH3 Special'] :
-    [origin, 'Editing', channelName, preset.specialFrequencies && 'CH3 Special', fmEditorReference?.channel3Notice];
+    [origin, 'Editing', channelName, isFm2610Channel3Special(preset) && 'CH3 Special', fmEditorReference?.channel3Notice];
   byId('fmChannelState').textContent = details.filter(Boolean).join(' · ');
+  renderFmChannel3(physical === CH3, voice);
   envelope.invalidate();
 }
 
-function editPreset(update, write) {
+function renderFmChannel3(visible, observed) {
+  const panel = byId('fmChannel3Special');
+  panel.hidden = !visible;
+  if (!visible || fmPlayback) {
+    for (const pitch of ch3Controls.pitches) {
+      pitch.block.cancelDrag();
+      pitch.fnum.cancelDrag();
+    }
+  }
+  if (!visible) return;
+  const preset = channels[CH3];
+  const enabled = observed?.specialMode ?? isFm2610Channel3Special(preset);
+  const frequencies = observed?.specialFrequencies ?? preset.specialFrequencies ?? defaultCh3Pitches;
+  ch3Controls.enabled.setAttribute('aria-pressed', String(enabled));
+  ch3Controls.enabled.textContent = enabled ? 'Special: On' : 'Special: Off';
+  for (const [operator, {block, fnum}] of frequencies.entries()) {
+    ch3Controls.pitches[operator].block.updateVisual(block);
+    ch3Controls.pitches[operator].fnum.updateVisual(fnum);
+  }
+  const csm = fmView?.snapshot.modeRegister & 0x80;
+  byId('fmChannel3SpecialState').textContent = csm ? 'Timer A (CSM)' :
+    !frequencies[3].fnum ? 'Set OP4 F-NUM above zero for keyboard transposition.' : '';
+}
+
+function editFmChannel3({enabled, operator, field, value}) {
+  if (fmPlayback || fmSelection !== CH3) return;
+  const preset = channels[CH3];
+  enabled ??= isFm2610Channel3Special(preset);
+  const pitches = preset.specialFrequencies ?? defaultCh3Pitches.map(pitch => ({...pitch}));
+  const base = operator === 3 && field === 'fnum' ? value : pitches[3].fnum;
+  if (enabled && !base) {
+    renderFmChannel3(true);
+    announce('Set OP4 F-NUM above zero for keyboard transposition.');
+    return;
+  }
+  preset.specialFrequencies = pitches;
+  if (enabled) delete preset.specialMode;
+  else preset.specialMode = false;
+  if (operator === undefined) {
+    if (chip) applyFmChannel3(chip.fm, physicalSlots[variant].indexOf(CH3), preset);
+  } else {
+    const pitch = pitches[operator];
+    pitch[field] = value;
+    if (enabled && chip) chip.fm.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
+  }
+  if (fmEditorReference && enabled) fmEditorReference.channel3Notice = '';
+  renderFm();
+  files.markInstrumentEdited('fm');
+}
+
+function buildFmChannel3Controls() {
+  const root = byId('fmChannel3SpecialControls');
+  ch3Controls.enabled = makeButton('Special: Off', () => editFmChannel3({enabled: !isFm2610Channel3Special(channels[CH3])}));
+  ch3Controls.enabled.setAttribute('aria-label', 'CH3 Special mode');
+  ch3Controls.enabled.setAttribute('aria-pressed', 'false');
+  root.append(ch3Controls.enabled);
+  for (const [index, operator] of operators.entries()) {
+    const row = document.createElement('div');
+    row.className = 'fm-ch3-op';
+    const pitch = {};
+    for (const [field, label, max] of [['block', 'Block', 7], ['fnum', 'F-NUM', 2047]]) {
+      const control = createParamControl({label: `OP${operator} ${label}`, min: 0, max, step: 1,
+        value: defaultCh3Pitches[index][field], wheelAdjust: false,
+        onChange: value => editFmChannel3({operator: index, field, value})});
+      pitch[field] = control;
+      row.append(control.element);
+    }
+    ch3Controls.pitches.push(pitch);
+    root.append(row);
+  }
+}
+
+function editPreset(update, write, {track = true} = {}) {
   if (fmPlayback) return;
   for (const channel of fmTargets()) {
     const preset = presetFor(channel);
@@ -345,6 +444,7 @@ function editPreset(update, write) {
     if (chip) write(chip.fm, channel, preset);
   }
   renderFm();
+  if (track) files.markInstrumentEdited('fm');
 }
 
 function writeKeyMask(fm, channel, mask) {
@@ -378,7 +478,7 @@ function applyFmPreset(preset) {
   fmEditorReference = null;
   if (patch.specialFrequencies) {
     releaseFmKeyboard();
-    fmSelection = 2;
+    fmSelection = CH3;
   }
   if (patchLfo) {
     Object.assign(lfo, patchLfo);
@@ -386,11 +486,12 @@ function applyFmPreset(preset) {
   }
   editPreset(target => {
     delete target.specialFrequencies;
+    delete target.specialMode;
     Object.assign(target, readFm2610Patch(patch));
   }, (fm, channel, next) => {
     applyFmChannel(fm, channel, next);
     updateHeldMask(fm, channel, next);
-  });
+  }, {track: false});
   renderFmChannels();
 }
 
@@ -429,6 +530,7 @@ function buildFmControls() {
         if (fmPlayback) return;
         lfo[key] = value;
         chip?.fm.setLfo(lfo.enabled, lfo.frequency);
+        files.markInstrumentEdited('fm');
       } });
     lfoControls.set(key, control);
     common.append(control.element);
@@ -443,8 +545,12 @@ function buildFmControls() {
   });
   for (const id of ['sine', 'two-op-bell', 'fm-bass', 'four-op-brass', 'fm-electric-piano', 'four-op-pad']) {
     const voice = FM_PRESETS[id];
-    byId('fmPresets').append(makeButton(voice.label, () => applyFmPreset(voice)));
+    byId('fmPresets').append(makeButton(voice.label, () => {
+      applyFmPreset(voice);
+      files.markInstrumentEdited('fm');
+    }));
   }
+  buildFmChannel3Controls();
   renderFm();
 }
 
@@ -469,7 +575,9 @@ function renderFmChannels() {
     channelProfile = profile;
     root.replaceChildren(...['AUTO', ...slots.map(slot => 'CH' + (slot + 1))].map((label, index) =>
       makeButton(label, () => {
-        fmSelection = slots[index - 1] ?? null;
+        const next = slots[index - 1] ?? null;
+        if (!fmPlayback && fmSelection !== next) files.detachInstrument('fm');
+        fmSelection = next;
         refreshFmView(true);
       })));
   }
@@ -588,10 +696,7 @@ async function playKey(owner, entry) {
       if (!pool.isCurrent(voice)) return;
       if (section === 'fm') {
         const preset = presetFor(voice.channel);
-        if (preset.specialFrequencies) {
-          const {block, fnum} = midiToOpnPitch(entry.midi, ready.fm.clock);
-          setSynthSongVoiceFrequency(ready.fm, voice.channel, block, fnum, preset.specialFrequencies);
-        } else ready.fm.setNote(voice.channel, entry.midi);
+        setFmVoicePitch(ready.fm, voice.channel, entry.midi);
         writeKeyMask(ready.fm, voice.channel, preset.keyMask);
       } else {
         await sections.noteOnSSG(voice.channel, entry.midi);

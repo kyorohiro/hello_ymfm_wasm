@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { readFmPreset } from '../synth-fm2608/preset.js';
-import { normalizeCapturedVoice } from '../synth/synth_performance.js';
+
+const CH3_PHYSICAL_CHANNEL = 2;
 
 function readLfo(value) {
   const {enabled, frequency} = value ?? {};
@@ -13,15 +14,31 @@ function readLfo(value) {
 export function readFm2610Patch(value) {
   const preset = readFmPreset(value);
   if (value.lfo !== undefined) preset.lfo = readLfo(value.lfo);
+  if (value.specialMode !== undefined && typeof value.specialMode !== 'boolean') {
+    throw new TypeError('CH3 Special mode must be a boolean.');
+  }
   if (value.specialFrequencies !== undefined) {
-    const voice = normalizeCapturedVoice({
-      keyMask: preset.keyMask,
-      specialMode: true,
-      specialFrequencies: value.specialFrequencies,
+    if (!Array.isArray(value.specialFrequencies) || value.specialFrequencies.length !== 4) {
+      throw new RangeError('CH3 Special requires pitches for four operators.');
+    }
+    preset.specialFrequencies = Array.from(value.specialFrequencies, (pitch, index) => {
+      const {block, fnum} = pitch ?? {};
+      if (!Number.isInteger(block) || block < 0 || block > 7 || !Number.isInteger(fnum) || fnum < 0 || fnum > 2047) {
+        throw new RangeError(`CH3 OP${index + 1} pitch requires Block 0–7 and F-NUM 0–2047.`);
+      }
+      return {block, fnum};
     });
-    preset.specialFrequencies = voice.specialFrequencies;
+    // Legacy patches imply Special On when they carry four pitches.
+    if (value.specialMode === false) preset.specialMode = false;
+    else if (!preset.specialFrequencies[3].fnum) throw new RangeError('CH3 Special requires an OP4 F-NUM above zero.');
+  } else if (value.specialMode === true) {
+    throw new RangeError('CH3 Special requires pitches for four operators.');
   }
   return preset;
+}
+
+export function isFm2610Channel3Special(preset) {
+  return Boolean(preset.specialFrequencies && preset.specialMode !== false);
 }
 
 /** Detach the working patches from an immutable VGM or Code state. */
@@ -29,17 +46,19 @@ export function readFm2610SnapshotPatches(snapshot) {
   let channel3Notice = '';
   const csmEnabled = snapshot.csmEnabled ?? Boolean(snapshot.modeRegister & 0x80);
   const channels = snapshot.channels.map(voice => {
-    let specialFrequencies;
-    if (voice.physicalChannel === 2 && voice.specialMode) {
-      if (voice.specialFrequencies[3]?.fnum) specialFrequencies = voice.specialFrequencies;
-      if (!specialFrequencies) channel3Notice = 'CH3 uses standard tuning (OP4 pitch was zero)';
+    const ch3 = voice.physicalChannel === CH3_PHYSICAL_CHANNEL;
+    const configured = ch3 && (voice.specialMode || voice.specialFrequencies.slice(0, 3).some(({block, fnum}) => block || fnum));
+    const enabled = ch3 && voice.specialMode && Boolean(voice.specialFrequencies[3]?.fnum);
+    if (ch3 && voice.specialMode) {
+      if (!enabled) channel3Notice = 'CH3 uses standard tuning (OP4 pitch was zero)';
       else if (csmEnabled) channel3Notice = 'CH3 uses keyboard triggering (VGM/Code used Timer A)';
     }
     const patch = readFm2610Patch({
       ...voice.preset,
       lfo: undefined,
       keyMask: voice.keyMask || voice.lastKeyMask || 15,
-      specialFrequencies,
+      specialFrequencies: configured ? voice.specialFrequencies : undefined,
+      specialMode: configured && !enabled ? false : undefined,
     });
     return {physicalChannel: voice.physicalChannel, patch};
   });

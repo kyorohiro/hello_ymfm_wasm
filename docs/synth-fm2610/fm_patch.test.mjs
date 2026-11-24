@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createFm2610SongTimeline} from './vgm.js';
-import {readFm2610SnapshotPatches} from './fm_patch.js';
+import {isFm2610Channel3Special, readFm2610Patch, readFm2610SnapshotPatches} from './fm_patch.js';
 
 function snapshotAfterWrites(variant, commands) {
   const engine = {
@@ -64,6 +64,38 @@ test('FM snapshots preserve usable CH3 tuning and otherwise supply a playable ch
 
   const noPitch = readFm2610SnapshotPatches(snapshotAfterWrites('ym2610', [[0, 0x27, 0x40], [0, 0xb2, 6]]));
   assert.equal(noPitch.channels[1].patch.algorithm, 6);
-  assert.equal(noPitch.channels[1].patch.specialFrequencies, undefined);
+  assert.equal(noPitch.channels[1].patch.specialMode, false);
+  assert.deepEqual(noPitch.channels[1].patch.specialFrequencies[3], {block: 0, fnum: 0});
   assert.match(noPitch.channel3Notice, /standard tuning/);
+});
+
+test('FM patch files round-trip CH3 operator pitches with Special on or off', () => {
+  const snapshot = snapshotAfterWrites('ym2610', [
+    [0, 0x27, 0x40], [0, 0xad, 0x0a], [0, 0xa9, 0x12], [0, 0xae, 0x13], [0, 0xaa, 0x56],
+    [0, 0xac, 0x24], [0, 0xa8, 0x78], [0, 0xa6, 0x2d], [0, 0xa2, 0x9a],
+  ]);
+  const {patch} = readFm2610SnapshotPatches(snapshot).channels[1];
+  const encoded = JSON.parse(JSON.stringify(patch));
+  assert(!('specialMode' in encoded), 'legacy enabled patches use frequencies alone');
+  assert(isFm2610Channel3Special(readFm2610Patch(encoded)));
+  assert.deepEqual(encoded.specialFrequencies, [
+    {block: 1, fnum: 0x212}, {block: 2, fnum: 0x356}, {block: 4, fnum: 0x478}, {block: 5, fnum: 0x59a},
+  ]);
+
+  encoded.specialMode = false;
+  encoded.specialFrequencies[3].fnum = 0;
+  const disabled = readFm2610Patch(encoded);
+  assert.deepEqual(disabled, encoded);
+  assert(!isFm2610Channel3Special(disabled));
+  assert.throws(() => readFm2610Patch({...encoded, specialMode: true}), /OP4 F-NUM above zero/);
+  assert.throws(() => readFm2610Patch({...encoded, specialFrequencies: [null, {}, {}, {}]}), /OP1 pitch/);
+  assert.throws(() => readFm2610Patch({...encoded, specialMode: true, specialFrequencies: undefined}), /four operators/);
+});
+
+test('FM readback keeps programmed CH3 pitches when Special is off', () => {
+  const snapshot = snapshotAfterWrites('ym2610b', [[0, 0xad, 0x18], [0, 0xa9, 0xff], [0, 0xa6, 0x2d], [0, 0xa2, 0x9a]]);
+  const {patch} = readFm2610SnapshotPatches(snapshot).channels[2];
+  assert.equal(patch.specialMode, false);
+  assert.deepEqual(patch.specialFrequencies[0], {block: 3, fnum: 0xff});
+  assert.deepEqual(patch.specialFrequencies[3], {block: 5, fnum: 0x59a});
 });

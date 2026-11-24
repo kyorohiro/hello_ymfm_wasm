@@ -180,7 +180,7 @@ function createSongWaveView(canvas, prepareWaveform, report) {
 
 export function setupFm2610Sections({
   ssgPanel, adpcmAPanel, adpcmBPanel, sound, getMode, releaseAdpcmAKeyboard, releaseAdpcmBKeyboard,
-  saveAdpcmAKit, saveAdpcmBSample, report = () => {},
+  saveAdpcmAKit, saveAdpcmBSample, onInstrumentEdited = () => {}, onInstrumentAdopted = () => {}, report = () => {},
 }) {
   const doc = ssgPanel.ownerDocument;
   const element = (tag, text, className) => {
@@ -518,6 +518,7 @@ export function setupFm2610Sections({
       state.missingRom = false;
       showSample();
       updateWorkingAdpcmA();
+      onInstrumentEdited('adpcm-a');
     });
     reset.setAttribute('aria-label', `Reset ${voice} to ${name}`);
     function showSample() {
@@ -549,6 +550,7 @@ export function setupFm2610Sections({
         state.voice = A_DEFAULT_VOICE;
         state.missingRom = false;
         selectSongAdpcmA(channel);
+        onInstrumentEdited('adpcm-a');
       } catch (error) {
         if (!signal.aborted) report(error.message);
       } finally {
@@ -569,6 +571,7 @@ export function setupFm2610Sections({
   const aLevelControl = slider('ADPCM-A level', 0, 63, 1, aLevel, value => {
     aLevel = value;
     if (aPlayed.size) aState.chip.setVolume(value);
+    onInstrumentEdited('adpcm-a');
   });
   aToolbar.append(aLevelControl.label);
   if (saveAdpcmAKit) {
@@ -651,6 +654,7 @@ export function setupFm2610Sections({
     const {start, end} = window;
     aPads[aPreviewVoice].range = {start, end, [field]: value};
     updateWorkingAdpcmA();
+    onInstrumentEdited('adpcm-a');
   }
 
   function cancelAdpcmARangeDrag() {
@@ -674,6 +678,7 @@ export function setupFm2610Sections({
     const pad = aPads[aPreviewVoice];
     pad.voice = {...pad.voice, ...changes};
     if (aPlayed.has(aPreviewVoice)) aState.chip.setVoice(aPreviewVoice, pad.voice);
+    onInstrumentEdited('adpcm-a');
   }
 
   function recentAdpcmAPad(state) {
@@ -730,6 +735,7 @@ export function setupFm2610Sections({
     if (programmed.length === 0 && !state.levelWritten) return;
     const bank = reader.retainAdpcmARom(snapshot);
     if (!bank) return;
+    onInstrumentAdopted('adpcm-a');
     aAppliedSnapshots.add(snapshot);
     cancelAdpcmARangeDrag();
     releaseAdpcmAKeyboard();
@@ -834,6 +840,7 @@ export function setupFm2610Sections({
     value: bDefault.deltaN, wheelAdjust: false, onChange(deltaN) {
       adpcmB.setDeltaN(deltaN);
       renderAdpcmB();
+      onInstrumentEdited('adpcm-b');
     }});
   nameParameterButtons(bDelta, 'Delta-N');
   bDelta.element.classList.add('fm2610-adpcm-delta');
@@ -842,7 +849,7 @@ export function setupFm2610Sections({
   const bRoot = createParamControl({label: 'Root note', min: 0, max: 127, step: 1,
     value: bDefault.rootNote, formatValue: midiToNoteName, wheelAdjust: false,
     onChange(rootNote) {
-      adpcmB.setSettings({rootNote});
+      editAdpcmBSettings({rootNote});
       renderAdpcmB();
     }});
   const bRate = slider('Base rate (Hz)', 1, FM2610_ADPCM_B_MAX_RATE, 1, bDefault.sampleRate, sampleRate => {
@@ -850,16 +857,20 @@ export function setupFm2610Sections({
     if (clockHz === undefined) {
       sampleRate = Math.max(1, Math.min(FM2610_ADPCM_B_MAX_RATE, Math.round(sampleRate)));
     }
-    adpcmB.setSettings({sampleRate});
+    editAdpcmBSettings({sampleRate});
     renderAdpcmB();
   });
   const bRateInput = bRate.label.querySelector('input');
-  const bVolume = slider('ADPCM-B level', 0, 255, 1, bDefault.volume,
-    volume => adpcmB.setSettings({volume}));
-  const bRepeat = toggle('Repeat', bDefault.repeat, repeat => adpcmB.setSettings({repeat}));
-  const bLeft = toggle('Left', true, left => adpcmB.setSettings({left}));
-  const bRight = toggle('Right', true, right => adpcmB.setSettings({right}));
+  const bVolume = slider('ADPCM-B level', 0, 255, 1, bDefault.volume, volume => editAdpcmBSettings({volume}));
+  const bRepeat = toggle('Repeat', bDefault.repeat, repeat => editAdpcmBSettings({repeat}));
+  const bLeft = toggle('Left', true, left => editAdpcmBSettings({left}));
+  const bRight = toggle('Right', true, right => editAdpcmBSettings({right}));
   const bSave = button('Save sample…', () => saveAdpcmBSample(adpcmB.getSample()));
+
+  function editAdpcmBSettings(settings) {
+    adpcmB.setSettings(settings);
+    onInstrumentEdited('adpcm-b');
+  }
 
   function showAdpcmBDuration({start, end, sampleRate}) {
     bDuration.textContent = (2 * (end - start) / sampleRate).toFixed(3) + ' s at base rate';
@@ -881,6 +892,7 @@ export function setupFm2610Sections({
     if (value === settings[field]) return;
     adpcmB.setRange({[field]: value});
     renderAdpcmB();
+    onInstrumentEdited('adpcm-b');
   }
 
   function updateAdpcmBHardware() {
@@ -972,11 +984,13 @@ export function setupFm2610Sections({
     renderAdpcmB();
     try {
       await adpcmB.loadSample(file, {signal: controller.signal});
+      if (bPending !== controller) return;
       cancelAdpcmBRangeDrag();
       bRangeSource = {};
       bPreparedSample = null;
       releaseAdpcmBKeyboard();
       void refreshAdpcmBWaveform();
+      onInstrumentEdited('adpcm-b');
     } catch (error) {
       if (!controller.signal.aborted) report(error);
     } finally {
@@ -993,7 +1007,10 @@ export function setupFm2610Sections({
   }), button('Stop sample', () => {
     releaseAdpcmBKeyboard();
     adpcmB.stop();
-  }), button('Reset to pluck', () => applyAdpcmBSample(null)), bSave);
+  }), button('Reset to pluck', () => {
+    applyAdpcmBSample(null);
+    onInstrumentEdited('adpcm-b');
+  }), bSave);
   const bParameters = element('div', '', 'fm2610-inline-controls');
   const bRangeControls = element('div', '', 'fm2610-inline-controls fm2610-adpcm-range');
   bRangeControls.append(bStart.element, bEnd.element);
@@ -1027,6 +1044,7 @@ export function setupFm2610Sections({
     if (bytes) {
       const previous = adpcmB.getSettings();
       const {start: address, sampleRate, volume, left, right, repeat} = state;
+      onInstrumentAdopted('adpcm-b');
       applyAdpcmBSample({name: name + ' sample', bytes, address, sampleRate, clockHz,
         rootNote: previous.clockHz === undefined ? 60 : previous.rootNote, volume, left, right, repeat});
       notice = '';
