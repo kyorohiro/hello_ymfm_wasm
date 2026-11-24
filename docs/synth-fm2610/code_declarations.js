@@ -168,6 +168,8 @@ declare function parseNoteName(note: string): number;
 declare function toPitch(note: string | number): {block: number; fnum: number};
 declare function midiToNoteName(midi: number): string;
 declare function trackAsync(task: PromiseLike<unknown>): void;
+/** Decode a base64 string into a string of bytes using the browser decoder. */
+declare function atob(data: string): string;
 declare const pg: Fm2610CodeAPI;
 `;
 

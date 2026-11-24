@@ -6,7 +6,7 @@ import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js';
 import { createPlaygroundCassetteZip, loadPlaygroundCassette } from '../playground/playground_cassette.js';
 import { renderFileTree } from '../playground/playground_file_tree.js';
-import { getFm2610CodeExamples } from './code_examples.js';
+import { getFm2610CodeExamples, getFm2610CodeExampleUpdates } from './code_examples.js';
 import { readFm2610Patch } from './fm_patch.js';
 import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
@@ -640,6 +640,14 @@ export function setupFm2610Files({
   }
 
   async function restore(next, view, { replace = false, validatedDocuments = new Map() } = {}) {
+    const updates = getFm2610CodeExampleUpdates(next);
+    const growth = updates.reduce((sum, {path, data}) => sum + size(data) - size(next.working.get(path).data), 0);
+    const canUpdate = updates.length > 0 && [next.working, next.saved].every(layer =>
+      layer.list().reduce((total, {data}) => total + size(data), growth) <= MAX_BYTES);
+    if (canUpdate) {
+      next.working.writeFiles(updates);
+      next.saveMany(updates.map(({path}) => path));
+    }
     const target = viewFor(next.working, view);
     const patch = target.activePatch && readFm2610Patch(JSON.parse(next.working.get(target.activePatch).data));
     const ssg = target.activeSsg ? readSsgPreset(next.working.get(target.activeSsg).data) : createDefaultSsgPreset();
@@ -665,6 +673,7 @@ export function setupFm2610Files({
     select(target.selected);
     show(target.visible);
     onVgmChange();
+    return canUpdate;
   }
 
   function download(bytes, filename, type) {
@@ -967,6 +976,7 @@ export function setupFm2610Files({
   show(!panel.hidden);
   refresh();
   const ready = store.read().then(async state => {
+    let upgraded = false;
     if (state) {
       if (state.version !== 1 && state.version !== 2) throw new Error('Unsupported FM2610 project.');
       const next = createVirtualFileWorkspace();
@@ -981,9 +991,10 @@ export function setupFm2610Files({
         const documents = await checkAudioDocuments(entries, state.view?.activeKit, state.view?.activeSample);
         if (layer === next.working) validatedDocuments = documents;
       }
-      await restore(next, state.view, { validatedDocuments });
+      upgraded = await restore(next, state.view, { validatedDocuments });
     }
     storageReady = true;
+    if (upgraded) await persist();
   }).catch(report).finally(() => {
     loading = false;
     refresh();

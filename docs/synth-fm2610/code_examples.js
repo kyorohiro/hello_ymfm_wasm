@@ -37,9 +37,10 @@ fm.setChannel3SpecialMode(true);
 liveLoop("ch3-special", async () => {
   for (const base of [590, 525, 660, 700]) {
     // In Special mode, every operator has its own Block and F-NUM.
-    [1, 1.5, 2, 1].forEach((ratio, operator) => {
+    const tuning = /** @type {const} */ ([[OP1, 1], [OP2, 1.5], [OP3, 2], [OP4, 1]]);
+    for (const [operator, ratio] of tuning) {
       fm.setChannel3SpecialFrequency(operator, 4, Math.round(base * ratio));
-    });
+    }
     fm.keyOn(CH3);
     await beat(0.75);
     fm.keyOff(CH3);
@@ -90,10 +91,12 @@ setBpm(120);
 const encoded = [
 ${samples.map(bytes => `  "${base64(bytes)}",`).join('\n')}
 ];
+/** @param {string} data */
 const decode = data => Uint8Array.from(atob(data), character => character.charCodeAt(0));
 let start = 0x100000;
-for (const [voice, sample] of encoded.entries()) {
-  const bytes = decode(sample);
+const pads = /** @type {const} */ ([CH1, CH2, CH3, CH4, CH5, CH6]);
+for (const voice of pads) {
+  const bytes = decode(encoded[voice]);
   const end = start + bytes.length;
   await adpcmA.loadMemory(bytes, start);
   adpcmA.setSample(voice, { start, end });
@@ -103,7 +106,8 @@ for (const [voice, sample] of encoded.entries()) {
 adpcmA.setVolume(50);
 
 liveLoop("six-pads", async () => {
-  for (const hits of [[CH1, CH3], [CH5], [CH2, CH3], [CH4, CH6]]) {
+  const rhythm = /** @type {const} */ ([[CH1, CH3], [CH5], [CH2, CH3], [CH4, CH6]]);
+  for (const hits of rhythm) {
     adpcmA.keyOn(hits);
     await beat(0.46);
     adpcmA.keyOff(hits);
@@ -155,14 +159,50 @@ await fm.schedule(phrase, { name: "opnb-fm", repeatSeconds: 0.5 });
 `;
 
 let examples;
-export function getFm2610CodeExamples() {
-  examples ??= [
+function stockExamples() {
+  if (examples) return examples;
+  const drumCode = adpcmAExample();
+  // These previous versions identify unmodified files from the first example set.
+  const previousChannel3 = channel3.replace(
+    `    const tuning = /** @type {const} */ ([[OP1, 1], [OP2, 1.5], [OP3, 2], [OP4, 1]]);
+    for (const [operator, ratio] of tuning) {
+      fm.setChannel3SpecialFrequency(operator, 4, Math.round(base * ratio));
+    }`,
+    `    [1, 1.5, 2, 1].forEach((ratio, operator) => {
+      fm.setChannel3SpecialFrequency(operator, 4, Math.round(base * ratio));
+    });`,
+  );
+  const previousDrumCode = drumCode
+    .replace('/** @param {string} data */\n', '')
+    .replace(
+      `const pads = /** @type {const} */ ([CH1, CH2, CH3, CH4, CH5, CH6]);
+for (const voice of pads) {
+  const bytes = decode(encoded[voice]);`,
+      'for (const [voice, sample] of encoded.entries()) {\n  const bytes = decode(sample);',
+    )
+    .replace(
+      `  const rhythm = /** @type {const} */ ([[CH1, CH3], [CH5], [CH2, CH3], [CH4, CH6]]);
+  for (const hits of rhythm) {`,
+      '  for (const hits of [[CH1, CH3], [CH5], [CH2, CH3], [CH4, CH6]]) {',
+    );
+  examples = [
     ['/examples/fm-ssg-ym2610.js', fmAndSsg('ym2610')],
     ['/examples/fm-ssg-ym2610b.js', fmAndSsg('ym2610b')],
-    ['/examples/ch3-special.js', channel3],
-    ['/examples/adpcm-a-pads.js', adpcmAExample()],
+    ['/examples/ch3-special.js', channel3, previousChannel3],
+    ['/examples/adpcm-a-pads.js', drumCode, previousDrumCode],
     ['/examples/adpcm-b-pitch.js', adpcmBExample()],
     ['/examples/timed-fm.js', timedFm],
   ];
-  return examples.map(([path, data]) => ({path, data}));
+  return examples;
+}
+
+export function getFm2610CodeExamples() {
+  return stockExamples().map(([path, data]) => ({path, data}));
+}
+
+/** Upgrade only exact copies of the originally shipped examples. */
+export function getFm2610CodeExampleUpdates({working, saved}) {
+  return stockExamples()
+    .filter(([path, , old]) => old !== undefined && working.get(path)?.data === old && saved.get(path)?.data === old)
+    .map(([path, data]) => ({path, data}));
 }

@@ -20,6 +20,7 @@ test('FM2610 declarations expose the same nested APIs and distinct FM channel co
   assert.doesNotMatch(adpcmB, /loadSample|setVoice/);
   assert.match(declarations, /declare function liveLoop\(/);
   assert.match(declarations, /declare function liveFx<[^>]+>\(/);
+  assert.match(declarations, /declare function atob\(data: string\): string;/);
   assert.match(declarations, /declare const fx\b/);
   assert.match(declarations, /schedule\(program: Fm2610OperationProgram/);
   assert.doesNotMatch(declarations, /declare (?:function|const) (?:play|createSoundChip)\b/);
