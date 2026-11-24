@@ -41,25 +41,33 @@ export function isFm2610Channel3Special(preset) {
   return Boolean(preset.specialFrequencies && preset.specialMode !== false);
 }
 
+/** Project a decoded OPN voice into an editable FM patch. */
+export function readFm2610VoicePatch(voice, {lfo, retainInactiveSpecial = false} = {}) {
+  const physicalChannel = voice.physicalChannel ?? voice.channel;
+  const pitches = voice.specialFrequencies;
+  const configured = physicalChannel === CH3_PHYSICAL_CHANNEL &&
+    (voice.specialMode || (retainInactiveSpecial && pitches.slice(0, 3).some(({block, fnum}) => block || fnum)));
+  const enabled = configured && voice.specialMode && Boolean(pitches[3].fnum);
+  return readFm2610Patch({
+    ...voice.preset,
+    operators: Object.values(voice.preset.operators),
+    keyMask: voice.keyMask || voice.lastKeyMask || 15,
+    lfo,
+    specialFrequencies: configured ? pitches : undefined,
+    specialMode: configured && !enabled ? false : undefined,
+  });
+}
+
 /** Detach the working patches from an immutable VGM or Code state. */
 export function readFm2610SnapshotPatches(snapshot) {
   let channel3Notice = '';
   const csmEnabled = snapshot.csmEnabled ?? Boolean(snapshot.modeRegister & 0x80);
   const channels = snapshot.channels.map(voice => {
-    const ch3 = voice.physicalChannel === CH3_PHYSICAL_CHANNEL;
-    const configured = ch3 && (voice.specialMode || voice.specialFrequencies.slice(0, 3).some(({block, fnum}) => block || fnum));
-    const enabled = ch3 && voice.specialMode && Boolean(voice.specialFrequencies[3]?.fnum);
-    if (ch3 && voice.specialMode) {
-      if (!enabled) channel3Notice = 'CH3 uses standard tuning (OP4 pitch was zero)';
+    const patch = readFm2610VoicePatch(voice, {retainInactiveSpecial: true});
+    if (voice.physicalChannel === CH3_PHYSICAL_CHANNEL && voice.specialMode) {
+      if (!isFm2610Channel3Special(patch)) channel3Notice = 'CH3 uses standard tuning (OP4 pitch was zero)';
       else if (csmEnabled) channel3Notice = 'CH3 uses keyboard triggering (VGM/Code used Timer A)';
     }
-    const patch = readFm2610Patch({
-      ...voice.preset,
-      lfo: undefined,
-      keyMask: voice.keyMask || voice.lastKeyMask || 15,
-      specialFrequencies: configured ? voice.specialFrequencies : undefined,
-      specialMode: configured && !enabled ? false : undefined,
-    });
     return {physicalChannel: voice.physicalChannel, patch};
   });
   return {channels, lfo: readLfo(snapshot.lfo), channel3Notice};

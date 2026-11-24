@@ -24,11 +24,14 @@ function ratioPitch(pitch, ratio) {
 
 /** Transpose CH3's four recorded pitches around a new OP4 pitch. */
 export function transposeChannel3Pitches(pitch, specialFrequencies) {
+  return channel3PitchRatios(specialFrequencies).map(ratio => ratioPitch(pitch, ratio));
+}
+
+/** Convert raw CH3 pitches to frequency ratios relative to a nonzero OP4. */
+export function channel3PitchRatios(specialFrequencies) {
   const base = specialFrequencies[3];
-  return specialFrequencies.map(source => {
-    const ratio = source.fnum * 2 ** source.block / (base.fnum * 2 ** base.block);
-    return ratioPitch(pitch, ratio);
-  });
+  const basePitch = base.fnum * 2 ** base.block;
+  return specialFrequencies.map(({block, fnum}) => fnum * 2 ** block / basePitch);
 }
 
 /** Set the transposed CH3 pitches or an ordinary channel pitch. */

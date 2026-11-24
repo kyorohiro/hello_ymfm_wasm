@@ -5,7 +5,8 @@ import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {VgmPlayer} from '../js/vgmplayer.js';
 import {Ym2610BAudioEngine} from '../js/ym2610baudioengine.js?v=ym2610-source-mix-1';
 import {createYm2612RegisterState,isYm2612ViewRegister} from '../synth/synth_song_state.js';
-import {readFm2610Patch} from './fm_patch.js';
+import {channel3PitchRatios} from '../synth/synth_song_voice.js';
+import {isFm2610Channel3Special,readFm2610VoicePatch} from './fm_patch.js';
 import {createFm2610SongAdpcmState,isFm2610SongAdpcmRegister} from './song_adpcm_state.js';
 import {createFm2610SongSsgState,isFm2610SongSsgRegister} from './song_ssg_state.js';
 
@@ -44,13 +45,16 @@ function collectFmPresets(clock, variant, warnings) {
       if (!keyedChannels.size) return;
       const {channels,lfo} = state.snapshot(firstSample);
       for (const physicalChannel of keyedChannels) {
-        const {gate,keyMask,preset:voice} = channels[physicalChannel];
-        if (!gate || !(voice.pan.left || voice.pan.right)) continue;
-        const operators = Object.values(voice.operators);
+        const voice = channels[physicalChannel];
+        const {pan,ams,pms,operators} = voice.preset;
+        if (!voice.gate || !(pan.left || pan.right)) continue;
         // Only patches that use modulation need to override the chip-wide LFO.
-        const usesLfo = voice.pms > 0 || (voice.ams > 0 && operators.some(operator => operator.am));
-        const preset = readFm2610Patch({...voice,keyMask,operators,lfo:usesLfo ? lfo : undefined});
-        const signature = JSON.stringify([physicalChannel,preset]);
+        const usesLfo = pms > 0 || (ams > 0 && Object.values(operators).some(operator => operator.am));
+        const preset = readFm2610VoicePatch(voice, {lfo:usesLfo ? lfo : undefined});
+        const special = isFm2610Channel3Special(preset);
+        // Keep the first attack's raw pitches. A transposition of all four OPs is still the same playable patch.
+        const signature = JSON.stringify([physicalChannel, special
+          ? {...preset,specialFrequencies:channel3PitchRatios(preset.specialFrequencies)} : preset]);
         const previous = seen.get(signature);
         if (previous) {
           previous.occurrences++;
@@ -58,7 +62,7 @@ function collectFmPresets(clock, variant, warnings) {
           warnings.add('Only the first 4,096 distinct FM presets were extracted.');
         } else {
           const label = variant === 'ym2610b' ? 'YM2610B' : 'YM2610';
-          const name = `${label} CH${physicalChannel + 1} · ${String(presets.length + 1).padStart(3,'0')}`;
+          const name = `${label} CH${physicalChannel + 1}${special ? ' Special' : ''} · ${String(presets.length + 1).padStart(3,'0')}`;
           const entry = {name,variant,physicalChannel,preset,firstSample,occurrences:1};
           seen.set(signature,entry);
           presets.push(entry);
