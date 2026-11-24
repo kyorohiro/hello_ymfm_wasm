@@ -7,7 +7,9 @@ import {
 } from '../synth/synth_keyboard.js';
 import { createOperatorEnvelopeView } from '../synth/synth_operator_envelope.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
-import { setSynthSongVoiceFrequency } from '../synth/synth_song_voice.js';
+import { modulationSettings } from '../synth/synth_modulation.js';
+import { bendPitch } from '../synth/synth_pitch_bend.js';
+import { transposeChannel3Pitches } from '../synth/synth_song_voice.js';
 import { midiToOpnPitch } from '../js/soundchip_pitch.js';
 import { createVsuVoicePool } from '../synth-vsu/voice-pool.js';
 import { createFm2610Audio } from './audio.js';
@@ -25,6 +27,8 @@ const status = byId('status');
 const keyboard = byId('keyboard');
 const drumKeyboard = byId('adpcmAKeyboard');
 const keyboardToolbar = byId('keyboardPanel').querySelector('.keyboard-toolbar');
+const keyboardWheels = byId('fmKeyboardWheels');
+const pitchWheel = byId('pitchBendWheel'), modWheel = byId('modulationWheel');
 const scope = byId('scope');
 const envelopeRoot = byId('fmEnvelope');
 const workspace = byId('workspace');
@@ -34,6 +38,7 @@ const visualizer = createSynthOutputVisualizer({
   waveformMinRange: 1 / 64, spectrumFloor: -110,
 });
 const voicePools = { fm: createVsuVoicePool(), ssg: createVsuVoicePool(), 'adpcm-b': createVsuVoicePool() };
+const fmPitchAnchors = new Map();
 const drumKeys = new Map(Array.from(ADPCM_A_KEYS, (key, drumChannel) => [key, {
   key, drumChannel, label: key.toUpperCase(), noteName: `A${drumChannel + 1}`, stringNumber: 0, fret: drumChannel,
 }]));
@@ -61,6 +66,7 @@ const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]),
 let variant = 'ym2610b', switching = false, chip = null, source = 'fm';
 let keyboardSource = 'fm';
 let fmSelection = null, ssgChannel = null, octave = 0, keys = new Map();
+let pitchBendSemitones = 0, modulationWheelValue = 0;
 let scopeMode = 'waveform', scopeFrame = null;
 let songState = {playback: 'stopped'}, fmView = null, fmPlayback = null, fmEditorReference = null;
 let channelProfile = '';
@@ -116,19 +122,71 @@ function fmTargets() {
   return channel < 0 ? slots.map((_, index) => index) : [channel];
 }
 
-function applyFmChannel(fm, channel, preset) {
-  fm.setPreset(channel, preset);
+function fmModulation(pms, wheelValue) {
+  return modulationSettings({pms, lfoEnabled: lfo.enabled, lfoFrequency: lfo.frequency}, wheelValue);
+}
+
+function writeFmLfo(fm, wheelValue) {
+  const settings = fmModulation(0, wheelValue);
+  fm.setLfo(settings.lfoEnabled, settings.lfoFrequency);
+}
+
+function writeFmPan(fm, channel, preset, wheelValue) {
+  fm.setPan(channel, preset.pan.left, preset.pan.right, preset.ams, fmModulation(preset.pms, wheelValue).pms);
+}
+
+function applyFmModulation(fm, wheelValue) {
+  writeFmLfo(fm, wheelValue);
+  physicalSlots[variant].forEach((_, channel) => writeFmPan(fm, channel, presetFor(channel), wheelValue));
+}
+
+function applyFmChannel(fm, channel, preset, wheelValue = modulationWheelValue) {
+  fm.setPreset(channel, {...preset, pms: fmModulation(preset.pms, wheelValue).pms});
   if (physicalSlots[variant][channel] === CH3) applyFmChannel3(fm, channel, preset);
 }
 
 function setFmVoicePitch(fm, channel, midi) {
   const preset = presetFor(channel);
-  if (physicalSlots[variant][channel] !== CH3 || !isFm2610Channel3Special(preset)) {
-    fm.setNote(channel, midi);
+  const pitch = midiToOpnPitch(midi, fm.clock);
+  const special = physicalSlots[variant][channel] === CH3 && isFm2610Channel3Special(preset)
+    ? transposeChannel3Pitches(pitch, preset.specialFrequencies) : null;
+  const anchor = {pitch, special};
+  fmPitchAnchors.set(channel, anchor);
+  writeFmPitch(fm, channel, anchor);
+}
+
+function writeFmSpecialPitch(fm, operator, pitch) {
+  const {block, fnum} = pitch.fnum ? bendPitch(pitch, pitchBendSemitones) : pitch;
+  fm.setChannel3SpecialFrequency(operator, block, fnum);
+}
+
+function writeFmPitch(fm, channel, {pitch, special}) {
+  if (special) {
+    special.forEach((base, operator) => writeFmSpecialPitch(fm, operator, base));
     return;
   }
-  const {block, fnum} = midiToOpnPitch(midi, fm.clock);
-  setSynthSongVoiceFrequency(fm, channel, block, fnum, preset.specialFrequencies);
+  const {block, fnum} = bendPitch(pitch, pitchBendSemitones);
+  fm.setFrequency(channel, block, fnum);
+}
+
+function setPitchBend(value) {
+  pitchWheel.value = String(value);
+  const semitones = value / 500;
+  const readout = (semitones > 0 ? '+' : '') + semitones.toFixed(2);
+  byId('pitchBendValue').value = readout;
+  pitchWheel.setAttribute('aria-valuetext', readout + ' semitones');
+  if (semitones === pitchBendSemitones) return;
+  pitchBendSemitones = semitones;
+  if (chip && !fmPlayback) {
+    // Released channels retain their base pitch until the next note so their tails also return to center.
+    for (const [channel, anchor] of fmPitchAnchors) writeFmPitch(chip.fm, channel, anchor);
+  }
+}
+
+function suspendFmKeyboardPerformance() {
+  setPitchBend(0);
+  fmPitchAnchors.clear();
+  if (chip && modulationWheelValue) applyFmModulation(chip.fm, 0);
 }
 
 function applyFmChannel3(fm, channel, preset) {
@@ -136,23 +194,31 @@ function applyFmChannel3(fm, channel, preset) {
   fm.setChannel3SpecialMode(enabled);
   const held = voicePools.fm.voiceOn(channel);
   if (held?.started) setFmVoicePitch(fm, channel, held.entry.midi);
-  else if (enabled) {
-    preset.specialFrequencies.forEach(({block, fnum}, operator) => fm.setChannel3SpecialFrequency(operator, block, fnum));
+  else {
+    const anchor = fmPitchAnchors.get(channel);
+    fmPitchAnchors.delete(channel);
+    if (enabled) {
+      preset.specialFrequencies.forEach(({block, fnum}, operator) => fm.setChannel3SpecialFrequency(operator, block, fnum));
+    } else if (anchor && pitchBendSemitones) {
+      const {block, fnum} = anchor.special?.[3] ?? anchor.pitch;
+      fm.setFrequency(channel, block, fnum);
+    }
   }
 }
 
-function applyFmSettings(fm) {
-  physicalSlots[variant].forEach((_, channel) => applyFmChannel(fm, channel, presetFor(channel)));
-  fm.setLfo(lfo.enabled, lfo.frequency);
+function applyFmSettings(fm, wheelValue = modulationWheelValue) {
+  physicalSlots[variant].forEach((_, channel) => applyFmChannel(fm, channel, presetFor(channel), wheelValue));
+  writeFmLfo(fm, wheelValue);
 }
 
-async function sound() {
+async function sound({forCode = false} = {}) {
   const selected = variant;
   if (switching) throw new DOMException('Chip change in progress.', 'AbortError');
   const next = await audio.start(selected);
   if (switching || selected !== variant) throw new DOMException('Chip changed.', 'AbortError');
   if (next !== chip) {
-    applyFmSettings(next.fm);
+    fmPitchAnchors.clear();
+    applyFmSettings(next.fm, forCode || getFmPlayback() ? 0 : modulationWheelValue);
     visualizer.connect(next.context, [next.analyser]);
     chip = next;
     announce('Audio ready.');
@@ -176,7 +242,7 @@ function guardKeyboardGates(section, instrument) {
 }
 
 async function codeSound() {
-  const endpoint = await sound();
+  const endpoint = await sound({forCode: true});
   if (!codeEndpoints.has(endpoint)) {
     codeEndpoints.set(endpoint, {
       ...endpoint, fm: guardKeyboardGates('fm', endpoint.fm), ssg: guardKeyboardGates('ssg', endpoint.ssg),
@@ -194,7 +260,7 @@ function stopCodeSound(endpoint) {
   sections.stopAdpcm({invalidateB: true});
   endpoint.adpcmA.keyOff([0, 1, 2, 3, 4, 5]);
   endpoint.adpcmB.keyOff();
-  applyFmSettings(endpoint.fm);
+  applyFmSettings(endpoint.fm, 0);
 }
 
 const sections = setupFm2610Sections({
@@ -217,7 +283,9 @@ const code = setupFm2610Code({
   status: byId('codeStatus'), output: byId('codeOutput'), sound: codeSound,
   getMode: () => variant, stopSound: stopCodeSound,
   beforeRun() {
+    // Clearing a VGM can restore the keyboard Mod overlay before Code reads the chip.
     songs.clearPlayback();
+    if (!getFmPlayback()) suspendFmKeyboardPerformance();
     releaseKeyboard();
     sections.stop();
   },
@@ -306,6 +374,7 @@ function adoptFmSnapshot({kind, snapshot, frozen}) {
   const {channels: observed, lfo: observedLfo, channel3Notice} = readFm2610SnapshotPatches(snapshot);
   adoptedFmSnapshots.add(snapshot);
   releaseFmKeyboard();
+  fmPitchAnchors.clear();
   for (const {physicalChannel, patch} of observed) channels[physicalChannel] = patch;
   Object.assign(lfo, observedLfo);
   const available = snapshot.channels.filter(voice => physicalSlots[variant].includes(voice.physicalChannel));
@@ -321,13 +390,18 @@ function adoptFmSnapshot({kind, snapshot, frozen}) {
 
 function refreshFmView(force = false, reference = currentPlaybackReference()) {
   const previous = fmView, previousPlayback = fmPlayback;
-  fmPlayback = getFmPlayback();
+  const playback = getFmPlayback();
+  if (playback === 'vgm' && !previousPlayback) suspendFmKeyboardPerformance();
+  fmPlayback = playback;
   const next = fmView = currentFmView(reference);
   if (fmPlayback && !previousPlayback) releaseFmKeyboard();
   let adopted = false;
   if (!fmPlayback && reference) {
     try { adopted = adoptFmSnapshot(reference); }
     catch (error) { report(error); }
+  }
+  if (!playback && previousPlayback && !adopted && chip && modulationWheelValue) {
+    applyFmModulation(chip.fm, modulationWheelValue);
   }
   if (force || adopted || previousPlayback !== fmPlayback || previous?.snapshot.variant !== next?.snapshot.variant ||
       previous?.snapshot.revision !== next?.snapshot.revision || previous?.voice.physicalChannel !== next?.voice.physicalChannel) {
@@ -407,7 +481,16 @@ function editFmChannel3({enabled, operator, field, value}) {
   } else {
     const pitch = pitches[operator];
     pitch[field] = value;
-    if (enabled && chip) chip.fm.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
+    if (enabled && chip) {
+      const channel = physicalSlots[variant].indexOf(CH3);
+      const special = fmPitchAnchors.get(channel)?.special;
+      if (special) {
+        special[operator] = {...pitch};
+        writeFmSpecialPitch(chip.fm, operator, pitch);
+      } else {
+        chip.fm.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
+      }
+    }
   }
   if (fmEditorReference && enabled) fmEditorReference.channel3Notice = '';
   renderFm();
@@ -482,7 +565,7 @@ function applyFmPreset(preset) {
   }
   if (patchLfo) {
     Object.assign(lfo, patchLfo);
-    chip?.fm.setLfo(lfo.enabled, lfo.frequency);
+    if (chip) writeFmLfo(chip.fm, modulationWheelValue);
   }
   editPreset(target => {
     delete target.specialFrequencies;
@@ -497,11 +580,11 @@ function applyFmPreset(preset) {
 
 function editCommon(key, value) {
   if (key === 'left' || key === 'right') {
-    editPreset(preset => { preset.pan[key] = value; }, (fm, channel, preset) => {
-      fm.setPan(channel, preset.pan.left, preset.pan.right, preset.ams, preset.pms);
-    });
+    editPreset(preset => { preset.pan[key] = value; }, (fm, channel, preset) =>
+      writeFmPan(fm, channel, preset, modulationWheelValue));
   } else if (key === 'ams' || key === 'pms') {
-    editPreset(preset => { preset[key] = value; }, (fm, channel, preset) => fm.setModulation(channel, preset.ams, preset.pms));
+    editPreset(preset => { preset[key] = value; }, (fm, channel, preset) =>
+      writeFmPan(fm, channel, preset, modulationWheelValue));
   } else {
     editPreset(preset => { preset[key] = value; }, (fm, channel, preset) => fm.setAlgo(channel, preset.algorithm, preset.feedback));
   }
@@ -529,7 +612,7 @@ function buildFmControls() {
       booleanMode: key === 'enabled', onChange(value) {
         if (fmPlayback) return;
         lfo[key] = value;
-        chip?.fm.setLfo(lfo.enabled, lfo.frequency);
+        if (chip) writeFmLfo(chip.fm, modulationWheelValue);
         files.markInstrumentEdited('fm');
       } });
     lfoControls.set(key, control);
@@ -598,6 +681,8 @@ function stopVoice(section, voice) {
 }
 
 function renderKeys() {
+  keyboardWheels.hidden = source !== 'fm';
+  pitchWheel.disabled = modWheel.disabled = Boolean(fmPlayback);
   const voices = Object.values(voicePools).flatMap(pool => pool.voices());
   const down = new Set(voices.map(voice => voice.entry.key));
   for (const button of keyboard.querySelectorAll('.key')) button.setAttribute('aria-pressed', String(down.has(button.dataset.key)));
@@ -645,6 +730,7 @@ function releaseFmKeyboard() {
 }
 
 function releaseKeyboard() {
+  setPitchBend(0);
   releaseAdpcmAKeyboard();
   for (const [section, pool] of Object.entries(voicePools)) {
     for (const voice of pool.clear()) stopVoice(section, voice);
@@ -769,6 +855,7 @@ async function selectVariant(next) {
     code.clearSnapshot();
     await audio.close();
     chip = null;
+    fmPitchAnchors.clear();
     visualizer.disconnect();
     drawScope();
     variant = next;
@@ -789,6 +876,65 @@ async function selectVariant(next) {
     modeButtons.forEach(button => { button.disabled = false; });
   }
 }
+
+function setModWheel(value) {
+  if (modWheel.disabled) return;
+  modWheel.value = String(value);
+  const readout = Math.round(value * 100 / 127) + '%';
+  byId('modulationValue').value = readout;
+  modWheel.setAttribute('aria-valuetext', readout);
+  if (value === modulationWheelValue) return;
+  modulationWheelValue = value;
+  if (chip) applyFmModulation(chip.fm, value);
+}
+
+function bindKeyboardWheels() {
+  const navigationKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
+  for (const [wheel, setValue] of [[pitchWheel, setPitchBend], [modWheel, setModWheel]]) {
+    const spring = wheel === pitchWheel;
+    let pointer = null;
+    wheel.addEventListener('input', () => {
+      if (!wheel.disabled) setValue(Number(wheel.value));
+    });
+    wheel.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      pointer = event.pointerId;
+      wheel.blur();
+    });
+    wheel.addEventListener('focus', () => {
+      if (pointer !== null) wheel.blur();
+    });
+    const releasePointer = event => {
+      if (event.pointerId !== pointer) return;
+      pointer = null;
+      if (spring) setValue(0);
+    };
+    window.addEventListener('pointerup', releasePointer);
+    window.addEventListener('pointercancel', releasePointer);
+    wheel.addEventListener('lostpointercapture', releasePointer);
+    window.addEventListener('blur', () => { pointer = null; });
+    wheel.addEventListener('keydown', event => {
+      if (wheel.disabled) return;
+      if (spring && event.key === 'Escape') {
+        event.preventDefault();
+        setValue(0);
+      } else if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        setValue(Number(event.key === 'Home' ? wheel.min : wheel.max));
+      }
+    });
+    if (spring) {
+      wheel.addEventListener('keyup', event => {
+        if (navigationKeys.has(event.key)) setValue(0);
+      });
+      wheel.addEventListener('blur', () => {
+        if (pointer === null) setValue(0);
+      });
+    }
+  }
+}
+
+bindKeyboardWheels();
 
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -814,6 +960,7 @@ byId('silence').addEventListener('click', () => {
   void code.stop().then(() => {
     if (!endpoint || chip !== endpoint || code.getState().running) return;
     endpoint.fm.reset();
+    fmPitchAnchors.clear();
     applyFmSettings(endpoint.fm);
   }).catch(report);
 });
@@ -989,9 +1136,10 @@ const workspaceView = setupFm2610Workspace({
     const useKeyboardSource = section === 'mixer' || (drums && expanded && inputTab?.id === 'codeTab');
     const leavingDrums = source === 'adpcm-a' && (!drums || useKeyboardSource);
     source = useKeyboardSource ? keyboardSource : section;
+    if (source !== 'fm' || inputTab?.id !== 'keyboardTab') setPitchBend(0);
     if (leavingDrums) releaseAdpcmAKeyboard();
-    keyboardToolbar.hidden = keyboard.hidden = source === 'adpcm-a';
-    drumKeyboard.hidden = !keyboard.hidden;
+    keyboardToolbar.hidden = byId('keyboardWithWheels').hidden = source === 'adpcm-a';
+    drumKeyboard.hidden = source !== 'adpcm-a';
     const showFm = section === 'fm' && !byId('fmPanel').closest('[hidden]');
     envelope.setVisible(showFm);
     if (showFm) refreshFmView(true);

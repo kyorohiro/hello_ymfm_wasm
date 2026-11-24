@@ -175,7 +175,19 @@
           </div>
         </div>
         <p id="keyboardStatus" class="keyboard-status" aria-live="off"></p>
-        <div id="keyboard" aria-label="PC keys and fretboard"></div>
+        <div id="keyboardWithWheels" class="keyboard-with-wheels">
+          <div id="fmKeyboardWheels" class="fm-keyboard-wheels" role="group" aria-label="FM performance controls">
+            <label><span>Pitch</span>
+              <input id="pitchBendWheel" type="range" min="-1000" max="1000" step="10" value="0" aria-label="Pitch Bend" aria-orientation="vertical" aria-valuetext="0.00 semitones">
+              <output id="pitchBendValue" for="pitchBendWheel" aria-live="off">0.00</output>
+            </label>
+            <label><span>Mod</span>
+              <input id="modulationWheel" type="range" min="0" max="127" value="0" aria-label="Modulation" aria-orientation="vertical" aria-valuetext="0%">
+              <output id="modulationValue" for="modulationWheel" aria-live="off">0%</output>
+            </label>
+          </div>
+          <div id="keyboard" aria-label="PC keys and fretboard"></div>
+        </div>
         <div id="adpcmAKeyboard" role="group" aria-label="ADPCM-A drum keys" hidden></div>
       </div>
       <div id="codePanel" role="tabpanel" aria-labelledby="codeTab" hidden>

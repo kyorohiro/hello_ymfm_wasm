@@ -227,7 +227,16 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .ssg-channels { margin-top: 8px; }
 .octaves output { min-width: 2ch; text-align: center; font: .82rem var(--mono); }
 .keyboard-status { min-height: 1.3em; margin: 8px 0; color: var(--muted); font: .8rem var(--mono); }
-#keyboard { display: grid; gap: 4px; padding-inline-end: 16px; }
+.keyboard-with-wheels { display: flex; align-items: stretch; gap: 8px; }
+#keyboard { display: grid; flex: 1; min-width: 0; gap: 4px; padding-inline-end: 16px; }
+.fm-keyboard-wheels { display: flex; gap: 3px; color: var(--muted); font-size: .72rem; }
+.fm-keyboard-wheels label { display: grid; justify-items: center; grid-template-rows: auto 1fr auto; gap: 4px; width: 38px; }
+.fm-keyboard-wheels input {
+  writing-mode: vertical-lr; direction: rtl; width: 25px; height: 100%; min-height: 54px;
+  margin: 0; accent-color: var(--accent); touch-action: none; cursor: ns-resize;
+}
+.fm-keyboard-wheels input:disabled { opacity: .5; cursor: default; }
+.fm-keyboard-wheels output { font: .68rem var(--mono); font-variant-numeric: tabular-nums; }
 .key-row { display: grid; grid-template-columns: repeat(10,minmax(0,1fr)); gap: 4px; width: 100%; }
 .key-row[data-row="1"] { margin-left: 5px; }
 .key-row[data-row="2"] { margin-left: 10px; }
@@ -328,4 +337,7 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
   .tabs > [role="tab"] { min-width: 58px; padding-inline: 7px; }
   .key-row { gap: 2px; }
   .key span { font-size: .53rem; }
+  .keyboard-with-wheels { gap: 4px; }
+  .fm-keyboard-wheels label { width: 29px; }
+  .fm-keyboard-wheels output { font-size: .59rem; }
 }

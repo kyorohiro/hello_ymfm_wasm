@@ -22,14 +22,20 @@ function ratioPitch(pitch, ratio) {
   return {block, fnum:Math.max(0, Math.min(2047, Math.round(fnum)))};
 }
 
-/** Transpose CH3's four recorded pitches around OP4, or set an ordinary pitch. */
+/** Transpose CH3's four recorded pitches around a new OP4 pitch. */
+export function transposeChannel3Pitches(pitch, specialFrequencies) {
+  const base = specialFrequencies[3];
+  return specialFrequencies.map(source => {
+    const ratio = source.fnum * 2 ** source.block / (base.fnum * 2 ** base.block);
+    return ratioPitch(pitch, ratio);
+  });
+}
+
+/** Set the transposed CH3 pitches or an ordinary channel pitch. */
 export function setSynthSongVoiceFrequency(synth,channel,block,fnum,specialFrequencies=null) {
   if(!specialFrequencies)return synth.setFrequency(channel,block,fnum);
-  const base=specialFrequencies[3];
-  specialFrequencies.forEach((source,operator)=>{
-    const ratio=source.fnum*2**source.block/(base.fnum*2**base.block);
-    const pitch=ratioPitch({block,fnum},ratio);
-    synth.setChannel3SpecialFrequency(operator,pitch.block,pitch.fnum);
+  transposeChannel3Pitches({block, fnum}, specialFrequencies).forEach((pitch, operator) => {
+    synth.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
   });
 }
 
