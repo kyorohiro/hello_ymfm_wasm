@@ -3,12 +3,14 @@ import { encodeAdpcmB, readSamplePCM, visitAdpcmBFrames } from '../js/adpcm_b_sa
 import { createOfflineAudioDecoder } from '../js/audio_decode.js';
 import { renderSampleEdit } from '../js/playground_sample_edit.js';
 import { YM2610B_CLOCK } from '../js/ym2610b.js?v=ym2610-source-mix-1';
+import { createFm2610SongAuditionChip } from './song_audition.js';
 
 const DELTA_N_SCALE = 144 * 65536;
 const MAX_DELTA_N = 65535;
 const SAMPLE_ADDRESS = 0xc00000;
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
 export const FM2610_ADPCM_B_MAX_BYTES = 0x200000;
+export const FM2610_ADPCM_B_ROM_BYTES = 0x1000000;
 export const FM2610_ADPCM_B_MAX_RATE = Math.floor(YM2610B_CLOCK * MAX_DELTA_N / DELTA_N_SCALE);
 
 function integer(value, min, max, label) {
@@ -18,25 +20,47 @@ function integer(value, min, max, label) {
   return value;
 }
 
+export function getFm2610AdpcmBRateLimits(clockHz) {
+  if (clockHz === undefined) return {min: 1, max: FM2610_ADPCM_B_MAX_RATE};
+  return {min: clockHz / DELTA_N_SCALE, max: clockHz * MAX_DELTA_N / DELTA_N_SCALE};
+}
+
 function readSettings(value) {
-  const {name, sampleRate, rootNote, volume, repeat} = value ?? {};
+  const {name, sampleRate, rootNote, volume, repeat, clockHz, left, right} = value ?? {};
   if (typeof name !== 'string' || !name.trim() || name.length > 1024) throw new TypeError('Invalid ADPCM-B sample name.');
   if (typeof repeat !== 'boolean') throw new TypeError('ADPCM-B Repeat must be on or off.');
-  return {
+  const settings = {
     name,
-    sampleRate: integer(sampleRate, 1, FM2610_ADPCM_B_MAX_RATE, 'ADPCM-B base rate'),
+    sampleRate,
     rootNote: integer(rootNote, 0, 127, 'ADPCM-B root MIDI note'),
     volume: integer(volume, 0, 255, 'ADPCM-B level'),
     repeat,
   };
+  if (clockHz === undefined) {
+    integer(sampleRate, 1, FM2610_ADPCM_B_MAX_RATE, 'ADPCM-B base rate');
+  } else {
+    settings.clockHz = integer(clockHz, 100000, 24000000, 'ADPCM-B clock');
+    const {min, max} = getFm2610AdpcmBRateLimits(clockHz);
+    if (!Number.isFinite(sampleRate) || sampleRate < min || sampleRate > max) {
+      throw new RangeError('ADPCM-B base rate is outside the chip clock range.');
+    }
+  }
+  if (left !== undefined || right !== undefined) {
+    if ((left !== undefined && typeof left !== 'boolean') || (right !== undefined && typeof right !== 'boolean')) {
+      throw new TypeError('ADPCM-B pan requires left and right switches.');
+    }
+    Object.assign(settings, {left: left ?? true, right: right ?? true});
+  }
+  return settings;
 }
 
 /** Validate the saved sample and take ownership of its hardware ROM bytes. */
 export function normalizeFm2610AdpcmBSample(value) {
   const settings = readSettings(value);
   const {bytes} = value;
-  if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length % 256 || bytes.length > FM2610_ADPCM_B_MAX_BYTES) {
-    throw new RangeError('ADPCM-B sample data must be aligned to 256 bytes and fit within 2 MiB.');
+  const maxBytes = settings.clockHz ? FM2610_ADPCM_B_ROM_BYTES : FM2610_ADPCM_B_MAX_BYTES;
+  if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length % 256 || bytes.length > maxBytes) {
+    throw new RangeError('ADPCM-B sample data must be aligned to 256 bytes and fit in its ROM bank.');
   }
   return {...settings, bytes: new Uint8Array(bytes)};
 }
@@ -131,13 +155,14 @@ export async function getFm2610AdpcmBWaveform(bytes, signal, {transfer = false} 
 }
 
 /** One external-ROM hardware voice; the newest trigger owns its key gate. */
-export function createFm2610AdpcmB({sound}) {
+export function createFm2610AdpcmB({sound, getMode = () => 'ym2610b', referenceChip = createFm2610SongAuditionChip()}) {
   const decodeAudio = createOfflineAudioDecoder();
   const manualOwner = Symbol('ADPCM-B Play');
   let sample = defaultSample();
   let pendingLoad = null;
   let bank = null;
   let active = null;
+  let preparationRevision = 0;
 
   function getSettings() {
     const {bytes, ...settings} = sample;
@@ -155,12 +180,13 @@ export function createFm2610AdpcmB({sound}) {
   }
 
   function setSettings(settings) {
-    const {sampleRate, rootNote, volume, repeat} = readSettings({...sample, ...settings, name: sample.name});
+    const next = readSettings({...sample, ...settings, name: sample.name, clockHz: sample.clockHz});
     const old = sample;
-    sample = {...sample, sampleRate, rootNote, volume, repeat};
+    sample = {...next, bytes: old.bytes};
     if (active?.chip) {
-      if (volume !== old.volume) active.chip.setVolume(volume);
-      if (sampleRate !== old.sampleRate || rootNote !== old.rootNote) setPitch(active.chip, active.midi);
+      if (next.volume !== old.volume) active.chip.setVolume(next.volume);
+      if (next.left !== old.left || next.right !== old.right) active.chip.setPan(next.left ?? true, next.right ?? true);
+      if (next.sampleRate !== old.sampleRate || next.rootNote !== old.rootNote) setPitch(active.chip, active.midi);
     }
     return getSettings();
   }
@@ -172,8 +198,10 @@ export function createFm2610AdpcmB({sound}) {
   }
 
   function invalidate() {
+    preparationRevision++;
     bank = null;
     stop();
+    void referenceChip.close()?.catch(() => {});
   }
 
   function install(next) {
@@ -209,7 +237,7 @@ export function createFm2610AdpcmB({sound}) {
         ? await runSampleWorker({audio, sampleRate: rate}, signal, transfers)
         : encodeFm2610AdpcmB(audio, rate);
       signal.throwIfAborted();
-      const next = normalizeFm2610AdpcmBSample({...sample, name, bytes, sampleRate: rate});
+      const next = normalizeFm2610AdpcmBSample({...sample, name, bytes, sampleRate: rate, clockHz: undefined});
       return install(next);
     } finally {
       callerSignal?.removeEventListener('abort', abort);
@@ -217,18 +245,38 @@ export function createFm2610AdpcmB({sound}) {
     }
   }
 
-  function upload(chip, bytes) {
+  function upload(chip, {bytes, clockHz}) {
+    const address = clockHz === undefined ? SAMPLE_ADDRESS : 0;
     if (!bank || bank.chip !== chip || bank.bytes !== bytes) {
       // The ROM can be replaced only while this one decoder is stopped.
       chip.keyOff();
-      const next = {chip, bytes, ready: null};
-      next.ready = Promise.resolve(chip.loadMemory(bytes, SAMPLE_ADDRESS)).catch(error => {
+      const next = {chip, bytes, address, ready: null};
+      next.ready = Promise.resolve(chip.loadMemory(bytes, address)).catch(error => {
         if (bank === next) bank = null;
         throw error;
       });
       bank = next;
     }
-    return bank.ready;
+    return bank;
+  }
+
+  async function loadReferenceChip(endpoint, clockHz) {
+    const runtime = await referenceChip.load(endpoint, {variant: getMode(), clockHz});
+    return (runtime.rawFm ?? runtime.fm).adpcmB;
+  }
+
+  async function prepare() {
+    const {clockHz} = sample;
+    if (clockHz === undefined) return;
+    const revision = preparationRevision;
+    try {
+      const endpoint = await sound();
+      if (revision !== preparationRevision) return;
+      const chip = await loadReferenceChip(endpoint, clockHz);
+      if (revision === preparationRevision) await upload(chip, sample).ready;
+    } catch (error) {
+      if (revision === preparationRevision && error?.name !== 'AbortError') throw error;
+    }
   }
 
   async function trigger(midi, owner) {
@@ -236,14 +284,17 @@ export function createFm2610AdpcmB({sound}) {
     const note = {midi, owner, chip: null};
     active = note;
     try {
-      const {adpcmB: chip} = await sound();
+      const endpoint = await sound();
       if (active !== note) return false;
-      await upload(chip, sample.bytes);
+      const chip = sample.clockHz === undefined ? endpoint.adpcmB : await loadReferenceChip(endpoint, sample.clockHz);
       if (active !== note) return false;
-      chip.setSample({start: SAMPLE_ADDRESS, end: SAMPLE_ADDRESS + sample.bytes.length});
+      const {ready, address} = upload(chip, sample);
+      await ready;
+      if (active !== note) return false;
+      chip.setSample({start: address, end: address + sample.bytes.length});
       setPitch(chip, midi);
       chip.setVolume(sample.volume);
-      chip.setPan(true, true);
+      chip.setPan(sample.left ?? true, sample.right ?? true);
       chip.keyOn({repeat: sample.repeat});
       note.chip = chip;
       return true;
@@ -257,7 +308,7 @@ export function createFm2610AdpcmB({sound}) {
 
   return {
     getSample, getSettings, getWaveform: signal => getFm2610AdpcmBWaveform(sample.bytes, signal),
-    applySample, loadSample, setSettings, stop, invalidate,
+    applySample, loadSample, setSettings, stop, invalidate, prepare, setSourceGains: referenceChip.setSourceGains,
     noteOn(midi, owner = midi) {
       return trigger(integer(midi, 0, 127, 'ADPCM-B MIDI note'), owner);
     },

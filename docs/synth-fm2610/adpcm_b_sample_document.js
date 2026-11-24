@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { loadPlaygroundCassette } from '../playground/playground_cassette.js';
 import { crc32, createStoredZipBytes } from '../vgm_analyzer/stored_zip.js';
-import { FM2610_ADPCM_B_MAX_BYTES, normalizeFm2610AdpcmBSample } from './adpcm_b.js';
+import { FM2610_ADPCM_B_ROM_BYTES, normalizeFm2610AdpcmBSample } from './adpcm_b.js';
 
 export const ADPCM_B_SAMPLE_SUFFIX = '.adpcm-b-sample.zip';
 const FORMAT = 'tetorica-fm2610-adpcm-b-sample';
 const MANIFEST = 'sample.json';
 const PAYLOAD = 'sample.adpcm-b';
 const MAX_MANIFEST_BYTES = 8192;
-const MAX_DOCUMENT_BYTES = FM2610_ADPCM_B_MAX_BYTES + 2 * MAX_MANIFEST_BYTES;
+const MAX_DOCUMENT_BYTES = FM2610_ADPCM_B_ROM_BYTES;
 
 export function isAdpcmBSamplePath(path) {
   return typeof path === 'string' && path.toLowerCase().endsWith(ADPCM_B_SAMPLE_SUFFIX);
@@ -18,10 +18,12 @@ export function isAdpcmBSamplePath(path) {
 export function writeAdpcmBSample(sample) {
   const {bytes, ...settings} = normalizeFm2610AdpcmBSample(sample);
   const manifest = {format: FORMAT, version: 1, ...settings};
-  return createStoredZipBytes([
+  const document = createStoredZipBytes([
     {name: MANIFEST, data: new TextEncoder().encode(JSON.stringify(manifest, null, 2) + '\n')},
     {name: PAYLOAD, data: bytes},
   ]);
+  if (document.byteLength > MAX_DOCUMENT_BYTES) throw new RangeError('ADPCM-B sample ZIP exceeds the 16 MiB Files limit.');
+  return document;
 }
 
 export async function readAdpcmBSample(source) {

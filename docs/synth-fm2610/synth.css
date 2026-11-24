@@ -117,7 +117,6 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .presets { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; color: var(--muted); }
 .presets button, .fm-heading button, .keyboard-toolbar button { min-height: 30px; font-size: .83rem; }
 #fmChannels { margin-top: 9px; }
-.fm-live-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: .84rem; }
 #fmChannelState { display: block; margin-top: 7px; color: var(--muted); font: .78rem var(--mono); }
 #fmParameters { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 #fmChannels [data-keyed="true"]::after {
@@ -199,8 +198,9 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 #adpcmAWaveform, #adpcmBWaveform { display: block; width: 100%; height: clamp(92px, 16vw, 144px); margin-top: 8px; border: 1px solid var(--border); border-radius: 6px; }
 #adpcmAPreviewInfo { margin-top: 4px; }
 #adpcmAVgm .fm2610-voice h3 button { min-height: 28px; }
-.fm2610-adpcm-trial { margin-top: 9px; }
-.fm2610-adpcm-trial input[type="text"] { width: 11ch; font: .8rem var(--mono); }
+.fm2610-adpcm-range { margin-top: 9px; }
+.fm2610-adpcm-range .param-control { min-width: calc(9ch + 48px); }
+#adpcmASource { margin-block: 4px 8px; }
 #adpcmBSampleDuration { margin-block: 4px 8px; color: var(--muted); font: .78rem var(--mono); }
 #adpcmBSampleDuration:empty { display: none; }
 .adpcm-readout {

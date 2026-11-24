@@ -78,27 +78,46 @@ test('ADPCM-B reference audition accepts the full ROM window and rejects unavail
   assert.deepEqual(calls.at(-1),['write', 0x00, 0xa0]);
 });
 
-test('ADPCM-B Stop, retrigger and close cancel unfinished uploads', async () => {
+test('ADPCM-B short taps keep one pending ROM upload and never trigger released notes', async () => {
   const {audition, calls, transfers} = fixture(true);
+  let reads = 0;
+  const source = () => { reads++; return bytes; };
+  const preloading = audition.prepare(endpoint,snapshot,source);
   const first = audition.audition(endpoint,snapshot,bytes);
   await Promise.resolve();
+  audition.stop();
   const second = audition.audition(endpoint,snapshot,bytes);
-  await Promise.resolve();
+  assert.equal(transfers.length,1);
+  audition.setDeltaN(0x4567);
   transfers[0]();
+  await preloading;
   assert.equal(await first,false);
-  transfers[1]();
   assert.equal(await second,true);
 
-  const stopped = audition.audition(endpoint,snapshot,bytes);
-  await Promise.resolve();
+  assert.deepEqual(calls.filter(([kind, address]) => kind === 'write' && address === 9),[['write', 9, 0x67]]);
+  const previous = calls.length;
+  audition.setDeltaN(0x2345);
+  assert.deepEqual(calls.slice(previous),[['write', 9, 0x45],['write', 10, 0x23]]);
+
   audition.stop();
-  transfers[2]();
-  assert.equal(await stopped,false);
+  assert.equal(await audition.audition(endpoint,snapshot,source),true);
+  assert.equal(transfers.length,1);
+  assert.equal(reads,1);
+  assert.equal(calls.filter(([kind]) => kind === 'runtime').length,1);
+  assert.equal(calls.filter(([kind, address, value]) => kind === 'write' && address === 0 && value & 0x80).length,2);
+});
+
+test('Closing an ADPCM-B audition cancels the old ROM and prepares the next session', async () => {
+  const {audition, calls, transfers} = fixture(true);
   const closed = audition.audition(endpoint,snapshot,bytes);
   await Promise.resolve();
   await audition.close();
-  transfers[3]();
+  transfers[0]();
   assert.equal(await closed,false);
+  const next = audition.audition(endpoint,snapshot,bytes);
+  await Promise.resolve();
+  transfers[1]();
+  assert.equal(await next,true);
 
   assert.deepEqual(calls.filter(([kind, address, value]) => kind === 'write' && address === 0 && value & 0x80),[
     ['write', 0x00, 0xb0],

@@ -40,7 +40,23 @@ export function normalizeAdpcmAKit(kit) {
           bytes.length % 256 || bytes.length > ADPCM_A_KIT_MAX_SAMPLE_BYTES) {
         throw new RangeError('Invalid ADPCM-A sample size for pad A' + (index + 1) + '.');
       }
-      return {name, bytes: new Uint8Array(bytes)};
+      const {address, voice} = sample;
+      const normalized = {name, bytes: new Uint8Array(bytes)};
+      if (address !== undefined) {
+        if (!Number.isInteger(address) || address < 0 || address % 256 || address + bytes.length > 0x1000000) {
+          throw new RangeError('Invalid ADPCM-A ROM address for pad A' + (index + 1) + '.');
+        }
+        normalized.address = address;
+      }
+      if (voice !== undefined) {
+        const {volume, left, right} = voice ?? {};
+        if (!Number.isInteger(volume) || volume < 0 || volume > 31 ||
+            typeof left !== 'boolean' || typeof right !== 'boolean') {
+          throw new TypeError('Invalid ADPCM-A voice settings for pad A' + (index + 1) + '.');
+        }
+        normalized.voice = {volume, left, right};
+      }
+      return normalized;
     }),
   };
 }
@@ -50,7 +66,7 @@ export function writeAdpcmAKit(kit) {
   const {level, pads} = normalizeAdpcmAKit(kit);
   const manifest = {
     format: FORMAT, version: 1, level,
-    pads: pads.map(sample => sample ? {name: sample.name} : null),
+    pads: pads.map(sample => sample ? {name: sample.name, address: sample.address, voice: sample.voice} : null),
   };
   const files = [{name: MANIFEST, data: new TextEncoder().encode(JSON.stringify(manifest, null, 2) + '\n')}];
   for (const [index, sample] of pads.entries()) {
@@ -85,7 +101,7 @@ export async function readAdpcmAKit(source) {
     if (sample === null) return null;
     const path = samplePath(index);
     expectedFiles.add(path);
-    return {name: sample?.name, bytes: files.get(path)};
+    return {name: sample?.name, address: sample?.address, voice: sample?.voice, bytes: files.get(path)};
   });
   if ([...files.keys()].some(path => !expectedFiles.has(path))) {
     throw new Error('ADPCM-A kit contains an unassigned file.');

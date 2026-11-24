@@ -244,6 +244,12 @@ export function createFm2610SongTransport({sound, beforePlay, onState, onError})
     return (run?.timeline ?? retainedAdpcm)?.readAdpcmBBytes(snapshot.adpcm.adpcmB) ?? null;
   }
 
+  function retainAdpcmARom(snapshot) {
+    if (!snapshot || state.playback !== 'paused' && !state.retained || snapshot !== state.snapshot) return null;
+    return (run?.timeline ?? retainedAdpcm)?.retainAdpcmARom(snapshot.adpcm.adpcmA) ?? null;
+  }
+
   return {play, pause, resume, stop, clear, setSourceGains, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
+    retainAdpcmARom,
     getState: () => state, getSnapshot: () => state.snapshot};
 }

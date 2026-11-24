@@ -29,6 +29,12 @@ test('ADPCM-B sample document preserves encoded bytes and playback settings', as
   assert.deepEqual(await readAdpcmBSample(archive), sample);
 });
 
+test('captured ADPCM-B saves the chip clock, fractional base rate and stereo routing', async () => {
+  const clockHz = 7987200;
+  const captured = {...sample, clockHz, sampleRate: 17429 * clockHz / (144 * 65536), left: true, right: false};
+  assert.deepEqual(await readAdpcmBSample(writeAdpcmBSample(captured)), captured);
+});
+
 test('ADPCM-B sample reader verifies ZIP checksums, format and ROM alignment', async () => {
   const archive = writeAdpcmBSample(sample);
   const corrupt = archive.slice();

@@ -150,6 +150,7 @@ export function setupFm2610SongControls({getFiles, sound, beforePlay, onPlayback
 
   return {refresh, importFile, selectFile, stop, clear, clearPlayback: player.clear,
     getAdpcmAWindow: player.getAdpcmAWindow,
+    retainAdpcmARom: player.retainAdpcmARom,
     readAdpcmABytes: player.readAdpcmABytes, readAdpcmBBytes: player.readAdpcmBBytes,
     setSourceGains: gains => player.setSourceGains(gains)};
 }

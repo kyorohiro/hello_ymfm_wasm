@@ -167,6 +167,7 @@ export function observeFm2610Writes(transport, variant, clock, context) {
       getAdpcmAWindow: adpcm.getAdpcmAWindow,
       readAdpcmABytes: adpcm.readAdpcmABytes,
       readAdpcmBBytes: adpcm.readAdpcmBBytes,
+      retainAdpcmARom: adpcm.retainAdpcmARom,
     };
   }
 

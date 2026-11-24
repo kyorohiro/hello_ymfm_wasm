@@ -90,6 +90,9 @@ function createRomBank(share) {
   return {
     load, clear, covers,
     get descriptor() { return rom; },
+    coveredRange(start, end) {
+      return ranges.find(range => range.start <= start && end <= range.end);
+    },
     fork() {
       for (const page of pages.values()) sharedRomPages.add(page);
       return createRomBank({rom, ranges, pages});
@@ -123,7 +126,8 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
   let banks = sharedBanks ?? [createRomBank(), createRomBank()];
   const lastTrigger = new Uint32Array(A_VOICES);
   const triggerFrames = Array(A_VOICES).fill(null);
-  let aKeyed = 0, triggerOrder = 0, eosMask = 0, revision = 0, cached = null;
+  let aKeyed = 0, aProgrammed = 0, aLevelWritten = false;
+  let triggerOrder = 0, eosMask = 0, revision = 0, cached = null;
 
   function invalidate() {
     revision++;
@@ -141,6 +145,8 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
     a.fill(0xdf, 0x08, 0x0e);
     b.fill(0);
     aKeyed = 0;
+    aProgrammed = 0;
+    aLevelWritten = false;
     triggerOrder = 0;
     lastTrigger.fill(0);
     triggerFrames.fill(null);
@@ -169,6 +175,7 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
       const triggered = !off && mask !== 0;
       if (triggered) {
         if (!Number.isSafeInteger(frame) || frame < 0) throw new RangeError('Invalid ADPCM-A trigger frame.');
+        aProgrammed |= mask;
         triggerOrder++;
         for (let channel = 0; channel < A_VOICES; channel++) {
           if (mask & (1 << channel)) {
@@ -192,7 +199,10 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
       const index = port === 1 ? register : register - 0x10;
       // YM2610 forces external ADPCM-B mode and disables recording on 0x10.
       const next = port === 0 && register === 0x10 ? (value | 0x20) & ~0x40 : value;
-      if (registers[index] !== next) {
+      const before = aProgrammed, levelWritten = aLevelWritten;
+      if (port === 1 && register === 1) aLevelWritten = true;
+      if (port === 1 && register >= 0x08) aProgrammed |= 1 << (register & 7);
+      if (registers[index] !== next || aProgrammed !== before || aLevelWritten !== levelWritten) {
         registers[index] = next;
         invalidate();
       }
@@ -214,6 +224,7 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
       return Object.freeze({
         channel, ...window,
         available: banks[0].covers(start, window.playbackEnd),
+        programmed: Boolean(aProgrammed & mask),
         keyed: Boolean(aKeyed & mask), lastTrigger: lastTrigger[channel], eosFlagEnabled: !(eosMask & mask),
         lastTriggerFrame, lastTriggerTime: lastTriggerFrame === null ? null : lastTriggerFrame / outputSampleRate,
         volume: pan & 31, left: Boolean(pan & 128), right: Boolean(pan & 64),
@@ -222,7 +233,7 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
     const start = (b[2] | b[3] << 8) * ADDRESS_UNIT;
     const end = ((b[4] | b[5] << 8) + 1) * ADDRESS_UNIT;
     const deltaN = b[9] | b[10] << 8;
-    const adpcmA = Object.freeze({volume: a[1] & 63, sampleRate: clock / 432,
+    const adpcmA = Object.freeze({volume: a[1] & 63, levelWritten: aLevelWritten, sampleRate: clock / 432,
       rom: banks[0].descriptor, voices: Object.freeze(voices)});
     const adpcmB = Object.freeze({
       start, end, rangeValid: end > start, available: banks[1].covers(start, end),
@@ -263,9 +274,24 @@ function createAdpcmState({clock = 8000000, outputSampleRate = 44100}, sharedBan
     return banks[1].read(sample.start, sample.end);
   }
 
+  function retainAdpcmARom(expected) {
+    if (expected?.rom !== banks[0].descriptor) return null;
+    const bank = banks[0].fork();
+    return Object.freeze({
+      coveredRange(start, end) {
+        const range = bank.coveredRange(start, end);
+        return range && {
+          start: Math.ceil(range.start / ADDRESS_UNIT) * ADDRESS_UNIT,
+          end: Math.floor(range.end / ADDRESS_UNIT) * ADDRESS_UNIT,
+        };
+      },
+      read: bank.read,
+    });
+  }
+
   if (sharedBanks) resetRegisters();
   else reset();
-  return {write, loadRom, clearRom, reset, resetRegisters, snapshot, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes,
+  return {write, loadRom, clearRom, reset, resetRegisters, snapshot, getAdpcmAWindow, readAdpcmABytes, readAdpcmBBytes, retainAdpcmARom,
     // Code runs get fresh register shadows over the same physical ROM.
     observeSharedRom() { return createAdpcmState({clock, outputSampleRate}, banks); },
     freezeSharedRom() { banks = banks.map(bank => bank.fork()); },

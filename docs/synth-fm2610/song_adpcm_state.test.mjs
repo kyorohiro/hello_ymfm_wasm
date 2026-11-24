@@ -11,6 +11,7 @@ test('ADPCM-A shadow decodes the six addresses, level, pan and key/flag masks', 
   const state = createFm2610SongAdpcmState({clock: 7987200});
   const original = state.snapshot();
   assert.equal(original.adpcmA.sampleRate, 7987200 / 432);
+  assert.equal(original.adpcmA.levelWritten, false);
   assert.equal(original.adpcmA.voices.length, 6);
   assert.deepEqual(original.adpcmA.voices.map(voice => [voice.volume, voice.left, voice.right, voice.keyed]),
     Array.from({length: 6}, () => [31, true, true, false]));
@@ -33,19 +34,36 @@ test('ADPCM-A shadow decodes the six addresses, level, pan and key/flag masks', 
   state.loadRom(0, new Uint8Array(0x400), 0x123400, 0x200000);
   const result = state.snapshot();
   assert.equal(result.adpcmA.volume, 63);
+  assert.equal(result.adpcmA.levelWritten, true);
   assert.equal(result.adpcmA.rom.size, 0x200000);
   assert.deepEqual(result.adpcmA.voices[0], {
     channel: 0, start: 0x123400, end: 0x323800, playbackEnd: 0x123800, rangeValid: true,
-    available: true, keyed: true, lastTrigger: 1, lastTriggerFrame: 0, lastTriggerTime: 0,
+    available: true, programmed: true, keyed: true, lastTrigger: 1, lastTriggerFrame: 0, lastTriggerTime: 0,
     eosFlagEnabled: false, volume: 21, left: true, right: false,
   });
   assert.deepEqual(result.adpcmA.voices.map(voice => voice.keyed), [true, false, false, false, false, true]);
+  assert.deepEqual(result.adpcmA.voices.map(voice => voice.programmed), [true, true, false, false, false, true]);
   assert.equal(result.adpcmA.voices[1].lastTrigger, 1, 'Key-off preserves the last trigger order');
   state.write(1, 0, 1);
   assert.equal(state.snapshot().adpcmA.voices[0].lastTrigger, 2, 'Repeated KEY ON increments the order');
   assert.equal(state.snapshot().adpcmA.voices[5].lastTrigger, 1);
   assert.equal(result.adpcmB.eosFlagEnabled, false);
   assert.equal(result.adpcmB.rom, original.adpcmB.rom, 'ADPCM-B ROM retains identity across writes and A-bank transfers');
+});
+
+test('the working ADPCM-A ROM survives further writes and transport clear', () => {
+  const state = createFm2610SongAdpcmState();
+  const start = 0x43ff00, end = 0x440100;
+  const sample = new Uint8Array(end - start).fill(0x12);
+  state.loadRom(0, sample, start, 0x500000);
+  const {adpcmA} = state.snapshot();
+  const retained = state.retainAdpcmARom(adpcmA);
+  state.loadRom(0, Uint8Array.of(0x34), start, 0x500000);
+  assert.equal(state.retainAdpcmARom(adpcmA), null);
+  state.clearRom();
+  assert.deepEqual(retained.coveredRange(start, end), {start, end});
+  assert.equal(retained.coveredRange(start - 256, end), undefined);
+  assert.deepEqual(retained.read(start, end), sample);
 });
 
 test('custom ADPCM-A windows can select an alternate recorded range without modifying voice settings', () => {

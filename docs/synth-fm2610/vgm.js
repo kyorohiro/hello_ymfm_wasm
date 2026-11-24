@@ -159,6 +159,7 @@ export function createFm2610SongTimeline(engine,{variant,clock}) {
     getAdpcmAWindow: adpcm.getAdpcmAWindow,
     readAdpcmABytes: adpcm.readAdpcmABytes,
     readAdpcmBBytes: adpcm.readAdpcmBBytes,
+    retainAdpcmARom: adpcm.retainAdpcmARom,
   };
 
   function detach() {

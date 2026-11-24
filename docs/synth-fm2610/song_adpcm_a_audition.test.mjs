@@ -85,6 +85,21 @@ test('retrigger and closing cancel old ADPCM-A transfers without issuing a stale
   await assert.rejects(audition.audition(endpoint,snapshot,0,sample.subarray(1)),/complete sample/);
 });
 
+test('releasing a pending ADPCM-A voice leaves another held voice playing', async () => {
+  const {audition, calls, transfers} = fixture({deferMemory:true});
+  const released = audition.audition(endpoint,snapshot,0,sample);
+  const held = audition.audition(endpoint,snapshot,1,sample);
+  await Promise.resolve();
+  audition.stop(0);
+  transfers[0]();
+  transfers[1]();
+  assert.equal(await released,false);
+  assert.equal(await held,true);
+  assert.deepEqual(calls.filter(([event]) => event === 'off' || event === 'on'),[
+    ['off', 0], ['on', 1],
+  ]);
+});
+
 test('ADPCM-A trial applies an edited hardware window and mix settings without changing the VGM snapshot', async () => {
   const {audition, calls} = fixture();
   const bytes = new Uint8Array(512).fill(0x18);

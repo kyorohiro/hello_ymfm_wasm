@@ -160,6 +160,10 @@ export function setupFm2610Code({
 			return observationFor(snapshot, customWindow)
 				?.getAdpcmAWindow(channel, snapshot.adpcm.adpcmA, customWindow) ?? null;
 		},
+		retainAdpcmARom(snapshot) {
+			return hasRetainedSnapshot() ?
+				observationFor(snapshot)?.retainAdpcmARom(snapshot.adpcm.adpcmA) ?? null : null;
+		},
 		readAdpcmABytes(snapshot, channel, customWindow) {
 			return observationFor(snapshot, customWindow)
 				?.readAdpcmABytes(channel, snapshot.adpcm.adpcmA, customWindow) ?? null;

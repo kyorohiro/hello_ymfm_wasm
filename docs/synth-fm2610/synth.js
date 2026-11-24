@@ -13,12 +13,8 @@ import { createVsuVoicePool } from '../synth-vsu/voice-pool.js';
 import { createFm2610Audio } from './audio.js';
 import { setupFm2610Code } from './code.js';
 import { setupFm2610Files } from './files.js';
-import { captureFm2610Patch, fmCaptureReason, readFm2610Patch } from './fm_patch.js';
+import { readFm2610Patch, readFm2610SnapshotPatches } from './fm_patch.js';
 import { ADPCM_A_KEYS, setupFm2610Sections } from './sections.js';
-import { createFm2610SongAdpcmAAudition } from './song_adpcm_a_audition.js';
-import { createFm2610SongAdpcmBAudition } from './song_adpcm_b_audition.js';
-import { createFm2610SongAudition } from './song_audition.js';
-import { createFm2610SongSsgAudition } from './song_ssg_audition.js';
 import { setupFm2610SongControls } from './song_controls.js';
 import { setupFm2610Workspace } from './workspace.js';
 
@@ -29,19 +25,12 @@ const keyboard = byId('keyboard');
 const drumKeyboard = byId('adpcmAKeyboard');
 const keyboardToolbar = byId('keyboardPanel').querySelector('.keyboard-toolbar');
 const scope = byId('scope');
-const liveToggle = byId('fmLive');
-const captureButton = byId('fmCapture');
 const envelopeRoot = byId('fmEnvelope');
 const workspace = byId('workspace');
 const audio = createFm2610Audio();
-const audition = createFm2610SongAudition();
-const referenceAuditions = {
-  a: {voice: createFm2610SongAdpcmAAudition(), revision: 0},
-  b: {voice: createFm2610SongAdpcmBAudition(), revision: 0},
-  ssg: {voice: createFm2610SongSsgAudition(), revision: 0},
-};
 const visualizer = createSynthOutputVisualizer({
   background: '#18150f', grid: '#4b3b26', labels: '#bfaf91', trace: '#ffcc78',
+  waveformMinRange: 1 / 64, spectrumFloor: -110,
 });
 const voicePools = { fm: createVsuVoicePool(), ssg: createVsuVoicePool(), 'adpcm-b': createVsuVoicePool() };
 const drumKeys = new Map(Array.from(ADPCM_A_KEYS, (key, drumChannel) => [key, {
@@ -66,17 +55,17 @@ const codeEndpoints = new WeakMap();
 const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable]';
 let variant = 'ym2610b', switching = false, chip = null, source = 'fm';
 let keyboardSource = 'fm';
-let fmChannel = null, ssgChannel = null, octave = 0, keys = new Map();
+let fmSelection = null, ssgChannel = null, octave = 0, keys = new Map();
 let scopeMode = 'waveform', scopeFrame = null;
-let songState = {playback: 'stopped'}, fmView = null, auditionVoice = null;
+let songState = {playback: 'stopped'}, fmView = null, fmPlayback = null, fmEditorReference = null;
 let channelProfile = '';
-const liveChannels = {};
+const adoptedFmSnapshots = new WeakSet();
 const envelope = createOperatorEnvelopeView({
   root: envelopeRoot,
-  getOperators: () => [null, ...(fmView?.voice.preset ?? presetFor(fmChannel ?? 0)).operators],
-  getSelectionKey: () => fmView ? fmView.kind + ':' + fmView.voice.physicalChannel : variant + ':' + fmChannel,
+  getOperators: () => [null, ...(fmView?.voice.preset ?? selectedFmPreset()).operators],
+  getSelectionKey: () => (fmView?.snapshot.variant ?? variant) + ':' + (fmView?.voice.physicalChannel ?? fmSelection),
   onEdit(operator, patch) {
-    if (!fmView) editOperator(operator, patch);
+    editOperator(operator, patch);
   },
 });
 
@@ -112,8 +101,14 @@ function monitorOutput() {
 }
 
 function presetFor(channel) { return channels[physicalSlots[variant][channel]]; }
+function selectedFmPreset() {
+  const slots = physicalSlots[variant];
+  return channels[slots.includes(fmSelection) ? fmSelection : slots[0]];
+}
 function fmTargets() {
-  return fmChannel === null ? physicalSlots[variant].map((_, channel) => channel) : [fmChannel];
+  const slots = physicalSlots[variant];
+  const channel = slots.indexOf(fmSelection);
+  return channel < 0 ? slots.map((_, index) => index) : [channel];
 }
 
 function applyFmChannel(fm, channel, preset) {
@@ -169,6 +164,7 @@ function stopCodeSound(endpoint) {
   if (endpoint.context !== chip?.context) return;
   for (let channel = 0; channel < endpoint.fm.channelCount; channel++) endpoint.fm.noteOff(channel);
   for (let channel = 0; channel < 3; channel++) endpoint.ssg.keyOff(channel);
+  releaseAdpcmAKeyboard();
   releaseAdpcmBKeyboard();
   sections.stopAdpcm({invalidateB: true});
   endpoint.adpcmA.keyOff([0, 1, 2, 3, 4, 5]);
@@ -178,16 +174,8 @@ function stopCodeSound(endpoint) {
 
 const sections = setupFm2610Sections({
   ssgPanel: byId('ssgPanel'), adpcmAPanel: byId('adpcmAPanel'), adpcmBPanel: byId('adpcmBPanel'), sound, report,
-  releaseAdpcmBKeyboard,
-  onReferenceChange: renderKeys,
-  stopSongSsg: stopSsgAudition,
-  playSongAdpcmA: (snapshot, channel, bytes, readSettings) =>
-    playReferenceVoice('a', snapshot, () => [channel, bytes, readSettings()]),
-  stopSongAdpcmA: () => stopReferenceVoice('a'),
-  setSongAdpcmAVoice: referenceAuditions.a.voice.setVoice,
-  setSongAdpcmALevel: referenceAuditions.a.voice.setVolume,
-  playSongAdpcmB: (snapshot, bytes, options) => playReferenceVoice('b', snapshot, () => [bytes, options]),
-  stopSongAdpcmB: () => stopReferenceVoice('b'),
+  getMode: () => variant,
+  releaseAdpcmAKeyboard, releaseAdpcmBKeyboard,
   async saveAdpcmAKit(kit) {
     await files.ready;
     return files.saveAdpcmAKit(kit);
@@ -204,6 +192,7 @@ const code = setupFm2610Code({
   beforeRun() {
     songs.clearPlayback();
     releaseKeyboard();
+    sections.stop();
   },
   onState: () => queueMicrotask(refreshPerformanceView),
   prepareSource: (...args) => files.prepareSource(...args),
@@ -215,11 +204,15 @@ const songs = setupFm2610SongControls({
   sound,
   async beforePlay() {
     releaseKeyboard();
+    sections.stop();
     await code.stop();
     code.clearSnapshot();
   },
   onPlayback(state) {
-    if (state.retained && !songState.retained) stopReferenceAuditions();
+    if (state.retained && !songState.retained) {
+      releaseKeyboard();
+      sections.stopAdpcmB();
+    }
     songState = state;
     refreshPerformanceView();
   },
@@ -246,51 +239,15 @@ function refreshPerformanceView() {
 
 function refreshReferencePanels(reference = currentPlaybackReference()) {
   const following = sections.isFollowingAdpcm(source);
-  const auditioning = canAuditionAdpcm(source);
-  const ssgAudition = sections.getSsgAuditionSnapshot();
   const ssgFollowing = sections.isFollowingSsg();
   const panel = {ssg: 'ssgPanel', 'adpcm-a': 'adpcmAPanel', 'adpcm-b': 'adpcmBPanel'}[source];
   const visible = panel && !byId(panel).closest('[hidden]') ? source : undefined;
   sections.setPerformanceReference(reference, visible);
-  if (following !== sections.isFollowingAdpcm(source) || auditioning !== canAuditionAdpcm(source) ||
-      ssgAudition !== sections.getSsgAuditionSnapshot() || ssgFollowing !== sections.isFollowingSsg()) renderKeys();
-}
-
-function canAuditionAdpcm(section) {
-  if (section === 'adpcm-a') return sections.canAuditionAdpcmA();
-  return section === 'adpcm-b' && sections.canAuditionAdpcmB();
-}
-
-async function playReferenceVoice(kind, snapshot, readArgs) {
-  const player = referenceAuditions[kind];
-  const {revision} = player;
-  const endpoint = await sound();
-  const reference = currentPlaybackReference();
-  if (revision !== player.revision || reference?.snapshot !== snapshot || !reference.frozen) return;
-  const args = readArgs();
-  if (args) return player.voice.audition(endpoint, snapshot, ...args);
-}
-
-function stopReferenceAuditions() {
-  stopAudition();
-  releaseAdpcmBKeyboard();
-  stopReferenceVoice('a');
-  stopReferenceVoice('b');
-  stopSsgAudition();
-}
-
-function stopReferenceVoice(kind) {
-  const player = referenceAuditions[kind];
-  player.revision++;
-  void player.voice.close()?.catch(report);
-}
-
-function stopSsgAudition() {
-  const pool = voicePools.ssg;
-  for (const voice of pool.voices()) {
-    if (voice.songSsg) pool.releaseVoice(voice);
+  const nowFollowingSsg = sections.isFollowingSsg();
+  if (!ssgFollowing && nowFollowingSsg) {
+    for (const voice of voicePools.ssg.clear()) stopVoice('ssg', voice);
   }
-  stopReferenceVoice('ssg');
+  if (following !== sections.isFollowingAdpcm(source) || ssgFollowing !== nowFollowingSsg) renderKeys();
 }
 
 function autoLiveVoice(kind, voices) {
@@ -298,31 +255,55 @@ function autoLiveVoice(kind, voices) {
     const active = voices.reduce((best, voice) => voice.codeGate &&
       (!best || voice.codeKeyOnOrder > best.codeKeyOnOrder) ? voice : best, null);
     if (active) return active;
-    const recent = voices.reduce((best, voice) => voice.codeKeyOnOrder > best.codeKeyOnOrder ? voice : best);
-    if (recent.codeKeyOnOrder) return recent;
+    const recent = voices.reduce((best, voice) => voice.codeKeyOnOrder > (best?.codeKeyOnOrder ?? 0) ? voice : best, null);
+    if (recent) return recent;
   }
   return voices.find(voice => voice.gate) ?? voices.find(voice => voice.lastKeyMask) ?? voices[0];
 }
 
+function getFmPlayback() {
+  if (['loading', 'playing', 'pausing'].includes(songState.playback)) return 'vgm';
+  const {running, busy} = code.getState();
+  return running || busy ? 'code' : null;
+}
+
 function currentFmView(reference) {
-  if (!liveToggle.checked || !reference) return null;
-  const {kind, snapshot, frozen, retained} = reference;
-  if (!snapshot?.channels?.length) return null;
-  const selection = Object.hasOwn(liveChannels, kind) ?
-    liveChannels[kind] : physicalSlots[variant][fmChannel];
-  const selected = snapshot.channels.find(voice => voice.physicalChannel === selection);
-  const voice = selected ?? autoLiveVoice(kind, snapshot.channels);
-  return {kind, snapshot, selection: selected?.physicalChannel ?? null, voice, frozen, retained};
+  if (!fmPlayback || reference?.kind !== fmPlayback || !reference.snapshot.channels.length) return null;
+  const {kind, snapshot} = reference;
+  const selection = snapshot.channels.find(voice => voice.physicalChannel === fmSelection);
+  return {kind, snapshot, voice: selection ?? autoLiveVoice(kind, snapshot.channels)};
+}
+
+function adoptFmSnapshot({kind, snapshot, frozen}) {
+  if (!frozen || !snapshot.channels.length || adoptedFmSnapshots.has(snapshot)) return false;
+  const {channels: observed, lfo: observedLfo, channel3Notice} = readFm2610SnapshotPatches(snapshot);
+  adoptedFmSnapshots.add(snapshot);
+  releaseFmKeyboard();
+  for (const {physicalChannel, patch} of observed) channels[physicalChannel] = patch;
+  Object.assign(lfo, observedLfo);
+  const available = snapshot.channels.filter(voice => physicalSlots[variant].includes(voice.physicalChannel));
+  if (!available.some(voice => voice.physicalChannel === fmSelection)) {
+    const recent = autoLiveVoice(kind, available);
+    fmSelection = recent && (recent.gate || recent.lastKeyMask || recent.codeKeyOnOrder) ? recent.physicalChannel : null;
+  }
+  fmEditorReference = {kind, channel3Notice};
+  if (chip) applyFmSettings(chip.fm);
+  files.detachFmPatch();
+  return true;
 }
 
 function refreshFmView(force = false, reference = currentPlaybackReference()) {
-  const previous = fmView, next = currentFmView(reference);
-  if (previous?.frozen && (!next?.frozen || next.kind !== previous.kind ||
-      next.voice.physicalChannel !== previous.voice.physicalChannel || next.snapshot !== previous.snapshot)) stopAudition();
-  fmView = next;
-  if (force || previous?.kind !== next?.kind || previous?.snapshot.variant !== next?.snapshot.variant ||
-      previous?.snapshot.revision !== next?.snapshot.revision || previous?.voice.physicalChannel !== next?.voice.physicalChannel ||
-      previous?.frozen !== next?.frozen || previous?.retained !== next?.retained) {
+  const previous = fmView, previousPlayback = fmPlayback;
+  fmPlayback = getFmPlayback();
+  const next = fmView = currentFmView(reference);
+  if (fmPlayback && !previousPlayback) releaseFmKeyboard();
+  let adopted = false;
+  if (!fmPlayback && reference) {
+    try { adopted = adoptFmSnapshot(reference); }
+    catch (error) { report(error); }
+  }
+  if (force || adopted || previousPlayback !== fmPlayback || previous?.snapshot.variant !== next?.snapshot.variant ||
+      previous?.snapshot.revision !== next?.snapshot.revision || previous?.voice.physicalChannel !== next?.voice.physicalChannel) {
     renderFmChannels();
     renderFm();
     renderKeys();
@@ -331,7 +312,7 @@ function refreshFmView(force = false, reference = currentPlaybackReference()) {
 
 function renderFm() {
   const voice = fmView?.voice;
-  const preset = voice?.preset ?? presetFor(fmChannel ?? 0);
+  const preset = voice?.preset ?? selectedFmPreset();
   for (const [key, control] of commonControls) control.updateVisual(preset[key] ?? preset.pan[key]);
   for (const [key, control] of lfoControls) control.updateVisual((fmView?.snapshot.lfo ?? lfo)[key]);
   for (const [operator, controls] of operatorControls) {
@@ -340,25 +321,23 @@ function renderFm() {
   for (const [operator, button] of operatorGates) {
     button.setAttribute('aria-pressed', String(Boolean((voice?.keyMask ?? preset.keyMask) & (1 << (operator - 1)))));
   }
-  envelopeRoot.toggleAttribute('data-live', Boolean(voice));
-  envelopeRoot.querySelector('.operator-envelope-plot').inert = Boolean(voice);
-  byId('fmParameters').disabled = Boolean(voice);
-  captureButton.hidden = !fmView || (fmView.kind === 'code' && !fmView.frozen);
-  const reason = fmView?.frozen ? fmCaptureReason(fmView.snapshot, voice) : '';
-  captureButton.disabled = !fmView?.frozen || Boolean(reason);
-  captureButton.title = reason || (fmView?.frozen ? '' : 'Pause VGM to capture the current sound.');
-  const physical = voice?.physicalChannel ?? physicalSlots[variant][fmChannel];
-  const channelName = physical === undefined ? 'AUTO' : 'CH' + (physical + 1);
-  const keyLabel = (voice?.gate ? 'Key on' : 'Key off') + (fmView?.retained ? ' at stop' : '');
-  const phase = voice?.gate ? keyLabel + ' · OP ' + operators.filter(op => voice.keyMask & (1 << (op - 1))).join('/') : keyLabel;
-  byId('fmChannelState').textContent = voice ?
-    [fmView.kind === 'vgm' ? 'VGM' : 'Code', fmView.retained ? 'Stopped state' : '', fmView.snapshot.variant.toUpperCase(), channelName,
-      phase, voice.specialMode ? 'CH3 Special' : '', reason].filter(Boolean).join(' · ') :
-    'Synth · ' + channelName + (preset.specialFrequencies ? ' · CH3 Special' : '');
+  envelopeRoot.toggleAttribute('data-live', Boolean(fmPlayback));
+  envelopeRoot.querySelector('.operator-envelope-plot').inert = Boolean(fmPlayback);
+  byId('fmParameters').disabled = Boolean(fmPlayback);
+  const physical = voice?.physicalChannel ?? fmSelection;
+  const channelName = physical === null ? 'AUTO' : 'CH' + (physical + 1);
+  const kind = fmPlayback ?? fmEditorReference?.kind;
+  const origin = kind === 'vgm' ? 'VGM' : kind === 'code' ? 'Code' : '';
+  const phase = voice?.gate ? 'Key on · OP ' + operators.filter(op => voice.keyMask & (1 << (op - 1))).join('/') : 'Key off';
+  const details = fmPlayback ? [origin, 'Playback', fmView?.snapshot.variant.toUpperCase(),
+    voice && channelName, voice && phase, voice?.specialMode && 'CH3 Special'] :
+    [origin, 'Editing', channelName, preset.specialFrequencies && 'CH3 Special', fmEditorReference?.channel3Notice];
+  byId('fmChannelState').textContent = details.filter(Boolean).join(' · ');
   envelope.invalidate();
 }
 
 function editPreset(update, write) {
+  if (fmPlayback) return;
   for (const channel of fmTargets()) {
     const preset = presetFor(channel);
     update(preset);
@@ -395,9 +374,10 @@ function editOperator(operator, patch) {
 
 function applyFmPreset(preset) {
   const {lfo: patchLfo, ...patch} = readFm2610Patch(preset);
+  fmEditorReference = null;
   if (patch.specialFrequencies) {
-    releaseKeyboard();
-    fmChannel = physicalSlots[variant].indexOf(2);
+    releaseFmKeyboard();
+    fmSelection = 2;
   }
   if (patchLfo) {
     Object.assign(lfo, patchLfo);
@@ -445,6 +425,7 @@ function buildFmControls() {
   for (const [key, label, max] of [['enabled', 'LFO', 1], ['frequency', 'LFO rate', 7]]) {
     const control = createParamControl({ label, min: 0, max, step: 1, value: lfo[key], wheelAdjust: false,
       booleanMode: key === 'enabled', onChange(value) {
+        if (fmPlayback) return;
         lfo[key] = value;
         chip?.fm.setLfo(lfo.enabled, lfo.frequency);
       } });
@@ -455,7 +436,7 @@ function buildFmControls() {
   buildOperatorControls({ root: byId('operatorControls'), operatorNumbers: operators, defs: operatorDefinitions,
     operatorStates: Object.fromEntries(operators.map(operator => [operator, channels[0].operators[operator - 1]])),
     controlsMap: operatorControls, gateControls: operatorGates,
-    getOperatorEnabled: operator => Boolean(presetFor(fmChannel ?? 0).keyMask & (1 << (operator - 1))),
+    getOperatorEnabled: operator => Boolean(selectedFmPreset().keyMask & (1 << (operator - 1))),
     onOperatorGateChange: toggleOperator,
     onChange: (operator, key, value) => editOperator(operator, {[key]: value}),
   });
@@ -480,22 +461,21 @@ function renderChannels(root, labels, current, onSelect) {
 
 function renderFmChannels() {
   const observed = fmView?.snapshot;
-  const slots = physicalSlots[observed?.variant ?? variant];
-  const profile = (fmView?.kind ?? 'synth') + ':' + (observed?.variant ?? variant);
+  const profile = observed?.variant ?? variant;
+  const slots = physicalSlots[profile];
   const root = byId('fmChannels');
   if (channelProfile !== profile) {
     channelProfile = profile;
     root.replaceChildren(...['AUTO', ...slots.map(slot => 'CH' + (slot + 1))].map((label, index) =>
       makeButton(label, () => {
-        if (fmView) liveChannels[fmView.kind] = slots[index - 1] ?? null;
-        else fmChannel = index ? index - 1 : null;
+        fmSelection = slots[index - 1] ?? null;
         refreshFmView(true);
       })));
   }
-  const selection = fmView ? fmView.selection : slots[fmChannel] ?? null;
+  const selection = slots.includes(fmSelection) ? fmSelection : null;
   for (const [index, button] of [...root.children].entries()) {
     const physical = slots[index - 1] ?? null;
-    const keyed = !fmView?.retained && observed?.channels.find(voice => voice.physicalChannel === physical)?.gate;
+    const keyed = observed?.channels.find(voice => voice.physicalChannel === physical)?.gate;
     button.setAttribute('aria-pressed', String(selection === physical));
     button.dataset.keyed = String(Boolean(keyed));
   }
@@ -503,73 +483,69 @@ function renderFmChannels() {
 
 function stopVoice(section, voice) {
   if (!voice) return;
-  if (section === 'ssg') {
-    if (voice.songSsg) referenceAuditions.ssg.voice.stop(voice.channel);
-    else sections.noteOffSSG(voice.channel);
-  }
-  else if (section === 'adpcm-b') {
-    if (voice.songSample) sections.noteOffSongAdpcmB(voice);
-    else sections.noteOffAdpcmB(voice);
-  }
+  if (section === 'ssg') sections.noteOffSSG(voice.channel);
+  else if (section === 'adpcm-b') sections.noteOffAdpcmB(voice);
   else if (voice.started) chip?.fm.noteOff(voice.channel);
 }
 
 function renderKeys() {
   const voices = Object.values(voicePools).flatMap(pool => pool.voices());
-  if (auditionVoice) voices.push(auditionVoice);
   const down = new Set(voices.map(voice => voice.entry.key));
   for (const button of keyboard.querySelectorAll('.key')) button.setAttribute('aria-pressed', String(down.has(button.dataset.key)));
-  const drumHits = new Set(drumKeysDown.values());
+  const drumHits = new Set([...drumKeysDown.values()].map(hit => hit.entry));
   for (const button of drumKeyboard.querySelectorAll('.key')) {
     button.setAttribute('aria-pressed', String(drumHits.has(drumKeys.get(button.dataset.key))));
   }
-  const auditioningAdpcm = canAuditionAdpcm(source);
-  if (sections.isFollowingAdpcm(source) && !auditioningAdpcm) {
+  if (sections.isFollowingAdpcm(source)) {
     const reference = currentPlaybackReference();
-    byId('keyboardStatus').textContent = reference?.frozen ? 'The selected sample is unavailable for audition.' :
-      `${reference?.kind === 'code' ? 'Stop Code' : 'Pause VGM'} to audition these samples.`;
+    byId('keyboardStatus').textContent = `${reference?.kind === 'code' ? 'Stop Code' : 'Pause VGM'} to play these samples.`;
     return;
   }
   if (source === 'adpcm-a') {
     byId('keyboardStatus').textContent = [...drumHits].map(entry => entry.noteName).join(' · ') ||
-      (auditioningAdpcm ? 'Audition the captured pads with these keys.' : 'Trigger the ADPCM-A pads with the six keys below.');
+      'Hold a key to play an ADPCM-A sample.';
     return;
   }
-  if (source === 'ssg' && sections.isFollowingSsg() && !sections.getSsgAuditionSnapshot()) {
+  if (source === 'ssg' && sections.isFollowingSsg()) {
     const reference = currentPlaybackReference();
-    byId('keyboardStatus').textContent = `${reference?.kind === 'code' ? 'Stop Code' : 'Pause VGM'} to audition the SSG voices.`;
+    byId('keyboardStatus').textContent = `${reference?.kind === 'code' ? 'Stop Code' : 'Pause VGM'} to play the SSG voices.`;
     return;
   }
-  const referenceFm = source === 'fm' && fmView && (fmView.kind === 'vgm' || fmView.frozen);
-  const guidance = referenceFm ? (fmView.frozen ? 'Play the captured channel with the keys below.' : 'Pause VGM to play the selected channel.') :
+  const guidance = source === 'fm' && fmPlayback ? `${fmPlayback === 'code' ? 'Stop Code' : 'Pause VGM'} to edit or play the FM voices.` :
     ({fm: 'Play the FM channels with the keys below.', ssg: ssgChannel === null ? 'Play the SSG voices with the keys below.' : `Play SSG CH${ssgChannel + 1} with the keys below.`,
-      'adpcm-b': auditioningAdpcm ? 'Play the captured sample. Reference note uses the recorded playback rate.' :
-        'Play the ADPCM-B sample with the keys below.'})[source];
+      'adpcm-b': 'Play the ADPCM-B sample with the keys below.'})[source];
   byId('keyboardStatus').textContent = !voicePools[source] ? 'Use the sample controls above.' :
     voices.filter(voice => voice.started).map(voice => voice.entry.noteName).join(' · ') || guidance;
 }
 
-function releaseKey(owner) {
+function releaseDrumKey(owner) {
+  const hit = drumKeysDown.get(owner);
+  if (!hit) return;
   drumKeysDown.delete(owner);
-  if (auditionVoice?.owner === owner) {
-    auditionVoice.player?.stop();
-    auditionVoice = null;
-  }
+  sections.stopAdpcmAKey(hit.entry.drumChannel, hit);
+}
+
+function releaseKey(owner) {
+  releaseDrumKey(owner);
   for (const [section, pool] of Object.entries(voicePools)) stopVoice(section, pool.release(owner));
   renderKeys();
 }
 
-function stopAudition() {
-  auditionVoice = null;
-  void audition.close()?.catch(report);
+function releaseFmKeyboard() {
+  for (const voice of voicePools.fm.clear()) stopVoice('fm', voice);
 }
 
 function releaseKeyboard() {
-  drumKeysDown.clear();
-  stopAudition();
+  releaseAdpcmAKeyboard();
   for (const [section, pool] of Object.entries(voicePools)) {
     for (const voice of pool.clear()) stopVoice(section, voice);
   }
+  renderKeys();
+}
+
+function releaseAdpcmAKeyboard() {
+  if (!drumKeysDown.size) return;
+  for (const owner of drumKeysDown.keys()) releaseDrumKey(owner);
   renderKeys();
 }
 
@@ -578,63 +554,33 @@ function releaseAdpcmBKeyboard() {
   renderKeys();
 }
 
-async function playAudition(owner, entry) {
-  const {snapshot, voice} = fmView;
-  if (auditionVoice?.owner === owner || fmCaptureReason(snapshot, voice)) return;
-  auditionVoice?.player?.stop();
-  const current = {owner, entry};
-  auditionVoice = current;
-  try {
-    const endpoint = await sound();
-    if (auditionVoice !== current) return;
-    const player = await audition.prepare(endpoint, snapshot, voice, captureFm2610Patch(snapshot, voice));
-    if (auditionVoice !== current) return;
-    current.player = player;
-    player.play(entry.midi);
-    current.started = true;
-  } catch (error) {
-    if (auditionVoice !== current) return;
-    auditionVoice = null;
-    report(error);
-  }
-  renderKeys();
-}
-
 async function playKey(owner, entry) {
   const section = source, pool = voicePools[section];
-  const followingAdpcm = sections.isFollowingAdpcm(section);
-  const blockedByAdpcmLive = followingAdpcm && !canAuditionAdpcm(section);
   const followingSsg = section === 'ssg' && sections.isFollowingSsg();
-  const ssgSnapshot = followingSsg ? sections.getSsgAuditionSnapshot() : null;
-  if (switching || blockedByAdpcmLive || (followingSsg && !ssgSnapshot) || drumKeysDown.has(owner) ||
+  if (switching || sections.isFollowingAdpcm(section) || followingSsg || drumKeysDown.has(owner) ||
       Object.values(voicePools).some(voices => voices.voices().some(voice => voice.owner === owner))) return;
   if (section === 'adpcm-a') {
     if (entry.drumChannel === undefined) return;
-    drumKeysDown.set(owner, entry);
+    const hit = {entry};
+    drumKeysDown.set(owner, hit);
     renderKeys();
-    try { await sections.playAdpcmAKey(entry.drumChannel); }
-    catch (error) { report(error); }
+    try { await sections.playAdpcmAKey(entry.drumChannel, hit); }
+    catch (error) {
+      if (drumKeysDown.get(owner) === hit) releaseKey(owner);
+      report(error);
+    }
     return;
   }
   if (!pool || entry.drumChannel !== undefined) return;
-  if (section === 'fm' && liveToggle.checked && (fmView?.frozen ||
-      ['playing', 'paused', 'pausing', 'loading'].includes(songState.playback))) {
-    if (fmView?.frozen) await playAudition(owner, entry);
-    return;
-  }
+  if (section === 'fm' && fmPlayback) return;
   const choices = section === 'fm' ? fmTargets() : section === 'adpcm-b' ? [0] :
     ssgChannel === null ? [0, 1, 2] : [ssgChannel];
-  const { voice, displaced } = pool.acquire(choices, {owner, entry, songSample: section === 'adpcm-b' && followingAdpcm,
-    songSsg: Boolean(ssgSnapshot)});
+  const { voice, displaced } = pool.acquire(choices, {owner, entry});
   stopVoice(section, displaced);
   renderKeys();
   try {
     if (section === 'adpcm-b') {
-      voice.started = voice.songSample ? await sections.noteOnSongAdpcmB(entry.midi, voice) : await sections.noteOnAdpcmB(entry.midi, voice);
-      if (!voice.started) pool.releaseVoice(voice);
-    } else if (ssgSnapshot) {
-      voice.started = await playReferenceVoice('ssg', ssgSnapshot,
-        () => pool.isCurrent(voice) ? [voice.channel, entry.midi] : null);
+      voice.started = await sections.noteOnAdpcmB(entry.midi, voice);
       if (!voice.started) pool.releaseVoice(voice);
     } else {
       const ready = await sound();
@@ -679,10 +625,10 @@ function bindKeyboard(root, rowDefs, entries) {
     });
     button.addEventListener('blur', () => releaseKey(owner));
     if (entry.drumChannel !== undefined) {
-      button.addEventListener('click', event => {
-        if (event.detail !== 0) return;
-        void playKey(owner, entry);
-        releaseKey(owner);
+      button.addEventListener('click', async event => {
+        if (event.detail !== 0 || switching || source !== 'adpcm-a') return;
+        try { await sections.playAdpcmAKey(entry.drumChannel); }
+        catch (error) { report(error); }
       });
     }
   }
@@ -712,7 +658,7 @@ async function selectVariant(next) {
   try {
     songs.clearPlayback();
     releaseKeyboard();
-    sections.stop();
+    sections.stop({invalidateB: true});
     await code.stop();
     code.clearSnapshot();
     await audio.close();
@@ -720,7 +666,7 @@ async function selectVariant(next) {
     visualizer.disconnect();
     drawScope();
     variant = next;
-    fmChannel = null;
+    if (!physicalSlots[variant].includes(fmSelection)) fmSelection = null;
     if (code.setMode()) files.markCodeEdited();
     refreshFmView(true);
     refreshReferencePanels();
@@ -754,7 +700,6 @@ modeButtons.forEach(button => button.addEventListener('click', () => void select
 byId('silence').addEventListener('click', () => {
   songs.stop();
   releaseKeyboard();
-  stopReferenceAuditions();
   sections.stop({invalidateB: true});
   const endpoint = chip;
   void code.stop().then(() => {
@@ -788,8 +733,7 @@ function setupOutputMixer() {
     const gains = levels.map(level => level.muted ? 0 : level.gain);
     try {
       audio.setSourceGains(gains);
-      audition.setSourceGains(gains);
-      for (const {voice} of Object.values(referenceAuditions)) voice.setSourceGains(gains);
+      sections.setAdpcmBSourceGains(gains);
       songs.setSourceGains(gains);
     } catch (error) { report(error); }
   }
@@ -836,10 +780,8 @@ for (const button of scopeButtons) button.addEventListener('click', () => {
 new ResizeObserver(drawScope).observe(scope);
 
 window.addEventListener('pagehide', event => {
-  stopAudition();
-  stopReferenceVoice('a');
-  stopReferenceVoice('b');
-  stopReferenceVoice('ssg');
+  releaseKeyboard();
+  sections.stop({invalidateB: !event.persisted});
   if (!event.persisted) envelope.dispose();
 });
 const ssgChannels = document.createElement('div');
@@ -868,14 +810,11 @@ const files = setupFm2610Files({
   toggle: byId('filesToggle'),
   menuMount: {new: byId('projectNew'), import: byId('projectImport'), export: byId('projectExport')},
   getPatch() {
-    if (fmView) throw new Error('Switch to Synth or capture the paused VGM channel before saving.');
-    return {...presetFor(fmChannel ?? 0), lfo};
+    if (fmPlayback) throw new Error(`${fmPlayback === 'code' ? 'Stop Code' : 'Pause VGM'} to save the FM patch.`);
+    return {...selectedFmPreset(), lfo};
   },
   applyPatch(preset, {show}) {
-    if (fmView) {
-      liveToggle.checked = false;
-      refreshFmView(true);
-    }
+    if (fmPlayback) throw new Error(`${fmPlayback === 'code' ? 'Stop Code' : 'Pause VGM'} to open the FM patch.`);
     applyFmPreset(preset);
     workspaceView.select('fmTab', {focus: show, reveal: show});
     if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
@@ -884,7 +823,6 @@ const files = setupFm2610Files({
   applyAdpcmAKit(kit, {show}) {
     sections.applyAdpcmAKit(kit);
     if (show) {
-      sections.showAdpcmEditor('adpcm-a');
       workspaceView.select('adpcmATab', {focus: true});
       if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
     }
@@ -893,7 +831,6 @@ const files = setupFm2610Files({
   applyAdpcmBSample(sample, {show}) {
     sections.applyAdpcmBSample(sample);
     if (show) {
-      sections.showAdpcmEditor('adpcm-b');
       workspaceView.select('adpcmBTab', {focus: true});
       if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
     }
@@ -925,12 +862,13 @@ const workspaceView = setupFm2610Workspace({
     if (voicePools[section]) keyboardSource = section;
     const drums = section === 'adpcm-a';
     const useKeyboardSource = section === 'mixer' || (drums && expanded && inputTab?.id === 'codeTab');
+    const leavingDrums = source === 'adpcm-a' && (!drums || useKeyboardSource);
     source = useKeyboardSource ? keyboardSource : section;
+    if (leavingDrums) releaseAdpcmAKeyboard();
     keyboardToolbar.hidden = keyboard.hidden = source === 'adpcm-a';
     drumKeyboard.hidden = !keyboard.hidden;
     const showFm = section === 'fm' && !byId('fmPanel').closest('[hidden]');
     envelope.setVisible(showFm);
-    if (source !== 'fm') stopAudition();
     if (showFm) refreshFmView(true);
     refreshReferencePanels();
     renderKeys();
@@ -938,23 +876,6 @@ const workspaceView = setupFm2610Workspace({
   },
 });
 editor.addEventListener('input', () => files.markCodeEdited());
-liveToggle.addEventListener('change', () => refreshFmView(true));
-captureButton.addEventListener('click', () => {
-  if (!fmView?.frozen || captureButton.disabled) return;
-  try {
-    const {snapshot, voice} = fmView;
-    const preset = captureFm2610Patch(snapshot, voice);
-    releaseKeyboard();
-    fmChannel = null;
-    liveToggle.checked = false;
-    refreshFmView(true);
-    applyFmPreset(preset);
-    files.detachFmPatch();
-    files.show(true);
-    if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
-    announce('Captured ' + snapshot.variant.toUpperCase() + ' CH' + (voice.physicalChannel + 1) + ' to Synth.');
-  } catch (error) { report(error); }
-});
 void files.ready.then(() => {
   editor.readOnly = false;
   runCode.disabled = code.getState().busy;

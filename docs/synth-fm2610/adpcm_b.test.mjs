@@ -109,6 +109,51 @@ test('ADPCM-B mono ownership cancels a pending ROM trigger on replacement or key
   assert.equal(calls.filter(call => call === 'on').length, 1);
 });
 
+test('a captured ADPCM-B sample retains its exact chip rate and editable working parameters', async () => {
+  const calls = [];
+  const clockHz = 16000000, deltaN = 50000;
+  const chip = {
+    clock: clockHz,
+    loadMemory(bytes, address) { calls.push(['load', bytes[0], address]); },
+    setSample({start, end}) { calls.push(['range', start, end]); },
+    setDeltaN(value) { calls.push(['rate', value]); },
+    setVolume(value) { calls.push(['level', value]); },
+    setPan(left, right) { calls.push(['pan', left, right]); },
+    keyOn({repeat}) { calls.push(['on', repeat]); },
+    keyOff() { calls.push(['off']); },
+  };
+  const endpoint = {adpcmB: null};
+  const adapter = createFm2610AdpcmB({sound: async () => endpoint, getMode: () => 'ym2610',
+    referenceChip: {
+      load(actual, profile) {
+        assert.strictEqual(actual, endpoint);
+        assert.deepEqual(profile, {variant: 'ym2610', clockHz});
+        return {fm: {adpcmB: chip}};
+      },
+      close() {},
+    }});
+  const sampleRate = deltaN * clockHz / (144 * 65536);
+  adapter.applySample({name: 'VGM sample', bytes: new Uint8Array(512).fill(0x31),
+    rootNote: 60, volume: 88, sampleRate, clockHz, repeat: true, left: true, right: false});
+  await adapter.prepare();
+  assert.equal(await adapter.noteOn(60, 'root'), true);
+  assert.deepEqual(calls, [['off'], ['load', 0x31, 0], ['range', 0, 512],
+    ['rate', deltaN], ['level', 88], ['pan', true, false], ['on', true]]);
+
+  adapter.setSettings({rootNote: 72, left: false, right: true, volume: 31});
+  assert.deepEqual(calls.slice(-3), [['level', 31], ['pan', false, true], ['rate', deltaN / 2]]);
+  adapter.noteOff('root');
+  assert.deepEqual(calls.at(-1), ['off']);
+  assert.equal(adapter.getSample().sampleRate, sampleRate);
+
+  await adapter.loadSample(wav, {name: 'Replacement.wav'});
+  const replacement = adapter.getSample();
+  assert.equal(replacement.clockHz, undefined);
+  assert.equal(replacement.sampleRate, 16000);
+  assert.equal(replacement.right, true);
+  assert.equal(replacement.left, false);
+});
+
 for (const variant of [false, true]) {
   test(`${variant ? 'YM2610B' : 'YM2610'} ADPCM-B plays and loops the reserved ROM with quantized keyboard pitch`, async () => {
     const wasmBinary = await readFile(new URL('../generated/ym2610b_wasm.wasm', import.meta.url));
