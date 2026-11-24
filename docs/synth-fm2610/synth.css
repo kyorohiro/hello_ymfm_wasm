@@ -135,7 +135,7 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
   font: inherit; font-size: .68rem; line-height: 1.2;
 }
 .fm2610-files :is(.fm2610-files-heading, .fm2610-file-save-controls) > button { padding: 5px 7px; font-size: .7rem; }
-#fm2610SaveFile { width: 80px; flex: none; }
+.fm2610-file-save-controls > button { flex: 1 1 0; max-width: 80px; }
 #codeExpand { display: grid; place-items: center; width: 28px; height: 28px; min-height: 28px; flex: none; padding: 3px; border-radius: 7px; }
 #codeExpand svg { width: 18px; height: 18px; }
 .mixer-sources { display: grid; gap: 6px; margin-top: 8px; }
@@ -164,6 +164,12 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .fm-envelope[data-live] .operator-gate[aria-pressed="false"] { opacity: .55; }
 .fm-envelope[data-live] .envelope-handle { visibility: hidden; }
 .common-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; margin: 10px 0 14px; }
+.fm-algorithm {
+  display: block; margin: 0 0 8px; padding: 7px 10px; border: 1px solid var(--border);
+  border-radius: 7px; background: #18150f; color: var(--muted); font: .78rem/1.6 var(--mono);
+  overflow-wrap: anywhere;
+}
+.fm-algorithm span { color: var(--operator-color); font-weight: 700; }
 .fm-channel3-special { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
 #fmChannel3SpecialState { color: var(--muted); font: .75rem var(--mono); }
 #fmChannel3SpecialControls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 10px; margin-top: 8px; }

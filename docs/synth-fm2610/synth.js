@@ -55,6 +55,16 @@ const operatorDefinitions = [
   ['dt', 'DT', 7], ['multi', 'MULT', 15], ['tl', 'TL', 127], ['rs', 'RS', 3], ['ar', 'AR', 31],
   ['am', 'AM', 1], ['d1r', 'D1R', 31], ['d2r', 'D2R', 31], ['sl', 'SL', 15], ['rr', 'RR', 15], ['ssg', 'SSG-EG', 15],
 ].map(([id, label, max]) => ({ id, label, min: 0, max, step: 1, booleanMode: id === 'am' }));
+const algorithmDescriptions = [
+  'OP1 → OP2 → OP3 → OP4 → OUT',
+  '(OP1 + OP2) → OP3 → OP4 → OUT',
+  '(OP1 + (OP2 → OP3)) → OP4 → OUT',
+  '((OP1 → OP2) + OP3) → OP4 → OUT',
+  '((OP1 → OP2) + (OP3 → OP4)) → OUT',
+  '((OP1 → OP2) + (OP1 → OP3) + (OP1 → OP4)) → OUT',
+  '((OP1 → OP2) + OP3 + OP4) → OUT',
+  '(OP1 + OP2 + OP3 + OP4) → OUT',
+];
 const commonControls = new Map(), operatorControls = new Map();
 const operatorGates = new Map();
 const lfoControls = new Map();
@@ -447,6 +457,11 @@ function refreshFmView(force = false, reference = currentPlaybackReference()) {
 function renderFm() {
   const voice = fmView?.voice;
   const preset = voice?.preset ?? selectedFmPreset();
+  const routing = byId('fmAlgorithm');
+  const description = `ALGO ${preset.algorithm} · ${algorithmDescriptions[preset.algorithm]}`;
+  if (routing.textContent !== description) {
+    routing.innerHTML = description.replace(/OP([1-4])/g, '<span class="op-color-$1">OP$1</span>');
+  }
   for (const [key, control] of commonControls) control.updateVisual(preset[key] ?? preset.pan[key]);
   for (const [key, control] of lfoControls) control.updateVisual((fmView?.snapshot.lfo ?? lfo)[key]);
   for (const [operator, controls] of operatorControls) {

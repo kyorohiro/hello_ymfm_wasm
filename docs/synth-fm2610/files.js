@@ -211,6 +211,8 @@ export function setupFm2610Files({
   actions.setAttribute('aria-label', 'File saving');
   const saveButton = button('fm2610SaveFile', 'Save', () => save());
   saveButton.setAttribute('aria-keyshortcuts', 'Control+S Meta+S');
+  const discardButton = button('fm2610DiscardFile', 'Discard', discard);
+  discardButton.title = 'Discard unsaved changes to the selected file';
   const newCode = button('fm2610NewCode', '＋ JS', () => operation(() => createCode('/')));
   const newPatch = button('fm2610SavePatch', '＋ Instrument', () => operation(() => createPatch(PATCHES)));
   newPatch.title = 'Save the current FM sound as a new instrument';
@@ -218,7 +220,7 @@ export function setupFm2610Files({
   const autoApplyControl = element('input', {id: 'fm2610AutoApply', type: 'checkbox', checked: true});
   const autoApplyLabel = element('label', {title: 'Save changes automatically. JavaScript still uses Run / Apply.'});
   autoApplyLabel.append(autoApplyControl, 'Auto apply');
-  actions.append(autoApplyLabel, saveButton);
+  actions.append(autoApplyLabel, saveButton, discardButton);
 
   const tree = element('div', { className: 'fm2610-files-tree', id: 'fm2610FilesTree' });
   tree.setAttribute('aria-label', 'Project files');
@@ -317,6 +319,7 @@ export function setupFm2610Files({
     for (const command of [newCode, newPatch, saveButton, importButton, newButton, examplesButton, exportButton, exportTfi, exportVgi]) {
       command.disabled = loading || busy;
     }
+    discardButton.disabled = loading || busy || !fs.has(selected) || !dirty.has(selected);
     autoApplyControl.checked = autoApplyRequest?.enabled ?? workspace.autoSave;
     autoApplyControl.disabled = loading || busy;
     if ((isSsgPresetPath(selected) && (selected !== activeSsg || typeof getSsgPreset !== 'function')) ||
@@ -469,6 +472,25 @@ export function setupFm2610Files({
     commit(next);
   }
 
+  async function applyFile(path, file, {show, audioDocument} = {}) {
+    if (CODE_PATH.test(path)) {
+      await setCode(file.data, path, {show});
+      codePath = path;
+    } else if (PATCH_PATH.test(path)) {
+      await applyPatch(readFm2610Patch(JSON.parse(file.data)), {show});
+      activePatch = path;
+    } else if (isSsgPresetPath(path)) {
+      await applySsgPreset(readSsgPreset(file.data), {show});
+      activeSsg = path;
+    } else if (isAdpcmAKitPath(path)) {
+      await applyAdpcmAKit(audioDocument, {show});
+      activeKit = path;
+    } else if (isAdpcmBSamplePath(path)) {
+      await applyAdpcmBSample(audioDocument, {show});
+      activeSample = path;
+    } else await openVgm?.(path);
+  }
+
   async function open(path, validatedDocument) {
     flushProjectEdits();
     let file = fs.get(path);
@@ -485,22 +507,7 @@ export function setupFm2610Files({
       }
       if (!file) return;
     }
-    if (CODE_PATH.test(path)) {
-      await setCode(file.data, path, { show: true });
-      codePath = path;
-    } else if (PATCH_PATH.test(path)) {
-      await applyPatch(readFm2610Patch(JSON.parse(file.data)), {show: true});
-      activePatch = path;
-    } else if (isSsgPresetPath(path)) {
-      await applySsgPreset(readSsgPreset(file.data), {show: true});
-      activeSsg = path;
-    } else if (isAdpcmAKitPath(path)) {
-      await applyAdpcmAKit(audioDocument, { show: true });
-      activeKit = path;
-    } else if (isAdpcmBSamplePath(path)) {
-      await applyAdpcmBSample(audioDocument, { show: true });
-      activeSample = path;
-    } else await openVgm?.(path);
+    await applyFile(path, file, {show: true, audioDocument});
     select(path);
     await persist();
   }
@@ -533,6 +540,32 @@ export function setupFm2610Files({
       }
       await persist();
       setStatus('Saved ' + basename(path) + '.');
+    });
+  }
+
+  function discard() {
+    return operation(async () => {
+      const path = selected;
+      const kind = Object.keys(instruments).find(key => instruments[key].path() === path);
+      if (!fs.has(path) || (!workspace.isDirty(path) && !instrumentEdits.has(kind))) return;
+      const saved = workspace.saved.get(path);
+      if (kind && saved) {
+        const read = audioDocumentReader(path);
+        const audioDocument = read ? await read(saved.data) : undefined;
+        await applyFile(path, saved, {show: false, audioDocument});
+      }
+      workspace.discard(path);
+      if (kind) {
+        instrumentEdits.delete(kind);
+        if (!saved) instruments[kind].detach();
+      }
+      if (CODE_PATH.test(path)) {
+        codePath = viewFor(fs, {codePath}).codePath;
+        await setCode(fs.get(codePath)?.data ?? '', codePath, {show: false});
+      }
+      if (!fs.has(path)) select(codePath);
+      await persist();
+      setStatus('Discarded changes to ' + basename(path) + '.');
     });
   }
 
