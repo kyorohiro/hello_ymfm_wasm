@@ -2,6 +2,7 @@
 import {encodeAdpcmA} from '../js/adpcm_a_sample.js';
 import {encodeAdpcmB, readSamplePCM} from '../js/adpcm_b_sample.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
+import {ADPCM_A_KIT_MAX_SAMPLE_BYTES, normalizeAdpcmAKit} from './adpcm_a_kit.js';
 
 const MASTER_CLOCK = 8_000_000;
 const SAMPLE_ADDRESS = 0x10000;
@@ -37,7 +38,7 @@ function encodeDrumSample(audio, signal) {
     };
     try {
       const buffers = [...new Set(audio.channels.map(channel => channel.buffer))];
-      worker.postMessage({audio, rate: A_RATE, maxBytes: A_SLOT_BYTES - 256}, buffers);
+      worker.postMessage({audio, rate: A_RATE, maxBytes: ADPCM_A_KIT_MAX_SAMPLE_BYTES}, buffers);
     } catch (error) {
       close();
       reject(error);
@@ -109,7 +110,7 @@ function bSample() {
   return encodeAdpcmB({channels: [pcm], sampleRate: B_SOURCE_RATE}, B_SOURCE_RATE).bytes;
 }
 
-export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, report = () => {}}) {
+export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, saveAdpcmAKit, report = () => {}}) {
   const doc = ssgPanel.ownerDocument;
   const element = (tag, text, className) => {
     const node = doc.createElement(tag);
@@ -141,7 +142,13 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
       output.value = String(next);
       change(next);
     });
-    return label;
+    return {
+      label,
+      setValue(next) {
+        input.value = String(next);
+        output.value = String(next);
+      },
+    };
   };
   const toggle = (text, checked, change) => {
     const label = element('label');
@@ -195,25 +202,25 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     card.append(element('h3', `SSG ${channel + 1}`),
       toggle('Tone', voice.tone, value => { voice.tone = value; updateSsg(channel); }),
       toggle('Noise', voice.noise, value => { voice.noise = value; updateSsg(channel); }),
-      slider('Level', 0, 15, 1, voice.level, value => { voice.level = value; updateSsg(channel); }));
+      slider('Level', 0, 15, 1, voice.level, value => { voice.level = value; updateSsg(channel); }).label);
     ssgControls.append(card);
   });
   ssgPanel.append(title('SSG · 3 voices', 'Play the selected SSG voice from the keyboard. The noise period is shared by all three voices.'),
     ssgControls, slider('Noise period', 1, 31, 1, noisePeriod, value => {
       noisePeriod = value;
       if (voices.some(voice => voice.gate)) ssgChip.write(6, noisePeriod);
-    }));
+    }).label);
 
   let aState;
   let aLevel = 56;
   const aRequests = new Uint32Array(DRUMS.length);
   const aPlayed = new Set();
-  const aSamples = Array(DRUMS.length).fill(null);
+  const aPads = DRUMS.map(() => ({sample: null, pending: null, render: null}));
   const decodeAudio = createOfflineAudioDecoder();
 
   async function playDrum(channel) {
     const request = ++aRequests[channel];
-    const sample = aSamples[channel];
+    const sample = aPads[channel].sample;
     try {
       const {adpcmA} = await sound();
       if (request !== aRequests[channel]) return;
@@ -272,6 +279,7 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
 
   const drumPads = element('div', '', 'fm2610-section-grid');
   DRUMS.forEach((name, channel) => {
+    const state = aPads[channel];
     const pad = element('section', '', 'fm2610-voice');
     const voice = `A${channel + 1}`;
     const sampleName = element('p', '', 'fm2610-sample-name');
@@ -282,31 +290,30 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     const off = button('Stop', () => stopDrums([channel]));
     const select = button('Load sample…', () => picker.click());
     select.setAttribute('aria-label', `Load sample for ${voice}`);
-    let pending = null;
     const reset = button('Reset sample', () => {
-      pending?.abort();
-      pending = null;
+      state.pending?.abort();
+      state.pending = null;
       aRequests[channel]++;
-      aSamples[channel] = null;
+      state.sample = null;
       showSample();
     });
     reset.setAttribute('aria-label', `Reset ${voice} to ${name}`);
     function showSample() {
-      const selected = aSamples[channel]?.name ?? name;
-      sampleName.textContent = pending ? 'Preparing sample…' : selected;
+      const selected = state.sample?.name ?? name;
+      sampleName.textContent = state.pending ? 'Preparing sample…' : selected;
       sampleName.title = selected;
-      play.setAttribute('aria-label', aSamples[channel] ? `Play ${voice}: ${selected}` : name);
-      off.setAttribute('aria-label', aSamples[channel] ? `Stop ${voice}` : `Stop ${name}`);
-      reset.disabled = !pending && !aSamples[channel];
+      play.setAttribute('aria-label', state.sample ? `Play ${voice}: ${selected}` : name);
+      off.setAttribute('aria-label', state.sample ? `Stop ${voice}` : `Stop ${name}`);
+      reset.disabled = !state.pending && !state.sample;
     }
     picker.addEventListener('change', async () => {
       const file = picker.files[0];
       picker.value = '';
       if (!file) return;
-      pending?.abort();
+      state.pending?.abort();
       const controller = new AbortController();
       const {signal} = controller;
-      pending = controller;
+      state.pending = controller;
       showSample();
       try {
         if (file.size > A_MAX_FILE_BYTES) throw new RangeError('Audio files must fit within 64 MiB.');
@@ -314,16 +321,17 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
         const bytes = await encodeDrumSample(audio, signal);
         signal.throwIfAborted();
         aRequests[channel]++;
-        aSamples[channel] = {name:file.name,bytes};
+        state.sample = {name:file.name,bytes};
       } catch (error) {
         if (!signal.aborted) report(error.message);
       } finally {
-        if (pending === controller) {
-          pending = null;
+        if (state.pending === controller) {
+          state.pending = null;
           showSample();
         }
       }
     });
+    state.render = showSample;
     showSample();
     const controls = element('div', '', 'fm2610-sample-controls');
     controls.append(play, off, select, reset);
@@ -331,11 +339,39 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     drumPads.append(pad);
   });
   const aToolbar = element('div', '', 'fm2610-inline-controls');
-  aToolbar.append(slider('ADPCM-A level', 0, 63, 1, aLevel, value => {
+  const aLevelControl = slider('ADPCM-A level', 0, 63, 1, aLevel, value => {
     aLevel = value;
     if (aPlayed.size) aState.chip.setVolume(value);
-  }), button('Stop all drums', () => stopDrums()));
-  adpcmAPanel.append(title('ADPCM-A · 6 voices', 'Load one-shot samples up to about 113 seconds per voice for this session. Playback is fixed at 8 MHz ÷ 432.'), drumPads, aToolbar);
+  });
+  aToolbar.append(aLevelControl.label);
+  if (saveAdpcmAKit) {
+    const save = button('Save Kit…', () => saveAdpcmAKit(getAdpcmAKit()));
+    save.title = 'Save the level and the last completed sample selection for each pad.';
+    aToolbar.append(save);
+  }
+  aToolbar.append(button('Stop all drums', () => stopDrums()));
+  adpcmAPanel.append(title('ADPCM-A · 6 voices', 'Load one-shot samples up to about 113 seconds per voice. Playback is fixed at 8 MHz ÷ 432.'), drumPads, aToolbar);
+
+  function getAdpcmAKit() {
+    return {
+      level: aLevel,
+      pads: aPads.map(({sample}) => sample && {name: sample.name, bytes: sample.bytes.slice()}),
+    };
+  }
+
+  function applyAdpcmAKit(kit) {
+    const {level, pads} = normalizeAdpcmAKit(kit);
+    stopDrums();
+    aState?.customLoads.fill(null);
+    aLevel = level;
+    aLevelControl.setValue(level);
+    aPads.forEach((pad, channel) => {
+      pad.pending?.abort();
+      pad.pending = null;
+      pad.sample = pads[channel];
+    });
+    for (const pad of aPads) pad.render();
+  }
 
   let bState;
   let encodedB;
@@ -383,11 +419,11 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     slider('Playback rate (Hz)', 2000, 48000, 100, bRate, value => {
       bRate = value;
       if (bPlayed) bState.chip.setPlaybackRate(value);
-    }),
+    }).label,
     slider('ADPCM-B level', 0, 255, 1, bLevel, value => {
       bLevel = value;
       if (bPlayed) bState.chip.setVolume(value);
-    }));
+    }).label);
   adpcmBPanel.append(title('ADPCM-B · 1 voice', 'A generated pluck plays at the chosen rate. Repeat applies on the next Play.'), bToolbar);
 
   function stopAdpcm() {
@@ -398,6 +434,8 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
   return {
     noteOnSSG,
     noteOffSSG,
+    applyAdpcmAKit,
+    getAdpcmAKit,
     stopAdpcm,
     stop() {
       voices.forEach((_, channel) => noteOffSSG(channel));

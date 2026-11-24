@@ -160,6 +160,10 @@ function stopCodeSound(endpoint) {
 
 const sections = setupFm2610Sections({
   ssgPanel: byId('ssgPanel'), adpcmAPanel: byId('adpcmAPanel'), adpcmBPanel: byId('adpcmBPanel'), sound, report,
+  async saveAdpcmAKit(kit) {
+    await files.ready;
+    return files.saveAdpcmAKit(kit);
+  },
 });
 const code = setupFm2610Code({
   textarea: byId('code'), runButton: byId('runCode'), stopButton: byId('stopCode'),
@@ -671,6 +675,11 @@ const files = setupFm2610Files({
     applyFmPreset(preset);
     byId('fmTab').click();
     byId('keyboardTab').click();
+  },
+  getAdpcmAKit: sections.getAdpcmAKit,
+  applyAdpcmAKit(kit, {show}) {
+    sections.applyAdpcmAKit(kit);
+    if (show) byId('adpcmATab').click();
   },
   getCode: () => editor.value,
   async setCode(source, path, {show}) {

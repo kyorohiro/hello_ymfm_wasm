@@ -12,7 +12,7 @@ const CRC32_TABLE = (() => {
   return table;
 })();
 
-function crc32(bytes) {
+export function crc32(bytes) {
   let crc = 0xffffffff;
   for (const value of bytes) {
     crc = CRC32_TABLE[(crc ^ value) & 0xff] ^ (crc >>> 8);

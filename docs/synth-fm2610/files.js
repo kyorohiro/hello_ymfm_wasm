@@ -8,16 +8,20 @@ import { readFm2610Patch } from './fm_patch.js';
 import { installSpuFileContextMenu } from '../synth-spu/file_context_menu.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js';
 import { createSynthProjectStore } from '../synth/synth_project_store.js';
+import {
+  ADPCM_A_KIT_SUFFIX, createDefaultAdpcmAKit, isAdpcmAKitPath, readAdpcmAKit, writeAdpcmAKit,
+} from './adpcm_a_kit.js';
 
 const ENTRY = '/index.js';
 const PATCHES = '/presets';
+const KITS = '/kits';
 const SONGS = '/vgm';
 const STORAGE = 'tetorica-fm2610-synth-project';
 const MAX_BYTES = 16 * 1024 * 1024;
 const CODE_PATH = /\.m?js$/i;
 const PATCH_PATH = /\.fm\.json$/i;
 const SONG_PATH = /\.vg[mz]$/i;
-const FILE_SUFFIX = /\.(?:fm\.json|m?js|vg[mz])$/i;
+const FILE_SUFFIX = /\.(?:fm\.json|m?js|vg[mz]|adpcm-a-kit\.zip)$/i;
 const METADATA = new Set(['metadata.json', 'cassette.metadata.js']);
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -25,6 +29,7 @@ const basename = path => path.slice(path.lastIndexOf('/') + 1);
 const join = (directory, name) => (directory === '/' ? '' : directory) + '/' + name;
 const inside = (path, directory) => path === directory || path?.startsWith(directory + '/');
 const size = data => typeof data === 'string' ? encoder.encode(data).length : data.byteLength;
+const isBinaryPath = path => SONG_PATH.test(path) || isAdpcmAKitPath(path);
 
 function checkPath(path) {
   if (normalizeVirtualPath(path) !== path || path === '/' || isCheckpointPath(path) ||
@@ -53,6 +58,10 @@ function safeStem(value) {
 
 function checkEntry({ path, data }) {
   checkPath(path);
+  if (isAdpcmAKitPath(path)) {
+    if (!(data instanceof Uint8Array)) throw new Error('Choose a binary ADPCM-A kit.');
+    return;
+  }
   if (SONG_PATH.test(path)) {
     const vgm = [0x56, 0x67, 0x6d, 0x20];
     const isVgm = data instanceof Uint8Array &&
@@ -61,9 +70,19 @@ function checkEntry({ path, data }) {
     return;
   }
   if (typeof data !== 'string' || (!PATCH_PATH.test(path) && !CODE_PATH.test(path))) {
-    throw new Error('Choose an FM patch, JavaScript, VGM or VGZ file.');
+    throw new Error('Choose an FM patch, ADPCM-A kit, JavaScript, VGM or VGZ file.');
   }
   if (PATCH_PATH.test(path)) readFm2610Patch(JSON.parse(data));
+}
+
+async function checkKits(entries, selectedPath) {
+  let selected = null;
+  for (const {path, data} of entries) {
+    if (!isAdpcmAKitPath(path)) continue;
+    const kit = await readAdpcmAKit(data);
+    if (path === selectedPath) selected = kit;
+  }
+  return selected;
 }
 
 function checkCapacity(entries) {
@@ -95,7 +114,7 @@ function encodeBytes(bytes) {
 export function setupFm2610Files({
   panel, toggle, menuMount, getPatch, applyPatch, getCode, setCode, starterCode,
   setStatus, beforeReplace = () => {}, onVgmChange = () => {}, openVgm,
-  importVgm,
+  importVgm, getAdpcmAKit, applyAdpcmAKit = () => {},
 }) {
   const doc = panel.ownerDocument;
   const win = doc.defaultView;
@@ -114,8 +133,8 @@ export function setupFm2610Files({
       return true;
     },
   });
-  const expanded = new Map([[PATCHES, true], [SONGS, true]]);
-  let codePath = ENTRY, activePatch = null, selected = ENTRY;
+  const expanded = new Map([[PATCHES, true], [KITS, true], [SONGS, true]]);
+  let codePath = ENTRY, activePatch = null, activeKit = null, selected = ENTRY;
   let loading = true, busy = false, storageReady = false, draftTimer = null, lastStructure = '';
   let operationTail = Promise.resolve();
   const report = error => setStatus(error?.message ?? String(error), true);
@@ -197,7 +216,7 @@ export function setupFm2610Files({
     return {
       version: 1,
       workspace: workspace.snapshot(),
-      view: { codePath, activePatch, selected, visible: !panel.hidden },
+      view: { codePath, activePatch, activeKit, selected, visible: !panel.hidden },
     };
   }
   function persist() {
@@ -233,6 +252,9 @@ export function setupFm2610Files({
     }
     for (const command of [newCode, newPatch, saveButton, importButton, newButton, exportButton]) {
       command.disabled = loading || busy;
+    }
+    if (isAdpcmAKitPath(selected) && (selected !== activeKit || typeof getAdpcmAKit !== 'function')) {
+      saveButton.disabled = true;
     }
   }
 
@@ -312,9 +334,10 @@ export function setupFm2610Files({
     commit(next);
   }
 
-  async function open(path) {
+  async function open(path, validatedKit = null) {
     const file = fs.get(path);
     if (!file) return;
+    const kit = isAdpcmAKitPath(path) ? validatedKit ?? await readAdpcmAKit(file.data) : null;
     flushCode();
     if (CODE_PATH.test(path)) {
       await setCode(file.data, path, { show: true });
@@ -322,6 +345,9 @@ export function setupFm2610Files({
     } else if (PATCH_PATH.test(path)) {
       await applyPatch(readFm2610Patch(JSON.parse(file.data)));
       activePatch = path;
+    } else if (kit) {
+      await applyAdpcmAKit(kit, { show: true });
+      activeKit = path;
     } else await openVgm?.(path);
     select(path);
     await persist();
@@ -330,8 +356,13 @@ export function setupFm2610Files({
   async function save(preferCode = false) {
     return operation(async () => {
       flushCode();
-      const path = !preferCode && PATCH_PATH.test(selected) ? selected : codePath;
-      if (path === activePatch) {
+      const path = !preferCode && (PATCH_PATH.test(selected) || isAdpcmAKitPath(selected)) ? selected : codePath;
+      if (isAdpcmAKitPath(path)) {
+        if (path !== activeKit || typeof getAdpcmAKit !== 'function') {
+          throw new Error('Open an ADPCM-A kit before saving it.');
+        }
+        writeAccepted([{ path, data: writeAdpcmAKit(await getAdpcmAKit()) }]);
+      } else if (path === activePatch) {
         writeAccepted([{ path, data: JSON.stringify(readFm2610Patch(getPatch()), null, 2) + '\n' }]);
       } else if (CODE_PATH.test(path)) {
         if (!fs.has(path)) writeAccepted([{ path, data: getCode() }]);
@@ -367,6 +398,26 @@ export function setupFm2610Files({
     setStatus('Saved ' + basename(path) + '.');
   }
 
+  async function saveAdpcmAKit(kit) {
+    const data = writeAdpcmAKit(kit);
+    await ready;
+    return operation(async () => {
+      const suggestion = activeKit ? basename(activeKit).slice(0, -ADPCM_A_KIT_SUFFIX.length) : 'Untitled kit';
+      const value = await askName('Save ADPCM-A kit', suggestion);
+      if (value === null) return null;
+      const extension = isAdpcmAKitPath(value.trim()) ? '' : ADPCM_A_KIT_SUFFIX;
+      const path = namedPath(activeKit ? dirname(activeKit) : KITS, value, extension);
+      if (path !== activeKit) requireNew(path);
+      writeAccepted([{ path, data }]);
+      activeKit = path;
+      select(path);
+      show();
+      await persist();
+      setStatus('Saved ' + basename(path) + '.');
+      return path;
+    });
+  }
+
   function viewFor(layer, view = {}) {
     const types = { codePath: CODE_PATH, activePatch: PATCH_PATH };
     const matched = key => typeof view[key] === 'string' && types[key].test(view[key]) && layer.has(view[key]);
@@ -374,19 +425,26 @@ export function setupFm2610Files({
       describe(layer).find(entry => entry.type === 'file' && CODE_PATH.test(entry.path))?.path ?? ENTRY;
     const exists = typeof view.selected === 'string' &&
       (layer.has(view.selected) || layer.listDirectories().includes(view.selected));
-    return { codePath: code, activePatch: matched('activePatch') ? view.activePatch : null,
+    const kit = typeof view.activeKit === 'string' && isAdpcmAKitPath(view.activeKit) && layer.has(view.activeKit)
+      ? view.activeKit : null;
+    return { codePath: code, activePatch: matched('activePatch') ? view.activePatch : null, activeKit: kit,
       selected: exists ? view.selected : code, visible: view.visible === true };
   }
 
-  async function restore(next, view, replace = false) {
+  async function restore(next, view, { replace = false, validatedKit = null } = {}) {
     const target = viewFor(next.working, view);
     const patch = target.activePatch && readFm2610Patch(JSON.parse(next.working.get(target.activePatch).data));
+    const kit = target.activeKit
+      ? validatedKit ?? await readAdpcmAKit(next.working.get(target.activeKit).data)
+      : createDefaultAdpcmAKit();
     if (replace) await beforeReplace();
     if (patch) await applyPatch(patch);
+    await applyAdpcmAKit(kit, { show: false });
     await setCode(next.working.get(target.codePath)?.data ?? '', target.codePath, { show: false });
     workspace.restore(next.snapshot());
     codePath = target.codePath;
     activePatch = target.activePatch;
+    activeKit = target.activeKit;
     select(target.selected);
     show(target.visible);
     onVgmChange();
@@ -412,7 +470,7 @@ export function setupFm2610Files({
 
   async function newCassette() {
     if (!win.confirm('Create a new Cassette? Export first to keep the current project.')) return;
-    await restore(freshWorkspace(), { visible: true }, true);
+    await restore(freshWorkspace(), { visible: true }, { replace: true });
     await persist();
     setStatus('New Cassette created.');
   }
@@ -425,10 +483,11 @@ export function setupFm2610Files({
     }
     const entries = [...archive.files].filter(([path]) => !METADATA.has(path)).map(([name, data]) => {
       const path = '/' + name;
-      return { path, data: SONG_PATH.test(path) ? data : decoder.decode(data) };
+      return { path, data: isBinaryPath(path) ? data : decoder.decode(data) };
     });
     entries.forEach(checkEntry);
     for (const directory of archive.directories) checkPath(directory);
+    const validatedKit = await checkKits(entries, metadata.view?.activeKit);
     const next = createVirtualFileWorkspace(entries, { autoSave: false });
     next.working.replace(entries, archive.directories);
     next.saveAll();
@@ -439,7 +498,7 @@ export function setupFm2610Files({
     next.working.writeFiles(metadata.drafts);
     checkCapacity(next.working.list());
     if (!win.confirm('Replace the current project with this Cassette?')) return;
-    await restore(next, { ...metadata.view, visible: true }, true);
+    await restore(next, { ...metadata.view, visible: true }, { replace: true, validatedKit });
     await persist();
     setStatus('Imported Cassette.');
   }
@@ -454,20 +513,26 @@ export function setupFm2610Files({
       if (incoming.reduce((sum, file) => sum + file.size, 0) > MAX_BYTES) {
         throw new Error('Selected files exceed the 16 MiB limit.');
       }
-      if (incoming.some(file => /\.zip$/i.test(file.name))) {
+      if (incoming.some(file => /\.zip$/i.test(file.name) && !isAdpcmAKitPath(file.name))) {
         if (incoming.length !== 1) throw new Error('Choose one Cassette at a time.');
         return importCassette(incoming[0]);
       }
       const entries = await Promise.all(incoming.map(async file => {
+        if (isAdpcmAKitPath(file.name)) {
+          const path = namedPath(KITS, file.name);
+          requireNew(path);
+          return { path, data: new Uint8Array(await file.arrayBuffer()) };
+        }
         const filename = PATCH_PATH.test(file.name) ? file.name : file.name.replace(/\.json$/i, '.fm.json');
         const path = namedPath(directory, filename);
         requireNew(path);
         return { path, data: decoder.decode(await file.arrayBuffer()) };
       }));
+      const validatedKit = await checkKits(entries, entries[0].path);
       flushCode();
       writeAccepted(entries);
       show();
-      await open(entries[0].path);
+      await open(entries[0].path, validatedKit);
       setStatus('Imported ' + entries.length + (entries.length === 1 ? ' file.' : ' files.'));
     });
   }
@@ -495,6 +560,7 @@ export function setupFm2610Files({
     const moved = path => inside(path, from) ? to + path.slice(from.length) : path;
     if (!copy) {
       activePatch = moved(activePatch);
+      activeKit = moved(activeKit);
       if (moved(codePath) !== codePath) {
         codePath = moved(codePath);
         await setCode(fs.get(codePath).data, codePath, { show: false });
@@ -527,6 +593,7 @@ export function setupFm2610Files({
     }
     commit(next);
     if (inside(activePatch, path)) activePatch = null;
+    if (inside(activeKit, path)) activeKit = null;
     select(codePath);
     onVgmChange();
     await persist();
@@ -621,13 +688,16 @@ export function setupFm2610Files({
       if (state.version !== 1) throw new Error('Unsupported FM2610 project.');
       const next = createVirtualFileWorkspace();
       next.restore(state.workspace);
+      let validatedKit = null;
       for (const layer of [next.working, next.saved]) {
         const entries = layer.list();
         for (const directory of layer.listDirectories()) if (directory !== '/') checkPath(directory);
         entries.forEach(checkEntry);
         checkCapacity(entries);
+        const selectedKit = await checkKits(entries, state.view?.activeKit);
+        if (layer === next.working) validatedKit = selectedKit;
       }
-      await restore(next, state.view);
+      await restore(next, state.view, { validatedKit });
     }
     storageReady = true;
   }).catch(report).finally(() => {
@@ -637,7 +707,7 @@ export function setupFm2610Files({
   });
 
   return {
-    ...codeProject, ready, markCodeEdited, save, show, addVgmFiles, listVgm, readBinary,
+    ...codeProject, ready, markCodeEdited, save, show, addVgmFiles, listVgm, readBinary, saveAdpcmAKit,
     getEntryPath: () => codePath,
     detachFmPatch() {
       activePatch = null;

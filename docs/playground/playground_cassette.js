@@ -114,7 +114,8 @@ export async function loadPlaygroundCassette(
   }
 
   const zipEntries = await readZipEntries(
-    bytes
+    bytes,
+    options.crc32
   );
   const cassette = {
     id: createCassetteId(
@@ -301,7 +302,7 @@ function describeCassettePath(path) {
   };
 }
 
-async function readZipEntries(bytes) {
+async function readZipEntries(bytes, crc32) {
   const view = new DataView(
     bytes.buffer,
     bytes.byteOffset,
@@ -356,6 +357,7 @@ async function readZipEntries(bytes) {
       offset + 10,
       true
     );
+    const checksum = crc32 ? view.getUint32(offset + 16, true) : null;
     const compressedSize = view.getUint32(
       offset + 20,
       true
@@ -434,6 +436,8 @@ async function readZipEntries(bytes) {
           compressedSize,
           uncompressedSize,
           compression,
+          checksum,
+          crc32,
           readState,
         }),
       });
@@ -478,6 +482,8 @@ async function readZipEntryData(entry) {
     compressedSize,
     uncompressedSize,
     compression,
+    checksum,
+    crc32,
     readState,
   } = entry;
 
@@ -522,6 +528,9 @@ async function readZipEntryData(entry) {
     throw new Error(
       "Cassette zip entry has an unexpected uncompressed size."
     );
+  }
+  if (crc32 && crc32(result) !== checksum) {
+    throw new Error("Cassette zip entry has an invalid checksum.");
   }
 
   if (
