@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Play and edit Yamaha YM2610 / YM2610B sounds with Tetorica FM2610 Synth.">
+  <meta name="theme-color" content="#171512">
+  <title>Tetorica FM2610 Synth</title>
+  <link rel="icon" href="../tetorica_fm2610_synth.webp" type="image/webp">
+  <link rel="stylesheet" href="./synth.css">
+  <script type="module" src="./synth.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <nav class="masthead" aria-label="Tetorica">
+      <a href="../index.html">← Tetorica</a>
+      <a href="../playground/index.html?mode=neogeo-b">Neo Geo Playground</a>
+    </nav>
+    <header class="app-header">
+      <div class="product-identity">
+        <img src="../tetorica_fm2610_synth.webp" width="64" height="64" alt="">
+        <div>
+          <h1>Tetorica FM2610 Synth</h1>
+          <p id="chipSummary">YM2610B · 6 FM channels · 8 MHz</p>
+        </div>
+      </div>
+      <div class="master">
+        <label for="masterLevel">Master</label>
+        <input id="masterLevel" type="range" min="0" max="100" value="65">
+        <output id="masterValue" for="masterLevel">65%</output>
+        <button id="muteOutput" type="button" aria-pressed="false">Mute</button>
+      </div>
+    </header>
+
+    <div class="chip-bar">
+      <div id="chipModes" class="chip-modes" role="group" aria-label="Chip variant">
+        <button type="button" data-variant="ym2610b" aria-pressed="true">YM2610B <span>6 FM</span></button>
+        <button type="button" data-variant="ym2610" aria-pressed="false">Neo Geo (YM2610) <span>4 FM</span></button>
+      </div>
+      <button id="silence" type="button">Stop sound</button>
+    </div>
+    <p id="status" class="status" role="status">Play a key or trigger a sample to start audio.</p>
+
+    <section class="panel monitor" aria-label="Audio output">
+      <div class="panel-heading">
+        <h2>Output</h2>
+        <div id="scopeModes" class="inline-controls" role="group" aria-label="Output display">
+          <button type="button" data-scope="waveform" aria-pressed="true">Waveform</button>
+          <button type="button" data-scope="spectrum" aria-pressed="false">Spectrum</button>
+        </div>
+      </div>
+      <canvas id="scope" width="900" height="150" role="img" aria-label="Output waveform"></canvas>
+    </section>
+
+    <section class="panel editor" aria-label="Sound sources">
+      <div id="sourceTabs" class="tabs" role="tablist" aria-label="Sound source">
+        <button type="button" id="fmTab" role="tab" aria-selected="true" aria-controls="fmPanel" data-source="fm">FM</button>
+        <button type="button" id="ssgTab" role="tab" aria-selected="false" aria-controls="ssgPanel" data-source="ssg" tabindex="-1">SSG</button>
+        <button type="button" id="adpcmATab" role="tab" aria-selected="false" aria-controls="adpcmAPanel" data-source="adpcm-a" tabindex="-1">ADPCM-A</button>
+        <button type="button" id="adpcmBTab" role="tab" aria-selected="false" aria-controls="adpcmBPanel" data-source="adpcm-b" tabindex="-1">ADPCM-B</button>
+      </div>
+      <div id="fmPanel" role="tabpanel" aria-labelledby="fmTab">
+        <div class="panel-heading fm-heading">
+          <h2>FM channels</h2>
+          <div id="fmChannels" class="inline-controls" role="group" aria-label="FM channel"></div>
+        </div>
+        <div class="presets">
+          <h3>Presets</h3>
+          <div id="fmPresets" class="inline-controls" role="group" aria-label="FM presets"></div>
+        </div>
+        <div id="fmCommon" class="common-controls"></div>
+        <div class="operators" aria-label="FM operators" role="group">
+          <div class="operator-heading"><span>OP</span><div id="operatorHeader"></div></div>
+          <div id="operatorControls"></div>
+        </div>
+      </div>
+      <div id="ssgPanel" role="tabpanel" aria-labelledby="ssgTab" hidden></div>
+      <div id="adpcmAPanel" role="tabpanel" aria-labelledby="adpcmATab" hidden></div>
+      <div id="adpcmBPanel" role="tabpanel" aria-labelledby="adpcmBTab" hidden></div>
+    </section>
+
+    <section class="panel performance" aria-label="Performance">
+      <div id="performanceTabs" class="tabs" role="tablist" aria-label="Performance input">
+        <button type="button" id="keyboardTab" role="tab" aria-selected="true" aria-controls="keyboardPanel">Keyboard</button>
+        <button type="button" id="codeTab" role="tab" aria-selected="false" aria-controls="codePanel" tabindex="-1">Code</button>
+      </div>
+      <div id="keyboardPanel" role="tabpanel" aria-labelledby="keyboardTab">
+        <div class="keyboard-toolbar">
+          <div id="instruments" class="inline-controls" role="group" aria-label="Fretboard instrument"></div>
+          <div id="positions" class="inline-controls" role="group" aria-label="Fret position"></div>
+          <div id="strings" class="inline-controls" role="group" aria-label="String range"></div>
+          <div class="inline-controls octaves" role="group" aria-label="Octave">
+            <button id="octaveDown" type="button" aria-label="Lower octave">−</button>
+            <output id="octave">0</output>
+            <button id="octaveUp" type="button" aria-label="Raise octave">+</button>
+          </div>
+        </div>
+        <p id="keyboardStatus" class="keyboard-status" aria-live="off"></p>
+        <div id="keyboard" aria-label="PC keys and fretboard"></div>
+      </div>
+      <div id="codePanel" role="tabpanel" aria-labelledby="codeTab" hidden>
+        <textarea id="code" aria-label="JavaScript" spellcheck="false"></textarea>
+        <div class="code-transport inline-controls">
+          <button id="runCode" type="button" class="primary">Run</button>
+          <button id="stopCode" type="button" disabled>Stop Code</button>
+          <output id="codeStatus" role="status"></output>
+        </div>
+        <pre id="codeOutput" aria-live="polite"></pre>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
