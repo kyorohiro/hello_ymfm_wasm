@@ -24,7 +24,10 @@ liveLoop("duet", async () => {
 }
 
 /** Bind the Code panel to the selected YM2610 variant and the page's audio owner. */
-export function setupFm2610Code({ textarea, runButton, stopButton, status, output, sound, getMode, stopSound }) {
+export function setupFm2610Code({
+	textarea, runButton, stopButton, status, output, sound, getMode, stopSound,
+	beforeRun = () => {}, prepareSource, readFile, getEntryPath = () => '/index.js',
+}) {
 	let starter = starterCode(getMode());
 	if (!textarea.value) textarea.value = starter;
 	let revision = 0;
@@ -40,6 +43,8 @@ export function setupFm2610Code({ textarea, runButton, stopButton, status, outpu
 
 	const runtime = createPlaygroundCodeRuntime({
 		supportedSoundChips: ['ym2610', 'ym2610b'],
+		prepareSource,
+		readFile,
 		async ensureReady() {
 			const token = revision;
 			const mode = getMode();
@@ -75,10 +80,11 @@ export function setupFm2610Code({ textarea, runButton, stopButton, status, outpu
 	updateControls(runtime.getState());
 
 	function run() {
+		beforeRun();
 		revision++;
 		log.length = 0;
 		output.textContent = '';
-		return runtime.run(textarea.value);
+		return runtime.run(textarea.value, {path: getEntryPath()});
 	}
 
 	function stop() {
@@ -88,8 +94,10 @@ export function setupFm2610Code({ textarea, runButton, stopButton, status, outpu
 
 	function setMode() {
 		const updated = starterCode(getMode());
-		if (textarea.value === starter) textarea.value = updated;
+		const changed = textarea.value === starter;
+		if (changed) textarea.value = updated;
 		starter = updated;
+		return changed;
 	}
 
 	function report(error) {
@@ -98,5 +106,5 @@ export function setupFm2610Code({ textarea, runButton, stopButton, status, outpu
 
 	runButton.addEventListener('click', () => void run().catch(report));
 	stopButton.addEventListener('click', () => void stop().catch(report));
-	return { run, stop, setMode, getState: runtime.getState };
+	return { run, stop, setMode, getStarter: () => starter, getState: runtime.getState };
 }

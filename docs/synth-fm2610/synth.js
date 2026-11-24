@@ -9,7 +9,9 @@ import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js
 import { createVsuVoicePool } from '../synth-vsu/voice-pool.js';
 import { createFm2610Audio } from './audio.js';
 import { setupFm2610Code } from './code.js';
+import { setupFm2610Files } from './files.js';
 import { setupFm2610Sections } from './sections.js';
+import { setupFm2610SongControls } from './song_controls.js';
 
 const byId = id => document.getElementById(id);
 const modeButtons = [...byId('chipModes').querySelectorAll('button')];
@@ -135,6 +137,17 @@ const code = setupFm2610Code({
   textarea: byId('code'), runButton: byId('runCode'), stopButton: byId('stopCode'),
   status: byId('codeStatus'), output: byId('codeOutput'), sound: codeSound,
   getMode: () => variant, stopSound: stopCodeSound,
+  beforeRun: () => songs.stop(),
+  prepareSource: (...args) => files.prepareSource(...args),
+  readFile: (...args) => files.readFile(...args),
+  getEntryPath: () => files.getEntryPath(),
+});
+const songs = setupFm2610SongControls({
+  getFiles: () => files,
+  sound,
+  beforePlay: () => code.stop(),
+  announce,
+  report,
 });
 
 function renderFm() {
@@ -265,8 +278,15 @@ async function playKey(owner, entry) {
   try {
     const ready = await sound();
     if (!pool.isCurrent(voice)) return;
-    if (section === 'fm') ready.fm.noteOn(voice.channel, entry.midi);
-    else await sections.noteOnSSG(voice.channel, entry.midi);
+    if (section === 'fm') {
+      const {keyMask} = presetFor(voice.channel);
+      if (keyMask) {
+        ready.fm.setNote(voice.channel, entry.midi);
+        ready.fm.keyOn(voice.channel, [0, 1, 2, 3].filter(operator => keyMask & (1 << operator)));
+      }
+    } else {
+      await sections.noteOnSSG(voice.channel, entry.midi);
+    }
     if (pool.isCurrent(voice)) voice.started = true;
   } catch (error) {
     stopVoice(section, pool.releaseVoice(voice));
@@ -340,6 +360,7 @@ async function selectVariant(next) {
   switching = true;
   modeButtons.forEach(button => { button.disabled = true; });
   try {
+    songs.stop();
     releaseKeyboard();
     sections.stop();
     await code.stop();
@@ -349,7 +370,7 @@ async function selectVariant(next) {
     drawScope();
     variant = next;
     fmChannel = null;
-    code.setMode();
+    if (code.setMode()) files.markCodeEdited();
     renderFmChannels();
     renderFm();
     byId('chipSummary').textContent = next === 'ym2610b' ? 'YM2610B · 6 FM channels · 8 MHz' : 'Neo Geo · YM2610 · 4 FM channels · 8 MHz';
@@ -379,6 +400,7 @@ document.addEventListener('visibilitychange', () => {
 });
 modeButtons.forEach(button => button.addEventListener('click', () => void selectVariant(button.dataset.variant)));
 byId('silence').addEventListener('click', () => {
+  songs.stop();
   releaseKeyboard();
   sections.stop();
   void code.stop().catch(report);
@@ -424,3 +446,52 @@ buildFmControls();
 renderFmChannels();
 redrawKeyboard();
 drawScope();
+
+const editor = byId('code');
+const runCode = byId('runCode');
+editor.readOnly = true;
+runCode.disabled = true;
+const files = setupFm2610Files({
+  panel: byId('filesPanel'),
+  toggle: byId('filesToggle'),
+  menuMount: {new: byId('projectNew'), import: byId('projectImport'), export: byId('projectExport')},
+  getPatch: () => presetFor(fmChannel ?? 0),
+  applyPatch(preset) {
+    editPreset(target => Object.assign(target, readFmPreset(preset)), (fm, channel, next) => fm.setPreset(channel, next));
+    byId('fmTab').click();
+    byId('keyboardTab').click();
+  },
+  getCode: () => editor.value,
+  async setCode(source, path, {show}) {
+    if (show) await code.stop();
+    editor.value = source;
+    if (show) byId('codeTab').click();
+  },
+  starterCode: code.getStarter,
+  setStatus: announce,
+  async beforeReplace() {
+    songs.clear();
+    await code.stop();
+  },
+  onVgmChange: () => queueMicrotask(() => songs.refresh()),
+  openVgm: path => songs.selectFile(path),
+  importVgm: file => songs.importFile(file),
+});
+editor.addEventListener('input', () => files.markCodeEdited());
+void files.ready.then(() => {
+  editor.readOnly = false;
+  runCode.disabled = code.getState().busy;
+});
+const menu = byId('synthMenu');
+menu.addEventListener('click', event => {
+  if (event.target instanceof Element && event.target.closest('[data-close-synth-menu]')) menu.open = false;
+});
+document.addEventListener('pointerdown', event => {
+  if (!menu.contains(event.target)) menu.open = false;
+});
+menu.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    menu.open = false;
+    menu.querySelector('summary').focus();
+  }
+});

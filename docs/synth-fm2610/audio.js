@@ -48,8 +48,15 @@ export function createFm2610Audio() {
       const context = synth.audioContext;
       const analyser = context.createAnalyser();
       synth.audio.connectOutputMonitor(analyser);
+      const songOutput = context.createGain();
+      songOutput.gain.value = muted ? 0 : 1;
+      synth.audio.connectChipOutput(songOutput);
+      current.songOutput = songOutput;
       const { ssg, adpcmA, adpcmB } = synth.rawFm ?? synth.fm;
-      return { fm: synth.fm, ssg, adpcmA, adpcmB, context, analyser };
+      return {
+        fm: synth.fm, ssg, adpcmA, adpcmB, context, analyser,
+        connectSongOutput: node => node.connect(songOutput),
+      };
     }).catch(async error => {
       if (session === current) await close().catch(() => {});
       throw error;
@@ -68,6 +75,8 @@ export function createFm2610Audio() {
       if (source !== 'chip' || typeof value !== 'boolean') throw new TypeError('Choose the chip output and a boolean mute state.');
       muted = value;
       if (session) session.synth.mixer.set(session.variant, { muted });
+      const output = session?.songOutput;
+      if (output) output.gain.setTargetAtTime(muted ? 0 : 1, output.context.currentTime, 0.005);
     },
     close,
   };
