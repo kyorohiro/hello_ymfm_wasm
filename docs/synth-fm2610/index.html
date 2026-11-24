@@ -101,9 +101,26 @@
         </div>
         <div id="fmCommon" class="common-controls"></div>
         <div class="operators" aria-label="FM operators" role="group">
-          <div class="operator-heading"><span>OP</span><div id="operatorHeader"></div></div>
+          <div class="operator-heading"><span title="Click an operator to toggle its key gate">OP</span><div id="operatorHeader"></div></div>
           <div id="operatorControls"></div>
         </div>
+        <details id="fmEnvelope" class="fm-envelope" open>
+          <summary>Operator envelope</summary>
+          <div class="inline-controls envelope-toolbar" role="group" aria-label="Operator envelope selection">
+            <button type="button" class="op-color-1" data-envelope-operator="1" aria-pressed="false">OP1</button>
+            <button type="button" class="op-color-2" data-envelope-operator="2" aria-pressed="false">OP2</button>
+            <button type="button" class="op-color-3" data-envelope-operator="3" aria-pressed="false">OP3</button>
+            <button type="button" class="op-color-4" data-envelope-operator="4" aria-pressed="true">OP4</button>
+            <output data-envelope-readout></output>
+          </div>
+          <div class="operator-envelope-plot">
+            <canvas data-operator-envelope width="850" height="180" role="img" aria-label="Operator envelope guides. Select an operator and drag its points to edit."></canvas>
+            <button type="button" class="envelope-handle" data-envelope-handle="attack" aria-label="Attack">A</button>
+            <button type="button" class="envelope-handle" data-envelope-handle="decay" aria-label="Decay">D</button>
+            <button type="button" class="envelope-handle" data-envelope-handle="sustain" aria-label="Sustain">S</button>
+            <button type="button" class="envelope-handle" data-envelope-handle="release" aria-label="Release">R</button>
+          </div>
+        </details>
       </div>
       <div id="ssgPanel" role="tabpanel" aria-labelledby="ssgTab" hidden></div>
       <div id="adpcmAPanel" role="tabpanel" aria-labelledby="adpcmATab" hidden></div>

@@ -5,6 +5,7 @@ import {
   buildKeyboard, createFretboardLayout, createFretboardState, renderFretboardControls,
   setFretPosition, setInstrument, setStringWindowIndex,
 } from '../synth/synth_keyboard.js';
+import { createOperatorEnvelopeView } from '../synth/synth_operator_envelope.js';
 import { createSynthOutputVisualizer } from '../synth/synth_output_visualizer.js';
 import { createVsuVoicePool } from '../synth-vsu/voice-pool.js';
 import { createFm2610Audio } from './audio.js';
@@ -32,6 +33,7 @@ const operatorDefinitions = [
   ['am', 'AM', 1], ['d1r', 'D1R', 31], ['d2r', 'D2R', 31], ['sl', 'SL', 15], ['rr', 'RR', 15], ['ssg', 'SSG-EG', 15],
 ].map(([id, label, max]) => ({ id, label, min: 0, max, step: 1, booleanMode: id === 'am' }));
 const commonControls = new Map(), operatorControls = new Map();
+const operatorGates = new Map();
 const lfo = { enabled: false, frequency: 0 };
 const gateMethods = new Set(['keyOn', 'keyOff', 'noteOn', 'noteOnRaw', 'noteOff']);
 const ssgGateMethods = new Set([...gateMethods, 'tone', 'noise', 'off']);
@@ -40,6 +42,12 @@ const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]),
 let variant = 'ym2610b', switching = false, chip = null, source = 'fm';
 let fmChannel = null, ssgChannel = null, octave = 0, keys = new Map();
 let scopeMode = 'waveform', scopeFrame = null;
+const envelope = createOperatorEnvelopeView({
+  root: byId('fmEnvelope'),
+  getOperators: () => [null, ...presetFor(fmChannel ?? 0).operators],
+  getSelectionKey: () => variant + ':' + fmChannel,
+  onEdit: editOperator,
+});
 
 function announce(message, error = false) {
   status.textContent = message;
@@ -156,6 +164,10 @@ function renderFm() {
   for (const [operator, controls] of operatorControls) {
     for (const [key, control] of controls) control.updateVisual(preset.operators[operator - 1][key]);
   }
+  for (const [operator, button] of operatorGates) {
+    button.setAttribute('aria-pressed', String(Boolean(preset.keyMask & (1 << (operator - 1)))));
+  }
+  envelope.invalidate();
 }
 
 function editPreset(update, write) {
@@ -165,6 +177,39 @@ function editPreset(update, write) {
     if (chip) write(chip.fm, channel, preset);
   }
   renderFm();
+}
+
+function writeKeyMask(fm, channel, mask) {
+  if (mask) {
+    fm.keyOn(channel, [0, 1, 2, 3].filter(operator => mask & (1 << operator)));
+  } else {
+    fm.keyOff(channel);
+  }
+}
+
+function updateHeldMask(fm, channel, preset) {
+  if (voicePools.fm.voiceOn(channel)?.started) writeKeyMask(fm, channel, preset.keyMask);
+}
+
+function toggleOperator(operator, enabled) {
+  const bit = 1 << (operator - 1);
+  editPreset(preset => {
+    preset.keyMask = enabled ? preset.keyMask | bit : preset.keyMask & ~bit;
+  }, updateHeldMask);
+}
+
+function editOperator(operator, patch) {
+  const index = operator - 1;
+  editPreset(preset => {
+    Object.assign(preset.operators[index], patch);
+  }, (fm, channel) => fm.setOperator(channel, index, patch));
+}
+
+function applyFmPreset(preset) {
+  editPreset(target => Object.assign(target, readFmPreset(preset)), (fm, channel, next) => {
+    fm.setPreset(channel, next);
+    updateHeldMask(fm, channel, next);
+  });
 }
 
 function editCommon(key, value) {
@@ -206,17 +251,14 @@ function buildFmControls() {
   buildHeader(byId('operatorHeader'), operatorDefinitions);
   buildOperatorControls({ root: byId('operatorControls'), operatorNumbers: operators, defs: operatorDefinitions,
     operatorStates: Object.fromEntries(operators.map(operator => [operator, channels[0].operators[operator - 1]])),
-    controlsMap: operatorControls, wheelAdjust: false,
-    onChange(operator, key, value) {
-      const index = operator - 1;
-      editPreset(preset => { preset.operators[index][key] = value; }, (fm, channel) => fm.setOperator(channel, index, { [key]: value }));
-    },
+    controlsMap: operatorControls, gateControls: operatorGates,
+    getOperatorEnabled: operator => Boolean(presetFor(fmChannel ?? 0).keyMask & (1 << (operator - 1))),
+    onOperatorGateChange: toggleOperator,
+    onChange: (operator, key, value) => editOperator(operator, {[key]: value}),
   });
   for (const id of ['sine', 'two-op-bell', 'fm-bass', 'four-op-brass', 'fm-electric-piano', 'four-op-pad']) {
     const voice = FM_PRESETS[id];
-    byId('fmPresets').append(makeButton(voice.label, () => {
-      editPreset(preset => Object.assign(preset, readFmPreset(voice)), (fm, channel, preset) => fm.setPreset(channel, preset));
-    }));
+    byId('fmPresets').append(makeButton(voice.label, () => applyFmPreset(voice)));
   }
   renderFm();
 }
@@ -279,11 +321,8 @@ async function playKey(owner, entry) {
     const ready = await sound();
     if (!pool.isCurrent(voice)) return;
     if (section === 'fm') {
-      const {keyMask} = presetFor(voice.channel);
-      if (keyMask) {
-        ready.fm.setNote(voice.channel, entry.midi);
-        ready.fm.keyOn(voice.channel, [0, 1, 2, 3].filter(operator => keyMask & (1 << operator)));
-      }
+      ready.fm.setNote(voice.channel, entry.midi);
+      writeKeyMask(ready.fm, voice.channel, presetFor(voice.channel).keyMask);
     } else {
       await sections.noteOnSSG(voice.channel, entry.midi);
     }
@@ -434,8 +473,14 @@ for (const button of scopeButtons) button.addEventListener('click', () => {
 });
 new ResizeObserver(drawScope).observe(scope);
 
-setupTabs('sourceTabs', tab => { source = tab.dataset.source; renderKeys(); });
+setupTabs('sourceTabs', tab => {
+  source = tab.dataset.source;
+  envelope.setVisible(source === 'fm');
+  renderKeys();
+});
 setupTabs('performanceTabs');
+envelope.setVisible(true);
+window.addEventListener('pagehide', event => { if (!event.persisted) envelope.dispose(); });
 const ssgChannels = document.createElement('div');
 ssgChannels.className = 'inline-controls ssg-channels';
 ssgChannels.setAttribute('role', 'group');
@@ -457,7 +502,7 @@ const files = setupFm2610Files({
   menuMount: {new: byId('projectNew'), import: byId('projectImport'), export: byId('projectExport')},
   getPatch: () => presetFor(fmChannel ?? 0),
   applyPatch(preset) {
-    editPreset(target => Object.assign(target, readFmPreset(preset)), (fm, channel, next) => fm.setPreset(channel, next));
+    applyFmPreset(preset);
     byId('fmTab').click();
     byId('keyboardTab').click();
   },

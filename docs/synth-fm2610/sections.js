@@ -1,12 +1,49 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {encodeAdpcmA} from '../js/adpcm_a_sample.js';
-import {encodeAdpcmB} from '../js/adpcm_b_sample.js';
+import {encodeAdpcmB, readSamplePCM} from '../js/adpcm_b_sample.js';
+import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 
 const MASTER_CLOCK = 8_000_000;
 const SAMPLE_ADDRESS = 0x10000;
+const A_RATE = MASTER_CLOCK / 432;
+const A_CUSTOM_START = 0x800000;
+const A_SLOT_BYTES = 0x100000;
+const A_MAX_FILE_BYTES = 64 * 1024 * 1024;
 const B_SOURCE_RATE = 12000;
 const DRUMS = ['Kick', 'Snare', 'Closed hat', 'Tom', 'Block', 'Shaker'];
 const A_VOICES = DRUMS.map((_, index) => index);
+
+function encodeDrumSample(audio, signal) {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./adpcm-a-worker.js', import.meta.url), {type: 'module'});
+    function close() {
+      signal.removeEventListener('abort', abort);
+      worker.terminate();
+    }
+    function abort() {
+      close();
+      reject(signal.reason);
+    }
+    signal.addEventListener('abort', abort, {once: true});
+    worker.onmessage = ({data}) => {
+      close();
+      if (data.error) reject(new Error(data.error));
+      else resolve(data.bytes);
+    };
+    worker.onerror = event => {
+      close();
+      reject(new Error(event.message || 'Could not prepare the ADPCM-A sample.'));
+    };
+    try {
+      const buffers = [...new Set(audio.channels.map(channel => channel.buffer))];
+      worker.postMessage({audio, rate: A_RATE, maxBytes: A_SLOT_BYTES - 256}, buffers);
+    } catch (error) {
+      close();
+      reject(error);
+    }
+  });
+}
 
 function drumBank(rate) {
   const duration = [.24, .17, .065, .22, .11, .14];
@@ -171,30 +208,60 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
   let aLevel = 56;
   const aRequests = new Uint32Array(DRUMS.length);
   const aPlayed = new Set();
+  const aSamples = Array(DRUMS.length).fill(null);
+  const decodeAudio = createOfflineAudioDecoder();
 
   async function playDrum(channel) {
     const request = ++aRequests[channel];
-    const {adpcmA, fm} = await sound();
-    if (request !== aRequests[channel]) return;
-    const rate = (fm?.clock ?? MASTER_CLOCK) / 432;
-    if (aState?.chip !== adpcmA || aState.rate !== rate) {
-      const {bytes, ranges} = drumBank(rate);
-      aState = {chip: adpcmA, rate, ranges};
-      aPlayed.clear();
+    const sample = aSamples[channel];
+    try {
+      const {adpcmA} = await sound();
+      if (request !== aRequests[channel]) return;
+      if (aState?.chip !== adpcmA) {
+        aState = {chip: adpcmA, builtIn: null, customLoads: Array(DRUMS.length).fill(null)};
+        aPlayed.clear();
+      }
       const state = aState;
-      state.ready = Promise.resolve().then(() => adpcmA.loadMemory(bytes, SAMPLE_ADDRESS)).catch(error => {
-        if (aState === state) aState = undefined;
-        throw error;
-      });
+      let range;
+      if (sample) {
+        const start = A_CUSTOM_START + channel * A_SLOT_BYTES;
+        range = {start, end: start + sample.bytes.length};
+        let load = state.customLoads[channel];
+        if (load?.sample !== sample) {
+          // Writes to this ROM slot can affect an active voice reading it.
+          // Leave the other five voices and the built-in ranges alone.
+          adpcmA.keyOff(channel);
+          aPlayed.delete(channel);
+          load = {sample, ready: Promise.resolve(adpcmA.loadMemory(sample.bytes, start))};
+          state.customLoads[channel] = load;
+        }
+        try {
+          await load.ready;
+        } catch (error) {
+          if (state.customLoads[channel] === load) state.customLoads[channel] = null;
+          throw error;
+        }
+      } else {
+        if (!state.builtIn) {
+          const {bytes, ranges} = drumBank(A_RATE);
+          const ready = Promise.resolve().then(() => adpcmA.loadMemory(bytes, SAMPLE_ADDRESS)).catch(error => {
+            state.builtIn = null;
+            throw error;
+          });
+          state.builtIn = {ranges, ready};
+        }
+        range = state.builtIn.ranges[channel];
+        await state.builtIn.ready;
+      }
+      if (state !== aState || request !== aRequests[channel]) return;
+      adpcmA.setVolume(aLevel);
+      adpcmA.setSample(channel, range);
+      adpcmA.setVoice(channel, {volume: 27, left: true, right: true});
+      adpcmA.keyOn(channel);
+      aPlayed.add(channel);
+    } catch (error) {
+      if (request === aRequests[channel] && error?.name !== 'AbortError') throw error;
     }
-    const state = aState;
-    await state.ready;
-    if (state !== aState || request !== aRequests[channel]) return;
-    adpcmA.setVolume(aLevel);
-    adpcmA.setSample(channel, state.ranges[channel]);
-    adpcmA.setVoice(channel, {volume: 27, left: true, right: true});
-    adpcmA.keyOn(channel);
-    aPlayed.add(channel);
   }
 
   function stopDrums(channels = A_VOICES) {
@@ -206,9 +273,61 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
   const drumPads = element('div', '', 'fm2610-section-grid');
   DRUMS.forEach((name, channel) => {
     const pad = element('section', '', 'fm2610-voice');
+    const voice = `A${channel + 1}`;
+    const sampleName = element('p', '', 'fm2610-sample-name');
+    sampleName.setAttribute('aria-live', 'polite');
+    const picker = element('input');
+    Object.assign(picker, {type: 'file', accept: 'audio/*,.wav,.flac,.m4a', hidden: true});
+    const play = button('Play', () => playDrum(channel));
     const off = button('Stop', () => stopDrums([channel]));
-    off.setAttribute('aria-label', `Stop ${name}`);
-    pad.append(element('h3', `A${channel + 1}`), button(name, () => playDrum(channel)), off);
+    const select = button('Load sample…', () => picker.click());
+    select.setAttribute('aria-label', `Load sample for ${voice}`);
+    let pending = null;
+    const reset = button('Reset sample', () => {
+      pending?.abort();
+      pending = null;
+      aRequests[channel]++;
+      aSamples[channel] = null;
+      showSample();
+    });
+    reset.setAttribute('aria-label', `Reset ${voice} to ${name}`);
+    function showSample() {
+      const selected = aSamples[channel]?.name ?? name;
+      sampleName.textContent = pending ? 'Preparing sample…' : selected;
+      sampleName.title = selected;
+      play.setAttribute('aria-label', aSamples[channel] ? `Play ${voice}: ${selected}` : name);
+      off.setAttribute('aria-label', aSamples[channel] ? `Stop ${voice}` : `Stop ${name}`);
+      reset.disabled = !pending && !aSamples[channel];
+    }
+    picker.addEventListener('change', async () => {
+      const file = picker.files[0];
+      picker.value = '';
+      if (!file) return;
+      pending?.abort();
+      const controller = new AbortController();
+      const {signal} = controller;
+      pending = controller;
+      showSample();
+      try {
+        if (file.size > A_MAX_FILE_BYTES) throw new RangeError('Audio files must fit within 64 MiB.');
+        const audio = await readSamplePCM(file, {signal, decodeAudio});
+        const bytes = await encodeDrumSample(audio, signal);
+        signal.throwIfAborted();
+        aRequests[channel]++;
+        aSamples[channel] = {name:file.name,bytes};
+      } catch (error) {
+        if (!signal.aborted) report(error.message);
+      } finally {
+        if (pending === controller) {
+          pending = null;
+          showSample();
+        }
+      }
+    });
+    showSample();
+    const controls = element('div', '', 'fm2610-sample-controls');
+    controls.append(play, off, select, reset);
+    pad.append(element('h3', voice), sampleName, controls, picker);
     drumPads.append(pad);
   });
   const aToolbar = element('div', '', 'fm2610-inline-controls');
@@ -216,7 +335,7 @@ export function setupFm2610Sections({ssgPanel, adpcmAPanel, adpcmBPanel, sound, 
     aLevel = value;
     if (aPlayed.size) aState.chip.setVolume(value);
   }), button('Stop all drums', () => stopDrums()));
-  adpcmAPanel.append(title('ADPCM-A · 6 voices', 'Six generated one-shot drums. The decoded rate is fixed at the chip clock ÷ 432.'), drumPads, aToolbar);
+  adpcmAPanel.append(title('ADPCM-A · 6 voices', 'Load one-shot samples up to about 113 seconds per voice for this session. Playback is fixed at 8 MHz ÷ 432.'), drumPads, aToolbar);
 
   let bState;
   let encodedB;
