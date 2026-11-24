@@ -135,7 +135,6 @@ export function setupFm2610Files({
   });
   const expanded = new Map([[PATCHES, true], [KITS, true], [SONGS, true]]);
   let codePath = ENTRY, activePatch = null, activeKit = null, selected = ENTRY;
-  let sidebarVisible = !panel.hidden, fullWidth = false;
   let loading = true, busy = false, storageReady = false, draftTimer = null, lastStructure = '';
   let operationTail = Promise.resolve();
   const report = error => setStatus(error?.message ?? String(error), true);
@@ -217,7 +216,7 @@ export function setupFm2610Files({
     return {
       version: 1,
       workspace: workspace.snapshot(),
-      view: { codePath, activePatch, activeKit, selected, visible: sidebarVisible },
+      view: { codePath, activePatch, activeKit, selected, visible: !panel.hidden },
     };
   }
   function persist() {
@@ -266,24 +265,12 @@ export function setupFm2610Files({
     }
   }
 
-  function renderVisibility() {
-    const visible = sidebarVisible || fullWidth;
+  function show(visible = true) {
     panel.hidden = !visible;
     toggle?.setAttribute('aria-expanded', String(visible));
     toggle?.setAttribute('aria-pressed', String(visible));
     if (!visible) contextMenu.close();
-  }
-
-  function show(visible = true) {
-    sidebarVisible = Boolean(visible);
-    renderVisibility();
     queueDraft();
-  }
-
-  function setFullWidth(value) {
-    fullWidth = value;
-    contextMenu.close();
-    renderVisibility();
   }
 
   function operation(task) {
@@ -682,7 +669,7 @@ export function setupFm2610Files({
   contextMenu.element.classList.add('fm2610-file-context-menu');
 
   chooser.addEventListener('change', () => drive(() => importFiles([...chooser.files])));
-  toggle?.addEventListener('click', () => show(!sidebarVisible));
+  toggle?.addEventListener('click', () => show(panel.hidden));
   doc.addEventListener('keydown', event => {
     if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey || event.isComposing ||
         event.key.toLowerCase() !== 's' || busy || loading) return;
@@ -694,7 +681,7 @@ export function setupFm2610Files({
   win.addEventListener('pagehide', () => {
     if (draftTimer !== null) drive(persist);
   });
-  renderVisibility();
+  show(!panel.hidden);
   refresh();
   const ready = store.read().then(async state => {
     if (state) {
@@ -720,7 +707,7 @@ export function setupFm2610Files({
   });
 
   return {
-    ...codeProject, ready, markCodeEdited, save, show, setFullWidth, addVgmFiles, listVgm, readBinary, saveAdpcmAKit,
+    ...codeProject, ready, markCodeEdited, save, show, addVgmFiles, listVgm, readBinary, saveAdpcmAKit,
     getEntryPath: () => codePath,
     detachFmPatch() {
       activePatch = null;

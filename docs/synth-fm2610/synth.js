@@ -17,6 +17,7 @@ import { captureFm2610Patch, fmCaptureReason, readFm2610Patch } from './fm_patch
 import { setupFm2610Sections } from './sections.js';
 import { createFm2610SongAudition } from './song_audition.js';
 import { setupFm2610SongControls } from './song_controls.js';
+import { setupFm2610Workspace } from './workspace.js';
 
 const byId = id => document.getElementById(id);
 const modeButtons = [...byId('chipModes').querySelectorAll('button')];
@@ -27,8 +28,6 @@ const liveToggle = byId('fmLive');
 const captureButton = byId('fmCapture');
 const envelopeRoot = byId('fmEnvelope');
 const workspace = byId('workspace');
-const workbench = byId('synthWorkbench');
-const workspaceButtons = {files: byId('filesMode'), synth: byId('synthMode')};
 const audio = createFm2610Audio();
 const audition = createFm2610SongAudition();
 const visualizer = createSynthOutputVisualizer({
@@ -53,7 +52,6 @@ const codeEndpoints = new WeakMap();
 const textEntry = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable]';
 let variant = 'ym2610b', switching = false, chip = null, source = 'fm';
 let keyboardSource = 'fm';
-let filesWorkspace = false;
 let fmChannel = null, ssgChannel = null, octave = 0, keys = new Map();
 let scopeMode = 'waveform', scopeFrame = null;
 let songState = {playback: 'stopped'}, fmView = null, auditionVoice = null;
@@ -468,8 +466,7 @@ async function playAudition(owner, entry) {
 
 async function playKey(owner, entry) {
   const section = source, pool = voicePools[section];
-  if (filesWorkspace || !pool || switching ||
-      Object.values(voicePools).some(voices => voices.voices().some(voice => voice.owner === owner))) return;
+  if (!pool || switching || Object.values(voicePools).some(voices => voices.voices().some(voice => voice.owner === owner))) return;
   if (section === 'fm' && liveToggle.checked && ['playing', 'paused', 'pausing', 'loading'].includes(songState.playback)) {
     if (fmView?.paused) await playAudition(owner, entry);
     return;
@@ -534,31 +531,6 @@ function redrawKeyboard() {
   renderKeys();
 }
 
-function setupTabs(id, onSelect = () => {}) {
-  const tabs = [...byId(id).querySelectorAll('[role="tab"]')];
-  function select(selected) {
-    for (const tab of tabs) {
-      const active = tab === selected;
-      tab.setAttribute('aria-selected', String(active));
-      tab.tabIndex = active ? 0 : -1;
-      byId(tab.getAttribute('aria-controls')).hidden = !active;
-    }
-    onSelect(selected);
-  }
-  for (const [index, tab] of tabs.entries()) {
-    tab.addEventListener('click', () => select(tab));
-    tab.addEventListener('keydown', event => {
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
-      const last = tabs.length - 1;
-      const next = { ArrowLeft: (index + last) % tabs.length, ArrowRight: (index + 1) % tabs.length, Home: 0, End: last }[event.key];
-      if (next === undefined) return;
-      event.preventDefault();
-      select(tabs[next]);
-      tabs[next].focus();
-    });
-  }
-}
-
 async function selectVariant(next) {
   if (switching || next === variant) return;
   switching = true;
@@ -588,7 +560,7 @@ async function selectVariant(next) {
 }
 
 document.addEventListener('keydown', event => {
-  if (filesWorkspace || event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
   if (event.target instanceof Element && event.target.closest(textEntry)) return;
   const entry = keys.get(event.key.toLowerCase());
   if (!entry || !voicePools[source]) return;
@@ -683,17 +655,6 @@ for (const button of scopeButtons) button.addEventListener('click', () => {
 });
 new ResizeObserver(drawScope).observe(scope);
 
-setupTabs('sourceTabs', tab => {
-  const section = tab.dataset.source;
-  if (voicePools[section]) keyboardSource = section;
-  source = section === 'mixer' ? keyboardSource : section;
-  envelope.setVisible(!filesWorkspace && section === 'fm');
-  if (source !== 'fm') stopAudition();
-  if (section === 'fm') refreshFmView(true);
-  renderKeys();
-});
-setupTabs('performanceTabs');
-envelope.setVisible(true);
 window.addEventListener('pagehide', event => {
   stopAudition();
   if (!event.persisted) envelope.dispose();
@@ -714,34 +675,6 @@ const runCode = byId('runCode');
 editor.readOnly = true;
 runCode.disabled = true;
 
-function setWorkspaceMode(mode) {
-  if (workspace.dataset.mode === mode) return false;
-  const focused = document.activeElement;
-  filesWorkspace = mode === 'files';
-  if (filesWorkspace) releaseKeyboard();
-  workspace.dataset.mode = mode;
-  workbench.hidden = filesWorkspace;
-  byId('filesToggle').hidden = filesWorkspace;
-  files.setFullWidth(filesWorkspace);
-  for (const [name, button] of Object.entries(workspaceButtons)) {
-    button.setAttribute('aria-pressed', String(name === mode));
-  }
-  if (focused?.closest('[hidden]')) workspaceButtons[mode].focus({preventScroll: true});
-  envelope.setVisible(!filesWorkspace && !byId('fmPanel').hidden);
-  if (!filesWorkspace) {
-    refreshFmView(true);
-    drawScope();
-  }
-  return true;
-}
-
-function openInSynth(tabId) {
-  const switched = setWorkspaceMode('synth');
-  const tab = byId(tabId);
-  tab.click();
-  if (switched) tab.focus({preventScroll: true});
-}
-
 const files = setupFm2610Files({
   panel: byId('filesPanel'),
   toggle: byId('filesToggle'),
@@ -756,20 +689,22 @@ const files = setupFm2610Files({
       refreshFmView(true);
     }
     applyFmPreset(preset);
-    if (show) openInSynth('fmTab');
-    else byId('fmTab').click();
-    byId('keyboardTab').click();
+    workspaceView.select('fmTab', {focus: show, reveal: show});
+    if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
   },
   getAdpcmAKit: sections.getAdpcmAKit,
   applyAdpcmAKit(kit, {show}) {
     sections.applyAdpcmAKit(kit);
-    if (show) openInSynth('adpcmATab');
+    if (show) workspaceView.select('adpcmATab', {focus: true});
   },
   getCode: () => editor.value,
   async setCode(source, path, {show}) {
     if (show) await code.stop();
     editor.value = source;
-    if (show) openInSynth('codeTab');
+    if (show) {
+      workspaceView.select('codeTab');
+      editor.focus({preventScroll: true});
+    }
   },
   starterCode: code.getStarter,
   setStatus: announce,
@@ -781,9 +716,21 @@ const files = setupFm2610Files({
   openVgm: path => songs.selectFile(path),
   importVgm: file => songs.importFile(file),
 });
-for (const [mode, button] of Object.entries(workspaceButtons)) {
-  button.addEventListener('click', () => setWorkspaceMode(mode));
-}
+const workspaceView = setupFm2610Workspace({
+  showFiles: () => files.show(true),
+  onViewChange({sourceTab, expanded, inputTab}) {
+    const section = sourceTab.dataset.source;
+    if (voicePools[section]) keyboardSource = section;
+    const useKeyboardSource = section === 'mixer' || (expanded && inputTab?.id === 'keyboardTab' && !voicePools[section]);
+    source = useKeyboardSource ? keyboardSource : section;
+    const showFm = section === 'fm' && !byId('fmPanel').closest('[hidden]');
+    envelope.setVisible(showFm);
+    if (source !== 'fm') stopAudition();
+    if (showFm) refreshFmView(true);
+    renderKeys();
+    drawScope();
+  },
+});
 editor.addEventListener('input', () => files.markCodeEdited());
 liveToggle.addEventListener('change', () => refreshFmView(true));
 captureButton.addEventListener('click', () => {
@@ -798,7 +745,7 @@ captureButton.addEventListener('click', () => {
     applyFmPreset(preset);
     files.detachFmPatch();
     files.show(true);
-    byId('keyboardTab').click();
+    if (workspace.dataset.mode === 'synth') workspaceView.select('keyboardTab');
     announce('Captured ' + snapshot.variant.toUpperCase() + ' CH' + (voice.physicalChannel + 1) + ' to Synth.');
   } catch (error) { report(error); }
 });

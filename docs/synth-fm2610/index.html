@@ -52,10 +52,10 @@
       <div class="inline-controls">
         <button id="silence" type="button">Stop sound</button>
         <div class="workspace-switch" role="group" aria-label="Workspace layout">
-          <button id="filesMode" type="button" aria-controls="filesPanel" aria-pressed="false">Files</button>
+          <button id="codeMode" type="button" aria-controls="synthWorkbench" aria-pressed="false">Code</button>
           <button id="synthMode" type="button" aria-controls="synthWorkbench" aria-pressed="true">Synth</button>
         </div>
-        <button id="filesToggle" type="button" aria-label="Files sidebar" aria-controls="filesPanel" aria-expanded="false" title="Show or hide the Files sidebar in Synth">Sidebar</button>
+        <button id="filesToggle" type="button" aria-controls="filesPanel" aria-expanded="false" title="Show or hide the Files sidebar">Files</button>
       </div>
     </div>
     <p id="status" class="status" role="status">Play a key or trigger a sample to start audio.</p>
@@ -76,7 +76,8 @@
     <div id="workspace" class="workspace" data-mode="synth">
       <aside id="filesPanel" class="panel fm2610-files" aria-label="Cassette files" hidden></aside>
       <div id="synthWorkbench" class="workbench">
-    <section class="panel monitor" aria-label="Audio output">
+    <div id="codeWorkspaceTabs" class="panel code-workspace-tabs" hidden></div>
+    <section id="outputPanel" class="panel monitor" aria-label="Audio output">
       <div class="panel-heading">
         <h2>Output</h2>
         <div id="scopeModes" class="inline-controls" role="group" aria-label="Output display">
@@ -87,7 +88,7 @@
       <canvas id="scope" width="900" height="150" role="img" aria-label="Output waveform"></canvas>
     </section>
 
-    <section class="panel editor" aria-label="Sound sources">
+    <section id="synthEditor" class="panel editor" aria-label="Sound sources">
       <div id="sourceTabs" class="tabs" role="tablist" aria-label="Sound source">
         <button type="button" id="fmTab" role="tab" aria-selected="true" aria-controls="fmPanel" data-source="fm">FM</button>
         <button type="button" id="ssgTab" role="tab" aria-selected="false" aria-controls="ssgPanel" data-source="ssg" tabindex="-1">SSG</button>
@@ -149,7 +150,7 @@
       </div>
     </section>
 
-    <section class="panel performance" aria-label="Performance">
+    <section id="performancePanel" class="panel performance" aria-label="Performance">
       <div id="performanceTabs" class="tabs" role="tablist" aria-label="Performance input">
         <button type="button" id="keyboardTab" role="tab" aria-selected="true" aria-controls="keyboardPanel">Keyboard</button>
         <button type="button" id="codeTab" role="tab" aria-selected="false" aria-controls="codePanel" tabindex="-1">Code</button>
