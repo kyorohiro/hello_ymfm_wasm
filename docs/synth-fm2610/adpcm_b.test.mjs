@@ -26,7 +26,10 @@ test('ADPCM-B sample imports align to hardware pages and replacement fences earl
   const settings = await adapter.loadSample(wav, {name: 'Later.wav'});
   finish(wav.buffer);
   await assert.rejects(pending, {name: 'AbortError'});
-  assert.deepEqual(settings, {name: 'Later.wav', sampleRate: 16000, rootNote: 60, volume: 21, repeat: true, byteLength: 512});
+  const deltaN = Math.round(16000 * 144 * 65536 / 8000000);
+  assert.deepEqual(settings, {name: 'Later.wav', sampleRate: 16000, rootNote: 60, volume: 21, repeat: true, byteLength: 512,
+    sampleStart: 0xc00000, sampleEnd: 0xc00200, start: 0xc00000, end: 0xc00200,
+    deltaN, activeDeltaN: deltaN, playbackRate: deltaN * 8000000 / (144 * 65536), keyed: false});
   const sample = adapter.getSample();
   assert.throws(() => adapter.applySample({...sample, bytes: sample.bytes.subarray(1)}), /aligned/);
   assert.deepEqual(adapter.getSample(), sample);
@@ -64,6 +67,7 @@ test('ADPCM-B waveform summarizes every decoded frame and survives sample restor
   assert.deepEqual(await adapter.getWaveform(signal), builtin);
   adapter.applySample(sample);
   adapter.setSettings({sampleRate: 8000, volume: 0, repeat: true});
+  adapter.setRange({start: adapter.getSettings().sampleStart + 256});
   assert.deepEqual(await adapter.getWaveform(signal), peaks);
 });
 
@@ -111,7 +115,9 @@ test('ADPCM-B mono ownership cancels a pending ROM trigger on replacement or key
 
 test('a captured ADPCM-B sample retains its exact chip rate and editable working parameters', async () => {
   const calls = [];
+  const gates = [];
   const clockHz = 16000000, deltaN = 50000;
+  const address = 0x123400;
   const chip = {
     clock: clockHz,
     loadMemory(bytes, address) { calls.push(['load', bytes[0], address]); },
@@ -124,6 +130,7 @@ test('a captured ADPCM-B sample retains its exact chip rate and editable working
   };
   const endpoint = {adpcmB: null};
   const adapter = createFm2610AdpcmB({sound: async () => endpoint, getMode: () => 'ym2610',
+    onKeyLatchChange: keyed => gates.push([keyed, adapter.getSettings().keyed]),
     referenceChip: {
       load(actual, profile) {
         assert.strictEqual(actual, endpoint);
@@ -133,18 +140,37 @@ test('a captured ADPCM-B sample retains its exact chip rate and editable working
       close() {},
     }});
   const sampleRate = deltaN * clockHz / (144 * 65536);
-  adapter.applySample({name: 'VGM sample', bytes: new Uint8Array(512).fill(0x31),
+  adapter.applySample({name: 'VGM sample', bytes: new Uint8Array(512).fill(0x31), address,
     rootNote: 60, volume: 88, sampleRate, clockHz, repeat: true, left: true, right: false});
+  const initial = adapter.getSettings();
+  assert.equal(initial.sampleStart, address);
+  assert.equal(initial.sampleEnd, address + 512);
   await adapter.prepare();
   assert.equal(await adapter.noteOn(60, 'root'), true);
   assert.deepEqual(calls, [['off'], ['load', 0x31, 0], ['range', 0, 512],
     ['rate', deltaN], ['level', 88], ['pan', true, false], ['on', true]]);
 
+  const callCount = calls.length;
+  adapter.setRange({start: address + 256});
+  assert.throws(() => adapter.setRange({end: address + 768}), /inside the loaded ROM sample/);
+  assert.throws(() => adapter.setRange({start: address + 1}), /aligned/);
+  assert.equal(adapter.getSettings().start, address + 256);
+  assert.equal(adapter.getSample().bytes.length, 512);
+  assert.equal(calls.length, callCount, 'range edits must wait until the next key on');
+
   adapter.setSettings({rootNote: 72, left: false, right: true, volume: 31});
   assert.deepEqual(calls.slice(-3), [['level', 31], ['pan', false, true], ['rate', deltaN / 2]]);
+  assert.equal(adapter.getSettings().activeDeltaN, deltaN / 2);
+  assert.equal(adapter.getSettings().playbackRate, sampleRate / 2);
   adapter.noteOff('root');
   assert.deepEqual(calls.at(-1), ['off']);
+  assert.deepEqual(gates, [[true, true], [false, false]]);
+  assert.equal(adapter.getSettings().activeDeltaN, deltaN);
+  assert.equal(adapter.getSettings().playbackRate, sampleRate);
   assert.equal(adapter.getSample().sampleRate, sampleRate);
+  assert.equal(await adapter.play(), true);
+  assert.deepEqual(calls.filter(([kind]) => kind === 'range').at(-1), ['range', 256, 512]);
+  assert.equal(calls.filter(([kind]) => kind === 'load').length, 1);
 
   await adapter.loadSample(wav, {name: 'Replacement.wav'});
   const replacement = adapter.getSample();
@@ -152,6 +178,26 @@ test('a captured ADPCM-B sample retains its exact chip rate and editable working
   assert.equal(replacement.sampleRate, 16000);
   assert.equal(replacement.right, true);
   assert.equal(replacement.left, false);
+  assert.equal(replacement.address, undefined);
+  assert.equal(replacement.start, undefined);
+  assert.equal(adapter.getSettings().start, 0xc00000);
+});
+
+test('raw Delta-N spans 1 to 65535 and retains an exact quantized base rate', () => {
+  const adapter = createFm2610AdpcmB({sound: () => assert.fail('Rate edits should not open audio.')});
+  assert.throws(() => adapter.setDeltaN(0), /Delta-N/);
+  assert.throws(() => adapter.setDeltaN(65536), /Delta-N/);
+  for (const deltaN of [1, 65535]) {
+    const settings = adapter.setDeltaN(deltaN);
+    const exactRate = deltaN * 8000000 / (144 * 65536);
+    assert.equal(settings.deltaN, deltaN);
+    assert.equal(settings.sampleRate, exactRate);
+    assert.equal(settings.playbackRate, exactRate);
+    assert.equal(adapter.getSample().deltaN, deltaN);
+  }
+  adapter.setSettings({sampleRate: 12000});
+  assert.equal(adapter.getSample().deltaN, undefined);
+  assert.equal(adapter.getSettings().deltaN, Math.round(12000 * 144 * 65536 / 8000000));
 });
 
 for (const variant of [false, true]) {
@@ -177,6 +223,8 @@ for (const variant of [false, true]) {
       assert.equal(adpcmB.registers[0], 0xb0);
       assert.equal(adpcmB.registers[2] | adpcmB.registers[3] << 8, 0xc000);
       assert.equal(adpcmB.registers[4] | adpcmB.registers[5] << 8, 0xc001);
+      adapter.setRange({start: 0xc00100});
+      assert.equal(adpcmB.registers[2] | adpcmB.registers[3] << 8, 0xc000, 'range waits for a new key on');
       core.generateStereo(50000);
       assert.ok(core.generateStereo(1024).left.some(value => Math.abs(value) > .01), 'Repeat runs beyond the first pass');
       adapter.setSettings({volume: 42, sampleRate: FM2610_ADPCM_B_MAX_RATE});
@@ -190,6 +238,8 @@ for (const variant of [false, true]) {
       assert.equal(await adapter.noteOn(0, 'lower'), true);
       assert.equal(deltaN(), 1);
       assert.equal(adpcmB.registers[0], 0xa0);
+      assert.equal(adpcmB.registers[2] | adpcmB.registers[3] << 8, 0xc001);
+      assert.equal(adpcmB.registers[4] | adpcmB.registers[5] << 8, 0xc001);
       assert.equal(uploads, 1, 'Metadata and note changes retain the loaded ROM');
       adapter.invalidate();
       assert.equal(await adapter.play(), true);

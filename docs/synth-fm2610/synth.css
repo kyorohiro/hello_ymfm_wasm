@@ -196,10 +196,41 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .fm2610-inline-controls input[type="range"], .fm2610-voice input[type="range"] { width: 7rem; margin: 0; }
 .fm2610-section-note { color: var(--muted); margin-block: 6px; font-size: .84rem; }
 #adpcmAWaveform, #adpcmBWaveform { display: block; width: 100%; height: clamp(92px, 16vw, 144px); margin-top: 8px; border: 1px solid var(--border); border-radius: 6px; }
+.fm2610-adpcm-range-plot { position: relative; margin-top: 8px; }
+.fm2610-adpcm-range-plot canvas { margin-top: 0; }
+.fm2610-adpcm-range-overlay {
+  position: absolute; inset: 1px; overflow: hidden; border-radius: 5px;
+  cursor: ew-resize; touch-action: none; user-select: none;
+}
+.fm2610-adpcm-range-selection { position: absolute; inset-block: 0; background: #9ad7c220; pointer-events: none; }
+.fm2610-adpcm-range-marker {
+  position: absolute; inset: 0; color: #9ad7c2; pointer-events: none;
+}
+.fm2610-adpcm-range-marker:last-child { color: var(--accent); }
+.fm2610-adpcm-range-marker::before {
+  content: ""; position: absolute; inset-block: 0; width: 2px; background: currentColor;
+  left: clamp(0px, calc(var(--marker-position) - 1px), calc(100% - 2px));
+}
+.fm2610-adpcm-range-marker span {
+  position: absolute; display: grid; place-items: center; width: 24px; height: 23px;
+  border: 1px solid currentColor; border-radius: 4px; background: #18150f;
+  font: 700 .76rem var(--mono); pointer-events: auto;
+}
+.fm2610-adpcm-range-marker [data-range-marker="start"] {
+  top: 5px; left: clamp(4px, calc(var(--marker-position) + 4px), calc(100% - 28px));
+}
+.fm2610-adpcm-range-marker [data-range-marker="end"] {
+  bottom: 5px; left: clamp(4px, calc(var(--marker-position) - 28px), calc(100% - 28px));
+}
+.fm2610-adpcm-range-overlay[data-dragging="start"] [data-range-marker="start"],
+.fm2610-adpcm-range-overlay[data-dragging="end"] [data-range-marker="end"] { background: #443521; }
+.fm2610-adpcm-range-hint { margin-top: 4px; }
 #adpcmAPreviewInfo { margin-top: 4px; }
 #adpcmAVgm .fm2610-voice h3 button { min-height: 28px; }
 .fm2610-adpcm-range { margin-top: 9px; }
 .fm2610-adpcm-range .param-control { min-width: calc(9ch + 48px); }
+#adpcmBPanel .fm2610-adpcm-range { margin-top: 0; }
+.param-control.fm2610-adpcm-delta { min-width: calc(5ch + 48px); }
 #adpcmASource { margin-block: 4px 8px; }
 #adpcmBSampleDuration { margin-block: 4px 8px; color: var(--muted); font: .78rem var(--mono); }
 #adpcmBSampleDuration:empty { display: none; }

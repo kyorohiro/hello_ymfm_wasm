@@ -2,6 +2,7 @@
 
 const hexAddress = address => '0x' + address.toString(16).toUpperCase().padStart(6, '0');
 const onOff = value => value ? 'On' : 'Off';
+const rateFormat = new Intl.NumberFormat('en-US', {maximumFractionDigits: 2});
 
 function voiceFields(voice) {
   return {
@@ -63,10 +64,10 @@ export function createFm2610AdpcmReadouts(document, selectA) {
   });
   aPanel.append(aSummary.list, voices);
 
-  const bReadout = readout({...fields, delta: 'Delta-N', rate: 'Playback rate', repeat: 'Repeat'});
+  const bReadout = readout({key: 'Key latch', rom: 'ROM data', rate: 'Playback rate'});
   const bPanel = bReadout.list;
-  bPanel.id = 'adpcmBVgm';
-  bPanel.hidden = true;
+  bPanel.id = 'adpcmBHardware';
+  bPanel.querySelector('[data-field="key"]').title = 'Last Key On or Key Off command; a one-shot can end while the latch is on.';
 
   return {
     aPanel, bPanel,
@@ -79,9 +80,9 @@ export function createFm2610AdpcmReadouts(document, selectA) {
         if (select.getAttribute('aria-pressed') !== pressed) select.setAttribute('aria-pressed', pressed);
       });
     },
-    updateB(state) {
-      bReadout.update({...voiceFields(state), delta: String(state.deltaN),
-        rate: Math.round(state.sampleRate).toLocaleString('en-US') + ' Hz', repeat: onOff(state.repeat)});
+    updateB({keyed, available, playbackRate}) {
+      bReadout.update({key: onOff(keyed), rom: available ? 'Loaded' : 'Unavailable',
+        rate: rateFormat.format(playbackRate) + ' Hz'});
     },
   };
 }

@@ -5,6 +5,7 @@ import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 import {createParamControl} from '../synth/synth_controls.js';
 import {midiToNoteName} from '../synth/synth_keyboard.js';
 import {ADPCM_A_KIT_MAX_SAMPLE_BYTES, normalizeAdpcmAKit} from './adpcm_a_kit.js';
+import {createAdpcmRangeView} from './adpcm_range_view.js';
 import {
   createFm2610AdpcmB, FM2610_ADPCM_B_MAX_RATE, getFm2610AdpcmBRateLimits, getFm2610AdpcmBWaveform,
 } from './adpcm_b.js';
@@ -20,7 +21,7 @@ const A_MAX_FILE_BYTES = 64 * 1024 * 1024;
 const DRUMS = ['Kick', 'Snare', 'Closed hat', 'Tom', 'Block', 'Shaker'];
 const A_VOICES = DRUMS.map((_, index) => index);
 const A_DEFAULT_VOICE = Object.freeze({volume: 27, left: true, right: true});
-const A_ADDRESS_STEP = 256;
+const ADPCM_ADDRESS_STEP = 256;
 export const ADPCM_A_KEYS = 'fghjkl';
 
 function encodeDrumSample(audio, signal) {
@@ -404,18 +405,20 @@ export function setupFm2610Sections({
     if (sample?.bank) {
       const {start, end} = pad.range;
       const span = sample.bank.coveredRange(start, end);
-      return {start, end, span, rom: sample.bank, read: () => sample.bank.read(start, end)};
+      return {start, end, span, rom: sample.bank, read: (from = start, to = end) => sample.bank.read(from, to)};
     }
     if (sample) {
       const address = sample.address ?? A_CUSTOM_START + channel * A_SLOT_BYTES;
       const span = {start: address, end: address + sample.bytes.length};
       const {start, end} = pad.range ?? span;
-      return {start, end, span, rom: sample, read: () => sample.bytes.slice(start - address, end - address)};
+      return {start, end, span, rom: sample,
+        read: (from = start, to = end) => sample.bytes.slice(from - address, to - address)};
     }
     aBuiltIn ??= drumBank(A_RATE);
     const span = aBuiltIn.ranges[channel];
     const {start, end} = pad.range ?? span;
-    return {start, end, span, rom: aBuiltIn, read: () => aBuiltIn.bytes.slice(start - SAMPLE_ADDRESS, end - SAMPLE_ADDRESS)};
+    return {start, end, span, rom: aBuiltIn,
+      read: (from = start, to = end) => aBuiltIn.bytes.slice(from - SAMPLE_ADDRESS, to - SAMPLE_ADDRESS)};
   }
 
   async function playDrum(channel, owner = null) {
@@ -585,6 +588,7 @@ export function setupFm2610Sections({
   Object.assign(aWaveform, {id: 'adpcmAWaveform', width: 900, height: 144});
   aWaveform.setAttribute('role', 'img');
   aWaveform.setAttribute('aria-label', 'Decoded ADPCM-A sample waveform');
+  const aRangeView = createAdpcmRangeView(aWaveform, 'adpcmA', editAdpcmARange);
   const aWave = createSongWaveView(aWaveform, getFm2610AdpcmAWaveform, report);
   const aPreviewInfo = element('p', '', 'fm2610-sample-name');
   aPreviewInfo.id = 'adpcmAPreviewInfo';
@@ -602,30 +606,68 @@ export function setupFm2610Sections({
   const aVoiceLevel = slider('Voice level', 0, 31, 1, 0, volume => editVoiceA({volume}));
   const panLeft = toggle('Pan left', false, left => editVoiceA({left}));
   const panRight = toggle('Pan right', false, right => editVoiceA({right}));
-  const aStart = addressControl('ROM start', 'start');
-  const aEnd = addressControl('ROM end', 'end');
-  aEnd.element.title = 'Exclusive end address. Applies on the next key press or Play sample.';
+  const aStart = addressControl('ROM start', value => editAdpcmARange('start', value));
+  const aEnd = addressControl('ROM end', value => editAdpcmARange('end', value));
   aSampleControls.append(aVoiceLevel.label, panLeft, panRight, aStart.element, aEnd.element);
   aEditor.append(aPreviewToolbar, aSampleControls);
-  adpcmAPanel.append(aWaveform, aPreviewInfo);
+  adpcmAPanel.append(aRangeView.plot, aRangeView.hint, aPreviewInfo);
 
-  function addressControl(label, field) {
+  function addressControl(label, onChange) {
     const control = createParamControl({
-      label, min: 0, max: 0x1000000, step: A_ADDRESS_STEP, value: 0,
+      label, min: 0, max: 0x1000000, step: ADPCM_ADDRESS_STEP, value: 0,
       wheelAdjust: false,
       formatValue: value => '0x' + value.toString(16).toUpperCase().padStart(6, '0'),
-      onChange(value) {
-        const window = padWindow(aPreviewVoice);
-        if (!window.span || window[field] === value) return;
-        const {start, end} = window;
-        aPads[aPreviewVoice].range = {start, end, [field]: value};
-        updateWorkingAdpcmA();
-      },
+      onChange,
     });
+    if (label === 'ROM end') control.element.title = 'Exclusive end address. Applies on the next key press or Play sample.';
+    nameParameterButtons(control, label);
+    return control;
+  }
+
+  function nameParameterButtons(control, label) {
     const [minus, plus] = control.element.querySelectorAll('.param-button');
     minus.setAttribute('aria-label', 'Decrease ' + label);
     plus.setAttribute('aria-label', 'Increase ' + label);
-    return control;
+  }
+
+  function snapAddress(address, view) {
+    const position = view ? Math.max(view.first, Math.min(view.last, address)) : address;
+    return Math.round(position / ADPCM_ADDRESS_STEP) * ADPCM_ADDRESS_STEP;
+  }
+
+  function padRangeLimits({start, end, span}, field) {
+    return field === 'start' ?
+      {min: Math.max(span.start, end - ADPCM_A_KIT_MAX_SAMPLE_BYTES), max: end - ADPCM_ADDRESS_STEP} :
+      {min: start + ADPCM_ADDRESS_STEP, max: Math.min(span.end, start + ADPCM_A_KIT_MAX_SAMPLE_BYTES)};
+  }
+
+  function editAdpcmARange(field, address, view) {
+    if (isFollowingAdpcm('adpcm-a')) return;
+    const window = padWindow(aPreviewVoice);
+    if (!window.span || (view && (view.channel !== aPreviewVoice || view.rom !== window.rom))) return;
+    const {min, max} = padRangeLimits(window, field);
+    const value = Math.max(min, Math.min(max, snapAddress(address, view)));
+    if (window[field] === value) return;
+    const {start, end} = window;
+    aPads[aPreviewVoice].range = {start, end, [field]: value};
+    updateWorkingAdpcmA();
+  }
+
+  function cancelAdpcmARangeDrag() {
+    aStart.cancelDrag();
+    aEnd.cancelDrag();
+    aRangeView.cancelDrag();
+  }
+
+  function padWaveBounds(sample, {span, start, end}) {
+    if (!sample?.bank) return span;
+    const previous = sample.waveBounds ??= {start, end};
+    if (previous.start <= start && end <= previous.end) return previous;
+    const first = Math.min(previous.start, start), last = Math.max(previous.end, end);
+    // Start at the captured sound. Keep any visible neighboring material
+    // when trimming, but avoid zooming out to the whole game's ROM bank.
+    sample.waveBounds = last - first <= ADPCM_A_KIT_MAX_SAMPLE_BYTES ? {start: first, end: last} : {start, end};
+    return sample.waveBounds;
   }
 
   function editVoiceA(changes) {
@@ -642,10 +684,7 @@ export function setupFm2610Sections({
   function selectSongAdpcmA(channel) {
     const observed = isFollowingAdpcm('adpcm-a') ? songSnapshot.adpcm.adpcmA : null;
     const selected = channel ?? (observed ? recentAdpcmAPad(observed) : aLastTrigger);
-    if (aPreviewVoice !== selected) {
-      aStart.cancelDrag();
-      aEnd.cancelDrag();
-    }
+    if (aPreviewVoice !== selected) cancelAdpcmARangeDrag();
     aPinnedVoice = channel;
     aPreviewVoice = selected;
     if (observed) adpcmReadouts.updateA(observed, selected);
@@ -654,7 +693,8 @@ export function setupFm2610Sections({
 
   function updateWorkingAdpcmA() {
     const {voice, sample} = aPads[aPreviewVoice];
-    const {span, start, end, rom, read} = padWindow(aPreviewVoice);
+    const window = padWindow(aPreviewVoice);
+    const {span, start, end, rom, read} = window;
     const available = Boolean(span && end > start);
     for (const [index, pad] of aPads.entries()) pad.select.setAttribute('aria-pressed', String(index === aPreviewVoice));
     aAuto.setAttribute('aria-pressed', String(aPinnedVoice === null));
@@ -662,17 +702,24 @@ export function setupFm2610Sections({
     aVoiceLevel.setValue(voice.volume);
     panLeft.querySelector('input').checked = voice.left;
     panRight.querySelector('input').checked = voice.right;
-    if (available) {
-      aStart.updateRange(Math.max(span.start, end - ADPCM_A_KIT_MAX_SAMPLE_BYTES), end - A_ADDRESS_STEP);
-      aEnd.updateRange(start + A_ADDRESS_STEP, Math.min(span.end, start + ADPCM_A_KIT_MAX_SAMPLE_BYTES));
-    }
-    for (const [control, value] of [[aStart, start], [aEnd, end]]) {
-      control.updateVisual(value);
+    for (const [control, field] of [[aStart, 'start'], [aEnd, 'end']]) {
+      if (available) {
+        const {min, max} = padRangeLimits(window, field);
+        control.updateRange(min, max);
+      }
+      control.updateVisual(window[field]);
       for (const button of control.element.querySelectorAll('button')) button.disabled = !available;
     }
     const length = available ? (2 * (end - start) / A_RATE).toFixed(3) + ' s' : 'ROM data unavailable';
     aPreviewInfo.textContent = 'A' + (aPreviewVoice + 1) + ' · ' + (sample?.name ?? DRUMS[aPreviewVoice]) + ' · ' + length;
-    void aWave.show(available ? rom : null, start, end, read);
+    if (!available) {
+      aRangeView.show(null);
+      void aWave.show(null);
+      return;
+    }
+    const {start: first, end: last} = padWaveBounds(sample, window);
+    aRangeView.show({channel: aPreviewVoice, rom, first, last, start, end});
+    void aWave.show(rom, first, last, () => read(first, last));
   }
 
   function adoptAdpcmA(sourceReference) {
@@ -684,8 +731,7 @@ export function setupFm2610Sections({
     const bank = reader.retainAdpcmARom(snapshot);
     if (!bank) return;
     aAppliedSnapshots.add(snapshot);
-    aStart.cancelDrag();
-    aEnd.cancelDrag();
+    cancelAdpcmARangeDrag();
     releaseAdpcmAKeyboard();
     const channels = programmed.map(voice => voice.channel);
     stopDrums(channels);
@@ -742,8 +788,7 @@ export function setupFm2610Sections({
   function applyAdpcmAKit(kit) {
     const {level, pads} = normalizeAdpcmAKit(kit);
     stopDrums();
-    aStart.cancelDrag();
-    aEnd.cancelDrag();
+    cancelAdpcmARangeDrag();
     aState?.customLoads.fill(null);
     aKitSource = '';
     aLevel = level;
@@ -761,7 +806,7 @@ export function setupFm2610Sections({
     if (!isFollowingAdpcm('adpcm-a')) updateWorkingAdpcmA();
   }
 
-  const adpcmB = createFm2610AdpcmB({sound, getMode});
+  const adpcmB = createFm2610AdpcmB({sound, getMode, onKeyLatchChange: updateAdpcmBHardware});
   const bDefault = adpcmB.getSettings();
   const bName = element('p', '', 'fm2610-sample-name');
   bName.setAttribute('aria-live', 'polite');
@@ -771,6 +816,7 @@ export function setupFm2610Sections({
   Object.assign(bWaveform, {id: 'adpcmBWaveform', width: 900, height: 144});
   bWaveform.setAttribute('role', 'img');
   bWaveform.setAttribute('aria-label', 'Decoded ADPCM-B sample waveform');
+  const bRangeView = createAdpcmRangeView(bWaveform, 'adpcmB', editAdpcmBRange);
   const bDuration = element('p');
   bDuration.id = 'adpcmBSampleDuration';
   const bPicker = element('input');
@@ -780,11 +826,30 @@ export function setupFm2610Sections({
   let bEditorPeaks;
   const bWave = createSongWaveView(bWaveform, getFm2610AdpcmBWaveform, report);
   let bPreparedSample;
+  let bRangeSource = {}, bWasFollowing = false;
+
+  const bStart = addressControl('ROM start', value => editAdpcmBRange('start', value));
+  const bEnd = addressControl('ROM end', value => editAdpcmBRange('end', value));
+  const bDelta = createParamControl({label: 'Delta-N', min: 1, max: 65535, step: 1,
+    value: bDefault.deltaN, wheelAdjust: false, onChange(deltaN) {
+      adpcmB.setDeltaN(deltaN);
+      renderAdpcmB();
+    }});
+  nameParameterButtons(bDelta, 'Delta-N');
+  bDelta.element.classList.add('fm2610-adpcm-delta');
+  bDelta.element.title = 'Delta-N at the root note. Keyboard notes transpose this rate.';
 
   const bRoot = createParamControl({label: 'Root note', min: 0, max: 127, step: 1,
     value: bDefault.rootNote, formatValue: midiToNoteName, wheelAdjust: false,
-    onChange: rootNote => adpcmB.setSettings({rootNote})});
+    onChange(rootNote) {
+      adpcmB.setSettings({rootNote});
+      renderAdpcmB();
+    }});
   const bRate = slider('Base rate (Hz)', 1, FM2610_ADPCM_B_MAX_RATE, 1, bDefault.sampleRate, sampleRate => {
+    const {clockHz} = adpcmB.getSettings();
+    if (clockHz === undefined) {
+      sampleRate = Math.max(1, Math.min(FM2610_ADPCM_B_MAX_RATE, Math.round(sampleRate)));
+    }
     adpcmB.setSettings({sampleRate});
     renderAdpcmB();
   });
@@ -796,8 +861,32 @@ export function setupFm2610Sections({
   const bRight = toggle('Right', true, right => adpcmB.setSettings({right}));
   const bSave = button('Save sample…', () => saveAdpcmBSample(adpcmB.getSample()));
 
-  function showAdpcmBDuration({byteLength, sampleRate}) {
-    bDuration.textContent = (2 * byteLength / sampleRate).toFixed(3) + ' s at base rate';
+  function showAdpcmBDuration({start, end, sampleRate}) {
+    bDuration.textContent = (2 * (end - start) / sampleRate).toFixed(3) + ' s at base rate';
+  }
+
+  function cancelAdpcmBRangeDrag() {
+    bStart.cancelDrag();
+    bEnd.cancelDrag();
+    bRangeView.cancelDrag();
+  }
+
+  function editAdpcmBRange(field, address, view) {
+    if (isFollowingAdpcm('adpcm-b') || (view && view.rom !== bRangeSource)) return;
+    const settings = adpcmB.getSettings();
+    const {sampleStart, sampleEnd, start, end} = settings;
+    const min = field === 'start' ? sampleStart : start + ADPCM_ADDRESS_STEP;
+    const max = field === 'start' ? end - ADPCM_ADDRESS_STEP : sampleEnd;
+    const value = Math.max(min, Math.min(max, snapAddress(address, view)));
+    if (value === settings[field]) return;
+    adpcmB.setRange({[field]: value});
+    renderAdpcmB();
+  }
+
+  function updateAdpcmBHardware() {
+    if (isFollowingAdpcm('adpcm-b')) return;
+    const {keyed, playbackRate} = adpcmB.getSettings();
+    adpcmReadouts.updateB({keyed, playbackRate, available: true});
   }
 
   async function refreshAdpcmBWaveform() {
@@ -819,10 +908,15 @@ export function setupFm2610Sections({
     }
   }
 
-  function renderAdpcmBParameters({rootNote, sampleRate, volume, repeat, clockHz, left = true, right = true}) {
+  function renderAdpcmBParameters({rootNote, sampleRate, volume, repeat, clockHz, deltaN, start, end,
+    left = true, right = true}) {
+    bStart.updateVisual(start);
+    bEnd.updateVisual(end);
+    bDelta.updateVisual(deltaN);
     bRoot.updateVisual(rootNote);
     const {min, max} = getFm2610AdpcmBRateLimits(clockHz);
-    Object.assign(bRateInput, {min, max, step: clockHz === undefined ? 1 : 'any'});
+    Object.assign(bRateInput, {min: Math.min(min, sampleRate), max: Math.max(max, sampleRate),
+      step: clockHz === undefined && Number.isInteger(sampleRate) ? 1 : 'any'});
     bRate.setValue(sampleRate, Number.isInteger(sampleRate) ? null : sampleRate.toFixed(2));
     bVolume.setValue(volume);
     bRepeat.querySelector('input').checked = repeat;
@@ -840,12 +934,20 @@ export function setupFm2610Sections({
   function renderAdpcmB() {
     const following = isFollowingAdpcm('adpcm-b');
     renderAdpcmBControls(following);
-    if (following) return;
+    if (following) {
+      bRangeView.show(null);
+      return;
+    }
     const settings = adpcmB.getSettings();
+    const {start, end, sampleStart, sampleEnd} = settings;
+    bStart.updateRange(sampleStart, end - ADPCM_ADDRESS_STEP);
+    bEnd.updateRange(start + ADPCM_ADDRESS_STEP, sampleEnd);
+    bRangeView.show({channel: 0, rom: bRangeSource, first: sampleStart, last: sampleEnd, start, end});
     renderAdpcmBParameters(settings);
     bName.textContent = bPending ? 'Preparing WAV…' : settings.name;
     bName.title = settings.name;
     showAdpcmBDuration(settings);
+    updateAdpcmBHardware();
   }
 
   function applyAdpcmBSample(sample) {
@@ -853,6 +955,8 @@ export function setupFm2610Sections({
     bPending = null;
     releaseAdpcmBKeyboard();
     adpcmB.applySample(sample);
+    cancelAdpcmBRangeDrag();
+    bRangeSource = {};
     bPreparedSample = null;
     renderAdpcmB();
     void refreshAdpcmBWaveform();
@@ -868,6 +972,8 @@ export function setupFm2610Sections({
     renderAdpcmB();
     try {
       await adpcmB.loadSample(file, {signal: controller.signal});
+      cancelAdpcmBRangeDrag();
+      bRangeSource = {};
       bPreparedSample = null;
       releaseAdpcmBKeyboard();
       void refreshAdpcmBWaveform();
@@ -889,9 +995,16 @@ export function setupFm2610Sections({
     adpcmB.stop();
   }), button('Reset to pluck', () => applyAdpcmBSample(null)), bSave);
   const bParameters = element('div', '', 'fm2610-inline-controls');
-  bParameters.append(bRoot.element, bRate.label, bVolume.label, bLeft, bRight, bRepeat);
+  const bRangeControls = element('div', '', 'fm2610-inline-controls fm2610-adpcm-range');
+  bRangeControls.append(bStart.element, bEnd.element);
+  const bPan = element('div', '', 'fm2610-inline-controls');
+  bPan.setAttribute('role', 'group');
+  bPan.setAttribute('aria-label', 'Pan');
+  bPan.append(element('span', 'Pan'), bLeft, bRight);
+  bParameters.append(bRangeControls, bDelta.element, bRoot.element, bRate.label, bVolume.label, bPan, bRepeat);
   const bHeader = title('ADPCM-B · 1 voice', 'Set the root note for keyboard playback. Repeat applies when the next note starts.');
-  adpcmBPanel.append(bHeader, bName, bUnavailable, bToolbar, adpcmReadouts.bPanel, bWaveform, bDuration, bParameters, bPicker);
+  adpcmBPanel.append(bHeader, bName, bUnavailable, bToolbar, bRangeView.plot, bRangeView.hint, bDuration,
+    bParameters, adpcmReadouts.bPanel, bPicker);
   renderAdpcmB();
   void refreshAdpcmBWaveform();
 
@@ -907,18 +1020,19 @@ export function setupFm2610Sections({
     const state = songSnapshot.adpcm?.adpcmB;
     const {clockHz} = songSnapshot;
     const name = referenceName();
-    const bytes = state?.available && state.deltaN > 0 && clockHz >= 100000
+    const validClock = Number.isInteger(clockHz) && clockHz >= 100000 && clockHz <= 24000000;
+    const bytes = state?.available && state.deltaN > 0 && validClock
       ? reference.reader.readAdpcmBBytes(songSnapshot) : null;
     let notice = name + ' ADPCM-B sample data is unavailable at this position.';
     if (bytes) {
       const previous = adpcmB.getSettings();
-      const {sampleRate, volume, left, right, repeat} = state;
-      applyAdpcmBSample({name: name + ' sample', bytes, sampleRate, clockHz,
+      const {start: address, sampleRate, volume, left, right, repeat} = state;
+      applyAdpcmBSample({name: name + ' sample', bytes, address, sampleRate, clockHz,
         rootNote: previous.clockHz === undefined ? 60 : previous.rootNote, volume, left, right, repeat});
       notice = '';
     } else if (state?.available && !state.deltaN) {
       notice = name + ' ADPCM-B playback rate is zero.';
-    } else if (state?.available && clockHz < 100000) {
+    } else if (state?.available && !validClock) {
       notice = name + ' ADPCM-B clock is outside the playback range.';
     }
     bAppliedSnapshots.set(songSnapshot, notice);
@@ -935,8 +1049,8 @@ export function setupFm2610Sections({
     if (following !== wasFollowing) {
       releaseAdpcmAKeyboard();
       if (following) stopDrums();
-      aStart.cancelDrag();
-      aEnd.cancelDrag();
+      cancelAdpcmARangeDrag();
+      if (following) aRangeView.show(null);
       aEditor.hidden = following;
       adpcmReadouts.aPanel.hidden = !following;
     }
@@ -959,8 +1073,8 @@ export function setupFm2610Sections({
       updateWorkingAdpcmA();
     }
     if (aWasVisible && !visible) {
-      aStart.cancelDrag();
-      aEnd.cancelDrag();
+      aRangeView.show(null);
+      cancelAdpcmARangeDrag();
       aWave.cancel();
     }
     aWasVisible = visible;
@@ -969,12 +1083,12 @@ export function setupFm2610Sections({
   function refreshSongAdpcmView() {
     refreshWorkingAdpcmA();
     const followB = isFollowingAdpcm('adpcm-b');
-    const wasFollowingB = !adpcmReadouts.bPanel.hidden;
     const unavailable = adoptAdpcmB();
     bUnavailable.hidden = !unavailable;
     if (bUnavailable.textContent !== unavailable) bUnavailable.textContent = unavailable;
-    if (followB !== wasFollowingB) {
-      adpcmReadouts.bPanel.hidden = !followB;
+    if (followB !== bWasFollowing) {
+      bWasFollowing = followB;
+      cancelAdpcmBRangeDrag();
       renderAdpcmB();
       if (followB) {
         releaseAdpcmBKeyboard();
@@ -1001,13 +1115,18 @@ export function setupFm2610Sections({
     const duration = state.available && state.sampleRate > 0
       ? (2 * (state.end - state.start) / state.sampleRate).toFixed(3) + ' s at playback rate' : '';
     if (bDuration.textContent !== duration) bDuration.textContent = duration;
-    adpcmReadouts.updateB(state);
+    adpcmReadouts.updateB({...state, playbackRate: state.sampleRate});
     renderAdpcmBParameters({...state, clockHz: songSnapshot.clockHz, rootNote: adpcmB.getSettings().rootNote});
     void bWave.show(state.available ? state.rom : null, state.start, state.end,
       () => reference.reader.readAdpcmBBytes(songSnapshot));
   }
 
   function setPerformanceReference(next, visible) {
+    if (reference?.frozen && (reference.snapshot !== next?.snapshot || !next.frozen)) {
+      cancelAdpcmARangeDrag();
+      cancelAdpcmBRangeDrag();
+    }
+    if (visibleSource === 'adpcm-b' && visible !== 'adpcm-b') cancelAdpcmBRangeDrag();
     if (reference?.kind !== next?.kind) {
       bWave.reset();
     }

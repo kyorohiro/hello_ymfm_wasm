@@ -35,6 +35,17 @@ test('captured ADPCM-B saves the chip clock, fractional base rate and stereo rou
   assert.deepEqual(await readAdpcmBSample(writeAdpcmBSample(captured)), captured);
 });
 
+test('edited ADPCM-B round trips its original address, aligned range and full bytes', async () => {
+  const deltaN = 1;
+  const edited = {...sample, deltaN, sampleRate: deltaN * 8000000 / (144 * 65536),
+    address: 0x11000, start: 0x11100, end: 0x11200, bytes: new Uint8Array(768).fill(0x68)};
+  const archive = writeAdpcmBSample(edited);
+  assert.deepEqual(await readAdpcmBSample(archive), edited);
+  for (const range of [{address: -256}, {start: 0x11101}, {end: 0x11300 + 256}, {start: edited.end}]) {
+    assert.throws(() => writeAdpcmBSample({...edited, ...range}), /aligned.*inside the loaded ROM sample/);
+  }
+});
+
 test('ADPCM-B sample reader verifies ZIP checksums, format and ROM alignment', async () => {
   const archive = writeAdpcmBSample(sample);
   const corrupt = archive.slice();
