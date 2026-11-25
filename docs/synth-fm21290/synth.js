@@ -127,8 +127,11 @@ function render() {
   field('Frequency',o.mode,0,v=>({mode:v}),['ratio','fixed']);
   for(const [k,title,max] of [['outputLevel','Level',99],['coarse','Coarse',31],['fine','Fine',99],['detune','Detune · neutral 7',14],['rateScaling','Rate scaling',7],['ampModSensitivity','AM sensitivity',3],['velocitySensitivity','Velocity sensitivity',7]])
     field(title,o[k],max,v=>({[k]:v}));
-  for(const [k,max] of [['breakpoint',99],['leftDepth',99],['rightDepth',99],['leftCurve',3],['rightCurve',3]])
-    field(k,o.keyboardScaling[k],max,v=>({keyboardScaling:{[k]:v}}));
+  for(const [k,title] of [['breakpoint','Breakpoint'],['leftDepth','Left depth'],['rightDepth','Right depth']])
+    field(title,o.keyboardScaling[k],99,v=>({keyboardScaling:{[k]:v}}));
+  const curves=['− Linear','− Exponential','+ Exponential','+ Linear'];
+  for(const [k,title] of [['leftCurve','Left curve'],['rightCurve','Right curve']])
+    field(title,curves[o.keyboardScaling[k]],3,v=>({keyboardScaling:{[k]:curves.indexOf(v)}}),curves);
   for(const k of ['rates','levels'])o.envelope[k].forEach((v,i)=>field((k==='rates'?'R':'L')+(i+1),v,99,x=>{
     const values=o.envelope[k].slice();values[i]=x;return {envelope:{[k]:values}};
   }));

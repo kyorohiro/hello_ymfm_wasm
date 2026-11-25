@@ -104,3 +104,36 @@ test('MIDI velocity and output level produce firmware attenuation bytes on the s
   api.keyOn(3,69,0);
   assert.equal(core.voices[3].held,false);
 });
+
+test('v1.8 keyboard scaling writes the four curves on opposite sides of the breakpoint',()=>{
+  const notes=[0,36,54,55,56,57,58,59,60,61,72,84,127];
+  for(const [leftCurve,rightCurve,expected] of [
+    [0,1,[175,117,87,83,83,83,83,83,83,85,89,95,255]],
+    [1,0,[113,87,83,83,83,83,93,93,93,105,139,185,255]],
+    [2,3,[53,79,83,83,83,83,73,73,73,61,27,15,15]],
+    [3,2,[15,49,79,83,83,83,83,83,83,81,77,71,15]],
+  ]) {
+    const keyboardScaling={breakpoint:40,leftDepth:32,rightDepth:71,leftCurve,rightCurve};
+    const {api,core}=setup({operators:{1:{outputLevel:65,keyboardScaling}}});
+    const actual=notes.map(note=>{api.keyOn(9,note,127);return core.reg[0xd9];});
+    assert.deepEqual(actual,expected);
+    assert.equal(core.reg[0xd0],255);
+  }
+});
+
+test('extreme breakpoints and unsigned transpose follow v1.8 lookup addressing',()=>{
+  const keyboardScaling={breakpoint:0,leftDepth:99,rightDepth:99,leftCurve:1,rightCurve:1};
+  const patch={operators:{1:{outputLevel:65,keyboardScaling}}};
+  const {core,api}=setup(patch);
+  api.keyOn(0,127,127);
+  assert.equal(core.reg[0xd0],97);
+  const highPitch=core.reg.slice(0,2);
+  api.setPatch(voiceToPreset(presetToVoice({...patch,transpose:23})));
+  api.keyOn(0,0,127);
+  assert.deepEqual(core.reg.slice(0,2),highPitch);
+  assert.equal(core.reg[0xd0],97);
+  keyboardScaling.breakpoint=99;
+  api.setPatch(voiceToPreset(presetToVoice(patch)));
+  api.keyOn(0,0,127);
+  assert.equal(core.reg[0xd0],113);
+});

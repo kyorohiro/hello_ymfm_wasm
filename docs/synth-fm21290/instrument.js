@@ -25,6 +25,39 @@ function velocityAttenuation(velocity, sensitivity) {
   return 15 - 2*sensitivity + ((scale*sensitivity) >> 3);
 }
 
+// v1.8 addresses the exponential, linear, and log attenuation tables
+// consecutively. At the extremes the unchecked curve index crosses a table
+// boundary (maximum distance 38). Retain the adjacent lookup values.
+const linearStart = 36;
+const keyCurveBytes = [
+  0,1,2,3,4,5,6,7,8,9,11,14,16,19,23,28,33,39,
+  47,57,67,80,95,113,134,160,190,224,255,255,255,255,255,255,255,255,
+  0,8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128,136,
+  144,152,160,168,178,184,192,200,208,216,224,232,240,248,255,255,255,255,
+  ...lowLevelAttenuations,
+];
+function keyCode(note) {
+  // High byte of TABLE_MIDI_KEY_TO_LOG_F for all 128 MIDI keys.
+  return Math.max(0,Math.floor((note-1)*4/3));
+}
+function transposedKeyCode(note, transpose) {
+  // VOICE_ADD performs the subtraction in an unsigned byte before clamping.
+  return keyCode(Math.min(127,(note+transpose-24) & 255));
+}
+function scaledAttenuation(operator, code) {
+  const scale = operator.keyboardScaling;
+  // Curve slot zero stores the result for loop index one.
+  const distance = (code >> 2) + 1 - (keyCode(scale.breakpoint+20) >> 2);
+  const depth = distance > 0 ? scale.rightDepth : scale.leftDepth;
+  const curve = distance > 0 ? scale.rightCurve : scale.leftCurve;
+  const start = curve === 0 || curve === 3 ? linearStart : 0;
+  const weight = keyCurveBytes[start + Math.abs(distance)];
+  const scaledDepth = depth*660 >> 8;
+  const adjustment = Math.min(127,(scaledDepth*weight) >> 8);
+  const base = logAttenuation(operator.outputLevel);
+  return Math.max(0,Math.min(127,curve < 2 ? base+adjustment : base-adjustment));
+}
+
 // Public CH values follow Tetorica's zero-based Code constants. OP labels are 1..6.
 export function createInstrument(write) {
   let preset, cursor = 0;
@@ -35,13 +68,8 @@ export function createInstrument(write) {
     write(address+1, n & 255);
   }
   function output(ch, op, note, velocity) {
-    const p = preset.operators[op], scale = p.keyboardScaling;
-    const distance = note - (scale.breakpoint + 21);
-    const depth = distance < 0 ? scale.leftDepth : scale.rightDepth;
-    const curve = distance < 0 ? scale.leftCurve : scale.rightCurve;
-    const x = Math.min(1, Math.abs(distance) / 48);
-    const change = depth * (curve === 1 || curve === 2 ? x*x : x) * (curve < 2 ? -1 : 1);
-    const attenuation = Math.max(0,Math.min(127, logAttenuation(p.outputLevel) - Math.round(change)));
+    const p = preset.operators[op];
+    const attenuation = scaledAttenuation(p,transposedKeyCode(note,preset.transpose));
     const byte = attenuation*2 + velocityAttenuation(velocity,p.velocitySensitivity);
     write(OUTPUT + (6-op)*16 + ch, Math.max(4,Math.min(255,byte)));
   }
@@ -76,7 +104,8 @@ export function createInstrument(write) {
     if (!preset) throw new Error('Select a patch first');
     keyOff(ch);
     notes[ch]=note; velocities[ch]=velocity;
-    word(PITCH+ch*2, 0x5aa8 + (note-69+preset.transpose-24)*4096/12);
+    const code = transposedKeyCode(note,preset.transpose);
+    word(PITCH+ch*2, (code << 8) | ((code & 3) * 84));
     for (let op=1; op<=6; op++) output(ch,op,note,velocity);
     write(EVENT,ch*4+1);
   }
