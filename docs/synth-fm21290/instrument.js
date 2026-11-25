@@ -115,7 +115,7 @@ export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {})
     const basePitch = (code << 8) | ((code & 3) * 84);
     word(PITCH+ch*2, basePitch);
     for (let op=1; op<=6; op++) output(ch,op,note,velocity);
-    onKeyOn(ch,basePitch);
+    onKeyOn(ch,basePitch,note,velocity,owner);
     write(EVENT,ch*4+1);
   }
   function noteOn(note,velocity=100,owner) {

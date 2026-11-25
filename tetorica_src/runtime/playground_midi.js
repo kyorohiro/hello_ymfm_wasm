@@ -230,10 +230,11 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6, getCloc
  * @param {Function} options.bpm Read the current beats-per-minute value.
  * @param {Function} [options.check] Throw when the current run is cancelled.
  * @param {Function} [options.owner] Return the current live-loop ownership token.
+ * @param {readonly string[]} [options.outputs] Destinations provided by the host.
  * @param {Function} [options.now] Read the scheduling clock in seconds.
  * @returns {Object} MIDI API with output handles, sound-chip mode selection and cleanup helpers.
  */
-export function createMidiApi(invoke, {sleep, bpm, waitBeats, check = ()=>{}, owner = ()=>null, now = ()=>performance.now()/1000}) {
+export function createMidiApi(invoke, {sleep, bpm, waitBeats, outputs=destinations, check = ()=>{}, owner = ()=>null, now = ()=>performance.now()/1000}) {
   let readFile;
   const held=new Map(),pedals=new Map();
   const channelKey=(destination,channel)=>JSON.stringify([destination,channel]);
@@ -268,7 +269,7 @@ export function createMidiApi(invoke, {sleep, bpm, waitBeats, check = ()=>{}, ow
     setFileReader(reader){readFile=reader;},
     async playFile(data,routes){if(owner()!==null)throw new Error('Call midi.playFile at the top level, outside liveLoop');return call('playFile',[data,routes]);},
     output(destination,{channel}={}) {
-      if(!destinations.includes(destination))throw new Error(`Unsupported MIDI output: ${destination}`);
+      if(!outputs.includes(destination))throw new Error(`Unsupported MIDI output: ${destination}`);
       const ch=channel===undefined?0:channel;
       integer(ch,0,15,'channel');
       const handleCall=call;

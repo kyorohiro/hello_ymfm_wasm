@@ -23,6 +23,22 @@
 - 独自コアのCodeでは `chip.setSustain(true)` を呼び、`noteOn` → `noteOff` で鍵を離しても音を保持できる。`chip.setSustain(false)` でペダルを戻す。物理CHを指定する `keyOff(CH1)` は即座にゲートを切る。
 - AUTOは16声から空いた発音枠を探索する。物理CH指定は同じ枠を再トリガする。MSFA選択時は自動割り当てを使う。
 
+## MIDI出力
+
+CodeからはPlaygroundと同じ出力ハンドルを使える。以下は選択中の音色でC4とG4を1拍ずつ鳴らす。
+
+```js
+const out = midi.output('tetorica-fm21290', {channel: CH4});
+await out.play('C4', {duration: 1, velocity: 90});
+await out.noteOn('G4', {velocity: 80});
+await beat(1);
+await out.noteOff('G4');
+```
+
+この出力のノートはAUTOで割り当てる。CH4は論理MIDIチャンネルで、物理ボイスの指定には従来の `chip.keyOn(CH4, ...)` を使う。
+
+外部機器にもノートを送るには、**MIDI output → Find MIDI outputs → Device** でポートを選ぶ。外部送信の初期値はOff。鍵盤・SMFの選択パート・従来のCode APIは **Send channel**、上の出力ハンドルは指定したMIDIチャンネルを使う。同一チャンネル・同音のゲートは最後の離鍵で閉じる。ポート切替時は旧ポートを離鍵し、新しいポートには次の打鍵から送る。サステインは離鍵時刻に反映する。外部送信に対応するメッセージはNote On／Offで、音色は受信機側で選ぶ。Web MIDIが利用できるブラウザで使用する。
+
 ## Keyboard・Code・MIDIを重ねて演奏する
 
 独自コアのAUTOでは同じ音高でも入力ごとに別の物理CHを使う。CodeのStopはCodeの音、Stop MIDIと曲末はMIDIの音だけを離鍵する。MIDIのCC64とCodeの `setSustain` は各入力のノートに作用する。物理CHを明示して再打鍵すると新しい演奏がそのCHを引き継ぎ、以前の演奏から遅れて届いた離鍵を無視する。

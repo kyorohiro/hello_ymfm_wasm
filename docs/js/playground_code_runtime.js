@@ -43,6 +43,7 @@ let nextScheduleRuntime=0;
  * @property {(name:ChipName)=>object|Promise<object>} useSoundChip Borrow a supported chip client.
  * @property {readonly ChipName[]} [supportedSoundChips] Host-owned chip IDs; defaults to the four Genesis instruments.
  * @property {(target:object,method:string,args:unknown[])=>{target:object,channel:number}|null} [resolveNoteTarget] Map nested/aliased Gate methods to one physical channel owner.
+ * @property {Function} [createMidi] Build a scope-owned MIDI output API with shared clock callbacks.
  * @property {()=>object|null} [getFm] Current FM compatibility client.
  * @property {object} [fx] Effect factories and live-effect controls owned by the host.
  * @property {(path:string,options:object,entry:{path:string})=>unknown} [readFile] Read a virtual file; may return a promise.
@@ -68,7 +69,7 @@ let nextScheduleRuntime=0;
  * @template {string} [ChipName=DefaultCodeSoundChip]
  * @param {PlaygroundCodeRuntimeOptions<ChipName>} options
  */
-export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,supportedSoundChips=CODE_SOUND_CHIPS,getFm=()=>null,fx={},
+export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,supportedSoundChips=CODE_SOUND_CHIPS,getFm=()=>null,createMidi,fx={},
   resolveNoteTarget=(target,_method,args)=>Number.isInteger(args[0])?{target,channel:args[0]}:null,
   readFile=()=>{throw Error('Virtual files are unavailable');},prepareSource=source=>source,
   onLog=()=>{},onState=()=>{},beforeStopSoundChips=()=>{},stopSoundChips=()=>{},guardExecution=true,realm=globalThis,
@@ -201,6 +202,7 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,suppor
   function cancelLoop(loop) {
     loopScopes.get(loop)?.controller.abort(stopped());clock.cancelWaits(loop);
     cancelTimedLoop(loop);
+    loopScopes.get(loop)?.midi?.cancelOwner();
     releaseOwned(owner=>owner.loop===loop);
   }
   const live=createPlaygroundLive({runtime,megaDrive:{getFXChain:()=>[],clearFXChain:()=>[]},preparedFxUnits:preparedFx,
@@ -410,6 +412,23 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,suppor
       ...Object.fromEntries(Object.entries(music).filter(([name])=>name!=='play')
         .map(([name,fn])=>[name,(...args)=>{ensure();return fn(...args);} ])),
     };
+    if(createMidi){
+      // A handle declared at the top level may be played by several live loops.
+      // Resolve its MIDI note ledger against the caller at method invocation.
+      function outputFor(caller,destination,options){
+        caller.midi??=createMidi({check:()=>check(caller),bpm:()=>runtime.bpm,now,
+          sleep:seconds=>clock.sleep(seconds,caller.epoch),waitBeats:beats=>clock.waitForBeat(clock.currentBeat()+beats,caller.epoch,caller.loop??null)});
+        return caller.midi.output(destination,options);
+      }
+      globals.midi={output(destination,{channel=0}={}){
+        const options={channel};
+        outputFor(ensure(),destination,options);
+        return Object.fromEntries(['noteOn','noteOff','play'].map(method=>[method,(...args)=>{
+          const handle=outputFor(ensure(),destination,options);
+          return handle[method](...args);
+        }]));
+      }};
+    }
     globals.pg=globals;
     return globals;
   }
@@ -448,6 +467,7 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,suppor
           try {if(activeFx.has(name))activeFx.get(name).restore();else definition.remove();}
           catch(fxError){try{onLog(`[cleanup] ${fxError?.message??String(fxError)}`);}catch{}}
         }
+        scope.midi?.cancelOwner();
         releaseOwned(owner=>owner===scope);
       }
       failure=message;state='error';status=`Code error: ${failure}`;onLog(status);notify();throw error;

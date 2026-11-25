@@ -10,6 +10,8 @@ import {renderRouting} from './routing.js';
 import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
 import {createMsfaNotes} from './msfa_notes.js';
+import {createMidiApi} from '../js/playground_midi.js';
+import {createNoteOutput} from './midi_output.js';
 import {createInstrument} from './instrument.js';
 import {exportSession,importSession} from './session.js';
 import {glassSteps,glassPatch} from './examples.js';
@@ -31,8 +33,36 @@ function writeRegister(address,value) {
   trace.push(address.toString(16).padStart(4,'0')+'  '+value.toString(16).padStart(2,'0'));
   if(trace.length>12)trace.shift();
 }
+let midiAccess=null;
+const noteOutput=createNoteOutput(error=>{
+  el('midiPort').value='';el('midiStatus').textContent=error.message;
+});
+const sendChannel=owner=>owner?.midiChannel??Number(el('sendChannel').value);
+el('sendChannel').append(...Array.from({length:16},(_,i)=>option(i+1,i)));
+function listPorts(){
+  const selected=el('midiPort').value;
+  const outputs=[...midiAccess.outputs.values()].filter(port=>port.state==='connected');
+  el('midiPort').replaceChildren(option('Off',''),...outputs.map(port=>option(port.name||port.id,port.id)));
+  const current=outputs.find(port=>port.id===selected);
+  el('midiPort').value=current?.id??'';
+  noteOutput.select(current??null);
+  el('midiStatus').textContent=outputs.length?'':'No MIDI output devices found.';
+}
+on('connectMidi','click',async()=>{
+  if(!navigator.requestMIDIAccess)throw Error('Web MIDI is unavailable in this browser.');
+  midiAccess=await navigator.requestMIDIAccess({sysex:false});
+  midiAccess.onstatechange=listPorts;listPorts();
+});
+on('midiPort','change',()=>noteOutput.select(midiAccess?.outputs.get(el('midiPort').value)??null));
+window.addEventListener('pagehide',()=>{noteOutput.select(null);el('midiPort').value='';});
 const chip=createInstrument(writeRegister,
-  (keyOn,basePitch)=>writes.push({keyOn,basePitch}), keyOff=>writes.push({keyOff}));
+  (keyOn,basePitch,note,velocity,owner)=>{
+    writes.push({keyOn,basePitch});noteOutput.on(keyOn,sendChannel(owner),note,velocity);
+  },keyOff=>{writes.push({keyOff});noteOutput.off(keyOff);});
+function rawGate(value,owner){
+  chip.rawEvent(value,owner);
+  if((value&3)===1 || (value&3)===2)noteOutput.off((value>>2)&15);
+}
 function applyChipPatch(){
   const patch=preset();
   audio.node.port.postMessage({lfo:patch.lfo,pitchEnvelope:patch.pitchEnvelope});
@@ -76,7 +106,10 @@ async function ensureAudio() {
       }else{
         owner.endpoint=await createDx7Audio(context,master);
         owner.dx=createDx7Client(owner.endpoint.port,owner.endpoint);
-        owner.notes=createMsfaNotes(owner.dx);
+        owner.notes=createMsfaNotes(owner.dx,{
+          on:(slot,source,n,v)=>noteOutput.on(slot,sendChannel(source),n,v),
+          off:slot=>noteOutput.off(slot),
+        });
         await owner.dx.loadSysex(createVoiceSysex(voices[selected]));
       }
       monitor.connect(context,[master]);audio=owner;
@@ -117,6 +150,22 @@ function stopSong(){
   if(midiBendActive)audio?.node?.port.postMessage({bend:0});
   midiBendActive=false;
 }
+let midiVoiceId=0;
+const codeMidiNotes=new Map();
+function releaseMidiVoice(id){
+  const voice=codeMidiNotes.get(id);
+  if(!voice)return;
+  noteOff(voice.note,-1,voice);codeMidiNotes.delete(id);
+}
+function codeMidi(clock){
+  return createMidiApi((method,[destination,channel,note,value])=>{
+    if(method==='noteOn'){
+      const id=++midiVoiceId, voice={midiChannel:channel,note};
+      noteOn(note,value,-1,voice);codeMidiNotes.set(id,voice);return id;
+    }
+    if(method==='release')releaseMidiVoice(value);
+  },{...clock,outputs:['tetorica-fm21290']});
+}
 const physicalGates={keyOff(ch){chip.keyOff(ch,'code');flush();}};
 const runtime=createPlaygroundCodeRuntime({
   prepareSource:source=>'const '+Array.from({length:10},(_,i)=>'CH'+(i+7)+'='+(i+6)).join(',')+';\n'+source,
@@ -130,12 +179,13 @@ const runtime=createPlaygroundCodeRuntime({
     if(name==='fm21290')Object.assign(api,{
       keyOn(ch,n,v){chip.keyOn(ch,n,v,'code');flush();},keyOff(ch){chip.keyOff(ch,'code');flush();},
       setSustain(down){if(typeof down!=='boolean')throw TypeError('Expected boolean sustain');chip.setSustain(down,'code');flush();},
-      writeRegister(a,v){if(a===EVENT)chip.rawEvent(v,'code');else writeRegister(a,v);flush();},
+      writeRegister(a,v){if(a===EVENT)rawGate(v,'code');else writeRegister(a,v);flush();},
     });
     return api;
   },
   resolveNoteTarget:(target,method,args)=>({keyOn:1,keyOff:1}[method]?{target:physicalGates,channel:args[0]}:{target,channel:args[0]}),
-  stopSoundChips:()=>stopOwner('code'),onLog:line=>{el('log').textContent=line;},
+  createMidi:codeMidi,
+  stopSoundChips:()=>{for(const id of codeMidiNotes.keys())releaseMidiVoice(id);stopOwner('code');},onLog:line=>{el('log').textContent=line;},
   onState:s=>{el('apply').disabled=!s.running;el('log').textContent=s.status;},
 });
 function render() {
@@ -349,7 +399,7 @@ on('write','click',async()=>{
   await ensureAudio();
   const read=(id,length)=>{const s=el(id).value;if(!new RegExp('^[0-9a-f]{1,'+length+'}$','i').test(s))throw Error('Invalid hex '+id);return parseInt(s,16);};
   const address=read('addr',4),value=read('data',2);
-  if(address===EVENT)chip.rawEvent(value,'register');else writeRegister(address,value);flush();
+  if(address===EVENT)rawGate(value,'register');else writeRegister(address,value);flush();
 });
 const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
 const mappings='awsedftgyhujk';
