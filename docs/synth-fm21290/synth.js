@@ -19,6 +19,7 @@ import {createVirtualFileReader} from '../js/tetorica_virtual_files/reader.js';
 import {renderFileTree} from '../playground/playground_file_tree.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
 import {readProject,textPath,projectPath,defaultWheel,exportSession,importSession} from './session.js';
+import {setupSynthMenu} from '../synth/synth_menu.js';
 import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {selectFM21290Declarations} from './code_declarations.js';
 import {glassSteps,glassPatch,scoreExample} from './examples.js';
@@ -291,6 +292,7 @@ const runtime=createPlaygroundCodeRuntime({
   onState:s=>{el('apply').disabled=!runnable()||!s.running;el('log').textContent=s.status;},
 });
 function render() {
+  el('menuRegisters').hidden=!isChip();
   draftChanged();
   const p=preset();
   el('bank').replaceChildren(...voices.map((v,i)=>option((i+1)+' · '+voiceToPreset(v).name,i)));
@@ -478,6 +480,27 @@ const codeEditor=setupSynthMonacoEditor({
   openFile:openProjectFile,
   onEdit:draftChanged,run:apply=>el(apply?'apply':'run').click(),
 });
+setupSynthMenu({document,window});
+el('synthMenuPanel').addEventListener('click',event=>{
+  const link=event.target.closest('a[href^="#"]');
+  if(link){
+    if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+    event.preventDefault();
+    const section=el(link.hash.slice(1));
+    if(section.hidden)return;
+    section.scrollIntoView({block:'start'});
+    if(section.id==='codePanel')codeEditor.focus();
+    else section.focus({preventScroll:true});
+    return;
+  }
+  const action=event.target.closest('[data-action]')?.dataset.action;
+  if(action==='newPath'){
+    el('filesPanel').scrollIntoView({block:'start'});el(action).focus({preventScroll:true});
+  }else if(action){
+    if(!event.detail)el('synthMenuButton').focus({preventScroll:true});
+    el(action).click();
+  }
+});
 on('enableEditor','click',async()=>{
   const button=el('enableEditor');button.disabled=true;
   try{button.hidden=await codeEditor.load();if(button.hidden)codeEditor.focus();}
@@ -602,7 +625,7 @@ names.forEach((name,i)=>{
   b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);press(e.pointerId,i);};
   b.onlostpointercapture=e=>release(e.pointerId);el('keys').append(b);
 });
-window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||(e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea,[contenteditable],.monaco-editor')))return;press(e.code,i);});
+window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('#synthMenu[open]')||(e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea,[contenteditable],.monaco-editor')))return;press(e.code,i);});
 window.addEventListener('keyup',e=>release(e.code));
 window.addEventListener('blur',()=>{for(const id of [...held.keys()])release(id);});
 const canvas=el('scope'),ctx=canvas.getContext('2d');
