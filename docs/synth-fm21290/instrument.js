@@ -3,12 +3,26 @@ import {MODE, ALGORITHM, PITCH, RATIO, DETUNE, SENS, RATE, LEVEL, OUTPUT, EVENT,
 
 // PATCH_ACTIVATE_OPERATOR_EG_LEVEL shifts the ROM attenuation right one bit.
 // From edit level 20 onward the original table follows 99 - level.
-const lowEnvelopeAttenuations = [
+const lowLevelAttenuations = [
   127, 122, 118, 114, 110, 107, 104, 102, 100, 98,
   96, 94, 92, 90, 88, 86, 85, 84, 82, 81,
 ];
-function envelopeLevelByte(level) {
-  return (lowEnvelopeAttenuations[level] ?? (99 - level)) >> 1;
+function logAttenuation(level) {
+  return lowLevelAttenuations[level] ?? (99 - level);
+}
+// MIDI Note On maps velocity to a key travel time. The EGS loader uses
+// the high five bits of that time to look up an operator attenuation.
+const keyTravel = [
+  110,100,90,85,80,75,70,65,58,54,50,46,42,38,34,30,
+  28,26,24,22,20,18,16,14,12,10,8,6,4,2,1,0,
+];
+const velocityScale = [
+  0,4,12,21,30,40,46,52,58,64,70,76,82,88,94,100,
+  103,106,109,112,114,116,118,120,122,124,126,128,130,131,132,133,
+];
+function velocityAttenuation(velocity, sensitivity) {
+  const scale = velocityScale[keyTravel[velocity >> 2] >> 2];
+  return 15 - 2*sensitivity + ((scale*sensitivity) >> 3);
 }
 
 // Public CH values follow Tetorica's zero-based Code constants. OP labels are 1..6.
@@ -27,8 +41,9 @@ export function createInstrument(write) {
     const curve = distance < 0 ? scale.leftCurve : scale.rightCurve;
     const x = Math.min(1, Math.abs(distance) / 48);
     const change = depth * (curve === 1 || curve === 2 ? x*x : x) * (curve < 2 ? -1 : 1);
-    const level = p.outputLevel + change - (127-velocity) * p.velocitySensitivity / 24;
-    write(OUTPUT + (6-op)*16 + ch, level <= 0 ? 255 : Math.max(4, Math.round(4 + (99-Math.min(level,99))*2)));
+    const attenuation = Math.max(0,Math.min(127, logAttenuation(p.outputLevel) - Math.round(change)));
+    const byte = attenuation*2 + velocityAttenuation(velocity,p.velocitySensitivity);
+    write(OUTPUT + (6-op)*16 + ch, Math.max(4,Math.min(255,byte)));
   }
   function setPatch(value) {
     preset = value;
@@ -45,7 +60,7 @@ export function createInstrument(write) {
       write(SENS+slot, p.ampModSensitivity*8+p.rateScaling);
       for (let stage=0; stage<4; stage++) {
         write(RATE+slot*4+stage, p.envelope.rates[stage]*164 >> 8);
-        write(LEVEL+slot*4+stage, envelopeLevelByte(p.envelope.levels[stage]));
+        write(LEVEL+slot*4+stage, logAttenuation(p.envelope.levels[stage]) >> 1);
       }
       notes.forEach((note,ch) => { if (note !== null) output(ch, op, note, velocities[ch]); });
     }

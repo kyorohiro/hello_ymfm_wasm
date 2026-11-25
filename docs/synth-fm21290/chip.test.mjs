@@ -89,3 +89,18 @@ test('keyboard rate scaling saturates at rate 63 and pitch bend preserves it',()
   core.writeRegister(0x30e5,0);
   assert.ok(voice.decay[idx]>beforeBend);
 });
+
+test('MIDI velocity and output level produce firmware attenuation bytes on the selected CH',()=>{
+  const {api,core}=setup({operators:{1:{outputLevel:85,velocitySensitivity:4}}});
+  for(const [velocity,expected] of [[32,82],[35,82],[64,61],[96,45],[127,35]]) {
+    api.keyOn(3,69,velocity);
+    assert.equal(core.reg[0xd3],expected);
+    assert.equal(core.reg[0xd0],255);
+  }
+  api.setPatch(voiceToPreset(presetToVoice({operators:{1:{outputLevel:99,velocitySensitivity:7}}})));
+  assert.equal(core.reg[0xd3],4);
+  api.setPatch(voiceToPreset(presetToVoice({operators:{1:{outputLevel:0,velocitySensitivity:0}}})));
+  assert.equal(core.reg[0xd3],255);
+  api.keyOn(3,69,0);
+  assert.equal(core.voices[3].held,false);
+});

@@ -11,7 +11,7 @@
 | 3020 + 2s | PATCH_ACTIVATE_OPERATOR_PITCH。ratio/fixedをbit 0で選択。ratio 1の基準232Ch、fixed 1 Hzの基準16ACh | log2による位相増分。実機の整数テーブル・丸めの差が残る |
 | 3030 + s | PATCH_ACTIVATE_OPERATOR_DETUNE。符号と3bitの大きさ | 符号付きcentの近似。音域別実測は未実施 |
 | 3040 / 3060 + 4s + stage | PATCH_ACTIVATE_OPERATOR_EG_RATE / EG_LEVEL。4区間、rateは編集値×164の上位バイト。levelはROMの対数テーブル経由 | rateとlevelのCPU変換を実装。levelはTABLE_LOGの値を1ビット右シフトする。EGS側のゲイン曲線・消音点と到達時間は近似。離鍵で第4区間に進む |
-| 3080 + 16s + v | VOICE_ADD_LOAD_OPERATOR_DATA_TO_EGS。96バイト。KLSとvelocityをCPUで合成する。FFhは消音 | OP別・CH別。書き込みは発音中にも反映。減衰と鍵盤曲線は近似 |
+| 3080 + 16s + v | VOICE_ADD_LOAD_OPERATOR_DATA_TO_EGS。96バイト。KLSとvelocityをCPUで合成する。FFhは消音 | OP別・CH別。MIDI入力、velocity感度と基本音量の変換はv1.8命令列に準拠。鍵盤曲線とバイトからゲインへの変換は近似 |
 | 30E0 + s | PATCH_ACTIVATE_OPERATOR_KBD_SCALING_RATE。AMS << 3 とrate scalingを合成 | 音域によるEG速度と振幅変調感度を近似 |
 | 30F0, 30F2/3 | ファームウェアが計算した振幅変調と符号付きピッチ変調。ベンドを合算して上下バイトを書き込む | AM/PM書き込みとMIDIベンドに対応。CPU側LFOとピッチEGは未実装 |
 | 30F1 | VOICE_RESET_EGS。bits 2..5は声番号、下位値1がon、2がoff | エッジとして扱う。同じ値の再書き込みもイベント |
@@ -52,3 +52,20 @@ PCMはホストのサンプルレートで浮動小数点合成する。96スロ
 定常振幅のピーク比は6条件すべてで差0.2 dB以内。絶対ピークの差は4.2〜5.5 dBあり、出力レベルを下げた場合にMSFAのアタック到達が早くなる挙動も残る。単純なマスターゲインの調整で両方を合わせることはできない。
 
 物理CH1のA4を3秒保持し、離鍵100 ms後に同じCH・同音を再発音すると、先頭5 msのPCMピークは初回−71.5 dBFS、再発音−49.0 dBFSだった。これは実験コアが残存包絡から立ち上がることの回帰試験。MSFAの公開APIは物理CHを指定できず、この結果の実機照合も未実施。
+
+## MIDIベロシティとOP出力の再測定
+
+v1.8のMIDI受信ルーチンは `velocity >> 2` をTABLE_MIDI_VELで打鍵時間に変換する。VOICE_ADD_LOAD_OPERATOR_DATA_TO_EGSはこの時間をさらに4で割り、TABLE_OP_VOLUME_VELOCITY_SCALEを参照する。感度をS、後者の表の値をVとすると追加の減衰は `15 − 2S + floor(V × S / 8)`。鍵盤スケーリング深度0では、基本減衰 `2 × TABLE_LOG[outputLevel]` との和を4..255に収めた値が出力バッファに書かれる。velocity 0は離鍵。深度がある場合の鍵盤曲線は引き続き近似。
+
+バイトからPCMへの変換は比較モデル。以前のOL99・感度0のミックス音量を保つよう基準を合わせた。アタックの上昇速度は固定した減衰バイト43（OL85）と83（OL65）のPCM比較から推定し、暗騒音付近への外挿には上限を設けた。これは実機回路の同定結果ではない。
+
+前節のOL65、Rate Scaling 5で90%到達はA2/A4/A6順に65/25/10 msとなり、MSFAと同じ5 ms窓に入った。別条件としてA4、OL85、感度4、Rate Scaling 0、R1/R4=40を固定してベロシティだけを変えた結果を示す。
+
+| MIDI velocity | EGS OP出力バイト | アタック90% ms（独自 / MSFA） | ピーク dBFS（独自 / MSFA） | リリース−20 dB ms（独自 / MSFA） |
+|---:|---:|---:|---:|---:|
+| 32 | 82 | 160 / 160 | −48.7 / −42.2 | 990 / 1020 |
+| 64 | 61 | 230 / 235 | −40.8 / −34.8 | 990 / 1015 |
+| 96 | 45 | 305 / 305 | −34.7 / −29.1 | 990 / 995 |
+| 127 | 35 | 360 / 360 | −31.0 / −25.7 | 990 / 1000 |
+
+絶対音量はこの4条件で5.3〜6.5 dB低い。実機のDACゲインや測定系は未校正。比較スクリプトは既存の9条件と上記4条件について閾値到達時間と相対サステインを検証する。

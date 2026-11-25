@@ -20,9 +20,9 @@ function peaks(pcm) {
   return result;
 }
 
-function measure(synth, preset, note) {
+function measure(synth, preset, note, velocity) {
   synth.setPreset(preset);
-  synth.noteOn(note,127);
+  synth.noteOn(note,velocity);
   const held=peaks(synth.render(sampleRate*3));
   synth.noteOff(note);
   const released=peaks(synth.render(sampleRate*3));
@@ -38,21 +38,22 @@ const cases = [40,60,80].map(rate=>({note:69, outputLevel:85, rateScaling:0, rat
 for (const note of [45,69,93]) {
   for (const outputLevel of [65,85]) cases.push({note,outputLevel,rateScaling:5,rate:40});
 }
-for(const {note,outputLevel,rateScaling,rate} of cases) {
+for (const velocity of [32,64,96,127]) cases.push({note:69,outputLevel:85,rateScaling:0,rate:40,velocity,velocitySensitivity:4});
+for(const {note,outputLevel,rateScaling,rate,velocity=127,velocitySensitivity=0} of cases) {
   const core=new Fm21290(sampleRate);
   const instrument=createInstrument((a,d)=>core.writeRegister(a,d));
-  const patch=voiceToPreset(presetToVoice({operators:{1:{outputLevel,rateScaling,envelope:{rates:[rate,85,85,rate],levels:[99,80,80,0]}}}}));
-  const custom=measure({...instrument,setPreset:instrument.setPatch,render(n){const pcm=new Float32Array(n);core.renderInto(pcm);return pcm;}},patch,note);
+  const patch=voiceToPreset(presetToVoice({operators:{1:{outputLevel,rateScaling,velocitySensitivity,envelope:{rates:[rate,85,85,rate],levels:[99,80,80,0]}}}}));
+  const custom=measure({...instrument,setPreset:instrument.setPatch,render(n){const pcm=new Float32Array(n);core.renderInto(pcm);return pcm;}},patch,note,velocity);
   const msfa=await createDX7({sampleRate,wasmBytes});
   try {
-    const reference=measure(msfa,patch,note);
-    console.log(JSON.stringify({note,outputLevel,rateScaling,rate,custom,msfa:reference}));
-    // Two peak windows allow for phase and block alignment.
-    if (outputLevel === 85)
-      assert.ok(Math.abs(custom.attack90ms-reference.attack90ms)<=10, `note ${note}: attack`);
-    assert.ok(Math.abs(custom.release20dBms-reference.release20dBms)<=(rateScaling ? 15 : 10),
+    const reference=measure(msfa,patch,note,velocity);
+    console.log(JSON.stringify({note,outputLevel,rateScaling,rate,velocity,velocitySensitivity,custom,msfa:reference}));
+    // Attack tolerance is two peak windows. Quiet MSFA release tails have
+    // larger threshold-crossing differences at the same nominal decay rate.
+    assert.ok(Math.abs(custom.attack90ms-reference.attack90ms)<=10, `note ${note}: attack`);
+    assert.ok(Math.abs(custom.release20dBms-reference.release20dBms)<=(velocitySensitivity ? 40 : rateScaling ? 15 : 10),
       `note ${note}, output ${outputLevel}: release`);
-    assert.ok(Math.abs(custom.sustainDB-reference.sustainDB)<=0.5, `rate ${rate}: sustain`);
+    assert.ok(Math.abs(custom.sustainDB-reference.sustainDB)<=(velocitySensitivity ? 1 : 0.5), `rate ${rate}: sustain`);
   }
   finally {msfa.dispose();}
 }

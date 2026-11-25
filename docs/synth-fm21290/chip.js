@@ -27,7 +27,7 @@ export class Fm21290 {
     this.voices = Array.from({length:16}, () => ({
       active:false, held:false, phase:new Float64Array(6), gain:new Float64Array(6),
       step:new Float64Array(6), rateOffset:new Uint8Array(6), level:new Float64Array(6), stage:new Uint8Array(6),
-      attack:new Float64Array(24), decay:new Float64Array(24).fill(1), feedback:0, previous:0,
+      attackScale:new Float64Array(6).fill(1), attack:new Float64Array(24), decay:new Float64Array(24).fill(1), feedback:0, previous:0,
     }));
     this.attackByRate = new Float64Array(64);
     this.decayByRate = new Float64Array(64);
@@ -98,7 +98,15 @@ export class Fm21290 {
       for (const voice of this.voices) this.updateRate(voice,i-0x40);
     }
     else if (i < 0x78) this.targets[i-0x60] = data >= 63 ? 0 : amplitude(data * 2);
-    else if (i < 0xe0) this.voices[i & 15].level[(i-0x80) >> 4] = amplitude(data / 2);
+    else if (i < 0xe0) {
+      const voice = this.voices[i & 15], op = (i-0x80) >> 4;
+      // Preserve the instrument's OL99 / KVS0 mix reference when the
+      // firmware bias changes its byte from the legacy 4 to 15.
+      voice.level[op] = data >= 254 ? 0 : 2 ** ((11-data)/16);
+      // Fit the normalized rising slope to the OL85 and OL65 PCM fixtures.
+      // Bound extrapolation at very low levels; recompute only on a bus write.
+      voice.attackScale[op] = 2 ** ((Math.min(data,123)-43)/40);
+    }
     else if (i === 0xf1) {
       const v = this.voices[(data >> 2) & 15];
       if ((data & 3) === 1) {
@@ -120,7 +128,7 @@ export class Fm21290 {
           const stage = v.stage[op], idx = op*4 + stage;
           const target = this.targets[idx], gain = v.gain[op];
           if (gain < target) {
-            v.gain[op] = Math.min(target, gain + v.attack[idx]);
+            v.gain[op] = Math.min(target, gain + v.attack[idx] * v.attackScale[op]);
           } else if (gain > target) {
             const next = Math.max(target, gain * v.decay[idx]);
             v.gain[op] = target === 0 && next < 1e-6 ? 0 : next;
