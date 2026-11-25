@@ -148,7 +148,7 @@ function silence(){
   releaseWheel();
   if(audio?.dx)audio.notes.panic();
   if(audio?.node){chip.allNotesOff();flush();audio.node.port.postMessage({reset:true});applyChipPatch();}
-  held.clear();
+  held.clear();for(const key of el('keys').children)key.classList.remove('pressed');
 }
 function stopOwner(owner){
   if(audio?.node){chip.stopOwner(owner);flush();}
@@ -261,7 +261,7 @@ function renderFiles(){
 }
 async function openProjectFile(path){
   storeEditor();
-  if(textPath(path)){showEditor(path);return;}
+  if(textPath(path)){editFile(path);return;}
   const bytes=projectReader.get(path).data;
   if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
   else if(/\.midi?$/i.test(path)){const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
@@ -309,6 +309,7 @@ function render() {
   renderRouting(el('ops'),el('routeFeedback'),p,op,isChip(),next=>{
     op=next;render();el('ops').querySelector('[aria-pressed=true]').focus({preventScroll:true});
   });
+  el('opTitle').textContent='OP'+op+' parameters';
   const params=el('params');params.replaceChildren();
   function field(title,value,max,patch,choices){
     const label=document.createElement('label'),input=document.createElement(choices?'select':'input');
@@ -373,12 +374,12 @@ on('oscSync','change',()=>edit({oscillatorSync:el('oscSync').checked}));
 on('feedback','change',()=>edit({feedback:Number(el('feedback').value)}));
 on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
-  el('engine').disabled=true;el('modControls').disabled=wheel.disabled=true;releaseWheel();
+  el('engine').disabled=true;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=true;releaseWheel();
   try{if(opening)await opening;await runtime.stop();stopSong();silence();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
     el('channel').disabled=!isChip();el('registers').hidden=!isChip();trace.length=0;render();
-  }finally{el('engine').disabled=false;el('modControls').disabled=wheel.disabled=!isChip();}
+  }finally{el('engine').disabled=false;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();}
 });
-on('master','input',()=>{if(audio)audio.master.gain.value=Number(el('master').value)/100;});
+on('master','input',()=>{el('masterValue').textContent=el('master').value+'%';if(audio)audio.master.gain.value=Number(el('master').value)/100;});
 on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voices[selected],{channel:sysexChannel})));
 on('saveBank','click',()=>download('FM21290-bank.syx',createBankSysex(voices,{channel:sysexChannel})));
 on('saveCode','click',()=>download(activePath.split('/').pop(),el('code').value));
@@ -404,7 +405,7 @@ on('newFile','click',()=>{
   if(!textPath(path))throw Error('Choose a .js, .mjs, .json or .txt file.');
   if(files.has(path))throw Error('File already exists: '+path);
   storeEditor();files.writeText(path,path.endsWith('.json')?'{}':'');
-  el('newPath').value='';showEditor(path);codeEditor.focus();
+  el('newPath').value='';editFile(path);
 });
 on('saveSession','click',()=>{
   storeEditor();
@@ -438,7 +439,7 @@ on('importFile','change',async()=>{
   while(files.has(path))path=base.replace(/(\.[^./]+)$/,' ('+(n++)+')$1');
   storeEditor();
   if(textPath(path)){
-    files.writeText(path,new TextDecoder('utf-8',{fatal:true}).decode(bytes));showEditor(path);
+    files.writeText(path,new TextDecoder('utf-8',{fatal:true}).decode(bytes));editFile(path);
   }else{
     if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
     else{const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
@@ -480,6 +481,32 @@ const codeEditor=setupSynthMonacoEditor({
   openFile:openProjectFile,
   onEdit:draftChanged,run:apply=>el(apply?'apply':'run').click(),
 });
+function setFiles(open){
+  el('filesPanel').hidden=!open;
+  el('workspace').classList.toggle('with-files',open);
+  el('filesToggle').setAttribute('aria-expanded',String(open));
+}
+function setView(code){
+  el('codePanel').hidden=!code;
+  el('keyboardPanel').hidden=el('soundPanels').hidden=code;
+  el('workspace').classList.toggle('code-view',code);
+  el('codeView').setAttribute('aria-pressed',String(code));
+  el('synthView').setAttribute('aria-pressed',String(!code));
+  if(code)codeEditor.layout();
+}
+function editFile(path){
+  showEditor(path);setView(true);
+  if(matchMedia('(max-width: 760px)').matches)setFiles(false);
+  el('codePanel').scrollIntoView({block:'start'});codeEditor.focus();draftChanged();
+}
+on('filesToggle','click',()=>{setFiles(el('filesPanel').hidden);draftChanged();});
+for(const [id,code] of [['codeView',true],['synthView',false]])on(id,'click',()=>{
+  setView(code);
+  const panel=el(code?'codePanel':'keyboardPanel');panel.scrollIntoView({block:'start'});
+  if(code)codeEditor.focus();else panel.focus({preventScroll:true});
+  draftChanged();
+});
+setFiles(!matchMedia('(max-width: 760px)').matches);setView(false);
 setupSynthMenu({document,window});
 el('synthMenuPanel').addEventListener('click',event=>{
   const link=event.target.closest('a[href^="#"]');
@@ -487,7 +514,11 @@ el('synthMenuPanel').addEventListener('click',event=>{
     if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
     event.preventDefault();
     const section=el(link.hash.slice(1));
+    if(section.id==='filesPanel')setFiles(true);
+    else if(section.id==='codePanel')setView(true);
+    else if(section.id!=='outputPanel')setView(false);
     if(section.hidden)return;
+    draftChanged();
     section.scrollIntoView({block:'start'});
     if(section.id==='codePanel')codeEditor.focus();
     else section.focus({preventScroll:true});
@@ -495,7 +526,7 @@ el('synthMenuPanel').addEventListener('click',event=>{
   }
   const action=event.target.closest('[data-action]')?.dataset.action;
   if(action==='newPath'){
-    el('filesPanel').scrollIntoView({block:'start'});el(action).focus({preventScroll:true});
+    setFiles(true);draftChanged();el('filesPanel').scrollIntoView({block:'start'});el(action).focus({preventScroll:true});
   }else if(action){
     if(!event.detail)el('synthMenuButton').focus({preventScroll:true});
     el(action).click();
@@ -506,7 +537,7 @@ on('enableEditor','click',async()=>{
   try{button.hidden=await codeEditor.load();if(button.hidden)codeEditor.focus();}
   finally{button.disabled=false;}
 });
-on('partCode','click',()=>{codeEditor.setSource(partSource(selectedScore));draftChanged();codeEditor.focus();});
+on('partCode','click',()=>{files.writeText(activePath,partSource(selectedScore));editFile(activePath);});
 showEditor('/index.js');
 for(const action of ['run','apply'])on(action,'click',async()=>{
   try{await runtime[action](el('code').value,{path:activePath});}
@@ -518,7 +549,7 @@ function traceControls(mode,message){
   traceMode=mode;
   const busy=mode!=='idle';
   el('engine').disabled=busy;
-  el('modControls').disabled=wheel.disabled=!isChip()||mode==='replay'||mode==='starting';
+  el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip()||mode==='replay'||mode==='starting';
   el('capture').disabled=busy;
   el('loadTrace').disabled=busy;
   el('endCapture').disabled=mode!=='record';
@@ -610,8 +641,8 @@ const mappings='awsedftgyhujk';
 async function press(id,index){
   if(document.querySelector('main').inert || held.has(id))return;
   const note=Math.min(127,(1+Number(el('octave').value))*12+index);
-  const entry={note,ch:isChip()?Number(el('channel').value):-1,started:false};held.set(id,entry);
-  try{await ensureAudio();if(held.get(id)!==entry)return;noteOn(note,100,entry.ch,entry);entry.started=true;}
+  const entry={index,note,ch:isChip()?Number(el('channel').value):-1,started:false};held.set(id,entry);
+  try{await ensureAudio();if(held.get(id)!==entry)return;noteOn(note,100,entry.ch,entry);entry.started=true;el('keys').children[index].classList.add('pressed');}
   catch(error){held.delete(id);report(error);}
 }
 function release(id){
@@ -619,9 +650,15 @@ function release(id){
   held.delete(id);
   if(!entry?.started)return;
   noteOff(entry.note,entry.ch,entry);
+  if(![...held.values()].some(e=>e.started && e.index===entry.index))el('keys').children[entry.index].classList.remove('pressed');
 }
+let whiteKeys=0;
 names.forEach((name,i)=>{
-  const b=document.createElement('button');b.textContent=name;b.title=mappings[i].toUpperCase();if(name.includes('♯'))b.className='black';
+  const b=document.createElement('button'),binding=mappings[i].toUpperCase();
+  b.textContent=name;b.title=name+' · '+binding;b.setAttribute('aria-label',b.title);
+  const hint=document.createElement('kbd');hint.textContent=binding;b.append(hint);
+  if(name.includes('♯')){b.className='black';b.style.left=(whiteKeys*12.5)+'%';}
+  else whiteKeys++;
   b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);press(e.pointerId,i);};
   b.onlostpointercapture=e=>release(e.pointerId);el('keys').append(b);
 });
@@ -638,7 +675,7 @@ function draftChanged(){
 }
 function captureDraft(){
   storeEditor();
-  return {selected,op,activePath,wheel:manualWheel,bank:currentBank(),song:songBytes,
+  return {selected,op,activePath,codeView:!el('codePanel').hidden,filesOpen:!el('filesPanel').hidden,wheel:manualWheel,bank:currentBank(),song:songBytes,
       ...files.snapshot(),engine:el('engine').value,master:Number(el('master').value),
       part:el('part').value,from:el('midiFrom').valueAsNumber,until:el('midiUntil').valueAsNumber,loop:el('midiLoop').checked};
 }
@@ -707,8 +744,11 @@ async function restoreDraft(){
       if(Number.isInteger(draft.op)&&draft.op>=1&&draft.op<=6)op=draft.op;
       el('engine').value=draft.engine==='msfa'?'msfa':'chip';
       if(Number.isInteger(draft.master)&&draft.master>=0&&draft.master<=100)el('master').value=draft.master;
-      el('channel').disabled=el('modControls').disabled=wheel.disabled=!isChip();el('registers').hidden=!isChip();
+      el('channel').disabled=el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();el('registers').hidden=!isChip();
       replaceProject(next);
+      el('masterValue').textContent=el('master').value+'%';
+      setView(draft.codeView??(activePath!=='/index.js'));
+      if(typeof draft.filesOpen==='boolean')setFiles(draft.filesOpen);
       if(next.midi?.parts.some(p=>p.notes && p.key===draft.part)){
         el('part').value=draft.part;selectPart();
         if(Number.isFinite(draft.from)&&Number.isFinite(draft.until)&&draft.from>=0&&

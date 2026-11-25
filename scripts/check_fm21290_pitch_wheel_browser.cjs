@@ -27,7 +27,7 @@ const {chromium}=require('playwright');
   assert.equal(await wheel.inputValue(),'0');
   const track=[0,144,60,95,0,176,1,127,0,224,0,96,0x82,0x20,224,0,0,0,144,64,100,0x88,0,255,47,0];
   await page.locator('#importFile').setInputFiles({name:'bend.mid',mimeType:'audio/midi',buffer:Buffer.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,track.length,...track])});
-  await page.check('#modBias');
+  await page.getByText('Mod wheel settings',{exact:true}).click();await page.check('#modBias');
   const am=value=>page.waitForFunction(v=>document.querySelector('#modBytes').textContent.startsWith(v+' '),value);
   await am('ff');
   await page.click('#playMidi');await pm('01 55');await am('00');

@@ -27,7 +27,7 @@ const {chromium}=require('playwright');
   });
   const page=await context.newPage();page.setDefaultTimeout(15000);
   await page.goto('http://127.0.0.1:'+server.address().port+'/synth-fm21290/index.html');
-  await page.click('#enableEditor');
+  await page.click('#codeView');await page.click('#enableEditor');
   await page.waitForSelector('#codeEditorHost[data-ready=true]');
   const candidates=async source=>page.evaluate(async source=>{
     const editor=monaco.editor.getEditors()[0],model=editor.getModel();
