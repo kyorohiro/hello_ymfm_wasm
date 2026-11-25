@@ -34,6 +34,7 @@ PRODUCTS = (
     {"id": "sid", "repo": "tetorica-sid-synth-tauri"},
     {"id": "spu", "repo": "tetorica-spu-synth-tauri"},
     {"id": "aswan", "repo": "tetorica-aswan-synth-tauri"},
+    {"id": "fm21290", "repo": "tetorica-fm21290-synth-tauri"},
     {"id": "fm2608", "repo": "tetorica-fm2608-synth-tauri"},
     {"id": "nitro-ds", "repo": "tetorica-nitro-ds-synth-tauri"},
     {"id": "smsgear", "repo": "tetorica-smsgear-ym2413-synth-tauri"},

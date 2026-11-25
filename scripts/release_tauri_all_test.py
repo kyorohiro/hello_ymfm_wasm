@@ -230,7 +230,7 @@ class LocalReleaseTests(unittest.TestCase):
 
     def test_all_desktop_products_and_selection(self):
         self.assertEqual(set(p["id"] for p in self.release.select_products(None)), {
-            "2a03", "aswan", "dmg", "fm2608", "huc6280", "nitro-ds", "playground",
+            "2a03", "aswan", "dmg", "fm21290", "fm2608", "huc6280", "nitro-ds", "playground",
             "sid", "smsgear", "snes", "spu", "synth", "vgm-analyzer", "ym2149-st",
         })
         self.assertEqual([p["id"] for p in self.release.select_products("sid, vgm-analyzer")],

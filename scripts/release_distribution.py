@@ -20,6 +20,7 @@ WEB_REPO = f"{GITHUB_OWNER}/hello_ymfm_wasm"
 ITCH_SLUG = {
     "2a03": "tetorica-2a03-synth", "aswan": "tetorica-aswan-synth",
     "dmg": "tetorica-dmg-synth", "fm2608": "tetorica-fm2608-synth",
+    "fm21290": "tetorica-fm21290-synth",
     "huc6280": "tetorica-huc6280-synth", "nitro-ds": "tetorica-nitro-ds-synth",
     "playground": "tetorica-fm2612-playground", "scsp": "tetorica-scsp-synth",
     "sid": "tetorica-sid-synth", "snes": "tetorica-sdsp-synth",
