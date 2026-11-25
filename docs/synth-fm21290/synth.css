@@ -74,7 +74,6 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 #filesTree{border-block:1px solid var(--line);padding:.55rem 0}
 #filesTree .file-entry{overflow-wrap:anywhere;text-align:left}
 #scope{height:140px;background:#192019;border-radius:4px}
-#outputPanel select{font-size:.78rem}
 .operator-grid{grid-template-columns:minmax(230px,.85fr) minmax(0,1.55fr);border-top:1px solid var(--line);margin-top:14px}
 #opEnvelopes{padding:.5rem;background:#1b221e;border:1px solid var(--line);border-radius:4px}
 .envelope-help{margin:0 0 .4rem;color:var(--muted);font-size:.78rem}

@@ -65,7 +65,19 @@ const {chromium}=require('playwright');
     },[masterPercent,mixerPercent]);
   }
   await gains(65,100);
-  await mixer.press('End');await gains(65,380);
+  for(const mode of ['Spectrum','Waveform']){
+    const button=page.getByRole('button',{name:mode,exact:true});
+    await button.click();
+    assert.equal(await button.getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('#scope').getAttribute('aria-label'),'Output '+mode.toLowerCase());
+  }
+  for(const slider of [master,mixer]){
+    await slider.click();
+    await page.keyboard.down('a');await page.waitForFunction(()=>document.querySelector('#slots').textContent.includes(' on'));
+    await page.keyboard.up('a');await page.waitForFunction(()=>!document.querySelector('#slots').textContent.includes(' on'));
+  }
+  await master.press('Home');await gains(0,Number(await mixer.inputValue()));
+  await mixer.press('End');await gains(0,380);
   await master.press('Home');await gains(0,380);
   await master.press('End');await mixer.press('Home');await gains(380,0);
   await mixer.press('End');await gains(380,380);

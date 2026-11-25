@@ -756,9 +756,26 @@ function rebuildKeyboard(){
 }
 on('octave','change',rebuildKeyboard);
 rebuildKeyboard();refreshChannels();
+// Mouse adjustments should return typing to Code, or playing to the fretboard.
+// Ranges reached with Tab retain their native arrow-key behavior.
+let rangeGesture=null;
+document.addEventListener('pointerdown',event=>{
+  if(!event.isPrimary || event.button!==0 || !event.target.matches('input[type=range]'))return;
+  rangeGesture={range:event.target,id:event.pointerId,editor:el('codePanel').contains(document.activeElement)
+    && document.activeElement.closest('textarea,.monaco-editor,[contenteditable]')};
+});
+function finishRangeGesture(event){
+  if(rangeGesture?.id!==event.pointerId)return;
+  const {range,editor}=rangeGesture;rangeGesture=null;
+  if(document.activeElement!==range)return;
+  if(editor && !el('codePanel').hidden)codeEditor.focus();
+  else range.blur();
+}
+window.addEventListener('pointerup',finishRangeGesture);
+window.addEventListener('pointercancel',finishRangeGesture);
 window.addEventListener('keydown',e=>{
   if(el('keyboardPanel').hidden || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('#synthMenu[open]') ||
-    (e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea,[contenteditable],.monaco-editor')))return;
+    e.target.closest('input:not([type=range]),select,textarea,[contenteditable],.monaco-editor'))return;
   const pad=findLayoutEntry(layout.entries,e.key.toLowerCase());
   if(pad){press(e.code,pad,el('keys').querySelector('[data-key="'+pad.key+'"]'));return;}
   if(e.defaultPrevented || e.target.closest('input,button[role=tab],#filesPanel'))return;
@@ -772,11 +789,21 @@ window.addEventListener('keydown',e=>{
 window.addEventListener('keyup',e=>release(e.code));
 window.addEventListener('blur',()=>{for(const id of [...held.keys()])release(id);});
 const canvas=el('scope'),ctx=canvas.getContext('2d');
+let scopeMode='waveform';
+const scopeButtons=el('scopeModes').querySelectorAll('button');
+for(const button of scopeButtons){
+  button.addEventListener('mousedown',event=>event.preventDefault());
+  button.onclick=()=>{
+    scopeMode=button.dataset.scope;
+    for(const choice of scopeButtons)choice.setAttribute('aria-pressed',String(choice===button));
+    canvas.setAttribute('aria-label','Output '+scopeMode);
+  };
+}
 new ResizeObserver(([entry])=>{
   canvas.width=Math.max(1,Math.round(entry.contentRect.width));
   canvas.height=Math.max(1,Math.round(entry.contentRect.height));
 }).observe(canvas);
-function draw(){monitor.draw(canvas,ctx,el('scopeMode').value.toLowerCase());el('trace').textContent=trace.join('\n');requestAnimationFrame(draw);}
+function draw(){monitor.draw(canvas,ctx,scopeMode);el('trace').textContent=trace.join('\n');requestAnimationFrame(draw);}
 function draftChanged(){
   if(!draftReady)return;
   draftDirty=true;draftRevision++;

@@ -12,7 +12,7 @@
 
 画面上部の **Menu** はスクロール中も使える。**Keyboard** を選ぶとPC鍵盤で演奏でき、**Code** を選ぶと開いているエディタに入力できる。**Files**、音色、波形表示、MIDI出力、独自コアのレジスタ画面にも移動できる。演奏中のファイル作成・読み込み・Cassette書き出しの入口も同じメニューにある。Escで閉じる。
 
-最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Waveform / SpectrumはMaster後の出力を観測する。
+最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
 
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、同じFilesで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 

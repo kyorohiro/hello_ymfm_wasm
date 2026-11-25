@@ -49,9 +49,11 @@
 <div class="desk">
 <section id="outputPanel" tabindex="-1">
 <div class="panel-heading">
-<h2>Output</h2><select aria-label="Monitor" id="scopeMode"><option>Waveform</option><option>Spectrum</option></select>
+<h2>Output</h2><div id="scopeModes" class="mode-switch" role="group" aria-label="Output display">
+<button type="button" data-scope="waveform" aria-pressed="true">Waveform</button><button type="button" data-scope="spectrum" aria-pressed="false">Spectrum</button>
 </div>
-<canvas id="scope" width="640" height="125"></canvas>
+</div>
+<canvas id="scope" role="img" aria-label="Output waveform" width="640" height="125"></canvas>
 </section>
 <div id="mainTabs" class="panel-tabs" role="tablist" aria-label="Editor"></div>
 <div id="mainPanels">

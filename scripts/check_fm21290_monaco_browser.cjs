@@ -41,6 +41,9 @@ const {chromium}=require('playwright');
   assert.deepEqual(await tabs('mainTabs'),['Code','YM21290','MIDI','Register','Mixer','Keyboard']);
   await page.click('#enableEditor');
   await page.waitForSelector('#codeEditorHost[data-ready=true]');
+  await page.evaluate(()=>monaco.editor.getEditors()[0].focus());
+  await page.locator('#master').click();
+  assert(await page.evaluate(()=>monaco.editor.getEditors()[0].hasTextFocus()));
   const candidates=async source=>page.evaluate(async source=>{
     const editor=monaco.editor.getEditors()[0],model=editor.getModel();
     model.setValue(source);
