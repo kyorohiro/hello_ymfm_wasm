@@ -13,84 +13,90 @@ function svgNode(name,attributes={}){
 }
 
 export function createOperatorEnvelopes(root,selectOperator,change){
-  const graphs=[];
+  const colors=['#52dbbf','#ffb45f','#85b9ff','#ff88af','#cfabff','#e4db68'];
+  const legend=document.createElement('div'),readout=document.createElement('output');
+  legend.className='envelope-legend';
+  legend.setAttribute('role','group');legend.setAttribute('aria-label','Edit operator envelope');
+  const svg=svgNode('svg',{viewBox:'0 0 314 110',role:'group','aria-label':'Operator envelopes'});
+  const traces=svgNode('g');
+  svg.append(traces);root.append(legend,readout,svg);
+  const lines=[],buttons=[],handles=[];
+  let selected=1,envelope,activeStage=0;
   for(let op=1;op<=6;op++){
-    const card=document.createElement('div');
-    card.className='envelope-card';
-    const heading=document.createElement('button');
-    heading.textContent='OP'+op;
-    heading.setAttribute('aria-label','Select OP'+op+' envelope');
-    heading.onclick=()=>selectOperator(op);
-    const svg=svgNode('svg',{viewBox:'0 0 314 110',role:'group','aria-label':'OP'+op+' envelope'});
-    const line=svgNode('polyline');
-    svg.append(line);
-    const readout=document.createElement('span');
-    card.append(heading,readout,svg);root.append(card);
-    let activeStage=0;
-    function displayValues(){
-      readout.textContent='R'+(activeStage+1)+' '+envelope.rates[activeStage]+' · L'+(activeStage+1)+' '+envelope.levels[activeStage];
+    const button=document.createElement('button');
+    button.textContent='OP'+op;
+    button.setAttribute('aria-label','Select OP'+op+' envelope');
+    button.style.setProperty('--op-color',colors[op-1]);
+    button.onclick=()=>selectOperator(op);
+    legend.append(button);buttons.push(button);
+    const line=svgNode('polyline',{stroke:colors[op-1]});
+    traces.append(line);lines.push(line);
+  }
+  function displayValues(){
+    readout.textContent='OP'+selected+' · R'+(activeStage+1)+' '+envelope.rates[activeStage]+' · L'+(activeStage+1)+' '+envelope.levels[activeStage];
+  }
+  for(let i=0;i<4;i++){
+    const stage=i+1;
+    const label=svgNode('text',{x:stageLeft(i)+rateWidth/2,y:105});
+    label.textContent=String(stage);
+    const handle=svgNode('g',{tabindex:0,role:'button'});
+    handle.append(svgNode('circle',{r:12,class:'hit'}),svgNode('circle',{r:4,class:'dot'}));
+    svg.append(label,handle);
+    handle.onfocus=handle.onpointerenter=()=>{activeStage=i;displayValues();};
+    let drag=null;
+    function point(event){
+      return new DOMPoint(event.clientX,event.clientY).matrixTransform(svg.getScreenCTM().inverse());
     }
-    let envelope;
-    const handles=[];
-    for(let i=0;i<4;i++){
-      const stage=i+1;
-      const label=svgNode('text',{x:stageLeft(i)+rateWidth/2,y:105});
-      label.textContent=String(stage);
-      const handle=svgNode('g',{tabindex:0,role:'button'});
-      handle.append(svgNode('circle',{r:12,class:'hit'}),svgNode('circle',{r:4,class:'dot'}));
-      svg.append(label,handle);
-      handle.onfocus=handle.onpointerenter=()=>{activeStage=i;displayValues();};
-      let drag=null;
-      function point(event){
-        return new DOMPoint(event.clientX,event.clientY).matrixTransform(svg.getScreenCTM().inverse());
-      }
-      function set(rate,level){
-        rate=limit(rate);level=limit(level);
-        if(rate===envelope.rates[i] && level===envelope.levels[i])return;
-        const rates=envelope.rates.slice(),levels=envelope.levels.slice();
-        rates[i]=rate;levels[i]=level;
-        change(op,{envelope:{rates,levels}});
-      }
-      handle.onpointerdown=event=>{
-        if(event.button!==0 || drag)return;
-        event.preventDefault();
-        selectOperator(op);
-        handle.focus({preventScroll:true});
-        drag={id:event.pointerId,start:point(event),rate:envelope.rates[i],level:envelope.levels[i]};
-        handle.setPointerCapture(event.pointerId);
-      };
-      handle.onpointermove=event=>{
-        if(drag?.id!==event.pointerId)return;
-        const current=point(event);
-        set(drag.rate-(current.x-drag.start.x)*99/rateWidth,drag.level-(current.y-drag.start.y)*99/levelHeight);
-      };
-      handle.onpointerup=handle.onpointercancel=handle.onlostpointercapture=event=>{
-        if(drag?.id===event.pointerId)drag=null;
-      };
-      handle.onkeydown=event=>{
-        const delta={ArrowLeft:[1,0],ArrowRight:[-1,0],ArrowUp:[0,1],ArrowDown:[0,-1]}[event.key];
-        if(!delta && event.key!=='Enter' && event.key!==' ')return;
-        event.preventDefault();event.stopPropagation();
-        selectOperator(op);
-        if(delta)set(envelope.rates[i]+delta[0],envelope.levels[i]+delta[1]);
-      };
-      handles.push(handle);
+    function set(rate,level){
+      rate=limit(rate);level=limit(level);
+      if(rate===envelope.rates[i] && level===envelope.levels[i])return;
+      const rates=envelope.rates.slice(),levels=envelope.levels.slice();
+      rates[i]=rate;levels[i]=level;
+      change(selected,{envelope:{rates,levels}});
     }
-    graphs.push((operators,selected)=>{
-      envelope=operators[op].envelope;
-      displayValues();
-      heading.setAttribute('aria-pressed',String(selected===op));
-      card.classList.toggle('selected',selected===op);
-      const points=['8,'+yFor(envelope.levels[3])];
-      handles.forEach((handle,i)=>{
-        const rate=envelope.rates[i],level=envelope.levels[i];
-        const x=stageLeft(i)+(99-rate)*rateWidth/99,y=yFor(level);
+    handle.onpointerdown=event=>{
+      if(event.button!==0 || drag)return;
+      event.preventDefault();
+      handle.focus({preventScroll:true});
+      drag={op:selected,id:event.pointerId,start:point(event),rate:envelope.rates[i],level:envelope.levels[i]};
+      handle.setPointerCapture(event.pointerId);
+    };
+    handle.onpointermove=event=>{
+      if(drag?.id!==event.pointerId || drag.op!==selected)return;
+      const current=point(event);
+      set(drag.rate-(current.x-drag.start.x)*99/rateWidth,drag.level-(current.y-drag.start.y)*99/levelHeight);
+    };
+    handle.onpointerup=handle.onpointercancel=handle.onlostpointercapture=event=>{
+      if(drag?.id===event.pointerId)drag=null;
+    };
+    handle.onkeydown=event=>{
+      const delta={ArrowLeft:[1,0],ArrowRight:[-1,0],ArrowUp:[0,1],ArrowDown:[0,-1]}[event.key];
+      if(!delta && event.key!=='Enter' && event.key!==' ')return;
+      event.preventDefault();event.stopPropagation();
+      if(delta)set(envelope.rates[i]+delta[0],envelope.levels[i]+delta[1]);
+    };
+    handles.push(handle);
+  }
+  return (operators,op)=>{
+    selected=op;envelope=operators[op].envelope;
+    displayValues();
+    svg.style.setProperty('--op-color',colors[op-1]);
+    lines.forEach((line,index)=>{
+      const active=op===index+1;
+      buttons[index].setAttribute('aria-pressed',String(active));
+      line.classList.toggle('selected',active);
+      const {levels,rates}=operators[index+1].envelope;
+      const points=['8,'+yFor(levels[3])];
+      for(let i=0;i<4;i++){
+        const x=stageLeft(i)+(99-rates[i])*rateWidth/99,y=yFor(levels[i]);
         points.push(x+','+y);
-        handle.setAttribute('transform','translate('+x+' '+y+')');
-        handle.setAttribute('aria-label','OP'+op+' stage '+(i+1)+', rate '+rate+', level '+level);
-      });
+        if(active){
+          handles[i].setAttribute('transform','translate('+x+' '+y+')');
+          handles[i].setAttribute('aria-label','OP'+op+' stage '+(i+1)+', rate '+rates[i]+', level '+levels[i]);
+        }
+      }
       line.setAttribute('points',points.join(' '));
     });
-  }
-  return (operators,selected)=>graphs.forEach(update=>update(operators,selected));
+    if(traces.lastChild!==lines[op-1])traces.append(lines[op-1]);
+  };
 }
