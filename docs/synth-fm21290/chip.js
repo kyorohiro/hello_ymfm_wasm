@@ -27,9 +27,10 @@ export class Fm21290 {
     this.voices = Array.from({length:16}, () => ({
       active:false, held:false, phase:new Float64Array(6), gain:new Float64Array(6),
       step:new Float64Array(6), speed:new Float64Array(6).fill(1), level:new Float64Array(6), stage:new Uint8Array(6),
-      feedback:0, previous:0,
+      decay:new Float64Array(24).fill(1), feedback:0, previous:0,
     }));
     this.rates = new Float64Array(24);
+    this.octavesPerSample = new Float64Array(24);
     this.targets = new Float64Array(24);
     this.bus = new Float64Array(3);
     this.amGain = new Float64Array(6).fill(1);
@@ -44,7 +45,14 @@ export class Fm21290 {
     for (let op = 0; op < 6; op++) {
       const i = 0x20 + op*2, pitch = (r[i] << 8) | r[i+1];
       const detune = r[0x30+op], cents = (detune & 7) * (detune & 8 ? -1 : 1);
-      voice.speed[op] = 2 ** ((r[0xe0+op]&7) * Math.max(0,key/4096-2) / 16);
+      const speed = 2 ** ((r[0xe0+op]&7) * Math.max(0,key/4096-2) / 16);
+      if (voice.speed[op] !== speed) {
+        voice.speed[op] = speed;
+        for (let stage=0; stage<4; stage++) {
+          const idx = op*4+stage;
+          voice.decay[idx] = 2 ** (-this.octavesPerSample[idx] * speed);
+        }
+      }
       const hz = pitch & 1 ? 2 ** (((pitch & ~3) - 0x16ac) / 4096)
         : 440 * 2 ** ((key + mod - 0x5aa8 + (pitch & ~3) - 0x232c) / 4096);
       voice.step[op] = tau * hz * 2 ** (cents/1200) / this.sampleRate;
@@ -71,8 +79,16 @@ export class Fm21290 {
     }
     if (i < 32) this.tune(i >> 1);
     else if (i < 0x36 || i >= 0xf2 || (i >= 0xe0 && i < 0xe6)) for (let ch = 0; ch < 16; ch++) this.tune(ch);
-    else if (i < 0x58) this.rates[i-0x40] = Math.min(1, 2 ** ((data-32)/4) * 4 / this.sampleRate);
-    else if (i < 0x78) this.targets[i-0x60] = amplitude(data);
+    else if (i < 0x58) {
+      const idx = i - 0x40, rate = Math.min(data, 63);
+      // Measured against the bundled 44.1 kHz MSFA engine. Attack uses
+      // a linear-gain approximation; falling segments advance in log gain.
+      this.rates[idx] = 2 ** ((rate-32)/4) * 9.6 / this.sampleRate;
+      this.octavesPerSample[idx] = (4 + rate%4) * 2 ** (Math.floor(rate/4)-22) * 44100 / this.sampleRate;
+      for (const voice of this.voices)
+        voice.decay[idx] = 2 ** (-this.octavesPerSample[idx] * voice.speed[idx >> 2]);
+    }
+    else if (i < 0x78) this.targets[i-0x60] = data >= 63 ? 0 : amplitude(data * 2);
     else if (i < 0xe0) this.voices[i & 15].level[(i-0x80) >> 4] = amplitude(data / 2);
     else if (i === 0xf1) {
       const v = this.voices[(data >> 2) & 15];
@@ -93,12 +109,14 @@ export class Fm21290 {
         let sounding = false;
         for (let op = 0; op < 6; op++) {
           const stage = v.stage[op], idx = op*4 + stage;
-          const target = this.targets[idx], delta = target - v.gain[op];
-          const step = this.rates[idx] * v.speed[op];
-          if (Math.abs(delta) <= step) {
-            v.gain[op] = target;
-            if (stage < 2) v.stage[op]++;
-          } else v.gain[op] += Math.sign(delta) * step;
+          const target = this.targets[idx], gain = v.gain[op];
+          if (gain < target) {
+            v.gain[op] = Math.min(target, gain + this.rates[idx] * v.speed[op]);
+          } else if (gain > target) {
+            const next = Math.max(target, gain * v.decay[idx]);
+            v.gain[op] = target === 0 && next < 1e-6 ? 0 : next;
+          }
+          if (v.gain[op] === target && stage < 2) v.stage[op]++;
           const flags = route[op], input = (flags >> 4) & 3, out = flags & 3;
           let modulation = input ? this.bus[input] * 8 : 0;
           if ((flags & 64) && feedback) modulation += (v.previous + v.feedback) * 2 ** (feedback-5);

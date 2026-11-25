@@ -14,6 +14,13 @@ function setup(patch={}) {
   const render=n=>{const pcm=new Float32Array(n);core.renderInto(pcm);return pcm;};
   return {core,api,trace,render};
 }
+test('operator envelope edit values reach EGS in wire order and release to silence',()=>{
+  const {core,api,render}=setup({operators:{1:{envelope:{levels:[99,19,20,0],rates:[99,99,99,99]}}}});
+  assert.deepEqual([...core.reg.slice(0x74,0x78)],[0,40,39,63]);
+  api.keyOn(0,69);render(4800);api.keyOff(0);render(4800);
+  assert.equal(core.voices[0].active,false);
+  assert.ok(render(256).every(sample=>sample===0));
+});
 test('firmware broadcast and die-derived individual A-register select',()=>{
   const {core}=setup();
   core.writeRegister(MODE,0x30);core.writeRegister(ALGORITHM,0xff);

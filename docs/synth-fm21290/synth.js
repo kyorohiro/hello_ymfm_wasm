@@ -17,7 +17,7 @@ const voices = Array.from({length:32},(_,i)=>createInitVoice('INIT '+(i+1)));
 voices[0] = presetToVoice(glassPatch);
 let selected=0, op=1, sysexChannel=0, audio=null, opening=null, midi=null, songBytes=null, songEpoch=0, songTimer=null;
 const held = new Map(), trace=[], writes=[];
-const monitor = createSynthOutputVisualizer({waveformMinRange:1/64});
+const monitor = createSynthOutputVisualizer({background:'#182408',grid:'#374b1c',labels:'#bbc99d',trace:'#b4ed6c',waveformMinRange:1/64});
 const preset = () => voiceToPreset(voices[selected]);
 const option = (text,value) => new Option(text,value);
 const report = error => {el('status').textContent=error.message ?? String(error);};

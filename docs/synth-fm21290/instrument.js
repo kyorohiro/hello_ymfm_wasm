@@ -1,6 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {MODE, ALGORITHM, PITCH, RATIO, DETUNE, SENS, RATE, LEVEL, OUTPUT, EVENT, integer} from './chip.js';
 
+// PATCH_ACTIVATE_OPERATOR_EG_LEVEL shifts the ROM attenuation right one bit.
+// From edit level 20 onward the original table follows 99 - level.
+const lowEnvelopeAttenuations = [
+  127, 122, 118, 114, 110, 107, 104, 102, 100, 98,
+  96, 94, 92, 90, 88, 86, 85, 84, 82, 81,
+];
+function envelopeLevelByte(level) {
+  return (lowEnvelopeAttenuations[level] ?? (99 - level)) >> 1;
+}
+
 // Public CH values follow Tetorica's zero-based Code constants. OP labels are 1..6.
 export function createInstrument(write) {
   let preset, cursor = 0;
@@ -35,7 +45,7 @@ export function createInstrument(write) {
       write(SENS+slot, p.ampModSensitivity*8+p.rateScaling);
       for (let stage=0; stage<4; stage++) {
         write(RATE+slot*4+stage, p.envelope.rates[stage]*164 >> 8);
-        write(LEVEL+slot*4+stage, Math.round((99-p.envelope.levels[stage])*127/99));
+        write(LEVEL+slot*4+stage, envelopeLevelByte(p.envelope.levels[stage]));
       }
       notes.forEach((note,ch) => { if (note !== null) output(ch, op, note, velocities[ch]); });
     }

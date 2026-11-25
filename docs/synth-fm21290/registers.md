@@ -10,7 +10,7 @@
 | 3000 + 2v | VOICE_ADD_LOAD_FREQ_TO_EGS は上位→下位の順に書く。14bit log pitch、左詰めで1oct = 1000h | MIDI A4を5AA8hで440 Hzとする近似。二度のバイト書き込みはレンダー境界で反映 |
 | 3020 + 2s | PATCH_ACTIVATE_OPERATOR_PITCH。ratio/fixedをbit 0で選択。ratio 1の基準232Ch、fixed 1 Hzの基準16ACh | log2による位相増分。実機の整数テーブル・丸めの差が残る |
 | 3030 + s | PATCH_ACTIVATE_OPERATOR_DETUNE。符号と3bitの大きさ | 符号付きcentの近似。音域別実測は未実施 |
-| 3040 / 3060 + 4s + stage | PATCH_ACTIVATE_OPERATOR_EG_RATE / EG_LEVEL。4区間、rateは編集値×164の上位バイト。levelはROMの対数テーブル経由 | rateのCPU変換を実装。到達時間とレベル変換は暫定。離鍵で第4区間に進む |
+| 3040 / 3060 + 4s + stage | PATCH_ACTIVATE_OPERATOR_EG_RATE / EG_LEVEL。4区間、rateは編集値×164の上位バイト。levelはROMの対数テーブル経由 | rateとlevelのCPU変換を実装。levelはTABLE_LOGの値を1ビット右シフトする。EGS側のゲイン曲線・消音点と到達時間は近似。離鍵で第4区間に進む |
 | 3080 + 16s + v | VOICE_ADD_LOAD_OPERATOR_DATA_TO_EGS。96バイト。KLSとvelocityをCPUで合成する。FFhは消音 | OP別・CH別。書き込みは発音中にも反映。減衰と鍵盤曲線は近似 |
 | 30E0 + s | PATCH_ACTIVATE_OPERATOR_KBD_SCALING_RATE。AMS << 3 とrate scalingを合成 | 音域によるEG速度と振幅変調感度を近似 |
 | 30F0, 30F2/3 | ファームウェアが計算した振幅変調と符号付きピッチ変調。ベンドを合算して上下バイトを書き込む | AM/PM書き込みとMIDIベンドに対応。CPU側LFOとピッチEGは未実装 |
@@ -23,3 +23,15 @@ DX7の通常の音色変更は全声へ同じAlgorithm/Feedbackを書き込む�
 VOICE_ADD_POLYの空き声探索は巡回して最大16枠を調べ、全枠がactiveならこのルーチンから戻る。今回のAUTOはこの探索部分を実装した。DX7のMIDI入力バッファ、ペダル、モノ動作を含むファームウェア全体での振る舞いは別途照合する。
 
 PCMはホストのサンプルレートで浮動小数点合成する。96スロットのクロック位相、log-sine ROM、DAC、EGS内部のラッチ遅延は未再現。A4周波数とレジスタ再演の一致はソフトウェアテストによる。実機の全パラメータや音色の一致は未確認。
+
+## 単一キャリアの包絡比較（2026-11-25）
+
+`node scripts/compare_fm21290_envelope.mjs` で同梱MSFAと独自コアを48 kHzで比較する。単一キャリアのA4、velocity 127、3秒押鍵と3秒離鍵、音色のR1/R4を同じ値に固定。L1..L4は99/80/80/0（EGSバイト0/9/9/63）、R2/R3は85（EGSバイト54）。5 msごとのPCMピークを測定した。
+
+| R1/R4編集値（EGS値） | ピークの90%到達 ms（独自 / MSFA） | 定常振幅 dB・ピーク比（独自 / MSFA） | 離鍵後−20 dB到達 ms（独自 / MSFA） |
+|---|---:|---:|---:|
+| 40（25） | 315 / 310 | −13.5 / −13.5 | 990 / 1000 |
+| 60（38） | 30 / 30 | −13.3 / −13.2 | 105 / 105 |
+| 80（51） | 0 / 0 | −13.2 / −13.4 | 15 / 15 |
+
+時刻は閾値を通過した窓の開始時刻。0 msは最初の5 ms窓を表す。修正前はR40で離鍵後−20 dBまで160 msだった。下降区間を対数ゲイン上の一定速度にし、立ち上がりの近似速度も調整した。MSFA内部のレート刻みは同梱の `third_party/tetorica-soundchip-native/vendor/msfa/env.cc` を参照した。低い音量からの再打鍵、音域別のrate scaling、曲線全体と実機との一致は未検証。
