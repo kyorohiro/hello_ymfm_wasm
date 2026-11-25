@@ -118,6 +118,7 @@ function render() {
   const p=preset();
   el('bank').replaceChildren(...voices.map((v,i)=>option((i+1)+' · '+voiceToPreset(v).name,i)));
   el('bank').value=selected;el('algorithm').value=p.algorithm;el('feedback').value=p.feedback;el('name').value=p.name;
+  el('oscSync').checked=p.oscillatorSync;
   for(const key of Object.keys(p.lfo)){
     const control=el('lfo-'+key);
     if(key==='sync')control.checked=p.lfo.sync;
@@ -189,6 +190,7 @@ el('algorithm').append(...Array.from({length:32},(_,i)=>option(i+1,i)));
 el('channel').append(option('AUTO',-1),...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
 on('bank','change',async()=>{stopSong();selected=Number(el('bank').value);render();await applyVoice();});
 on('algorithm','change',()=>edit({algorithm:Number(el('algorithm').value)}));
+on('oscSync','change',()=>edit({oscillatorSync:el('oscSync').checked}));
 on('feedback','change',()=>edit({feedback:Number(el('feedback').value)}));
 on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{

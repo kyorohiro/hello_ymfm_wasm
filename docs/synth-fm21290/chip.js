@@ -30,7 +30,7 @@ export class Fm21290 {
     this.reg.fill(255, 0x80, 0xe0);
     this.algorithms = new Uint8Array(16);
     this.voices = Array.from({length:16}, () => ({
-      active:false, held:false, phase:new Float64Array(6), gain:new Float64Array(6),
+      active:false, held:false, idleSince:0, phase:new Float64Array(6), gain:new Float64Array(6),
       step:new Float64Array(6), rateOffset:new Uint8Array(6), level:new Float64Array(6), stage:new Uint8Array(6),
       attackScale:new Float64Array(6).fill(1), attack:new Float64Array(24), decay:new Float64Array(24).fill(1), feedback:0, previous:0,
     }));
@@ -57,8 +57,20 @@ export class Fm21290 {
     voice.attack[idx] = this.attackByRate[rate];
     voice.decay[idx] = this.decayByRate[rate];
   }
+  advanceIdle(voice) {
+    if (voice.active || voice.idleSince === this.frame) return;
+    const frames = this.frame - voice.idleSince;
+    for (let op=0; op<6; op++) {
+      voice.phase[op] = (voice.phase[op] + frames * voice.step[op]) % tau;
+    }
+    // Inactive slots contribute zero output to the two-sample return path.
+    voice.previous = frames === 1 ? voice.feedback : 0;
+    voice.feedback = 0;
+    voice.idleSince = this.frame;
+  }
   tune(ch) {
     const r = this.reg, voice = this.voices[ch];
+    this.advanceIdle(voice);
     const key = (r[ch*2] << 8) | r[ch*2+1];
     // The MSFA comparison model groups three semitones per scaling step.
     // Recover the nearest key from the unmodulated EGS pitch.
@@ -118,6 +130,7 @@ export class Fm21290 {
     else if (i === 0xf1) {
       const v = this.voices[(data >> 2) & 15];
       if ((data & 3) === 1) {
+        this.advanceIdle(v);
         v.active = v.held = true;
         v.stage.fill(0);
         if (this.sync) v.phase.fill(0);
@@ -152,7 +165,10 @@ export class Fm21290 {
           if (v.gain[op] * v.level[op] > 0.00001) sounding = true;
         }
         buffer[frame] += this.bus[0] * 0.08;
-        if (!v.held && !sounding) v.active = false;
+        if (!v.held && !sounding) {
+          v.active = false;
+          v.idleSince = this.frame + frame + 1;
+        }
       }
     }
     this.frame += buffer.length;

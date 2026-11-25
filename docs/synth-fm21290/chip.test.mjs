@@ -166,3 +166,42 @@ test('sustain defers individual gates, permits slot reuse and preserves replacem
   api.allNotesOff();api.noteOn(60);api.noteOff(60);
   assert.ok(core.voices.every(v=>!v.held));
 });
+
+test('idle phase on a physical slot advances through silence and pitch writes',()=>{
+  function onset(sync,gaps,octaveUp=false){
+    const {core,api,render}=setup({oscillatorSync:sync});
+    api.keyOn(15,69);render(3001);api.keyOff(15);render(12000);
+    assert.equal(core.voices[15].active,false);
+    // Raise the idle pitch by one octave, then keyOn restores A4.
+    if(octaveUp)core.writeRegister(0x301e,0x6a);
+    for(const gap of gaps)assert.ok(render(gap).every(x=>x===0));
+    api.keyOn(15,69);
+    return render(8);
+  }
+  const free=onset(false,[]), halfTurn=onset(false,[600]);
+  assert.ok(Math.max(...free.map(Math.abs))>0.0001);
+  for(let i=0;i<free.length;i++)assert.ok(Math.abs(free[i]+halfTurn[i])<1e-7);
+  assert.deepEqual(halfTurn,onset(false,[127,473]));
+  assert.deepEqual(free,onset(false,[600],true)); // 11 complete turns at 880 Hz
+  const synced=onset(true,[]);
+  assert.equal(synced[0],0);
+  assert.deepEqual(synced,onset(true,[600]));
+});
+
+test('sync restarts oscillator phase but retains model feedback on an immediate retrigger',()=>{
+  for(const feedback of [0,7]){
+    const {api,core,render}=setup({algorithm:31,feedback,oscillatorSync:true,
+      operators:{1:{outputLevel:0},6:{outputLevel:78}}});
+    api.keyOn(0,69);render(3021);
+    const voice=core.voices[0], history=[voice.previous,voice.feedback];
+    api.keyOff(0);api.keyOn(0,69);
+    assert.deepEqual([...voice.phase],Array(6).fill(0));
+    assert.deepEqual([voice.previous,voice.feedback],history);
+    const first=render(1)[0];
+    if(feedback)assert.ok(Math.abs(first)>0.0001);
+    else assert.equal(first,0);
+    api.keyOff(0);render(16000);assert.equal(voice.active,false);
+    api.keyOn(0,69);
+    assert.equal(render(1)[0],0);
+  }
+});
