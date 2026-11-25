@@ -38,7 +38,7 @@ const {chromium}=require('playwright');
   await page.getByText('Mod wheel settings',{exact:true}).click();await page.check('#modBias');
   const am=value=>page.waitForFunction(v=>document.querySelector('#modBytes').textContent.startsWith(v+' '),value);
   await am('ff');
-  await page.click('#playMidi');await pm('01 55');await am('00');
+  await page.locator('#playMidi').evaluate(button=>button.click());await pm('01 55');await am('00');
   assert.equal(await page.inputValue('#modPosition'),'127');
   await wheel.focus();await page.keyboard.down('End');await pm('02 ab');
   await page.waitForFunction(()=>document.querySelectorAll('#channels [data-state=on]').length===2);

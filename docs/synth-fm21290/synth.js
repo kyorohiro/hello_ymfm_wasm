@@ -264,7 +264,7 @@ function projectFileList(){
   return list;
 }
 function renderFiles(){
-  renderFileTree(el('filesTree'),projectFileList(),{expanded,selectedPath:selectedFile,onOpen:path=>openProjectFile(path).catch(report)});
+  renderFileTree(el('filesTree'),projectFileList().filter(file=>file.type==='directory' || !/\.midi?$/i.test(file.path)),{expanded,selectedPath:selectedFile,onOpen:path=>openProjectFile(path).catch(report)});
 }
 async function openProjectFile(path){
   storeEditor();
@@ -333,7 +333,6 @@ const algorithmControl=numericControl(el('algorithm'),'Algorithm',31,value=>edit
 const feedbackControl=numericControl(el('feedback'),'Feedback',7,value=>edit({feedback:value}));
 const pitchControls={rates:[],levels:[]},lfoControls={};
 function render() {
-  el('menuRegisters').hidden=!isChip();
   draftChanged();
   const p=preset();
   el('bank').replaceChildren(...voices.map((v,i)=>option((i+1)+' · '+voiceToPreset(v).name,i)));
@@ -542,8 +541,8 @@ function setFiles(open){
   el('workspace').classList.toggle('with-files',open);
   el('filesToggle').setAttribute('aria-expanded',String(open));
 }
-const panelNames={chipPanel:'YM21290',midiPanel:'MIDI',registers:'Register',mixerPanel:'Mixer',keyboardPanel:'Keyboard',codePanel:'Code'};
-const soundIds=['chipPanel','midiPanel','registers','mixerPanel'];
+const panelNames={chipPanel:'YM21290',registers:'Register',mixerPanel:'Mixer',keyboardPanel:'Keyboard',codePanel:'Code'};
+const soundIds=['chipPanel','registers','mixerPanel'];
 const inputIds=['keyboardPanel','codePanel'];
 let codeMode=false,soundTab='chipPanel',inputTab='keyboardPanel',fullTab='codePanel';
 function selectPanel(id){
@@ -595,8 +594,10 @@ function setView(code){
 }
 function selectBinaryFile(path){
   selectedFile=path;renderFiles();
-  selectPanel(/\.syx$/i.test(path)?'chipPanel':'midiPanel');
-  if(matchMedia('(max-width: 760px)').matches)setFiles(false);
+  if(/\.syx$/i.test(path)){
+    selectPanel('chipPanel');
+    if(matchMedia('(max-width: 760px)').matches)setFiles(false);
+  }
   draftChanged();
 }
 function showNewFile(open){
@@ -625,20 +626,6 @@ for(const [id,code] of [['codeView',true],['synthView',false]])on(id,'click',()=
 setFiles(!matchMedia('(max-width: 760px)').matches);setView(false);
 setupSynthMenu({document,window});
 el('synthMenuPanel').addEventListener('click',event=>{
-  const link=event.target.closest('a[href^="#"]');
-  if(link){
-    if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
-    event.preventDefault();
-    const section=el(link.hash.slice(1));
-    if(section.id==='filesPanel')setFiles(true);
-    else if(panelNames[section.id])selectPanel(section.id);
-    if(section.hidden)return;
-    draftChanged();
-    section.scrollIntoView({block:'start'});
-    if(section.id==='codePanel')codeEditor.focus();
-    else section.focus({preventScroll:true});
-    return;
-  }
   const action=event.target.closest('[data-action]')?.dataset.action;
   if(action==='newPath'){
     setFiles(true);showNewFile(true);draftChanged();el('filesPanel').scrollIntoView({block:'start'});el(action).focus({preventScroll:true});

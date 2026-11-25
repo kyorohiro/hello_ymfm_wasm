@@ -121,9 +121,14 @@ const {chromium}=require('playwright');
   const track=[0,144,60,95,0,145,67,100,0x83,0,128,60,0,0,129,67,0,0,255,47,0];
   await page.locator('#importFile').setInputFiles({name:'duet.mid',mimeType:'audio/midi',buffer:Buffer.from(
     [77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,track.length,...track])});
-  await page.selectOption('#part',{index:1});
+  // Exercise saved MIDI regions from earlier projects with the playback UI hidden.
+  await page.waitForFunction(()=>document.querySelector('#part').options.length===2);
+  await page.locator('#part').evaluate(select=>{select.selectedIndex=1;select.dispatchEvent(new Event('change'));});
   const part=await page.inputValue('#part');
-  await page.fill('#midiFrom','0.25');await page.fill('#midiUntil','1.5');await page.check('#midiLoop');
+  await page.evaluate(()=>{
+    document.querySelector('#midiFrom').value='0.25';document.querySelector('#midiUntil').value='1.5';
+    document.querySelector('#midiLoop').checked=true;
+  });
   await page.click('#showNewFile');await page.fill('#newPath','/sets/recovery.js');await page.click('#newFile');
   const code="throw Error('Restored Code must wait for Run')";
   await page.fill('#code',code);await saved();
@@ -136,7 +141,7 @@ const {chromium}=require('playwright');
   assert.equal(await page.inputValue('#part'),part);assert.equal(await page.inputValue('#midiFrom'),'0.25');
   assert.equal(await page.inputValue('#midiUntil'),'1.5');assert.ok(await page.isChecked('#midiLoop'));
   assert.equal(await page.locator('#channels [data-state=idle]').count(),16);assert.equal(await page.innerText('#status'),'');
-  assert.equal(await page.locator('button[data-file-path="/songs/duet.mid"]').count(),1);
+  assert.equal(await page.locator('button[data-file-path="/songs/duet.mid"]').count(),0);
   await page.fill('#code','// immediate reload');await page.reload();await ready();
   assert.equal(await page.inputValue('#code'),'// immediate reload');
   await page.waitForFunction(()=>['Saved locally','Local project restored'].includes(document.querySelector('#draftStatus').textContent));

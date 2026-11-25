@@ -30,17 +30,7 @@
 <button id="saveCode" type="button" data-close-synth-menu>Code</button>
 <button id="saveSession" type="button" data-close-synth-menu>Cassette · ZIP</button>
 </div>
-<h2>View</h2>
-<nav aria-label="Synth sections">
-<a href="#keyboardPanel" data-close-synth-menu>Keyboard</a>
-<a href="#codePanel" data-close-synth-menu>Code</a>
-<a href="#filesPanel" data-close-synth-menu>Files</a>
-<a href="#chipPanel" data-close-synth-menu>YM21290</a>
-<a href="#outputPanel" data-close-synth-menu>Waveform / Spectrum</a>
-<a href="#mixerPanel" data-close-synth-menu>Mixer</a>
-<a href="#midiPanel" data-close-synth-menu>MIDI output</a>
-<a href="#registers" id="menuRegisters" data-close-synth-menu>Register writes</a>
-</nav>
+
 
 </div>
 </details><button id="filesToggle" aria-expanded="true" aria-controls="filesPanel">Files</button>
@@ -52,7 +42,7 @@
 <div id="newEntry" hidden><label>New file path<input id="newPath" placeholder="/pieces/score.js"></label><button id="newFile">Create file</button></div>
 <p><output id="draftStatus">Opening local project…</output></p>
 <details open class="cassette"><summary>FM21290.cassette.zip</summary><nav id="filesTree" aria-label="Project files"></nav></details>
-<input type="file" id="importFile" hidden accept=".syx,.mid,.midi,.js,.mjs,.json,.txt">
+<input type="file" id="importFile" hidden accept=".syx,.js,.mjs,.json,.txt">
 <input type="file" id="importCassette" hidden accept=".zip,application/zip">
 </section>
 <div class="desk">
@@ -96,7 +86,7 @@
 <h2>Mixer</h2>
 <div class="row"><label>DX7 volume<input id="mixer" type="range" min="0" max="380" value="100"></label><output id="mixerValue" for="mixer">100%</output></div>
 </section>
-<section id="midiPanel" tabindex="-1">
+<section id="midiPanel" hidden>
 <h2>MIDI</h2><div id="song" hidden>
 <label>MIDI part<select id="part"></select></label>
 <div class="row">
@@ -159,4 +149,4 @@
 </div><output id="editorNote" hidden></output><output id="log"></output>
 </section>
 </div></div></div>
-<p role="status" id="status"></p></main><script type="module" src="synth.js?v=workspace-keys-1"></script></html>
+<p role="status" id="status"></p></main><script type="module" src="synth.js?v=file-menu-2"></script></html>
