@@ -14,6 +14,8 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   if(chip==='snes'&&method==='writeDsp'&&[0x4c,0x5c].includes(args[0]))return {events:Array.from({length:8},(_,key)=>key).filter(key=>args[1]&(1<<key)).map(key=>({key,on:args[0]===0x4c}))};
   if(chip==='fm21290' && method==='writeRegister' && args[0]===0x30f1 && [1,2].includes(args[1]&3))
     return {key:(args[1]>>2)&15,on:(args[1]&3)===1};
+  if(chip==='dx7' && method==='writeRegister' && args[0]===0x30f1 && [1,2].includes(args[1]&3))
+    return {key:128+((args[1]>>2)&15),on:(args[1]&3)===1};
   if(chip==='dx7'&&(method==='noteOn'||method==='noteOff'))return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
   if(chip==='rf5c164'&&(method==='keyOn'||method==='keyOff'))return {key:args[0],on:method==='keyOn'};
   if(chip==='nes'&&method==='writeRegister'&&nesTimed){
@@ -105,6 +107,7 @@ export function performanceNoteRelease(chip,key) {
     if(key==='adpcmB')return {method:'write',args:[0,0x10,1]};
   }
   if(chip==='fm21290')return {method:'writeRegister',args:[0x30f1,key*4+2]};
+  if(chip==='dx7' && key>=128)return {method:'writeRegister',args:[0x30f1,(key-128)*4+2]};
   if(chip==='dx7')return {method:'noteOff',args:[key]};
   if(chip==='snes')return key==='timeline'?{method:'stopTimeline',args:[]}:{method:'keyOff',args:[key]};
   if(chip==='rf5c164'||chip==='ps1'||chip==='scsp')return {method:'keyOff',args:[key]};

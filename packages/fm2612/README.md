@@ -1671,7 +1671,7 @@ approximations are documented in the FM21290 Synth register notes.
 
 ## DX7 in browser Playground (0.2.14)
 
-Scripts executed by `Playground` / `createPlaygroundRuntime` can use the MSFA
+Scripts executed by `Playground` / `createPlaygroundRuntime` can use the FM21290
 DX7-compatible six-operator FM engine. It starts with the self-authored
 `INIT SINE` voice, so no external sound bank is needed:
 
@@ -1703,22 +1703,15 @@ releases all held voices of that pitch, `allNotesOff()` releases every voice,
 and `panic()` silences release tails and buffered audio immediately.
 
 Both Main and Worker script execution use AudioWorklet for audio generation.
-The engine renders mono at a fixed internal 44,100 Hz and supports output
-AudioContexts at 44,100 or 48,000 Hz; 48,000 Hz output is resampled. Its mono
-output feeds Playground's stereo mixer, FX and master volume. Use
-`await mixer.set(dx7.id, {volume: 0.5, pan: -0.25})` for balance. It has no
-chip-clock or raw-register API. STOP disposes the instance; a subsequent call
-to `useSoundChip('dx7')` creates a fresh one. Playground's
-`createSoundChip('dx7', {id: 'dx7-two'})` creates an independent instance and
-bank instead of reusing the cached `useSoundChip` instance.
+The FM21290 core renders mono at the AudioContext rate (44,100 or 48,000 Hz).
+Both `useSoundChip('fm21290')` and `useSoundChip('dx7')` return the same instrument.
+Play a note through either name, then use `writeRegister(address, value)` to
+edit its physical voice. The mixer ID of a shared extra instrument is
+`dx7:shared`. Use Playground’s `createSoundChip` for independent instances.
 
-These globals belong to the Playground runtime. Importing `createSoundChip`
-from the **package root** does not add DX7 to that lower-level chip factory.
-For direct PCM generation or DX7 playback outside Playground, use the separate
-[`tetorica-msfa-dx7-wasm`](https://www.npmjs.com/package/tetorica-msfa-dx7-wasm)
-package (`createDX7` in Node/browsers, `createDX7Node` for browser audio).
-The pinned engine, WASM and Apache-2.0 notices are included in this package's
-`msfa_dx7/` directory; no extra runtime dependency or CDN request is required.
+The package-root factory accepts either name for raw register access and offline
+PCM rendering. The experimental native Playground DX7 backend still uses MSFA.
+The MSFA reference implementation and its Apache-2.0 notices ship in `msfa_dx7/`.
 
 ### Object-based DX7 presets (0.2.15)
 
@@ -1748,26 +1741,11 @@ duplicate operators and invalid values atomically; an empty array is a no-op.
 Objects are copied at the boundary, and `getPreset` returns a full independent copy.
 Algorithm numbers are zero based (0..31); outputLevel is 0..99, higher is louder;
 envelopes use four DX7 rate/level values 0..99 rather than seconds or YM2612 AR/TL.
-Since 0.2.16, outputLevel/mode/coarse/fine/detune edits apply
-to sounding notes of the edited patch, including release tails. Its additive
-`await dx7.setFeedback(3)` edits feedback (raw range 0..7).
-`setPreset`/`loadSysex` replace patch identities; old notes retain the previous
-patch. `selectVoice` preserves each bank slot's identity. Operator envelope rates and levels also update the current stage and release tail. Pitch EG/algorithm
-edits remain future-note-only. Phase/key/EG state and original velocity/scaling
-are retained, with edits applied at the next ungenerated 64-frame internal block.
-An acknowledgement does not bypass generated PCM or device buffering.
-Abrupt frequency/feedback changes apply directly; their waveform discontinuities
-and clicks are accepted API behavior. No automatic parameter smoothing, glide,
-feedback interpolation, crossfade or click suppression is added. Phase, EG and
-feedback history are retained. Existing upstream operator-gain interpolation and
-PCM output resampling remain. NaN/Infinity reject atomically; non-finite output,
-corrupted amplitude, divergence and crashes are not accepted behavior.
-Return async setters from Playground `tween` callbacks, e.g.
-`await tween(1, p => dx7.setOperator(2, {outputLevel: Math.round(99*p)}))`.
-Live edits leave the shared LFO untouched; selection/replacement can reconfigure
-it while retaining its phase. MSFA's documented AM,
-transpose and oscillator-sync limitations still apply.
-The standalone DX7 PCM core exposes the same methods synchronously.
+Operator output, frequency, envelope and feedback edits update chip registers
+while notes sound. Bank selection and patch replacement apply the selected patch
+to the chip's shared operator registers. A direct register write changes chip
+state. `getPreset()` returns the editable DX7 patch, and applying a patch
+writes its parameters to the chip again.
 
 ## Mega CD PCM with MegaSynth
 

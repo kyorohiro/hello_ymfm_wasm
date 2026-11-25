@@ -1,7 +1,4 @@
-// Capture the application fetch before Playground user-code network guards run.
-const nativeFetch = globalThis.fetch?.bind(globalThis);
 const loadedModules = new WeakMap();
-const wasmLoads = new WeakMap();
 
 function ensureContext(context) {
   if (!context?.audioWorklet || context.state === 'closed') {
@@ -26,21 +23,6 @@ function waitWithSignal(promise, signal) {
   });
 }
 
-function loadWasm(fetchImpl) {
-  if (typeof fetchImpl !== 'function') throw new Error('DX7 WASM loading requires fetch.');
-  let ready = wasmLoads.get(fetchImpl);
-  if (!ready) {
-    ready = (async () => {
-      const response = await fetchImpl(new URL('./msfa_dx7/wasm/msfa.wasm', import.meta.url));
-      if (!response.ok) throw new Error(`Could not load DX7 WASM (${response.status}).`);
-      return new Uint8Array(await response.arrayBuffer());
-    })();
-    wasmLoads.set(fetchImpl, ready);
-    ready.catch(() => { if (wasmLoads.get(fetchImpl) === ready) wasmLoads.delete(fetchImpl); });
-  }
-  return ready;
-}
-
 function loadModule(context) {
   let ready = loadedModules.get(context);
   if (!ready) {
@@ -61,16 +43,13 @@ function loadModule(context) {
 export async function createDx7Audio(context, destination, options = {}) {
   ensureContext(context);
   throwIfAborted(options.signal);
-  const [wasmBytes] = await waitWithSignal(Promise.all([
-    loadWasm(options.fetch ?? nativeFetch), loadModule(context),
-  ]), options.signal);
+  await waitWithSignal(loadModule(context), options.signal);
   ensureContext(context);
   throwIfAborted(options.signal);
   const node = new AudioWorkletNode(context, 'tetorica-playground-dx7', {
     numberOfInputs: 0,
     numberOfOutputs: 1,
     outputChannelCount: [2],
-    processorOptions: {wasmBytes},
   });
   let disposed = false, failed = null, endpoint = null;
   let readyResolve, readyReject;

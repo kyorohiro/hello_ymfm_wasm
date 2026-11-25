@@ -310,6 +310,10 @@ playground_nes_audio.js
 playground_nes_worklet.js
 fm21290.js
 fm21290_algorithms.js
+fm21290_instrument.js
+fm21290_pitch_envelope.js
+fm21290_modulation.js
+fm21290_synth.js
 playground_fm21290.js
 chip_pcm_renderer.js
 sid_soundchip.js

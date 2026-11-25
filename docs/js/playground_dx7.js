@@ -1,3 +1,4 @@
+import {validRegister} from './fm21290.js';
 /** Direct Main/logic-Worker client for the Playground DX7 AudioWorklet. */
 import {validatePreset, validateOperator, validateOperators} from './msfa_dx7/src/preset.js';
 const REQUEST_TIMEOUT_MS = 15000;
@@ -180,6 +181,13 @@ export function createDx7Client(port, initial = {}, lifecycle = {}) {
       },()=>{
         if(pendingSelection===revision){pendingSelection=0;selectedVoice=observedSelection;}
       });
+    },
+    writeRegister(address, value) {
+      assertUsable();
+      if (initial.native) throw new Error('FM21290 register control requires Web Audio.');
+      validRegister(address);
+      midiInteger(value, 'Register data', 255);
+      send('writeRegister', [address, value]);
     },
     /** @param {number} note @param {number} [velocity] */
     noteOn(note, velocity = 100) {

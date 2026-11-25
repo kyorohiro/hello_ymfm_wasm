@@ -17,7 +17,7 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   [https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html)
 - Playground:
   [https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
-  Independent MSFA DX7 support is available through `await useSoundChip('dx7')`,
+  Web Audio shares one FM21290 instrument between `useSoundChip('fm21290')` and `useSoundChip('dx7')`,
   including 16 voices, DX7 SysEx banks and Playground mixer/FX routing.
   Open `examples/dx7/dx7-init-sine.js` in FILES; the initial voice needs no external bank.
   Experimental SNES S-DSP is available through `await useSoundChip('snes')`: eight independent

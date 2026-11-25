@@ -130,7 +130,7 @@ Playback support, instrument editing and note transcription are separate capabil
 | Yamaha OPLL / OPL | YM2413, YM3526, YM3812, Y8950, YMF262, YMF278B |
 | PSG / wavetable / console | AY-3-8910 / YM2149, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280, K051649 / K052539, POKEY, WonderSwan |
 | PCM / ADPCM | RF5C164, Sega PCM, OKIM6258, OKIM6295, MSM5205 |
-| Standalone instruments / players | [PS1 SPU](docs/ps1_spu.md), [Saturn SCSP](docs/scsp.md), SNES S-DSP / SPC700, MSFA DX7, [experimental SID 6581 / 8580 Preview](docs/sid.md) |
+| Standalone instruments / players | [PS1 SPU](docs/ps1_spu.md), [Saturn SCSP](docs/scsp.md), SNES S-DSP / SPC700, FM21290 / DX7, [experimental SID 6581 / 8580 Preview](docs/sid.md) |
 
 The package-root `createSoundChip()`, Playground's `createSoundChip()` / `useSoundChip()`,
 standalone classes and high-level Synth APIs have different entry points and coverage.

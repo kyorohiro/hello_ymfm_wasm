@@ -2010,12 +2010,6 @@ interface DX7PresetState extends Required<DX7Preset> {
   operators: Record<DX7Operator, DX7OperatorState>;
 }
 // END GENERATED DX7 PRESET TYPES
-interface PlaygroundFm21290 {
-  readonly id: string;
-  /** Write a YM21290 EGS or YM21280 OPS CPU register; 0x30f1 controls the physical gate. */
-  writeRegister(address:number,value:number):void;
-  dispose():void;
-}
 interface PlaygroundDx7VoiceInfo {
   readonly index: number;
   readonly name: string;
@@ -2025,15 +2019,17 @@ interface PlaygroundDx7State {
   selectedVoice: number;
   /** AudioContext output rate, in Hz: 44100 or 48000. */
   sampleRate: number;
-  /** MSFA engine rate, fixed at 44100 Hz. */
+  /** Engine sample rate in Hz. */
   internalSampleRate: number;
 }
-/** Independent MSFA DX7 synthesizer. MIDI note numbers, 16 voices, mono output.
- * Starts with the self-authored INIT SINE voice. No setClock/register API.
+/** Independent DX7 synthesizer. MIDI note numbers, 16 voices, mono output.
+ * Starts with the self-authored INIT SINE voice.
  * Audio is routed through Playground volume, mixer and FX. STOP disposes independent
  * instances; DX7 mode retains its primary instance and bank while silencing voices.
  */
 interface PlaygroundDx7 {
+  /** CPU register access on the FM21290 Web Audio engine. */
+  writeRegister(address:number,value:number):void;
   readonly voices: PlaygroundDx7VoiceInfo[];
   readonly selectedVoice: number;
   readonly sampleRate: number;
@@ -2044,14 +2040,13 @@ interface PlaygroundDx7 {
    */
   loadSysex(bytes: ArrayBuffer | ArrayBufferView): Promise<PlaygroundDx7VoiceInfo[]>;
   /** Replace the selected voice from INIT defaults; keep the other bank slots.
-   * Resolves after application. OP/algorithm/EG edits affect subsequent Note On;
-   * shared LFO settings can affect held notes. No channel argument.
+   * Resolves after application. On Web Audio the patch drives the shared physical chip registers. No channel argument.
    */
   setPreset(preset: DX7Preset): Promise<void>;
   /** Partially update OP1..6 using DX7 values. outputLevel 0..99: larger is louder.
    * outputLevel/mode/coarse/fine/detune and operator envelope rates/levels also affect this patch's sounding notes
    * and release tails without retriggering. Other fields affect future notes.
-   * setPreset/loadSysex create new patch identities; selectVoice retains them. */
+   * Web Audio shares operator registers across physical voices. */
   setOperator(operator: DX7Operator, params: DX7OperatorParams): Promise<void>;
   /** Apply a tuple batch atomically; duplicate operators reject, [] is a no-op. */
   setOperators(entries: ReadonlyArray<readonly [DX7Operator, DX7OperatorParams]>): Promise<void>;
@@ -2059,7 +2054,7 @@ interface PlaygroundDx7 {
   setFeedback(feedback: number): Promise<void>;
   /** Read a complete independent object after preceding commands apply. */
   getPreset(): Promise<DX7PresetState>;
-  /** Zero-based voice index. Existing notes retain their operator/envelope settings. */
+  /** Zero-based voice index. */
   selectVoice(index: number): void;
   /** Integer MIDI note and velocity 0..127. Velocity 0 releases that note. */
   noteOn(note: number, velocity?: number): void;
@@ -2559,7 +2554,7 @@ type PlaygroundSoundChipMap = {
   ym2151: TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOpm : PlaygroundYm2151;
   nes: TetoricaSelectedChip extends 'nes' ? PlaygroundPrimaryNes : PlaygroundNes;
   pwm: PlaygroundPWM32X;
-  fm21290: PlaygroundFm21290;
+  fm21290: PlaygroundSoundChipMap['dx7'];
   dx7: TetoricaSelectedChip extends 'dx7' ? PlaygroundPrimaryDx7 : PlaygroundDx7;
   snes: TetoricaSelectedChip extends 'snes' ? PlaygroundPrimarySnes : PlaygroundSnes;
   scsp: TetoricaSelectedChip extends 'scsp' ? PlaygroundPrimaryScsp : PlaygroundScsp;
@@ -2584,7 +2579,7 @@ type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name
 declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipClient<Name>>;
 
 /** A Web Audio OPS/EGS register model with 16 physical voices. */
-declare function createSoundChip(name: 'fm21290', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundFm21290>;
+declare function createSoundChip(name: 'fm21290', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundDx7 & {readonly id: string}>;
 /** Create an independent DX7 with its own 16 voices and SysEx bank. */
 /** Native also supports independent DX7 banks and 16 allocated voices, within the shared 16-instance / 64 MiB additional-chip budget. */
 declare function createSoundChip(name: 'dx7', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundDx7 & {readonly id: string}>;

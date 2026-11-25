@@ -215,7 +215,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "scsp",
-      "volume": 0.128826
+      "volume": 0.128825
     },
     {
       "name": "sid",
@@ -646,7 +646,7 @@ const factoryModes = freeze({
         "id": "pokey",
         "name": "pokey",
         "settings": {
-          "volume": 0.413034
+          "volume": 0.413033
         }
       }
     ]
@@ -689,7 +689,7 @@ const factoryModes = freeze({
         "id": "scsp",
         "name": "scsp",
         "settings": {
-          "volume": 0.128826
+          "volume": 0.128825
         }
       }
     ]

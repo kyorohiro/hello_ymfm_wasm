@@ -1,13 +1,16 @@
-import {createDX7, createInitVoice, createVoiceSysex,parseSysex} from './msfa_dx7/src/index.js';
+import {createInitVoice, createVoiceSysex,parseSysex} from './msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=sid-timed-1';
 import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 
+import {Fm21290Synth} from './fm21290_synth.js';
+import {validRegister} from './fm21290.js';
+
 const errorMessage = error => String(error?.message ?? error);
 
 class Dx7Processor extends AudioWorkletProcessor {
-  constructor({processorOptions = {}} = {}) {
+  constructor() {
     super();
     this.dead = false;
     this.synth = null;
@@ -38,7 +41,7 @@ class Dx7Processor extends AudioWorkletProcessor {
         this.attachRemote(data.port, false);
       } else this.receive(data, this.port);
     };
-    this.initializing = this.initialize(processorOptions.wasmBytes);
+    this.initializing = this.initialize();
   }
 
   attachRemote(port, worker) {
@@ -72,10 +75,10 @@ class Dx7Processor extends AudioWorkletProcessor {
     for(const port of [this.remote,this.workerRemote])port?.postMessage(message);
   }
 
-  async initialize(wasmBytes) {
+  async initialize() {
     let synth;
     try {
-      synth = await createDX7({sampleRate, wasmBytes});
+      synth = new Fm21290Synth(sampleRate);
       if (this.dead) { synth.dispose(); return; }
       await synth.loadSysex(createVoiceSysex(createInitVoice()));
       if (this.dead) { synth.dispose(); return; }
@@ -131,6 +134,7 @@ class Dx7Processor extends AudioWorkletProcessor {
       case 'setOperators':validateOperators(args[0]);break;
       case 'setFeedback':integer(args[0],7,'feedback');break;
       case 'selectVoice':integer(args[0],this.logicalVoices.length-1,'voice index');break;
+      case 'writeRegister':validRegister(args[0]);integer(args[1],255,'register data');break;
       case 'noteOn':integer(args[0],127,'note');integer(args[1]??100,127,'velocity');break;
       case 'noteOff':integer(args[0],127,'note');break;
       case 'loadSysex':parseSysex(args[0]);break;
@@ -165,6 +169,7 @@ class Dx7Processor extends AudioWorkletProcessor {
       case 'setOperators':this.synth.setOperators(args[0]);break;
       case 'setFeedback':this.synth.setFeedback(args[0]);break;
       case 'selectVoice':this.synth.selectVoice(args[0]);break;
+      case 'writeRegister':this.synth.writeRegister(args[0],args[1]);break;
       case 'noteOn':this.synth.noteOn(args[0],args[1]);break;
       case 'noteOff':this.synth.noteOff(args[0]);break;
       case 'allNotesOff':this.synth.allNotesOff();break;
@@ -243,7 +248,7 @@ class Dx7Processor extends AudioWorkletProcessor {
         case 'setPreset':case 'setOperator':case 'setOperators':case 'setFeedback':
           this.performance.applyImmediate({...data,id:undefined},port);value=this.getLogicalState();break;
         case 'selectVoice':this.performance.applyImmediate({...data,id:undefined},port);value=this.getLogicalState();break;
-        case 'noteOn':case 'noteOff':case 'allNotesOff':case 'panic':this.performance.applyImmediate({...data,id:undefined},port);break;
+        case 'writeRegister':case 'noteOn':case 'noteOff':case 'allNotesOff':case 'panic':this.performance.applyImmediate({...data,id:undefined},port);break;
         default: throw new Error(`Unknown DX7 command: ${data.method}`);
       }
       if(generation!==this.commandGeneration)throw new Error('DX7 performance stopped.');

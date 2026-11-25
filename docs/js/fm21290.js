@@ -36,7 +36,7 @@ export class Fm21290 {
     this.reg.fill(255, 0x80, 0xe0);
     this.algorithms = new Uint8Array(16);
     this.voices = Array.from({length:16}, () => ({
-      active:false, held:false, idleSince:0, phase:new Float64Array(6), gain:new Float64Array(6),
+      active:false, held:false, releaseLevel:new Float64Array(6), idleSince:0, phase:new Float64Array(6), gain:new Float64Array(6),
       step:new Float64Array(6), rateOffset:new Uint8Array(6), level:new Float64Array(6), stage:new Uint8Array(6),
       attackScale:new Float64Array(6).fill(1), attack:new Float64Array(24), decay:new Float64Array(24).fill(1), feedback:0, previous:0,
     }));
@@ -140,7 +140,7 @@ export class Fm21290 {
         v.active = v.held = true;
         v.stage.fill(0);
         if (this.sync) v.phase.fill(0);
-      } else if ((data & 3) === 2) { v.held = false; v.stage.fill(3); }
+      } else if ((data & 3) === 2) { if (v.held) v.releaseLevel.set(v.level); v.held = false; v.stage.fill(3); }
     }
   }
   renderInto(buffer) {
@@ -169,7 +169,8 @@ export class Fm21290 {
           v.phase[op] = (v.phase[op] + v.step[op]) % tau;
           if (flags & 128) { v.previous = v.feedback; v.feedback = value; }
           this.bus[out] = flags & 4 ? this.bus[out] + value : value;
-          if (v.gain[op] * v.level[op] > 0.00001) sounding = true;
+          // A muted operator can be raised again while its release is running.
+          if (v.gain[op] * Math.max(v.level[op], v.releaseLevel[op]) > 0.00001) sounding = true;
         }
         buffer[frame] += this.bus[0] * 0.08;
         if (!v.held && !sounding) {

@@ -721,6 +721,11 @@ try {
   synth.allNotesOff();
 } finally {ayChip.dispose();}
 const egs = await createSoundChip('fm21290', {sampleRate:44100});
+const dx7Alias = await createSoundChip('dx7', {sampleRate:44100});
+assert.equal(dx7Alias.constructor, egs.constructor);
+assert.notEqual(dx7Alias.id, egs.id);
+dx7Alias.writeRegister(0x30d0, 17);
+assert.notEqual(egs.reg[0xd0], dx7Alias.reg[0xd0]);
 assert.equal(egs.sampleRate,44100);
 assert.throws(()=>egs.writeRegister(0x3038,0),RangeError);
 egs.writeRegister(0x2804,0x30);

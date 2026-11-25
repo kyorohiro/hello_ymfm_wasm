@@ -2571,6 +2571,7 @@ export function createPlaygroundRuntime(
         evaluationState.musicalBinding=keyboardBinding(name,handlers);
       }},
       useSoundChip: async (name, options) => {
+      if (name === 'fm21290' && capabilities.backend !== 'native-genesis') name = 'dx7';
         const ownsMainScope=(supportsNativeExtra(name)||['ps1','scsp','sid'].includes(name))&&capabilities.chip!==name&&!megaDrive.primaryEndpoints?.some(endpoint=>endpoint.name===name),callerLoop=currentLoopContext;
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
@@ -2596,6 +2597,7 @@ export function createPlaygroundRuntime(
         return chip;
       },
       createSoundChip: async (name, options = {}) => {
+      if (name === 'fm21290' && capabilities.backend !== 'native-genesis') name = 'dx7';
         const ownsMainScope=supportsNativeExtra(name)||['ps1','scsp','sid'].includes(name),callerLoop=currentLoopContext;
         const pending=ownsMainScope?{loop:callerLoop,controller:new AbortController()}:null;
         if(pending)pendingNativeExtraCreations.add(pending);let device;

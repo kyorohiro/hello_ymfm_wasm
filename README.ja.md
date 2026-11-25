@@ -128,7 +128,7 @@ repository内では[PSF無音バッチ診断](scripts/check_psf_batch.md)も使�
 | Yamaha OPLL／OPL | YM2413、YM3526、YM3812、Y8950、YMF262、YMF278B |
 | PSG・波形メモリー・ゲーム機音源 | AY-3-8910／YM2149、Sega PSG、Game Boy APU、NES APU＋FDS、HuC6280、K051649／K052539、POKEY、WonderSwan |
 | PCM／ADPCM | RF5C164、Sega PCM、OKIM6258、OKIM6295、MSM5205 |
-| 独立した音源／プレイヤー | [PS1 SPU](docs/ps1_spu.md)、[Saturn SCSP](docs/scsp.md)、SNES S-DSP／SPC700、MSFA DX7、[実験的なSID 6581／8580 Preview](docs/sid.md) |
+| 独立した音源／プレイヤー | [PS1 SPU](docs/ps1_spu.md)、[Saturn SCSP](docs/scsp.md)、SNES S-DSP／SPC700、FM21290／DX7、[実験的なSID 6581／8580 Preview](docs/sid.md) |
 
 npmルートの`createSoundChip()`、Playgroundの`createSoundChip()`／`useSoundChip()`、
 独立したクラス、高水準Synth APIは、入口と対応範囲が異なります。

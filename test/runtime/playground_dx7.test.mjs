@@ -1,3 +1,5 @@
+import {Fm21290Synth} from '../../tetorica_src/runtime/fm21290_synth.js';
+import {validRegister} from '../../tetorica_src/runtime/fm21290.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
@@ -6,7 +8,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createDx7Client} from '../../tetorica_src/runtime/playground_dx7.js';
 import {createDx7Audio} from '../../tetorica_src/runtime/playground_dx7_audio.js';
-import {createDX7, createInitVoice, createVoiceSysex, createBankSysex,parseSysex} from '../../tetorica_src/runtime/msfa_dx7/src/index.js';
+import { createInitVoice, createVoiceSysex, createBankSysex,parseSysex} from '../../tetorica_src/runtime/msfa_dx7/src/index.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
 import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
@@ -14,14 +16,23 @@ import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_nati
 import {Dx7VoiceInspector} from '../../tetorica_src/runtime/playground_dx7_inspector.js';
 import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
-const wasmBytes = new Uint8Array(await readFile(new URL('./msfa_dx7/wasm/msfa.wasm', runtimeDirectoryUrl)));
+function referenceCore(sampleRate) {
+  const core = new Fm21290Synth(sampleRate);
+  core.loadSysex(createVoiceSysex(createInitVoice()));
+  core.render = frames => {
+    const buffer = new Float32Array(frames);
+    core.renderInto(buffer);
+    return buffer;
+  };
+  return core;
+}
 const workletSource = (await readFile(new URL('./playground_dx7_worklet.js', runtimeDirectoryUrl), 'utf8')).replace(/^import .*;$/gm, '');
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const peak = pcm => pcm.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0);
 
 function processorClass(port, sampleRate) {
   let Processor;
-  const scope={currentFrame:0,createDX7, createInitVoice, createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators,Dx7VoiceInspector,receiveChipInspector,sampleRate,
+  const scope={currentFrame:0,Fm21290Synth,validRegister, createInitVoice, createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators,Dx7VoiceInspector,receiveChipInspector,sampleRate,
     AudioWorkletProcessor: class { constructor() { this.port = port; } },
     registerProcessor(name, value) { assert.equal(name, 'tetorica-playground-dx7'); Processor = value; },
   };
@@ -40,7 +51,7 @@ async function setup(sampleRate = 44100) {
     };
   });
   const Processor = processorClass(main.port1, sampleRate);
-  const processor = new Processor({processorOptions: {wasmBytes}});
+  const processor = new Processor();
   const metadata = await ready;
   const remote = new MessageChannel();
   main.port2.postMessage({port: remote.port1}, [remote.port1]);
@@ -63,16 +74,16 @@ async function setup(sampleRate = 44100) {
 }
 
 for (const sampleRate of [44100, 48000]) {
-  test(`DX7 direct-port Worklet matches the real WASM core, partitioned stereo at ${sampleRate} Hz`, async t => {
+  test(`DX7 direct-port Worklet matches the FM21290 core, partitioned stereo at ${sampleRate} Hz`, async t => {
     const instrument = await setup(sampleRate);
-    const core = await createDX7({sampleRate, wasmBytes});
+    const core = referenceCore(sampleRate);
     t.after(() => { instrument.close(); core.dispose(); });
     await core.loadSysex(createVoiceSysex(createInitVoice()));
     const {client} = instrument;
     assert.deepEqual(client.voices, [{index: 0, name: 'INIT SINE'}]);
     assert.equal(client.selectedVoice, 0);
     assert.equal(client.sampleRate, sampleRate);
-    assert.equal(client.internalSampleRate, 44100);
+    assert.equal(client.internalSampleRate, sampleRate);
     client.voices[0].name = 'outside';
     assert.equal(client.voices[0].name, 'INIT SINE');
     client.noteOn(69, 100); core.noteOn(69, 100);
@@ -94,8 +105,26 @@ for (const sampleRate of [44100, 48000]) {
   });
 }
 
+test('register gates and MIDI share the sixteen FM21290 slots', async t => {
+  const instrument = await setup();
+  t.after(() => instrument.close());
+  const {client, processor} = instrument;
+  client.writeRegister(0x30f1, 1); // Reserve slot 0 with a raw gate.
+  client.noteOn(69, 100);
+  client.noteOn(69, 100);
+  await client.getState();
+  const gates = () => processor.synth.chip.voices.slice(0, 3).map(voice => voice.held);
+  assert.deepEqual(gates(), [true, true, true]);
+  client.noteOff(69);
+  await client.getState();
+  assert.deepEqual(gates(), [true, false, false]);
+  client.writeRegister(0x30f1, 2);
+  await client.getState();
+  assert.deepEqual(gates(), [false, false, false]);
+});
+
 test('DX7 timed preset RPC is prepared immediately and its voice/note apply at one exact audio frame',async t=>{
-  const instrument=await setup(48000),core=await createDX7({sampleRate:48000,wasmBytes});
+  const instrument=await setup(48000),core=referenceCore(48000);
   t.after(()=>{instrument.close();core.dispose();});await core.loadSysex(createVoiceSysex(createInitVoice()));
   const messages=[],port={postMessage:message=>messages.push(message)},processor=instrument.processor;
   processor.receive({type:'performance-start',session:1},port);
@@ -233,7 +262,7 @@ test('DX7 upload acknowledgement, bank selection and malformed uploads keep usab
 for (const sampleRate of [44100, 48000]) {
   test('DX7 object edits are acknowledged, ordered before notes, and match direct PCM at '+sampleRate+' Hz', async t => {
     const instrument = await setup(sampleRate);
-    const core = await createDX7({sampleRate, wasmBytes});
+    const core = referenceCore(sampleRate);
     t.after(() => {instrument.close();core.dispose();});
     const preset = {name:'JS BELL',algorithm:0,operators:{
       1:{coarse:1,outputLevel:90},
@@ -409,18 +438,15 @@ function fakeAudioEnvironment(t, sampleRate = 44100, addModule = async () => {})
   return {context, nodes};
 }
 
-test('DX7 endpoints reuse WASM/module loads but own independent cores and dispose through route wrappers', async t => {
+test('DX7 endpoints reuse the worklet module but own independent cores and dispose through route wrappers', async t => {
   let moduleLoads = 0, fetches = 0;
   const {context, nodes} = fakeAudioEnvironment(t, 48000, async () => { moduleLoads++; });
-  const fetch = async url => {
-    assert.match(String(url), /\/msfa_dx7\/wasm\/msfa\.wasm$/);
-    fetches++; return new Response(wasmBytes);
-  };
+  const fetch = async () => { fetches++; throw Error('Unexpected DX7 binary fetch'); };
   const [a, b] = await Promise.all([createDx7Audio(context, {}, {fetch}), createDx7Audio(context, {}, {fetch})]);
   const first = createDx7Client(a.port, a), second = createDx7Client(b.port, b);
   t.after(() => { first.dispose(); second.dispose(); a.dispose(); b.dispose(); });
   assert.equal(moduleLoads, 1);
-  assert.equal(fetches, 1);
+  assert.equal(fetches, 0);
   assert.equal(a.sampleRate, 48000);
   assert.equal(b.voices[0].name, 'INIT SINE');
   first.noteOn(69); await first.getState(); await second.getState();
@@ -442,7 +468,7 @@ test('DX7 endpoints reuse WASM/module loads but own independent cores and dispos
 
 test('a rejected DX7 admin edit preserves the healthy endpoint, patch and subsequent audible playback', {timeout:1500},async t=>{
   const errors=[],{context,nodes}=fakeAudioEnvironment(t,48000);
-  const endpoint=await createDx7Audio(context,{}, {fetch:async()=>new Response(wasmBytes),onError:error=>errors.push(error)});
+  const endpoint=await createDx7Audio(context,{}, {fetch:async()=>new Response(),onError:error=>errors.push(error)});
   const client=createDx7Client(endpoint.port,endpoint);t.after(()=>{client.dispose();endpoint.dispose();});
   const before=await client.getPreset();let disposed=0,sequence=0;const dispose=endpoint.dispose;
   endpoint.dispose=()=>{disposed++;dispose();};
@@ -465,12 +491,12 @@ test('a rejected DX7 admin edit preserves the healthy endpoint, patch and subseq
 test('DX7 initialization abort does not create a late node', async t => {
   let resolveFetch;
   const delayed = new Promise(resolve => { resolveFetch = resolve; });
-  const {context, nodes} = fakeAudioEnvironment(t);
+  const {context, nodes} = fakeAudioEnvironment(t, 44100, () => delayed);
   const controller = new AbortController();
   const opening = createDx7Audio(context, {}, {signal: controller.signal, fetch: () => delayed});
   controller.abort(new Error('Run stopped'));
   await assert.rejects(opening, /Run stopped/);
-  resolveFetch(new Response(wasmBytes));
+  resolveFetch(new Response());
   await settle();
   assert.equal(nodes.length, 0);
 });
@@ -480,7 +506,7 @@ test('DX7 failed module loads are evicted so the same context can retry', async 
   const {context} = fakeAudioEnvironment(t, 44100, async () => {
     if (++attempts === 1) throw new Error('module unavailable');
   });
-  const fetch = async () => new Response(wasmBytes);
+  const fetch = async () => new Response();
   await assert.rejects(createDx7Audio(context, {}, {fetch}), /module unavailable/);
   const endpoint = await createDx7Audio(context, {}, {fetch});
   const client = createDx7Client(endpoint.port, endpoint);
@@ -489,16 +515,12 @@ test('DX7 failed module loads are evicted so the same context can retry', async 
   assert.equal(attempts, 2);
 });
 
-test('DX7 failed WASM fetches are evicted and context closure disposes current route', async t => {
+test('DX7 context closure disposes the current route', async t => {
   const {context, nodes} = fakeAudioEnvironment(t);
-  let attempts = 0;
-  const fetch = async () => (++attempts === 1 ? new Response('', {status: 404}) : new Response(wasmBytes));
-  await assert.rejects(createDx7Audio(context, {}, {fetch}), /404/);
-  const endpoint = await createDx7Audio(context, {}, {fetch});
+  const endpoint = await createDx7Audio(context, {});
   const client = createDx7Client(endpoint.port, endpoint);
   t.after(() => { client.dispose(); endpoint.dispose(); });
   await client.getState();
-  assert.equal(attempts, 2);
   let routeReleased = 0;
   const dispose = endpoint.dispose;
   endpoint.dispose = () => { routeReleased++; client.dispose(); dispose(); };
@@ -507,7 +529,7 @@ test('DX7 failed WASM fetches are evicted and context closure disposes current r
   assert.equal(routeReleased, 1);
   assert.equal(nodes[0].disconnected, 1);
   assert.throws(() => client.noteOn(60), /disposed/);
-  await assert.rejects(createDx7Audio(context, {}, {fetch}), /open AudioContext/);
+  await assert.rejects(createDx7Audio(context, {}), /open AudioContext/);
 });
 
 test('DX7 unsupported context rates fail before fetching or loading a Worklet', async () => {

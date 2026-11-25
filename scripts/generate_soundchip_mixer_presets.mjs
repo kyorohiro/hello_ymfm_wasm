@@ -10,7 +10,7 @@ import {validateScspMixerCalibration,validateScspMixerCalibrationSources} from '
 import {publicRuntimeModule} from './runtime_module_layout.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
 
-const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_07.json',import.meta.url));
+const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_08.json',import.meta.url));
 const psgHistoricalSourcePaths=Object.freeze(Object.fromEntries([
   'soundchip.js','soundchip_factory.js','segapsg.js','ay8910.js','nesapu.js','nesapu_wasm.js','nesapusynth.js',
 ].map(name=>['web/'+name,'tetorica_src/runtime/'+name])));
@@ -139,10 +139,10 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
 // Shared by CLI validation and npm packaging; report generations must agree.
 export const DEFAULT_SOUNDCHIP_MIXER_REPORT_PATHS=Object.freeze({
     reportPath:fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)),
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_fm21290_chip_levels_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_fm21290_chip_levels_01.json',import.meta.url)),
-    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_fm21290_chip_levels_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_fm21290_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_dx7_alias_chip_levels_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_dx7_alias_chip_levels_01.json',import.meta.url)),
+    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_dx7_alias_chip_levels_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_dx7_alias_chip_levels_01.json',import.meta.url)),
 });
 
 async function main(args) {

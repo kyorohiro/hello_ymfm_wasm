@@ -1,30 +1,31 @@
+import {Fm21290Synth} from '../../tetorica_src/runtime/fm21290_synth.js';
+import {validRegister} from '../../tetorica_src/runtime/fm21290.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {createDX7,createInitVoice,createVoiceSysex,createBankSysex,parseSysex} from '../../tetorica_src/runtime/msfa_dx7/src/index.js';
+import {createInitVoice,createVoiceSysex,createBankSysex,parseSysex} from '../../tetorica_src/runtime/msfa_dx7/src/index.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
 import {createProcessorPerformance,nativeVoiceChannel} from '../../tetorica_src/runtime/playground_performance_processor.js';
 import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import {createDx7Client} from '../../tetorica_src/runtime/playground_dx7.js';
 
 const RATE=48000,peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);
-const wasmBytes=await readFile(new URL('./msfa_dx7/wasm/msfa.wasm',runtimeDirectoryUrl));
 const source=(await readFile(new URL('./playground_dx7_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
 const inspectorSource=(await readFile(new URL('./playground_dx7_inspector.js',runtimeDirectoryUrl),'utf8'))
   .replace(/^import .*;$/gm,'').replace('export class Dx7VoiceInspector','class Dx7VoiceInspector')+'\nglobalThis.Dx7VoiceInspector=Dx7VoiceInspector;';
 async function setup(){
   let Processor,frame=0,resolveReady;const messages=[],ready=new Promise(resolve=>resolveReady=resolve);
   const port={postMessage(message){messages.push(message);if(message.ready||message.fatal)resolveReady(message);}};
-  const scope=vm.createContext({sampleRate:RATE,createDX7,createInitVoice,createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,
+  const scope=vm.createContext({sampleRate:RATE,Fm21290Synth,validRegister,createInitVoice,createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,
     validatePreset,validateOperator,validateOperators,nativeVoiceChannel,receiveChipInspector,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
   assert.equal(vm.runInContext('typeof structuredClone',scope),'undefined','the real Inspector module must run in the Worklet global, not inherit Node globals');
   vm.runInContext(inspectorSource,scope);vm.runInContext(source,scope);
-  const processor=new Processor({processorOptions:{wasmBytes}}),metadata=await ready;assert(metadata.ready,JSON.stringify(metadata));
+  const processor=new Processor(),metadata=await ready;assert(metadata.ready,JSON.stringify(metadata));
   const input={start(){},close(){},postMessage:data=>processor.receive(data,replies)},replies={postMessage:data=>queueMicrotask(()=>input.onmessage({data}))};
   const client=createDx7Client(input,metadata);
   return {processor,client,messages,port,

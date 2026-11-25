@@ -778,6 +778,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return result;
     },
     async useSoundChip(name, options) {
+      if (name === 'fm21290' && capabilities.backend !== 'native-genesis') name = 'dx7';
       const token = run.token,scoped=(supportsNativeExtra(name)||['scsp','sid'].includes(name))&&capabilities.chip!==name&&!nativeConnections.some(endpoint=>endpoint.name===name),caller=run.currentLoop;
       const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
       check();
@@ -798,6 +799,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return chip;
     },
     async createSoundChip(name, options = {}){
+      if (name === 'fm21290' && capabilities.backend !== 'native-genesis') name = 'dx7';
       if(run.stopped)throw new Error('Run stopped');
       const token=run.token,scoped=(supportsNativeExtra(name)||['scsp','sid'].includes(name)),caller=run.currentLoop;
       validateSoundChipOptions(name, options);

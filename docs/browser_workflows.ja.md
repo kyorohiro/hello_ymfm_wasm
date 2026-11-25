@@ -21,9 +21,21 @@
 
 ### PlaygroundのDX7とSNES
 
-`await useSoundChip('dx7')`で独立したMSFA DX7を使えます。16音、DX7 SysExバンク、
+Web Audio では `useSoundChip('fm21290')` と `useSoundChip('dx7')` が同じ音源を返します。押鍵中に `writeRegister(address, value)` で同じ物理 CH を操作できます。16音、DX7 SysExバンク、
 PlaygroundのMixer／FXルーティングに対応します。FILESの
 `examples/dx7/dx7-init-sine.js`は外部バンクなしで鳴ります。
+
+新しい Run で、音色 API とレジスタ操作を同じ音に使う例です。
+
+```js
+const chip = await useSoundChip('fm21290');
+await chip.setPreset({algorithm: 31, operators: {1: {outputLevel: 99}}});
+chip.noteOn(69, 100);          // 最初のキーは物理 CH1
+await beat(1);
+chip.writeRegister(0x30d0, 64); // CH1 の OP1 を減衰
+await beat(1);
+chip.noteOff(69);
+```
 
 実験的な`await useSoundChip('snes')`は、BRR、明示的なサンプル調律、raw ADSR／GAINを持つ
 独立した8声S-DSPです。`examples/snes/snes-brr-melody.js`には自作BRRがあり、ゲームデータは不要です。

@@ -1,4 +1,4 @@
-// Real Playground Main/Worker -> DX7 WASM Worklet -> mixer -> FX/master output.
+// Real Playground Main/Worker -> FM21290 Worklet -> mixer -> FX/master output.
 // Self-hosts docs; DX7_TEST_URL can point at the flattened packaged Playground.
 // --stage release/itch_playground_dx7-dev serves and checks a flattened stage.
 const {chromium, webkit, firefox} = require('playwright');
@@ -49,18 +49,21 @@ const server = http.createServer(async (request, response) => {
 });
 
 async function checkStopDuringInitialization(browser, url, execution) {
-  // A fresh realm avoids the app-owned WASM cache and makes this race deterministic.
+  // A fresh realm avoids the worklet module cache and makes this race deterministic.
   const page = await browser.newPage({serviceWorkers:'block'}), errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  let releaseFetch, requestedResolve;
-  const requested = new Promise(resolve => { requestedResolve = resolve; });
-  const released = new Promise(resolve => { releaseFetch = resolve; });
   try {
     if (process.env.DX7_TEST_URL) await page.route('**/playground.js?*', async route => {
       const response = await route.fetch(); await route.fulfill({response, body:await response.text() + accessor});
     });
-    await page.route('**/msfa_dx7/wasm/msfa.wasm', async route => {
-      requestedResolve(); await released; await route.continue();
+    await page.addInitScript(() => {
+      const original = AudioWorklet.prototype.addModule;
+      AudioWorklet.prototype.addModule = async function(url, ...args) {
+        if (String(url).includes('playground_dx7_worklet') && !window.__dx7Release) {
+          await new Promise(resolve => { window.__dx7Release = resolve; });
+        }
+        return original.call(this, url, ...args);
+      };
     });
     await page.goto(url);
     await page.waitForFunction(() => window.__dx7Test && window.monaco?.editor?.getEditors().length);
@@ -86,11 +89,9 @@ async function checkStopDuringInitialization(browser, url, execution) {
       window.monaco.editor.getEditors()[0].setValue("const dx7 = await useSoundChip('dx7'); dx7.noteOn(60, 100); console.log('DX7_LATE_NOTE');");
     }, execution);
     await page.click('#runButton');
-    let timeout;
-    try { await Promise.race([requested, new Promise((_, reject) => { timeout = setTimeout(() => reject(Error('DX7 WASM initialization was not requested')), 15000); })]); }
-    finally { clearTimeout(timeout); }
+    await page.waitForFunction(() => !!window.__dx7Release);
     await page.evaluate(() => window.__dx7Test.runtime.stop());
-    releaseFetch();
+    await page.evaluate(() => window.__dx7Release());
     await page.waitForFunction(() => !document.getElementById('runButton').disabled);
     await page.waitForTimeout(150);
     assert.equal(await page.evaluate(() => window.__dx7Test.megaDrive.mixer.list().filter(chip => chip.name === 'dx7' && chip.connected).length), 0, `${execution}: STOP during init left a connected DX7`);
@@ -102,7 +103,7 @@ async function checkStopDuringInitialization(browser, url, execution) {
     assert.equal(await page.evaluate(() => window.__dx7Test.megaDrive.mixer.list().filter(chip => chip.name === 'dx7' && chip.connected).length), 1, `${execution}: cannot recreate after STOP during init`);
     await page.evaluate(async () => window.__dx7Test.runtime.stopWithFade());
     assert.deepEqual(errors, []);
-  } finally { releaseFetch(); await page.close(); }
+  } finally { await page.close(); }
 }
 
 async function runBrowser(name, type, url, fixture) {
@@ -192,7 +193,7 @@ chip.writeRegister(0x30f1, 1); // gate on
         try { await fetch('https://example.com/dx7-should-not-request'); } catch (error) { blocked = /Network access is disabled/.test(error.message); }
         if (!blocked) throw Error('Execution network guard was bypassed');
         const dx7 = await useSoundChip('dx7');
-        const again = await useSoundChip('dx7');
+        const again = await useSoundChip('fm21290');
         if (dx7 !== again) throw Error('useSoundChip did not reuse DX7');
         await dx7.loadSysex(${single});
         dx7.selectVoice(0); dx7.noteOn(60, 100);
@@ -203,11 +204,17 @@ chip.writeRegister(0x30f1, 1); // gate on
       `, execution);
       assert.equal(initial.id, 'dx7:shared');
       assert.equal(initial.voices.length, 1); assert.equal(initial.voices[0].name, 'TEST SINE');
-      assert.equal(initial.state.internalSampleRate, 44100);
+      assert.equal(initial.state.internalSampleRate, initial.state.sampleRate);
       assert([44100, 48000].includes(initial.state.sampleRate));
       const baseline = await meter();
-      assert(baseline.every(value => value > .005), `${name}/${execution}: DX7 final output is silent ${baseline}`);
+      assert(baseline.every(value => value > .0003), `${name}/${execution}: DX7 final output is silent ${baseline}`);
       closeTo(baseline[0], baseline[1], 'stereo mono duplication');
+      // The high-level allocator starts on physical CH0. Silence its carrier
+      // through the other name and restore it without retriggering the key.
+      await run("const chip=await useSoundChip('fm21290');chip.writeRegister(0x30d0,255);",execution);
+      assert((await meter()).every(value=>value<baseline[0]*.01), 'register write reached held note');
+      await run("const chip=await useSoundChip('dx7');await chip.setOperator(1,{outputLevel:85});",execution);
+      closeTo((await meter())[0],baseline[0],'restore shared carrier');
       const reuse = await run(`
         const dx7 = await useSoundChip('dx7');
         const result = {same:context.dx7 === dx7, id:dx7.id, voices:dx7.voices};
@@ -232,9 +239,9 @@ chip.writeRegister(0x30f1, 1); // gate on
       assert((await meter()).every(value => value < .00001), `${name}/${execution}: independent silent voice inherited shared sound`);
       await run(`context.independent.dispose(); (await useSoundChip('dx7')).noteOn(60,100);`, execution);
       await run(`mixer.set(context.initialId, {pan:-1});`, execution);
-      const left = await meter(); assert(left[0] > .005 && left[1] < .00001, `${name}/${execution}: left pan ${left}`);
+      const left = await meter(); assert(left[0] > .0003 && left[1] < .00001, `${name}/${execution}: left pan ${left}`);
       await run(`mixer.set(context.initialId, {pan:1});`, execution);
-      const right = await meter(); assert(right[1] > .005 && right[0] < .00001, `${name}/${execution}: right pan ${right}`);
+      const right = await meter(); assert(right[1] > .0003 && right[0] < .00001, `${name}/${execution}: right pan ${right}`);
       await run(`mixer.set(context.initialId, {pan:0, volume:.5});`, execution);
       const half = await meter(); closeTo(half[0], baseline[0] * .5, 'chip volume');
       await run(`mixer.set(context.initialId, {muted:true});`, execution);
@@ -254,7 +261,7 @@ chip.writeRegister(0x30f1, 1); // gate on
         const result = {voices:dx7.voices, selected:dx7.selectedVoice};
       `, execution);
       assert.equal(loaded.voices.length, 32); assert.equal(loaded.voices[31].name, 'BANK 31'); assert.equal(loaded.selected, 31);
-      assert((await meter()).every(value => value > .005), `${name}/${execution}: bank selection then noteOn silent`);
+      assert((await meter()).every(value => value > .0003), `${name}/${execution}: bank selection then noteOn silent`);
       const object = await run(`
         const dx7 = await useSoundChip('dx7'); dx7.panic();
         const bankBefore = dx7.voices;
@@ -285,7 +292,7 @@ chip.writeRegister(0x30f1, 1); // gate on
       assert.equal(object.preset.operators[1].fine, 12); assert.equal(object.preset.operators[1].detune, 8);
       assert.equal(object.preset.operators[6].coarse, 3); assert.equal(object.rejected, true);
       const objectPcm = await meter();
-      assert(objectPcm.every(value => value > .005), `${name}/${execution}: object-authored DX7 patch is silent ${objectPcm}`);
+      assert(objectPcm.every(value => value > .0003), `${name}/${execution}: object-authored DX7 patch is silent ${objectPcm}`);
       // The real editor's Main and Worker bridges must reach currently sounding
       // notes, not just the next Note On's stored preset.
       await run(`
@@ -326,7 +333,7 @@ chip.writeRegister(0x30f1, 1); // gate on
         dx7.noteOn(60,100); // Even without awaiting the upload first, the port is FIFO.
         await loading; await dx7.getState();
       `, execution);
-      assert((await meter()).every(value => value > .005), `${name}/${execution}: noteOn overtook the SysEx upload`);
+      assert((await meter()).every(value => value > .0003), `${name}/${execution}: noteOn overtook the SysEx upload`);
       await run(`(await useSoundChip('dx7')).noteOff(60); await sleep(.5);`, execution);
       assert((await meter()).every(value => value < .0001), `${name}/${execution}: noteOff did not release the voice`);
       await run(`const dx7=await useSoundChip('dx7'); dx7.noteOn(60,100); dx7.noteOn(64,100); await sleep(.05); dx7.allNotesOff(); await sleep(.5);`, execution);
@@ -342,7 +349,7 @@ chip.writeRegister(0x30f1, 1); // gate on
       assert.deepEqual(await page.evaluate(() => ({count:window.__dx7NodeLifecycle.length, current:window.__dx7NodeLifecycle.at(-1)})), {count:beforeStop + 1, current:{disposeSent:false, closed:false}}, 'Run after STOP creates a fresh DX7 Worklet');
       assert.equal(recreated.voices[0].name, 'INIT SINE');
       assert.equal(recreated.preset.operators[1].coarse, 1); assert.equal(recreated.preset.operators[1].outputLevel, 85);
-      assert((await meter()).every(value => value > .005), `${name}/${execution}: recreation after STOP silent`);
+      assert((await meter()).every(value => value > .0003), `${name}/${execution}: recreation after STOP silent`);
       const cancelled = await run(`
         const dx7 = await createSoundChip('dx7');
         const pending = dx7.loadSysex(${bank}); dx7.dispose();
@@ -356,6 +363,24 @@ chip.writeRegister(0x30f1, 1); // gate on
     assert.deepEqual(network, [], 'User network requests remain blocked');
     assert.deepEqual(errors, []);
     await page.evaluate(() => { const {detach, splitter, meters, silent} = window.__dx7Meters; detach(); splitter.disconnect(); meters.forEach(node => node.disconnect()); silent.disconnect(); });
+    const primaryUrl = new URL(url);
+    primaryUrl.searchParams.set('mode','dx7');
+    await page.goto(primaryUrl.href);
+    await page.waitForFunction(() => window.__dx7Test && window.monaco?.editor?.getEditors().length);
+    for (const execution of ['main','worker']) {
+      await page.evaluate(execution => {
+        document.getElementById('workerExecution').checked = execution === 'worker';
+        window.monaco.editor.getEditors()[0].setValue(`
+          const chip = await useSoundChip('fm21290');
+          if (chip !== await useSoundChip('dx7') || chip !== dx7) throw Error('DX7 primary alias mismatch');
+          chip.noteOn(69,100); dx7.writeRegister(0x30d0,255); chip.panic();
+          await chip.getState(); console.log('PRIMARY_ALIAS_${execution}');
+        `);
+      }, execution);
+      await page.click('#runButton');
+      await page.waitForFunction(execution=>document.getElementById('consoleOutput').textContent.includes('PRIMARY_ALIAS_'+execution),execution);
+      await page.evaluate(() => window.__dx7Test.runtime.stopWithFade());
+    }
     for (const execution of ['main', 'worker']) await checkStopDuringInitialization(browser, url, execution);
     console.log(JSON.stringify({browser:name, passed:true, results}));
   } finally { await browser.close(); }

@@ -211,6 +211,7 @@ const loaders = {
  */
 const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
+ *   dx7: import('./fm21290.js').Fm21290,
  *   fm21290: import('./fm21290.js').Fm21290,
  *   sid: import('./sid.js').SidCore|import('./sid8580.js').Sid8580Core,
  *   pokey: import('./pokey.js').Pokey,
@@ -235,7 +236,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   ymf278b: import('./ymf278b.js').Ymf278b,
  *   ymf288: import('./ymf288.js').Ymf288,
  * }} SoundChipMap */
-/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'|'pokey'|'sid'|'fm21290'} WorkletChipName */
+/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'|'pokey'|'sid'|'fm21290'|'dx7'} WorkletChipName */
 /**
  * @template {WorkletChipName} Name
  * @overload
@@ -259,6 +260,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {
+  if (name === 'dx7') name = 'fm21290';
   if (options.mixer && options.execution !== 'worklet') return Promise.reject(new Error('An output mixer requires execution: worklet; direct chips generate raw PCM'));
   if (name === 'sid' && options.execution === 'worklet') {
     return import('./sid_soundchip.js').then(({validateSidSoundChipOptions, loadSidSoundChipBinary}) => {
