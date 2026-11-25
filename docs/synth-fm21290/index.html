@@ -132,11 +132,7 @@
 <h2>Keyboard</h2>
 <div class="row">
 
-<div class="octave-control" role="group" aria-label="Keyboard octave">
-<button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
-<span>Octave <output id="octaveValue">0</output></span>
-<button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button>
-</div>
+<div class="voice-parameter" role="group" aria-label="Keyboard octave">Octave<div id="octaveControl"></div></div>
 <label>Pitch bend (semitones)<input id="pitchWheel" type="range" min="-200" max="200" step="1" value="0" aria-valuetext="0.00 semitones"><output id="wheelValue" for="pitchWheel">0.00</output></label>
 <label>Mod wheel<input id="modPosition" type="range" min="0" max="127" value="0"><output for="modPosition" id="modValue">0</output></label>
 </div>

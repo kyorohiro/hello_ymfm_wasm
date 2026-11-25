@@ -315,9 +315,9 @@ function renderOperators(p,stage){
   updateOperators(p.operators,op);
   updateEnvelopes(p.operators,op,stage);
 }
-function numericControl(host,label,max,onChange,formatValue=String){
-  const control=createParamControl({label,min:0,max,step:1,value:0,showLabel:false,formatValue,
-    onChange:value=>onChange(value).catch(report)});
+function numericControl(host,label,max,onChange,formatValue=String,min=0){
+  const control=createParamControl({label,min,max,step:1,value:0,showLabel:false,formatValue,
+    onChange:async value=>{try{await onChange(value);}catch(error){report(error);}}});
   const [minus,value,plus]=control.element.querySelectorAll('button');
   minus.setAttribute('aria-label','Decrease '+label);plus.setAttribute('aria-label','Increase '+label);
   value.title=label+' · drag left or right';
@@ -781,13 +781,15 @@ function rebuildKeyboard(){
     onPointerDown:(event,pad,button)=>press(event.pointerId,pad,button),
     onPointerUp:event=>release(event.pointerId),onPointerCancel:event=>release(event.pointerId)});
 }
-for(const [id,step] of [['octaveDown',-1],['octaveUp',1]])on(id,'click',()=>{
-  keyboardOctave=Math.max(-3,Math.min(3,keyboardOctave+step));
-  el('octaveValue').textContent=(keyboardOctave>0?'+':'')+keyboardOctave;
-  el('octaveDown').disabled=keyboardOctave===-3;
-  el('octaveUp').disabled=keyboardOctave===3;
+const octaveControl=numericControl(el('octaveControl'),'Keyboard octave',3,value=>{
+  if(keyboardOctave===value)return;
+  keyboardOctave=value;
+  octaveDown.disabled=value===-3;
+  octaveUp.disabled=value===3;
   rebuildKeyboard();
-});
+},value=>value>0?'+'+value:String(value),-3);
+const [octaveDown,octaveValue,octaveUp]=octaveControl.element.querySelectorAll('button');
+octaveDown.id='octaveDown';octaveValue.id='octaveValue';octaveUp.id='octaveUp';
 rebuildKeyboard();refreshChannels();updateChannelStates();
 // Mouse adjustments should return typing to Code, or playing to the fretboard.
 // Ranges reached with Tab retain their native arrow-key behavior.
