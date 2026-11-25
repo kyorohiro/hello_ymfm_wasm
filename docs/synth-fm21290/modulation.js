@@ -2,6 +2,8 @@
 // CPU-side voice modulation, following the DX7 v1.8 timer handler.
 import {AM, PM} from './chip.js';
 
+import {PitchEnvelope} from './pitch_envelope.js';
+
 const sine = [
   2,5,8,11,14,17,20,23,26,29,32,35,38,41,44,47,
   50,53,56,58,61,64,67,69,72,74,77,79,82,84,86,89,
@@ -35,6 +37,7 @@ const clockUnits = 2356625;
 export class ModulatedChip {
   constructor(chip) {
     this.chip = chip;
+    this.pitchEnvelope = new PitchEnvelope(chip);
     this.period = chip.sampleRate * 6280;
     this.elapsed = 0;
     this.phase = 0;
@@ -69,7 +72,8 @@ export class ModulatedChip {
     this.bend=value;
     this.writePitch(this.bend+this.pitchOffset());
   }
-  keyOn() {
+  keyOn(ch, basePitch) {
+    if (ch !== undefined) this.pitchEnvelope.keyOn(ch, basePitch);
     if(this.sync)this.phase=0x7fff;
     if(this.delay){this.delayPhase=0;this.fade=0;}
   }
@@ -103,6 +107,7 @@ export class ModulatedChip {
       const magnitude = (this.amDepth*this.fade >> 8) * (this.wave ^ 127) >> 8;
       this.chip.writeRegister(AM,ampTable[255-magnitude]);
     }
+    this.pitchEnvelope.tick();
     if(this.pmDepth && this.sensitivity)this.writePitch(this.pitchOffset()+this.bend);
   }
   renderInto(buffer) {

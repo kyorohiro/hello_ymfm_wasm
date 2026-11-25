@@ -8,6 +8,8 @@
 
 **LFO** は全声共通。独自エンジンで音高の揺れを試すには、Sine、Speed 40、Pitch depth 40、Pitch sensitivity 4にして鍵盤を長押しする。振幅の揺れはAmplitude depthと各OPのAM sensitivityで調整する。Register writesにはAMとPMの現在のバイト値が出る。MSFA経路は同梱エンジンのLFO実装を使う。
 
+**Pitch envelope** は各声の音高を押鍵から離鍵まで変化させる。INIT音色でL1〜L3を82、L4を50、R1を60にしてA4を長押しすると、440 Hzから880 Hzまで上昇する。あとから弾いた鍵は、その鍵の押鍵時点から上昇する。
+
 ## JavaScript
 
 - `await useSoundChip('dx7')` は現在選択中のエンジンで `noteOn(note, velocity)`、`noteOff(note)`、`getPreset()`、`setPreset(preset)`、`setOperator(1..6, patch)`、`setFeedback(0..7)` を使う。

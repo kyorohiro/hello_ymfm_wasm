@@ -29,10 +29,11 @@ function writeRegister(address,value) {
   trace.push(address.toString(16).padStart(4,'0')+'  '+value.toString(16).padStart(2,'0'));
   if(trace.length>12)trace.shift();
 }
-const chip=createInstrument(writeRegister,()=>audio?.node?.port.postMessage({keyOn:true}));
+const chip=createInstrument(writeRegister,
+  (keyOn,basePitch)=>writes.push({keyOn,basePitch}), keyOff=>writes.push({keyOff}));
 function applyChipPatch(){
   const patch=preset();
-  audio.node.port.postMessage({lfo:patch.lfo});
+  audio.node.port.postMessage({lfo:patch.lfo,pitchEnvelope:patch.pitchEnvelope});
   chip.setPatch(patch);flush();
 }
 function flush() {
@@ -121,6 +122,9 @@ function render() {
     if(key==='sync')control.checked=p.lfo.sync;
     else control.value=p.lfo[key];
   }
+  for(const key of ['rates','levels'])p.pitchEnvelope[key].forEach((value,i)=>{
+    el('pitch-'+key+i).value=value;
+  });
   const carriers=dx7CarrierOperators(p.algorithm);
   el('ops').replaceChildren(...Array.from({length:6},(_,i)=>{
     const b=document.createElement('button');b.textContent='OP'+(i+1)+(carriers.includes(i+1)?' · Out':'');
@@ -167,6 +171,18 @@ for(const [key,title,max] of [
   else {input.type='number';input.min=0;input.max=max;}
   label.append(title,input);el('lfo').append(label);
   on(input.id,'change',()=>edit({lfo:{[key]:key==='sync'?input.checked:Number(input.value)}}));
+}
+for(const key of ['rates','levels']){
+  for(let i=0;i<4;i++){
+    const label=document.createElement('label'), input=document.createElement('input');
+    input.id='pitch-'+key+i;input.type='number';input.min=0;input.max=99;
+    label.append((key==='rates'?'R':'L')+(i+1),input);el('pitchEg').append(label);
+    on(input.id,'change',()=>{
+      const values=preset().pitchEnvelope[key].slice();
+      values[i]=Number(input.value);
+      return edit({pitchEnvelope:{[key]:values}});
+    });
+  }
 }
 el('algorithm').append(...Array.from({length:32},(_,i)=>option(i+1,i)));
 el('channel').append(option('AUTO',-1),...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));

@@ -10,10 +10,16 @@ class FmProcessor extends AudioWorkletProcessor {
     this.port.onmessage = ({data}) => {
       try {
         if (data.reset) this.reset();
-        else if (data.lfo) this.controller.configure(data.lfo);
-        else if (data.keyOn) this.controller.keyOn();
+        else if (data.lfo) {
+          this.controller.configure(data.lfo);
+          this.controller.pitchEnvelope.configure(data.pitchEnvelope);
+        }
         else if (data.bend !== undefined) this.controller.setBend(data.bend);
-        else for (const [address,value] of data.writes) this.chip.writeRegister(address,value);
+        else for (const command of data.writes) {
+          if (Array.isArray(command)) this.chip.writeRegister(...command);
+          else if (command.keyOn !== undefined) this.controller.keyOn(command.keyOn,command.basePitch);
+          else this.controller.pitchEnvelope.keyOff(command.keyOff);
+        }
       } catch (error) { this.port.postMessage({error:error.message}); }
     };
   }

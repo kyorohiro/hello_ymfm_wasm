@@ -59,7 +59,7 @@ function scaledAttenuation(operator, code) {
 }
 
 // Public CH values follow Tetorica's zero-based Code constants. OP labels are 1..6.
-export function createInstrument(write, onKeyOn = () => {}) {
+export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {}) {
   let preset, cursor = 0;
   const notes = Array(16).fill(null), velocities = Array(16).fill(100);
   function word(address, value) {
@@ -96,18 +96,20 @@ export function createInstrument(write, onKeyOn = () => {}) {
   function keyOff(ch) {
     integer(ch,0,15,'CH');
     write(EVENT,ch*4+2);
+    onKeyOff(ch);
     notes[ch] = null;
   }
   function keyOn(ch,note,velocity=100) {
     integer(ch,0,15,'CH'); integer(note,0,127,'note'); integer(velocity,0,127,'velocity');
     if (!velocity) { keyOff(ch); return; }
     if (!preset) throw new Error('Select a patch first');
-    onKeyOn();
     keyOff(ch);
     notes[ch]=note; velocities[ch]=velocity;
     const code = transposedKeyCode(note,preset.transpose);
-    word(PITCH+ch*2, (code << 8) | ((code & 3) * 84));
+    const basePitch = (code << 8) | ((code & 3) * 84);
+    word(PITCH+ch*2, basePitch);
     for (let op=1; op<=6; op++) output(ch,op,note,velocity);
+    onKeyOn(ch,basePitch);
     write(EVENT,ch*4+1);
   }
   function noteOn(note,velocity=100) {

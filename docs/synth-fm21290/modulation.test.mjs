@@ -79,3 +79,42 @@ test('patch LFO reaches rendered PCM through the shared EGS modulation registers
   assert.ok(am.peak<dry.peak/2 && am.hz===dry.hz);
   assert.ok(pm.hz<dry.hz-20);
 });
+
+test('pitch EG publishes alternating banks before advancing all voices, release is per slot',()=>{
+  const {lfo:cpu,writes}=fixture(48000,{ampModDepth:0,pitchModDepth:0});
+  const eg=cpu.pitchEnvelope;
+  eg.configure({rates:[99,99,99,99],levels:[82,50,50,50]});
+  for(const ch of [0,1,15])cpu.keyOn(ch,0x5aa8);
+  cpu.tick();
+  assert.deepEqual(writes,[]);
+  cpu.tick();
+  assert.deepEqual(writes.splice(0),[[0,0x301e,0x5b],[0,0x301f,0xa7]]);
+  cpu.tick();
+  assert.deepEqual(writes.splice(0),[[0,0x3000,0x5b],[0,0x3001,0xa7],
+    [0,0x3002,0x5b],[0,0x3003,0xa7]]);
+  eg.keyOff(0);
+  for(let i=0;i<8;i++)cpu.tick();
+  assert.equal(eg.voices[0].last,0x5aa8);
+  assert.equal(eg.voices[0].stage,5);
+  assert.ok(eg.voices[1].last>0x5ba7);
+  cpu.keyOn(1,0x6000);
+  assert.equal(eg.voices[1].level,16384);
+  assert.equal(eg.voices[1].stage,0);
+  for(let i=0;i<150;i++)cpu.tick();
+  assert.equal(eg.voices[1].stage,3);
+  assert.equal(eg.voices[1].last,0x6000);
+});
+
+test('pitch envelope reaches the rendered A4 carrier at 44.1 and 48 kHz',()=>{
+  for(const rate of [44100,48000])for(const [level,hz] of [[50,440],[82,880]]){
+    const core=new Fm21290(rate), cpu=new ModulatedChip(core);
+    const preset=voiceToPreset(presetToVoice({pitchEnvelope:{rates:[99,99,99,99],levels:[level,level,level,50]}}));
+    cpu.pitchEnvelope.configure(preset.pitchEnvelope);
+    const keys=createInstrument((a,v)=>core.writeRegister(a,v),(ch,p)=>cpu.keyOn(ch,p),ch=>cpu.pitchEnvelope.keyOff(ch));
+    keys.setPatch(preset);keys.keyOn(0,69,127);
+    const pcm=new Float32Array(rate/2);cpu.renderInto(pcm);
+    let crossings=0;
+    for(let i=rate/4;i<pcm.length;i++)if(pcm[i-1]<=0 && pcm[i]>0)crossings++;
+    assert.ok(Math.abs(crossings*4-hz)<=4);
+  }
+});
