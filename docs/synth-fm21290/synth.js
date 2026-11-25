@@ -105,6 +105,7 @@ const runtime=createPlaygroundCodeRuntime({
     };
     if(name==='fm21290')Object.assign(api,{
       keyOn(ch,n,v){chip.keyOn(ch,n,v);flush();},keyOff(ch){chip.keyOff(ch);flush();},
+      setSustain(down){if(typeof down!=='boolean')throw TypeError('Expected boolean sustain');chip.setSustain(down);flush();},
       writeRegister(a,v){writeRegister(a,v);flush();},
     });
     return api;
@@ -230,7 +231,9 @@ on('playMidi','click',async()=>{
   const events=midi.events.filter(e=>e.part===el('part').value);let i=0;
   const start=audio.context.currentTime;
   const deferred=new Set();let sustained=false;
-  function pedal(down){
+  function pedal(value){
+    if(audio.node){chip.setSustain(value!==0);flush();return;}
+    const down=value>=64;
     sustained=down;
     if(!down){for(const n of deferred)noteOff(n);deferred.clear();}
   }
@@ -243,15 +246,15 @@ on('playMidi','click',async()=>{
     while(i<events.length&&events[i].seconds<=audio.context.currentTime-start){
       const e=events[i++];
       if(e.kind===9&&e.b){
-        if(deferred.delete(e.a))noteOff(e.a);
+        if(!audio.node && deferred.delete(e.a))noteOff(e.a);
         noteOn(e.a,e.b);
       }else if(e.kind===8||e.kind===9){
-        if(sustained)deferred.add(e.a);else noteOff(e.a);
-      }else if(e.kind===11&&e.a===64)pedal(e.b>=64);
+        if(!audio.node && sustained)deferred.add(e.a);else noteOff(e.a);
+      }else if(e.kind===11&&e.a===64)pedal(e.b);
       else if(e.kind===14)bend(e.a+128*e.b);
     }
     if(i<events.length)songTimer=setTimeout(tick,Math.max(0,(start+events[i].seconds-audio.context.currentTime)*1000));
-    else {pedal(false);bend(8192);chip.allNotesOff();flush();audio?.dx?.allNotesOff();}
+    else {pedal(0);bend(8192);chip.allNotesOff();flush();audio?.dx?.allNotesOff();}
   }
   tick();
 });
@@ -272,7 +275,16 @@ async function press(id,index){
   try{await ensureAudio();if(held.get(id)!==entry)return;noteOn(note,100,entry.ch);entry.started=true;}
   catch(error){held.delete(id);report(error);}
 }
-function release(id){const e=held.get(id);held.delete(id);if(e?.started && ![...held.values()].some(other=>other.started&&(e.ch<0?other.note===e.note:other.ch===e.ch)))noteOff(e.note,e.ch);}
+function release(id){
+  const entry=held.get(id);
+  held.delete(id);
+  if(!entry?.started)return;
+  // AUTO assigns one gate to every press, even when two inputs play one note.
+  if(isChip() && entry.ch<0){noteOff(entry.note);return;}
+  const shared=[...held.values()].some(other=>other.started &&
+    (entry.ch<0 ? other.note===entry.note : other.ch===entry.ch));
+  if(!shared)noteOff(entry.note,entry.ch);
+}
 names.forEach((name,i)=>{
   const b=document.createElement('button');b.textContent=name;b.title=mappings[i].toUpperCase();if(name.includes('♯'))b.className='black';
   b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);press(e.pointerId,i);};

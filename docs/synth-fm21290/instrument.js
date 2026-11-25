@@ -60,7 +60,8 @@ function scaledAttenuation(operator, code) {
 
 // Public CH values follow Tetorica's zero-based Code constants. OP labels are 1..6.
 export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {}) {
-  let preset, cursor = 0;
+  let preset, cursor = 0, sustain = false;
+  const pedalHeld = Array(16).fill(false);
   const notes = Array(16).fill(null), velocities = Array(16).fill(100);
   function word(address, value) {
     const n = Math.max(0, Math.min(65535, Math.round(value)));
@@ -98,6 +99,7 @@ export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {})
     write(EVENT,ch*4+2);
     onKeyOff(ch);
     notes[ch] = null;
+    pedalHeld[ch] = false;
   }
   function keyOn(ch,note,velocity=100) {
     integer(ch,0,15,'CH'); integer(note,0,127,'note'); integer(velocity,0,127,'velocity');
@@ -117,13 +119,24 @@ export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {})
     if (!velocity) { noteOff(note); return; }
     for (let i=0; i<16; i++) {
       const ch=(cursor+i)%16;
-      if (notes[ch] !== null) continue;
+      if (notes[ch] !== null && !pedalHeld[ch]) continue;
       keyOn(ch,note,velocity); cursor=(ch+1)%16; return ch;
     }
   }
   function noteOff(note) {
     integer(note,0,127,'note');
-    notes.forEach((n,ch) => { if (n===note) keyOff(ch); });
+    const ch = notes.findIndex((n,i) => n===note && !pedalHeld[i]);
+    if (ch < 0) return;
+    if (sustain) pedalHeld[ch] = true;
+    else keyOff(ch);
   }
-  return {setPatch,keyOn,keyOff,noteOn,noteOff,allNotesOff(){notes.forEach((_,ch)=>keyOff(ch));}};
+  function setSustain(down) {
+    sustain = down;
+    if (!down) pedalHeld.forEach((held,ch) => { if (held) keyOff(ch); });
+  }
+  function allNotesOff() {
+    sustain = false;
+    notes.forEach((_,ch)=>keyOff(ch));
+  }
+  return {setPatch,keyOn,keyOff,noteOn,noteOff,setSustain,allNotesOff};
 }

@@ -137,3 +137,32 @@ test('extreme breakpoints and unsigned transpose follow v1.8 lookup addressing',
   api.keyOn(0,0,127);
   assert.equal(core.reg[0xd0],113);
 });
+
+test('poly note-off scans physical slots from zero, including after allocator wrap',()=>{
+  const {api,trace}=setup();
+  for(let ch=0;ch<15;ch++){api.noteOn(50);api.noteOff(50);}
+  assert.equal(api.noteOn(69),15);
+  assert.equal(api.noteOn(69),0);
+  trace.length=0;
+  api.noteOn(69,0);api.noteOff(69);api.noteOff(69);
+  assert.deepEqual(trace.map(row=>row.slice(1)),[[EVENT,2],[EVENT,62]]);
+});
+
+test('sustain defers individual gates, permits slot reuse and preserves replacement notes',()=>{
+  const {api,trace,core}=setup();
+  api.setSustain(true);
+  for(let i=0;i<16;i++)api.noteOn(69);
+  trace.length=0;
+  api.noteOff(69);api.noteOff(69);api.noteOff(69);
+  assert.equal(trace.length,0);
+  assert.equal(api.noteOn(72),0);
+  trace.length=0;
+  api.setSustain(false);api.setSustain(false);
+  assert.deepEqual(trace.map(row=>row.slice(1)),[[EVENT,6],[EVENT,10]]);
+  assert.ok(core.voices[0].held && core.voices[3].held);
+  api.setSustain(true);
+  api.keyOff(0);
+  assert.equal(core.voices[0].held,false);
+  api.allNotesOff();api.noteOn(60);api.noteOff(60);
+  assert.ok(core.voices.every(v=>!v.held));
+});
