@@ -17,7 +17,8 @@ import {createInstrument} from './instrument.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 import {createVirtualFileReader} from '../js/tetorica_virtual_files/reader.js';
 import {renderFileTree} from '../playground/playground_file_tree.js';
-import {textPath,projectPath,defaultWheel,exportSession,importSession} from './session.js';
+import {createSynthProjectStore} from '../synth/synth_project_store.js';
+import {readProject,textPath,projectPath,defaultWheel,exportSession,importSession} from './session.js';
 import {glassSteps,glassPatch,scoreExample} from './examples.js';
 
 const el = id => document.getElementById(id);
@@ -37,6 +38,7 @@ function writeRegister(address,value) {
   trace.push(address.toString(16).padStart(4,'0')+'  '+value.toString(16).padStart(2,'0'));
   if(trace.length>12)trace.shift();
 }
+let draftStore=null,draftTimer=null,draftReady=false,draftSaving=false,draftDirty=false,draftRevision=0;
 let midiAccess=null;
 const noteOutput=createNoteOutput(error=>{
   el('midiPort').value='';el('midiStatus').textContent=error.message;
@@ -170,14 +172,14 @@ function restoreModWheel(settings){
   setModPosition(null,settings.value);
 }
 on('modPosition','input',()=>{
-  manualWheel.value=Number(el('modPosition').value);setModPosition(null,manualWheel.value);
+  manualWheel.value=Number(el('modPosition').value);setModPosition(null,manualWheel.value);draftChanged();
 });
 for(const id of ['modRange','modPitch','modAmp','modBias'])on(id,'change',()=>{
   const input=el('modRange');
   if(!input.checkValidity()||input.value==='')input.value=manualWheel.range;
   manualWheel.range=Number(input.value);
   manualWheel.assign=Number(el('modPitch').checked)+2*el('modAmp').checked+4*el('modBias').checked;
-  sendModWheel();
+  sendModWheel();draftChanged();
 });
 const codeParts=new Set();
 function createMidiPart(collection,signal){
@@ -236,7 +238,7 @@ function showEditor(path){
   activePath=path;el('code').value=files.get(path).data;el('activeFile').textContent=path;
   el('run').disabled=!runnable();el('apply').disabled=!runnable()||!runtime.getState().running;
   el('partCode').disabled=!runnable()||!el('part').value;
-  renderFiles();
+  renderFiles();draftChanged();
 }
 function renderFiles(){
   const list=[];
@@ -282,6 +284,7 @@ const runtime=createPlaygroundCodeRuntime({
   onState:s=>{el('apply').disabled=!runnable()||!s.running;el('log').textContent=s.status;},
 });
 function render() {
+  draftChanged();
   const p=preset();
   el('bank').replaceChildren(...voices.map((v,i)=>option((i+1)+' · '+voiceToPreset(v).name,i)));
   el('bank').value=selected;el('algorithm').value=p.algorithm;el('feedback').value=p.feedback;el('name').value=p.name;
@@ -372,6 +375,7 @@ on('saveBank','click',()=>download('FM21290-bank.syx',createBankSysex(voices,{ch
 on('saveCode','click',()=>download(activePath.split('/').pop(),el('code').value));
 let selectedScore=[];
 function selectPart(){
+  draftChanged();
   stopSong();
   selectedScore=el('part').value?partScore(midi,el('part').value):[];
   const duration=selectedScore.at(-1)?.[0]??0;
@@ -404,15 +408,18 @@ async function loadVoiceFile(bytes){
   else voices[selected]=dump.voices[0].data;
   render();await applyVoice();
 }
+function replaceProject(next){
+  voices.splice(0,32,...next.dump.voices.map(v=>v.data));selected=next.selected;sysexChannel=next.dump.channel;
+  files=next.fs;expanded.clear();
+  restoreModWheel(next.wheel);selectSong(next.midi,next.song);showEditor(next.activePath);render();
+}
 on('importFile','change',async()=>{
   const f=el('importFile').files[0];el('importFile').value='';if(!f)return;
   const bytes=new Uint8Array(await f.arrayBuffer());
   if(/\.zip$/i.test(f.name)){
     const next=await importSession(bytes);
     await runtime.stop();stopSong();silence();
-    voices.splice(0,32,...next.dump.voices.map(v=>v.data));selected=next.selected;sysexChannel=next.dump.channel;
-    files=next.fs;expanded.clear();
-    restoreModWheel(next.wheel);selectSong(next.midi,next.song);showEditor(next.activePath);render();await applyVoice();
+    replaceProject(next);await applyVoice();
     return;
   }
   if(!textPath(f.name)&&!/\.(syx|mid|midi)$/i.test(f.name))throw Error('Unsupported project file.');
@@ -426,7 +433,7 @@ on('importFile','change',async()=>{
   }else{
     if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
     else{const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
-    files.writeBinary(path,bytes);expanded.set('/'+folder,true);renderFiles();
+    files.writeBinary(path,bytes);expanded.set('/'+folder,true);renderFiles();draftChanged();
   }
 });
 async function playRegion(){
@@ -456,7 +463,7 @@ async function playRegion(){
 on('playMidi','click',playRegion);
 for(const id of ['midiFrom','midiUntil'])on(id,'change',()=>{if(songPart)return playRegion();});
 on('stopMidi','click',stopSong);
-on('partCode','click',()=>{el('code').value=partSource(selectedScore);el('code').focus();});
+on('partCode','click',()=>{el('code').value=partSource(selectedScore);draftChanged();el('code').focus();});
 showEditor('/index.js');
 for(const action of ['run','apply'])on(action,'click',async()=>{
   try{await runtime[action](el('code').value,{path:activePath});}
@@ -558,7 +565,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseWhee
 const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
 const mappings='awsedftgyhujk';
 async function press(id,index){
-  if(held.has(id))return;
+  if(document.querySelector('main').inert || held.has(id))return;
   const note=Math.min(127,(1+Number(el('octave').value))*12+index);
   const entry={note,ch:isChip()?Number(el('channel').value):-1,started:false};held.set(id,entry);
   try{await ensureAudio();if(held.get(id)!==entry)return;noteOn(note,100,entry.ch,entry);entry.started=true;}
@@ -580,4 +587,102 @@ window.addEventListener('keyup',e=>release(e.code));
 window.addEventListener('blur',()=>{for(const id of [...held.keys()])release(id);});
 const canvas=el('scope'),ctx=canvas.getContext('2d');
 function draw(){monitor.draw(canvas,ctx,el('scopeMode').value.toLowerCase());el('trace').textContent=trace.join('\n');requestAnimationFrame(draw);}
-render();draw();
+function draftChanged(){
+  if(!draftReady)return;
+  draftDirty=true;draftRevision++;
+  el('draftStatus').textContent='Saving locally…';
+  if(draftTimer===null)draftTimer=setTimeout(saveDraft,200);
+}
+function captureDraft(){
+  storeEditor();
+  return {selected,op,activePath,wheel:manualWheel,bank:currentBank(),song:songBytes,
+      ...files.snapshot(),engine:el('engine').value,master:Number(el('master').value),
+      part:el('part').value,from:el('midiFrom').valueAsNumber,until:el('midiUntil').valueAsNumber,loop:el('midiLoop').checked};
+}
+// The IndexedDB transaction may be cancelled by navigation. Keep a tab-local
+// copy only while there are edits awaiting a successful commit.
+const journalKey='tetorica-fm21290-pending';
+function protectDraft(){
+  if(!draftReady || (!draftDirty && !draftSaving))return;
+  try{
+    sessionStorage.setItem(journalKey,JSON.stringify(captureDraft(),(_key,value)=>{
+      if(!(value instanceof Uint8Array))return value;
+      let raw='';
+      for(let i=0;i<value.length;i+=32768)raw+=String.fromCharCode(...value.subarray(i,i+32768));
+      return {base64:btoa(raw)};
+    }));
+  }catch(error){
+    el('draftStatus').textContent='Pending edits need a local save or Cassette export. '+error.message;
+  }
+  void saveDraft();
+}
+function pendingDraft(){
+  let text;
+  try{text=sessionStorage.getItem(journalKey);}catch{return null;}
+  return text?JSON.parse(text,(_key,value)=>typeof value?.base64==='string'?
+    Uint8Array.from(atob(value.base64),char=>char.charCodeAt(0)):value):null;
+}
+async function saveDraft(){
+  clearTimeout(draftTimer);draftTimer=null;
+  if(!draftDirty || draftSaving)return;
+  draftSaving=true;
+  const revision=draftRevision;
+  draftDirty=false;
+  try{
+    if(!await draftStore.write(captureDraft()))throw Error('IndexedDB unavailable');
+    if(revision===draftRevision){
+      try{sessionStorage.removeItem(journalKey);}catch{}
+      el('draftStatus').textContent='Saved locally';
+    }
+  }catch(error){
+    if(revision===draftRevision){
+      draftDirty=true;
+      el('draftStatus').textContent='Local save failed. Export Cassette to keep your edits. '+error.message;
+    }
+  }finally{
+    draftSaving=false;
+    if(draftDirty && revision!==draftRevision)void saveDraft();
+  }
+}
+async function restoreDraft(){
+  const main=document.querySelector('main');
+  try{
+    if(!window.indexedDB)throw Error('IndexedDB unavailable');
+    draftStore=createSynthProjectStore({name:'tetorica-fm21290-synth-project'});
+    const decode=draft=>readProject(draft,draft.bank,draft.song,draft.files,draft.directories);
+    let draft,next,pending=false,journalError=null;
+    try{
+      draft=pendingDraft();
+      if(draft){next=decode(draft);pending=true;}
+    }catch(error){journalError=error;}
+    if(!pending){
+      draft=await draftStore.read();
+      if(draft)next=decode(draft);
+      else if(journalError)throw journalError;
+    }
+    if(next){
+      if(Number.isInteger(draft.op)&&draft.op>=1&&draft.op<=6)op=draft.op;
+      el('engine').value=draft.engine==='msfa'?'msfa':'chip';
+      if(Number.isInteger(draft.master)&&draft.master>=0&&draft.master<=100)el('master').value=draft.master;
+      el('channel').disabled=el('modControls').disabled=wheel.disabled=!isChip();el('registers').hidden=!isChip();
+      replaceProject(next);
+      if(next.midi?.parts.some(p=>p.notes && p.key===draft.part)){
+        el('part').value=draft.part;selectPart();
+        if(Number.isFinite(draft.from)&&Number.isFinite(draft.until)&&draft.from>=0&&
+            draft.from<draft.until&&draft.until<=selectedScore.at(-1)[0]){
+          el('midiFrom').value=draft.from;el('midiUntil').value=draft.until;el('midiLoop').checked=draft.loop===true;
+        }
+      }
+    }
+    el('draftStatus').textContent=draft?'Local project restored':'Local autosave ready';
+    if(journalError)el('draftStatus').textContent='Restored last IndexedDB save. Pending edits could not be read.';
+    draftReady=true;
+    if(pending){draftChanged();await saveDraft();}
+  }catch(error){
+    el('draftStatus').textContent='Local recovery unavailable. Use Export Cassette. '+error.message;
+  }finally{main.inert=false;}
+}
+for(const id of ['code','master','midiFrom','midiUntil','midiLoop'])el(id).addEventListener('input',draftChanged);
+window.addEventListener('pagehide',protectDraft);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)protectDraft();});
+render();draw();void restoreDraft();

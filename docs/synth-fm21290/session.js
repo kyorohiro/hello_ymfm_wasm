@@ -36,21 +36,30 @@ export async function importSession(bytes) {
   const {files,directories}=await loadPlaygroundCassette(bytes);
   const decoder=new TextDecoder('utf-8',{fatal:true});
   const meta=JSON.parse(decoder.decode(files.get('fm21290.json')));
-  if(meta?.version!==1 || !Number.isInteger(meta.selected) || meta.selected<0 || meta.selected>31)
-    throw Error('Invalid FM21290 Cassette');
-  const dump=parseSysex(files.get('bank.syx'));
-  if(dump.format!=='bank'||!files.has('index.js'))throw Error('Cassette needs bank.syx and index.js');
-  const song=files.get('song.mid');
   const entries=[];
   for(const [name,bytes] of files){
     const path='/'+name;
     if(reserved.includes(path))continue;
-    projectPath(path);
     entries.push({path,data:textPath(path)?decoder.decode(bytes):bytes});
   }
-  for(const path of directories)projectPath(path);
+  return readProject(meta,files.get('bank.syx'),files.get('song.mid'),entries,directories);
+}
+
+// Both the portable Cassette and the structured IndexedDB draft are validated
+// before the live project is replaced.
+export function readProject(meta,bank,song,entries,directories){
+  if(meta?.version!==1 || !Number.isInteger(meta.selected) || meta.selected<0 || meta.selected>31)
+    throw Error('Invalid FM21290 project');
+  const dump=parseSysex(bank);
+  if(dump.format!=='bank')throw Error('Project needs a 32-voice bank');
+  for(const entry of entries){
+    projectPath(entry.path);
+    if(textPath(entry.path)!==(typeof entry.data==='string'))throw Error('Invalid project file: '+entry.path);
+  }
+  for(const path of directories)if(path!=='/')projectPath(path);
   const fs=createVirtualFileSystem();
   fs.replace(entries,directories);
+  if(!fs.has('/index.js'))throw Error('Project needs index.js');
   const activePath=meta.activePath??'/index.js';
   projectPath(activePath);
   if(!textPath(activePath)||!fs.has(activePath))throw Error('Invalid editor path in Cassette');
