@@ -6,6 +6,8 @@
 
 **Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / Register / Mixer** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に5枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。CHボタンの緑は発音中、琥珀色はリリース中。白い枠が手動で選んだ演奏先を示す。MSFAではAUTOで演奏する。
 
+**Operator envelopes** のR1〜R4・L1〜L4は、図・数値・`setOperator`から変更できる。押鍵中にL3を動かすと、現在の音量から新しいレベルへR3の速さで移る。離鍵後もリリースが続いている間はR4・L4が効く。MSFAではFM21290専用のWASMを使用する。再ビルドはリポジトリのルートで `sh scripts/build_fm21290_msfa.sh` を実行する。
+
 **Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。Octaveの中央の値を左右にドラッグするか、− / ＋を押して−3〜＋3オクターブを切り替えられる。PCキーによる演奏はKeyboardタブを閉じても使える。Code本文などのテキスト欄では文字を入力できる。Ctrl / Cmd + EnterでRun、Shiftを加えるとApplyでき、Codeを閉じた状態からも実行できる。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
 **☰ Menu → New → Cassette** で初回起動と同じ `/index.js`、`/examples` のコード・演奏MIDI、標準プリセットを含むCassetteを作成する。確認画面で現在のCassetteを書き出してから切り替えることもできる。

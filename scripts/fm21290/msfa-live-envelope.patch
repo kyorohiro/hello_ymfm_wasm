@@ -1,0 +1,39 @@
+--- a/vendor/msfa/dx7note.cc
++++ b/vendor/msfa/dx7note.cc
+@@ -188,6 +188,9 @@
+     const bool frequency_changed[6], bool feedback_changed) {
+   for (int op = 0; op < 6; ++op) {
+     const int off = op * 21;
++    for (int param = 0; param < 8; ++param) {
++      env_[op].setparam(param, patch[off + param]);
++    }
+     if (output_changed[op]) {
+       int outlevel = Env::scaleoutlevel(patch[off + 16]);
+       outlevel = min(127, outlevel + level_scaling_[op]);
+--- a/vendor/msfa/env.cc
++++ b/vendor/msfa/env.cc
+@@ -86,8 +86,18 @@
+ void Env::setparam(int param, int value) {
+-  if (param < 4) {
+-    rates_[param] = value;
+-  } else if (param < 8) {
+-    levels_[param - 4] = value;
+-  }
+-  // Unknown parameter, ignore for now
++  if (param < 0 || param >= 8) return;
++  const int stage = param & 3;
++  int &stored = param < 4 ? rates_[stage] : levels_[stage];
++  if (stored == value) return;
++  stored = value;
++  auto retarget = [&](State &state, int output) {
++    // Held stage 3 waits for key-up at L3. Resume the third segment
++    // when its level moves. A completed release (ix == 4) stays done.
++    if (down_ && state.ix == 3) {
++      if (param == 6) advance(state, 2, output);
++    } else if (state.ix == stage) {
++      advance(state, stage, output);
++    }
++  };
++  retarget(state_, initial_outlevel_);
++  retarget(reference_, reference_outlevel_);
+ }

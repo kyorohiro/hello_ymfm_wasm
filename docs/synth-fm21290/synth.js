@@ -87,6 +87,7 @@ function flush() {
   else writes.length=0;
 }
 const isChip=()=>el('engine').value==='chip';
+const fetchFm21290Msfa=()=>fetch(new URL('./msfa-live-envelope.wasm',import.meta.url));
 async function ensureAudio() {
   if(opening)return opening;
   if(audio){await audio.context.resume();return audio;}
@@ -118,7 +119,7 @@ async function ensureAudio() {
           if(data.slots && audio===owner)updateChannelStates(data.slots);
         };
       }else{
-        owner.endpoint=await createDx7Audio(context,mixer);
+        owner.endpoint=await createDx7Audio(context,mixer,{fetch:fetchFm21290Msfa});
         owner.dx=createDx7Client(owner.endpoint.port,owner.endpoint);
         owner.notes=createMsfaNotes(owner.dx,{
           on:(slot,source,n,v)=>noteOutput.on(slot,sendChannel(source),n,v),
