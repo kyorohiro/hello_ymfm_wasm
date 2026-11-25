@@ -58,6 +58,15 @@ function scaledAttenuation(operator, code) {
   return Math.max(0,Math.min(127,curve < 2 ? base+adjustment : base-adjustment));
 }
 
+// AUTO skips depressed keys, but may reuse a pedal-held voice.
+export function nextAutoSlot(cursor,available){
+  for(let i=0;i<16;i++){
+    const ch=(cursor+i)%16;
+    if(available(ch))return ch;
+  }
+  return -1;
+}
+
 // Public CH values follow Tetorica's zero-based Code constants. OP labels are 1..6.
 export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {}) {
   let preset, cursor = 0;
@@ -121,11 +130,9 @@ export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {})
   function noteOn(note,velocity=100,owner) {
     integer(note,0,127,'note'); integer(velocity,0,127,'velocity');
     if (!velocity) { noteOff(note,owner); return; }
-    for (let i=0; i<16; i++) {
-      const ch=(cursor+i)%16;
-      if (notes[ch] !== null && !pedalHeld[ch]) continue;
-      keyOn(ch,note,velocity,owner); cursor=(ch+1)%16; return ch;
-    }
+    const ch=nextAutoSlot(cursor,i=>notes[i]===null || pedalHeld[i]);
+    if(ch<0)return;
+    keyOn(ch,note,velocity,owner);cursor=(ch+1)%16;return ch;
   }
   function noteOff(note,owner) {
     integer(note,0,127,'note');

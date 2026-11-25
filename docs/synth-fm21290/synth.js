@@ -11,7 +11,7 @@ import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
 import {createMsfaNotes} from './msfa_notes.js';
 import {createMidiApi} from '../js/playground_midi.js';
-import {partScore,partSource} from './midi_part.js';
+import {partScore,partSource,playbackRegion} from './midi_part.js';
 import {createNoteOutput} from './midi_output.js';
 import {createInstrument} from './instrument.js';
 import {exportSession,importSession} from './session.js';
@@ -314,10 +314,20 @@ on('master','input',()=>{if(audio)audio.master.gain.value=Number(el('master').va
 on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voices[selected],{channel:sysexChannel})));
 on('saveBank','click',()=>download('FM21290-bank.syx',createBankSysex(voices,{channel:sysexChannel})));
 on('saveCode','click',()=>download('performance.js',el('code').value));
+let selectedScore=[];
+function selectPart(){
+  stopSong();
+  selectedScore=el('part').value?partScore(midi,el('part').value):[];
+  const duration=selectedScore.at(-1)?.[0]??0;
+  el('midiFrom').value=0;el('midiUntil').value=duration;
+  el('midiFrom').max=el('midiUntil').max=duration;
+  el('midiLoop').checked=false;el('midiLoop').disabled=!duration;
+}
+on('part','change',selectPart);
 function selectSong(next,bytes){
   midi=next;songBytes=bytes;el('song').hidden=!midi;
   el('part').replaceChildren(...(midi?.parts??[]).filter(p=>p.notes).map(p=>option((p.name||'Track '+(p.track+1))+' · MIDI '+p.channel,p.key)));
-  el('playMidi').disabled=el('partCode').disabled=!el('part').value;
+  selectPart();el('playMidi').disabled=el('partCode').disabled=!el('part').value;
 }
 on('saveSession','click',()=>download('FM21290.cassette.zip',exportSession({
   bank:createBankSysex(voices,{channel:sysexChannel}),selected,code:el('code').value,song:songBytes
@@ -340,24 +350,34 @@ on('importFile','change',async()=>{
     const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);
   }
 });
-on('playMidi','click',async()=>{
-  stopSong();const epoch=songEpoch;await ensureAudio();if(epoch!==songEpoch)return;
-  const events=partScore(midi,el('part').value);let i=0;
+async function playRegion(){
+  stopSong();
+  const events=playbackRegion(selectedScore,el('midiFrom').valueAsNumber,el('midiUntil').valueAsNumber,isChip());
+  const epoch=songEpoch;await ensureAudio();if(epoch!==songEpoch)return;
+  const length=events.at(-1)[0];
+  let start=audio.context.currentTime,i=0;
   songPart=createMidiPart();
-  const start=audio.context.currentTime;
   function tick(){
     if(epoch!==songEpoch)return;
-    while(i<events.length && events[i][0]<=audio.context.currentTime-start){
+    const now=audio.context.currentTime;
+    while(i<events.length && events[i][0]<=now-start){
       const [,method,...args]=events[i++];
       songPart[method](...args);
     }
-    if(i<events.length)songTimer=setTimeout(tick,Math.max(0,(start+events[i][0]-audio.context.currentTime)*1000));
-    else stopSong();
+    if(i===events.length){
+      if(!el('midiLoop').checked || length===0){stopSong();return;}
+      // Keep deadlines on the audio clock and skip cycles missed by a suspended tab.
+      start+=Math.max(1,Math.floor((now-start)/length))*length;
+      songPart=createMidiPart();i=0;
+    }
+    songTimer=setTimeout(tick,Math.max(0,(start+events[i][0]-audio.context.currentTime)*1000));
   }
   tick();
-});
+}
+on('playMidi','click',playRegion);
+for(const id of ['midiFrom','midiUntil'])on(id,'change',()=>{if(songPart)return playRegion();});
 on('stopMidi','click',stopSong);
-on('partCode','click',()=>{el('code').value=partSource(partScore(midi,el('part').value));el('code').focus();});
+on('partCode','click',()=>{el('code').value=partSource(selectedScore);el('code').focus();});
 el('code').value=glassSteps;
 for(const action of ['run','apply'])on(action,'click',async()=>{
   try{await runtime[action](el('code').value);}
