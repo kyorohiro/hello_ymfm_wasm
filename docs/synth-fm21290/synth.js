@@ -233,7 +233,7 @@ function createDefaultFiles(){
   return createVirtualFileSystem([{path:'/index.js',data:glassSteps},...scoreExample]);
 }
 async function addBundledExamples(target){
-  for(const name of ['return-steps.js','held-envelope.js','after-the-chime.mid']){
+  for(const name of ['return-steps.js','held-envelope.js','register-key-on.js','after-the-chime.mid']){
     const path='/examples/'+name;
     if(target.has(path) || target.listDirectories().includes(path))continue;
     const response=await fetch(new URL('./examples/'+name,import.meta.url));

@@ -20,6 +20,8 @@
 
 **After the Chime** はTetoricaオリジナルの6小節の演奏MIDI（96 BPM、15秒）。Filesでexamplesの **after-the-chime.mid** を選び、**Play MIDI** を押すと現在の音色で鳴る。冒頭2小節の和音と旋律を強く弾き直し、最後の2小節は単音の余韻を残す。プログラムチェンジは含まない。同じ演奏でエレピとベルの音色を比較できる。[演奏MIDI](examples/after-the-chime.mid)
 
+**Register Key On** はEGSのキーイベントを試すCodeサンプル。OPS / EGSでFiles → examples → register-key-on.jsを開いてRunすると、CH1の音高とOP出力を準備し、`0x30F1` への書き込みだけで同じラを短く、次に長く鳴らす。RegisterタブにはCH1の打鍵 `30f1  01` と離鍵 `30f1  02` が残る。[Register Key Onのコード](examples/register-key-on.js)
+
 **Held Envelope** はEGSのレジスタを直接書き換える約5秒のCodeサンプル。EngineをOPS / EGSにして、Files → examples → held-envelope.js → Run。CH1とCH2でドとソを伸ばし、OP1のL3（0x3076）を16、0の順に書くと、両方の音が小さくなって戻る。最後は離鍵後にR4（0x3057）を上げて余韻を切る。[Held Envelopeのコード](examples/held-envelope.js)
 
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesのexamplesからreturn-steps.jsを開く。Glass Echoと一緒にCassette ZIPに同梱される。OPS / EGSでRunすると、演奏用の音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
