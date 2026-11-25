@@ -11,7 +11,7 @@ import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
 import {createMsfaNotes} from './msfa_notes.js';
 import {createMidiApi} from '../js/playground_midi.js';
-import {createPartPlayer,partScore,partSource,playbackRegion} from './midi_part.js';
+import {pitchBendWord,createPartPlayer,partScore,partSource,playbackRegion} from './midi_part.js';
 import {createNoteOutput} from './midi_output.js';
 import {createInstrument} from './instrument.js';
 import {exportSession,importSession} from './session.js';
@@ -114,7 +114,7 @@ async function ensureAudio() {
         await owner.dx.loadSysex(createVoiceSysex(voices[selected]));
       }
       monitor.connect(context,[master]);audio=owner;
-      if(owner.node)applyChipPatch();
+      if(owner.node){applyChipPatch();if(wheelBend!==null)sendBend();}
       return owner;
     }catch(error){await context.close();throw error;}
   })();
@@ -137,6 +137,7 @@ function noteOff(note,ch=-1,owner='code'){
   flush();
 }
 function silence(){
+  releaseWheel();
   if(audio?.dx)audio.notes.panic();
   if(audio?.node){chip.allNotesOff();flush();audio.node.port.postMessage({reset:true});applyChipPatch();}
   held.clear();
@@ -145,20 +146,22 @@ function stopOwner(owner){
   if(audio?.node){chip.stopOwner(owner);flush();}
   else audio?.notes?.stopOwner(owner);
 }
-let songPart=null,bendOwner=null;
+let songPart=null,bendOwner=null,partBend=0,wheelBend=null;
+function sendBend(){audio?.node?.port.postMessage({bend:wheelBend??partBend});}
+function setPartBend(owner,bend){
+  partBend=bend;bendOwner=bend===0?null:owner;
+  if(wheelBend===null)sendBend();
+}
 const codeParts=new Set();
 function createMidiPart(collection,signal){
   const owner={};
   const part=createPartPlayer({
     noteOn:(n,v)=>noteOn(n,v,-1,owner),noteOff:n=>noteOff(n,-1,owner),
     setSustain:audio.node?down=>{chip.setSustain(down,owner);flush();}:null,
-    setBend:audio.node?bend=>{
-      bendOwner=bend===0?null:owner;
-      audio.node.port.postMessage({bend});
-    }:null,
+    setBend:audio.node?bend=>setPartBend(owner,bend):null,
     stop(){
       signal?.removeEventListener('abort',part.finish);stopOwner(owner);collection?.delete(part);
-      if(bendOwner===owner){audio?.node?.port.postMessage({bend:0});bendOwner=null;}
+      if(bendOwner===owner)setPartBend(null,0);
     },
   });
   signal?.addEventListener('abort',part.finish,{once:true});
@@ -286,10 +289,10 @@ on('oscSync','change',()=>edit({oscillatorSync:el('oscSync').checked}));
 on('feedback','change',()=>edit({feedback:Number(el('feedback').value)}));
 on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
-  el('engine').disabled=true;
+  el('engine').disabled=true;wheel.disabled=true;releaseWheel();
   try{if(opening)await opening;await runtime.stop();stopSong();silence();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
     el('channel').disabled=!isChip();el('registers').hidden=!isChip();trace.length=0;render();
-  }finally{el('engine').disabled=false;}
+  }finally{el('engine').disabled=false;wheel.disabled=!isChip();}
 });
 on('master','input',()=>{if(audio)audio.master.gain.value=Number(el('master').value)/100;});
 on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voices[selected],{channel:sysexChannel})));
@@ -370,6 +373,7 @@ function traceControls(mode,message){
   traceMode=mode;
   const busy=mode!=='idle';
   el('engine').disabled=busy;
+  wheel.disabled=!isChip()||mode==='replay'||mode==='starting';
   el('capture').disabled=busy;
   el('loadTrace').disabled=busy;
   el('endCapture').disabled=mode!=='record';
@@ -428,6 +432,34 @@ on('write','click',async()=>{
   const address=read('addr',4),value=read('data',2);
   if(address===EVENT)rawGate(value,'register');else writeRegister(address,value);flush();
 });
+const wheel=el('pitchWheel');
+let wheelPointer=null;
+function displayWheel(cents){
+  const value=(cents>0?'+':'')+(cents/100).toFixed(2);
+  el('wheelValue').textContent=value;
+  wheel.setAttribute('aria-valuetext',value+' semitones');
+}
+function releaseWheel(){
+  wheelPointer=null;wheel.value='0';displayWheel(0);
+  if(wheelBend!==null){wheelBend=null;sendBend();}
+}
+wheel.addEventListener('input',()=>{
+  if(wheel.disabled)return;
+  const cents=Number(wheel.value);
+  displayWheel(cents);wheelBend=pitchBendWord(cents/100);
+  if(audio?.node)sendBend();else ensureAudio().catch(report);
+});
+wheel.addEventListener('pointerdown',e=>{if(e.isPrimary && e.button===0)wheelPointer=e.pointerId;});
+function releaseWheelPointer(e){if(e.pointerId===wheelPointer)releaseWheel();}
+window.addEventListener('pointerup',releaseWheelPointer);
+window.addEventListener('pointercancel',releaseWheelPointer);
+wheel.addEventListener('lostpointercapture',releaseWheelPointer);
+wheel.addEventListener('keyup',e=>{
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','PageUp','PageDown','Home','End','Escape'].includes(e.key))releaseWheel();
+});
+wheel.addEventListener('blur',releaseWheel);
+window.addEventListener('blur',releaseWheel);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseWheel();});
 const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
 const mappings='awsedftgyhujk';
 async function press(id,index){
@@ -448,7 +480,7 @@ names.forEach((name,i)=>{
   b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);press(e.pointerId,i);};
   b.onlostpointercapture=e=>release(e.pointerId);el('keys').append(b);
 });
-window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,select,textarea'))return;press(e.code,i);});
+window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||(e.target!==wheel && e.target.closest('input,select,textarea')))return;press(e.code,i);});
 window.addEventListener('keyup',e=>release(e.code));
 window.addEventListener('blur',()=>{for(const id of [...held.keys()])release(id);});
 const canvas=el('scope'),ctx=canvas.getContext('2d');

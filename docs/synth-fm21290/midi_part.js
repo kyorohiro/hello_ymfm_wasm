@@ -3,6 +3,8 @@
 import {integer} from './chip.js';
 import {nextAutoSlot} from './instrument.js';
 
+export function pitchBendWord(semitones){return Math.round(semitones*4096/12);}
+
 function pedalDown(value,chip){return value>=(chip?1:64);}
 
 // OPS/EGS owns its pedal gates. The MSFA adapter defers note-offs by pitch.
@@ -29,7 +31,7 @@ export function createPartPlayer({noteOn,noteOff,setSustain,setBend,stop}){
     },
     pitchBend(value){
       active();integer(value,0,16383,'pitch bend');
-      setBend?.(Math.round((value-8192)/8192*2*4096/12));
+      setBend?.(pitchBendWord((value-8192)/8192*2));
     },
     finish(){
       if(finished)return;
