@@ -28,7 +28,7 @@ const {chromium}=require('playwright');
   const page=await context.newPage();page.setDefaultTimeout(15000);
   await page.goto('http://127.0.0.1:'+server.address().port+'/synth-fm21290/index.html');
   const tabs=id=>page.locator('#'+id+' [role=tab]:visible').allTextContents();
-  assert.deepEqual(await tabs('mainTabs'),['YM21290','MIDI','Register']);
+  assert.deepEqual(await tabs('mainTabs'),['YM21290','MIDI','Register','Mixer']);
   assert.deepEqual(await tabs('inputTabs'),['Keyboard','Code']);
   assert.equal(await page.locator('#keys .key').count(),36);
   await page.getByRole('button',{name:'CH16',exact:true}).click();
@@ -38,7 +38,7 @@ const {chromium}=require('playwright');
   await page.click('#tab-chipPanel');await page.click('#tab-codePanel');
   assert(await page.locator('#chipPanel').isVisible() && await page.locator('#codePanel').isVisible());
   await page.click('#codeView');
-  assert.deepEqual(await tabs('mainTabs'),['Code','YM21290','MIDI','Register','Keyboard']);
+  assert.deepEqual(await tabs('mainTabs'),['Code','YM21290','MIDI','Register','Mixer','Keyboard']);
   await page.click('#enableEditor');
   await page.waitForSelector('#codeEditorHost[data-ready=true]');
   const candidates=async source=>page.evaluate(async source=>{

@@ -4,7 +4,7 @@
 
 この開発版は同じDX7音色を、実験用OPS/EGSコアまたは既存MSFAで演奏する。ローカルで使う場合はリポジトリのルートで `python3 -m http.server --directory docs 8080` を実行し、`http://localhost:8080/synth-fm21290/` を開く。
 
-**Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / MIDI / Register** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に5枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。MSFAではAUTOで演奏する。
+**Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / MIDI / Register / Mixer** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に6枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。MSFAではAUTOで演奏する。
 
 **Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
@@ -12,7 +12,7 @@
 
 画面上部の **Menu** はスクロール中も使える。**Keyboard** を選ぶとPC鍵盤で演奏でき、**Code** を選ぶと開いているエディタに入力できる。**Files**、音色、波形表示、MIDI出力、独自コアのレジスタ画面にも移動できる。演奏中のファイル作成・読み込み・Cassette書き出しの入口も同じメニューにある。Escで閉じる。
 
-最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。Waveform / SpectrumはMaster後の出力を観測する。
+最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Waveform / SpectrumはMaster後の出力を観測する。
 
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、同じFilesで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 

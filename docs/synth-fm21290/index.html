@@ -8,7 +8,7 @@
 </header>
 <div class="engine-controls">
 <label>Engine<select id="engine"><option value="chip">OPS / EGS · experimental</option><option value="msfa">MSFA DX7</option></select></label>
-<label>Master<input id="master" type="range" min="0" max="100" value="65"></label><output id="masterValue" for="master">65%</output>
+<label>Master<input id="master" type="range" min="0" max="380" value="65"></label><output id="masterValue" for="master">65%</output>
 </div></div>
 <div class="workspace-bar">
 <details id="synthMenu" class="synth-menu">
@@ -20,6 +20,7 @@
 <a href="#filesPanel" data-close-synth-menu>Files</a>
 <a href="#chipPanel" data-close-synth-menu>YM21290</a>
 <a href="#outputPanel" data-close-synth-menu>Waveform / Spectrum</a>
+<a href="#mixerPanel" data-close-synth-menu>Mixer</a>
 <a href="#midiPanel" data-close-synth-menu>MIDI output</a>
 <a href="#registers" id="menuRegisters" data-close-synth-menu>Register writes</a>
 </nav>
@@ -88,6 +89,10 @@
 <div id="lfo" class="row">
 </div>
 </details>
+</section>
+<section id="mixerPanel" tabindex="-1">
+<h2>Mixer</h2>
+<div class="row"><label>DX7 volume<input id="mixer" type="range" min="0" max="380" value="100"></label><output id="mixerValue" for="mixer">100%</output></div>
 </section>
 <section id="midiPanel" tabindex="-1">
 <h2>MIDI</h2><div id="song" hidden>

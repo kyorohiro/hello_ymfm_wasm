@@ -94,12 +94,13 @@ async function ensureAudio() {
     const context=new AudioContext({sampleRate:48000});
     try {
       await context.resume();
-      const master=context.createGain(); master.gain.value=Number(el('master').value)/100; master.connect(context.destination);
-      const owner={context,master};
+      const mixer=context.createGain(),master=context.createGain();
+      mixer.connect(master);master.connect(context.destination);
+      const owner={context,mixer,master};
       if(isChip()){
         await context.audioWorklet.addModule(new URL('./worklet.js',import.meta.url));
         owner.node=new AudioWorkletNode(context,'tetorica-fm21290',{numberOfInputs:0,outputChannelCount:[1]});
-        owner.node.connect(master);
+        owner.node.connect(mixer);
         owner.node.port.postMessage({inspectCh:Number(el('inspectCh').value)});
         owner.node.port.onmessage=({data})=>{
           if(data.recorded){
@@ -118,7 +119,7 @@ async function ensureAudio() {
           if(data.slots)el('slots').textContent=data.slots.map((s,i)=>'CH'+(i+1)+' '+['·','release','on'][s]).join('   ');
         };
       }else{
-        owner.endpoint=await createDx7Audio(context,master);
+        owner.endpoint=await createDx7Audio(context,mixer);
         owner.dx=createDx7Client(owner.endpoint.port,owner.endpoint);
         owner.notes=createMsfaNotes(owner.dx,{
           on:(slot,source,n,v)=>noteOutput.on(slot,sendChannel(source),n,v),
@@ -126,6 +127,7 @@ async function ensureAudio() {
         });
         await owner.dx.loadSysex(createVoiceSysex(voices[selected]));
       }
+      for(const id of ['master','mixer'])owner[id].gain.value=Number(el(id).value)/100;
       monitor.connect(context,[master]);audio=owner;
       if(owner.node){applyChipPatch();if(wheelBend!==null)sendBend();}
       return owner;
@@ -402,7 +404,11 @@ on('engine','change',async()=>{
     refreshChannels();updateTabs();trace.length=0;el('slots').textContent=el('voiceState').textContent='';render();
   }finally{el('engine').disabled=false;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();}
 });
-on('master','input',()=>{el('masterValue').textContent=el('master').value+'%';if(audio)audio.master.gain.value=Number(el('master').value)/100;});
+for(const id of ['master','mixer'])on(id,'input',()=>{
+  el(id+'Value').textContent=el(id).value+'%';
+  if(audio)audio[id].gain.value=Number(el(id).value)/100;
+  draftChanged();
+});
 on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voices[selected],{channel:sysexChannel})));
 on('saveBank','click',()=>download('FM21290-bank.syx',createBankSysex(voices,{channel:sysexChannel})));
 on('saveCode','click',()=>download(activePath.split('/').pop(),el('code').value));
@@ -509,8 +515,8 @@ function setFiles(open){
   el('workspace').classList.toggle('with-files',open);
   el('filesToggle').setAttribute('aria-expanded',String(open));
 }
-const panelNames={chipPanel:'YM21290',midiPanel:'MIDI',registers:'Register',keyboardPanel:'Keyboard',codePanel:'Code'};
-const soundIds=['chipPanel','midiPanel','registers'];
+const panelNames={chipPanel:'YM21290',midiPanel:'MIDI',registers:'Register',mixerPanel:'Mixer',keyboardPanel:'Keyboard',codePanel:'Code'};
+const soundIds=['chipPanel','midiPanel','registers','mixerPanel'];
 const inputIds=['keyboardPanel','codePanel'];
 let codeMode=false,soundTab='chipPanel',inputTab='keyboardPanel',fullTab='codePanel';
 function selectPanel(id){
@@ -780,7 +786,7 @@ function draftChanged(){
 function captureDraft(){
   storeEditor();
   return {selected,op,activePath,selectedFile,codeView:codeMode,soundTab,inputTab,fullTab,filesOpen:!el('filesPanel').hidden,wheel:manualWheel,bank:currentBank(),song:songBytes,
-      ...files.snapshot(),engine:el('engine').value,master:Number(el('master').value),
+      ...files.snapshot(),engine:el('engine').value,master:Number(el('master').value),mixer:Number(el('mixer').value),
       part:el('part').value,from:el('midiFrom').valueAsNumber,until:el('midiUntil').valueAsNumber,loop:el('midiLoop').checked};
 }
 // The IndexedDB transaction may be cancelled by navigation. Keep a tab-local
@@ -847,10 +853,12 @@ async function restoreDraft(){
     if(next){
       if(Number.isInteger(draft.op)&&draft.op>=1&&draft.op<=6)op=draft.op;
       el('engine').value=draft.engine==='msfa'?'msfa':'chip';
-      if(Number.isInteger(draft.master)&&draft.master>=0&&draft.master<=100)el('master').value=draft.master;
+      for(const id of ['master','mixer']){
+        if(Number.isInteger(draft[id]) && draft[id]>=0 && draft[id]<=380)el(id).value=draft[id];
+        el(id+'Value').textContent=el(id).value+'%';
+      }
       el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();refreshChannels();
       replaceProject(next);
-      el('masterValue').textContent=el('master').value+'%';
       if(projectFileList().some(f=>f.path===draft.selectedFile && f.type!=='directory')){selectedFile=draft.selectedFile;renderFiles();}
       if(soundIds.includes(draft.soundTab))soundTab=draft.soundTab;
       if(inputIds.includes(draft.inputTab))inputTab=draft.inputTab;
@@ -874,7 +882,7 @@ async function restoreDraft(){
     el('draftStatus').textContent='Local recovery unavailable. Use Export Cassette. '+error.message;
   }finally{main.inert=false;}
 }
-for(const id of ['master','midiFrom','midiUntil','midiLoop'])el(id).addEventListener('input',draftChanged);
+for(const id of ['midiFrom','midiUntil','midiLoop'])el(id).addEventListener('input',draftChanged);
 window.addEventListener('pagehide',protectDraft);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)protectDraft();});
 render();draw();void restoreDraft();

@@ -17,6 +17,14 @@ const {chromium}=require('playwright');
   browser=await chromium.launch({channel:'chrome',headless:true});
   const page=await browser.newPage();page.setDefaultTimeout(5000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{
+    const connect=AudioNode.prototype.connect;
+    window.testAudioLinks=new Map();
+    AudioNode.prototype.connect=function(destination,...args){
+      if(destination instanceof AudioNode)window.testAudioLinks.set(destination,this);
+      return connect.call(this,destination,...args);
+    };
+  });
   await page.goto('http://127.0.0.1:'+server.address().port+'/synth-fm21290/index.html');
   await page.click('#tab-chipPanel');await page.selectOption('#bank','1');
   const wheel=page.locator('#pitchWheel');
@@ -45,8 +53,29 @@ const {chromium}=require('playwright');
   await page.locator('#modPosition').blur();assert.equal(await page.inputValue('#modPosition'),'127');
   await wheel.focus();await page.keyboard.down('Home');await pm('fd 55');
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await pm('00 00');await page.keyboard.up('Home');
+  await page.click('#tab-mixerPanel');
+  const master=page.locator('#master'),mixer=page.locator('#mixer');
+  async function gains(masterPercent,mixerPercent){
+    await page.waitForFunction(([m,s])=>{
+      const links=window.testAudioLinks;
+      const dest=[...links.keys()].findLast(node=>node instanceof AudioDestinationNode && node.context.state==='running');
+      const master=links.get(dest),mixer=links.get(master);
+      return master instanceof GainNode && mixer instanceof GainNode && links.has(mixer)
+        && Math.abs(master.gain.value-m/100)<1e-5 && Math.abs(mixer.gain.value-s/100)<1e-5;
+    },[masterPercent,mixerPercent]);
+  }
+  await gains(65,100);
+  await mixer.press('End');await gains(65,380);
+  await master.press('Home');await gains(0,380);
+  await master.press('End');await mixer.press('Home');await gains(380,0);
+  await mixer.press('End');await gains(380,380);
   await page.selectOption('#engine','msfa');await page.waitForSelector('#engine:enabled');assert.ok(await wheel.isDisabled());
+  await page.locator('#keyboardPanel').focus();await page.keyboard.down('a');
+  await gains(380,380);await page.keyboard.up('a');
   await page.selectOption('#engine','chip');await page.waitForSelector('#pitchWheel:enabled');assert.equal(await wheel.inputValue(),'0');
+  await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent==='Saved locally');
+  await page.reload();await page.waitForSelector('main:not([inert])');
+  assert.equal(await page.innerText('#masterValue'),'380%');assert.equal(await page.innerText('#mixerValue'),'380%');
   assert.deepEqual(errors,[]);assert.equal(await page.innerText('#status'),'');console.log('Cold wheel, physical key, PM words, newer SMF bend, stop under wheel, pointer release outside, blur, engine switch passed');
  } finally{await browser?.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
