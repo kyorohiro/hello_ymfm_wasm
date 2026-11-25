@@ -8,7 +8,8 @@ import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {renderRouting} from './routing.js';
 import {validateTrace} from './register_trace.js';
-import {integer,validRegister} from './chip.js';
+import {EVENT,integer,validRegister} from './chip.js';
+import {createMsfaNotes} from './msfa_notes.js';
 import {createInstrument} from './instrument.js';
 import {exportSession,importSession} from './session.js';
 import {glassSteps,glassPatch} from './examples.js';
@@ -75,6 +76,7 @@ async function ensureAudio() {
       }else{
         owner.endpoint=await createDx7Audio(context,master);
         owner.dx=createDx7Client(owner.endpoint.port,owner.endpoint);
+        owner.notes=createMsfaNotes(owner.dx);
         await owner.dx.loadSysex(createVoiceSysex(voices[selected]));
       }
       monitor.connect(context,[master]);audio=owner;
@@ -88,25 +90,34 @@ async function applyVoice(){
   if(audio?.dx)await audio.dx.setPreset(preset());
   if(audio?.node)applyChipPatch();
 }
-function noteOn(note,velocity=100,ch=-1) {
-  if(audio?.dx)audio.dx.noteOn(note,velocity);
-  else if(ch<0)chip.noteOn(note,velocity);
-  else chip.keyOn(ch,note,velocity);
+function noteOn(note,velocity=100,ch=-1,owner='code') {
+  if(audio?.dx)audio.notes.noteOn(note,velocity,owner);
+  else if(ch<0)chip.noteOn(note,velocity,owner);
+  else chip.keyOn(ch,note,velocity,owner);
   flush();
 }
-function noteOff(note,ch=-1){
-  if(audio?.dx)audio.dx.noteOff(note);
-  else if(ch<0)chip.noteOff(note);
-  else chip.keyOff(ch);
+function noteOff(note,ch=-1,owner='code'){
+  if(audio?.dx)audio.notes.noteOff(note,owner);
+  else if(ch<0)chip.noteOff(note,owner);
+  else chip.keyOff(ch,owner);
   flush();
 }
 function silence(){
-  if(audio?.dx)audio.dx.panic();
+  if(audio?.dx)audio.notes.panic();
   if(audio?.node){chip.allNotesOff();flush();audio.node.port.postMessage({reset:true});applyChipPatch();}
   held.clear();
 }
-function stopSong(){songEpoch++;clearTimeout(songTimer);songTimer=null;silence();}
-const physicalGates={keyOff(ch){chip.keyOff(ch);flush();}};
+function stopOwner(owner){
+  if(audio?.node){chip.stopOwner(owner);flush();}
+  else audio?.notes?.stopOwner(owner);
+}
+let midiBendActive=false;
+function stopSong(){
+  songEpoch++;clearTimeout(songTimer);songTimer=null;stopOwner('midi');
+  if(midiBendActive)audio?.node?.port.postMessage({bend:0});
+  midiBendActive=false;
+}
+const physicalGates={keyOff(ch){chip.keyOff(ch,'code');flush();}};
 const runtime=createPlaygroundCodeRuntime({
   prepareSource:source=>'const '+Array.from({length:10},(_,i)=>'CH'+(i+7)+'='+(i+6)).join(',')+';\n'+source,
   ensureReady:ensureAudio,now:()=>audio?.context.currentTime??0,supportedSoundChips:['dx7','fm21290'],
@@ -117,14 +128,14 @@ const runtime=createPlaygroundCodeRuntime({
       setOperator:(op,patch)=>edit({operators:{[op]:patch}}),setFeedback:feedback=>edit({feedback}),
     };
     if(name==='fm21290')Object.assign(api,{
-      keyOn(ch,n,v){chip.keyOn(ch,n,v);flush();},keyOff(ch){chip.keyOff(ch);flush();},
-      setSustain(down){if(typeof down!=='boolean')throw TypeError('Expected boolean sustain');chip.setSustain(down);flush();},
-      writeRegister(a,v){writeRegister(a,v);flush();},
+      keyOn(ch,n,v){chip.keyOn(ch,n,v,'code');flush();},keyOff(ch){chip.keyOff(ch,'code');flush();},
+      setSustain(down){if(typeof down!=='boolean')throw TypeError('Expected boolean sustain');chip.setSustain(down,'code');flush();},
+      writeRegister(a,v){if(a===EVENT)chip.rawEvent(v,'code');else writeRegister(a,v);flush();},
     });
     return api;
   },
   resolveNoteTarget:(target,method,args)=>({keyOn:1,keyOff:1}[method]?{target:physicalGates,channel:args[0]}:{target,channel:args[0]}),
-  stopSoundChips:silence,onLog:line=>{el('log').textContent=line;},
+  stopSoundChips:()=>stopOwner('code'),onLog:line=>{el('log').textContent=line;},
   onState:s=>{el('apply').disabled=!s.running;el('log').textContent=s.status;},
 });
 function render() {
@@ -208,7 +219,7 @@ on('feedback','change',()=>edit({feedback:Number(el('feedback').value)}));
 on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
   el('engine').disabled=true;
-  try{if(opening)await opening;await runtime.stop();stopSong();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
+  try{if(opening)await opening;await runtime.stop();stopSong();silence();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
     el('channel').disabled=!isChip();el('registers').hidden=!isChip();trace.length=0;render();
   }finally{el('engine').disabled=false;}
 });
@@ -229,7 +240,7 @@ on('importFile','change',async()=>{
   const bytes=new Uint8Array(await f.arrayBuffer());
   if(/\.zip$/i.test(f.name)){
     const next=await importSession(bytes);
-    await runtime.stop();stopSong();
+    await runtime.stop();stopSong();silence();
     voices.splice(0,32,...next.dump.voices.map(v=>v.data));selected=next.selected;sysexChannel=next.dump.channel;
     el('code').value=next.code;selectSong(next.midi,next.song);render();await applyVoice();
   }else if(/\.syx$/i.test(f.name)){
@@ -247,13 +258,14 @@ on('playMidi','click',async()=>{
   const start=audio.context.currentTime;
   const deferred=new Set();let sustained=false;
   function pedal(value){
-    if(audio.node){chip.setSustain(value!==0);flush();return;}
+    if(audio.node){chip.setSustain(value!==0,'midi');flush();return;}
     const down=value>=64;
     sustained=down;
-    if(!down){for(const n of deferred)noteOff(n);deferred.clear();}
+    if(!down){for(const n of deferred)noteOff(n,-1,'midi');deferred.clear();}
   }
   function bend(value){
     if(!audio.node)return;
+    midiBendActive=value!==8192;
     audio.node.port.postMessage({bend:Math.round((value-8192)/8192*2*4096/12)});
   }
   function tick(){
@@ -261,15 +273,15 @@ on('playMidi','click',async()=>{
     while(i<events.length&&events[i].seconds<=audio.context.currentTime-start){
       const e=events[i++];
       if(e.kind===9&&e.b){
-        if(!audio.node && deferred.delete(e.a))noteOff(e.a);
-        noteOn(e.a,e.b);
+        if(!audio.node && deferred.delete(e.a))noteOff(e.a,-1,'midi');
+        noteOn(e.a,e.b,-1,'midi');
       }else if(e.kind===8||e.kind===9){
-        if(!audio.node && sustained)deferred.add(e.a);else noteOff(e.a);
+        if(!audio.node && sustained)deferred.add(e.a);else noteOff(e.a,-1,'midi');
       }else if(e.kind===11&&e.a===64)pedal(e.b);
       else if(e.kind===14)bend(e.a+128*e.b);
     }
     if(i<events.length)songTimer=setTimeout(tick,Math.max(0,(start+events[i].seconds-audio.context.currentTime)*1000));
-    else {pedal(0);bend(8192);chip.allNotesOff();flush();audio?.dx?.allNotesOff();}
+    else stopSong();
   }
   tick();
 });
@@ -309,7 +321,7 @@ async function prepareTrace(mode){
     await ensureAudio();
     if(mode==='replay')validateTrace(savedTrace,audio.context.sampleRate);
     await runtime.stop();
-    stopSong();
+    stopSong();silence();
     if(mode==='record'){
       audio.node.port.postMessage({record:true});
       applyChipPatch();
@@ -336,7 +348,8 @@ on('endReplay','click',()=>audio.node.port.postMessage({endReplay:true}));
 on('write','click',async()=>{
   await ensureAudio();
   const read=(id,length)=>{const s=el(id).value;if(!new RegExp('^[0-9a-f]{1,'+length+'}$','i').test(s))throw Error('Invalid hex '+id);return parseInt(s,16);};
-  writeRegister(read('addr',4),read('data',2));flush();
+  const address=read('addr',4),value=read('data',2);
+  if(address===EVENT)chip.rawEvent(value,'register');else writeRegister(address,value);flush();
 });
 const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
 const mappings='awsedftgyhujk';
@@ -344,18 +357,14 @@ async function press(id,index){
   if(held.has(id))return;
   const note=Math.min(127,(1+Number(el('octave').value))*12+index);
   const entry={note,ch:isChip()?Number(el('channel').value):-1,started:false};held.set(id,entry);
-  try{await ensureAudio();if(held.get(id)!==entry)return;noteOn(note,100,entry.ch);entry.started=true;}
+  try{await ensureAudio();if(held.get(id)!==entry)return;noteOn(note,100,entry.ch,entry);entry.started=true;}
   catch(error){held.delete(id);report(error);}
 }
 function release(id){
   const entry=held.get(id);
   held.delete(id);
   if(!entry?.started)return;
-  // AUTO assigns one gate to every press, even when two inputs play one note.
-  if(isChip() && entry.ch<0){noteOff(entry.note);return;}
-  const shared=[...held.values()].some(other=>other.started &&
-    (entry.ch<0 ? other.note===entry.note : other.ch===entry.ch));
-  if(!shared)noteOff(entry.note,entry.ch);
+  noteOff(entry.note,entry.ch,entry);
 }
 names.forEach((name,i)=>{
   const b=document.createElement('button');b.textContent=name;b.title=mappings[i].toUpperCase();if(name.includes('♯'))b.className='black';

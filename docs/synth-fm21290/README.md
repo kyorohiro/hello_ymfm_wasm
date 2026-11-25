@@ -23,6 +23,12 @@
 - 独自コアのCodeでは `chip.setSustain(true)` を呼び、`noteOn` → `noteOff` で鍵を離しても音を保持できる。`chip.setSustain(false)` でペダルを戻す。物理CHを指定する `keyOff(CH1)` は即座にゲートを切る。
 - AUTOは16声から空いた発音枠を探索する。物理CH指定は同じ枠を再トリガする。MSFA選択時は自動割り当てを使う。
 
+## Keyboard・Code・MIDIを重ねて演奏する
+
+独自コアのAUTOでは同じ音高でも入力ごとに別の物理CHを使う。CodeのStopはCodeの音、Stop MIDIと曲末はMIDIの音だけを離鍵する。MIDIのCC64とCodeの `setSustain` は各入力のノートに作用する。物理CHを明示して再打鍵すると新しい演奏がそのCHを引き継ぎ、以前の演奏から遅れて届いた離鍵を無視する。
+
+MSFAは同じ音高へのNote Offで該当する全声を解放するため、異なる入力で重なる同音は最初の打鍵を共有し、最後の入力が離した時点で解放する。独自コアの音色・ピッチベンド・生レジスタは共有で、直接 `0x30f1` に書く操作は指定した物理CHに届く。
+
 ## レジスタの記録と再演
 
 OPS / EGSで **Record from reset** を押すと現在の演奏を止め、リセットと選択音色の適用から記録する。その後Keyboard、Code、MIDI、または手動レジスタ書き込みで演奏し、**Finish recording** を押す。**Export trace** でJSONに保存し、**Load trace → Replay** で再演できる。再演開始時にも現在の演奏は止まる。

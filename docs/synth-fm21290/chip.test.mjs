@@ -218,3 +218,35 @@ test('changing the algorithm on CH16 compensates its carriers during a held note
   assert.ok(peak(before)>0);
   assert.ok(Math.abs(peak(after)/peak(before)-(1+2**(-21/8))/2)<1e-6);
 });
+
+test('same pitch from MIDI, keyboard and Code releases only its own gate and pedal',()=>{
+  const {api,core}=setup();
+  api.noteOn(60,100,'midi');api.noteOn(60,100,'keyboard');api.noteOn(60,100,'code');
+  api.setSustain(true,'midi');api.noteOff(60,'midi');
+  api.stopOwner('code');
+  assert.deepEqual(core.voices.slice(0,3).map(v=>v.held),[true,true,false]);
+  api.noteOff(60,'keyboard');
+  assert.ok(core.voices[0].held && !core.voices[1].held);
+  api.stopOwner('midi');assert.equal(core.voices[0].held,false);
+  api.noteOn(60,100,'midi');api.noteOff(60,'midi');
+  assert.ok(core.voices.every(v=>!v.held));
+});
+test('a stale physical release or stop cannot release a replacement, including direct gate writes',()=>{
+  const {api,core}=setup();
+  api.keyOn(0,55,100,'code');api.keyOn(0,60,100,'keyboard');
+  api.keyOff(0,'code');api.stopOwner('code');assert.ok(core.voices[0].held);
+  api.rawEvent(1,'code');api.keyOff(0,'keyboard');assert.ok(core.voices[0].held);
+  assert.equal(api.noteOn(60,100,'midi'),1);
+  api.stopOwner('code');assert.ok(!core.voices[0].held && core.voices[1].held);
+});
+test('MSFA shared pitch releases on last owner, solo retrigger articulates again',async()=>{
+  const {createMsfaNotes}=await import('./msfa_notes.js');
+  const events=[], keys=createMsfaNotes({
+    noteOn:(n,v)=>events.push(['on',n,v]),noteOff:n=>events.push(['off',n]),panic:()=>events.push(['panic'])
+  });
+  keys.noteOn(60,100,'keyboard');keys.noteOn(60,90,'code');keys.noteOn(63,70,'code');
+  keys.stopOwner('code');
+  assert.deepEqual(events,[['on',60,100],['on',63,70],['off',63]]);
+  keys.noteOn(60,80,'keyboard');keys.noteOn(60,0,'keyboard');
+  assert.deepEqual(events.slice(3),[['off',60],['on',60,80],['off',60]]);
+});

@@ -60,7 +60,9 @@ function scaledAttenuation(operator, code) {
 
 // Public CH values follow Tetorica's zero-based Code constants. OP labels are 1..6.
 export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {}) {
-  let preset, cursor = 0, sustain = false;
+  let preset, cursor = 0;
+  const sustain=new Set(), owners=Array(16).fill(null);
+  const rawNote=Symbol('register gate');
   const pedalHeld = Array(16).fill(false);
   const notes = Array(16).fill(null), velocities = Array(16).fill(100);
   function word(address, value) {
@@ -91,22 +93,24 @@ export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {})
         write(RATE+slot*4+stage, p.envelope.rates[stage]*164 >> 8);
         write(LEVEL+slot*4+stage, logAttenuation(p.envelope.levels[stage]) >> 1);
       }
-      notes.forEach((note,ch) => { if (note !== null) output(ch, op, note, velocities[ch]); });
+      notes.forEach((note,ch) => { if (note !== null && note !== rawNote) output(ch, op, note, velocities[ch]); });
     }
   }
-  function keyOff(ch) {
+  function keyOff(ch,owner) {
     integer(ch,0,15,'CH');
+    if(owner!==undefined && owners[ch]!==owner)return;
     write(EVENT,ch*4+2);
     onKeyOff(ch);
     notes[ch] = null;
+    owners[ch] = null;
     pedalHeld[ch] = false;
   }
-  function keyOn(ch,note,velocity=100) {
+  function keyOn(ch,note,velocity=100,owner) {
     integer(ch,0,15,'CH'); integer(note,0,127,'note'); integer(velocity,0,127,'velocity');
-    if (!velocity) { keyOff(ch); return; }
+    if (!velocity) { keyOff(ch,owner); return; }
     if (!preset) throw new Error('Select a patch first');
     keyOff(ch);
-    notes[ch]=note; velocities[ch]=velocity;
+    owners[ch]=owner;notes[ch]=note; velocities[ch]=velocity;
     const code = transposedKeyCode(note,preset.transpose);
     const basePitch = (code << 8) | ((code & 3) * 84);
     word(PITCH+ch*2, basePitch);
@@ -114,29 +118,46 @@ export function createInstrument(write, onKeyOn = () => {}, onKeyOff = () => {})
     onKeyOn(ch,basePitch);
     write(EVENT,ch*4+1);
   }
-  function noteOn(note,velocity=100) {
+  function noteOn(note,velocity=100,owner) {
     integer(note,0,127,'note'); integer(velocity,0,127,'velocity');
-    if (!velocity) { noteOff(note); return; }
+    if (!velocity) { noteOff(note,owner); return; }
     for (let i=0; i<16; i++) {
       const ch=(cursor+i)%16;
       if (notes[ch] !== null && !pedalHeld[ch]) continue;
-      keyOn(ch,note,velocity); cursor=(ch+1)%16; return ch;
+      keyOn(ch,note,velocity,owner); cursor=(ch+1)%16; return ch;
     }
   }
-  function noteOff(note) {
+  function noteOff(note,owner) {
     integer(note,0,127,'note');
-    const ch = notes.findIndex((n,i) => n===note && !pedalHeld[i]);
+    const ch = notes.findIndex((n,i) => n===note && owners[i]===owner && !pedalHeld[i]);
     if (ch < 0) return;
-    if (sustain) pedalHeld[ch] = true;
+    if (sustain.has(owner)) pedalHeld[ch] = true;
     else keyOff(ch);
   }
-  function setSustain(down) {
-    sustain = down;
-    if (!down) pedalHeld.forEach((held,ch) => { if (held) keyOff(ch); });
+  function setSustain(down,owner) {
+    if(down)sustain.add(owner);
+    else {
+      sustain.delete(owner);
+      pedalHeld.forEach((held,ch)=>{if(held && owners[ch]===owner)keyOff(ch);});
+    }
+  }
+  function stopOwner(owner) {
+    sustain.delete(owner);
+    notes.forEach((note,ch)=>{if(note!==null && owners[ch]===owner)keyOff(ch);});
+  }
+  function rawEvent(value,owner) {
+    integer(value,0,255,'register byte');
+    const ch=(value>>2)&15, gate=value&3;
+    if(gate===1 || gate===2){
+      owners[ch]=gate===1?owner:null;
+      notes[ch]=gate===1?rawNote:null;
+      pedalHeld[ch]=false;
+    }
+    write(EVENT,value);
   }
   function allNotesOff() {
-    sustain = false;
+    sustain.clear();
     notes.forEach((_,ch)=>keyOff(ch));
   }
-  return {setPatch,keyOn,keyOff,noteOn,noteOff,setSustain,allNotesOff};
+  return {setPatch,keyOn,keyOff,noteOn,noteOff,setSustain,stopOwner,rawEvent,allNotesOff};
 }
