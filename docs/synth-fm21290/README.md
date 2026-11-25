@@ -10,7 +10,7 @@
 
 **Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定が開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、バンク（Bank · SysEx）、Codeを保存できる。
 
-画面上部の **☰ Menu** にはNew・Import・Exportが並ぶ。Escで閉じる。画面の切り替えはタブとFilesボタンで行う。
+**☰ Menu → Import** にはDX7 voice · SysEx（単音色・32音色バンクの.syx）、MIDI（.mid／.midi）、Cassette（.zip）が並ぶ。読み込んだMIDIはFilesのsongsフォルダに保存される。Escで閉じる。画面の切り替えはタブとFilesボタンで行う。
 
 最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
 

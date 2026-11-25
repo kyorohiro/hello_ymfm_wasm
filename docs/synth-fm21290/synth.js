@@ -264,7 +264,7 @@ function projectFileList(){
   return list;
 }
 function renderFiles(){
-  renderFileTree(el('filesTree'),projectFileList().filter(file=>file.type==='directory' || !/\.midi?$/i.test(file.path)),{expanded,selectedPath:selectedFile,onOpen:path=>openProjectFile(path).catch(report)});
+  renderFileTree(el('filesTree'),projectFileList(),{expanded,selectedPath:selectedFile,onOpen:path=>openProjectFile(path).catch(report)});
 }
 async function openProjectFile(path){
   storeEditor();
@@ -478,28 +478,27 @@ function replaceProject(next){
   files=next.fs;expanded.clear();
   restoreModWheel(next.wheel);selectSong(next.midi,next.song);showEditor(next.activePath);render();
 }
-for(const id of ['importFile','importCassette'])on(id,'change',async()=>{
+for(const id of ['importVoice','importMidi','importCassette'])on(id,'change',async()=>{
   const f=el(id).files[0];el(id).value='';if(!f)return;
   const bytes=new Uint8Array(await f.arrayBuffer());
-  if(/\.zip$/i.test(f.name)){
+  if(id==='importCassette'){
     const next=await importSession(bytes);
     await runtime.stop();stopSong();silence();
     replaceProject(next);await applyVoice();
     return;
   }
-  if(!textPath(f.name)&&!/\.(syx|mid|midi)$/i.test(f.name))throw Error('Unsupported project file.');
-  const folder=textPath(f.name)?'code':/\.syx$/i.test(f.name)?'voices':'songs';
+  const isVoice=id==='importVoice';
+  if(!(isVoice?/\.syx$/i:/\.midi?$/i).test(f.name))throw Error(isVoice?'Choose a DX7 SysEx (.syx) file.':'Choose a MIDI (.mid or .midi) file.');
+  const folder=isVoice?'voices':'songs';
   const base='/'+folder+'/'+f.name;
   let path=projectPath(base),n=2;
   while(files.has(path))path=base.replace(/(\.[^./]+)$/,' ('+(n++)+')$1');
   storeEditor();
-  if(textPath(path)){
-    files.writeText(path,new TextDecoder('utf-8',{fatal:true}).decode(bytes));editFile(path);
-  }else{
-    if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
-    else{const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
-    files.writeBinary(path,bytes);expanded.set('/'+folder,true);selectBinaryFile(path);
+  if(isVoice)await loadVoiceFile(bytes);
+  else{
+    const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);setFiles(true);
   }
+  files.writeBinary(path,bytes);expanded.set('/'+folder,true);selectBinaryFile(path);
 });
 async function playRegion(){
   stopSong();

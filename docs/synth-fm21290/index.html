@@ -20,7 +20,8 @@
 <button type="button" data-action="newPath" data-close-synth-menu>New file…</button>
 <h2>Import</h2>
 <div class="menu-file-actions">
-<button type="button" data-action="importFile" data-close-synth-menu>Import file…</button>
+<button type="button" data-action="importVoice" data-close-synth-menu>DX7 voice · SysEx…</button>
+<button type="button" data-action="importMidi" data-close-synth-menu>MIDI…</button>
 <button type="button" data-action="importCassette" data-close-synth-menu>Cassette…</button>
 </div>
 <h2>Export</h2>
@@ -42,7 +43,8 @@
 <div id="newEntry" hidden><label>New file path<input id="newPath" placeholder="/pieces/score.js"></label><button id="newFile">Create file</button></div>
 <p><output id="draftStatus">Opening local project…</output></p>
 <details open class="cassette"><summary>FM21290.cassette.zip</summary><nav id="filesTree" aria-label="Project files"></nav></details>
-<input type="file" id="importFile" hidden accept=".syx,.js,.mjs,.json,.txt">
+<input type="file" id="importVoice" hidden accept=".syx">
+<input type="file" id="importMidi" hidden accept=".mid,.midi,audio/midi,audio/x-midi">
 <input type="file" id="importCassette" hidden accept=".zip,application/zip">
 </section>
 <div class="desk">
@@ -149,4 +151,4 @@
 </div><output id="editorNote" hidden></output><output id="log"></output>
 </section>
 </div></div></div>
-<p role="status" id="status"></p></main><script type="module" src="synth.js?v=file-menu-2"></script></html>
+<p role="status" id="status"></p></main><script type="module" src="synth.js?v=typed-imports-1"></script></html>

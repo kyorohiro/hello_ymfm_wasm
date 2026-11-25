@@ -119,7 +119,10 @@ const {chromium}=require('playwright');
   await page.getByRole('button',{name:'Oscillator',exact:true}).click();
   await page.fill('#name','LOCAL VOX');await page.locator('#name').press('Tab');
   const track=[0,144,60,95,0,145,67,100,0x83,0,128,60,0,0,129,67,0,0,255,47,0];
-  await page.locator('#importFile').setInputFiles({name:'duet.mid',mimeType:'audio/midi',buffer:Buffer.from(
+  await page.click('#synthMenuButton');
+  const [midiChooser]=await Promise.all([page.waitForEvent('filechooser'),page.getByRole('button',{name:'MIDI…',exact:true}).click()]);
+  assert((await midiChooser.element().getAttribute('accept')).includes('.mid'));
+  await midiChooser.setFiles({name:'duet.mid',mimeType:'audio/midi',buffer:Buffer.from(
     [77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,track.length,...track])});
   // Exercise saved MIDI regions from earlier projects with the playback UI hidden.
   await page.waitForFunction(()=>document.querySelector('#part').options.length===2);
@@ -141,7 +144,7 @@ const {chromium}=require('playwright');
   assert.equal(await page.inputValue('#part'),part);assert.equal(await page.inputValue('#midiFrom'),'0.25');
   assert.equal(await page.inputValue('#midiUntil'),'1.5');assert.ok(await page.isChecked('#midiLoop'));
   assert.equal(await page.locator('#channels [data-state=idle]').count(),16);assert.equal(await page.innerText('#status'),'');
-  assert.equal(await page.locator('button[data-file-path="/songs/duet.mid"]').count(),0);
+  assert.equal(await page.locator('button[data-file-path="/songs/duet.mid"]').count(),1);
   await page.fill('#code','// immediate reload');await page.reload();await ready();
   assert.equal(await page.inputValue('#code'),'// immediate reload');
   await page.waitForFunction(()=>['Saved locally','Local project restored'].includes(document.querySelector('#draftStatus').textContent));
