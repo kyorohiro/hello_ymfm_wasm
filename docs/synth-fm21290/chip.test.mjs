@@ -1,0 +1,68 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {Fm21290, MODE, ALGORITHM, EVENT} from './chip.js';
+import {createInstrument} from './instrument.js';
+import {glassPatch} from './examples.js';
+import {presetToVoice,voiceToPreset} from '../js/msfa_dx7/src/preset.js';
+import {createDX7} from '../js/msfa_dx7/src/index.js';
+
+function setup(patch={}) {
+  const core=new Fm21290(48000), trace=[];
+  const api=createInstrument((address,data)=>{core.writeRegister(address,data);trace.push([core.frame,address,data]);});
+  api.setPatch(voiceToPreset(presetToVoice(patch)));
+  const render=n=>{const pcm=new Float32Array(n);core.renderInto(pcm);return pcm;};
+  return {core,api,trace,render};
+}
+test('firmware broadcast and die-derived individual A-register select',()=>{
+  const {core}=setup();
+  core.writeRegister(MODE,0x30);core.writeRegister(ALGORITHM,0xff);
+  core.writeRegister(MODE,15);core.writeRegister(ALGORITHM,12);
+  assert.deepEqual([...core.algorithms],[...Array(15).fill(255),12]);
+});
+test('key events, CH isolation and replay across render boundaries',()=>{
+  const {core,api,trace,render}=setup(glassPatch);
+  api.keyOn(0,48);api.keyOn(15,72);
+  const a=render(3200);
+  api.keyOff(0);
+  assert.equal(core.voices[0].held,false);assert.equal(core.voices[15].held,true);
+  const b=render(2000);assert.ok(a.some(v=>v!==0));
+  const replay=new Fm21290(48000), output=new Float32Array(5200);
+  for(const [frame,addr,value] of trace){
+    replay.renderInto(output.subarray(replay.frame,frame));replay.writeRegister(addr,value);
+  }
+  replay.renderInto(output.subarray(replay.frame));
+  assert.deepEqual(output,Float32Array.from([...a,...b]));
+});
+test('16 held slots, bounded allocator, independent gates, all 32 routes finite',()=>{
+  const {api,trace,core,render}=setup(glassPatch);
+  for(let ch=0;ch<16;ch++)assert.equal(api.noteOn(50+ch),ch);
+  const count=trace.length;assert.equal(api.noteOn(80),undefined);assert.equal(trace.length,count);
+  api.noteOff(57);assert.equal(api.noteOn(80),7);
+  assert.deepEqual(trace.at(-1).slice(1),[EVENT,29]);
+  for(let algorithm=0;algorithm<32;algorithm++){
+    core.writeRegister(ALGORITHM,algorithm*8+7);
+    const pcm=render(500);assert.ok(pcm.every(Number.isFinite));assert.ok(pcm.some(x=>Math.abs(x)>0.0001));
+  }
+});
+test('INIT A4 fundamental against the vendored MSFA renderer',async()=>{
+  const {api,render}=setup();api.noteOn(69,127);
+  const wasmBytes=await readFile(new URL('../js/msfa_dx7/wasm/msfa.wasm',import.meta.url));
+  const ref=await createDX7({sampleRate:48000,wasmBytes});
+  try {
+    ref.setPreset({});ref.noteOn(69,127);
+    function hz(pcm){let crossings=0;for(let i=24001;i<48000;i++)if(pcm[i-1]<=0&&pcm[i]>0)crossings++;return crossings*2;}
+    const custom=hz(render(48000)),msfa=hz(ref.render(48000));
+    assert.ok(Math.abs(custom-440)<=2 && Math.abs(custom-msfa)<=2,`custom ${custom} Hz / MSFA ${msfa} Hz`);
+  }finally{ref.dispose();}
+});
+test('Cassette round trip preserves original bank, selected slot, code and MIDI',async()=>{
+  const {exportSession,importSession}=await import('./session.js');
+  const {createBankSysex}=await import('../js/msfa_dx7/src/sysex.js');
+  const voices=Array.from({length:32},(_,i)=>presetToVoice({name:'PATCH '+i}));
+  const bank=createBankSysex(voices,{channel:11});
+  const song=Uint8Array.of(77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,4,0,255,47,0);
+  const next=await importSession(exportSession({bank,selected:24,code:'// example',song}));
+  assert.equal(next.selected,24);assert.equal(next.code,'// example');assert.deepEqual(next.song,song);
+  assert.deepEqual(createBankSysex(next.dump.voices.map(v=>v.data),{channel:next.dump.channel}),bank);
+});

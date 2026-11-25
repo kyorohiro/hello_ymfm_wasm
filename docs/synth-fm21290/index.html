@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tetorica FM21290 Synth</title><link rel="stylesheet" href="synth.css">
+<main><header><div><small>TETORICA / YM21280 + YM21290</small><h1>FM21290 Synth</h1></div>
+<label>Engine<select id="engine"><option value="chip">OPS / EGS · experimental</option><option value="msfa">MSFA DX7</option></select></label>
+<label>Master<input id="master" type="range" min="0" max="100" value="65"></label></header>
+<section><h2>Voice</h2><div class="row"><label>Bank slot<select id="bank"></select></label><label>Name<input id="name" maxlength="10"></label><label>Algorithm<select id="algorithm"></select></label><label>Feedback<input type="number" id="feedback" min="0" max="7"></label></div>
+<h3>Operators</h3><div id="ops" class="row"></div><div id="params" class="row"></div></section>
+<section><h2>Keyboard</h2><div class="row"><label>Physical voice<select id="channel"></select></label><label>Octave<input type="number" id="octave" value="4" min="-1" max="8"></label></div><div id="keys"></div></section>
+<section><h2>Output</h2><select aria-label="Monitor" id="scopeMode"><option>Waveform</option><option>Spectrum</option></select><canvas id="scope" width="640" height="125"></canvas></section>
+<section><h2>Code</h2><textarea id="code" aria-label="Live JavaScript" spellcheck="false"></textarea><div class="row"><button id="run">Run</button><button id="apply">Apply</button><button id="stop">Stop</button></div><output id="log"></output></section>
+<section><h2>Files</h2><input type="file" id="importFile" accept=".syx,.mid,.midi,.js,.zip"><div class="row"><button id="saveSession">Export Cassette</button><button id="saveVoice">Export voice</button><button id="saveBank">Export bank</button><button id="saveCode">Export code</button></div>
+<div id="song" hidden><label>MIDI part<select id="part"></select></label><button id="playMidi">Play</button><button id="stopMidi">Stop MIDI</button></div></section>
+<section id="registers"><h2>Register writes</h2><div class="row"><label>Address (hex)<input id="addr" value="2805" maxlength="4"></label><label>Data (hex)<input id="data" value="22" maxlength="2"></label><button id="write">Write</button></div><p id="slots"></p><pre id="trace"></pre></section>
+<p role="status" id="status"></p></main><script type="module" src="synth.js"></script></html>
