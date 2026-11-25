@@ -73,3 +73,19 @@ test('Cassette round trip preserves original bank, selected slot, code and MIDI'
   assert.equal(next.selected,24);assert.equal(next.code,'// example');assert.deepEqual(next.song,song);
   assert.deepEqual(createBankSysex(next.dump.voices.map(v=>v.data),{channel:next.dump.channel}),bank);
 });
+test('keyboard rate scaling saturates at rate 63 and pitch bend preserves it',()=>{
+  const {core,api}=setup({operators:{1:{rateScaling:7}}});
+  api.keyOn(0,93);
+  const voice=core.voices[0], idx=20; // OP1, stage 1
+  core.writeRegister(0x3040+idx,62);
+  const scaled=voice.decay[idx];
+  core.writeRegister(0x3040+idx,63);
+  assert.equal(voice.decay[idx],scaled);
+  core.writeRegister(0x3040+idx,32);
+  const beforeBend=voice.decay[idx];
+  assert.ok(beforeBend>scaled);
+  core.writeRegister(0x30f2,8);
+  assert.equal(voice.decay[idx],beforeBend);
+  core.writeRegister(0x30e5,0);
+  assert.ok(voice.decay[idx]>beforeBend);
+});

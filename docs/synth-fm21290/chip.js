@@ -26,11 +26,20 @@ export class Fm21290 {
     this.algorithms = new Uint8Array(16);
     this.voices = Array.from({length:16}, () => ({
       active:false, held:false, phase:new Float64Array(6), gain:new Float64Array(6),
-      step:new Float64Array(6), speed:new Float64Array(6).fill(1), level:new Float64Array(6), stage:new Uint8Array(6),
-      decay:new Float64Array(24).fill(1), feedback:0, previous:0,
+      step:new Float64Array(6), rateOffset:new Uint8Array(6), level:new Float64Array(6), stage:new Uint8Array(6),
+      attack:new Float64Array(24), decay:new Float64Array(24).fill(1), feedback:0, previous:0,
     }));
-    this.rates = new Float64Array(24);
-    this.octavesPerSample = new Float64Array(24);
+    this.attackByRate = new Float64Array(64);
+    this.decayByRate = new Float64Array(64);
+    for (let rate=0; rate<64; rate++) {
+      this.attackByRate[rate] = 2 ** ((rate-32)/4) * 9.6 / sampleRate;
+      const octaves = (4 + rate%4) * 2 ** (Math.floor(rate/4)-22) * 44100 / sampleRate;
+      this.decayByRate[rate] = 2 ** -octaves;
+    }
+    for (const voice of this.voices) {
+      voice.attack.fill(this.attackByRate[0]);
+      voice.decay.fill(this.decayByRate[0]);
+    }
     this.targets = new Float64Array(24);
     this.bus = new Float64Array(3);
     this.amGain = new Float64Array(6).fill(1);
@@ -38,20 +47,26 @@ export class Fm21290 {
     this.sync = false;
     this.frame = 0;
   }
+  updateRate(voice, idx) {
+    const rate = Math.min(63, this.reg[0x40+idx] + voice.rateOffset[idx >> 2]);
+    voice.attack[idx] = this.attackByRate[rate];
+    voice.decay[idx] = this.decayByRate[rate];
+  }
   tune(ch) {
     const r = this.reg, voice = this.voices[ch];
     const key = (r[ch*2] << 8) | r[ch*2+1];
+    // The MSFA comparison model groups three semitones per scaling step.
+    // Recover the nearest key from the unmodulated EGS pitch.
+    const note = Math.round(69 + (key-0x5aa8)*12/4096);
+    const keyGroup = Math.max(0,Math.min(31,Math.floor(note/3)-7));
     const mod = ((r[0xf2]<<24) | (r[0xf3]<<16)) >> 16;
     for (let op = 0; op < 6; op++) {
       const i = 0x20 + op*2, pitch = (r[i] << 8) | r[i+1];
       const detune = r[0x30+op], cents = (detune & 7) * (detune & 8 ? -1 : 1);
-      const speed = 2 ** ((r[0xe0+op]&7) * Math.max(0,key/4096-2) / 16);
-      if (voice.speed[op] !== speed) {
-        voice.speed[op] = speed;
-        for (let stage=0; stage<4; stage++) {
-          const idx = op*4+stage;
-          voice.decay[idx] = 2 ** (-this.octavesPerSample[idx] * speed);
-        }
+      const rateOffset = ((r[0xe0+op] & 7) * keyGroup) >> 3;
+      if (voice.rateOffset[op] !== rateOffset) {
+        voice.rateOffset[op] = rateOffset;
+        for (let stage=0; stage<4; stage++) this.updateRate(voice,op*4+stage);
       }
       const hz = pitch & 1 ? 2 ** (((pitch & ~3) - 0x16ac) / 4096)
         : 440 * 2 ** ((key + mod - 0x5aa8 + (pitch & ~3) - 0x232c) / 4096);
@@ -80,13 +95,7 @@ export class Fm21290 {
     if (i < 32) this.tune(i >> 1);
     else if (i < 0x36 || i >= 0xf2 || (i >= 0xe0 && i < 0xe6)) for (let ch = 0; ch < 16; ch++) this.tune(ch);
     else if (i < 0x58) {
-      const idx = i - 0x40, rate = Math.min(data, 63);
-      // Measured against the bundled 44.1 kHz MSFA engine. Attack uses
-      // a linear-gain approximation; falling segments advance in log gain.
-      this.rates[idx] = 2 ** ((rate-32)/4) * 9.6 / this.sampleRate;
-      this.octavesPerSample[idx] = (4 + rate%4) * 2 ** (Math.floor(rate/4)-22) * 44100 / this.sampleRate;
-      for (const voice of this.voices)
-        voice.decay[idx] = 2 ** (-this.octavesPerSample[idx] * voice.speed[idx >> 2]);
+      for (const voice of this.voices) this.updateRate(voice,i-0x40);
     }
     else if (i < 0x78) this.targets[i-0x60] = data >= 63 ? 0 : amplitude(data * 2);
     else if (i < 0xe0) this.voices[i & 15].level[(i-0x80) >> 4] = amplitude(data / 2);
@@ -111,7 +120,7 @@ export class Fm21290 {
           const stage = v.stage[op], idx = op*4 + stage;
           const target = this.targets[idx], gain = v.gain[op];
           if (gain < target) {
-            v.gain[op] = Math.min(target, gain + this.rates[idx] * v.speed[op]);
+            v.gain[op] = Math.min(target, gain + v.attack[idx]);
           } else if (gain > target) {
             const next = Math.max(target, gain * v.decay[idx]);
             v.gain[op] = target === 0 && next < 1e-6 ? 0 : next;
