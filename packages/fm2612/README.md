@@ -2020,6 +2020,8 @@ notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
 
+`0.2.47` adds FM21290 register writes in Playground Main and Worker and offline mono PCM through the package root. The bundled DX7 engine applies operator envelope rate and level edits to held notes and release tails.
+
 `0.2.46` publishes Game Boy and SID timed register-operation authoring together:
 state-free recording, isolated compilation, reusable coherent snapshots and
 sample-clock named reservations. Both SID models and Game Boy Pulse / Wave /
