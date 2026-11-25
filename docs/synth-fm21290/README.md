@@ -8,6 +8,8 @@
 
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、同じFilesで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 
+**Operators** の図では実線の矢印が変調先、OUTにつながるOPがキャリア、橙の破線がフィードバック経路を示す。OPをクリックするかTabで選んでEnterを押すと、そのOPの編集欄に切り替わる。Algorithm 4ではOP6 → OP5 → OP4を通り、OP4からOP6へ戻る。
+
 **Oscillator key sync** は各音色の設定。OPS / EGSでオンにすると押鍵時に6つのOPが位相ゼロから始まる。オフにすると、同じ物理CHでも打鍵間隔によって波形の開始位置が変わる。LFOのKey syncは別に設定できる。
 
 **LFO** は全声共通。独自エンジンで音高の揺れを試すには、Sine、Speed 40、Pitch depth 40、Pitch sensitivity 4にして鍵盤を長押しする。振幅の揺れはAmplitude depthと各OPのAM sensitivityで調整する。Register writesにはAMとPMの現在のバイト値が出る。MSFA経路は同梱エンジンのLFO実装を使う。

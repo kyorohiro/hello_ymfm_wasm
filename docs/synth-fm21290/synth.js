@@ -6,7 +6,7 @@ import {createDx7Client} from '../js/playground_dx7.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
-import {dx7CarrierOperators} from '../playground/playground_dx7_voice_panel.js';
+import {renderRouting} from './routing.js';
 import {validateTrace} from './register_trace.js';
 import {integer,validRegister} from './chip.js';
 import {createInstrument} from './instrument.js';
@@ -140,11 +140,9 @@ function render() {
   for(const key of ['rates','levels'])p.pitchEnvelope[key].forEach((value,i)=>{
     el('pitch-'+key+i).value=value;
   });
-  const carriers=dx7CarrierOperators(p.algorithm);
-  el('ops').replaceChildren(...Array.from({length:6},(_,i)=>{
-    const b=document.createElement('button');b.textContent='OP'+(i+1)+(carriers.includes(i+1)?' · Out':'');
-    b.setAttribute('aria-pressed',String(i+1===op));b.onclick=()=>{op=i+1;render();};return b;
-  }));
+  renderRouting(el('ops'),el('routeFeedback'),p,op,isChip(),next=>{
+    op=next;render();el('ops').querySelector('[aria-pressed=true]').focus({preventScroll:true});
+  });
   const params=el('params');params.replaceChildren();
   function field(title,value,max,patch,choices){
     const label=document.createElement('label'),input=document.createElement(choices?'select':'input');
@@ -211,7 +209,7 @@ on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
   el('engine').disabled=true;
   try{if(opening)await opening;await runtime.stop();stopSong();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
-    el('channel').disabled=!isChip();el('registers').hidden=!isChip();trace.length=0;
+    el('channel').disabled=!isChip();el('registers').hidden=!isChip();trace.length=0;render();
   }finally{el('engine').disabled=false;}
 });
 on('master','input',()=>{if(audio)audio.master.gain.value=Number(el('master').value)/100;});
