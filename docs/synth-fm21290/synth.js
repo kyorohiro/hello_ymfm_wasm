@@ -317,9 +317,9 @@ function renderOperators(p,stage){
   updateOperators(p.operators,op);
   updateEnvelopes(p.operators,op,stage);
 }
-function voiceControl(id,label,max,formatValue=String){
+function numericControl(host,label,max,onChange,formatValue=String){
   const control=createParamControl({label,min:0,max,step:1,value:0,showLabel:false,formatValue,
-    onChange:value=>{if(value!==preset()[id])edit({[id]:value}).catch(report);}});
+    onChange:value=>onChange(value).catch(report)});
   const [minus,value,plus]=control.element.querySelectorAll('button');
   minus.setAttribute('aria-label','Decrease '+label);plus.setAttribute('aria-label','Increase '+label);
   value.title=label+' · drag left or right';
@@ -328,11 +328,12 @@ function voiceControl(id,label,max,formatValue=String){
     event.preventDefault();event.stopPropagation();
     (event.key==='ArrowLeft'?minus:plus).click();
   };
-  el(id).append(control.element);
+  host.append(control.element);
   return control;
 }
-const algorithmControl=voiceControl('algorithm','Algorithm',31,value=>String(value+1));
-const feedbackControl=voiceControl('feedback','Feedback',7);
+const algorithmControl=numericControl(el('algorithm'),'Algorithm',31,value=>edit({algorithm:value}),value=>String(value+1));
+const feedbackControl=numericControl(el('feedback'),'Feedback',7,value=>edit({feedback:value}));
+const pitchControls={rates:[],levels:[]},lfoControls={};
 function render() {
   el('menuRegisters').hidden=!isChip();
   draftChanged();
@@ -342,12 +343,13 @@ function render() {
   el('oscSync').setAttribute('aria-pressed',String(p.oscillatorSync));
   el('oscSync').textContent=p.oscillatorSync?'ON':'OFF';
   for(const key of Object.keys(p.lfo)){
-    const control=el('lfo-'+key);
-    if(key==='sync')control.checked=p.lfo.sync;
-    else control.value=p.lfo[key];
+    if(key==='sync'){
+      el('lfo-sync').setAttribute('aria-pressed',String(p.lfo.sync));
+      el('lfo-sync').textContent=p.lfo.sync?'ON':'OFF';
+    }else lfoControls[key].updateVisual(p.lfo[key]);
   }
   for(const key of ['rates','levels'])p.pitchEnvelope[key].forEach((value,i)=>{
-    el('pitch-'+key+i).value=value;
+    pitchControls[key][i].updateVisual(value);
   });
   renderRouting(el('ops'),p,op,selectOperator);
   renderOperators(p);
@@ -366,29 +368,32 @@ async function edit(patch,stage){
   else await applyVoice();
 }
 function download(name,bytes){const url=URL.createObjectURL(new Blob([bytes]));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function parameterField(root,title){
+  const host=document.createElement('div');
+  host.className='voice-parameter';host.textContent=title;root.append(host);
+  return host;
+}
+const waveforms=['Triangle','Saw down','Saw up','Square','Sine','Sample & hold'];
 for(const [key,title,max] of [
   ['waveform','Waveform',5],['speed','Speed',99],['delay','Delay',99],
   ['pitchModDepth','Pitch depth',99],['pitchModSensitivity','Pitch sensitivity',7],['ampModDepth','Amplitude depth',99],
-  ['sync','Key sync',1],
 ]){
-  const label=document.createElement('label'), input=document.createElement(key==='waveform'?'select':'input');
-  input.id='lfo-'+key;
-  if(key==='waveform')input.append(...['Triangle','Saw down','Saw up','Square','Sine','Sample & hold'].map((name,i)=>option(name,i)));
-  else if(key==='sync')input.type='checkbox';
-  else {input.type='number';input.min=0;input.max=max;}
-  label.append(title,input);el('lfo').append(label);
-  on(input.id,'change',()=>edit({lfo:{[key]:key==='sync'?input.checked:Number(input.value)}}));
+  const host=parameterField(el('lfo'),title);
+  lfoControls[key]=numericControl(host,'LFO '+title,max,value=>edit({lfo:{[key]:value}}),
+    key==='waveform'?value=>waveforms[value]:String);
 }
+const syncButton=document.createElement('button');
+syncButton.type='button';syncButton.id='lfo-sync';syncButton.setAttribute('aria-label','LFO key sync');
+syncButton.onclick=()=>edit({lfo:{sync:!preset().lfo.sync}}).catch(report);
+parameterField(el('lfo'),'Key sync').append(syncButton);
 for(const key of ['rates','levels']){
   for(let i=0;i<4;i++){
-    const label=document.createElement('label'), input=document.createElement('input');
-    input.id='pitch-'+key+i;input.type='number';input.min=0;input.max=99;
-    label.append((key==='rates'?'R':'L')+(i+1),input);el('pitchEg').append(label);
-    on(input.id,'change',()=>{
-      const values=preset().pitchEnvelope[key].slice();
-      values[i]=Number(input.value);
+    const label=(key==='rates'?'R':'L')+(i+1);
+    const host=parameterField(el('pitchEg'),label);
+    pitchControls[key].push(numericControl(host,'Pitch envelope '+label,99,value=>{
+      const values=preset().pitchEnvelope[key].slice();values[i]=value;
       return edit({pitchEnvelope:{[key]:values}});
-    });
+    }));
   }
 }
 el('inspectCh').append(...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));

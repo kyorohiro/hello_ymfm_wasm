@@ -56,6 +56,29 @@ const {chromium}=require('playwright');
   const level=Number(await value.textContent());
   assert(level>before);assert.equal(await page.locator('#ops [data-op="6"]').getAttribute('aria-pressed'),'true');
   await page.getByRole('button',{name:'Envelope',exact:true}).click();
+  await page.getByText('Pitch envelope & LFO',{exact:true}).click();
+  const pitch=page.getByRole('button',{name:'Pitch envelope R1',exact:true});
+  const initialPitch=Number(await pitch.textContent());
+  await pitch.press(initialPitch===99?'ArrowLeft':'ArrowRight');
+  assert.equal(Number(await pitch.textContent()),initialPitch+(initialPitch===99?-1:1));
+  const waveform=page.getByRole('button',{name:'LFO Waveform',exact:true});
+  for(let i=0;i<5;i++)await page.getByRole('button',{name:'Increase LFO Waveform'}).click();
+  assert.equal(await waveform.textContent(),'Sample & hold');
+  const keySync=page.getByRole('button',{name:'LFO key sync'});
+  const oldSync=await keySync.getAttribute('aria-pressed');await keySync.click();
+  assert.notEqual(await keySync.getAttribute('aria-pressed'),oldSync);
+  for(const width of [1440,940,768,390,320]){
+    await page.setViewportSize({width,height:900});
+    const values=page.locator('#operatorTable table:visible .param-value');
+    assert.equal(await values.count(),48);
+    assert(await values.evaluateAll(nodes=>nodes.every(node=>{
+      const rect=node.getBoundingClientRect();
+      return rect.width>0 && rect.left>=0 && rect.right<=innerWidth && node.scrollWidth<=node.clientWidth+1;
+    })), 'Envelope values must fit at '+width+'px');
+    assert(await page.locator('#operatorTable').evaluate(n=>n.scrollWidth<=n.clientWidth+1));
+  }
+  await page.getByRole('button',{name:'OP6 L4',exact:true}).press('ArrowLeft');
+  await page.setViewportSize({width:1440,height:900});
   const l3=page.getByRole('button',{name:'OP6 L3',exact:true});
   const savedLevel=Number(await l3.textContent());
   await l3.press(savedLevel===99?'ArrowLeft':'ArrowRight');

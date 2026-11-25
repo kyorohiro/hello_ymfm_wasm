@@ -78,7 +78,7 @@ export function createOperatorEditor({toolbar,host,selectOperator,change}){
           event.preventDefault();event.stopPropagation();
           (event.key==='ArrowLeft'?minus:plus).click();
         };
-        row.insertCell().append(control.element);controls.push({op,path,choices,control});
+        const cell=row.insertCell();cell.dataset.label=label;cell.append(control.element);controls.push({op,path,choices,control});
       }
     }
   }

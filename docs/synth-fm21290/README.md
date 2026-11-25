@@ -24,6 +24,8 @@ Algorithm（1〜32）とFeedback（0〜7）は− / ＋または中央の値の�
 
 **LFO** は全声共通。独自エンジンで音高の揺れを試すには、Sine、Speed 40、Pitch depth 40、Pitch sensitivity 4にして鍵盤を長押しする。振幅の揺れはAmplitude depthと各OPのAM sensitivityで調整する。Register writesにはAMとPMの現在のバイト値が出る。MSFA経路は同梱エンジンのLFO実装を使う。
 
+**Pitch envelope & LFO** の数値と波形は− / ＋または中央の値の左右ドラッグで変更できる。LFOのKey syncはON / OFFで切り替える。画面幅が狭いときは、OperatorsのEnvelopeをOPごとに折り返してR1〜R4・L1〜L4を表示する。
+
 **Pitch envelope** は各声の音高を押鍵から離鍵まで変化させる。INIT音色でL1〜L3を82、L4を50、R1を60にしてA4を長押しすると、440 Hzから880 Hzまで上昇する。あとから弾いた鍵は、その鍵の押鍵時点から上昇する。
 
 ## JavaScript
