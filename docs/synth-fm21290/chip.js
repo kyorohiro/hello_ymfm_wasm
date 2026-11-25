@@ -17,6 +17,9 @@ export function validRegister(address) {
     (i>=0x80 && i<0xe6) || i>=0xf0)) throw new RangeError('Unimplemented EGS register');
 }
 const tau = 2 * Math.PI;
+// A settled OL99 operator spans two phase cycles in the MSFA reference.
+// The register gain at OL99 / velocity sensitivity 0 is 2^(-4/16).
+const busToRadians = 2 * tau * 2 ** (4/16);
 const amplitude = attenuation => attenuation >= 127 ? 0 : 2 ** (-attenuation / 8);
 export class Fm21290 {
   constructor(sampleRate = 48000) {
@@ -138,7 +141,7 @@ export class Fm21290 {
           }
           if (v.gain[op] === target && stage < 2) v.stage[op]++;
           const flags = route[op], input = (flags >> 4) & 3, out = flags & 3;
-          let modulation = input ? this.bus[input] * 8 : 0;
+          let modulation = input ? this.bus[input] * busToRadians : 0;
           if ((flags & 64) && feedback) modulation += (v.previous + v.feedback) * 2 ** (feedback-5);
           const value = Math.sin(v.phase[op] + modulation) * v.level[op] * v.gain[op] * this.amGain[op];
           v.phase[op] = (v.phase[op] + v.step[op]) % tau;

@@ -25,6 +25,6 @@ MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色
 
 ## 検証
 
-`node --test docs/synth-fm21290/*.test.mjs`。A4の定常区間の周波数、16声のゲート、32アルゴリズムの出力、時刻付き書き込み列のPCM再現、Cassette往復を検証する。実機測定と各アルゴリズムの倍音照合は今後の課題。
+`node --test docs/synth-fm21290/*.test.mjs`。A4の定常区間の周波数、16声のゲート、32アルゴリズムの出力、時刻付き書き込み列のPCM再現、Cassette往復を検証する。全32アルゴリズムの定常音は `node scripts/compare_fm21290_spectrum.mjs` で同梱MSFAと第8倍音まで比較できる。実機測定とフィードバック経路の照合は今後の課題。
 
 新規実装はリポジトリのBSD-3-Clause。アルゴリズム表はGoogle MSFAのApache-2.0ソースから移植した。JS音色変換と比較用WASMも既存アダプタのライセンスを引き継ぐ。[MSFAライセンス](../js/msfa_dx7/LICENSE) · [第三者表記](../js/msfa_dx7/THIRD_PARTY_NOTICES.md)
