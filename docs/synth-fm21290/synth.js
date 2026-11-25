@@ -9,6 +9,7 @@ import {createDx7Client} from '../js/playground_dx7.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
+import {createOperatorEnvelopes} from './operator_envelopes.js';
 import {createOperatorEditor} from './operator_editor.js';
 import {renderRouting} from './routing.js';
 import {validateTrace} from './register_trace.js';
@@ -300,21 +301,14 @@ const runtime=createPlaygroundCodeRuntime({
 function selectOperator(next){
   op=next;render();
 }
-const updateOperators=createOperatorEditor({toolbar:el('operatorGroups'),host:el('operatorTable'),selectOperator,
-  change(number,patch){op=number;edit({operators:{[number]:patch}}).catch(report);},
-});
+function changeOperator(number,patch){
+  op=number;edit({operators:{[number]:patch}}).catch(report);
+}
+const updateOperators=createOperatorEditor({toolbar:el('operatorGroups'),host:el('operatorTable'),selectOperator,change:changeOperator});
+const updateEnvelopes=createOperatorEnvelopes(el('opEnvelopes'),selectOperator,changeOperator);
 function renderOperators(p){
   updateOperators(p.operators,op);
-  const levels=p.operators[op].envelope.levels;
-  const points=[levels[3],...levels];
-  const graph=el('opEnvelope');
-  el('opTitle').textContent='OP'+op+' · Envelope levels';
-  graph.querySelector('polyline').setAttribute('points',points.map((v,i)=>(20+i*75)+','+(78-v*0.7)).join(' '));
-  graph.querySelector('g').replaceChildren(...points.map((v,i)=>{
-    const label=document.createElementNS(graph.namespaceURI,'text');
-    label.setAttribute('x',20+i*75);label.setAttribute('y',99);
-    label.textContent='L'+(i||4)+'·'+v;return label;
-  }));
+  updateEnvelopes(p.operators,op);
 }
 function render() {
   el('menuRegisters').hidden=!isChip();

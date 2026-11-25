@@ -76,9 +76,20 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 #scope{height:140px;background:#192019;border-radius:4px}
 #outputPanel select{font-size:.78rem}
 .operator-grid{grid-template-columns:minmax(230px,.85fr) minmax(0,1.55fr);border-top:1px solid var(--line);margin-top:14px}
-#opEnvelope{display:block;width:100%;height:120px;background:#1b221e;border-radius:4px}
-#opEnvelope polyline{stroke:var(--dx-green);stroke-width:2;fill:none}
-#opEnvelope text{font:9px ui-monospace,monospace;fill:#cdd9cf;text-anchor:middle}
+#opEnvelopes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr));gap:6px}
+.envelope-help{margin:0 0 .4rem;color:var(--muted);font-size:.78rem}
+.envelope-card{background:#1b221e;border:1px solid var(--line);border-radius:4px;padding:3px}
+.envelope-card.selected{border-color:var(--dx-green)}
+.envelope-card button{padding:.1rem .45rem;color:#d0ddd1;background:transparent;border:0}
+.envelope-card button[aria-pressed=true]{color:var(--dx-green);box-shadow:none}
+.envelope-card span{float:right;padding:.2rem;color:var(--muted);font:.7rem ui-monospace,monospace}
+.envelope-card svg{display:block;width:100%}
+.envelope-card polyline{stroke:var(--dx-green);stroke-width:2;fill:none}
+.envelope-card text{font:12px ui-monospace,monospace;fill:#cdd9cf;text-anchor:middle}
+.envelope-card g{cursor:move;touch-action:none}
+.envelope-card .hit{fill:transparent}
+.envelope-card .dot{fill:#a9eddd;stroke:#17392f;stroke-width:1.5}
+.envelope-card g:is(:focus,:hover) .dot{fill:white;stroke:var(--dx-green);stroke-width:3}
 #operatorGroups button[aria-pressed=true]{border-bottom-color:var(--dx-green);color:#8de8dc;background:#2b3934}
 #operatorTable{max-width:100%;overflow-x:auto;margin-top:.35rem}
 #operatorTable table{width:100%;border-spacing:2px;font-variant-numeric:tabular-nums}
