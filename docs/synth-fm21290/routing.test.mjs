@@ -28,11 +28,10 @@ test('stacked, summed, branched and parallel diagrams preserve signal direction'
 });
 
 test('routing text distinguishes summed inputs from parallel outputs',()=>{
-  assert.equal(routingExpression(routing(31)),'(OP6 + OP5 + OP4 + OP3 + OP2 + OP1) → OUT');
-  assert.equal(routingExpression(routing(3)),'((OP6 → OP5 → OP4) + (OP3 → OP2 → OP1)) → OUT');
+  assert.equal(routingExpression(routing(31)),'OP1 + OP2 + OP3 + OP4 + OP5 + OP6');
+  assert.equal(routingExpression(routing(3)),'(OP3 → OP2 → OP1) + (OP6 → OP5 → OP4)');
   for(let algorithm=0;algorithm<32;algorithm++){
     const text=routingExpression(routing(algorithm));
     assert.equal(new Set(text.match(/OP[1-6]/g)).size,6);
-    assert.ok(text.endsWith(' → OUT'));
   }
 });

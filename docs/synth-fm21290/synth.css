@@ -1,10 +1,10 @@
 :root{--dx-green:#2bc5ba;--button-ink:#142622;color-scheme:dark;font:16px/1.5 system-ui,sans-serif;background:#201a16;color:#f6e7ce}*{box-sizing:border-box}main{max-width:960px;margin:auto;padding:20px}header,.row{display:flex;gap:.8rem;align-items:end;flex-wrap:wrap}header{align-items:center;border-bottom:2px solid #bd996a;padding-bottom:1rem}header div{flex:1}small{letter-spacing:.1em;color:#dec399}h1,h2,h3{margin:0 0 .5rem}section{background:#302721;padding:1rem;margin:1rem 0;border-radius:6px}h2{font-size:1.15rem}h3{margin-top:1rem;font-size:1rem}label{display:grid;font-size:.85rem;gap:3px}button,select,input,textarea{font:inherit;color:inherit;background:#3b312a;border:1px solid #89765e;padding:.4rem;border-radius:3px}button{cursor:pointer;background:var(--dx-green);color:var(--button-ink);border-color:#4bcac0;font-weight:600}button:disabled{opacity:.5;cursor:default}input[type=number]{width:5rem}button[aria-pressed=true]{background:#91e7dd;color:var(--button-ink);box-shadow:inset 0 0 0 2px #263e37}textarea,canvas{display:block;width:100%;margin:.6rem 0}textarea{height:15rem;font:14px/1.5 ui-monospace,monospace}#keys{display:flex;gap:2px;margin-top:1rem}#keys button{flex:1;padding:.3rem 0;height:4rem;color:#272626;background:#f3dfb9;touch-action:none}#keys button.black{background:#322b24;color:white}#keys button:active{background:var(--dx-green)}#params,.row+div{margin-top:.6rem}pre,output{white-space:pre-wrap}#status{position:sticky;bottom:0;background:#251e18;color:#ffc390}#status:empty{display:none}
 header img{border-radius:12px}input[type=range]{accent-color:var(--dx-green)}#stop,#stopMidi{background:#40352e;color:#f6e7ce;border-color:#89765e}
 :root{--op-1:#52dbbf;--op-2:#ffb45f;--op-3:#85b9ff;--op-4:#ff88af;--op-5:#cfabff;--op-6:#e4db68}
-.routing-panel{display:flex;align-items:baseline;flex-wrap:wrap;gap:.2rem 1rem;margin:.8rem 0;font:.82rem/1.8 ui-monospace,monospace}
+#ops{margin:.4rem 0 0;font:.85rem/1.5 ui-monospace,monospace}
+#ops+h3{margin-top:.35rem}
 #ops button{font:inherit;font-weight:600;background:transparent;border:0;padding:0 .12rem}
 #ops button[aria-pressed=true]{box-shadow:none;text-decoration:underline;text-underline-offset:3px}
-#routeFeedback{color:#f1b286}
 
 #filesTree{margin:.7rem 0}
 #filesTree ul{list-style:none;padding-left:1.1rem;margin:.2rem 0}

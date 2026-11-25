@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tetorica FM21290 Synth</title><link rel="icon" type="image/webp" href="../tetorica_fm21290_synth.webp"><link rel="stylesheet" href="synth.css">
+<title>Tetorica FM21290 Synth</title><link rel="icon" type="image/webp" href="../tetorica_fm21290_synth.webp"><link rel="stylesheet" href="synth.css?v=inline-routing-2">
 <main inert>
 <div class="masthead"><header class="identity"><img src="../tetorica_fm21290_synth.webp" alt="" width="72" height="72">
 <div><small>TETORICA / YM21280 + YM21290</small><h1>FM21290 Synth</h1>
@@ -70,10 +70,7 @@
 <div class="voice-parameter">Feedback<div id="feedback"></div></div>
 <div class="voice-parameter">Oscillator key sync<button id="oscSync" type="button" aria-label="Oscillator key sync" aria-pressed="false">OFF</button></div>
 </div>
-<div class="routing-panel">
-<div id="ops" role="group" aria-label="Algorithm routing" aria-describedby="routeFeedback"></div>
-<span id="routeFeedback"></span>
-</div>
+<div id="ops" role="group" aria-label="Algorithm routing"></div>
 <h3>Operator envelopes</h3>
 <p class="envelope-help">Select an OP. Drag a point up for more level, left for a faster rate. Arrow keys adjust by one.</p>
 <div id="opEnvelopes"></div>
@@ -155,4 +152,4 @@
 </div><output id="editorNote" hidden></output><output id="log"></output>
 </section>
 </div></div></div>
-<p role="status" id="status"></p></main><script type="module" src="synth.js"></script></html>
+<p role="status" id="status"></p></main><script type="module" src="synth.js?v=inline-routing-2"></script></html>

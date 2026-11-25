@@ -35,7 +35,13 @@ const {chromium}=require('playwright');
   await page.mouse.move(fb.x+fb.width/2,fb.y+fb.height/2);await page.mouse.down();
   await page.mouse.move(fb.x+fb.width/2+80,fb.y+fb.height/2,{steps:5});await page.mouse.up();
   assert(Number(await feedback.textContent())>initialFeedback);
-  assert.match(await page.innerText('#routeFeedback'),new RegExp('Feedback '+await feedback.textContent()));
+  assert.equal(await page.locator('#ops').textContent(),'OP1 + OP2 + OP3 + OP4 + OP5 + OP6');
+  for(const width of [1440,390]){
+    await page.setViewportSize({width,height:900});
+    const gap=await page.locator('#ops').evaluate(node=>node.nextElementSibling.getBoundingClientRect().top-node.getBoundingClientRect().bottom);
+    assert(gap>=0 && gap<=8);
+  }
+  await page.setViewportSize({width:1440,height:900});
   const sync=page.getByRole('button',{name:'Oscillator key sync'});
   const initialSync=await sync.getAttribute('aria-pressed');await sync.focus();await page.keyboard.press('Space');
   assert.notEqual(await sync.getAttribute('aria-pressed'),initialSync);

@@ -18,21 +18,22 @@ export function routing(algorithm){
 
 // A modulator feeding multiple carriers appears in each affected branch.
 export function routingExpression({edges,carriers}){
-  function sum(terms){
+  function sum(terms,nested){
     if(terms.length===1)return terms[0];
-    return '('+terms.map(term=>term.includes(' → ')?'('+term+')':term).join(' + ')+')';
+    const expression=terms.map(term=>term.includes(' → ')?'('+term+')':term).join(' + ');
+    return nested?'('+expression+')':expression;
   }
   function branch(op){
     const inputs=edges.filter(([,to])=>to===op).map(([from])=>branch(from));
-    return (inputs.length?sum(inputs)+' → ':'')+'OP'+op;
+    return (inputs.length?sum(inputs,true)+' → ':'')+'OP'+op;
   }
-  return sum(carriers.map(branch))+' → OUT';
+  return sum([...carriers].reverse().map(branch),false);
 }
 
-export function renderRouting(container,caption,preset,selected,isChip,select){
+export function renderRouting(container,preset,selected,select){
   const route=routing(preset.algorithm);
   const expression=routingExpression(route);
-  container.replaceChildren('ALGO '+(preset.algorithm+1)+'  ');
+  container.replaceChildren();
   for(const token of expression.split(/(OP[1-6])/)){
     if(!token.startsWith('OP')){container.append(token);continue;}
     const op=Number(token.slice(2)),button=document.createElement('button');
@@ -46,8 +47,4 @@ export function renderRouting(container,caption,preset,selected,isChip,select){
     };
     container.append(button);
   }
-  const {returnFrom,returnTo}=route;
-  const unavailable=!isChip && returnFrom!==returnTo;
-  caption.textContent='Feedback '+preset.feedback+' · OP'+returnFrom+' → OP'+returnTo+
-    (unavailable?' (inactive in MSFA)':preset.feedback===0?' (off)':'');
 }

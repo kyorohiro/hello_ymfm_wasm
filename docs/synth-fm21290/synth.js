@@ -12,7 +12,7 @@ import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {createOperatorEnvelopes} from './operator_envelopes.js';
 import {createParamControl} from '../synth/synth_controls.js';
 import {createOperatorEditor} from './operator_editor.js';
-import {renderRouting} from './routing.js';
+import {renderRouting} from './routing.js?v=inline-routing-2';
 import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
 import {createMsfaNotes} from './msfa_notes.js';
@@ -349,7 +349,7 @@ function render() {
   for(const key of ['rates','levels'])p.pitchEnvelope[key].forEach((value,i)=>{
     el('pitch-'+key+i).value=value;
   });
-  renderRouting(el('ops'),el('routeFeedback'),p,op,isChip(),selectOperator);
+  renderRouting(el('ops'),p,op,selectOperator);
   renderOperators(p);
 }
 async function edit(patch,stage){
