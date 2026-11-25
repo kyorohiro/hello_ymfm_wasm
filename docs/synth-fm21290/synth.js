@@ -475,11 +475,12 @@ on('newFile','click',()=>{
   storeEditor();files.writeText(path,path.endsWith('.json')?'{}':'');
   el('newPath').value='';showNewFile(false);editFile(path);
 });
-on('saveSession','click',()=>{
+function downloadSession(){
   storeEditor();
   download('FM21290.cassette.zip',exportSession({voice:currentVoice(),code:files.get('/index.js').data,
     entries:files.list().filter(f=>f.path!=='/index.js'),directories:files.listDirectories(),activePath,song:songBytes,wheel:manualWheel}));
-});
+}
+on('saveSession','click',downloadSession);
 function replaceProject(next){
   voice=next.voice;sysexChannel=next.channel;
   files=next.fs;expanded.clear();expanded.set('/presets',true);
@@ -638,12 +639,22 @@ setFiles(!matchMedia('(max-width: 760px)').matches);setView(false);
 setupSynthMenu({document,window});
 el('synthMenuPanel').addEventListener('click',event=>{
   const action=event.target.closest('[data-action]')?.dataset.action;
-  if(action==='newPath'){
-    setFiles(true);showNewFile(true);draftChanged();el('filesPanel').scrollIntoView({block:'start'});el(action).focus({preventScroll:true});
-  }else if(action){
+  if(action){
     if(!event.detail)el('synthMenuButton').focus({preventScroll:true});
     el(action).click();
   }
+});
+const cassetteDialog=el('newCassetteDialog');
+on('newCassette','click',()=>cassetteDialog.showModal());
+on('cancelCassette','click',()=>cassetteDialog.close());
+for(const id of ['backupCassette','createCassette'])on(id,'click',async()=>{
+  if(!cassetteDialog.open)return;
+  if(id==='backupCassette')downloadSession();
+  cassetteDialog.close();
+  await runtime.stop();stopSong();silence();
+  replaceProject({fs:createVirtualFileSystem([{path:'/index.js',data:''}]),activePath:'/index.js',
+    voice:presetToVoice(glassPatch),channel:0,wheel:defaultWheel,midi:null,song:null});
+  el('newPath').value='';showNewFile(false);await applyVoice();
 });
 on('enableEditor','click',async()=>{
   const button=el('enableEditor');button.disabled=true;

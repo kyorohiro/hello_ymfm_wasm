@@ -8,6 +8,8 @@
 
 **Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。Octaveの中央の値を左右にドラッグするか、− / ＋を押して−3〜＋3オクターブを切り替えられる。PCキーによる演奏はKeyboardタブを閉じても使える。Code本文などのテキスト欄では文字を入力できる。Ctrl / Cmd + EnterでRun、Shiftを加えるとApplyでき、Codeを閉じた状態からも実行できる。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
+**☰ Menu → New → Cassette** で空の `index.js` と標準プリセットを持つCassetteを作成する。確認画面で現在のCassetteを書き出してから切り替えることもできる。
+
 **Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定が開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、Codeを保存できる。
 
 **☰ Menu → Import** にはDX7 voice · SysEx（単音色・32音色バンクの.syx）、MIDI（.mid／.midi）、Cassette（.zip）が並ぶ。読み込んだMIDIはFilesのsongsフォルダに保存される。Escで閉じる。画面の切り替えはタブとFilesボタンで行う。

@@ -17,7 +17,7 @@
 </summary>
 <div class="synth-menu-panel" id="synthMenuPanel">
 <h2>New</h2>
-<button type="button" data-action="newPath" data-close-synth-menu>New file…</button>
+<button type="button" id="newCassette" data-close-synth-menu>Cassette</button>
 <h2>Import</h2>
 <div class="menu-file-actions">
 <button type="button" data-action="importVoice" data-close-synth-menu>DX7 voice · SysEx…</button>
@@ -33,7 +33,15 @@
 
 
 </div>
-</details><button id="filesToggle" aria-expanded="true" aria-controls="filesPanel">Files</button>
+</details>
+<dialog id="newCassetteDialog" aria-labelledby="newCassetteTitle">
+<h2 id="newCassetteTitle">Create a new Cassette?</h2>
+<p>This replaces the current local project. Export it first to keep a copy.</p>
+<button type="button" id="cancelCassette" autofocus>Cancel</button>
+<button type="button" id="backupCassette">Export current &amp; create</button>
+<button type="button" id="createCassette">Create without export</button>
+</dialog>
+<button id="filesToggle" aria-expanded="true" aria-controls="filesPanel">Files</button>
 <div class="mode-switch" role="group" aria-label="Workspace"><button id="synthView" aria-pressed="true">Synth</button><button id="codeView" aria-pressed="false">Code</button>
 </div></div>
 <div id="workspace">
