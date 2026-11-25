@@ -142,7 +142,7 @@ const {chromium}=require('playwright');
   await page.addInitScript(()=>Object.defineProperty(window,'indexedDB',{value:null}));
   await page.reload();await ready();
   assert.match(await page.innerText('#draftStatus'),/Local recovery unavailable/);
-  await page.click('#codeView');await page.fill('#code','// offline');const download=page.waitForEvent('download');await page.click('#saveSession');
+  await page.click('#codeView');await page.fill('#code','// offline');const download=page.waitForEvent('download');await page.click('#synthMenuButton');await page.click('#saveSession');
   assert.equal((await download).suggestedFilename(),'FM21290.cassette.zip');
   assert.deepEqual(errors,[]);console.log('IndexedDB reload, selected MIDI region, editor, bank and unavailable-store export passed');
  } finally{await browser?.close();server.close();}

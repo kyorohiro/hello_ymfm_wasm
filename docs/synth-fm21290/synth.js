@@ -102,7 +102,6 @@ async function ensureAudio() {
         await context.audioWorklet.addModule(new URL('./worklet.js',import.meta.url));
         owner.node=new AudioWorkletNode(context,'tetorica-fm21290',{numberOfInputs:0,outputChannelCount:[1]});
         owner.node.connect(mixer);
-        owner.node.port.postMessage({inspectCh:Number(el('inspectCh').value)});
         owner.node.port.onmessage=({data})=>{
           if(data.recorded){
             savedTrace=data.recorded;
@@ -112,7 +111,7 @@ async function ensureAudio() {
           if(data.replayDone)traceControls('idle','Replay stopped.');
           if(data.error){report(data.error);if(traceMode==='replay')traceControls('idle','Replay failed.');}
           if(data.modulation)el('modBytes').textContent=data.modulation.map(n=>n.toString(16).padStart(2,'0')).join(' ');
-          if(data.voice && data.voice.ch===Number(el('inspectCh').value)){
+          if(audio===owner && data.voice && data.voice.ch===physicalChannel){
             const v=data.voice;
             el('voiceState').textContent='Algorithm '+v.algorithm+' · FB '+v.feedback+' · Pitch 0x'+v.pitch.toString(16).padStart(4,'0')+
               ' · OP1–6 output bytes '+v.levels.map(n=>n.toString(16).padStart(2,'0')).join(' ')+' · EG stages '+v.stages.join(' ');
@@ -130,7 +129,7 @@ async function ensureAudio() {
       }
       for(const id of ['master','mixer'])owner[id].gain.value=Number(el(id).value)/100;
       monitor.connect(context,[master]);audio=owner;
-      if(owner.node){applyChipPatch();if(wheelBend!==null)sendBend();}
+      if(owner.node){if(physicalChannel>=0)owner.node.port.postMessage({inspectCh:physicalChannel});applyChipPatch();if(wheelBend!==null)sendBend();}
       return owner;
     }catch(error){await context.close();throw error;}
   })();
@@ -396,17 +395,14 @@ for(const key of ['rates','levels']){
     }));
   }
 }
-el('inspectCh').append(...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
-on('inspectCh','change',()=>{el('voiceState').textContent='';audio?.node?.port.postMessage({inspectCh:Number(el('inspectCh').value)});});
 let physicalChannel=-1;
 for(let channel=-1;channel<16;channel++){
   const button=document.createElement('button');
   button.textContent=channel<0?'AUTO':'CH'+(channel+1);
   button.onclick=()=>{
     physicalChannel=channel;refreshChannels();
-    if(channel>=0){
-      el('inspectCh').value=channel;el('inspectCh').dispatchEvent(new Event('change'));
-    }
+    el('voiceState').textContent='';
+    if(channel>=0)audio?.node?.port.postMessage({inspectCh:channel});
   };
   el('channels').append(button);
 }
@@ -425,7 +421,7 @@ function refreshChannels(){
     button.disabled=!isChip() && index>0;
     button.setAttribute('aria-pressed',String(index===(isChip()?physicalChannel+1:0)));
   });
-  el('inspectCh').disabled=!isChip();
+  el('voiceState').hidden=!isChip() || physicalChannel<0;
 }
 on('bank','change',async()=>{stopSong();selected=Number(el('bank').value);render();await applyVoice();});
 on('oscSync','click',()=>edit({oscillatorSync:!preset().oscillatorSync}));
@@ -484,8 +480,8 @@ function replaceProject(next){
   files=next.fs;expanded.clear();
   restoreModWheel(next.wheel);selectSong(next.midi,next.song);showEditor(next.activePath);render();
 }
-on('importFile','change',async()=>{
-  const f=el('importFile').files[0];el('importFile').value='';if(!f)return;
+for(const id of ['importFile','importCassette'])on(id,'change',async()=>{
+  const f=el(id).files[0];el(id).value='';if(!f)return;
   const bytes=new Uint8Array(await f.arrayBuffer());
   if(/\.zip$/i.test(f.name)){
     const next=await importSession(bytes);
@@ -616,7 +612,6 @@ function showNewFile(open){
     field.focus();field.select();
   }
 }
-on('chooseImport','click',()=>el('importFile').click());
 on('showNewFile','click',()=>showNewFile(el('newEntry').hidden));
 function editFile(path){
   showEditor(path);selectPanel('codePanel');

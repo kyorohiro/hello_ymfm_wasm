@@ -8,13 +8,13 @@
 
 **Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
-**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定、MIDIを選ぶとパートと再生範囲を設定できるMIDIタブが開く。**Export Cassette** でプロジェクト全体、**Individual files** で音色・バンク・コードを個別に保存できる。
+**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定、MIDIを選ぶとパートと再生範囲を設定できるMIDIタブが開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、バンク（Bank · SysEx）、Codeを保存できる。
 
 画面上部の **Menu** はスクロール中も使える。**Keyboard** を選ぶとPC鍵盤で演奏でき、**Code** を選ぶと開いているエディタに入力できる。**Files**、音色、波形表示、MIDI出力、独自コアのレジスタ画面にも移動できる。演奏中のファイル作成・読み込み・Cassette書き出しの入口も同じメニューにある。Escで閉じる。
 
 最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
 
-**Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、同じFilesで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
+**Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、☰ Menu → Importで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 
 Algorithmの下に出力の式を表示する。矢印は変調先、+ は加算を示す。各OPの色はエンベロープ図と共通。OPをクリックするかTabで選んでEnterを押すと、そのOPの行と4段のレベル図が選択される。Algorithm 4ではOP6 → OP5 → OP4を通り、OP4からOP6へ戻る。
 
@@ -69,17 +69,17 @@ MSFAは同じ音高へのNote Offで該当する全声を解放するため、�
 
 OPS / EGSで **Record from reset** を押すと現在の演奏を止め、リセットと選択音色の適用から記録する。その後Keyboard、Code、MIDI、または手動レジスタ書き込みで演奏し、**Finish recording** を押す。**Export trace** でJSONに保存し、**Load trace → Replay** で再演できる。再演開始時にも現在の演奏は止まる。
 
-**Event index** で各書き込みのサンプル位置・番地・値を参照できる。**Inspect physical voice** では選択したCHのアルゴリズム、FB、ピッチワード、OP1〜6の出力バイトとモデル上のEG段階を演奏中・再演中に確認できる。記録は最大20万イベント。同じサンプルレートを使用する。Master以降の音量は再演時の設定に従う。
+**Event index** で各書き込みのサンプル位置・番地・値を参照できる。**CH1〜CH16** のボタンを押すと、そのCHのアルゴリズム、FB、ピッチワード、OP1〜6の出力バイトとモデル上のEG段階を演奏中・再演中に確認できる。記録は最大20万イベント。同じサンプルレートを使用する。Master以降の音量は再演時の設定に従う。
 
 ## Files
 
-Filesに **Saved locally** と出ると、そのブラウザのIndexedDBへの保存が完了している。次に同じURLを開くと編集中のファイル、32音色バンク、Modホイール設定、エンジン、Master、MIDIパートと再生区間・ループ設定が戻る。演奏はRunまたはPlayで開始する。ブラウザの保存領域を使えない場合もExport Cassetteで持ち出せる。
+Filesに **Saved locally** と出ると、そのブラウザのIndexedDBへの保存が完了している。次に同じURLを開くと編集中のファイル、32音色バンク、Modホイール設定、エンジン、Master、MIDIパートと再生区間・ループ設定が戻る。演奏はRunまたはPlayで開始する。ブラウザの保存領域を使えない場合もMenu → Export → Cassette · ZIPで持ち出せる。
 
 FilesのツリーからJS・JSON・テキストを選ぶと、Code欄にそのファイルが開く。New file pathに `/pieces/lead.js` のように入力するとフォルダも作成される。編集内容はファイルを切り替えても残る。RunとApplyは表示中のJavaScriptを実行する。Cassetteにはプロジェクト内のファイル、空フォルダ、最後に開いたテキストのパスも保存する。以前のCassetteでは `/index.js` が開く。
 
 最初のプロジェクトの `/examples/glass-echo/score.json` で音高とベロシティを編集し、同じフォルダの `play.js` を開いてRunすると変更を聴ける。`await file('./score.json', {type:'json'})` の相対パスは実行中のJSを基準にする。`await file('/bank.syx', {type:'arrayBuffer'})` は現在の32音色、`/song.mid` は読込中のMIDIを返す。読み込んだSysExとMIDIは元のファイル名でもツリーに残り、選び直して使える。
 
-単音色SysExは選択中の枠に取り込み、バンクSysExは32枠を置き換える。Export voice / bankでYamahaのバイナリとして保存する。Cassette ZIPは32音色、選択中の枠、Code、読み込んだMIDIの原本をまとめて復元できる。他の端末やブラウザに移すにはExport Cassetteを使う。
+単音色SysExは選択中の枠に取り込み、バンクSysExは32枠を置き換える。Export voice / bankでYamahaのバイナリとして保存する。Cassette ZIPは32音色、選択中の枠、Code、読み込んだMIDIの原本をまとめて復元できる。他の端末やブラウザに移すにはMenu → Export → Cassette · ZIPを使う。
 
 MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色で再生する。テンポ、ノート、ベロシティ、サステインを扱う。独自コアのベンド幅は暫定で±2半音。MSFA経路のベンドとプログラムチェンジは今後の対象。
 

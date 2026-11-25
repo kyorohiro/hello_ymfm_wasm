@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tetorica FM21290 Synth</title><link rel="icon" type="image/webp" href="../tetorica_fm21290_synth.webp"><link rel="stylesheet" href="synth.css?v=inline-routing-2">
+<title>Tetorica FM21290 Synth</title><link rel="icon" type="image/webp" href="../tetorica_fm21290_synth.webp"><link rel="stylesheet" href="synth.css?v=file-menu-1">
 <main inert>
 <div class="masthead"><header class="identity"><img src="../tetorica_fm21290_synth.webp" alt="" width="72" height="72">
 <div><small>TETORICA / YM21280 + YM21290</small><h1>FM21290 Synth</h1>
@@ -12,8 +12,25 @@
 </div></div>
 <div class="workspace-bar">
 <details id="synthMenu" class="synth-menu">
-<summary id="synthMenuButton" aria-controls="synthMenuPanel" aria-expanded="false">Menu</summary>
+<summary id="synthMenuButton" aria-controls="synthMenuPanel" aria-expanded="false" aria-label="Menu" title="Menu">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+</summary>
 <div class="synth-menu-panel" id="synthMenuPanel">
+<h2>New</h2>
+<button type="button" data-action="newPath" data-close-synth-menu>New file…</button>
+<h2>Import</h2>
+<div class="menu-file-actions">
+<button type="button" data-action="importFile" data-close-synth-menu>Import file…</button>
+<button type="button" data-action="importCassette" data-close-synth-menu>Cassette…</button>
+</div>
+<h2>Export</h2>
+<div class="menu-file-actions">
+<button id="saveVoice" type="button" data-close-synth-menu>Voice · SysEx</button>
+<button id="saveBank" type="button" data-close-synth-menu>Bank · SysEx</button>
+<button id="saveCode" type="button" data-close-synth-menu>Code</button>
+<button id="saveSession" type="button" data-close-synth-menu>Cassette · ZIP</button>
+</div>
+<h2>View</h2>
 <nav aria-label="Synth sections">
 <a href="#keyboardPanel" data-close-synth-menu>Keyboard</a>
 <a href="#codePanel" data-close-synth-menu>Code</a>
@@ -24,11 +41,7 @@
 <a href="#midiPanel" data-close-synth-menu>MIDI output</a>
 <a href="#registers" id="menuRegisters" data-close-synth-menu>Register writes</a>
 </nav>
-<div class="menu-file-actions">
-<button type="button" data-action="newPath" data-close-synth-menu>New file…</button>
-<button type="button" data-action="importFile" data-close-synth-menu>Import file…</button>
-<button type="button" data-action="saveSession" data-close-synth-menu>Export Cassette</button>
-</div>
+
 </div>
 </details><button id="filesToggle" aria-expanded="true" aria-controls="filesPanel">Files</button>
 <div class="mode-switch" role="group" aria-label="Workspace"><button id="synthView" aria-pressed="true">Synth</button><button id="codeView" aria-pressed="false">Code</button>
@@ -40,11 +53,9 @@
 <p><output id="draftStatus">Opening local project…</output></p>
 <details open class="cassette"><summary>FM21290.cassette.zip</summary><nav id="filesTree" aria-label="Project files"></nav></details>
 <output id="fileSelection"></output>
-<div class="file-actions"><button id="chooseImport">Import…</button><button id="saveSession">Export Cassette</button></div>
-<input type="file" id="importFile" hidden accept=".syx,.mid,.midi,.js,.mjs,.json,.txt,.zip">
-<details class="settings"><summary>Individual files</summary>
-<div class="file-actions"><button id="saveVoice">Export voice</button><button id="saveBank">Export bank</button><button id="saveCode">Export code</button></div>
-<a href="./examples/return-steps.js" download>Download Return Steps example</a></details>
+<input type="file" id="importFile" hidden accept=".syx,.mid,.midi,.js,.mjs,.json,.txt">
+<input type="file" id="importCassette" hidden accept=".zip,application/zip">
+<a href="./examples/return-steps.js" download>Download Return Steps example</a>
 </section>
 <div class="desk">
 <section id="outputPanel" tabindex="-1">
@@ -59,9 +70,7 @@
 <div id="mainPanels">
 <section id="chipPanel" tabindex="-1">
 <div id="channels" role="group" aria-label="Physical voice"></div>
-<div class="row">
-<label>Inspect physical voice<select id="inspectCh"></select></label><output id="voiceState"></output>
-</div>
+<output id="voiceState" hidden></output>
 <h3>Voice</h3>
 <div class="row">
 <label>Bank slot<select id="bank"></select></label>
@@ -152,4 +161,4 @@
 </div><output id="editorNote" hidden></output><output id="log"></output>
 </section>
 </div></div></div>
-<p role="status" id="status"></p></main><script type="module" src="synth.js?v=inline-routing-2"></script></html>
+<p role="status" id="status"></p></main><script type="module" src="synth.js?v=file-menu-1"></script></html>
