@@ -5,25 +5,8 @@ import { createVsuClient, VSU_SOUND_STOP, vsuMaskedEnvelopeTarget, vsuPcmRelease
 const DEFAULT_SAMPLE_RATE = 44100;
 const MAX_WRITES = PERFORMANCE_PATTERN_LIMITS.maxPatternEntries;
 
-export function validateVsuTimedFields(value, fields, label) {
-	if (!value || typeof value !== 'object' ||
-		![Object.prototype, null].includes(Object.getPrototypeOf(value)))
-		throw new TypeError(`${label} must be a plain object.`);
-	for (const key of Reflect.ownKeys(value)) {
-		if (!fields.includes(key) || !Object.hasOwn(Object.getOwnPropertyDescriptor(value, key), 'value'))
-			throw new TypeError(`Unknown or invalid ${label} field: ${String(key)}.`);
-	}
-}
-
-function referenceSampleRate(value) {
-	if (!Number.isSafeInteger(value) || value <= 0)
-		throw new RangeError('VSU referenceSampleRate must be a positive safe integer.');
-	return value;
-}
-
-function validOffset(value) {
-	return Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER;
-}
+import {referenceSampleRate,validOffset,validateTimedFields as validateVsuTimedFields, validateScheduleName as validateVsuScheduleName, validateScheduleOwner as validateVsuScheduleOwner, validateScheduleTransaction as validateVsuScheduleTransaction, validateScheduleOptions as validateVsuScheduleOptions} from '../js/register_plan_validation.js';
+export {validateVsuTimedFields, validateVsuScheduleName, validateVsuScheduleOwner, validateVsuScheduleTransaction, validateVsuScheduleOptions};
 
 function validateWrite(register, value) {
 	if (!Number.isInteger(register) || register < 0 || register > VSU_SOUND_STOP || register % 4 !== 0)
@@ -121,29 +104,4 @@ export function buildVsuOperations(callback, options = {}) {
 	} finally {
 		active = false;
 	}
-}
-
-function validateIdentity(value, max, label) {
-	if (typeof value !== 'string' || !value.length || value.length > max)
-		throw new TypeError(`${label} must contain 1 to ${max} characters.`);
-	return value;
-}
-
-export const validateVsuScheduleName = value => validateIdentity(value, 128, 'VSU schedule name');
-export const validateVsuScheduleOwner = value => validateIdentity(value, 256, 'VSU schedule owner');
-
-export function validateVsuScheduleTransaction(value) {
-	if (Number.isSafeInteger(value) && value > 0) return value;
-	return validateIdentity(value, 256, 'VSU schedule transaction');
-}
-
-export function validateVsuScheduleOptions(options, plan) {
-	validateVsuTimedFields(options, ['name', 'repeatSeconds'], 'VSU schedule options');
-	const name = validateVsuScheduleName(options.name);
-	const { repeatSeconds } = options, last = plan.writes.at(-1);
-	if (!last) throw new RangeError('Schedule requires a VSU plan with at least one write.');
-	if (repeatSeconds === undefined) return { name };
-	if (!validOffset(repeatSeconds) || repeatSeconds <= last.offsetSeconds)
-		throw new RangeError('VSU repeatSeconds must exceed the final write offset.');
-	return { name, repeatSeconds };
 }

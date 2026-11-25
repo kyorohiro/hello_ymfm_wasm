@@ -4,7 +4,7 @@ const path=require('node:path'),fs=require('node:fs'),http=require('node:http'),
 const {chromium}=require('playwright');
 (async()=>{
  const server=http.createServer((req,res)=>{
-   const root=path.resolve(__dirname,'../docs');
+   const root=process.env.FM21290_WEB_ROOT||path.resolve(__dirname,'../docs');
    const file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);
    if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
    if(!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
@@ -26,7 +26,22 @@ const {chromium}=require('playwright');
     await route.fulfill({path:file,headers:{'Access-Control-Allow-Origin':'*'}});
   });
   const page=await context.newPage();page.setDefaultTimeout(15000);
-  await page.goto('http://127.0.0.1:'+server.address().port+'/synth-fm21290/index.html');
+  await page.addInitScript(()=>{
+    const connect=AudioNode.prototype.connect;
+    AudioNode.prototype.connect=function(destination,...args){
+      if(destination instanceof AudioDestinationNode){
+        const probe=this.context.createAnalyser();probe.fftSize=256;
+        connect.call(this,probe);
+        window.outputPeak=()=>{
+          const samples=new Float32Array(probe.fftSize);
+          probe.getFloatTimeDomainData(samples);
+          return Math.max(...samples.map(Math.abs));
+        };
+      }
+      return connect.call(this,destination,...args);
+    };
+  });
+  await page.goto('http://127.0.0.1:'+server.address().port+(process.env.FM21290_WEB_ROOT?'/index.html':'/synth-fm21290/index.html'));
   await page.waitForSelector('main:not([inert])');
   const initialCode=await page.inputValue('#code');
   const initialFiles=await page.locator('#filesTree button[data-file-path]').evaluateAll(nodes=>nodes.map(n=>n.dataset.filePath).sort());
@@ -88,7 +103,7 @@ const {chromium}=require('playwright');
     return result.entries.map(entry=>entry.name);
   },source);
   const physical=await candidates("const voice=await useSoundChip('fm21290');\nvoice.");
-  assert(physical.includes('writeRegister')&&physical.includes('keyOn'));
+  for(const method of ['writeRegister','keyOn','build','compile','schedule','clearSchedule'])assert(physical.includes(method));
   await page.evaluate(()=>{
     const editor=monaco.editor.getEditors()[0],model=editor.getModel();
     editor.setPosition(model.getPositionAt(model.getValueLength()));editor.focus();
@@ -125,7 +140,7 @@ const {chromium}=require('playwright');
   assert(await page.locator('#filesPanel').isVisible());
   assert.equal(await page.getByRole('button',{name:'CH7',exact:true,includeHidden:true}).getAttribute('data-state'),'on');
   await page.click('#stop');
-  assert.equal(await page.inputValue('#code'),source);
+  assert.equal(await page.inputValue('#code'),source,await page.innerText('#draftStatus'));
   const demo=page.locator('button[data-file-path="/examples/after-the-chime.mid"]');
   if(!await demo.isVisible())await page.locator('summary[data-file-path="/examples"]').click();
   await page.locator('button[data-file-path="/examples/held-envelope.js"]').click();
@@ -142,6 +157,21 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>document.querySelector('#trace').textContent.endsWith('30f1  01\n30f1  02\n30f1  01\n30f1  02') &&
     !document.querySelector('#channels [data-state=on]'));
   await page.click('#stop');
+  await page.locator('button[data-file-path="/examples/scheduled-echo.js"]').click();
+  await page.click('#run');
+  const gate=ch=>page.waitForFunction(ch=>document.querySelector('#channels button:nth-child('+(ch+1)+')').dataset.state==='on',ch);
+  await gate(1);
+  await page.waitForFunction(()=>window.outputPeak()>0.0001);
+  const scheduledCode=await page.inputValue('#code');
+  await page.evaluate(src=>monaco.editor.getEditors()[0].setValue(src),scheduledCode.replace('gain: 0.6','gain: 0'));
+  await page.click('#apply');
+  await gate(1);
+  await page.waitForFunction(()=>document.querySelector('#channels button:nth-child(2)').dataset.state==='on' && window.outputPeak()===0);
+  await page.evaluate(src=>monaco.editor.getEditors()[0].setValue(src),scheduledCode.replaceAll('CH1','CH2'));
+  await page.click('#apply');await gate(2);
+  await page.waitForFunction(()=>window.outputPeak()>0.0001);
+  await page.click('#stop');
+  await page.waitForFunction(()=>!document.querySelector('#channels [data-state=on]'));
   await demo.click();
   await page.click('#playMidi');
   await page.waitForFunction(()=>document.querySelectorAll('#channels [data-state=on]').length>=3);
@@ -153,7 +183,7 @@ const {chromium}=require('playwright');
   assert.equal(await page.evaluate(()=>monaco.editor.getEditors()[0].getValue()),source);
   await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent==='Saved locally');
   await page.reload();await page.waitForSelector('main:not([inert])');
-  assert.equal(await page.inputValue('#code'),source);
+  assert.equal(await page.inputValue('#code'),source,await page.innerText('#draftStatus'));
   await context.route(prefix+'**',route=>route.abort());
   await page.click('#enableEditor');await page.waitForSelector('#editorNote:not([hidden])');
   assert(await page.locator('#code').isVisible());

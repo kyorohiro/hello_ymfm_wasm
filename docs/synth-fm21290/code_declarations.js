@@ -2,7 +2,7 @@
 import {selectCodeHostDeclarations} from '../synth/synth_code_declarations.js';
 
 const globals=['context','console','log','file','setBpm','beat','nextBeat','sleep','sleepSamples','tween',
-  'liveLoop','livePrepare','stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','midiToNoteName',
+  'fx','liveFx','liveLoop','livePrepare','stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','midiToNoteName',
   'scale','chord','lerp','choose','cycle','rand','rrange','randInt','useSoundChip','midi','pg',
   ...Array.from({length:16},(_,i)=>'CH'+(i+1))];
 
@@ -16,7 +16,20 @@ interface FM21290Voice {
   setOperator(operator:DX7Operator,patch:DX7OperatorParams):Promise<void>;
   setFeedback(feedback:number):Promise<void>;
 }
+interface FM21290Builder {
+  atSeconds(seconds:number):this;
+  atSample(sample:number):this;
+  writeRegister(address:number,value:number):this;
+  keyOn(channel:PlaygroundMidiChannel,note:number,velocity?:number):this;
+  keyOff(channel:PlaygroundMidiChannel):this;
+}
+interface FM21290Write {offsetSeconds:number;register:number;value:number;}
+interface FM21290Plan {chip:'fm21290';version:1;referenceSampleRate:number;writes:FM21290Write[];}
 interface FM21290Chip extends FM21290Voice {
+  build(record:(builder:FM21290Builder)=>void,options?:{referenceSampleRate?:number}):FM21290Plan;
+  compile(plan:FM21290Plan):Promise<FM21290Write[]>;
+  schedule(plan:FM21290Plan,options:{name:string;repeatSeconds?:number}):Promise<unknown>;
+  clearSchedule(name:string):Promise<boolean>;
   /** Gate one physical OPS/EGS voice (CH1–CH16). */
   keyOn(channel:PlaygroundMidiChannel,note:number,velocity?:number):void;
   keyOff(channel:PlaygroundMidiChannel):void;

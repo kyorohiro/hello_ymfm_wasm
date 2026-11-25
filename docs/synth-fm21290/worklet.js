@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {Fm21290} from './chip.js';
+import {createRegisterTimedProcessor} from '../js/register_timed_processor.js';
+import {timedFormat} from './timed.js';
+import {Fm21290,EVENT} from './chip.js';
 
 import {ModulatedChip} from './modulation.js';
 
@@ -17,16 +19,28 @@ class FmProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.inspectCh=0;
+    this.frame=0;
+    this.gates=new Map();
     this.reset();
+    this.timed=createRegisterTimedProcessor({
+      nowFrame:()=>this.frame,sampleRate,defaultOwner:'fm21290:client',
+      checkAvailable:()=>{if(this.player)throw Error('Stop register replay before scheduling a phrase');},
+      write:(register,value,owner)=>this.writeGate(register,value,owner),
+      release:(name,filter)=>this.releaseGates(name,filter),
+      reportError:detail=>this.port.postMessage({error:detail.message}),
+    },timedFormat);
     this.port.onmessage = ({data}) => {
       try {
-        if(data.record){
+        if(data.timed){
+          try{this.port.postMessage({timedReply:data.id,value:this.timed.request(data.timed)});}
+          catch(error){this.port.postMessage({timedReply:data.id,error:error.message});}
+        }else if(data.record){
           this.recording=null;
           this.reset();
           this.base=0;
           this.recording=createTrace(sampleRate);
         }else if(data.endRecord)this.finishRecording();
-        else if(data.replay)this.player=new TracePlayer(data.replay,sampleRate);
+        else if(data.replay){this.timed.clear();this.player=new TracePlayer(data.replay,sampleRate);}
         else if(data.endReplay)this.stopReplay();
         else if(data.inspectCh!==undefined)this.inspectCh=data.inspectCh;
         else if (data.reset) this.reset();
@@ -36,13 +50,43 @@ class FmProcessor extends AudioWorkletProcessor {
         }
         else if(data.modWheel)this.controller.setWheel(data.modWheel);
         else if (data.bend !== undefined) this.controller.setBend(data.bend);
-        else for (const command of data.writes) {
-          if (Array.isArray(command)) this.chip.writeRegister(...command);
+        else for (let i=0;i<data.writes.length;i++) {
+          const command=data.writes[i];
+          // A late key-up from the keyboard cannot close a newer scheduled gate.
+          // Direct EVENT writes still act on the physical slot unconditionally.
+          if(Array.isArray(command) && command[0]===EVENT && (command[1]&3)===2){
+            const ch=command[1]>>2&15;
+            if(data.writes[i+1]?.keyOff===ch && this.gates.has(ch)){i++;continue;}
+          }
+          if (Array.isArray(command)) this.writeGate(...command);
           else if (command.keyOn !== undefined) this.controller.keyOn(command.keyOn,command.basePitch);
           else this.controller.pitchEnvelope.keyOff(command.keyOff);
         }
       } catch (error) { this.port.postMessage({error:error.message}); }
     };
+  }
+  writeGate(register,value,owner){
+    if(register===EVENT){
+      const ch=value>>2&15, gate=value&3, previous=this.gates.get(ch);
+      if(gate===1){
+        if(owner)this.gates.set(ch,owner);else this.gates.delete(ch);
+      }else if(gate===2){
+        if(owner && (owner.owner!==previous?.owner || owner.patternName!==previous?.patternName))return;
+        this.gates.delete(ch);
+      }
+    }
+    this.chip.writeRegister(register,value);
+  }
+  releaseGates(name,filter={}){
+    let released=false;
+    for(const [ch,owner] of this.gates){
+      if((name===undefined||name===owner.patternName) &&
+          (filter.owner===undefined||filter.owner===owner.owner) &&
+          (filter.session===undefined||filter.session===owner.session)){
+        this.writeGate(EVENT,ch*4+2,owner);released=true;
+      }
+    }
+    return released;
   }
   stopReplay(){
     if(this.player){this.player=null;this.port.postMessage({replayDone:true});}
@@ -58,6 +102,7 @@ class FmProcessor extends AudioWorkletProcessor {
     else this.recording.events.push(event);
   }
   reset() {
+    this.timed?.clear();this.gates.clear();
     this.stopReplay();
     if(this.recording){
       const frame=this.base+this.chip.frame;
@@ -70,7 +115,11 @@ class FmProcessor extends AudioWorkletProcessor {
     this.controller = new ModulatedChip(this.chip);
   }
   process(_, outputs) {
-    this.controller.renderInto(outputs[0][0]);
+    const buffer=outputs[0][0];
+    this.timed.render(buffer.length,(offset,count)=>{
+      this.controller.renderInto(offset===0 && count===buffer.length?buffer:buffer.subarray(offset,offset+count));
+    });
+    this.frame+=buffer.length;
     const player=this.player;
     if(player && player.renderInto(outputs[0][0]))this.stopReplay();
     if (this.chip.frame % 4096 < outputs[0][0].length){

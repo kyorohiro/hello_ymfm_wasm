@@ -4,6 +4,9 @@ import {buildKeyboard, createFretboardLayout, createFretboardState, findLayoutEn
   from '../synth/synth_keyboard.js';
 import {createInitVoice,parseSysex,createVoiceSysex} from '../js/msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset} from '../js/msfa_dx7/src/preset.js';
+import {createFm2610CodeRoute,createFm2610CodeEffects} from '../synth-fm2610/code_fx.js';
+import {attachRegisterTimedClient} from '../js/register_timed_client.js';
+import {timedFormat,buildOperations} from './timed.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
@@ -83,6 +86,20 @@ function flush() {
   if(writes.length && audio?.node) audio.node.port.postMessage({writes:writes.splice(0)});
   else writes.length=0;
 }
+const effects=createFm2610CodeEffects({onLog:line=>{el('log').textContent=line;}});
+const requests=new Map();
+let nextRequest=0;
+function requestTimed(payload){
+  return new Promise((resolve,reject)=>{
+    if(audio.processorError){reject(audio.processorError);return;}
+    const id=++nextRequest;
+    audio.node.port.postMessage({timed:payload,id});
+    requests.set(id,{resolve,reject});
+  });
+}
+const timedClient=attachRegisterTimedClient({},requestTimed,{
+  ...timedFormat,buildOperations:(callback,options)=>buildOperations(preset(),callback,options),
+});
 async function ensureAudio() {
   if(opening)return opening;
   if(audio){await audio.context.resume();return audio;}
@@ -95,8 +112,14 @@ async function ensureAudio() {
       const owner={context,mixer,master};
       await context.audioWorklet.addModule(new URL('./worklet.js',import.meta.url));
       owner.node=new AudioWorkletNode(context,'tetorica-fm21290',{numberOfInputs:0,outputChannelCount:[1]});
-      owner.node.connect(mixer);
+      owner.setCodeEffect=createFm2610CodeRoute(owner.node,mixer).setEffect;
       owner.node.port.onmessage=({data})=>{
+        if(data.timedReply!==undefined){
+          const request=requests.get(data.timedReply);
+          requests.delete(data.timedReply);
+          if(data.error)request?.reject(Error(data.error));else request?.resolve(data.value);
+          return;
+        }
         if(data.recorded){
           savedTrace=data.recorded;
           traceControls('idle',data.full?'Event limit reached.':'Recording finished.');
@@ -111,6 +134,11 @@ async function ensureAudio() {
             ' · OP1–6 output bytes '+v.levels.map(n=>n.toString(16).padStart(2,'0')).join(' ')+' · EG stages '+v.stages.join(' ');
         }
         if(data.slots && audio===owner)updateChannelStates(data.slots);
+      };
+      owner.node.onprocessorerror=()=>{
+        const error=owner.processorError=Error('FM21290 audio processor failed');
+        for(const request of requests.values())request.reject(error);
+        requests.clear();report(error);
       };
       for(const id of ['master','mixer'])owner[id].gain.value=Number(el(id).value)/100;
       monitor.connect(context,[master]);audio=owner;
@@ -215,7 +243,7 @@ function createDefaultFiles(){
   return createVirtualFileSystem([{path:'/index.js',data:glassSteps},...scoreExample]);
 }
 async function addBundledExamples(target){
-  for(const name of ['return-steps.js','held-envelope.js','register-key-on.js','after-the-chime.mid']){
+  for(const name of ['return-steps.js','held-envelope.js','register-key-on.js','scheduled-echo.js','after-the-chime.mid']){
     const path='/examples/'+name;
     if(target.has(path) || target.listDirectories().includes(path))continue;
     const response=await fetch(new URL('./examples/'+name,import.meta.url));
@@ -292,7 +320,7 @@ const runtime=createPlaygroundCodeRuntime({
   readFile:(path,options,entry)=>createVirtualFileReader(projectReader,entry.path)(path,options),
   prepareSource:source=>'const '+extraChannels.map((name,i)=>name+'='+(i+6)).join(',')+
     '; Object.assign(pg,{'+extraChannels.join(',')+'});\n{\n'+source+'\n}',
-  ensureReady:ensureAudio,now:()=>audio?.context.currentTime??0,supportedSoundChips:['dx7','fm21290'],
+  async ensureReady(){await effects.prepare(await ensureAudio());},fx:effects.fx,now:()=>audio?.context.currentTime??0,supportedSoundChips:['dx7','fm21290'],
   useSoundChip(name){
     const api={noteOn:(n,v)=>noteOn(n,v),noteOff:n=>noteOff(n),
       getPreset:preset, setPreset:async p=>{voice=presetToVoice(p);render();await applyVoice();},
@@ -303,12 +331,12 @@ const runtime=createPlaygroundCodeRuntime({
       setSustain(down){if(typeof down!=='boolean')throw TypeError('Expected boolean sustain');chip.setSustain(down,'code');flush();},
       writeRegister(a,v){if(a===EVENT)rawGate(v,'code');else writeRegister(a,v);flush();},
     });
-    return api;
+    return name==='fm21290'?Object.assign(Object.create(timedClient),api):api;
   },
   resolveNoteTarget:(target,method,args)=>({keyOn:1,keyOff:1}[method]?{target:physicalGates,channel:args[0]}:{target,channel:args[0]}),
   createMidi:codeMidi,createMidiPart:signal=>createMidiPart(codeParts,signal),
-  stopSoundChips:()=>{for(const part of codeParts)part.finish();for(const id of codeMidiNotes.keys())releaseMidiVoice(id);stopOwner('code');},onLog:line=>{el('log').textContent=line;},
-  onState:s=>{el('apply').disabled=!runnable()||!s.running;el('log').textContent=s.status;},
+  stopSoundChips:()=>{effects.stop();for(const part of codeParts)part.finish();for(const id of codeMidiNotes.keys())releaseMidiVoice(id);stopOwner('code');},onLog:line=>{el('log').textContent=line;},
+  onState:s=>{effects.setBpm(s.bpm);el('apply').disabled=!runnable()||!s.running;el('log').textContent=s.status;},
 });
 function selectOperator(next){
   op=next;render();

@@ -47,6 +47,14 @@ Code欄の **Enable code completion** で既存Synthと共通のMonacoエディ�
 - 独自コアのCodeでは `chip.setSustain(true)` を呼び、`noteOn` → `noteOff` で鍵を離しても音を保持できる。`chip.setSustain(false)` でペダルを戻す。物理CHを指定する `keyOff(CH1)` は即座にゲートを切る。
 - AUTOは16声から空いた発音枠を探索する。物理CH指定は同じ枠を再トリガする。
 
+### サンプル時刻で演奏する
+
+Files → examples → **scheduled-echo.js** で、2音を繰り返すフレーズを編集できる。`chip.build(b => { ... })` は同期コールバック内の `keyOn`・`keyOff`・`writeRegister` をレジスタ列にする。打鍵の音高・出力はbuild時の音色から計算する。`b.atSeconds(t)` または `b.atSample(n)` で先頭からの時刻を指定する。サンプル単位の基準は既定48 kHzで、同じ時刻の書き込みは記述順に適用する。
+
+`await chip.compile(plan)` で番地・値・秒オフセットを確認できる。`await chip.schedule(plan, {name:'fifth', repeatSeconds:1})` で音声スレッドに予約する。単発演奏ではrepeatSecondsを省く。Applyでエントリーの予約を差し替え、Stopで取り消す。`await chip.clearSchedule('fifth')` は指定した予約を解除する。
+
+`liveFx(name, {context, process})` でチップ出力とMixerの間にエフェクトを挿入する。KeyboardとMIDIにも同じ処理がかかる。例の `gain: 0.6` を書き換えてApplyすると音量が変わる。Stopで直接出力に戻る。
+
 ## MIDI出力
 
 FilesでMIDIファイルを選ぶと **Play MIDI / Stop MIDI** が表示される。外部機器の設定、パート選択、再生区間、Code変換の詳細パネルは現在非表示。
@@ -102,3 +110,7 @@ CodeでMIDIパートを書く場合は、`midi.createPart()` で作成し、`par
 MIDIベンドとサステインの比較は `node scripts/compare_fm21290_controls.mjs`。同じA4を両エンジンで演奏し、ベンド後の周波数と離鍵後のRMSを測る。[測定条件と結果](./registers.md#midiベンドとcc64のpcm測定)
 
 新規実装はリポジトリのBSD-3-Clause。アルゴリズム表はGoogle MSFAのApache-2.0ソースから移植した。JS音色変換と比較用WASMも既存アダプタのライセンスを引き継ぐ。[MSFAライセンス](../js/msfa_dx7/LICENSE) · [第三者表記](../js/msfa_dx7/THIRD_PARTY_NOTICES.md)
+
+## itch.io用ビルド
+
+リポジトリのルートで `sh scripts/package_itch_fm21290_synth.sh VERSION` を実行すると、`release/tetorica_fm21290_synth_VERSION_itch.zip` を生成する。itch.ioのHTMLプロジェクトにこのZIPをアップロードする。

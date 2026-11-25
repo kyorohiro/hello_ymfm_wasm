@@ -11,7 +11,7 @@ import {createItchBatchPlan, packageAllItch} from './package_itch_all.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const absent = async path => assert.rejects(stat(path), {code:'ENOENT'});
-const scripts = ['2a03_synth','aswan_synth','dmg_synth','fm2608_synth','huc6280_synth','scsp_synth','smsgear_synth','sid_synth',
+const scripts = ['2a03_synth','aswan_synth','dmg_synth','fm21290_synth','fm2608_synth','huc6280_synth','scsp_synth','smsgear_synth','sid_synth',
   'snes_synth','spu_synth','nitro_ds_synth','ym2149_st_synth','synth','vgm_analyzer','playground']
   .map(name => `package_itch_${name}.sh`).sort();
 
