@@ -20,6 +20,8 @@ const tau = 2 * Math.PI;
 // A settled OL99 operator spans two phase cycles in the MSFA reference.
 // The register gain at OL99 / velocity sensitivity 0 is 2^(-4/16).
 const busToRadians = 2 * tau * 2 ** (4/16);
+// Two returned samples are averaged, then scaled by the FBL shift.
+const feedbackGain = Array.from({length:8}, (_,fbl) => fbl ? busToRadians * 2 ** (fbl-9) : 0);
 const amplitude = attenuation => attenuation >= 127 ? 0 : 2 ** (-attenuation / 8);
 export class Fm21290 {
   constructor(sampleRate = 48000) {
@@ -126,7 +128,7 @@ export class Fm21290 {
     buffer.fill(0);
     for (let ch = 0; ch < 16; ch++) {
       const v = this.voices[ch], setting = this.algorithms[ch];
-      const route = algorithms[setting >> 3], feedback = setting & 7;
+      const route = algorithms[setting >> 3], feedback = feedbackGain[setting & 7];
       for (let frame = 0; frame < buffer.length && v.active; frame++) {
         this.bus.fill(0);
         let sounding = false;
@@ -142,7 +144,7 @@ export class Fm21290 {
           if (v.gain[op] === target && stage < 2) v.stage[op]++;
           const flags = route[op], input = (flags >> 4) & 3, out = flags & 3;
           let modulation = input ? this.bus[input] * busToRadians : 0;
-          if ((flags & 64) && feedback) modulation += (v.previous + v.feedback) * 2 ** (feedback-5);
+          if ((flags & 64) && feedback) modulation += (v.previous + v.feedback) * feedback;
           const value = Math.sin(v.phase[op] + modulation) * v.level[op] * v.gain[op] * this.amGain[op];
           v.phase[op] = (v.phase[op] + v.step[op]) % tau;
           if (flags & 128) { v.previous = v.feedback; v.feedback = value; }

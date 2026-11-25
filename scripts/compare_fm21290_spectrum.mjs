@@ -90,3 +90,39 @@ for(let algorithm=1;algorithm<=32;algorithm++){
   const preset=makePreset(algorithm,[77,69,64,74,66,61],[1,2,1,4,2,1]);
   await compare(preset,'six operators, algorithm '+algorithm);
 }
+
+// Isolate OP6, the self-feedback carrier of algorithm 32.
+for(let feedback=0;feedback<=7;feedback++){
+  const preset=twoOperators(32,6,1,0);
+  preset.feedback=feedback;
+  await compare(preset,'OP6 self-feedback '+feedback);
+}
+
+// For these two algorithms MSFA has no multi-operator feedback kernel.
+// Break the physical return path at OP6 (and separately OP5 in algorithm 4)
+// while leaving the returning carrier audible. Compare each engine to itself.
+function pcmDifference(active,baseline){
+  let delta=0,energy=0;
+  for(let i=rate/4;i<rate/2;i++){
+    delta+=(active[i]-baseline[i])**2;
+    energy+=baseline[i]**2;
+  }
+  assert.ok(energy>0.01,'missing return carrier');
+  return Math.sqrt(delta/energy);
+}
+for(const algorithm of [4,6]){
+  const path=algorithm===4?[6,5,4]:[6,5];
+  for(const muted of [0,...path.slice(0,-1)]){
+    const levels=Array(6).fill(0);
+    for(const op of path)levels[op-1]=op===muted?0:78;
+    const preset=makePreset(algorithm,levels,[1,1,1,1,1,1]);
+    const dry=await renderPair(preset);
+    preset.feedback=7;
+    const wet=await renderPair(preset);
+    const [custom,msfa]=wet.map((pcm,i)=>pcmDifference(pcm,dry[i]));
+    console.log(JSON.stringify({algorithm,muted,customRelativeRMS:custom,msfaRelativeRMS:msfa}));
+    assert.equal(msfa,0);
+    if(muted)assert.equal(custom,0);
+    else assert.ok(custom>0.1);
+  }
+}
