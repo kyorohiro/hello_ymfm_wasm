@@ -30,7 +30,7 @@ const {chromium}=require('playwright');
   const wheel=page.locator('#pitchWheel');
   const pm=word=>page.waitForFunction(v=>document.querySelector('#modBytes').textContent.endsWith(v),word);
   await wheel.focus();await page.keyboard.down('End');await pm('02 ab');
-  await page.keyboard.down('a');await page.waitForFunction(()=>document.querySelector('#slots').textContent.includes(' on'));
+  await page.keyboard.down('a');await page.waitForFunction(()=>document.querySelector('#channels [data-state=on]'));
   await page.keyboard.up('a');await page.keyboard.up('End');await pm('00 00');
   assert.equal(await wheel.inputValue(),'0');
   const track=[0,144,60,95,0,176,1,127,0,224,0,96,0x82,0x20,224,0,0,0,144,64,100,0x88,0,255,47,0];
@@ -41,7 +41,7 @@ const {chromium}=require('playwright');
   await page.click('#playMidi');await pm('01 55');await am('00');
   assert.equal(await page.inputValue('#modPosition'),'127');
   await wheel.focus();await page.keyboard.down('End');await pm('02 ab');
-  await page.waitForFunction(()=>(document.querySelector('#slots').textContent.match(/ on/g)||[]).length===2);
+  await page.waitForFunction(()=>document.querySelectorAll('#channels [data-state=on]').length===2);
   await pm('02 ab');
   await page.keyboard.up('End');await pm('fd 55');
   const rect=await wheel.boundingBox();await page.mouse.move(rect.x+rect.width-3,rect.y+rect.height/2);
@@ -73,8 +73,8 @@ const {chromium}=require('playwright');
   }
   for(const slider of [master,mixer]){
     await slider.click();
-    await page.keyboard.down('a');await page.waitForFunction(()=>document.querySelector('#slots').textContent.includes(' on'));
-    await page.keyboard.up('a');await page.waitForFunction(()=>!document.querySelector('#slots').textContent.includes(' on'));
+    await page.keyboard.down('a');await page.waitForFunction(()=>document.querySelector('#channels [data-state=on]'));
+    await page.keyboard.up('a');await page.waitForFunction(()=>!document.querySelector('#channels [data-state=on]'));
   }
   await master.press('Home');await gains(0,Number(await mixer.inputValue()));
   await mixer.press('End');await gains(0,380);

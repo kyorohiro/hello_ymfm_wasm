@@ -10,6 +10,7 @@ import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {createOperatorEnvelopes} from './operator_envelopes.js';
+import {createParamControl} from '../synth/synth_controls.js';
 import {createOperatorEditor} from './operator_editor.js';
 import {renderRouting} from './routing.js';
 import {validateTrace} from './register_trace.js';
@@ -116,7 +117,7 @@ async function ensureAudio() {
             el('voiceState').textContent='Algorithm '+v.algorithm+' · FB '+v.feedback+' · Pitch 0x'+v.pitch.toString(16).padStart(4,'0')+
               ' · OP1–6 output bytes '+v.levels.map(n=>n.toString(16).padStart(2,'0')).join(' ')+' · EG stages '+v.stages.join(' ');
           }
-          if(data.slots)el('slots').textContent=data.slots.map((s,i)=>'CH'+(i+1)+' '+['·','release','on'][s]).join('   ');
+          if(data.slots && audio===owner)updateChannelStates(data.slots);
         };
       }else{
         owner.endpoint=await createDx7Audio(context,mixer);
@@ -303,22 +304,43 @@ const runtime=createPlaygroundCodeRuntime({
 function selectOperator(next){
   op=next;render();
 }
-function changeOperator(number,patch){
-  op=number;edit({operators:{[number]:patch}}).catch(report);
+function changeOperator(number,patch,stage){
+  op=number;edit({operators:{[number]:patch}},stage).catch(report);
 }
 const updateOperators=createOperatorEditor({toolbar:el('operatorGroups'),host:el('operatorTable'),selectOperator,change:changeOperator});
-const updateEnvelopes=createOperatorEnvelopes(el('opEnvelopes'),selectOperator,changeOperator);
-function renderOperators(p){
+const updateEnvelopes=createOperatorEnvelopes(el('opEnvelopes'),next=>{
+  const group=el('operatorGroups').querySelector('[data-group="Envelope"]');
+  if(group.getAttribute('aria-pressed')!=='true')group.click();
+  if(next!==op)selectOperator(next);
+},changeOperator);
+function renderOperators(p,stage){
   updateOperators(p.operators,op);
-  updateEnvelopes(p.operators,op);
+  updateEnvelopes(p.operators,op,stage);
 }
+function voiceControl(id,label,max,formatValue=String){
+  const control=createParamControl({label,min:0,max,step:1,value:0,showLabel:false,formatValue,
+    onChange:value=>{if(value!==preset()[id])edit({[id]:value}).catch(report);}});
+  const [minus,value,plus]=control.element.querySelectorAll('button');
+  minus.setAttribute('aria-label','Decrease '+label);plus.setAttribute('aria-label','Increase '+label);
+  value.title=label+' · drag left or right';
+  value.onkeydown=event=>{
+    if(event.key!=='ArrowLeft' && event.key!=='ArrowRight')return;
+    event.preventDefault();event.stopPropagation();
+    (event.key==='ArrowLeft'?minus:plus).click();
+  };
+  el(id).append(control.element);
+  return control;
+}
+const algorithmControl=voiceControl('algorithm','Algorithm',31,value=>String(value+1));
+const feedbackControl=voiceControl('feedback','Feedback',7);
 function render() {
   el('menuRegisters').hidden=!isChip();
   draftChanged();
   const p=preset();
   el('bank').replaceChildren(...voices.map((v,i)=>option((i+1)+' · '+voiceToPreset(v).name,i)));
-  el('bank').value=selected;el('algorithm').value=p.algorithm;el('feedback').value=p.feedback;el('name').value=p.name;
-  el('oscSync').checked=p.oscillatorSync;
+  el('bank').value=selected;algorithmControl.updateVisual(p.algorithm);feedbackControl.updateVisual(p.feedback);el('name').value=p.name;
+  el('oscSync').setAttribute('aria-pressed',String(p.oscillatorSync));
+  el('oscSync').textContent=p.oscillatorSync?'ON':'OFF';
   for(const key of Object.keys(p.lfo)){
     const control=el('lfo-'+key);
     if(key==='sync')control.checked=p.lfo.sync;
@@ -332,11 +354,11 @@ function render() {
   });
   renderOperators(p);
 }
-async function edit(patch){
+async function edit(patch,stage){
   voices[selected]=presetToVoice(patch,voices[selected]);
   const operatorsOnly=Object.keys(patch).length===1 && patch.operators;
   if(operatorsOnly){
-    renderOperators(preset());
+    renderOperators(preset(),stage);
     for(const button of el('ops').querySelectorAll('button'))button.setAttribute('aria-pressed',String(Number(button.dataset.op)===op));
     draftChanged();
   }else render();
@@ -371,7 +393,6 @@ for(const key of ['rates','levels']){
     });
   }
 }
-el('algorithm').append(...Array.from({length:32},(_,i)=>option(i+1,i)));
 el('inspectCh').append(...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
 on('inspectCh','change',()=>{el('voiceState').textContent='';audio?.node?.port.postMessage({inspectCh:Number(el('inspectCh').value)});});
 let physicalChannel=-1;
@@ -386,6 +407,16 @@ for(let channel=-1;channel<16;channel++){
   };
   el('channels').append(button);
 }
+function updateChannelStates(slots=[]){
+  for(let i=0;i<16;i++){
+    const button=el('channels').children[i+1];
+    const state=['idle','release','on'][slots[i]??0];
+    if(button.dataset.state===state)continue;
+    button.dataset.state=state;
+    button.title='CH'+(i+1)+' · '+state;
+    button.setAttribute('aria-description',state);
+  }
+}
 function refreshChannels(){
   Array.from(el('channels').children,(button,index)=>{
     button.disabled=!isChip() && index>0;
@@ -394,14 +425,12 @@ function refreshChannels(){
   el('inspectCh').disabled=!isChip();
 }
 on('bank','change',async()=>{stopSong();selected=Number(el('bank').value);render();await applyVoice();});
-on('algorithm','change',()=>edit({algorithm:Number(el('algorithm').value)}));
-on('oscSync','change',()=>edit({oscillatorSync:el('oscSync').checked}));
-on('feedback','change',()=>edit({feedback:Number(el('feedback').value)}));
+on('oscSync','click',()=>edit({oscillatorSync:!preset().oscillatorSync}));
 on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
   el('engine').disabled=true;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=true;releaseWheel();
   try{if(opening)await opening;await runtime.stop();stopSong();silence();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
-    refreshChannels();updateTabs();trace.length=0;el('slots').textContent=el('voiceState').textContent='';render();
+    refreshChannels();updateTabs();trace.length=0;updateChannelStates();el('voiceState').textContent='';render();
   }finally{el('engine').disabled=false;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();}
 });
 for(const id of ['master','mixer'])on(id,'input',()=>{
@@ -755,7 +784,7 @@ function rebuildKeyboard(){
     onPointerUp:event=>release(event.pointerId),onPointerCancel:event=>release(event.pointerId)});
 }
 on('octave','change',rebuildKeyboard);
-rebuildKeyboard();refreshChannels();
+rebuildKeyboard();refreshChannels();updateChannelStates();
 // Mouse adjustments should return typing to Code, or playing to the fretboard.
 // Ranges reached with Tab retain their native arrow-key behavior.
 let rangeGesture=null;

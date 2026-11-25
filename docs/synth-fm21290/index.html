@@ -57,7 +57,7 @@
 </section>
 <div id="mainTabs" class="panel-tabs" role="tablist" aria-label="Editor"></div>
 <div id="mainPanels">
-<section id="chipPanel" tabindex="-1"><h2>YM21290</h2><h3>Physical voice</h3><div id="channels" role="group" aria-label="Physical voice"></div><p id="slots"></p>
+<section id="chipPanel" tabindex="-1"><h2>YM21290</h2><h3>Physical voice</h3><div id="channels" role="group" aria-label="Physical voice"></div>
 <div class="row">
 <label>Inspect physical voice<select id="inspectCh"></select></label><output id="voiceState"></output>
 </div>
@@ -65,9 +65,9 @@
 <div class="row">
 <label>Bank slot<select id="bank"></select></label>
 <label>Name<input id="name" maxlength="10"></label>
-<label>Algorithm<select id="algorithm"></select></label>
-<label>Feedback<input type="number" id="feedback" min="0" max="7"></label>
-<label>Oscillator key sync<input type="checkbox" id="oscSync"></label>
+<div class="voice-parameter">Algorithm<div id="algorithm"></div></div>
+<div class="voice-parameter">Feedback<div id="feedback"></div></div>
+<div class="voice-parameter">Oscillator key sync<button id="oscSync" type="button" aria-label="Oscillator key sync" aria-pressed="false">OFF</button></div>
 </div>
 <div class="operator-grid">
 <div>

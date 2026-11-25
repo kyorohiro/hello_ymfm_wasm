@@ -82,7 +82,7 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 .envelope-legend button[aria-pressed=true]{background:var(--op-color);color:#18211e;box-shadow:none}
 #opEnvelopes output{display:block;margin:.4rem .2rem 0;color:var(--muted);font:.75rem ui-monospace,monospace}
 #opEnvelopes svg{display:block;width:100%;max-height:235px}
-#opEnvelopes polyline{stroke-width:1.25;opacity:.75;fill:none}
+#opEnvelopes polyline{cursor:pointer;pointer-events:stroke;stroke-width:1.25;opacity:.75;fill:none}
 #opEnvelopes polyline.selected{stroke-width:2.6;opacity:1}
 #opEnvelopes text{font:10px ui-monospace,monospace;fill:#cdd9cf;text-anchor:middle}
 #opEnvelopes g[role=button]{cursor:move;touch-action:none}
@@ -96,11 +96,11 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 #operatorTable th:first-child{position:sticky;left:0;background:var(--panel);z-index:1}
 #operatorTable tbody th button{padding:.3rem .45rem;background:#26332d;color:#dae7df;border-color:#46564b}
 #operatorTable .selected-op th button{background:var(--dx-green);color:var(--button-ink)}
-#operatorTable .param-control{display:grid;grid-template-columns:minmax(1.15rem,.6fr) minmax(2rem,1fr) minmax(1.15rem,.6fr);gap:1px}
-#operatorTable .param-control button{padding:.3rem .05rem;min-height:28px;border:0;background:#344138;color:#e0e9dc;font:600 .8rem ui-monospace,monospace}
-#operatorTable .param-control .param-value{color:#a9eddd;background:#1d2923;cursor:ew-resize;touch-action:none;user-select:none;white-space:nowrap}
+:is(#operatorTable,.voice-parameter) .param-control{display:grid;grid-template-columns:minmax(1.15rem,.6fr) minmax(2rem,1fr) minmax(1.15rem,.6fr);gap:1px}
+:is(#operatorTable,.voice-parameter) .param-control button{padding:.3rem .05rem;min-height:28px;border:0;background:#344138;color:#e0e9dc;font:600 .8rem ui-monospace,monospace}
+:is(#operatorTable,.voice-parameter) .param-control .param-value{color:#a9eddd;background:#1d2923;cursor:ew-resize;touch-action:none;user-select:none;white-space:nowrap}
 #operatorTable .param-value.is-dragging{background:#42695e;color:white}
-@media(pointer:coarse){#operatorTable .param-control button{min-height:40px;min-width:24px}}
+@media(pointer:coarse){:is(#operatorTable,.voice-parameter) .param-control button{min-height:40px;min-width:24px}}
 .settings{margin-top:.7rem;border-top:1px solid var(--line);padding-top:.45rem}
 .settings summary{cursor:pointer;color:#d2d7c9;font-size:.8rem}
 #modControls{border:0;margin:0;padding:.45rem 0}
@@ -116,13 +116,15 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 .panel-tabs button,#channels button,.file-actions button,.fret-controls button,#showNewFile{background:#242b28;color:#d9e1d8;border-color:#47564d}
 .panel-tabs button{border-radius:4px 4px 0 0;border-bottom:2px solid transparent}
 .panel-tabs [aria-selected=true]{border-bottom-color:var(--dx-green);color:#8de8dc;background:#2b3934}
-#channels button[aria-pressed=true],.fret-controls .is-selected{background:var(--dx-green);color:var(--button-ink)}
+.fret-controls .is-selected{background:var(--dx-green);color:var(--button-ink)}
 #channels button{min-width:3.1rem}
 .desk{gap:8px;grid-template-columns:minmax(0,1fr)}
 #mainPanels,#inputPanels{min-width:0}
 #inputTabs{margin-top:6px}
 #outputPanel #scope{height:85px}
-#slots{font: .8rem/1.6 ui-monospace,monospace;overflow-wrap:anywhere}
+#channels button[data-state=on]{background:var(--dx-green);color:#102320}
+#channels button[data-state=release]{background:#bc8958;color:#23180d}
+#channels button[aria-pressed=true]{outline:2px solid #ecf6f0;outline-offset:-3px;box-shadow:none}
 .cassette{margin-top:.7rem}
 .cassette summary{cursor:pointer;font: .82rem/1.7 ui-monospace,monospace}
 #fileSelection{display:block;overflow-wrap:anywhere;color:var(--muted);font:.75rem/1.6 ui-monospace,monospace;margin:.5rem 0}
@@ -158,3 +160,8 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
  #scope{height:95px}
 }
 [hidden]{display:none!important}
+
+.voice-parameter{display:grid;gap:3px;color:#d2d5ca;font-size:.78rem}
+.voice-parameter .param-control{min-width:6rem}
+#oscSync[aria-pressed=false]{background:#28332d;color:#ced6ca;border-color:#47564d}
+#oscSync[aria-pressed=true]{background:var(--dx-green);color:var(--button-ink)}

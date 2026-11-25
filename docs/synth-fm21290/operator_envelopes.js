@@ -30,6 +30,7 @@ export function createOperatorEnvelopes(root,selectOperator,change){
     button.onclick=()=>selectOperator(op);
     legend.append(button);buttons.push(button);
     const line=svgNode('polyline',{stroke:colors[op-1]});
+    line.onclick=()=>selectOperator(op);
     traces.append(line);lines.push(line);
   }
   function displayValues(){
@@ -52,11 +53,12 @@ export function createOperatorEnvelopes(root,selectOperator,change){
       if(rate===envelope.rates[i] && level===envelope.levels[i])return;
       const rates=envelope.rates.slice(),levels=envelope.levels.slice();
       rates[i]=rate;levels[i]=level;
-      change(selected,{envelope:{rates,levels}});
+      change(selected,{envelope:{rates,levels}},i);
     }
     handle.onpointerdown=event=>{
       if(event.button!==0 || drag)return;
       event.preventDefault();
+      selectOperator(selected);
       handle.focus({preventScroll:true});
       drag={op:selected,id:event.pointerId,start:point(event),rate:envelope.rates[i],level:envelope.levels[i]};
       handle.setPointerCapture(event.pointerId);
@@ -73,11 +75,13 @@ export function createOperatorEnvelopes(root,selectOperator,change){
       const delta={ArrowLeft:[1,0],ArrowRight:[-1,0],ArrowUp:[0,1],ArrowDown:[0,-1]}[event.key];
       if(!delta && event.key!=='Enter' && event.key!==' ')return;
       event.preventDefault();event.stopPropagation();
+      selectOperator(selected);
       if(delta)set(envelope.rates[i]+delta[0],envelope.levels[i]+delta[1]);
     };
     handles.push(handle);
   }
-  return (operators,op)=>{
+  return (operators,op,stage)=>{
+    if(stage!==undefined)activeStage=stage;
     selected=op;envelope=operators[op].envelope;
     displayValues();
     svg.style.setProperty('--op-color',colors[op-1]);

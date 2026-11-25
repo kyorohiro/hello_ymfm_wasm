@@ -48,6 +48,7 @@ export function createOperatorEditor({toolbar,host,selectOperator,change}){
       }
       host.scrollLeft=0;
     };
+    button.dataset.group=group;
     toolbar.append(button);host.append(table);
     const header=table.createTHead().insertRow();
     for(const label of ['OP',...fields.map(field=>field[1])]){
@@ -66,7 +67,7 @@ export function createOperatorEditor({toolbar,host,selectOperator,change}){
           formatValue:value=>choices?choices[value]:String(value),
           onChange(value){
             const next=path==='mode'?choices[value]:value;
-            if(fieldValue(operators[op],path)!==next)change(op,operatorPatch(operators[op],path,next));
+            if(fieldValue(operators[op],path)!==next)change(op,operatorPatch(operators[op],path,next),path.startsWith('envelope.')?Number(path.split('.')[2]):undefined);
           },
         });
         const [minus,center,plus]=control.element.querySelectorAll('button');
