@@ -69,4 +69,6 @@ FilesでMIDI partを選び、**Replace Code with part** を押すとCode欄を�
 
 `node --test docs/synth-fm21290/*.test.mjs`。A4の定常区間の周波数、16声のゲート、32アルゴリズムの出力、時刻付き書き込み列のPCM再現、Cassette往復を検証する。全32アルゴリズムの定常音は `node scripts/compare_fm21290_spectrum.mjs` で同梱MSFAと第8倍音まで比較できる。単一OPのFB 0〜7とAlgorithm 4/6の帰還経路も検査する。実機の帰還量とスロットタイミングは未測定。
 
+MIDIベンドとサステインの比較は `node scripts/compare_fm21290_controls.mjs`。同じA4を両エンジンで演奏し、ベンド後の周波数と離鍵後のRMSを測る。[測定条件と結果](./registers.md#midiベンドとcc64のpcm測定)
+
 新規実装はリポジトリのBSD-3-Clause。アルゴリズム表はGoogle MSFAのApache-2.0ソースから移植した。JS音色変換と比較用WASMも既存アダプタのライセンスを引き継ぐ。[MSFAライセンス](../js/msfa_dx7/LICENSE) · [第三者表記](../js/msfa_dx7/THIRD_PARTY_NOTICES.md)

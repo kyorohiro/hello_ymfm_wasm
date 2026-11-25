@@ -1,6 +1,42 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
+import {integer} from './chip.js';
 import {nextAutoSlot} from './instrument.js';
+
+function pedalDown(value,chip){return value>=(chip?1:64);}
+
+// OPS/EGS owns its pedal gates. The MSFA adapter defers note-offs by pitch.
+export function createPartPlayer({noteOn,noteOff,setSustain,setBend,stop}){
+  const deferred=new Set();
+  let sustained=false,finished=false;
+  function active(){if(finished)throw Error('MIDI part has finished');}
+  return {
+    noteOn(note,velocity=100){
+      active();integer(note,0,127,'note');integer(velocity,1,127,'velocity');
+      if(deferred.delete(note))noteOff(note);
+      noteOn(note,velocity);
+    },
+    noteOff(note){
+      if(finished)return;
+      integer(note,0,127,'note');
+      if(!setSustain && sustained)deferred.add(note);else noteOff(note);
+    },
+    sustain(value){
+      active();integer(value,0,127,'CC64');
+      sustained=pedalDown(value,Boolean(setSustain));
+      if(setSustain)setSustain(sustained);
+      else if(!sustained){for(const n of deferred)noteOff(n);deferred.clear();}
+    },
+    pitchBend(value){
+      active();integer(value,0,16383,'pitch bend');
+      setBend?.(Math.round((value-8192)/8192*2*4096/12));
+    },
+    finish(){
+      if(finished)return;
+      finished=true;deferred.clear();stop();
+    },
+  };
+}
 
 // Keep file order within a tick, including pedal and pitch changes between notes.
 export function partScore(song,key){
@@ -45,7 +81,7 @@ export function playbackRegion(score,start,end,chip){
     if(method==='pitchBend')bend=n;
     if(method==='sustain'){
       pedal=n;
-      if(pedal<(chip?1:64))voices.forEach((voice,ch)=>{if(voice?.released)voices[ch]=null;});
+      if(!pedalDown(pedal,chip))voices.forEach((voice,ch)=>{if(voice?.released)voices[ch]=null;});
     }
     if(method==='noteOn'){
       const ch=chip?nextAutoSlot(cursor,k=>!voices[k]||voices[k].released):n;
@@ -56,7 +92,7 @@ export function playbackRegion(score,start,end,chip){
     if(method==='noteOff'){
       const ch=voices.findIndex(voice=>voice?.note===n && !voice.released);
       if(ch<0)continue;
-      if(pedal>=(chip?1:64))voices[ch].released=true;else voices[ch]=null;
+      if(pedalDown(pedal,chip))voices[ch].released=true;else voices[ch]=null;
     }
   }
   const events=[];

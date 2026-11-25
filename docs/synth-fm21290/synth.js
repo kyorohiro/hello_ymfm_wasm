@@ -11,7 +11,7 @@ import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
 import {createMsfaNotes} from './msfa_notes.js';
 import {createMidiApi} from '../js/playground_midi.js';
-import {partScore,partSource,playbackRegion} from './midi_part.js';
+import {createPartPlayer,partScore,partSource,playbackRegion} from './midi_part.js';
 import {createNoteOutput} from './midi_output.js';
 import {createInstrument} from './instrument.js';
 import {exportSession,importSession} from './session.js';
@@ -148,38 +148,19 @@ function stopOwner(owner){
 let songPart=null,bendOwner=null;
 const codeParts=new Set();
 function createMidiPart(collection,signal){
-  const owner={},deferred=new Set();
-  let sustained=false,finished=false;
-  function active(){if(finished)throw Error('MIDI part has finished');}
-  const part={
-    noteOn(note,velocity=100){
-      active();integer(note,0,127,'note');integer(velocity,1,127,'velocity');
-      if(audio.dx && deferred.delete(note))noteOff(note,-1,owner);
-      noteOn(note,velocity,-1,owner);
-    },
-    noteOff(note){
-      if(finished)return;
-      integer(note,0,127,'note');
-      if(audio.dx && sustained)deferred.add(note);else noteOff(note,-1,owner);
-    },
-    sustain(value){
-      active();integer(value,0,127,'CC64');
-      if(audio.node){chip.setSustain(value!==0,owner);flush();return;}
-      sustained=value>=64;
-      if(!sustained){for(const n of deferred)noteOff(n,-1,owner);deferred.clear();}
-    },
-    pitchBend(value){
-      active();integer(value,0,16383,'pitch bend');
-      if(!audio.node)return;
-      bendOwner=value===8192?null:owner;
-      audio.node.port.postMessage({bend:Math.round((value-8192)/8192*2*4096/12)});
-    },
-    finish(){
-      if(finished)return;
-      finished=true;signal?.removeEventListener('abort',part.finish);stopOwner(owner);deferred.clear();collection?.delete(part);
+  const owner={};
+  const part=createPartPlayer({
+    noteOn:(n,v)=>noteOn(n,v,-1,owner),noteOff:n=>noteOff(n,-1,owner),
+    setSustain:audio.node?down=>{chip.setSustain(down,owner);flush();}:null,
+    setBend:audio.node?bend=>{
+      bendOwner=bend===0?null:owner;
+      audio.node.port.postMessage({bend});
+    }:null,
+    stop(){
+      signal?.removeEventListener('abort',part.finish);stopOwner(owner);collection?.delete(part);
       if(bendOwner===owner){audio?.node?.port.postMessage({bend:0});bendOwner=null;}
     },
-  };
+  });
   signal?.addEventListener('abort',part.finish,{once:true});
   collection?.add(part);
   return part;
