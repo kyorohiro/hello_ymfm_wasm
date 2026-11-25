@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {routing} from './routing.js';
+import {routing,routingExpression} from './routing.js';
 import {dx7CarrierOperators} from '../playground/playground_dx7_voice_panel.js';
 
 test('all 32 diagrams agree with Playground carrier numbering and expose one return',()=>{
@@ -24,5 +24,15 @@ test('stacked, summed, branched and parallel diagrams preserve signal direction'
     const actual=routing(algorithm-1);
     assert.deepEqual(actual.edges,edges);
     assert.deepEqual([actual.returnFrom,actual.returnTo],feedback);
+  }
+});
+
+test('routing text distinguishes summed inputs from parallel outputs',()=>{
+  assert.equal(routingExpression(routing(31)),'(OP6 + OP5 + OP4 + OP3 + OP2 + OP1) → OUT');
+  assert.equal(routingExpression(routing(3)),'((OP6 → OP5 → OP4) + (OP3 → OP2 → OP1)) → OUT');
+  for(let algorithm=0;algorithm<32;algorithm++){
+    const text=routingExpression(routing(algorithm));
+    assert.equal(new Set(text.match(/OP[1-6]/g)).size,6);
+    assert.ok(text.endsWith(' → OUT'));
   }
 });

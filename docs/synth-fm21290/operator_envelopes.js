@@ -13,7 +13,6 @@ function svgNode(name,attributes={}){
 }
 
 export function createOperatorEnvelopes(root,selectOperator,change){
-  const colors=['#52dbbf','#ffb45f','#85b9ff','#ff88af','#cfabff','#e4db68'];
   const legend=document.createElement('div'),readout=document.createElement('output');
   legend.className='envelope-legend';
   legend.setAttribute('role','group');legend.setAttribute('aria-label','Edit operator envelope');
@@ -26,10 +25,10 @@ export function createOperatorEnvelopes(root,selectOperator,change){
     const button=document.createElement('button');
     button.textContent='OP'+op;
     button.setAttribute('aria-label','Select OP'+op+' envelope');
-    button.style.setProperty('--op-color',colors[op-1]);
+    button.style.setProperty('--op-color','var(--op-'+op+')');
     button.onclick=()=>selectOperator(op);
     legend.append(button);buttons.push(button);
-    const line=svgNode('polyline',{stroke:colors[op-1]});
+    const line=svgNode('polyline',{stroke:'var(--op-'+op+')'});
     line.onclick=()=>selectOperator(op);
     traces.append(line);lines.push(line);
   }
@@ -84,7 +83,7 @@ export function createOperatorEnvelopes(root,selectOperator,change){
     if(stage!==undefined)activeStage=stage;
     selected=op;envelope=operators[op].envelope;
     displayValues();
-    svg.style.setProperty('--op-color',colors[op-1]);
+    svg.style.setProperty('--op-color','var(--op-'+op+')');
     lines.forEach((line,index)=>{
       const active=op===index+1;
       buttons[index].setAttribute('aria-pressed',String(active));

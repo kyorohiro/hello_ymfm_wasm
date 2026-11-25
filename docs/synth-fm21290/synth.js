@@ -349,9 +349,7 @@ function render() {
   for(const key of ['rates','levels'])p.pitchEnvelope[key].forEach((value,i)=>{
     el('pitch-'+key+i).value=value;
   });
-  renderRouting(el('ops'),el('routeFeedback'),p,op,isChip(),next=>{
-    op=next;render();el('ops').querySelector('[aria-pressed=true]').focus({preventScroll:true});
-  });
+  renderRouting(el('ops'),el('routeFeedback'),p,op,isChip(),selectOperator);
   renderOperators(p);
 }
 async function edit(patch,stage){
