@@ -4,11 +4,11 @@
 
 この開発版は同じDX7音色を、実験用OPS/EGSコアまたは既存MSFAで演奏する。ローカルで使う場合はリポジトリのルートで `python3 -m http.server --directory docs 8080` を実行し、`http://localhost:8080/synth-fm21290/` を開く。
 
-**Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / Voice / MIDI / Register** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に6枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。MSFAではAUTOで演奏する。
+**Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / MIDI / Register** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に5枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。MSFAではAUTOで演奏する。
 
 **Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
-**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとVoice、MIDIを選ぶとパートと再生範囲を設定できるMIDIタブが開く。**Export Cassette** でプロジェクト全体、**Individual files** で音色・バンク・コードを個別に保存できる。
+**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定、MIDIを選ぶとパートと再生範囲を設定できるMIDIタブが開く。**Export Cassette** でプロジェクト全体、**Individual files** で音色・バンク・コードを個別に保存できる。
 
 画面上部の **Menu** はスクロール中も使える。**Keyboard** を選ぶとPC鍵盤で演奏でき、**Code** を選ぶと開いているエディタに入力できる。**Files**、音色、波形表示、MIDI出力、独自コアのレジスタ画面にも移動できる。演奏中のファイル作成・読み込み・Cassette書き出しの入口も同じメニューにある。Escで閉じる。
 
@@ -16,7 +16,9 @@
 
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、同じFilesで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 
-**Operators** の図では実線の矢印が変調先、OUTにつながるOPがキャリア、橙の破線がフィードバック経路を示す。OPをクリックするかTabで選んでEnterを押すと、そのOPの編集欄に切り替わる。Algorithm 4ではOP6 → OP5 → OP4を通り、OP4からOP6へ戻る。
+**Operators** の図では実線の矢印が変調先、OUTにつながるOPがキャリア、橙の破線がフィードバック経路を示す。OPをクリックするかTabで選んでEnterを押すと、そのOPの行と4段のレベル図が選択される。Algorithm 4ではOP6 → OP5 → OP4を通り、OP4からOP6へ戻る。
+
+YM21290内の **Operators** にはOP1〜OP6が並ぶ。**Oscillator / Envelope / Scaling** で比較する項目を選ぶ。左右の **− / ＋** で1段階ずつ、中央の値を左右にドラッグして連続調整できる。中央の値にフォーカスすると左右の矢印キーでも調整できる。レベル図の横軸は段の順序（L4 → L1 → L2 → L3 → L4）を表す。各段の速さはR1〜R4で調整する。
 
 **Oscillator key sync** は各音色の設定。OPS / EGSでオンにすると押鍵時に6つのOPが位相ゼロから始まる。オフにすると、同じ物理CHでも打鍵間隔によって波形の開始位置が変わる。LFOのKey syncは別に設定できる。
 
@@ -55,7 +57,7 @@ await out.noteOff('G4');
 
 OPS / EGSの **Pitch bend (semitones)** は全声に効く±2半音のホイール。ドラッグのほか、フォーカスして矢印キーで微調整、Home / Endで下端・上端まで操作できる。ポインターや操作キーを離すか、フォーカスを外すと中央に戻る。操作中はホイールを優先し、離すとMIDIまたはCodeのパートが最後に指定した有効なベンドへ戻る。外部MIDI出力はノートのみ。MSFAを選ぶとホイールは無効になる。
 
-**Mod wheel** は操作した位置に留まる。Positionは0〜127、Rangeは0〜99。Pitch・Amplitude・EG biasを組み合わせて割り当てられる。ビブラートを試すにはPitchを選び、VoiceのLFOでpitchModSensitivityを上げる。AmplitudeとEG biasは各OPのampModSensitivityに応じて効く。EG biasはホイールを下げたときに減衰が深くなる。
+**Mod wheel** は操作した位置に留まる。Positionは0〜127、Rangeは0〜99。Pitch・Amplitude・EG biasを組み合わせて割り当てられる。ビブラートを試すにはPitchを選び、YM21290内のLFOでpitchModSensitivityを上げる。AmplitudeとEG biasは各OPのampModSensitivityに応じて効く。EG biasはホイールを下げたときに減衰が深くなる。
 
 独自コアではMIDIパートのCC1とCodeの `part.modWheel(値)` も同じホイールを操作する。途中再生では直前のCC1を復元し、パートを止めると最後の手動位置に戻る。位置・レンジ・割り当てはCassetteで保存する。単音色・バンクSysExは音色データのみを含む。
 

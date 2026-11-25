@@ -18,7 +18,7 @@
 <a href="#keyboardPanel" data-close-synth-menu>Keyboard</a>
 <a href="#codePanel" data-close-synth-menu>Code</a>
 <a href="#filesPanel" data-close-synth-menu>Files</a>
-<a href="#voicePanel" data-close-synth-menu>Voice</a>
+<a href="#chipPanel" data-close-synth-menu>YM21290</a>
 <a href="#outputPanel" data-close-synth-menu>Waveform / Spectrum</a>
 <a href="#midiPanel" data-close-synth-menu>MIDI output</a>
 <a href="#registers" id="menuRegisters" data-close-synth-menu>Register writes</a>
@@ -57,9 +57,8 @@
 <section id="chipPanel" tabindex="-1"><h2>YM21290</h2><h3>Physical voice</h3><div id="channels" role="group" aria-label="Physical voice"></div><p id="slots"></p>
 <div class="row">
 <label>Inspect physical voice<select id="inspectCh"></select></label><output id="voiceState"></output>
-</div></section>
-<section id="voicePanel" tabindex="-1">
-<h2>Voice</h2>
+</div>
+<h3>Voice</h3>
 <div class="row">
 <label>Bank slot<select id="bank"></select></label>
 <label>Name<input id="name" maxlength="10"></label>
@@ -75,10 +74,11 @@
 </div><p id="routeFeedback"></p>
 </div></div>
 <div>
-<h3 id="opTitle">OP1 parameters</h3>
-<div id="params" class="row">
+<h3 id="opTitle">Operator envelope levels</h3>
+<svg id="opEnvelope" viewBox="0 0 340 104" role="img" aria-labelledby="opTitle"><polyline/><g></g></svg>
 </div></div>
-</div>
+<h3>Operators</h3><div id="operatorGroups" class="panel-tabs" role="group" aria-label="Operator parameters"></div>
+<div id="operatorTable"></div>
 <details class="settings"><summary>Pitch envelope &amp; LFO</summary>
 <h3>Pitch envelope</h3>
 <div id="pitchEg" class="row">

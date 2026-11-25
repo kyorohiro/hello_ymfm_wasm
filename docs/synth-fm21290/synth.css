@@ -76,9 +76,21 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 #scope{height:140px;background:#192019;border-radius:4px}
 #outputPanel select{font-size:.78rem}
 .operator-grid{grid-template-columns:minmax(230px,.85fr) minmax(0,1.55fr);border-top:1px solid var(--line);margin-top:14px}
-#params{display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr));gap:7px}
-#params input,#params select{width:100%}
-#params label{font-size:.72rem}
+#opEnvelope{display:block;width:100%;height:120px;background:#1b221e;border-radius:4px}
+#opEnvelope polyline{stroke:var(--dx-green);stroke-width:2;fill:none}
+#opEnvelope text{font:9px ui-monospace,monospace;fill:#cdd9cf;text-anchor:middle}
+#operatorGroups button[aria-pressed=true]{border-bottom-color:var(--dx-green);color:#8de8dc;background:#2b3934}
+#operatorTable{max-width:100%;overflow-x:auto;margin-top:.35rem}
+#operatorTable table{width:100%;border-spacing:2px;font-variant-numeric:tabular-nums}
+#operatorTable th{font-size:.75rem;color:#c4cdc3}
+#operatorTable th:first-child{position:sticky;left:0;background:var(--panel);z-index:1}
+#operatorTable tbody th button{padding:.3rem .45rem;background:#26332d;color:#dae7df;border-color:#46564b}
+#operatorTable .selected-op th button{background:var(--dx-green);color:var(--button-ink)}
+#operatorTable .param-control{display:grid;grid-template-columns:minmax(1.15rem,.6fr) minmax(2rem,1fr) minmax(1.15rem,.6fr);gap:1px}
+#operatorTable .param-control button{padding:.3rem .05rem;min-height:28px;border:0;background:#344138;color:#e0e9dc;font:600 .8rem ui-monospace,monospace}
+#operatorTable .param-control .param-value{color:#a9eddd;background:#1d2923;cursor:ew-resize;touch-action:none;user-select:none;white-space:nowrap}
+#operatorTable .param-value.is-dragging{background:#42695e;color:white}
+@media(pointer:coarse){#operatorTable .param-control button{min-height:40px;min-width:24px}}
 .settings{margin-top:.7rem;border-top:1px solid var(--line);padding-top:.45rem}
 .settings summary{cursor:pointer;color:#d2d7c9;font-size:.8rem}
 #modControls{border:0;margin:0;padding:.45rem 0}
@@ -96,7 +108,8 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 .panel-tabs [aria-selected=true]{border-bottom-color:var(--dx-green);color:#8de8dc;background:#2b3934}
 #channels button[aria-pressed=true],.fret-controls .is-selected{background:var(--dx-green);color:var(--button-ink)}
 #channels button{min-width:3.1rem}
-.desk{gap:8px}
+.desk{gap:8px;grid-template-columns:minmax(0,1fr)}
+#mainPanels,#inputPanels{min-width:0}
 #inputTabs{margin-top:6px}
 #outputPanel #scope{height:85px}
 #slots{font: .8rem/1.6 ui-monospace,monospace;overflow-wrap:anywhere}

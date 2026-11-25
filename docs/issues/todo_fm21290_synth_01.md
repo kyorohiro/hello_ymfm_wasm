@@ -9,6 +9,7 @@
 | 資料索引とレジスタ仕様 | ROMリビジョン、ルーチン、ダイ解析、実装の近似、未解明事項を[仕様書](../synth-fm21290/registers.md)に記録。原資料はGit除外を確認 |
 | Browserの演奏経路 | 既存MSFA／独自AudioWorkletを切り替え。Keyboard、PCキー、Master、Waveform／Spectrum |
 | Browserの画面構成 | FM2612の指板とCassetteツリーを採用。Outputの下はSynthで編集・演奏の2段タブ、Codeで統合タブ。AUTO／物理CH1〜16はボタンで選択。Chromeで演奏を維持した画面移動とPC・スマートフォン幅の表示を確認 |
+| Operatorの編集 | VoiceをYM21290内に統合。既存Synthの数値コントロールでOP1〜OP6を比較・編集し、OP6の増減・ドラッグと再読み込み後の値をChromeで検証 |
 | 独自コアの機能試作 | 16声×6OP、32経路、FB、4段EG、ratio/fixed、デチューン、OP別音量、KLS、AM/PM入力。各回路の時間・音量精度は未校正 |
 | JavaScript演奏 | 共通Live CodingランタイムでRun/Apply/Stop。オリジナルGLASS STEPの2ループで物理CHと生レジスタを操作。ChromeでCH16へのApplyを確認 |
 | 音色・演奏ファイル | 32枠、単音色／バンクSysEx入出力、Cassette ZIP往復、Code入出力、SMF 0/1のパート選択とノート再生。バンクのデバイス番号も復元 |

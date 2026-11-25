@@ -9,6 +9,7 @@ import {createDx7Client} from '../js/playground_dx7.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
+import {createOperatorEditor} from './operator_editor.js';
 import {renderRouting} from './routing.js';
 import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
@@ -296,6 +297,25 @@ const runtime=createPlaygroundCodeRuntime({
   stopSoundChips:()=>{for(const part of codeParts)part.finish();for(const id of codeMidiNotes.keys())releaseMidiVoice(id);stopOwner('code');},onLog:line=>{el('log').textContent=line;},
   onState:s=>{el('apply').disabled=!runnable()||!s.running;el('log').textContent=s.status;},
 });
+function selectOperator(next){
+  op=next;render();
+}
+const updateOperators=createOperatorEditor({toolbar:el('operatorGroups'),host:el('operatorTable'),selectOperator,
+  change(number,patch){op=number;edit({operators:{[number]:patch}}).catch(report);},
+});
+function renderOperators(p){
+  updateOperators(p.operators,op);
+  const levels=p.operators[op].envelope.levels;
+  const points=[levels[3],...levels];
+  const graph=el('opEnvelope');
+  el('opTitle').textContent='OP'+op+' · Envelope levels';
+  graph.querySelector('polyline').setAttribute('points',points.map((v,i)=>(20+i*75)+','+(78-v*0.7)).join(' '));
+  graph.querySelector('g').replaceChildren(...points.map((v,i)=>{
+    const label=document.createElementNS(graph.namespaceURI,'text');
+    label.setAttribute('x',20+i*75);label.setAttribute('y',99);
+    label.textContent='L'+(i||4)+'·'+v;return label;
+  }));
+}
 function render() {
   el('menuRegisters').hidden=!isChip();
   draftChanged();
@@ -314,31 +334,17 @@ function render() {
   renderRouting(el('ops'),el('routeFeedback'),p,op,isChip(),next=>{
     op=next;render();el('ops').querySelector('[aria-pressed=true]').focus({preventScroll:true});
   });
-  el('opTitle').textContent='OP'+op+' parameters';
-  const params=el('params');params.replaceChildren();
-  function field(title,value,max,patch,choices){
-    const label=document.createElement('label'),input=document.createElement(choices?'select':'input');
-    if(choices)input.append(...choices.map(v=>option(v,v)));
-    else {input.type='number';input.min=0;input.max=max;}
-    input.value=value;label.append(title,input);params.append(label);
-    input.onchange=async()=>{try{await edit({operators:{[op]:patch(choices?input.value:Number(input.value))}});}catch(e){report(e);render();}};
-  }
-  const o=p.operators[op];
-  field('Frequency',o.mode,0,v=>({mode:v}),['ratio','fixed']);
-  for(const [k,title,max] of [['outputLevel','Level',99],['coarse','Coarse',31],['fine','Fine',99],['detune','Detune · neutral 7',14],['rateScaling','Rate scaling',7],['ampModSensitivity','AM sensitivity',3],['velocitySensitivity','Velocity sensitivity',7]])
-    field(title,o[k],max,v=>({[k]:v}));
-  for(const [k,title] of [['breakpoint','Breakpoint'],['leftDepth','Left depth'],['rightDepth','Right depth']])
-    field(title,o.keyboardScaling[k],99,v=>({keyboardScaling:{[k]:v}}));
-  const curves=['− Linear','− Exponential','+ Exponential','+ Linear'];
-  for(const [k,title] of [['leftCurve','Left curve'],['rightCurve','Right curve']])
-    field(title,curves[o.keyboardScaling[k]],3,v=>({keyboardScaling:{[k]:curves.indexOf(v)}}),curves);
-  for(const k of ['rates','levels'])o.envelope[k].forEach((v,i)=>field((k==='rates'?'R':'L')+(i+1),v,99,x=>{
-    const values=o.envelope[k].slice();values[i]=x;return {envelope:{[k]:values}};
-  }));
+  renderOperators(p);
 }
 async function edit(patch){
-  voices[selected]=presetToVoice(patch,voices[selected]);render();
-  if(audio?.dx && Object.keys(patch).length===1 && patch.operators){
+  voices[selected]=presetToVoice(patch,voices[selected]);
+  const operatorsOnly=Object.keys(patch).length===1 && patch.operators;
+  if(operatorsOnly){
+    renderOperators(preset());
+    for(const button of el('ops').querySelectorAll('button'))button.setAttribute('aria-pressed',String(Number(button.dataset.op)===op));
+    draftChanged();
+  }else render();
+  if(audio?.dx && operatorsOnly){
     await audio.dx.setOperators(Object.entries(patch.operators).map(([op,params])=>[Number(op),params]));
   }else if(audio?.dx && patch.feedback!==undefined)await audio.dx.setFeedback(patch.feedback);
   else await applyVoice();
@@ -509,8 +515,8 @@ function setFiles(open){
   el('workspace').classList.toggle('with-files',open);
   el('filesToggle').setAttribute('aria-expanded',String(open));
 }
-const panelNames={chipPanel:'YM21290',voicePanel:'Voice',midiPanel:'MIDI',registers:'Register',keyboardPanel:'Keyboard',codePanel:'Code'};
-const soundIds=['chipPanel','voicePanel','midiPanel','registers'];
+const panelNames={chipPanel:'YM21290',midiPanel:'MIDI',registers:'Register',keyboardPanel:'Keyboard',codePanel:'Code'};
+const soundIds=['chipPanel','midiPanel','registers'];
 const inputIds=['keyboardPanel','codePanel'];
 let codeMode=false,soundTab='chipPanel',inputTab='keyboardPanel',fullTab='codePanel';
 function selectPanel(id){
@@ -562,7 +568,7 @@ function setView(code){
 }
 function selectBinaryFile(path){
   selectedFile=path;renderFiles();
-  selectPanel(/\.syx$/i.test(path)?'voicePanel':'midiPanel');
+  selectPanel(/\.syx$/i.test(path)?'chipPanel':'midiPanel');
   if(matchMedia('(max-width: 760px)').matches)setFiles(false);
   draftChanged();
 }
@@ -854,7 +860,8 @@ async function restoreDraft(){
       if(projectFileList().some(f=>f.path===draft.selectedFile && f.type!=='directory')){selectedFile=draft.selectedFile;renderFiles();}
       if(soundIds.includes(draft.soundTab))soundTab=draft.soundTab;
       if(inputIds.includes(draft.inputTab))inputTab=draft.inputTab;
-      if(Object.hasOwn(panelNames,draft.fullTab))fullTab=draft.fullTab;
+      if(draft.fullTab==='voicePanel')fullTab='chipPanel';
+      else if(Object.hasOwn(panelNames,draft.fullTab))fullTab=draft.fullTab;
       setView(draft.codeView??(activePath!=='/index.js'));
       if(typeof draft.filesOpen==='boolean')setFiles(draft.filesOpen);
       if(next.midi?.parts.some(p=>p.notes && p.key===draft.part)){
