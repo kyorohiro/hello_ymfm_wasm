@@ -81,7 +81,6 @@ const {chromium}=require('playwright');
   await master.press('Home');await gains(0,380);
   await master.press('End');await mixer.press('Home');await gains(380,0);
   await mixer.press('End');await gains(380,380);
-  await page.selectOption('#engine','msfa');await page.waitForSelector('#engine:enabled');assert.ok(await wheel.isDisabled());
   await page.locator('#keyboardPanel').focus();await page.keyboard.down('a');
   await gains(380,380);
   await page.evaluate(()=>{
@@ -108,10 +107,9 @@ const {chromium}=require('playwright');
   await page.mouse.move(line.x,line.y);await page.mouse.up();
   await page.waitForFunction(l=>window.heldPeak()>l*0.8,loud);
   await page.keyboard.up('a');
-  await page.selectOption('#engine','chip');await page.waitForSelector('#pitchWheel:enabled');assert.equal(await wheel.inputValue(),'0');
   await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent==='Saved locally');
   await page.reload();await page.waitForSelector('main:not([inert])');
   assert.equal(await page.innerText('#masterValue'),'380%');assert.equal(await page.innerText('#mixerValue'),'380%');
-  assert.deepEqual(errors,[]);assert.equal(await page.innerText('#status'),'');console.log('Cold wheel, physical key, PM words, newer SMF bend, stop under wheel, pointer release outside, blur, engine switch passed');
+  assert.deepEqual(errors,[]);assert.equal(await page.innerText('#status'),'');console.log('Cold wheel, physical key, PM words, newer SMF bend, stop under wheel, pointer release outside, blur and live envelope edits passed');
  } finally{await browser?.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

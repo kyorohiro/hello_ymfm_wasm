@@ -211,7 +211,6 @@ const {chromium}=require('playwright');
   const [zipChooser]=await Promise.all([page.waitForEvent('filechooser'),menu.getByRole('button',{name:'Cassette…',exact:true}).click()]);
   await zipChooser.setFiles({name:'roundtrip.zip',mimeType:'application/zip',buffer:fs.readFileSync(await download.path())});
   await page.waitForFunction(()=>document.querySelector('#code').value==='// saved in Cassette');
-  await page.selectOption('#engine','msfa');await page.waitForSelector('#engine:enabled');
   await toggle.click();assert.deepEqual(await menu.locator('h2').allTextContents(),['New','Import','Export']);
   assert.equal(await page.locator('#midiPanel').isVisible(),false);
   await page.locator('h1').click();assert.equal(await menu.isVisible(),false);

@@ -2,11 +2,11 @@
 
 [Browser版](index.html) · [レジスタと根拠](registers.md) · [作業状況](../issues/todo_fm21290_synth_01.md)
 
-この開発版は同じDX7音色を、実験用OPS/EGSコアまたは既存MSFAで演奏する。ローカルで使う場合はリポジトリのルートで `python3 -m http.server --directory docs 8080` を実行し、`http://localhost:8080/synth-fm21290/` を開く。
+この開発版はDX7音色をYM21290（EGS）／YM21280（OPS）の実験用コアで演奏する。ローカルで使う場合はリポジトリのルートで `python3 -m http.server --directory docs 8080` を実行し、`http://localhost:8080/synth-fm21290/` を開く。
 
-**Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / Register / Mixer** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に5枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。CHボタンの緑は発音中、琥珀色はリリース中。白い枠が手動で選んだ演奏先を示す。MSFAではAUTOで演奏する。
+**Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / Register / Mixer** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に5枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。CHボタンの緑は発音中、琥珀色はリリース中。白い枠が手動で選んだ演奏先を示す。
 
-**Operator envelopes** のR1〜R4・L1〜L4は、図・数値・`setOperator`から変更できる。押鍵中にL3を動かすと、現在の音量から新しいレベルへR3の速さで移る。離鍵後もリリースが続いている間はR4・L4が効く。MSFAではFM21290専用のWASMを使用する。再ビルドはリポジトリのルートで `sh scripts/build_fm21290_msfa.sh` を実行する。
+**Operator envelopes** のR1〜R4・L1〜L4は、図・数値・`setOperator`から変更できる。押鍵中にL3を動かすと、現在の音量から新しいレベルへR3の速さで移る。離鍵後もリリースが続いている間はR4・L4が効く。
 
 **Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。Octaveの中央の値を左右にドラッグするか、− / ＋を押して−3〜＋3オクターブを切り替えられる。PCキーによる演奏はKeyboardタブを閉じても使える。Code本文などのテキスト欄では文字を入力できる。Ctrl / Cmd + EnterでRun、Shiftを加えるとApplyでき、Codeを閉じた状態からも実行できる。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
@@ -16,13 +16,13 @@
 
 **☰ Menu → Import** にはDX7 voice · SysEx（単音色・32音色バンクの.syx）、MIDI（.mid／.midi）、Cassette（.zip）が並ぶ。読み込んだMIDIはFilesのsongsフォルダに保存される。Escで閉じる。画面の切り替えはタブとFilesボタンで行う。
 
-最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
+最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
 
 **After the Chime** はTetoricaオリジナルの6小節の演奏MIDI（96 BPM、15秒）。Filesでexamplesの **after-the-chime.mid** を選び、**Play MIDI** を押すと現在の音色で鳴る。冒頭2小節の和音と旋律を強く弾き直し、最後の2小節は単音の余韻を残す。プログラムチェンジは含まない。同じ演奏でエレピとベルの音色を比較できる。[演奏MIDI](examples/after-the-chime.mid)
 
 **Register Key On** はEGSのキーイベントを試すCodeサンプル。OPS / EGSでFiles → examples → register-key-on.jsを開いてRunすると、CH1の音高とOP出力を準備し、`0x30F1` への書き込みだけで同じラを短く、次に長く鳴らす。RegisterタブにはCH1の打鍵 `30f1  01` と離鍵 `30f1  02` が残る。[Register Key Onのコード](examples/register-key-on.js)
 
-**Held Envelope** はEGSのレジスタを直接書き換える約5秒のCodeサンプル。EngineをOPS / EGSにして、Files → examples → held-envelope.js → Run。CH1とCH2でドとソを伸ばし、OP1のL3（0x3076）を16、0の順に書くと、両方の音が小さくなって戻る。最後は離鍵後にR4（0x3057）を上げて余韻を切る。[Held Envelopeのコード](examples/held-envelope.js)
+**Held Envelope** はEGSのレジスタを直接書き換える約5秒のCodeサンプル。Files → examples → held-envelope.js → Run。CH1とCH2でドとソを伸ばし、OP1のL3（0x3076）を16、0の順に書くと、両方の音が小さくなって戻る。最後は離鍵後にR4（0x3057）を上げて余韻を切る。[Held Envelopeのコード](examples/held-envelope.js)
 
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesのexamplesからreturn-steps.jsを開く。Glass Echoと一緒にCassette ZIPに同梱される。OPS / EGSでRunすると、演奏用の音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 
@@ -32,7 +32,7 @@ YM21290内の **Operators** にはOP1〜OP6が並ぶ。**Oscillator / Envelope /
 
 Algorithm（1〜32）とFeedback（0〜7）は− / ＋または中央の値の左右ドラッグで変更できる。**Oscillator key sync** は各音色のON / OFFボタン。OPS / EGSでオンにすると押鍵時に6つのOPが位相ゼロから始まる。オフにすると、同じ物理CHでも打鍵間隔によって波形の開始位置が変わる。LFOのKey syncは別に設定できる。
 
-**LFO** は全声共通。独自エンジンで音高の揺れを試すには、Sine、Speed 40、Pitch depth 40、Pitch sensitivity 4にして鍵盤を長押しする。振幅の揺れはAmplitude depthと各OPのAM sensitivityで調整する。Register writesにはAMとPMの現在のバイト値が出る。MSFA経路は同梱エンジンのLFO実装を使う。
+**LFO** は全声共通。独自エンジンで音高の揺れを試すには、Sine、Speed 40、Pitch depth 40、Pitch sensitivity 4にして鍵盤を長押しする。振幅の揺れはAmplitude depthと各OPのAM sensitivityで調整する。Register writesにはAMとPMの現在のバイト値が出る。
 
 **Pitch envelope & LFO** の数値と波形は− / ＋または中央の値の左右ドラッグで変更できる。LFOのKey syncはON / OFFで切り替える。画面幅が狭いときは、OperatorsのEnvelopeをOPごとに折り返してR1〜R4・L1〜L4を表示する。
 
@@ -42,10 +42,10 @@ Algorithm（1〜32）とFeedback（0〜7）は− / ＋または中央の値の�
 
 Code欄の **Enable code completion** で既存Synthと共通のMonacoエディタを開く。`const chip = await useSoundChip('fm21290');` に続いて `chip.` と入力すると、物理CHの `keyOn` や `writeRegister` を選べる。`midi.createPart()` の戻り値には `sustain` や `pitchBend` が出る。Ctrl+Spaceで候補を開き、Enterで確定する。RunはCtrl+Enter（macOSはCmd+Enter）、ApplyはさらにShiftを押す。初回のエディタ読み込みにはCDNへの接続を使う。読み込みに失敗しても通常のテキスト欄で編集・実行できる。
 
-- `await useSoundChip('dx7')` は現在選択中のエンジンで `noteOn(note, velocity)`、`noteOff(note)`、`getPreset()`、`setPreset(preset)`、`setOperator(1..6, patch)`、`setFeedback(0..7)` を使う。
+- `await useSoundChip('dx7')` は既存Code用の互換名で、同じOPS / EGSコアの `noteOn(note, velocity)`、`noteOff(note)`、`getPreset()`、`setPreset(preset)`、`setOperator(1..6, patch)`、`setFeedback(0..7)` を使う。
 - 実験用エンジンで `await useSoundChip('fm21290')` を使うと、上記に加えて `keyOn(CH1, 60, 100)`、`keyOff(CH1)`、`writeRegister(address, byte)` を使用できる。CodeのCH定数は0始まり、画面のCH表示は1始まり。アルゴリズムはAPIで0..31、画面で1..32。
 - 独自コアのCodeでは `chip.setSustain(true)` を呼び、`noteOn` → `noteOff` で鍵を離しても音を保持できる。`chip.setSustain(false)` でペダルを戻す。物理CHを指定する `keyOff(CH1)` は即座にゲートを切る。
-- AUTOは16声から空いた発音枠を探索する。物理CH指定は同じ枠を再トリガする。MSFA選択時は自動割り当てを使う。
+- AUTOは16声から空いた発音枠を探索する。物理CH指定は同じ枠を再トリガする。
 
 ## MIDI出力
 
@@ -69,13 +69,13 @@ await out.noteOff('G4');
 
 独自コアのAUTOでは同じ音高でも入力ごとに別の物理CHを使う。CodeのStopはCodeの音、Stop MIDIと曲末はMIDIの音だけを離鍵する。MIDIのCC64とCodeの `setSustain` は各入力のノートに作用する。物理CHを明示して再打鍵すると新しい演奏がそのCHを引き継ぎ、以前の演奏から遅れて届いた離鍵を無視する。
 
-OPS / EGSの **Pitch bend (semitones)** は全声に効く±2半音のホイール。ドラッグのほか、フォーカスして矢印キーで微調整、Home / Endで下端・上端まで操作できる。ポインターや操作キーを離すか、フォーカスを外すと中央に戻る。操作中はホイールを優先し、離すとMIDIまたはCodeのパートが最後に指定した有効なベンドへ戻る。外部MIDI出力はノートのみ。MSFAを選ぶとホイールは無効になる。
+OPS / EGSの **Pitch bend (semitones)** は全声に効く±2半音のホイール。ドラッグのほか、フォーカスして矢印キーで微調整、Home / Endで下端・上端まで操作できる。ポインターや操作キーを離すか、フォーカスを外すと中央に戻る。操作中はホイールを優先し、離すとMIDIまたはCodeのパートが最後に指定した有効なベンドへ戻る。外部MIDI出力はノートのみ。
 
 **Mod wheel** は操作した位置に留まる。Positionは0〜127、Rangeは0〜99。Pitch・Amplitude・EG biasを組み合わせて割り当てられる。ビブラートを試すにはPitchを選び、YM21290内のLFOでpitchModSensitivityを上げる。AmplitudeとEG biasは各OPのampModSensitivityに応じて効く。EG biasはホイールを下げたときに減衰が深くなる。
 
 独自コアではMIDIパートのCC1とCodeの `part.modWheel(値)` も同じホイールを操作する。途中再生では直前のCC1を復元し、パートを止めると最後の手動位置に戻る。位置・レンジ・割り当てはCassetteで保存する。単音色・バンクSysExは音色データのみを含む。
 
-MSFAは同じ音高へのNote Offで該当する全声を解放するため、異なる入力で重なる同音は最初の打鍵を共有し、最後の入力が離した時点で解放する。独自コアの音色・ピッチベンド・生レジスタは共有で、直接 `0x30f1` に書く操作は指定した物理CHに届く。
+独自コアの音色・ピッチベンド・生レジスタは共有で、直接 `0x30f1` に書く操作は指定した物理CHに届く。
 
 ## レジスタの記録と再演
 
@@ -85,7 +85,7 @@ OPS / EGSで **Record from reset** を押すと現在の演奏を止め、リセ
 
 ## Files
 
-Filesに **Saved locally** と出ると、そのブラウザのIndexedDBへの保存が完了している。次に同じURLを開くと編集中のファイル、現在の音色、プリセット、Modホイール設定、エンジン、Master、MIDIパートと再生区間・ループ設定が戻る。演奏はRunまたはPlayで開始する。ブラウザの保存領域を使えない場合もMenu → Export → Cassette · ZIPで持ち出せる。
+Filesに **Saved locally** と出ると、そのブラウザのIndexedDBへの保存が完了している。次に同じURLを開くと編集中のファイル、現在の音色、プリセット、Modホイール設定、Master、MIDIパートと再生区間・ループ設定が戻る。演奏はRunまたはPlayで開始する。ブラウザの保存領域を使えない場合もMenu → Export → Cassette · ZIPで持ち出せる。
 
 FilesのツリーからJS・JSON・テキストを選ぶと、Code欄にそのファイルが開く。New file pathに `/pieces/lead.js` のように入力するとフォルダも作成される。編集内容はファイルを切り替えても残る。RunとApplyは表示中のJavaScriptを実行する。Cassetteにはプロジェクト内のファイル、空フォルダ、最後に開いたテキストのパスも保存する。以前のCassetteでは `/index.js` が開く。
 
@@ -93,7 +93,7 @@ FilesのツリーからJS・JSON・テキストを選ぶと、Code欄にその�
 
 Files → presetsから音色ファイルを選ぶと、演奏と編集に使う音色が切り替わる。Glass StepとInitを同梱。単音色SysExをインポートするとpresetsに追加し、32音色のSysExをインポートすると同名のフォルダに1音色ずつ展開する。編集した音色はExport → Voice · SysExで保存できる。Cassette ZIPにはプリセットと現在の編集内容の両方を保存する。旧版のCassetteやローカル保存の32枠はpresets/Recoveredに展開する。他の端末やブラウザに移すにはMenu → Export → Cassette · ZIPを使う。
 
-MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色で再生する。テンポ、ノート、ベロシティ、サステインを扱う。独自コアのベンド幅は暫定で±2半音。MSFA経路のベンドとプログラムチェンジは今後の対象。
+MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色で再生する。テンポ、ノート、ベロシティ、サステインを扱う。独自コアのベンド幅は暫定で±2半音。プログラムチェンジは今後の対象。
 
 **From (s)** と **Until (s)** に曲頭からの秒数を入れてPlayを押す。**Loop region** で同じ区間を繰り返す。再生中に時刻を変更して確定すると、新しい開始位置から演奏する。途中の区間終端と同時刻のイベントは次の区間に属する。Stop MIDIはこの演奏のゲートを解放する。
 

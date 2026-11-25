@@ -11,4 +11,4 @@ cp -R "$sdk/wasm/dx7" "$work/wasm/"
 cp "$sdk/scripts/build_dx7_wasm.sh" "$work/scripts/"
 (cd "$work" && patch -p1 < "$root/scripts/fm21290/msfa-live-envelope.patch")
 sh "$work/scripts/build_dx7_wasm.sh" "$work/out"
-cp "$work/out/msfa.wasm" "$root/docs/synth-fm21290/msfa-live-envelope.wasm"
+cp "$work/out/msfa.wasm" "$root/test/fixtures/fm21290/msfa-live-envelope.wasm"

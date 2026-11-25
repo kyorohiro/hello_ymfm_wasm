@@ -9,7 +9,7 @@ import {createInstrument} from './instrument.js';
 for(const engine of ['MSFA','OPS/EGS'])test(engine+' retargets held and releasing OP1 without another note-on',async()=>{
   const core=new Fm21290();
   const chip=createInstrument((address,value)=>core.writeRegister(address,value));
-  const msfa=engine==='MSFA'?await createDX7({sampleRate:48000,wasmUrl:new URL('./msfa-live-envelope.wasm',import.meta.url)}):null;
+  const msfa=engine==='MSFA'?await createDX7({sampleRate:48000,wasmUrl:new URL('../../test/fixtures/fm21290/msfa-live-envelope.wasm',import.meta.url)}):null;
   let voice=presetToVoice({algorithm:0,operators:{1:{outputLevel:95,envelope:{rates:[99,99,99,0],levels:[99,99,99,0]}}}});
   function envelope(patch){
     if(msfa)msfa.setOperator(1,{envelope:patch});

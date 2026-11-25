@@ -4,8 +4,6 @@ import {buildKeyboard, createFretboardLayout, createFretboardState, findLayoutEn
   from '../synth/synth_keyboard.js';
 import {createInitVoice,parseSysex,createVoiceSysex} from '../js/msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset} from '../js/msfa_dx7/src/preset.js';
-import {createDx7Audio} from '../js/playground_dx7_audio.js';
-import {createDx7Client} from '../js/playground_dx7.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
@@ -15,7 +13,6 @@ import {createOperatorEditor} from './operator_editor.js';
 import {renderRouting} from './routing.js?v=inline-routing-2';
 import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
-import {createMsfaNotes} from './msfa_notes.js';
 import {createMidiApi} from '../js/playground_midi.js';
 import {pitchBendWord,createPartPlayer,partScore,partSource,playbackRegion} from './midi_part.js';
 import {createNoteOutput} from './midi_output.js';
@@ -86,8 +83,6 @@ function flush() {
   if(writes.length && audio?.node) audio.node.port.postMessage({writes:writes.splice(0)});
   else writes.length=0;
 }
-const isChip=()=>el('engine').value==='chip';
-const fetchFm21290Msfa=()=>fetch(new URL('./msfa-live-envelope.wasm',import.meta.url));
 async function ensureAudio() {
   if(opening)return opening;
   if(audio){await audio.context.resume();return audio;}
@@ -98,68 +93,55 @@ async function ensureAudio() {
       const mixer=context.createGain(),master=context.createGain();
       mixer.connect(master);master.connect(context.destination);
       const owner={context,mixer,master};
-      if(isChip()){
-        await context.audioWorklet.addModule(new URL('./worklet.js',import.meta.url));
-        owner.node=new AudioWorkletNode(context,'tetorica-fm21290',{numberOfInputs:0,outputChannelCount:[1]});
-        owner.node.connect(mixer);
-        owner.node.port.onmessage=({data})=>{
-          if(data.recorded){
-            savedTrace=data.recorded;
-            traceControls('idle',data.full?'Event limit reached.':'Recording finished.');
-            inspectTrace();
-          }
-          if(data.replayDone)traceControls('idle','Replay stopped.');
-          if(data.error){report(data.error);if(traceMode==='replay')traceControls('idle','Replay failed.');}
-          if(data.modulation)el('modBytes').textContent=data.modulation.map(n=>n.toString(16).padStart(2,'0')).join(' ');
-          if(audio===owner && data.voice && data.voice.ch===physicalChannel){
-            const v=data.voice;
-            el('voiceState').textContent='Algorithm '+v.algorithm+' · FB '+v.feedback+' · Pitch 0x'+v.pitch.toString(16).padStart(4,'0')+
-              ' · OP1–6 output bytes '+v.levels.map(n=>n.toString(16).padStart(2,'0')).join(' ')+' · EG stages '+v.stages.join(' ');
-          }
-          if(data.slots && audio===owner)updateChannelStates(data.slots);
-        };
-      }else{
-        owner.endpoint=await createDx7Audio(context,mixer,{fetch:fetchFm21290Msfa});
-        owner.dx=createDx7Client(owner.endpoint.port,owner.endpoint);
-        owner.notes=createMsfaNotes(owner.dx,{
-          on:(slot,source,n,v)=>noteOutput.on(slot,sendChannel(source),n,v),
-          off:slot=>noteOutput.off(slot),
-        });
-        await owner.dx.loadSysex(createVoiceSysex(voice));
-      }
+      await context.audioWorklet.addModule(new URL('./worklet.js',import.meta.url));
+      owner.node=new AudioWorkletNode(context,'tetorica-fm21290',{numberOfInputs:0,outputChannelCount:[1]});
+      owner.node.connect(mixer);
+      owner.node.port.onmessage=({data})=>{
+        if(data.recorded){
+          savedTrace=data.recorded;
+          traceControls('idle',data.full?'Event limit reached.':'Recording finished.');
+          inspectTrace();
+        }
+        if(data.replayDone)traceControls('idle','Replay stopped.');
+        if(data.error){report(data.error);if(traceMode==='replay')traceControls('idle','Replay failed.');}
+        if(data.modulation)el('modBytes').textContent=data.modulation.map(n=>n.toString(16).padStart(2,'0')).join(' ');
+        if(audio===owner && data.voice && data.voice.ch===physicalChannel){
+          const v=data.voice;
+          el('voiceState').textContent='Algorithm '+v.algorithm+' · FB '+v.feedback+' · Pitch 0x'+v.pitch.toString(16).padStart(4,'0')+
+            ' · OP1–6 output bytes '+v.levels.map(n=>n.toString(16).padStart(2,'0')).join(' ')+' · EG stages '+v.stages.join(' ');
+        }
+        if(data.slots && audio===owner)updateChannelStates(data.slots);
+      };
       for(const id of ['master','mixer'])owner[id].gain.value=Number(el(id).value)/100;
       monitor.connect(context,[master]);audio=owner;
-      if(owner.node){if(physicalChannel>=0)owner.node.port.postMessage({inspectCh:physicalChannel});applyChipPatch();if(wheelBend!==null)sendBend();}
+      if(physicalChannel>=0)owner.node.port.postMessage({inspectCh:physicalChannel});
+      applyChipPatch();
+      if(wheelBend!==null)sendBend();
       return owner;
     }catch(error){await context.close();throw error;}
   })();
   try{return await opening;}finally{opening=null;}
 }
 async function applyVoice(){
-  if(audio?.dx)await audio.dx.setPreset(preset());
   if(audio?.node)applyChipPatch();
 }
 function noteOn(note,velocity=100,ch=-1,owner='code') {
-  if(audio?.dx)audio.notes.noteOn(note,velocity,owner);
-  else if(ch<0)chip.noteOn(note,velocity,owner);
+  if(ch<0)chip.noteOn(note,velocity,owner);
   else chip.keyOn(ch,note,velocity,owner);
   flush();
 }
 function noteOff(note,ch=-1,owner='code'){
-  if(audio?.dx)audio.notes.noteOff(note,owner);
-  else if(ch<0)chip.noteOff(note,owner);
+  if(ch<0)chip.noteOff(note,owner);
   else chip.keyOff(ch,owner);
   flush();
 }
 function silence(){
   releaseWheel();
-  if(audio?.dx)audio.notes.panic();
   if(audio?.node){chip.allNotesOff();flush();audio.node.port.postMessage({reset:true});applyChipPatch();}
   held.clear();for(const key of el('keys').querySelectorAll('.pressed'))key.classList.remove('pressed');
 }
 function stopOwner(owner){
   if(audio?.node){chip.stopOwner(owner);flush();}
-  else audio?.notes?.stopOwner(owner);
 }
 let songPart=null,bendOwner=null,partBend=0,wheelBend=null;
 function sendBend(){audio?.node?.port.postMessage({bend:wheelBend??partBend});}
@@ -196,9 +178,9 @@ function createMidiPart(collection,signal){
   const owner={};
   const part=createPartPlayer({
     noteOn:(n,v)=>noteOn(n,v,-1,owner),noteOff:n=>noteOff(n,-1,owner),
-    setSustain:audio.node?down=>{chip.setSustain(down,owner);flush();}:null,
-    setWheel:audio.node?value=>setModPosition(owner,value):null,
-    setBend:audio.node?bend=>setPartBend(owner,bend):null,
+    setSustain:down=>{chip.setSustain(down,owner);flush();},
+    setWheel:value=>setModPosition(owner,value),
+    setBend:bend=>setPartBend(owner,bend),
     stop(){
       signal?.removeEventListener('abort',part.finish);stopOwner(owner);collection?.delete(part);
       if(modOwner===owner)setModPosition(null,manualWheel.value);
@@ -312,7 +294,6 @@ const runtime=createPlaygroundCodeRuntime({
     '; Object.assign(pg,{'+extraChannels.join(',')+'});\n{\n'+source+'\n}',
   ensureReady:ensureAudio,now:()=>audio?.context.currentTime??0,supportedSoundChips:['dx7','fm21290'],
   useSoundChip(name){
-    if(name==='fm21290'&&!audio?.node)throw Error('Select OPS / EGS for physical CH or register writes.');
     const api={noteOn:(n,v)=>noteOn(n,v),noteOff:n=>noteOff(n),
       getPreset:preset, setPreset:async p=>{voice=presetToVoice(p);render();await applyVoice();},
       setOperator:(op,patch)=>edit({operators:{[op]:patch}}),setFeedback:feedback=>edit({feedback}),
@@ -388,10 +369,7 @@ async function edit(patch,stage){
     for(const button of el('ops').querySelectorAll('button'))button.setAttribute('aria-pressed',String(Number(button.dataset.op)===op));
     draftChanged();
   }else render();
-  if(audio?.dx && operatorsOnly){
-    await audio.dx.setOperators(Object.entries(patch.operators).map(([op,params])=>[Number(op),params]));
-  }else if(audio?.dx && patch.feedback!==undefined)await audio.dx.setFeedback(patch.feedback);
-  else await applyVoice();
+  await applyVoice();
 }
 function download(name,bytes){const url=URL.createObjectURL(new Blob([bytes]));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function parameterField(root,title){
@@ -445,19 +423,12 @@ function updateChannelStates(slots=[]){
 }
 function refreshChannels(){
   Array.from(el('channels').children,(button,index)=>{
-    button.disabled=!isChip() && index>0;
-    button.setAttribute('aria-pressed',String(index===(isChip()?physicalChannel+1:0)));
+    button.setAttribute('aria-pressed',String(index===physicalChannel+1));
   });
-  el('voiceState').hidden=!isChip() || physicalChannel<0;
+  el('voiceState').hidden=physicalChannel<0;
 }
 on('oscSync','click',()=>edit({oscillatorSync:!preset().oscillatorSync}));
 on('name','change',()=>edit({name:el('name').value}));
-on('engine','change',async()=>{
-  el('engine').disabled=true;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=true;releaseWheel();
-  try{if(opening)await opening;await runtime.stop();stopSong();silence();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
-    refreshChannels();updateTabs();trace.length=0;updateChannelStates();el('voiceState').textContent='';render();
-  }finally{el('engine').disabled=false;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();}
-});
 for(const id of ['master','mixer'])on(id,'input',()=>{
   el(id+'Value').textContent=el(id).value+'%';
   if(audio)audio[id].gain.value=Number(el(id).value)/100;
@@ -529,7 +500,7 @@ for(const id of ['importVoice','importMidi','importCassette'])on(id,'change',asy
 });
 async function playRegion(){
   stopSong();
-  const events=playbackRegion(selectedScore,el('midiFrom').valueAsNumber,el('midiUntil').valueAsNumber,isChip());
+  const events=playbackRegion(selectedScore,el('midiFrom').valueAsNumber,el('midiUntil').valueAsNumber,true);
   const epoch=songEpoch;await ensureAudio();if(epoch!==songEpoch)return;
   const length=events.at(-1)[0];
   let start=audio.context.currentTime,i=0;
@@ -595,7 +566,6 @@ function displayTabs(root,ids,current){
     }
     const position=ids.indexOf(id);
     if(list.children[position]!==tab)list.insertBefore(tab,list.children[position]??null);
-    tab.hidden=id==='registers'&&!isChip();
     tab.tabIndex=id===current?0:-1;tab.setAttribute('aria-selected',String(id===current));
     const panel=el(id),host=el(root==='mainTabs'?'mainPanels':'inputPanels');
     if(panel.parentElement!==host)host.append(panel);
@@ -603,10 +573,6 @@ function displayTabs(root,ids,current){
   }
 }
 function updateTabs(){
-  if(!isChip()){
-    if(soundTab==='registers')soundTab='chipPanel';
-    if(fullTab==='registers')fullTab='chipPanel';
-  }
   displayTabs('mainTabs',codeMode?['codePanel',...soundIds,'keyboardPanel']:soundIds,codeMode?fullTab:soundTab);
   if(!codeMode)displayTabs('inputTabs',inputIds,inputTab);
   el('inputTabs').hidden=el('inputPanels').hidden=codeMode;
@@ -692,8 +658,7 @@ let savedTrace=null,traceMode='idle';
 function traceControls(mode,message){
   traceMode=mode;
   const busy=mode!=='idle';
-  el('engine').disabled=busy;
-  el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip()||mode==='replay'||mode==='starting';
+  el('modPosition').disabled=el('modControls').disabled=wheel.disabled=mode==='replay'||mode==='starting';
   el('capture').disabled=busy;
   el('loadTrace').disabled=busy;
   el('endCapture').disabled=mode!=='record';
@@ -785,7 +750,7 @@ let keyboardOctave=0;
 let layout;
 async function press(id,pad,button){
   if(document.querySelector('main').inert || held.has(id) || pad.midi<0 || pad.midi>127)return;
-  const entry={button,note:pad.midi,ch:isChip()?physicalChannel:-1,started:false};
+  const entry={button,note:pad.midi,ch:physicalChannel,started:false};
   held.set(id,entry);
   try{
     await ensureAudio();
@@ -883,7 +848,7 @@ function draftChanged(){
 function captureDraft(){
   storeEditor();
   return {op,activePath,selectedFile,codeView:codeMode,soundTab,inputTab,fullTab,filesOpen:!el('filesPanel').hidden,wheel:manualWheel,voice:currentVoice(),song:songBytes,
-      ...files.snapshot(),version:2,engine:el('engine').value,master:Number(el('master').value),mixer:Number(el('mixer').value),
+      ...files.snapshot(),version:2,master:Number(el('master').value),mixer:Number(el('mixer').value),
       part:el('part').value,from:el('midiFrom').valueAsNumber,until:el('midiUntil').valueAsNumber,loop:el('midiLoop').checked};
 }
 // The IndexedDB transaction may be cancelled by navigation. Keep a tab-local
@@ -949,12 +914,11 @@ async function restoreDraft(){
     }
     if(next){
       if(Number.isInteger(draft.op)&&draft.op>=1&&draft.op<=6)op=draft.op;
-      el('engine').value=draft.engine==='msfa'?'msfa':'chip';
       for(const id of ['master','mixer']){
         if(Number.isInteger(draft[id]) && draft[id]>=0 && draft[id]<=380)el(id).value=draft[id];
         el(id+'Value').textContent=el(id).value+'%';
       }
-      el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();refreshChannels();
+      refreshChannels();
       replaceProject(next);
       if(projectFileList().some(f=>f.path===draft.selectedFile && f.type!=='directory')){selectedFile=draft.selectedFile;renderFiles();}
       if(soundIds.includes(draft.soundTab))soundTab=draft.soundTab;
