@@ -63,14 +63,15 @@ test('INIT A4 fundamental against the vendored MSFA renderer',async()=>{
     assert.ok(Math.abs(custom-440)<=2 && Math.abs(custom-msfa)<=2,`custom ${custom} Hz / MSFA ${msfa} Hz`);
   }finally{ref.dispose();}
 });
-test('Cassette round trip preserves original bank, selected slot, code and MIDI',async()=>{
+test('Cassette preserves the current voice, migrates legacy presets, and restores code and MIDI',async()=>{
   const {exportSession,importSession}=await import('./session.js');
-  const {createBankSysex}=await import('../js/msfa_dx7/src/sysex.js');
+  const {createBankSysex,createVoiceSysex}=await import('../js/msfa_dx7/src/sysex.js');
   const voices=Array.from({length:32},(_,i)=>presetToVoice({name:'PATCH '+i}));
   const bank=createBankSysex(voices,{channel:11});
+  const voice=createVoiceSysex(voices[24],{channel:11});
   const song=Uint8Array.of(77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,4,0,255,47,0);
   const wheel={range:46,assign:6,value:87};
-  const next=await importSession(exportSession({bank,selected:24,code:'// example',song,wheel}));
+  const next=await importSession(exportSession({voice,code:'// example',song,wheel}));
   assert.deepEqual(next.wheel,wheel);
   const {createPlaygroundCassetteZip}=await import('../playground/playground_cassette.js');
   const legacy=createPlaygroundCassetteZip([
@@ -86,14 +87,17 @@ test('Cassette round trip preserves original bank, selected slot, code and MIDI'
   const entries=[{path:'/pieces/lead.js',type:'text',data:'await file("./notes.json",{type:"json"})'},
     {path:'/pieces/notes.json',type:'text',data:'[60,64,67]'},
     {path:'/pieces/clip.mid',type:'binary',data:song}];
-  const edited=await importSession(exportSession({bank,selected:24,code:restored.fs.get('/index.js').data,
+  const edited=await importSession(exportSession({voice,code:restored.fs.get('/index.js').data,
     activePath:'/pieces/lead.js',directories:['/empty'],entries}));
   assert.equal(edited.activePath,'/pieces/lead.js');
   assert.equal(edited.code,'// edited legacy');
   assert.equal(edited.fs.stat('/empty').type,'directory');
   for(const entry of entries)assert.deepEqual(edited.fs.get(entry.path).data,entry.data);
-  assert.equal(next.selected,24);assert.equal(next.code,'// example');assert.deepEqual(next.song,song);
-  assert.deepEqual(createBankSysex(next.dump.voices.map(v=>v.data),{channel:next.dump.channel}),bank);
+  assert.deepEqual(restored.voice,voices[24]);
+  assert.equal(restored.fs.readdir('/presets/Recovered').length,32);
+  assert.deepEqual(restored.fs.get('/presets/Recovered/25 PATCH 24.syx').data,voice);
+  assert.equal(next.code,'// example');assert.deepEqual(next.song,song);
+  assert.deepEqual(createVoiceSysex(next.voice,{channel:next.channel}),voice);
 });
 test('keyboard rate scaling saturates at rate 63 and pitch bend preserves it',()=>{
   const {core,api}=setup({operators:{1:{rateScaling:7}}});

@@ -2,7 +2,7 @@
 import {buildKeyboard, createFretboardLayout, createFretboardState, findLayoutEntry,
   renderFretboardControls, setFretPosition, setInstrument, setStringWindowIndex}
   from '../synth/synth_keyboard.js';
-import {createInitVoice,parseSysex,createVoiceSysex,createBankSysex} from '../js/msfa_dx7/src/sysex.js';
+import {createInitVoice,parseSysex,createVoiceSysex} from '../js/msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset} from '../js/msfa_dx7/src/preset.js';
 import {createDx7Audio} from '../js/playground_dx7_audio.js';
 import {createDx7Client} from '../js/playground_dx7.js';
@@ -24,19 +24,18 @@ import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.j
 import {createVirtualFileReader} from '../js/tetorica_virtual_files/reader.js';
 import {renderFileTree} from '../playground/playground_file_tree.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
-import {readProject,textPath,projectPath,defaultWheel,exportSession,importSession} from './session.js';
+import {readProject,textPath,projectPath,defaultWheel,storePresetDump,exportSession,importSession} from './session.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {selectFM21290Declarations} from './code_declarations.js';
 import {glassSteps,glassPatch,scoreExample} from './examples.js';
 
 const el = id => document.getElementById(id);
-const voices = Array.from({length:32},(_,i)=>createInitVoice('INIT '+(i+1)));
-voices[0] = presetToVoice(glassPatch);
-let selected=0, op=1, sysexChannel=0, audio=null, opening=null, midi=null, songBytes=null, songEpoch=0, songTimer=null;
+let voice=presetToVoice(glassPatch);
+let op=1, sysexChannel=0, audio=null, opening=null, midi=null, songBytes=null, songEpoch=0, songTimer=null;
 const held = new Map(), trace=[], writes=[];
 const monitor = createSynthOutputVisualizer({background:'#182408',grid:'#374b1c',labels:'#bbc99d',trace:'#b4ed6c',waveformMinRange:1/64});
-const preset = () => voiceToPreset(voices[selected]);
+const preset = () => voiceToPreset(voice);
 const option = (text,value) => new Option(text,value);
 const report = error => {el('status').textContent=error.message ?? String(error);};
 function on(id,event,fn) { el(id).addEventListener(event,e=>Promise.resolve().then(()=>fn(e)).catch(report)); }
@@ -125,7 +124,7 @@ async function ensureAudio() {
           on:(slot,source,n,v)=>noteOutput.on(slot,sendChannel(source),n,v),
           off:slot=>noteOutput.off(slot),
         });
-        await owner.dx.loadSysex(createVoiceSysex(voices[selected]));
+        await owner.dx.loadSysex(createVoiceSysex(voice));
       }
       for(const id of ['master','mixer'])owner[id].gain.value=Number(el(id).value)/100;
       monitor.connect(context,[master]);audio=owner;
@@ -230,12 +229,19 @@ function codeMidi(clock){
 }
 const physicalGates={keyOff(ch){chip.keyOff(ch,'code');flush();}};
 let files=createVirtualFileSystem([{path:'/index.js',data:glassSteps},...scoreExample]);
+function addFactoryPresets(){
+  for(const [name,data] of [['Glass Step',presetToVoice(glassPatch)],['Init',createInitVoice('INIT')]]){
+    const path='/presets/'+name+'.syx';
+    if(!files.has(path)&&!files.listDirectories().includes(path)&&!files.has('/presets'))
+      files.writeBinary(path,createVoiceSysex(data));
+  }
+}
+addFactoryPresets();
 let activePath='/index.js',selectedFile=activePath;
-const expanded=new Map();
+const expanded=new Map([['/presets',true]]);
 const runnable=()=>/\.m?js$/i.test(activePath);
-const currentBank=()=>createBankSysex(voices,{channel:sysexChannel});
+const currentVoice=()=>createVoiceSysex(voice,{channel:sysexChannel});
 const projectReader={get(path){
-  if(path==='/bank.syx')return {type:'binary',data:currentBank()};
   if(path==='/song.mid')return songBytes?{type:'binary',data:songBytes}:null;
   if(path===activePath)return {type:'text',data:el('code').value};
   return files.get(path);
@@ -259,7 +265,6 @@ function projectFileList(){
       if(files.has(path))list.push({path});
     }
   }
-  list.push({path:'/bank.syx'});
   if(songBytes)list.push({path:'/song.mid'});
   return list;
 }
@@ -271,7 +276,17 @@ async function openProjectFile(path){
   storeEditor();
   if(textPath(path)){editFile(path);return;}
   const bytes=projectReader.get(path).data;
-  if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
+  if(/\.syx$/i.test(path)){
+    const dump=parseSysex(bytes);
+    if(dump.format==='bank'){
+      const [first]=storePresetDump(files,dump,path.split('/').pop());
+      expanded.set('/presets',true);
+      expanded.set(first.slice(0,first.lastIndexOf('/')),true);
+      return openProjectFile(first);
+    }
+    stopSong();voice=dump.voices[0].data;sysexChannel=dump.channel;
+    render();await applyVoice();
+  }
   else if(/\.midi?$/i.test(path)){const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
   else {download(path.split('/').pop(),bytes);return;}
   selectBinaryFile(path);
@@ -285,7 +300,7 @@ const runtime=createPlaygroundCodeRuntime({
   useSoundChip(name){
     if(name==='fm21290'&&!audio?.node)throw Error('Select OPS / EGS for physical CH or register writes.');
     const api={noteOn:(n,v)=>noteOn(n,v),noteOff:n=>noteOff(n),
-      getPreset:preset, setPreset:async p=>{voices[selected]=presetToVoice(p);render();await applyVoice();},
+      getPreset:preset, setPreset:async p=>{voice=presetToVoice(p);render();await applyVoice();},
       setOperator:(op,patch)=>edit({operators:{[op]:patch}}),setFeedback:feedback=>edit({feedback}),
     };
     if(name==='fm21290')Object.assign(api,{
@@ -336,8 +351,7 @@ const pitchControls={rates:[],levels:[]},lfoControls={};
 function render() {
   draftChanged();
   const p=preset();
-  el('bank').replaceChildren(...voices.map((v,i)=>option((i+1)+' · '+voiceToPreset(v).name,i)));
-  el('bank').value=selected;algorithmControl.updateVisual(p.algorithm);feedbackControl.updateVisual(p.feedback);el('name').value=p.name;
+  algorithmControl.updateVisual(p.algorithm);feedbackControl.updateVisual(p.feedback);el('name').value=p.name;
   el('oscSync').setAttribute('aria-pressed',String(p.oscillatorSync));
   el('oscSync').textContent=p.oscillatorSync?'ON':'OFF';
   for(const key of Object.keys(p.lfo)){
@@ -353,7 +367,7 @@ function render() {
   renderOperators(p);
 }
 async function edit(patch,stage){
-  voices[selected]=presetToVoice(patch,voices[selected]);
+  voice=presetToVoice(patch,voice);
   const operatorsOnly=Object.keys(patch).length===1 && patch.operators;
   if(operatorsOnly){
     renderOperators(preset(),stage);
@@ -422,7 +436,6 @@ function refreshChannels(){
   });
   el('voiceState').hidden=!isChip() || physicalChannel<0;
 }
-on('bank','change',async()=>{stopSong();selected=Number(el('bank').value);render();await applyVoice();});
 on('oscSync','click',()=>edit({oscillatorSync:!preset().oscillatorSync}));
 on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
@@ -436,8 +449,7 @@ for(const id of ['master','mixer'])on(id,'input',()=>{
   if(audio)audio[id].gain.value=Number(el(id).value)/100;
   draftChanged();
 });
-on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voices[selected],{channel:sysexChannel})));
-on('saveBank','click',()=>download('FM21290-bank.syx',createBankSysex(voices,{channel:sysexChannel})));
+on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voice,{channel:sysexChannel})));
 on('saveCode','click',()=>download(activePath.split('/').pop(),el('code').value));
 let selectedScore=[];
 function selectPart(){
@@ -465,18 +477,13 @@ on('newFile','click',()=>{
 });
 on('saveSession','click',()=>{
   storeEditor();
-  download('FM21290.cassette.zip',exportSession({bank:currentBank(),selected,code:files.get('/index.js').data,
+  download('FM21290.cassette.zip',exportSession({voice:currentVoice(),code:files.get('/index.js').data,
     entries:files.list().filter(f=>f.path!=='/index.js'),directories:files.listDirectories(),activePath,song:songBytes,wheel:manualWheel}));
 });
-async function loadVoiceFile(bytes){
-  const dump=parseSysex(bytes);stopSong();sysexChannel=dump.channel;
-  if(dump.format==='bank'){voices.splice(0,32,...dump.voices.map(v=>v.data));selected=0;}
-  else voices[selected]=dump.voices[0].data;
-  render();await applyVoice();
-}
 function replaceProject(next){
-  voices.splice(0,32,...next.dump.voices.map(v=>v.data));selected=next.selected;sysexChannel=next.dump.channel;
-  files=next.fs;expanded.clear();
+  voice=next.voice;sysexChannel=next.channel;
+  files=next.fs;expanded.clear();expanded.set('/presets',true);
+  addFactoryPresets();
   restoreModWheel(next.wheel);selectSong(next.midi,next.song);showEditor(next.activePath);render();
 }
 for(const id of ['importVoice','importMidi','importCassette'])on(id,'change',async()=>{
@@ -490,15 +497,19 @@ for(const id of ['importVoice','importMidi','importCassette'])on(id,'change',asy
   }
   const isVoice=id==='importVoice';
   if(!(isVoice?/\.syx$/i:/\.midi?$/i).test(f.name))throw Error(isVoice?'Choose a DX7 SysEx (.syx) file.':'Choose a MIDI (.mid or .midi) file.');
-  const folder=isVoice?'voices':'songs';
+  if(isVoice){
+    const dump=parseSysex(bytes);
+    const [path]=storePresetDump(files,dump,f.name);
+    expanded.set('/presets',true);
+    expanded.set(path.slice(0,path.lastIndexOf('/')),true);
+    await openProjectFile(path);return;
+  }
+  const folder='songs';
   const base='/'+folder+'/'+f.name;
   let path=projectPath(base),n=2;
   while(files.has(path))path=base.replace(/(\.[^./]+)$/,' ('+(n++)+')$1');
   storeEditor();
-  if(isVoice)await loadVoiceFile(bytes);
-  else{
-    const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);setFiles(true);
-  }
+  const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);setFiles(true);
   files.writeBinary(path,bytes);expanded.set('/'+folder,true);selectBinaryFile(path);
 });
 async function playRegion(){
@@ -840,8 +851,8 @@ function draftChanged(){
 }
 function captureDraft(){
   storeEditor();
-  return {selected,op,activePath,selectedFile,codeView:codeMode,soundTab,inputTab,fullTab,filesOpen:!el('filesPanel').hidden,wheel:manualWheel,bank:currentBank(),song:songBytes,
-      ...files.snapshot(),engine:el('engine').value,master:Number(el('master').value),mixer:Number(el('mixer').value),
+  return {op,activePath,selectedFile,codeView:codeMode,soundTab,inputTab,fullTab,filesOpen:!el('filesPanel').hidden,wheel:manualWheel,voice:currentVoice(),song:songBytes,
+      ...files.snapshot(),version:2,engine:el('engine').value,master:Number(el('master').value),mixer:Number(el('mixer').value),
       part:el('part').value,from:el('midiFrom').valueAsNumber,until:el('midiUntil').valueAsNumber,loop:el('midiLoop').checked};
 }
 // The IndexedDB transaction may be cancelled by navigation. Keep a tab-local

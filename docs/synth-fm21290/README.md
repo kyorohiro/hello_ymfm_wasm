@@ -8,7 +8,7 @@
 
 **Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。Octaveの中央の値を左右にドラッグするか、− / ＋を押して−3〜＋3オクターブを切り替えられる。PCキーによる演奏はKeyboardタブを閉じても使える。Code本文などのテキスト欄では文字を入力できる。Ctrl / Cmd + EnterでRun、Shiftを加えるとApplyでき、Codeを閉じた状態からも実行できる。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
-**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定が開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、バンク（Bank · SysEx）、Codeを保存できる。
+**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定が開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、Codeを保存できる。
 
 **☰ Menu → Import** にはDX7 voice · SysEx（単音色・32音色バンクの.syx）、MIDI（.mid／.midi）、Cassette（.zip）が並ぶ。読み込んだMIDIはFilesのsongsフォルダに保存される。Escで閉じる。画面の切り替えはタブとFilesボタンで行う。
 
@@ -77,13 +77,13 @@ OPS / EGSで **Record from reset** を押すと現在の演奏を止め、リセ
 
 ## Files
 
-Filesに **Saved locally** と出ると、そのブラウザのIndexedDBへの保存が完了している。次に同じURLを開くと編集中のファイル、32音色バンク、Modホイール設定、エンジン、Master、MIDIパートと再生区間・ループ設定が戻る。演奏はRunまたはPlayで開始する。ブラウザの保存領域を使えない場合もMenu → Export → Cassette · ZIPで持ち出せる。
+Filesに **Saved locally** と出ると、そのブラウザのIndexedDBへの保存が完了している。次に同じURLを開くと編集中のファイル、現在の音色、プリセット、Modホイール設定、エンジン、Master、MIDIパートと再生区間・ループ設定が戻る。演奏はRunまたはPlayで開始する。ブラウザの保存領域を使えない場合もMenu → Export → Cassette · ZIPで持ち出せる。
 
 FilesのツリーからJS・JSON・テキストを選ぶと、Code欄にそのファイルが開く。New file pathに `/pieces/lead.js` のように入力するとフォルダも作成される。編集内容はファイルを切り替えても残る。RunとApplyは表示中のJavaScriptを実行する。Cassetteにはプロジェクト内のファイル、空フォルダ、最後に開いたテキストのパスも保存する。以前のCassetteでは `/index.js` が開く。
 
-最初のプロジェクトの `/examples/glass-echo/score.json` で音高とベロシティを編集し、同じフォルダの `play.js` を開いてRunすると変更を聴ける。`await file('./score.json', {type:'json'})` の相対パスは実行中のJSを基準にする。`await file('/bank.syx', {type:'arrayBuffer'})` は現在の32音色、`/song.mid` は読込中のMIDIを返す。読み込んだSysExとMIDIは元のファイル名でもツリーに残り、選び直して使える。
+最初のプロジェクトの `/examples/glass-echo/score.json` で音高とベロシティを編集し、同じフォルダの `play.js` を開いてRunすると変更を聴ける。`await file('./score.json', {type:'json'})` の相対パスは実行中のJSを基準にする。`/song.mid` は読込中のMIDIを返す。読み込んだMIDIは元のファイル名でもツリーに残り、選び直して使える。
 
-単音色SysExは選択中の枠に取り込み、バンクSysExは32枠を置き換える。Export voice / bankでYamahaのバイナリとして保存する。Cassette ZIPは32音色、選択中の枠、Code、読み込んだMIDIの原本をまとめて復元できる。他の端末やブラウザに移すにはMenu → Export → Cassette · ZIPを使う。
+Files → presetsから音色ファイルを選ぶと、演奏と編集に使う音色が切り替わる。Glass StepとInitを同梱。単音色SysExをインポートするとpresetsに追加し、32音色のSysExをインポートすると同名のフォルダに1音色ずつ展開する。編集した音色はExport → Voice · SysExで保存できる。Cassette ZIPにはプリセットと現在の編集内容の両方を保存する。旧版のCassetteやローカル保存の32枠はpresets/Recoveredに展開する。他の端末やブラウザに移すにはMenu → Export → Cassette · ZIPを使う。
 
 MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色で再生する。テンポ、ノート、ベロシティ、サステインを扱う。独自コアのベンド幅は暫定で±2半音。MSFA経路のベンドとプログラムチェンジは今後の対象。
 

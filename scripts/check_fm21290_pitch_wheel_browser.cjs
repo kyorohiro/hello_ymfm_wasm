@@ -26,7 +26,7 @@ const {chromium}=require('playwright');
     };
   });
   await page.goto('http://127.0.0.1:'+server.address().port+'/synth-fm21290/index.html');
-  await page.click('#tab-chipPanel');await page.selectOption('#bank','1');
+  await page.click('#tab-chipPanel');await page.locator('[data-file-path="/presets/Init.syx"]').click();
   const wheel=page.locator('#pitchWheel');
   const pm=word=>page.waitForFunction(v=>document.querySelector('#modBytes').textContent.endsWith(v),word);
   await wheel.focus();await page.keyboard.down('End');await pm('02 ab');

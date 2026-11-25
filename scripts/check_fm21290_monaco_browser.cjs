@@ -157,12 +157,22 @@ const {chromium}=require('playwright');
   const [chooser]=await Promise.all([page.waitForEvent('filechooser'),menu.getByRole('button',{name:'DX7 voice · SysEx…'}).click()]);
   assert.equal(await chooser.element().getAttribute('accept'),'.syx');
   await chooser.setFiles({name:'menu.syx',mimeType:'application/octet-stream',buffer:fs.readFileSync(await voice.path())});
-  await page.waitForFunction(()=>document.querySelector('[data-file-path="/voices/menu.syx"]'));
+  await page.waitForFunction(()=>document.querySelector('[data-file-path="/presets/menu.syx"]'));
+  const bank=await page.evaluate(async()=>{
+    const {createInitVoice,createBankSysex}=await import('../js/msfa_dx7/src/sysex.js');
+    return Array.from(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('DEMO '+(i+1)))));
+  });
+  await page.locator('#importVoice').setInputFiles({name:'Library.syx',mimeType:'application/octet-stream',buffer:Buffer.from(bank)});
+  const presets=page.locator('button[data-file-path^="/presets/Library/"]');
+  await presets.last().waitFor({state:'attached'});
+  assert.equal(await presets.count(),32);
+  if(!await page.locator('#filesPanel').isVisible())await page.locator('#filesToggle').click();
+  await presets.last().click();assert.equal(await page.inputValue('#name'),'DEMO 32');
   await page.click('#tab-codePanel');
   await toggle.click();
   const [download]=await Promise.all([page.waitForEvent('download'),menu.getByRole('button',{name:'Cassette · ZIP'}).click()]);
   assert.equal(await download.failure(),null);assert.equal(download.suggestedFilename(),'FM21290.cassette.zip');
-  for(const [id,suffix] of [['saveVoice','.syx'],['saveBank','.syx'],['saveCode','.js']]){
+  for(const [id,suffix] of [['saveVoice','.syx'],['saveCode','.js']]){
     await toggle.click();
     const [file]=await Promise.all([page.waitForEvent('download'),menu.locator('#'+id).click()]);
     assert.equal(await file.failure(),null);assert(file.suggestedFilename().endsWith(suffix));

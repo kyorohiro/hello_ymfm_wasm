@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Return Steps: the same four notes, first dry, then with a three-operator loop.
-// Run in OPS / EGS on a spare bank slot. setPreset edits the selected slot.
+// Run in OPS / EGS. setPreset supplies the sound for this performance.
 const chip = await useSoundChip('fm21290');
 await chip.setPreset({
   name: 'RETURNSTEP', algorithm: 3, feedback: 0, oscillatorSync: true,
