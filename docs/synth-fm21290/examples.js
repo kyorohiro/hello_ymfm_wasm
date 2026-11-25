@@ -27,3 +27,16 @@ export const glassPatch = {
     envelope:{rates:[98,72,45,70], levels:[99,i%2 ? 42 : 80,48,0]},
   }])),
 };
+
+export const scoreExample=[
+  {path:'/examples/glass-echo/score.json',data:JSON.stringify({
+    bpm:116,notes:[72,79,75,82,77,74],velocities:[102,52,88,48,91,60],
+  },null,2)},
+  {path:'/examples/glass-echo/play.js',data:`const score = await file('./score.json', {type: 'json'});
+const out = midi.output('tetorica-fm21290', {channel: CH1});
+setBpm(score.bpm);
+for (const [i, note] of score.notes.entries()) {
+  await out.play(note, {duration: 0.35, velocity: score.velocities[i]});
+  await beat(0.15);
+}`},
+];

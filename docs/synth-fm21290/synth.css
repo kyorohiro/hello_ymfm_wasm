@@ -11,3 +11,11 @@ header img{border-radius:12px}input[type=range]{accent-color:var(--dx-green)}#st
 #ops .fb-off .return,#ops .fb-off .arrow-return{opacity:.5}
 .route-output{position:absolute;transform:translateX(-50%);font:600 12px/1.5 system-ui;color:#acd6c9}
 #routeFeedback{margin:0;padding:.25rem .75rem .5rem;color:#f1b286;font-size:.85rem}
+
+#filesTree{margin:.7rem 0}
+#filesTree ul{list-style:none;padding-left:1.1rem;margin:.2rem 0}
+#filesTree>ul{padding-left:0}
+#filesTree summary{cursor:pointer}
+#filesTree .file-entry{background:transparent;border-color:transparent;color:inherit;padding:.15rem .45rem;font-weight:normal}
+#filesTree [aria-current=true]{border-color:var(--dx-green);color:var(--dx-green)}
+#activeFile{font-family:monospace}

@@ -78,7 +78,20 @@ test('Cassette round trip preserves original bank, selected slot, code and MIDI'
     {path:'/index.js',type:'text',data:'// legacy'},
     {path:'/bank.syx',type:'binary',data:bank},
   ]);
-  assert.deepEqual((await importSession(legacy)).wheel,{range:99,assign:1,value:0});
+  const restored=await importSession(legacy);
+  assert.deepEqual(restored.wheel,{range:99,assign:1,value:0});
+  assert.equal(restored.activePath,'/index.js');
+  assert.equal(restored.fs.get('/index.js').data,'// legacy');
+  restored.fs.writeText('/index.js','// edited legacy');
+  const entries=[{path:'/pieces/lead.js',type:'text',data:'await file("./notes.json",{type:"json"})'},
+    {path:'/pieces/notes.json',type:'text',data:'[60,64,67]'},
+    {path:'/pieces/clip.mid',type:'binary',data:song}];
+  const edited=await importSession(exportSession({bank,selected:24,code:restored.fs.get('/index.js').data,
+    activePath:'/pieces/lead.js',directories:['/empty'],entries}));
+  assert.equal(edited.activePath,'/pieces/lead.js');
+  assert.equal(edited.code,'// edited legacy');
+  assert.equal(edited.fs.stat('/empty').type,'directory');
+  for(const entry of entries)assert.deepEqual(edited.fs.get(entry.path).data,entry.data);
   assert.equal(next.selected,24);assert.equal(next.code,'// example');assert.deepEqual(next.song,song);
   assert.deepEqual(createBankSysex(next.dump.voices.map(v=>v.data),{channel:next.dump.channel}),bank);
 });

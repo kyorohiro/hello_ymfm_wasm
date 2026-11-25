@@ -14,8 +14,11 @@ import {createMidiApi} from '../js/playground_midi.js';
 import {pitchBendWord,createPartPlayer,partScore,partSource,playbackRegion} from './midi_part.js';
 import {createNoteOutput} from './midi_output.js';
 import {createInstrument} from './instrument.js';
-import {defaultWheel,exportSession,importSession} from './session.js';
-import {glassSteps,glassPatch} from './examples.js';
+import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
+import {createVirtualFileReader} from '../js/tetorica_virtual_files/reader.js';
+import {renderFileTree} from '../playground/playground_file_tree.js';
+import {textPath,projectPath,defaultWheel,exportSession,importSession} from './session.js';
+import {glassSteps,glassPatch,scoreExample} from './examples.js';
 
 const el = id => document.getElementById(id);
 const voices = Array.from({length:32},(_,i)=>createInitVoice('INIT '+(i+1)));
@@ -214,7 +217,50 @@ function codeMidi(clock){
   },{...clock,outputs:['tetorica-fm21290']});
 }
 const physicalGates={keyOff(ch){chip.keyOff(ch,'code');flush();}};
+let files=createVirtualFileSystem([{path:'/index.js',data:glassSteps},...scoreExample]);
+let activePath='/index.js';
+const expanded=new Map();
+const runnable=()=>/\.m?js$/i.test(activePath);
+const currentBank=()=>createBankSysex(voices,{channel:sysexChannel});
+const projectReader={get(path){
+  if(path==='/bank.syx')return {type:'binary',data:currentBank()};
+  if(path==='/song.mid')return songBytes?{type:'binary',data:songBytes}:null;
+  if(path===activePath)return {type:'text',data:el('code').value};
+  return files.get(path);
+}};
+function storeEditor(){
+  const text=el('code').value;
+  if(text!==files.get(activePath).data)files.writeText(activePath,text);
+}
+function showEditor(path){
+  activePath=path;el('code').value=files.get(path).data;el('activeFile').textContent=path;
+  el('run').disabled=!runnable();el('apply').disabled=!runnable()||!runtime.getState().running;
+  el('partCode').disabled=!runnable()||!el('part').value;
+  renderFiles();
+}
+function renderFiles(){
+  const list=[];
+  for(const dir of files.listDirectories()){
+    if(dir!=='/')list.push({path:dir,type:'directory'});
+    for(const name of files.readdir(dir)){
+      const path=(dir==='/'?'':dir)+'/'+name;
+      if(files.has(path))list.push({path});
+    }
+  }
+  list.push({path:'/bank.syx'});
+  if(songBytes)list.push({path:'/song.mid'});
+  renderFileTree(el('filesTree'),list,{expanded,selectedPath:activePath,onOpen:path=>openProjectFile(path).catch(report)});
+}
+async function openProjectFile(path){
+  storeEditor();
+  if(textPath(path)){showEditor(path);return;}
+  const bytes=projectReader.get(path).data;
+  if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
+  else if(/\.midi?$/i.test(path)){const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
+  else download(path.split('/').pop(),bytes);
+}
 const runtime=createPlaygroundCodeRuntime({
+  readFile:(path,options,entry)=>createVirtualFileReader(projectReader,entry.path)(path,options),
   prepareSource:source=>'const '+Array.from({length:10},(_,i)=>'CH'+(i+7)+'='+(i+6)).join(',')+';\n'+source,
   ensureReady:ensureAudio,now:()=>audio?.context.currentTime??0,supportedSoundChips:['dx7','fm21290'],
   useSoundChip(name){
@@ -233,7 +279,7 @@ const runtime=createPlaygroundCodeRuntime({
   resolveNoteTarget:(target,method,args)=>({keyOn:1,keyOff:1}[method]?{target:physicalGates,channel:args[0]}:{target,channel:args[0]}),
   createMidi:codeMidi,createMidiPart:signal=>createMidiPart(codeParts,signal),
   stopSoundChips:()=>{for(const part of codeParts)part.finish();for(const id of codeMidiNotes.keys())releaseMidiVoice(id);stopOwner('code');},onLog:line=>{el('log').textContent=line;},
-  onState:s=>{el('apply').disabled=!s.running;el('log').textContent=s.status;},
+  onState:s=>{el('apply').disabled=!runnable()||!s.running;el('log').textContent=s.status;},
 });
 function render() {
   const p=preset();
@@ -323,7 +369,7 @@ on('engine','change',async()=>{
 on('master','input',()=>{if(audio)audio.master.gain.value=Number(el('master').value)/100;});
 on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voices[selected],{channel:sysexChannel})));
 on('saveBank','click',()=>download('FM21290-bank.syx',createBankSysex(voices,{channel:sysexChannel})));
-on('saveCode','click',()=>download('performance.js',el('code').value));
+on('saveCode','click',()=>download(activePath.split('/').pop(),el('code').value));
 let selectedScore=[];
 function selectPart(){
   stopSong();
@@ -337,27 +383,50 @@ on('part','change',selectPart);
 function selectSong(next,bytes){
   midi=next;songBytes=bytes;el('song').hidden=!midi;
   el('part').replaceChildren(...(midi?.parts??[]).filter(p=>p.notes).map(p=>option((p.name||'Track '+(p.track+1))+' · MIDI '+p.channel,p.key)));
-  selectPart();el('playMidi').disabled=el('partCode').disabled=!el('part').value;
+  selectPart();el('playMidi').disabled=!el('part').value;el('partCode').disabled=!runnable()||!el('part').value;renderFiles();
 }
-on('saveSession','click',()=>download('FM21290.cassette.zip',exportSession({
-  bank:createBankSysex(voices,{channel:sysexChannel}),selected,code:el('code').value,song:songBytes,wheel:manualWheel
-})));
+on('newFile','click',()=>{
+  const name=el('newPath').value.trim();
+  const path=projectPath(name.startsWith('/')?name:'/'+name);
+  if(!textPath(path))throw Error('Choose a .js, .mjs, .json or .txt file.');
+  if(files.has(path))throw Error('File already exists: '+path);
+  storeEditor();files.writeText(path,path.endsWith('.json')?'{}':'');
+  el('newPath').value='';showEditor(path);el('code').focus();
+});
+on('saveSession','click',()=>{
+  storeEditor();
+  download('FM21290.cassette.zip',exportSession({bank:currentBank(),selected,code:files.get('/index.js').data,
+    entries:files.list().filter(f=>f.path!=='/index.js'),directories:files.listDirectories(),activePath,song:songBytes,wheel:manualWheel}));
+});
+async function loadVoiceFile(bytes){
+  const dump=parseSysex(bytes);stopSong();sysexChannel=dump.channel;
+  if(dump.format==='bank'){voices.splice(0,32,...dump.voices.map(v=>v.data));selected=0;}
+  else voices[selected]=dump.voices[0].data;
+  render();await applyVoice();
+}
 on('importFile','change',async()=>{
   const f=el('importFile').files[0];el('importFile').value='';if(!f)return;
-  if(/\.js$/i.test(f.name)){el('code').value=await f.text();return;}
   const bytes=new Uint8Array(await f.arrayBuffer());
   if(/\.zip$/i.test(f.name)){
     const next=await importSession(bytes);
     await runtime.stop();stopSong();silence();
     voices.splice(0,32,...next.dump.voices.map(v=>v.data));selected=next.selected;sysexChannel=next.dump.channel;
-    restoreModWheel(next.wheel);el('code').value=next.code;selectSong(next.midi,next.song);render();await applyVoice();
-  }else if(/\.syx$/i.test(f.name)){
-    const dump=parseSysex(bytes);stopSong();sysexChannel=dump.channel;
-    if(dump.format==='bank'){voices.splice(0,32,...dump.voices.map(v=>v.data));selected=0;}
-    else voices[selected]=dump.voices[0].data;
-    render();await applyVoice();
+    files=next.fs;expanded.clear();
+    restoreModWheel(next.wheel);selectSong(next.midi,next.song);showEditor(next.activePath);render();await applyVoice();
+    return;
+  }
+  if(!textPath(f.name)&&!/\.(syx|mid|midi)$/i.test(f.name))throw Error('Unsupported project file.');
+  const folder=textPath(f.name)?'code':/\.syx$/i.test(f.name)?'voices':'songs';
+  const base='/'+folder+'/'+f.name;
+  let path=projectPath(base),n=2;
+  while(files.has(path))path=base.replace(/(\.[^./]+)$/,' ('+(n++)+')$1');
+  storeEditor();
+  if(textPath(path)){
+    files.writeText(path,new TextDecoder('utf-8',{fatal:true}).decode(bytes));showEditor(path);
   }else{
-    const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);
+    if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
+    else{const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
+    files.writeBinary(path,bytes);expanded.set('/'+folder,true);renderFiles();
   }
 });
 async function playRegion(){
@@ -388,9 +457,9 @@ on('playMidi','click',playRegion);
 for(const id of ['midiFrom','midiUntil'])on(id,'change',()=>{if(songPart)return playRegion();});
 on('stopMidi','click',stopSong);
 on('partCode','click',()=>{el('code').value=partSource(selectedScore);el('code').focus();});
-el('code').value=glassSteps;
+showEditor('/index.js');
 for(const action of ['run','apply'])on(action,'click',async()=>{
-  try{await runtime[action](el('code').value);}
+  try{await runtime[action](el('code').value,{path:activePath});}
   catch(error){if(error?.name!=='AbortError' || error.message!=='Run stopped')throw error;}
 });
 on('stop','click',()=>runtime.stop());

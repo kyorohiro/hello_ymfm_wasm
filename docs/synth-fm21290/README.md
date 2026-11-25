@@ -59,6 +59,10 @@ OPS / EGSで **Record from reset** を押すと現在の演奏を止め、リセ
 
 ## Files
 
+FilesのツリーからJS・JSON・テキストを選ぶと、Code欄にそのファイルが開く。New file pathに `/pieces/lead.js` のように入力するとフォルダも作成される。編集内容はファイルを切り替えても残る。RunとApplyは表示中のJavaScriptを実行する。Cassetteにはプロジェクト内のファイル、空フォルダ、最後に開いたテキストのパスも保存する。以前のCassetteでは `/index.js` が開く。
+
+最初のプロジェクトの `/examples/glass-echo/score.json` で音高とベロシティを編集し、同じフォルダの `play.js` を開いてRunすると変更を聴ける。`await file('./score.json', {type:'json'})` の相対パスは実行中のJSを基準にする。`await file('/bank.syx', {type:'arrayBuffer'})` は現在の32音色、`/song.mid` は読込中のMIDIを返す。読み込んだSysExとMIDIは元のファイル名でもツリーに残り、選び直して使える。
+
 単音色SysExは選択中の枠に取り込み、バンクSysExは32枠を置き換える。Export voice / bankでYamahaのバイナリとして保存する。Cassette ZIPは32音色、選択中の枠、Code、読み込んだMIDIの原本をまとめて復元できる。ページを閉じる前に保存する。
 
 MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色で再生する。テンポ、ノート、ベロシティ、サステインを扱う。独自コアのベンド幅は暫定で±2半音。MSFA経路のベンドとプログラムチェンジは今後の対象。
