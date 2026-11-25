@@ -8,7 +8,7 @@ export function pitchBendWord(semitones){return Math.round(semitones*4096/12);}
 function pedalDown(value,chip){return value>=(chip?1:64);}
 
 // OPS/EGS owns its pedal gates. The MSFA adapter defers note-offs by pitch.
-export function createPartPlayer({noteOn,noteOff,setSustain,setBend,stop}){
+export function createPartPlayer({noteOn,noteOff,setSustain,setBend,setWheel,stop}){
   const deferred=new Set();
   let sustained=false,finished=false;
   function active(){if(finished)throw Error('MIDI part has finished');}
@@ -29,6 +29,7 @@ export function createPartPlayer({noteOn,noteOff,setSustain,setBend,stop}){
       if(setSustain)setSustain(sustained);
       else if(!sustained){for(const n of deferred)noteOff(n);deferred.clear();}
     },
+    modWheel(value){active();integer(value,0,127,'CC1');setWheel?.(value);},
     pitchBend(value){
       active();integer(value,0,16383,'pitch bend');
       setBend?.(pitchBendWord((value-8192)/8192*2));
@@ -51,6 +52,7 @@ export function partScore(song,key){
     if(e.kind===9 && e.b)score.push([e.seconds,'noteOn',e.a,e.b]);
     else if(e.kind===8 || e.kind===9)score.push([e.seconds,'noteOff',e.a]);
     else if(e.kind===11 && e.a===64)score.push([e.seconds,'sustain',e.b]);
+    else if(e.kind===11 && e.a===1)score.push([e.seconds,'modWheel',e.b]);
     else if(e.kind===14)score.push([e.seconds,'pitchBend',e.a+128*e.b]);
   }
   return score;
@@ -77,9 +79,10 @@ export function playbackRegion(score,start,end,chip){
   if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>duration||
       end<start||(start===end && duration!==0))throw RangeError('Choose a start before the end, within the selected track.');
   const voices=Array(chip?16:128).fill(null);
-  let cursor=0,pedal=0,bend=8192,i=0;
+  let cursor=0,pedal=0,wheel=null,bend=8192,i=0;
   for(;i<score.length && score[i][0]<start;i++){
     const [,method,n,v]=score[i];
+    if(method==='modWheel')wheel=n;
     if(method==='pitchBend')bend=n;
     if(method==='sustain'){
       pedal=n;
@@ -98,6 +101,7 @@ export function playbackRegion(score,start,end,chip){
     }
   }
   const events=[];
+  if(wheel!==null)events.push([0,'modWheel',wheel]);
   if(pedal)events.push([0,'sustain',pedal]);
   if(bend!==8192)events.push([0,'pitchBend',bend]);
   // Restore pedal-only notes first so a same-pitch key still down stays down.

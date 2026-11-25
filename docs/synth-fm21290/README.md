@@ -45,6 +45,10 @@ await out.noteOff('G4');
 
 OPS / EGSの **Pitch bend (semitones)** は全声に効く±2半音のホイール。ドラッグのほか、フォーカスして矢印キーで微調整、Home / Endで下端・上端まで操作できる。ポインターや操作キーを離すか、フォーカスを外すと中央に戻る。操作中はホイールを優先し、離すとMIDIまたはCodeのパートが最後に指定した有効なベンドへ戻る。外部MIDI出力はノートのみ。MSFAを選ぶとホイールは無効になる。
 
+**Mod wheel** は操作した位置に留まる。Positionは0〜127、Rangeは0〜99。Pitch・Amplitude・EG biasを組み合わせて割り当てられる。ビブラートを試すにはPitchを選び、VoiceのLFOでpitchModSensitivityを上げる。AmplitudeとEG biasは各OPのampModSensitivityに応じて効く。EG biasはホイールを下げたときに減衰が深くなる。
+
+独自コアではMIDIパートのCC1とCodeの `part.modWheel(値)` も同じホイールを操作する。途中再生では直前のCC1を復元し、パートを止めると最後の手動位置に戻る。位置・レンジ・割り当てはCassetteで保存する。単音色・バンクSysExは音色データのみを含む。
+
 MSFAは同じ音高へのNote Offで該当する全声を解放するため、異なる入力で重なる同音は最初の打鍵を共有し、最後の入力が離した時点で解放する。独自コアの音色・ピッチベンド・生レジスタは共有で、直接 `0x30f1` に書く操作は指定した物理CHに届く。
 
 ## レジスタの記録と再演

@@ -3,11 +3,19 @@ import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/
 import {parseSysex} from '../js/msfa_dx7/src/sysex.js';
 import {parseMidiFile} from '../js/midi_file.js';
 
-export function exportSession({bank, selected, code, song}) {
+export const defaultWheel=Object.freeze({value:0,range:99,assign:1});
+function readWheel(wheel){
+  if(wheel===undefined)return {...defaultWheel};
+  for(const [key,max] of [['range',99],['assign',7],['value',127]]){
+    if(!Number.isInteger(wheel?.[key])||wheel[key]<0||wheel[key]>max)throw Error('Invalid Mod wheel in Cassette');
+  }
+  return {value:wheel.value,range:wheel.range,assign:wheel.assign};
+}
+export function exportSession({bank, selected, code, song, wheel}) {
   const files=[
     {path:'/bank.syx',type:'binary',data:bank},
     {path:'/index.js',type:'text',data:code},
-    {path:'/fm21290.json',type:'text',data:JSON.stringify({version:1,selected})}
+    {path:'/fm21290.json',type:'text',data:JSON.stringify({version:1,selected,wheel:readWheel(wheel)})}
   ];
   if(song) files.push({path:'/song.mid',type:'binary',data:song});
   return createPlaygroundCassetteZip(files);
@@ -21,5 +29,5 @@ export async function importSession(bytes) {
   const dump=parseSysex(files.get('bank.syx'));
   if(dump.format!=='bank'||!files.has('index.js'))throw Error('Cassette needs bank.syx and index.js');
   const song=files.get('song.mid');
-  return {dump,selected:meta.selected,code:decoder.decode(files.get('index.js')),song,midi:song?parseMidiFile(song):null};
+  return {dump,wheel:readWheel(meta.wheel),selected:meta.selected,code:decoder.decode(files.get('index.js')),song,midi:song?parseMidiFile(song):null};
 }

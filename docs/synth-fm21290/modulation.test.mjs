@@ -118,3 +118,26 @@ test('pitch envelope reaches the rendered A4 carrier at 44.1 and 48 kHz',()=>{
     assert.ok(Math.abs(crossings*4-hz)<=4);
   }
 });
+
+test('wheel assignment bits independently drive PM, AM and EG bias before the patch delay fades in',()=>{
+  const expectedAM=[0,0,205,205,0,0,255,255];
+  for(let assign=0;assign<8;assign++){
+    const {lfo,writes}=fixture(48000,{waveform:3,delay:99});
+    lfo.setWheel({range:99,value:127,assign});
+    lfo.tick();
+    assert.equal(lfo.fade,0);
+    assert.equal(writes.find(([,a])=>a===AM)[2],expectedAM[assign]);
+    const word=assign&1?(-127*253>>1)&65535:0;
+    assert.deepEqual(writes.slice(-2).map(e=>e[2]),[word>>8,word&255]);
+  }
+});
+
+test('zero wheel with full EG bias attenuates and removing assignments restores dry registers',()=>{
+  const {lfo,writes}=fixture(44100,{pitchModDepth:0,ampModDepth:0,waveform:3});
+  lfo.setBend(400);lfo.setWheel({range:99,value:0,assign:4});lfo.tick();
+  assert.deepEqual(writes.at(-1),[0,AM,255]);
+  lfo.setWheel({range:99,value:127,assign:1});lfo.tick();
+  assert.ok(lfo.pitchOffset()<0);
+  lfo.setWheel({range:0,value:127,assign:7});
+  assert.deepEqual(writes.slice(-2),[[0,PM,1],[0,PM+1,144]]);
+});

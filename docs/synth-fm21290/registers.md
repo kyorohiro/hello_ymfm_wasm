@@ -187,3 +187,11 @@ Keyboardの各押鍵・Code・SMFの所有者はアプリ側で記録する。AU
 | 64、127 | 約1 | 約1 |
 
 独自コアではCC64が0なら離鍵時に0x30F1へキーオフを書き、1以上ならペダルを0にした時点で同じCHに書いた。ペダル解除後は両経路とも参照RMSの0.1%未満。数値は上記の速いリリースの音色に対する結果。
+
+## Modホイールのファンクション設定とEGS出力
+
+v1.8のCPU RAMでは0x232Eの下位3ビットが順にPitch・Amplitude・EG bias、0x2336がRange、0x2337が入力位置。CC1の受信経路は7ビット値を左シフトして位置に格納する。`MOD_CALCULATE_SOURCE_SCALED_INPUT` の整数演算をたどると、レンジ上限は `R = (range × 165) >> 6`、実効入力は `W = (R × (CC1 × 2)) >> 8`。Range 99、CC1 127でRは255、Wは253になる。[DX7 v1.8逆アセンブル](https://github.com/ajxs/yamaha_dx7_rom_disassembly/blob/b9df0c0d2500a654904ff5e9bde1276e50fe010e/yamaha_dx7_rom_v1.8.asm)
+
+PitchとAmplitudeは、音色のLFO深度にフェード係数を掛けた後でWを加え、255で飽和させる。EG bias割り当て時の減衰量は、ホイール単独ならR−W。AMは減衰分の余地を残して変調を制限し、波形を掛けた後に減衰を足して振幅変調テーブルを引く。PMは音色のピッチ変調感度・波形を掛けてベンドを加算する。出力先は全声共有の0x30F0、0x30F2–F3。[ROMの振幅・ピッチ書き込みルーチン](https://github.com/ajxs/yamaha_dx7_rom_disassembly/blob/b9df0c0d2500a654904ff5e9bde1276e50fe010e/yamaha_dx7_rom_v1.8.asm#L11740-L11954)
+
+本アプリの初期値は位置0、Range 99、Pitchのみ。手で操作した位置もCC1と同じ7ビットで扱う。8通りの割り当てをLFOフェード開始前の固定条件で検証し、EG bias単独・Range 99・位置0でAMが0xFFになることを確認した。実機ホイールのアナログ入力特性と、フット・ブレス・アフタータッチ同時入力時の合算は未検証。

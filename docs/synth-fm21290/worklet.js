@@ -34,6 +34,7 @@ class FmProcessor extends AudioWorkletProcessor {
           this.controller.configure(data.lfo);
           this.controller.pitchEnvelope.configure(data.pitchEnvelope);
         }
+        else if(data.modWheel)this.controller.setWheel(data.modWheel);
         else if (data.bend !== undefined) this.controller.setBend(data.bend);
         else for (const command of data.writes) {
           if (Array.isArray(command)) this.chip.writeRegister(...command);

@@ -44,6 +44,7 @@ export class ModulatedChip {
     this.random = 0;
     this.wave = 0;
     this.bend = 0;
+    this.wheelAM=0;this.wheelPM=0;this.bias=0;
     this.fade = 255;
     this.delayPhase = 65535;
     this.configure({speed:0,delay:0,sync:false,waveform:0,ampModDepth:0,pitchModDepth:0,pitchModSensitivity:0});
@@ -57,12 +58,25 @@ export class ModulatedChip {
     if (!this.delay) { this.fade=255; this.delayPhase=65535; }
     this.sync = lfo.sync;
     this.shape = lfo.waveform;
-    const oldAM = this.amDepth, oldPM = this.pmDepth && this.sensitivity;
+    const oldAM=this.usesAM,oldPM=this.usesPM;
     this.amDepth = scaled(lfo.ampModDepth);
     this.pmDepth = scaled(lfo.pitchModDepth);
     this.sensitivity = sensitivities[lfo.pitchModSensitivity];
-    if(oldAM && !this.amDepth)this.chip.writeRegister(AM,0);
-    if(oldPM && !(this.pmDepth && this.sensitivity))this.writePitch(this.bend);
+    this.clearInactive(oldAM,oldPM);
+  }
+  get usesAM(){return this.amDepth || this.wheelAM || this.bias;}
+  get usesPM(){return (this.pmDepth || this.wheelPM) && this.sensitivity;}
+  setWheel({value,range,assign}){
+    const oldAM=this.usesAM,oldPM=this.usesPM;
+    const limit=scaled(range),input=limit*(value*2)>>8;
+    this.wheelAM=assign&2?input:0;
+    this.wheelPM=assign&1?input:0;
+    this.bias=assign&4?limit-input:0;
+    this.clearInactive(oldAM,oldPM);
+  }
+  clearInactive(oldAM,oldPM){
+    if(oldAM && !this.usesAM)this.chip.writeRegister(AM,0);
+    if(oldPM && !this.usesPM)this.writePitch(this.bend);
   }
   writePitch(pitch) {
     this.chip.writeRegister(PM,(pitch >> 8) & 255);
@@ -79,7 +93,7 @@ export class ModulatedChip {
   }
   pitchOffset() {
     const signed = (this.wave ^ 128)-128;
-    return (Math.trunc(signed*this.sensitivity/256) * (this.pmDepth*this.fade >> 8)) >> 1;
+    return (Math.trunc(signed*this.sensitivity/256) * Math.min(255,(this.pmDepth*this.fade >> 8)+this.wheelPM)) >> 1;
   }
   tick() {
     const old = this.phase;
@@ -103,12 +117,13 @@ export class ModulatedChip {
       this.delayPhase=65535;
       this.fade=Math.min(255,this.fade+Math.max(1,this.delayIncrement>>8));
     }
-    if(this.amDepth) {
-      const magnitude = (this.amDepth*this.fade >> 8) * (this.wave ^ 127) >> 8;
+    if(this.usesAM) {
+      const depth=Math.min(255-this.bias,(this.amDepth*this.fade>>8)+this.wheelAM);
+      const magnitude=this.bias+(depth*(this.wave^127)>>8);
       this.chip.writeRegister(AM,ampTable[255-magnitude]);
     }
     this.pitchEnvelope.tick();
-    if(this.pmDepth && this.sensitivity)this.writePitch(this.pitchOffset()+this.bend);
+    if(this.usesPM)this.writePitch(this.pitchOffset()+this.bend);
   }
   renderInto(buffer) {
     let offset=0;

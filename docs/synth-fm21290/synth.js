@@ -14,7 +14,7 @@ import {createMidiApi} from '../js/playground_midi.js';
 import {pitchBendWord,createPartPlayer,partScore,partSource,playbackRegion} from './midi_part.js';
 import {createNoteOutput} from './midi_output.js';
 import {createInstrument} from './instrument.js';
-import {exportSession,importSession} from './session.js';
+import {defaultWheel,exportSession,importSession} from './session.js';
 import {glassSteps,glassPatch} from './examples.js';
 
 const el = id => document.getElementById(id);
@@ -67,7 +67,7 @@ function rawGate(value,owner){
 function applyChipPatch(){
   const patch=preset();
   audio.node.port.postMessage({lfo:patch.lfo,pitchEnvelope:patch.pitchEnvelope});
-  chip.setPatch(patch);flush();
+  sendModWheel();chip.setPatch(patch);flush();
 }
 function flush() {
   if(writes.length && audio?.node) audio.node.port.postMessage({writes:writes.splice(0)});
@@ -152,15 +152,41 @@ function setPartBend(owner,bend){
   partBend=bend;bendOwner=bend===0?null:owner;
   if(wheelBend===null)sendBend();
 }
+let manualWheel={...defaultWheel},modOwner=null,modValue=manualWheel.value;
+function sendModWheel(){
+  audio?.node?.port.postMessage({modWheel:{...manualWheel,value:modValue}});
+}
+function setModPosition(owner,value){
+  modOwner=owner;modValue=value;
+  el('modPosition').value=value;el('modValue').textContent=value;
+  sendModWheel();
+}
+function restoreModWheel(settings){
+  manualWheel={...settings};el('modRange').value=settings.range;
+  for(const [i,id] of ['modPitch','modAmp','modBias'].entries())el(id).checked=Boolean(settings.assign&(1<<i));
+  setModPosition(null,settings.value);
+}
+on('modPosition','input',()=>{
+  manualWheel.value=Number(el('modPosition').value);setModPosition(null,manualWheel.value);
+});
+for(const id of ['modRange','modPitch','modAmp','modBias'])on(id,'change',()=>{
+  const input=el('modRange');
+  if(!input.checkValidity()||input.value==='')input.value=manualWheel.range;
+  manualWheel.range=Number(input.value);
+  manualWheel.assign=Number(el('modPitch').checked)+2*el('modAmp').checked+4*el('modBias').checked;
+  sendModWheel();
+});
 const codeParts=new Set();
 function createMidiPart(collection,signal){
   const owner={};
   const part=createPartPlayer({
     noteOn:(n,v)=>noteOn(n,v,-1,owner),noteOff:n=>noteOff(n,-1,owner),
     setSustain:audio.node?down=>{chip.setSustain(down,owner);flush();}:null,
+    setWheel:audio.node?value=>setModPosition(owner,value):null,
     setBend:audio.node?bend=>setPartBend(owner,bend):null,
     stop(){
       signal?.removeEventListener('abort',part.finish);stopOwner(owner);collection?.delete(part);
+      if(modOwner===owner)setModPosition(null,manualWheel.value);
       if(bendOwner===owner)setPartBend(null,0);
     },
   });
@@ -289,10 +315,10 @@ on('oscSync','change',()=>edit({oscillatorSync:el('oscSync').checked}));
 on('feedback','change',()=>edit({feedback:Number(el('feedback').value)}));
 on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
-  el('engine').disabled=true;wheel.disabled=true;releaseWheel();
+  el('engine').disabled=true;el('modControls').disabled=wheel.disabled=true;releaseWheel();
   try{if(opening)await opening;await runtime.stop();stopSong();silence();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
     el('channel').disabled=!isChip();el('registers').hidden=!isChip();trace.length=0;render();
-  }finally{el('engine').disabled=false;wheel.disabled=!isChip();}
+  }finally{el('engine').disabled=false;el('modControls').disabled=wheel.disabled=!isChip();}
 });
 on('master','input',()=>{if(audio)audio.master.gain.value=Number(el('master').value)/100;});
 on('saveVoice','click',()=>download(preset().name+'.syx',createVoiceSysex(voices[selected],{channel:sysexChannel})));
@@ -314,7 +340,7 @@ function selectSong(next,bytes){
   selectPart();el('playMidi').disabled=el('partCode').disabled=!el('part').value;
 }
 on('saveSession','click',()=>download('FM21290.cassette.zip',exportSession({
-  bank:createBankSysex(voices,{channel:sysexChannel}),selected,code:el('code').value,song:songBytes
+  bank:createBankSysex(voices,{channel:sysexChannel}),selected,code:el('code').value,song:songBytes,wheel:manualWheel
 })));
 on('importFile','change',async()=>{
   const f=el('importFile').files[0];el('importFile').value='';if(!f)return;
@@ -324,7 +350,7 @@ on('importFile','change',async()=>{
     const next=await importSession(bytes);
     await runtime.stop();stopSong();silence();
     voices.splice(0,32,...next.dump.voices.map(v=>v.data));selected=next.selected;sysexChannel=next.dump.channel;
-    el('code').value=next.code;selectSong(next.midi,next.song);render();await applyVoice();
+    restoreModWheel(next.wheel);el('code').value=next.code;selectSong(next.midi,next.song);render();await applyVoice();
   }else if(/\.syx$/i.test(f.name)){
     const dump=parseSysex(bytes);stopSong();sysexChannel=dump.channel;
     if(dump.format==='bank'){voices.splice(0,32,...dump.voices.map(v=>v.data));selected=0;}
@@ -373,7 +399,7 @@ function traceControls(mode,message){
   traceMode=mode;
   const busy=mode!=='idle';
   el('engine').disabled=busy;
-  wheel.disabled=!isChip()||mode==='replay'||mode==='starting';
+  el('modControls').disabled=wheel.disabled=!isChip()||mode==='replay'||mode==='starting';
   el('capture').disabled=busy;
   el('loadTrace').disabled=busy;
   el('endCapture').disabled=mode!=='record';
@@ -480,7 +506,7 @@ names.forEach((name,i)=>{
   b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);press(e.pointerId,i);};
   b.onlostpointercapture=e=>release(e.pointerId);el('keys').append(b);
 });
-window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||(e.target!==wheel && e.target.closest('input,select,textarea')))return;press(e.code,i);});
+window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||(e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea')))return;press(e.code,i);});
 window.addEventListener('keyup',e=>release(e.code));
 window.addEventListener('blur',()=>{for(const id of [...held.keys()])release(id);});
 const canvas=el('scope'),ctx=canvas.getContext('2d');

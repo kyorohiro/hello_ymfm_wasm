@@ -69,7 +69,16 @@ test('Cassette round trip preserves original bank, selected slot, code and MIDI'
   const voices=Array.from({length:32},(_,i)=>presetToVoice({name:'PATCH '+i}));
   const bank=createBankSysex(voices,{channel:11});
   const song=Uint8Array.of(77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,4,0,255,47,0);
-  const next=await importSession(exportSession({bank,selected:24,code:'// example',song}));
+  const wheel={range:46,assign:6,value:87};
+  const next=await importSession(exportSession({bank,selected:24,code:'// example',song,wheel}));
+  assert.deepEqual(next.wheel,wheel);
+  const {createPlaygroundCassetteZip}=await import('../playground/playground_cassette.js');
+  const legacy=createPlaygroundCassetteZip([
+    {path:'/fm21290.json',type:'text',data:'{"version":1,"selected":24}'},
+    {path:'/index.js',type:'text',data:'// legacy'},
+    {path:'/bank.syx',type:'binary',data:bank},
+  ]);
+  assert.deepEqual((await importSession(legacy)).wheel,{range:99,assign:1,value:0});
   assert.equal(next.selected,24);assert.equal(next.code,'// example');assert.deepEqual(next.song,song);
   assert.deepEqual(createBankSysex(next.dump.voices.map(v=>v.data),{channel:next.dump.channel}),bank);
 });

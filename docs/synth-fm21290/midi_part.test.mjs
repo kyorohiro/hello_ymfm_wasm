@@ -8,13 +8,14 @@ test('selected part generates editable calls on the SMF tempo map through its ow
   const track=bytes=>[77,84,114,107,0,0,0,bytes.length,...bytes];
   const song=parseMidiFile(Uint8Array.from([77,84,104,100,0,0,0,6,0,1,0,2,0,96,
     ...track([96,255,81,3,15,66,64,0,255,47,0]),
-    ...track([0,145,40,99,96,144,60,100,0,64,80,0,176,64,1,
+    ...track([0,145,40,99,96,144,60,100,0,64,80,0,176,64,1,0,1,97,
       48,224,0,96,48,144,60,0,0,128,64,0,48,176,64,0,48,255,47,0])]));
   const key=song.parts.find(p=>p.channel===1).key;
-  const expected=[[.5,'noteOn',60,100],[.5,'noteOn',64,80],[.5,'sustain',1],
+  const expected=[[.5,'noteOn',60,100],[.5,'noteOn',64,80],[.5,'sustain',1],[.5,'modWheel',97],
     [1,'pitchBend',12288],[1.5,'noteOff',60],[1.5,'noteOff',64],[2,'sustain',0],[2.5,'finish']];
   const score=partScore(song,key);
   assert.deepEqual(score,expected);
+  assert.deepEqual(playbackRegion(score,1,2,true)[0],[0,'modWheel',97]);
   let time=0;
   const calls=[],waits=[];
   const part=Object.fromEntries(expected.map(([,method])=>[method,(...args)=>calls.push([time,method,...args])]));
