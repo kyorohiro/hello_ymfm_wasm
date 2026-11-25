@@ -60,7 +60,9 @@ const {chromium}=require('playwright');
       const links=window.testAudioLinks;
       const dest=[...links.keys()].findLast(node=>node instanceof AudioDestinationNode && node.context.state==='running');
       const master=links.get(dest),mixer=links.get(master);
-      return master instanceof GainNode && mixer instanceof GainNode && links.has(mixer)
+      const chipOutput=links.get(mixer);
+      return master instanceof GainNode && mixer instanceof GainNode && chipOutput instanceof GainNode
+        && chipOutput.gain.value===8 && links.get(chipOutput) instanceof AudioWorkletNode
         && Math.abs(master.gain.value-m/100)<1e-5 && Math.abs(mixer.gain.value-s/100)<1e-5;
     },[masterPercent,mixerPercent]);
   }

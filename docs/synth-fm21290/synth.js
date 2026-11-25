@@ -112,7 +112,11 @@ async function ensureAudio() {
       const owner={context,mixer,master};
       await context.audioWorklet.addModule(new URL('./worklet.js',import.meta.url));
       owner.node=new AudioWorkletNode(context,'tetorica-fm21290',{numberOfInputs:0,outputChannelCount:[1]});
-      owner.setCodeEffect=createFm2610CodeRoute(owner.node,mixer).setEffect;
+      // Scale the chip's polyphonic PCM to the Synth's playing level before Live FX.
+      const chipOutput = context.createGain();
+      chipOutput.gain.value = 8;
+      owner.node.connect(chipOutput);
+      owner.setCodeEffect=createFm2610CodeRoute(chipOutput,mixer).setEffect;
       owner.node.port.onmessage=({data})=>{
         if(data.timedReply!==undefined){
           const request=requests.get(data.timedReply);
