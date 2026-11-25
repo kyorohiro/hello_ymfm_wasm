@@ -228,7 +228,20 @@ function codeMidi(clock){
   },{...clock,outputs:['tetorica-fm21290']});
 }
 const physicalGates={keyOff(ch){chip.keyOff(ch,'code');flush();}};
-let files=createVirtualFileSystem([{path:'/index.js',data:glassSteps},...scoreExample]);
+function createDefaultFiles(){
+  return createVirtualFileSystem([{path:'/index.js',data:glassSteps},...scoreExample]);
+}
+async function addBundledExamples(target){
+  for(const name of ['return-steps.js','after-the-chime.mid']){
+    const path='/examples/'+name;
+    if(target.has(path) || target.listDirectories().includes(path))continue;
+    const response=await fetch(new URL('./examples/'+name,import.meta.url));
+    if(!response.ok)throw Error('Could not load '+name+' ('+response.status+')');
+    if(textPath(path))target.writeText(path,await response.text());
+    else target.writeBinary(path,new Uint8Array(await response.arrayBuffer()));
+  }
+}
+let files=createDefaultFiles();
 function addFactoryPresets(){
   for(const [name,data] of [['Glass Step',presetToVoice(glassPatch)],['Init',createInitVoice('INIT')]]){
     const path='/presets/'+name+'.syx';
@@ -651,10 +664,16 @@ for(const id of ['backupCassette','createCassette'])on(id,'click',async()=>{
   if(!cassetteDialog.open)return;
   if(id==='backupCassette')downloadSession();
   cassetteDialog.close();
-  await runtime.stop();stopSong();silence();
-  replaceProject({fs:createVirtualFileSystem([{path:'/index.js',data:''}]),activePath:'/index.js',
-    voice:presetToVoice(glassPatch),channel:0,wheel:defaultWheel,midi:null,song:null});
-  el('newPath').value='';showNewFile(false);await applyVoice();
+  const main=document.querySelector('main');
+  main.inert=true;
+  try{
+    const fs=createDefaultFiles();
+    await addBundledExamples(fs);
+    await runtime.stop();stopSong();silence();
+    replaceProject({fs,activePath:'/index.js',voice:presetToVoice(glassPatch),channel:0,
+      wheel:defaultWheel,midi:null,song:null});
+    el('newPath').value='';showNewFile(false);await applyVoice();
+  }finally{main.inert=false;}
 });
 on('enableEditor','click',async()=>{
   const button=el('enableEditor');button.disabled=true;
@@ -960,14 +979,7 @@ async function restoreDraft(){
   }finally{
     try{
       if(files.has('/examples/glass-echo/play.js')){
-        for(const name of ['return-steps.js','after-the-chime.mid']){
-          const path='/examples/'+name;
-          if(files.has(path) || files.listDirectories().includes(path))continue;
-          const response=await fetch(new URL('./examples/'+name,import.meta.url));
-          if(!response.ok)throw Error('Could not load '+name+' ('+response.status+')');
-          if(textPath(path))files.writeText(path,await response.text());
-          else files.writeBinary(path,new Uint8Array(await response.arrayBuffer()));
-        }
+        await addBundledExamples(files);
         renderFiles();
       }
     }catch(error){report(error);}
