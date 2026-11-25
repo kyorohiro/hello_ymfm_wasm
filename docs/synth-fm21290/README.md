@@ -6,7 +6,7 @@
 
 **Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / MIDI / Register / Mixer** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に6枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。CHボタンの緑は発音中、琥珀色はリリース中。白い枠が手動で選んだ演奏先を示す。MSFAではAUTOで演奏する。
 
-**Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
+**Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。Octaveの− / ＋で−3〜＋3オクターブを切り替えられる。PCキーによる演奏はKeyboardタブを閉じても使える。Code本文などのテキスト欄では文字を入力できる。Ctrl / Cmd + EnterでRun、Shiftを加えるとApplyでき、Codeを閉じた状態からも実行できる。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
 
 **Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定、MIDIを選ぶとパートと再生範囲を設定できるMIDIタブが開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、バンク（Bank · SysEx）、Codeを保存できる。
 
@@ -14,7 +14,7 @@
 
 最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
 
-**Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、☰ Menu → Importで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
+**Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesのexamplesからreturn-steps.jsを開く。Glass Echoと一緒にCassette ZIPに同梱される。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 
 Algorithmの下に出力の式を表示する。矢印は変調先、+ は加算を示す。各OPの色はエンベロープ図と共通。OPをクリックするかTabで選んでEnterを押すと、そのOPの行と4段のレベル図が選択される。Algorithm 4ではOP6 → OP5 → OP4を通り、OP4からOP6へ戻る。
 

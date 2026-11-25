@@ -264,7 +264,6 @@ function projectFileList(){
   return list;
 }
 function renderFiles(){
-  el('fileSelection').textContent=selectedFile;
   renderFileTree(el('filesTree'),projectFileList(),{expanded,selectedPath:selectedFile,onOpen:path=>openProjectFile(path).catch(report)});
 }
 async function openProjectFile(path){
@@ -753,6 +752,7 @@ wheel.addEventListener('blur',releaseWheel);
 window.addEventListener('blur',releaseWheel);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseWheel();});
 const fretboard=createFretboardState();
+let keyboardOctave=0;
 let layout;
 async function press(id,pad,button){
   if(document.querySelector('main').inert || held.has(id) || pad.midi<0 || pad.midi>127)return;
@@ -772,7 +772,7 @@ function release(id){
 }
 function rebuildKeyboard(){
   for(const id of [...held.keys()])release(id);
-  layout=createFretboardLayout({state:fretboard,octave:Number(el('octave').value)});
+  layout=createFretboardLayout({state:fretboard,octave:keyboardOctave});
   renderFretboardControls({state:fretboard,instrumentRoot:el('instruments'),positionRoot:el('positions'),stringWindowRoot:el('strings'),
     onInstrumentChange:id=>{setInstrument(fretboard,id);rebuildKeyboard();},
     onPositionPresetSelect:fret=>{setFretPosition(fretboard,fret);rebuildKeyboard();},
@@ -781,7 +781,13 @@ function rebuildKeyboard(){
     onPointerDown:(event,pad,button)=>press(event.pointerId,pad,button),
     onPointerUp:event=>release(event.pointerId),onPointerCancel:event=>release(event.pointerId)});
 }
-on('octave','change',rebuildKeyboard);
+for(const [id,step] of [['octaveDown',-1],['octaveUp',1]])on(id,'click',()=>{
+  keyboardOctave=Math.max(-3,Math.min(3,keyboardOctave+step));
+  el('octaveValue').textContent=(keyboardOctave>0?'+':'')+keyboardOctave;
+  el('octaveDown').disabled=keyboardOctave===-3;
+  el('octaveUp').disabled=keyboardOctave===3;
+  rebuildKeyboard();
+});
 rebuildKeyboard();refreshChannels();updateChannelStates();
 // Mouse adjustments should return typing to Code, or playing to the fretboard.
 // Ranges reached with Tab retain their native arrow-key behavior.
@@ -801,11 +807,17 @@ function finishRangeGesture(event){
 window.addEventListener('pointerup',finishRangeGesture);
 window.addEventListener('pointercancel',finishRangeGesture);
 window.addEventListener('keydown',e=>{
-  if(el('keyboardPanel').hidden || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('#synthMenu[open]') ||
+  if(document.querySelector('main').inert || e.defaultPrevented || e.isComposing || e.repeat || e.altKey || e.target.closest('#synthMenu[open]') ||
     e.target.closest('input:not([type=range]),select,textarea,[contenteditable],.monaco-editor'))return;
+  if(e.ctrlKey || e.metaKey){
+    if(e.key==='Enter'){
+      e.preventDefault();el(e.shiftKey?'apply':'run').click();
+    }
+    return;
+  }
   const pad=findLayoutEntry(layout.entries,e.key.toLowerCase());
   if(pad){press(e.code,pad,el('keys').querySelector('[data-key="'+pad.key+'"]'));return;}
-  if(e.defaultPrevented || e.target.closest('input,button[role=tab],#filesPanel'))return;
+  if(el('keyboardPanel').hidden || e.target.closest('input,button[role=tab],#filesPanel'))return;
   if(e.key==='ArrowLeft'||e.key==='ArrowRight')
     setFretPosition(fretboard,Math.min(24,fretboard.horizontalFretPosition+(e.key==='ArrowRight'?1:-1)));
   else if(e.key==='ArrowUp'||e.key==='ArrowDown')
@@ -934,7 +946,17 @@ async function restoreDraft(){
     if(pending){draftChanged();await saveDraft();}
   }catch(error){
     el('draftStatus').textContent='Local recovery unavailable. Use Export Cassette. '+error.message;
-  }finally{main.inert=false;}
+  }finally{
+    try{
+      const path='/examples/return-steps.js';
+      if(files.has('/examples/glass-echo/play.js') && !files.has(path) && !files.listDirectories().includes(path)){
+        const response=await fetch(new URL('./examples/return-steps.js',import.meta.url));
+        if(!response.ok)throw Error('Could not load Return Steps ('+response.status+')');
+        files.writeText(path,await response.text());renderFiles();
+      }
+    }catch(error){report(error);}
+    main.inert=false;
+  }
 }
 for(const id of ['midiFrom','midiUntil','midiLoop'])el(id).addEventListener('input',draftChanged);
 window.addEventListener('pagehide',protectDraft);

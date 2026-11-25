@@ -123,7 +123,6 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 #channels button[aria-pressed=true]{outline:2px solid #ecf6f0;outline-offset:-3px;box-shadow:none}
 .cassette{margin-top:.7rem}
 .cassette summary{cursor:pointer;font: .82rem/1.7 ui-monospace,monospace}
-#fileSelection{display:block;overflow-wrap:anywhere;color:var(--muted);font:.75rem/1.6 ui-monospace,monospace;margin:.5rem 0}
 #filesTree .file-entry{width:100%;text-align:left}
 #filesTree .file-entry[aria-current=true]{background:#263a33}
 #newEntry{margin:.5rem 0}
@@ -180,3 +179,7 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 @container (max-width:355px){
   #operatorTable tbody tr{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+.octave-control{display:inline-flex;align-items:center;gap:.5rem;color:#d2d5ca;font-size:.8rem}
+.octave-control button{background:#242b28;color:#d9e1d8;border-color:#47564d}
+#octaveValue{display:inline-block;min-width:2ch;text-align:center}
