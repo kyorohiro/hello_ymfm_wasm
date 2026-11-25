@@ -22,6 +22,12 @@ const tau = 2 * Math.PI;
 const busToRadians = 2 * tau * 2 ** (4/16);
 // Two returned samples are averaged, then scaled by the FBL shift.
 const feedbackGain = Array.from({length:8}, (_,fbl) => fbl ? busToRadians * 2 ** (fbl-9) : 0);
+// OPS COM ROM logarithms in eighths of an octave, indexed by carrier count - 1.
+const comLog = [0,8,13,16,19,21];
+const carrierGain = algorithms.map(route => {
+  const count = route.filter(flags => (flags & 3) === 0).length;
+  return 2 ** (-comLog[count-1]/8);
+});
 const amplitude = attenuation => attenuation >= 127 ? 0 : 2 ** (-attenuation / 8);
 export class Fm21290 {
   constructor(sampleRate = 48000) {
@@ -141,6 +147,7 @@ export class Fm21290 {
     buffer.fill(0);
     for (let ch = 0; ch < 16; ch++) {
       const v = this.voices[ch], setting = this.algorithms[ch];
+      const compensation = carrierGain[setting >> 3];
       const route = algorithms[setting >> 3], feedback = feedbackGain[setting & 7];
       for (let frame = 0; frame < buffer.length && v.active; frame++) {
         this.bus.fill(0);
@@ -158,7 +165,7 @@ export class Fm21290 {
           const flags = route[op], input = (flags >> 4) & 3, out = flags & 3;
           let modulation = input ? this.bus[input] * busToRadians : 0;
           if ((flags & 64) && feedback) modulation += (v.previous + v.feedback) * feedback;
-          const value = Math.sin(v.phase[op] + modulation) * v.level[op] * v.gain[op] * this.amGain[op];
+          const value = Math.sin(v.phase[op] + modulation) * v.level[op] * v.gain[op] * this.amGain[op] * (out === 0 ? compensation : 1);
           v.phase[op] = (v.phase[op] + v.step[op]) % tau;
           if (flags & 128) { v.previous = v.feedback; v.feedback = value; }
           this.bus[out] = flags & 4 ? this.bus[out] + value : value;

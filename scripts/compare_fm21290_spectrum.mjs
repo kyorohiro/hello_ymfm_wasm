@@ -36,14 +36,14 @@ function twoOperators(algorithm,carrier,modulator,level,ratio=1,carrierRatio=1) 
   return makePreset(algorithm,levels,ratios);
 }
 
-async function renderPair(preset) {
+async function renderPair(preset, referencePreset=preset) {
   const core=new Fm21290(rate),keys=createInstrument((a,d)=>core.writeRegister(a,d));
   keys.setPatch(preset);keys.noteOn(69,127);
   const pcm=new Float32Array(rate/2);core.renderInto(pcm);
 
   const msfa=await createDX7({sampleRate:rate,wasmBytes});
   try{
-    msfa.setPreset(preset);msfa.noteOn(69,127);
+    msfa.setPreset(referencePreset);msfa.noteOn(69,127);
     return [pcm,msfa.render(pcm.length)];
   }finally{msfa.dispose();}
 }
@@ -57,8 +57,8 @@ for(let h=1;h<=8;h++){
   response.push(pair.map(pcm=>magnitude(pcm,440*h)));
 }
 const db=ratio=>20*Math.log10(Math.max(1e-10,ratio));
-async function compare(preset,label,pure=false){
-  const pair=await renderPair(preset);
+async function compare(preset,label,pure=false,referencePreset=preset){
+  const pair=await renderPair(preset,referencePreset);
   const spectra=pair.map(pcm=>{
     const fundamental=magnitude(pcm,440);
     assert.ok(fundamental>0.01,'missing A4 fundamental');
@@ -95,7 +95,12 @@ for(let algorithm=1;algorithm<=32;algorithm++){
 for(let feedback=0;feedback<=7;feedback++){
   const preset=twoOperators(32,6,1,0);
   preset.feedback=feedback;
-  await compare(preset,'OP6 self-feedback '+feedback);
+  preset.operators[6].outputLevel=99;
+  // MSFA has no OPS COM. Algorithm 32 attenuates its carrier (including
+  // the signal returned to OP6) by 21 eighth-octaves, or 21 OL steps.
+  const reference=structuredClone(preset);
+  reference.operators[6].outputLevel-=21;
+  await compare(preset,'OP6 self-feedback, COM-matched MSFA '+feedback,false,reference);
 }
 
 // For these two algorithms MSFA has no multi-operator feedback kernel.
@@ -124,5 +129,27 @@ for(const algorithm of [4,6]){
     assert.equal(msfa,0);
     if(muted)assert.equal(custom,0);
     else assert.ok(custom>0.1);
+  }
+}
+
+// Absolute carrier levels. The six routes/outputs are independent fixtures
+// from the OPS algorithm diagrams, rather than a count from the runtime table.
+const carrierCases=[
+  [16,[1],0], [1,[1,3],8], [5,[1,3,5],13],
+  [21,[1,2,4,5],16], [31,[1,2,3,4,5],19], [32,[1,2,3,4,5,6],21],
+];
+let baseline;
+for(const [algorithm,carriers,logEighths] of carrierCases){
+  const activeSets=carriers.length===1 ? [carriers] : [[1],carriers];
+  for(const outputs of activeSets){
+    const levels=Array.from({length:6},(_,i)=>outputs.includes(i+1)?78:0);
+    const pcm=await renderPair(makePreset(algorithm,levels,[1,1,1,1,1,1]));
+    const amps=pcm.map(samples=>magnitude(samples,440));
+    baseline??=amps;
+    const customDB=db(amps[0]/baseline[0]), msfaDB=db(amps[1]/baseline[1]);
+    const summedDB=db(outputs.length);
+    assert.ok(Math.abs(customDB-(summedDB-db(2)*logEighths/8))<0.001);
+    assert.ok(Math.abs(msfaDB-summedDB)<0.05);
+    console.log(JSON.stringify({algorithm,activeCarriers:outputs.length,customDB,msfaDB}));
   }
 }

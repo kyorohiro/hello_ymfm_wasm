@@ -205,3 +205,16 @@ test('sync restarts oscillator phase but retains model feedback on an immediate 
     assert.equal(render(1)[0],0);
   }
 });
+
+test('changing the algorithm on CH16 compensates its carriers during a held note',()=>{
+  const {core,api,render}=setup({algorithm:15,feedback:0,oscillatorSync:true});
+  api.keyOn(0,69);api.keyOn(15,69);
+  render(4800);
+  const before=render(1200); // Eleven cycles of the two aligned A4 carriers.
+  core.writeRegister(MODE,15);
+  core.writeRegister(ALGORITHM,31<<3);
+  const after=render(1200);
+  const peak=pcm=>Math.max(...pcm);
+  assert.ok(peak(before)>0);
+  assert.ok(Math.abs(peak(after)/peak(before)-(1+2**(-21/8))/2)<1e-6);
+});
