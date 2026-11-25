@@ -67,18 +67,22 @@ const {chromium}=require('playwright');
   const keySync=page.getByRole('button',{name:'LFO key sync'});
   const oldSync=await keySync.getAttribute('aria-pressed');await keySync.click();
   assert.notEqual(await keySync.getAttribute('aria-pressed'),oldSync);
+  const widths={};
   for(const width of [1440,940,768,390,320]){
     await page.setViewportSize({width,height:900});
     const octaveSize=await page.locator('#octaveControl .param-control').boundingBox();
-    assert(octaveSize.width<=70 && octaveSize.height<=24,'Compact octave buttons at '+width+'px');
+    assert(octaveSize.height<=24,'Compact octave height at '+width+'px');
+    if(width<=390)assert(octaveSize.width<=70);
     const values=page.locator('#operatorTable table:visible .param-value');
     assert.equal(await values.count(),48);
+    widths[width]=[octaveSize.width,(await values.first().boundingBox()).width];
     assert(await values.evaluateAll(nodes=>nodes.every(node=>{
       const rect=node.getBoundingClientRect();
       return rect.width>0 && rect.left>=0 && rect.right<=innerWidth && node.scrollWidth<=node.clientWidth+1;
     })), 'Envelope values must fit at '+width+'px');
     assert(await page.locator('#operatorTable').evaluate(n=>n.scrollWidth<=n.clientWidth+1));
   }
+  assert(widths[1440].every((value,i)=>value>widths[390][i]),'Wide panels expand both octave and envelope values');
   await page.getByRole('button',{name:'OP6 L4',exact:true}).press('ArrowLeft');
   await page.setViewportSize({width:1440,height:900});
   const l3=page.getByRole('button',{name:'OP6 L3',exact:true});
