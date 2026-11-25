@@ -89,11 +89,33 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 #keyboardPanel label input[type=range]{grid-row:2;grid-column:1}
 #keyboardPanel label output{grid-row:2;grid-column:2;align-self:center}
 #keyboardPanel output{font: .72rem ui-monospace,monospace}
-#keys{position:relative;gap:2px;background:#141714;border:3px solid #141714;border-radius:5px}
-#keys button{height:5.4rem;display:flex;flex-direction:column;justify-content:end;align-items:center;gap:.12rem;line-height:1;padding-bottom:.4rem;border-color:#bfb9a8;background:linear-gradient(#e7e1d3,#fcf9ee 80%,#dad4c5);border-radius:0 0 3px 3px;font-size:.8rem}
-#keys button.black{position:absolute;top:0;z-index:1;transform:translateX(-50%);width:7.5%;height:62%;border-color:#151616;background:linear-gradient(#151918,#353a37);color:#faf8ed}
-#keys kbd{font:.6rem ui-monospace,monospace;opacity:.7}
-#keys button:is(.pressed,:active){background:var(--dx-green);color:#142622}
+#channels,.file-actions,.fret-controls,.fret-controls>div,.panel-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.panel-tabs{border-bottom:1px solid var(--line);gap:2px}
+.panel-tabs button,#channels button,.file-actions button,.fret-controls button,#showNewFile{background:#242b28;color:#d9e1d8;border-color:#47564d}
+.panel-tabs button{border-radius:4px 4px 0 0;border-bottom:2px solid transparent}
+.panel-tabs [aria-selected=true]{border-bottom-color:var(--dx-green);color:#8de8dc;background:#2b3934}
+#channels button[aria-pressed=true],.fret-controls .is-selected{background:var(--dx-green);color:var(--button-ink)}
+#channels button{min-width:3.1rem}
+.desk{gap:8px}
+#inputTabs{margin-top:6px}
+#outputPanel #scope{height:85px}
+#slots{font: .8rem/1.6 ui-monospace,monospace;overflow-wrap:anywhere}
+.cassette{margin-top:.7rem}
+.cassette summary{cursor:pointer;font: .82rem/1.7 ui-monospace,monospace}
+#fileSelection{display:block;overflow-wrap:anywhere;color:var(--muted);font:.75rem/1.6 ui-monospace,monospace;margin:.5rem 0}
+#filesTree .file-entry{width:100%;text-align:left}
+#filesTree .file-entry[aria-current=true]{background:#263a33}
+#newEntry{margin:.5rem 0}
+#filesPanel h2{margin:0}
+.file-actions{margin:.4rem 0}
+.fret-controls{gap:.6rem;margin:.75rem 0}
+.fret-controls button{padding:.2rem .45rem}
+#keys{display:grid;gap:4px;margin:.4rem 0}
+#keys .key-row{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
+#keys .key{display:grid;place-content:center;gap:2px;height:2.7rem;border:1px solid #56635a;background:#29332f;color:#e9ece3;font: .78rem/1.1 ui-monospace,monospace}
+#keys .key span{font-size:.68rem;color:#b9c5ba}
+#keys .pressed,#keys .key:active{background:var(--dx-green);color:#172522}
+#keys .pressed span{color:#172522}
 #codePanel textarea,#codeEditorHost{height:clamp(320px,50vh,650px)}
 #codePanel .row{margin:.55rem 0}
 #codePanel textarea{padding:.8rem;line-height:1.5}

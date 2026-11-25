@@ -18,7 +18,7 @@ const {chromium}=require('playwright');
   const page=await browser.newPage();page.setDefaultTimeout(5000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/synth-fm21290/index.html');
-  await page.selectOption('#bank','1');
+  await page.click('#tab-voicePanel');await page.selectOption('#bank','1');
   const wheel=page.locator('#pitchWheel');
   const pm=word=>page.waitForFunction(v=>document.querySelector('#modBytes').textContent.endsWith(v),word);
   await wheel.focus();await page.keyboard.down('End');await pm('02 ab');

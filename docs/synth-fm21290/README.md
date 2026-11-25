@@ -4,11 +4,15 @@
 
 この開発版は同じDX7音色を、実験用OPS/EGSコアまたは既存MSFAで演奏する。ローカルで使う場合はリポジトリのルートで `python3 -m http.server --directory docs 8080` を実行し、`http://localhost:8080/synth-fm21290/` を開く。
 
-**Synth** では鍵盤で試奏しながら音色を編集できる。配線図でOPを選ぶと、そのOPのパラメータが表示される。**Code** に切り替えると、演奏を続けながらエディタと波形を確認できる。**Files** ボタンでファイル一覧を開閉でき、テキストファイルを選ぶとエディタが開く。スマートフォンでは初回はFilesを閉じて鍵盤を表示する。
+**Synth** では上段のOutputで出力を確認しながら、中央の **YM21290 / Voice / MIDI / Register** と下段の **Keyboard / Code** を独立に切り替えられる。**Codeモード** は同じOutputの下に6枚を一列のタブとしてまとめる。YM21290の **AUTO** は音源に声を割り当てさせ、**CH1〜CH16** は指板から鳴らす物理声を指定する。MSFAではAUTOで演奏する。
+
+**Keyboard** はFM2612と共通のギター指板。数字・Q・A・Zから始まる4列が弦に対応し、各パッドにPCキーと音名が出る。左右の矢印でフレットを、上下の矢印で表示する弦を移動できる。Guitar / Bass / Ukulele、開放・5・12フレットの切り替えにも対応する。
+
+**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとVoice、MIDIを選ぶとパートと再生範囲を設定できるMIDIタブが開く。**Export Cassette** でプロジェクト全体、**Individual files** で音色・バンク・コードを個別に保存できる。
 
 画面上部の **Menu** はスクロール中も使える。**Keyboard** を選ぶとPC鍵盤で演奏でき、**Code** を選ぶと開いているエディタに入力できる。**Files**、音色、波形表示、MIDI出力、独自コアのレジスタ画面にも移動できる。演奏中のファイル作成・読み込み・Cassette書き出しの入口も同じメニューにある。Escで閉じる。
 
-最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。KeyboardではAからKの列とその間の黒鍵で演奏する。Waveform / SpectrumはMaster後の出力を観測する。
+最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。Waveform / SpectrumはMaster後の出力を観測する。
 
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesでサンプルをダウンロードし、同じFilesで読み込む。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 
@@ -79,7 +83,7 @@ MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色
 
 途中再生では、押鍵中の音とペダルで残った音を元のベロシティで打鍵し直すため、アタックから鳴る。独自コアでは開始直前のベンドも復元する。物理CHはその場のAUTO割り当てに従う。Code変換の対象は選択パート全体。
 
-FilesでMIDI partを選び、**Replace Code with part** を押すとCode欄を選択パートのJavaScriptで置き換える。現在のCodeを残したい場合は先にExport codeで保存する。変換後はMIDIファイルを閉じても、保存したJSだけで演奏できる。Runで選択中の音色を使って再生する。
+MIDIタブでMIDI partを選び、**Replace Code with part** を押すとCode欄を選択パートのJavaScriptで置き換える。現在のCodeを残したい場合は先にExport codeで保存する。変換後はMIDIファイルを閉じても、保存したJSだけで演奏できる。Runで選択中の音色を使って再生する。
 
 生成したCodeの `time.waitUntil(秒)` は曲頭からの時刻で、テンポ変更を反映する。同時刻の命令はファイル順に並ぶ。`part.noteOn(60, 100)` の引数はMIDIノート番号とベロシティ。`part.noteOff(60)`、`part.sustain(CC64値)`、`part.pitchBend(0〜16383、中央8192)` も直接編集できる。`part.finish()` はトラック終端でこのパートの残ったノートを解放する。外部MIDIのノート送信先は画面のポートとSend Channelで選ぶ。
 

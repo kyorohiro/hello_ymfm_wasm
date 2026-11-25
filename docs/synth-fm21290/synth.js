@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {buildKeyboard, createFretboardLayout, createFretboardState, findLayoutEntry,
+  renderFretboardControls, setFretPosition, setInstrument, setStringWindowIndex}
+  from '../synth/synth_keyboard.js';
 import {createInitVoice,parseSysex,createVoiceSysex,createBankSysex} from '../js/msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset} from '../js/msfa_dx7/src/preset.js';
 import {createDx7Audio} from '../js/playground_dx7_audio.js';
@@ -148,7 +151,7 @@ function silence(){
   releaseWheel();
   if(audio?.dx)audio.notes.panic();
   if(audio?.node){chip.allNotesOff();flush();audio.node.port.postMessage({reset:true});applyChipPatch();}
-  held.clear();for(const key of el('keys').children)key.classList.remove('pressed');
+  held.clear();for(const key of el('keys').querySelectorAll('.pressed'))key.classList.remove('pressed');
 }
 function stopOwner(owner){
   if(audio?.node){chip.stopOwner(owner);flush();}
@@ -223,7 +226,7 @@ function codeMidi(clock){
 }
 const physicalGates={keyOff(ch){chip.keyOff(ch,'code');flush();}};
 let files=createVirtualFileSystem([{path:'/index.js',data:glassSteps},...scoreExample]);
-let activePath='/index.js';
+let activePath='/index.js',selectedFile=activePath;
 const expanded=new Map();
 const runnable=()=>/\.m?js$/i.test(activePath);
 const currentBank=()=>createBankSysex(voices,{channel:sysexChannel});
@@ -238,7 +241,7 @@ function storeEditor(){
   if(text!==files.get(activePath).data)files.writeText(activePath,text);
 }
 function showEditor(path){
-  activePath=path;codeEditor.setSource(files.get(path).data,path);el('activeFile').textContent=path;
+  selectedFile=activePath=path;codeEditor.setSource(files.get(path).data,path);el('activeFile').textContent=path;
   el('run').disabled=!runnable();el('apply').disabled=!runnable()||!runtime.getState().running;
   el('partCode').disabled=!runnable()||!el('part').value;
   renderFiles();draftChanged();
@@ -257,7 +260,8 @@ function projectFileList(){
   return list;
 }
 function renderFiles(){
-  renderFileTree(el('filesTree'),projectFileList(),{expanded,selectedPath:activePath,onOpen:path=>openProjectFile(path).catch(report)});
+  el('fileSelection').textContent=selectedFile;
+  renderFileTree(el('filesTree'),projectFileList(),{expanded,selectedPath:selectedFile,onOpen:path=>openProjectFile(path).catch(report)});
 }
 async function openProjectFile(path){
   storeEditor();
@@ -265,7 +269,8 @@ async function openProjectFile(path){
   const bytes=projectReader.get(path).data;
   if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
   else if(/\.midi?$/i.test(path)){const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
-  else download(path.split('/').pop(),bytes);
+  else {download(path.split('/').pop(),bytes);return;}
+  selectBinaryFile(path);
 }
 const extraChannels=Array.from({length:10},(_,i)=>'CH'+(i+7));
 const runtime=createPlaygroundCodeRuntime({
@@ -367,7 +372,25 @@ for(const key of ['rates','levels']){
 el('algorithm').append(...Array.from({length:32},(_,i)=>option(i+1,i)));
 el('inspectCh').append(...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
 on('inspectCh','change',()=>{el('voiceState').textContent='';audio?.node?.port.postMessage({inspectCh:Number(el('inspectCh').value)});});
-el('channel').append(option('AUTO',-1),...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
+let physicalChannel=-1;
+for(let channel=-1;channel<16;channel++){
+  const button=document.createElement('button');
+  button.textContent=channel<0?'AUTO':'CH'+(channel+1);
+  button.onclick=()=>{
+    physicalChannel=channel;refreshChannels();
+    if(channel>=0){
+      el('inspectCh').value=channel;el('inspectCh').dispatchEvent(new Event('change'));
+    }
+  };
+  el('channels').append(button);
+}
+function refreshChannels(){
+  Array.from(el('channels').children,(button,index)=>{
+    button.disabled=!isChip() && index>0;
+    button.setAttribute('aria-pressed',String(index===(isChip()?physicalChannel+1:0)));
+  });
+  el('inspectCh').disabled=!isChip();
+}
 on('bank','change',async()=>{stopSong();selected=Number(el('bank').value);render();await applyVoice();});
 on('algorithm','change',()=>edit({algorithm:Number(el('algorithm').value)}));
 on('oscSync','change',()=>edit({oscillatorSync:el('oscSync').checked}));
@@ -376,7 +399,7 @@ on('name','change',()=>edit({name:el('name').value}));
 on('engine','change',async()=>{
   el('engine').disabled=true;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=true;releaseWheel();
   try{if(opening)await opening;await runtime.stop();stopSong();silence();monitor.disconnect();audio?.dx?.dispose();audio?.endpoint?.dispose();await audio?.context.close();audio=null;
-    el('channel').disabled=!isChip();el('registers').hidden=!isChip();trace.length=0;render();
+    refreshChannels();updateTabs();trace.length=0;el('slots').textContent=el('voiceState').textContent='';render();
   }finally{el('engine').disabled=false;el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();}
 });
 on('master','input',()=>{el('masterValue').textContent=el('master').value+'%';if(audio)audio.master.gain.value=Number(el('master').value)/100;});
@@ -405,7 +428,7 @@ on('newFile','click',()=>{
   if(!textPath(path))throw Error('Choose a .js, .mjs, .json or .txt file.');
   if(files.has(path))throw Error('File already exists: '+path);
   storeEditor();files.writeText(path,path.endsWith('.json')?'{}':'');
-  el('newPath').value='';editFile(path);
+  el('newPath').value='';showNewFile(false);editFile(path);
 });
 on('saveSession','click',()=>{
   storeEditor();
@@ -443,7 +466,7 @@ on('importFile','change',async()=>{
   }else{
     if(/\.syx$/i.test(path))await loadVoiceFile(bytes);
     else{const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
-    files.writeBinary(path,bytes);expanded.set('/'+folder,true);renderFiles();draftChanged();
+    files.writeBinary(path,bytes);expanded.set('/'+folder,true);selectBinaryFile(path);
   }
 });
 async function playRegion(){
@@ -476,7 +499,7 @@ on('stopMidi','click',stopSong);
 const codeEditor=setupSynthMonacoEditor({
   textarea:el('code'),editorHost:el('codeEditorHost'),editorNote:el('editorNote'),
   chip:'fm21290',transformDeclarations:selectFM21290Declarations,declarationsOnly:true,
-  visible:()=>true,whenReady:()=>{},getPath:()=>activePath,
+  visible:()=>!el('codePanel').hidden,whenReady:()=>{},getPath:()=>activePath,
   listFiles:()=>projectFileList().filter(f=>f.type!=='directory' && textPath(f.path)).map(f=>files.get(f.path)),
   openFile:openProjectFile,
   onEdit:draftChanged,run:apply=>el(apply?'apply':'run').click(),
@@ -486,24 +509,85 @@ function setFiles(open){
   el('workspace').classList.toggle('with-files',open);
   el('filesToggle').setAttribute('aria-expanded',String(open));
 }
+const panelNames={chipPanel:'YM21290',voicePanel:'Voice',midiPanel:'MIDI',registers:'Register',keyboardPanel:'Keyboard',codePanel:'Code'};
+const soundIds=['chipPanel','voicePanel','midiPanel','registers'];
+const inputIds=['keyboardPanel','codePanel'];
+let codeMode=false,soundTab='chipPanel',inputTab='keyboardPanel',fullTab='codePanel';
+function selectPanel(id){
+  if(codeMode)fullTab=id;
+  else if(inputIds.includes(id))inputTab=id;
+  else soundTab=id;
+  updateTabs();draftChanged();
+}
+function displayTabs(root,ids,current){
+  const list=el(root);
+  for(const id of ids){
+    let tab=el('tab-'+id);
+    if(!tab){
+      tab=document.createElement('button');tab.id='tab-'+id;tab.textContent=panelNames[id];
+      tab.setAttribute('role','tab');tab.setAttribute('aria-controls',id);
+      tab.onclick=()=>selectPanel(id);
+      tab.onkeydown=event=>{
+        const tabs=Array.from(tab.parentElement.querySelectorAll('button:not([hidden])'));
+        const index=tabs.indexOf(tab);
+        const next={ArrowLeft:(index+tabs.length-1)%tabs.length,ArrowRight:(index+1)%tabs.length,Home:0,End:tabs.length-1}[event.key];
+        if(next===undefined)return;
+        event.preventDefault();tabs[next].click();tabs[next].focus();
+      };
+    }
+    const position=ids.indexOf(id);
+    if(list.children[position]!==tab)list.insertBefore(tab,list.children[position]??null);
+    tab.hidden=id==='registers'&&!isChip();
+    tab.tabIndex=id===current?0:-1;tab.setAttribute('aria-selected',String(id===current));
+    const panel=el(id),host=el(root==='mainTabs'?'mainPanels':'inputPanels');
+    if(panel.parentElement!==host)host.append(panel);
+    panel.hidden=id!==current;panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);
+  }
+}
+function updateTabs(){
+  if(!isChip()){
+    if(soundTab==='registers')soundTab='chipPanel';
+    if(fullTab==='registers')fullTab='chipPanel';
+  }
+  displayTabs('mainTabs',codeMode?['codePanel',...soundIds,'keyboardPanel']:soundIds,codeMode?fullTab:soundTab);
+  if(!codeMode)displayTabs('inputTabs',inputIds,inputTab);
+  el('inputTabs').hidden=el('inputPanels').hidden=codeMode;
+  if(!el('codePanel').hidden)codeEditor.layout();
+}
 function setView(code){
-  el('codePanel').hidden=!code;
-  el('keyboardPanel').hidden=el('soundPanels').hidden=code;
-  el('workspace').classList.toggle('code-view',code);
+  codeMode=code;
   el('codeView').setAttribute('aria-pressed',String(code));
   el('synthView').setAttribute('aria-pressed',String(!code));
-  if(code)codeEditor.layout();
+  updateTabs();
 }
+function selectBinaryFile(path){
+  selectedFile=path;renderFiles();
+  selectPanel(/\.syx$/i.test(path)?'voicePanel':'midiPanel');
+  if(matchMedia('(max-width: 760px)').matches)setFiles(false);
+  draftChanged();
+}
+function showNewFile(open){
+  el('newEntry').hidden=!open;el('showNewFile').setAttribute('aria-expanded',String(open));
+  if(open){
+    const field=el('newPath');
+    if(!field.value){
+      let n=1;
+      while(files.has('/score'+n+'.js'))n++;
+      field.value='/score'+n+'.js';
+    }
+    field.focus();field.select();
+  }
+}
+on('chooseImport','click',()=>el('importFile').click());
+on('showNewFile','click',()=>showNewFile(el('newEntry').hidden));
 function editFile(path){
-  showEditor(path);setView(true);
+  showEditor(path);selectPanel('codePanel');
   if(matchMedia('(max-width: 760px)').matches)setFiles(false);
   el('codePanel').scrollIntoView({block:'start'});codeEditor.focus();draftChanged();
 }
 on('filesToggle','click',()=>{setFiles(el('filesPanel').hidden);draftChanged();});
 for(const [id,code] of [['codeView',true],['synthView',false]])on(id,'click',()=>{
   setView(code);
-  const panel=el(code?'codePanel':'keyboardPanel');panel.scrollIntoView({block:'start'});
-  if(code)codeEditor.focus();else panel.focus({preventScroll:true});
   draftChanged();
 });
 setFiles(!matchMedia('(max-width: 760px)').matches);setView(false);
@@ -515,8 +599,7 @@ el('synthMenuPanel').addEventListener('click',event=>{
     event.preventDefault();
     const section=el(link.hash.slice(1));
     if(section.id==='filesPanel')setFiles(true);
-    else if(section.id==='codePanel')setView(true);
-    else if(section.id!=='outputPanel')setView(false);
+    else if(panelNames[section.id])selectPanel(section.id);
     if(section.hidden)return;
     draftChanged();
     section.scrollIntoView({block:'start'});
@@ -526,7 +609,7 @@ el('synthMenuPanel').addEventListener('click',event=>{
   }
   const action=event.target.closest('[data-action]')?.dataset.action;
   if(action==='newPath'){
-    setFiles(true);draftChanged();el('filesPanel').scrollIntoView({block:'start'});el(action).focus({preventScroll:true});
+    setFiles(true);showNewFile(true);draftChanged();el('filesPanel').scrollIntoView({block:'start'});el(action).focus({preventScroll:true});
   }else if(action){
     if(!event.detail)el('synthMenuButton').focus({preventScroll:true});
     el(action).click();
@@ -636,36 +719,57 @@ wheel.addEventListener('keyup',e=>{
 wheel.addEventListener('blur',releaseWheel);
 window.addEventListener('blur',releaseWheel);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseWheel();});
-const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
-const mappings='awsedftgyhujk';
-async function press(id,index){
-  if(document.querySelector('main').inert || held.has(id))return;
-  const note=Math.min(127,(1+Number(el('octave').value))*12+index);
-  const entry={index,note,ch:isChip()?Number(el('channel').value):-1,started:false};held.set(id,entry);
-  try{await ensureAudio();if(held.get(id)!==entry)return;noteOn(note,100,entry.ch,entry);entry.started=true;el('keys').children[index].classList.add('pressed');}
-  catch(error){held.delete(id);report(error);}
+const fretboard=createFretboardState();
+let layout;
+async function press(id,pad,button){
+  if(document.querySelector('main').inert || held.has(id) || pad.midi<0 || pad.midi>127)return;
+  const entry={button,note:pad.midi,ch:isChip()?physicalChannel:-1,started:false};
+  held.set(id,entry);
+  try{
+    await ensureAudio();
+    if(held.get(id)!==entry)return;
+    noteOn(entry.note,100,entry.ch,entry);entry.started=true;button.classList.add('pressed');
+  }catch(error){held.delete(id);report(error);}
 }
 function release(id){
-  const entry=held.get(id);
-  held.delete(id);
+  const entry=held.get(id);held.delete(id);
   if(!entry?.started)return;
   noteOff(entry.note,entry.ch,entry);
-  if(![...held.values()].some(e=>e.started && e.index===entry.index))el('keys').children[entry.index].classList.remove('pressed');
+  if(![...held.values()].some(e=>e.started && e.button===entry.button))entry.button.classList.remove('pressed');
 }
-let whiteKeys=0;
-names.forEach((name,i)=>{
-  const b=document.createElement('button'),binding=mappings[i].toUpperCase();
-  b.textContent=name;b.title=name+' · '+binding;b.setAttribute('aria-label',b.title);
-  const hint=document.createElement('kbd');hint.textContent=binding;b.append(hint);
-  if(name.includes('♯')){b.className='black';b.style.left=(whiteKeys*12.5)+'%';}
-  else whiteKeys++;
-  b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);press(e.pointerId,i);};
-  b.onlostpointercapture=e=>release(e.pointerId);el('keys').append(b);
+function rebuildKeyboard(){
+  for(const id of [...held.keys()])release(id);
+  layout=createFretboardLayout({state:fretboard,octave:Number(el('octave').value)});
+  renderFretboardControls({state:fretboard,instrumentRoot:el('instruments'),positionRoot:el('positions'),stringWindowRoot:el('strings'),
+    onInstrumentChange:id=>{setInstrument(fretboard,id);rebuildKeyboard();},
+    onPositionPresetSelect:fret=>{setFretPosition(fretboard,fret);rebuildKeyboard();},
+    onStringWindowChange:index=>{setStringWindowIndex(fretboard,index);rebuildKeyboard();}});
+  buildKeyboard({root:el('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entries,showPitch:false,
+    onPointerDown:(event,pad,button)=>press(event.pointerId,pad,button),
+    onPointerUp:event=>release(event.pointerId),onPointerCancel:event=>release(event.pointerId)});
+}
+on('octave','change',rebuildKeyboard);
+rebuildKeyboard();refreshChannels();
+window.addEventListener('keydown',e=>{
+  if(el('keyboardPanel').hidden || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('#synthMenu[open]') ||
+    (e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea,[contenteditable],.monaco-editor')))return;
+  const pad=findLayoutEntry(layout.entries,e.key.toLowerCase());
+  if(pad){press(e.code,pad,el('keys').querySelector('[data-key="'+pad.key+'"]'));return;}
+  if(e.defaultPrevented || e.target.closest('input,button[role=tab],#filesPanel'))return;
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight')
+    setFretPosition(fretboard,Math.min(24,fretboard.horizontalFretPosition+(e.key==='ArrowRight'?1:-1)));
+  else if(e.key==='ArrowUp'||e.key==='ArrowDown')
+    setStringWindowIndex(fretboard,fretboard.stringWindowIndex+(e.key==='ArrowUp'?1:-1));
+  else return;
+  e.preventDefault();rebuildKeyboard();
 });
-window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('#synthMenu[open]')||(e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea,[contenteditable],.monaco-editor')))return;press(e.code,i);});
 window.addEventListener('keyup',e=>release(e.code));
 window.addEventListener('blur',()=>{for(const id of [...held.keys()])release(id);});
 const canvas=el('scope'),ctx=canvas.getContext('2d');
+new ResizeObserver(([entry])=>{
+  canvas.width=Math.max(1,Math.round(entry.contentRect.width));
+  canvas.height=Math.max(1,Math.round(entry.contentRect.height));
+}).observe(canvas);
 function draw(){monitor.draw(canvas,ctx,el('scopeMode').value.toLowerCase());el('trace').textContent=trace.join('\n');requestAnimationFrame(draw);}
 function draftChanged(){
   if(!draftReady)return;
@@ -675,7 +779,7 @@ function draftChanged(){
 }
 function captureDraft(){
   storeEditor();
-  return {selected,op,activePath,codeView:!el('codePanel').hidden,filesOpen:!el('filesPanel').hidden,wheel:manualWheel,bank:currentBank(),song:songBytes,
+  return {selected,op,activePath,selectedFile,codeView:codeMode,soundTab,inputTab,fullTab,filesOpen:!el('filesPanel').hidden,wheel:manualWheel,bank:currentBank(),song:songBytes,
       ...files.snapshot(),engine:el('engine').value,master:Number(el('master').value),
       part:el('part').value,from:el('midiFrom').valueAsNumber,until:el('midiUntil').valueAsNumber,loop:el('midiLoop').checked};
 }
@@ -744,9 +848,13 @@ async function restoreDraft(){
       if(Number.isInteger(draft.op)&&draft.op>=1&&draft.op<=6)op=draft.op;
       el('engine').value=draft.engine==='msfa'?'msfa':'chip';
       if(Number.isInteger(draft.master)&&draft.master>=0&&draft.master<=100)el('master').value=draft.master;
-      el('channel').disabled=el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();el('registers').hidden=!isChip();
+      el('modPosition').disabled=el('modControls').disabled=wheel.disabled=!isChip();refreshChannels();
       replaceProject(next);
       el('masterValue').textContent=el('master').value+'%';
+      if(projectFileList().some(f=>f.path===draft.selectedFile && f.type!=='directory')){selectedFile=draft.selectedFile;renderFiles();}
+      if(soundIds.includes(draft.soundTab))soundTab=draft.soundTab;
+      if(inputIds.includes(draft.inputTab))inputTab=draft.inputTab;
+      if(Object.hasOwn(panelNames,draft.fullTab))fullTab=draft.fullTab;
       setView(draft.codeView??(activePath!=='/index.js'));
       if(typeof draft.filesOpen==='boolean')setFiles(draft.filesOpen);
       if(next.midi?.parts.some(p=>p.notes && p.key===draft.part)){

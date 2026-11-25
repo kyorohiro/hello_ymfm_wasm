@@ -21,7 +21,7 @@ const {chromium}=require('playwright');
   const ready=()=>page.waitForSelector('main:not([inert])');
   const saved=()=>page.waitForFunction(()=>document.querySelector('#draftStatus').textContent==='Saved locally');
   await ready();
-  await page.selectOption('#bank','3');
+  await page.click('#tab-voicePanel');await page.selectOption('#bank','3');
   await page.fill('#name','LOCAL VOX');await page.locator('#name').press('Tab');
   const track=[0,144,60,95,0,145,67,100,0x83,0,128,60,0,0,129,67,0,0,255,47,0];
   await page.locator('#importFile').setInputFiles({name:'duet.mid',mimeType:'audio/midi',buffer:Buffer.from(
@@ -29,7 +29,7 @@ const {chromium}=require('playwright');
   await page.selectOption('#part',{index:1});
   const part=await page.inputValue('#part');
   await page.fill('#midiFrom','0.25');await page.fill('#midiUntil','1.5');await page.check('#midiLoop');
-  await page.fill('#newPath','/sets/recovery.js');await page.click('#newFile');
+  await page.click('#showNewFile');await page.fill('#newPath','/sets/recovery.js');await page.click('#newFile');
   const code="throw Error('Restored Code must wait for Run')";
   await page.fill('#code',code);await saved();
   await page.reload();await ready();
