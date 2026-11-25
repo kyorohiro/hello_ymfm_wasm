@@ -6,6 +6,8 @@
 
 最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。KeyboardではAからKの列とその間の黒鍵で演奏する。Waveform / SpectrumはMaster後の出力を観測する。
 
+**LFO** は全声共通。独自エンジンで音高の揺れを試すには、Sine、Speed 40、Pitch depth 40、Pitch sensitivity 4にして鍵盤を長押しする。振幅の揺れはAmplitude depthと各OPのAM sensitivityで調整する。Register writesにはAMとPMの現在のバイト値が出る。MSFA経路は同梱エンジンのLFO実装を使う。
+
 ## JavaScript
 
 - `await useSoundChip('dx7')` は現在選択中のエンジンで `noteOn(note, velocity)`、`noteOff(note)`、`getPreset()`、`setPreset(preset)`、`setOperator(1..6, patch)`、`setFeedback(0..7)` を使う。
@@ -20,6 +22,6 @@ MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色
 
 ## 検証
 
-`node --test docs/synth-fm21290/chip.test.mjs`。A4の定常区間の周波数、16声のゲート、32アルゴリズムの出力、時刻付き書き込み列のPCM再現、Cassette往復を検証する。実機測定と各アルゴリズムの倍音照合は今後の課題。
+`node --test docs/synth-fm21290/*.test.mjs`。A4の定常区間の周波数、16声のゲート、32アルゴリズムの出力、時刻付き書き込み列のPCM再現、Cassette往復を検証する。実機測定と各アルゴリズムの倍音照合は今後の課題。
 
 新規実装はリポジトリのBSD-3-Clause。アルゴリズム表はGoogle MSFAのApache-2.0ソースから移植した。JS音色変換と比較用WASMも既存アダプタのライセンスを引き継ぐ。[MSFAライセンス](../js/msfa_dx7/LICENSE) · [第三者表記](../js/msfa_dx7/THIRD_PARTY_NOTICES.md)

@@ -29,7 +29,12 @@ function writeRegister(address,value) {
   trace.push(address.toString(16).padStart(4,'0')+'  '+value.toString(16).padStart(2,'0'));
   if(trace.length>12)trace.shift();
 }
-const chip=createInstrument(writeRegister);
+const chip=createInstrument(writeRegister,()=>audio?.node?.port.postMessage({keyOn:true}));
+function applyChipPatch(){
+  const patch=preset();
+  audio.node.port.postMessage({lfo:patch.lfo});
+  chip.setPatch(patch);flush();
+}
 function flush() {
   if(writes.length && audio?.node) audio.node.port.postMessage({writes:writes.splice(0)});
   else writes.length=0;
@@ -50,6 +55,7 @@ async function ensureAudio() {
         owner.node.connect(master);
         owner.node.port.onmessage=({data})=>{
           if(data.error)report(data.error);
+          if(data.modulation)el('modBytes').textContent=data.modulation.map(n=>n.toString(16).padStart(2,'0')).join(' ');
           if(data.slots)el('slots').textContent=data.slots.map((s,i)=>'CH'+(i+1)+' '+['·','release','on'][s]).join('   ');
         };
       }else{
@@ -58,7 +64,7 @@ async function ensureAudio() {
         await owner.dx.loadSysex(createVoiceSysex(voices[selected]));
       }
       monitor.connect(context,[master]);audio=owner;
-      if(owner.node){chip.setPatch(preset());flush();}
+      if(owner.node)applyChipPatch();
       return owner;
     }catch(error){await context.close();throw error;}
   })();
@@ -66,7 +72,7 @@ async function ensureAudio() {
 }
 async function applyVoice(){
   if(audio?.dx)await audio.dx.setPreset(preset());
-  if(audio?.node){chip.setPatch(preset());flush();}
+  if(audio?.node)applyChipPatch();
 }
 function noteOn(note,velocity=100,ch=-1) {
   if(audio?.dx)audio.dx.noteOn(note,velocity);
@@ -82,7 +88,7 @@ function noteOff(note,ch=-1){
 }
 function silence(){
   if(audio?.dx)audio.dx.panic();
-  if(audio?.node){chip.allNotesOff();flush();audio.node.port.postMessage({reset:true});chip.setPatch(preset());flush();}
+  if(audio?.node){chip.allNotesOff();flush();audio.node.port.postMessage({reset:true});applyChipPatch();}
   held.clear();
 }
 function stopSong(){songEpoch++;clearTimeout(songTimer);songTimer=null;silence();}
@@ -110,6 +116,11 @@ function render() {
   const p=preset();
   el('bank').replaceChildren(...voices.map((v,i)=>option((i+1)+' · '+voiceToPreset(v).name,i)));
   el('bank').value=selected;el('algorithm').value=p.algorithm;el('feedback').value=p.feedback;el('name').value=p.name;
+  for(const key of Object.keys(p.lfo)){
+    const control=el('lfo-'+key);
+    if(key==='sync')control.checked=p.lfo.sync;
+    else control.value=p.lfo[key];
+  }
   const carriers=dx7CarrierOperators(p.algorithm);
   el('ops').replaceChildren(...Array.from({length:6},(_,i)=>{
     const b=document.createElement('button');b.textContent='OP'+(i+1)+(carriers.includes(i+1)?' · Out':'');
@@ -144,6 +155,19 @@ async function edit(patch){
   else await applyVoice();
 }
 function download(name,bytes){const url=URL.createObjectURL(new Blob([bytes]));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+for(const [key,title,max] of [
+  ['waveform','Waveform',5],['speed','Speed',99],['delay','Delay',99],
+  ['pitchModDepth','Pitch depth',99],['pitchModSensitivity','Pitch sensitivity',7],['ampModDepth','Amplitude depth',99],
+  ['sync','Key sync',1],
+]){
+  const label=document.createElement('label'), input=document.createElement(key==='waveform'?'select':'input');
+  input.id='lfo-'+key;
+  if(key==='waveform')input.append(...['Triangle','Saw down','Saw up','Square','Sine','Sample & hold'].map((name,i)=>option(name,i)));
+  else if(key==='sync')input.type='checkbox';
+  else {input.type='number';input.min=0;input.max=max;}
+  label.append(title,input);el('lfo').append(label);
+  on(input.id,'change',()=>edit({lfo:{[key]:key==='sync'?input.checked:Number(input.value)}}));
+}
 el('algorithm').append(...Array.from({length:32},(_,i)=>option(i+1,i)));
 el('channel').append(option('AUTO',-1),...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
 on('bank','change',async()=>{stopSong();selected=Number(el('bank').value);render();await applyVoice();});
@@ -196,8 +220,7 @@ on('playMidi','click',async()=>{
   }
   function bend(value){
     if(!audio.node)return;
-    const raw=Math.round((value-8192)/8192*2*4096/12)&65535;
-    writeRegister(0x30f2,raw>>8);writeRegister(0x30f3,raw&255);flush();
+    audio.node.port.postMessage({bend:Math.round((value-8192)/8192*2*4096/12)});
   }
   function tick(){
     if(epoch!==songEpoch)return;

@@ -88,6 +88,9 @@ export class Fm21290 {
     }
     const i = address - PITCH;
     validRegister(address);
+    // Repeated CPU timer writes are observable on the bus. Only changed
+    // modulation bytes require updating the oscillator or gain caches.
+    if ((address===AM || address===PM || address===PM+1) && this.reg[i]===data) return;
     this.reg[i] = data;
     if(i===0xf0 || (i>=0xe0 && i<0xe6)){
       for(let op=0;op<6;op++) this.amGain[op]=2 ** (-(this.reg[0xe0+op]>>3 & 3)*this.reg[0xf0]/64);
