@@ -21,6 +21,12 @@
 - 独自コアのCodeでは `chip.setSustain(true)` を呼び、`noteOn` → `noteOff` で鍵を離しても音を保持できる。`chip.setSustain(false)` でペダルを戻す。物理CHを指定する `keyOff(CH1)` は即座にゲートを切る。
 - AUTOは16声から空いた発音枠を探索する。物理CH指定は同じ枠を再トリガする。MSFA選択時は自動割り当てを使う。
 
+## レジスタの記録と再演
+
+OPS / EGSで **Record from reset** を押すと現在の演奏を止め、リセットと選択音色の適用から記録する。その後Keyboard、Code、MIDI、または手動レジスタ書き込みで演奏し、**Finish recording** を押す。**Export trace** でJSONに保存し、**Load trace → Replay** で再演できる。再演開始時にも現在の演奏は止まる。
+
+**Event index** で各書き込みのサンプル位置・番地・値を参照できる。**Inspect physical voice** では選択したCHのアルゴリズム、FB、ピッチワード、OP1〜6の出力バイトとモデル上のEG段階を演奏中・再演中に確認できる。記録は最大20万イベント。同じサンプルレートを使用する。Master以降の音量は再演時の設定に従う。
+
 ## Files
 
 単音色SysExは選択中の枠に取り込み、バンクSysExは32枠を置き換える。Export voice / bankでYamahaのバイナリとして保存する。Cassette ZIPは32音色、選択中の枠、Code、読み込んだMIDIの原本をまとめて復元できる。ページを閉じる前に保存する。

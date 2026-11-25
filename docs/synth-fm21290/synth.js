@@ -7,6 +7,7 @@ import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {parseMidiFile} from '../js/midi_file.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {dx7CarrierOperators} from '../playground/playground_dx7_voice_panel.js';
+import {validateTrace} from './register_trace.js';
 import {integer,validRegister} from './chip.js';
 import {createInstrument} from './instrument.js';
 import {exportSession,importSession} from './session.js';
@@ -54,9 +55,21 @@ async function ensureAudio() {
         await context.audioWorklet.addModule(new URL('./worklet.js',import.meta.url));
         owner.node=new AudioWorkletNode(context,'tetorica-fm21290',{numberOfInputs:0,outputChannelCount:[1]});
         owner.node.connect(master);
+        owner.node.port.postMessage({inspectCh:Number(el('inspectCh').value)});
         owner.node.port.onmessage=({data})=>{
-          if(data.error)report(data.error);
+          if(data.recorded){
+            savedTrace=data.recorded;
+            traceControls('idle',data.full?'Event limit reached.':'Recording finished.');
+            inspectTrace();
+          }
+          if(data.replayDone)traceControls('idle','Replay stopped.');
+          if(data.error){report(data.error);if(traceMode==='replay')traceControls('idle','Replay failed.');}
           if(data.modulation)el('modBytes').textContent=data.modulation.map(n=>n.toString(16).padStart(2,'0')).join(' ');
+          if(data.voice && data.voice.ch===Number(el('inspectCh').value)){
+            const v=data.voice;
+            el('voiceState').textContent='Algorithm '+v.algorithm+' · FB '+v.feedback+' · Pitch 0x'+v.pitch.toString(16).padStart(4,'0')+
+              ' · OP1–6 output bytes '+v.levels.map(n=>n.toString(16).padStart(2,'0')).join(' ')+' · EG stages '+v.stages.join(' ');
+          }
           if(data.slots)el('slots').textContent=data.slots.map((s,i)=>'CH'+(i+1)+' '+['·','release','on'][s]).join('   ');
         };
       }else{
@@ -187,6 +200,8 @@ for(const key of ['rates','levels']){
   }
 }
 el('algorithm').append(...Array.from({length:32},(_,i)=>option(i+1,i)));
+el('inspectCh').append(...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
+on('inspectCh','change',()=>{el('voiceState').textContent='';audio?.node?.port.postMessage({inspectCh:Number(el('inspectCh').value)});});
 el('channel').append(option('AUTO',-1),...Array.from({length:16},(_,i)=>option('CH'+(i+1),i)));
 on('bank','change',async()=>{stopSong();selected=Number(el('bank').value);render();await applyVoice();});
 on('algorithm','change',()=>edit({algorithm:Number(el('algorithm').value)}));
@@ -263,6 +278,63 @@ on('playMidi','click',async()=>{
 on('stopMidi','click',stopSong);
 el('code').value=glassSteps;
 on('run','click',()=>runtime.run(el('code').value));on('apply','click',()=>runtime.apply(el('code').value));on('stop','click',()=>runtime.stop());
+let savedTrace=null,traceMode='idle';
+function traceControls(mode,message){
+  traceMode=mode;
+  const busy=mode!=='idle';
+  el('engine').disabled=busy;
+  el('capture').disabled=busy;
+  el('loadTrace').disabled=busy;
+  el('endCapture').disabled=mode!=='record';
+  el('endReplay').disabled=mode!=='replay';
+  el('replayTrace').disabled=busy||!savedTrace;
+  el('saveTrace').disabled=!savedTrace;
+  el('traceStatus').textContent=message;
+}
+function showEvents(){
+  const start=Number(el('traceIndex').value);
+  el('traceEvents').textContent=savedTrace.events.slice(start,start+12).map(([frame,address,value])=>
+    frame+'  '+(address===undefined?'reset':address.toString(16).padStart(4,'0')+'  '+value.toString(16).padStart(2,'0'))).join('\n');
+}
+function inspectTrace(){
+  const {events,frames,sampleRate}=savedTrace;
+  el('traceStatus').textContent+=' '+events.length+' events · '+frames+' frames · '+sampleRate+' Hz';
+  el('traceIndex').max=Math.max(0,events.length-1);
+  el('traceIndex').value=0;
+  el('traceInspect').hidden=!events.length;
+  showEvents();
+}
+async function prepareTrace(mode){
+  if(traceMode!=='idle')return;
+  traceControls('starting','Preparing audio…');
+  try{
+    await ensureAudio();
+    if(mode==='replay')validateTrace(savedTrace,audio.context.sampleRate);
+    await runtime.stop();
+    stopSong();
+    if(mode==='record'){
+      audio.node.port.postMessage({record:true});
+      applyChipPatch();
+      traceControls(mode,'Recording register writes…');
+    }else{
+      audio.node.port.postMessage({replay:savedTrace});
+      traceControls(mode,'Replaying register trace…');
+    }
+  }catch(error){traceControls('idle','');throw error;}
+}
+on('capture','click',()=>prepareTrace('record'));
+on('endCapture','click',()=>{traceControls('finishing','Finishing recording…');audio.node.port.postMessage({endRecord:true});});
+on('traceIndex','input',showEvents);
+on('saveTrace','click',()=>download('FM21290.trace.json',JSON.stringify(savedTrace)));
+on('loadTrace','change',async()=>{
+  const file=el('loadTrace').files[0];el('loadTrace').value='';if(!file)return;
+  traceControls('loading','Reading trace…');
+  try{savedTrace=validateTrace(JSON.parse(await file.text()));}
+  finally{traceControls('idle','');}
+  inspectTrace();
+});
+on('replayTrace','click',()=>prepareTrace('replay'));
+on('endReplay','click',()=>audio.node.port.postMessage({endReplay:true}));
 on('write','click',async()=>{
   await ensureAudio();
   const read=(id,length)=>{const s=el(id).value;if(!new RegExp('^[0-9a-f]{1,'+length+'}$','i').test(s))throw Error('Invalid hex '+id);return parseInt(s,16);};
