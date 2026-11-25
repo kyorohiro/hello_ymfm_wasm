@@ -171,6 +171,22 @@ async function runBrowser(name, type, url, fixture) {
     const silentVoice = `new Uint8Array(${JSON.stringify(fixture.silent)})`;
     for (const execution of ['main', 'worker']) {
       await page.evaluate(async () => window.__dx7Test.runtime.stopWithFade());
+      await run(`const chip = await useSoundChip('fm21290');
+chip.writeRegister(0x2804, 0x30);
+chip.writeRegister(0x2805, 0);
+chip.writeRegister(0x3000, 0x5a);
+chip.writeRegister(0x3001, 0xa8);
+chip.writeRegister(0x302a, 0x23);
+chip.writeRegister(0x302b, 0x2c);
+for (let stage = 0; stage < 4; stage++) {
+  chip.writeRegister(0x3054 + stage, 63);
+  chip.writeRegister(0x3074 + stage, stage === 3 ? 63 : 0);
+}
+chip.writeRegister(0x30d0, 15);
+chip.writeRegister(0x30f1, 1); // gate on
+`, execution);
+      assert((await meter()).every(rms => rms > 0.0001), execution + ' FM21290 register tone');
+      await page.evaluate(() => window.__dx7Test.runtime.stopWithFade());
       const initial = await run(`
         let blocked = false;
         try { await fetch('https://example.com/dx7-should-not-request'); } catch (error) { blocked = /Network access is disabled/.test(error.message); }
@@ -225,7 +241,7 @@ async function runBrowser(name, type, url, fixture) {
       const muted = await meter(); assert(muted.every(value => value < .00001), `${name}/${execution}: mute ${muted}`);
       await run(`mixer.set(context.initialId, {muted:false, volume:1}); setMasterVolume(.25);`, execution);
       const master = await meter(); closeTo(master[0], baseline[0] * .25, 'master volume');
-      await run(`setMasterVolume(1); fx.setChain([fx.gain({gain:.2})]);`, execution);
+      await run(`setMasterVolume(1); await fx.setChain([fx.gain({gain:.2})]);`, execution);
       const fx = await meter(); closeTo(fx[0], baseline[0] * .2, 'DX7 enters final FX chain');
       const loaded = await run(`
         const dx7 = await useSoundChip('dx7');
@@ -284,6 +300,10 @@ async function runBrowser(name, type, url, fixture) {
         for(let i=1;i<pcm.length;i++) if(pcm[i-1]<=0&&pcm[i]>0) crossings.push(i-1-pcm[i-1]/(pcm[i]-pcm[i-1]));
         return crossings.length>1 ? window.__dx7Test.megaDrive.audioContext.sampleRate*(crossings.length-1)/(crossings.at(-1)-crossings[0]) : 0;
       });
+      await run(`await (await useSoundChip('dx7')).setOperator(1, {envelope: {rates:[99,99,99,75],levels:[99,99,30,0]}});`, execution);
+      assert((await meter()).every((rms, i) => rms < liveHeld[i] * .1), execution + ' held OP1 L3');
+      await run(`await (await useSoundChip('dx7')).setOperator(1, {envelope: {levels:[99,99,99,0]}});`, execution);
+      assert((await meter()).every((rms, i) => rms > liveHeld[i] * .8), execution + ' restored OP1 L3');
       const liveInitialHz = await frequency();
       await run(`await (await useSoundChip('dx7')).setOperator(1,{coarse:2});`, execution);
       await meter();

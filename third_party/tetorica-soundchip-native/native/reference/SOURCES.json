@@ -386,18 +386,18 @@
       "sha256": "c88c3cb9ce9b82cd8c1328db7bd0355cb6901028fc2ae0e720582785d8517fc7"
     },
     {
-      "adaptation": "unchanged reference copy",
+      "adaptation": "Tetorica live operator envelope edits retarget held and releasing notes.",
       "file": "native/reference/overrides/msfa/dx7note.cc",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/dx7note.cc",
       "originSha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed",
-      "sha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed"
+      "sha256": "f1c64f7cc775fe9aa1debc9c195601d27a1f51ef4250541efbbfa2d231a0b81b"
     },
     {
-      "adaptation": "unchanged reference copy",
+      "adaptation": "Tetorica live operator envelope edits retarget held and releasing notes.",
       "file": "native/reference/overrides/msfa/env.cc",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/env.cc",
       "originSha256": "e6af8b46212080eb2730ca3f3f5163e1b59b3ba491f42a33cdd360094382cf24",
-      "sha256": "e6af8b46212080eb2730ca3f3f5163e1b59b3ba491f42a33cdd360094382cf24"
+      "sha256": "0c61287e5c069f7436fa001d0e35cfd851c436d49fd4c9c3bbef508b17c00fe9"
     },
     {
       "adaptation": "unchanged reference copy",
@@ -588,12 +588,12 @@
       "sha256": "5cc3440ea6ae71fc6c9fc0dbc79adc27d9d5372f12c0df8e9cbd210b53844d14"
     },
     {
-      "adaptation": "Include the public SDK header; preserve the original PCM event CLI and extend constructor/rate bounds, raw voice loading and identity-scoped edits, protected allocation and released-slot reuse, release/kill/panic histories, all sixteen preallocated slots, seventeen partial-construction failure cleanups, independent instances and callback allocation/free auditing. Add 96 feedback-enabled panic/restart cases against fresh Native instances, covering all 32 algorithms at three output rates. Rendering changes are limited to the separately recorded NativePanic correction.",
+      "adaptation": "Include the public SDK header; preserve the original PCM event CLI and extend constructor/rate bounds, raw voice loading and identity-scoped edits, protected allocation and released-slot reuse, release/kill/panic histories, all sixteen preallocated slots, seventeen partial-construction failure cleanups, independent instances and callback allocation/free auditing. Add 96 feedback-enabled panic/restart cases against fresh Native instances, covering all 32 algorithms at three output rates. Rendering changes are limited to the separately recorded NativePanic correction. Exercise held L3 and active release-rate edits.",
       "file": "native/tests/dx7_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_dx7_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "4832f2bb9e73e3c685b246df4b688633014b46605c1cf62626289aba1d403de6",
-      "sha256": "102a0bd96ed8b3db702e8378529b0c454fe9cc31c333a09ec3cc62476cede6f9"
+      "sha256": "11b87e906132014953d405a08694a33e9a0931ba2ba046ab15e3f42ffaa7896c"
     },
     {
       "adaptation": "Include the public SDK header; preserve the original PCM event CLI and both self-test modes. Extend output-rate boundaries, copied/bounded RAM and rejected-load rollback, stable views and all-RAM reset, all eight same-frame BRR key-ons with explicitly authored global/voice controls and release, protected gates and ignored invalid registers/channels, echo-disabled Stop silence with retained authored settings, borrowed timeline replay/completion/detach and zero runtime C++ allocation/free checks. Native wrapper and vendor synthesis bytes remain unchanged.",

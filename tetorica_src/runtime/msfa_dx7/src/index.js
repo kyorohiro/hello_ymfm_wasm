@@ -122,7 +122,7 @@ class DX7Core {
     this.#applyVoice(presetToVoice(preset));
   }
 
-  /** Edit OP1..OP6. Level/frequency edits also update this patch's sounding
+  /** Edit OP1..OP6. Level, frequency and operator envelope edits also update this patch's sounding
    * notes, including release tails, without retriggering their envelopes. */
   setOperator(operator,patch) {
     this.#check();validateOperator(operator,patch);

@@ -28,7 +28,7 @@ export interface DX7Node {
   /** Replace the selected patch from INIT defaults; resolve after application.
    * Changes affect subsequent Note On events; chip-global LFO state is shared. */
   setPreset(preset: DX7Preset): Promise<void>;
-  /** Patch OP1..OP6; level/frequency changes also affect this patch's sounding
+  /** Patch OP1..OP6; level, frequency and operator envelope changes also affect this patch's sounding
    * notes and release tails without retriggering. Resolve after application. */
   setOperator(operator: 1 | 2 | 3 | 4 | 5 | 6, patch: DX7OperatorParams): Promise<void>;
   /** Apply an ordered tuple batch atomically; an empty batch changes nothing. */

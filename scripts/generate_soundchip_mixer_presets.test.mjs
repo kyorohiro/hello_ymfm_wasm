@@ -14,11 +14,11 @@ import {validatePokeyMixerCalibration} from './pokey_mixer_calibration.mjs';
 import {createPokeyMixerCalibrationFixture} from '../test/helpers/pokey_mixer_calibration_fixture.mjs';
 
 const baselineUrl = new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url);
-const psgUrl = new URL('../docs/issues/soundchip_psg_levels_06.json',import.meta.url);
-const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_ws_timed_chip_levels_01.json',import.meta.url));
-const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_ws_timed_chip_levels_01.json',import.meta.url));
-const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_ws_timed_chip_levels_01.json',import.meta.url));
-const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_ws_timed_chip_levels_01.json',import.meta.url));
+const psgUrl = new URL('../docs/issues/soundchip_psg_levels_07.json',import.meta.url);
+const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_fm21290_chip_levels_01.json',import.meta.url));
+const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_fm21290_chip_levels_01.json',import.meta.url));
+const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_fm21290_chip_levels_01.json',import.meta.url));
+const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm21290_chip_levels_01.json',import.meta.url));
 
 test('the npm preset reproduces from the shared measured baseline; checks reject edited output without overwriting it',async t=>{
   const directory = await mkdtemp(join(tmpdir(),'soundchip-presets-'));

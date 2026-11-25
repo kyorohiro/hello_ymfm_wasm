@@ -13,7 +13,7 @@
     },
     "catalog/source_inventory.json": {
       "bytes": 157517,
-      "sha256": "0302d456e743fd5809fef082dd51f8df67b60758f557d08285980c36483ce426"
+      "sha256": "c96d421579e51bee4cdcc4bf4488fb41dfa06c1de86e3ea7cfb4f4b946554905"
     },
     "native/include/tetorica/ps1_spu.h": {
       "bytes": 260,
@@ -106,8 +106,8 @@
   },
   "sdk": {
     "archiveName": "tetorica-soundchip-native-0.1.8-fm2610-source-mixer-sources.zip",
-    "archiveSha256": "cd1a737c2946ce9d8205a7d642840995cc733b5711c3eebc89cfeeaceac53716",
-    "fileCount": 486,
+    "archiveSha256": "584e552d71fe94360a89731be2e39c730ec92029a8370fca2206d82dcddcefd7",
+    "fileCount": 490,
     "localCandidate": {
       "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
       "changedPaths": [
@@ -121,8 +121,18 @@
         "docs/ym2413-state.md",
         "docs/ym2608-source-mixer.md",
         "native/CMakeLists.txt",
+        "native/README.md",
+        "native/include/tetorica/dx7.hpp",
+        "native/include/tetorica/fm21290.h",
         "native/include/tetorica/huc6280.hpp",
         "native/include/tetorica/huc6280_state.h",
+        "native/reference/SOURCES.json",
+        "native/reference/overrides/msfa/dx7note.cc",
+        "native/reference/overrides/msfa/env.cc",
+        "native/src/fm21290.cpp",
+        "native/src/fm21290_algorithms.inc",
+        "native/tests/dx7_fixture.cpp",
+        "native/tests/fm21290_fixture.cpp",
         "native/tests/huc6280_state_fixture.cpp",
         "scripts/build_huc6280_wasm.sh",
         "scripts/build_spc_wasm.sh",
@@ -140,6 +150,8 @@
         "vendor/mame-huc6280/README.md",
         "vendor/mame-huc6280/huc6280.cpp",
         "vendor/mame-huc6280/huc6280.h",
+        "vendor/msfa/dx7note.cc",
+        "vendor/msfa/env.cc",
         "vendor/snes-spc/README.md",
         "vendor/snes-spc/snes_spc/SNES_SPC.h",
         "wasm/ay8910_wasm.cpp",
@@ -150,7 +162,7 @@
         "wasm/ym2610b_wasm.cpp"
       ]
     },
-    "manifestSha256": "2a44ae65b589035a871c5163dcedd9181a943621b54fb1f27b17ed62d7e15a86",
+    "manifestSha256": "efc71316454f97480a31d749a52f324d9c90d9c27f241780ad43d17764cd6bc0",
     "name": "tetorica-soundchip-native",
     "schemaVersion": 1,
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",

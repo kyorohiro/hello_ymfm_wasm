@@ -92,7 +92,7 @@ try {
   for(const file of ['pwm32x_wasm.js','pwm32x_wasm.d.ts','generated/pwm32x_wasm.js','generated/pwm32x_wasm.wasm',
     'sources/wasm/pwm32x_core.h','sources/wasm/pwm32x_wasm.cpp','sources/scripts/build_pwm32x_wasm.sh',
     'licenses/mame-32x-pwm/LICENSE','licenses/mame-32x-pwm/README.md'])assert(packedPaths.has(file),'PWM WASM package payload missing '+file);
-  for (const file of ['playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js', 'playground_keyboard_channels.js','playground_opn_inspector.js','playground_dx7_inspector.js', 'playground_snes_inspector.js',
+  for (const file of ['fm21290.js', 'fm21290.d.ts', 'fm21290_algorithms.js', 'playground_fm21290.js', 'playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js', 'playground_keyboard_channels.js','playground_opn_inspector.js','playground_dx7_inspector.js', 'playground_snes_inspector.js',
     'msfa_dx7/src/index.js', 'msfa_dx7/src/index.d.ts', 'msfa_dx7/src/preset.js', 'msfa_dx7/src/preset.d.ts', 'msfa_dx7/src/sysex.js', 'msfa_dx7/wasm/msfa.wasm',
     'msfa_dx7/LICENSE', 'msfa_dx7/THIRD_PARTY_NOTICES.md', 'msfa_dx7/README.vendor.md', 'msfa_dx7/vendor/msfa/COPYING']) {
     assert.ok(packedPaths.has(file), `DX7 package payload missing ${file}`);
@@ -720,6 +720,27 @@ try {
   assert.deepEqual(pcm.left,pcm.right,'AY mono is copied to both output channels');
   synth.allNotesOff();
 } finally {ayChip.dispose();}
+const egs = await createSoundChip('fm21290', {sampleRate:44100});
+assert.equal(egs.sampleRate,44100);
+assert.throws(()=>egs.writeRegister(0x3038,0),RangeError);
+egs.writeRegister(0x2804,0x30);
+egs.writeRegister(0x2805,0);
+egs.writeRegister(0x3000,0x5a);
+egs.writeRegister(0x3001,0xa8);
+egs.writeRegister(0x302a,0x23);
+egs.writeRegister(0x302b,0x2c);
+for(let stage=0;stage<4;stage++){
+  egs.writeRegister(0x3054+stage,63);
+  egs.writeRegister(0x3074+stage,stage===3?63:0);
+}
+egs.writeRegister(0x30d0,15);
+egs.writeRegister(0x30f1,1);
+const egsBlock=new Float32Array(8192);
+egs.renderInto(egsBlock);
+assert(egsBlock.some(value=>Math.abs(value)>.001));
+egs.writeRegister(0x30f1,2);
+egs.renderInto(egsBlock);
+assert.equal(egsBlock.at(-1),0);
 // Exercise the public generic entry with the actual installed WASM. Two
 // additional chips deliberately share one Emscripten module, not one handle.
 const wsChip=await createSoundChip('wonderswan');

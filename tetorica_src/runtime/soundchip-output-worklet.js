@@ -32,7 +32,8 @@ import psgFactory from './generated/segapsg_wasm.js';
 import nesFactory from './generated/nesapu_wasm.js';
 import pwmFactory from './generated/pwm32x_wasm.js';
 import {createSoundChipFactory} from './soundchip_factory.js';
-import {createSidSoundChip, createSidPCMRenderer} from './sid_soundchip.js';
+import {Fm21290} from './fm21290.js';
+import {createSidSoundChip, createMonoPCMRenderer} from './sid_soundchip.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js';
 import {YM2612DirectTransport} from './ym2612synth.js';
 import {YM2612DacPlayer} from './ym2612_dac.js';
@@ -43,7 +44,7 @@ const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factor
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApuWasm, nesFactory], wonderswan:[WonderSwan,wonderswanFactory], pokey:[Pokey,pokeyFactory]};
 const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.entries(profiles).map(([name, [Type, moduleFactory]]) =>
   [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => PWM32XPlayback.create({...options,moduleFactory:pwmFactory})],
-  ['sid', options => createSidSoundChip({...options, wasmBinary:options.moduleOptions.wasmBinary})]]));
+  ['fm21290', options => new Fm21290(options.sampleRate)], ['sid', options => createSidSoundChip({...options, wasmBinary:options.moduleOptions.wasmBinary})]]));
 
 const timedInstanceNonce = Math.random().toString(36).slice(2);
 let timedInstanceSequence = 0;
@@ -65,9 +66,9 @@ class SoundChipProcessor extends AudioWorkletProcessor {
     }});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => this.receive(data);
-    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' || name === 'nes' || name==='ay8910' || name==='wonderswan' || name==='pokey' || name==='sid' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
+    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' || name === 'nes' || name==='ay8910' || name==='wonderswan' || name==='pokey' || name==='sid' || name==='fm21290' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
       .then(chip => {
-        if (this.dead) {chip.dispose(); return;}
+        if (this.dead) {chip.dispose?.(); return;}
         this.chip = chip;
         if(name==='ym2612') {
           this.timedChip=observeYm2612TimedChip(chip);
@@ -83,13 +84,13 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         if(this.ayRegisters)this.updateAyMute();
         this.direct = name === 'ym2612' ? new YM2612DirectTransport(chip) : null;
         if (this.direct) this.pcmDac = new YM2612DacPlayer(sampleRate, (port, register, value) => chip.writeRegister(register, value, port));
-        this.renderer = name === 'sid' ? createSidPCMRenderer(chip) : new ChipPCMRenderer(chip, {sampleRate, gain: 1, removeIdleOffset: name === 'ym2612',
+        this.renderer = ['sid','fm21290'].includes(name) ? createMonoPCMRenderer(chip) : new ChipPCMRenderer(chip, {sampleRate, gain: 1, removeIdleOffset: name === 'ym2612',
           generate: this.outputEngine?.generateStereoView.bind(this.outputEngine)??this.direct?.generateStereoView.bind(this.direct)});
         if (['ym3526','ym3812','y8950','ymf262','ym2413'].includes(name) && chipOptions.clock !== undefined) this.renderer.rate=chip.sampleRate(chipOptions.clock);
         chip.reserveStereoFrames?.(Math.ceil(128 * (name === 'sid' ? chip.sampleRate : chip.sampleRate()) / sampleRate));
         chip.reserveFrames?.(128);
         this.port.postMessage({type: 'ready', sampleRate: this.renderer.rate,...(['nes','pwm'].includes(name)?{backend:chip.backend}:{})});
-      }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
+      }).catch(error => {this.dead = true; this.chip?.dispose?.(); this.port.postMessage({error: error.message});});
   }
   receive(data, replyPort = this.port) {
     if(data?.method==='ym2612Timed'){
@@ -116,7 +117,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
   apply(data, replyPort = this.port, appliedFrame = currentFrame, metadata) {
     if(data.method==='applyTimedOperation')return this.timed.apply(data.operation,replyPort,appliedFrame,metadata);
     try {
-      if (data.method === 'dispose') {this.timed?.clear();this.performance.clear();this.dead = true; this.outputEngine?this.outputEngine.dispose():this.chip?.dispose(); this.chip = null;
+      if (data.method === 'dispose') {this.timed?.clear();this.performance.clear();this.dead = true; this.outputEngine?this.outputEngine.dispose():this.chip?.dispose?.(); this.chip = null;
         this.renderer = this.outputEngine = this.pokeySpeaker = this.speaker = this.direct = this.pcmDac = this.opllRegisters = this.oplRegisters = this.ayRegisters = null; this.scheduled = [];this.scheduledIndex=0; this.banks.clear();
         if(this.queuedSpeaker)replyPort.postMessage({type:'disposed',error:'Worklet chip is disposed'});
         for (const port of this.remotePorts) {if(this.queuedSpeaker&&port!==replyPort)port.postMessage({type:'disposed',error:'Worklet chip is disposed'});port.close();} this.remotePorts.clear(); return;}

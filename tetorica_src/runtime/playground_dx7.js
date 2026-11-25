@@ -143,7 +143,7 @@ export function createDx7Client(port, initial = {}, lifecycle = {}) {
       assertUsable(); validatePreset(preset);
       await requestState('setPreset', [structuredClone(preset)]);
     },
-    /** Patch OP1..6. Level/frequency edits also affect this patch's sounding
+    /** Patch OP1..6. Level, frequency and operator envelope edits also affect this patch's sounding
      * notes and release tails. Other operator parameters affect future notes.
      * @param {1|2|3|4|5|6} operator
      * @param {import('./msfa_dx7/src/preset.js').DX7OperatorParams} params */

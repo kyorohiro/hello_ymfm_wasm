@@ -1,19 +1,18 @@
 # Vendored DX7 package
 
-This directory contains the `tetorica-msfa-dx7-wasm@0.3.1` npm release payload,
-including live operator level/frequency editing and `setFeedback`.
-All 25 original package files still match the release tarball byte for byte.
-The engine is now rebuilt from the included fixed `tetorica-soundchip-native`
-SDK `0.1.2` (`53b33a15f5c4b919b185cb912016eccfbbb6d3a6`) using
-`sh scripts/build_dx7_wasm.sh` at the application root. The SDK-built standalone
-`msfa.wasm` matches the deployed release bytes: SHA-256
-`f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f`.
-JavaScript, declarations, package metadata and public APIs remain the 0.3.1 payload.
+The JavaScript API is based on the `tetorica-msfa-dx7-wasm@0.3.1` npm
+release. Tetorica's bundled engine also applies edits to an operator's four
+envelope rates and levels on sounding voices of the same patch. This includes
+sustain-level edits while the key is held and release-rate edits after key-up.
 
-This release
+The application builds the engine with `sh scripts/build_dx7_wasm.sh`.
+`third_party/soundchip-sdk.json` identifies its SDK sources.
+The local engine SHA-256 is `d2735fbc7ad46e7f8c5c5e1c767de818f393a0b95e69b861b0cdc0709b313d9a`.
+The tarball integrity below identifies the original npm dependency.
+
+The original npm release
 clarifies that abrupt frequency/feedback clicks are accepted and no automatic
-parameter smoothing or interpolation is added. Runtime JavaScript, declarations
-and WASM remain unchanged from 0.3.0.
+parameter smoothing or interpolation is added.
 The upstream Google MSFA revision and Apache-2.0 license are retained; local
 DSP/adapter changes are recorded in the bundled research/UPSTREAM documents.
 No runtime CDN or npm production dependency is required.

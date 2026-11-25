@@ -11,7 +11,7 @@
 // supplies a stable voice identity. live=false selects future-note parameters
 // and shared LFO controls while existing notes retain operator parameters.
 // live=true with the current identity edits matching held/releasing notes:
-// operator output level/frequency and feedback apply live, shared LFO controls
+// operator output level/frequency, envelope rates/levels and feedback apply live, shared LFO controls
 // update, and other parameters apply to future notes. A different identity is
 // a selection. Payload bytes and MIDI notes/velocities require host validation.
 //

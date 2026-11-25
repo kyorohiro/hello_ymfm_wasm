@@ -1,3 +1,8 @@
+## Unreleased — DX7 and FM21290
+
+- MSFA edits now retarget the four operator envelope rates and levels on held notes and release tails.
+- Added the YM21290/OPS register renderer, Native target `tetorica::fm21290` and header `tetorica/fm21290.h`.
+
 # Unpublished YM2608 four-source mixer candidate
 
 - Add the optional WASM host ABI `ym2608_set_source_gains(handle, fm, ssg, rhythm, adpcm)`. Four floating-point gains leave registers, envelopes, clocks and decoder state unchanged; zero-gain sources continue advancing. The existing two-bus `ym2608_set_output_gains` keeps its FM-side-plus-SSG meaning.

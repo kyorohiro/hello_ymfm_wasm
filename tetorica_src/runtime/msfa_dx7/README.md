@@ -10,7 +10,7 @@ DX7 single-voice or 32-voice-bank SysEx files. No other Tetorica package is requ
 **Version 0.2.0 adds object presets:** create and edit patches with
 `setPreset`, `setOperator`, `setOperators`, and `getPreset`.
 
-**Version 0.3.0 adds live operator level/frequency changes and `setFeedback`.**
+**Version 0.3.0 adds live operator level, frequency and operator envelope changes and `setFeedback`.**
 Supported operator edits now affect sounding notes of the edited patch;
 see the behavior change and patch-isolation rules below.
 
@@ -142,9 +142,9 @@ All numeric values below must be finite integers within their range.
 ### Live parameters (0.3.0)
 
 `setOperator` / `setOperators` apply changed **outputLevel, mode, coarse, fine
-and detune** to this patch's sounding notes, including release tails. Notes keep
+detune, and operator envelope rates/levels** to this patch's sounding notes, including release tails. Notes keep
 their oscillator phase, envelope stage, key state, original velocity and keyboard
-scaling. Other operator fields, algorithm and EG shape remain future-note-only.
+scaling. Other operator fields, algorithm and pitch EG shape remain future-note-only.
 `setFeedback(0..7)` updates feedback without replacing the rest of the patch.
 
 Patch identity follows each bank slot across `selectVoice` calls. Replacing a
@@ -192,7 +192,7 @@ dx7.noteOff(60);
 ```
 
 This intentionally changes supported operator edits from 0.2.0's future-note-only
-behavior. The API signatures and unedited PCM are retained. General envelope and
+behavior. The API signatures and unedited PCM are retained. Pitch envelope and
 algorithm live editing remain outside this increment.
 Extreme valid ratios/notes/pitch envelopes use defined modular phase increments
 above the original LUT's 20-octave range; ultrasonic frequencies alias. Ordinary

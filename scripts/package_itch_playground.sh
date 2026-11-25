@@ -308,6 +308,14 @@ playground_ym2151.js
 playground_nes.js
 playground_nes_audio.js
 playground_nes_worklet.js
+fm21290.js
+fm21290_algorithms.js
+playground_fm21290.js
+chip_pcm_renderer.js
+sid_soundchip.js
+wonderswanaudioengine.js
+soundchip-output-worklet.js
+soundchip_factory.js
 playground_dx7.js
 playground_dx7_audio.js
 playground_dx7_worklet.js
@@ -522,6 +530,7 @@ ym2610b.js
 ym2610bsynth.js
 ym2610bvgm.js
 ym2610b-worklet.js
+ym2610_timed.js
 vgm_file.js
 s98_file.js
 ym2612vgm.js

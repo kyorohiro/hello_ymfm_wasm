@@ -1641,6 +1641,34 @@ Stop restores the original file, including echo RAM; it is not a mid-song
 checkpoint. Voice mute removes dry output and new echo sends while CPU, BRR,
 envelopes and pitch modulation continue; existing echo tails can remain.
 
+## FM21290 register access
+
+Playground Main and Worker scripts can open the FM21290 Synth register model with
+`const chip = await useSoundChip('fm21290')`. The package root also exposes
+`await createSoundChip('fm21290', {sampleRate: 48000})` for offline mono PCM.
+Both use CPU addresses and byte values. This example configures OP1 on the first physical voice.
+
+```js
+chip.writeRegister(0x2804, 0x30);
+chip.writeRegister(0x2805, 0);
+chip.writeRegister(0x3000, 0x5a);
+chip.writeRegister(0x3001, 0xa8);
+chip.writeRegister(0x302a, 0x23);
+chip.writeRegister(0x302b, 0x2c);
+for (let stage = 0; stage < 4; stage++) {
+  chip.writeRegister(0x3054 + stage, 63);
+  chip.writeRegister(0x3074 + stage, stage === 3 ? 63 : 0);
+}
+chip.writeRegister(0x30d0, 15);
+chip.writeRegister(0x30f1, 1); // gate on
+// Playground: await beat(1);  Offline: chip.renderInto(new Float32Array(48000));
+chip.writeRegister(0x30f1, 2); // gate off
+```
+
+The native SDK exposes the same register model through `tetorica/fm21290.h`
+and the CMake target `tetorica::fm21290`. Register coverage and hardware
+approximations are documented in the FM21290 Synth register notes.
+
 ## DX7 in browser Playground (0.2.14)
 
 Scripts executed by `Playground` / `createPlaygroundRuntime` can use the MSFA
@@ -1724,7 +1752,7 @@ Since 0.2.16, outputLevel/mode/coarse/fine/detune edits apply
 to sounding notes of the edited patch, including release tails. Its additive
 `await dx7.setFeedback(3)` edits feedback (raw range 0..7).
 `setPreset`/`loadSysex` replace patch identities; old notes retain the previous
-patch. `selectVoice` preserves each bank slot's identity. General EG/algorithm
+patch. `selectVoice` preserves each bank slot's identity. Operator envelope rates and levels also update the current stage and release tail. Pitch EG/algorithm
 edits remain future-note-only. Phase/key/EG state and original velocity/scaling
 are retained, with edits applied at the next ungenerated 64-frame internal block.
 An acknowledgement does not bypass generated PCM or device buffering.

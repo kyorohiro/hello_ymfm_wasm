@@ -20,7 +20,7 @@ export interface DX7 {
   /** Replace only the selected bank slot, filling omitted fields from INIT.
    * Creates slot 0 if no bank is loaded. Other bank slots remain unchanged. */
   setPreset(preset: DX7Preset): void;
-  /** Edit OP1..OP6. outputLevel/mode/coarse/fine/detune affect sounding notes
+  /** Edit OP1..OP6. outputLevel/mode/coarse/fine/detune and envelope rates/levels affect sounding notes
    * of this patch, including release tails, without retriggering; other fields
    * affect future notes. setPreset/loadSysex establish new patch identities. */
   setOperator(operator: DX7Operator, patch: DX7OperatorParams): void;

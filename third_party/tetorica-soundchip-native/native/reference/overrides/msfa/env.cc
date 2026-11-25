@@ -84,12 +84,22 @@ void Env::keydown(bool d) {
 }
 
 void Env::setparam(int param, int value) {
-  if (param < 4) {
-    rates_[param] = value;
-  } else if (param < 8) {
-    levels_[param - 4] = value;
-  }
-  // Unknown parameter, ignore for now
+  if (param < 0 || param >= 8) return;
+  const int stage = param & 3;
+  int &stored = param < 4 ? rates_[stage] : levels_[stage];
+  if (stored == value) return;
+  stored = value;
+  auto retarget = [&](State &state, int output) {
+    // Held stage 3 waits for key-up at L3. Resume the third segment
+    // when its level moves. A completed release (ix == 4) stays done.
+    if (down_ && state.ix == 3) {
+      if (param == 6) advance(state, 2, output);
+    } else if (state.ix == stage) {
+      advance(state, stage, output);
+    }
+  };
+  retarget(state_, initial_outlevel_);
+  retarget(reference_, reference_outlevel_);
 }
 
 // Tetorica: change attenuation, never the progressing EG state. The independent

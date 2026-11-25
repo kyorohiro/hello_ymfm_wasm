@@ -4,7 +4,8 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {Ym2608,normalizeYm2608OutputGains,normalizeYm2608SourceGains} from '../../tetorica_src/runtime/ym2608.js';
 import {Ym2608AudioEngine} from '../../tetorica_src/runtime/ym2608audioengine.js';
-import {YM2608RuntimeSynth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {createYm2608TimedProcessor} from '../../tetorica_src/runtime/ym2608_timed_processor.js';
+import {YM2608Synth,YM2608RuntimeSynth} from '../../tetorica_src/runtime/ym2608synth.js';
 import {createPerformanceQueue,createPerformanceChipOwnership} from '../../tetorica_src/runtime/playground_performance_queue.js';
 import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
 import {createOpnAuditionGuard,receiveOpnAuditionCommand} from '../../tetorica_src/runtime/playground_audition_guard.js';
@@ -68,7 +69,7 @@ test('opaque chip snapshots restore independent source gain metadata with legacy
 
 test('worklet source-gain messages retain pre-initialization settings and reject invalid edits atomically',async()=>{
   let Processor;const replies=[],writes=[];
-  const scope={currentFrame:0,sampleRate:48000,createPerformanceQueue,createPerformanceChipOwnership,createChipPortReceiver,
+  const scope={createYm2608TimedProcessor,currentFrame:0,sampleRate:48000,createPerformanceQueue,createPerformanceChipOwnership,createChipPortReceiver,
     createOpnAuditionGuard,receiveOpnAuditionCommand,validateChipClock,normalizeYm2608OutputGains,normalizeYm2608SourceGains,
     AudioWorkletProcessor:class{constructor(){this.port={postMessage:value=>replies.push(value)};}},
     registerProcessor(_name,Type){Processor=Type;}};
@@ -87,7 +88,7 @@ test('worklet source-gain messages retain pre-initialization settings and reject
 test('runtime source-gain state survives restart while default startup sends no new source packet',async()=>{
   for(const options of [{}, {sourceGains:{rhythm:.25,adpcm:.5}}]){
     const runtime=new YM2608RuntimeSynth({...options,audioContext:{state:'running'}}),messages=[];
-    runtime.node={port:{postMessage:value=>messages.push(value)}};runtime.fm={};runtime.state='ready';
+    runtime.node={port:{postMessage:value=>messages.push(value)}};runtime.fm=new YM2608Synth({transport:{reset(){},write(){}}});runtime.state='ready';
     runtime.readyPromise=Promise.resolve();runtime.initializationController=new AbortController();
     await runtime.start();
     assert.equal(messages[0].type,'output-gains');

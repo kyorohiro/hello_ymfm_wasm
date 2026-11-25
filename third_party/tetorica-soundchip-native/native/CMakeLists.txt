@@ -395,6 +395,11 @@ foreach(msfa_file IN LISTS TETORICA_DX7_MSFA_SOURCES TETORICA_DX7_MSFA_HEADERS)
     list(APPEND TETORICA_DX7_ASSEMBLED_SOURCES "${TETORICA_DX7_MSFA_DIR}/${msfa_file}")
   endif()
 endforeach()
+add_library(tetorica_native_fm21290 STATIC src/fm21290.cpp)
+add_library(tetorica::fm21290 ALIAS tetorica_native_fm21290)
+target_compile_features(tetorica_native_fm21290 PUBLIC cxx_std_17)
+target_include_directories(tetorica_native_fm21290 PUBLIC "${CMAKE_CURRENT_LIST_DIR}/include")
+
 add_library(tetorica_native_dx7 STATIC
   reference/tauri/native_genesis_dx7.cpp
   ${TETORICA_DX7_ASSEMBLED_SOURCES}
@@ -769,6 +774,10 @@ if(TETORICA_NATIVE_BUILD_TESTS)
     COMMAND tetorica_snes_fixture --self-test)
   add_test(NAME tetorica.snes.extra_self_test
     COMMAND tetorica_snes_fixture --self-test-extra)
+
+  add_executable(tetorica_fm21290_fixture tests/fm21290_fixture.cpp)
+  target_link_libraries(tetorica_fm21290_fixture PRIVATE tetorica::fm21290)
+  add_test(NAME tetorica.fm21290.self_test COMMAND tetorica_fm21290_fixture --self-test)
 
   add_executable(tetorica_dx7_fixture tests/dx7_fixture.cpp)
   target_link_libraries(tetorica_dx7_fixture PRIVATE tetorica::dx7)

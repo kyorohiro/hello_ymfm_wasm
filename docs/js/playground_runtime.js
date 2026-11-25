@@ -20,6 +20,7 @@ import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-p
 import {createNesAudio} from './playground_nes_audio.js?v=rf5c164-notes-1';
 import {createNesClient} from './playground_nes.js?v=pokey-prepare-1';
 import {createDx7Audio} from './playground_dx7_audio.js?v=rf5c164-notes-1';
+import {createFm21290Audio,createFm21290Client} from './playground_fm21290.js';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
 import {createPWM32XAudio} from './playground_pwm_audio.js?v=rf5c164-notes-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-prepare-1';
@@ -980,7 +981,7 @@ export function createPlaygroundRuntime(
     }
     validateSoundChipOptions(name, options);
     options = {...options};
-    if(!['ym2612', 'ym2203', 'ym2610', 'ym2610b', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7', 'snes', 'spc', 'ps1', 'scsp', 'huc6280', 'pokey', 'sid', 'wonderswan', 'okim6258', 'ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
+    if(!['ym2612', 'ym2203', 'ym2610', 'ym2610b', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'fm21290', 'dx7', 'snes', 'spc', 'ps1', 'scsp', 'huc6280', 'pokey', 'sid', 'wonderswan', 'okim6258', 'ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
     // A Worker can retire a logical source at its future lookahead position,
     // then immediately request that same cached source again. Reconnect only
     // after the old endpoint is actually released, never into a different chip.
@@ -993,7 +994,7 @@ export function createPlaygroundRuntime(
     if (mixerId === undefined) do {mixerId = `${name}:${++pcmSequence}`;} while (occupied(mixerId));
     if (typeof mixerId !== 'string' || !mixerId.trim()) throw new TypeError('Mixer id must be a nonempty string');
     if (occupied(mixerId)) {reservation?.release(); throw new Error(`Mixer id is already connected: ${mixerId}`);}
-    const createAudio = name==='sid'?(context,destination)=>createSidAudio(context,destination,{...options,signal:creationSignal,onError:()=>device?.dispose()}):name==='scsp'?(context,destination)=>createScspAudio(context,destination,{signal:creationSignal,onError:()=>device?.dispose()}):name==='ps1'?(context,destination)=>createPs1Audio(context,destination,{signal:creationSignal,onError:()=>device?.dispose()}):name==='pokey'?(context,destination)=>createPokeyAudio(context,destination,{...options,signal:creationSignal}):name==='ay8910'?createAy8910Audio:name==='ym2413'?createYm2413Audio:OPL_CHIPS.includes(name) ? (context,destination) => createOplAudio(context,destination,{chip:name}) : name === 'wonderswan' ? createWonderSwanAudio : name === 'huc6280' ? createHuc6280Audio : name === 'okim6258' ? createOki6258Audio : name === 'spc' ? createSpcAudio : name === 'snes' ? createSnesAudio : name === 'dx7' ? createDx7Audio : name === 'nes' ? (context, destination) => createNesAudio(context, destination, options) : name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name, options) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
+    const createAudio = name==='fm21290'?createFm21290Audio:name==='sid'?(context,destination)=>createSidAudio(context,destination,{...options,signal:creationSignal,onError:()=>device?.dispose()}):name==='scsp'?(context,destination)=>createScspAudio(context,destination,{signal:creationSignal,onError:()=>device?.dispose()}):name==='ps1'?(context,destination)=>createPs1Audio(context,destination,{signal:creationSignal,onError:()=>device?.dispose()}):name==='pokey'?(context,destination)=>createPokeyAudio(context,destination,{...options,signal:creationSignal}):name==='ay8910'?createAy8910Audio:name==='ym2413'?createYm2413Audio:OPL_CHIPS.includes(name) ? (context,destination) => createOplAudio(context,destination,{chip:name}) : name === 'wonderswan' ? createWonderSwanAudio : name === 'huc6280' ? createHuc6280Audio : name === 'okim6258' ? createOki6258Audio : name === 'spc' ? createSpcAudio : name === 'snes' ? createSnesAudio : name === 'dx7' ? createDx7Audio : name === 'nes' ? (context, destination) => createNesAudio(context, destination, options) : name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name, options) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
     pendingPcmIds.add(mixerId);
     let device;
     try {device = nativeExtra
@@ -2600,7 +2601,7 @@ export function createPlaygroundRuntime(
         if(pending)pendingNativeExtraCreations.add(pending);let device;
         try{device=await openPcm(name,runToken,options,pending?.controller.signal);}finally{if(pending)pendingNativeExtraCreations.delete(pending);}
         if(ownsMainScope){if(callerLoop?.stopped){device.dispose();throw new Error('Run stopped');}currentLoopContext=callerLoop;}
-        const client=name === 'spc' ? createSpcClient(device.port, device, {
+        const client=name === 'fm21290' ? createFm21290Client(device.port) : name === 'spc' ? createSpcClient(device.port, device, {
           getOwner:()=>spcOwner(currentLoopContext,currentRunToken), captureContext:()=>currentLoopContext,
           restoreContext:loop=>{currentLoopContext=loop;},
           invokeEvent:(callback,event)=>executeUserCallback(()=>callback(event)),isStopped:loop=>runToken!==currentRunToken||loop?.stopped,

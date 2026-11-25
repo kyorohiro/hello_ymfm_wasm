@@ -13,8 +13,8 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "1280aa34e333a6a41d561920c07be02b30d404a66f3701ffc57267075112c9dc",
-      "size": 29575
+      "sha256": "8b1011dbff92bd814fcad5e4f0bf6b2c8cb1c13f0f97153b83263f43a06acced",
+      "size": 29824
     },
     "CMakeLists.txt": {
       "sha256": "769d676f59f1e9ba925b04d7e67cd43d49141f11da37ab897f7eea6029d4e121",
@@ -41,11 +41,11 @@
       "size": 102683
     },
     "catalog/native_inventory.json": {
-      "sha256": "3ad9a9095d875d8d6643fb75f4d151efa4660944daa3999b1f05a0d51b746799",
-      "size": 52978
+      "sha256": "4b8dd353c8bbbc023161af4a8217767bdd9eb8fee5f8b7eb335f5776cf302b8d",
+      "size": 54056
     },
     "catalog/source_inventory.json": {
-      "sha256": "0302d456e743fd5809fef082dd51f8df67b60758f557d08285980c36483ce426",
+      "sha256": "c96d421579e51bee4cdcc4bf4488fb41dfa06c1de86e3ea7cfb4f4b946554905",
       "size": 157517
     },
     "docs/architecture.md": {
@@ -85,12 +85,12 @@
       "size": 2603
     },
     "native/CMakeLists.txt": {
-      "sha256": "c18c60a8e891321714d25383d7a6a24281f842ebcb29ada35ad62afc9fcd8d6b",
-      "size": 40745
+      "sha256": "f602cec019d6cfb97c8a9d4c040efe8071968abb4dcb51a0ab6f4cd724dd6c2e",
+      "size": 41264
     },
     "native/README.md": {
-      "sha256": "d97469bfbc8ce3d64ec1a1f52c4dac4b1dd483ab7d78674e749a24dd75764bf1",
-      "size": 123251
+      "sha256": "dda2f4cd28d30abd01b8c54c82470aca78ad2ee404955472b3bfafd85489de48",
+      "size": 124060
     },
     "native/examples/dos_opl_wav.cpp": {
       "sha256": "4428515bf93f9644e5c32f793bf6c579f8765522f6ede2386a5ef8a780ab38a5",
@@ -197,8 +197,12 @@
       "size": 244
     },
     "native/include/tetorica/dx7.hpp": {
-      "sha256": "8c6126b68958dc3e5d251b4107e7714d05e32e11ea7d7a9a09e054ba00a5ed62",
-      "size": 1833
+      "sha256": "c066ce3c0aca74e5920de76c2426b374ce6d7065db511a9270676d167a7dd2de",
+      "size": 1856
+    },
+    "native/include/tetorica/fm21290.h": {
+      "sha256": "86e132179536f3814e9404388fa91a877987a46cc861ac8909f66beb5c6b7c6a",
+      "size": 793
     },
     "native/include/tetorica/gameboy.hpp": {
       "sha256": "a2bc5052db49a373069e4d0411cacd62e604d502d25759f1ce4e66d1bc57c7c4",
@@ -313,16 +317,16 @@
       "size": 108
     },
     "native/reference/SOURCES.json": {
-      "sha256": "d304c07bf8a77f84720d20a2b96f2b1ec8c765c598d1e8c708a0f43ce00166e7",
-      "size": 47974
+      "sha256": "6e351e4e41cea6e386296a8912227d5daab025e99d147960d378455baee96290",
+      "size": 48118
     },
     "native/reference/overrides/msfa/dx7note.cc": {
-      "sha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed",
-      "size": 7935
+      "sha256": "f1c64f7cc775fe9aa1debc9c195601d27a1f51ef4250541efbbfa2d231a0b81b",
+      "size": 8039
     },
     "native/reference/overrides/msfa/env.cc": {
-      "sha256": "e6af8b46212080eb2730ca3f3f5163e1b59b3ba491f42a33cdd360094382cf24",
-      "size": 4913
+      "sha256": "0c61287e5c069f7436fa001d0e35cfd851c436d49fd4c9c3bbef508b17c00fe9",
+      "size": 5386
     },
     "native/reference/overrides/msfa/ringbuffer.cc": {
       "sha256": "bf95cb2f7fc05d3db6f7ef26cd1c02e963f07969451b2f0cd56aff43c74ea91f",
@@ -548,6 +552,14 @@
       "sha256": "cf987f67c1b9376f89fd867e05160a0580ff310ed1adfb34fcb33e945b70ce75",
       "size": 1247
     },
+    "native/src/fm21290.cpp": {
+      "sha256": "4982a215bd546f6b437b84d63a4c1c7822be8c21a3b1c8561edd88cb6b930221",
+      "size": 6770
+    },
+    "native/src/fm21290_algorithms.inc": {
+      "sha256": "5caee86b15a52e4c07d1d9e1f7d2d5dde8cfeab146a2970b716668d3843062ee",
+      "size": 1602
+    },
     "native/src/ymfm_opl_provider.cpp": {
       "sha256": "d2d3783960513a27ad349e72143e3ecc87d96a73f1659b9acc5a430722bea0ec",
       "size": 817
@@ -569,8 +581,8 @@
       "size": 3643
     },
     "native/tests/dx7_fixture.cpp": {
-      "sha256": "102a0bd96ed8b3db702e8378529b0c454fe9cc31c333a09ec3cc62476cede6f9",
-      "size": 18012
+      "sha256": "11b87e906132014953d405a08694a33e9a0931ba2ba046ab15e3f42ffaa7896c",
+      "size": 19051
     },
     "native/tests/extra_opl_fixture.cpp": {
       "sha256": "7db00a995f018f13e15844710d1da2775f2ebdc5dfdec8c6b5529e33bee90af1",
@@ -579,6 +591,10 @@
     "native/tests/extra_pwm_fixture.cpp": {
       "sha256": "5cc3440ea6ae71fc6c9fc0dbc79adc27d9d5372f12c0df8e9cbd210b53844d14",
       "size": 11786
+    },
+    "native/tests/fm21290_fixture.cpp": {
+      "sha256": "f78d66dead58cfdcfe26a9e908c70dfeb4661c262494db1ef479448d552631ef",
+      "size": 2521
     },
     "native/tests/gameboy_fixture.cpp": {
       "sha256": "0b5b07c6dcb3ce498fd8cf914239426844f12d1368e1d6484071b5d13669c92e",
@@ -1401,16 +1417,16 @@
       "size": 795
     },
     "vendor/msfa/dx7note.cc": {
-      "sha256": "551e1553962021625768b0f14741af59e6e3901ec3675c5128c8945cb174595d",
-      "size": 7917
+      "sha256": "6d0f1cd41671ba17dd67623ded3ababef8f5dbc31269155a14ba281d3147ae11",
+      "size": 8021
     },
     "vendor/msfa/dx7note.h": {
       "sha256": "fa4d2a3972597c6b1ca828b7e78d8553baf97567f7877d2396d243f626dd52a3",
       "size": 2079
     },
     "vendor/msfa/env.cc": {
-      "sha256": "ef739bf4aacc5b6a8076ac3bf3142c172dda54022f2209bd627271be113367cd",
-      "size": 4909
+      "sha256": "b9e8e0c787aff8878bb5cb4cffe210f92c73a7bcd7944f3bc8577c3ec11cf322",
+      "size": 5382
     },
     "vendor/msfa/env.h": {
       "sha256": "ac12c10d59d2ce9ae888f6ca063caf564c4c7d3a2971c3bf04be2977ab65c340",

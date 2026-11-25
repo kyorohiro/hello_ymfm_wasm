@@ -58,14 +58,15 @@ export async function createSidSoundChip(options = {}) {
 /** The audio quantum already matches the SID core's configured rate. Copy its
  * mono output into both channels without a second resampler, filter or gain.
  * @param {SidCore|Sid8580Core} core */
-export function createSidPCMRenderer(core) {
+export {createMonoPCMRenderer as createSidPCMRenderer};
+export function createMonoPCMRenderer(core) {
   const spans = new Map();
   return {
     rate: core.sampleRate,
     resetHistory() {},
     renderInto(left, right, offset = 0, frames = left.length - offset) {
       if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(frames) || frames < 0 ||
-          frames > left.length - offset || frames > right.length - offset) throw new RangeError('Invalid SID PCM output span');
+          frames > left.length - offset || frames > right.length - offset) throw new RangeError('Invalid PCM output span');
       if (!frames) return;
       let span = spans.get(frames);
       if (!span) {span = new Float32Array(frames); if (spans.size < 128) spans.set(frames, span);}

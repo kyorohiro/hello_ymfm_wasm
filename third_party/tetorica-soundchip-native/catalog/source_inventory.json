@@ -1019,7 +1019,7 @@
         {
           "path": "vendor/msfa/dx7note.cc",
           "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/dx7note.cc",
-          "sha256": "551e1553962021625768b0f14741af59e6e3901ec3675c5128c8945cb174595d"
+          "sha256": "6d0f1cd41671ba17dd67623ded3ababef8f5dbc31269155a14ba281d3147ae11"
         },
         {
           "path": "vendor/msfa/dx7note.h",
@@ -1029,7 +1029,7 @@
         {
           "path": "vendor/msfa/env.cc",
           "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/env.cc",
-          "sha256": "ef739bf4aacc5b6a8076ac3bf3142c172dda54022f2209bd627271be113367cd"
+          "sha256": "b9e8e0c787aff8878bb5cb4cffe210f92c73a7bcd7944f3bc8577c3ec11cf322"
         },
         {
           "path": "vendor/msfa/env.h",

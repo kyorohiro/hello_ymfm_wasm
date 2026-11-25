@@ -1,12 +1,14 @@
 # Tetorica FM21290 Synth — 実装状況とTODO
 
-2026-11-25更新。Browser版の演奏にはYM21290（EGS）／YM21280（OPS）の独自AudioWorkletを使う。MSFAは開発時のPCM比較に使う。[操作ガイド](../synth-fm21290/README.md) · [レジスタ仕様・出典・測定結果](../synth-fm21290/registers.md)
+2026-11-26更新。Browser版の演奏にはYM21290（EGS）／YM21280（OPS）の独自AudioWorkletを使う。MSFAは開発時のPCM比較に使う。[操作ガイド](../synth-fm21290/README.md) · [レジスタ仕様・出典・測定結果](../synth-fm21290/registers.md)
 
 ## 実装・検証済み
 
 | 項目 | 現在の動作と確認範囲 |
 |---|---|
 | 音源と物理CH | 6OP・32アルゴリズム・16声。AUTOの空き声探索、CH指定と再打鍵、入力元別の離鍵、ペダル保持中の声の再利用を検証した。 |
+| 共有ランタイム | Playground の Main／Worker と npm 用パッケージから物理 CH のレジスタに書き込める。Native SDK の C API と JS で同じ書き込み列を再生し、32 アルゴリズム・16 声・44.1／48 kHz の比較で PCM 一致を確認した。 |
+| 既存 DX7 | MSFA の同じ音色で発音中の OP に R1〜R4・L1〜L4 を適用。WASM と Native の両方で、押鍵中の L3 の増減と離鍵後の R4 の変更を PCM で確認した。 |
 | Live Coding | `useSoundChip('fm21290')` から音色設定、自動割り当て、物理CH指定、生レジスタ書き込みを併用できる。FilesのRegister Key Onは0x30F1で打鍵・離鍵し、Held Envelopeは押鍵中にEGSのレベル、離鍵後にレートを変える。ChromeでRunとレジスタ列を確認した。 |
 | 音色とCassette | Files → presetsから1音色を選ぶ。単音色SysExは1ファイル、32音色SysExはフォルダ内の32ファイルとして取り込む。Exportで現在の音色を書き出せる。旧Cassetteと旧ローカル保存のバンクはRecoveredに展開する。新規Cassetteには標準コード・演奏例・プリセットが入る。 |
 | 編集と演奏 | 同じ図で6つのOPのR1〜R4・L1〜L4を編集できる。Chromeで押鍵中のL3変更による出力の増減を確認した。指板、MonacoのRun／Apply、MasterとMixer、波形／スペクトルを実装した。 |

@@ -112,7 +112,7 @@
     {
       "id": "dx7",
       "format": "standalone-wasm",
-      "sourceFingerprint": "a60055ae6eb897d5da064b0f8a124ced3ccab55c2ce501e2be352250934b19c1",
+      "sourceFingerprint": "3c69130005620e1424acf4f1a6cf4ef0a1d4de3d32bf7370dd9281b9da439838",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -141,8 +141,8 @@
         },
         {
           "path": "vendor/msfa/dx7note.cc",
-          "sha256": "551e1553962021625768b0f14741af59e6e3901ec3675c5128c8945cb174595d",
-          "size": 7917
+          "sha256": "6d0f1cd41671ba17dd67623ded3ababef8f5dbc31269155a14ba281d3147ae11",
+          "size": 8021
         },
         {
           "path": "vendor/msfa/dx7note.h",
@@ -151,8 +151,8 @@
         },
         {
           "path": "vendor/msfa/env.cc",
-          "sha256": "ef739bf4aacc5b6a8076ac3bf3142c172dda54022f2209bd627271be113367cd",
-          "size": 4909
+          "sha256": "b9e8e0c787aff8878bb5cb4cffe210f92c73a7bcd7944f3bc8577c3ec11cf322",
+          "size": 5382
         },
         {
           "path": "vendor/msfa/env.h",
@@ -293,8 +293,8 @@
       "outputs": [
         {
           "path": "msfa.wasm",
-          "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f",
-          "size": 32084
+          "sha256": "d2735fbc7ad46e7f8c5c5e1c767de818f393a0b95e69b861b0cdc0709b313d9a",
+          "size": 32805
         }
       ],
       "compiler": {

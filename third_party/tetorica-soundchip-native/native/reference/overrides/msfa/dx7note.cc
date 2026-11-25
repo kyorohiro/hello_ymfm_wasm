@@ -188,6 +188,9 @@ void Dx7Note::edit(const char patch[156], const bool output_changed[6],
     const bool frequency_changed[6], bool feedback_changed) {
   for (int op = 0; op < 6; ++op) {
     const int off = op * 21;
+    for (int param = 0; param < 8; ++param) {
+      env_[op].setparam(param, patch[off + param]);
+    }
     if (output_changed[op]) {
       int outlevel = Env::scaleoutlevel(patch[off + 16]);
       outlevel = ::min(127, outlevel + level_scaling_[op]);

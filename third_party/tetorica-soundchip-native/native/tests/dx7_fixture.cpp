@@ -219,7 +219,41 @@ static void native_sdk_checks() {
   native_dx7_destroy(nullptr);
 }
 
+static void live_envelope_check() {
+  auto *chip = native_dx7_create(48000);
+  assert(chip);
+  auto voice = sine_voice();
+  const int op1 = 5 * 21;
+  voice[op1 + 3] = 0;
+  native_dx7_voice(chip, voice.data(), 1, false);
+  const int slot = native_dx7_note_on(chip, 69, 100);
+  assert(slot >= 0);
+  auto tail_peak = [&]() {
+    double peak = 0;
+    for (int i = 0; i < 12000; ++i) {
+      const double sample = native_dx7_sample(chip);
+      if (i >= 11000) peak = std::max(peak, std::abs(sample));
+    }
+    return peak;
+  };
+  const double loud = tail_peak();
+  assert(loud > 0.01);
+  voice[op1 + 6] = 30;
+  native_dx7_voice(chip, voice.data(), 1, true);
+  assert(tail_peak() < loud * 0.1);
+  voice[op1 + 6] = 99;
+  native_dx7_voice(chip, voice.data(), 1, true);
+  assert(tail_peak() > loud * 0.9);
+  native_dx7_release_slot(chip, slot);
+  assert(tail_peak() > loud * 0.5);
+  voice[op1 + 3] = 99;
+  native_dx7_voice(chip, voice.data(), 1, true);
+  assert(tail_peak() < loud * 0.01);
+  native_dx7_destroy(chip);
+}
+
 static int self_test() {
+  live_envelope_check();
   auto *warm = native_dx7_create(48000); assert(warm); native_dx7_destroy(warm);
   const auto base = heap_bytes;
   for (int failure = 0; failure < 17; ++failure) {

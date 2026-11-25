@@ -207,7 +207,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "pokey",
-      "volume": 0.413034
+      "volume": 0.413033
     },
     {
       "name": "ps1",
@@ -215,7 +215,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "scsp",
-      "volume": 0.128825
+      "volume": 0.128826
     },
     {
       "name": "sid",
@@ -646,7 +646,7 @@ const factoryModes = freeze({
         "id": "pokey",
         "name": "pokey",
         "settings": {
-          "volume": 0.413033
+          "volume": 0.413034
         }
       }
     ]
@@ -665,7 +665,7 @@ const factoryModes = freeze({
         "id": "pokey:2",
         "name": "pokey",
         "settings": {
-          "volume": 0.413034
+          "volume": 0.413033
         }
       }
     ]
@@ -689,7 +689,7 @@ const factoryModes = freeze({
         "id": "scsp",
         "name": "scsp",
         "settings": {
-          "volume": 0.128825
+          "volume": 0.128826
         }
       }
     ]

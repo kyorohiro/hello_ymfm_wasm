@@ -1037,5 +1037,38 @@
       ],
       "verificationScope": "Experimental CPU-free PCM8/PCM16 instrument; 32 slots, raw synchronous RAM/registers, masked writes, original sine Native/WASM bit-exact parity, block partitioning, pan, release/reset and instance isolation. FM/LFO/DSP retained but not behaviorally verified; no hardware accuracy claim or CPU/IRQ/timer/DMA/MIDI/SSF playback."
     }
+  ],
+  "nativeOnlyInstruments": [
+    {
+      "id": "fm21290",
+      "role": "instrument",
+      "status": "experimental",
+      "target": "tetorica_native_fm21290",
+      "cmakeAlias": "tetorica::fm21290",
+      "publicHeader": "native/include/tetorica/fm21290.h",
+      "sourceFiles": [
+        "native/include/tetorica/fm21290.h",
+        "native/src/fm21290.cpp",
+        "native/src/fm21290_algorithms.inc"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/msfa/COPYING"
+      ],
+      "licenseStatus": "declared",
+      "declaredFileLicenses": {
+        "native/include/tetorica/fm21290.h": "BSD-3-Clause",
+        "native/src/fm21290.cpp": "BSD-3-Clause",
+        "native/src/fm21290_algorithms.inc": "Apache-2.0"
+      },
+      "tests": [
+        "native/tests/fm21290_fixture.cpp"
+      ],
+      "verificationScope": "Register-model PCM and gate behavior for 16 physical voices and all 32 algorithms. Device timing and analog response remain approximate."
+    }
   ]
 }

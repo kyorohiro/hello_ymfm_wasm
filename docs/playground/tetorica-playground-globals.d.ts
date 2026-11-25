@@ -2010,6 +2010,12 @@ interface DX7PresetState extends Required<DX7Preset> {
   operators: Record<DX7Operator, DX7OperatorState>;
 }
 // END GENERATED DX7 PRESET TYPES
+interface PlaygroundFm21290 {
+  readonly id: string;
+  /** Write a YM21290 EGS or YM21280 OPS CPU register; 0x30f1 controls the physical gate. */
+  writeRegister(address:number,value:number):void;
+  dispose():void;
+}
 interface PlaygroundDx7VoiceInfo {
   readonly index: number;
   readonly name: string;
@@ -2043,7 +2049,7 @@ interface PlaygroundDx7 {
    */
   setPreset(preset: DX7Preset): Promise<void>;
   /** Partially update OP1..6 using DX7 values. outputLevel 0..99: larger is louder.
-   * outputLevel/mode/coarse/fine/detune also affect this patch's sounding notes
+   * outputLevel/mode/coarse/fine/detune and operator envelope rates/levels also affect this patch's sounding notes
    * and release tails without retriggering. Other fields affect future notes.
    * setPreset/loadSysex create new patch identities; selectVoice retains them. */
   setOperator(operator: DX7Operator, params: DX7OperatorParams): Promise<void>;
@@ -2553,6 +2559,7 @@ type PlaygroundSoundChipMap = {
   ym2151: TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOpm : PlaygroundYm2151;
   nes: TetoricaSelectedChip extends 'nes' ? PlaygroundPrimaryNes : PlaygroundNes;
   pwm: PlaygroundPWM32X;
+  fm21290: PlaygroundFm21290;
   dx7: TetoricaSelectedChip extends 'dx7' ? PlaygroundPrimaryDx7 : PlaygroundDx7;
   snes: TetoricaSelectedChip extends 'snes' ? PlaygroundPrimarySnes : PlaygroundSnes;
   scsp: TetoricaSelectedChip extends 'scsp' ? PlaygroundPrimaryScsp : PlaygroundScsp;
@@ -2569,13 +2576,15 @@ type PlaygroundSoundChipMap = {
   ay8910: TetoricaSelectedChip extends 'msx'|'msx-audio'|'atari-st' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
-type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'sid' | 'dx7' | 'snes' | 'spc' | 'ps1' | 'scsp'
+type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'fm21290' | 'sid' | 'dx7' | 'snes' | 'spc' | 'ps1' | 'scsp'
   ? PlaygroundSoundChipMap[Name] & {readonly id: string}
   : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
 /** Borrow the mode's primary instrument when names match; otherwise reuse an
  * independent instance until STOP. For separate instances use createSoundChip. */
 declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipClient<Name>>;
 
+/** A Web Audio OPS/EGS register model with 16 physical voices. */
+declare function createSoundChip(name: 'fm21290', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundFm21290>;
 /** Create an independent DX7 with its own 16 voices and SysEx bank. */
 /** Native also supports independent DX7 banks and 16 allocated voices, within the shared 16-instance / 64 MiB additional-chip budget. */
 declare function createSoundChip(name: 'dx7', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundDx7 & {readonly id: string}>;

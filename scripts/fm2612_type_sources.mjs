@@ -311,7 +311,15 @@ const annotations = {
       ' * @param {{instanceId: string | number, clock: number, type?: number, flags?: number, frame: number, sampleRate: number}} [options]\n' +
       ' */'],
   ],
+  'fm21290.js': [
+    ['  writeRegister(address, data)', '/** @param {number} address @param {number} data */'],
+    ['  renderInto(buffer)', '/** @param {Float32Array} buffer */'],
+  ],
+  'playground_fm21290.js': [
+    ['    writeRegister(address, value)', '/** @param {number} address @param {number} value */'],
+  ],
   'playground_performance_queue.js': [
+    ['    releasePattern(name, {owner,session}', '/** @param {string|undefined} name @param {{owner?:string,session?:number}} [scope] */'],
     ['  function clearPattern(',
       '  /** @param {string} name\n' +
       '   * @param {{session?: number, owner?: string}} [scope]\n' +

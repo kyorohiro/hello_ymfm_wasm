@@ -62,6 +62,7 @@ build/native`. Neither build downloads dependencies.
 | `tetorica::huc6280` | `tetorica_native_huc6280` | `<tetorica/huc6280.hpp>` | `native_huc6280_*`, `NativeHuc6280State` |
 | `tetorica::nes` | `tetorica_native_nes` | `<tetorica/nes.hpp>` | `native_nes_*`, `NativeNesState` |
 | `tetorica::pwm` | `tetorica_native_pwm` | `<tetorica/pwm.hpp>` | `native_pwm_*`, `NativePwmState` |
+| `tetorica::fm21290` | `tetorica_native_fm21290` | `<tetorica/fm21290.h>` | CPU register writes and mono float PCM |
 | `tetorica::dx7` | `tetorica_native_dx7` | `<tetorica/dx7.hpp>` | `native_dx7_*`; no public state snapshot |
 | `tetorica::snes` | `tetorica_native_snes` | `<tetorica/snes.hpp>` | `native_snes_*`, `NativeSnesState` |
 | `tetorica::spc` | `tetorica_native_spc` | `<tetorica/spc.hpp>` | `native_spc_*`, `NativeSpcState`, `NativeSpcEvent` |
@@ -1077,6 +1078,16 @@ and adding separate YM2612/PSG handles after a left/right PWM-only audition.
 
 ## Embed DX7
 
+The separate FM21290 Synth model renders a 16-slot YM21290/OPS register
+stream. Link `tetorica::fm21290` and include `<tetorica/fm21290.h>`.
+Create a handle with `fm21290_create(sample_rate)`, send CPU address/byte
+pairs with `fm21290_write`, render a mono float buffer with `fm21290_render`,
+and free the handle with `fm21290_destroy`. A gate write to 0x30f1 uses
+(slot << 2) | 1 for key-on and (slot << 2) | 2 for release. Program the
+pitch, OP output and envelope registers before key-on. This model inherits
+the browser Synth's approximate envelope timing and floating-point OPS
+signal path. The host supplies LFO/PM/AM writes, MIDI allocation and patches.
+
 Link `tetorica::dx7` and include `<tetorica/dx7.hpp>` to use the unchanged
 `native_dx7_*` ABI. One handle owns a six-operator MSFA synthesizer with 32
 algorithms and 16 preallocated notes. The public header forwards the Native
@@ -1114,9 +1125,9 @@ see the [MSFA research notes](../docs/research.md) for retained limitations.
 With `live=false`, the call selects the copied voice for subsequent notes and
 updates the shared LFO. Existing notes keep their captured operator parameters.
 With `live=true` and the same identity as the current selection, edits to
-operator output level, mode/coarse/fine/detune and feedback reach all live notes
+operator output level, mode/coarse/fine/detune, four operator EG rates/levels and feedback reach all live notes
 with that identity, including released tails, without restarting their phase
-or envelopes. General EG, algorithm, scaling and name edits are future-note
+or envelopes. Pitch EG, algorithm, scaling and name edits are future-note
 fields. LFO speed, delay, key-sync and waveform remain shared; note pitch-
 modulation depth/sensitivity are captured for subsequent notes. A different
 identity acts as selection;
