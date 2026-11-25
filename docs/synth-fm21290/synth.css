@@ -87,16 +87,25 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 #opEnvelopes g[role=button]:is(:focus,:hover) .dot{fill:white;stroke:var(--op-color);stroke-width:3}
 #operatorGroups button[aria-pressed=true]{border-bottom-color:var(--dx-green);color:#8de8dc;background:#2b3934}
 #operatorTable{max-width:100%;overflow-x:auto;margin-top:.35rem}
-#operatorTable table{width:100%;border-spacing:2px;font-variant-numeric:tabular-nums}
+#operatorTable table{width:max-content;max-width:100%;border-spacing:2px;font-variant-numeric:tabular-nums}
 #operatorTable th{font-size:.75rem;color:#c4cdc3}
 #operatorTable th:first-child{position:sticky;left:0;background:var(--panel);z-index:1}
 #operatorTable tbody th button{padding:.3rem .45rem;background:#26332d;color:#dae7df;border-color:#46564b}
 #operatorTable .selected-op th button{background:var(--dx-green);color:var(--button-ink)}
-:is(#operatorTable,.voice-parameter) .param-control{display:grid;grid-template-columns:minmax(1.15rem,.6fr) minmax(2rem,1fr) minmax(1.15rem,.6fr);gap:1px}
-:is(#operatorTable,.voice-parameter) .param-control button{padding:.3rem .05rem;min-height:28px;border:0;background:#344138;color:#e0e9dc;font:600 .8rem ui-monospace,monospace}
-:is(#operatorTable,.voice-parameter) .param-control .param-value{color:#a9eddd;background:#1d2923;cursor:ew-resize;touch-action:none;user-select:none;white-space:nowrap}
-#operatorTable .param-value.is-dragging{background:#42695e;color:white}
-@media(pointer:coarse){:is(#operatorTable,.voice-parameter) .param-control button{min-height:40px;min-width:24px}}
+/* FM2612-style compact numeric strips: one shell for minus, value and plus. */
+.param-control.no-label{
+  display:inline-grid;grid-template-columns:14px minmax(22px,auto) 14px;align-items:center;
+  width:max-content;max-width:100%;gap:2px;padding:2px 4px;
+  border:1px solid #53635a;border-radius:999px;
+  background:linear-gradient(#354039,#29312d);color:#e2ebe4
+}
+.param-control.no-label button{min-width:0;margin:0;padding:0;border:0;border-radius:999px;background:transparent;color:inherit;line-height:1}
+.param-control .param-button{height:16px;font-size:.86rem}
+.param-control .param-value{height:16px;font:700 .68rem/1 ui-monospace,monospace;text-align:center;white-space:nowrap;cursor:ew-resize;touch-action:none;user-select:none}
+.param-control button:hover,.param-control button:focus-visible{color:#99f0e0}
+.param-control button.is-dragging{color:#ffc58c}
+#operatorTable td{text-align:center}
+#operatorTable .param-control{grid-template-columns:12px minmax(20px,auto) 12px;padding:1px 3px}
 .settings{margin-top:.7rem;border-top:1px solid var(--line);padding-top:.45rem}
 .settings summary{cursor:pointer;color:#d2d7c9;font-size:.8rem}
 #modControls{border:0;margin:0;padding:.45rem 0}
@@ -156,26 +165,21 @@ main section{min-width:0;margin:0;padding:16px;background:var(--panel);border:1p
 [hidden]{display:none!important}
 
 .voice-parameter{display:grid;gap:3px;color:#d2d5ca;font-size:.78rem}
-.voice-parameter .param-control{min-width:6rem}
 :is(#oscSync,#lfo-sync)[aria-pressed=false]{background:#28332d;color:#ced6ca;border-color:#47564d}
 :is(#oscSync,#lfo-sync)[aria-pressed=true]{background:var(--dx-green);color:var(--button-ink)}
 
-#pitchEg,#lfo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,6.5rem),1fr));gap:.4rem}
-#lfo{grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}
-#lfo .param-control{grid-template-columns:1.3rem minmax(0,1fr) 1.3rem}
-#lfo .param-control .param-value{white-space:normal}
+#pitchEg,#lfo{display:flex;align-items:end;flex-wrap:wrap;gap:.4rem .55rem}
+#lfo .voice-parameter:first-child .param-value{min-width:13ch}
 #operatorTable{container-type:inline-size}
-@container (max-width:740px){
-  #operatorTable table,#operatorTable tbody{display:block}
+@container (max-width:620px){
+  #operatorTable table,#operatorTable tbody{display:block;width:100%}
   #operatorTable thead{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
   #operatorTable tbody tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.25rem;padding:.35rem 0;border-bottom:1px solid var(--line)}
   #operatorTable tbody th:first-child{position:static;grid-column:1/-1;text-align:left}
-  #operatorTable td{display:grid;min-width:0;align-content:end}
+  #operatorTable td{display:grid;min-width:0;align-content:end;justify-items:start;text-align:left}
   #operatorTable td::before{content:attr(data-label);font-size:.72rem;color:var(--muted)}
-  #operatorTable .param-control{grid-template-columns:minmax(0,.65fr) minmax(0,1.15fr) minmax(0,.65fr)}
-  #operatorTable .param-control button{min-width:0}
-  #operatorTable .param-control .param-value{white-space:normal}
+
 }
-@container (max-width:355px){
+@container (max-width:290px){
   #operatorTable tbody tr{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

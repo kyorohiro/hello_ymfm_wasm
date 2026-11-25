@@ -69,6 +69,8 @@ const {chromium}=require('playwright');
   assert.notEqual(await keySync.getAttribute('aria-pressed'),oldSync);
   for(const width of [1440,940,768,390,320]){
     await page.setViewportSize({width,height:900});
+    const octaveSize=await page.locator('#octaveControl .param-control').boundingBox();
+    assert(octaveSize.width<=70 && octaveSize.height<=24,'Compact octave buttons at '+width+'px');
     const values=page.locator('#operatorTable table:visible .param-value');
     assert.equal(await values.count(),48);
     assert(await values.evaluateAll(nodes=>nodes.every(node=>{
