@@ -128,6 +128,13 @@ const {chromium}=require('playwright');
   assert.equal(await page.inputValue('#code'),source);
   const demo=page.locator('button[data-file-path="/examples/after-the-chime.mid"]');
   if(!await demo.isVisible())await page.locator('summary[data-file-path="/examples"]').click();
+  await page.locator('button[data-file-path="/examples/held-envelope.js"]').click();
+  await page.click('#run');
+  await page.waitForFunction(()=>document.querySelector('#trace').textContent.includes('3076  10') &&
+    document.querySelectorAll('#channels [data-state=on]').length===2);
+  await page.waitForFunction(()=>document.querySelector('#trace').textContent.includes('3057  3f') &&
+    !document.querySelector('#channels [data-state=on]'));
+  await page.click('#stop');
   await demo.click();
   await page.click('#playMidi');
   await page.waitForFunction(()=>document.querySelectorAll('#channels [data-state=on]').length>=3);
@@ -189,7 +196,7 @@ const {chromium}=require('playwright');
   const examples=await page.evaluate(async bytes=>{
     const {loadPlaygroundCassette}=await import('../playground/playground_cassette.js');
     const {files}=await loadPlaygroundCassette(new Uint8Array(bytes));
-    return ['examples/glass-echo/play.js','examples/return-steps.js','examples/after-the-chime.mid'].map(path=>files.get(path)?.length??0);
+    return ['examples/glass-echo/play.js','examples/return-steps.js','examples/held-envelope.js','examples/after-the-chime.mid'].map(path=>files.get(path)?.length??0);
   },zip);
   assert(examples.every(size=>size>0));
   await page.fill('#code','// edit after export');
