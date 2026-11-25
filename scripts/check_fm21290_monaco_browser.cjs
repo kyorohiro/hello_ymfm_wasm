@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Check the JavaScript worker, Files and keyboard shortcuts on the normal Synth page.
+const path=require('node:path'),fs=require('node:fs'),http=require('node:http'),assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+(async()=>{
+ const server=http.createServer((req,res)=>{
+   const root=path.resolve(__dirname,'../docs');
+   const file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);
+   if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
+   if(!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
+   res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm':'application/wasm'})[path.extname(file)]||'application/octet-stream');
+   fs.createReadStream(file).pipe(res);
+ });
+ await new Promise((ok,fail)=>server.listen(0,'127.0.0.1',ok).on('error',fail));
+ let browser;
+ try{
+  browser=await chromium.launch({channel:'chrome',headless:true});
+  const context=await browser.newContext();
+  const prefix='https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/';
+  // Optional local monaco-editor@0.52.2 min/vs directory for offline QA.
+  if(process.argv[2])await context.route(prefix+'**',async route=>{
+    const root=path.resolve(process.argv[2]);
+    let file=path.resolve(root,decodeURIComponent(new URL(route.request().url()).pathname.split('/min/vs/')[1]));
+    assert(file.startsWith(root+path.sep));
+    if(!fs.existsSync(file))file=file.replace(/\.min\.js$/,'.js');
+    await route.fulfill({path:file,headers:{'Access-Control-Allow-Origin':'*'}});
+  });
+  const page=await context.newPage();page.setDefaultTimeout(15000);
+  await page.goto('http://127.0.0.1:'+server.address().port+'/synth-fm21290/index.html');
+  await page.click('#enableEditor');
+  await page.waitForSelector('#codeEditorHost[data-ready=true]');
+  const candidates=async source=>page.evaluate(async source=>{
+    const editor=monaco.editor.getEditors()[0],model=editor.getModel();
+    model.setValue(source);
+    const uri=model.uri.toString(),worker=await (await monaco.languages.typescript.getJavaScriptWorker())(model.uri);
+    const result=await worker.getCompletionsAtPosition(uri,source.length);
+    return result.entries.map(entry=>entry.name);
+  },source);
+  const physical=await candidates("const voice=await useSoundChip('fm21290');\nvoice.");
+  assert(physical.includes('writeRegister')&&physical.includes('keyOn'));
+  await page.evaluate(()=>{
+    const editor=monaco.editor.getEditors()[0],model=editor.getModel();
+    editor.setPosition(model.getPositionAt(model.getValueLength()));editor.focus();
+    editor.trigger('keyboard','editor.action.triggerSuggest',{});
+  });
+  await page.locator('.suggest-widget.visible').getByText('keyOn',{exact:true}).first().click();
+  await page.keyboard.press('Escape');
+  const allocated=await candidates("const voice=await useSoundChip('dx7');\nvoice.");
+  assert(allocated.includes('noteOn')&&!allocated.includes('keyOn'));
+  const part=await candidates("const part=midi.createPart();\npart.");
+  assert(part.includes('pitchBend')&&part.includes('sustain')&&part.includes('modWheel')&&!part.includes('keyOff'));
+  const output=await candidates("const out=midi.output('tetorica-fm21290',{channel:CH16});\nout.");
+  assert.deepEqual(output.sort(),['noteOff','noteOn','play']);
+  let source="const dx=await useSoundChip('fm21290'); dx.keyOn(CH16,69,90);";
+  await page.evaluate(source=>{const editor=monaco.editor.getEditors()[0];editor.setValue(source);editor.focus();},source);
+  await page.keyboard.press('ControlOrMeta+Enter');await page.waitForFunction(()=>document.querySelector('#slots').textContent.includes('CH16 on'));
+  source="const dx=await useSoundChip('fm21290'); dx.keyOff(CH16);dx.keyOn(pg.CH7,72,75);";
+  await page.evaluate(source=>monaco.editor.getEditors()[0].setValue(source),source);
+  await page.keyboard.press('ControlOrMeta+Shift+Enter');
+  await page.waitForFunction(()=>document.querySelector('#slots').textContent.includes('CH7 on'));
+  await page.click('#stop');
+  assert.equal(await page.inputValue('#code'),source);
+  await page.fill('#newPath','/nested/score.json');await page.click('#newFile');
+  assert.equal(await page.evaluate(()=>monaco.editor.getEditors()[0].getModel().getLanguageId()),'json');
+  await page.locator('button[data-file-path="/index.js"]').click();
+  assert.equal(await page.evaluate(()=>monaco.editor.getEditors()[0].getValue()),source);
+  await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent==='Saved locally');
+  await page.reload();await page.waitForSelector('main:not([inert])');
+  assert.equal(await page.inputValue('#code'),source);
+  await context.route(prefix+'**',route=>route.abort());
+  await page.click('#enableEditor');await page.waitForSelector('#editorNote:not([hidden])');
+  assert(await page.locator('#code').isVisible());
+  await page.fill('#code',"const part=midi.createPart();part.noteOn(60);part.finish();");
+  await page.locator('#code').press('ControlOrMeta+Enter');
+  await page.waitForFunction(()=>document.querySelector('#log').textContent==='Code applied.');
+  assert.equal(await page.innerText('#status'),'');
+  console.log('Monaco client/part/output completions, CH16 Run, file models, reload and textarea fallback passed');
+ } finally{await browser?.close();server.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

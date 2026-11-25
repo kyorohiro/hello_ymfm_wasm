@@ -18,6 +18,8 @@
 
 ## JavaScript
 
+Code欄の **Enable code completion** で既存Synthと共通のMonacoエディタを開く。`const chip = await useSoundChip('fm21290');` に続いて `chip.` と入力すると、物理CHの `keyOn` や `writeRegister` を選べる。`midi.createPart()` の戻り値には `sustain` や `pitchBend` が出る。Ctrl+Spaceで候補を開き、Enterで確定する。RunはCtrl+Enter（macOSはCmd+Enter）、ApplyはさらにShiftを押す。初回のエディタ読み込みにはCDNへの接続を使う。読み込みに失敗しても通常のテキスト欄で編集・実行できる。
+
 - `await useSoundChip('dx7')` は現在選択中のエンジンで `noteOn(note, velocity)`、`noteOff(note)`、`getPreset()`、`setPreset(preset)`、`setOperator(1..6, patch)`、`setFeedback(0..7)` を使う。
 - 実験用エンジンで `await useSoundChip('fm21290')` を使うと、上記に加えて `keyOn(CH1, 60, 100)`、`keyOff(CH1)`、`writeRegister(address, byte)` を使用できる。CodeのCH定数は0始まり、画面のCH表示は1始まり。アルゴリズムはAPIで0..31、画面で1..32。
 - 独自コアのCodeでは `chip.setSustain(true)` を呼び、`noteOn` → `noteOff` で鍵を離しても音を保持できる。`chip.setSustain(false)` でペダルを戻す。物理CHを指定する `keyOff(CH1)` は即座にゲートを切る。

@@ -19,3 +19,6 @@ header img{border-radius:12px}input[type=range]{accent-color:var(--dx-green)}#st
 #filesTree .file-entry{background:transparent;border-color:transparent;color:inherit;padding:.15rem .45rem;font-weight:normal}
 #filesTree [aria-current=true]{border-color:var(--dx-green);color:var(--dx-green)}
 #activeFile{font-family:monospace}
+
+#codeEditorHost{height:clamp(19rem,55vh,46rem);margin:.6rem 0}
+#codeEditorHost:not([data-ready="true"]){display:none}

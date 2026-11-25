@@ -19,6 +19,8 @@ import {createVirtualFileReader} from '../js/tetorica_virtual_files/reader.js';
 import {renderFileTree} from '../playground/playground_file_tree.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
 import {readProject,textPath,projectPath,defaultWheel,exportSession,importSession} from './session.js';
+import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
+import {selectFM21290Declarations} from './code_declarations.js';
 import {glassSteps,glassPatch,scoreExample} from './examples.js';
 
 const el = id => document.getElementById(id);
@@ -235,12 +237,12 @@ function storeEditor(){
   if(text!==files.get(activePath).data)files.writeText(activePath,text);
 }
 function showEditor(path){
-  activePath=path;el('code').value=files.get(path).data;el('activeFile').textContent=path;
+  activePath=path;codeEditor.setSource(files.get(path).data,path);el('activeFile').textContent=path;
   el('run').disabled=!runnable();el('apply').disabled=!runnable()||!runtime.getState().running;
   el('partCode').disabled=!runnable()||!el('part').value;
   renderFiles();draftChanged();
 }
-function renderFiles(){
+function projectFileList(){
   const list=[];
   for(const dir of files.listDirectories()){
     if(dir!=='/')list.push({path:dir,type:'directory'});
@@ -251,7 +253,10 @@ function renderFiles(){
   }
   list.push({path:'/bank.syx'});
   if(songBytes)list.push({path:'/song.mid'});
-  renderFileTree(el('filesTree'),list,{expanded,selectedPath:activePath,onOpen:path=>openProjectFile(path).catch(report)});
+  return list;
+}
+function renderFiles(){
+  renderFileTree(el('filesTree'),projectFileList(),{expanded,selectedPath:activePath,onOpen:path=>openProjectFile(path).catch(report)});
 }
 async function openProjectFile(path){
   storeEditor();
@@ -261,9 +266,11 @@ async function openProjectFile(path){
   else if(/\.midi?$/i.test(path)){const next=parseMidiFile(bytes);stopSong();selectSong(next,bytes);}
   else download(path.split('/').pop(),bytes);
 }
+const extraChannels=Array.from({length:10},(_,i)=>'CH'+(i+7));
 const runtime=createPlaygroundCodeRuntime({
   readFile:(path,options,entry)=>createVirtualFileReader(projectReader,entry.path)(path,options),
-  prepareSource:source=>'const '+Array.from({length:10},(_,i)=>'CH'+(i+7)+'='+(i+6)).join(',')+';\n'+source,
+  prepareSource:source=>'const '+extraChannels.map((name,i)=>name+'='+(i+6)).join(',')+
+    '; Object.assign(pg,{'+extraChannels.join(',')+'});\n{\n'+source+'\n}',
   ensureReady:ensureAudio,now:()=>audio?.context.currentTime??0,supportedSoundChips:['dx7','fm21290'],
   useSoundChip(name){
     if(name==='fm21290'&&!audio?.node)throw Error('Select OPS / EGS for physical CH or register writes.');
@@ -395,7 +402,7 @@ on('newFile','click',()=>{
   if(!textPath(path))throw Error('Choose a .js, .mjs, .json or .txt file.');
   if(files.has(path))throw Error('File already exists: '+path);
   storeEditor();files.writeText(path,path.endsWith('.json')?'{}':'');
-  el('newPath').value='';showEditor(path);el('code').focus();
+  el('newPath').value='';showEditor(path);codeEditor.focus();
 });
 on('saveSession','click',()=>{
   storeEditor();
@@ -463,7 +470,20 @@ async function playRegion(){
 on('playMidi','click',playRegion);
 for(const id of ['midiFrom','midiUntil'])on(id,'change',()=>{if(songPart)return playRegion();});
 on('stopMidi','click',stopSong);
-on('partCode','click',()=>{el('code').value=partSource(selectedScore);draftChanged();el('code').focus();});
+const codeEditor=setupSynthMonacoEditor({
+  textarea:el('code'),editorHost:el('codeEditorHost'),editorNote:el('editorNote'),
+  chip:'fm21290',transformDeclarations:selectFM21290Declarations,declarationsOnly:true,
+  visible:()=>true,whenReady:()=>{},getPath:()=>activePath,
+  listFiles:()=>projectFileList().filter(f=>f.type!=='directory' && textPath(f.path)).map(f=>files.get(f.path)),
+  openFile:openProjectFile,
+  onEdit:draftChanged,run:apply=>el(apply?'apply':'run').click(),
+});
+on('enableEditor','click',async()=>{
+  const button=el('enableEditor');button.disabled=true;
+  try{button.hidden=await codeEditor.load();if(button.hidden)codeEditor.focus();}
+  finally{button.disabled=false;}
+});
+on('partCode','click',()=>{codeEditor.setSource(partSource(selectedScore));draftChanged();codeEditor.focus();});
 showEditor('/index.js');
 for(const action of ['run','apply'])on(action,'click',async()=>{
   try{await runtime[action](el('code').value,{path:activePath});}
@@ -582,7 +602,7 @@ names.forEach((name,i)=>{
   b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);press(e.pointerId,i);};
   b.onlostpointercapture=e=>release(e.pointerId);el('keys').append(b);
 });
-window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||(e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea')))return;press(e.code,i);});
+window.addEventListener('keydown',e=>{const i=mappings.indexOf(e.key);if(i<0||e.key.length!==1||e.repeat||e.ctrlKey||e.metaKey||e.altKey||(e.target!==wheel && e.target!==el('modPosition') && e.target.closest('input,select,textarea,[contenteditable],.monaco-editor')))return;press(e.code,i);});
 window.addEventListener('keyup',e=>release(e.code));
 window.addEventListener('blur',()=>{for(const id of [...held.keys()])release(id);});
 const canvas=el('scope'),ctx=canvas.getContext('2d');
@@ -682,7 +702,7 @@ async function restoreDraft(){
     el('draftStatus').textContent='Local recovery unavailable. Use Export Cassette. '+error.message;
   }finally{main.inert=false;}
 }
-for(const id of ['code','master','midiFrom','midiUntil','midiLoop'])el(id).addEventListener('input',draftChanged);
+for(const id of ['master','midiFrom','midiUntil','midiLoop'])el(id).addEventListener('input',draftChanged);
 window.addEventListener('pagehide',protectDraft);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)protectDraft();});
 render();draw();void restoreDraft();

@@ -560,16 +560,18 @@ export async function initializePlaygroundMonaco(
         ],
       }
     );
-    registerMonacoCompletions(
-      monaco,
-      { listVirtualFiles: options.listVirtualFiles, chip: options.chip, playgroundHints }
-    );
-    registerMonacoHover(monaco, playgroundHints);
-    registerMonacoSignatureHelp(
-      monaco,
-      options.chip,
-      playgroundHints
-    );
+    if (!options.declarationsOnly) {
+      registerMonacoCompletions(
+        monaco,
+        { listVirtualFiles: options.listVirtualFiles, chip: options.chip, playgroundHints }
+      );
+      registerMonacoHover(monaco, playgroundHints);
+      registerMonacoSignatureHelp(
+        monaco,
+        options.chip,
+        playgroundHints
+      );
+    }
     const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip, options);
     if (options.requireJavaScriptWorker) await checkJavaScriptWorker(monaco);
 
