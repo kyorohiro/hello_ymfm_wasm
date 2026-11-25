@@ -1998,6 +1998,8 @@ notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
 
+`0.2.48` makes `fm21290` the DX7 engine in Web Audio Playground. Both names return the same instrument from `useSoundChip`, so a note started with `dx7.noteOn()` can be edited through FM21290 registers. Selecting another patch also changes the shared operator registers while notes are held. Existing DX7 scores can sound different from the MSFA render. Native Playground DX7 output continues to use MSFA.
+
 `0.2.47` adds FM21290 register writes in Playground Main and Worker and offline mono PCM through the package root. The bundled DX7 engine applies operator envelope rate and level edits to held notes and release tails.
 
 `0.2.46` publishes Game Boy and SID timed register-operation authoring together:
