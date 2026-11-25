@@ -43,6 +43,7 @@
 <div id="newEntry" hidden><label>New file path<input id="newPath" placeholder="/pieces/score.js"></label><button id="newFile">Create file</button></div>
 <p><output id="draftStatus">Opening local project…</output></p>
 <details open class="cassette"><summary>FM21290.cassette.zip</summary><nav id="filesTree" aria-label="Project files"></nav></details>
+<div id="filePlayback" hidden><button id="playMidi">Play MIDI</button> <button id="stopMidi">Stop MIDI</button></div>
 <input type="file" id="importVoice" hidden accept=".syx">
 <input type="file" id="importMidi" hidden accept=".mid,.midi,audio/midi,audio/x-midi">
 <input type="file" id="importCassette" hidden accept=".zip,application/zip">
@@ -95,7 +96,7 @@
 <label>From (s)<input type="number" id="midiFrom" min="0" step="any" value="0"></label>
 <label>Until (s)<input type="number" id="midiUntil" min="0" step="any"></label>
 <label>Loop region<input type="checkbox" id="midiLoop"></label>
-</div><button id="playMidi">Play</button><button id="stopMidi">Stop MIDI</button><button id="partCode">Replace Code with part</button>
+</div><button id="partCode">Replace Code with part</button>
 </div>
 <h3>MIDI output</h3>
 <div class="row"><button id="connectMidi">Find MIDI outputs</button>

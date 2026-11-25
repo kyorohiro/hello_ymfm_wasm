@@ -264,6 +264,7 @@ function projectFileList(){
   return list;
 }
 function renderFiles(){
+  el('filePlayback').hidden=!midi || !/\.midi?$/i.test(selectedFile);
   renderFileTree(el('filesTree'),projectFileList(),{expanded,selectedPath:selectedFile,onOpen:path=>openProjectFile(path).catch(report)});
 }
 async function openProjectFile(path){
@@ -936,11 +937,16 @@ async function restoreDraft(){
     el('draftStatus').textContent='Local recovery unavailable. Use Export Cassette. '+error.message;
   }finally{
     try{
-      const path='/examples/return-steps.js';
-      if(files.has('/examples/glass-echo/play.js') && !files.has(path) && !files.listDirectories().includes(path)){
-        const response=await fetch(new URL('./examples/return-steps.js',import.meta.url));
-        if(!response.ok)throw Error('Could not load Return Steps ('+response.status+')');
-        files.writeText(path,await response.text());renderFiles();
+      if(files.has('/examples/glass-echo/play.js')){
+        for(const name of ['return-steps.js','after-the-chime.mid']){
+          const path='/examples/'+name;
+          if(files.has(path) || files.listDirectories().includes(path))continue;
+          const response=await fetch(new URL('./examples/'+name,import.meta.url));
+          if(!response.ok)throw Error('Could not load '+name+' ('+response.status+')');
+          if(textPath(path))files.writeText(path,await response.text());
+          else files.writeBinary(path,new Uint8Array(await response.arrayBuffer()));
+        }
+        renderFiles();
       }
     }catch(error){report(error);}
     main.inert=false;

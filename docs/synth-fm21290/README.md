@@ -14,6 +14,8 @@
 
 最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。OPS / EGSとMSFAで設定を共有し、Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
 
+**After the Chime** はTetoricaオリジナルの6小節の演奏MIDI（96 BPM、15秒）。Filesでexamplesの **after-the-chime.mid** を選び、**Play MIDI** を押すと現在の音色で鳴る。冒頭2小節の和音と旋律を強く弾き直し、最後の2小節は単音の余韻を残す。プログラムチェンジは含まない。同じ演奏でエレピとベルの音色を比較できる。[演奏MIDI](examples/after-the-chime.mid)
+
 **Return Steps** はAlgorithm 4の帰還を聴き比べるCodeサンプル。Filesのexamplesからreturn-steps.jsを開く。Glass Echoと一緒にCassette ZIPに同梱される。OPS / EGSで空き音色枠を選んでRunすると、その枠に音色を設定する。同じ4音をCH1（FB 0）とCH2（FB 7）が交互に演奏する。[Return Stepsのコード](examples/return-steps.js)
 
 Algorithmの下に出力の式を表示する。矢印は変調先、+ は加算を示す。各OPの色はエンベロープ図と共通。OPをクリックするかTabで選んでEnterを押すと、そのOPの行と4段のレベル図が選択される。Algorithm 4ではOP6 → OP5 → OP4を通り、OP4からOP6へ戻る。
