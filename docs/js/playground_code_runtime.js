@@ -43,6 +43,7 @@ let nextScheduleRuntime=0;
  * @property {(name:ChipName)=>object|Promise<object>} useSoundChip Borrow a supported chip client.
  * @property {readonly ChipName[]} [supportedSoundChips] Host-owned chip IDs; defaults to the four Genesis instruments.
  * @property {(target:object,method:string,args:unknown[])=>{target:object,channel:number}|null} [resolveNoteTarget] Map nested/aliased Gate methods to one physical channel owner.
+ * @property {Function} [createMidiPart] Create a local MIDI performance bound to the caller’s abort signal.
  * @property {Function} [createMidi] Build a scope-owned MIDI output API with shared clock callbacks.
  * @property {()=>object|null} [getFm] Current FM compatibility client.
  * @property {object} [fx] Effect factories and live-effect controls owned by the host.
@@ -69,7 +70,7 @@ let nextScheduleRuntime=0;
  * @template {string} [ChipName=DefaultCodeSoundChip]
  * @param {PlaygroundCodeRuntimeOptions<ChipName>} options
  */
-export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,supportedSoundChips=CODE_SOUND_CHIPS,getFm=()=>null,createMidi,fx={},
+export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,supportedSoundChips=CODE_SOUND_CHIPS,getFm=()=>null,createMidi,createMidiPart,fx={},
   resolveNoteTarget=(target,_method,args)=>Number.isInteger(args[0])?{target,channel:args[0]}:null,
   readFile=()=>{throw Error('Virtual files are unavailable');},prepareSource=source=>source,
   onLog=()=>{},onState=()=>{},beforeStopSoundChips=()=>{},stopSoundChips=()=>{},guardExecution=true,realm=globalThis,
@@ -415,19 +416,23 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,suppor
     if(createMidi){
       // A handle declared at the top level may be played by several live loops.
       // Resolve its MIDI note ledger against the caller at method invocation.
-      function outputFor(caller,destination,options){
+      function midiFor(caller){
         caller.midi??=createMidi({check:()=>check(caller),bpm:()=>runtime.bpm,now,
           sleep:seconds=>clock.sleep(seconds,caller.epoch),waitBeats:beats=>clock.waitForBeat(clock.currentBeat()+beats,caller.epoch,caller.loop??null)});
-        return caller.midi.output(destination,options);
+        return caller.midi;
       }
-      globals.midi={output(destination,{channel=0}={}){
+      globals.midi={createTimeline(){return midiFor(ensure()).createTimeline();},output(destination,{channel=0}={}){
         const options={channel};
-        outputFor(ensure(),destination,options);
+        midiFor(ensure()).output(destination,options);
         return Object.fromEntries(['noteOn','noteOff','play'].map(method=>[method,(...args)=>{
-          const handle=outputFor(ensure(),destination,options);
+          const handle=midiFor(ensure()).output(destination,options);
           return handle[method](...args);
         }]));
       }};
+      if(createMidiPart)globals.midi.createPart=()=>{
+        const caller=ensure();
+        return guarded(createMidiPart(caller.controller.signal),caller);
+      };
     }
     globals.pg=globals;
     return globals;

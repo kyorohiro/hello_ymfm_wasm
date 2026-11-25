@@ -57,6 +57,10 @@ OPS / EGSで **Record from reset** を押すと現在の演奏を止め、リセ
 
 MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色で再生する。テンポ、ノート、ベロシティ、サステインを扱う。独自コアのベンド幅は暫定で±2半音。MSFA経路のベンド、プログラムチェンジ、途中シークは今後の対象。
 
+FilesでMIDI partを選び、**Replace Code with part** を押すとCode欄を選択パートのJavaScriptで置き換える。現在のCodeを残したい場合は先にExport codeで保存する。変換後はMIDIファイルを閉じても、保存したJSだけで演奏できる。Runで選択中の音色を使って再生する。
+
+生成したCodeの `time.waitUntil(秒)` は曲頭からの時刻で、テンポ変更を反映する。同時刻の命令はファイル順に並ぶ。`part.noteOn(60, 100)` の引数はMIDIノート番号とベロシティ。`part.noteOff(60)`、`part.sustain(CC64値)`、`part.pitchBend(0〜16383、中央8192)` も直接編集できる。`part.finish()` はトラック終端でこのパートの残ったノートを解放する。外部MIDIのノート送信先は画面のポートとSend Channelで選ぶ。
+
 ## 検証
 
 `node --test docs/synth-fm21290/*.test.mjs`。A4の定常区間の周波数、16声のゲート、32アルゴリズムの出力、時刻付き書き込み列のPCM再現、Cassette往復を検証する。全32アルゴリズムの定常音は `node scripts/compare_fm21290_spectrum.mjs` で同梱MSFAと第8倍音まで比較できる。単一OPのFB 0〜7とAlgorithm 4/6の帰還経路も検査する。実機の帰還量とスロットタイミングは未測定。

@@ -11,6 +11,7 @@ import {validateTrace} from './register_trace.js';
 import {EVENT,integer,validRegister} from './chip.js';
 import {createMsfaNotes} from './msfa_notes.js';
 import {createMidiApi} from '../js/playground_midi.js';
+import {partScore,partSource} from './midi_part.js';
 import {createNoteOutput} from './midi_output.js';
 import {createInstrument} from './instrument.js';
 import {exportSession,importSession} from './session.js';
@@ -144,11 +145,47 @@ function stopOwner(owner){
   if(audio?.node){chip.stopOwner(owner);flush();}
   else audio?.notes?.stopOwner(owner);
 }
-let midiBendActive=false;
+let songPart=null,bendOwner=null;
+const codeParts=new Set();
+function createMidiPart(collection,signal){
+  const owner={},deferred=new Set();
+  let sustained=false,finished=false;
+  function active(){if(finished)throw Error('MIDI part has finished');}
+  const part={
+    noteOn(note,velocity=100){
+      active();integer(note,0,127,'note');integer(velocity,1,127,'velocity');
+      if(audio.dx && deferred.delete(note))noteOff(note,-1,owner);
+      noteOn(note,velocity,-1,owner);
+    },
+    noteOff(note){
+      if(finished)return;
+      integer(note,0,127,'note');
+      if(audio.dx && sustained)deferred.add(note);else noteOff(note,-1,owner);
+    },
+    sustain(value){
+      active();integer(value,0,127,'CC64');
+      if(audio.node){chip.setSustain(value!==0,owner);flush();return;}
+      sustained=value>=64;
+      if(!sustained){for(const n of deferred)noteOff(n,-1,owner);deferred.clear();}
+    },
+    pitchBend(value){
+      active();integer(value,0,16383,'pitch bend');
+      if(!audio.node)return;
+      bendOwner=value===8192?null:owner;
+      audio.node.port.postMessage({bend:Math.round((value-8192)/8192*2*4096/12)});
+    },
+    finish(){
+      if(finished)return;
+      finished=true;signal?.removeEventListener('abort',part.finish);stopOwner(owner);deferred.clear();collection?.delete(part);
+      if(bendOwner===owner){audio?.node?.port.postMessage({bend:0});bendOwner=null;}
+    },
+  };
+  signal?.addEventListener('abort',part.finish,{once:true});
+  collection?.add(part);
+  return part;
+}
 function stopSong(){
-  songEpoch++;clearTimeout(songTimer);songTimer=null;stopOwner('midi');
-  if(midiBendActive)audio?.node?.port.postMessage({bend:0});
-  midiBendActive=false;
+  songEpoch++;clearTimeout(songTimer);songTimer=null;songPart?.finish();songPart=null;
 }
 let midiVoiceId=0;
 const codeMidiNotes=new Map();
@@ -184,8 +221,8 @@ const runtime=createPlaygroundCodeRuntime({
     return api;
   },
   resolveNoteTarget:(target,method,args)=>({keyOn:1,keyOff:1}[method]?{target:physicalGates,channel:args[0]}:{target,channel:args[0]}),
-  createMidi:codeMidi,
-  stopSoundChips:()=>{for(const id of codeMidiNotes.keys())releaseMidiVoice(id);stopOwner('code');},onLog:line=>{el('log').textContent=line;},
+  createMidi:codeMidi,createMidiPart:signal=>createMidiPart(codeParts,signal),
+  stopSoundChips:()=>{for(const part of codeParts)part.finish();for(const id of codeMidiNotes.keys())releaseMidiVoice(id);stopOwner('code');},onLog:line=>{el('log').textContent=line;},
   onState:s=>{el('apply').disabled=!s.running;el('log').textContent=s.status;},
 });
 function render() {
@@ -280,6 +317,7 @@ on('saveCode','click',()=>download('performance.js',el('code').value));
 function selectSong(next,bytes){
   midi=next;songBytes=bytes;el('song').hidden=!midi;
   el('part').replaceChildren(...(midi?.parts??[]).filter(p=>p.notes).map(p=>option((p.name||'Track '+(p.track+1))+' · MIDI '+p.channel,p.key)));
+  el('playMidi').disabled=el('partCode').disabled=!el('part').value;
 }
 on('saveSession','click',()=>download('FM21290.cassette.zip',exportSession({
   bank:createBankSysex(voices,{channel:sysexChannel}),selected,code:el('code').value,song:songBytes
@@ -304,40 +342,28 @@ on('importFile','change',async()=>{
 });
 on('playMidi','click',async()=>{
   stopSong();const epoch=songEpoch;await ensureAudio();if(epoch!==songEpoch)return;
-  const events=midi.events.filter(e=>e.part===el('part').value);let i=0;
+  const events=partScore(midi,el('part').value);let i=0;
+  songPart=createMidiPart();
   const start=audio.context.currentTime;
-  const deferred=new Set();let sustained=false;
-  function pedal(value){
-    if(audio.node){chip.setSustain(value!==0,'midi');flush();return;}
-    const down=value>=64;
-    sustained=down;
-    if(!down){for(const n of deferred)noteOff(n,-1,'midi');deferred.clear();}
-  }
-  function bend(value){
-    if(!audio.node)return;
-    midiBendActive=value!==8192;
-    audio.node.port.postMessage({bend:Math.round((value-8192)/8192*2*4096/12)});
-  }
   function tick(){
     if(epoch!==songEpoch)return;
-    while(i<events.length&&events[i].seconds<=audio.context.currentTime-start){
-      const e=events[i++];
-      if(e.kind===9&&e.b){
-        if(!audio.node && deferred.delete(e.a))noteOff(e.a,-1,'midi');
-        noteOn(e.a,e.b,-1,'midi');
-      }else if(e.kind===8||e.kind===9){
-        if(!audio.node && sustained)deferred.add(e.a);else noteOff(e.a,-1,'midi');
-      }else if(e.kind===11&&e.a===64)pedal(e.b);
-      else if(e.kind===14)bend(e.a+128*e.b);
+    while(i<events.length && events[i][0]<=audio.context.currentTime-start){
+      const [,method,...args]=events[i++];
+      songPart[method](...args);
     }
-    if(i<events.length)songTimer=setTimeout(tick,Math.max(0,(start+events[i].seconds-audio.context.currentTime)*1000));
+    if(i<events.length)songTimer=setTimeout(tick,Math.max(0,(start+events[i][0]-audio.context.currentTime)*1000));
     else stopSong();
   }
   tick();
 });
 on('stopMidi','click',stopSong);
+on('partCode','click',()=>{el('code').value=partSource(partScore(midi,el('part').value));el('code').focus();});
 el('code').value=glassSteps;
-on('run','click',()=>runtime.run(el('code').value));on('apply','click',()=>runtime.apply(el('code').value));on('stop','click',()=>runtime.stop());
+for(const action of ['run','apply'])on(action,'click',async()=>{
+  try{await runtime[action](el('code').value);}
+  catch(error){if(error?.name!=='AbortError' || error.message!=='Run stopped')throw error;}
+});
+on('stop','click',()=>runtime.stop());
 let savedTrace=null,traceMode='idle';
 function traceControls(mode,message){
   traceMode=mode;
