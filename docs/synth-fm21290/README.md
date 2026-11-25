@@ -12,7 +12,7 @@
 
 **☰ Menu → New → Cassette** で初回起動と同じ `/index.js`、`/examples` のコード・演奏MIDI、標準プリセットを含むCassetteを作成する。確認画面で現在のCassetteを書き出してから切り替えることもできる。
 
-**Files** は左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定が開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、Codeを保存できる。
+**Files → presets** で音色ファイルを選ぶと、その音色をすぐに演奏・編集できる。Filesボタンは左のCassetteツリーを開閉する。**＋ JS** で新規ファイルを作成できる。ツリーからテキストを選ぶとCode、SysExを選ぶとYM21290内の音色設定が開く。左上の **☰ Menu → Export** で、プロジェクト全体（Cassette · ZIP）、音色（Voice · SysEx）、Codeを保存できる。
 
 **☰ Menu → Import** にはDX7 voice · SysEx（単音色・32音色バンクの.syx）、MIDI（.mid／.midi）、Cassette（.zip）が並ぶ。読み込んだMIDIはFilesのsongsフォルダに保存される。Escで閉じる。画面の切り替えはタブとFilesボタンで行う。
 
@@ -43,13 +43,13 @@ Algorithm（1〜32）とFeedback（0〜7）は− / ＋または中央の値の�
 Code欄の **Enable code completion** で既存Synthと共通のMonacoエディタを開く。`const chip = await useSoundChip('fm21290');` に続いて `chip.` と入力すると、物理CHの `keyOn` や `writeRegister` を選べる。`midi.createPart()` の戻り値には `sustain` や `pitchBend` が出る。Ctrl+Spaceで候補を開き、Enterで確定する。RunはCtrl+Enter（macOSはCmd+Enter）、ApplyはさらにShiftを押す。初回のエディタ読み込みにはCDNへの接続を使う。読み込みに失敗しても通常のテキスト欄で編集・実行できる。
 
 - `await useSoundChip('dx7')` は既存Code用の互換名で、同じOPS / EGSコアの `noteOn(note, velocity)`、`noteOff(note)`、`getPreset()`、`setPreset(preset)`、`setOperator(1..6, patch)`、`setFeedback(0..7)` を使う。
-- 実験用エンジンで `await useSoundChip('fm21290')` を使うと、上記に加えて `keyOn(CH1, 60, 100)`、`keyOff(CH1)`、`writeRegister(address, byte)` を使用できる。CodeのCH定数は0始まり、画面のCH表示は1始まり。アルゴリズムはAPIで0..31、画面で1..32。
+- 通常は `await useSoundChip('fm21290')` を使う。同じハンドルで上記の演奏・音色編集に加えて `keyOn(CH1, 60, 100)`、`keyOff(CH1)`、`writeRegister(address, byte)` を使用できる。CodeのCH定数は0始まり、画面のCH表示は1始まり。アルゴリズムはAPIで0..31、画面で1..32。
 - 独自コアのCodeでは `chip.setSustain(true)` を呼び、`noteOn` → `noteOff` で鍵を離しても音を保持できる。`chip.setSustain(false)` でペダルを戻す。物理CHを指定する `keyOff(CH1)` は即座にゲートを切る。
 - AUTOは16声から空いた発音枠を探索する。物理CH指定は同じ枠を再トリガする。
 
 ## MIDI出力
 
-現在のUIではMIDIファイル再生・外部機器の設定画面を非表示にしている。CodeのMIDI APIと既存プロジェクトのMIDIデータは引き続き利用できる。
+FilesでMIDIファイルを選ぶと **Play MIDI / Stop MIDI** が表示される。外部機器の設定、パート選択、再生区間、Code変換の詳細パネルは現在非表示。
 
 CodeからはPlaygroundと同じ出力ハンドルを使える。以下は選択中の音色でC4とG4を1拍ずつ鳴らす。
 
@@ -62,8 +62,6 @@ await out.noteOff('G4');
 ```
 
 この出力のノートはAUTOで割り当てる。CH4は論理MIDIチャンネルで、物理ボイスの指定には従来の `chip.keyOn(CH4, ...)` を使う。
-
-外部機器にもノートを送るには、**MIDI output → Find MIDI outputs → Device** でポートを選ぶ。外部送信の初期値はOff。鍵盤・SMFの選択パート・従来のCode APIは **Send channel**、上の出力ハンドルは指定したMIDIチャンネルを使う。同一チャンネル・同音のゲートは最後の離鍵で閉じる。ポート切替時は旧ポートを離鍵し、新しいポートには次の打鍵から送る。サステインは離鍵時刻に反映する。外部送信に対応するメッセージはNote On／Offで、音色は受信機側で選ぶ。Web MIDIが利用できるブラウザで使用する。
 
 ## Keyboard・Code・MIDIを重ねて演奏する
 
@@ -95,13 +93,7 @@ Files → presetsから音色ファイルを選ぶと、演奏と編集に使う
 
 MIDIはSMF形式0/1・PPQNに対応し、選択したパートを現在の音色で再生する。テンポ、ノート、ベロシティ、サステインを扱う。独自コアのベンド幅は暫定で±2半音。プログラムチェンジは今後の対象。
 
-**From (s)** と **Until (s)** に曲頭からの秒数を入れてPlayを押す。**Loop region** で同じ区間を繰り返す。再生中に時刻を変更して確定すると、新しい開始位置から演奏する。途中の区間終端と同時刻のイベントは次の区間に属する。Stop MIDIはこの演奏のゲートを解放する。
-
-途中再生では、押鍵中の音とペダルで残った音を元のベロシティで打鍵し直すため、アタックから鳴る。独自コアでは開始直前のベンドも復元する。物理CHはその場のAUTO割り当てに従う。Code変換の対象は選択パート全体。
-
-MIDIタブでMIDI partを選び、**Replace Code with part** を押すとCode欄を選択パートのJavaScriptで置き換える。現在のCodeを残したい場合は先にExport codeで保存する。変換後はMIDIファイルを閉じても、保存したJSだけで演奏できる。Runで選択中の音色を使って再生する。
-
-生成したCodeの `time.waitUntil(秒)` は曲頭からの時刻で、テンポ変更を反映する。同時刻の命令はファイル順に並ぶ。`part.noteOn(60, 100)` の引数はMIDIノート番号とベロシティ。`part.noteOff(60)`、`part.sustain(CC64値)`、`part.pitchBend(0〜16383、中央8192)` も直接編集できる。`part.finish()` はトラック終端でこのパートの残ったノートを解放する。外部MIDIのノート送信先は画面のポートとSend Channelで選ぶ。
+CodeでMIDIパートを書く場合は、`midi.createPart()` で作成し、`part.noteOn(60, 100)`、`part.noteOff(60)`、`part.sustain(CC64値)`、`part.pitchBend(0〜16383、中央8192)` で演奏する。`part.finish()` で残ったノートを解放する。
 
 ## 検証
 
