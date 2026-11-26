@@ -383,12 +383,17 @@ try {
   ]) {
     const header = Buffer.from(opn.subarray(0,0xc8));
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c); header.writeUInt32LE(clock,offset);
+    const opna = chip === 'YM2608';
+    const percussion = opna ? 'Rhythm' : 'ADPCM-A';
     const commands = [command,0x27,0x40,command,0xac,0x23,command,0xa8,0x55,command,0x28,0x52,
       command,0,0x23,command,1,1,command,7,0x3e,command,8,9,
+      ...(opna ? [0x56,0x11,47,0x56,0x18,0x91,0x56,0x10,3,
+        0x57,1,0x40,0x57,2,4,0x57,4,9,0x57,9,0x34,0x57,10,0x12,0x57,11,200,0x57,0,0xb0] : []),
       ...(chip.startsWith('YM2610') ? [0x59,1,47,0x59,8,0x91,0x59,0x10,2,0x59,0x20,5,0x59,0,3,
         0x58,0x11,0x40,0x58,0x12,4,0x58,0x14,9,0x58,0x19,0x34,0x58,0x1a,0x12,0x58,0x1b,200,0x58,0x10,0x90] : []),
       ...Array(90).fill(0x62),command,0x42,56,command,6,11,command,7,0x36,
       command,11,0x34,command,12,2,command,13,14,command,8,16,
+      ...(opna ? [0x56,0x10,0x81,0x57,1,0x41,0x57,0,1] : []),
       ...(chip.startsWith('YM2610') ? [0x59,0,0x81,0x58,0x10,1] : []),...Array(210).fill(0x62),0x66];
     const buffer = Buffer.concat([header,Buffer.from(commands)]);
     buffer.writeUInt32LE(buffer.length-4,4);
@@ -408,8 +413,8 @@ try {
     const tl=rows.first().locator('td').nth(2);
     await page.waitForFunction(el=>el.textContent==='56' && el.getAnimations().length>0,await tl.elementHandle());
     const sections = page.getByRole('tablist',{name:chip+' sections',exact:true});
-    if (chip.startsWith('YM2610')) {
-      assert.deepEqual(await sections.getByRole('tab').allTextContents(), ['FM','SSG','ADPCM-A','ADPCM-B']);
+    if (opna || chip.startsWith('YM2610')) {
+      assert.deepEqual(await sections.getByRole('tab').allTextContents(), ['FM','SSG',percussion,'ADPCM-B']);
       assert.equal(await sections.getByRole('tab',{name:'FM',exact:true}).getAttribute('aria-selected'),'true');
       await sections.getByRole('tab',{name:'SSG',exact:true}).click();
       assert(await voiceView.isHidden());
@@ -432,22 +437,24 @@ try {
     await movePosition(3);
     await channelA.getByText('ENV',{exact:true}).waitFor();
     assert(await shared.getByText('SHAPE 14',{exact:true}).isVisible());
-    if (chip.startsWith('YM2610')) {
-      const a = page.locator('#adpcmAChannels tbody tr'), b = page.locator('#adpcmBChannels tbody tr');
-      await sections.getByRole('tab',{name:'ADPCM-A'}).click();
+    if (opna || chip.startsWith('YM2610')) {
+      const a = page.locator(opna ? '#rhythmChannels tbody tr' : '#adpcmAChannels tbody tr'), b = page.locator('#adpcmBChannels tbody tr');
+      await sections.getByRole('tab',{name:percussion}).click();
       await a.first().getByText('Stop',{exact:true}).waitFor();
       assert.equal(await a.count(),6);
-      assert.deepEqual(await a.first().locator('td').allTextContents(),['Stop','0x000200','0x0005FF','17','L']);
+      if (opna) assert.deepEqual(await a.locator('th').allTextContents(),['Bass drum','Snare','Cymbal','Hi-hat','Tom','Rim shot']);
+      assert.deepEqual(await a.first().locator('td').allTextContents(),opna ? ['Stop','17','L'] : ['Stop','0x000200','0x0005FF','17','L']);
       assert.equal(await a.nth(1).locator('td').first().innerText(),'Start');
-      assert.equal(await page.locator('#adpcmTotalLevel').innerText(),'47');
+      assert.equal(await page.locator(opna ? '#rhythmTotalLevel' : '#adpcmTotalLevel').innerText(),'47');
       await sections.getByRole('tab',{name:'ADPCM-B'}).click();
       await b.getByText('Reset',{exact:true}).waitFor();
+      if (opna) assert.deepEqual((await b.locator('td').allTextContents()).slice(1,3),['0x000080','0x00013F']);
       await movePosition(.5);
       await b.getByText('Start',{exact:true}).waitFor();
-      assert.deepEqual(await b.locator('td').allTextContents(),['Start','0x000400','0x0009FF','200','R','4660','On']);
-      await sections.getByRole('tab',{name:'ADPCM-A'}).click();
+      assert.deepEqual(await b.locator('td').allTextContents(),['Start',opna?'0x000010':'0x000400',opna?'0x000027':'0x0009FF','200','R','4660','On']);
+      await sections.getByRole('tab',{name:percussion}).click();
       await a.first().getByText('Start',{exact:true}).waitFor();
-      await sections.getByRole('tab',{name:'ADPCM-A'}).press('Home');
+      await sections.getByRole('tab',{name:percussion}).press('Home');
 
       assert(await ch3.isVisible());
       assert.equal(await ch3.getAttribute('aria-pressed'),'true');

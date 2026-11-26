@@ -1,3 +1,4 @@
+import {opnaAddressUnit} from './opn_adpcm_monitor.js';
 import {createGameboyVoices, gameboyVoiceJson} from './gameboy_voices.js';
 import {createGameboyWaves, gameboyWaveJson} from './gameboy_waves.js';
 import {createWonderSwanWaves, wonderswanWaveJson} from './wonderswan_waves.js?v=wonderswan-voice-samples-1';
@@ -33,7 +34,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   const memories = [0, 1, 2].map(() => ({ data: new Uint8Array(0), present: new Uint8Array(0), generation: 0 }));
   const opna = new Uint8Array(16);
   let prescale = 6, writeAddress = 0, pendingWriteStart = false;
-  const opnaUnit = () => opna[1] & 3 ? 32 : 4;
+  const opnaUnit = () => opnaAddressUnit(opna[1]);
   const bregs = new Uint8Array(16);
   let time = 0;
   if (parser.header.ym2610Clock & 0x40000000) warnings.add('Second YM2610 chip is not analyzed.');

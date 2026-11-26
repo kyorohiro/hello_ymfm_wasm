@@ -50,7 +50,7 @@ import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretbo
 import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pokey-vgm-1";
-import {createOpnbAdpcmMonitor, writeOpnbAdpcm, opnbAdpcmRows} from './opnb_adpcm_monitor.js';
+import {createOpnAdpcmMonitor, writeOpnAdpcm, opnAdpcmRows} from './opn_adpcm_monitor.js';
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=pokey-vgm-1";
 import { exportMdx } from "./mdx_export.js?v=pokey-vgm-1";
@@ -611,7 +611,7 @@ const hasOkiSource = () => Boolean(noteishHeader?.okim6258Clock);
 let noteishHeader = {};
 let channelMonitor = createChannelMonitorState();
 let monitorFrequencyHigh = [0, 0];
-let opnbAdpcm = null;
+let opnAdpcm = null;
 let psgMonitor = createPsgMonitor(currentChipKind);
 let toneChannels = [];
 let apuNoteMonitor = createGameboyMonitor();
@@ -1113,7 +1113,7 @@ function ensureChannelMonitorRenderTimer() {
   }
   channelMonitorRenderTimer = window.setInterval(() => {
     if (operatorInfoPanel.hidden) return;
-    const psgRecent = opnbAdpcm?.starts.some(recentAdpcmStart) || (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
+    const psgRecent = opnAdpcm?.starts.some(recentAdpcmStart) || (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
       changeAgeOpacity(pcmMonitor.changedAt) > 0 || pcmMonitor.channels.some((channel) => changeAgeOpacity(channel.changedAt) > 0);
     if (!channelMonitorDirty && !hasRecentChannelChanges() && !psgRecent && !psgHighlightActive) {
       return;
@@ -1356,7 +1356,7 @@ function resetApuNoteChannels() {
 }
 
 function resetPsgMonitor() {
-  opnbAdpcm = currentChipKind === "ym2610" ? createOpnbAdpcmMonitor() : null;
+  opnAdpcm = ['ym2608','ym2610'].includes(currentChipKind) ? createOpnAdpcmMonitor(currentChipKind) : null;
   pcmMonitor = createRf5c164Monitor();
   psgMonitor = createPsgMonitor(currentChipKind);
   toneChannels = [];
@@ -1378,14 +1378,15 @@ function renderChannelMonitor() {
   if (currentChipKind === "ym2413") { renderMonitorToggles(); ym2413Monitor.render(); return; }
   if (isOpl(currentChipKind)) { renderMonitorToggles(); oplMonitor.render(); return; }
   if (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind)) { renderMonitorToggles(); return; }
-  if (opnbAdpcm) {
+  if (opnAdpcm) {
     for (const part of ['A','B']) {
-      const table = document.getElementById('adpcm' + part + 'Channels');
+      const rhythm = part === 'A' && currentChipKind === 'ym2608';
+      const table = document.getElementById(rhythm ? 'rhythmChannels' : 'adpcm' + part + 'Channels');
       if (table.closest('[hidden]')) continue;
-      const rows = opnbAdpcmRows(opnbAdpcm, part);
-      rows.forEach((row,i) => { row.active = recentAdpcmStart(opnbAdpcm.starts[part === 'A' ? i : 6]); });
+      const rows = opnAdpcmRows(opnAdpcm, part);
+      rows.forEach((row,i) => { row.active = recentAdpcmStart(opnAdpcm.starts[part === 'A' ? i : 6]); });
       renderRegisterRows(table, rows);
-      if (part === 'A') document.getElementById('adpcmTotalLevel').textContent = opnbAdpcm.a[1] & 63;
+      if (part === 'A') document.getElementById(rhythm ? 'rhythmTotalLevel' : 'adpcmTotalLevel').textContent = opnAdpcm.a[1] & 63;
     }
   }
   renderPsgMonitor();
@@ -2716,20 +2717,19 @@ async function ensurePlaybackReady(vgm) {
       engine.writeYm2413 = (r,v) => {opllWrite(r,v);ym2413Monitor.write(r,v);updateYm2413ToneMonitor();requestChannelMonitorRender();};
       engine.reset = () => {opllReset();ym2413Monitor.reset();resetYm2413NoteChannels();};
       observePsgPlaybackEngine();
-    } else if (currentChipKind === "ym2610") {
+    } else if (['ym2608','ym2610'].includes(currentChipKind)) {
       observePsgPlaybackEngine();
-      const write = engine.writeYm2610B.bind(engine);
-      baseEngineWriteYm2610 = (port, reg, value) => {
-        if (opnbAdpcm && writeOpnbAdpcm(opnbAdpcm, port, reg, value, timelineSeekController ? 0 : performance.now())) requestChannelMonitorRender();
+      const method = currentChipKind === "ym2608" ? "writeYm2608" : "writeYm2610B";
+      const write = engine[method].bind(engine);
+      engine[method] = (port, reg, value) => {
+        if (opnAdpcm && writeOpnAdpcm(opnAdpcm, port, reg, value, timelineSeekController ? 0 : performance.now())) requestChannelMonitorRender();
         return write(port, reg, value);
       };
-      engine.writeYm2610B = baseEngineWriteYm2610;
+      if (currentChipKind === 'ym2608') baseEngineWriteYm2608 = engine[method];
+      else baseEngineWriteYm2610 = engine[method];
     } else if (currentChipKind === "ym2203") {
       observePsgPlaybackEngine();
       baseEngineWriteYm2203 = engine.writeYm2203.bind(engine);
-    } else if (currentChipKind === "ym2608") {
-      observePsgPlaybackEngine();
-      baseEngineWriteYm2608 = engine.writeYm2608.bind(engine);
     } else if (currentChipKind === "ym2612") {
       observePsgPlaybackEngine();
       baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
@@ -2754,12 +2754,12 @@ async function ensurePlaybackReady(vgm) {
     player = new VgmPlayer(engine);
     if (['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151', 'gameboy', 'nes'].includes(currentChipKind)) {
       player.checkpointIntervalSeconds = 5;
-      player.captureSeekState = () => structuredClone({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, opnbAdpcm, lastYm2612DacEnable,
+      player.captureSeekState = () => structuredClone({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, opnAdpcm, lastYm2612DacEnable,
         ...(currentChipKind === 'ym2151' ? {opm:opmMonitor.saveState(),opmTracker:opmNoteTracker.saveState(),opmNoteChannels} : {}),
         ...(['gameboy','nes'].includes(currentChipKind) ? {apuNoteMonitor,apuNoteChannels} : {})});
       player.restoreSeekState = state => {
-        ({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, opnbAdpcm, lastYm2612DacEnable} = state);
-        opnbAdpcm?.starts.fill(0);
+        ({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, opnAdpcm, lastYm2612DacEnable} = state);
+        opnAdpcm?.starts.fill(0);
         if (state.opm) { opmMonitor.loadState(state.opm);opmNoteTracker.loadState(state.opmTracker);opmNoteChannels=state.opmNoteChannels; }
         if (state.apuNoteMonitor) {
           apuNoteMonitor=state.apuNoteMonitor;apuNoteChannels=state.apuNoteChannels;
@@ -4298,9 +4298,10 @@ function configureChipMonitorTabs() {
   const previous = chipMonitorTabs.querySelector('[aria-selected="true"]')?.textContent;
   const psg = document.getElementById('psgMonitor');
   const pcm = document.getElementById('pcmMonitor');
+  const rhythm = document.getElementById('rhythmMonitor');
   const adpcmA = document.getElementById('adpcmAMonitor');
   const adpcmB = document.getElementById('adpcmBMonitor');
-  chipMonitorStorage.append(opnMonitorRoot, psg, pcm, adpcmA, adpcmB, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot);
+  chipMonitorStorage.append(opnMonitorRoot, psg, pcm, rhythm, adpcmA, adpcmB, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot);
   chipMonitorTabs.replaceChildren();
   chipMonitorPanels.replaceChildren();
   function addMonitorTab(tabList, panels, prefix, label, ...monitors) {
@@ -4334,8 +4335,9 @@ function configureChipMonitorTabs() {
   const add = (label, ...monitors) => addMonitorTab(chipMonitorTabs, chipMonitorPanels, 'chipMonitor', label, ...monitors);
   const kind = currentChipKind;
   const has = key => Boolean(noteishHeader[key+'Clock'] & 0x3fffffff);
-  if (kind === 'ym2610') {
-    const label = noteishHeader.ym2610Clock & 0x80000000 ? 'YM2610B' : 'YM2610';
+  if (kind === 'ym2608' || kind === 'ym2610') {
+    const opna = kind === 'ym2608';
+    const label = opna ? 'YM2608' : noteishHeader.ym2610Clock & 0x80000000 ? 'YM2610B' : 'YM2610';
     const sections = document.createElement('div');
     sections.className = 'tabbar';
     sections.setAttribute('role', 'tablist');
@@ -4343,12 +4345,12 @@ function configureChipMonitorTabs() {
     sections.addEventListener('keydown', navigateTabList);
     const panels = document.createElement('div');
     add(label, sections, panels);
-    const fmTab = addMonitorTab(sections, panels, 'opnbSection', 'FM', opnMonitorRoot);
-    addMonitorTab(sections, panels, 'opnbSection', 'SSG', psg);
-    addMonitorTab(sections, panels, 'opnbSection', 'ADPCM-A', adpcmA);
-    addMonitorTab(sections, panels, 'opnbSection', 'ADPCM-B', adpcmB);
+    const fmTab = addMonitorTab(sections, panels, 'opnSection', 'FM', opnMonitorRoot);
+    addMonitorTab(sections, panels, 'opnSection', 'SSG', psg);
+    addMonitorTab(sections, panels, 'opnSection', opna ? 'Rhythm' : 'ADPCM-A', opna ? rhythm : adpcmA);
+    addMonitorTab(sections, panels, 'opnSection', 'ADPCM-B', adpcmB);
     fmTab.click();
-  } else if (['ym2203','ym2608'].includes(kind)) {
+  } else if (kind === 'ym2203') {
     add(kind.toUpperCase(), opnMonitorRoot, psg);
   } else if (kind === 'ym2612' && has('ym2612')) add('YM2612', opnMonitorRoot);
   if (kind === 'ym2151') add(noteishHeader.ym2151Clock & 0x80000000 ? 'YM2164' : 'YM2151', opmMonitorRoot);
