@@ -109,3 +109,8 @@ header::after {margin-left:0}
   .output canvas {height:52px}
   [data-mode=synth] #workbench :is(#fm,#pcm,#files) {max-height:clamp(8rem,21dvh,15rem)}
 }
+.keyboard-toolbar,#keyChannels,#keyOctave {display:flex;align-items:center;flex-wrap:wrap;gap:.25rem}
+.keyboard-toolbar {justify-content:space-between;margin-bottom:.35rem}
+#keyChannels button {padding:.16rem .38rem;font-size:.85rem}
+#keyOctave {font-size:.85rem}
+#keyOctave .param-control {width:5.2rem;color:var(--ink)}

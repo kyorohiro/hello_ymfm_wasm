@@ -61,7 +61,7 @@ export function ym2151VoiceCode(state, channel = 0) {
   return lines.join('\n');
 }
 
-export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorControl, onKeyboardTargetChange = () => {}, onError = () => {}}) {
+export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorControl, onChannelChange = () => {}, onKeyboardTargetChange = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument ?? globalThis.document, win = doc.defaultView ?? globalThis;
   const panelId = ++panelSequence, listeners = [], held = new Map();
   let state = null, channel = 0, connected = false, visible = true, disposed = false, keyboardActive = false;
@@ -207,7 +207,7 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
     };
     keyboardButton.setAttribute('aria-pressed', String(keyboardActive)); if (keyboardActive) onKeyboardTargetChange(target);
   }
-  function selectChannel(next) {if (channel === next) return; releaseAll(); channel = next; updateTarget(); if (state) update(state);}
+  function selectChannel(next) {if (channel === next) return; releaseAll(); channel = next; updateTarget(); if (state) update(state); onChannelChange(channel);}
   function holdStart(event) {
     if (!visible || !connected || event.type === 'pointerdown' && event.button !== undefined && event.button !== 0 || event.type === 'keydown' && (event.repeat || ![' ', 'Enter'].includes(event.key))) return;
     event.preventDefault(); releaseSource('hold'); const id = startNote(channel, Number(auditionNote.value), 'hold'); if (!id) return;
@@ -267,7 +267,7 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
   }
   updateTarget();
   return {
-    update, setConnected, releaseAll, getSelectedChannel: () => channel, getNoteTarget: () => target,
+    update, setConnected, releaseAll, selectChannel, getSelectedChannel: () => channel, getNoteTarget: () => target,
     setVisible(value) {visible = Boolean(value); if (!visible) {releaseSource('hold'); releaseSource('preview');} else if (state) {envelopeSignature = ''; drawEnvelope(state.channels?.[channel]?.operators);}},
     setKeyboardActive(value) {if (!value && keyboardActive) {keyboardActive = false; releaseSource('keyboard'); bindingEpoch++; keyboardButton.setAttribute('aria-pressed', 'false');}},
     dispose() {if (disposed) return; setConnected(false); disposed = true; for (const remove of listeners) remove();},

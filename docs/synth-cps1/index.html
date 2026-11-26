@@ -27,6 +27,6 @@
 <p><button id="openCode">/index.js</button> <button id="openRoundStart">/examples/round-start.js</button></p>
 <output id="fileStatus" role="status"></output></section>
 <nav id="performanceTabs" aria-label="Performance"><button data-tab="keyboardPanel">Keyboard</button><button data-tab="code">Code</button></nav>
-<section id="keyboardPanel"><h2>Guitar keyboard</h2><div id="keys"></div></section>
+<section id="keyboardPanel" aria-label="Guitar keyboard"><div class="keyboard-toolbar"><div id="keyChannels" role="group" aria-label="Keyboard channel"></div><div id="keyOctave" role="group" aria-label="Keyboard octave">Octave</div></div><div id="keys"></div></section>
 <section id="code" hidden><div class="bar"><h2>JavaScript</h2><select id="codeFile" aria-label="Code file"><option>/index.js</option><option>/examples/round-start.js</option></select></div><label class="sr" for="editor">Live code</label><textarea id="editor" rows="12" spellcheck="false"></textarea><div class="bar"><button id="run">Run</button><button id="stop">Stop</button></div></section>
 </div></main><script type="module" src="./synth.js"></script></html>

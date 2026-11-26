@@ -42,7 +42,7 @@ const opm = createYm2151RegisterClient((method,args) => {
 });
 const keyOn = opm.keyOn;
 opm.keyOn = (ch,mask=keyMasks[ch]) => keyOn(ch,mask);
-const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),createOperatorControl:createParamControl,invoke(method,args) {
+const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),onChannelChange:syncKeyChannels,createOperatorControl:createParamControl,invoke(method,args) {
   if (method === 'auditionOn') startAudio().catch(fail);
   return inspector.invoke(method,args);
 },onError:fail});
@@ -276,7 +276,30 @@ $('rom').onchange = async () => {
 };
 $('restore').onclick = () => {romRevision++; $('rom').value=''; files.restoreKit();};
 
-const layout = createFretboardLayout({state:createFretboardState()});
+function syncKeyChannels(channel) {
+  Array.from($('keyChannels').children).forEach((button,i) => button.setAttribute('aria-pressed',String(i === channel)));
+}
+for (let ch=0;ch<8;ch++) {
+  const button = document.createElement('button');
+  button.textContent = 'CH'+(ch+1);
+  button.onclick = () => panel.selectChannel(ch);
+  $('keyChannels').append(button);
+}
+syncKeyChannels(panel.getSelectedChannel());
+const fretboard = createFretboardState();
+let layout = createFretboardLayout({state:fretboard});
+const octaveControl = createParamControl({label:'Octave',min:-2,max:2,step:1,value:0,showLabel:false,
+  formatValue:value => value > 0 ? '+'+value : String(value),
+  onChange(octave) {
+    layout = createFretboardLayout({state:fretboard,octave});
+    // Keep the buttons mounted so held pointers still receive their release.
+    for (const button of $('keys').querySelectorAll('.key')) {
+      const entry = layout.entries.find(note => note.key === button.dataset.key);
+      button.querySelector('span').textContent = entry.noteName;
+    }
+  },
+});
+$('keyOctave').append(octaveControl.element);
 const held = new Map();
 function press(id,entry) {
   if (held.has(id)) return;
@@ -288,7 +311,7 @@ function release(id) {
   held.delete(id);
 }
 buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entries,showPitch:false,
-  onPointerDown:(e,entry) => press('pointer'+e.pointerId,entry),
+  onPointerDown:(e,key) => press('pointer'+e.pointerId,layout.entries.find(entry => entry.key === key.key)),
   onPointerUp:e => release('pointer'+e.pointerId),onPointerCancel:e => release('pointer'+e.pointerId)});
 window.addEventListener('keydown',e => {
   if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
