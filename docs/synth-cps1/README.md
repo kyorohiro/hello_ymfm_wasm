@@ -12,6 +12,12 @@ Code runs in a dedicated worker. `opm` and `oki` share the instruments used by t
 
 Files lists the eight current channel voices, saved FM presets and sample banks. Export Cassette saves those files with the current code and global LFO/noise settings in a Tetorica cassette ZIP. Import restores the project without running its code. Export before closing the page to keep the voices and banks.
 
+### Load an Analyzer OPM voice
+
+In Analyzer’s Instrument tab, export the selected YM2151 voice as an `.opm` file. In the Synth, select the destination channel under YM2151, then use **Files → Import OPM**. The first voice is applied immediately. For a text bank, select another name and use **Load voice on selected CH**. The keyboard uses the imported SLOT mask. Code may override it with an explicit `opm.keyOn(ch, mask)`.
+
+**Apply shared LFO / CH8 noise** applies the selected OPM voice’s global settings. Import leaves the running LFO and noise settings intact. Cassette retains the imported OPM texts and channel masks. The source clock, note pitch and playback position are not restored by voice import.
+
 ## Next steps
 
-- Add Analyzer instrument exchange and a longer original example performance.
+- Add a longer original example performance.

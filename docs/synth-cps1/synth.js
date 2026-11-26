@@ -17,10 +17,11 @@ let audio, starting, context, dirty = true, mode = 'waveform', worker, runId = 0
 let sampleRom = createKit(), rawOki = [];
 const voiceMutes = Array(4).fill(false);
 const muteButtons = [];
+const keyMasks = Array(8).fill(15);
 const inspector = new Ym2151VoiceInspector({dispatch({method,args}) {
   if (method === 'writeRegister') opm.writeRegister(...args);
   if (method === 'forceKeyOff') opm.keyOff(args[0]);
-  if (method === 'auditionKeyOn') opm.keyOn(...args);
+  if (method === 'auditionKeyOn') opm.keyOn(args[0]);
 }});
 const opm = createYm2151RegisterClient((method,args) => {
   if (method !== 'writeRegister') throw Error('Unsupported OPM command');
@@ -28,6 +29,8 @@ const opm = createYm2151RegisterClient((method,args) => {
   audio?.fm.port.postMessage({method,args});
   dirty = true;
 });
+const keyOn = opm.keyOn;
+opm.keyOn = (ch,mask=keyMasks[ch]) => keyOn(ch,mask);
 const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),createOperatorControl:createParamControl,invoke(method,args) {
   if (method === 'auditionOn') startAudio().catch(fail);
   return inspector.invoke(method,args);
@@ -241,6 +244,6 @@ $('run').onclick = async () => {
   } catch (error) {stopRun();fail(error);}
 };
 
-const files = setupFiles({inspector,panel,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
+const files = setupFiles({inspector,panel,keyMasks,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
   applyBank:installRom,getCode:() => $('editor').value,
   setCode:value => {$('editor').value=value;$('editor').oninput();},stop:stopRun});

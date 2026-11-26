@@ -80,6 +80,17 @@ try {
   assert.ok(await page.locator('#sampleWave').isHidden());
   await page.click('[data-tab="files"]');
   await page.click('#saveVoice');
+  const opmText = ['@:0 Browser brass','LFO: 93 34 67 2 17','CH: 192 5 6 1 3 40 128',
+    ...['M1','C1','M2','C2'].map((name,i)=>name+': 31 2 3 4 5 '+(28+i)+' 0 1 0 0 0')].join('\n');
+  await page.locator('#importOpm').setInputFiles({name:'voice.opm',mimeType:'text/plain',buffer:Buffer.from(opmText)});
+  await page.waitForFunction(()=>document.querySelector('#fmFiles option:checked').textContent==='Browser brass');
+  await page.click('[data-tab="fm"]');
+  assert.equal(await page.locator('[data-chip-control="ym2151-feedback"]').inputValue(),'5');
+  await page.keyboard.down('a');
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes('0101'));
+  await page.keyboard.up('a');
+  await page.click('[data-tab="files"]');
+  await page.click('#opmGlobals');
   const download = page.waitForEvent('download');
   await page.click('#exportCassette');
   const archive = await (await download).path();
@@ -92,7 +103,7 @@ try {
   await page.locator('#importCassette').setInputFiles({name:'test.cassette.zip',mimeType:'application/zip',buffer:await readFile(archive)});
   await page.getByText('Imported test.cassette.zip',{exact:true}).waitFor();
   assert.equal(await page.locator('#romFiles option:checked').textContent(),'test.rom');
-  assert.equal(await page.locator('#fmFiles option').count(),9);
+  assert.equal(await page.locator('#fmFiles option').count(),10);
   await page.click('#openCode');
   assert.equal(await page.inputValue('#editor'),'while (true) {}');
   await page.click('[data-tab="fm"]');
