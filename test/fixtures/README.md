@@ -58,3 +58,22 @@ left/right volumes. It writes waveform RAM at physical `0x1200` using the VGM
 `generate_wonderswan.mjs` regenerates the VGM and VGZ; no game, BIOS or ROM data
 is included. Additional wave/Noise/Sweep/Voice PCM fixtures for browser tests
 are generated in memory by `test/helpers/wonderswan_vgm_fixture.mjs`.
+
+### Dual-chip playback probes
+
+Regenerate the four `dual-*.vgm` files with `node test/fixtures/generate_dual_chips.mjs`.
+Each declares two identical chips and programs the same channel number on both.
+The three one-second phrases use the first chip alone, the second an octave
+higher, then both together. The Yamaha files use FM only, with different OP4
+multipliers. Both DMGs use CH1 with 50% and 25% pulse duty respectively.
+
+Browser Analyzer observations at commit `399e19d4`:
+
+| Fixture | Select files | Instrument | Play |
+| --- | --- | --- | --- |
+| dual-ym2612.vgm | Unsupported raw VGM command 0xa2 | Disabled | Disabled |
+| dual-ym2608.vgm | Unsupported raw VGM command 0xa6 | Disabled | Disabled |
+| dual-ym2610.vgm | Unsupported raw VGM command 0xa8 | Disabled | Disabled |
+| dual-dmg.vgm | Parsed | Both DMG tabs expose their respective duty values | Dual/variant configuration is not supported |
+
+The Uses line identifies the model and clock in all four cases and omits the chip count.
