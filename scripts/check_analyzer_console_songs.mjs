@@ -54,6 +54,7 @@ try {
     };
   });
   assert.equal(await page.getByRole('tab',{name:'Basic',exact:true}).getAttribute('aria-selected'),'true');
+  assert(await page.getByRole('tab',{name:'Parsed Output'}).isDisabled());
   async function chooseFromBasic(name, files) {
     const [chooser] = await Promise.all([
       page.waitForEvent('filechooser'),
@@ -68,6 +69,7 @@ try {
   await indicator.waitFor({state:'hidden'});
   assert.match(await page.locator('#headerOutput').textContent(),/Failed to (decode|parse)/);
   assert(await page.locator('#playlistPanel').isVisible());
+  assert(await page.locator('#parsedOutputTab').isDisabled());
   const ssf = createScspSsfPlaybackFixture(), psf = createPsfPlaybackFixture();
   const elapsed = await page.evaluate(async ({image,prefix}) => {
     const {createScspSsfEngine} = await import(prefix+'synth-scsp/scsp_ssf_engine.js');
@@ -89,6 +91,7 @@ try {
   await chooseFromBasic('Select folder…',work);
   const tracks = page.locator('#playlistList button');
   await tracks.nth(3).waitFor();
+  await page.waitForFunction(() => !document.querySelector('#parsedOutputTab').disabled);
   assert.deepEqual(await tracks.allTextContents(),['a.ssf','b.psf','c.minissf','d.minipsf']);
   // Sample after the Analyzer's master/FX output, including renderer lookahead.
   const checkOutput = audible => page.waitForFunction(expected => {

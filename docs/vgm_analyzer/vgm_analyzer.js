@@ -3642,6 +3642,8 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
 
 async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   const enteredAt = performance.now();
+  parsedOutputTab.disabled = true;
+  if (parsedOutputTab.ariaSelected === 'true') setOutputTab('playlist');
   clearSong();
   loopCheckbox.disabled = false;
   spcNoteish.clear();
@@ -3714,6 +3716,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     noteishHeader = {};
     tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
     for (const out of [commandUsageOutput,dataBlocksOutput,specialCommandsOutput,pcmRamWriteOutput,command92ContextOutput]) out.textContent = '—';
+    parsedOutputTab.disabled = false;
     headerOutput.textContent = song.format+' · '+song.path;
     metadataOutput.textContent = song.title || '';
     await prepareConsoleTrack(song);
@@ -3734,12 +3737,13 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     detectedChipsOutput.hidden = false;
     detectedChipsOutput.textContent = 'C64 SID';
     headerOutput.textContent = metadataOutput.textContent = '';
-    if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
-    updatePlaybackButtons();
     const bytes = new Uint8Array(rawBuffer);
     const {format,metadata,songs,startSong,model,clock} = sidModule.parsePlayerStructure(bytes);
     headerOutput.textContent = JSON.stringify({format,model,clock,songs,startSong},null,2);
     metadataOutput.textContent = [metadata.name,metadata.author,metadata.released].filter(Boolean).join(' · ');
+    parsedOutputTab.disabled = false;
+    if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
+    updatePlaybackButtons();
     sidSubtune.replaceChildren(...Array.from({length:songs},(_,i) => new Option(String(i+1),String(i+1))));
     sidSubtune.value = String(startSong);
     sidSubtune.parentElement.hidden = songs < 2;
@@ -3795,6 +3799,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
       if (!metadataOutput.childElementCount) metadataOutput.textContent = 'No SPC metadata available.';
       detectedChipsOutput.hidden = false; detectedChipsOutput.textContent = 'SNES SPC700 + S-DSP · 8 voices · 32,000 Hz';
       for (const output of [commandUsageOutput, dataBlocksOutput, specialCommandsOutput, pcmRamWriteOutput, command92ContextOutput]) output.textContent = 'SPC CPU playback; VGM command analysis is not applicable.';
+      parsedOutputTab.disabled = false;
       lastParseInfo = {type:'tetorica-spc-info', sourceFile:file.name, metadata:parsed.metadata, cpu:parsed.cpu, warnings:parsed.warnings};
       tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
       monitorToggles.replaceChildren(); inlineMonitorToggles.replaceChildren();
@@ -3839,6 +3844,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     updatePlaybackButtons();
     return;
   }
+  parsedOutputTab.disabled = false;
   const consoleChip = consoleVgmChip(buffer);
   if (consoleChip) {
     engine?.dispose?.();
@@ -4506,6 +4512,7 @@ function setOutputTab(tabName) {
       tabName = "parsed-output";
     }
   }
+  if (tabName === 'parsed-output' && parsedOutputTab.disabled) tabName = 'playlist';
   const playlistTab = document.getElementById('playlistTab');
   document.getElementById('playlistPanel').hidden = tabName !== 'playlist';
   playlistTab.ariaSelected = String(tabName === 'playlist');
