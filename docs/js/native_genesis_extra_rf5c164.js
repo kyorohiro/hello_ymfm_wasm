@@ -148,7 +148,7 @@ export function createNativeGenesisExtraRf5c164Endpoint(synth,{decodeAudio=creat
     loadSample(source,options){const result=serial.then(()=>sample(source,options,true));serial=result.catch(()=>{});return result;},
     cancelOwner:(performance,owner)=>cancelOperations(op=>op.performance===performance&&op.owner===owner),cancelPerformance:performance=>cancelOperations(op=>op.performance!==undefined&&(performance===null||op.performance===performance)),
     async initialize(){const token=capture();context.enable('rf5c164');if(initialized)return;await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid RF5C164 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid RF5C164 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancelOperations(()=>true);context.invalidate();context.disable('rf5c164');initialized=false;mainGroup=undefined;leases.clear();inspector.reset();inspector.samples=[];inspector.memoryRanges=[];inspector.memoryRevision=0;clock=appliedClock=CLOCK;},
   };
 }

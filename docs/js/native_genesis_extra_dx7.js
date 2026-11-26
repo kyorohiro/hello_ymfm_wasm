@@ -125,7 +125,7 @@ export function createNativeGenesisExtraDx7Endpoint(synth){
     });editorSerial=result.catch(()=>{});return result;},
     cancelOwner:(performance,owner)=>cancel(op=>op.performance===performance&&op.owner===owner),cancelPerformance:performance=>cancel(op=>op.performance!==undefined&&(performance===null||op.performance===performance)),
     async initialize(){const token=capture();context.enable('dx7');if(initialized)return;await snapshot();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid DX7 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid DX7 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancel(()=>true);context.invalidate();context.disable('dx7');initialized=false;mainGroup=undefined;listeners.clear();pending.clear();notes.clear();auditionVoices.clear();inspector.auditions.clear();inspector.byMidi.clear();inspector.notes.clear();optimisticSelected=null;selectionSequence++;},
   };
 }

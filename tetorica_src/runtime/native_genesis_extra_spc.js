@@ -136,7 +136,7 @@ export function createNativeGenesisExtraSpcEndpoint(synth){
   return {client,
     connect(){if(connection)throw new Error('Native SPC endpoint is already connected');connection={command:new MessageChannel(),control:new MessageChannel()};for(const channel of [connection.command,connection.control]){channel.port1.onmessage=({data})=>receive(data,channel.port1);channel.port1.start?.();}return {port:connection.command.port2,node:{port:connection.control.port2}};},
     async initialize(){const token=capture();context.enable('spc');if(initialized)return;const op=operation();try{await snapshot(op);current(token);initialized=true;}finally{operations.delete(op);}},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid SPC mix');const op=operation();try{await transmit({method:'mix',volume,pan},op);}finally{operations.delete(op);}},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid SPC mix');const op=operation();try{await transmit({method:'mix',volume,pan},op);}finally{operations.delete(op);}},
     reset(){closed=true;cancel(()=>true);loadVersion++;seekVersion++;activeSeek=null;observing=false;eventVersion++;clearTimeout(eventTimer);eventTimer=null;context.invalidate();context.disable('spc');if(connection)for(const channel of [connection.command,connection.control])for(const port of [channel.port1,channel.port2]){port.onmessage=null;port.close();}connection=null;owners.clear();cancelled.clear();},
   };
 }

@@ -110,5 +110,15 @@ test('the historical SID policy reproduces every earlier source/listening gain a
   assert.deepEqual(after.factoryModes.c64,{version:1,entries:[{id:'sid',name:'sid',settings:{volume:1}}]});
   delete after.factoryModes.c64;
   assert(after.calibration.unmeasuredKinds.includes('sid'));after.calibration.unmeasuredKinds=after.calibration.unmeasuredKinds.filter(name=>name!=='sid');
+  // Reconstruct the pre-SID policy, which predates the DX7 listening boost.
+  assert.equal(after.listening.dx7,2.2);
+  delete after.listening.dx7;
+  for(const [role,settings] of [
+    ['extra',after.factoryDefaults.kinds.find(entry=>entry.name==='dx7')],
+    ['primary',after.factoryModes.dx7.entries[0].settings],
+  ]) {
+    assert.equal(settings.volume,2.2);
+    settings.volume=historical.calibration.routes.find(route=>route.kind==='dx7'&&route.role===role).volume;
+  }
   assert.equal(sha(JSON.stringify(after)),PRE_SID_POLICY_OBJECT_SHA256,'all earlier targets, source/listening gains, engine gains and routes must remain exact');
 });

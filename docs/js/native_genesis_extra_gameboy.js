@@ -119,7 +119,7 @@ export function createNativeGenesisExtraGameboyEndpoint(synth){
   const cancel=matches=>{for(const request of clockRequests)if(matches(request))request.cancelled=true;};
   return {client,dispatch,read,invoke,cancelOwner:(performance,owner)=>cancel(request=>request.performance===performance&&request.owner===owner),cancelPerformance:performance=>cancel(request=>request.performance!==undefined&&(performance===null||request.performance===performance)),
     async initialize(){const token=capture();context.enable('gameboy');if(initialized)return;await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid Game Boy mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid Game Boy mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancel(()=>true);context.invalidate();context.disable('gameboy');initialized=false;mainGroup=undefined;leases.clear();owners.clear();inspector.reset();disposeClient();},
   };
 }

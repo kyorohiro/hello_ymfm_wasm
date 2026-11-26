@@ -16,7 +16,7 @@
 
 **☰ Menu → Import** にはDX7 voice · SysEx（単音色・32音色バンクの.syx）、MIDI（.mid／.midi）、Cassette（.zip）が並ぶ。読み込んだMIDIはFilesのsongsフォルダに保存される。Escで閉じる。画面の切り替えはタブとFilesボタンで行う。
 
-最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜380%で、倍率は掛け合わせる。Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
+最初の音色はオリジナルの **GLASS STEP**。Codeの **Run** でCH1の低音とCH2のベルが始まる。`0x30c1` への書き込みを36から12に変え、**Apply** するとCH2のOP2による変調が深くなる。**Stop** で停止する。MixerタブのDX7 volumeで音源の出力を、画面上部のMasterで最終音量を調整する。どちらも0〜480%（DX7 volumeの初期値は220%）で、倍率は掛け合わせる。Outputの **Waveform / Spectrum** ボタンでMaster後の波形・スペクトルを切り替える。MasterやMixerをマウスで調整した直後もPCキーで演奏でき、Code入力中ならエディタに戻る。Tabでスライダーを選ぶと矢印キーで値を調整できる。
 
 **After the Chime** はTetoricaオリジナルの6小節の演奏MIDI（96 BPM、15秒）。Filesでexamplesの **after-the-chime.mid** を選び、**Play MIDI** を押すと現在の音色で鳴る。冒頭2小節の和音と旋律を強く弾き直し、最後の2小節は単音の余韻を残す。プログラムチェンジは含まない。同じ演奏でエレピとベルの音色を比較できる。[演奏MIDI](examples/after-the-chime.mid)
 

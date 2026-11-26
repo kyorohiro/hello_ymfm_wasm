@@ -99,7 +99,7 @@ test('invalid presets leave both ID settings and kind policy untouched atomicall
   f.mixer.set('lead', {pan:.4, muted:true}); f.state.flush();
   const before = {defaults:f.mixer.exportDefaults(), state:f.mixer.exportState(), text:f.files.get(MIXER_STATE_PATH).data};
   const invalid = [
-    preset([record('lead', {volume:3})], [{name:'segapsg', volume:.2}]),
+    preset([record('lead', {volume:4.81})], [{name:'segapsg', volume:.2}]),
     preset([record('lead', {volume:.2})], [{name:'segapsg', pan:4}]),
     {version:1, kinds:null, entries:[]},
     {version:1, entries:[], unexpected:true},

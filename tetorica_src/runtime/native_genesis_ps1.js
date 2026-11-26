@@ -195,7 +195,7 @@ export function createNativeGenesisPs1(owner,{additional=false}={}){
   return {client,dispatch,invoke,async read(){await snapshot();return inspector.read();},
     cancelOwner:(performance,owner)=>cancel(op=>op.performance===performance&&op.owner===owner),cancelPerformance:performance=>cancel(op=>op.performance!==undefined&&(performance===null||op.performance===performance)),
     async initialize(){const token=capture();context.enable('ps1');if(initialized)return;await controls('reset',[]);current(token);if(!additional){const init=createPs1InitSample(),sample=await loadADPCM(init.adpcm,{baseFrequencyHz:init.baseFrequencyHz,loopStartSamples:init.loopStartSamples});current(token);for(let ch=0;ch<24;ch++)await controls('setPreset',[ch,{sample}]);}initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid PS1 mix');const token=capture();send([{method:'mix',volume,pan}],{},undefined);await owner.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid PS1 mix');const token=capture();send([{method:'mix',volume,pan}],{},undefined);await owner.flush();current(token);},
     stopped,adoptStopped(data){stopped();return adopt(data?.ps1??data);},
     reset(){stopped();resourceVersion++;bankVersion++;context.invalidate();context.disable('ps1');initialized=false;mainGroup=undefined;assigned.fill(false);for(const target of [projected,applied])target.synth.reset({clearRam:true});appliedRevision=-1;},
   };

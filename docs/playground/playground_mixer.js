@@ -15,7 +15,7 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
   const masterName = make('strong', '', 'Master');
   const masterLabel = make('label', 'playground-mixer-control');
   masterLabel.append(make('span', '', 'Volume'));
-  const masterRange = make('input'); masterRange.type = 'range'; masterRange.min = '0'; masterRange.max = '380'; masterRange.step = '1';
+  const masterRange = make('input'); masterRange.type = 'range'; masterRange.min = '0'; masterRange.max = '480'; masterRange.step = '1';
   masterRange.setAttribute('aria-label', 'Master volume');
   const masterValue = make('output');
   masterLabel.append(masterRange, masterValue);
@@ -202,7 +202,7 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
         input.setAttribute('aria-label', `${chipName} ${label.toLowerCase()}`);
       }};
     }
-    const volume = control('volume', 'Volume', 0, 200, value => `${value}%`);
+    const volume = control('volume', 'Volume', 0, 480, value => `${value}%`);
     const pan = control('pan', 'Pan', -100, 100, value => value === 0 ? 'Center' : `${value < 0 ? 'L' : 'R'} ${Math.abs(value)}`);
     const meter = createMeter(entry.id), connection = make('span', 'subtext');
     host.append(heading, volume.row, pan.row, meter.host, connection);

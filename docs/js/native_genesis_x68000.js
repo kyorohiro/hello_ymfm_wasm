@@ -48,7 +48,7 @@ export function createNativeGenesisX68000(synth,{
   function validatePending(data){if(data.pendingCommands!==undefined&&(!Array.isArray(data.pendingCommands)||data.pendingCommands.some(id=>!Number.isSafeInteger(id)||id<1)))throw new Error('Native X68000 returned invalid pending commands');}
   function validHeld(data,max){if(data.held!==undefined&&(!Array.isArray(data.held)||data.held.some(ch=>!Number.isInteger(ch)||ch<0||ch>max)))throw new Error('Native X68000 returned invalid held channels');validatePending(data);}
   function initialize(chip,client){return async()=>{const token=capture();enabled.add(chip);if(initialized.get(chip)===token.session)return;client.reset();await synth.flush();current(token);initialized.set(chip,token.session);};}
-  function mix(chip){return async(volume=1,pan=0)=>{if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid X68000 mix');const token=capture();synth.enqueue(timed(chip,{method:'mix',volume,pan}));await synth.flush();current(token);};}
+  function mix(chip){return async(volume=1,pan=0)=>{if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid X68000 mix');const token=capture();synth.enqueue(timed(chip,{method:'mix',volume,pan}));await synth.flush();current(token);};}
   function serialize(callback){let serial=Promise.resolve();return async(method,args=[])=>{const token=capture(),copy=structuredClone(args),result=serial.then(()=>{current(token);return callback(method,copy);});serial=result.catch(()=>{});return result;};}
 
   const opmClient=createOpmClient(message=>send('ym2151',message));

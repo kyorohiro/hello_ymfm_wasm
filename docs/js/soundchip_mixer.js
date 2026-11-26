@@ -25,9 +25,9 @@ export function soundChipMixDefaults(name = undefined) {
 function stripDefaults(name = undefined) { return {...soundChipMixDefaults(name), solo: false}; }
 /** @param {{volume?: number, pan?: number, muted?: boolean, solo?: boolean}} settings */
 export function validateChipMix(settings) {
-  if (!Number.isFinite(settings.volume) || settings.volume < 0 || settings.volume > 2 ||
+  if (!Number.isFinite(settings.volume) || settings.volume < 0 || settings.volume > 4.8 ||
       !Number.isFinite(settings.pan) || settings.pan < -1 || settings.pan > 1 || typeof settings.muted !== 'boolean' || (settings.solo !== undefined && typeof settings.solo !== 'boolean')) {
-    throw new RangeError('Mixer requires volume 0..2, pan -1..1 and boolean muted/solo');
+    throw new RangeError('Mixer requires volume 0..4.8, pan -1..1 and boolean muted/solo');
   }
 }
 /** Stereo balance: retain the original stereo image at center.

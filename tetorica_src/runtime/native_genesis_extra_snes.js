@@ -190,7 +190,7 @@ export function createNativeGenesisExtraSnesEndpoint(synth){
   return {client,dispatch,invoke,async read(){await snapshot();return inspector.read();},
     cancelOwner:(performance,owner)=>cancel(op=>op.performance===performance&&op.owner===owner),cancelPerformance:performance=>cancel(op=>op.performance!==undefined&&(performance===null||op.performance===performance)),
     async initialize(){const token=capture();context.enable('snes');if(initialized)return;await resetState();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid SNES mix');const token=capture();send([{method:'mix',volume,pan}],{},undefined);await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid SNES mix');const token=capture();send([{method:'mix',volume,pan}],{},undefined);await synth.flush();current(token);},
     reset(){cancel(()=>true);resourceVersion++;cancelPlayback();context.invalidate();context.disable('snes');initialized=false;leases.clear();inspector.resetAuditions();authors.clear();notes.clear();mainGroup=undefined;timeline=null;preparing=false;},
   };
 }

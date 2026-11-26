@@ -82,6 +82,11 @@ test('native batch size is bounded and mixer and listening volume keep their sep
   f.calls.length=0;f.synth.setMasterVolume(2);f.synth.setListeningVolume(.25);
   f.synth.mixer.set('ym2612',{volume:.5,pan:1});await f.synth.flush();
   const mix=f.commands().at(-1);assert.equal(mix.master,.5);assert.equal(mix.fmLeft,0);assert.equal(mix.fmRight,.5);
+  f.synth.setListeningVolume(4.8);
+  f.synth.mixer.set('ym2612',{volume:4.8,pan:0});await f.synth.flush();
+  assert.equal(f.commands().at(-1).master,9.6);
+  assert.equal(f.commands().at(-1).fmRight,4.8);
+  assert.throws(()=>f.synth.setListeningVolume(4.81),RangeError);
   assert.equal(f.synth.getMasterVolume(),2);await f.synth.close();assert.equal(f.synth.mixer.list().length,0);
 });
 

@@ -144,7 +144,7 @@ export function createNativeGenesisYm2612Endpoint(synth,{engine:requestedEngine}
     // Older Native hosts ignore unknown create arguments. Confirm Nuked before
     // publishing its client rather than silently playing their ymfm default.
     async initialize(){const token=capture();context.enable('ym2612');if(initialized)return;client.reset();await synth.flush();current(token);if(engine==='nuked'){await snapshot();current(token);}initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2612 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2612 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){context.invalidate();context.disable('ym2612');initialized=false;stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK});},
   };
 }

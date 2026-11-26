@@ -178,7 +178,7 @@ export function createNativeGenesisYm2203Endpoint(synth){
     cancelOwner(performance,owner){if(activeSchedule?.performance===performance&&activeSchedule?.owner===owner)cancelCompletion(new Error('Run stopped'));},
     cancelPerformance(performance){if(activeSchedule&&activeSchedule.performance!==undefined&&(performance===null||activeSchedule.performance===performance))cancelCompletion(new Error('Run stopped'));},
     async initialize(){const token=capture();context.enable('ym2203');if(initialized)return;client.reset();await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2203 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2203 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancelCompletion(new Error('Run stopped'));context.invalidate();context.disable('ym2203');initialized=false;lastScheduleFence=0;mainGroup=mainCsmGroup=undefined;mainSsgGroups.fill(undefined);stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK,ssg:{registers:Array(16).fill(0),levels:[0,0,0]}});},
   };
 }

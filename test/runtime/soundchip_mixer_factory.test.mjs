@@ -122,13 +122,13 @@ test('factory policies are validated completely, copied, and reject out-of-range
   options.factoryDefaults.kinds[0].volume=2;
   options.factoryEntries.entries[0].settings.volume=2;
   mixer.register('ym2612','ym2612',()=>{}); assert.deepEqual(mixer.get('ym2612'),mix(.5,-.1));
-  for(const factoryDefaults of [null,kinds([{name:'x',volume:2.001}]),kinds([{name:'x',volume:NaN}]),kinds([{name:'x',volume:-1}]),kinds([{name:'x',muted:true}]),kinds([{name:'x',volume:1},{name:'x',volume:.5}])]){
+  for(const factoryDefaults of [null,kinds([{name:'x',volume:4.801}]),kinds([{name:'x',volume:NaN}]),kinds([{name:'x',volume:-1}]),kinds([{name:'x',muted:true}]),kinds([{name:'x',volume:1},{name:'x',volume:.5}])]){
     assert.throws(()=>new SoundChipMixer({factoryDefaults}));
   }
-  for(const factoryEntries of [null,state([{id:'x',settings:{volume:.5}}]),state([entry('x','x',{volume:2.001})]),state([entry('x','x',{volume:NaN})]),state([entry('x','x',{muted:true})]),state([entry('x','x',{solo:true})]),state([entry('x','x',{volume:.3}),entry('x','x',{volume:.4})])]){
+  for(const factoryEntries of [null,state([{id:'x',settings:{volume:.5}}]),state([entry('x','x',{volume:4.801})]),state([entry('x','x',{volume:NaN})]),state([entry('x','x',{muted:true})]),state([entry('x','x',{solo:true})]),state([entry('x','x',{volume:.3}),entry('x','x',{volume:.4})])]){
     assert.throws(()=>new SoundChipMixer({factoryDefaults:before.factoryDefaults,factoryEntries}));
   }
-  assert.doesNotThrow(()=>new SoundChipMixer({factoryDefaults:kinds([{name:'x',volume:2}]),factoryEntries:state([entry('x','x',{volume:0})])}));
+  assert.doesNotThrow(()=>new SoundChipMixer({factoryDefaults:kinds([{name:'x',volume:4.8}]),factoryEntries:state([entry('x','x',{volume:0})])}));
   assert.deepEqual(mixer.exportDefaults(),kinds([])); assert.deepEqual(mixer.exportState(),state([]));
 });
 
@@ -167,7 +167,7 @@ test('factory engine policies are copied and fully validated before use',()=>{
   options.factoryEngines.engines[0].volume=1;
   assert.equal(mixer.getKindDefault('ym2612','nuked').volume,.2);
   assert.equal(mixer.getKindDefault('other','nuked').volume,1);
-  for(const engines of [[{name:'ym2612',engine:'nuked',volume:2.01}], [{name:'ym2612',engine:'',volume:.2}],
+  for(const engines of [[{name:'ym2612',engine:'nuked',volume:4.81}], [{name:'ym2612',engine:'',volume:.2}],
     [{name:'ym2612',engine:'nuked',volume:.2},{name:'ym2612',engine:'nuked',volume:.3}],
     [{name:'ym2612',engine:'nuked',muted:true}], [{name:'ym2612',engine:'nuked',volume:NaN}]]) {
     assert.throws(()=>new SoundChipMixer({factoryEngines:{version:1,engines}}));

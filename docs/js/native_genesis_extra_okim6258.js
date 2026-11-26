@@ -103,7 +103,7 @@ export function createNativeGenesisExtraOkim6258Endpoint(synth,{decodeAudio=crea
   return {client,dispatch,read,invoke,loadSample:(source,options)=>sample(source,options,true),
     cancelOwner:(performance,owner)=>cancelOperations(op=>op.performance===performance&&op.owner===owner),cancelPerformance:performance=>cancelOperations(op=>op.performance!==undefined&&(performance===null||op.performance===performance)),
     async initialize(){const token=capture();context.enable('okim6258');if(initialized)return;await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid OKIM6258 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid OKIM6258 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancelOperations(()=>true);context.invalidate();context.disable('okim6258');initialized=false;mainGroup=undefined;lease=undefined;inspector.resetAudition();inspector.sample=null;inspector.memoryRevision=0;client.disposed=true;},
   };
 }

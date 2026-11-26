@@ -87,9 +87,9 @@ test('AY Single Output refresh preserves canonical Analyzer statistics and rejec
   }
 });
 
-test('independent OPNA source controls retain every measured sample and bind the current Analyzer graph',async()=>{
+test('raising the Mixer ceiling retains every unit-gain sample and binds the current Analyzer graph',async()=>{
   const root=new URL('../',import.meta.url);
-  for(const [beforeName,afterName] of [['analyzer_extra_levels_06','analyzer_extra_levels_07'],['analyzer_psg_levels_09','analyzer_psg_levels_10']]) {
+  for(const [beforeName,afterName] of [['analyzer_extra_levels_07','analyzer_extra_levels_08'],['analyzer_psg_levels_10','analyzer_psg_levels_11']]) {
     const read=async name=>JSON.parse(await readFile(new URL('docs/issues/'+name+'.json',root),'utf8'));
     const before=await read(beforeName),after=await read(afterName);
     assert.deepEqual(after.defaults,before.defaults);
@@ -97,7 +97,7 @@ test('independent OPNA source controls retain every measured sample and bind the
     assert.deepEqual(after.reference,before.reference);
     await verifyAnalyzerCalibrationSources([after]);
     await assert.rejects(verifyAnalyzerCalibrationSources([before]),/source changed; remeasure:/);
-    for(const changedPath of ['docs/vgm_analyzer/ym2608_source_mix.js','docs/vgm_analyzer/playback_mixer.js']) {
+    for(const changedPath of ['docs/js/soundchip_mixer.js','docs/vgm_analyzer/ym2608_source_mix.js','docs/vgm_analyzer/playback_mixer.js']) {
       assert(Object.hasOwn(after.sources,changedPath));
       await assert.rejects(verifyAnalyzerCalibrationSources([after],async path=>{
         const bytes=await readFile(new URL(path,root));

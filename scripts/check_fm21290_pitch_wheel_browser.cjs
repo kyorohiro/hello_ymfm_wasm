@@ -66,7 +66,7 @@ const {chromium}=require('playwright');
         && Math.abs(master.gain.value-m/100)<1e-5 && Math.abs(mixer.gain.value-s/100)<1e-5;
     },[masterPercent,mixerPercent]);
   }
-  await gains(65,100);
+  await gains(65,220);
   for(const mode of ['Spectrum','Waveform']){
     const button=page.getByRole('button',{name:mode,exact:true});
     await button.click();
@@ -79,12 +79,12 @@ const {chromium}=require('playwright');
     await page.keyboard.up('a');await page.waitForFunction(()=>!document.querySelector('#channels [data-state=on]'));
   }
   await master.press('Home');await gains(0,Number(await mixer.inputValue()));
-  await mixer.press('End');await gains(0,380);
-  await master.press('Home');await gains(0,380);
-  await master.press('End');await mixer.press('Home');await gains(380,0);
-  await mixer.press('End');await gains(380,380);
+  await mixer.press('End');await gains(0,480);
+  await master.press('Home');await gains(0,480);
+  await master.press('End');await mixer.press('Home');await gains(480,0);
+  await mixer.press('End');await gains(480,480);
   await page.locator('#keyboardPanel').focus();await page.keyboard.down('a');
-  await gains(380,380);
+  await gains(480,480);
   await page.evaluate(()=>{
     const links=window.testAudioLinks;
     const dest=[...links.keys()].findLast(n=>n instanceof AudioDestinationNode && n.context.state==='running');
@@ -111,7 +111,7 @@ const {chromium}=require('playwright');
   await page.keyboard.up('a');
   await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent==='Saved locally');
   await page.reload();await page.waitForSelector('main:not([inert])');
-  assert.equal(await page.innerText('#masterValue'),'380%');assert.equal(await page.innerText('#mixerValue'),'380%');
+  assert.equal(await page.innerText('#masterValue'),'480%');assert.equal(await page.innerText('#mixerValue'),'480%');
   assert.deepEqual(errors,[]);assert.equal(await page.innerText('#status'),'');console.log('Cold wheel, physical key, PM words, newer SMF bend, stop under wheel, pointer release outside, blur and live envelope edits passed');
  } finally{await browser?.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

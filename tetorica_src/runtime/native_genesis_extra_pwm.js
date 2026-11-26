@@ -100,7 +100,7 @@ export function createNativeGenesisExtraPwmEndpoint(synth){
     async invoke(method,args=[]){if(!['write','writeRegister','reset'].includes(method))throw new Error('Unsupported Native additional PWM inspector operation');const value=await dispatch(method,args,{},true);return readPwmInspector({read:register=>value.registers[register],getState:()=>apiState(value)});},
     cancelOwner:(performance,owner)=>cancel(op=>op.performance===performance&&op.owner===owner),cancelPerformance:performance=>cancel(op=>op.performance!==undefined&&(performance===null||op.performance===performance)),
     async initialize(){const token=capture();context.enable('pwm');if(initialized)return;await snapshot();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid PWM mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid PWM mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancel(()=>true);context.invalidate();context.disable('pwm');initialized=false;mainGroup=undefined;clock=CHIP_CLOCKS.pwm;},
   };
 }

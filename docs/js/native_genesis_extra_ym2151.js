@@ -73,7 +73,7 @@ export function createNativeGenesisYm2151Endpoint(synth){
   }
   return {client,read,invoke,dispatch,
     async initialize(){const token=capture();context.enable('ym2151');if(initialized)return;await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2151 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2151 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){context.invalidate();context.disable('ym2151');initialized=false;mainGroup=mainCsmGroup=undefined;leases.clear();inspector.reset();appliedClock=CLOCK;client._adoptState({clock:CLOCK,registers:Array(256).fill(0)});},
   };
 }

@@ -105,7 +105,7 @@ export function createNativeGenesisYm2203(synth){
   async function auditionNoteOff(channel,voice){const token=capture();integer(channel,2,'FM channel');if(!Number.isSafeInteger(voice)||voice<=0)throw new RangeError('Invalid audition token');send(identify({method:'batch',channel,voice,audition:true,action:'off',commands:[{method:'key-off',channel}]}));await synth.flush();current(token);}
   return {client,dispatch,read,invoke,auditionNoteOn,auditionNoteOff,
     async initialize(){const token=capture();enabled=true;if(initializedSession===token.session)return;client.reset();await synth.flush();current(token);initializedSession=token.session;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2203 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2203 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     stopped,adoptStopped(data){stopped();return adopt(data,true);},
     reset(){version++;enabled=false;initializedSession=undefined;stopped();inspector.levels.fill(0);appliedClock=CLOCK;client._adoptState({...fmBase,clock:CLOCK,ssg:{registers:Array(16).fill(0),levels:[0,0,0]}});},
   };

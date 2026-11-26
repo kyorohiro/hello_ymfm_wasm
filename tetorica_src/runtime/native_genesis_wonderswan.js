@@ -196,7 +196,7 @@ export function createNativeGenesisWonderSwan(synth,{extra=false,clock:initialCl
     cancelOwner:(performance,owner)=>cancel(operation=>operation.performance===performance&&operation.owner===owner),
     cancelPerformance:performance=>cancel(operation=>operation.performance!==undefined&&(performance===null||operation.performance===performance)),
     async initialize(){const token=capture();if(initialized)return;initialized=true;if(!extra)client.initialize();await synth.flush();current(token);},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid WonderSwan mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid WonderSwan mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     stopped(){cancel(()=>true);leases.clear();inspector.resetAuditions();},
     adoptStopped(data){this.stopped();adopt(data,{author:true});},
     reset(){cancel(()=>true);context.invalidate();initialized=false;mainGroup=undefined;leases.clear();inspector.reset();if(extra)disposeClient();else{clock=appliedClock=initialClock;client._adoptState({clock,initialized:false,registers:Array(32).fill(0),memory:Array(16384).fill(0)});}},

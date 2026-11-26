@@ -15,11 +15,11 @@ import moduleFactory from '../../docs/generated/ym2612_wasm.js';
 
 const report = JSON.parse(await readFile(new URL('../../docs/issues/playground_chip_levels_01.json',runtimeDirectoryUrl), 'utf8'));
 const measured = buildPlaygroundMixerDefaults(report);
-const scspReport=JSON.parse(await readFile(new URL('../../docs/issues/scsp_ws_timed_chip_levels_01.json',runtimeDirectoryUrl),'utf8'));
+const scspReport=JSON.parse(await readFile(new URL('../../docs/issues/scsp_mixer480_levels_01.json',runtimeDirectoryUrl),'utf8'));
 const scspCalibration=validateScspMixerCalibration(report,scspReport);
 const psgReport = JSON.parse(await readFile(new URL('../../docs/issues/soundchip_psg_levels_01.json',runtimeDirectoryUrl), 'utf8'));
 const reducedPsg = {segapsg: 0.455420, ay8910: 1.100331, nes: 1.514209};
-const listeningLevels = {segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
+const listeningLevels = {dx7:2.2,segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
 const preset = SOUNDCHIP_MIXER_PRESETS.calibrated;
 const kinds = records => ({version: 1, kinds: records});
 const state = entries => ({version: 1, entries});
@@ -47,7 +47,7 @@ test('calibrated export combines measured kinds and shared listening levels with
   assert.equal(Object.hasOwn(preset, 'factoryEntries'), false);
   const changed = preset.factoryDefaults.kinds.filter(record => !['ps1','wonderswan','pokey','scsp'].includes(record.name) && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
   assert.deepEqual(new Set(changed.map(record => record.name)), new Set(Object.keys(listeningLevels)));
-  for (const record of changed) assert.ok(record.volume < measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
+  for (const record of changed) assert.equal(record.volume,listeningLevels[record.name]);
 });
 
 test('historical steady OPNA-FM measurements remain intact beneath the listening policy', () => {

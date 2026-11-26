@@ -145,7 +145,7 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
     cancelOwner(performance,owner){adpcm?.cancelOwner(performance,owner);},
     cancelPerformance(performance){adpcm?.cancelPerformance(performance);},
     async initialize(){const token=capture();context.enable(kind);if(initialized)return;client.initialize();await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError(`Invalid ${label} mix`);const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError(`Invalid ${label} mix`);const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){adpcm?.reset();adpcmInspection?.reset();context.invalidate();context.disable(kind);initialized=false;mainGroup=undefined;layoutPending=false;layout=false;layoutRevision=0;layoutMetadata='{"rhythmEnabled":false}';for(const request of clockRequests)request.cancelled=true;leases.clear();authoredOwners.clear();sentRegisters.fill(0);inspector.reset();appliedClock=initialClock;client._adoptState({clock:initialClock,initialized:false,registers:Array(registerCount).fill(0),...(kind==='ay8910'?{levels:[9,9,9]}:{})});},
   };
 }

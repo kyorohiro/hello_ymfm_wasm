@@ -763,7 +763,7 @@ export class NativeGenesisSynth {
   getMasterVolume() {return this.masterVolume;}
   setListeningVolume(value) {
     const volume = Number(value);
-    if (!Number.isFinite(volume) || volume < 0 || volume > 1) throw new RangeError('Listening volume must be from 0 to 1');
+    if (!Number.isFinite(volume) || volume < 0 || volume > 4.8) throw new RangeError('Listening volume must be from 0 to 4.8');
     this.listeningVolume = volume; this.mix.master = this.masterVolume * volume;
     if (this.isReady() && !this.stopping && !this.closing) this.enqueue({type:'mix',frame:0,...this.mix});
   }

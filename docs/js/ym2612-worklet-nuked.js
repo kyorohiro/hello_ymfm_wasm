@@ -265,7 +265,7 @@ export class YM2612Processor extends AudioWorkletProcessor {
       return;
     }
     if (command.type === 'mixer-settings') {
-      if (!['ym2612', 'segapsg'].includes(command.name) || !Array.isArray(command.gains) || command.gains.length !== 2 || command.gains.some(v => !Number.isFinite(v) || v < 0 || v > 2) || command.gainUnits !== undefined && !['legacy', 'source'].includes(command.gainUnits)) throw new RangeError('Invalid mixer settings');
+      if (!['ym2612', 'segapsg'].includes(command.name) || !Array.isArray(command.gains) || command.gains.length !== 2 || command.gains.some(v => !Number.isFinite(v) || v < 0 || v > 4.8) || command.gainUnits !== undefined && !['legacy', 'source'].includes(command.gainUnits)) throw new RangeError('Invalid mixer settings');
       // Keep ramps in their existing bus units. Source-unit settings replace
       // the legacy Genesis trims; converting only the target avoids a jump
       // when a running source changes units. FM-only output has no bus trim.

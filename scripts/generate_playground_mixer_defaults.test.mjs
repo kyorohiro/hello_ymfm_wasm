@@ -37,11 +37,11 @@ function fixture() {
 const row = (report,role,mode,kind) => report.calibration.routes.find(route=>route.role===role&&route.mode===mode&&route.kind===kind);
 const entry = (profile,mode,id) => profile.factoryModes[mode].entries.find(entry=>entry.id===id);
 
-test('listening policy covers PSG and wavetable primaries and extras while retaining measurements and FM output level',async()=>{
+test('listening policy covers DX7, PSG and wavetable primaries and extras while retaining unit measurements',async()=>{
   const report=JSON.parse(await readFile(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url),'utf8'));
   const before=structuredClone(report),raw=buildPlaygroundMixerDefaults(report);
   const policy=buildPlaygroundMixerPolicy(report);
-  const levels={segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
+  const levels={dx7:2.2,segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
   const expected=structuredClone(raw);
   for(const [name,volume] of Object.entries(levels))expected.factoryDefaults.kinds.find(entry=>entry.name===name).volume=volume;
   for(const mode of ['genesis','mega-cd','genesis-full','genesis-full-nuked','genesis-nuked']) {
@@ -50,6 +50,7 @@ test('listening policy covers PSG and wavetable primaries and extras while retai
   }
   for(const mode of ['master-system','game-gear'])entry(expected,mode,'segapsg').settings.volume=.35;
   for(const mode of ['msx','msx-audio','atari-st'])entry(expected,mode,'ay8910').settings.volume=.85;
+  entry(expected,'dx7','dx7').settings.volume=2.2;
   entry(expected,'nes','nes').settings.volume=1.16;
   entry(expected,'gameboy','gameboy').settings.volume=.36;
   entry(expected,'pc-engine','huc6280').settings.volume=.44;
@@ -311,10 +312,10 @@ test('a separately validated PS1 extension preserves all historical captures, ga
 
 test('the shipped Playground System policy reproduces from all separately measured extensions and hashed sources',async()=>{
   const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
-  const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_native_fm21290_levels_01.json',import.meta.url));
-  const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_native_fm21290_levels_01.json',import.meta.url));
-  const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_native_fm21290_levels_01.json',import.meta.url));
-const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_native_fm21290_levels_01.json',import.meta.url));
+  const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_mixer480_levels_01.json',import.meta.url));
+  const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_mixer480_levels_01.json',import.meta.url));
+  const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_mixer480_levels_01.json',import.meta.url));
+const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_mixer480_levels_01.json',import.meta.url));
   const moduleUrl=new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url),outPath=fileURLToPath(moduleUrl);
   const historicalText=await readFile(reportPath,'utf8'),ps1Text=await readFile(ps1ReportPath,'utf8'),wonderswanText=await readFile(wonderswanReportPath,'utf8'),pokeyText=await readFile(pokeyReportPath,'utf8'),output=await readFile(outPath,'utf8');
   const historical=JSON.parse(historicalText),ps1Report=JSON.parse(ps1Text);

@@ -47,7 +47,7 @@ export function createNativeVoiceEndpoint(context,{chip,globalName,client,inspec
   client.setClock=hz=>dispatch({method:'clock',args:[hz]});client._stopVoices=()=>dispatch({method:'stopVoices'});
   return {client,
     async initialize(){const token=capture();context.enable(chip);if(initializedSession===token.session)return;initialize();await synth.flush();current(token);initializedSession=token.session;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError(`Invalid ${context.label} mix`);const token=capture();synth.enqueue(context.timed(chip,{method:'mix',volume,pan}));await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError(`Invalid ${context.label} mix`);const token=capture();synth.enqueue(context.timed(chip,{method:'mix',volume,pan}));await synth.flush();current(token);},
     dispatch,read,invoke,stopped,adoptStopped(data){stopped();adopt(data?.[chip]??data,true,leases);},
     reset(){context.invalidate();context.disable(chip);initializedSession=undefined;stopped();inspector.reset();reset();},
   };

@@ -165,7 +165,7 @@ export function createNativeGenesisYm2610Endpoint(synth,{variant=false}={}){
     cancelOwner(performance,owner){cancelOperations(op=>op.performance===performance&&op.owner===owner);},
     cancelPerformance(performance){cancelOperations(op=>op.performance!==undefined&&(performance===null||op.performance===performance));},
     async initialize(){const token=capture();context.enable(kind);if(initialized)return;client.reset();await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2610 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2610 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancelOperations(()=>true);context.invalidate();context.disable(kind);initialized=false;mainGroup=mainCsmGroup=undefined;mainSsgGroups.fill(undefined);stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK,ssg:{registers:Array(16).fill(0),levels:[0,0,0]},adpcmA:{levels:Array(6).fill(0)},adpcmB:{registers:[0,0,0,0,0,0,0,0,0,0,0,0,255,255,0,0]}});},
   };
 }

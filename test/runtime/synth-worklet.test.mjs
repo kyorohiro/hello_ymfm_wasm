@@ -1,3 +1,5 @@
+import {createYm2608TimedProcessor} from '../../tetorica_src/runtime/ym2608_timed_processor.js';
+import {createYm2610OperationResetState,ym2610Timing} from '../../docs/js/ym2610_timed.js';
 import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
@@ -16,7 +18,7 @@ import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuar
 function processor(tree, file, rate, imports = {}) {
   let Type;
   const messages = [];
-  const context = { createYm2612TimedProcessor,observeYm2612TimedChip,OpnKeyboardInspector,PsgInspectorState, receiveChipInspector, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
+  const context = { ym2610Timing,createYm2610OperationResetState,createYm2608TimedProcessor,createYm2612TimedProcessor,observeYm2612TimedChip,OpnKeyboardInspector,PsgInspectorState, receiveChipInspector, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };
@@ -450,7 +452,7 @@ for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
     for (const gainUnits of [null,'',false,0,'other']) {
       assert.throws(() => p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[1,1],gainUnits}), /Invalid mixer settings/);
     }
-    for (const gain of [-.01,2.01,NaN,Infinity]) {
+    for (const gain of [-.01,4.81,NaN,Infinity]) {
       assert.throws(() => p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[gain,1],gainUnits:'source'}), /Invalid mixer settings/);
     }
     assert(Math.abs(render(p,1).left[0] - .0875) < 1e-6, 'Rejected commands leave current output unchanged');

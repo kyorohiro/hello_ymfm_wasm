@@ -15,9 +15,17 @@ const assert=require('node:assert/strict');
    await page.waitForFunction(()=>window.__volumeRunTest&&window.monaco?.editor?.getEditors().length);
    await page.evaluate(()=>{
     window.monaco.editor.getEditors()[0].setValue('setMasterVolume(1.0); await sleep(0.05);');
-    const input=document.getElementById('masterVolumeRange');input.value='380';input.dispatchEvent(new Event('input',{bubbles:true}));
+    const input=document.getElementById('masterVolumeRange');input.value='480';input.dispatchEvent(new Event('input',{bubbles:true}));
    });
    await page.click('#runButton');await page.waitForFunction(()=>!document.getElementById('runButton').disabled);
+   if(new URL(page.url()).searchParams.get('mode')==='dx7'){
+    await page.click('#mixerTab');
+    const strip=page.locator('[data-chip-id="dx7"] input[data-setting="volume"]');
+    assert.equal(await strip.inputValue(),'220');
+    await strip.focus();await strip.press('End');
+    assert.equal(await strip.inputValue(),'480');
+    assert.equal(await page.evaluate(()=>window.__volumeRunTest.megaDrive.mixer.get('dx7').volume),4.8);
+   }
    await page.evaluate(()=>{
     const {megaDrive}=window.__volumeRunTest,context=megaDrive.audioContext;
     const signal=context.createConstantSource();signal.offset.value=.02;signal.connect(megaDrive.audio.masterInputNode);signal.start();
@@ -36,8 +44,8 @@ const assert=require('node:assert/strict');
     await page.evaluate(async execution=>{await window.__volumeRunTest.runtime.stopWithFade();document.getElementById('workerExecution').checked=execution==='worker';},execution);
     for(let run=0;run<2;run++){
      await page.click('#runButton');await page.waitForFunction(()=>!document.getElementById('runButton').disabled);
-     const actual=await measure();assert.equal(actual.display,'380%');assert.equal(actual.slider,'380');assert.equal(actual.listening,3.8);assert.equal(actual.script,1);
-     assert(Math.abs(actual.mean-.076)<.001,JSON.stringify({name,execution,run,actual}));results.push({browser:name,execution,run,...actual});
+     const actual=await measure();assert.equal(actual.display,'480%');assert.equal(actual.slider,'480');assert.equal(actual.listening,4.8);assert.equal(actual.script,1);
+     assert(Math.abs(actual.mean-.096)<.001,JSON.stringify({name,execution,run,actual}));results.push({browser:name,execution,run,...actual});
     }
    }
    await page.evaluate(()=>{const input=document.getElementById('masterVolumeRange');input.value='250';input.dispatchEvent(new Event('input',{bubbles:true}));});

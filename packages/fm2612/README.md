@@ -912,7 +912,7 @@ retriggers the shared envelope. AY uses a twelve-bit tone period and
 
 ## Chip mixer
 
-Browser outputs share `SoundChipMixer`: `volume` is a linear multiplier (0–2),
+Browser outputs share `SoundChipMixer`: `volume` is a linear multiplier (0–4.8),
 `pan` is stereo balance (-1 left, 0 center, 1 right), and `muted` silences the
 output while the chip keeps running. Game Boy starts at 28%; other chips start
 at 100% unless an application explicitly selects a preset or supplies defaults.

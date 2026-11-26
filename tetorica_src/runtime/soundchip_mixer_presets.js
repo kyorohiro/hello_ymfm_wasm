@@ -9,6 +9,7 @@ const freeze = value => {
 };
 
 export const SOUNDCHIP_MIXER_LISTENING_LEVELS = freeze({
+  "dx7": 2.2,
   "segapsg": 0.35,
   "ay8910": 0.85,
   "nes": 1.16,
@@ -33,7 +34,7 @@ export const SOUNDCHIP_MIXER_PRESETS = freeze({
         },
         {
           "name": "dx7",
-          "volume": 1.038825
+          "volume": 2.2
         },
         {
           "name": "gameboy",
@@ -125,7 +126,7 @@ export const SOUNDCHIP_MIXER_PRESETS = freeze({
         },
         {
           "name": "pokey",
-          "volume": 0.413033
+          "volume": 0.41305
         },
         {
           "name": "scsp",

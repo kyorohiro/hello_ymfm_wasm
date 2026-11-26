@@ -947,7 +947,7 @@ async function restoreDraft(){
     if(next){
       if(Number.isInteger(draft.op)&&draft.op>=1&&draft.op<=6)op=draft.op;
       for(const id of ['master','mixer']){
-        if(Number.isInteger(draft[id]) && draft[id]>=0 && draft[id]<=380)el(id).value=draft[id];
+        if(Number.isInteger(draft[id]) && draft[id]>=0 && draft[id]<=Number(el(id).max))el(id).value=draft[id];
         el(id+'Value').textContent=el(id).value+'%';
       }
       refreshChannels();

@@ -86,7 +86,7 @@ export function createNativeGenesisExtraHuc6280Endpoint(synth,{clock:initialCloc
   });serial=result.catch(()=>{});return result;}
   return {client,dispatch,read,invoke,cancelOwner:(performance,owner)=>cancel(operation=>operation.performance===performance&&operation.owner===owner),cancelPerformance:performance=>cancel(operation=>operation.performance!==undefined&&(performance===null||operation.performance===performance)),
     async initialize(){const token=capture();context.enable('huc6280');if(initialized)return;await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid HuC6280 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid HuC6280 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){cancel(()=>true);context.invalidate();context.disable('huc6280');initialized=false;mainGroup=undefined;leases.clear();inspector.reset();disposeClient();},
   };
 }

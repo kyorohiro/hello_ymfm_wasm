@@ -60,7 +60,7 @@ test('preset restoration validates both policies before changing either policy o
   mixer.restoreState(state([{id:'lead',name:'ym2612',settings:{pan:-.6,muted:true}}]),
     defaults([{name:'ym2612',volume:.7,pan:.25}]));
   const original=mixer.entries.get('lead'),beforeState=mixer.exportState(),beforeDefaults=mixer.exportDefaults(),beforeMix=mixer.get('lead');
-  const invalidProject=state([{id:'lead',name:'ym2612',settings:{volume:3}}]);
+  const invalidProject=state([{id:'lead',name:'ym2612',settings:{volume:4.81}}]);
   const invalidDefaults=defaults([{name:'ym2612',pan:2}]);
   applied.length=0;let notifications=0;mixer.subscribe(()=>notifications++);
   for(const [project,common]of [

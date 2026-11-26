@@ -119,7 +119,7 @@ export function createNativeGenesisPokeyEndpoint(synth,{clock:initialClock=POKEY
     cancelOwner:(performance,owner)=>cancel(operation=>operation.performance===performance&&operation.owner===owner),
     cancelPerformance:performance=>cancel(operation=>operation.performance!==undefined&&(performance===null||operation.performance===performance)),
     async initialize(){const token=capture();context.enable('pokey');await synth.flush();current(token);initialized=true;},
-    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid POKEY mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
+    async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4.8||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid POKEY mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     stopped(){cancel(()=>true);context.invalidate();leases.clear();inspector.resetAuditions();initialized=false;},
     reset(){cancel(()=>true);context.invalidate();context.disable('pokey');leases.clear();inspector.reset();initialized=false;if(!primary)disposeClient();},
     adoptStopped(){const state=client._getState();for(let ch=0;ch<4;ch++)state.registers[ch*2+1]&=240;client._adoptState(state);notify();},
