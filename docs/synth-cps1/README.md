@@ -27,3 +27,5 @@ The example programs the FM voices on CH1–3. Export a cassette first if you wa
 Open **Output → Mixer** to adjust the two chips independently (0–380%) before Master. Mute silences the whole chip. The CH and Voice buttons show which channels are on. Switching a channel off leaves its sound engine running, so switching it back on reveals the current point in the note or sample. MSM6295 voice switches also follow the PCM panel and Code.
 
 **Synth** keeps the selected chip or Files above a separate Keyboard / Code panel. **Code** opens a larger editor and puts the chips, Files and Keyboard in the same tab row. Switching views keeps the current script, audio and keyboard channel. The computer keyboard plays the selected FM channel while the on-screen keyboard is hidden. Focus the editor to type code.
+
+**Files → New Cassette…** stops playback and starts again with the eight factory FM voices, original percussion kit and both bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.

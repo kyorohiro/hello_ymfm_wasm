@@ -10,9 +10,12 @@ const voicePath = i => 'presets/ch'+(i+1)+'.fm.json';
 const bankPath = i => 'banks/'+i+'.rom';
 const presetPath = i => 'presets/saved-'+(i+1)+'.fm.json';
 
-export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,getRoundSource,setCode,stop,keyMasks}) {
+export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,getCode,getRoundSource,setCode,stop,keyMasks}) {
   const el = id => document.getElementById(id);
   let banks = [defaultBank], presets = [], opmBanks = [], opmVoices = [], active = 0;
+  const initial = inspector.read();
+  const initialVoices = initial.channels.map(voice => ({...voicePatch(voice),keyMask:keyMasks[voice.channel]}));
+  let cassetteRevision = 0;
   const report = message => {el('fileStatus').textContent = message;};
   function render() {
     const voices = Array.from({length:8},(_,i) => new Option('/'+voicePath(i),i));
@@ -60,11 +63,13 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,getRou
     report('Applied shared LFO and CH8 noise from '+v.name);
   };
   el('importOpm').onchange = async event => {
+    const revision=cassetteRevision;
     const file=event.target.files[0]; event.target.value='';
     if (!file) return;
     try {
       if (file.size>1024*1024) throw Error('OPM exceeds 1 MiB.');
       const source=await file.text(), voices=parseOpm(source);
+      if (revision!==cassetteRevision) return;
       const offset=opmVoices.length;
       opmBanks.push({source,voices}); render();
       el('fmFiles').value='opm-'+offset; syncGlobals();
@@ -76,6 +81,22 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,getRou
     presets.push(currentVoice(panel.getSelectedChannel()));
     render(); el('fmFiles').value = String(7+presets.length);
     report('Saved /'+presetPath(presets.length-1));
+  };
+  function replaceCassette(project) {
+    cassetteRevision++;
+    stop();
+    project.voices.forEach((voice,ch) => applyVoice(ch,voice));
+    inspector.invoke('setLFO',[project.lfo]);
+    inspector.invoke('setNoise',[project.noise]);
+    banks=project.banks; presets=project.presets; opmBanks=project.opmBanks; active=project.active;
+    render(); useBank(active); setCode(project.code,project.round);
+    el('rom').value='';
+  }
+  el('newCassette').onclick = () => {
+    if (!window.confirm('Start a new Cassette? This replaces the current voices, sample banks and code.')) return;
+    replaceCassette({voices:initialVoices,lfo:initial.lfo,noise:initial.noise,
+      banks:[defaultBank],active:0,presets:[],opmBanks:[],code:defaultCode});
+    report('New Cassette');
   };
   el('exportCassette').onclick = async () => {
     try {
@@ -98,6 +119,7 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,getRou
     } catch (error) {report(error.message);}
   };
   el('importCassette').onchange = async event => {
+    const revision=cassetteRevision;
     const file = event.target.files[0]; event.target.value = '';
     if (!file) return;
     try {
@@ -136,12 +158,11 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,getRou
         const source=decode(read('presets/import-'+i+'.opm'));
         return {source,voices:parseOpm(source)};
       });
+      if (revision!==cassetteRevision) return;
       if (!window.confirm('Replace the current voices, sample banks and code with this Cassette?')) return;
-      stop();
-      voices.forEach((v,i) => applyVoice(i,v));
-      inspector.invoke('setLFO',[m.lfo]); inspector.invoke('setNoise',[m.noise]);
-      banks=nextBanks; presets=nextPresets; opmBanks=nextOpmBanks; active=m.active;
-      render(); useBank(active); setCode(nextCode,round); report('Imported '+file.name);
+      replaceCassette({voices,lfo:m.lfo,noise:m.noise,banks:nextBanks,active:m.active,
+        presets:nextPresets,opmBanks:nextOpmBanks,code:nextCode,round});
+      report('Imported '+file.name);
     } catch (error) {report(error.message);}
   };
   render();

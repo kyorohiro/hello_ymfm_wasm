@@ -368,7 +368,7 @@ $('run').onclick = async () => {
   } catch (error) {stopRun();fail(error);}
 };
 
-const files = setupFiles({inspector,panel,keyMasks,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
+const files = setupFiles({inspector,panel,keyMasks,defaultCode:example,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
   applyBank:installRom,getCode:() => scripts.get(entryPath),getRoundSource:roundSource,
   setCode:(value,round) => {
     openRequest++;
@@ -379,4 +379,4 @@ const files = setupFiles({inspector,panel,keyMasks,defaultBank:{bytes:sampleRom,
       try {localStorage.removeItem(storageKey(roundPath));} catch {}
     }
     activePath=entryPath; $('codeFile').value=entryPath; $('editor').value=value;
-  },stop:stopRun});
+  },stop:() => {stopRun();status('Stopped');}});
