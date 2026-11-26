@@ -404,6 +404,13 @@ try {
     assert.equal(await rows.nth(2).locator('td').last().innerText(),'853');
     const tl=rows.first().locator('td').nth(2);
     await page.waitForFunction(el=>el.textContent==='56' && el.getAnimations().length>0,await tl.elementHandle());
+    const sections = page.getByRole('tablist',{name:chip+' sections',exact:true});
+    if (chip.startsWith('YM2610')) {
+      assert.deepEqual(await sections.getByRole('tab').allTextContents(), ['FM','SSG']);
+      assert.equal(await sections.getByRole('tab',{name:'FM',exact:true}).getAttribute('aria-selected'),'true');
+      await sections.getByRole('tab',{name:'SSG',exact:true}).click();
+      assert(await voiceView.isHidden());
+    }
     await pause.click();
     assert.equal(await rows.first().getByText('On',{exact:true}).count(),1);
     const ssgRows = page.locator('#ssgChannels tbody tr');
@@ -422,6 +429,12 @@ try {
     await movePosition(3);
     await channelA.getByText('ENV',{exact:true}).waitFor();
     assert(await shared.getByText('SHAPE 14',{exact:true}).isVisible());
+    if (chip.startsWith('YM2610')) {
+      await sections.getByRole('tab',{name:'SSG',exact:true}).press('ArrowLeft');
+      assert(await ch3.isVisible());
+      assert.equal(await ch3.getAttribute('aria-pressed'),'true');
+      assert(await page.locator('#ssgChannels').isHidden());
+    }
     console.log(chip+' SSG live settings and paused backward/forward seek passed');
     console.log(chip+' channel list, CH3 slots, key mask and live parameter highlight passed');
   }

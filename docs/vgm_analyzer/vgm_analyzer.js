@@ -4278,36 +4278,50 @@ function configureChipMonitorTabs() {
   chipMonitorStorage.append(opnMonitorRoot, psg, pcm, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot);
   chipMonitorTabs.replaceChildren();
   chipMonitorPanels.replaceChildren();
-  function add(label, ...monitors) {
-    const index = chipMonitorTabs.childElementCount;
+  function addMonitorTab(tabList, panels, prefix, label, ...monitors) {
+    const index = tabList.childElementCount;
     const panel = document.createElement('div');
-    panel.id = 'chipMonitorPanel' + index;
+    panel.id = prefix + 'Panel' + index;
     panel.setAttribute('role','tabpanel');
     panel.hidden = true;
     panel.append(...monitors);
     const tab = document.createElement('button');
     tab.type = 'button';
     tab.className = 'tab-button';
-    tab.id = 'chipMonitorTab' + index;
+    tab.id = prefix + 'Tab' + index;
     tab.textContent = label;
     tab.setAttribute('role','tab');
     tab.setAttribute('aria-controls',panel.id);
     panel.setAttribute('aria-labelledby',tab.id);
     tab.onclick = () => {
-      for (const button of chipMonitorTabs.children) {
+      for (const button of tabList.children) {
         const selected = button === tab;
         button.ariaSelected = String(selected);
         button.tabIndex = selected ? 0 : -1;
         document.getElementById(button.getAttribute('aria-controls')).hidden = !selected;
       }
     };
-    chipMonitorTabs.append(tab);
-    chipMonitorPanels.append(panel);
+    tabList.append(tab);
+    panels.append(panel);
+    return tab;
   }
+  const add = (label, ...monitors) => addMonitorTab(chipMonitorTabs, chipMonitorPanels, 'chipMonitor', label, ...monitors);
   const kind = currentChipKind;
   const has = key => Boolean(noteishHeader[key+'Clock'] & 0x3fffffff);
-  if (['ym2203','ym2608','ym2610'].includes(kind)) {
-    add(kind === 'ym2610' && (noteishHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : kind.toUpperCase(), opnMonitorRoot, psg);
+  if (kind === 'ym2610') {
+    const label = noteishHeader.ym2610Clock & 0x80000000 ? 'YM2610B' : 'YM2610';
+    const sections = document.createElement('div');
+    sections.className = 'tabbar';
+    sections.setAttribute('role', 'tablist');
+    sections.setAttribute('aria-label', label + ' sections');
+    sections.addEventListener('keydown', navigateTabList);
+    const panels = document.createElement('div');
+    add(label, sections, panels);
+    const fmTab = addMonitorTab(sections, panels, 'opnbSection', 'FM', opnMonitorRoot);
+    addMonitorTab(sections, panels, 'opnbSection', 'SSG', psg);
+    fmTab.click();
+  } else if (['ym2203','ym2608'].includes(kind)) {
+    add(kind.toUpperCase(), opnMonitorRoot, psg);
   } else if (kind === 'ym2612' && has('ym2612')) add('YM2612', opnMonitorRoot);
   if (kind === 'ym2151') add(noteishHeader.ym2151Clock & 0x80000000 ? 'YM2164' : 'YM2151', opmMonitorRoot);
   if (['ym2612','ym2151'].includes(kind) && has('psg')) add('Sega PSG', psg);
