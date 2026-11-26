@@ -50,7 +50,7 @@ try {
     await writeFile(join(work,name),bytes);
   }
   await page.locator('#consoleFolder').setInputFiles(work);
-  const select = modal.locator('select');
+  const select = modal.locator('[data-song="tracks"]');
   await select.locator('option').nth(3).waitFor({state:'attached'});
   assert.equal(await select.locator('option').count(),4);
   async function playAudible() {
@@ -90,6 +90,40 @@ try {
   await modal.locator('[data-song="pause"]').click();
   await play.filter({hasText:'Resume'}).waitFor();
   console.log('VSU VGM passed');
+  for (const [path, model] of [['tone.sid','6581'],['rsid/irq.sid','6581'],['tone.sid','8580']]) {
+    await modal.getByText('Close',{exact:true}).click();
+    const buffer = await readFile(new URL('../docs/sid-player/demos/'+path,import.meta.url));
+    // Exercise non-first default subtune, selection, and both model-specific WASMs.
+    if (path === 'tone.sid') {
+      buffer.writeUInt16BE(2,14); buffer.writeUInt16BE(2,16);
+      if (model === '8580') buffer.writeUInt16BE((buffer.readUInt16BE(118)&~48)|32,118);
+    }
+    await page.locator('#fileInput').setInputFiles({name:'test.sid',mimeType:'application/octet-stream',buffer});
+    await modal.locator('[data-song="info"]').filter({hasText:model}).waitFor();
+    if (path === 'tone.sid') {
+      const subtunes = modal.locator('[data-song="subtunes"]');
+      assert.equal(await subtunes.inputValue(),'2');
+      await subtunes.selectOption('1');
+    }
+    await page.evaluate(()=>window.testMeter=null);
+    await play.click();
+    await page.waitForFunction(() => {
+      const pcm = new Float32Array(2048);
+      window.testMeter?.getFloatTimeDomainData(pcm);
+      return pcm.some(value=>Math.abs(value)>0.00001);
+    },null,{timeout:8000});
+    await modal.locator('[data-song="pause"]').click();
+    await play.filter({hasText:'Resume'}).click();
+    await modal.locator('[data-song="stop"]').click();
+    console.log(model,path,'passed');
+  }
+  await modal.getByText('Close',{exact:true}).click();
+  const ntsc = await readFile(new URL('../docs/sid-player/demos/tone.sid',import.meta.url));
+  ntsc.writeUInt16BE((ntsc.readUInt16BE(118)&~12)|8,118);
+  await page.locator('#fileInput').setInputFiles({name:'ntsc.sid',mimeType:'application/octet-stream',buffer:ntsc});
+  await modal.locator('[data-song="status"]').filter({hasText:'NTSC'}).waitFor();
+  assert(await play.isDisabled());
+  console.log('NTSC rejection passed');
   if (process.argv.length > 3) {
     await modal.getByText('Close',{exact:true}).click();
     await page.locator('#fileInput').setInputFiles(process.argv.slice(3));

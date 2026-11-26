@@ -3883,7 +3883,7 @@ for (const id of ['consoleFiles','consoleFolder']) document.getElementById(id).o
 };
 
 function importPlaylistFiles(files) {
-  const songSet = Array.from(files).filter(file => /\.(ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name));
+  const songSet = Array.from(files).filter(file => /\.(sid|ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name));
   files = Array.from(files).filter(file => !songSet.includes(file));
   if (!files.length && songSet.length) return queuePlaylistTask(() => openConsoleSongs(songSet));
   const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98|spc)$/i.test(file.name));
@@ -3911,7 +3911,7 @@ function importPlaylistFiles(files) {
     }
     if (tracks.length) await loadPlaylistTrack(0, false, revision);
     if (songSet.length) await openConsoleSongs(songSet);
-    if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98, SPC, yrw801.rom or a YM2608 ROM .bin file.`);
+    if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98, SPC, SID, SSF/miniSSF, PSF1/miniPSF, yrw801.rom or a YM2608 ROM .bin file.`);
   });
 }
 

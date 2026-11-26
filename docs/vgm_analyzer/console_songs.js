@@ -12,6 +12,10 @@ import {parseVsuVgm} from '../synth-vsu/vgm.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {consoleVgmChip} from './console_vgm.js';
 
+import {createSidSong} from './sid_song.js';
+import {parsePlayerStructure} from '../sid-player/model_policy.js';
+import {PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
+
 function vsuSong(plan, getMaster, update) {
   let state = 'stopped', position = 0, message = '';
   const engine = createVsuAudio({volume:1,onVgmState(event) {
@@ -49,6 +53,9 @@ export async function consoleSongEntries(files, signal) {
     const set = await readPsfFileSet(psf,{signal});
     for (const {path,title} of set.entries) if (/\.(psf|minipsf)$/i.test(path)) songs.push({format:'PSF1',path,title,set});
   }
+  for (const file of files.filter(file => /\.sid$/i.test(file.name))) {
+    songs.push({format:'SID',path:file.webkitRelativePath || file.name,sidFile:file});
+  }
   for (const file of files.filter(file => /\.vg[zm]$/i.test(file.name))) {
     songs.push({format:'VGM',path:file.webkitRelativePath || file.name,file});
   }
@@ -83,16 +90,31 @@ export function createConsoleSongs(dialog, getMaster) {
     player = null;
     old?.dispose();
   }
-  async function choose() {
+  const subtunes = control('subtunes');
+  async function choose(subtune) {
     const ticket = ++revision;
     retire();
     render();
     const song = entries[select.selectedIndex];
+    subtunes.parentElement.hidden = true;
     control('info').textContent = song?.title || '';
     if (!song) return;
     status.textContent = 'Loading '+song.path+'…';
     const update = () => { if (ticket === revision) render(); };
     try {
+      if (song.sidFile) {
+        if (song.sidFile.size > PSID_MAX_FILE_BYTES) throw new Error('SID exceeds the maximum C64 program size.');
+        const input = new Uint8Array(await song.sidFile.arrayBuffer());
+        if (ticket !== revision) return;
+        const {songs,startSong} = parsePlayerStructure(input);
+        subtunes.replaceChildren(...Array.from({length:songs},(_,i) => new Option(String(i+1),String(i+1))));
+        subtunes.value = String(subtune ?? startSong);
+        subtunes.parentElement.hidden = songs < 2;
+        player = createSidSong(input,Number(subtunes.value),getMaster,update);
+        control('info').textContent = player.description;
+        update();
+        return;
+      }
       let bytes;
       if (song.file) {
         if (song.file.size > 64 * 1024 * 1024) throw new Error('VGM exceeds 64 MiB.');
@@ -129,7 +151,8 @@ export function createConsoleSongs(dialog, getMaster) {
     } catch (error) { if (ticket === revision) status.textContent = error.message; }
     update();
   }
-  select.onchange = choose;
+  select.onchange = () => choose();
+  subtunes.onchange = () => choose(Number(subtunes.value));
   for (const action of ['play','pause','stop']) control(action).onclick = async () => {
     const current = player;
     try {
@@ -161,6 +184,7 @@ export function createConsoleSongs(dialog, getMaster) {
     if (!dialog.open) dialog.showModal();
     clearInterval(timer);
     timer = setInterval(render,250);
+    subtunes.parentElement.hidden = true;
     control('info').textContent = '';
     status.textContent = 'Reading song files…';
     render();
