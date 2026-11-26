@@ -57,8 +57,7 @@ main {
   border: 10px solid #cc1a11;
   border-radius: 48px;
   background: linear-gradient(115deg, #fffbf4, #f6ebde 75%, #fff8ed);
-  box-shadow: 0 0 0 1px #91140e, inset 0 0 0 2px #e8b7a0,
-    inset 0 4px 12px #8e3c2520, 0 10px 0 #a71a12, 0 22px 45px #6d35202a;
+  box-shadow: none;
 }
 .instrument-header {
   display: flex;
