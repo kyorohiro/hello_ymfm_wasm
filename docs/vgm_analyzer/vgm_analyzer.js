@@ -4855,6 +4855,12 @@ analyzerMenu.addEventListener('keydown', event => {
     closeAnalyzerMenu();
   }
 });
+for (const button of analyzerMenu.querySelectorAll('[data-import-input]')) {
+  button.addEventListener('click', () => {
+    closeAnalyzerMenu();
+    document.getElementById(button.dataset.importInput).click();
+  });
+}
 document.getElementById('chipSupportButton').addEventListener('click', () => {
   closeAnalyzerMenu();
   document.getElementById('chipSupportDialog').showModal();

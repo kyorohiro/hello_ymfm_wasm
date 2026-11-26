@@ -577,7 +577,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=export-tabs-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=import-menu-1">
   </head>
   <body>
     <p id="chipSupportNotice" role="status" hidden>YM2413 analysis and instrument editing: Support coming soon.</p>
@@ -587,6 +587,18 @@
           <details id="analyzerMenu" class="analyzer-menu">
             <summary aria-label="Main menu" title="Main menu"><span aria-hidden="true">☰</span></summary>
             <nav aria-label="Page actions">
+              <div class="menu-import" role="group" aria-labelledby="menuImportLabel">
+                <span id="menuImportLabel" class="file-input-label">Import</span>
+                <button type="button" data-import-input="fileInput">Files…</button>
+                <input hidden id="fileInput" type="file" multiple aria-label="Music or ROM files" accept=".vgm,.vgz,.s98,.spc,.ssf,.minissf,.ssflib,.psf,.minipsf,.psflib,.sid,.psf1lib,.bin,.rom,application/octet-stream">
+                <button type="button" data-import-input="consoleFolder" title="Choose the folder containing the songs and their libraries">Folder…</button>
+                <input hidden type="file" multiple webkitdirectory id="consoleFolder" aria-label="Music folder">
+                <details class="import-rom-info">
+                  <summary>ROM files</summary>
+                  <p id="romFileStatus">Use Files… for yrw801.rom (2 MiB) or ym2608_adpcm_rom.bin.</p>
+                  <p>YM2608 rhythm: <a href="../js/tetorica_ym2608_adpcm_rom.bin" download>Download Tetorica synthetic ROM</a>. Sounds differ from the original. <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause license</a>.</p>
+                </details>
+              </div>
               <button id="chipSupportButton" type="button" aria-haspopup="dialog" aria-controls="chipSupportDialog">Sound chip support</button>
               <button data-reset-offline-cache type="button">Reset Offline Cache</button>
             </nav>
@@ -659,16 +671,6 @@
           </div>
         </dialog>
         <div class="actions">
-          <label class="file-input-group">
-            <span class="file-input-label">VGM / VGZ / S98 / SPC / SSF / PSF / SID File</span>
-            <input id="fileInput" type="file" multiple accept=".vgm,.vgz,.s98,.spc,.ssf,.minissf,.ssflib,.psf,.minipsf,.psflib,.sid,.psf1lib,.bin,.rom,application/octet-stream">
-            <small class="file-drop-hint">Choose or drop music files to replace the playlist. Select multiple files together to create a playlist, sorted by filename with numeric ordering. Play starts sequential playback; Loop repeats the current track.</small>
-            <small id="romFileStatus" class="file-drop-hint">ROM files: import yrw801.rom (2 MiB) for Moonsound tracks without embedded samples, or ym2608_adpcm_rom.bin.</small>
-          </label>
-          <label class="file-input-group">Music folder <input type="file" multiple webkitdirectory id="consoleFolder">
-            <small class="file-drop-hint">For miniSSF and miniPSF, select the folder containing the songs and their libraries.</small>
-          </label>
-          <p class="file-drop-hint">YM2608 rhythm: <a href="../js/tetorica_ym2608_adpcm_rom.bin" download>Download Tetorica synthetic ROM</a>, then import it above. Sounds differ from the original. <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause license</a>.</p>
           <section class="playlist" aria-label="Playlist">
             <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
             <p id="detectedChips" class="file-drop-hint" aria-live="polite" hidden></p>
@@ -1028,7 +1030,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=export-tabs-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=import-menu-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>
