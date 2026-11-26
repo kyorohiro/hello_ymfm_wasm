@@ -177,7 +177,7 @@ body { padding-bottom: calc(260px + env(safe-area-inset-bottom)); }
 .file-drop-hint { color: #71584c; font-size: 0.75rem; }
 .playlist-loop-control[hidden] { display: none; }
 .playlist p { margin: 0 0 8px; font-size: 0.85rem; }
-.playlist ol { margin: 0; padding-left: 2.5em; max-height: 220px; overflow-y: auto; }
+.playlist ol { margin: 0; padding-left: 2.5em; }
 .playlist li { padding: 3px 0; }
 .playlist button { width: 100%; text-align: left; overflow-wrap: anywhere; }
 .playlist button[aria-current="true"] { border-color: var(--accent); background: #f4d7b8; font-weight: 700; }
