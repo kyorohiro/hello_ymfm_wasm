@@ -97,6 +97,31 @@ const inlinePlaybackSeekTime = document.getElementById("inlinePlaybackSeekTime")
 let seekSelection = null;
 let seekDragging = false;
 
+let sidSong = null, sidClock = null;
+const sidSubtune = document.getElementById('sidSubtune');
+function clearSid() {
+  const previous = sidSong;
+  sidSong = null;
+  previous?.dispose();
+  clearInterval(sidClock);
+  sidClock = null;
+  sidSubtune.onchange = null;
+  sidSubtune.parentElement.hidden = true;
+}
+function refreshSid() {
+  if (!sidSong) return;
+  const state = sidSong.read();
+  playButton.disabled = !(state.canPlay || state.canResume);
+  pauseButton.disabled = !state.canPause;
+  stopButton.disabled = !state.canStop;
+  replayButton.disabled = !(state.canPause || state.canResume || state.canPlay);
+  playButton.textContent = state.paused ? 'Resume' : 'Play';
+  setStatus(state.message);
+  updateSeekPosition();
+  if (state.canPause && !sidClock) sidClock = setInterval(updateSeekPosition,250);
+  if (!state.canPause) {clearInterval(sidClock); sidClock = null;}
+}
+
 function renderSeekPosition(sample) {
   const duration = Number(playbackSeek.max);
   const position = Math.max(0, Math.min(duration, sample || 0));
@@ -114,6 +139,12 @@ function renderSeekPosition(sample) {
 }
 
 function updateSeekPosition() {
+  if (sidSong) {
+    const seconds = Math.floor(sidSong.read().positionSeconds);
+    const label = Math.floor(seconds/60) + ':' + String(seconds%60).padStart(2,'0');
+    playbackSeekTime.textContent = inlinePlaybackSeekTime.textContent = label;
+    return;
+  }
   if (spcView.active) {
     if (!seekDragging) renderSeekPosition(timelineSelectionPending ? (seekSelection??songTimeline.selected()) * 1000 / 44100 : spcView.state.positionSeconds * 1000);
     return;
@@ -704,6 +735,7 @@ function updateMasterVolumeUi() {
 }
 
 function applyMasterVolume() {
+  sidSong?.setVolume(masterVolume);
   audioPreferences.setMaster(masterVolume);
   const level = Math.min(masterVolume,3.8);
   if (masterBoost) masterBoost.gain.value = Math.max(1,masterVolume / 3.8);
@@ -3019,6 +3051,7 @@ function updatePlaybackButtons(state = {}) {
   exportSnapshotButton.disabled = !hasBuffer;
   updatePlaylistNavigation();
   updateChipSupport();
+  if (sidSong) refreshSid();
 }
 
 // Keep the first playback-only chip boundary local until more features are implemented.
@@ -3200,6 +3233,7 @@ function downloadParseInfo() {
 }
 
 async function playCurrentVgm(startSample = 0) {
+  if (sidSong) {await (sidSong.read().paused ? sidSong.resume() : sidSong.play()); return;}
   if (spcView.active) {await spcAction(() => spcView.play()); return;}
   const revision = playlistRevision;
   if (timelineSeekController) return;
@@ -3509,6 +3543,8 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file, preserveEditor = false) {
+  clearSid();
+  loopCheckbox.disabled = false;
   spcNoteish.clear();
   spcScoreSource=null;spcScore=null;
   await spcView.clear();
@@ -3540,6 +3576,9 @@ async function handleFile(file, preserveEditor = false) {
   setStatus(`Loading ${file.name}...`);
   lastLoadedFileName = file.name;
   mixerUi.load(null);
+  const isSid = /\.sid$/i.test(file.name);
+  const sidModule = isSid ? await import('./sid_song.js') : null;
+  if (isSid && file.size > sidModule.PSID_MAX_FILE_BYTES) throw new Error('SID exceeds the maximum C64 program size.');
   const rawBuffer = await file.arrayBuffer();
   currentBuffer = null;
   exportMmlButton.disabled = true;
@@ -3555,6 +3594,45 @@ async function handleFile(file, preserveEditor = false) {
   renderChannelMonitor();
   requestNoteishRender();
   renderNoteishGrid();
+
+  if (isSid) {
+    engine?.dispose?.();
+    engine = player = engineClockKey = null;
+    workletModuleReady = false;
+    currentChipKind = 'sid';
+    loopCheckbox.disabled = true;
+    currentHasPcm = false;
+    noteishHeader = {};
+    tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
+    for (const output of [commandUsageOutput,dataBlocksOutput,specialCommandsOutput,pcmRamWriteOutput,command92ContextOutput]) output.textContent = '—';
+    detectedChipsOutput.hidden = false;
+    detectedChipsOutput.textContent = 'C64 SID';
+    headerOutput.textContent = metadataOutput.textContent = '';
+    setOutputTab('parsed-output');
+    updatePlaybackButtons();
+    const bytes = new Uint8Array(rawBuffer);
+    const {format,metadata,songs,startSong,model,clock} = sidModule.parsePlayerStructure(bytes);
+    headerOutput.textContent = JSON.stringify({format,model,clock,songs,startSong},null,2);
+    metadataOutput.textContent = [metadata.name,metadata.author,metadata.released].filter(Boolean).join(' · ');
+    sidSubtune.replaceChildren(...Array.from({length:songs},(_,i) => new Option(String(i+1),String(i+1))));
+    sidSubtune.value = String(startSong);
+    sidSubtune.parentElement.hidden = songs < 2;
+    const selectSubtune = () => {
+      const previous = sidSong;
+      sidSong = null;
+      previous?.dispose();
+      clearInterval(sidClock); sidClock = null;
+      try {
+        sidSong = sidModule.createSidSong(bytes,Number(sidSubtune.value),() => masterVolume,refreshSid);
+        detectedChipsOutput.textContent = sidSong.description;
+        setPlaybackError();
+        refreshSid();
+      } catch (error) {updatePlaybackButtons(); reportPlaybackError(error); setStatus(error.message);}
+    };
+    sidSubtune.onchange = selectSubtune;
+    selectSubtune();
+    return;
+  }
 
   if (/\.spc$/i.test(file.name) || new TextDecoder().decode(new Uint8Array(rawBuffer).subarray(0, 26)) === 'SNES-SPC700 Sound File Data') {
     engine?.dispose?.(); engine = null; player = null; engineClockKey = null; workletModuleReady = false;
@@ -3788,6 +3866,27 @@ function queuePlaylistTask(task) {
   return fileLoadQueue;
 }
 
+const pageSize = 100;
+let playlistPage = 0;
+const pagePicker = document.getElementById('playlistPage');
+const playlistSearch = document.getElementById('playlistSearch');
+let matchingTracks = null;
+playlistSearch.oninput = () => {
+  const query = playlistSearch.value.trim().toLowerCase();
+  matchingTracks = null;
+  if (query) {
+    matchingTracks = [];
+    playlistFiles.forEach((file,index) => {
+      if ((file.webkitRelativePath || file.name).toLowerCase().includes(query)) matchingTracks.push(index);
+    });
+  }
+  playlistPage = 0;
+  renderPlaylist();
+};
+pagePicker.onchange = () => {
+  playlistPage = Math.max(0,Math.min(Number(pagePicker.max)-1,Math.trunc(Number(pagePicker.value) || 1)-1));
+  renderPlaylist();
+};
 function renderPlaylist() {
   updatePlaylistNavigation();
   playlistLoopControl.hidden = playlistFiles.length < 2;
@@ -3795,7 +3894,18 @@ function renderPlaylist() {
     ? `Playlist — ${playlistFiles.length} tracks · ${playlistIndex + 1} selected`
     : "Playlist — no tracks imported";
   playlistList.replaceChildren();
-  playlistFiles.forEach((file, index) => {
+  playlistSearch.parentElement.hidden = playlistFiles.length <= pageSize;
+  if (matchingTracks) playlistSummary.textContent += ' · ' + matchingTracks.length + ' matches';
+  const visibleCount = matchingTracks?.length ?? playlistFiles.length;
+  const pages = Math.ceil(visibleCount / pageSize);
+  pagePicker.parentElement.hidden = pages < 2;
+  pagePicker.max = pages;
+  pagePicker.value = playlistPage + 1;
+  const start = playlistPage * pageSize;
+  playlistList.start = start + 1;
+  for (let offset=start; offset<Math.min(start+pageSize,visibleCount); offset++) {
+    const index = matchingTracks?.[offset] ?? offset;
+    const file = playlistFiles[index];
     const row = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
@@ -3805,15 +3915,18 @@ function renderPlaylist() {
     button.addEventListener("click", () => selectPlaylistTrack(index, true));
     row.appendChild(button);
     playlistList.appendChild(row);
-  });
+  }
 }
 
 async function loadPlaylistTrack(index, autoplay, revision) {
   if (revision !== playlistRevision || !playlistFiles[index]) return;
   playlistIndex = index;
+  let position = matchingTracks ? matchingTracks.indexOf(index) : index;
+  if (position < 0) {matchingTracks = null; playlistSearch.value = ''; position = index;}
+  playlistPage = Math.floor(position/pageSize);
   renderPlaylist();
   await handleFile(playlistFiles[index]);
-  if (autoplay && (currentBuffer || spcView.active) && revision === playlistRevision) await playCurrentVgm();
+  if (autoplay && (currentBuffer || spcView.active || sidSong) && revision === playlistRevision) await playCurrentVgm();
 }
 
 function selectPlaylistTrack(index, autoplay) {
@@ -3867,6 +3980,7 @@ async function openConsoleSongs(files) {
     consoleSongLoader ??= import('./console_songs.js').then(({createConsoleSongs}) =>
       createConsoleSongs(document.getElementById('consoleSongs'), () => masterVolume));
     const open = await consoleSongLoader;
+    sidSong?.stop();
     stopActiveStream();
     player?.pause();
     if (spcView.active && spcView.state.playing) await spcView.pause();
@@ -3879,14 +3993,17 @@ async function openConsoleSongs(files) {
 for (const id of ['consoleFiles','consoleFolder']) document.getElementById(id).onchange = event => {
   const files = Array.from(event.target.files);
   event.target.value = '';
-  if (files.length) void openConsoleSongs(files);
+  if (files.some(file => /\.sid$/i.test(file.name))) {
+    void importPlaylistFiles(files.filter(file => /\.(sid|ssf|minissf|ssflib|psf|minipsf|psf1?lib|vgm|vgz|s98|spc)$/i.test(file.name)));
+  } else if (files.length) void openConsoleSongs(files);
 };
 
 function importPlaylistFiles(files) {
-  const songSet = Array.from(files).filter(file => /\.(sid|ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name));
-  files = Array.from(files).filter(file => !songSet.includes(file));
+  const songSet = Array.from(files).filter(file => /\.(ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name));
+  const auxiliary = new Set(songSet);
+  files = Array.from(files).filter(file => !auxiliary.has(file));
   if (!files.length && songSet.length) return queuePlaylistTask(() => openConsoleSongs(songSet));
-  const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98|spc)$/i.test(file.name));
+  const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98|spc|sid)$/i.test(file.name));
   const revision = tracks.length ? ++playlistRevision : playlistRevision;
   if (tracks.length) {
     stopActiveStream();
@@ -3894,7 +4011,11 @@ function importPlaylistFiles(files) {
     timelineSeekController?.abort();
     // A selection is a new playlist. Stable sorting preserves equal-name order.
     tracks.sort((a, b) => playlistNameOrder.compare(a.name, b.name));
-    playlistFiles.splice(0, playlistFiles.length, ...tracks);
+    playlistFiles.length = 0;
+    for (const track of tracks) playlistFiles.push(track);
+    playlistPage = 0;
+    matchingTracks = null;
+    playlistSearch.value = '';
     playlistIndex = -1;
     renderPlaylist();
   }
@@ -3905,7 +4026,7 @@ function importPlaylistFiles(files) {
         await handleYmf278bRomFile(file);
       } else if (/\.bin$/i.test(file.name)) {
         await handleYm2608RomFile(file);
-      } else if (!/\.(vgm|vgz|s98|spc)$/i.test(file.name)) {
+      } else if (!/\.(vgm|vgz|s98|spc|sid)$/i.test(file.name)) {
         rejected.push(file.name);
       }
     }
@@ -4021,6 +4142,7 @@ playButton.addEventListener("click", async () => {
 });
 
 pauseButton.addEventListener("click", async () => {
+  if (sidSong) {await sidSong.pause(); return;}
   if (spcView.active) {await spcAction(() => spcView.pause()); setStatus('SPC paused.'); return;}
   if (!player) {
     return;
@@ -4034,6 +4156,7 @@ pauseButton.addEventListener("click", async () => {
 
 
 replayButton.addEventListener("click", async () => {
+  if (sidSong) {sidSong.stop(); await sidSong.play(); return;}
   if (spcView.active) {timelineSelectionPending=false;seekSelection=null;await spcAction(async () => {await spcView.stop(); await spcView.play();});return;}
   if (!currentBuffer) {
     return;
@@ -4043,6 +4166,7 @@ replayButton.addEventListener("click", async () => {
 
 stopButton.addEventListener("click", () => {
   playlistRevision += 1;
+  if (sidSong) {sidSong.stop(); return;}
   if (spcView.active) {timelineSelectionPending=false;seekSelection=null;songTimeline.cursor(0,false);void spcAction(() => spcView.stop());setStatus('SPC stopped.');return;}
   timelineSeekController?.abort();
   resetTimelineToStart();
@@ -4175,7 +4299,7 @@ const sbiInfo = mountSbiInfo({root:document.getElementById('sbiInfoPanel'),onSta
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) {spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
+window.addEventListener('pagehide', event => { if (!event.persisted) {clearSid();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
 
 function selectedOutputTab() {
   for (const [tab, name] of [

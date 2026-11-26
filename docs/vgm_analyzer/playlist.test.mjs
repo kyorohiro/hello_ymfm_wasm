@@ -8,7 +8,7 @@ const source = readFileSync(new URL('./vgm_analyzer.js', import.meta.url), 'utf8
 function setup(load = async () => true, desktopHost = {}) {
   const calls = [];
   const element = () => ({
-    children: [], attributes: {}, listeners: {},
+    parentElement:{}, children: [], attributes: {}, listeners: {},
     appendChild(child) { this.children.push(child); },
     replaceChildren() { this.children = []; },
     setAttribute(key, value) { this.attributes[key] = value; },
@@ -18,7 +18,7 @@ function setup(load = async () => true, desktopHost = {}) {
   const input = element();
   const context = vm.createContext({
     connectDesktop: options => connectDesktop(options, desktopHost),
-    console, playlistList: list, playlistSummary: element(), fileInput: input,
+    console, sidSong:null, playlistList: list, playlistSummary: element(), fileInput: input,
     playlistLoopCheckbox: Object.assign(element(), { checked: false }), playlistLoopControl: element(),
     playlistPrevButton: element(), playlistNextButton: element(), wavExportBusy: false,
     document: { createElement: element, getElementById: element }, currentBuffer: null, spcView:{active:false},
@@ -263,4 +263,20 @@ test('desktop collections use the existing playlist and read tracks on demand', 
   assert.deepEqual(reads, ['02.vgm']);
   await s.context.selectPlaylistTrack(1, false);
   assert.deepEqual(reads, ['02.vgm', '10.vgm']);
+});
+
+test('large playlist paginates and a filename search plays the matching track', async () => {
+  const p = setup();
+  await p.add(Array.from({length:301},(_,i)=>'Track '+i+'.sid'));
+  assert.equal(p.list.children.length,100);
+  const query = vm.runInContext('playlistSearch',p.context);
+  query.value = 'track 298';
+  query.oninput();
+  assert.equal(p.list.children.length,1);
+  p.list.children[0].children[0].listeners.click();
+  await p.settle();
+  assert.deepEqual(p.calls.at(-1),['play','Track 298.sid']);
+  await p.add(['second.sid']);
+  assert.equal(query.value,'');
+  assert.equal(p.list.children.length,1);
 });

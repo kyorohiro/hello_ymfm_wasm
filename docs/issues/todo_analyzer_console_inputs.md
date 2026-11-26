@@ -1,6 +1,6 @@
 # Analyzer console music inputs
 
-The browser Analyzer opens C64 SID songs, Saturn SSF and PlayStation PSF1 sets in the console song player. Select a folder to retain relative library paths. The main file picker also accepts individual files and flat sets. SCSP and Virtual Boy VSU VGM/VGZ open the same player from the playlist. Reopen console songs returns to the last imported set. SNES SPC uses the existing eight-voice player, BRR explorer and Note-ish views.
+C64 SID songs use the main Analyzer playlist, transport, Master and inline subtune selector. Large playlists display 100 tracks per page. Saturn SSF and PlayStation PSF1 sets open in the console song player. Select a folder to retain relative library paths. The main file picker also accepts individual files and flat sets. SCSP and Virtual Boy VSU VGM/VGZ open the same player from the playlist. Reopen console songs returns to the last imported set. SNES SPC uses the existing eight-voice player, BRR explorer and Note-ish views.
 
 ## Verified
 

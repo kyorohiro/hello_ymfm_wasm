@@ -58,6 +58,7 @@ export function createSidSong(bytes, subtune, getMaster, update) {
   }
   return {
     usesOwnAudio:true, play, pause:() => toggle(true), resume:() => toggle(false), stop, dispose:stop,
+    setVolume(value) {if (active) active.outputNode.gain.value = value;},
     description:[parsed.metadata.name,parsed.metadata.author,parsed.format,'PAL',
       parsed.selectedModel === '8580' ? '8580 Preview' : '6581',parsed.timing].filter(Boolean).join(' · '),
     read:() => ({canPlay:phase === 'ready',canPause:phase === 'playing',canResume:phase === 'paused',
@@ -65,3 +66,6 @@ export function createSidSong(bytes, subtune, getMaster, update) {
       positionSeconds:elapsed + (phase === 'playing' ? active.context.currentTime-started : 0)}),
   };
 }
+
+export {parsePlayerStructure} from '../sid-player/model_policy.js';
+export {PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
