@@ -16,7 +16,15 @@ const scope = createSynthOutputVisualizer({trace:'#a5df69',waveformMinRange:.04}
 let audio, starting, context, dirty = true, mode = 'waveform', worker, runId = 0;
 let sampleRom = createKit(), rawOki = [];
 const voiceMutes = Array(4).fill(false);
-const muteButtons = [];
+const muteButtons = [], mixerVoiceButtons = [];
+const fmMutes = Array(8).fill(false);
+const mix = {fm:{level:100,muted:false},pcm:{level:100,muted:false}};
+
+// Mask only the stereo output enables. Preserve the patch, phase and envelopes.
+function audibleRegister(register,value) {
+  return [register,register >= 0x20 && register <= 0x27 && fmMutes[register-0x20] ? value & 0x3f : value];
+}
+function gainFor(source) {return source.muted ? 0 : source.level/100;}
 const keyMasks = Array(8).fill(15);
 const inspector = new Ym2151VoiceInspector({dispatch({method,args}) {
   if (method === 'writeRegister') opm.writeRegister(...args);
@@ -26,7 +34,7 @@ const inspector = new Ym2151VoiceInspector({dispatch({method,args}) {
 const opm = createYm2151RegisterClient((method,args) => {
   if (method !== 'writeRegister') throw Error('Unsupported OPM command');
   inspector.observeWrite(...args);
-  audio?.fm.port.postMessage({method,args});
+  audio?.fm.port.postMessage({method,args:audibleRegister(...args)});
   dirty = true;
 });
 const keyOn = opm.keyOn;
@@ -55,16 +63,20 @@ async function startAudio() {
       const master = context.createGain();
       master.gain.value = Number($('master').value)/100;
       await context.audioWorklet.addModule(new URL('./oki-worklet.js',import.meta.url));
-      fm = await createYm2151Audio(context,master);
+      const buses = {fm:context.createGain(),pcm:context.createGain()};
+      fm = await createYm2151Audio(context,buses.fm);
+      for (const [id,bus] of Object.entries(buses)) {
+        bus.gain.value = gainFor(mix[id]); bus.connect(master);
+      }
       const pcm = new AudioWorkletNode(context,'cps1-oki',{numberOfInputs:0,outputChannelCount:[2]});
       pcm.port.onmessage = ({data}) => showBusy(data);
-      pcm.connect(master); master.connect(context.destination);
+      pcm.connect(buses.pcm); master.connect(context.destination);
       scope.connect(context,[master]);
-      audio = {fm,pcm,master};
+      audio = {fm,pcm,master,buses};
       const state = inspector.read();
       const writes = [];
       state.registers.forEach((value,r) => {
-        if (r >= 0x0f && r !== 0x19) writes.push([r,value]);
+        if (r >= 0x0f && r !== 0x19) writes.push(audibleRegister(r,value));
       });
       writes.push([0x19,state.lfo.amDepth],[0x19,128|state.lfo.pmDepth]);
       state.channels.forEach(({channel,keyMask}) => {if (keyMask) writes.push([8,channel|(keyMask<<3)]);});
@@ -130,6 +142,7 @@ const oki = {
     if (typeof muted !== 'boolean') throw TypeError('Muted must be true or false');
     voiceMutes[voice] = muted;
     muteButtons[voice].setAttribute('aria-pressed',String(muted));
+    mixerVoiceButtons[voice].setAttribute('aria-pressed',String(!muted));
     audio?.pcm.port.postMessage({voiceMutes});
   },
 };
@@ -166,11 +179,51 @@ for (let i=0;i<4;i++) {
   muteButtons.push(mute);
   row.append(lamp,play,stop,mute); $('voices').append(row);
 }
+function toggleButton(text,label,pressed,click) {
+  const button = document.createElement('button');
+  button.textContent=text; button.setAttribute('aria-label',label);
+  button.setAttribute('aria-pressed',String(pressed)); button.onclick=click;
+  return button;
+}
+for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMutes]]) {
+  const group = document.createElement('fieldset'), legend = document.createElement('legend');
+  legend.textContent=name;
+  const row = document.createElement('div'), channels = document.createElement('div');
+  row.className=channels.className='bar';
+  const source = mix[id], slider=document.createElement('input'), value=document.createElement('output');
+  Object.assign(slider,{type:'range',min:'0',max:'380',value:'100'});
+  slider.setAttribute('aria-label',name+' volume'); value.value='100%';
+  function apply() {
+    if (audio) audio.buses[id].gain.setTargetAtTime(gainFor(source),context.currentTime,.01);
+  }
+  slider.oninput=()=>{source.level=Number(slider.value);value.value=slider.value+'%';apply();};
+  const mute=toggleButton('Mute','Mute '+name,false,()=>{
+    source.muted=!source.muted; mute.setAttribute('aria-pressed',String(source.muted));apply();
+  });
+  row.append(slider,value,mute);
+  mutes.forEach((_,i)=>{
+    const label=(id==='fm'?'CH':'Voice ')+(i+1);
+    const button=toggleButton(label,name+' '+label+' on',true,()=>{
+      if (id==='pcm') return oki.setVoiceMuted(i,!mutes[i]);
+      mutes[i]=!mutes[i];
+      button.setAttribute('aria-pressed',String(!mutes[i]));
+      const register=0x20+i;
+      audio?.fm.port.postMessage({method:'writeRegister',args:audibleRegister(register,inspector.read().registers[register])});
+    });
+    if (id==='pcm') mixerVoiceButtons.push(button);
+    channels.append(button);
+  });
+  group.append(legend,row,channels); $('mixer').append(group);
+}
+$('toggleMixer').onclick=()=>{
+  $('mixer').hidden=!$('mixer').hidden;
+  $('toggleMixer').setAttribute('aria-expanded',String(!$('mixer').hidden));
+};
 showBusy(0xf0);
 let romRevision = 0;
 function installRom(bytes,names,label) {
   romRevision++; sampleRom = bytes; rawOki = [];
-  audio?.pcm.port.postMessage({rom:bytes}); chooseSamples(names); $('romName').textContent = label;
+  audio?.pcm.port.postMessage({rom:bytes}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names); $('romName').textContent = label;
 }
 $('rom').onchange = async () => {
   const file = $('rom').files[0], revision = ++romRevision;
@@ -198,7 +251,7 @@ buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entrie
   onPointerDown:(e,entry) => press('pointer'+e.pointerId,entry),
   onPointerUp:e => release('pointer'+e.pointerId),onPointerCancel:e => release('pointer'+e.pointerId)});
 window.addEventListener('keydown',e => {
-  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('textarea,input,select,[contenteditable=true]')) return;
+  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
   const entry = layout.entries.find(v => v.key === e.key.toLowerCase());
   if (entry) {e.preventDefault();press(e.code,entry);}
 });

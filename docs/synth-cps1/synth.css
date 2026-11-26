@@ -74,3 +74,11 @@ table {width:100%;border-collapse:collapse;font-size:.88rem}
 .sample-preview {margin:.8rem 0}
 .sample-preview canvas {display:block;width:100%;height:96px;border-radius:.35rem}
 .sample-preview figcaption {font-variant-numeric:tabular-nums;font-size:.88rem;margin-top:.3rem}
+
+#mixer {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:1rem;margin:.6rem 0}
+#mixer fieldset {border-top:1px solid var(--line)}
+#mixer legend {font-weight:700}
+#mixer .bar {gap:.35rem;margin:.35rem 0}
+#mixer input {flex:1;min-width:4rem}
+#mixer output {min-width:4ch;text-align:right;font-variant-numeric:tabular-nums}
+#mixer button {padding:.2rem .5rem}
