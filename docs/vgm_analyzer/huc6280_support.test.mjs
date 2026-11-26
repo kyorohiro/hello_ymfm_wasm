@@ -16,7 +16,10 @@ test('HuC6280 opens Note-ish and disables unavailable analysis while switching b
   for(const key of ['sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,false,key);
   context.currentBuffer=null;context.updateChipSupport();
   for(const key of ['sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,true,key);
-  assert.match(context.document.getElementById('chipSupportNotice').textContent,/HuC6280/);
+  const messageStart = source.indexOf('function chipSupportMessage(');
+  vm.runInContext(source.slice(messageStart,source.indexOf('\n}',messageStart)+2),context);
+  const message = context.chipSupportMessage(context.currentChipKind,context.noteishHeader,[]);
+  assert.match(message,/HuC6280/);
   // No synthetic PSG control may be applied to this engine.
   applySourceMutes({},'huc6280',{});
   context.currentChipKind='ym2612';context.updateChipSupport();

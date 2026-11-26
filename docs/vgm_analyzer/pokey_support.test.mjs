@@ -22,7 +22,9 @@ test('POKEY live monitor permits only Operator Info / parsed data and rejects al
     assert.equal(context[key].disabled, true, key);
   }
   assert.equal(context.document.getElementById('pokeyMonitor').hidden, false);
-  assert.match(context.document.getElementById('chipSupportNotice').textContent, /one or two independent chips/);
+  vm.runInContext(functionSource('chipSupportMessage'),context);
+  const message = context.chipSupportMessage(context.currentChipKind,context.noteishHeader,[]);
+  assert.match(message, /one or two independent chips/);
   context.currentChipKind = 'ym2612'; context.updateChipSupport();
   assert.equal(context.operatorInfoTab.disabled, false);
   assert.equal(context.document.getElementById('pokeyMonitor').hidden, true);

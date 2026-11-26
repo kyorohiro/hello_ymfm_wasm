@@ -14,8 +14,10 @@ test('WonderSwan opens Note-ish, enables score exports and disables unsupported 
   context.updateChipSupport();assert.equal(context.selected,'noteish');
   for(const key of ['operatorInfoTab','tfiInfoTab','exportMmlButton','exportSnapshotButton'])assert.equal(context[key].disabled,true,key);
   for(const key of ['sampleTab','noteishTab','sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,false,key);
-  assert.match(context.document.getElementById('chipSupportNotice').textContent,/CH2 Voice PCM, CH3 sweep and CH4 noise/);
-  assert.match(context.document.getElementById('chipSupportNotice').textContent,/Sample Explorer exports Wave RAM and timed Voice PCM/);
+  vm.runInContext(fn('chipSupportMessage'),context);
+  const message = context.chipSupportMessage(context.currentChipKind,context.noteishHeader,[]);
+  assert.match(message,/CH2 Voice PCM, CH3 sweep and CH4 noise/);
+  assert.match(message,/Sample Explorer exports Wave RAM and timed Voice PCM/);
   context.currentBuffer=null;context.updateChipSupport();
   for(const key of ['sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,true,key);
   context.currentChipKind='ym2612';context.updateChipSupport();assert.equal(context.operatorInfoTab.disabled,false);

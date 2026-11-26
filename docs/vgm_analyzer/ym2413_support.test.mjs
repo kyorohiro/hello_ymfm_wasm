@@ -14,8 +14,7 @@ function fn(name) {
 const tabNames=['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab'];
 const buttonNames=['exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton'];
 for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`${chip} exposes supported analysis and exports and restores OPN tabs`,()=>{
-  const notice={hidden:true};
-  const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,document:{getElementById:()=>notice},selected:null,
+  const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,selected:null,
     setOutputTab(name){context.selected=name;}};
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute:()=> 'false'};
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
@@ -29,19 +28,17 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   context.currentBuffer={};context.midiExportAvailable=true;context.updateChipSupport();
   for(const name of buttonNames)assert.equal(context[name].disabled,!supportedExports.includes(name),name);
   assert.equal(context.sheetMusicTab.disabled,false);
-  assert.equal(context.selected,['msx','ymf262'].includes(chip)?'noteish':enabledTabs.length?'operator-info':'parsed-output');assert.equal(notice.hidden,false);
+  assert.equal(context.selected,['msx','ymf262'].includes(chip)?'noteish':enabledTabs.length?'operator-info':'parsed-output');
   context.currentChipKind='ym2612';context.updateChipSupport();
   for(const name of tabNames)assert.equal(context[name].disabled,false);
-  assert.equal(notice.hidden,true);
 });
 test('gameboy exposes Note-ish and GB Info while disabling FM voice exports',()=>{
   // Game Boy keeps Note-ish and its dedicated GB Info panel available.
-  const notice={hidden:true};
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
   const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
     currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
     exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
-    document:{getElementById:()=>notice},selected:null,
+    selected:null,
     setOutputTab(name){context.selected=name;}};
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute(){return 'false';}};
   context.parsedOutputTab.getAttribute=()=>'true'; // already on the one tab gameboy is allowed to stay on
@@ -62,8 +59,8 @@ test('gameboy exposes Note-ish and GB Info while disabling FM voice exports',()=
   context.currentBuffer={};context.midiExportAvailable=true;context.updateChipSupport();
   assert.equal(context.exportMidiButton.disabled,false,'buffer + midiExportAvailable enables Game Boy MIDI export');
   context.currentBuffer=null;context.midiExportAvailable=false;context.updateChipSupport();
-  assert.equal(notice.hidden,false);
-  assert.match(notice.textContent,/Note-ish available/);
+  vm.runInContext(fn('chipSupportMessage'),context);
+  assert.match(context.chipSupportMessage('gameboy',{},[]),/Note-ish available/);
   assert.equal(context.selected,null,'already on parsed-output: no forced switch needed');
   // Regression: loading a Game Boy file while a stale "operator-info" tab
   // (left over from a previous, unrelated file) is still selected must not
@@ -78,12 +75,11 @@ test('segapcm also switches away from a stale operator-info tab to parsed-output
   // Same class of bug as Game Boy above, for a chip with no Note-ish at
   // all: Sega PCM must not leave a leftover operator-info tab showing
   // irrelevant content either.
-  const notice={hidden:true};
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
   const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
     currentChipKind:'segapcm',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
     exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
-    document:{getElementById:()=>notice},selected:null,
+    selected:null,
     setOutputTab(name){context.selected=name;}};
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute(){return 'false';}};
   context.operatorInfoTab.getAttribute=()=>'true';
