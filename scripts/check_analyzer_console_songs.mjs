@@ -742,6 +742,54 @@ try {
     assert(await page.locator('#tfiInfoPanel').isHidden());
     console.log('Instrument switches between chip families and isolates both Game Boy APUs');
   }
+  {
+    const open = async file => {
+      await page.locator('#fileInput').setInputFiles('test/fixtures/'+file+'.vgm');
+      await page.locator('#operatorInfoTab').click();
+    };
+    const selectChip = n => page.locator('#chipMonitorTabs').getByRole('tab',{name:'Game Boy DMG '+n}).click();
+    const second = dockChannels.getByRole('group',{name:'Game Boy DMG 2',exact:true});
+    const cards = page.locator('#gameboyChannels section');
+    await open('dual-dmg');
+    await selectChip(2);
+    await play.click();
+    await cards.first().getByText('25%',{exact:true}).waitFor();
+    await pause.click();
+    await second.getByRole('button',{name:'CH1',exact:true}).click();
+    assert.equal(await cards.first().locator('button').first().getAttribute('aria-pressed'),'false');
+    await selectChip(1);
+    await cards.first().getByText('50%',{exact:true}).waitFor();
+    assert.equal(await cards.first().locator('button').first().getAttribute('aria-pressed'),'true');
+    await selectChip(2);
+    await cards.first().locator('button').first().click();
+    assert.equal(await second.getByRole('button',{name:'CH1',exact:true}).getAttribute('aria-pressed'),'true');
+    await stop.click();
+
+    await open('dual-dmg-wave');
+    await selectChip(1);
+    await play.click();
+    const wave = page.locator('#gameboyWaveValues');
+    await wave.filter({hasText:/^0 0 1 1/}).waitFor();
+    await pause.click();
+    const image = () => page.locator('#gameboyWaveCanvas').evaluate(el=>el.toDataURL());
+    const initial = await image();
+    await selectChip(2);
+    await wave.filter({hasText:/^F F E E/}).waitFor();
+    assert.notEqual(await image(),initial);
+    await movePosition(1.5);
+    await wave.filter({hasText:/^F 0 F 0/}).waitFor();
+    await cards.nth(2).getByRole('button',{name:'Open wave'}).click();
+    await page.locator('#gbInstrument1 details[open] summary').waitFor();
+    assert.match(await page.locator('#gbInstrument1 details[open] textarea').inputValue(),/setWaveform\(\[15, 0, 15, 0/);
+    await page.locator('#operatorInfoTab').click();
+    await selectChip(1);
+    await wave.filter({hasText:/^0 F 0 F/}).waitFor();
+    await movePosition(.25);
+    await wave.filter({hasText:/^0 0 1 1/}).waitFor();
+    assert.equal(await image(),initial);
+    await stop.click();
+    console.log('Dual DMG duty, mute synchronization, wave RAM, seek and per-APU Instrument passed');
+  }
   for (const chip of ['YM2151','YM2164']) {
     const header = Buffer.from(opn.subarray(0,0xc8));
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c);

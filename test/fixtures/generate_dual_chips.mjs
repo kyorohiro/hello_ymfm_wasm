@@ -121,3 +121,26 @@ for (const variant of ['ym2610','ym2610b']) {
     [0x4c,8000000+(variant==='ym2610b'?0xc0000000:0x40000000)]]) header.writeUInt32LE(value,offset);
   await writeFile(new URL('dual-'+variant+'-adpcm.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
 }
+
+// CH3 duet. Each APU gets a different wave, replaced independently at 1 s.
+{
+  const data = [];
+  for (const phase of [0,1]) {
+    for (const chip of [0,1]) {
+      const write = (reg,value) => data.push(0xb3,reg | (chip<<7),value);
+      write(22,128); write(20,0x77); write(21,chip ? 4 : 0x40);
+      write(10,0);
+      for (let i=0;i<16;i++) {
+        const value = phase ? (i<8 ? 0x0f : 0xf0) : (i<<4) | i;
+        write(32+i,chip ? 255-value : value);
+      }
+      write(10,128); write(12,32); write(13,chip ? 48 : 96); write(14,0x86);
+    }
+    data.push(0x61,0x44,0xac);
+  }
+  data.push(0x66);
+  const header = Buffer.alloc(256);
+  header.write('Vgm ');
+  for (const [offset,value] of [[4,252+data.length],[8,0x171],[0x18,88200],[0x34,204],[0x80,0x40000000+4194304]]) header.writeUInt32LE(value,offset);
+  await writeFile(new URL('dual-dmg-wave.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
+}

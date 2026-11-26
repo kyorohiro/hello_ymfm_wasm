@@ -176,3 +176,41 @@ for (const variant of ['ym2610','ym2610b']) test(variant+' second SSG A can be m
     }
   } finally {engine.dispose();}
 });
+
+for (const ch of [0,1,2,3]) test('dual DMG CH'+(ch+1)+' independent left/right PCM mute and reset',async () => {
+  const wave = await readFile(new URL('../../test/fixtures/dual-dmg-wave.vgm',import.meta.url));
+  let bytes = wave;
+  if (ch !== 2) {
+    const data = [];
+    for (const chip of [0,1]) {
+      const write = (r,v) => data.push(0xb3,r | chip<<7,v);
+      write(22,128); write(20,0x77); write(21,(chip?1:16)<<ch);
+      const base = ch*5;
+      write(base+1,0x80); write(base+2,0xa0);
+      write(base+3,ch===3?0x23:96); write(base+4,0x86);
+    }
+    bytes = Buffer.concat([wave.subarray(0,256),Buffer.from([...data,0x61,0x44,0xac,0x66])]);
+    bytes.writeUInt32LE(bytes.length-4,4); bytes.writeUInt32LE(44100,0x18);
+  }
+  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
+  try {
+    const player = createPlaybackPlayer(engine,bytes);
+    let reference;
+    for (const mask of [0,2,1,3,0]) {
+      for (const [index,id] of ['gameBoyDmg','gameBoyDmg-2'].entries()) {
+        engine.entries.get(id+':0').engine.setChannelMuted(ch,Boolean(mask & (1<<index)));
+      }
+      player.reset(); player.setPrefetchFactor(1); player.play();
+      const left=new Float32Array(8192),right=new Float32Array(8192);
+      player.process(left,right,left.length);
+      const audible = [left,right].map(side => {
+        const signal = side.subarray(2048);
+        return Math.max(...signal)-Math.min(...signal) > .001;
+      });
+      assert.deepEqual(audible,[!(mask&1),!(mask&2)]);
+      reference ??= [left,right];
+      if (!(mask&1)) assert.deepEqual(left,reference[0]);
+      if (!(mask&2)) assert.deepEqual(right,reference[1]);
+    }
+  } finally {engine.dispose();}
+});
