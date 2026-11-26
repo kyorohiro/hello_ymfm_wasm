@@ -1,3 +1,4 @@
+import {validRegister} from './fm21290.js';
 /** Independently owned Native DX7. Only controls and explicit snapshots cross
  * this endpoint; its sixteen allocated voices render on the Native callback. */
 import {createInitVoice,parseSysex,packVoice} from './msfa_dx7/src/sysex.js';
@@ -21,7 +22,7 @@ export function createNativeGenesisExtraDx7Endpoint(synth){
   const context=createNativeVoiceContext(synth,{backend:'extra-dx7',statusCommand:'native_genesis_extra_dx7_status',label:'additional DX7'}),{capture,current}=context;
   let applied={voices:[createInitVoice()],selectedVoice:0},logical={voices:copyBank(applied.voices),selectedVoice:0},serial=Promise.resolve(),editorSerial=Promise.resolve(),stateRevision=0,initialized=false,mainGroup,collection=null,editing=0,optimisticSelected=null,selectionSequence=0;
   const pending=new Map(),listeners=new Set(),operations=new Set(),notes=new Map(),auditionVoices=new Map();
-  const state=()=>({sampleRate:synth.clock.sampleRate||44100,internalSampleRate:44100,voices:logical.voices.map((voice,index)=>({index,name:voiceToPreset(voice).name})),selectedVoice:logical.selectedVoice,stateRevision});
+  const state=()=>({sampleRate:synth.clock.sampleRate||44100,internalSampleRate:synth.clock.sampleRate||44100,voices:logical.voices.map((voice,index)=>({index,name:voiceToPreset(voice).name})),selectedVoice:logical.selectedVoice,stateRevision});
   const notify=()=>{const value=state();for(const listener of listeners)listener(value);synth.emit?.({type:'native-state',name:'dx7',state:value});};
   function project(target,message){
     if(message.method==='load-bank'){target.voices=message.voices.map(voice=>new Uint8Array(voice));target.selectedVoice=0;}
@@ -49,6 +50,9 @@ export function createNativeGenesisExtraDx7Endpoint(synth){
       case 'setOperators':validateOperators(args[0]);return {method:'edit-voice',...maskedPatch({operators:Object.fromEntries(args[0])})};
       case 'setFeedback':integer(args[0],7,'Feedback');return {method:'edit-voice',...maskedPatch({feedback:args[0]})};
       case 'selectVoice':integer(args[0],logical.voices.length-1,'Voice index');return {method:'select-voice',index:args[0]};
+      case 'writeRegister':
+        validRegister(args[0]); integer(args[1],255,'Register data');
+        return {method:'write-register',address:args[0],value:args[1]};
       case 'noteOn':integer(args[0],127,'MIDI note');integer(args[1]??100,127,'Velocity');return args[1]===0?{method:'note-off',note:args[0]}:{method:'note-on',note:args[0],velocity:args[1]??100};
       case 'noteOff':integer(args[0],127,'MIDI note');return {method:'note-off',note:args[0]};
       case 'allNotesOff':return {method:'all-notes-off'};
@@ -93,14 +97,15 @@ export function createNativeGenesisExtraDx7Endpoint(synth){
     const copied=['noteOn','noteOff'].includes(method)?args.slice():[],timed={...timing};
     const result=serial.then(()=>perform(method,copied,timed,owner,prepared,op)).finally(()=>operations.delete(op));serial=result.catch(()=>{});return result;
   }
-  const inspector=new Dx7VoiceInspector({sampleRate:synth.clock.sampleRate||44100,internalSampleRate:44100,getApplied:()=>applied,getLogical:()=>({...logical,pendingCommands:pending.size}),dispatch(command,owner){if(!collection)throw new Error('DX7 inspector command outside an edit');collection.push({command,owner});},beginAudition(){},endAudition(){}});
+  const inspector=new Dx7VoiceInspector({sampleRate:synth.clock.sampleRate||44100,internalSampleRate:synth.clock.sampleRate||44100,getApplied:()=>applied,getLogical:()=>({...logical,pendingCommands:pending.size}),dispatch(command,owner){if(!collection)throw new Error('DX7 inspector command outside an edit');collection.push({command,owner});},beginAudition(){},endAudition(){}});
   const report=promise=>promise.catch(error=>{if(error?.name!=='AbortError')synth.reportAsyncError(error);});
-  const client={internalSampleRate:44100,get sampleRate(){return synth.clock.sampleRate||44100;},get voices(){return state().voices;},get selectedVoice(){return optimisticSelected??logical.selectedVoice;},_getState:state,_onStateChange(listener){listeners.add(listener);return ()=>listeners.delete(listener);},_adoptState(){return false;},
+  const client={internalSampleRate:synth.clock.sampleRate||44100,get sampleRate(){return synth.clock.sampleRate||44100;},get voices(){return state().voices;},get selectedVoice(){return optimisticSelected??logical.selectedVoice;},_getState:state,_onStateChange(listener){listeners.add(listener);return ()=>listeners.delete(listener);},_adoptState(){return false;},
     _allocateMainOwner:()=>context.identity(),_withMainOwner(group,callback){const previous=mainGroup;mainGroup=group;try{return callback();}finally{mainGroup=previous;}},
     _cancelMainOwner(group){cancel(op=>op.group===group);send({method:'cancel-main-owner',targetGroup:group,id:context.identity()});},
     _stopVoices(){return dispatch('stopVoices');},getState(){return dispatch('getState');},async loadSysex(bytes){return (await dispatch('loadSysex',[bytes])).voices;},
     async setPreset(preset){await dispatch('setPreset',[preset]);},async setOperator(operator,params){await dispatch('setOperator',[operator,params]);},async setOperators(entries){await dispatch('setOperators',[entries]);},async setFeedback(value){await dispatch('setFeedback',[value]);},getPreset(){return dispatch('getPreset');},
     selectVoice(index){normalize('selectVoice',[index]);const version=++selectionSequence;optimisticSelected=index;report(dispatch('selectVoice',[index]).finally(()=>{if(version===selectionSequence)optimisticSelected=null;}));},
+    writeRegister(address,value){report(dispatch('writeRegister',[address,value]));},
     noteOn(note,velocity=100){normalize('noteOn',[note,velocity]);report(dispatch('noteOn',[note,velocity]));},noteOff(note){normalize('noteOff',[note]);report(dispatch('noteOff',[note]));},allNotesOff(){report(dispatch('allNotesOff'));},panic(){report(dispatch('panic'));},dispose(){},
   };
   return {client,async dispatch(message,timing={}){const value=await dispatch(message.method,message.args??[],timing);return message.id===undefined?undefined:{id:message.id,value:message.method==='getPreset'?value:state()};},
@@ -124,4 +129,4 @@ export function createNativeGenesisExtraDx7Endpoint(synth){
     reset(){cancel(()=>true);context.invalidate();context.disable('dx7');initialized=false;mainGroup=undefined;listeners.clear();pending.clear();notes.clear();auditionVoices.clear();inspector.auditions.clear();inspector.byMidi.clear();inspector.notes.clear();optimisticSelected=null;selectionSequence++;},
   };
 }
-export async function createNativeGenesisExtraDx7(synth,options={}){const device=await createNativeGenesisExtraChip(synth,{...options,kind:'dx7',label:'DX7',layout:{polyphony:16},createEndpoint:createNativeGenesisExtraDx7Endpoint});Object.defineProperties(device,{sampleRate:{get:()=>device.client.sampleRate},internalSampleRate:{value:44100},voices:{get:()=>device.client.voices},selectedVoice:{get:()=>device.client.selectedVoice}});return device;}
+export async function createNativeGenesisExtraDx7(synth,options={}){const device=await createNativeGenesisExtraChip(synth,{...options,kind:'dx7',label:'DX7',layout:{polyphony:16},createEndpoint:createNativeGenesisExtraDx7Endpoint});Object.defineProperties(device,{sampleRate:{get:()=>device.client.sampleRate},internalSampleRate:{get:()=>device.client.sampleRate},voices:{get:()=>device.client.voices},selectedVoice:{get:()=>device.client.selectedVoice}});return device;}

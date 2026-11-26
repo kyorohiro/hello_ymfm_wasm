@@ -2028,7 +2028,7 @@ interface PlaygroundDx7State {
  * instances; DX7 mode retains its primary instance and bank while silencing voices.
  */
 interface PlaygroundDx7 {
-  /** CPU register access on the FM21290 Web Audio engine. */
+  /** CPU register access on the FM21290 engine in Web Audio and supported Native builds. */
   writeRegister(address:number,value:number):void;
   readonly voices: PlaygroundDx7VoiceInfo[];
   readonly selectedVoice: number;

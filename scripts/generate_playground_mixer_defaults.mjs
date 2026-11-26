@@ -252,10 +252,10 @@ export async function generatePlaygroundMixerDefaults({reportPath,ps1ReportPath,
 
 async function main(args) {
   const options = {
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_dx7_alias_chip_levels_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_dx7_alias_chip_levels_01.json',import.meta.url)),
-    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_dx7_alias_chip_levels_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_dx7_alias_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_native_fm21290_levels_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_native_fm21290_levels_01.json',import.meta.url)),
+    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_native_fm21290_levels_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_native_fm21290_levels_01.json',import.meta.url)),
     outPath:fileURLToPath(new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false,noScsp=false,explicitScsp=false;

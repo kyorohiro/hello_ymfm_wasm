@@ -69,7 +69,7 @@ function fixture(t,{mode='genesis',future=false}={}){
 }
 test('Native additional DX7 owns its INIT bank, six operators, sixteen voices and Mixer without Web Audio',async t=>{
   installWorkers(t);const f=fixture(t);await f.runtime.playSource(`context.a=await createSoundChip('dx7',{id:'a'});context.b=await createSoundChip('dx7',{id:'b'});`);const {a,b}=f.runtime.context;
-  assert.equal(a.initialize,undefined);assert.equal(a.clock,undefined);assert.equal(a.sampleRate,48000);assert.equal(a.internalSampleRate,44100);assert.deepEqual(a.voices,[{index:0,name:'INIT SINE'}]);await a.setPreset({name:'SIDE A',algorithm:5,feedback:2,operators:{1:{coarse:3,outputLevel:77}}});await b.setPreset({name:'SIDE B',feedback:6});await a.setOperator(1,{fine:17});await a.setOperators([[2,{coarse:4}],[6,{outputLevel:60}]]);await a.setFeedback(7);
+  assert.equal(a.initialize,undefined);assert.equal(a.clock,undefined);assert.equal(a.sampleRate,48000);assert.equal(a.internalSampleRate,48000);assert.deepEqual(a.voices,[{index:0,name:'INIT SINE'}]);await a.setPreset({name:'SIDE A',algorithm:5,feedback:2,operators:{1:{coarse:3,outputLevel:77}}});await b.setPreset({name:'SIDE B',feedback:6});await a.setOperator(1,{fine:17});await a.setOperators([[2,{coarse:4}],[6,{outputLevel:60}]]);await a.setFeedback(7);
   const one=await a.getPreset(),two=await b.getPreset();assert.equal(one.name,'SIDE A');assert.equal(one.algorithm,5);assert.equal(one.feedback,7);assert.equal(one.operators[1].fine,17);assert.equal(two.name,'SIDE B');assert.equal(two.feedback,6);assert.equal(two.algorithm,31);assert.equal(f.synth.extraDx7Devices.size,2);assert.equal(f.synth.audioContext,null);assert.equal(f.synth.node,null);
   f.synth.mixer.set('a',{volume:.3,pan:-.5});await f.synth.flush();assert.equal([...f.rack.values()][0].volume,.3);assert.deepEqual(f.errors,[]);
 });
@@ -116,4 +116,18 @@ test('Native additional DX7 inspector partial presets start a new cohort while f
   installWorkers(t);const f=fixture(t);await f.synth.start();const device=await f.synth.createExtraDx7({id:'cohort'}),endpoint=device.endpoint;await device.client.setPreset({name:'PREVIOUS',algorithm:5,operators:{1:{coarse:3,fine:17}}});await endpoint.invoke('auditionOn',[0,60,'old']);const native=[...f.rack.values()][0],oldCohort=native.notes.get(60).cohort;
   await endpoint.invoke('setPreset',[{algorithm:7}]);const replacement=f.commands().filter(c=>c.type==='extra-dx7'&&c.message.method==='set-preset').at(-1).message;assert.deepEqual(replacement.indices,[134]);assert.equal(replacement.voice[134],7);let view=await endpoint.read();assert.equal(view.preset.name,'PREVIOUS');assert.equal(view.preset.operators[1].coarse,3);assert.equal(view.preset.operators[1].fine,17);assert.notEqual(native.cohorts[0],oldCohort);assert.equal(native.notes.get(60).cohort,oldCohort);
   await endpoint.invoke('setOperator',[1,{outputLevel:71}]);assert.equal(native.notes.get(60).liveEdits,0);await endpoint.invoke('auditionOn',[0,64,'new']);const newCohort=native.notes.get(64).cohort;await endpoint.invoke('setPreset',[{feedback:6}]);const feedback=f.commands().filter(c=>c.type==='extra-dx7').at(-1).message;assert.equal(feedback.method,'edit-voice');assert.deepEqual(feedback.indices,[135]);assert.equal(native.cohorts[0],newCohort);assert.equal(native.notes.get(60).liveEdits,0);assert.equal(native.notes.get(64).liveEdits,1);assert.deepEqual(f.errors,[]);
+});
+
+test('Native DX7 aliases share the endpoint for scheduled notes and register writes',async t=>{
+  installWorkers(t);
+  const f=fixture(t);
+  await f.runtime.playSource(`
+    const chip = await useSoundChip('fm21290');
+    if (chip !== await useSoundChip('dx7')) throw Error('Alias mismatch');
+    chip.noteOn(69,100);
+    chip.writeRegister(0x30d0,255);
+    await chip.getState();
+  `);
+  assert.equal(f.synth.extraDx7Devices.size,1);
+  assert(f.commands().some(c=>c.type==='extra-dx7' && c.message.method==='write-register' && c.message.address===0x30d0 && c.message.value===255));
 });

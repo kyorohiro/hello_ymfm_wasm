@@ -1710,7 +1710,7 @@ edit its physical voice. The mixer ID of a shared extra instrument is
 `dx7:shared`. Use Playground’s `createSoundChip` for independent instances.
 
 The package-root factory accepts either name for raw register access and offline
-PCM rendering. The experimental native Playground DX7 backend still uses MSFA.
+PCM rendering. Native support depends on the Playground desktop build.
 The MSFA reference implementation and its Apache-2.0 notices ship in `msfa_dx7/`.
 
 ### Object-based DX7 presets (0.2.15)

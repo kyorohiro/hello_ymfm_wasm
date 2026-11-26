@@ -184,7 +184,6 @@ export function createDx7Client(port, initial = {}, lifecycle = {}) {
     },
     writeRegister(address, value) {
       assertUsable();
-      if (initial.native) throw new Error('FM21290 register control requires Web Audio.');
       validRegister(address);
       midiInteger(value, 'Register data', 255);
       send('writeRegister', [address, value]);

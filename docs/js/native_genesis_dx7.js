@@ -1,3 +1,4 @@
+import {validRegister} from './fm21290.js';
 /** DX7 control endpoint for the Native renderer. PCM never crosses this bridge. */
 import {createInitVoice,parseSysex,packVoice} from './msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
@@ -7,7 +8,7 @@ const integer=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>ma
 const abort=()=>new DOMException('Native DX7 operation was cancelled','AbortError');
 const patchMethods=new Set(['setPreset','setOperator','setOperators','setFeedback','selectVoice','loadSysex']);
 const copyBank=voices=>voices.map(voice=>voice.slice());
-const bankState=(voices,selectedVoice,sampleRate,stateRevision)=>({sampleRate,internalSampleRate:44100,
+const bankState=(voices,selectedVoice,sampleRate,stateRevision)=>({sampleRate,internalSampleRate:sampleRate,
   voices:voices.map((voice,index)=>({index,name:voiceToPreset(voice).name})),selectedVoice,stateRevision});
 
 // Both bases are valid raw voices. Their union identifies explicitly supplied
@@ -65,6 +66,9 @@ export function createNativeGenesisDx7(synth){
       case 'setOperators':validateOperators(args[0]);return {method:'edit-voice',...maskedPatch({operators:Object.fromEntries(args[0])})};
       case 'setFeedback':integer(args[0],7,'Feedback');return {method:'edit-voice',...maskedPatch({feedback:args[0]})};
       case 'selectVoice':integer(args[0],logical.voices.length-1,'Voice index');return {method:'select-voice',index:args[0]};
+      case 'writeRegister':
+        validRegister(args[0]); integer(args[1],255,'Register data');
+        return {method:'write-register',address:args[0],value:args[1]};
       case 'noteOn':integer(args[0],127,'MIDI note');integer(args[1]??100,127,'Velocity');return args[1]===0?{method:'note-off',note:args[0]}:{method:'note-on',note:args[0],velocity:args[1]??100};
       case 'noteOff':integer(args[0],127,'MIDI note');return {method:'note-off',note:args[0]};
       case 'allNotesOff':return {method:'all-notes-off'};
@@ -121,12 +125,12 @@ export function createNativeGenesisDx7(synth){
     const result=serial.then(()=>{current(lease);return perform(method,copied,timed,owner,prepared);});serial=result.catch(()=>{});return result;
   }
   async function refresh(){const lease=token(),snapshot=await synth.nativeRequest('native_genesis_dx7_status');current(lease);return adopt(snapshot);}
-  const inspector=new Dx7VoiceInspector({sampleRate:synth.clock.sampleRate||44100,internalSampleRate:44100,
+  const inspector=new Dx7VoiceInspector({sampleRate:synth.clock.sampleRate||44100,internalSampleRate:synth.clock.sampleRate||44100,
     getApplied:()=>applied,getLogical:()=>({...logical,pendingCommands:pending.size}),
     dispatch:(command,owner)=>{const promise=dispatch(command.method,command.args,{},owner);if(inspectorRequests)inspectorRequests.push(promise);else promise.catch(error=>synth.reportAsyncError(error));return promise;},beginAudition(){},
     endAudition(){}});
   const report=promise=>{promise.catch(error=>{if(error?.name!=='AbortError')synth.reportAsyncError(error);});};
-  const client={id:'dx7',internalSampleRate:44100,
+  const client={id:'dx7',internalSampleRate:synth.clock.sampleRate||44100,
     get sampleRate(){return synth.clock.sampleRate||44100;},get voices(){return state().voices;},get selectedVoice(){return optimisticSelected??logical.selectedVoice;},
     _getState:state,_onStateChange(listener){listeners.add(listener);return ()=>listeners.delete(listener);},
     _adoptState(){return false;},_stopVoices(){return dispatch('stopVoices');},getState(){return dispatch('getState');},
@@ -134,6 +138,7 @@ export function createNativeGenesisDx7(synth){
     async setPreset(preset){await dispatch('setPreset',[preset]);},async setOperator(operator,params){await dispatch('setOperator',[operator,params]);},
     async setOperators(entries){await dispatch('setOperators',[entries]);},async setFeedback(value){await dispatch('setFeedback',[value]);},
     getPreset(){return dispatch('getPreset');},selectVoice(index){normalize('selectVoice',[index]);const version=++selectionSequence;optimisticSelected=index;const promise=dispatch('selectVoice',[index]);report(promise.finally(()=>{if(version===selectionSequence)optimisticSelected=null;}));},
+    writeRegister(address,value){report(dispatch('writeRegister',[address,value]));},
     noteOn(note,velocity=100){normalize('noteOn',[note,velocity]);report(dispatch('noteOn',[note,velocity]));},
     noteOff(note){normalize('noteOff',[note]);report(dispatch('noteOff',[note]));},allNotesOff(){report(dispatch('allNotesOff'));},panic(){report(dispatch('panic'));},dispose(){},
   };
