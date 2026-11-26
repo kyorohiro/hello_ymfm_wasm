@@ -449,6 +449,7 @@ try {
       await sections.getByRole('tab',{name:percussion}).click();
       await a.first().getByText('Stop',{exact:true}).waitFor();
       assert.equal(await a.count(),6);
+      await checkMonitorMute(a.nth(1).getByRole('button'), opna ? 'Snare' : 'ADPCM-A CH2');
       if (opna) assert.deepEqual(await a.locator('th').allTextContents(),['Bass drum','Snare','Cymbal','Hi-hat','Tom','Rim shot']);
       assert.deepEqual(await a.first().locator('td').allTextContents(),opna ? ['Stop','17','L'] : ['Stop','0x000200','0x0005FF','17','L']);
       assert.equal(await a.nth(1).locator('td').first().innerText(),'Start');

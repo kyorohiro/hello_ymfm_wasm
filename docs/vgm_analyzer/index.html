@@ -620,8 +620,8 @@
                 <tbody>
                   <tr><th scope="row">YM2612</th><td>FM + DAC<br><small>Seek cache</small></td><td>6 FM CH, PSG</td><td>SoundChip</td><td>FM + PSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
                   <tr><th scope="row">YM2203</th><td>FM + SSG<br><small>Seek cache</small></td><td>3 FM CH, SSG A/B/C and group</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
-                  <tr><th scope="row">YM2608</th><td>FM + SSG + Rhythm + ADPCM-B<br><small>Seek cache</small></td><td>FM CH and SSG A/B/C mute. Gain and mute for FM, SSG, Rhythm and ADPCM-B</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
-                  <tr><th scope="row">YM2610 / YM2610B</th><td>FM + SSG + ADPCM-A/B<br><small>Seek cache</small></td><td>4 / 6 FM CH and SSG A/B/C mute. Gain and mute for FM, SSG, ADPCM-A and ADPCM-B</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
+                  <tr><th scope="row">YM2608</th><td>FM + SSG + Rhythm + ADPCM-B<br><small>Seek cache</small></td><td>FM CH, SSG A/B/C and individual rhythm instruments. Gain and mute for FM, SSG, Rhythm and ADPCM-B</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
+                  <tr><th scope="row">YM2610 / YM2610B</th><td>FM + SSG + ADPCM-A/B<br><small>Seek cache</small></td><td>4 / 6 FM CH, SSG A/B/C and six ADPCM-A channels. Gain and mute for FM, SSG, ADPCM-A and ADPCM-B</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
                   <tr><th scope="row">YM2151 / YM2164 (OPM / OPP)</th><td>8 FM CH<br><small>Seek cache</small></td><td>8 CH</td><td>SoundChip</td><td>FM</td><td>Instrument (OPM), audition, OPM ZIP / snapshot, approximate TFI ZIP / snapshot, MIDI, MXDRV MML / FM-only MDX file, LilyPond</td></tr>
                   <tr><th scope="row">Sega PSG</th><td>Tone + noise<br><small>Seek cache: standalone / Genesis / YM2151 / YM2164</small></td><td>3 tones, noise and PSG group</td><td>PSG monitor</td><td>Tone</td><td>Tone MIDI / LilyPond; no FM voice export</td></tr>
                   <tr><th scope="row">RF5C164</th><td>PCM (Mega-CD)<br><small>Seek cache: Genesis configuration</small></td><td>PCM group</td><td>PCM monitor / samples</td><td>—</td><td>Sample explorer</td></tr>
@@ -808,7 +808,7 @@
             </section>
             <section id="rhythmMonitor">
               <p class="noteish-help">The light flashes when an instrument is triggered.</p>
-              <table id="rhythmChannels" class="psg-channels" data-pulse="start" aria-label="YM2608 rhythm registers">
+              <table id="rhythmChannels" data-mute-kind="adpcm-a-channel" class="psg-channels" data-pulse="start" aria-label="YM2608 rhythm registers">
                 <thead><tr><th scope="col">Instrument</th><th scope="col">Last command</th><th scope="col">Level</th><th scope="col">Output</th></tr></thead>
                 <tbody></tbody>
               </table>
@@ -816,7 +816,7 @@
             </section>
             <section id="adpcmAMonitor">
               <p class="noteish-help">The light flashes on a start command. Addresses are programmed ROM byte addresses.</p>
-              <div style="overflow-x:auto"><table id="adpcmAChannels" class="psg-channels" data-pulse="start" aria-label="ADPCM-A registers">
+              <div style="overflow-x:auto"><table id="adpcmAChannels" data-mute-kind="adpcm-a-channel" class="psg-channels" data-pulse="start" aria-label="ADPCM-A registers">
                 <thead><tr><th scope="col">Channel</th><th scope="col">Last command</th><th scope="col">Start byte</th><th scope="col">End byte (incl.)</th><th scope="col">Level</th><th scope="col">Output</th></tr></thead>
                 <tbody></tbody>
               </table></div>
@@ -832,11 +832,11 @@
             <section id="psgMonitor">
               <h2 id="psgMonitorTitle">Sega PSG</h2>
               <p class="noteish-help">Register settings at the generated audio position; playback may follow slightly later. These are not live audio levels.</p>
-              <table id="segaPsgChannels" class="psg-channels" hidden aria-label="Sega PSG channel settings">
+              <table id="segaPsgChannels" data-mute-kind="psg-channel" class="psg-channels" hidden aria-label="Sega PSG channel settings">
                 <thead><tr><th scope="col">Channel</th><th scope="col">Period / rate</th><th scope="col">Mode</th><th scope="col">Attenuation</th></tr></thead>
                 <tbody></tbody>
               </table>
-              <table id="ssgChannels" class="psg-channels" hidden aria-label="SSG channel settings">
+              <table id="ssgChannels" data-mute-kind="ssg-channel" class="psg-channels" hidden aria-label="SSG channel settings">
                 <thead><tr><th scope="col">Channel</th><th scope="col">Period</th><th scope="col">Tone</th><th scope="col">Noise</th><th scope="col">Volume</th></tr></thead>
                 <tbody></tbody>
               </table>
@@ -1102,7 +1102,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=ssg-mute-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=adpcm-a-mute-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

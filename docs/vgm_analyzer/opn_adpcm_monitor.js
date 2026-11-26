@@ -1,5 +1,5 @@
 // Register ports follow ym2608/ym2610::write_data[_hi]; ADPCM-A reset values follow ymfm_adpcm.
-const rhythmNames = ['Bass drum','Snare','Cymbal','Hi-hat','Tom','Rim shot'];
+export const rhythmNames = ['Bass drum','Snare','Cymbal','Hi-hat','Tom','Rim shot'];
 
 export function opnaAddressUnit(control2) {
   return control2 & 3 ? 32 : 4;
