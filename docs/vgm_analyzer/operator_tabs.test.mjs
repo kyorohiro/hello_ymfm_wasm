@@ -78,7 +78,6 @@ test('loading OPL after an OPM instrument tab selects SBI info',()=>{
 for(const chip of ['ym3526','ym3812','y8950','ymf262','ymf278b'])test(`${chip} SBI Info stays selected and rejects dual chips`,()=>{
  const context=setup(chip);context.updateChipSupport();context.setOutputTab('tfi-info');
  for(let repeat=0;repeat<3;repeat++)context.updateChipSupport();
- assert.equal(context.tfiInfoTab.textContent,'SBI Info');
  assert.equal(context.tfiInfoTab.getAttribute('aria-controls'),'sbiInfoPanel');
  assert.equal(context.sbiInfo.visible,true);
  context.noteishHeader[chip+'Clock']=0x40000000;context.updateChipSupport();context.setOutputTab('tfi-info');

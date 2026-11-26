@@ -3053,7 +3053,6 @@ function updatePlaybackButtons(state = {}) {
       tab.title = '';
     }
     sampleTab.textContent = 'Sample Explorer';
-    tfiInfoTab.textContent = 'Tfi info';
     for (const button of [exportAllTfiButton, exportAllVgiButton, exportLilyPondButton,
       document.getElementById('showSheetMusicButton'), document.getElementById('exportMusicSheetButton')]) button.disabled = true;
     if (!isLibraryOrSettingTab() && parsedOutputTab.ariaSelected !== 'true' && (exportTab.disabled || exportTab.ariaSelected !== 'true')) setOutputTab('parsed-output');
@@ -3089,7 +3088,6 @@ function updateChipSupport() {
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
   sampleTab.textContent = currentChipKind === 'gameboy' ? 'GB Info' : 'Sample Explorer';
   sampleExplorer.setChip?.(currentChipKind);
-  tfiInfoTab.textContent = sbi ? 'SBI Info' : currentChipKind === 'ym2151' ? 'OPM Info' : 'Tfi info';
   const ay = currentChipKind === 'ay8910';
   const opll = currentChipKind === 'ym2413';
   const opl = isOpl(currentChipKind);
