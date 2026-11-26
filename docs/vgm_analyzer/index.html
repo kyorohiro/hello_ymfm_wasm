@@ -641,6 +641,8 @@
               </table>
             </div>
             <ul>
+              <li><strong>Console song player:</strong> Saturn SCSP and Virtual Boy VSU single-chip VGM/VGZ, Saturn SSF/miniSSF, and PlayStation PSF1/miniPSF support song playback, pause and resume. Select folders to preserve relative library paths. These tracks use a separate player without VGM score or WAV export.</li>
+              <li><strong>Mixer:</strong> Master and chip volume reach 480%. YM2608 has separate FM, SSG, Rhythm and ADPCM controls. YM2610 and YM2610B have FM, SSG, ADPCM-A and ADPCM-B. Each source retains its volume (0–380%) when muted.</li>
               <li><strong>Seek cache:</strong> speeds up seeking by restoring a saved playback position and replaying only the remaining interval. Available for OPN (YM2203 / YM2608 / YM2610 / YM2610B), Genesis configurations (YM2612 / Sega PSG / RF5C164 / 32X PWM), YM2151 / YM2164 with optional Sega PSG / Sega PCM / OKIM6258, Game Boy DMG, and NES APU with optional FDS (NTSC). Every active chip must support restoration. Genesis or OPN mixed with OKIM6258, standalone Sega PCM / OKIM6258, and rows without a Seek cache label use normal seeking. Previously visited positions may be faster while their checkpoints remain cached; uncached sections still need replay. Changing the track, ROM or playback settings can invalidate the cache.</li>
               <li><strong>YM2164 (OPP):</strong> selected by the VGM YM2151 clock field's bit 31. Shares the OPM analysis/export path; Timer B runs at half the YM2151 rate. Undocumented registers 0x00–0x07 are not emulated specially. Mixing with MSX AY / OPLL / Y8950 / SCC / SCC+ is supported. A second OPM/OPP chip is not supported. Playback, seeking, Timer B and note/voice extraction are covered by synthetic VGM tests; real SFG tracks have not yet been verified.</li>
               <li><strong>S98:</strong> one YM2203, YM2608 or YM2612 device. Compressed S98 and multiple devices are not supported.</li>
@@ -661,11 +663,25 @@
         </dialog>
         <div class="actions">
           <label class="file-input-group">
-            <span class="file-input-label">VGM / VGZ / S98 / SPC File</span>
-            <input id="fileInput" type="file" multiple accept=".vgm,.vgz,.s98,.spc,.bin,.rom,application/octet-stream">
+            <span class="file-input-label">VGM / VGZ / S98 / SPC / SSF / PSF File</span>
+            <input id="fileInput" type="file" multiple accept=".vgm,.vgz,.s98,.spc,.ssf,.minissf,.ssflib,.psf,.minipsf,.psflib,.psf1lib,.bin,.rom,application/octet-stream">
             <small class="file-drop-hint">Choose or drop music files to replace the playlist. Select multiple files together to create a playlist, sorted by filename with numeric ordering. Play starts sequential playback; Loop repeats the current track.</small>
             <small id="romFileStatus" class="file-drop-hint">ROM files: import yrw801.rom (2 MiB) for Moonsound tracks without embedded samples, or ym2608_adpcm_rom.bin.</small>
           </label>
+          <button id="reopenConsole" type="button" hidden>Reopen console songs</button>
+          <details><summary>Console song player</summary>
+            <p>Open a Virtual Boy VSU VGM, Saturn SCSP VGM, SSF or PSF1 song. For miniSSF and miniPSF, select the folder containing the track and its libraries.</p>
+            <label>Song files <input type="file" multiple id="consoleFiles" accept=".vgm,.vgz,.ssf,.minissf,.ssflib,.psf,.minipsf,.psflib,.psf1lib"></label>
+            <label>Song folder <input type="file" multiple webkitdirectory id="consoleFolder"></label>
+          </details>
+          <dialog id="consoleSongs" aria-label="Console songs">
+            <h2>Console song player</h2>
+            <label>Track <select data-song="tracks"></select></label>
+            <p data-song="info"></p>
+            <button data-song="play">Play</button> <button data-song="pause">Pause</button> <button data-song="stop">Stop</button>
+            <output data-song="position"></output><p role="status" data-song="status"></p>
+            <form method="dialog"><button>Close</button></form>
+          </dialog>
           <p class="file-drop-hint">YM2608 rhythm: <a href="../js/tetorica_ym2608_adpcm_rom.bin" download>Download Tetorica synthetic ROM</a>, then import it above. Sounds differ from the original. <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause license</a>.</p>
           <section class="playlist" aria-label="Playlist">
             <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
@@ -689,7 +705,7 @@
           <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
           <label class="volume-control" for="masterVolumeRange">
             <span>Vol</span>
-            <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
+            <input id="masterVolumeRange" type="range" min="0" max="480" value="100" step="1">
             <span id="masterVolumeValue" class="volume-readout">100%</span>
           </label>
           <div id="inlineMonitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
@@ -995,7 +1011,7 @@
             <button id="playlistNextButton" type="button" aria-label="Next track" disabled>&gt;</button>
             <label class="volume-control" for="dockVolumeRange">
               <span>Vol</span>
-              <input id="dockVolumeRange" aria-label="Playback volume" type="range" min="0" max="380" value="100" step="1">
+              <input id="dockVolumeRange" aria-label="Playback volume" type="range" min="0" max="480" value="100" step="1">
               <output id="dockVolumeValue" class="volume-readout" for="dockVolumeRange">100%</output>
             </label>
           </div>
@@ -1003,7 +1019,7 @@
         </div>
         <div id="dockMixerPane" hidden>
           <div class="mixer-toolbar"><strong>Chip Mixer</strong><button id="mixerReset" type="button" class="link-button" title="Restore measured chip levels and master volume">Reset</button></div>
-          <label class="mixer-control">Master<input id="mixerMaster" aria-label="Mixer master volume" type="range" min="0" max="380" value="100"><output id="mixerMasterValue" for="mixerMaster">100%</output></label>
+          <label class="mixer-control">Master<input id="mixerMaster" aria-label="Mixer master volume" type="range" min="0" max="480" value="100"><output id="mixerMasterValue" for="mixerMaster">100%</output></label>
           <div id="mixerStrips"><p>Load a VGM to adjust chip levels.</p></div>
         </div>
         <div id="dockEffectPane" hidden>
@@ -1021,7 +1037,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=console-songs-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

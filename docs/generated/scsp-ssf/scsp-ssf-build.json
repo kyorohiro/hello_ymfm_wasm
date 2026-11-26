@@ -5,7 +5,7 @@
   "upstream": {
     "scsp": {
       "mameRevision": "a64a5d6602b19f67e091a4491f0c851a9dacf79d",
-      "sdkVersion": "0.1.8-fm2608-source-mixer",
+      "sdkVersion": "0.1.8-fm2610-source-mixer",
       "sdkSourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
       "license": "BSD-3-Clause"
     },
@@ -90,12 +90,12 @@
       "sha256": "f02488a97d8da4a520ec7260dc48433b06500c2bd198c2541845af40314aed8b"
     },
     "third_party/soundchip-sdk.json": {
-      "bytes": 1845,
-      "sha256": "b2c97fa6b743d2b3e55493bb2ae6a2f189db2df566194b94b5802f6bdf05f1bc"
+      "bytes": 2402,
+      "sha256": "32e10524b96aabf9c4bd1df2ff898a0273f2bef1d811372e127e3a7bd0f78d7c"
     },
     "third_party/tetorica-soundchip-native/RELEASE-MANIFEST.json": {
-      "bytes": 73659,
-      "sha256": "83c0adec744e8ddd04cbf733c6e83460bc5ff69eff39d7d772f4df454ca5f1cf"
+      "bytes": 74258,
+      "sha256": "efc71316454f97480a31d749a52f324d9c90d9c27f241780ad43d17764cd6bc0"
     },
     "third_party/tetorica-soundchip-native/vendor/mame-scsp/LICENSE": {
       "bytes": 1593,

@@ -2,7 +2,7 @@ export {exportFmRegisterSnapshot} from './fm_snapshot.js?v=pokey-vgm-1';
 import {groupScoreChannels,parseScoreGroups} from './score_groups.js';
 import {exportSamples,listSamples} from './sample_core.js?v=pokey-vgm-1';
 export {vgmToJson, jsonToVgm} from './vgm_json.js?v=pokey-vgm-1';
-import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js?v=pokey-vgm-1';
+import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js?v=pokey-vgm-1&mix=console-songs-1';
 import {exportSbiSnapshot, exportSbiZip} from './sbi_export.js?v=pokey-vgm-1';
 import {exportOpmZip} from './opm_export.js?v=pokey-vgm-1';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js?v=pokey-vgm-1';
@@ -82,7 +82,7 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   return { text: exporters[format](source, options) };
 }
 
-export { playbackMuteControls, applyPlaybackMutes, selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js?v=pokey-vgm-1';
+export { playbackMuteControls, applyPlaybackMutes, selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js?v=pokey-vgm-1&mix=console-songs-1';
 
 
 export function listSourceSamples(source, options = {}) {

@@ -1,5 +1,5 @@
-import {mixerDefaults} from './playback_mixer.js?v=pokey-vgm-1';
-import {YM2608_SOURCE_LABELS, ym2608SourceDefaults} from './ym2608_source_mix.js?v=opna-source-mixer-1';
+import {mixerDefaults} from './playback_mixer.js?v=console-songs-1';
+import {SOURCE_LABELS, ym2608SourceDefaults} from './ym2608_source_mix.js?v=console-songs-1';
 
 const names = {pokey:'POKEY 1','pokey:2':'POKEY 2',wonderswan: 'WonderSwan', psg: 'Sega PSG', gameBoyDmg: 'Game Boy', segaPcm: 'Sega PCM', nesApu: 'NES APU',
   rf5c164: 'RF5C164', pwm: 'PWM', k051649: 'SCC / SCC+', ay8910: 'AY8910'};
@@ -10,7 +10,7 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
   const sourceSettings = new Map();
   const sourceMixerFor = (parent, next = mixer) => {
     const controller = next?.sourceMixers?.get(parent);
-    if (next && !controller) throw new Error('YM2608 independent source gains are unavailable; reload the generated runtime.');
+    if (next && !controller) throw new Error(parent.toUpperCase() + ' independent source gains are unavailable; reload the generated runtime.');
     return controller;
   };
   const change = (id, values) => {
@@ -30,13 +30,13 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
   function renderSources(strip, parent, sources) {
     const group = document.createElement('div');
     group.className = 'mixer-source-group'; group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', 'YM2608 sources');
+    group.setAttribute('aria-label', parent.toUpperCase() + ' sources');
     for (const [part, values] of sources) {
-      const name = `YM2608 ${YM2608_SOURCE_LABELS[part]}`;
+      const name = `${parent.toUpperCase()} ${SOURCE_LABELS[parent][part]}`;
       const source = document.createElement('div');
       source.className = 'mixer-source-strip'; source.dataset.source = part;
       const title = document.createElement('div'); title.className = 'mixer-strip-title';
-      const heading = document.createElement('strong'); heading.textContent = YM2608_SOURCE_LABELS[part];
+      const heading = document.createElement('strong'); heading.textContent = SOURCE_LABELS[parent][part];
       const mute = document.createElement('button'); mute.type = 'button'; mute.className = 'channel-toggle';
       mute.setAttribute('aria-label', `${name} mute`);
       const row = document.createElement('label'); row.className = 'mixer-control'; row.append('Volume');
@@ -86,7 +86,7 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
       mute.addEventListener('click', () => {values.muted = !values.muted; updateMute(); change(id, {muted:values.muted});});
       updateMute(); title.append(heading, mute); strip.append(title);
       for (const [key, label, min, max, value, format] of [
-        ['gain', 'Volume', 0, 200, Math.round(values.gain * 100), v => `${v}%`],
+        ['gain', 'Volume', 0, 480, Math.round(values.gain * 100), v => `${v}%`],
         ['pan', 'Pan', -100, 100, Math.round(values.pan * 100), v => v === 0 ? 'Center' : `${v < 0 ? 'L' : 'R'} ${Math.abs(v)}`],
       ]) {
         const row = document.createElement('label'); row.className = 'mixer-control'; row.append(label);
@@ -131,8 +131,8 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
       configuration = nextConfiguration;
       mixer = null; settings.clear(); sourceSettings.clear();
       for (const chip of configuration?.chips ?? []) settings.set(chip.id, preferences?.getChip(chip.id,configuration) ?? mixerDefaults(chip.id,configuration));
-      if (settings.has('ym2608')) sourceSettings.set('ym2608', new Map(Object.keys(YM2608_SOURCE_LABELS)
-        .map(part => [part, preferences?.getSource('ym2608', part) ?? ym2608SourceDefaults()])));
+      for (const [parent, labels] of Object.entries(SOURCE_LABELS)) if (settings.has(parent)) sourceSettings.set(parent, new Map(Object.keys(labels)
+        .map(part => [part, preferences?.getSource(parent, part) ?? ym2608SourceDefaults()])));
       render();
     },
     attach(next) {

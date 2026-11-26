@@ -99,7 +99,7 @@ test('historical PSG measurements and OPN balance remain intact beneath shared l
   assert.ok(Math.abs(row.rawAcRms*gain/psgLevels.reference.targetAcRms-1)<1e-6,id+' AC-RMS target');
  }
  assert.equal(mixerDefaults('psg',{kind:'ym2612'}).gain,.35,'Genesis and standalone PSG use identical source units');
- assert.deepEqual(SOUNDCHIP_MIXER_LISTENING_LEVELS,{segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44});
+ assert.deepEqual(SOUNDCHIP_MIXER_LISTENING_LEVELS,{dx7:2.2,segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44});
  for(const [name,volume] of Object.entries(SOUNDCHIP_MIXER_LISTENING_LEVELS)){
   assert.equal(baseline.find(record=>record.name===name).volume,volume,name+' library default follows its measured or listening policy');
  }

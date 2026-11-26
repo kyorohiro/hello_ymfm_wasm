@@ -35,10 +35,10 @@ function encodePcm16(left, right, frames) {
  * `blockFrames - 1` trailing silent samples (negligible at the default size).
  *
  * @param {import('../js/vgmplayer.js?v=pokey-vgm-1').VgmPlayer} player
- * @param {{maxSeconds?: number, startSeconds?: number, blockFrames?: number, onProgress?: (fraction: number) => void}} [options]
+ * @param {{maxSeconds?: number, startSeconds?: number, blockFrames?: number, outputGain?: number, onProgress?: (fraction: number) => void}} [options]
  * @returns {Promise<{bytes: Uint8Array, seconds: number, truncated: boolean}>}
  */
-export async function renderVgmToWav(player, { maxSeconds = 120, blockFrames = 8192, onProgress, startSeconds = 0 } = {}) {
+export async function renderVgmToWav(player, { maxSeconds = 120, blockFrames = 8192, outputGain = 1, onProgress, startSeconds = 0 } = {}) {
   if (!Number.isFinite(maxSeconds) || !(maxSeconds > 0)) throw new RangeError('maxSeconds must be finite and positive');
   if (!Number.isFinite(startSeconds) || startSeconds < 0 || startSeconds + maxSeconds > 600) throw new RangeError('startSeconds must be nonnegative; startSeconds + maxSeconds must be <= 600');
   if (!Number.isSafeInteger(blockFrames) || blockFrames < 1 || blockFrames > 1048576) throw new RangeError('Invalid blockFrames');
@@ -52,6 +52,10 @@ export async function renderVgmToWav(player, { maxSeconds = 120, blockFrames = 8
     player.process(left, right, blockFrames);
     const from = Math.min(blockFrames, Math.max(0, startFrame - framesProcessed));
     const frames = Math.min(blockFrames - from, maxFrames - framesRendered);
+    if (outputGain !== 1) for (let i=from; i<from+frames; i++) {
+      left[i] *= outputGain;
+      right[i] *= outputGain;
+    }
     if(frames) parts.push(encodePcm16(left.subarray(from), right.subarray(from), frames));
     framesRendered += frames;
     framesProcessed += blockFrames;

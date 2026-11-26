@@ -1,6 +1,6 @@
 import {PCMChipMixer, chipMixGains} from '../js/soundchip_mixer.js';
 import {mixerDefaults} from './mixer_defaults.js';
-import {Ym2608SourceMixer} from './ym2608_source_mix.js?v=opna-source-mixer-1';
+import {OpnSourceMixer} from './ym2608_source_mix.js?v=console-songs-1';
 export {mixerDefaults} from './mixer_defaults.js';
 // Absolute chip gains, before engine master gain and FX.
 // Register writes and synthesis keep advancing even when a strip is muted.
@@ -56,7 +56,7 @@ export function installPlaybackMixer(engine, configuration) {
     if (Array.isArray(part.playbackMixerSources)) {
       for(const {id,source,method,rate} of part.playbackMixerSources) {
         mixer.addSource(id,source,method,rate,1);
-        if (id === 'ym2608') mixer.sourceMixers.set(id,new Ym2608SourceMixer(source));
+        if (id === 'ym2608' || id === 'ym2610') mixer.sourceMixers.set(id,new OpnSourceMixer(source,id));
       }
       return;
     }
@@ -81,7 +81,7 @@ export function installPlaybackMixer(engine, configuration) {
       if (typeof source[method] !== 'function') continue;
       const downstreamTrim = genesis ? id === 'ym2612' ? 0.9 : id === 'psg' ? 0.35 : 1 : 1;
       mixer.addSource(id, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate(), downstreamTrim);
-      if (id === 'ym2608') mixer.sourceMixers.set(id,new Ym2608SourceMixer(source));
+      if (id === 'ym2608' || id === 'ym2610') mixer.sourceMixers.set(id,new OpnSourceMixer(source,id));
       found = true;
     }
     // NES, HuC6280 and OKI render directly rather than through a chip wrapper.

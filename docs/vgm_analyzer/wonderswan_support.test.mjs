@@ -50,7 +50,7 @@ test('deployed Analyzer entry, Worker, player and score graph invalidate older p
     for(const ref of text.matchAll(/['"]([^'"\n]*(?:ym2612vgm|vgmplayer|playback_core|analyzer_core|vgm_lilypond|vgm_midi|vgm_notes|wonderswan_notes|source_mutes|command_editor|note_timeline_view|pokey_notes|pokey_monitor|pokey_playback)\.js)(?:\?([^'"\n]*))?['"]/g)){
       const mixerRevision = ref[1].endsWith('playback_core.js') ||
         (file === './vgm_analyzer.js' && ref[1].endsWith('analyzer_core.js'));
-      assert.equal(ref[2],'v='+token+(mixerRevision ? '&mix=opna-source-mixer-1' : ''),`${file}: ${ref[1]}`);
+      assert.equal(ref[2],'v='+token+(mixerRevision ? '&mix=console-songs-1' : ''),`${file}: ${ref[1]}`);
     }
   }
   // The website revision must not create a second package class identity.

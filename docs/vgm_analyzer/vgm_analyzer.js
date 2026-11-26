@@ -1,9 +1,10 @@
+import {consoleVgmChip} from './console_vgm.js';
 import {createWonderSwanMonitor,applyWonderSwanWrite,describeWonderSwanNotes,extractWonderSwanNotes} from './wonderswan_notes.js?v=pokey-vgm-1';
-import {createAudioPreferences, effectDefaults} from './audio_preferences.js?v=pokey-vgm-1';
+import {createAudioPreferences, effectDefaults} from './audio_preferences.js?v=pokey-vgm-1&mix=console-songs-1';
 import {mountSpcAnalyzer} from './spc_analyzer.js?v=voice-preview-1';
 import {mountSpcNoteish} from './spc_noteish.js?v=snes-score-1';
 import {prepareSnesScore} from './snes_score.js?v=pokey-vgm-1';
-import {createMixerUi} from './mixer_ui.js?v=pokey-vgm-1';
+import {createMixerUi} from './mixer_ui.js?v=pokey-vgm-1&mix=console-songs-1';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js?v=pokey-vgm-1';
 import {updateNoteishHtml, updateNoteishGraph} from './noteish_dom.js';
@@ -18,11 +19,11 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js?v=pokey-vgm-1';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js?v=pokey-vgm-1';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=pokey-vgm-1';
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=pokey-vgm-1&mix=console-songs-1';
 import { mountMusicSheet } from "./music_sheet.js?v=snes-score-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js?v=snes-score-1";
-import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=pokey-vgm-1";
+import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js?v=pokey-vgm-1';
 import {mountOpmInfo} from './opm_info.js?v=pokey-vgm-1';
 import {mountSbiInfo} from './sbi_info.js?v=pokey-vgm-1';
@@ -44,7 +45,7 @@ import { describeToneNotes } from './tone_notes.js?v=pokey-vgm-1';
 import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js?v=pokey-vgm-1';
 import { midiChipKind } from "./vgm_notes.js?v=pokey-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1";
+import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pokey-vgm-1";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
@@ -267,6 +268,7 @@ let activeStream = null;
 const audioPreferences = createAudioPreferences();
 const effectSettings = audioPreferences.getEffect();
 let effectsChain = null;
+let masterBoost = null;
 const spcPanel = document.getElementById('spcInfoPanel');
 const spcView = mountSpcAnalyzer({
   root:spcPanel,
@@ -277,7 +279,7 @@ const spcView = mountSpcAnalyzer({
     }
     return audioContext;
   },
-  getMasterVolume:() => masterVolume,
+  getMasterVolume:() => Math.min(masterVolume,3.8),
   onAudioReady:() => rewireAudioGraph(),
   onState:state => {updatePlaybackButtons(state); if(state.active)requestNoteishRender();},
   onStatus:setStatus,
@@ -457,14 +459,20 @@ function rewireAudioGraph() {
   const node = spcView.active ? spcView.outputNode : activeStream?.node;
   if (!node || !audioContext) return;
   node.disconnect();
+  if (masterBoost?.context !== audioContext) {
+    masterBoost?.disconnect();
+    masterBoost = audioContext.createGain();
+    masterBoost.connect(audioContext.destination);
+  }
+  masterBoost.gain.value = Math.max(1,masterVolume / 3.8);
   if (effectSettings.enabled) {
     const chain = ensureEffectsChain(audioContext);
     chain.output.disconnect();
     node.connect(chain.input);
-    chain.output.connect(audioContext.destination);
+    chain.output.connect(masterBoost);
   } else {
     releaseEffectsChain();
-    node.connect(audioContext.destination);
+    node.connect(masterBoost);
   }
 }
 
@@ -697,9 +705,11 @@ function updateMasterVolumeUi() {
 
 function applyMasterVolume() {
   audioPreferences.setMaster(masterVolume);
-  spcView.setMasterVolume(masterVolume);
-  engine?.setMasterVolume?.(masterVolume);
-  player?.setMasterVolume?.(masterVolume);
+  const level = Math.min(masterVolume,3.8);
+  if (masterBoost) masterBoost.gain.value = Math.max(1,masterVolume / 3.8);
+  spcView.setMasterVolume(level);
+  engine?.setMasterVolume?.(level);
+  player?.setMasterVolume?.(level);
 }
 
 function requestPlaybackUiRender(extra = "") {
@@ -2726,7 +2736,7 @@ async function ensurePlaybackReady(vgm) {
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
-    engine = await createPlaybackEngine(vgm, {getFactory: getBrowserPlaybackFactory, masterVolume, allowMissingYm2608RhythmRom: true,
+    engine = await createPlaybackEngine(vgm, {getFactory: getBrowserPlaybackFactory, masterVolume:Math.min(masterVolume,3.8), allowMissingYm2608RhythmRom: true,
       roms: {ym2608AdpcmA:ym2608AdpcmARomBytes, ymf278bWave:ymf278bWaveRomBytes}});
     if (currentChipKind === 'pokey') {
       engine.onWrite = (register, value, chipIndex) => {
@@ -3609,6 +3619,29 @@ async function handleFile(file, preserveEditor = false) {
     detectedChipsOutput.hidden = true;
     return;
   }
+  const consoleChip = consoleVgmChip(buffer);
+  if (consoleChip) {
+    engine?.dispose?.();
+    engine = player = engineClockKey = null;
+    workletModuleReady = false;
+    currentChipKind = consoleChip.toLowerCase();
+    noteishHeader = vgm.header;
+    currentHasPcm = false;
+    detectedChipsOutput.hidden = false;
+    detectedChipsOutput.textContent = consoleChip;
+    headerOutput.textContent = renderHeader(vgm.header);
+    renderMetadata(parseVgmMetadata(buffer));
+    commandUsageOutput.textContent = renderCommandUsage(vgm.analyzeCommandUsage());
+    dataBlocksOutput.textContent = renderDataBlocks(vgm.dataBlockSummary());
+    specialCommandsOutput.textContent = vgm.analyzeSpecialCommands().join("\n");
+    pcmRamWriteOutput.textContent = renderPcmRamWrites(vgm.pcmRamWriteSummary());
+    command92ContextOutput.textContent = vgm.analyzeCommandContext(0x92).join("\n");
+    tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
+    setOutputTab('parsed-output');
+    setStatus(file.name + ' · ' + consoleChip + ' VGM');
+    await openConsoleSongs([file]);
+    return;
+  }
   renderDetectedChips(vgm.header);
 
   let playbackConfiguration;
@@ -3825,7 +3858,34 @@ for (const [button, direction] of [[playlistPrevButton, -1], [playlistNextButton
 }
 playlistLoopCheckbox.addEventListener('change', updatePlaylistNavigation);
 
+let consoleSongLoader, lastConsoleFiles;
+document.getElementById('reopenConsole').onclick = () => {
+  if (lastConsoleFiles) void openConsoleSongs(lastConsoleFiles);
+};
+async function openConsoleSongs(files) {
+  try {
+    consoleSongLoader ??= import('./console_songs.js').then(({createConsoleSongs}) =>
+      createConsoleSongs(document.getElementById('consoleSongs'), () => masterVolume));
+    const open = await consoleSongLoader;
+    stopActiveStream();
+    player?.pause();
+    if (spcView.active && spcView.state.playing) await spcView.pause();
+    updatePlaybackButtons();
+    await open(files);
+    lastConsoleFiles = files;
+    document.getElementById('reopenConsole').hidden = false;
+  } catch (error) {consoleSongLoader = null; setStatus(error.message);}
+}
+for (const id of ['consoleFiles','consoleFolder']) document.getElementById(id).onchange = event => {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  if (files.length) void openConsoleSongs(files);
+};
+
 function importPlaylistFiles(files) {
+  const songSet = Array.from(files).filter(file => /\.(ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name));
+  files = Array.from(files).filter(file => !songSet.includes(file));
+  if (!files.length && songSet.length) return queuePlaylistTask(() => openConsoleSongs(songSet));
   const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98|spc)$/i.test(file.name));
   const revision = tracks.length ? ++playlistRevision : playlistRevision;
   if (tracks.length) {
@@ -3850,6 +3910,7 @@ function importPlaylistFiles(files) {
       }
     }
     if (tracks.length) await loadPlaylistTrack(0, false, revision);
+    if (songSet.length) await openConsoleSongs(songSet);
     if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98, SPC, yrw801.rom or a YM2608 ROM .bin file.`);
   });
 }
@@ -4413,6 +4474,7 @@ wavExportDialog.querySelector("form").addEventListener("submit", async (event) =
     player.play();
     let lastReported = -1;
     const result = await renderVgmToWav(player, {
+      outputGain: Math.max(1,masterVolume / 3.8),
       maxSeconds,
       onProgress: (fraction) => {
         const percent = Math.round(fraction * 100);

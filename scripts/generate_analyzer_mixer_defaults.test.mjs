@@ -89,7 +89,7 @@ test('AY Single Output refresh preserves canonical Analyzer statistics and rejec
 
 test('raising the Mixer ceiling retains every unit-gain sample and binds the current Analyzer graph',async()=>{
   const root=new URL('../',import.meta.url);
-  for(const [beforeName,afterName] of [['analyzer_extra_levels_07','analyzer_extra_levels_08'],['analyzer_psg_levels_10','analyzer_psg_levels_11']]) {
+  for(const [beforeName,afterName] of [['analyzer_extra_levels_08','analyzer_extra_levels_09'],['analyzer_psg_levels_11','analyzer_psg_levels_12']]) {
     const read=async name=>JSON.parse(await readFile(new URL('docs/issues/'+name+'.json',root),'utf8'));
     const before=await read(beforeName),after=await read(afterName);
     assert.deepEqual(after.defaults,before.defaults);
@@ -122,7 +122,7 @@ test('only the reviewed cache query changes retain the measured Analyzer source 
   const root=new URL('../',import.meta.url);
   const report=JSON.parse(await readFile(new URL('docs/issues/analyzer_psg_levels_10.json',root),'utf8'));
   for(const [path,query] of [
-    ['docs/vgm_analyzer/playback_core.js','./playback_mixer.js?v=pokey-vgm-1'],
+    ['docs/vgm_analyzer/playback_core.js','./playback_mixer.js?v=console-songs-1'],
     ['docs/js/ym2608audioengine.js','./ym2608.js?v=audio-stability-2'],
   ]){
     const measuredHash=report.sources[path],bytes=await readFile(new URL(path,root));

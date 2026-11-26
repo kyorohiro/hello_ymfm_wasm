@@ -118,3 +118,27 @@ test('VGM FM presets preserve CH3 Special pitches and group equivalent transposi
     assert.match(presets[1].name,/CH3 Special/);
   }
 });
+
+for (const chip of ['ym2610','ym2610b']) test(chip+' mixer independently mutes each native source and restores its gain',async()=>{
+  for (const [fixtureName,part] of [['fm','fm'],['ssg','ssg'],['adpcm-a','adpcmA'],['adpcm-b','adpcmB']]) {
+    const source = await readSource(fixture(chip,fixtureName));
+    const engine = await Ym2610BAudioEngine.create({moduleFactory:await getNodePlaybackFactory('ym2610b'),clock:8000000,variant:chip==='ym2610b'});
+    try {
+      const mixer = installPlaybackMixer(engine,selectPlaybackConfiguration(new Ym2612VGM(source)));
+      const controller = mixer.sourceMixers.get('ym2610');
+      const render = async () => {
+        const player = createPlaybackPlayer(engine,source);
+        player.play();
+        return (await renderVgmToWav(player,{maxSeconds:.05})).bytes.subarray(44);
+      };
+      controller.set(part,{gain:0.8});
+      const audible = await render();
+      assert(audible.some(byte=>byte!==0),part);
+      controller.set(part,{muted:true});
+      assert((await render()).every(byte=>byte===0),part);
+      controller.set(part,{muted:false});
+      assert.deepEqual(controller.get(part),{gain:.8,muted:false});
+      assert((await render()).some(byte=>byte!==0),part);
+    } finally {engine.dispose();}
+  }
+});

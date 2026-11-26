@@ -1,6 +1,6 @@
-import {mixerDefaults} from './playback_mixer.js?v=pokey-vgm-1';
+import {mixerDefaults} from './playback_mixer.js?v=console-songs-1';
 import {legacyEngineTrim} from './mixer_defaults.js';
-import {YM2608_SOURCE_LABELS, ym2608SourceDefaults} from './ym2608_source_mix.js?v=opna-source-mixer-1';
+import {SOURCE_LABELS, ym2608SourceDefaults} from './ym2608_source_mix.js?v=console-songs-1';
 
 export const AUDIO_PREFERENCES_KEY = 'tetorica-vgm-analyzer.audio.v1';
 export const effectDefaults = () => ({enabled: false, gain: 100, bass: 0, middle: 0, treble: 0, reverb: 0, compressor: 0, noiseGate: 0});
@@ -15,7 +15,7 @@ function validEffect(value) {
 }
 function validChip(value) {
   const next = {}, saved = object(value);
-  if (inRange(saved.gain, 0, 2)) {
+  if (inRange(saved.gain, 0, 4.8)) {
     next.gain = saved.gain;
     if(saved.gainUnits==='source')next.gainUnits='source';
   }
@@ -29,14 +29,14 @@ function validSource(value) {
   if (typeof saved.muted === 'boolean') next.muted = saved.muted;
   return next;
 }
-const supportedSource = (parent, part) => parent === 'ym2608' && Object.hasOwn(YM2608_SOURCE_LABELS, part);
+const supportedSource = (parent, part) => Object.hasOwn(SOURCE_LABELS,parent) && Object.hasOwn(SOURCE_LABELS[parent], part);
 function browserStorage() { try {return globalThis.localStorage;} catch {return null;} }
 
 /** Audio preferences belong to this app, not a track. Storage failures leave session settings usable. */
 export function createAudioPreferences(storage = browserStorage()) {
   let saved = {};
   try {saved = object(JSON.parse(storage?.getItem(AUDIO_PREFERENCES_KEY) ?? '{}'));} catch {}
-  const state = {effect: validEffect(saved.effect), master: inRange(saved.master, 0, 3.8) ? saved.master : 1, chips: Object.create(null), sourceMixes: Object.create(null)};
+  const state = {effect: validEffect(saved.effect), master: inRange(saved.master, 0, 4.8) ? saved.master : 1, chips: Object.create(null), sourceMixes: Object.create(null)};
   for (const [id, value] of Object.entries(object(saved.chips))) state.chips[id] = validChip(value);
   for (const [parent, sources] of Object.entries(object(saved.sourceMixes))) {
     for (const [part, value] of Object.entries(object(sources))) {
@@ -52,7 +52,7 @@ export function createAudioPreferences(storage = browserStorage()) {
     getEffect: () => ({...state.effect}),
     setEffect(value) {state.effect = validEffect(value); save();},
     getMaster: () => state.master,
-    setMaster(value) {if (inRange(value, 0, 3.8)) {state.master = value; save();}},
+    setMaster(value) {if (inRange(value, 0, 4.8)) {state.master = value; save();}},
     getChip(id, configuration) {
       const {gainUnits,...authored}=state.chips[id]??{};
       // Older records are renderer-relative and may be shared between tracks

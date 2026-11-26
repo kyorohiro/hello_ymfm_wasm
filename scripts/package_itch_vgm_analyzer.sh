@@ -16,6 +16,8 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
+console_songs.js
+console_vgm.js
 spc_analyzer.js
 spc_brr_candidates.js
 spc_brr_preview.js
@@ -160,6 +162,8 @@ nesapu.js
 nesapu_wasm.js
 nesapusynth.js
 soundchip.js
+fm21290.js
+fm21290_algorithms.js
 soundchip_factory.js
 soundchip_worklet.js
 soundchip-output-worklet.js
@@ -475,6 +479,7 @@ perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
 
 node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
 perl -0pi -e 's#../assets/opna-rhythm/#./assets/opna-rhythm/#g' "${STAGE_DIR}/index.html"
+node "${ROOT_DIR}/scripts/copy_analyzer_console_songs.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/check_analyzer_package.mjs" "${STAGE_DIR}"
 
 (

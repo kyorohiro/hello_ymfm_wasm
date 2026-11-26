@@ -25,6 +25,6 @@ export function mixerDefaults(id, configuration = undefined, downstreamTrim = un
   if(volume === undefined)return {gain:1,pan:0,muted:false};
   if(downstreamTrim!==undefined&&(!Number.isFinite(downstreamTrim)||downstreamTrim<=0))throw new RangeError('Invalid Analyzer output trim');
   const gain = volume;
-  if(!Number.isFinite(gain)||gain<=0||gain>2)throw new RangeError('Analyzer reference gain exceeds the Mixer range');
+  if(!Number.isFinite(gain)||gain<=0||gain>4.8)throw new RangeError('Analyzer reference gain exceeds the Mixer range');
   return {gain,pan:0,muted:false};
 }
