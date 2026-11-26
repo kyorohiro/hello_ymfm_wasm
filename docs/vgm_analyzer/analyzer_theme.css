@@ -42,7 +42,13 @@
 body {
   background: radial-gradient(ellipse at top, #fffcf7, #e8ded1);
 }
-main { padding: 24px; }
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px;
+}
 .panel {
   position: relative;
   padding: 32px;
@@ -163,7 +169,8 @@ main { padding: 24px; }
 .effect-controls input[type="range"] { flex: 1; min-width: 0; }
 .effect-controls output { min-width: 4.5em; text-align: right; font-variant-numeric: tabular-nums; }
 .actions .monitor-toggles { flex-basis: 100%; margin: 0; }
-body { padding-bottom: calc(260px + env(safe-area-inset-bottom)); }
+/* Keep the final controls scrollable above the fixed playback dock. */
+.panel::after { content: ""; display: block; height: calc(260px + env(safe-area-inset-bottom)); }
 .playback-seek { display: flex; align-items: center; gap: 10px; flex-basis: 100%; min-width: 0; font-size: 0.8rem; }
 .playback-seek input { flex: 1; min-width: 0; accent-color: var(--accent); }
 .playback-seek output { white-space: nowrap; font-variant-numeric: tabular-nums; }
