@@ -15,6 +15,7 @@ export class Oki6295AudioEngine {
     this.rate=outputSampleRate;
     this.rom=new Uint8Array();
     this.muted=false;
+    this.voiceMutes = Array(4).fill(false);
     this.setMasterVolume(masterVolume);
     this.reset();
   }
@@ -24,6 +25,15 @@ export class Oki6295AudioEngine {
   getMasterVolume(){return this.volume;}
   /** @param {boolean} v */
   setOki6295Muted(v){this.muted=Boolean(v);}
+  setVoiceMuted(voice, muted) {
+    if (!Number.isInteger(voice) || voice < 0 || voice >= 4) throw new RangeError('Invalid OKIM6295 voice');
+    this.voiceMutes[voice] = Boolean(muted);
+  }
+  sampleRange(sample) {
+    if (!Number.isInteger(sample) || sample < 0 || sample > 127) throw new RangeError('Invalid OKIM6295 sample');
+    const address = offset => ((this.readRom(offset)<<16) | (this.readRom(offset+1)<<8) | this.readRom(offset+2)) & 0x3ffff;
+    return {start:address(sample*8), stop:address(sample*8+3)};
+  }
   supportsState(){return false;}
   reset(){
     this.clock=this.initialClock & 0x3fffffff;
@@ -75,9 +85,7 @@ export class Oki6295AudioEngine {
   }
   command(value){
     if(this.pending>=0){
-      const base=this.pending*8;
-      const start=((this.readRom(base)<<16)|(this.readRom(base+1)<<8)|this.readRom(base+2))&0x3ffff;
-      const stop=((this.readRom(base+3)<<16)|(this.readRom(base+4)<<8)|this.readRom(base+5))&0x3ffff;
+      const {start,stop}=this.sampleRange(this.pending);
       this.voices.forEach((v,i)=>{
         if((value&(0x10<<i)) && !v.playing && start<stop){
           Object.assign(v,{playing:true,start,count:2*(stop-start+1),cursor:0,signal:0,step:0,output:0,volume:VOLUME[value&15]});
@@ -108,7 +116,7 @@ export class Oki6295AudioEngine {
     for(let i=0;i<frames;i++){
       this.phase+=increment;
       while(this.phase>=1){this.tick();this.phase-=1;}
-      const value=this.muted?0:this.voices.reduce((n,v)=>n+v.output,0)*this.volume;
+      const value=this.muted?0:this.voices.reduce((n,v,index)=>this.voiceMutes[index]?n:n+v.output,0)*this.volume;
       left[i]=right[i]=value;
     }
     return {left,right};

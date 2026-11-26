@@ -2,7 +2,7 @@
 const facade = (chip,methods) => Object.fromEntries(methods.map(method => [method,
   (...args) => postMessage({chip,method,args})]));
 const opm = facade('opm',['writeRegister','setOperator','setAlgo','setPan','setNote','setPitch','setFrequency','noteOn','keyOn','keyOff','setNoise']);
-const oki = facade('oki',['write','play','stop']);
+const oki = facade('oki',['write','play','stop','setVoiceMuted']);
 const sleep = seconds => new Promise(resolve => setTimeout(resolve,seconds*1000));
 onmessage = async ({data}) => {
   try {

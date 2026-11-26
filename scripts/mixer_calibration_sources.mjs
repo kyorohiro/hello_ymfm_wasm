@@ -398,6 +398,11 @@ const dualVgmRevision = new Map([
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  // CPS1 supplies optional operator widgets. The original Playground uses its
+  // existing inputs and the measurement probes never construct this editor.
+  if (path === 'playground/playground_ym2151_voice_panel.js' &&
+      record?.sha256 === 'aa0866710259a0056af8dacd5e320000cecb31a3a3e6ea4c18ddb18bc166c95a' &&
+      sha(bytes) === 'a06f52599010383c4e67786914d85af1be9a69f3391a9f2d49dc3c866faca3d5') return 'cps1-editor-controls';
   const revision = dualVgmRevision.get(path);
   if (revision && record?.sha256 === revision[0] && sha(bytes) === revision[1]) return 'dual-vgm-routing';
   const ym2608Context=createYm2608TimedRevisionReadContext(),ym2608Bytes=ym2608Context.restore(path,bytes);bytes=ym2608Bytes;

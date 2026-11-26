@@ -8,6 +8,8 @@ class OkiProcessor extends AudioWorkletProcessor {
       if (data.rom) {
         this.chip.reset();
         this.chip.loadOki6295Rom(data.rom);
+      } else if (data.voiceMutes) {
+        data.voiceMutes.forEach((muted,i) => this.chip.setVoiceMuted(i,muted));
       } else for (const byte of data.commands) this.chip.writeOki6295(0,byte);
       this.report();
     };

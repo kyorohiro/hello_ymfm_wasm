@@ -30,7 +30,7 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,setCod
     banks.push({bytes,names,name});
     render(); useBank(banks.length-1);
   }
-  el('loadBank').onclick = () => {useBank(Number(el('romFiles').value));report('Loaded '+banks[active].name);};
+  el('loadBank').onclick = () => {useBank(Number(el('romFiles').value));report('Loaded '+banks[active].name); document.querySelector('[data-tab="pcm"]').click();};
   el('loadVoice').onclick = () => {
     const i = Number(el('fmFiles').value), ch = panel.getSelectedChannel();
     const patch = i<8 ? voicePatch(inspector.read().channels[i]) : presets[i-8];

@@ -5,6 +5,7 @@ import {createPlaygroundYm2151VoicePanel} from '../playground/playground_ym2151_
 import {createParamControl} from '../synth/synth_controls.js';
 import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth/synth_keyboard.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
+import {displaySample} from './sample-view.js';
 import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
 
@@ -14,6 +15,8 @@ const fail = error => status(error.message ?? String(error));
 const scope = createSynthOutputVisualizer({trace:'#a5df69',waveformMinRange:.04});
 let audio, starting, context, dirty = true, mode = 'waveform', worker, runId = 0;
 let sampleRom = createKit(), rawOki = [];
+const voiceMutes = Array(4).fill(false);
+const muteButtons = [];
 const inspector = new Ym2151VoiceInspector({dispatch({method,args}) {
   if (method === 'writeRegister') opm.writeRegister(...args);
   if (method === 'forceKeyOff') opm.keyOff(args[0]);
@@ -64,6 +67,7 @@ async function startAudio() {
       state.channels.forEach(({channel,keyMask}) => {if (keyMask) writes.push([8,channel|(keyMask<<3)]);});
       fm.port.postMessage(writes.map(args => ({method:'writeRegister',args})));
       pcm.port.postMessage({rom:sampleRom});
+      pcm.port.postMessage({voiceMutes});
       if (rawOki.length) pcm.port.postMessage({commands:rawOki});
       rawOki = [];
       $('power').disabled = true; $('power').textContent = 'Audio on'; status('Audio ready');
@@ -118,6 +122,13 @@ const oki = {
     write(128|limit(sample,127,'Sample'), (16<<limit(voice,3,'Voice'))|limit(attenuation,15,'Attenuation'));
   },
   stop(voice) {write(8<<limit(voice,3,'Voice'));},
+  setVoiceMuted(voice,muted) {
+    limit(voice,3,'Voice');
+    if (typeof muted !== 'boolean') throw TypeError('Muted must be true or false');
+    voiceMutes[voice] = muted;
+    muteButtons[voice].setAttribute('aria-pressed',String(muted));
+    audio?.pcm.port.postMessage({voiceMutes});
+  },
 };
 function showBusy(value) {
   $('busy').value = hex(value);
@@ -127,8 +138,13 @@ function showBusy(value) {
     lamp.classList.toggle('on',active);
   });
 }
+function updateSampleView() {
+  displaySample($('sampleWave'),$('sampleRange'),sampleRom,Number($('sample').value));
+}
+$('sample').onchange = updateSampleView;
 function chooseSamples(names) {
   $('sample').replaceChildren(...names.map((name,i) => new Option(i+' · '+name,i)));
+  updateSampleView();
 }
 chooseSamples(samples);
 for (let i=0;i<4;i++) {
@@ -140,7 +156,12 @@ for (let i=0;i<4;i++) {
     oki.play(i,sample,attenuation); startAudio().catch(fail);
   } catch (error) {fail(error);}};
   const stop = document.createElement('button'); stop.textContent = 'Stop'; stop.onclick = () => oki.stop(i);
-  row.append(lamp,play,stop); $('voices').append(row);
+  const mute = document.createElement('button');
+  mute.textContent = 'Mute'; mute.setAttribute('aria-label','Mute Voice '+(i+1));
+  mute.setAttribute('aria-pressed','false');
+  mute.onclick = () => oki.setVoiceMuted(i,!voiceMutes[i]);
+  muteButtons.push(mute);
+  row.append(lamp,play,stop,mute); $('voices').append(row);
 }
 showBusy(0xf0);
 let romRevision = 0;

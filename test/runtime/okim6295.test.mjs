@@ -126,3 +126,25 @@ test('YM3812 3.58 MHz + OKIM6295 1.32 MHz: independent mix, mutes and replay',as
  const dual=mixed.slice();new DataView(dual.buffer).setUint32(0x98,1320000|0x40000000,true);
  assert.throws(()=>selectPlaybackConfiguration(new Ym2612VGM(dual)),/Dual/);
 });
+
+test('voice mute isolates the mix while decoder position and busy bits advance',()=>{
+  for (let voice=0;voice<4;voice++) {
+    const mix=engine(), reference=engine(), solo=engine();
+    const other=(voice+1)%4;
+    for (const chip of [mix,reference,solo]) {
+      chip.command(0x80); chip.command((16<<other)|2);
+      if (chip!==solo) {chip.command(0x80); chip.command(16<<voice);}
+    }
+    mix.setVoiceMuted(voice,true);
+    const isolated=mix.processFrames(5), expected=solo.processFrames(5);
+    assert.ok(expected.left.some(v=>v!==0));
+    assert.deepEqual(isolated,expected);
+    reference.processFrames(5);
+    assert.equal(mix.readStatus(),0xf0|(1<<voice)|(1<<other));
+    mix.setVoiceMuted(voice,false);
+    assert.deepEqual(mix.processFrames(10),reference.processFrames(10));
+    mix.setVoiceMuted(voice,true);
+    mix.processFrames(2048);
+    assert.equal(mix.readStatus(),0xf0);
+  }
+});
