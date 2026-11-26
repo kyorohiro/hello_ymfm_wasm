@@ -1,7 +1,7 @@
 // Trigger-time register settings, not an emulation of envelope/sweep/length counters.
 const CHANNELS = [{channel:1,base:0,kind:'pulse'}, {channel:2,base:5,kind:'pulse'}, {channel:4,base:15,kind:'noise'}];
 const DUTY = [0.125,0.25,0.5,0.75];
-export function createGameboyVoices() {
+export function createGameboyVoices(chipIndex = 0) {
   const regs = Array(23).fill(null), active = new Map(), definitions = new Map();
   const samples = [], events = [], warnings = new Set();
   let writes = 0;
@@ -38,7 +38,7 @@ export function createGameboyVoices() {
   }
   return {samples,events,warnings,
     apply(e,time){
-      if(e.type!=='gameboy-dmg-write'||e.chipIndex)return;
+      if(e.type!=='gameboy-dmg-write'||(e.chipIndex ?? 0)!==chipIndex)return;
       const {register:r,value:v}=e;
       if(r>22)return;
       if(++writes>4000000)throw new Error('Game Boy voice analysis exceeds four million writes');

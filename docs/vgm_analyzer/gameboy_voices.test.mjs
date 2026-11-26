@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {extractSamples,exportSamples,listSamples} from './sample_core.js';
+import {extractGameboyInstruments} from './gameboy_instruments.js';
 import {gameboyVoiceCode} from './gameboy_voices.js';
 import {GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
 import {mountSampleExplorer} from './sample_explorer.js';
@@ -77,4 +78,20 @@ test('voice details are built once and all occurrences remain reachable in bound
   select.value='204';select.onchange();assert.ok(row.children.some(x=>x.textContent?.includes('"frequencyRegister": 204')));
   back.onclick();assert.equal(select.value,'100');assert.equal(next.disabled,false);
  }finally{globalThis.document=previous;}
+});
+
+test('two DMG instruments keep simultaneous wave RAM, voice settings and occurrence times separate', async () => {
+ const commands = [];
+ for (let i=0;i<16;i++) commands.push(...w(0x20+i,0x12),...w(0xa0+i,0xab));
+ commands.push(...noise,...wait,...w(0x91,0xb1),...w(0x92,0x40),...w(0x93,0x80),0x66);
+ const bytes=vgm(commands);
+ new DataView(bytes.buffer).setUint32(0x80,0x40400000,true);
+ for (const chip of [0,1]) {
+   const {samples,events}=await extractGameboyInstruments(bytes,chip);
+   const wave=samples.find(s=>s.kind==='wave'), voice=samples.find(s=>s.kind==='noise');
+   assert.equal(wave.data[0],chip?0xab:0x12);
+   assert.equal(voice.voice.volume,chip?11:5);
+   assert.equal(events.find(e=>e.sampleId===voice.id).startTime,chip?44100:0);
+   assert.ok(events.every(e=>e.chipIndex===chip));
+ }
 });

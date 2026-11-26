@@ -1,3 +1,4 @@
+import {extractGameboyInstruments} from './gameboy_instruments.js';
 import {appendGameboyVoice} from './gameboy_voice_view.js?v=gb-info-perf-1';
 import {appendGameboyWave} from './gameboy_wave_view.js?v=gb-info-perf-1';
 import {appendWonderSwanWave} from './wonderswan_wave_view.js?v=wonderswan-voice-samples-1';
@@ -50,7 +51,9 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
     controller = new AbortController(); const own = controller;
     button.disabled = true; output.textContent = 'Analyzing…';
     try {
-      const result = await extractSamples(source, { ...getOptions(), signal: own.signal });
+      const options = getOptions();
+      const result = gameboyMode ? await extractGameboyInstruments(source,options.chipIndex ?? 0,own.signal)
+        : await extractSamples(source, { ...options, signal: own.signal });
       if (own.signal.aborted) return;
       output.replaceChildren();
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);

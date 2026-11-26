@@ -572,6 +572,40 @@ try {
     assert.equal(await canvas.evaluate(el => el.toDataURL()),firstImage);
     console.log('Game Boy CH3 wave RAM and Synth waveform follow paused forward and backward seeks');
   }
+  {
+    const header = Buffer.from(opn.subarray(0,0xc8));
+    header.writeUInt32LE(0,0x0c);
+    header.writeUInt32LE(0,0x2c);
+    header.writeUInt32LE(0x40000000+4194304,0x80);
+    const pulse = [0xb3,1,0x80,0xb3,2,0xa2,0xb3,4,0x80];
+    const noise2 = [0xb3,0x91,0xc2,0xb3,0x92,0x79,0xb3,0x93,0x80];
+    const buffer = Buffer.concat([header,Buffer.from([...pulse,...noise2,0x62,0x66])]);
+    buffer.writeUInt32LE(buffer.length-4,4);
+    await page.locator('#fileInput').setInputFiles({name:'dual-dmg.vgm',mimeType:'application/octet-stream',buffer});
+    await page.locator('#tfiInfoTab').click();
+    assert(await page.locator('#sampleExplorerTab').isDisabled());
+    const tabs = page.getByRole('tablist',{name:'Instrument sound chips'});
+    for (const [i,kind] of ['Pulse CH1','Noise CH4'].entries()) {
+      await tabs.getByRole('tab',{name:'Game Boy DMG '+(i+1)}).click();
+      const panel = page.locator('#gbInstrument'+i);
+      await panel.getByRole('button',{name:'Analyze Game Boy voices'}).click();
+      await panel.getByRole('heading',{name:kind}).waitFor();
+      assert.equal(await panel.locator('details').count(),1);
+    }
+    header.writeUInt32LE(4194304,0x80);
+    header.writeUInt32LE(7670454,0x2c);
+    const mixed = Buffer.concat([header,Buffer.from([0x52,0x28,0xf0,...pulse,0x62,0x66])]);
+    mixed.writeUInt32LE(mixed.length-4,4);
+    await page.locator('#fileInput').setInputFiles({name:'genesis-dmg.vgm',mimeType:'application/octet-stream',buffer:mixed});
+    await page.locator('#tfiInfoTab').click();
+    await tabs.getByRole('tab',{name:'YM2612',exact:true}).click();
+    assert(await page.locator('#tfiInfoPanel').isVisible());
+    await tabs.getByRole('tab',{name:'Game Boy DMG',exact:true}).click();
+    await page.locator('#gbInstrument0').getByRole('button',{name:'Analyze Game Boy voices'}).click();
+    await page.locator('#gbInstrument0').getByRole('heading',{name:'Pulse CH1'}).waitFor();
+    assert(await page.locator('#tfiInfoPanel').isHidden());
+    console.log('Instrument switches between chip families and isolates both Game Boy APUs');
+  }
   for (const chip of ['YM2151','YM2164']) {
     const header = Buffer.from(opn.subarray(0,0xc8));
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c);

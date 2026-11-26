@@ -22,7 +22,8 @@ export function mountTfiInfo({ root, onStatus }) {
   const input = root.querySelector('input[type="file"]');
   const download = root.querySelector('button');
   const files = new Map();
-  let selected = null;
+  let selected = null, activeChip = null;
+  const selections = new Map();
   let visible = false;
   let serial = 0;
   const editor = createTfiFileEditor({
@@ -45,9 +46,9 @@ export function mountTfiInfo({ root, onStatus }) {
     editor.setMasterVolume(Number(volume.value) / 100);
     root.querySelector('output').textContent = `${volume.value}%`;
   });
-  function add(name, data) {
+  function add(name, data, chip = activeChip) {
     const id = String(++serial);
-    files.set(id, { name, data });
+    files.set(id, { name, data, chip });
     const option = document.createElement('option');
     option.value = id; option.textContent = name;
     select.appendChild(option);
@@ -93,13 +94,25 @@ export function mountTfiInfo({ root, onStatus }) {
     loadVgm(buffer, name) {
       const extracted = buffer ? createVgmPresetFiles(buffer, name) : [];
       editor.setVisible(false);
-      selected = null; files.clear();
+      selected = null; activeChip = null; selections.clear(); files.clear();
       select.replaceChildren();
       const empty = document.createElement('option'); empty.value = '';
       empty.textContent = extracted.length ? 'Choose an extracted TFI' : 'No FM instruments — open a TFI file';
       select.appendChild(empty);
-      for (const file of extracted) add(file.path.replace(/^\/presets\//, ''), file.data);
+      for (const file of extracted) {
+        add(file.path.replace(/^\/presets\//, ''), file.data, file.path.split('/').pop().split('_')[0]);
+      }
       download.disabled = true;
+    },
+    selectChip(chip) {
+      if (activeChip === chip) return;
+      selections.set(activeChip,selected);
+      activeChip = chip;
+      for (const option of select.options) {
+        option.hidden = Boolean(option.value && files.get(option.value)?.chip !== chip);
+      }
+      select.value = selections.get(chip) ?? '';
+      openSelection();
     },
     setVisible(value) {
       visible = value; root.hidden = !value;

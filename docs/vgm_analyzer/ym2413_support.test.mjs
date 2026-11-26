@@ -32,7 +32,7 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   context.currentChipKind='ym2612';context.updateChipSupport();
   for(const name of tabNames)assert.equal(context[name].disabled,false);
 });
-test('gameboy exposes Note-ish and GB Info while disabling FM voice exports',()=>{
+test('gameboy exposes Note-ish and Instrument while disabling FM voice exports',()=>{
   // Game Boy keeps Note-ish and its dedicated GB Info panel available.
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
   const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
@@ -46,10 +46,10 @@ test('gameboy exposes Note-ish and GB Info while disabling FM voice exports',()=
   context.updateChipSupport();
   assert.equal(context.noteishTab.disabled,false,'noteishTab');
   assert.equal(context.noteishTab.title,'');
-  assert.equal(context.sampleTab.disabled,false,'GB Info remains available');
-  assert.equal(context.sampleTab.textContent,'GB Info');
+  assert.equal(context.sampleTab.disabled,true);
+  assert.equal(context.sampleTab.textContent,'Sample Explorer');
   assert.equal(context.operatorInfoTab.disabled,false,'SoundChip is available');
-  for(const name of ['tfiInfoTab',...buttonNames.filter(n=>n!=='exportMidiButton')]) {
+  for(const name of [...buttonNames.filter(n=>n!=='exportMidiButton')]) {
     assert.equal(context[name].disabled,true,name);
     assert.equal(context[name].title,'Support coming soon.');
   }
@@ -85,7 +85,7 @@ test('segapcm also switches away from a stale operator-info tab to parsed-output
   assert.equal(context.selected,'parsed-output');
   for(const name of tabNames) assert.equal(context[name].disabled,true,name);
 });
-test('Game Boy SoundChip and Note-ish are accessible; unsupported instrument tab falls back',()=>{
+test('Game Boy SoundChip and Note-ish are accessible; Instrument is reachable',()=>{
   const stub=()=>({setAttribute(){},hidden:false,tabIndex:0});
   const context=vm.createContext({isOpl,requestChannelMonitorRender(){},currentChipKind:'gameboy',currentBuffer:new Uint8Array(1),midiExportAvailable:false,status:{textContent:'',hidden:true},
     document:{getElementById:stub,querySelectorAll:()=>[]},spcNoteish:{setVisible(){}},
@@ -97,7 +97,7 @@ test('Game Boy SoundChip and Note-ish are accessible; unsupported instrument tab
   vm.runInContext(fn('setOutputTab'),context);
   context.setOutputTab('noteish');assert.equal(context.noteishPanel.hidden,false,'noteish stays reachable');
   context.setOutputTab('operator-info');assert.equal(context.operatorInfoPanel.hidden,false);
-  context.setOutputTab('tfi-info');assert.equal(context.parsedOutputPanel.hidden,false,'unsupported tab falls back to parsed-output');
+  context.setOutputTab('tfi-info');assert.equal(context.parsedOutputPanel.hidden,true);
   assert.equal(context.operatorInfoPanel.hidden,true);
 });
 test('YM2413 + PSG does not enter the OPN tone monitor',()=>{

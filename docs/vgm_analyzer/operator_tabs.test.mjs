@@ -78,18 +78,20 @@ test('loading OPL after an OPM instrument tab selects SBI info',()=>{
 for(const chip of ['ym3526','ym3812','y8950','ymf262','ymf278b'])test(`${chip} SBI Info stays selected and rejects dual chips`,()=>{
  const context=setup(chip);context.updateChipSupport();context.setOutputTab('tfi-info');
  for(let repeat=0;repeat<3;repeat++)context.updateChipSupport();
- assert.equal(context.tfiInfoTab.getAttribute('aria-controls'),'sbiInfoPanel');
+ assert.equal(context.tfiInfoTab.getAttribute('aria-controls'),'instrumentPanel');
  assert.equal(context.sbiInfo.visible,true);
  context.noteishHeader[chip+'Clock']=0x40000000;context.updateChipSupport();context.setOutputTab('tfi-info');
  assert.equal(context.tfiInfoTab.disabled,true);assert.equal(context.sbiInfo.visible,false);
 });
 
-test('Game Boy GB Info tab remains accessible through playback UI refresh',()=>{
- const c=setup('gameboy');c.updateChipSupport();assert.equal(c.sampleTab.disabled,false);assert.equal(c.sampleTab.textContent,'GB Info');
- c.setOutputTab('samples');
+test('Game Boy instruments stay selected through playback UI refresh',()=>{
+ const c=setup('gameboy');c.updateChipSupport();
+ assert.equal(c.sampleTab.disabled,true);assert.equal(c.tfiInfoTab.disabled,false);
+ c.setOutputTab('tfi-info');
  for(let i=0;i<3;i++)c.updateChipSupport();
- assert.equal(c.sampleTab.getAttribute('aria-selected'),'true');
- assert.equal(c.samplePanel.hidden,false);
+ assert.equal(c.tfiInfoTab.getAttribute('aria-selected'),'true');
+ assert.equal(c.document.getElementById('gameboyInstruments').hidden,false);
+ assert.equal(c.samplePanel.hidden,true);
 });
 
 test('SPC shares analysis controls across Note-ish and Sheet Music while rejecting FM editing',()=>{
