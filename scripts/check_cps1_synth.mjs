@@ -119,7 +119,8 @@ try {
   await page.click('#run');
   await page.click('#synthMode');
   assert.ok(await page.locator('#files').isVisible());
-  assert.ok(await page.locator('#editor').isVisible());
+  assert.ok(await page.locator('#keys button').first().isVisible());
+  await page.click('[data-tab="code"]');
   await page.click('#stop');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   await page.selectOption('#codeFile','/index.js');
@@ -149,6 +150,7 @@ try {
   await page.click('[data-tab="files"]');
   await page.click('#opmGlobals');
   const download = page.waitForEvent('download');
+  await page.click('#synthMenuButton');
   await page.click('#exportCassette');
   const archive = await (await download).path();
   await page.click('[data-tab="pcm"]');
@@ -159,6 +161,7 @@ try {
   await page.fill('#editor','// changed');
   await page.click('[data-tab="files"]');
   page.once('dialog',dialog => dialog.dismiss());
+  await page.click('#synthMenuButton');
   await page.click('#newCassette');
   assert.equal(await page.inputValue('#editor'),'// changed');
   assert.equal(await page.locator('#fmFiles option').count(),10);
@@ -166,6 +169,7 @@ try {
   await page.click('#run');
   await page.waitForFunction(()=>document.querySelector('#status').textContent==='Running');
   page.once('dialog',dialog => dialog.accept());
+  await page.click('#synthMenuButton');
   await page.click('#newCassette');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   assert.equal(await page.inputValue('#editor'),factoryCode);
@@ -178,7 +182,10 @@ try {
   assert.equal(await page.locator('[data-chip-control="ym2151-feedback"]').inputValue(),'2');
   await page.click('[data-tab="files"]');
   page.once('dialog',dialog => dialog.accept());
-  await page.locator('#importCassette').setInputFiles({name:'test.cassette.zip',mimeType:'application/zip',buffer:await readFile(archive)});
+  await page.click('#synthMenuButton');
+  const chooser = page.waitForEvent('filechooser');
+  await page.click('#chooseCassette');
+  await (await chooser).setFiles({name:'test.cassette.zip',mimeType:'application/zip',buffer:await readFile(archive)});
   await page.getByText('Imported test.cassette.zip',{exact:true}).waitFor();
   assert.equal(await page.locator('#romFiles option:checked').textContent(),'test.rom');
   assert.equal(await page.locator('#fmFiles option').count(),10);
@@ -191,6 +198,13 @@ try {
   await page.click('[data-tab="fm"]');
   for (const width of [390,1100]) {
     await page.setViewportSize({width,height:850});
+    await page.click('#synthMode');
+    assert.ok(await page.locator('#keys .key').first().isVisible());
+    const keyboard = await page.locator('#keys .key').first().boundingBox();
+    assert.ok(keyboard.y >= 0 && keyboard.y + keyboard.height <= 850, JSON.stringify({width,keyboard}));
+    await page.click('#codeMode');
+    await page.click('[data-tab="keyboardPanel"]');
+    assert.ok(await page.locator('#keys .key').first().isVisible());
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   }
   assert.deepEqual(errors,[]);

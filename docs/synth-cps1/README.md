@@ -28,4 +28,4 @@ Open **Output → Mixer** to adjust the two chips independently (0–380%) befor
 
 **Synth** keeps the selected chip or Files above a separate Keyboard / Code panel. **Code** opens a larger editor and puts the chips, Files and Keyboard in the same tab row. Switching views keeps the current script, audio and keyboard channel. The computer keyboard plays the selected FM channel while the on-screen keyboard is hidden. Focus the editor to type code.
 
-**Files → New Cassette…** stops playback and starts again with the eight factory FM voices, original percussion kit and both bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.
+**☰ → New → Cassette · ZIP** stops playback and starts again with the eight factory FM voices, original percussion kit and both bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.

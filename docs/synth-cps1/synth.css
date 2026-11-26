@@ -12,7 +12,7 @@
 body {margin:0;background:#e9d9bd;color:var(--ink);font:16px/1.45 "Barlow",system-ui,sans-serif}
 main {max-width:1080px;margin:0 auto;background:var(--shell);padding:clamp(.6rem,2.6vw,1.8rem);min-height:100vh}
 header,.bar,nav,.chip-fields,.chip-actions,.chip-channel-list {display:flex;align-items:center;flex-wrap:wrap;gap:.6rem}
-header {position:relative;overflow:hidden;gap:1rem;background:#191919;color:#fff0cf;padding:.8rem 1.2rem;border:3px solid #ccad7a;border-radius:1rem}
+header {position:relative;gap:1rem;background:#191919;color:#fff0cf;padding:.8rem 1.2rem;border:3px solid #ccad7a;border-radius:1rem}
 header::after {content:'';margin-left:auto;width:clamp(2.5rem,10vw,6rem);height:2rem;transform:skew(-15deg);background:linear-gradient(to bottom,#f33444 0 24%,transparent 24% 38%,#ad418a 38% 62%,transparent 62% 76%,#329ee7 76%)}
 header img {width:clamp(3rem,8vw,5rem);height:auto;border-radius:.75rem}
 header a {color:#e8d6ae}
@@ -93,8 +93,19 @@ header::after {margin-left:0}
 #performanceTabs {grid-row:3}
 [data-mode=synth] #workbench :is(#code,#keyboardPanel) {grid-row:4}
 [data-mode=code] #editor {height:clamp(18rem,45vh,40rem)}
-@media(min-width:720px) and (min-height:580px) {
-  [data-mode=synth] #workbench :is(#fm,#pcm,#files) {max-height:clamp(15rem,36vh,30rem);overflow:auto}
-}
+[data-mode=synth] #workbench :is(#fm,#pcm,#files) {max-height:clamp(10rem,28dvh,30rem);overflow:auto}
 @media(max-width:480px) {.mode-switch {margin-left:0}}
 [data-mode=code] #sourceTabs {position:sticky;top:0;z-index:2;background:#e7d7b8}
+
+#synthMenu {position:relative;z-index:3}
+#synthMenu summary {list-style:none;cursor:pointer;border:1px solid #89765e;border-radius:.35rem;padding:.2rem .6rem;font-size:1.35rem}
+#synthMenu summary::-webkit-details-marker {display:none}
+.synth-menu-panel {position:absolute;top:calc(100% + .25rem);left:0;width:12rem;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:.4rem;padding:.6rem;box-shadow:0 .25rem .75rem #0003}
+.synth-menu-panel h2 {font-size:.85rem;margin:.45rem 0 .2rem}
+.synth-menu-panel button {width:100%;text-align:left}
+@media(max-width:719px) {
+  header {gap:.5rem;padding:.45rem .6rem}
+  header img {width:2.5rem}
+  .output canvas {height:52px}
+  [data-mode=synth] #workbench :is(#fm,#pcm,#files) {max-height:clamp(8rem,21dvh,15rem)}
+}

@@ -1,3 +1,4 @@
+import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createYm2151Audio} from '../js/playground_ym2151_audio.js';
 import {createYm2151RegisterClient} from '../js/playground_ym2151.js';
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
@@ -10,6 +11,8 @@ import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
 
 const $ = id => document.getElementById(id);
+setupSynthMenu({document,window});
+$('chooseCassette').onclick = () => $('importCassette').click();
 const status = message => { $('status').textContent = message; };
 const fail = error => status(error.message ?? String(error));
 const scope = createSynthOutputVisualizer({trace:'#a5df69',waveformMinRange:.04});
@@ -133,7 +136,8 @@ function renderWorkspace() {
   panel.setVisible(!$('fm').hidden);
 }
 function changeMode(mode) {
-  if (main.dataset.mode === mode) return;
+  if (mode === 'synth') synthView.performance = 'keyboardPanel';
+  if (main.dataset.mode === mode) {renderWorkspace();return;}
   main.dataset.mode = mode;
   const codeTab = tabs.find(tab=>tab.dataset.tab==='code');
   const keyboardTab = tabs.find(tab=>tab.dataset.tab==='keyboardPanel');
