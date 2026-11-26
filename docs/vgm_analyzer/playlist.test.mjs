@@ -24,6 +24,7 @@ function setup(load = async () => true, desktopHost = {}) {
     document: { createElement: element, getElementById: element }, currentBuffer: null, spcView:{active:false},
     player: { pause() {} }, timelineSeekController: null,
     stopActiveStream() {}, setStatus: text => calls.push(['status', text]),
+    loadRomFile: (file, load) => load(file),
     handleYmf278bRomFile: async file => calls.push(['wave-rom', file.name]),
     handleYm2608RomFile: async file => calls.push(['rom', file.name]),
     handleFile: async file => {

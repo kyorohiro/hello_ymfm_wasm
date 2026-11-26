@@ -106,14 +106,18 @@ function loadSidModule() {
     throw error;
   });
 }
-function showSidProgress(message = '') {
-  const indicator = document.getElementById('sidLoadProgress');
+const loadingMessages = new Map();
+function setLoadProgress(owner, message = '') {
+  if (message) loadingMessages.set(owner, message);
+  else loadingMessages.delete(owner);
+  message = Array.from(loadingMessages.values()).at(-1) || '';
+  const indicator = document.getElementById('fileLoadProgress');
   const label = indicator.querySelector('span');
   if (label.textContent !== message) label.textContent = message;
   indicator.hidden = !message;
 }
 function clearSid() {
-  showSidProgress();
+  setLoadProgress('sid');
   const previous = sidSong;
   sidSong = null;
   previous?.dispose();
@@ -130,7 +134,7 @@ function refreshSid() {
   stopButton.disabled = !state.canStop;
   replayButton.disabled = !(state.canPause || state.canResume || state.canPlay);
   playButton.textContent = state.paused ? 'Resume' : 'Play';
-  showSidProgress(state.loading ? state.message : '');
+  setLoadProgress('sid', state.loading ? state.message : '');
   setStatus(state.message);
   updateSeekPosition();
   if (state.canPause && !sidClock) sidClock = setInterval(updateSeekPosition,250);
@@ -3577,9 +3581,19 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file, preserveEditor = false, requestedAt = performance.now()) {
+  const owner = Symbol();
+  const progress = stage => setLoadProgress(owner, stage + ' ' + file.name + '…');
+  progress('Opening');
+  try {
+    await loadTrackFile(file, preserveEditor, requestedAt, progress);
+  } finally {
+    setLoadProgress(owner);
+  }
+}
+
+async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   const enteredAt = performance.now();
   clearSid();
-  if (/\.sid$/i.test(file.name)) showSidProgress('Opening '+file.name+'…');
   loopCheckbox.disabled = false;
   spcNoteish.clear();
   spcScoreSource=null;spcScore=null;
@@ -3617,9 +3631,15 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
   const sidModule = isSid ? await loadSidModule() : null;
   const moduleAt = performance.now();
   if (isSid && file.size > sidModule.PSID_MAX_FILE_BYTES) throw new Error('SID exceeds the maximum C64 program size.');
-  if (isSid) showSidProgress('Reading '+file.name+'…');
+  progress('Reading');
   const rawBuffer = await file.arrayBuffer();
   const fileAt = performance.now();
+  progress('Analyzing');
+  // Give the indicator a paint opportunity before synchronous parsing of large tracks.
+  if (!document.hidden && !isSid) {
+    if (globalThis.scheduler?.yield) await scheduler.yield();
+    else await new Promise(resolve => setTimeout(resolve, 0));
+  }
   currentBuffer = null;
   exportMmlButton.disabled = true;
   exportMidiButton.disabled = true;
@@ -3636,7 +3656,7 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
   renderNoteishGrid();
 
   if (isSid) {
-    showSidProgress('Checking SID format and subtunes…');
+    progress('Checking');
     engine?.dispose?.();
     engine = player = engineClockKey = null;
     workletModuleReady = false;
@@ -3675,7 +3695,7 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
         detectedChipsOutput.textContent = sidSong.description;
         setPlaybackError();
         refreshSid();
-      } catch (error) {showSidProgress(); renderMonitorToggles(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(error.message);}
+      } catch (error) {setLoadProgress('sid'); renderMonitorToggles(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(error.message);}
     };
     sidSubtune.onchange = selectSubtune;
     selectSubtune();
@@ -3863,6 +3883,12 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
   setStatus(`Parsed ${file.name} (${currentHasPcm ? "MEGA-CD" : (currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())}).${currentStatusSuffix()}`);
 }
 
+async function loadRomFile(file, load) {
+  const owner = Symbol();
+  setLoadProgress(owner, 'Reading '+file.name+'…');
+  try {await load(file);} finally {setLoadProgress(owner);}
+}
+
 async function handleYmf278bRomFile(file) {
   const data = new Uint8Array(await file.arrayBuffer());
   if (data.length !== 0x200000) throw new Error('yrw801.rom must be exactly 2097152 bytes (2 MiB).');
@@ -3919,7 +3945,6 @@ let fileLoadQueue = Promise.resolve();
 function queuePlaylistTask(task) {
   fileLoadQueue = fileLoadQueue.then(task).catch((error) => {
     console.error(error);
-    showSidProgress();
     setStatus(`Error: ${error.message}`);
   });
   return fileLoadQueue;
@@ -4036,8 +4061,10 @@ document.getElementById('reopenConsole').onclick = () => {
   if (lastConsoleFiles) void openConsoleSongs(lastConsoleFiles);
 };
 async function openConsoleSongs(files) {
+  const owner = Symbol();
+  setLoadProgress(owner, files.length === 1 ? 'Opening '+files[0].name+'…' : 'Opening '+files.length+' files…');
   try {
-    consoleSongLoader ??= import('./console_songs.js').then(({createConsoleSongs}) =>
+    consoleSongLoader ??= import('./console_songs.js?v=load-progress-1').then(({createConsoleSongs}) =>
       createConsoleSongs(document.getElementById('consoleSongs'), () => masterVolume));
     const open = await consoleSongLoader;
     sidSong?.stop();
@@ -4049,6 +4076,7 @@ async function openConsoleSongs(files) {
     lastConsoleFiles = files;
     document.getElementById('reopenConsole').hidden = false;
   } catch (error) {consoleSongLoader = null; setStatus(error.message);}
+  finally {setLoadProgress(owner);}
 }
 for (const id of ['consoleFiles','consoleFolder']) document.getElementById(id).onchange = event => {
   const files = Array.from(event.target.files);
@@ -4084,9 +4112,9 @@ function importPlaylistFiles(files) {
     const rejected = [];
     for (const file of files) {
       if (/^yrw801\.(rom|bin)$/i.test(file.name)) {
-        await handleYmf278bRomFile(file);
+        await loadRomFile(file, handleYmf278bRomFile);
       } else if (/\.bin$/i.test(file.name)) {
-        await handleYm2608RomFile(file);
+        await loadRomFile(file, handleYm2608RomFile);
       } else if (!/\.(vgm|vgz|s98|spc|sid)$/i.test(file.name)) {
         rejected.push(file.name);
       }

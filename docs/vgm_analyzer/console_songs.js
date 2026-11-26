@@ -90,6 +90,7 @@ export function createConsoleSongs(dialog, getMaster) {
     const song = entries[select.selectedIndex];
     control('info').textContent = song?.title || '';
     if (!song) return;
+    control('progress').hidden = false;
     status.textContent = 'Loading '+song.path+'…';
     const update = () => { if (ticket === revision) render(); };
     try {
@@ -127,6 +128,7 @@ export function createConsoleSongs(dialog, getMaster) {
         if (ticket === revision) status.textContent = 'Ready';
       }
     } catch (error) { if (ticket === revision) status.textContent = error.message; }
+    finally {if (ticket === revision) control('progress').hidden = true;}
     update();
   }
   select.onchange = () => choose();
@@ -162,7 +164,8 @@ export function createConsoleSongs(dialog, getMaster) {
     clearInterval(timer);
     timer = setInterval(render,250);
     control('info').textContent = '';
-    status.textContent = 'Reading song files…';
+    control('progress').hidden = false;
+    status.textContent = files.length === 1 ? 'Reading '+files[0].name+'…' : 'Reading '+files.length+' song files…';
     render();
     try {
       const songs = await consoleSongEntries(files,controller.signal);
@@ -172,5 +175,6 @@ export function createConsoleSongs(dialog, getMaster) {
       if (songs.length) await choose();
       else status.textContent = 'Select a song together with its library files.';
     } catch (error) { if (ticket === revision) status.textContent = error.message; }
+    finally {if (ticket === revision) control('progress').hidden = true;}
   };
 }

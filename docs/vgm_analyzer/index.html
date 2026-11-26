@@ -683,7 +683,7 @@
             <label>Track <select data-song="tracks"></select></label>
             <p data-song="info"></p>
             <button data-song="play">Play</button> <button data-song="pause">Pause</button> <button data-song="stop">Stop</button>
-            <output data-song="position"></output><p role="status" data-song="status"></p>
+            <output data-song="position"></output><progress hidden data-song="progress" aria-label="Loading"></progress><p role="status" data-song="status"></p>
             <form method="dialog"><button>Close</button></form>
           </dialog>
           <p class="file-drop-hint">YM2608 rhythm: <a href="../js/tetorica_ym2608_adpcm_rom.bin" download>Download Tetorica synthetic ROM</a>, then import it above. Sounds differ from the original. <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause license</a>.</p>
@@ -701,7 +701,7 @@
             <input id="inlinePlaybackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
             <output id="inlinePlaybackSeekTime" for="inlinePlaybackSeek">0:00 / 0:00</output>
           </div>
-          <div id="sidLoadProgress" role="status" aria-live="polite" hidden><progress aria-label="SID loading"></progress> <span></span></div>
+          <div id="fileLoadProgress" role="status" aria-live="polite" hidden><progress aria-label="Loading"></progress> <span></span></div>
           <div class="status" id="inlinePlaybackWarnings" role="status" style="flex-basis: 100%; white-space: pre-line" hidden></div>
           <div class="status" id="inlinePlaybackError" role="alert" style="flex-basis: 100%; white-space: pre-line" hidden></div>
           <button id="inlinePlayButton" type="button" disabled>Play</button>
@@ -1045,7 +1045,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=sid-mixer-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=file-progress-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

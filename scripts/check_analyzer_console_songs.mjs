@@ -42,6 +42,23 @@ try {
   });
   await page.goto('http://127.0.0.1:'+server.address().port+(process.argv[2] ? '/' : '/vgm_analyzer/')+'index.html');
   const modal = page.locator('#consoleSongs'), play = modal.locator('[data-song="play"]');
+  // Hold the browser's file read as it would be for a cloud-backed file.
+  await page.evaluate(() => {
+    const read = File.prototype.arrayBuffer;
+    File.prototype.arrayBuffer = async function() {
+      if (this.name === 'slow.vgm') {
+        File.prototype.arrayBuffer = read;
+        await new Promise(resolve => {window.finishFileRead = resolve;});
+      }
+      return read.call(this);
+    };
+  });
+  await page.locator('#fileInput').setInputFiles({name:'slow.vgm',mimeType:'application/octet-stream',buffer:Buffer.from('invalid')});
+  const indicator = page.locator('#fileLoadProgress');
+  await indicator.filter({hasText:'Reading slow.vgm'}).waitFor();
+  await page.evaluate(() => window.finishFileRead());
+  await indicator.waitFor({state:'hidden'});
+  assert.match(await page.locator('#headerOutput').textContent(),/Failed to (decode|parse)/);
   const ssf = createScspSsfPlaybackFixture(), psf = createPsfPlaybackFixture();
   const files = {'a.ssf':ssf.standalone,'b.psf':psf.standalone,'c.minissf':ssf.mini,'d.minipsf':psf.mini,
     'lib/driver.ssflib':ssf.library,'lib/driver.psflib':psf.library};
@@ -115,7 +132,7 @@ try {
     if (checkLoading) await page.route(wasm,async route => {await released; await route.continue();});
     await mainPlay.click();
     if (checkLoading) {
-      try {await page.locator('#sidLoadProgress').filter({hasText:'Loading SID audio engine'}).waitFor();}
+      try {await page.locator('#fileLoadProgress').filter({hasText:'Loading SID audio engine'}).waitFor();}
       finally {releaseFetch();}
 
     }
@@ -125,7 +142,7 @@ try {
       return pcm.some(value=>Math.abs(value)>0.00001);
     },null,{timeout:8000});
     if (checkLoading) await page.unroute(wasm);
-    await page.locator('#sidLoadProgress').waitFor({state:'hidden'});
+    await page.locator('#fileLoadProgress').waitFor({state:'hidden'});
     if (path === 'tone.sid') {
       const checkSignal = audible => page.waitForFunction(expected => {
         const pcm = new Float32Array(2048);
