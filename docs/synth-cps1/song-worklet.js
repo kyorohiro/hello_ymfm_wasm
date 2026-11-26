@@ -1,3 +1,4 @@
+import {SongSampleMemory} from './song-samples.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {Ym2151AudioEngine} from '../js/ym2151audioengine.js';
@@ -12,13 +13,14 @@ class Song extends AudioWorkletProcessor {
     this.voiceState=new Ym2151VoiceInspector({clock:this.parser.header.ym2151Clock,sampleRate});
     this.lastMasks=Array(8).fill(15);
     this.mutes={fm:Array(8).fill(false),pcm:Array(4).fill(false)};
+    this.sampleMemory=new SongSampleMemory();
     this.ticks=0; this.frame=0; this.until=0;
     this.port.onmessage=({data})=>{
       if (data.stop) this.finish();
       else if ('pause' in data) {
         this.paused=data.pause;
         const channels=this.paused && this.fm ? this.voiceState.read().channels : null;
-        this.port.postMessage({paused:this.paused,seconds:this.frame/sampleRate,channels,masks:this.lastMasks});
+        this.port.postMessage({paused:this.paused,seconds:this.frame/sampleRate,channels,oki:this.paused && this.pcm ? this.sampleMemory.snapshot(this.pcm) : null,masks:this.lastMasks});
       } else {this.mutes=data;this.applyMutes();}
     };
     this.init(wasmBinary).catch(error=>this.finish(error.message));
@@ -58,7 +60,10 @@ class Song extends AudioWorkletProcessor {
             if (e.register===8 && (e.value & 0x78)) this.lastMasks[e.value & 7]=(e.value>>3)&15;
           }
           if (e.type==='okim6295-write') this.pcm.writeOki6295(e.register,e.value);
-          if (e.type==='okim6295-rom-data') this.pcm.loadOki6295Rom(e.data,e.offset,e.memorySize);
+          if (e.type==='okim6295-rom-data') {
+            this.pcm.loadOki6295Rom(e.data,e.offset,e.memorySize);
+            this.sampleMemory.observe(e.offset,e.data.length,e.memorySize);
+          }
           continue;
         }
         const count=Math.min(size-i,this.until-this.frame);

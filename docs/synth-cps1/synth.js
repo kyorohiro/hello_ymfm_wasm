@@ -7,7 +7,8 @@ import {createPlaygroundYm2151VoicePanel} from '../playground/playground_ym2151_
 import {createParamControl} from '../synth/synth_controls.js';
 import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth/synth_keyboard.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
-import {displaySample} from './sample-view.js';
+import {decodeSongSample} from './song-samples.js';
+import {displaySample,drawWave} from './sample-view.js';
 import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
 
@@ -381,6 +382,61 @@ $('openCode').onclick = () => openScript(entryPath);
 $('openRoundStart').onclick = () => openScript(roundPath);
 let songNode, songRequest=0;
 let pausedSong=null, sourceChannel=0;
+let previewNode, previewGain, selectedOkiVoice=0, sampleBuffer;
+function stopPreview() {
+  if (previewNode) {
+    previewNode.onended=null;previewNode.stop();previewNode.disconnect();previewGain.disconnect();
+    previewNode=null;
+  }
+  $('previewSongSample').textContent='Preview';
+}
+function showOkiVoice(index) {
+  stopPreview();
+  selectedOkiVoice=index;
+  const {voices,rate}=pausedSong.oki, voice=voices[index];
+  for (const [i,button] of Array.from($('songOkiVoices').children).entries()) {
+    button.textContent='Voice '+(i+1)+(voices[i].busy?' · Busy':' · Idle');
+    button.setAttribute('aria-pressed',String(i===index));
+  }
+  const info=[];
+  if (voice.requestedSample!==undefined) {
+    info.push('Last request '+voice.requestedSample+' · Attenuation '+voice.requestedAttenuation);
+    if (voice.sample!==undefined && (voice.requestedSample!==voice.sample || voice.requestedAttenuation!==voice.attenuation))
+      info.push('Last played '+voice.sample+' · Attenuation '+voice.attenuation);
+  } else info.push('No sample requested');
+  const canvas=$('songSampleWave');
+  sampleBuffer=null;
+  if (voice.bytes) {
+    const {pcm,min,max}=decodeSongSample(voice,canvas.width);
+    sampleBuffer=context.createBuffer(1,pcm.length,context.sampleRate);
+    sampleBuffer.copyToChannel(pcm,0);
+    drawWave(canvas,min,max);
+    info.push((pcm.length/rate).toFixed(3)+' s');
+  } else if (voice.requestedSample!==undefined) info.push('No complete sample available');
+  canvas.hidden=!sampleBuffer;
+  $('previewSongSample').disabled=!sampleBuffer;
+  $('songSampleInfo').textContent=info.join(' · ');
+}
+for (let i=0;i<4;i++) {
+  const button=document.createElement('button');
+  button.onclick=()=>showOkiVoice(i);
+  $('songOkiVoices').append(button);
+}
+$('previewSongSample').onclick=()=>{
+  if (previewNode) {stopPreview();return;}
+  if (!pausedSong?.oki || !sampleBuffer) return;
+  previewNode=context.createBufferSource();previewGain=context.createGain();
+  previewNode.buffer=sampleBuffer;
+  previewNode.playbackRate.value=pausedSong.oki.rate/context.sampleRate;
+  previewGain.gain.value=voiceMutes[selectedOkiVoice]?0:1;
+  previewNode.connect(previewGain).connect(audio.buses.pcm);
+  previewNode.onended=()=>{
+    previewNode.disconnect();previewGain.disconnect();previewNode=null;
+    $('previewSongSample').textContent='Preview';
+  };
+  $('previewSongSample').textContent='Stop preview';
+  previewNode.start();
+};
 const songChannels=$('songChannels');
 for (let ch=0;ch<8;ch++) {
   const button=document.createElement('button');
@@ -418,8 +474,11 @@ $('pauseSong').onclick=()=>{
   $('pauseSong').disabled=true;
   songNode?.port.postMessage({pause:true});
 };
-function syncSongMutes() {songNode?.port.postMessage({fm:fmMutes,pcm:voiceMutes});}
+function syncSongMutes() {
+  if (previewNode) previewGain.gain.value=voiceMutes[selectedOkiVoice]?0:1;
+  songNode?.port.postMessage({fm:fmMutes,pcm:voiceMutes});}
 function stopSong() {
+  stopPreview();$('songOki').hidden=true;sampleBuffer=null;
   songRequest++;
   if (songNode) {
     songNode.port.onmessage=null;songNode.port.postMessage({stop:true});songNode.disconnect();
@@ -434,6 +493,7 @@ function stopSong() {
 }
 async function playSong(song) {
   if (pausedSong && songNode) {
+    stopPreview();$('songOki').hidden=true;
     $('playSong').disabled=true;
     songNode.port.postMessage({pause:false});
     return;
@@ -458,6 +518,12 @@ async function playSong(song) {
       if (data.done) {stopSong();status(data.error ?? 'Finished');return;}
       if (data.ready) {$('pauseSong').disabled=false;return;}
       pausedSong=data.paused?data:null;
+      $('songOki').hidden=!data.oki;
+      if (data.oki) {
+        const voices=data.oki.voices;
+        const active=voices.findIndex(v=>v.busy);
+        showOkiVoice(active>=0?active:Math.max(0,voices.findIndex(v=>v.requestedSample!==undefined)));
+      } else sampleBuffer=null;
       $('songVoice').hidden=!data.channels;
       $('songTime').textContent=data.paused?data.seconds.toFixed(2)+' s':'';
       $('playSong').textContent=data.paused?'Resume':'Play';

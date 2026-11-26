@@ -54,7 +54,7 @@ export class Oki6295AudioEngine {
   }
   clearOki6295Rom(){this.rom=new Uint8Array();}
   /** @param {number} address */
-  readRom(address){
+  romOffset(address){
     address &= 0x3ffff;
     let offset;
     if(!this.nmkMode)offset=this.bank|address;
@@ -63,7 +63,10 @@ export class Oki6295AudioEngine {
       const bankId=table ? address>>>8 : address>>>16;
       offset=(this.nmkBanks[bankId&3]<<16)|(address&(table?0x3ff:0xffff));
     }
-    return this.rom[offset] ?? 0;
+    return offset;
+  }
+  readRom(address){
+    return this.rom[this.romOffset(address)] ?? 0;
   }
   readStatus(){return this.voices.reduce((n,v,i)=>n|(v.playing?1<<i:0),0xf0);}
    /** @param {number} register  @param {number} value */
@@ -87,13 +90,21 @@ export class Oki6295AudioEngine {
     if(this.pending>=0){
       const {start,stop}=this.sampleRange(this.pending);
       this.voices.forEach((v,i)=>{
-        if((value&(0x10<<i)) && !v.playing && start<stop){
-          Object.assign(v,{playing:true,start,count:2*(stop-start+1),cursor:0,signal:0,step:0,output:0,volume:VOLUME[value&15]});
+        if (!(value & (0x10<<i))) return;
+        v.requestedSample=this.pending;
+        v.requestedAttenuation=value&15;
+        if (!v.playing && start<stop) {
+          v.sample=this.pending;
+          this.startVoice(i,start,stop,value&15);
         }
       });
       this.pending=-1;
     } else if(value&0x80)this.pending=value&127;
     else this.voices.forEach((v,i)=>{if(value&(8<<i)){v.playing=false;v.output=0;}});
+  }
+  startVoice(index,start,stop,attenuation) {
+    Object.assign(this.voices[index],{playing:true,start,count:2*(stop-start+1),cursor:0,
+      signal:0,step:0,output:0,attenuation,volume:VOLUME[attenuation]});
   }
   tick(){
     for(const v of this.voices){

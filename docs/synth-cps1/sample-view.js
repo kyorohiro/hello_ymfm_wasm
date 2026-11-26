@@ -27,6 +27,10 @@ export function displaySample(canvas,caption,rom,sample) {
   caption.textContent = message;
   canvas.hidden = !min;
   if (!min) return;
+  drawWave(canvas,min,max);
+}
+
+export function drawWave(canvas,min,max) {
   const ctx = canvas.getContext('2d'), mid = canvas.height/2;
   ctx.fillStyle = '#10191a'; ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle = '#345248'; ctx.fillRect(0,mid,canvas.width,1);
