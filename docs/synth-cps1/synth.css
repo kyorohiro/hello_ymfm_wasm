@@ -93,7 +93,7 @@ header::after {margin-left:0}
 #performanceTabs {grid-row:3}
 [data-mode=synth] #workbench :is(#code,#keyboardPanel) {grid-row:4}
 [data-mode=code] #editor {height:clamp(18rem,45vh,40rem)}
-[data-mode=synth] #workbench :is(#fm,#pcm,#files) {max-height:clamp(10rem,28dvh,30rem);overflow:auto}
+[data-mode=synth] #workbench :is(#fm,#pcm) {max-height:clamp(10rem,28dvh,30rem);overflow:auto}
 @media(max-width:480px) {.mode-switch {margin-left:0}}
 [data-mode=code] #sourceTabs {position:sticky;top:0;z-index:2;background:#e7d7b8}
 
@@ -107,10 +107,18 @@ header::after {margin-left:0}
   header {gap:.5rem;padding:.45rem .6rem}
   header img {width:2.5rem}
   .output canvas {height:52px}
-  [data-mode=synth] #workbench :is(#fm,#pcm,#files) {max-height:clamp(8rem,21dvh,15rem)}
+  [data-mode=synth] #workbench :is(#fm,#pcm) {max-height:clamp(8rem,21dvh,15rem)}
 }
 .keyboard-toolbar,#keyChannels,#keyOctave {display:flex;align-items:center;flex-wrap:wrap;gap:.25rem}
 .keyboard-toolbar {justify-content:space-between;margin-bottom:.35rem}
 #keyChannels button {padding:.16rem .38rem;font-size:.85rem}
 #keyOctave {font-size:.85rem}
 #keyOctave .param-control {width:5.2rem;color:var(--ink)}
+#workspace {display:grid;grid-template-columns:minmax(0,1fr);gap:.75rem}
+#workspace:has(> #files:not([hidden])) {grid-template-columns:minmax(12rem,15rem) minmax(0,1fr)}
+#files {min-width:0;align-self:start;margin-top:.75rem;padding:.6rem;background:var(--panel);border:1px solid var(--line);border-radius:.7rem}
+#files :is(input,select,label) {max-width:100%;min-width:0}
+#files .file-groups {grid-template-columns:minmax(0,1fr)}
+#files select {width:100%}
+#hitPad {margin-top:.3rem}
+@media(max-width:719px){#workspace:has(> #files:not([hidden])) {grid-template-columns:minmax(0,1fr)}}

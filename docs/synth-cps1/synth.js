@@ -116,6 +116,11 @@ function draw() {
   requestAnimationFrame(draw);
 }
 draw();
+function setFilesOpen(open) {
+  $('files').hidden=!open;
+  $('filesToggle').setAttribute('aria-expanded',String(open));
+}
+$('filesToggle').onclick=()=>setFilesOpen($('files').hidden);
 const main = document.querySelector('main');
 const tabs = [...document.querySelectorAll('[data-tab]')];
 const synthView = {source:'fm',performance:'keyboardPanel'};
@@ -123,7 +128,7 @@ let codeView = 'code';
 function renderWorkspace() {
   const synth = main.dataset.mode === 'synth';
   $('performanceTabs').hidden = !synth;
-  $('sourceTabs').setAttribute('aria-label',synth ? 'Sound chip and files' : 'Code workspace');
+  $('sourceTabs').setAttribute('aria-label',synth ? 'Sound chips' : 'Code workspace');
   $('synthMode').setAttribute('aria-pressed',String(synth));
   $('codeMode').setAttribute('aria-pressed',String(!synth));
   for (const tab of tabs) {
@@ -183,11 +188,13 @@ const oki = {
     voiceMutes[voice] = muted;
     muteButtons[voice].setAttribute('aria-pressed',String(muted));
     mixerVoiceButtons[voice].setAttribute('aria-pressed',String(!muted));
-    audio?.pcm.port.postMessage({voiceMutes});
+    audio?.pcm.port.postMessage({voiceMutes});syncSongMutes();
   },
 };
 function showBusy(value) {
   $('busy').value = hex(value);
+  $('hitPad').dataset.sounding=String(Boolean(value & 8));
+  $('hitPad').textContent='Hit · Voice 4'+(value & 8 ? ' ●' : '');
   document.querySelectorAll('.lamp').forEach((lamp,i) => {
     const active = Boolean(value & (1<<i));
     lamp.textContent = 'Voice '+(i+1)+(active?' ●':' ○');
@@ -199,10 +206,14 @@ function updateSampleView() {
 }
 $('sample').onchange = updateSampleView;
 function chooseSamples(names) {
+  $('hitPad').disabled=names[3]!=='Arcade hit';
   $('sample').replaceChildren(...names.map((name,i) => new Option(i+' · '+name,i)));
   updateSampleView();
 }
 chooseSamples(samples);
+$('hitPad').onclick=()=>{
+  oki.play(3,3,2);startAudio().catch(fail);
+};
 for (let i=0;i<4;i++) {
   const row = document.createElement('div'); row.className = 'bar';
   const lamp = document.createElement('output'); lamp.className = 'lamp';
@@ -245,7 +256,7 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
     const label=(id==='fm'?'CH':'Voice ')+(i+1);
     const button=toggleButton(label,name+' '+label+' on',true,()=>{
       if (id==='pcm') return oki.setVoiceMuted(i,!mutes[i]);
-      mutes[i]=!mutes[i];
+      mutes[i]=!mutes[i];syncSongMutes();
       button.setAttribute('aria-pressed',String(!mutes[i]));
       const register=0x20+i;
       audio?.fm.port.postMessage({method:'writeRegister',args:audibleRegister(register,inspector.read().registers[register])});
@@ -367,7 +378,39 @@ async function openScript(path) {
 $('codeFile').onchange = () => openScript($('codeFile').value);
 $('openCode').onclick = () => openScript(entryPath);
 $('openRoundStart').onclick = () => openScript(roundPath);
+let songNode, songRequest=0;
+function syncSongMutes() {songNode?.port.postMessage({fm:fmMutes,pcm:voiceMutes});}
+function stopSong() {
+  songRequest++;
+  if (songNode) {
+    songNode.port.onmessage=null;songNode.port.postMessage({stop:true});songNode.disconnect();
+    songNode=null;
+  }
+  if (!$('stopSong').disabled) status('Stopped');
+  $('stopSong').disabled=true;
+}
+async function playSong(song) {
+  stopRun();
+  const request=songRequest;
+  $('stopSong').disabled=false;
+  try {
+    await startAudio();
+    if (request!==songRequest) return;
+    const response=await fetch(new URL('../generated/ym2151_wasm.wasm',import.meta.url));
+    if (!response.ok) throw Error('Could not load YM2151.');
+    const [wasmBinary]=await Promise.all([response.arrayBuffer(),context.audioWorklet.addModule(new URL('./song-worklet.js',import.meta.url))]);
+    if (request!==songRequest) return;
+    songNode=new AudioWorkletNode(context,'cps1-song',{numberOfInputs:0,numberOfOutputs:2,outputChannelCount:[2,2],
+      processorOptions:{bytes:song.bytes,wasmBinary}});
+    songNode.connect(audio.buses.fm,0);songNode.connect(audio.buses.pcm,1);
+    syncSongMutes();
+    songNode.port.onmessage=({data})=>{if (request===songRequest && data.done) {stopSong();status(data.error ?? 'Finished');}};
+    songNode.onprocessorerror=()=>{if (request===songRequest) {stopSong();status('VGM playback failed');}};
+    status('Playing '+song.name);
+  } catch(error) {if (request===songRequest) {stopSong();fail(error);}}
+}
 function stopRun() {
+  stopSong();
   runId++; worker?.terminate(); worker = null;
   panel.releaseAll(); held.clear();
   for (let ch=0;ch<8;ch++) opm.keyOff(ch);
@@ -395,7 +438,7 @@ $('run').onclick = async () => {
   } catch (error) {stopRun();fail(error);}
 };
 
-const files = setupFiles({inspector,panel,keyMasks,defaultCode:example,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
+const files = setupFiles({inspector,panel,keyMasks,playSong,stopSong,openFiles:()=>setFilesOpen(true),defaultCode:example,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
   applyBank:installRom,getCode:() => scripts.get(entryPath),getRoundSource:roundSource,
   setCode:(value,round) => {
     openRequest++;

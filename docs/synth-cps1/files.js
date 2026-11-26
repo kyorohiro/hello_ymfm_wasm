@@ -2,20 +2,49 @@
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
 
+import {maybeDecodeVgmFile} from '../js/vgm_file.js';
+import {inspectSong} from './vgm.js';
 import {parseOpm} from './opm.js';
 
 const decode = bytes => new TextDecoder('utf-8',{fatal:true}).decode(bytes);
 const voicePatch = ({algorithm,feedback,pan,ams,pms,operators}) => ({algorithm,feedback,pan,ams,pms,operators});
 const voicePath = i => 'presets/ch'+(i+1)+'.fm.json';
 const bankPath = i => 'banks/'+i+'.rom';
+const songPath = (i,name) => 'songs/'+i+(/\.vgz$/i.test(name) ? '.vgz' : '.vgm');
 const presetPath = i => 'presets/saved-'+(i+1)+'.fm.json';
 
-export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,getCode,getRoundSource,setCode,stop,keyMasks}) {
+export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,getCode,getRoundSource,setCode,stop,playSong,stopSong,openFiles,keyMasks}) {
   const el = id => document.getElementById(id);
   let banks = [defaultBank], presets = [], opmBanks = [], opmVoices = [], active = 0;
   const initial = inspector.read();
   const initialVoices = initial.channels.map(voice => ({...voicePatch(voice),keyMask:keyMasks[voice.channel]}));
-  let cassetteRevision = 0;
+  let cassetteRevision = 0, songs=[];
+  async function loadSong(name,raw) {
+    const bytes=new Uint8Array(await maybeDecodeVgmFile(raw,{maxBytes:16*1024*1024}));
+    inspectSong(bytes);
+    return {name,raw,bytes};
+  }
+  function renderSongs() {
+    el('songs').replaceChildren(...songs.map((song,i)=>new Option(song.name,i)));
+    el('songs').disabled=el('playSong').disabled=!songs.length;
+  }
+  el('chooseVgm').onclick=()=>el('vgmFile').click();
+  el('vgmFile').onchange=async event=>{
+    const file=event.target.files[0], revision=cassetteRevision;
+    event.target.value='';
+    if (!file) return;
+    openFiles();
+    try {
+      if (file.size>16*1024*1024) throw Error('VGM exceeds 16 MiB.');
+      const song=await loadSong(file.name,new Uint8Array(await file.arrayBuffer()));
+      if (revision!==cassetteRevision) return;
+      stopSong();songs.push(song);renderSongs();el('songs').value=String(songs.length-1);
+      report('Imported '+song.name);
+    } catch(error) {if (revision===cassetteRevision) report(error.message);}
+  };
+  el('playSong').onclick=()=>playSong(songs[Number(el('songs').value)]);
+  el('songs').onchange=stopSong;
+  el('stopSong').onclick=stopSong;
   const report = message => {el('fileStatus').textContent = message;};
   function render() {
     const voices = Array.from({length:8},(_,i) => new Option('/'+voicePath(i),i));
@@ -84,7 +113,7 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
   };
   function replaceCassette(project) {
     cassetteRevision++;
-    stop();
+    stop();songs=project.songs ?? [];renderSongs();
     project.voices.forEach((voice,ch) => applyVoice(ch,voice));
     inspector.invoke('setLFO',[project.lfo]);
     inspector.invoke('setNoise',[project.noise]);
@@ -108,7 +137,8 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
       presets.forEach((v,i) => files.push(text(presetPath(i),JSON.stringify(v))));
       opmBanks.forEach(({source},i) => files.push(text('presets/import-'+i+'.opm',source)));
       banks.forEach(({bytes},i) => files.push({path:bankPath(i),type:'binary',data:bytes}));
-      const cps1 = {version:1,lfo:state.lfo,noise:state.noise,active,opmBanks:opmBanks.length,presets:presets.length,
+      songs.forEach(({name,raw},i)=>files.push({path:songPath(i,name),type:'binary',data:raw}));
+      const cps1 = {version:1,songs:songs.map(song=>song.name),lfo:state.lfo,noise:state.noise,active,opmBanks:opmBanks.length,presets:presets.length,
         banks:banks.map(({name,names}) => ({name,names}))};
       const zip = createPlaygroundCassetteZip(files,{metadata:{cps1}});
       const a = document.createElement('a');
@@ -158,9 +188,16 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
         const source=decode(read('presets/import-'+i+'.opm'));
         return {source,voices:parseOpm(source)};
       });
+      const songNames=m.songs ?? [];
+      if (!Array.isArray(songNames) || songNames.length>files.size) throw Error('Invalid VGM list.');
+      const nextSongs=[];
+      for (const [i,name] of songNames.entries()) {
+        if (typeof name!=='string') throw Error('Invalid VGM name.');
+        nextSongs.push(await loadSong(name,read(songPath(i,name))));
+      }
       if (revision!==cassetteRevision) return;
       if (!window.confirm('Replace the current voices, sample banks and code with this Cassette?')) return;
-      replaceCassette({voices,lfo:m.lfo,noise:m.noise,banks:nextBanks,active:m.active,
+      replaceCassette({voices,songs:nextSongs,lfo:m.lfo,noise:m.noise,banks:nextBanks,active:m.active,
         presets:nextPresets,opmBanks:nextOpmBanks,code:nextCode,round});
       report('Imported '+file.name);
     } catch (error) {report(error.message);}
