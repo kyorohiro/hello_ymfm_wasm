@@ -5,6 +5,7 @@ import {createPlaygroundYm2151VoicePanel} from '../playground/playground_ym2151_
 import {createParamControl} from '../synth/synth_controls.js';
 import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth/synth_keyboard.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
+import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
 
 const $ = id => document.getElementById(id);
@@ -83,6 +84,10 @@ $('scopeMode').onclick = () => {
   $('scopeMode').textContent = mode === 'waveform' ? 'Waveform' : 'Spectrum';
 };
 const canvas = $('scope'), ctx = canvas.getContext('2d');
+new ResizeObserver(([entry]) => {
+  canvas.width = Math.max(1,Math.round(entry.contentRect.width));
+  canvas.height = Math.max(1,Math.round(entry.contentRect.height));
+}).observe(canvas);
 function draw() {
   if (dirty) {panel.update(inspector.read()); dirty = false;}
   scope.draw(canvas,ctx,mode);
@@ -140,7 +145,7 @@ for (let i=0;i<4;i++) {
 showBusy(0xf0);
 let romRevision = 0;
 function installRom(bytes,names,label) {
-  sampleRom = bytes; rawOki = [];
+  romRevision++; sampleRom = bytes; rawOki = [];
   audio?.pcm.port.postMessage({rom:bytes}); chooseSamples(names); $('romName').textContent = label;
 }
 $('rom').onchange = async () => {
@@ -149,10 +154,10 @@ $('rom').onchange = async () => {
   try {
     if (file.size < 8 || file.size > 0x40000) throw Error('Choose a single MSM6295 ROM bank (8 bytes to 256 KiB).');
     const bytes = new Uint8Array(await file.arrayBuffer());
-    if (revision === romRevision) installRom(bytes,Array(128).fill('ROM sample'),file.name);
+    if (revision === romRevision) files.addBank(bytes,Array(128).fill('ROM sample'),file.name);
   } catch (error) {fail(error);}
 };
-$('restore').onclick = () => {romRevision++; $('rom').value=''; installRom(createKit(),samples,'Original kit');};
+$('restore').onclick = () => {romRevision++; $('rom').value=''; files.restoreKit();};
 
 const layout = createFretboardLayout({state:createFretboardState()});
 const held = new Map();
@@ -214,3 +219,7 @@ $('run').onclick = async () => {
     worker.postMessage($('editor').value);
   } catch (error) {stopRun();fail(error);}
 };
+
+const files = setupFiles({inspector,panel,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
+  applyBank:installRom,getCode:() => $('editor').value,
+  setCode:value => {$('editor').value=value;$('editor').oninput();},stop:stopRun});

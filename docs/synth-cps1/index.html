@@ -7,11 +7,17 @@
 <header><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div></header>
 <section class="output"><div class="bar"><h2>Output</h2><button id="scopeMode">Waveform</button><label>Master <input id="master" type="range" min="0" max="380" value="85"><output id="volume">85%</output></label><button id="power">Start audio</button></div>
 <canvas id="scope" width="900" height="96" aria-label="Output signal"></canvas><output id="status" role="status">Ready</output></section>
-<section><h2>Guitar keyboard</h2><div id="keys"></div></section>
-<nav aria-label="Synth panels"><button data-tab="fm" aria-pressed="true">YM2151</button><button data-tab="pcm">MSM6295</button><button data-tab="code">Code</button></nav>
+<section id="keyboardPanel"><h2>Guitar keyboard</h2><div id="keys"></div></section>
+<nav aria-label="Synth panels"><button data-tab="fm" aria-pressed="true">YM2151</button><button data-tab="pcm">MSM6295</button><button data-tab="code">Code</button><button data-tab="files">Files</button></nav>
 <section id="fm"></section>
 <section id="pcm" hidden><h2>MSM6295</h2><div class="bar"><label>Sample <select id="sample"></select></label><label>Attenuation <input id="attenuation" type="number" min="0" max="15" value="2"></label></div>
 <div id="voices"></div><p>Command bytes <output id="command">—</output> · Status <output id="busy">0xF0</output></p>
 <label>Sample ROM <input id="rom" type="file" accept=".bin,.rom"></label><button id="restore">Use original kit</button><p id="romName">Original kit</p></section>
 <section id="code" hidden><h2>JavaScript</h2><label class="sr" for="editor">Live code</label><textarea id="editor" rows="12" spellcheck="false"></textarea><div class="bar"><button id="run">Run</button><button id="stop">Stop</button></div></section>
+<section id="files" hidden><h2>Files</h2>
+<div class="file-groups"><label>FM voices <select id="fmFiles" size="5"></select></label><label>Sample banks <select id="romFiles" size="5"></select></label></div>
+<div class="bar"><button id="loadVoice">Load voice on selected CH</button><button id="saveVoice">Save selected CH as preset</button><button id="loadBank">Load sample bank</button></div>
+<p><button id="openCode">Open /index.js</button></p>
+<hr><div class="bar"><button id="exportCassette">Export Cassette…</button><label>Import Cassette <input type="file" id="importCassette" accept=".zip"></label></div>
+<output id="fileStatus" role="status"></output></section>
 </main><script type="module" src="./synth.js"></script></html>

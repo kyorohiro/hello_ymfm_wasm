@@ -59,6 +59,31 @@ try {
   await page.fill('#editor','while (true) {}');
   await page.click('#run'); await page.click('#stop');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
+  await page.click('[data-tab="pcm"]');
+  await page.locator('#rom').setInputFiles({name:'test.rom',mimeType:'application/octet-stream',buffer:Buffer.alloc(2048)});
+  await page.getByText('test.rom',{exact:true}).first().waitFor();
+  await page.click('[data-tab="files"]');
+  await page.click('#saveVoice');
+  const download = page.waitForEvent('download');
+  await page.click('#exportCassette');
+  const archive = await (await download).path();
+  await page.click('[data-tab="pcm"]');
+  await page.click('#restore');
+  await page.click('[data-tab="code"]');
+  await page.fill('#editor','// changed');
+  await page.click('[data-tab="files"]');
+  page.once('dialog',dialog => dialog.accept());
+  await page.locator('#importCassette').setInputFiles({name:'test.cassette.zip',mimeType:'application/zip',buffer:await readFile(archive)});
+  await page.getByText('Imported test.cassette.zip',{exact:true}).waitFor();
+  assert.equal(await page.locator('#romFiles option:checked').textContent(),'test.rom');
+  assert.equal(await page.locator('#fmFiles option').count(),9);
+  await page.click('#openCode');
+  assert.equal(await page.inputValue('#editor'),'while (true) {}');
+  await page.click('[data-tab="fm"]');
+  for (const width of [390,1100]) {
+    await page.setViewportSize({width,height:850});
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  }
   assert.deepEqual(errors,[]);
-  console.log('CPS1 FM audio, held-note editing, OKI audio/status, Code Run and Stop passed');
+  console.log('CPS1 FM audio, held-note editing, OKI audio/status, Code, cassette round-trip and responsive layouts passed');
 } finally {await browser?.close(); server.close();}

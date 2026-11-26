@@ -8,8 +8,9 @@ MSM6295 reads an OKI sample table and ADPCM bytes from ROM. The built-in percuss
 
 Code runs in a dedicated worker. `opm` and `oki` share the instruments used by the panels. JavaScript uses zero-based channels and voices. For example, `oki.play(1, 2, 4)` plays sample 2 on voice 1 at attenuation 4. `oki.write(0x10)` stops that voice. Stop interrupts the running script and releases both chips. The edited script is saved in this browser.
 
+Files lists the eight current channel voices, saved FM presets and sample banks. Export Cassette saves those files with the current code and global LFO/noise settings in a Tetorica cassette ZIP. Import restores the project without running its code. Export before closing the page to keep the voices and banks.
+
 ## Next steps
 
-- Add Files and cassette management for code, FM voices and sample banks using the Neo Geo workflow.
 - Add per-voice OKI mixer mute, distinct from the chip's stop command.
 - Add Analyzer instrument exchange and a longer original example performance.

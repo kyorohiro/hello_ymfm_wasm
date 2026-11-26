@@ -1,2 +1,72 @@
-*{box-sizing:border-box}body{margin:0;background:#191c20;color:#f9eacf;font:16px/1.45 "Barlow",system-ui,sans-serif}main{max-width:1080px;margin:auto;padding:clamp(.6rem,3vw,2rem)}header,.bar,nav,.chip-fields,.chip-actions,.chip-channel-list{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem}header{gap:1rem;margin-bottom:1rem}header img{border-radius:16px}h1,h2,h3,p{margin:.4em 0}h1{font-size:clamp(1.55rem,4vw,2.45rem)}h2{font-size:1.2rem}h3{font-size:1rem}a,.chip-field-label{color:#cfdaab}section,nav{margin:.7rem 0;padding:.8rem;background:#262c2e;border-radius:.55rem}nav{background:#303846}button,input,select,textarea{font:inherit;color:inherit}button,select,input:not([type=range]),textarea{border:1px solid #68726b;background:#202628;border-radius:.3rem;padding:.32rem .56rem}button{cursor:pointer}button[aria-pressed=true],button.active,button[data-sounding=true]{background:#a5df69;color:#102015}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #ffd468}.output canvas,.chip-opm-envelope{width:100%;display:block;margin:.5rem 0}.output canvas{height:84px}label{display:inline-flex;align-items:center;gap:.4rem}input[type=range]{width:6rem}fieldset{min-width:0;border:0;padding:0;margin:0}.chip-section{padding:.6rem 0;border-top:1px solid #455053;border-radius:0}.chip-fields{margin:.5rem 0}.chip-field{flex-direction:column;align-items:start;font-size:.85rem}.chip-field input{max-width:9rem}.chip-field input[type=number]{width:6rem}table{width:100%;border-collapse:collapse;font-size:.88rem}td input[type=number]{width:100%;min-width:3rem}#fm{overflow-x:auto}.chip-voice-code,textarea{width:100%;font:14px/1.5 monospace}.chip-memory-ranges{white-space:pre-wrap;overflow-wrap:anywhere}.key-row{display:flex;gap:3px;margin:3px 0}.key{flex:0 1 9.5%;min-width:0;touch-action:none;padding:.2rem}.key span{display:block;font-size:.72rem}.subtext,#status,#romName{color:#b9c4ba;font-size:.88rem}#voices{display:grid;gap:.4rem;margin:.8rem 0}#voices .bar{border-top:1px solid #485150;padding-top:.4rem}.lamp{min-width:6rem}.lamp.on{color:#a5df69;font-weight:bold}.sr{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}[hidden]{display:none!important}
-.chip-opm-table-scroll{overflow-x:auto}.chip-opm-table{min-width:700px}.chip-opm-table th{font-size:.76rem}.param-control{display:grid;grid-template-columns:minmax(.7rem,1fr) minmax(1.5rem,2fr) minmax(.7rem,1fr);background:#182121;border-radius:.35rem;margin:2px}.param-control.is-boolean{grid-template-columns:1fr}.param-control button{min-width:0;padding:.24rem 0;border:0;background:transparent;font:600 .77rem monospace}.param-value{cursor:ew-resize;touch-action:pan-y}.param-value.is-on{color:#a5df69}.param-control button:hover{background:#38463d}
+:root {
+  color-scheme: light;
+  --shell: #f3e6cc;
+  --panel: #fff6e5;
+  --ink: #29261e;
+  --line: #cebc99;
+  --blue: #193f89;
+  --green: #a3da54;
+  --deep-green: #205829;
+}
+* {box-sizing:border-box}
+body {margin:0;background:#e9d9bd;color:var(--ink);font:16px/1.45 "Barlow",system-ui,sans-serif}
+main {max-width:1080px;margin:0 auto;background:var(--shell);padding:clamp(.6rem,2.6vw,1.8rem);min-height:100vh}
+header,.bar,nav,.chip-fields,.chip-actions,.chip-channel-list {display:flex;align-items:center;flex-wrap:wrap;gap:.6rem}
+header {position:relative;overflow:hidden;gap:1rem;background:#191919;color:#fff0cf;padding:.8rem 1.2rem;border:3px solid #ccad7a;border-radius:1rem}
+header::after {content:'';margin-left:auto;width:clamp(2.5rem,10vw,6rem);height:2rem;transform:skew(-15deg);background:linear-gradient(to bottom,#f33444 0 24%,transparent 24% 38%,#ad418a 38% 62%,transparent 62% 76%,#329ee7 76%)}
+header img {width:clamp(3rem,8vw,5rem);height:auto;border-radius:.75rem}
+header a {color:#e8d6ae}
+h1,h2,h3,p {margin:.4em 0}
+h1 {margin:0;font-size:clamp(1.4rem,4vw,2.55rem);letter-spacing:-.035em;line-height:1.12}
+h2 {font-size:1.2rem}
+h3 {font-size:1rem}
+main>section,nav {margin:.75rem 0;padding:clamp(.65rem,1.6vw,1rem);border:1px solid var(--line);background:var(--panel);border-radius:.7rem}
+#keyboardPanel {background:var(--blue);color:#fff4cf;border:2px solid #15316b;border-bottom:4px solid #e6af26}
+#keyboardPanel h2 {margin-top:0}
+nav {background:#e7d7b8}
+button,input,select,textarea {font:inherit;color:inherit}
+button,select,input:not([type=range]),textarea {border:1px solid #a59776;background:#fffdf5;border-radius:.4rem;padding:.32rem .56rem}
+button {cursor:pointer;background:var(--green);border-color:#66863b;color:#182915;font-weight:600}
+button:hover {background:#baeb74}
+button[aria-pressed=true],button.active,button[data-sounding=true],button:active {background:var(--deep-green);color:white}
+button:disabled {cursor:default;background:#e4e8ce;color:#4d583d}
+:focus-visible {outline:3px solid #bb5d13;outline-offset:2px}
+.output canvas,.chip-opm-envelope {width:100%;display:block;margin:.5rem 0;border-radius:.35rem}
+.output canvas {height:84px}
+label {display:inline-flex;align-items:center;gap:.4rem}
+input[type=range] {width:6rem;accent-color:#3d7c30}
+input[type=checkbox] {accent-color:#39782c}
+fieldset {min-width:0;border:0;padding:0;margin:0}
+.chip-section {margin:.7rem 0;padding:.6rem 0;border-top:1px solid var(--line)}
+.chip-fields {margin:.5rem 0}
+.chip-field {flex-direction:column;align-items:start;font-size:.85rem}
+.chip-field-label,.subtext,#status,#romName {color:#58533f}
+.chip-field input {max-width:9rem}
+.chip-field input[type=number] {width:6rem}
+table {width:100%;border-collapse:collapse;font-size:.88rem}
+.chip-opm-table-scroll {overflow-x:auto}
+.chip-opm-table {min-width:700px}
+.chip-opm-table th {font-size:.76rem}
+.param-control {display:grid;grid-template-columns:minmax(.7rem,1fr) minmax(1.5rem,2fr) minmax(.7rem,1fr);background:#d9e9b5;border:1px solid #abbb86;border-radius:.35rem;margin:2px}
+.param-control.is-boolean {grid-template-columns:1fr}
+.param-control button {min-width:0;padding:.24rem 0;border:0;background:transparent;font:600 .77rem monospace}
+.param-control button:hover {background:#b4d881}
+.param-control .param-value.is-on {color:white;background:var(--deep-green)}
+.param-value {cursor:ew-resize;touch-action:pan-y}
+.chip-voice-code,textarea {width:100%;font:14px/1.5 monospace}
+.chip-memory-ranges {white-space:pre-wrap;overflow-wrap:anywhere}
+.key-row {display:flex;gap:3px;margin:3px 0}
+.key {flex:1 1 0;min-width:0;max-width:calc(10% - 2px);touch-action:none;padding:.2rem;border-radius:.35rem}
+.key span {display:block;font-size:.72rem}
+.key[aria-pressed=true] {background:#ffdb61;color:#33250b}
+.subtext,#status,#romName {font-size:.88rem}
+#voices,.file-groups {display:grid;gap:.6rem;margin:.8rem 0}
+#voices .bar {border-top:1px solid var(--line);padding-top:.4rem}
+.file-groups {grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr))}
+.file-groups label {flex-direction:column;align-items:stretch}
+.file-groups select {width:100%}
+.lamp {min-width:6rem}
+.lamp.on {color:#246028;font-weight:bold}
+.sr {position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+[hidden] {display:none!important}
+@media(max-width:480px){header::after{display:none}.key{padding:.17rem 0}.key span{font-size:.62rem}}
