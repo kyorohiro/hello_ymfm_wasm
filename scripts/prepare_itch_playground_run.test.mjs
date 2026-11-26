@@ -37,6 +37,12 @@ test('missing entry point, duplicates, unsafe paths and symlinks are rejected',(
  assert.throws(()=>validateItchZipEntries([file('index.html'),file('index.html')]),/Duplicate/);
  assert.throws(()=>validateItchZipEntries([file('index.html'),{...file('link'),symlink:true}]),/symlinks/);
 });
+test('hosting limit counts implicit parents once even in a files-only ZIP',()=>{
+ const entries=[file('index.html'),file('a/b/one.js'),file('a/b/two.js')];
+ assert.equal(validateItchZipEntries(entries).expandedEntries,5);
+ assert.throws(()=>validateItchZipEntries(entries,{entries:4}),/5 > 4/);
+});
+
 test('actual ZIP guard counts directory entries, not just files',async()=>{
  const scratch=await mkdtemp(join(tmpdir(),'itch-directory-count-'));
  try{

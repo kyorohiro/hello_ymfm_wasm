@@ -26,7 +26,7 @@ with zipfile.ZipFile(sys.argv[2],'w',compression=zipfile.ZIP_STORED) as z:
 `;
 async function put(stage,name,bytes){await mkdir(dirname(join(stage,name)),{recursive:true});await writeFile(join(stage,name),bytes);}
 function zip(release,id,{dirs=false}={}) {const item=ITCH_RELEASE_ARTIFACTS.find(value=>value.id===id);execFileSync(python,['-c',zipWriter,join(release,item.stage),join(release,item.archive),dirs?'dirs':'files']);}
-async function fixture(t,{fullDirectories=0,sidKits=false,readable=false}={}) {
+async function fixture(t,{fullDirectories=0,sidKits=false,readable=false,bundle=!readable}={}) {
   const release=await mkdtemp(join(tmpdir(),'itch four archives '));t.after(()=>rm(release,{recursive:true,force:true}));
   for(const item of ITCH_RELEASE_ARTIFACTS.filter(item=>item.id!=='playground-run')) {
     const stage=join(release,item.stage);
@@ -99,7 +99,7 @@ async function fixture(t,{fullDirectories=0,sidKits=false,readable=false}={}) {
     for(const [name,bytes]of Object.entries(files))await put(stage,name,bytes);
   }
   const full=join(release,'itch_playground_dev'),run=join(release,'itch_playground_dev_for_run');
-  await prepareItchPlaygroundRun(full,run,readable?{archiveExamples:true}:{bundle:true});
+  await prepareItchPlaygroundRun(full,run,{archiveExamples:readable,bundle});
   for(let i=0;i<fullDirectories;i++)await mkdir(join(full,'download-directory-'+i));
   for(const item of ITCH_RELEASE_ARTIFACTS)zip(release,item.id,{dirs:item.id==='playground-full'});
   return {release,full,run,stage:id=>join(release,ITCH_RELEASE_ARTIFACTS.find(item=>item.id===id).stage),archive:id=>join(release,ITCH_RELEASE_ARTIFACTS.find(item=>item.id===id).archive)};
@@ -159,6 +159,13 @@ test('readable Run profile verifies exact example and starter copies while retai
   for(const name of ['index.html','playground.js','playground_examples.js','ui.js','js/audio.js','js/audio-worklet.js',
     'defaults/y8950/index.js','examples/README.md','samples/sonic-pi/loop.wav'])
     assert.deepEqual(await readFile(join(f.run,name)),await readFile(join(f.full,name)),name);
+});
+
+test('browser release verifies the bundled UI and the embedded example archive together',async t=>{
+  const f=await fixture(t,{readable:true,bundle:true});
+  const {playgroundRun}=await check(f);
+  assert.equal(playgroundRun.removedRootModules,1);
+  assert.equal(playgroundRun.embeddedScripts.files,3);
 });
 
 test('readable Run profile rejects changes to archived examples or retained application code after repacking',async t=>{

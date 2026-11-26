@@ -72,6 +72,7 @@ export const isItchRunSourceGuide=name=>! /^(?:LICENSE|COPYING|NOTICE|AUTHORS|UP
 export function validateItchZipEntries(entries,limits=ITCH_ZIP_LIMITS){
  if(!Array.isArray(entries))throw Error('ZIP entries must be an array');
  if(entries.length>limits.entries)throw Error(`Too many files in zip (${entries.length} > ${limits.entries}); directory entries count too`);
+ const parentDirectories=new Set();
  const names=new Set();let files=0,directories=0,totalBytes=0,maxFileBytes=0,maxPathCharacters=0;
  for(const entry of entries){
   if(!safeName(entry.name))throw Error('Unsafe ZIP path: '+JSON.stringify(entry.name));
@@ -80,12 +81,16 @@ export function validateItchZipEntries(entries,limits=ITCH_ZIP_LIMITS){
   const length=Array.from(entry.name).length;maxPathCharacters=Math.max(maxPathCharacters,length);
   if(length>limits.pathCharacters)throw Error('ZIP path exceeds '+limits.pathCharacters+' characters: '+entry.name);
   if(!Number.isSafeInteger(entry.bytes)||entry.bytes<0)throw Error('Invalid expanded ZIP size: '+entry.name);
-  if(entry.directory){directories++;continue;}files++;totalBytes+=entry.bytes;maxFileBytes=Math.max(maxFileBytes,entry.bytes);
+  const parts=entry.name.replace(/\/$/,'').split('/');
+  for(let i=1;i<parts.length;i++)parentDirectories.add(parts.slice(0,i).join('/'));
+  if(entry.directory){parentDirectories.add(parts.join('/'));directories++;continue;}files++;totalBytes+=entry.bytes;maxFileBytes=Math.max(maxFileBytes,entry.bytes);
   if(entry.bytes>limits.fileBytes)throw Error('ZIP file exceeds '+limits.fileBytes+' expanded bytes: '+entry.name);
  }
  if(totalBytes>limits.totalBytes)throw Error('ZIP exceeds '+limits.totalBytes+' total expanded bytes');
  if(!entries.some(entry=>entry.name==='index.html'&&!entry.directory&&!entry.symlink))throw Error('ZIP needs a regular index.html at its root');
- return {entryCount:entries.length,files,directories,totalBytes,maxFileBytes,maxPathCharacters,limits};
+ const expandedEntries=files+parentDirectories.size;
+ if(expandedEntries>limits.entries)throw Error(`Too many files in zip (${expandedEntries} > ${limits.entries}) including parent directories recreated during upload`);
+ return {expandedEntries,entryCount:entries.length,files,directories,totalBytes,maxFileBytes,maxPathCharacters,limits};
 }
 
 const zipInspector=String.raw`
@@ -180,7 +185,6 @@ export function itchRunSourcePreface(name,archiveSha){
 }
 
 export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false,archiveExamples=false}={}){
- if(bundle&&archiveExamples)throw Error('Choose either a bundled UI or the readable JavaScript release');
  const input=resolve(fullStage),requested=resolve(runStage),sourceInfo=await lstat(input);
  if(!sourceInfo.isDirectory()||sourceInfo.isSymbolicLink())throw Error('Full stage must be a real directory');
  const full=await realpath(input),parent=await realpath(dirname(requested)),run=join(parent,basename(requested));
@@ -250,7 +254,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  else {
   const bundle=args.includes('--bundle'),archiveExamples=args.includes('--archive-examples');
   const paths=args.filter(arg=>arg!=='--bundle'&&arg!=='--archive-examples');
-  if(paths.length!==2||paths.some(arg=>arg.startsWith('--'))||args.length!==paths.length+Number(bundle)+Number(archiveExamples))throw Error('Usage: node scripts/prepare_itch_playground_run.mjs <full-stage> <run-stage> [--archive-examples | --bundle] | --check-zip <browser.zip>');
+  if(paths.length!==2||paths.some(arg=>arg.startsWith('--'))||args.length!==paths.length+Number(bundle)+Number(archiveExamples))throw Error('Usage: node scripts/prepare_itch_playground_run.mjs <full-stage> <run-stage> [--archive-examples] [--bundle] | --check-zip <browser.zip>');
   console.log(JSON.stringify(await prepareItchPlaygroundRun(...paths,{bundle,archiveExamples}),null,2));
  }
 }

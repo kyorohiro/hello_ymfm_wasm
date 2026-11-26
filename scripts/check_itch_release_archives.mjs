@@ -143,9 +143,15 @@ async function checkReadablePlaygroundRun(full,run) {
 async function checkPlaygroundRun(full,run) {
   const fullFiles=full.snapshot.files,runFiles=run.snapshot.files;
   const read=name=>readFile(join(run.stage,name));
-  const layout=runFiles.has(ITCH_RUN_EMBEDDED_SCRIPTS)
+  const examples=runFiles.has(ITCH_RUN_EMBEDDED_SCRIPTS)
     ? await checkReadablePlaygroundRun(full,run)
-    : await checkPlaygroundBundle(fullFiles,run);
+    : null;
+  const layout=runFiles.has('sources/browser-bundle.json')?await checkPlaygroundBundle(fullFiles,run):examples;
+  if(layout?.receipt && examples){
+    layout.removed=[...layout.removed,...examples.removed];
+    layout.added.push(...examples.added);
+    layout.details.embeddedScripts=examples.details.embeddedScripts;
+  }
   const removed=[...layout.removed];
   const sourcePath='sources/corresponding-source.zip',sourceBytes=await read(sourcePath),sourceSha=hash(sourceBytes);
   const sources=inspectArchive(join(run.stage,sourcePath),{index:false});
@@ -181,9 +187,9 @@ async function checkPlaygroundRun(full,run) {
   assert(sourceGuideText.includes(sourceSha)&&sourceGuideText.includes('corresponding-source.zip'),'Run source guide identifies the complete source archive');
   if(layout.receipt){
     const {receipt}=layout;
-    assert.equal(receipt.inputFileCount,fullFiles.size-archived.length+2,'Bundle input file count');
+    assert.equal(receipt.inputFileCount,fullFiles.size-archived.length+2+(examples?1-examples.removed.length:0),'Bundle input file count');
     assert.equal(receipt.outputFileCount,runFiles.size,'Bundle output file count');
-    assert.equal(receipt.originalFilesUnchanged,receipt.inputFileCount-removed.length-2,'Bundle preserves every other pre-bundle file');
+    assert.equal(receipt.originalFilesUnchanged,receipt.inputFileCount-receipt.removed.length-2,'Bundle preserves every other pre-bundle file');
   }
   return {...layout.details,
     correspondingSource:{path:sourcePath,files:fullSources.size,compilationFiles:code.length,archivedFiles:archived.length,...record(sourceBytes)},
