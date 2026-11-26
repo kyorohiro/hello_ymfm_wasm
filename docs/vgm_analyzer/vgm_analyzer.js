@@ -97,7 +97,7 @@ const inlinePlaybackSeekTime = document.getElementById("inlinePlaybackSeekTime")
 let seekSelection = null;
 let seekDragging = false;
 
-let sidSong = null, sidClock = null;
+let songPlayer = null, songClock = null;
 const sidSubtune = document.getElementById('sidSubtune');
 let sidModulePromise;
 function loadSidModule() {
@@ -116,29 +116,32 @@ function setLoadProgress(owner, message = '') {
   if (label.textContent !== message) label.textContent = message;
   indicator.hidden = !message;
 }
-function clearSid() {
-  setLoadProgress('sid');
-  const previous = sidSong;
-  sidSong = null;
+function clearSong() {
+  setLoadProgress('song');
+  const previous = songPlayer;
+  songPlayer = null;
   previous?.dispose();
-  clearInterval(sidClock);
-  sidClock = null;
+  if (previous) renderMonitorToggles();
+  clearInterval(songClock);
+  songClock = null;
   sidSubtune.onchange = null;
   sidSubtune.parentElement.hidden = true;
 }
-function refreshSid() {
-  if (!sidSong) return;
-  const state = sidSong.read();
+function refreshSong() {
+  if (!songPlayer) return;
+  const state = songPlayer.read();
   playButton.disabled = !(state.canPlay || state.canResume);
   pauseButton.disabled = !state.canPause;
   stopButton.disabled = !state.canStop;
   replayButton.disabled = !(state.canPause || state.canResume || state.canPlay);
   playButton.textContent = state.paused ? 'Resume' : 'Play';
-  setLoadProgress('sid', state.loading ? state.message : '');
+  setLoadProgress('song', state.loading ? state.message : '');
   setStatus(state.message);
+  if (state.error) setPlaybackError(state.message);
+  else setPlaybackError();
   updateSeekPosition();
-  if (state.canPause && !sidClock) sidClock = setInterval(updateSeekPosition,250);
-  if (!state.canPause) {clearInterval(sidClock); sidClock = null;}
+  if (state.canPause && !songClock) songClock = setInterval(updateSeekPosition,250);
+  if (!state.canPause) {clearInterval(songClock); songClock = null;}
 }
 
 function renderSeekPosition(sample) {
@@ -158,8 +161,8 @@ function renderSeekPosition(sample) {
 }
 
 function updateSeekPosition() {
-  if (sidSong) {
-    const seconds = Math.floor(sidSong.read().positionSeconds);
+  if (songPlayer) {
+    const seconds = Math.floor(songPlayer.read().positionSeconds);
     const label = Math.floor(seconds/60) + ':' + String(seconds%60).padStart(2,'0');
     playbackSeekTime.textContent = inlinePlaybackSeekTime.textContent = label;
     return;
@@ -319,7 +322,6 @@ const audioPreferences = createAudioPreferences();
 const effectSettings = audioPreferences.getEffect();
 let effectsChain = null;
 let masterBoost = null;
-let consoleOutput = null;
 const spcPanel = document.getElementById('spcInfoPanel');
 const spcView = mountSpcAnalyzer({
   root:spcPanel,
@@ -508,7 +510,7 @@ function releaseEffectsChain() {
 }
 
 function rewireAudioGraph() {
-  const node = consoleOutput ?? sidSong?.outputNode ?? (spcView.active ? spcView.outputNode : activeStream?.node);
+  const node = songPlayer?.outputNode ?? (spcView.active ? spcView.outputNode : activeStream?.node);
   if (!node) return;
   const context = node.context;
   node.disconnect();
@@ -517,7 +519,7 @@ function rewireAudioGraph() {
     masterBoost = context.createGain();
     masterBoost.connect(context.destination);
   }
-  masterBoost.gain.value = (consoleOutput || sidSong?.outputNode) ? 1 : Math.max(1,masterVolume / 3.8);
+  masterBoost.gain.value = songPlayer?.outputNode ? 1 : Math.max(1,masterVolume / 3.8);
   if (effectSettings.enabled) {
     const chain = ensureEffectsChain(context);
     chain.output.disconnect();
@@ -757,10 +759,10 @@ function updateMasterVolumeUi() {
 }
 
 function applyMasterVolume() {
-  sidSong?.setVolume(masterVolume);
+  songPlayer?.setVolume(masterVolume);
   audioPreferences.setMaster(masterVolume);
   const level = Math.min(masterVolume,3.8);
-  if (masterBoost) masterBoost.gain.value = (consoleOutput || sidSong?.outputNode) ? 1 : Math.max(1,masterVolume / 3.8);
+  if (masterBoost) masterBoost.gain.value = songPlayer?.outputNode ? 1 : Math.max(1,masterVolume / 3.8);
   spcView.setMasterVolume(level);
   engine?.setMasterVolume?.(level);
   player?.setMasterVolume?.(level);
@@ -799,18 +801,18 @@ function requestPlaybackUiRender(extra = "") {
 function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
-  if (currentChipKind === 'sid') {
+  if (['sid','vsu','scsp','spu'].includes(currentChipKind)) {
     for (const container of [monitorToggles,inlineMonitorToggles]) {
       container.replaceChildren();
-      for (let channel = 0; sidSong && channel < 3; channel++) {
+      for (let channel = 0; songPlayer && channel < (songPlayer.channelCount ?? 3); channel++) {
         const button = document.createElement('button');
         const bit = 1 << channel;
-        const muted = Boolean(sidSong.muteMask & bit);
+        const muted = Boolean(songPlayer.muteMask & bit);
         button.type = 'button'; button.className = 'channel-toggle' + (muted ? ' is-muted' : '');
         button.textContent = 'CH' + (channel+1);
-        button.setAttribute('aria-label','Mute SID CH'+(channel+1));
+        button.setAttribute('aria-label','Mute '+currentChipKind.toUpperCase()+' CH'+(channel+1));
         button.setAttribute('aria-pressed',String(muted));
-        button.onclick = () => {sidSong.setMuteMask(sidSong.muteMask ^ bit); renderMonitorToggles();};
+        button.onclick = () => {songPlayer.setMuteMask(songPlayer.muteMask ^ bit); renderMonitorToggles();};
         container.append(button);
       }
     }
@@ -3090,7 +3092,7 @@ function updatePlaybackButtons(state = {}) {
   exportSnapshotButton.disabled = !hasBuffer;
   updatePlaylistNavigation();
   updateChipSupport();
-  if (sidSong) refreshSid();
+  if (songPlayer) refreshSong();
 }
 
 // Keep the first playback-only chip boundary local until more features are implemented.
@@ -3272,7 +3274,12 @@ function downloadParseInfo() {
 }
 
 async function playCurrentVgm(startSample = 0) {
-  if (sidSong) {await (sidSong.read().paused ? sidSong.resume() : sidSong.play()); return;}
+  if (songPlayer) {
+    const track = songPlayer;
+    try {await (track.read().paused ? track.resume() : track.play());}
+    catch (error) {if (songPlayer === track) reportPlaybackError(error);}
+    return;
+  }
   if (spcView.active) {await spcAction(() => spcView.play()); return;}
   const revision = playlistRevision;
   if (timelineSeekController) return;
@@ -3587,6 +3594,8 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
   progress('Opening');
   try {
     await loadTrackFile(file, preserveEditor, requestedAt, progress);
+  } catch (error) {
+    renderMonitorToggles(); updatePlaybackButtons(); reportPlaybackError(error); throw error;
   } finally {
     setLoadProgress(owner);
   }
@@ -3594,7 +3603,7 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
 
 async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   const enteredAt = performance.now();
-  clearSid();
+  clearSong();
   loopCheckbox.disabled = false;
   spcNoteish.clear();
   spcScoreSource=null;spcScore=null;
@@ -3633,7 +3642,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   const moduleAt = performance.now();
   if (isSid && file.size > sidModule.PSID_MAX_FILE_BYTES) throw new Error('SID exceeds the maximum C64 program size.');
   progress('Reading');
-  const rawBuffer = await file.arrayBuffer();
+  const rawBuffer = file.consoleEntry ? null : await file.arrayBuffer();
   const fileAt = performance.now();
   progress('Analyzing');
   // Give the indicator a paint opportunity before synchronous parsing of large tracks.
@@ -3655,6 +3664,22 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   renderChannelMonitor();
   requestNoteishRender();
   renderNoteishGrid();
+
+  if (file.consoleEntry) {
+    progress('Loading');
+    const song = await file.consoleEntry();
+    engine?.dispose?.();
+    engine = player = engineClockKey = null;
+    workletModuleReady = false;
+    currentHasPcm = false;
+    noteishHeader = {};
+    tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
+    for (const out of [commandUsageOutput,dataBlocksOutput,specialCommandsOutput,pcmRamWriteOutput,command92ContextOutput]) out.textContent = '—';
+    headerOutput.textContent = song.format+' · '+song.path;
+    metadataOutput.textContent = song.title || '';
+    await prepareConsoleTrack(song);
+    return;
+  }
 
   if (isSid) {
     progress('Checking');
@@ -3680,27 +3705,24 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     sidSubtune.value = String(startSong);
     sidSubtune.parentElement.hidden = songs < 2;
     const selectSubtune = () => {
-      const previous = sidSong;
-      sidSong = null;
+      const previous = songPlayer;
+      songPlayer = null;
       previous?.dispose();
-      clearInterval(sidClock); sidClock = null;
+      clearInterval(songClock); songClock = null;
       try {
-        sidSong = sidModule.createSidSong(bytes,Number(sidSubtune.value),() => masterVolume,refreshSid,{
+        songPlayer = sidModule.createSidSong(bytes,Number(sidSubtune.value),() => masterVolume,refreshSong,{
           connectOutput:rewireAudioGraph,
-          releaseOutput(context) {
-            if (effectsChain?.context === context) releaseEffectsChain();
-            if (masterBoost?.context === context) {masterBoost.disconnect(); masterBoost = null;}
-          },
+          releaseOutput:releaseSongOutput,
         });
         renderMonitorToggles();
-        detectedChipsOutput.textContent = sidSong.description;
+        detectedChipsOutput.textContent = songPlayer.description;
         setPlaybackError();
-        refreshSid();
-      } catch (error) {setLoadProgress('sid'); renderMonitorToggles(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(error.message);}
+        refreshSong();
+      } catch (error) {setLoadProgress('song'); renderMonitorToggles(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(error.message);}
     };
     sidSubtune.onchange = selectSubtune;
     selectSubtune();
-    if (sidSong) {
+    if (songPlayer) {
       const readyAt = performance.now();
       const ms = value => Math.round(value);
       headerOutput.textContent = JSON.stringify({format,model,clock,songs,startSong,loadTimingMs:{
@@ -3796,7 +3818,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
     setOutputTab('parsed-output');
     setStatus(file.name + ' · ' + consoleChip + ' VGM');
-    await openConsoleSongs([file]);
+    await prepareConsoleTrack({format:consoleChip,path:file.name,bytes:buffer});
     return;
   }
   renderDetectedChips(vgm.header);
@@ -3995,7 +4017,7 @@ function renderPlaylist() {
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = file.name;
-    button.title = `Play ${file.name}`;
+    button.title = `Play ${file.webkitRelativePath || file.name}`;
     button.setAttribute("aria-current", index === playlistIndex ? "true" : "false");
     button.addEventListener("click", () => selectPlaylistTrack(index, true));
     row.appendChild(button);
@@ -4011,7 +4033,7 @@ async function loadPlaylistTrack(index, autoplay, revision, requestedAt) {
   playlistPage = Math.floor(position/pageSize);
   renderPlaylist();
   await handleFile(playlistFiles[index],false,requestedAt);
-  if (autoplay && (currentBuffer || spcView.active || sidSong) && revision === playlistRevision) await playCurrentVgm();
+  if (autoplay && (currentBuffer || spcView.active || songPlayer) && revision === playlistRevision) await playCurrentVgm();
 }
 
 function selectPlaylistTrack(index, autoplay) {
@@ -4019,6 +4041,7 @@ function selectPlaylistTrack(index, autoplay) {
   const file = playlistFiles[index];
   if (!file) return;
   const revision = ++playlistRevision;
+  songPlayer?.stop();
   stopActiveStream();
   player?.pause();
   timelineSeekController?.abort();
@@ -4057,57 +4080,59 @@ for (const [button, direction] of [[playlistPrevButton, -1], [playlistNextButton
 }
 playlistLoopCheckbox.addEventListener('change', updatePlaylistNavigation);
 
-let consoleSongLoader, lastConsoleFiles;
-document.getElementById('reopenConsole').onclick = () => {
-  if (lastConsoleFiles) void openConsoleSongs(lastConsoleFiles);
-};
-async function openConsoleSongs(files) {
-  const owner = Symbol();
-  setLoadProgress(owner, files.length === 1 ? 'Opening '+files[0].name+'…' : 'Opening '+files.length+' files…');
-  try {
-    consoleSongLoader ??= import('./console_songs.js?v=console-fx-1').then(({createConsoleSongs}) =>
-      createConsoleSongs(document.getElementById('consoleSongs'), () => masterVolume, {
-        effectsPane:dockEffectPane,
-        setOutput(node) {
-          if (consoleOutput === node) return;
-          if (consoleOutput) {
-            consoleOutput.disconnect();
-            if (effectsChain?.context === consoleOutput.context) releaseEffectsChain();
-            if (masterBoost?.context === consoleOutput.context) {masterBoost.disconnect(); masterBoost = null;}
-          }
-          consoleOutput = node;
-          rewireAudioGraph();
-        },
-      }));
-    const open = await consoleSongLoader;
-    sidSong?.stop();
-    stopActiveStream();
-    player?.pause();
-    if (spcView.active && spcView.state.playing) await spcView.pause();
-    updatePlaybackButtons();
-    await open(files);
-    lastConsoleFiles = files;
-    document.getElementById('reopenConsole').hidden = false;
-  } catch (error) {consoleSongLoader = null; setStatus(error.message);}
-  finally {setLoadProgress(owner);}
+function releaseSongOutput(context) {
+  if (effectsChain?.context === context) releaseEffectsChain();
+  if (masterBoost?.context === context) {masterBoost.disconnect(); masterBoost = null;}
 }
-for (const id of ['consoleFiles','consoleFolder']) document.getElementById(id).onchange = event => {
-  const files = Array.from(event.target.files);
+function loadConsoleModule() {return import('./console_songs.js?v=playlist-1');}
+
+async function prepareConsoleTrack(song) {
+  const module = await loadConsoleModule();
+  const track = await module.createConsoleSong(song,{
+    getMaster:() => masterVolume, update:refreshSong,
+    connectOutput:rewireAudioGraph, releaseOutput:releaseSongOutput,
+    onEnded:() => {if (songPlayer === track) void advancePlaylist();},
+  });
+  songPlayer = track;
+  currentChipKind = track.chip.toLowerCase();
+  loopCheckbox.disabled = true;
+  detectedChipsOutput.hidden = false;
+  detectedChipsOutput.textContent = track.chip+' · '+song.format+' · '+track.channelCount+' CH';
+  if (track.loadedFiles?.length) metadataOutput.textContent = [song.title,...track.loadedFiles].filter(Boolean).join(' · ');
+  renderMonitorToggles();
+  setOutputTab('parsed-output');
+  updatePlaybackButtons();
+}
+
+document.getElementById('consoleFolder').onchange = event => {
+  const files = Array.from(event.target.files).filter(file => /\.(sid|ssf|minissf|ssflib|psf|minipsf|psf1?lib|vgm|vgz|s98|spc)$/i.test(file.name));
   event.target.value = '';
-  if (files.some(file => /\.sid$/i.test(file.name))) {
-    void importPlaylistFiles(files.filter(file => /\.(sid|ssf|minissf|ssflib|psf|minipsf|psf1?lib|vgm|vgz|s98|spc)$/i.test(file.name)));
-  } else if (files.length) void openConsoleSongs(files);
+  if (files.length) void importPlaylistFiles(files);
 };
 
 function importPlaylistFiles(files) {
   const requestedAt = performance.now();
-  const songSet = Array.from(files).filter(file => /\.(ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name));
-  const auxiliary = new Set(songSet);
-  files = Array.from(files).filter(file => !auxiliary.has(file));
-  if (!files.length && songSet.length) return queuePlaylistTask(() => openConsoleSongs(songSet));
-  const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98|spc|sid)$/i.test(file.name));
+  files = Array.from(files);
+  const tracks = files.filter(file => /\.(vgm|vgz|s98|spc|sid)$/i.test(file.name));
+  for (const [members, playable] of [[/\.(ssf|minissf|ssflib)$/i,/\.(ssf|minissf)$/i],
+      [/\.(psf|minipsf|psf1?lib)$/i,/\.(psf|minipsf)$/i]]) {
+    const set = files.filter(file => members.test(file.name));
+    let entries;
+    for (const file of set.filter(file => playable.test(file.name))) {
+      const path = file.webkitRelativePath || file.name;
+      tracks.push({name:file.name,webkitRelativePath:path,async consoleEntry() {
+        entries ??= loadConsoleModule().then(module => module.consoleSongEntries(set))
+          .then(songs => new Map(songs.map(song => [song.path,song])))
+          .catch(error => {entries = null; throw error;});
+        const entry = (await entries).get(path.replaceAll('\\','/'));
+        if (!entry) throw new Error('Missing song entry: '+path);
+        return entry;
+      }});
+    }
+  }
   const revision = tracks.length ? ++playlistRevision : playlistRevision;
   if (tracks.length) {
+    songPlayer?.stop();
     stopActiveStream();
     player?.pause();
     timelineSeekController?.abort();
@@ -4128,12 +4153,12 @@ function importPlaylistFiles(files) {
         await loadRomFile(file, handleYmf278bRomFile);
       } else if (/\.bin$/i.test(file.name)) {
         await loadRomFile(file, handleYm2608RomFile);
-      } else if (!/\.(vgm|vgz|s98|spc|sid)$/i.test(file.name)) {
+      } else if (!/\.(vgm|vgz|s98|spc|sid|ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name)) {
         rejected.push(file.name);
       }
     }
     if (tracks.length) await loadPlaylistTrack(0, false, revision, requestedAt);
-    if (songSet.length) await openConsoleSongs(songSet);
+    if (!tracks.length && files.some(file => /\.(ssflib|psf1?lib)$/i.test(file.name))) setStatus('Choose a song together with its library files.');
     if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98, SPC, SID, SSF/miniSSF, PSF1/miniPSF, yrw801.rom or a YM2608 ROM .bin file.`);
   });
 }
@@ -4244,7 +4269,7 @@ playButton.addEventListener("click", async () => {
 });
 
 pauseButton.addEventListener("click", async () => {
-  if (sidSong) {await sidSong.pause(); return;}
+  if (songPlayer) {await songPlayer.pause(); return;}
   if (spcView.active) {await spcAction(() => spcView.pause()); setStatus('SPC paused.'); return;}
   if (!player) {
     return;
@@ -4258,7 +4283,7 @@ pauseButton.addEventListener("click", async () => {
 
 
 replayButton.addEventListener("click", async () => {
-  if (sidSong) {sidSong.stop(); await sidSong.play(); return;}
+  if (songPlayer) {const track = songPlayer; await track.stop(); if (songPlayer === track) await track.play(); return;}
   if (spcView.active) {timelineSelectionPending=false;seekSelection=null;await spcAction(async () => {await spcView.stop(); await spcView.play();});return;}
   if (!currentBuffer) {
     return;
@@ -4268,7 +4293,7 @@ replayButton.addEventListener("click", async () => {
 
 stopButton.addEventListener("click", () => {
   playlistRevision += 1;
-  if (sidSong) {sidSong.stop(); return;}
+  if (songPlayer) {songPlayer.stop(); return;}
   if (spcView.active) {timelineSelectionPending=false;seekSelection=null;songTimeline.cursor(0,false);void spcAction(() => spcView.stop());setStatus('SPC stopped.');return;}
   timelineSeekController?.abort();
   resetTimelineToStart();
@@ -4401,7 +4426,7 @@ const sbiInfo = mountSbiInfo({root:document.getElementById('sbiInfoPanel'),onSta
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) {clearSid();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
+window.addEventListener('pagehide', event => { if (!event.persisted) {clearSong();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
 
 function selectedOutputTab() {
   for (const [tab, name] of [

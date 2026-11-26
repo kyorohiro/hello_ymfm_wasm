@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createScspSongPlayer} from '../synth-scsp/song_player.js';
-import {listScspSsfEntries, readScspSsfSet} from '../synth-scsp/ssf_source.js';
+import {listScspSsfEntries, parseScspSsfTime, readScspSsfSet} from '../synth-scsp/ssf_source.js';
 import {readPsfFileSet} from '../playground/playground_ps1_psf.js';
 import {createPsfSongPreview} from '../synth-spu/psf_song_preview.js';
 import {preparePsfSongSource} from '../synth-spu/psf_song_source.js';
@@ -9,11 +9,9 @@ import {SPU_SYNTH_MIX_HEADROOM} from '../synth-spu/spu_synth_levels.js';
 
 import {createVsuAudio} from '../synth-vsu/audio.js';
 import {parseVsuVgm} from '../synth-vsu/vgm.js';
-import {maybeDecodeVgmFile} from '../js/vgm_file.js';
-import {consoleVgmChip} from './console_vgm.js';
 
-function vsuSong(plan, getMaster, update, getMuteMask, setOutput) {
-  let state = 'stopped', position = 0, message = '';
+function vsuSong(plan, update, getMuteMask, setOutput) {
+  let state = 'stopped', position = 0, message = '', revision = 0;
   const engine = createVsuAudio({volume:1,onVgmState(event) {
     state = event.state;
     position = event.positionTicks / 44100;
@@ -22,20 +20,22 @@ function vsuSong(plan, getMaster, update, getMuteMask, setOutput) {
   return {
     usesOwnAudio:true,
     setMuteMask(mask) {if (engine.output) engine.setVgmMask(63 & ~mask);},
-    read:() => ({canPlay:['stopped','ended'].includes(state),canPause:state === 'playing',
-      canResume:state === 'paused',paused:state === 'paused',canStop:['playing','paused'].includes(state),
-      positionSeconds:position,message:message || 'VSU · '+state}),
+    read:() => ({state,canPlay:['stopped','ended'].includes(state),canPause:state === 'playing',
+      canResume:state === 'paused',paused:state === 'paused',canStop:['starting','playing','paused'].includes(state),
+      positionSeconds:position,busy:state === 'starting',message:message || 'VSU · '+state}),
     async play() {
-      state = 'starting'; update();
+      const ticket = ++revision;
+      state = 'starting'; message = ''; update();
       try {
         await engine.ensureReady();
-        engine.output.gain.value = getMaster();
+        if (ticket !== revision) return;
         setOutput(engine.output);
         engine.playVgm(plan,{mask:63 & ~getMuteMask()});
-      } catch (error) {state = 'stopped'; message = error.message; update();}
+      } catch (error) {if (ticket === revision) {state = 'stopped'; message = error.message; update();}}
     },
     resume:() => engine.pauseVgm(false), pause:() => engine.pauseVgm(true),
-    stop:() => engine.stopVgm(), dispose:() => engine.dispose(),
+    stop() {revision++; engine.stopVgm(); state = 'stopped'; position = 0; update();},
+    dispose() {revision++; engine.dispose();},
   };
 }
 
@@ -51,174 +51,94 @@ export async function consoleSongEntries(files, signal) {
     const set = await readPsfFileSet(psf,{signal});
     for (const {path,title} of set.entries) if (/\.(psf|minipsf)$/i.test(path)) songs.push({format:'PSF1',path,title,set});
   }
-  for (const file of files.filter(file => /\.vg[zm]$/i.test(file.name))) {
-    songs.push({format:'VGM',path:file.webkitRelativePath || file.name,file});
-  }
   return songs.sort((a,b) => a.path.localeCompare(b.path,undefined,{numeric:true}));
 }
 
-export function createConsoleSongs(dialog, getMaster, {effectsPane, setOutput}) {
-  const control = name => dialog.querySelector('[data-song="'+name+'"]');
-  const select = control('tracks'), status = control('status');
-  let context, master, player, entries = [], revision = 0, controller;
-  let muteMask = 0, psfCore = null, restoreEffects = null;
-  const channels = control('channels');
-  function showChannels(count) {
-    channels.replaceChildren();
-    for (let channel=0; channel<count; channel++) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'channel-toggle';
-      button.textContent = 'CH'+(channel+1);
-      button.setAttribute('aria-label','Mute '+button.textContent);
-      button.setAttribute('aria-pressed','false');
-      button.onclick = () => {
-        const bit = 1 << channel;
-        muteMask = (muteMask ^ bit) >>> 0;
-        button.setAttribute('aria-pressed',String(Boolean(muteMask & bit)));
-        button.classList.toggle('is-muted',Boolean(muteMask & bit));
-        player?.setMuteMask?.(muteMask);
-        psfCore?.setMuteMask(muteMask);
-      };
-      channels.append(button);
-    }
+/** One selected playlist track owns its engine, output and mute state. */
+export async function createConsoleSong(song, {getMaster, update, connectOutput, releaseOutput, onEnded}) {
+  let context, output, engine, psfCore, disposed = false, muteMask = 0;
+  let message = '', finished = false, fadeGain = 1, playRevision = 0;
+  const psf = song.format === 'PSF1';
+  const chip = psf ? 'SPU' : song.format === 'VSU' ? 'VSU' : 'SCSP';
+  const tags = psf && song.set.records.get(song.path)?.tags;
+  const length = tags ? parseScspSsfTime(tags.get('length')) : null;
+  const duration = length === null ? null : length + (parseScspSsfTime(tags.get('fade')) || 0);
+  function setVolume(value) {
+    if (output) output.gain.value = value * (psf ? SPU_SYNTH_MIX_HEADROOM * fadeGain : 1);
   }
-  function render() {
-    const state = player?.read();
-    control('play').disabled = !(state?.canPlay || state?.canResume);
-    control('pause').disabled = !state?.canPause;
-    control('stop').disabled = !state?.canStop;
-    control('play').textContent = state?.paused ? 'Resume' : 'Play';
-    if (state?.message || state?.errorMessage) status.textContent = state.errorMessage || state.message;
-    control('position').textContent = Math.floor(state?.positionSeconds || 0) + ' s';
+  function attach(node) {
+    if (disposed) return;
+    output = node;
+    setVolume(getMaster());
+    connectOutput();
   }
-  const audio = async () => {
-    if (!context) {
-      context = new AudioContext();
-      master = context.createGain();
-
-    }
-    setOutput(master);
-    master.gain.value = getMaster() * (entries[select.selectedIndex]?.format === 'PSF1' ? SPU_SYNTH_MIX_HEADROOM : 1);
+  async function audio() {
+    if (disposed) throw new Error('Track closed');
+    if (!context) {context = new AudioContext(); attach(context.createGain());}
     await context.resume();
-    return {context, gain:master, outputNode:master};
-  };
-  function retire() {
-    const old = player;
-    player = null;
-    setOutput(null);
-    psfCore = null; muteMask = 0; showChannels(0);
-    old?.dispose();
+    return {context, gain:output, outputNode:output};
   }
-  async function choose() {
-    const ticket = ++revision;
-    retire();
-    render();
-    const song = entries[select.selectedIndex];
-    control('info').textContent = song?.title || '';
-    if (!song) return;
-    control('progress').hidden = false;
-    status.textContent = 'Loading '+song.path+'…';
-    const update = () => { if (ticket === revision) render(); };
-    try {
-      let bytes;
-      if (song.file) {
-        if (song.file.size > 64 * 1024 * 1024) throw new Error('VGM exceeds 64 MiB.');
-        bytes = await maybeDecodeVgmFile(await song.file.arrayBuffer(),{maxBytes:64*1024*1024});
-        if (ticket !== revision) return;
-        const chip = consoleVgmChip(bytes);
-        if (!chip) throw new Error('Use the main playlist for other VGM chips.');
-        control('info').textContent = chip + ' · VGM';
-        if (chip === 'VSU') {
-          showChannels(6);
-          player = vsuSong(parseVsuVgm(bytes),getMaster,update,() => muteMask,setOutput);
-          update();
-          return;
-        }
-      }
-      if (song.format === 'PSF1') {
-        showChannels(24);
-        player = createPsfSongPreview({getAudio:audio,onUpdate:update,async createCore({set,entry,signal}) {
-          const image = await preparePsfSongSource(set,entry,{signal});
-          const core = await createPsfPlaybackCore({image,signal});
-          if (ticket === revision && !signal?.aborted) {
-            psfCore = core;
-            core.setMuteMask(muteMask);
-          }
-          return core;
-        }});
-        player.setLiveEnabled(false);
-        player.setSource(song.set,song.path);
-      } else {
-        showChannels(32);
-        player = createScspSongPlayer({getAudio:audio,getMuteMask:() => muteMask,onState:update,onStatus(message) {
-          if (ticket === revision) status.textContent = message;
-        }});
-        if (song.file) {
-          await player.load(new Uint8Array(bytes),song.path);
-        } else {
-          const loaded = await player.loadSsf(song.set,song.path);
-          if (ticket === revision) control('info').textContent = [song.title,loaded.format,...loaded.loadedFiles].filter(Boolean).join(' · ');
-        }
-        if (ticket === revision) status.textContent = 'Ready';
-      }
-    } catch (error) { if (ticket === revision) status.textContent = error.message; }
-    finally {if (ticket === revision) control('progress').hidden = true;}
+  function changed() {
+    if (disposed || !engine) return;
+    const state = engine.read();
+    if (psf && duration > length && state.playing) {
+      const next = Math.min(1, Math.max(0, (duration-state.positionSeconds)/(duration-length)));
+      if (next !== fadeGain) {fadeGain = next; setVolume(getMaster());}
+    }
+    const atEnd = state.state === 'ended' || (psf && duration > 0 && state.playing && state.positionSeconds >= duration);
+    if (atEnd && !finished) {
+      finished = true;
+      if (psf) engine.stop();
+      onEnded();
+    }
     update();
   }
-  select.onchange = () => choose();
-  for (const action of ['play','pause','stop']) control(action).onclick = async () => {
-    const current = player;
-    try {
-      if (action === 'play' && !current?.usesOwnAudio) await audio();
-      if (current && current === player) await current[action === 'play' && current.read().paused ? 'resume' : action]();
-    } catch (error) { if (current === player) status.textContent = error.message; }
-    render();
-  };
-  let timer;
-  function close() {
-    ++revision;
-    controller?.abort();
-    retire();
-    clearInterval(timer);
-    restoreEffects?.(); restoreEffects = null;
+  function dispose() {
+    disposed = true;
+    playRevision++;
+    if (output) releaseOutput(output.context);
+    engine?.dispose();
     if (context) void context.close();
-    context = master = null;
-    entries = [];
-    select.replaceChildren();
   }
-  dialog.addEventListener('close',() => {if (!dialog.open) close();});
-  window.addEventListener('pagehide',close);
-  return async files => {
-    const ticket = ++revision;
-    controller?.abort();
-    controller = new AbortController();
-    retire();
-    entries = [];
-    select.replaceChildren();
-    if (!restoreEffects) {
-      const marker = document.createComment('Analyzer Effect controls');
-      effectsPane.before(marker);
-      const hidden = effectsPane.hidden;
-      control('effects').append(effectsPane);
-      effectsPane.hidden = false;
-      restoreEffects = () => {marker.replaceWith(effectsPane); effectsPane.hidden = hidden;};
+  try {
+    if (chip === 'VSU') {
+      engine = vsuSong(parseVsuVgm(song.bytes),changed,() => muteMask,attach);
+    } else if (psf) {
+      engine = createPsfSongPreview({getAudio:audio,onUpdate:changed,async createCore({set,entry,signal}) {
+        const image = await preparePsfSongSource(set,entry,{signal});
+        psfCore = await createPsfPlaybackCore({image,signal});
+        psfCore.setMuteMask(muteMask);
+        return psfCore;
+      }});
+      engine.setLiveEnabled(false);
+      engine.setSource(song.set,song.path);
+    } else {
+      engine = createScspSongPlayer({getAudio:audio,getMuteMask:() => muteMask,onState:changed,
+        onStatus(value) {message = value; changed();}});
+      if (song.bytes) await engine.load(new Uint8Array(song.bytes),song.path);
+      else await engine.loadSsf(song.set,song.path);
     }
-    if (!dialog.open) dialog.showModal();
-    clearInterval(timer);
-    timer = setInterval(render,250);
-    control('info').textContent = '';
-    control('progress').hidden = false;
-    status.textContent = files.length === 1 ? 'Reading '+files[0].name+'…' : 'Reading '+files.length+' song files…';
-    render();
-    try {
-      const songs = await consoleSongEntries(files,controller.signal);
-      if (ticket !== revision) return;
-      entries = songs;
-      for (const {path,format} of songs) select.add(new Option(format+' · '+path));
-      if (songs.length) await choose();
-      else status.textContent = 'Select a song together with its library files.';
-    } catch (error) { if (ticket === revision) status.textContent = error.message; }
-    finally {if (ticket === revision) control('progress').hidden = true;}
-  };
+    return {
+      channelCount:chip === 'VSU' ? 6 : psf ? 24 : 32, chip,
+      get loadedFiles() {return engine.read().loadedFiles;},
+      get outputNode() {return output;}, get muteMask() {return muteMask;},
+      setMuteMask(mask) {muteMask = mask >>> 0; engine.setMuteMask?.(muteMask); psfCore?.setMuteMask(muteMask);},
+      setVolume, dispose,
+      read() {
+        const state = engine.read();
+        return {...state, loading:state.busy, error:state.error || state.errorMessage, message:state.errorMessage || state.message || message || chip+' · Ready'};
+      },
+      async play() {
+        const revision = ++playRevision;
+        finished = false;
+        fadeGain = 1;
+        setVolume(getMaster());
+        // Unlock inside the Play gesture, before PSF decompression / Worker startup.
+        if (chip !== 'VSU') await audio();
+        if (!disposed && revision === playRevision) await engine.play();
+        changed();
+      },
+      pause:() => engine.pause(), resume:() => engine.resume(), stop() {playRevision++; return engine.stop();},
+    };
+  } catch (error) {dispose(); throw error;}
 }

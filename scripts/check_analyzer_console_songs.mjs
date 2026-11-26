@@ -41,7 +41,7 @@ try {
     };
   });
   await page.goto('http://127.0.0.1:'+server.address().port+(process.argv[2] ? '/' : '/vgm_analyzer/')+'index.html');
-  const modal = page.locator('#consoleSongs'), play = modal.locator('[data-song="play"]');
+  const play = page.locator('#inlinePlayButton'), pause = page.locator('#inlinePauseButton'), stop = page.locator('#inlineStopButton');
   // Hold the browser's file read as it would be for a cloud-backed file.
   await page.evaluate(() => {
     const read = File.prototype.arrayBuffer;
@@ -67,9 +67,9 @@ try {
     await writeFile(join(work,name),bytes);
   }
   await page.locator('#consoleFolder').setInputFiles(work);
-  const select = modal.locator('[data-song="tracks"]');
-  await select.locator('option').nth(3).waitFor({state:'attached'});
-  assert.equal(await select.locator('option').count(),4);
+  const tracks = page.locator('#playlistList button');
+  await tracks.nth(3).waitFor();
+  assert.deepEqual(await tracks.allTextContents(),['a.ssf','b.psf','c.minissf','d.minipsf']);
   // Sample after the Analyzer's master/FX output, including renderer lookahead.
   const checkOutput = audible => page.waitForFunction(expected => {
     if (!window.testMeter) return false;
@@ -78,7 +78,7 @@ try {
     return (Math.max(...pcm)-Math.min(...pcm) > .0001) === expected;
   },audible,{timeout:5000,polling:10});
   async function checkConsoleMixer(count) {
-    const buttons = modal.locator('[data-song="channels"] button');
+    const buttons = page.locator('#inlineMonitorToggles button');
     assert.equal(await buttons.count(),count);
     // The fixtures sound on CH1. Muting the highest physical CH first also
     // exercises SCSP slot 32 (the sign bit) and mute state before Play.
@@ -89,37 +89,50 @@ try {
     await checkOutput(false);
     await buttons.first().click();
     await checkOutput(true);
-    const effects = modal.locator('[data-song="effects"]');
-    await effects.locator('summary').click();
+    const effects = page.locator('#dockEffectPane');
+    await page.locator('#dockEffectTab').click();
     await effects.locator('#effectEnabled').click();
     await effects.locator('#effectGain').evaluate(el => {el.value=0; el.dispatchEvent(new Event('input'));});
     await checkOutput(false);
     await effects.locator('#effectEnabled').click();
     await checkOutput(true);
-    await effects.locator('summary').click();
-    await modal.locator('[data-song="stop"]').click();
+    await stop.click();
   }
   async function playAudible() {
     await page.evaluate(()=>window.testPeak=0);
-    await play.click({timeout:5000}).catch(async error => {throw new Error(await modal.innerText(),{cause:error});});
+    await play.click({timeout:5000});
     await page.waitForFunction(()=>window.testPeak > 0.00001,null,{timeout:5000});
-    await modal.locator('[data-song="pause"]').click();
+    await pause.click();
     await play.filter({hasText:'Resume'}).waitFor();
     await play.click();
-    await modal.locator('[data-song="stop"]').click();
+    await stop.click();
   }
   for (let index=0; index<4; index++) {
-    await select.selectOption({index});
+    if (index) {
+      await tracks.nth(index).click();
+      await pause.click();
+      await stop.click();
+    }
     await playAudible();
     if (index < 2) await checkConsoleMixer(index === 0 ? 32 : 24);
-    console.log(await select.inputValue());
+    console.log(await tracks.nth(index).textContent());
   }
-  await modal.getByText('Close',{exact:true}).click();
+  // Carry active FX into the next audio context at the natural SSF and PSF ends.
+  await page.locator('#dockEffectTab').click();
+  await page.locator('#effectEnabled').click();
+  await tracks.first().click();
+  await page.waitForFunction(() => document.querySelector('#playlistList [aria-current="true"]')?.textContent === 'b.psf');
+  await page.waitForFunction(() => document.querySelector('#inlineMonitorToggles')?.children.length === 24 && !document.querySelector('#inlinePauseButton').disabled);
+  assert.equal(await page.locator('#effectEnabled').getAttribute('aria-pressed'),'true');
+  await checkOutput(false);
+  await page.locator('#effectEnabled').click();
+  await checkOutput(true);
+  await page.waitForFunction(() => document.querySelector('#playlistList [aria-current="true"]')?.textContent === 'c.minissf');
+  await stop.click();
   await page.locator('#fileInput').setInputFiles({name:'original.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(buildScspSongDemo())});
   await playAudible();
   await checkConsoleMixer(32);
   console.log('SCSP VGM passed');
-  await modal.getByText('Close',{exact:true}).click();
   const writes = [];
   const write = (word,value) => writes.push(0xc7,word >> 8,word & 255,value);
   for (let n=0;n<32;n++) write(n,n < 16 ? 63 : 0);
@@ -135,12 +148,11 @@ try {
     window.testMeter?.getFloatTimeDomainData(pcm);
     return pcm.some(value=>Math.abs(value)>0.00001);
   },null,{timeout:5000});
-  await modal.locator('[data-song="pause"]').click();
+  await pause.click();
   await play.filter({hasText:'Resume'}).waitFor();
-  await modal.locator('[data-song="stop"]').click();
+  await stop.click();
   await checkConsoleMixer(6);
   console.log('VSU VGM passed');
-  await modal.getByText('Close',{exact:true}).click();
   const mainPlay = page.locator('#inlinePlayButton');
   for (const [path, model] of [['tone.sid','6581'],['rsid/irq.sid','6581'],['tone.sid','8580']]) {
     const buffer = await readFile(new URL('../docs/sid-player/demos/'+path,import.meta.url));
@@ -151,7 +163,6 @@ try {
     }
     await page.locator('#fileInput').setInputFiles({name:'test.sid',mimeType:'application/octet-stream',buffer});
     await page.locator('#detectedChips').filter({hasText:model}).waitFor();
-    assert.equal(await modal.isVisible(),false);
     if (path === 'tone.sid') {
       const subtunes = page.locator('#sidSubtune');
       assert.equal(await subtunes.inputValue(),'2');
@@ -220,7 +231,7 @@ try {
       console.log('Local SID passed:',process.argv[3]);
     } else {
       await playAudible();
-      console.log('Local song passed:',await select.inputValue());
+      console.log('Local song passed:',await tracks.first().textContent());
     }
   }
 } finally {

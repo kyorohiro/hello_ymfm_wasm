@@ -1,6 +1,6 @@
 # Analyzer console music inputs
 
-C64 SID songs use the main Analyzer playlist, transport, Master and inline subtune selector. Large playlists display 100 tracks per page. Saturn SSF and PlayStation PSF1 sets open in the console song player. Select a folder to retain relative library paths. The main file picker also accepts individual files and flat sets. SCSP and Virtual Boy VSU VGM/VGZ open the same player from the playlist. Reopen console songs returns to the last imported set. SNES SPC uses the existing eight-voice player, BRR explorer and Note-ish views.
+SID, SPC, Saturn SSF/miniSSF, PSF1/miniPSF and SCSP/VSU VGM/VGZ use the main playlist, transport, Master and Effect controls. The folder picker keeps relative library paths and lists the playable songs. Large playlists display 100 tracks per page. SID has an inline subtune selector, and SPC has the BRR explorer and Note-ish views.
 
 ## Verified
 
@@ -10,14 +10,14 @@ C64 SID songs use the main Analyzer playlist, transport, Master and inline subtu
 - Run `node --test docs/vgm_analyzer/sid_mixer.test.mjs` to compare unmuted fixture output with each original engine and exercise all three voices. The packaged browser test also checks mute, Effect gain and bypass at the destination.
 
 - SSF and miniSSF execute the existing Synth sound-board core. PSF1 and miniPSF use the existing Play! HLE machine and MAME SPU. Libraries are resolved by their respective Synth loaders.
-- The console player exposes 32 SCSP slot mutes, 24 PS1 SPU voice mutes and six VSU channel mutes. SCSP gates direct output and the DSP send, PS1 gates voice mix volume, and VSU uses the hardware renderer's channel mask. Existing DSP/reverb tails decay normally. The player uses the Analyzer Effect controls and saved settings. Mutes take effect as scheduled audio buffers drain.
+- The main monitor exposes 32 SCSP slot mutes, 24 PS1 SPU voice mutes and six VSU channel mutes. SCSP gates direct output and the DSP send, PS1 gates voice mix volume, and VSU uses the hardware renderer's channel mask. Existing DSP/reverb tails decay normally. The player uses the Analyzer Effect controls and saved settings. Mutes take effect as scheduled audio buffers drain.
 - The browser check uses original executable songs, verifies nonzero PCM for both standalone and library-backed files, and exercises pause, resume and stop. Its VGM fixtures exercise the SCSP renderer and VSU AudioWorklet. Run `node scripts/check_analyzer_console_songs.mjs release/itch_vgm_analyzer_console-test` after packaging with `sh scripts/package_itch_vgm_analyzer.sh console-test`. Extra file arguments exercise a local SSF/PSF set without copying the music into the distribution.
 - YM2610 and YM2610B each expose FM, SSG, ADPCM-A and ADPCM-B source volume and mute. Integration tests render each source in isolation through the native engine. Master and chip strips reach 480%, individual YM2608 and YM2610 source gains reach 380%.
 - SNES SPC regression checks cover 8-voice monitoring, mute, raw and voice-configured BRR preview and returning to VGM.
 
 ## Next work
 
-- Integrate console playback with the main timeline, automatic playlist advance and offline WAV export. The current console player has its own transport.
+- Add timeline seeking and offline WAV export for console songs. SCSP and VSU advance on engine completion. PSF1 advances at the end of its declared length and fade. Untimed PSFs continue until Stop or a track change.
 - Expose PS1 live voice observations and dry audition. Investigate a passive snapshot from the **running SSF worker** for Saturn slot monitoring, with positions matched to the audible PCM.
 - Evaluate NSF/NSFe (NES), GBS (Game Boy), HES (PC Engine) and SAP (Atari). Each needs a music-driver execution environment. Compare its generated PCM with a reference and determine which register/voice observations can be exposed. Game_Music_Emu provides reference implementations for these formats.
 - Evaluate MIDI + DX7 SysEx as a paired input for FM21290. Track program/patch selection and distinguish MIDI events from register writes synthesized by Tetorica.

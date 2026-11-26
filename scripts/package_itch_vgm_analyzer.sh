@@ -422,7 +422,7 @@ NES APU: JSNES, Apache-2.0. See licenses/jsnes/ for authors and licenses.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 NES/FDS shared WASM port: Apache-2.0 and MIT. See licenses/tetorica-nes/ and sources/NES-FDS.md for source and rebuilding.
 SNES SPC700 / S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
-C64 SID common-factory dependency: chips/m6581 6581 approximation (zlib) and MIT sidera 8580 Preview, with BSD-3-Clause Tetorica hosts. See licenses/chips-m6581/, sources/SID.md and sources/SID8580.md for matching WASMs, source kits, original licenses and toolchain notices. The console song player runs PAL PSID/RSID v2 using the C64 machine. Additional machine sources and notices are in sources/sid-song-engines.zip.
+C64 SID common-factory dependency: chips/m6581 6581 approximation (zlib) and MIT sidera 8580 Preview, with BSD-3-Clause Tetorica hosts. See licenses/chips-m6581/, sources/SID.md and sources/SID8580.md for matching WASMs, source kits, original licenses and toolchain notices. The main playlist runs PAL PSID/RSID v2 using the C64 machine. Additional machine sources and notices are in sources/sid-song-engines.zip.
 PlayStation VAB / ADPCM JavaScript helpers: BSD-3-Clause Tetorica code. ADSR / reverb tables retain the BSD-3-Clause MAME attribution to pSXAuthor and R. Belmont; see licenses/mame-ps1-spu/LICENSE. No native SPU module is loaded by these helpers.
 AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 
