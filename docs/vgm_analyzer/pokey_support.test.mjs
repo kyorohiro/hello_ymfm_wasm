@@ -59,7 +59,7 @@ test('POKEY detection labels both physical chips and renders unique 4/8 output m
     const controls = [], pokeyChannelMutes = Array(count).fill(false), applied = [];
     const context = vm.createContext({currentChipKind: 'pokey', noteishHeader: {}, pokeyChannelMutes,
       CHANNEL_MUTE_CHIPS: ['pokey'], channelMonitor: [], monitorToggles: {append: b => controls.push(b)},
-      inlineMonitorToggles: {replaceChildren() {}}, ensureMonitorToggleHandler() {},
+      ensureMonitorToggleHandler() {},
       sourcesForChip: () => [], sourceChipKind: () => 'pokey', hasOkiSource: () => false,
       document: {createElement: () => ({attrs: {}, setAttribute(k, v) {this.attrs[k] = v;}, cloneNode() {return this;}})},
       engine: {setChannelMuted(...args) {applied.push(args);}}, renderMonitorToggles() {},

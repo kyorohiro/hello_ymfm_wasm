@@ -573,7 +573,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=dock-setting-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=dock-volume-2">
   </head>
   <body>
     <main>
@@ -725,7 +725,6 @@
             <label hidden id="playlistPageLabel">Playlist page <input id="playlistPage" type="number" min="1" value="1"></label>
             <ol id="playlistList"></ol>
           </section>
-          <div id="inlineMonitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
         </section>
         <section id="settingPanel" class="tab-panel" role="tabpanel" aria-labelledby="settingTab" hidden>
           <div class="queue-settings" role="group" aria-label="Playback queues">
@@ -1000,12 +999,12 @@
             <button id="replayButton" type="button" disabled>Replay</button>
             <button id="playlistPrevButton" type="button" aria-label="Previous track" disabled>&lt;</button>
             <button id="playlistNextButton" type="button" aria-label="Next track" disabled>&gt;</button>
+            <label class="volume-control" for="dockVolumeRange">
+              <span>Vol</span>
+              <input id="dockVolumeRange" aria-label="Playback volume" type="range" min="0" max="480" value="100" step="1">
+              <output id="dockVolumeValue" class="volume-readout" for="dockVolumeRange">100%</output>
+            </label>
           </div>
-          <label class="volume-control" for="dockVolumeRange">
-            <span>Vol</span>
-            <input id="dockVolumeRange" aria-label="Playback volume" type="range" min="0" max="480" value="100" step="1">
-            <output id="dockVolumeValue" class="volume-readout" for="dockVolumeRange">100%</output>
-          </label>
           <div class="transport-row">
             <label title="10 ms fades for browser playback; WAV export is unchanged"><input id="playbackFade" type="checkbox" checked> Fade in / out</label>
             <label><input id="loopCheckbox" type="checkbox"> Loop</label>
@@ -1033,7 +1032,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=dock-setting-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=dock-channels-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

@@ -112,7 +112,7 @@ try {
     return (Math.max(...pcm)-Math.min(...pcm) > .0001) === expected;
   },audible,{timeout:5000,polling:10});
   async function checkConsoleMixer(count) {
-    const buttons = page.locator('#inlineMonitorToggles button');
+    const buttons = page.locator('#monitorToggles button');
     assert.equal(await buttons.count(),count);
     // The fixtures sound on CH1. Muting the highest physical CH first also
     // exercises SCSP slot 32 (the sign bit) and mute state before Play.
@@ -120,13 +120,12 @@ try {
     await play.click();
     await checkOutput(true);
     if (count === 32) {
-      for (const id of ['monitorToggles','inlineMonitorToggles'])
-        await page.waitForSelector('#'+id+' [data-scsp-slot="0"].is-key-on',{state:'attached'});
+      await page.waitForSelector('#monitorToggles [data-scsp-slot="0"].is-key-on',{state:'attached'});
       assert.equal(await buttons.last().getAttribute('class').then(cls => cls.includes('is-key-on')),false);
     }
     await buttons.first().click();
     await checkOutput(false);
-    if (count === 32) await page.waitForSelector('#inlineMonitorToggles .is-muted.is-key-on',{state:'attached'});
+    if (count === 32) await page.waitForSelector('#monitorToggles .is-muted.is-key-on',{state:'attached'});
     await buttons.first().click();
     await checkOutput(true);
     const effects = page.locator('#dockEffectPane');
@@ -162,7 +161,7 @@ try {
     await checkOutput(false);
     await play.click();
     await checkOutput(true);
-    const voice = page.locator('#inlineMonitorToggles button').first();
+    const voice = page.locator('#monitorToggles button').first();
     await voice.click();
     await checkOutput(false);
     await page.locator('#dockEffectTab').click();
@@ -175,7 +174,9 @@ try {
     });
     assert.equal(await voice.getAttribute('aria-pressed'),'true');
     await checkOutput(false);
+    await page.locator('#dockPlayTab').click();
     await voice.click();
+    await page.locator('#dockEffectTab').click();
     assert.equal(await page.locator('#effectEnabled').getAttribute('aria-pressed'),'true');
     await checkOutput(false);
     await page.locator('#effectEnabled').click();
@@ -187,7 +188,7 @@ try {
     const volume = page.locator('#dockVolumeRange');
     const level = n => volume.evaluate((el,value) => {el.value=value; el.dispatchEvent(new Event('input'));},n);
     const mutes = mode => page.evaluate(mode => {
-      const buttons = () => document.querySelectorAll('#inlineMonitorToggles button');
+      const buttons = () => document.querySelectorAll('#monitorToggles button');
       for (let i=0;i<buttons().length;i++) {
         const muted = mode === 'all' || (mode === 'solo' && i !== 0);
         if ((buttons()[i].getAttribute('aria-pressed') === 'true') !== muted) buttons()[i].click();
@@ -275,7 +276,7 @@ try {
   await page.locator('#effectEnabled').click();
   await tracks.first().click();
   await page.waitForFunction(() => document.querySelector('#playlistList [aria-current="true"]')?.textContent === 'b.psf');
-  await page.waitForFunction(() => document.querySelector('#inlineMonitorToggles')?.children.length === 24 && !document.querySelector('#pauseButton').disabled);
+  await page.waitForFunction(() => document.querySelector('#monitorToggles')?.children.length === 24 && !document.querySelector('#pauseButton').disabled);
   assert.equal(await page.locator('#effectEnabled').getAttribute('aria-pressed'),'true');
   await checkOutput(false);
   await page.locator('#effectEnabled').click();
@@ -293,7 +294,7 @@ try {
     await page.waitForFunction(({seconds,keyed}) =>
       !document.querySelector('#playbackSeek').disabled &&
       +document.querySelector('#playbackSeek').value === Math.round(seconds*44100) &&
-      document.querySelector('#inlineMonitorToggles [data-scsp-slot="0"]').classList.contains('is-key-on') === keyed,
+      document.querySelector('#monitorToggles [data-scsp-slot="0"]').classList.contains('is-key-on') === keyed,
       {seconds,keyed});
   }
   await stop.click();
@@ -321,6 +322,8 @@ try {
     await page.locator('#operatorInfoTab').click();
     const soundChip = page.getByRole('tabpanel',{name:'SoundChip',exact:true});
     const chips = soundChip.getByRole('tab');
+    assert.equal(await page.locator('#playlistPanel .channel-toggle').count(),0);
+    assert(await page.locator('#dockPlayPane').getByRole('button',{name:'PSG',exact:true}).count());
     assert.deepEqual(await chips.allTextContents(),['YM2612','Sega PSG']);
     await chips.first().click();
     assert(await soundChip.getByText('FM Channel Monitor',{exact:true}).isVisible());
@@ -402,7 +405,7 @@ try {
         window.testMeter.getFloatTimeDomainData(pcm);
         return (Math.max(...pcm)-Math.min(...pcm) > .001) === expected;
       },audible,{timeout:5000});
-      const ch1 = page.locator('#inlineMonitorToggles [aria-label="Mute SID CH1"]');
+      const ch1 = page.locator('#monitorToggles [aria-label="Mute SID CH1"]');
       await ch1.click();
       await checkSignal(false);
       assert.equal(await page.locator('#monitorToggles [aria-label="Mute SID CH1"]').getAttribute('aria-pressed'),'true');

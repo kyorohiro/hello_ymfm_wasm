@@ -92,7 +92,7 @@ async function runBrowser(name,type,origin,createFixture) {
       await page.waitForFunction(filename=>window.__wsAnalyzerTest.snapshot().file===filename&&document.getElementById('status').textContent.startsWith('Parsed '+filename+' ')&&!document.getElementById('playButton').disabled,filename);
       const state=await snapshot(page);assert.equal(state.kind,'wonderswan');assert.equal(state.header.wonderswanClock,3072000);
       assert.match(await page.locator('#detectedChips').innerText(),/WonderSwan/i);
-      assert.equal(await page.locator('#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"]').count(),4);
+      assert.equal(await page.locator('#monitorToggles [data-monitor-toggle-kind="opm-channel"]').count(),4);
       assert.equal(await page.locator('#noteishTab').isDisabled(),false,'Wave base-pitch Note-ish must be available');
       for(const selector of ['#operatorInfoTab','#tfiInfoTab'])assert.equal(await page.locator(selector).isDisabled(),true,selector+' should not promise unsupported instrument extraction');
       return state;
@@ -106,7 +106,7 @@ async function runBrowser(name,type,origin,createFixture) {
       assert.equal(state.mixer.gain,1,'Unmeasured WonderSwan default remains unity');
       assert.equal(state.notes.length,4);assert.equal(state.notes[channel].keyOn,true);assert.equal(state.notes[channel].kind,'Wave');
       assert(Number.isFinite(state.notes[channel].midi),'A waveform note must expose its base pitch');
-      const button=page.locator(`#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="${channel}"]`);
+      const button=page.locator(`#monitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="${channel}"]`);
       await button.click();assert.equal(await button.getAttribute('aria-pressed'),'false');await page.waitForTimeout(250);
       const muted=await signal(page);assert(muted.peak<1e-7,`CH${channel+1} channel mute leaked audio: ${JSON.stringify(muted)}`);
       await button.click();await page.waitForTimeout(200);const resumed=await signal(page);assert(resumed.acRms>.001,'Unmute must restore actual audio');

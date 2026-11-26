@@ -145,7 +145,7 @@ main { padding: 24px; }
 .playback-dock-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .playback-dock-buttons button { padding: 8px 5px; font-size: .78rem; flex-shrink: 0; }
 .playback-dock-buttons #playButton::before, .playback-dock-buttons #pauseButton::before, .playback-dock-buttons #stopButton::before { content: none; }
-#dockPlayPane .volume-control { width: 100%; box-sizing: border-box; max-width: 240px; min-width: 100px; padding: 0 4px; gap: 4px; font-size: .75rem; flex-wrap: nowrap; }
+#dockPlayPane .volume-control { flex: 1 1 120px; box-sizing: border-box; max-width: 240px; min-width: 100px; padding: 0 4px; gap: 4px; font-size: .75rem; flex-wrap: nowrap; }
 #dockPlayPane .volume-control input[type="range"] { flex: 1; width: 0; min-width: 24px; }
 #dockPlayPane .volume-readout { min-width: 3.2em; }
 .playback-dock .monitor-toggles { margin: 0; }

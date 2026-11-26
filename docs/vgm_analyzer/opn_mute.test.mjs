@@ -18,14 +18,13 @@ test('YM2203 channel buttons use output mute without issuing key-off',()=>{
  assert.deepEqual(writes,[[0x28,0xf0]]);
 });
 
-for(const connected of [false,true])test(`CH toggles refresh both panels without Operator Info rendering (engine=${connected})`,()=>{
+for(const connected of [false,true])test(`CH toggles refresh the dock without SoundChip rendering (engine=${connected})`,()=>{
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  const root={children:[],set innerHTML(v){this.children=[];},append(b){this.children.push(b);}};
- const inline={children:[],replaceChildren(...b){this.children=b;}};
  const writes=[];
  const context=vm.createContext({noteishHeader:{},currentChipKind:'ym2612',channelMonitor:[{channel:0,muted:false,b4Value:0xc0,changedAt:{}}],channelMuteStates:[],
   performance,requestChannelMonitorRender(){},engine:connected?{}:null,
-  monitorToggles:root,inlineMonitorToggles:inline,ensureMonitorToggleHandler(){},CHANNEL_MUTE_CHIPS:[],
+  monitorToggles:root,ensureMonitorToggleHandler(){},CHANNEL_MUTE_CHIPS:[],
   sourcesForChip:()=>[],sourceChipKind:()=> 'megacd',hasOkiSource:()=>false,
   document:{createElement(){return {attrs:{},setAttribute(k,v){this.attrs[k]=v;},cloneNode(){return {...this,attrs:{...this.attrs}};}};}},
   baseEngineWriteYm2612:(...args)=>writes.push(args),flushPendingAudio(){},effectivePanValue:c=>c.muted?c.b4Value&63:c.b4Value});
@@ -34,7 +33,7 @@ for(const connected of [false,true])test(`CH toggles refresh both panels without
  context.renderMonitorToggles();
  for(const pressed of ['false','true']){
   context.toggleChannelMute(0);
-  for(const panel of [root,inline]){assert.equal(panel.children[0].textContent,'CH1');assert.equal(panel.children[0].attrs['aria-pressed'],pressed);}
+  assert.equal(root.children[0].textContent,'CH1');assert.equal(root.children[0].attrs['aria-pressed'],pressed);
  }
  assert.deepEqual(writes,connected?[[0,0xb4,0],[0,0xb4,0xc0]]:[]);
 });

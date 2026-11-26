@@ -129,11 +129,9 @@ function refreshSong() {
   if (!songPlayer) return;
   const state = songPlayer.read();
   if (songPlayer.chip === 'SCSP') {
-    for (const container of [monitorToggles, inlineMonitorToggles]) {
-      for (const button of container.children) {
-        const slot = Number(button.dataset.scspSlot);
-        if (Number.isInteger(slot)) button.classList.toggle('is-key-on', Boolean(state.keyOnMask & (1 << slot)));
-      }
+    for (const button of monitorToggles.children) {
+      const slot = Number(button.dataset.scspSlot);
+      if (Number.isInteger(slot)) button.classList.toggle('is-key-on', Boolean(state.keyOnMask & (1 << slot)));
     }
   }
   playButton.disabled = !(state.canPlay || state.canResume);
@@ -200,7 +198,6 @@ const loopCheckbox = document.getElementById("loopCheckbox");
 const playlistLoopCheckbox = document.getElementById("playlistLoopCheckbox");
 const playlistLoopControl = document.getElementById("playlistLoopControl");
 const monitorToggles = document.getElementById("monitorToggles");
-const inlineMonitorToggles = document.getElementById("inlineMonitorToggles");
 const dockPlayTab = document.getElementById("dockPlayTab");
 const dockEffectTab = document.getElementById("dockEffectTab");
 const dockPlayPane = document.getElementById("dockPlayPane");
@@ -759,24 +756,21 @@ function renderMonitorToggles() {
   monitorToggles.innerHTML = "";
   if (['sid','vsu','scsp','spu'].includes(currentChipKind)) {
     const keyOnMask = currentChipKind === 'scsp' ? songPlayer?.read().keyOnMask : 0;
-    for (const container of [monitorToggles,inlineMonitorToggles]) {
-      container.replaceChildren();
-      for (let channel = 0; songPlayer && channel < (songPlayer.channelCount ?? 3); channel++) {
-        const button = document.createElement('button');
-        const bit = 1 << channel;
-        const muted = Boolean(songPlayer.muteMask & bit);
-        button.type = 'button'; button.className = 'channel-toggle' + (muted ? ' is-muted' : '');
-        button.textContent = 'CH' + (channel+1);
-        button.setAttribute('aria-label','Mute '+currentChipKind.toUpperCase()+' CH'+(channel+1));
-        button.setAttribute('aria-pressed',String(muted));
-        if (currentChipKind === 'scsp') {
-          button.dataset.scspSlot = String(channel);
-          button.title = 'SCSP slot ' + (channel + 1) + ' · Indicator: Key On';
-          button.classList.toggle('is-key-on', Boolean(keyOnMask & bit));
-        }
-        button.onclick = () => {songPlayer.setMuteMask(songPlayer.muteMask ^ bit); renderMonitorToggles();};
-        container.append(button);
+    for (let channel = 0; songPlayer && channel < (songPlayer.channelCount ?? 3); channel++) {
+      const button = document.createElement('button');
+      const bit = 1 << channel;
+      const muted = Boolean(songPlayer.muteMask & bit);
+      button.type = 'button'; button.className = 'channel-toggle' + (muted ? ' is-muted' : '');
+      button.textContent = 'CH' + (channel+1);
+      button.setAttribute('aria-label','Mute '+currentChipKind.toUpperCase()+' CH'+(channel+1));
+      button.setAttribute('aria-pressed',String(muted));
+      if (currentChipKind === 'scsp') {
+        button.dataset.scspSlot = String(channel);
+        button.title = 'SCSP slot ' + (channel + 1) + ' · Indicator: Key On';
+        button.classList.toggle('is-key-on', Boolean(keyOnMask & bit));
       }
+      button.onclick = () => {songPlayer.setMuteMask(songPlayer.muteMask ^ bit); renderMonitorToggles();};
+      monitorToggles.append(button);
     }
     return;
   }
@@ -789,7 +783,6 @@ function renderMonitorToggles() {
       button.setAttribute('data-monitor-toggle-kind','mixed-source');
       button.setAttribute('data-mixed-source',part.id);monitorToggles.append(button);
     }
-    inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children,b=>b.cloneNode(true)));
     return;
   }
 
@@ -818,7 +811,6 @@ function renderMonitorToggles() {
       button.setAttribute('data-msx-control', control.key);
       monitorToggles.append(button);
     }
-    inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
     return;
   }
   if (currentChipKind === 'ay8910') {
@@ -832,7 +824,6 @@ function renderMonitorToggles() {
       button.setAttribute('data-ay-control', control.key);
       monitorToggles.append(button);
     }
-    inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
     return;
   }
   for (const source of sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock))) {
@@ -889,7 +880,6 @@ function renderMonitorToggles() {
     button.setAttribute("data-channel-index", String(channel.channel));
     monitorToggles.append(button);
   });
-  inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
 }
 
 function ensureMonitorToggleHandler() {
@@ -949,7 +939,6 @@ function ensureMonitorToggleHandler() {
     }
   };
   monitorToggles.addEventListener("pointerdown", handleToggle);
-  inlineMonitorToggles.addEventListener("pointerdown", handleToggle);
 }
 
 function createChannelMonitorState() {
@@ -3731,7 +3720,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
       parsedOutputTab.disabled = false;
       lastParseInfo = {type:'tetorica-spc-info', sourceFile:file.name, metadata:parsed.metadata, cpu:parsed.cpu, warnings:parsed.warnings};
       tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
-      monitorToggles.replaceChildren(); inlineMonitorToggles.replaceChildren();
+      monitorToggles.replaceChildren();
       updatePlaybackButtons(); setOutputTab(selectedOutputTab());
       setStatus(`Loaded ${file.name} (SPC). Open Note-ish for estimated pitches or SPC / BRR for samples and voice controls.`);
     } catch (error) {await spcView.clear(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(`SPC: ${error.message}`);}

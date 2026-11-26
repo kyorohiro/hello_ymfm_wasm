@@ -101,7 +101,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
       await page.waitForFunction(filename=>window.__pokeyAnalyzerTest.snapshot().file===filename&&document.getElementById('status').textContent.startsWith('Parsed '+filename+' ')&&!document.getElementById('playButton').disabled,filename);
       const state=await snapshot(page);assert.equal(state.kind,'pokey');assert.equal(state.header.pokeyClock>>>0,(1789790|(dual?0x40000000:0))>>>0);
       assert.match(await page.locator('#detectedChips').innerText(),/POKEY/i);
-      assert.equal(await page.locator('#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"]').count(),dual?8:4);
+      assert.equal(await page.locator('#monitorToggles [data-monitor-toggle-kind="opm-channel"]').count(),dual?8:4);
       assert.equal(state.channels.length,dual?8:4,'Every physical POKEY channel must have a live state');
       assert.deepEqual(Object.keys(state.configuration.chips.reduce((all,{id})=>(all[id]=true,all),{})),dual?['pokey','pokey:2']:['pokey']);
       assert.equal(await page.locator('#operatorInfoTab').isDisabled(),false,'POKEY register/channel monitor must be available');
@@ -126,7 +126,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
       for(let index=0;index<state.channels.length;index++)if(index!==active)assert.equal(state.channels[index].volume,0,`Inactive physical channel ${index} must remain off`);
       await page.waitForFunction(({chip,channel})=>document.querySelectorAll('#chipMonitorPanels > div > section')[chip]?.querySelectorAll('p')[channel+1]?.textContent.includes('Volume 12/15'),{chip,channel});
       await page.locator('#playlistTab').click();
-      const button=page.locator(`#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="${active}"]`);
+      const button=page.locator(`#monitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="${active}"]`);
       await button.click();assert.equal(await button.getAttribute('aria-pressed'),'false');await page.waitForTimeout(250);
       const muted=await signal(page);assert(muted.peak<1e-7,`POKEY${chip+1} CH${channel+1} channel mute leaked audio: ${JSON.stringify(muted)}`);
       await button.click();await page.waitForTimeout(180);const resumed=await signal(page);assert(resumed.acRms>.001,'Unmute must restore actual audio');
@@ -162,7 +162,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     const streamAudible=await signal(page);assert(streamAudible.acRms>.001,'Generic DAC stream 0x9e must reach POKEY2 AUDC3');
     state=await snapshot(page);assert.equal(state.channels[6].type,'Volume-only DAC');assert.equal(state.channels[6].midi,null,'Timed DAC values must not invent a note');
     await page.locator('#playlistTab').click();
-    const streamMute=page.locator('#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="6"]');
+    const streamMute=page.locator('#monitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="6"]');
     await streamMute.click();await page.waitForTimeout(250);const streamMuted=await signal(page);assert(streamMuted.peak<1e-7,'Timed DAC stream channel mute must silence its output');
     await streamMute.click();await page.waitForTimeout(180);assert((await signal(page)).acRms>.001,'Timed DAC stream must survive mute/unmute');
     const streamWorklets=(await snapshot(page)).worklets;
