@@ -1,6 +1,6 @@
-import {extractGameboyInstruments} from './gameboy_instruments.js';
-import {appendGameboyVoice} from './gameboy_voice_view.js?v=gb-info-perf-1';
-import {appendGameboyWave} from './gameboy_wave_view.js?v=gb-info-perf-1';
+import {extractGameboyInstruments} from './gameboy_instruments.js?v=gb-jump-1';
+import {appendGameboyVoice} from './gameboy_voice_view.js?v=gb-jump-1';
+import {appendGameboyWave} from './gameboy_wave_view.js?v=gb-jump-1';
 import {appendWonderSwanWave} from './wonderswan_wave_view.js?v=wonderswan-voice-samples-1';
 import {appendWonderSwanVoice} from './wonderswan_voice_view.js?v=wonderswan-voice-samples-1';
 import {decodeYmf278bSample} from './ymf278b_samples.js';
@@ -121,8 +121,16 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
           heading.textContent = {1:'Pulse CH1',2:'Pulse CH2',3:'Wave CH3 — 32-point waveforms',4:'Noise CH4'}[group];
           output.append(heading);
         }
-        if (s.chip === 'gameboy' && s.kind !== 'wave') { appendGameboyVoice(output, s, uses, uses); continue; }
-        if (s.chip === 'gameboy') { appendGameboyWave(output, s, uses, uses); continue; }
+        if (s.chip === 'gameboy') {
+          if (s.kind === 'wave') {
+            const row = appendGameboyWave(output,s,uses,uses);
+            triggers.set('wave/' + s.waveform.join(','), {row});
+          } else {
+            const {row, selectOccurrence} = appendGameboyVoice(output,s,uses,uses);
+            uses.forEach((event,index) => triggers.set('voice/' + event.commandEnd, {row,selectOccurrence,index}));
+          }
+          continue;
+        }
         const captured = s.kind === 'dac' || s.kind === 'pwm' || s.chip === 'okim6258';
         const row = document.createElement('details'), title = document.createElement('summary');
         title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · ${captured ? `${s.chip==='okim6258'?'timed ADPCM register capture':'captured output'} · ${s.boundary}` : `0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)}`} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
@@ -222,13 +230,28 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
     finally { if (!own.signal.aborted) button.disabled = false; }
   }
   button.onclick = analyze;
-  async function openSampleTrigger(trigger) {
+  async function readyToOpen() {
     if (!analyzed) {
       const pending = analyze();
       const own = controller;
       await pending;
-      if (controller !== own || !analyzed || panel.hidden) return;
+      if (controller !== own || !analyzed) return false;
     }
+    return !panel.closest('[hidden]');
+  }
+  async function openGameboyInstrument(key) {
+    if (!await readyToOpen()) return;
+    const match = triggers.get(key);
+    if (!match) {
+      const note = output.querySelector('p');
+      if (note) note.textContent = 'No matching Game Boy instrument was captured.';
+      return;
+    }
+    match.selectOccurrence?.(match.index);
+    openRow(match.row);
+  }
+  async function openSampleTrigger(trigger) {
+    if (!await readyToOpen()) return;
     const match = triggers.get(trigger.commandEnd + '/' + trigger.channel);
     if (!match || match.event.startAddress !== trigger.startAddress || match.event.loopAddress !== trigger.loopAddress ||
         match.event.rawStart !== trigger.rawStart || match.event.rawEnd !== trigger.rawEnd ||
@@ -245,6 +268,9 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
       }
       selection.value = String(index);
     }
+    openRow(row);
+  }
+  function openRow(row) {
     if (lastOpened && lastOpened !== row) lastOpened.open = false;
     lastOpened = row;
     row.open = true;
@@ -252,7 +278,7 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
     row.querySelector('summary').focus();
     row.scrollIntoView({block:'nearest'});
   }
-  return { reset, stop, openSampleTrigger, setChip(chip) {
+  return { reset, stop, openSampleTrigger, openGameboyInstrument, setChip(chip) {
     const next = chip === 'gameboy';
     if (next !== gameboyMode) reset();
     gameboyMode = next;

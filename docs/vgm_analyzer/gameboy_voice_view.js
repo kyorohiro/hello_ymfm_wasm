@@ -3,11 +3,9 @@ export function appendGameboyVoice(output,sample,events,uses=events.filter(e=>e.
   const row=document.createElement('details'),title=document.createElement('summary');
   title.textContent=`Voice ${sample.id} · Game Boy CH${sample.channel} ${sample.kind.toUpperCase()} · ${uses.length} trigger writes`;
   row.append(title); output.append(row);
-  let built = false;
+  let selectOccurrence;
   row.addEventListener('toggle', () => {
-    if (!row.open || built) return;
-    built = true;
-    build();
+    if (row.open && !selectOccurrence) build();
   });
   function build() {
     const code=document.createElement('textarea');code.readOnly=true;code.rows=14;code.style.width='100%';
@@ -50,7 +48,17 @@ export function appendGameboyVoice(output,sample,events,uses=events.filter(e=>e.
       changes.textContent=e.changes.slice(0,500).map(c=>`+${(c.offsetSamples/44100).toFixed(6)} s · gb.writeRegister(${hex(c.register)}, ${hex(c.value)});`).join('\n')||'No later register writes observed in this interval.';
       if(e.changes.length>500)changes.textContent+='\nShowing first 500 writes. JSON includes all writes.';
     }
+    selectOccurrence = index => {
+      page = Math.floor(index / pageSize);
+      fillPage();
+      selection.value = String(index);
+      show();
+    };
     selection.onchange=show;fillPage();
     row.append(code,copy,save,status,help,previous,pageLabel,next,selection,initialLabel,initial,changeLabel,changes);
   }
+  return {row, selectOccurrence(index) {
+    if (!selectOccurrence) build();
+    selectOccurrence(index);
+  }};
 }

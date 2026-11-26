@@ -17,13 +17,21 @@ const NR30 = 0x0a;
 const NR52 = 0x16;
 
 export function createGameboyMonitor() {
-  return { registers: new Int16Array(0x17).fill(-1), wave: new Int8Array(32).fill(-1), channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false, trigger: 0 })) };
+  return { lastVoiceCommands:Array(4).fill(null), registers: new Int16Array(0x17).fill(-1), wave: new Int8Array(32).fill(-1), channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false, trigger: 0 })) };
 }
 
-export function applyGameboyWrite(state, register, value) {
+export function applyGameboyWrite(state, register, value, commandEnd) {
   if (register >= 0 && register < state.registers.length) {
     if (register === NR52 && !(value & 0x80)) state.registers.fill(-1);
     state.registers[register] = value;
+  }
+  if (commandEnd != null && (value & 0x80)) {
+    const channel = register === 4 ? 0 : register === 9 ? 1 : register === 19 ? 3 : -1;
+    if (channel >= 0) {
+      const base = channel * 5;
+      const shape = channel === 3 ? 18 : base + 1;
+      state.lastVoiceCommands[channel] = state.registers[shape] >= 0 && state.registers[base+2] >= 0 ? commandEnd : null;
+    }
   }
   let changed = false;
   for (let ch = 0; ch < 3; ch++) {

@@ -539,8 +539,8 @@ try {
     header.writeUInt32LE(4194304,0x80);
     const first = Array.from({length:16}, (_,i) => [0xb3,0x20+i,(i<<4)|(15-i)]).flat();
     const registers = [[0x16,128],[0,0x23],[1,0x80],[2,0xa3],[6,0x40],[7,0x68],
-      [10,128],[12,0x40],[17,0xc2],[18,0x35]];
-    const commands = [...registers.flatMap(([r,v])=>[0xb3,r,v]),...first,...Array(120).fill(0x62),0xb3,0x20,0xab,0xb3,18,0x79,...Array(180).fill(0x62),0x66];
+      [10,128],[12,0x40],[17,0xc2],[18,0x35],[4,0x80],[9,0x80],[19,0x80]];
+    const commands = [...registers.flatMap(([r,v])=>[0xb3,r,v]),...first,...Array(60).fill(0x62),0xb3,19,0x80,...Array(60).fill(0x62),0xb3,0x20,0xab,0xb3,18,0x79,0xb3,19,0x80,...Array(180).fill(0x62),0x66];
     const buffer = Buffer.concat([header,Buffer.from(commands)]);
     buffer.writeUInt32LE(buffer.length-4,4);
     await page.locator('#fileInput').setInputFiles({name:'wave.vgm',mimeType:'application/octet-stream',buffer});
@@ -548,20 +548,21 @@ try {
     const readout = page.locator('#gameboyWaveValues');
     await readout.waitFor();
     assert.equal((await readout.innerText()).split(' ').filter(x=>x==='·').length,32);
+    const cards = page.locator('#gameboyChannels section');
+    for (const open of await cards.getByRole('button',{name:/^Open /}).all()) assert(await open.isDisabled());
     await play.click();
     const checkWave = prefix => page.waitForFunction(prefix =>
       document.querySelector('#gameboyWaveValues').textContent.startsWith(prefix), prefix);
     await checkWave('0 F 1 E');
     await pause.click();
     const canvas = page.locator('#gameboyWaveCanvas');
-    const cards = page.locator('#gameboyChannels section');
     const values = i => cards.nth(i).locator('dd').allTextContents();
     assert.deepEqual(await values(0),['50%','10','Fade out','3','2','Up','3']);
     assert.deepEqual(await values(1),['25%','6','Fade in','0 · hold']);
     assert.deepEqual(await values(2),['50%','ON']);
     const earlyNoise = ['15-bit','5','3','12','Fade out','2'];
     assert.deepEqual(await values(3),earlyNoise);
-    await checkMonitorMute(cards.nth(3).getByRole('button'), 'CH4');
+    await checkMonitorMute(cards.nth(3).getByRole('button',{name:'CH4 · Noise'}), 'CH4');
     const firstImage = await canvas.evaluate(el => el.toDataURL());
     await movePosition(3); await checkWave('A B 1 E');
     assert.deepEqual(await values(3),['7-bit','1','7','12','Fade out','2']);
@@ -570,7 +571,32 @@ try {
     await movePosition(.5); await checkWave('0 F 1 E');
     assert.deepEqual(await values(3),earlyNoise);
     assert.equal(await canvas.evaluate(el => el.toDataURL()),firstImage);
-    console.log('Game Boy CH3 wave RAM and Synth waveform follow paused forward and backward seeks');
+    async function openInstrument(channel) {
+      await cards.nth(channel-1).getByRole('button',{name:channel===3?'Open wave':'Open voice'}).click();
+      const row = page.locator('#gbInstrument0 details[open]');
+      await row.locator('summary').waitFor();
+      assert(await row.locator('summary').evaluate(el=>el===document.activeElement));
+      return row;
+    }
+    for (const channel of [1,2,3]) {
+      const row=await openInstrument(channel);
+      assert.match(await row.locator('summary').innerText(), new RegExp('CH'+channel));
+      if(channel===3) assert.match(await row.locator('textarea').inputValue(),/setWaveform\(\[0, 15/);
+      await page.locator('#operatorInfoTab').click();
+    }
+    const triggerEnds = commands.flatMap((v,i) => v===0xb3 && commands[i+1]===19 && commands[i+2]===0x80
+      ? [header.length+i+3] : []);
+    for (const [position, occurrence, width] of [[3,'2.000',7],[1.5,'1.000',15],[.5,'0.000',15]]) {
+      await movePosition(position);
+      await page.waitForFunction(()=>!document.querySelector('#playbackSeek').disabled);
+      const expected = 'voice/' + triggerEnds[Number(occurrence)];
+      await page.waitForFunction(key=>document.querySelector('#gameboyChannels section:last-child [data-instrument-key]').dataset.instrumentKey===key,expected);
+      const row = await openInstrument(4);
+      assert((await row.locator('option:checked').innerText()).startsWith(occurrence+' s'));
+      assert.match(await row.locator('textarea').inputValue(),new RegExp('"width": '+width));
+      await page.locator('#operatorInfoTab').click();
+    }
+    console.log('Game Boy SoundChip opens current waves and exact pulse/noise occurrences after paused seeks');
   }
   {
     const header = Buffer.from(opn.subarray(0,0xc8));

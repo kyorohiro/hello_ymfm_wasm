@@ -43,4 +43,5 @@ export function appendGameboyWave(output, sample, events, uses = events.filter(e
   if (uses.length > 500) history.textContent += '\nShowing first 500 observations.';
   row.append(canvas, code, copy, save, status, help, history);
   output.append(row);
+  return row;
 }

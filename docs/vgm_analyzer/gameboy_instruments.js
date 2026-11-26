@@ -1,5 +1,5 @@
 import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
-import {createGameboyVoices} from './gameboy_voices.js?v=instrument-chips-1';
+import {createGameboyVoices} from './gameboy_voices.js?v=gb-jump-1';
 import {createGameboyWaves} from './gameboy_waves.js';
 
 // Read the command log directly so offline inspection also works for two APUs.
@@ -14,7 +14,7 @@ export async function extractGameboyInstruments(source, chipIndex, signal) {
     if (event.type === 'end') break;
     if (event.type === 'wait') time += event.samples;
     if (event.type === 'gameboy-dmg-write' && event.chipIndex === chipIndex) {
-      voices.apply(event,time);
+      voices.apply(event,time,parser.position);
       waves.apply(event,time);
     }
     if (i % 4096 === 4095) await new Promise(resolve => setTimeout(resolve,0));

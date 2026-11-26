@@ -38,14 +38,14 @@ import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
 import {mountPokeyMonitor} from './pokey_monitor.js?v=pokey-vgm-1';
 import { mountTfiInfo } from "./tfi_info.js?v=instrument-chips-1";
-import { mountSampleExplorer } from './sample_explorer.js?v=instrument-chips-1';
+import { mountSampleExplorer } from './sample_explorer.js?v=gb-jump-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=pokey-vgm-1';
 import { seekPlayback } from './seek_playback.js';
 import { timelinePlaybackPosition } from './note_timeline.js';
 import { describeToneNotes } from './tone_notes.js?v=pokey-vgm-1';
 import {drawGameboyWave} from '../js/gameboy_wave_canvas.js';
-import { createGameboyMonitor, gameboyChannelSettings, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js?v=dmg-channels-1';
+import { createGameboyMonitor, gameboyChannelSettings, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js?v=gb-jump-1';
 import { midiChipKind } from "./vgm_notes.js?v=pokey-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
@@ -1442,9 +1442,27 @@ function renderGameboySettings() {
         term.textContent = label;
         list.append(term, document.createElement('dd'));
       }
-      card.append(button, list);
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.textContent = i === 2 ? 'Open wave' : 'Open voice';
+      open.onclick = () => {
+        // Live DMG playback currently exposes the first physical APU.
+        const chipIndex = 0;
+        const key = open.dataset.instrumentKey;
+        const tab = instrumentTabs.querySelector('[aria-controls="gbInstrument' + chipIndex + '"]');
+        if (!key || !tab) return;
+        tab.click();
+        void gbInstrumentViews[chipIndex].openGameboyInstrument(key);
+      };
+      card.append(button, open, list);
       cards.append(card);
     }
+    const open = card.children[1];
+    const command = apuNoteMonitor.lastVoiceCommands[i];
+    const key = i === 2 ? (apuNoteMonitor.wave.includes(-1) ? '' : 'wave/' + apuNoteMonitor.wave.join(','))
+      : command == null ? '' : 'voice/' + command;
+    open.dataset.instrumentKey = key;
+    open.disabled = !key;
     const button = card.firstElementChild;
     button.setAttribute('aria-pressed', String(!gameboyChannelMutes[i]));
     button.classList.toggle('is-muted', gameboyChannelMutes[i]);
@@ -2784,7 +2802,7 @@ async function ensurePlaybackReady(vgm) {
             apuNoteMonitor.wave[index + 1] = v & 15;
             requestChannelMonitorRender();
           } else {
-            if (applyGameboyWrite(apuNoteMonitor, r, v)) updateApuNoteMonitor();
+            if (applyGameboyWrite(apuNoteMonitor, r, v, player?.parser?.position)) updateApuNoteMonitor();
             requestChannelMonitorRender();
           }
         };

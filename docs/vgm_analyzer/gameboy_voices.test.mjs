@@ -68,7 +68,7 @@ test('voice details are built once and all occurrences remain reachable in bound
  const node=tag=>({tag,children:[],style:{},value:'0',append(...v){this.children.push(...v);},replaceChildren(...v){this.children=v;},setAttribute(){},addEventListener(t,fn){this[t]=fn;}});
  globalThis.document={createElement:node};
  try{
-  const root=node('div');appendGameboyVoice(root,r.samples[0],events,events);const row=root.children[0];
+  const root=node('div');const {row,selectOccurrence}=appendGameboyVoice(root,r.samples[0],events,events);
   assert.equal(row.children.length,1);row.open=true;row.toggle();
   const count=row.children.length;row.open=false;row.toggle();row.open=true;row.toggle();assert.equal(row.children.length,count);
   const select=row.children.find(x=>x.tag==='select'),next=row.children.find(x=>x.textContent==='Next occurrences'),back=row.children.find(x=>x.textContent==='Previous occurrences');
@@ -77,6 +77,8 @@ test('voice details are built once and all occurrences remain reachable in bound
   next.onclick();assert.equal(select.value,'200');assert.equal(select.children.length,5);assert.equal(next.disabled,true);
   select.value='204';select.onchange();assert.ok(row.children.some(x=>x.textContent?.includes('"frequencyRegister": 204')));
   back.onclick();assert.equal(select.value,'100');assert.equal(next.disabled,false);
+  selectOccurrence(201);assert.equal(select.children.length,5);assert.equal(select.value,'201');
+  assert.ok(row.children.some(x=>x.textContent?.includes('\"frequencyRegister\": 201')));
  }finally{globalThis.document=previous;}
 });
 
