@@ -383,8 +383,23 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
     Buffer.byteLength(bytes)===entry.after.bytes&&sha(bytes)===entry.after.sha256);
 }
 
+// 6e61bfc3 adds second-chip VGM routing and names extracted presets by instance.
+// The calibration programs drive their chip engines directly, without VGM input.
+const dualVgmRevision = new Map([
+  ['js/ym2612vgm.js', [
+    '1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b',
+    '8b0848892439c675972065b7a2ec380bf3367aff8fd5d4c45a00af248c7639e8',
+  ]],
+  ['playground/playground_vgm_presets.js', [
+    '2080a22787ee418a3e3bc76818bdf9111f9d1f2ff09c1cdbc46f84cf8103952e',
+    '6a3c4040e516e6d58e1d3a6cf784995c8dae07065f8218d43c5a2b233ebdb423',
+  ]],
+]);
+
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const revision = dualVgmRevision.get(path);
+  if (revision && record?.sha256 === revision[0] && sha(bytes) === revision[1]) return 'dual-vgm-routing';
   const ym2608Context=createYm2608TimedRevisionReadContext(),ym2608Bytes=ym2608Context.restore(path,bytes);bytes=ym2608Bytes;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'ym2608-timed-connection';
   const metadataContext=createNpmReleaseMetadataReadContext(ym2608Context.readSource),metadataBytes=metadataContext.restore(path,bytes),metadataRevision=metadataBytes!==bytes;bytes=metadataBytes;

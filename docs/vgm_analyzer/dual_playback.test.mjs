@@ -65,3 +65,23 @@ test('OPN port 1 and embedded sample memory reach the addressed instance', async
     ['ym2608',0x81,0,1],['ym2610',0,0x82,0,1],['ym2610',1,0x83,0,1],
   ]);
 });
+
+test('muting CH2 on YM2612 2 preserves YM2612 1 through reset and unmute', async () => {
+  const bytes = await readFile(new URL('../../test/fixtures/dual-ym2612.vgm',import.meta.url));
+  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
+  try {
+    const player = createPlaybackPlayer(engine,bytes);
+    for (const muted of [true,false]) {
+      engine.setFmChannelMuted(1,1,muted);
+      player.reset();
+      player.setPrefetchFactor(1);
+      player.play();
+      for (const expected of [true,!muted,true]) {
+        const left = new Float32Array(44100), right = new Float32Array(44100);
+        player.process(left,right,left.length);
+        const phrase = left.subarray(11025,33075);
+        assert.equal(Math.max(...phrase)-Math.min(...phrase) > .001,expected);
+      }
+    }
+  } finally {engine.dispose();}
+});

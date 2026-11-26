@@ -222,7 +222,25 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
     this.vgmTargets={};
     this.targetResolvers=new Map();
     const names={segaPcm:'segapcm',gameBoyDmg:'gameboyDmg'};
+    this.fmInstances = [];
+    const dualFm = parts.some(p => p.kind === 'ym2612' && p.chipIndex === 1);
     for(const part of parts){
+      if (dualFm && part.kind === 'ym2612') {
+        const index = part.chipIndex ?? 0;
+        const pan = new Uint8Array(6).fill(0xc0);
+        const muted = new Uint8Array(6);
+        const write = part.engine.writeYm2612.bind(part.engine);
+        this.fmInstances[index] = {pan, muted, write};
+        part.engine.writeYm2612 = (port, reg, value) => {
+          this.onFmWrite?.(index, port, reg, value);
+          if (reg >= 0xb4 && reg <= 0xb6) {
+            const ch = 3 * port + reg - 0xb4;
+            pan[ch] = value;
+            if (muted[ch]) value &= 0x3f;
+          }
+          write(port, reg, value);
+        };
+      }
       const targets=createVgmTargets(part.engine);
       for(const id of part.chips){
         const name=names[id]??id;
@@ -236,6 +254,19 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
       }
     }
     this.vgmTargets.resolveChip=this.getVgmTarget.bind(this);
+  }
+  reset() {
+    super.reset();
+    for (const [index, fm] of this.fmInstances.entries()) {
+      fm.pan.fill(0xc0);
+      fm.muted.forEach((muted,ch) => {if (muted) this.setFmChannelMuted(index,ch,true);});
+    }
+    this.onFmReset?.();
+  }
+  setFmChannelMuted(index,ch,muted) {
+    const fm = this.fmInstances[index];
+    fm.muted[ch] = Boolean(muted);
+    fm.write(Math.floor(ch/3), 0xb4 + ch%3, muted ? fm.pan[ch] & 0x3f : fm.pan[ch]);
   }
   getVgmTarget(type,index=0) {
     const resolve = this.targetResolvers.get(type+':'+index) ?? this.targetResolvers.get(type);

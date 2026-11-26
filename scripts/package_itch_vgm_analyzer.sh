@@ -501,7 +501,7 @@ perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 
 node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
-perl -0pi -e 's#../assets/opna-rhythm/#./assets/opna-rhythm/#g' "${STAGE_DIR}/index.html"
+perl -0pi -e 's#\.\./playground/playground_vgm_presets\.js#./playground/playground_vgm_presets.js#g; s#../assets/opna-rhythm/#./assets/opna-rhythm/#g' "${STAGE_DIR}/index.html"
 node "${ROOT_DIR}/scripts/copy_analyzer_console_songs.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/check_analyzer_package.mjs" "${STAGE_DIR}"
 
