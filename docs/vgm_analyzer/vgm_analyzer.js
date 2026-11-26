@@ -3061,6 +3061,8 @@ function stopActiveStream() {
 }
 
 function updatePlaybackButtons(state = {}) {
+  const exportTab = document.getElementById('exportTab');
+  exportTab.disabled = !(currentBuffer || songPlayer?.exportWav || spcView.active);
   const scoreSource=scoreExportSource();
   musicSheet?.updateTrack();
   if(midiPreparedSource&&midiPreparedSource!==scoreSource){midiPreparedSource=null;if(midiExportDialog.open)midiExportDialog.close();}
@@ -3125,7 +3127,7 @@ function updatePlaybackButtons(state = {}) {
     for (const button of [exportAllTfiButton, exportAllVgiButton, exportLilyPondButton,
       document.getElementById('showSheetMusicButton'), document.getElementById('exportMusicSheetButton')]) button.disabled = true;
     document.getElementById('chipSupportNotice').hidden = true;
-    if (parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('parsed-output');
+    if (parsedOutputTab.ariaSelected !== 'true' && (exportTab.disabled || exportTab.ariaSelected !== 'true')) setOutputTab('parsed-output');
   }
   if (songPlayer) refreshSong();
 }
@@ -3170,6 +3172,7 @@ function updateChipSupport() {
     for (const root of [opnMonitorRoot, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot]) root.hidden = true;
     const notice = document.getElementById('chipSupportNotice'); notice.hidden = false;
     notice.textContent = 'POKEY: one or two independent chips, four physical outputs each. Operator Info shows written AUDF/AUDC/AUDCTL/SKCTL state and nominal plain-square pitch. Noise, volume-only DAC, joined helpers, high-pass and two-tone modes are labelled without inferred notes. Physical channel mute preserves timer/filter dependencies. Normal seeking and WAV export are available; no seek checkpoints, Song, Sheet Music, MIDI/MML or FM instrument exports.';
+    if (document.getElementById('exportTab').ariaSelected === 'true') return;
     if (operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
     return;
   }
@@ -3231,6 +3234,7 @@ function updateChipSupport() {
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
   ym2413MonitorRoot.hidden = !(opll || ayWithOpll);
+  if (document.getElementById('exportTab').ariaSelected === 'true') return;
   if (sheetMusicTab.getAttribute('aria-selected') === 'true' && !sheetMusicTab.disabled) return;
   if (sbi && !tfiInfoTab.disabled && tfiInfoTab.getAttribute('aria-selected') === 'true') return;
   if (!sampleTab.disabled && sampleTab.getAttribute('aria-selected') === 'true') return;
@@ -4479,7 +4483,7 @@ function selectedOutputTab() {
   for (const [tab, name] of [
     [operatorInfoTab, 'operator-info'], [parsedOutputTab, 'parsed-output'],
     [noteishTab, 'noteish'], [tfiInfoTab, 'tfi-info'],
-    [sampleTab, 'samples'], [sheetMusicTab, 'sheet-music'],
+    [sampleTab, 'samples'], [sheetMusicTab, 'sheet-music'], [document.getElementById('exportTab'), 'export'],
   ]) {
     if (!tab.disabled && tab.getAttribute('aria-selected') === 'true') return name;
   }
@@ -4487,14 +4491,22 @@ function selectedOutputTab() {
 }
 
 function setOutputTab(tabName) {
-  if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
-  if (!currentBuffer && !spcView.active) tabName = 'parsed-output';
-  if (currentChipKind === 'pokey' && !['operator-info', 'parsed-output'].includes(tabName)) tabName = 'operator-info';
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
-  if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy","wonderswan"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
-    setStatus('Analysis and instrument editing: Support coming soon.');
-    tabName = "parsed-output";
+  const exportTab = document.getElementById('exportTab');
+  if (tabName === 'export') {
+    if (exportTab.disabled) tabName = 'parsed-output';
+  } else {
+    if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
+    if (!currentBuffer && !spcView.active) tabName = 'parsed-output';
+    if (currentChipKind === 'pokey' && !['operator-info', 'parsed-output'].includes(tabName)) tabName = 'operator-info';
+    if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy","wonderswan"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+      setStatus('Analysis and instrument editing: Support coming soon.');
+      tabName = "parsed-output";
+    }
   }
+  document.getElementById('exportPanel').hidden = tabName !== 'export';
+  exportTab.ariaSelected = String(tabName === 'export');
+  exportTab.tabIndex = tabName === 'export' ? 0 : -1;
   sheetMusicPanel.hidden = tabName !== 'sheet-music';
   musicSheet?.setVisible(tabName === 'sheet-music');
   sheetMusicTab.setAttribute('aria-selected', String(tabName === 'sheet-music'));
@@ -4546,6 +4558,18 @@ function setOutputTab(tabName) {
 }
 
 sheetMusicTab.addEventListener('click', () => setOutputTab('sheet-music'));
+document.getElementById('exportTab').addEventListener('click', () => setOutputTab('export'));
+document.getElementById('outputTabs').addEventListener('keydown', event => {
+  const tabs = [...event.currentTarget.querySelectorAll('button:enabled')];
+  const index = tabs.indexOf(event.target);
+  if (index < 0) return;
+  const next = {ArrowRight: (index + 1) % tabs.length, ArrowLeft: (index + tabs.length - 1) % tabs.length,
+    Home: 0, End: tabs.length - 1}[event.key];
+  if (next === undefined) return;
+  event.preventDefault();
+  tabs[next].focus();
+  tabs[next].click();
+});
 
 operatorInfoTab.addEventListener("click", () => {
   setOutputTab("operator-info");

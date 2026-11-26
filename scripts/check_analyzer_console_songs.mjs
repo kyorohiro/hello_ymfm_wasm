@@ -169,6 +169,7 @@ try {
       }
     },mode);
     const save = async () => {
+      await page.locator('#exportTab').click();
       await page.locator('#exportWavButton').click();
       await page.locator('#wavMaxSecondsInput').fill('1');
       const pending = page.waitForEvent('download',{timeout:10000});
@@ -226,6 +227,7 @@ try {
   await page.locator('#fileInput').setInputFiles({name:'untimed.psf',mimeType:'application/octet-stream',buffer:untimed});
   await play.click();
   await checkOutput(true);
+  await page.locator('#exportTab').click();
   await page.locator('#exportWavButton').click();
   assert.equal(await page.locator('#wavMaxSecondsInput').inputValue(),'120');
   await page.locator('#wavMaxSecondsInput').fill('2');

@@ -182,15 +182,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 #stopButton::before { content: "■"; margin-right: 8px; }
 #replayButton::before { content: "↻"; margin-right: 8px; }
 .sub-actions { font-size: 0.78rem; }
-.export-actions { flex-direction: column; align-items: stretch; }
+#exportPanel .export-row + .export-row { margin-top: 10px; }
 .export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
 .sub-actions small { color: #71584c; }
 select, input[type="number"] { padding: 7px; border: 1px solid var(--line); border-radius: 5px; background: #fffbf5; color: var(--ink); font: inherit; }
 input { accent-color: var(--accent); }
 .volume-control { border-radius: 6px; background: #fff8ee; color: var(--accent-dark); min-height: 40px; }
 .status { padding: 12px 16px; border-left: 4px solid var(--accent); background: #eadacc70; font-size: 0.85rem; font-weight: 500; overflow-wrap: anywhere; }
-.tabbar { gap: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; }
-.tab-button { border: 1px solid var(--line); border-radius: 8px 8px 0 0; opacity: 1; letter-spacing: 0.025em; }
+.tabbar { flex-wrap: wrap; gap: 4px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.tabbar > .tab-button { flex: 0 0 auto; box-sizing: border-box; height: 32px; min-height: 32px; padding: 0 8px; white-space: nowrap; font-size: .8rem; border: 1px solid var(--line); border-radius: 8px 8px 0 0; opacity: 1; letter-spacing: 0.025em; }
 /* Keep selected colors above the shared button hover/active rules. */
 button.tab-button[aria-selected="true"] { background: var(--red-enamel); color: #fffaf3; border-color: var(--accent-dark); box-shadow: inset 0 1px #ffb49a; transform: none; }
 .tab-panel { padding: 20px 16px; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 0 8px 12px 12px; background: #fffaf338; }
@@ -218,7 +218,7 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
   main { padding: 12px; }
   .panel { padding: 20px 14px; border-width: 6px; border-radius: 28px; }
   .actions, .sub-actions { padding: 12px; }
-  .tab-button { flex: 1; min-width: 0; padding: 9px 6px; font-size: 0.72rem; }
+  .tabbar > .tab-button { padding-inline: 6px; font-size: .76rem; }
   .tab-panel { padding: 16px 10px; }
   .channel-head { gap: 6px; }
   .channel-head-left { gap: 6px; }

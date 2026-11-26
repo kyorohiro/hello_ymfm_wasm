@@ -577,7 +577,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=compact-menu-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=export-tabs-1">
   </head>
   <body>
     <p id="chipSupportNotice" role="status" hidden>YM2413 analysis and instrument editing: Support coming soon.</p>
@@ -714,36 +714,11 @@
             <option value="4">x4</option>
           </select>
         </div>
-        <div class="sub-actions export-actions" role="group" aria-labelledby="exportLabel">
-          <span id="exportLabel" class="file-input-label export-label">Export</span>
-          <div class="export-row">
-            <button id="exportAllTfiButton" type="button" disabled>All TFI ZIP</button>
-            <button id="exportAllVgiButton" type="button" disabled>All VGI ZIP</button>
-            <button id="exportAllOpmButton" type="button" disabled hidden title="Collect distinct tones across the whole track">All OPM ZIP</button>
-            <button id="exportAllSbiButton" type="button" disabled hidden title="Collect distinct melodic OPL voices across the whole track">All SBI ZIP</button>
-            <button id="exportSbiButton" type="button" disabled hidden title="Select an extracted OPL voice to download">SBI voices</button>
-            <button id="exportSnapshotSbiButton" type="button" disabled hidden title="Select a current melodic OPL channel to download">Snapshot SBI</button>
-            <button id="exportSnapshotTfiButton" type="button" disabled>Snapshot TFI</button>
-            <button id="exportSnapshotVgiButton" type="button" disabled>Snapshot VGI</button>
-            <button id="exportOpmButton" type="button" disabled hidden title="Save current tones from all 8 channels">Snapshot OPM</button>
-          </div>
-          <div class="export-row">
-            <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">MIDI</button>
-            <button id="exportLilyPondButton" type="button" disabled title="Export editable sheet music: FM + SSG / PSG tones, 1/16 grid">LilyPond</button>
-            <button id="exportMusicSheetButton" type="button" disabled title="Preview sheet music or export MusicXML">Export Music Sheet</button>
-            <button id="exportMmlButton" type="button" disabled title="Export FM MML for OPNAvoid or MUCOM88; minimum 1/16">MML</button>
-          </div>
-          <div class="export-row">
-            <button id="exportParseInfoButton" type="button" disabled>VGM Info JSON</button>
-            <button id="exportSnapshotButton" type="button" disabled>Current Tone JSON</button>
-            <button id="exportWavButton" type="button" disabled title="Render full playback audio to a 16-bit stereo WAV file">WAV</button>
-          </div>
-        </div>
         <div class="status" id="playbackError" role="alert" style="white-space: pre-line" hidden></div>
         <div class="status" id="status" hidden></div>
         <div class="status" id="playbackWarnings" role="status" style="white-space: pre-line" hidden></div>
 
-        <div class="tabbar" role="tablist" aria-label="Analyzer output panels">
+        <div id="outputTabs" class="tabbar" role="tablist" aria-label="Analyzer output panels">
           <button
             id="operatorInfoTab" disabled
             class="tab-button"
@@ -780,8 +755,33 @@
           <button id="sheetMusicTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sheetMusicPanel" disabled>Sheet Music</button>
           <button id="tfiInfoTab" disabled class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="tfiInfoPanel">Tfi info</button>
           <button id="sampleExplorerTab" disabled class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sampleExplorerPanel">Sample Explorer</button>
+          <button id="exportTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="exportPanel" disabled>Export</button>
         </div>
 
+        <section id="exportPanel" class="tab-panel" role="tabpanel" aria-labelledby="exportTab" hidden>
+          <div class="export-row">
+            <button id="exportAllTfiButton" type="button" disabled>All TFI ZIP</button>
+            <button id="exportAllVgiButton" type="button" disabled>All VGI ZIP</button>
+            <button id="exportAllOpmButton" type="button" disabled hidden title="Collect distinct tones across the whole track">All OPM ZIP</button>
+            <button id="exportAllSbiButton" type="button" disabled hidden title="Collect distinct melodic OPL voices across the whole track">All SBI ZIP</button>
+            <button id="exportSbiButton" type="button" disabled hidden title="Select an extracted OPL voice to download">SBI voices</button>
+            <button id="exportSnapshotSbiButton" type="button" disabled hidden title="Select a current melodic OPL channel to download">Snapshot SBI</button>
+            <button id="exportSnapshotTfiButton" type="button" disabled>Snapshot TFI</button>
+            <button id="exportSnapshotVgiButton" type="button" disabled>Snapshot VGI</button>
+            <button id="exportOpmButton" type="button" disabled hidden title="Save current tones from all 8 channels">Snapshot OPM</button>
+          </div>
+          <div class="export-row">
+            <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">MIDI</button>
+            <button id="exportLilyPondButton" type="button" disabled title="Export editable sheet music: FM + SSG / PSG tones, 1/16 grid">LilyPond</button>
+            <button id="exportMusicSheetButton" type="button" disabled title="Preview sheet music or export MusicXML">Export Music Sheet</button>
+            <button id="exportMmlButton" type="button" disabled title="Export FM MML for OPNAvoid or MUCOM88; minimum 1/16">MML</button>
+          </div>
+          <div class="export-row">
+            <button id="exportParseInfoButton" type="button" disabled>VGM Info JSON</button>
+            <button id="exportSnapshotButton" type="button" disabled>Current Tone JSON</button>
+            <button id="exportWavButton" type="button" disabled title="Render full playback audio to a 16-bit stereo WAV file">WAV</button>
+          </div>
+        </section>
         <section id="opmInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="tfiInfoTab" hidden></section>
         <section id="sbiInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="tfiInfoTab" hidden></section>
         <section id="tfiInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="tfiInfoTab" hidden></section>
@@ -1028,7 +1028,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=compact-menu-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=export-tabs-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

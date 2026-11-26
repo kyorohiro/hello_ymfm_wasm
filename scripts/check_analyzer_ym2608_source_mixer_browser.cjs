@@ -201,6 +201,7 @@ function wavStats(bytes) {
   return {bytes:bytes.length, sha256:sha(bytes), peak, rms:Math.sqrt(square / ((bytes.length - 44) / 2))};
 }
 async function exportWav(page) {
+  await page.locator('#exportTab').click();
   await page.locator('#exportWavButton').click(); await page.locator('#wavMaxSecondsInput').fill('1');
   const pending = page.waitForEvent('download'); await page.locator('#wavExportDialog button[value=export]').click();
   const download = await pending; assert.equal(await download.failure(), null);

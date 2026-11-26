@@ -195,6 +195,7 @@ async function downloadFrom(page,dialog,extension) {
   return fs.readFile(await file.path());
 }
 async function midiExport(page) {
+  await page.locator('#exportTab').click();
   await page.locator('#exportMidiButton').click();
   assert.match(await page.locator('#midiBpmHelp').innerText(),/Analyzed interval: 0[–-]2\.00 seconds/i,
     'SPC MIDI identifies the captured interval rather than promising the complete song');
@@ -228,6 +229,7 @@ async function scoreExports(page) {
   assert.match(musicXml,/<score-partwise/); assert.match(musicXml,/<part-name>SNES Voice 1<\/part-name>/);
   assert.match(musicXml,/<pitch><step>C<\/step><octave>4<\/octave><\/pitch>/,
     'MusicXML uses the corrected BRR reference');
+  await page.locator('#exportTab').click();
   await page.locator('#exportLilyPondButton').click();
   assert.equal(await page.locator('#lilyPondChannels input').count(),8);
   assert.match(await page.locator('#lilyPondTempoHelp').innerText(),/Analyzed interval: 0[–-]2\.00 seconds/i);
@@ -403,6 +405,7 @@ async function checkBrowser(name,engine,url,fixture,musical) {
     await openNotes(page); await captureNotes(page);
     assert.doesNotMatch((await referenceUi(page)).rows[0].text,/manual/i,'A new SPC starts with its own references');
     const bentMidi = await midiExport(page);
+    await page.locator('#noteishTab').click();
     assert.equal(bentMidi.tracks[1].filter(event => (event.status & 0xf0) === 0x90).length,2,
       'Held pitch changes remain bends while a real KON retrigger becomes a new MIDI note');
     assert(bentMidi.tracks[1].some(event => (event.status & 0xf0) === 0xe0 && event.tick > 0 && event.tick < 3840),
