@@ -1,3 +1,4 @@
+import {mountFm2612VoiceView} from './fm2612_voice_view.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {consoleVgmChip} from './console_vgm.js';
 import {createWonderSwanMonitor,applyWonderSwanWrite,describeWonderSwanNotes,extractWonderSwanNotes} from './wonderswan_notes.js?v=pokey-vgm-1';
@@ -36,7 +37,7 @@ import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
 import {mountPokeyMonitor} from './pokey_monitor.js?v=pokey-vgm-1';
-import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
+import { mountTfiInfo } from "./tfi_info.js?v=fm2612-snapshot-1";
 import { mountSampleExplorer } from './sample_explorer.js?v=pokey-vgm-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=pokey-vgm-1';
@@ -1338,6 +1339,7 @@ function observePsgPlaybackEngine() {
 }
 
 function renderChannelMonitor() {
+  fm2612Voice.update(currentChipKind === 'ym2612' ? channelMonitor : []);
   if (currentChipKind === 'pokey') {renderMonitorToggles(); pokeyMonitor.render(); return;}
   if (currentChipKind === "ym2151") opmMonitor.render();
   if (currentChipKind === "ay8910") { renderMonitorToggles(); ayMonitor.render(); if (noteishHeader.ym2413Clock & 0x3fffffff) ym2413Monitor.render(); return; }
@@ -4378,6 +4380,12 @@ const chipMonitorStorage = document.getElementById('chipMonitorStorage');
 const chipMonitorTabs = document.getElementById('chipMonitorTabs');
 const chipMonitorPanels = document.getElementById('chipMonitorPanels');
 const opnMonitorRoot = document.getElementById('opnMonitor');
+const fm2612Voice = mountFm2612VoiceView(document.getElementById('fm2612Voice'), channel => {
+  const name = lastLoadedFileName.replace(/\.[^.]+$/, '') + '_ch' + (channel.channel + 1) + '.tfi';
+  const bytes = createTfiFromPreset(createTfiPresetFromChannelSnapshot(channel));
+  setOutputTab('tfi-info');
+  tfiInfo.openSnapshot(name, bytes);
+});
 const opmMonitorRoot = document.createElement('section');
 chipMonitorStorage.append(opmMonitorRoot);
 opmMonitorRoot.hidden = true;
@@ -4493,7 +4501,7 @@ const sbiInfo = mountSbiInfo({root:document.getElementById('sbiInfoPanel'),onSta
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) {clearSong();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
+window.addEventListener('pagehide', event => { if (!event.persisted) {fm2612Voice.dispose();clearSong();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
 
 function isLibraryOrSettingTab() {
   return document.getElementById('playlistTab').ariaSelected === 'true' || document.getElementById('settingTab').ariaSelected === 'true';

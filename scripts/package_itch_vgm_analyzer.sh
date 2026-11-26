@@ -30,6 +30,7 @@ snes_score.js
 desktop_interface.js
 tfi_extract.js
 fm_snapshot.js
+fm2612_voice_view.js
 tfi_archive.js
 stored_zip.js
 analyzer_core.js
@@ -482,6 +483,7 @@ page.write_text(text.replace(marker, f'<span id="analyzerVersion">{version}</spa
 PYVERSION
 
 # Make the analyzer runnable from itch.io as a standalone app.
+perl -0pi -e 's#\.\./synth/#./synth/#g' "${STAGE_DIR}/fm2612_voice_view.js"
 perl -0pi -e 's#\.\./synth/synth_output_visualizer\.js#./synth/synth_output_visualizer.js#g' "${STAGE_DIR}/vgm_analyzer.js"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \

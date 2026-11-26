@@ -311,12 +311,15 @@ try {
   const vsu = Buffer.alloc(0xc8 + writes.length);
   vsu.write('Vgm '); vsu.writeUInt32LE(vsu.length-4,4); vsu.writeUInt32LE(0x171,8); vsu.writeUInt32LE(0xc8-0x34,0x34);
   vsu.writeUInt32LE(5000000,0xc4); vsu.set(writes,0xc8);
-  const opn = Buffer.from(vsu.subarray(0,0xc8+2));
+  // Port 1 CH4, algorithm 3 / feedback 5, OP1 AR 19. Hold for five seconds.
+  const opnCommands = [0x53,0xb0,0x2b,0x53,0x50,19, ...Array(300).fill(0x62),0x66];
+  const opn = Buffer.concat([vsu.subarray(0,0xc8),Buffer.from(opnCommands)]);
+  opn.writeUInt32LE(300*735,0x18);
   opn.writeUInt32LE(opn.length-4,4);
   opn.writeUInt32LE(0,0xc4);
   opn.writeUInt32LE(7670454,0x2c);
   opn.writeUInt32LE(3579545,0x0c);
-  opn.set([0x62,0x66],0xc8);
+
   async function openOpnMonitor() {
     await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});
     await page.locator('#operatorInfoTab').click();
@@ -333,6 +336,27 @@ try {
     assert(await page.locator('#channelGrid').isHidden());
   }
   await openOpnMonitor();
+  await page.locator('#chipMonitorTab0').click();
+  const voiceView = page.locator('#fm2612Voice');
+  await voiceView.getByRole('button',{name:'CH4',exact:true}).click();
+  await play.click();
+  await voiceView.locator('[data-fm-feedback]').filter({hasText:'Feedback 5'}).waitFor();
+  await pause.click();
+  assert.match(await voiceView.locator('[data-fm-routing]').innerText(),/ALGO 3/);
+  assert.equal(await voiceView.locator('tbody tr').first().locator('td').nth(4).innerText(),'19');
+  await voiceView.getByRole('button',{name:'CH1',exact:true}).click();
+  await voiceView.getByRole('button',{name:'CH4',exact:true}).click();
+  await voiceView.getByRole('button',{name:'Open in Instrument'}).click();
+  const instrument = page.locator('#tfiInfoPanel');
+  assert(await instrument.isVisible());
+  assert.equal(await instrument.locator('.tfi-title').innerText(),'monitor_ch4.tfi');
+  const [snapshot] = await Promise.all([
+    page.waitForEvent('download'), instrument.getByRole('button',{name:'Download TFI'}).click(),
+  ]);
+  const patch = await readFile(await snapshot.path());
+  assert.equal(patch.length,42);
+  assert.deepEqual([patch[0],patch[1],patch[6]],[3,5,19]); // ALG, FB, OP1 AR
+  await page.locator('#operatorInfoTab').click();
   await page.locator('#fileInput').setInputFiles({name:'original-vsu.vgm',mimeType:'application/octet-stream',buffer:vsu});
   await page.waitForFunction(() => document.querySelector('#parsedOutputTab').ariaSelected === 'true' && !document.querySelector('#playButton').disabled);
   for (const id of ['operatorInfoTab','noteishTab','sheetMusicTab','tfiInfoTab','sampleExplorerTab']) {

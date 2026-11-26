@@ -51,8 +51,9 @@ export function mountTfiInfo({ root, onStatus }) {
     const option = document.createElement('option');
     option.value = id; option.textContent = name;
     select.appendChild(option);
+    return id;
   }
-  select.addEventListener('change', () => {
+  function openSelection() {
     selected = select.value || null;
     if (selected) {
       const file = files.get(selected);
@@ -62,7 +63,8 @@ export function mountTfiInfo({ root, onStatus }) {
     editor.setVisible(visible && Boolean(selected));
     download.disabled = !selected;
     select.blur();
-  });
+  }
+  select.addEventListener('change', openSelection);
   input.addEventListener('change', async () => {
     for (const file of input.files ?? []) {
       try {
@@ -84,6 +86,10 @@ export function mountTfiInfo({ root, onStatus }) {
     download.blur();
   });
   return {
+    openSnapshot(name, bytes) {
+      select.value = add(name, bytes);
+      openSelection();
+    },
     loadVgm(buffer, name) {
       const extracted = buffer ? createVgmPresetFiles(buffer, name) : [];
       editor.setVisible(false);
