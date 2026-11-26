@@ -50,6 +50,7 @@ import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretbo
 import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pokey-vgm-1";
+import {createOpnbAdpcmMonitor, writeOpnbAdpcm, opnbAdpcmRows} from './opnb_adpcm_monitor.js';
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=pokey-vgm-1";
 import { exportMdx } from "./mdx_export.js?v=pokey-vgm-1";
@@ -610,6 +611,7 @@ const hasOkiSource = () => Boolean(noteishHeader?.okim6258Clock);
 let noteishHeader = {};
 let channelMonitor = createChannelMonitorState();
 let monitorFrequencyHigh = [0, 0];
+let opnbAdpcm = null;
 let psgMonitor = createPsgMonitor(currentChipKind);
 let toneChannels = [];
 let apuNoteMonitor = createGameboyMonitor();
@@ -1066,6 +1068,10 @@ function createOperatorChangeState() {
   };
 }
 
+function recentAdpcmStart(time) {
+  return time > 0 && performance.now() - time < 350;
+}
+
 function changeAgeOpacity(changedAt) {
   if (!changedAt) {
     return 0;
@@ -1107,7 +1113,7 @@ function ensureChannelMonitorRenderTimer() {
   }
   channelMonitorRenderTimer = window.setInterval(() => {
     if (operatorInfoPanel.hidden) return;
-    const psgRecent = (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
+    const psgRecent = opnbAdpcm?.starts.some(recentAdpcmStart) || (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
       changeAgeOpacity(pcmMonitor.changedAt) > 0 || pcmMonitor.channels.some((channel) => changeAgeOpacity(channel.changedAt) > 0);
     if (!channelMonitorDirty && !hasRecentChannelChanges() && !psgRecent && !psgHighlightActive) {
       return;
@@ -1157,7 +1163,7 @@ function requestNoteishRender() {
   noteishDirty = true;
 }
 
-function renderPsgRows(table, rows) {
+function renderRegisterRows(table, rows) {
   const body = table.tBodies[0];
   rows.forEach(({name, active, values}, index) => {
     const existing = body.rows[index];
@@ -1170,7 +1176,7 @@ function renderPsgRows(table, rows) {
       for (let i = 0; i < values.length; i++) row.insertCell();
     }
     row.classList.toggle("is-active", active);
-    row.cells[0].title = active ? "Volume register active" : "Volume register silent";
+    row.cells[0].title = table.dataset.pulse ? "Recent start command" : active ? "Volume register active" : "Volume register silent";
     values.forEach((value, i) => {
       const cell = row.cells[i + 1];
       if (cell.textContent === String(value)) return;
@@ -1196,7 +1202,7 @@ function renderPsgMonitor() {
   ssgTable.hidden = !ssg;
   document.getElementById("psgMonitorGrid").hidden = !ssg;
   if (ssg) {
-    renderPsgRows(ssgTable, state.channels.map(ch => ({
+    renderRegisterRows(ssgTable, state.channels.map(ch => ({
       name: ch.name, active: ch.envelope || ch.volume > 0,
       values: [ch.period, ch.toneEnabled ? "ON" : "OFF", ch.noiseEnabled ? "ON" : "OFF", ch.envelope ? "ENV" : ch.volume],
     })));
@@ -1208,7 +1214,7 @@ function renderPsgMonitor() {
     const rate = noise.tone3Linked ? `Tone 3 · period ${state.channels[2].period}` : [16, 32, 64][noise.rate];
     const rows = [...state.channels.map(ch => [ch.name, ch.period, "Tone", ch.attenuation]),
       ["Noise", rate, noise.mode, noise.attenuation]];
-    renderPsgRows(segaTable, rows.map(([name, period, mode, attenuation]) => ({
+    renderRegisterRows(segaTable, rows.map(([name, period, mode, attenuation]) => ({
       name, active: attenuation < 15, values: [period, mode, attenuation === 15 ? "15 · MUTE" : attenuation],
     })));
   }
@@ -1350,6 +1356,7 @@ function resetApuNoteChannels() {
 }
 
 function resetPsgMonitor() {
+  opnbAdpcm = currentChipKind === "ym2610" ? createOpnbAdpcmMonitor() : null;
   pcmMonitor = createRf5c164Monitor();
   psgMonitor = createPsgMonitor(currentChipKind);
   toneChannels = [];
@@ -1371,6 +1378,16 @@ function renderChannelMonitor() {
   if (currentChipKind === "ym2413") { renderMonitorToggles(); ym2413Monitor.render(); return; }
   if (isOpl(currentChipKind)) { renderMonitorToggles(); oplMonitor.render(); return; }
   if (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind)) { renderMonitorToggles(); return; }
+  if (opnbAdpcm) {
+    for (const part of ['A','B']) {
+      const table = document.getElementById('adpcm' + part + 'Channels');
+      if (table.closest('[hidden]')) continue;
+      const rows = opnbAdpcmRows(opnbAdpcm, part);
+      rows.forEach((row,i) => { row.active = recentAdpcmStart(opnbAdpcm.starts[part === 'A' ? i : 6]); });
+      renderRegisterRows(table, rows);
+      if (part === 'A') document.getElementById('adpcmTotalLevel').textContent = opnbAdpcm.a[1] & 63;
+    }
+  }
   renderPsgMonitor();
   renderPcmMonitor();
   renderMonitorToggles();
@@ -2701,7 +2718,12 @@ async function ensurePlaybackReady(vgm) {
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ym2610") {
       observePsgPlaybackEngine();
-      baseEngineWriteYm2610 = engine.writeYm2610B.bind(engine);
+      const write = engine.writeYm2610B.bind(engine);
+      baseEngineWriteYm2610 = (port, reg, value) => {
+        if (opnbAdpcm && writeOpnbAdpcm(opnbAdpcm, port, reg, value, timelineSeekController ? 0 : performance.now())) requestChannelMonitorRender();
+        return write(port, reg, value);
+      };
+      engine.writeYm2610B = baseEngineWriteYm2610;
     } else if (currentChipKind === "ym2203") {
       observePsgPlaybackEngine();
       baseEngineWriteYm2203 = engine.writeYm2203.bind(engine);
@@ -2732,11 +2754,12 @@ async function ensurePlaybackReady(vgm) {
     player = new VgmPlayer(engine);
     if (['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151', 'gameboy', 'nes'].includes(currentChipKind)) {
       player.checkpointIntervalSeconds = 5;
-      player.captureSeekState = () => structuredClone({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, lastYm2612DacEnable,
+      player.captureSeekState = () => structuredClone({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, opnbAdpcm, lastYm2612DacEnable,
         ...(currentChipKind === 'ym2151' ? {opm:opmMonitor.saveState(),opmTracker:opmNoteTracker.saveState(),opmNoteChannels} : {}),
         ...(['gameboy','nes'].includes(currentChipKind) ? {apuNoteMonitor,apuNoteChannels} : {})});
       player.restoreSeekState = state => {
-        ({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, lastYm2612DacEnable} = state);
+        ({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, opnbAdpcm, lastYm2612DacEnable} = state);
+        opnbAdpcm?.starts.fill(0);
         if (state.opm) { opmMonitor.loadState(state.opm);opmNoteTracker.loadState(state.opmTracker);opmNoteChannels=state.opmNoteChannels; }
         if (state.apuNoteMonitor) {
           apuNoteMonitor=state.apuNoteMonitor;apuNoteChannels=state.apuNoteChannels;
@@ -4275,7 +4298,9 @@ function configureChipMonitorTabs() {
   const previous = chipMonitorTabs.querySelector('[aria-selected="true"]')?.textContent;
   const psg = document.getElementById('psgMonitor');
   const pcm = document.getElementById('pcmMonitor');
-  chipMonitorStorage.append(opnMonitorRoot, psg, pcm, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot);
+  const adpcmA = document.getElementById('adpcmAMonitor');
+  const adpcmB = document.getElementById('adpcmBMonitor');
+  chipMonitorStorage.append(opnMonitorRoot, psg, pcm, adpcmA, adpcmB, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot);
   chipMonitorTabs.replaceChildren();
   chipMonitorPanels.replaceChildren();
   function addMonitorTab(tabList, panels, prefix, label, ...monitors) {
@@ -4294,6 +4319,7 @@ function configureChipMonitorTabs() {
     tab.setAttribute('aria-controls',panel.id);
     panel.setAttribute('aria-labelledby',tab.id);
     tab.onclick = () => {
+      requestChannelMonitorRender();
       for (const button of tabList.children) {
         const selected = button === tab;
         button.ariaSelected = String(selected);
@@ -4319,6 +4345,8 @@ function configureChipMonitorTabs() {
     add(label, sections, panels);
     const fmTab = addMonitorTab(sections, panels, 'opnbSection', 'FM', opnMonitorRoot);
     addMonitorTab(sections, panels, 'opnbSection', 'SSG', psg);
+    addMonitorTab(sections, panels, 'opnbSection', 'ADPCM-A', adpcmA);
+    addMonitorTab(sections, panels, 'opnbSection', 'ADPCM-B', adpcmB);
     fmTab.click();
   } else if (['ym2203','ym2608'].includes(kind)) {
     add(kind.toUpperCase(), opnMonitorRoot, psg);

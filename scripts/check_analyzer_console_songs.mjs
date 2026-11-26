@@ -385,8 +385,11 @@ try {
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c); header.writeUInt32LE(clock,offset);
     const commands = [command,0x27,0x40,command,0xac,0x23,command,0xa8,0x55,command,0x28,0x52,
       command,0,0x23,command,1,1,command,7,0x3e,command,8,9,
+      ...(chip.startsWith('YM2610') ? [0x59,1,47,0x59,8,0x91,0x59,0x10,2,0x59,0x20,5,0x59,0,3,
+        0x58,0x11,0x40,0x58,0x12,4,0x58,0x14,9,0x58,0x19,0x34,0x58,0x1a,0x12,0x58,0x1b,200,0x58,0x10,0x90] : []),
       ...Array(90).fill(0x62),command,0x42,56,command,6,11,command,7,0x36,
-      command,11,0x34,command,12,2,command,13,14,command,8,16,...Array(210).fill(0x62),0x66];
+      command,11,0x34,command,12,2,command,13,14,command,8,16,
+      ...(chip.startsWith('YM2610') ? [0x59,0,0x81,0x58,0x10,1] : []),...Array(210).fill(0x62),0x66];
     const buffer = Buffer.concat([header,Buffer.from(commands)]);
     buffer.writeUInt32LE(buffer.length-4,4);
     await page.locator('#fileInput').setInputFiles({name:chip+'.vgm',mimeType:'application/octet-stream',buffer});
@@ -406,7 +409,7 @@ try {
     await page.waitForFunction(el=>el.textContent==='56' && el.getAnimations().length>0,await tl.elementHandle());
     const sections = page.getByRole('tablist',{name:chip+' sections',exact:true});
     if (chip.startsWith('YM2610')) {
-      assert.deepEqual(await sections.getByRole('tab').allTextContents(), ['FM','SSG']);
+      assert.deepEqual(await sections.getByRole('tab').allTextContents(), ['FM','SSG','ADPCM-A','ADPCM-B']);
       assert.equal(await sections.getByRole('tab',{name:'FM',exact:true}).getAttribute('aria-selected'),'true');
       await sections.getByRole('tab',{name:'SSG',exact:true}).click();
       assert(await voiceView.isHidden());
@@ -430,7 +433,22 @@ try {
     await channelA.getByText('ENV',{exact:true}).waitFor();
     assert(await shared.getByText('SHAPE 14',{exact:true}).isVisible());
     if (chip.startsWith('YM2610')) {
-      await sections.getByRole('tab',{name:'SSG',exact:true}).press('ArrowLeft');
+      const a = page.locator('#adpcmAChannels tbody tr'), b = page.locator('#adpcmBChannels tbody tr');
+      await sections.getByRole('tab',{name:'ADPCM-A'}).click();
+      await a.first().getByText('Stop',{exact:true}).waitFor();
+      assert.equal(await a.count(),6);
+      assert.deepEqual(await a.first().locator('td').allTextContents(),['Stop','0x000200','0x0005FF','17','L']);
+      assert.equal(await a.nth(1).locator('td').first().innerText(),'Start');
+      assert.equal(await page.locator('#adpcmTotalLevel').innerText(),'47');
+      await sections.getByRole('tab',{name:'ADPCM-B'}).click();
+      await b.getByText('Reset',{exact:true}).waitFor();
+      await movePosition(.5);
+      await b.getByText('Start',{exact:true}).waitFor();
+      assert.deepEqual(await b.locator('td').allTextContents(),['Start','0x000400','0x0009FF','200','R','4660','On']);
+      await sections.getByRole('tab',{name:'ADPCM-A'}).click();
+      await a.first().getByText('Start',{exact:true}).waitFor();
+      await sections.getByRole('tab',{name:'ADPCM-A'}).press('Home');
+
       assert(await ch3.isVisible());
       assert.equal(await ch3.getAttribute('aria-pressed'),'true');
       assert(await page.locator('#ssgChannels').isHidden());

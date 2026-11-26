@@ -806,6 +806,21 @@
                 </div>
               </section>
             </section>
+            <section id="adpcmAMonitor">
+              <p class="noteish-help">The light flashes on a start command. Addresses are programmed ROM byte addresses.</p>
+              <div style="overflow-x:auto"><table id="adpcmAChannels" class="psg-channels" data-pulse="start" aria-label="ADPCM-A registers">
+                <thead><tr><th scope="col">Channel</th><th scope="col">Last command</th><th scope="col">Start byte</th><th scope="col">End byte (incl.)</th><th scope="col">Level</th><th scope="col">Output</th></tr></thead>
+                <tbody></tbody>
+              </table></div>
+              <p>Total level · <span id="adpcmTotalLevel">0</span></p>
+            </section>
+            <section id="adpcmBMonitor">
+              <p class="noteish-help">The light flashes on a start command. Addresses are programmed ROM byte addresses.</p>
+              <div style="overflow-x:auto"><table id="adpcmBChannels" class="psg-channels" data-pulse="start" aria-label="ADPCM-B registers">
+                <thead><tr><th scope="col">Channel</th><th scope="col">Last command</th><th scope="col">Start byte</th><th scope="col">End byte (incl.)</th><th scope="col">Level</th><th scope="col">Output</th><th scope="col">Delta-N</th><th scope="col">Repeat</th></tr></thead>
+                <tbody></tbody>
+              </table></div>
+            </section>
             <section id="psgMonitor">
               <h2 id="psgMonitorTitle">Sega PSG</h2>
               <p class="noteish-help">Register settings at the generated audio position; playback may follow slightly later. These are not live audio levels.</p>
@@ -1073,7 +1088,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=opnb-sections-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=opnb-adpcm-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>
