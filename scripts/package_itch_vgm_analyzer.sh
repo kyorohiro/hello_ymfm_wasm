@@ -123,6 +123,7 @@ seek_playback.js
 "
 
 JS_FILES="
+gameboy_wave_canvas.js
 spc.js
 spc_voice_edit.js
 spc_file.js

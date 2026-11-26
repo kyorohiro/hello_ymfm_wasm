@@ -41,14 +41,15 @@ test('gameboy exposes Note-ish and GB Info while disabling FM voice exports',()=
     selected:null,
     setOutputTab(name){context.selected=name;}};
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute(){return 'false';}};
-  context.parsedOutputTab.getAttribute=()=>'true'; // already on the one tab gameboy is allowed to stay on
+  context.parsedOutputTab.getAttribute=()=>'true';
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
   context.updateChipSupport();
   assert.equal(context.noteishTab.disabled,false,'noteishTab');
   assert.equal(context.noteishTab.title,'');
   assert.equal(context.sampleTab.disabled,false,'GB Info remains available');
   assert.equal(context.sampleTab.textContent,'GB Info');
-  for(const name of ['operatorInfoTab','tfiInfoTab',...buttonNames.filter(n=>n!=='exportMidiButton')]) {
+  assert.equal(context.operatorInfoTab.disabled,false,'SoundChip is available');
+  for(const name of ['tfiInfoTab',...buttonNames.filter(n=>n!=='exportMidiButton')]) {
     assert.equal(context[name].disabled,true,name);
     assert.equal(context[name].title,'Support coming soon.');
   }
@@ -62,14 +63,10 @@ test('gameboy exposes Note-ish and GB Info while disabling FM voice exports',()=
   vm.runInContext(fn('chipSupportMessage'),context);
   assert.match(context.chipSupportMessage('gameboy',{},[]),/Note-ish available/);
   assert.equal(context.selected,null,'already on parsed-output: no forced switch needed');
-  // Regression: loading a Game Boy file while a stale "operator-info" tab
-  // (left over from a previous, unrelated file) is still selected must not
-  // leave that tab showing irrelevant Sega PSG/channel-grid content; it must
-  // be switched to the one tab Game Boy actually supports.
   context.operatorInfoTab.getAttribute=()=>'true';
   context.parsedOutputTab.getAttribute=()=>'false';
   context.updateChipSupport();
-  assert.equal(context.selected,'noteish');
+  assert.equal(context.selected,null,'keep the Game Boy monitor selected');
 });
 test('segapcm also switches away from a stale operator-info tab to parsed-output',()=>{
   // Same class of bug as Game Boy above, for a chip with no Note-ish at
@@ -88,9 +85,9 @@ test('segapcm also switches away from a stale operator-info tab to parsed-output
   assert.equal(context.selected,'parsed-output');
   for(const name of tabNames) assert.equal(context[name].disabled,true,name);
 });
-test('setOutputTab allows noteish and parsed-output for gameboy but forces parsed-output for anything else',()=>{
+test('Game Boy SoundChip and Note-ish are accessible; unsupported instrument tab falls back',()=>{
   const stub=()=>({setAttribute(){},hidden:false,tabIndex:0});
-  const context=vm.createContext({isOpl,currentChipKind:'gameboy',currentBuffer:new Uint8Array(1),midiExportAvailable:false,status:{textContent:'',hidden:true},
+  const context=vm.createContext({isOpl,requestChannelMonitorRender(){},currentChipKind:'gameboy',currentBuffer:new Uint8Array(1),midiExportAvailable:false,status:{textContent:'',hidden:true},
     document:{getElementById:stub,querySelectorAll:()=>[]},spcNoteish:{setVisible(){}},
     noteishViewMode:'live',sampleExplorer:{stop(){}},songTimeline:{active(){}},requestNoteishRender(){},renderNoteishGrid(){},
     sheetMusicPanel:stub(),sheetMusicTab:stub(),musicSheet:null,tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sbiInfo:{setVisible(){}},
@@ -99,7 +96,8 @@ test('setOutputTab allows noteish and parsed-output for gameboy but forces parse
     setStatus(message){context.status.textContent=message;}});
   vm.runInContext(fn('setOutputTab'),context);
   context.setOutputTab('noteish');assert.equal(context.noteishPanel.hidden,false,'noteish stays reachable');
-  context.setOutputTab('operator-info');assert.equal(context.parsedOutputPanel.hidden,false,'unsupported tab falls back to parsed-output');
+  context.setOutputTab('operator-info');assert.equal(context.operatorInfoPanel.hidden,false);
+  context.setOutputTab('tfi-info');assert.equal(context.parsedOutputPanel.hidden,false,'unsupported tab falls back to parsed-output');
   assert.equal(context.operatorInfoPanel.hidden,true);
 });
 test('YM2413 + PSG does not enter the OPN tone monitor',()=>{

@@ -17,7 +17,7 @@ const NR30 = 0x0a;
 const NR52 = 0x16;
 
 export function createGameboyMonitor() {
-  return { channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false, trigger: 0 })) };
+  return { wave: new Int8Array(32).fill(-1), channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false, trigger: 0 })) };
 }
 
 export function applyGameboyWrite(state, register, value) {

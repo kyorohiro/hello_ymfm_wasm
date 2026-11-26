@@ -533,6 +533,32 @@ try {
     assert(loud > quiet*2);
     console.log('RF5C164 paused seek selects and previews distinct RAM snapshots at the same address');
   }
+  {
+    const header = Buffer.from(opn.subarray(0,0xc8));
+    header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c);
+    header.writeUInt32LE(4194304,0x80);
+    const first = Array.from({length:16}, (_,i) => [0xb3,0x20+i,(i<<4)|(15-i)]).flat();
+    const commands = [...first,...Array(120).fill(0x62),0xb3,0x20,0xab,...Array(180).fill(0x62),0x66];
+    const buffer = Buffer.concat([header,Buffer.from(commands)]);
+    buffer.writeUInt32LE(buffer.length-4,4);
+    await page.locator('#fileInput').setInputFiles({name:'wave.vgm',mimeType:'application/octet-stream',buffer});
+    await page.locator('#operatorInfoTab').click();
+    const readout = page.locator('#gameboyWaveValues');
+    await readout.waitFor();
+    assert.equal((await readout.innerText()).split(' ').filter(x=>x==='·').length,32);
+    await play.click();
+    const checkWave = prefix => page.waitForFunction(prefix =>
+      document.querySelector('#gameboyWaveValues').textContent.startsWith(prefix), prefix);
+    await checkWave('0 F 1 E');
+    await pause.click();
+    const canvas = page.locator('#gameboyWaveCanvas');
+    const firstImage = await canvas.evaluate(el => el.toDataURL());
+    await movePosition(3); await checkWave('A B 1 E');
+    assert.notEqual(await canvas.evaluate(el => el.toDataURL()),firstImage);
+    await movePosition(.5); await checkWave('0 F 1 E');
+    assert.equal(await canvas.evaluate(el => el.toDataURL()),firstImage);
+    console.log('Game Boy CH3 wave RAM and Synth waveform follow paused forward and backward seeks');
+  }
   for (const chip of ['YM2151','YM2164']) {
     const header = Buffer.from(opn.subarray(0,0xc8));
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c);
