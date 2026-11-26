@@ -65,3 +65,28 @@ for (const [name, clockField, clock, opcode] of [
   }
   await writeFile(new URL('dual-ym2608-ssg.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
 }
+
+// First second: both snares. Second second: both repeating Delta-T samples.
+// Chip 1 is panned left, chip 2 right so isolation is audible and measurable.
+{
+  const data = [];
+  for (const chip of [0,1]) {
+    const pan = chip ? 0x40 : 0x80;
+    data.push(0x67,0x66,0x81,8,1,0,chip << 7,0,1,0,0,0,0,0,0);
+    for (let i=0;i<256;i++) data.push(i%2 ? 0x99 : 0x11);
+    const rhythm = chip ? 0xa6 : 0x56;
+    data.push(rhythm,0x11,63,rhythm,0x19,pan | 31,rhythm,0x10,2);
+  }
+  data.push(0x61,0x44,0xac);
+  for (const chip of [0,1]) {
+    const delta = chip ? 0xa7 : 0x57;
+    for (const [reg,val] of [[0,1],[1,chip ? 0x40 : 0x80],[4,63],[9,255],[10,chip ? 127 : 255],[11,255],[0,0xb0]]) data.push(delta,reg,val);
+  }
+  data.push(0x61,0x44,0xac,0x66);
+  const header = Buffer.alloc(256);
+  header.write('Vgm ');
+  for (const [offset,value] of [[4,252+data.length],[8,0x171],[0x18,88200],[0x34,204],[0x48,0x40000000+7987200]]) {
+    header.writeUInt32LE(value,offset);
+  }
+  await writeFile(new URL('dual-ym2608-rhythm-delta.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
+}

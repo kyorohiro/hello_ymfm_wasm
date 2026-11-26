@@ -652,7 +652,10 @@ function resetDualFmRegisters() {
   for (const fm of dualFm) {
     fm.channels = Array.from({length:6}, (_,ch) => buildMonitorChannel(ch));
     fm.high = [0,0];
-    if (fm.ssgMuted) fm.ssg = createPsgMonitor(fm.part.kind);
+    if (fm.ssgMuted) {
+      fm.ssg = createPsgMonitor(fm.part.kind);
+      fm.adpcm = createOpnAdpcmMonitor(fm.part.kind);
+    }
   }
 }
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, oki6295: false, segapcm: false, msm5205:false };
@@ -864,21 +867,24 @@ function renderMonitorToggles() {
       append(button,label);
       if (fmIndex < 0) continue;
       const fm = dualFm[fmIndex];
-      function addChannels(states,ssg) {
+      function addChannels(states,kind,labels) {
         states.forEach((muted,ch) => {
           const toggle = document.createElement('button');
           toggle.type = 'button';
           toggle.className = 'channel-toggle' + (muted ? ' is-muted' : '');
-          toggle.textContent = ssg ? 'SSG ' + 'ABC'[ch] : 'CH' + (ch+1);
-          toggle.dataset.monitorToggleKind = ssg ? 'dual-ssg-channel' : 'dual-fm-channel';
+          toggle.textContent = labels ? labels[ch] : 'CH' + (ch+1);
+          toggle.dataset.monitorToggleKind = kind;
           toggle.dataset.chipIndex = fmIndex;
           toggle.dataset.channelIndex = ch;
           toggle.setAttribute('aria-pressed',String(!muted));
           append(toggle,label);
         });
       }
-      addChannels(fm.muted,false);
-      if (fm.ssgMuted) addChannels(fm.ssgMuted,true);
+      addChannels(fm.muted,'dual-fm-channel');
+      if (fm.ssgMuted) {
+        addChannels(fm.ssgMuted,'dual-ssg-channel',['SSG A','SSG B','SSG C']);
+        addChannels(fm.sampleMutes,'dual-sample-channel',[...rhythmNames,'ADPCM-B']);
+      }
     }
     return;
   }
@@ -1006,6 +1012,11 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
+    if (currentChipKind === 'mixed' && (kind === 'dual-sample-channel' || kind === 'adpcm-a-channel')) {
+      const index = kind === 'dual-sample-channel' ? Number(target.dataset.chipIndex) : inspectedFm;
+      toggleDualSampleMute(index,Number(target.dataset.channelIndex));
+      return;
+    }
     if (currentChipKind === 'mixed' && kind === 'ssg-channel' && dualFm[inspectedFm]?.ssgMuted) {
       toggleDualFmChannel(inspectedFm,Number(target.dataset.channelIndex),true);
       return;
@@ -1201,7 +1212,8 @@ function ensureChannelMonitorRenderTimer() {
   }
   channelMonitorRenderTimer = window.setInterval(() => {
     if (operatorInfoPanel.hidden) return;
-    const psgRecent = opnAdpcm?.starts.some(recentAdpcmStart) || (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
+    const recentAdpcm = currentChipKind === 'mixed' ? dualFm[inspectedFm]?.adpcm : opnAdpcm;
+    const psgRecent = recentAdpcm?.starts.some(recentAdpcmStart) || (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
       changeAgeOpacity(pcmMonitor.changedAt) > 0 || pcmMonitor.channels.some((channel) => changeAgeOpacity(channel.changedAt) > 0);
     if (!channelMonitorDirty && !hasRecentChannelChanges() && !psgRecent && !psgHighlightActive) {
       return;
@@ -1542,12 +1554,26 @@ function renderGameboySettings() {
   });
 }
 
+function renderAdpcmMonitor(monitor,mutes) {
+  for (const part of ['A','B']) {
+    const rhythm = part === 'A' && monitor.chip === 'ym2608';
+    const table = document.getElementById(rhythm ? 'rhythmChannels' : 'adpcm' + part + 'Channels');
+    if (table.closest('[hidden]')) continue;
+    const rows = opnAdpcmRows(monitor, part);
+    rows.forEach((row,i) => { row.active = recentAdpcmStart(monitor.starts[part === 'A' ? i : 6]); });
+    renderRegisterRows(table, rows, part === 'A' ? mutes : null);
+    if (!rhythm) renderSampleLinks(table, i => currentChipKind === 'mixed' ? null : opnAdpcm?.lastTriggers[part === 'B' ? 6 : i]);
+    if (part === 'A') document.getElementById(rhythm ? 'rhythmTotalLevel' : 'adpcmTotalLevel').textContent = monitor.a[1] & 63;
+  }
+}
+
 function renderChannelMonitor() {
   const opn = ['ym2612','ym2203','ym2608','ym2610'].includes(currentChipKind);
   if (currentChipKind === 'mixed' && dualFm.length) {
     const fm = dualFm[inspectedFm];
     fm2612Voice.update(fm.channels,fm.part.kind);
     if (fm.ssg) renderPsgMonitor(fm.ssg,fm.ssgMuted,fm.label);
+    if (fm.adpcm) renderAdpcmMonitor(fm.adpcm,fm.sampleMutes);
     return;
   }
   fm2612Voice.update(opn ? channelMonitor : [], currentChipKind);
@@ -1567,18 +1593,7 @@ function renderChannelMonitor() {
     return;
   }
   if (["msx","wonderswan","huc6280","nes","ymf278b","ymf262"].includes(currentChipKind)) { renderMonitorToggles(); return; }
-  if (opnAdpcm) {
-    for (const part of ['A','B']) {
-      const rhythm = part === 'A' && currentChipKind === 'ym2608';
-      const table = document.getElementById(rhythm ? 'rhythmChannels' : 'adpcm' + part + 'Channels');
-      if (table.closest('[hidden]')) continue;
-      const rows = opnAdpcmRows(opnAdpcm, part);
-      rows.forEach((row,i) => { row.active = recentAdpcmStart(opnAdpcm.starts[part === 'A' ? i : 6]); });
-      renderRegisterRows(table, rows, part === 'A' ? adpcmAChannelMutes[currentChipKind] : null);
-      if (!rhythm) renderSampleLinks(table, i => opnAdpcm?.lastTriggers[part === 'B' ? 6 : i]);
-      if (part === 'A') document.getElementById(rhythm ? 'rhythmTotalLevel' : 'adpcmTotalLevel').textContent = opnAdpcm.a[1] & 63;
-    }
-  }
+  if (opnAdpcm) renderAdpcmMonitor(opnAdpcm,adpcmAChannelMutes[currentChipKind]);
   renderPsgMonitor();
   renderPcmMonitor();
   renderMonitorToggles();
@@ -2836,7 +2851,8 @@ async function ensurePlaybackReady(vgm) {
       engine.onFmWrite = (index,port,register,value) => {
         const fm = dualFm[index];
         if (!fm) return;
-        if (fm.ssg && applySsgWrite(fm.ssg,port,register,value,performance.now())) requestChannelMonitorRender();
+        if (fm.adpcm && writeOpnAdpcm(fm.adpcm,port,register,value,timelineSeekController ? 0 : performance.now(),player?.parser?.position)) requestChannelMonitorRender();
+        else if (fm.ssg && applySsgWrite(fm.ssg,port,register,value,performance.now())) requestChannelMonitorRender();
         else applyYm2612WriteToMonitor(port,register,value,fm.channels,fm.high,fm.part.kind);
       };
       engine.onFmReset = resetDualFmRegisters;
@@ -2976,6 +2992,7 @@ async function ensurePlaybackReady(vgm) {
     dualFm.forEach((fm,i) => {
       fm.engine = engine;
       fm.muted.forEach((muted,ch) => engine.setFmChannelMuted(i,ch,muted));
+      fm.sampleMutes?.forEach((muted,ch) => applyDualSampleMute(i,ch,muted));
       fm.ssgMuted?.forEach((muted,ch) => engine.setInstanceSsgChannelMuted(i,ch,muted));
     });
   }
@@ -3920,6 +3937,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   dualFm = dualOpnParts(mixedPlaybackParts).map(part => ({
     part, label:part.kind.toUpperCase() + ' ' + ((part.chipIndex ?? 0)+1),
     muted:Array(6).fill(false), ssgMuted:part.kind === 'ym2608' ? Array(3).fill(false) : null,
+    sampleMutes:part.kind === 'ym2608' ? Array(7).fill(false) : null,
   }));
   inspectedFm = 0;
   resetDualFmRegisters();
@@ -4543,6 +4561,26 @@ chipMonitorStorage.append(ym2413MonitorRoot);
 ym2413MonitorRoot.hidden = true;
 const ym2413Monitor = mountYm2413Monitor(ym2413MonitorRoot);
 // Keep the mounted monitors (and their register state) when changing tabs.
+// Six OPNA rhythm outputs and the seventh, Delta-T, have separate mute controls.
+function applyDualSampleMute(index,ch,muted) {
+  const device = engine.fmInstances[index].engine;
+  if (ch === 6) device.setAdpcmBMuted(muted);
+  else device.setAdpcmAChannelMuted(ch,muted);
+}
+
+function toggleDualSampleMute(index,ch) {
+  const fm = dualFm[index];
+  const muted = !fm.sampleMutes[ch];
+  if (engine && fm.engine === engine) applyDualSampleMute(index,ch,muted);
+  fm.sampleMutes[ch] = muted;
+  if (ch === 6) {
+    fm.deltaButton.setAttribute('aria-pressed',String(muted));
+    fm.deltaButton.classList.toggle('is-muted',muted);
+  } else if (index === inspectedFm) renderAdpcmMonitor(fm.adpcm,fm.sampleMutes);
+  renderMonitorToggles();
+  flushPendingAudio();
+}
+
 function toggleDualFmChannel(index,ch,ssg = false) {
   const fm = dualFm[index];
   const states = ssg ? fm.ssgMuted : fm.muted;
@@ -4640,6 +4678,7 @@ function configureChipMonitorTabs() {
     });
     section.append(controls);
     const ssgPanel = document.createElement('div');
+    const rhythmPanel = document.createElement('div'), deltaPanel = document.createElement('div');
     let tab;
     if (fm.ssgMuted) {
       const sections = document.createElement('div'), panels = document.createElement('div');
@@ -4651,6 +4690,16 @@ function configureChipMonitorTabs() {
       const prefix = 'dualOpn' + index;
       const fmTab = addMonitorTab(sections,panels,prefix,'FM',section);
       addMonitorTab(sections,panels,prefix,'SSG',ssgPanel);
+      addMonitorTab(sections,panels,prefix,'Rhythm',rhythmPanel);
+      addMonitorTab(sections,panels,prefix,'ADPCM-B',deltaPanel);
+      const delta = document.createElement('button');
+      delta.type = 'button';
+      delta.className = 'channel-toggle';
+      delta.textContent = 'Mute ADPCM-B';
+      delta.setAttribute('aria-pressed',String(fm.sampleMutes[6]));
+      delta.onclick = () => toggleDualSampleMute(index,6);
+      fm.deltaButton = delta;
+      deltaPanel.append(delta);
       fmTab.click();
     } else tab = add(fm.label,section);
     tab.addEventListener('click',() => {
@@ -4658,6 +4707,9 @@ function configureChipMonitorTabs() {
       section.append(voice);
       if (fm.ssg) {
         ssgPanel.append(psg);
+        rhythmPanel.append(rhythm);
+        deltaPanel.append(adpcmB);
+        renderAdpcmMonitor(fm.adpcm,fm.sampleMutes);
         renderPsgMonitor(fm.ssg,fm.ssgMuted,fm.label);
       }
       fm2612Voice.update(fm.channels,fm.part.kind);

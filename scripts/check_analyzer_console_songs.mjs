@@ -374,6 +374,31 @@ try {
   assert.equal(await ssgA.getAttribute('aria-pressed'),'true');
   await stop.click();
 
+  await page.locator('#fileInput').setInputFiles('test/fixtures/dual-ym2608-rhythm-delta.vgm');
+  await page.locator('#operatorInfoTab').click();
+  await opnaTabs.getByRole('tab',{name:'YM2608 2'}).click();
+  await page.getByRole('tab',{name:'Rhythm',exact:true}).click();
+  await play.click();
+  const snare = page.locator('#rhythmChannels tbody tr').nth(1);
+  await snare.getByText('Start',{exact:true}).waitFor();
+  await pause.click();
+  const dock2 = dockChannels.getByRole('group',{name:'YM2608 2',exact:true});
+  await snare.getByRole('button').click();
+  assert.equal(await dock2.getByRole('button',{name:'Snare',exact:true}).getAttribute('aria-pressed'),'false');
+  await page.getByRole('tab',{name:'ADPCM-B',exact:true}).click();
+  await movePosition(1.5);
+  const deltaRow = page.locator('#adpcmBChannels tbody tr');
+  await deltaRow.getByText('32767',{exact:true}).waitFor();
+  await dock2.getByRole('button',{name:'ADPCM-B',exact:true}).click();
+  assert.equal(await page.getByRole('button',{name:'Mute ADPCM-B',exact:true}).getAttribute('aria-pressed'),'true');
+  await opnaTabs.getByRole('tab',{name:'YM2608 1'}).click();
+  await page.getByRole('tab',{name:'ADPCM-B',exact:true}).click();
+  await deltaRow.getByText('65535',{exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Mute ADPCM-B',exact:true}).getAttribute('aria-pressed'),'false');
+  await movePosition(.25);
+  await deltaRow.getByText('—',{exact:true}).first().waitFor();
+  await stop.click();
+
   async function openOpnMonitor() {
     await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});
     await page.locator('#operatorInfoTab').click();

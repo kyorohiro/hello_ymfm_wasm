@@ -108,3 +108,26 @@ test('dual OPNA SSG A outputs retain distinct pitches and independent masks',asy
     }
   } finally {engine.dispose();}
 });
+
+test('dual OPNA rhythm and Delta-T mutes isolate chip, instrument and source across reset',async () => {
+  const bytes = await readFile(new URL('../../test/fixtures/dual-ym2608-rhythm-delta.vgm',import.meta.url));
+  const rom = await readFile(new URL('../js/tetorica_ym2608_adpcm_rom.bin',import.meta.url));
+  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory,roms:{ym2608AdpcmA:rom}});
+  try {
+    const player = createPlaybackPlayer(engine,bytes);
+    for (const [snare,delta] of [[-1,-1],[0,1],[1,0],[-1,-1]]) {
+      engine.fmInstances.forEach(({engine:chip},i) => {
+        chip.setAdpcmAChannelMuted(0,true); // Bass drum must leave the snare audible.
+        chip.setAdpcmAChannelMuted(1,i===snare);
+        chip.setAdpcmBMuted(i===delta);
+      });
+      player.reset(); player.setPrefetchFactor(1); player.play();
+      for (const muted of [snare,delta]) {
+        const left = new Float32Array(44100), right = new Float32Array(44100);
+        player.process(left,right,left.length);
+        const audible = [left,right].map(side => side.subarray(32,4096).some(v => Math.abs(v)>.0001));
+        assert.deepEqual(audible,[muted!==0,muted!==1]);
+      }
+    }
+  } finally {engine.dispose();}
+});
