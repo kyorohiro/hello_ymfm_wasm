@@ -3,7 +3,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 const source=new URL('../docs/vgm_analyzer/index.html',import.meta.url);
 const target=new URL('../docs/vgm_analyzer/support.html',import.meta.url);
 const dialog=readFileSync(source,'utf8').match(/<dialog id="chipSupportDialog"[\s\S]*?<\/dialog>/)?.[0];
-const start=dialog?.indexOf('<p>Playback and analysis');
+const start=dialog?.indexOf('<p><strong>Music formats');
 const end=dialog?.lastIndexOf('</ul>');
 if(start===undefined||start<0||end<0)throw new Error('Cannot locate Analyzer support table and notes');
 const content=dialog.slice(start,end+5);

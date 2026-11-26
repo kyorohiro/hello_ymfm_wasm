@@ -577,34 +577,28 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=scsp-keys-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=compact-menu-1">
   </head>
   <body>
     <p id="chipSupportNotice" role="status" hidden>YM2413 analysis and instrument editing: Support coming soon.</p>
     <main>
       <section class="panel">
-        <nav class="page-tools" aria-label="Page actions">
-          <a class="link-button" href="./support.html">Sound chip support — reference page</a>
-          <a class="link-button" href="../index.html">Back</a>
-          <button class="link-button" data-reset-offline-cache type="button">Reset Offline Cache</button>
-        </nav>
         <header class="instrument-header">
-          <div class="instrument-brand">
-            <h1 id="pageTitle"><span class="brand-name">Tetorica</span><span class="brand-model"><span>FM</span>2612</span><span class="brand-analyzer">Analyzer</span></h1>
-            <p class="brand-caption">VGM Inspector &amp; Visualizer</p>
-          </div>
-          <button id="chipSupportButton" class="instrument-specs" type="button" aria-haspopup="dialog" aria-controls="chipSupportDialog">
-            <span class="spec-row"><span class="spec-label">Music formats</span><strong>VGM / VGZ / S98 / SPC</strong></span>
-            <span class="spec-row"><span class="spec-label">Sound chip analysis</span><strong>YM2612 / YM2203 / YM2608 / YM2610(B) / YM2151 / YM2164</strong></span>
-            <span class="spec-row"><span class="spec-label">Mega-CD / 32X playback</span><strong>YM2612 + PSG + RF5C164 PCM + PWM</strong></span>
-            <span class="spec-row"><span class="spec-label">Additional playback · MSX Y8950 + AY + YM2413 + SCC mix</span><strong>YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / AY-3-8910 / YM2149 / K051649 / K052539 (SCC / SCC+) / OKIM6258 / OKIM6295 / Sega PCM / Game Boy DMG / NES APU + FDS (NTSC) / HuC6280 / WonderSwan</strong></span>
-            <span class="spec-row"><span class="spec-label">Tetorica sound laboratory · View support by chip ↗</span><span>Explore the music. Read the machine.</span></span>
-          </button>
+          <details id="analyzerMenu" class="analyzer-menu">
+            <summary aria-label="Main menu" title="Main menu"><span aria-hidden="true">☰</span></summary>
+            <nav aria-label="Page actions">
+              <button id="chipSupportButton" type="button" aria-haspopup="dialog" aria-controls="chipSupportDialog">Sound chip support</button>
+              <a class="link-button" href="../index.html">Back</a>
+              <button data-reset-offline-cache type="button">Reset Offline Cache</button>
+            </nav>
+          </details>
+          <h1 id="pageTitle">Tetorica <span>FM</span>2612 Analyzer</h1>
         </header>
         <dialog id="chipSupportDialog" class="notes-dialog chip-support-dialog" aria-labelledby="chipSupportTitle">
           <div class="notes-dialog-body">
             <div class="notes-dialog-head"><h3 id="chipSupportTitle">Sound chip support</h3><form method="dialog"><button type="submit" autofocus>Close</button></form></div>
             <p><a href="./support.html" target="_blank" rel="noopener">Open the shareable support page ↗</a></p>
+            <p><strong>Music formats</strong> · VGM / VGZ / S98 / SPC / SID / SSF / miniSSF / PSF1 / miniPSF</p>
             <p>Playback and analysis have different coverage. “—” means the feature is not currently available. This list describes implemented features, not a guarantee for every track or chip combination.</p>
             <div class="chip-support-scroll" tabindex="0" role="region" aria-label="Chip support table">
               <table class="chip-support-table">
@@ -1035,7 +1029,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=scsp-keys-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=compact-menu-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

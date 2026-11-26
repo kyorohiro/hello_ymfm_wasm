@@ -4817,7 +4817,22 @@ wavExportDialog.querySelector("form").addEventListener("submit", async (event) =
 });
 
 // A native dialog keeps keyboard focus inside the support table and supports Escape.
+const analyzerMenu = document.getElementById('analyzerMenu');
+function closeAnalyzerMenu() {
+  analyzerMenu.open = false;
+  analyzerMenu.querySelector('summary').focus();
+}
+document.addEventListener('click', event => {
+  if (analyzerMenu.open && !analyzerMenu.contains(event.target)) analyzerMenu.open = false;
+});
+analyzerMenu.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && analyzerMenu.open) {
+    event.preventDefault();
+    closeAnalyzerMenu();
+  }
+});
 document.getElementById('chipSupportButton').addEventListener('click', () => {
+  closeAnalyzerMenu();
   document.getElementById('chipSupportDialog').showModal();
 });
 

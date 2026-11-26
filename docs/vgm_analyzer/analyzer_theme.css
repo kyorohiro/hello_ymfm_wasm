@@ -52,57 +52,46 @@ main { padding: 24px; }
   box-shadow: 0 0 0 1px #91140e, inset 0 0 0 2px #e8b7a0,
     inset 0 4px 12px #8e3c2520, 0 10px 0 #a71a12, 0 22px 45px #6d35202a;
 }
-.page-tools {
-  position: absolute;
-  top: -20px;
-  right: 22px;
-  z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  max-width: calc(100% - 44px);
-}
-@media (max-width: 600px) {
-  .page-tools {
-    position: static;
-    max-width: none;
-    margin-bottom: 20px;
-  }
-}
 .instrument-header {
-  display: grid;
-  grid-template-columns: 1fr minmax(280px, 0.7fr);
+  display: flex;
   align-items: center;
-  gap: 48px;
-  padding: 8px 8px 24px;
-  border-bottom: 4px double var(--line);
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
 }
-.instrument-brand { max-width: 650px; }
-h1 { margin: 0; letter-spacing: -0.045em; }
-.brand-name { display: block; font-size: clamp(1.8rem, 3vw, 3rem); font-weight: 600; letter-spacing: 0.025em; }
-.brand-model { display: block; font-size: clamp(4rem, 8vw, 8rem); font-weight: 850; line-height: 1.06; text-shadow: 0 2px white; }
-.brand-model > span { color: var(--accent); }
-.brand-analyzer {
-  display: block;
-  padding: 7px 16px 7px 26px;
-  margin-top: 8px;
+.instrument-header h1 { margin: 0; font-size: clamp(1rem, 2vw, 1.45rem); letter-spacing: -.025em; }
+.instrument-header h1 > span:first-child { color: var(--accent); }
+.analyzer-menu { position: relative; flex: none; }
+.analyzer-menu summary {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--accent-dark);
+  font: 1.3rem/1 system-ui, sans-serif;
+  cursor: pointer;
+  list-style: none;
+}
+.analyzer-menu summary::-webkit-details-marker { display: none; }
+.analyzer-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.analyzer-menu nav {
+  position: absolute;
+  z-index: 21;
+  top: calc(100% + 4px);
+  left: 0;
+  display: grid;
+  gap: 4px;
+  min-width: 12rem;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--red-enamel);
-  box-shadow: inset 0 1px 2px #ffb49a, 0 2px 0 #bba28d;
-  color: #fff8ef;
-  text-align: center;
-  font-size: clamp(1rem, 2vw, 1.6rem);
-  letter-spacing: 0.38em;
-  text-transform: uppercase;
+  box-shadow: 0 4px 12px #6d352030;
 }
-.brand-caption { margin: 12px 0 0; color: var(--accent-dark); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.17em; text-align: center; text-transform: uppercase; }
-.instrument-specs { border: 1px solid var(--accent); border-radius: 12px; overflow: hidden; box-shadow: inset 0 1px white; }
-.instrument-specs > .spec-row { display: flex; flex-direction: column; gap: 5px; padding: 10px 16px; color: var(--accent-dark); }
-.instrument-specs > .spec-row + .spec-row { border-top: 1px solid var(--line); }
-.instrument-specs > .spec-row:last-child { background: var(--red-enamel); color: #fff8ee; }
-.spec-label { font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700; }
-.instrument-specs strong { font-size: clamp(0.85rem, 1.2vw, 1.05rem); line-height: 1.4; }
+.analyzer-menu nav > * { text-align: left; }
 .actions, .sub-actions { align-items: center; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; box-shadow: inset 0 0 0 2px #fffaf3; background: #fffaf340; }
 .actions { margin-top: 22px; }
 .playback-dock {
@@ -228,12 +217,6 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 @media (max-width: 820px) {
   main { padding: 12px; }
   .panel { padding: 20px 14px; border-width: 6px; border-radius: 28px; }
-  .instrument-header { grid-template-columns: 1fr; gap: 24px; padding: 4px 0 20px; }
-  .instrument-brand { width: min(420px, 100%); margin: auto; }
-  .brand-model { font-size: clamp(3.5rem, 15vw, 6rem); }
-  .brand-name { font-size: 2rem; }
-  .brand-caption { font-size: 0.65rem; }
-  .instrument-specs > .spec-row { padding: 10px 14px; }
   .actions, .sub-actions { padding: 12px; }
   .tab-button { flex: 1; min-width: 0; padding: 9px 6px; font-size: 0.72rem; }
   .tab-panel { padding: 16px 10px; }
@@ -253,9 +236,6 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 
 .noteish-actions[hidden] { display: none; }
 
-button.instrument-specs { padding: 0; font: inherit; text-align: left; background: transparent; cursor: pointer; width: 100%; }
-button.instrument-specs:hover { box-shadow: 0 0 0 2px var(--accent); }
-button.instrument-specs:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 .chip-support-dialog { width: min(1100px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
 .chip-support-scroll { overflow-x: auto; }
 .chip-support-table { width: 100%; min-width: 780px; border-collapse: collapse; font-size: 0.85rem; }
