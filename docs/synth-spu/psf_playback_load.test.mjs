@@ -27,7 +27,7 @@ function fixture({fetcher,process:nodeProcess}={}) {
 test('PSF browser preflight fetches internal WASM through the captured host function while Code fetch stays guarded',async()=>{
   const h=fixture(),controller=new AbortController();
   await assert.rejects(h.create({signal:controller.signal}),error=>error===h.sentinel);
-  assert.equal(h.calls.length,1);assert.equal(h.calls[0].target,'https://example.test/generated/psf-player/psf_player.wasm?v=psf-manual-spu-1');
+  assert.equal(h.calls.length,1);assert.equal(h.calls[0].target,'https://example.test/generated/psf-player/psf_player.wasm?v=psf-mixer-1');
   assert.equal(h.calls[0].options.signal,controller.signal);assert.equal(h.calls[0].options.credentials,'same-origin');
   assert.equal(h.factories.length,1);assert.deepEqual(h.factories[0].wasmBinary,bytes);
   assert.equal(h.context.fetch,h.guard);assert.throws(()=>h.context.fetch('/anything'),/network guard/);

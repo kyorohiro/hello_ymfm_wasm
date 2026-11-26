@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 // Synchronous PSF1 machine rendering, independent of browser audio scheduling.
-import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-manual-spu-1';
+import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-mixer-1';
 import {readPsfLiveSnapshot} from './psf_live_snapshot.js?v=psf-live-spu-1';
 import {createPsfSongInteraction} from './psf_song_interaction.js?v=psf-manual-spu-1';
 
 const RAM_BYTES=2*1024*1024;
 const SPU_RAM_BYTES=512*1024;
 const backend=Object.freeze({abi:5,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
-const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-manual-spu-1',import.meta.url).href;
+const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-mixer-1',import.meta.url).href;
 // Capture the host loader before Code installs its temporary network guards.
 // A PSF is preflighted before Code stops, so the factory must not resolve its
 // internal WASM fetch through the guarded user-code global at that time.
@@ -137,6 +137,7 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
         },
       });
     },
+    setMuteMask(mask) {if (!closed) module._psf_set_mute_mask(handle,mask);},
     render(frames) {return renderFrames(frames,false);},
     /** One native pass: original full stereo mix plus frame-major 24x stereo
      * dry voice contributions. Main volume/mute apply; shared reverb is kept

@@ -584,7 +584,7 @@ test('overlapping native full/stem destinations are rejected before CPU or DSP a
   } finally {module._free(buffer);machine.dispose();}
 });
 
-test('the passive build overlay is deterministic, hash-pinned and leaves fixed SDK files unchanged',async()=>{
+test('the mixer and observation overlay is deterministic, hash-pinned and leaves fixed SDK files unchanged',async()=>{
   const {createPsfSpuTapSource,PSF_SPU_TAP_INPUT_SHA256}=await import('../../scripts/build_psf_player.mjs');
   const vendor=new URL('../../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/',import.meta.url),input=await readFile(new URL('spu.cpp',vendor)),before=input.slice();
   const sha=bytes=>createHash('sha256').update(bytes).digest('hex');assert.equal(sha(input),PSF_SPU_TAP_INPUT_SHA256);
@@ -592,7 +592,9 @@ test('the passive build overlay is deterministic, hash-pinned and leaves fixed S
   assert.equal((overlay.match(/psf_spu_voice_tap/g)??[]).length,2,'only a declaration and one read-only observation call are inserted');
   const restored=overlay.replace(/\n\n\/\/ Generated build-only[^\n]+\nextern "C" void psf_spu_voice_tap\([^;]+;/,'')
     .replace(/\n\t\tpsf_spu_voice_tap\(this,v,frame,sample,vol\[0\],vol\[1\]\);/,'');
-  assert.equal(restored,input.toString('utf8'),'all original DSP arithmetic and ordering remain byte-identical');
+  const original = restored.replace('\nextern "C" bool psf_voice_muted(const void*,unsigned int) noexcept;', '')
+    .replace('\n\tstatic constexpr int16_t silent[2]={};\n\tif(psf_voice_muted(this,v)) vol=silent;', '');
+  assert.equal(original,input.toString('utf8'),'all original DSP arithmetic and ordering remain byte-identical');
   assert.throws(()=>createPsfSpuTapSource(new Uint8Array()),/anchor/);assert.throws(()=>createPsfSpuTapSource(Buffer.concat([input,input])),/anchor/);
   assert.throws(()=>createPsfSpuTapSource(Buffer.concat([input,Buffer.from('\n')])),/hash changed/);
   assert.deepEqual(await readFile(new URL('spu.cpp',vendor)),before);

@@ -319,6 +319,7 @@ const audioPreferences = createAudioPreferences();
 const effectSettings = audioPreferences.getEffect();
 let effectsChain = null;
 let masterBoost = null;
+let consoleOutput = null;
 const spcPanel = document.getElementById('spcInfoPanel');
 const spcView = mountSpcAnalyzer({
   root:spcPanel,
@@ -507,7 +508,7 @@ function releaseEffectsChain() {
 }
 
 function rewireAudioGraph() {
-  const node = sidSong?.outputNode ?? (spcView.active ? spcView.outputNode : activeStream?.node);
+  const node = consoleOutput ?? sidSong?.outputNode ?? (spcView.active ? spcView.outputNode : activeStream?.node);
   if (!node) return;
   const context = node.context;
   node.disconnect();
@@ -516,7 +517,7 @@ function rewireAudioGraph() {
     masterBoost = context.createGain();
     masterBoost.connect(context.destination);
   }
-  masterBoost.gain.value = sidSong?.outputNode ? 1 : Math.max(1,masterVolume / 3.8);
+  masterBoost.gain.value = (consoleOutput || sidSong?.outputNode) ? 1 : Math.max(1,masterVolume / 3.8);
   if (effectSettings.enabled) {
     const chain = ensureEffectsChain(context);
     chain.output.disconnect();
@@ -759,7 +760,7 @@ function applyMasterVolume() {
   sidSong?.setVolume(masterVolume);
   audioPreferences.setMaster(masterVolume);
   const level = Math.min(masterVolume,3.8);
-  if (masterBoost) masterBoost.gain.value = sidSong?.outputNode ? 1 : Math.max(1,masterVolume / 3.8);
+  if (masterBoost) masterBoost.gain.value = (consoleOutput || sidSong?.outputNode) ? 1 : Math.max(1,masterVolume / 3.8);
   spcView.setMasterVolume(level);
   engine?.setMasterVolume?.(level);
   player?.setMasterVolume?.(level);
@@ -4064,8 +4065,20 @@ async function openConsoleSongs(files) {
   const owner = Symbol();
   setLoadProgress(owner, files.length === 1 ? 'Opening '+files[0].name+'…' : 'Opening '+files.length+' files…');
   try {
-    consoleSongLoader ??= import('./console_songs.js?v=load-progress-1').then(({createConsoleSongs}) =>
-      createConsoleSongs(document.getElementById('consoleSongs'), () => masterVolume));
+    consoleSongLoader ??= import('./console_songs.js?v=console-fx-1').then(({createConsoleSongs}) =>
+      createConsoleSongs(document.getElementById('consoleSongs'), () => masterVolume, {
+        effectsPane:dockEffectPane,
+        setOutput(node) {
+          if (consoleOutput === node) return;
+          if (consoleOutput) {
+            consoleOutput.disconnect();
+            if (effectsChain?.context === consoleOutput.context) releaseEffectsChain();
+            if (masterBoost?.context === consoleOutput.context) {masterBoost.disconnect(); masterBoost = null;}
+          }
+          consoleOutput = node;
+          rewireAudioGraph();
+        },
+      }));
     const open = await consoleSongLoader;
     sidSong?.stop();
     stopActiveStream();

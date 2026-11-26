@@ -70,6 +70,35 @@ try {
   const select = modal.locator('[data-song="tracks"]');
   await select.locator('option').nth(3).waitFor({state:'attached'});
   assert.equal(await select.locator('option').count(),4);
+  // Sample after the Analyzer's master/FX output, including renderer lookahead.
+  const checkOutput = audible => page.waitForFunction(expected => {
+    if (!window.testMeter) return false;
+    const pcm = new Float32Array(2048);
+    window.testMeter.getFloatTimeDomainData(pcm);
+    return (Math.max(...pcm)-Math.min(...pcm) > .0001) === expected;
+  },audible,{timeout:5000,polling:10});
+  async function checkConsoleMixer(count) {
+    const buttons = modal.locator('[data-song="channels"] button');
+    assert.equal(await buttons.count(),count);
+    // The fixtures sound on CH1. Muting the highest physical CH first also
+    // exercises SCSP slot 32 (the sign bit) and mute state before Play.
+    await buttons.last().click();
+    await play.click();
+    await checkOutput(true);
+    await buttons.first().click();
+    await checkOutput(false);
+    await buttons.first().click();
+    await checkOutput(true);
+    const effects = modal.locator('[data-song="effects"]');
+    await effects.locator('summary').click();
+    await effects.locator('#effectEnabled').click();
+    await effects.locator('#effectGain').evaluate(el => {el.value=0; el.dispatchEvent(new Event('input'));});
+    await checkOutput(false);
+    await effects.locator('#effectEnabled').click();
+    await checkOutput(true);
+    await effects.locator('summary').click();
+    await modal.locator('[data-song="stop"]').click();
+  }
   async function playAudible() {
     await page.evaluate(()=>window.testPeak=0);
     await play.click({timeout:5000}).catch(async error => {throw new Error(await modal.innerText(),{cause:error});});
@@ -82,11 +111,13 @@ try {
   for (let index=0; index<4; index++) {
     await select.selectOption({index});
     await playAudible();
+    if (index < 2) await checkConsoleMixer(index === 0 ? 32 : 24);
     console.log(await select.inputValue());
   }
   await modal.getByText('Close',{exact:true}).click();
   await page.locator('#fileInput').setInputFiles({name:'original.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(buildScspSongDemo())});
   await playAudible();
+  await checkConsoleMixer(32);
   console.log('SCSP VGM passed');
   await modal.getByText('Close',{exact:true}).click();
   const writes = [];
@@ -106,6 +137,8 @@ try {
   },null,{timeout:5000});
   await modal.locator('[data-song="pause"]').click();
   await play.filter({hasText:'Resume'}).waitFor();
+  await modal.locator('[data-song="stop"]').click();
+  await checkConsoleMixer(6);
   console.log('VSU VGM passed');
   await modal.getByText('Close',{exact:true}).click();
   const mainPlay = page.locator('#inlinePlayButton');

@@ -234,6 +234,12 @@ public:
                 if (offset >= kDspWorkStart && offset < kDspWorkEnd &&
                     (word & mask) == 0 && (scsp_read(chip, offset) & mask) == 0)
                     return;
+                if (mutedRoute(offset)) {
+                    auto &route = routes[offset / 32][(offset & 31) == 0x16];
+                    route = mergeWord(route, word, mask);
+                    scsp_write(chip, offset, route & ~sendBits(offset), 0xffff);
+                    return;
+                }
                 if (scsp_write(chip, offset, word, mask))
                     return;
             }
@@ -241,14 +247,38 @@ public:
         reportFault(address);
     }
 
+    void setMuteMask(uint32_t next) {
+        for (unsigned slot = 0; slot < 32; ++slot) {
+            const uint32_t bit = 1u << slot;
+            if (!((muteMask ^ next) & bit)) continue;
+            for (unsigned i = 0; i < 2; ++i) {
+                const unsigned offset = slot * 32 + 0x14 + 2 * i;
+                auto &route = routes[slot][i];
+                if (next & bit) route = scsp_read(chip, offset);
+                scsp_write(chip, offset, next & bit ? route & ~sendBits(offset) : route, 0xffff);
+            }
+        }
+        muteMask = next;
+    }
+
     uint32_t faultAddress() const { return fault; }
 
 private:
+    // Mute the slot's DSP send and direct output. Leave the shared DSP return,
+    // slot state and sound-stack modulation running. CPU reads see its own writes.
+    uint32_t muteMask = 0;
+    uint16_t routes[32][2]{};
+    static uint16_t sendBits(unsigned offset) {return (offset & 31) == 0x14 ? 7 : 0xe000;}
+    bool mutedRoute(unsigned offset) const {
+        return offset < 0x400 && ((offset & 31) == 0x14 || (offset & 31) == 0x16)
+            && (muteMask & (1u << (offset / 32)));
+    }
     static bool isRegister(uint32_t address) {
         return address >= kRegisterBase && address < kRegisterBase + kRegisterBytes;
     }
 
     uint32_t readRegister(uint32_t offset) {
+        if (mutedRoute(offset)) return routes[offset / 32][(offset & 31) == 0x16];
         if (ScspInterrupts::owns(offset))
             return interrupts.read(offset);
         if (offset == kMidiInput)
@@ -320,6 +350,10 @@ void *scsp_ssf_create(const uint8_t *ram, uint32_t size) {
         return nullptr;
     std::unique_ptr<SoundBoard> board(new (std::nothrow) SoundBoard);
     return board && board->start(ram) ? board.release() : nullptr;
+}
+
+void scsp_ssf_set_mute(void *handle, uint32_t mask) {
+    if (handle) static_cast<SoundBoard *>(handle)->setMuteMask(mask);
 }
 
 void scsp_ssf_destroy(void *handle) { delete static_cast<SoundBoard *>(handle); }

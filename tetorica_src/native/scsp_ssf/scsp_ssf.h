@@ -12,6 +12,7 @@ extern "C" {
  * The renderer copies the image and starts the 68000 at its reset vector.
  * Use one thread at a time per handle. Native output is 44,100 Hz stereo. */
 void *scsp_ssf_create(const uint8_t *ram, uint32_t size);
+void scsp_ssf_set_mute(void *handle, uint32_t mask);
 void scsp_ssf_destroy(void *handle);
 
 /* Write up to 1,048,576 frames to nonoverlapping buffers. Returns 1 on

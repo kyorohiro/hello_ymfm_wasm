@@ -12,7 +12,7 @@ import {parseVsuVgm} from '../synth-vsu/vgm.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {consoleVgmChip} from './console_vgm.js';
 
-function vsuSong(plan, getMaster, update) {
+function vsuSong(plan, getMaster, update, getMuteMask, setOutput) {
   let state = 'stopped', position = 0, message = '';
   const engine = createVsuAudio({volume:1,onVgmState(event) {
     state = event.state;
@@ -21,6 +21,7 @@ function vsuSong(plan, getMaster, update) {
   }, onError(error) {state = 'stopped'; message = error.message; update();}});
   return {
     usesOwnAudio:true,
+    setMuteMask(mask) {if (engine.output) engine.setVgmMask(63 & ~mask);},
     read:() => ({canPlay:['stopped','ended'].includes(state),canPause:state === 'playing',
       canResume:state === 'paused',paused:state === 'paused',canStop:['playing','paused'].includes(state),
       positionSeconds:position,message:message || 'VSU · '+state}),
@@ -29,7 +30,8 @@ function vsuSong(plan, getMaster, update) {
       try {
         await engine.ensureReady();
         engine.output.gain.value = getMaster();
-        engine.playVgm(plan);
+        setOutput(engine.output);
+        engine.playVgm(plan,{mask:63 & ~getMuteMask()});
       } catch (error) {state = 'stopped'; message = error.message; update();}
     },
     resume:() => engine.pauseVgm(false), pause:() => engine.pauseVgm(true),
@@ -55,10 +57,32 @@ export async function consoleSongEntries(files, signal) {
   return songs.sort((a,b) => a.path.localeCompare(b.path,undefined,{numeric:true}));
 }
 
-export function createConsoleSongs(dialog, getMaster) {
+export function createConsoleSongs(dialog, getMaster, {effectsPane, setOutput}) {
   const control = name => dialog.querySelector('[data-song="'+name+'"]');
   const select = control('tracks'), status = control('status');
   let context, master, player, entries = [], revision = 0, controller;
+  let muteMask = 0, psfCore = null, restoreEffects = null;
+  const channels = control('channels');
+  function showChannels(count) {
+    channels.replaceChildren();
+    for (let channel=0; channel<count; channel++) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'channel-toggle';
+      button.textContent = 'CH'+(channel+1);
+      button.setAttribute('aria-label','Mute '+button.textContent);
+      button.setAttribute('aria-pressed','false');
+      button.onclick = () => {
+        const bit = 1 << channel;
+        muteMask = (muteMask ^ bit) >>> 0;
+        button.setAttribute('aria-pressed',String(Boolean(muteMask & bit)));
+        button.classList.toggle('is-muted',Boolean(muteMask & bit));
+        player?.setMuteMask?.(muteMask);
+        psfCore?.setMuteMask(muteMask);
+      };
+      channels.append(button);
+    }
+  }
   function render() {
     const state = player?.read();
     control('play').disabled = !(state?.canPlay || state?.canResume);
@@ -72,8 +96,9 @@ export function createConsoleSongs(dialog, getMaster) {
     if (!context) {
       context = new AudioContext();
       master = context.createGain();
-      master.connect(context.destination);
+
     }
+    setOutput(master);
     master.gain.value = getMaster() * (entries[select.selectedIndex]?.format === 'PSF1' ? SPU_SYNTH_MIX_HEADROOM : 1);
     await context.resume();
     return {context, gain:master, outputNode:master};
@@ -81,6 +106,8 @@ export function createConsoleSongs(dialog, getMaster) {
   function retire() {
     const old = player;
     player = null;
+    setOutput(null);
+    psfCore = null; muteMask = 0; showChannels(0);
     old?.dispose();
   }
   async function choose() {
@@ -103,20 +130,28 @@ export function createConsoleSongs(dialog, getMaster) {
         if (!chip) throw new Error('Use the main playlist for other VGM chips.');
         control('info').textContent = chip + ' · VGM';
         if (chip === 'VSU') {
-          player = vsuSong(parseVsuVgm(bytes),getMaster,update);
+          showChannels(6);
+          player = vsuSong(parseVsuVgm(bytes),getMaster,update,() => muteMask,setOutput);
           update();
           return;
         }
       }
       if (song.format === 'PSF1') {
+        showChannels(24);
         player = createPsfSongPreview({getAudio:audio,onUpdate:update,async createCore({set,entry,signal}) {
           const image = await preparePsfSongSource(set,entry,{signal});
-          return createPsfPlaybackCore({image,signal});
+          const core = await createPsfPlaybackCore({image,signal});
+          if (ticket === revision && !signal?.aborted) {
+            psfCore = core;
+            core.setMuteMask(muteMask);
+          }
+          return core;
         }});
         player.setLiveEnabled(false);
         player.setSource(song.set,song.path);
       } else {
-        player = createScspSongPlayer({getAudio:audio,onState:update,onStatus(message) {
+        showChannels(32);
+        player = createScspSongPlayer({getAudio:audio,getMuteMask:() => muteMask,onState:update,onStatus(message) {
           if (ticket === revision) status.textContent = message;
         }});
         if (song.file) {
@@ -146,6 +181,7 @@ export function createConsoleSongs(dialog, getMaster) {
     controller?.abort();
     retire();
     clearInterval(timer);
+    restoreEffects?.(); restoreEffects = null;
     if (context) void context.close();
     context = master = null;
     entries = [];
@@ -160,6 +196,14 @@ export function createConsoleSongs(dialog, getMaster) {
     retire();
     entries = [];
     select.replaceChildren();
+    if (!restoreEffects) {
+      const marker = document.createComment('Analyzer Effect controls');
+      effectsPane.before(marker);
+      const hidden = effectsPane.hidden;
+      control('effects').append(effectsPane);
+      effectsPane.hidden = false;
+      restoreEffects = () => {marker.replaceWith(effectsPane); effectsPane.hidden = hidden;};
+    }
     if (!dialog.open) dialog.showModal();
     clearInterval(timer);
     timer = setInterval(render,250);

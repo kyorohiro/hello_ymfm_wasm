@@ -19,7 +19,7 @@ trap 'rm -rf "$STAGE_DIR"' EXIT
   -std=c++17 -O2 -DNDEBUG -fwrapv -fno-strict-aliasing -ffp-contract=off \
   -s STANDALONE_WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=16777216 \
   -s MAXIMUM_MEMORY=67108864 -s STACK_SIZE=262144 -s FILESYSTEM=0 \
-  -s 'EXPORTED_FUNCTIONS=["_malloc","_free","_scsp_ssf_create","_scsp_ssf_destroy","_scsp_ssf_render","_scsp_ssf_fault_address"]' \
+  -s 'EXPORTED_FUNCTIONS=["_malloc","_free","_scsp_ssf_create","_scsp_ssf_destroy","_scsp_ssf_set_mute","_scsp_ssf_render","_scsp_ssf_fault_address"]' \
   --no-entry -o "$STAGE_DIR/scsp-ssf.wasm"
 compiler=$("$EMXX" --version | sed -n '1p')
 node "$ROOT_DIR/scripts/scsp_ssf_artifacts.mjs" --record "$STAGE_DIR" "$compiler"

@@ -38,6 +38,7 @@ class PsfSpu final : public spu_device {
   std::array<int32_t,48> dryVoiceFrame{};
   std::array<int32_t,48>* dryVoiceSink=nullptr;
 public:
+  uint32_t muteMask = 0;
   std::function<void(uint32_t,uint32_t,uint32_t)> transferEvent;
   uint32_t transferAddress() const { return taddr >> 2; } // standard RAM mode
   uint32_t activeMask() const { return m_voice_active & 0xffffff; }
@@ -128,6 +129,10 @@ extern "C" void psf_spu_voice_tap(const void* instance,unsigned int channel,unsi
   int sample,int left,int right) noexcept {
   auto* core=static_cast<PsfSpu*>(static_cast<spu_device*>(const_cast<void*>(instance)));
   core->captureVoice(channel,frame,sample,left,right);
+}
+
+extern "C" bool psf_voice_muted(const void* instance,unsigned int voice) noexcept {
+  return static_cast<const PsfSpu*>(static_cast<const spu_device*>(instance))->muteMask & (1u<<voice);
 }
 
 struct PsfPlayer {
@@ -344,6 +349,7 @@ extern "C" uint32_t psf_spu_read(PsfPlayer* p,uint32_t offset) {
 }
 extern "C" uint32_t psf_spu_frames(PsfPlayer* p) { return p ? p->renderedFrames : 0; }
 extern "C" uint32_t psf_spu_key_gates(PsfPlayer* p) { return p ? p->keyGateMask : 0; }
+extern "C" void psf_set_mute_mask(PsfPlayer* p,uint32_t mask) { if(p) p->spu.muteMask=mask; }
 extern "C" uint32_t psf_spu_active_mask(PsfPlayer* p) { return p ? p->spu.activeMask() : 0; }
 // Manual scalar/gate writes do not clock the CPU/SPU, touch RAM, add source
 // trace entries or advance source ownership. No raw transfer/control API is

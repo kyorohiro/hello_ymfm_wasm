@@ -8,23 +8,23 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import path from 'node:path';
 export const PSF_SPU_TAP_INPUT_SHA256='057ae5d52a2509d1c0efa6b1435802897ae7cb10eb75148d27fa975330970661';
-/** Read-only build instrumentation. The pinned SDK file is never overwritten.
- * No voice-generation, PMON, Noise, envelope, mixing or reverb arithmetic is
- * replaced: one callback copies the already-computed per-voice sample/volume.
+/** Add a host mix-volume mask and a passive stem observer to a temporary copy.
+ * PMON and the voice state machine still receive the original generated sample.
  */
 export function createPsfSpuTapSource(input) {
   if(!(input instanceof Uint8Array))throw new TypeError('SPU tap source must be bytes');
   const bytes=Buffer.from(input.buffer,input.byteOffset,input.byteLength),source=bytes.toString('utf8');
   const sampleAnchor='\t\tconst int16_t sample=interpolated*vi->env_level*vi->audition_gain;';
+  const volumeAnchor='const int16_t *vol=spureg.volumex[v];';
   const includeAnchor='#include <stdexcept>';
-  for(const anchor of [sampleAnchor,includeAnchor])
+  for(const anchor of [sampleAnchor,includeAnchor,volumeAnchor])
     if(source.split(anchor).length!==2)throw new Error('PSF SPU tap requires each pinned insertion anchor exactly once');
   if(createHash('sha256').update(bytes).digest('hex')!==PSF_SPU_TAP_INPUT_SHA256)
     throw new Error('Fixed SPU source hash changed; review the passive PSF tap before rebuilding');
   const declaration='\n\n// Generated build-only PSF dry-voice observation; fixed SDK source stays unchanged.\n'+
-    'extern "C" void psf_spu_voice_tap(const void*,unsigned int,unsigned int,int,int,int) noexcept;';
+    'extern "C" void psf_spu_voice_tap(const void*,unsigned int,unsigned int,int,int,int) noexcept;\nextern "C" bool psf_voice_muted(const void*,unsigned int) noexcept;';
   const tap='\n\t\tpsf_spu_voice_tap(this,v,frame,sample,vol[0],vol[1]);';
-  return source.replace(includeAnchor,includeAnchor+declaration).replace(sampleAnchor,sampleAnchor+tap);
+  return source.replace(includeAnchor,includeAnchor+declaration).replace(volumeAnchor,volumeAnchor+'\n\tstatic constexpr int16_t silent[2]={};\n\tif(psf_voice_muted(this,v)) vol=silent;').replace(sampleAnchor,sampleAnchor+tap);
 }
 
 async function main() {
@@ -38,7 +38,7 @@ const out=outputArg?path.resolve(outputArg.slice('--out-dir='.length)):path.join
 await mkdir(out,{recursive:true});
 // Preserve ordinary loader hooks and the explicit numerical-test WASM input.
 const incoming=['ENVIRONMENT','arguments','canvas','dynamicLibraries','elementPointerLock','instantiateWasm','locateFile','monitorRunDependencies','noExitRuntime','noInitialRun','onAbort','onExit','onRuntimeInitialized','postRun','preInit','preRun','print','printErr','setStatus','statusMessage','stderr','stdin','stdout','thisProgram','wasm','websocket','wasmBinary'];
-const exports=['_malloc','_free','_psf_create','_psf_render','_psf_render_stems','_psf_destroy','_psf_last_error','_psf_abi_version','_psf_spu_model','_psf_spu_read','_psf_spu_write_manual','_psf_spu_source_revision','_psf_spu_source_value','_psf_spu_gate_revision','_psf_spu_pitch_revision','_psf_spu_read_ram','_psf_cpu_read_ram','_psf_spu_frames','_psf_spu_key_gates','_psf_spu_active_mask','_psf_trace_start','_psf_trace_count','_psf_trace_read','_psf_trace_overflow','_EmptyBlockHandler','_MemoryUtils_GetByteProxy','_MemoryUtils_GetHalfProxy','_MemoryUtils_GetWordProxy','_MemoryUtils_SetByteProxy','_MemoryUtils_SetHalfProxy','_MemoryUtils_SetWordProxy','_LWL_Proxy','_LWR_Proxy','_SWL_Proxy','_SWR_Proxy'];
+const exports=['_malloc','_free','_psf_create','_psf_render','_psf_render_stems','_psf_destroy','_psf_last_error','_psf_abi_version','_psf_spu_model','_psf_spu_read','_psf_spu_write_manual','_psf_spu_source_revision','_psf_spu_source_value','_psf_spu_gate_revision','_psf_spu_pitch_revision','_psf_spu_read_ram','_psf_cpu_read_ram','_psf_spu_frames','_psf_spu_key_gates','_psf_spu_active_mask','_psf_set_mute_mask','_psf_trace_start','_psf_trace_count','_psf_trace_read','_psf_trace_overflow','_EmptyBlockHandler','_MemoryUtils_GetByteProxy','_MemoryUtils_GetHalfProxy','_MemoryUtils_GetWordProxy','_MemoryUtils_SetByteProxy','_MemoryUtils_SetHalfProxy','_MemoryUtils_SetWordProxy','_LWL_Proxy','_LWR_Proxy','_SWL_Proxy','_SWR_Proxy'];
 const overlay=createPsfSpuTapSource(await readFile(path.join(spu,'spu.cpp')));
 const temporary=await mkdtemp(path.join(tmpdir(),'tetorica-psf-spu-tap-'));
 try {

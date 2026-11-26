@@ -34,7 +34,7 @@ async function createCore() {
 /** Sample-exact, one-pass replay of an already validated SCSP source. The
  * caller owns the core and provides output buffers at its native 44.1-kHz rate.
  */
-export function createScspSongRenderer(core, source) {
+export function createScspSongRenderer(core, source, getMuteMask = () => 0) {
 	if (core?.sampleRate !== RATE || typeof core.renderInto !== 'function')
 		throw new TypeError('SCSP song requires a 44100 Hz SCSP core');
 	const { bytes } = source,
@@ -45,7 +45,26 @@ export function createScspSongRenderer(core, source) {
 		ended = false;
 	core.reset({ clearRam: true });
 	core.prepare?.(2048);
+	// Keep the most recent song-programmed send levels while a slot is muted.
+	const routes = new Uint16Array(64);
+	let muteMask = 0;
+	function applyMuteMask() {
+		const next = getMuteMask() >>> 0;
+		if (muteMask === next) return;
+		for (let slot = 0; slot < 32; slot++) {
+			const bit = 1 << slot;
+			if (!((next ^ muteMask) & bit)) continue;
+			for (let i = 0; i < 2; i++) {
+				const addr = slot * 32 + 0x14 + 2 * i;
+				const send = i ? 0xe000 : 7;
+				if (next & bit) routes[slot*2+i] = core.read(addr);
+				core.write(addr, next & bit ? routes[slot*2+i] & ~send : routes[slot*2+i]);
+			}
+		}
+		muteMask = next;
+	}
 	function process(left, right, frames) {
+		applyMuteMask();
 		if (
 			!(left instanceof Float32Array) ||
 			!(right instanceof Float32Array) ||
@@ -62,11 +81,15 @@ export function createScspSongRenderer(core, source) {
 				if (command === 0xc5) {
 					const address = (bytes[position + 1] << 8) | bytes[position + 2],
 						value = bytes[position + 3];
-					core.write(
-						address & ~1,
-						address & 1 ? value : value << 8,
-						address & 1 ? 0x00ff : 0xff00,
-					);
+					const addr = address & ~1, slot = addr >> 5, reg = addr & 31;
+					const mask = address & 1 ? 0xff : 0xff00;
+					let word = address & 1 ? value : value << 8;
+					if (slot < 32 && (muteMask & (1 << slot)) && (reg === 0x14 || reg === 0x16)) {
+						const i = slot * 2 + Number(reg === 0x16);
+						routes[i] = (routes[i] & ~mask) | word;
+						word &= ~(reg === 0x16 ? 0xe000 : 7);
+					}
+					core.write(addr, word, mask);
 					position += 4;
 				} else if (command === 0x67) {
 					const size = view.getUint32(position + 3, true),
@@ -114,6 +137,7 @@ export function createScspSongRenderer(core, source) {
  */
 export function createScspSongPlayer({
 	getAudio,
+	getMuteMask = () => 0,
 	beforePlay = async () => {},
 	onState = () => {},
 	onStatus = () => {},
@@ -346,7 +370,7 @@ export function createScspSongPlayer({
 			if (selected.kind === 'ssf') renderer = await createSsfEngine(selected, { signal });
 			else {
 				core = await createEngine(selected.header);
-				renderer = createScspSongRenderer(core, selected);
+				renderer = createScspSongRenderer(core, selected, getMuteMask);
 			}
 			if (!current(ticket)) throw aborted();
 			gain = output.context.createGain();
@@ -448,7 +472,7 @@ export function createScspSongPlayer({
 			consume(run);
 			for (let count = 0; count < 6 && !run.eof && playback === 'playing'; count++) {
 				if ((run.renderedFrames - position()) / RATE >= SSF_LOOKAHEAD) break;
-				const { left, right, frames, ended } = await run.renderer.process(SSF_CHUNK);
+				const { left, right, frames, ended } = await run.renderer.process(SSF_CHUNK, getMuteMask());
 				if (active !== run) return;
 				if (frames) append(run, left, right, frames);
 				run.eof = ended;

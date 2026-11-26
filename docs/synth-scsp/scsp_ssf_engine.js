@@ -64,7 +64,7 @@ export async function createScspSsfEngine(source, { signal } = {}) {
 		const { totalSamples, lengthSeconds, fadeSeconds, volume } = source;
 		const ram = source.ram.slice();
 		await ask('open', { source: { ram, totalSamples, lengthSeconds, fadeSeconds, volume } }, [ram.buffer]);
-		return { process: (frames) => ask('render', { frames }), dispose };
+		return { process: (frames, muteMask = 0) => ask('render', { frames, muteMask }), dispose };
 	} catch (error) {
 		dispose(error);
 		throw error;

@@ -14,7 +14,7 @@ const server = http.createServer(async (request, response) => {
     if (file !== docs && !file.startsWith(docs + path.sep)) throw Error('Outside docs');
     if ((await fs.stat(file)).isDirectory()) file = path.join(file, 'index.html');
     let body = await fs.readFile(file);
-    if (file === path.join(docs, analyzerPath, 'vgm_analyzer.js')) body = Buffer.concat([body, Buffer.from('\nwindow.__spcTest={view:spcView,getContext:()=>audioContext};\n')]);
+    if (file === path.join(docs, analyzerPath, 'vgm_analyzer.js')) body = Buffer.concat([body, Buffer.from('\nwindow.__spcTest={view:spcView,getOutput:()=>masterBoost,getContext:()=>audioContext};\n')]);
     if (path.basename(file) === 'spc_brr_preview.js') {
       // Hold the result of the real offline DSP renderer, never substitute PCM.
       // This makes stale-preview continuation races deterministic in the UI.
@@ -30,9 +30,9 @@ const server = http.createServer(async (request, response) => {
     response.setHeader('Content-Type', mime[path.extname(file)] ?? 'application/octet-stream'); response.end(body);
   } catch (error) {response.writeHead(404); response.end(error.message);}
 });
-async function signal(page) {
-  return page.evaluate(async () => {
-    const context = window.__spcTest.getContext(), output = window.__spcTest.view.outputNode;
+async function signal(page, afterFx = false) {
+  return page.evaluate(async afterFx => {
+    const context = window.__spcTest.getContext(), output = afterFx ? window.__spcTest.getOutput() : window.__spcTest.view.outputNode;
     const meter = context.createAnalyser(), gain = context.createGain(); meter.fftSize = 2048; gain.gain.value = 0;
     output.connect(meter); meter.connect(gain); gain.connect(context.destination);
     let peak = 0, low = Infinity, high = -Infinity, bad = 0;
@@ -44,7 +44,7 @@ async function signal(page) {
       }
     } finally {output.disconnect(meter); meter.disconnect(); gain.disconnect();}
     return {peak, range:high - low, bad};
-  });
+  },afterFx);
 }
 function observePreviewStarts() {
   window.__spcPreviewStarts = [];
@@ -252,6 +252,12 @@ async function verifyVoiceModes(page, original, name) {
         await page.locator('#inlinePlayButton').click();
         await page.waitForFunction(() => window.__spcTest.view.state.playing);
         const playing = await signal(page); assert.equal(playing.bad, 0); assert(playing.peak > .001 && playing.range > .001, JSON.stringify(playing));
+        await page.locator('#dockEffectTab').click();
+        await page.locator('#effectEnabled').click();
+        await page.locator('#effectGain').evaluate(input => {input.value = 0; input.dispatchEvent(new Event('input'));});
+        assert((await signal(page,true)).peak < .00001,'SPC runs through Effect gain');
+        await page.locator('#effectEnabled').click();
+        assert((await signal(page,true)).range > .001,'Bypassing Effect restores SPC output');
         for (const button of await page.locator('#spcInfoPanel .monitor-toggles button').all()) await button.click();
         await page.waitForTimeout(100);
         const muted = await signal(page); assert(muted.peak < .00001, JSON.stringify(muted));

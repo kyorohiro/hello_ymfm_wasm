@@ -43,15 +43,18 @@ export async function createScspSsfWasmRenderer(wasmBinary, source) {
 		dispose();
 		throw error;
 	}
+	let lastMask = 0;
 	const gain = Number.isFinite(volume) ? Math.max(0, volume) : 1;
 	const fadeStart = fadeSeconds > 0 && Number.isFinite(lengthSeconds)
 		? Math.round(lengthSeconds * 44100)
 		: totalSamples;
 	return {
-		process(frames) {
+		process(frames, muteMask = 0) {
 			if (disposed) throw new Error('SSF renderer has been disposed');
 			if (!Number.isInteger(frames) || frames < 1 || frames > SSF_RENDER_FRAMES)
 				throw new RangeError(`SSF render request must have 1–${SSF_RENDER_FRAMES} frames`);
+			if (muteMask !== lastMask) native.scsp_ssf_set_mute(handle, muteMask);
+			lastMask = muteMask;
 			const count = Math.min(frames, totalSamples - position);
 			if (count && !native.scsp_ssf_render(handle, left, right, count)) {
 				const fault = native.scsp_ssf_fault_address(handle) >>> 0;
