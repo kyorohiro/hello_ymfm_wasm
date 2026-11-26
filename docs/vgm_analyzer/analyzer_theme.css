@@ -50,6 +50,8 @@ main {
   padding: 24px;
 }
 .panel {
+  display: flex;
+  flex-direction: column;
   position: relative;
   padding: 32px;
   border: 10px solid #cc1a11;
@@ -114,7 +116,7 @@ main {
 .import-rom-info summary { cursor: pointer; }
 .import-rom-info p { max-width: 24ch; overflow-wrap: anywhere; }
 .actions, .sub-actions { align-items: center; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; box-shadow: inset 0 0 0 2px #fffaf3; background: #fffaf340; }
-#playlistPanel { margin-top: 0; }
+#playlistPanel { margin-block: 0; align-content: flex-start; }
 .playlist, .queue-settings {
   flex: 0 0 100%;
   box-sizing: border-box;
@@ -170,7 +172,7 @@ main {
 .effect-controls output { min-width: 4.5em; text-align: right; font-variant-numeric: tabular-nums; }
 .actions .monitor-toggles { flex-basis: 100%; margin: 0; }
 /* Keep the final controls scrollable above the fixed playback dock. */
-.panel::after { content: ""; display: block; height: calc(260px + env(safe-area-inset-bottom)); }
+body { padding-bottom: calc(260px + env(safe-area-inset-bottom)); }
 .playback-seek { display: flex; align-items: center; gap: 10px; flex-basis: 100%; min-width: 0; font-size: 0.8rem; }
 .playback-seek input { flex: 1; min-width: 0; accent-color: var(--accent); }
 .playback-seek output { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -227,6 +229,7 @@ input { accent-color: var(--accent); }
 .tabbar > .tab-button { flex: 0 0 auto; box-sizing: border-box; height: 32px; min-height: 32px; padding: 0 8px; white-space: nowrap; font-size: .8rem; border: 1px solid var(--line); border-radius: 8px 8px 0 0; opacity: 1; letter-spacing: 0.025em; }
 /* Keep selected colors above the shared button hover/active rules. */
 button.tab-button[aria-selected="true"] { background: var(--red-enamel); color: #fffaf3; border-color: var(--accent-dark); box-shadow: inset 0 1px #ffb49a; transform: none; }
+.panel > .tab-panel { flex: 1 0 auto; min-width: 0; }
 .tab-panel { padding: 20px 16px; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 0 8px 12px 12px; background: #fffaf338; }
 #chipMonitorTabs { margin: 0 0 10px; }
 #chipMonitorPanels section > h2:first-child { margin-top: 0; }
@@ -248,7 +251,7 @@ button.tab-button[aria-selected="true"] { background: var(--red-enamel); color: 
 pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; color: #3c302a; font-size: 0.82rem; line-height: 1.6; }
 .noteish-overview { border-radius: 8px; background: #fff9f0; }
 .noteish-button, .notes-dialog { border-radius: 7px; }
-.instrument-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 24px; padding: 16px 20px; border-radius: 9px; background: var(--red-enamel); box-shadow: inset 0 0 0 1px #ffb49a; color: #fff7eb; font-size: 0.7rem; letter-spacing: 0.1em; }
+.instrument-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 0; padding: 16px 20px; border-radius: 9px; background: var(--red-enamel); box-shadow: inset 0 0 0 1px #ffb49a; color: #fff7eb; font-size: 0.7rem; letter-spacing: 0.1em; }
 .instrument-footer > span:first-child { font-size: 1.25rem; font-weight: 600; }
 @media (max-width: 820px) {
   main { padding: 12px; }
