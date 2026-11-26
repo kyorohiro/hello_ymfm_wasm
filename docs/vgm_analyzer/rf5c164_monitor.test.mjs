@@ -18,6 +18,22 @@ test('channel selection and RAM bank selection are independent; settings decode 
   assert.equal(describeRf5c164Monitor(createRf5c164Monitor(),false,0,false).used,false);
 });
 
+test('global enable starts pending voices once and preserves the trigger on resume', () => {
+  const state = createRf5c164Monitor();
+  const write = (register, value, offset) => applyRf5c164Write(state, register, value, 0, offset);
+  write(8, 0xfc, 10);
+  assert.deepEqual(state.lastTriggers.slice(0,2), [null,null]);
+  write(7, 0xc0, 20);
+  write(7, 0x40, 30);
+  write(7, 0xc0, 40);
+  assert.deepEqual(state.lastTriggers.slice(0,2).map(t => [t.channel,t.commandEnd]), [[1,20],[2,20]]);
+  write(8, 0xfd, 50);
+  write(6, 0x35, 60);
+  write(8, 0xfc, 70);
+  assert.deepEqual(state.lastTriggers[0], {channel:1,commandEnd:70,startAddress:0x3500,loopAddress:0});
+  assert.equal(state.lastTriggers[1].commandEnd, 20);
+});
+
 test('VGM writes and RAM transfers are forwarded once; reset clears display and wrappers do not accumulate',()=>{
   let state=createRf5c164Monitor();let changes=0;const calls=[];
   const engine={reset(){calls.push('reset');},writeRf5c164(...a){calls.push(['reg',...a]);},

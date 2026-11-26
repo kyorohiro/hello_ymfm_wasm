@@ -4,7 +4,7 @@ export function createRf5c164Samples(clock) {
   const channels = Array.from({length:8}, () => ({r:new Uint8Array(7), enabled:false, event:null}));
   const samples=[], events=[], warnings=new Set(), definitions=new Map();
   let bank=0, selected=0, enabled=false, generation=0, retained=0;
-  function begin(ch,index,time) {
+  function begin(ch,index,time,commandEnd) {
     if(events.length>=100000) throw new Error('RF5C164 event limit exceeded.');
     const r=ch.r, start=r[6]*256, loopAddress=r[4]|r[5]<<8;
     // Include both initial and loop regions in a RAM snapshot. Save raw RAM
@@ -30,12 +30,12 @@ export function createRf5c164Samples(clock) {
       samples.push(sample);definitions.set(key,sample);
     }
     const step=r[2]|r[3]<<8;
-    const event={sampleId:sample.id,chip:'rf5c164',kind:'pcm',channel:index+1,startTime:time,
+    const event={commandEnd,sampleId:sample.id,chip:'rf5c164',kind:'pcm',channel:index+1,startTime:time,
       endTime:null,endReason:'unknown',clock,rate:clock/384*step/2048,step,
       level:r[0],pan:r[1],loop:true,startAddress:start,loopAddress,settings:[...r]};
     ch.event=event; events.push(event);
   }
-  function apply(e,time) {
+  function apply(e,time,commandEnd) {
     if(!e.type.startsWith('rf5c164-'))return;
     if(e.chipIndex){warnings.add('Second RF5C164 chip is not analyzed.');return;}
     if(e.type==='rf5c164-data'||e.type==='rf5c164-memory-write') {
@@ -52,14 +52,14 @@ export function createRf5c164Samples(clock) {
       if(v&64)selected=v&7;else bank=(v&15)<<12;
       if(wasEnabled!==enabled) channels.forEach((ch,i)=>{
         if(!ch.enabled)return;
-        if(enabled&&!ch.event)begin(ch,i,time);
+        if(enabled&&!ch.event)begin(ch,i,time,commandEnd);
         else if(ch.event) {ch.event.changes??=[];ch.event.changes.push({time,type:enabled?'resume':'pause'});}
       });
     } else if(r===8) {
       channels.forEach((ch,i)=>{
         const next=!(v&(1<<i));
         if(!next&&ch.event){ch.event.endTime=time;ch.event.endReason='keyOff';ch.event=null;}
-        if(next&&!ch.enabled&&enabled)begin(ch,i,time);
+        if(next&&!ch.enabled&&enabled)begin(ch,i,time,commandEnd);
         ch.enabled=next;
       });
     } else if(r>=0&&r<=6) {

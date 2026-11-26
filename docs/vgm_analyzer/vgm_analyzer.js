@@ -38,7 +38,7 @@ import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
 import {mountPokeyMonitor} from './pokey_monitor.js?v=pokey-vgm-1';
 import { mountTfiInfo } from "./tfi_info.js?v=fm2612-snapshot-1";
-import { mountSampleExplorer } from './sample_explorer.js?v=adpcm-b-jump-1';
+import { mountSampleExplorer } from './sample_explorer.js?v=pcm-jump-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=pokey-vgm-1';
 import { seekPlayback } from './seek_playback.js';
@@ -48,7 +48,7 @@ import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from '.
 import { midiChipKind } from "./vgm_notes.js?v=pokey-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
-import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js?v=channel-mute-1";
+import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js?v=pcm-jump-1";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pokey-vgm-1";
 import {installOpnChannelMutes} from './opn_channel_mutes.js';
 import {rhythmNames, createOpnAdpcmMonitor, writeOpnAdpcm, opnAdpcmRows} from './opn_adpcm_monitor.js';
@@ -1258,6 +1258,26 @@ function renderPsgMonitor() {
   document.getElementById("psgMonitorRegisters").innerHTML = state.registers.map((value, r) => token(`R${r.toString(16).toUpperCase().padStart(2, "0")}`, `0x${value.toString(16).toUpperCase().padStart(2, "0")}`, r)).join("");
 }
 
+function renderSampleLinks(table, getTrigger) {
+  for (const [i, row] of Array.from(table.tBodies[0].rows).entries()) {
+    let open = row.querySelector('[data-open-sample]');
+    if (!open) {
+      open = document.createElement('button');
+      open.type = 'button';
+      open.dataset.openSample = '';
+      open.textContent = 'Open sample';
+      open.onclick = () => {
+        const trigger = getTrigger(i);
+        if (!trigger || sampleTab.disabled) return;
+        setOutputTab('samples');
+        void sampleExplorer.openSampleTrigger(trigger);
+      };
+      row.insertCell().append(open);
+    }
+    open.disabled = !getTrigger(i) || sampleTab.disabled;
+  }
+}
+
 function renderPcmMonitor() {
   const state = describeRf5c164Monitor(pcmMonitor, currentHasPcm, currentPcmClock, sourceMutes.pcm);
   document.getElementById("pcmMonitorTitle").textContent = `RF5C164 PCM${state.used ? (state.muted ? " · Muted" : " · Used") : " · Not used"}`;
@@ -1273,6 +1293,7 @@ function renderPcmMonitor() {
     name:ch.name, active:ch.enabled, values:[ch.enabled ? 'ON' : 'OFF', ch.volume, ch.panLeft, ch.panRight,
       ch.step, formatHex(ch.startAddress,4), formatHex(ch.loopAddress,4)],
   })), rf5c164ChannelMutes);
+  renderSampleLinks(document.getElementById("pcmChannels"), i => pcmMonitor.lastTriggers[i]);
 }
 
 function resetOpmNotes(clock) {
@@ -1398,7 +1419,7 @@ function resetPsgMonitor() {
 
 function observePsgPlaybackEngine() {
   observePsgEngine(engine, () => psgMonitor, () => { updateToneMonitor(); requestChannelMonitorRender(); }, resetPsgMonitor);
-  observeRf5c164Engine(engine, () => pcmMonitor, requestChannelMonitorRender);
+  observeRf5c164Engine(engine, () => pcmMonitor, requestChannelMonitorRender, undefined, () => player?.parser?.position);
 }
 
 function renderChannelMonitor() {
@@ -1418,26 +1439,7 @@ function renderChannelMonitor() {
       const rows = opnAdpcmRows(opnAdpcm, part);
       rows.forEach((row,i) => { row.active = recentAdpcmStart(opnAdpcm.starts[part === 'A' ? i : 6]); });
       renderRegisterRows(table, rows, part === 'A' ? adpcmAChannelMutes[currentChipKind] : null);
-      if (!rhythm) {
-        for (const [i, row] of Array.from(table.tBodies[0].rows).entries()) {
-          const triggerIndex = part === 'B' ? 6 : i;
-          let open = row.querySelector('[data-open-sample]');
-          if (!open) {
-            open = document.createElement('button');
-            open.type = 'button';
-            open.dataset.openSample = '';
-            open.textContent = 'Open sample';
-            open.onclick = () => {
-              const trigger = opnAdpcm?.lastTriggers[triggerIndex];
-              if (!trigger || sampleTab.disabled) return;
-              setOutputTab('samples');
-              void sampleExplorer.openAdpcmTrigger(trigger);
-            };
-            row.insertCell().append(open);
-          }
-          open.disabled = !opnAdpcm.lastTriggers[triggerIndex] || sampleTab.disabled;
-        }
-      }
+      if (!rhythm) renderSampleLinks(table, i => opnAdpcm?.lastTriggers[part === 'B' ? 6 : i]);
       if (part === 'A') document.getElementById(rhythm ? 'rhythmTotalLevel' : 'adpcmTotalLevel').textContent = opnAdpcm.a[1] & 63;
     }
   }
@@ -4167,6 +4169,7 @@ playbackSeek.addEventListener("change", async () => {
   songTimeline.cursor(sample, false);
   if (wasPlaying) await playCurrentVgm(sample);
   else if (player?.isPaused() && (['ym2203', 'ym2608', 'ym2610'].includes(currentChipKind) ||
+           (currentChipKind === 'ym2612' && currentHasPcm) ||
            ((noteishHeader.psgClock & 0x3fffffff) && ['ym2612', 'ym2151'].includes(currentChipKind)))) {
     // The suspended output stream still contains audio from the old position.
     // Keep the cursor pending so Resume builds a fresh stream at this sample.

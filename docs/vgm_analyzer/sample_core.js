@@ -10,7 +10,7 @@ import {createStoredZipBytes} from './stored_zip.js';
 import {createDacSamples} from './dac_samples.js';
 import {pwmCaptureJson,createPwmSamples} from './pwm_samples.js';
 import {createSegaPcmSamples} from './segapcm_samples.js';
-import {createRf5c164Samples} from './rf5c164_samples.js';
+import {createRf5c164Samples} from './rf5c164_samples.js?v=pcm-jump-1';
 import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 
 // One pass; never expands the VGM loop. Memory is resolved at each key-on.
@@ -76,7 +76,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
     gb.apply(e, time);
     gbVoices.apply(e, time);
     opl4.apply(e, time);
-    rf.apply(e, time);
+    rf.apply(e, time, parser.position);
     sega.apply(e, time);
     if (e.type === 'ym2610-rom-data' || e.type === 'ym2608-adpcm-b-data') {
       if (e.chipIndex) { warnings.add('Second chip sample memory is not analyzed.'); return; }

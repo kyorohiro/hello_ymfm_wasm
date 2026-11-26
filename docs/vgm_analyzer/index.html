@@ -849,10 +849,10 @@
             <section id="pcmMonitor">
               <h2 id="pcmMonitorTitle">RF5C164 PCM</h2>
               <p id="pcmMonitorStatus" class="noteish-help">No file loaded.</p>
-              <p id="pcmMonitorHelp" class="noteish-help" hidden>Register settings at the generated audio position, not live audio levels. Channel ON is the enable setting; output also depends on Chip ON, volume, pan, sample data and PCM mute.</p>
+              <p id="pcmMonitorHelp" class="noteish-help" hidden>Register settings at the generated audio position, not live audio levels. Channel ON is the enable setting; output also depends on Chip ON, volume, pan, sample data and PCM mute. Open sample shows the RAM snapshot from the channel’s most recent start in the analyzed VGM timeline.</p>
               <div id="pcmMonitorGrid" hidden>
                 <div style="overflow-x:auto"><table id="pcmChannels" data-mute-kind="rf5c164-channel" class="psg-channels" aria-label="RF5C164 PCM channels">
-                  <thead><tr><th scope="col">Channel</th><th scope="col">Enable</th><th scope="col">Volume</th><th scope="col">Pan L</th><th scope="col">Pan R</th><th scope="col">Step</th><th scope="col">Start</th><th scope="col">Loop</th></tr></thead>
+                  <thead><tr><th scope="col">Channel</th><th scope="col">Enable</th><th scope="col">Volume</th><th scope="col">Pan L</th><th scope="col">Pan R</th><th scope="col">Step</th><th scope="col">Start</th><th scope="col">Loop</th><th scope="col">Sample Explorer</th></tr></thead>
                   <tbody></tbody>
                 </table></div>
                 <p id="pcmShared"></p>
@@ -1102,7 +1102,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=adpcm-b-jump-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=pcm-jump-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

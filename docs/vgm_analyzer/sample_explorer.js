@@ -7,8 +7,8 @@ import {samplePreviewWav} from './sample_render.js?v=wonderswan-voice-samples-1'
 import {renderSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 export {configureSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 import { pwmCaptureWav } from './pwm_samples.js';
-import {sampleFile,extractSamples} from './sample_core.js?v=adpcm-b-jump-1';
-export {extractSamples} from './sample_core.js?v=adpcm-b-jump-1';
+import {sampleFile,extractSamples} from './sample_core.js?v=pcm-jump-1';
+export {extractSamples} from './sample_core.js?v=pcm-jump-1';
 
 // OPN previews can render at 1 MHz. Average native samples over each
 // output frame before handing the buffer to Web Audio.
@@ -208,7 +208,7 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             row.append(wav);
           }
         }
-        if (opnSample) {
+        if (opnSample || s.chip === 'rf5c164') {
           uses.forEach((event,index) => triggers.set(event.commandEnd + '/' + event.channel, {row,event,index}));
         }
         output.append(row);
@@ -219,7 +219,7 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
     finally { if (!own.signal.aborted) button.disabled = false; }
   }
   button.onclick = analyze;
-  async function openAdpcmTrigger(trigger) {
+  async function openSampleTrigger(trigger) {
     if (!analyzed) {
       const pending = analyze();
       const own = controller;
@@ -227,7 +227,8 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
       if (controller !== own || !analyzed || panel.hidden) return;
     }
     const match = triggers.get(trigger.commandEnd + '/' + trigger.channel);
-    if (!match || match.event.rawStart !== trigger.rawStart || match.event.rawEnd !== trigger.rawEnd ||
+    if (!match || match.event.startAddress !== trigger.startAddress || match.event.loopAddress !== trigger.loopAddress ||
+        match.event.rawStart !== trigger.rawStart || match.event.rawEnd !== trigger.rawEnd ||
         match.event.deltaN !== trigger.deltaN || (trigger.addressUnit && (match.event.addressUnit ?? 256) !== trigger.addressUnit)) {
       const note = output.querySelector('p');
       if (note) note.textContent = 'No matching sample was captured for this trigger.';
@@ -248,7 +249,7 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
     row.querySelector('summary').focus();
     row.scrollIntoView({block:'nearest'});
   }
-  return { reset, stop, openAdpcmTrigger, setChip(chip) {
+  return { reset, stop, openSampleTrigger, setChip(chip) {
     const next = chip === 'gameboy';
     if (next !== gameboyMode) reset();
     gameboyMode = next;

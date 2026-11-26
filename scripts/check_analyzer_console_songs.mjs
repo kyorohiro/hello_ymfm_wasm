@@ -498,19 +498,40 @@ try {
     console.log(chip+' channel list, CH3 slots, key mask and live parameter highlight passed');
   }
   {
-    const commands = [0xb1,7,0xc2,0xb1,6,0x35,0xb1,4,0x67,0xb1,5,0x45,0xb1,1,0xa4,0xb1,8,0xfb,...Array(300).fill(0x62),0x66];
+    const upload = amplitude => [0x67,0x66,0xc1,5,0,0,0,0,0x35,amplitude,amplitude,0xff];
+    const commands = [...upload(0x88),0xb1,7,0xc2,0xb1,0,0xff,0xb1,6,0x35,0xb1,5,0x35,0xb1,3,8,0xb1,1,0xa4,0xb1,8,0xfb,
+      ...Array(120).fill(0x62),0xb1,8,0xff,...upload(0xe0),0xb1,8,0xfb,...Array(180).fill(0x62),0x66];
     const buffer = Buffer.concat([opn.subarray(0,0xc8),Buffer.from(commands)]);
-    buffer.writeUInt32LE(buffer.length-4,4); buffer.writeUInt32LE(12500000,0x6c);
+    buffer.writeUInt32LE(buffer.length-4,4); buffer.writeUInt32LE(12500000,0x6c); buffer.writeUInt32LE(0,0x0c);
     await page.locator('#fileInput').setInputFiles({name:'pcm.vgm',mimeType:'application/octet-stream',buffer});
     await page.locator('#operatorInfoTab').click();
     await page.locator('#chipMonitorTabs').getByRole('tab',{name:'RF5C164'}).click();
     await play.click();
     const rows = page.locator('#pcmChannels tbody tr');
-    await rows.nth(2).getByText('0x3500',{exact:true}).waitFor();
+    await rows.nth(2).getByText('0x3500',{exact:true}).first().waitFor();
     assert.equal(await rows.count(),8);
-    await checkMonitorMute(rows.nth(2).getByRole('button'), 'PCM 3');
-    assert.deepEqual(await rows.nth(2).locator('td').allTextContents(),['ON','0','4','10','0','0x3500','0x4567']);
+    await checkMonitorMute(rows.nth(2).locator('th button'), 'PCM 3');
+    assert.deepEqual(await rows.nth(2).locator('td').allTextContents(),['ON','255','4','10','2048','0x3500','0x3500','Open sample']);
     await pause.click();
+    assert(await rows.first().getByRole('button',{name:'Open sample'}).isDisabled());
+    async function previewAt(seconds, occurrence) {
+      await movePosition(seconds);
+      await page.waitForFunction(()=>!document.querySelector('#playbackSeek').disabled);
+      await rows.nth(2).getByRole('button',{name:'Open sample'}).click();
+      const detail=page.locator('#sampleExplorerPanel details[open]');
+      await detail.locator('summary').waitFor();
+      assert.match(await detail.locator('option:checked').innerText(),occurrence);
+      await page.evaluate(()=>window.testPeak=0);
+      await detail.getByRole('button',{name:/Preview centered/}).click();
+      await page.waitForFunction(()=>window.testPeak>0);
+      const peak=await page.evaluate(()=>window.testPeak);
+      await page.locator('#operatorInfoTab').click();
+      return peak;
+    }
+    const loud=await previewAt(3,/2.000 s/);
+    const quiet=await previewAt(.5,/0.000 s/);
+    assert(loud > quiet*2);
+    console.log('RF5C164 paused seek selects and previews distinct RAM snapshots at the same address');
   }
   for (const chip of ['YM2151','YM2164']) {
     const header = Buffer.from(opn.subarray(0,0xc8));
