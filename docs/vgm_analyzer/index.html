@@ -676,7 +676,7 @@
         <div class="status" id="playbackWarnings" role="status" style="white-space: pre-line" hidden></div>
 
         <div id="outputTabs" class="tabbar" role="tablist" aria-label="Analyzer output panels">
-          <button id="playlistTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="playlistPanel">Playlist</button>
+          <button id="playlistTab" class="tab-button" type="button" role="tab" aria-selected="true" tabindex="0" aria-controls="playlistPanel">Basic</button>
           <button
             id="operatorInfoTab" disabled
             class="tab-button"
@@ -693,8 +693,8 @@
             class="tab-button"
             type="button"
             role="tab"
-            aria-selected="true"
-            tabindex="0"
+            aria-selected="false"
+            tabindex="-1"
             aria-controls="parsedOutputPanel"
           >
             Parsed Output
@@ -716,7 +716,9 @@
           <button id="exportTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="exportPanel" disabled>Export</button>
         </div>
 
-        <section id="playlistPanel" class="actions tab-panel" role="tabpanel" aria-labelledby="playlistTab" hidden>
+        <section id="playlistPanel" class="actions tab-panel" role="tabpanel" aria-labelledby="playlistTab">
+          <button type="button" data-import-input="fileInput">Select files…</button>
+          <button type="button" data-import-input="consoleFolder" title="Choose the folder containing the songs and their libraries">Select folder…</button>
           <section class="playlist" aria-label="Playlist">
             <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
             <p id="detectedChips" class="file-drop-hint" aria-live="polite" hidden></p>
@@ -864,7 +866,7 @@
           </section>
         </section>
 
-        <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab">
+        <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab" hidden>
           <h2 id="metadataHeading">Track metadata (GD3)</h2>
           <dl id="metadataOutput" class="track-metadata">No file loaded.</dl>
 
@@ -1031,7 +1033,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=playlist-tab-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=basic-import-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

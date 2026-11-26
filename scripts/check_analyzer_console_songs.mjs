@@ -53,14 +53,21 @@ try {
       return read.call(this);
     };
   });
-  await page.locator('#fileInput').setInputFiles({name:'slow.vgm',mimeType:'application/octet-stream',buffer:Buffer.from('invalid')});
+  assert.equal(await page.getByRole('tab',{name:'Basic',exact:true}).getAttribute('aria-selected'),'true');
+  async function chooseFromBasic(name, files) {
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByRole('tabpanel',{name:'Basic'}).getByRole('button',{name,exact:true}).click(),
+    ]);
+    await chooser.setFiles(files);
+  }
+  await chooseFromBasic('Select files…',{name:'slow.vgm',mimeType:'application/octet-stream',buffer:Buffer.from('invalid')});
   const indicator = page.locator('#fileLoadProgress');
   await indicator.filter({hasText:'Reading slow.vgm'}).waitFor();
   await page.evaluate(() => window.finishFileRead());
   await indicator.waitFor({state:'hidden'});
   assert.match(await page.locator('#headerOutput').textContent(),/Failed to (decode|parse)/);
-  assert(await page.locator('#playlistPanel').isHidden());
-  await page.locator('#playlistTab').click();
+  assert(await page.locator('#playlistPanel').isVisible());
   const ssf = createScspSsfPlaybackFixture(), psf = createPsfPlaybackFixture();
   const elapsed = await page.evaluate(async ({image,prefix}) => {
     const {createScspSsfEngine} = await import(prefix+'synth-scsp/scsp_ssf_engine.js');
@@ -79,7 +86,7 @@ try {
     await mkdir(dirname(join(work,name)),{recursive:true});
     await writeFile(join(work,name),bytes);
   }
-  await page.locator('#consoleFolder').setInputFiles(work);
+  await chooseFromBasic('Select folder…',work);
   const tracks = page.locator('#playlistList button');
   await tracks.nth(3).waitFor();
   assert.deepEqual(await tracks.allTextContents(),['a.ssf','b.psf','c.minissf','d.minipsf']);

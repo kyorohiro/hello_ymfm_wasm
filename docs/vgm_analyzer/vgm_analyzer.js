@@ -4860,9 +4860,9 @@ analyzerMenu.addEventListener('keydown', event => {
     closeAnalyzerMenu();
   }
 });
-for (const button of analyzerMenu.querySelectorAll('[data-import-input]')) {
+for (const button of document.querySelectorAll('[data-import-input]')) {
   button.addEventListener('click', () => {
-    closeAnalyzerMenu();
+    if (analyzerMenu.contains(button)) closeAnalyzerMenu();
     document.getElementById(button.dataset.importInput).click();
   });
 }
