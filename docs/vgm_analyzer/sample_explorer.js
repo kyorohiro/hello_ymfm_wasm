@@ -7,8 +7,8 @@ import {samplePreviewWav} from './sample_render.js?v=wonderswan-voice-samples-1'
 import {renderSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 export {configureSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 import { pwmCaptureWav } from './pwm_samples.js';
-import {sampleFile,extractSamples} from './sample_core.js?v=pokey-vgm-1';
-export {extractSamples} from './sample_core.js?v=pokey-vgm-1';
+import {sampleFile,extractSamples} from './sample_core.js?v=adpcm-a-jump-1';
+export {extractSamples} from './sample_core.js?v=adpcm-a-jump-1';
 
 export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
   let controller, audio, playing, voicePreviewController, previewSerial = 0, gameboyMode = false;
@@ -16,8 +16,10 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
   const output = document.createElement('div');
   panel.append(button, output);
   const stop = () => { previewSerial++; voicePreviewController?.abort(); voicePreviewController=null; playing?.stop(); playing = null; };
-  const reset = () => { controller?.abort(); stop(); output.replaceChildren(); button.disabled = false; };
-  button.onclick = async () => {
+  const triggers = new Map();
+  let analyzed = false, lastOpened = null;
+  const reset = () => { triggers.clear(); analyzed = false; lastOpened = null; controller?.abort(); stop(); output.replaceChildren(); button.disabled = false; };
+  async function analyze() {
     reset(); const source = getSource();
     if (!source) { output.textContent = 'Load a VGM file first.'; return; }
     controller = new AbortController(); const own = controller;
@@ -108,14 +110,21 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             let drawn=false;row.addEventListener('toggle',()=>{if(!row.open||drawn)return;drawn=true;const pcm=s.chip==='segapcm'?Float32Array.from(s.data,v=>(v-128)/128):decodeYmf278bSample(s),ctx=canvas.getContext('2d');ctx.strokeStyle='#44aacc';ctx.beginPath();for(let x=0;x<512;x++){const start=Math.floor(x*pcm.length/512),end=Math.max(start+1,Math.floor((x+1)*pcm.length/512));let lo=1,hi=-1;for(let i=start;i<end;i++){lo=Math.min(lo,pcm[i]);hi=Math.max(hi,pcm[i]);}ctx.moveTo(x,48-hi*46);ctx.lineTo(x,48-lo*46);}ctx.stroke();});
           }
         }
-        if(s.chip==='okim6258' && s.data) {
-          const info=document.createElement('p');info.textContent='Timed ADPCM register capture. Preview includes live pan and clock/divider changes, up to 10 seconds; divider phase restarts at capture start.';row.append(info);
+        if((s.chip==='okim6258' || s.kind==='adpcm-a') && s.data) {
+          if (s.chip==='okim6258') {
+            const info=document.createElement('p');info.textContent='Timed ADPCM register capture. Preview includes live pan and clock/divider changes, up to 10 seconds; divider phase restarts at capture start.';row.append(info);
+          }
           const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;canvas.style.maxWidth='100%';canvas.setAttribute('aria-label','Decoded ADPCM waveform');row.append(canvas);
           const draw=document.createElement('button');draw.textContent='Show waveform (up to 10 s)';
+          if (s.kind==='adpcm-a') draw.dataset.adpcmWaveform = '';
           draw.onclick=async()=>{draw.disabled=true;try{
-            const pcm=await renderSamplePreview(s,uses[0],{getFactory:async()=> (await import('../generated/okim6258_wasm.js')).default});
+            const occurrence = s.kind === 'adpcm-a' ? Number(row.querySelector('select').value) : 0;
+            const pcm=await renderSamplePreview(s,uses[occurrence],{getFactory:async()=> s.kind==='adpcm-a' ?
+              (await import('../generated/ym2610b_wasm.js')).default : (await import('../generated/okim6258_wasm.js')).default});
             if(own.signal.aborted)return;
-            const ctx=canvas.getContext('2d');ctx.strokeStyle='#44aacc';ctx.beginPath();
+            const ctx=canvas.getContext('2d');
+            if (s.kind === 'adpcm-a') ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.strokeStyle='#44aacc';ctx.beginPath();
             for(let x=0;x<512;x++){const from=Math.floor(x*pcm.left.length/512),end=Math.max(from+1,Math.floor((x+1)*pcm.left.length/512));let lo=1,hi=-1;
               for(let i=from;i<end;i++){lo=Math.min(lo,pcm.left[i],pcm.right[i]);hi=Math.max(hi,pcm.left[i],pcm.right[i]);}
               ctx.moveTo(x,48-hi*46);ctx.lineTo(x,48-lo*46);}
@@ -168,13 +177,46 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             row.append(wav);
           }
         }
+        if (s.kind === 'adpcm-a' && s.chip === 'ym2610') {
+          uses.forEach((event,index) => triggers.set(event.commandEnd + '/' + event.channel, {row,event,index}));
+        }
         output.append(row);
       }
+      analyzed = true;
       const stopButton = document.createElement('button'); stopButton.textContent = 'Stop preview'; stopButton.onclick = stop; output.append(stopButton);
     } catch (error) { if (!own.signal.aborted) output.textContent = `Analysis failed: ${error.message}`; }
     finally { if (!own.signal.aborted) button.disabled = false; }
-  };
-  return { reset, stop, setChip(chip) {
+  }
+  button.onclick = analyze;
+  async function openAdpcmTrigger(trigger) {
+    if (!analyzed) {
+      const pending = analyze();
+      const own = controller;
+      await pending;
+      if (controller !== own || !analyzed || panel.hidden) return;
+    }
+    const match = triggers.get(trigger.commandEnd + '/' + trigger.channel);
+    if (!match || match.event.rawStart !== trigger.rawStart || match.event.rawEnd !== trigger.rawEnd) {
+      const note = output.querySelector('p');
+      if (note) note.textContent = 'No matching sample was captured for this trigger.';
+      return;
+    }
+    const {row,event,index} = match;
+    const selection = row.querySelector('select');
+    if (selection) {
+      if (!Array.from(selection.options).some(option => Number(option.value) === index)) {
+        selection.add(new Option(`${(event.startTime/44100).toFixed(3)} s / ${event.rate.toFixed(2)} Hz`, String(index)));
+      }
+      selection.value = String(index);
+    }
+    if (lastOpened && lastOpened !== row) lastOpened.open = false;
+    lastOpened = row;
+    row.open = true;
+    row.querySelector('[data-adpcm-waveform]')?.click();
+    row.querySelector('summary').focus();
+    row.scrollIntoView({block:'nearest'});
+  }
+  return { reset, stop, openAdpcmTrigger, setChip(chip) {
     const next = chip === 'gameboy';
     if (next !== gameboyMode) reset();
     gameboyMode = next;

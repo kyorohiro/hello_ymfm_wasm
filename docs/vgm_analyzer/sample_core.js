@@ -156,7 +156,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
       if (v & 128) continue;
       begin('adpcm-a', ch + 1, regs[0x10 + ch] | regs[0x18 + ch] << 8,
         regs[0x20 + ch] | regs[0x28 + ch] << 8,
-        { level: regs[8 + ch] & 31, totalLevel: regs[1] & 63,
+        { commandEnd: parser.position, level: regs[8 + ch] & 31, totalLevel: regs[1] & 63,
           pan: regs[8 + ch] >> 6, rate: clock / 432, loop: false });
     }
   }

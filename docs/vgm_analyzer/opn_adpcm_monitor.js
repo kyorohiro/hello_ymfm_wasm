@@ -7,10 +7,10 @@ export function opnaAddressUnit(control2) {
 export function createOpnAdpcmMonitor(chip = "ym2610") {
   const a = new Uint8Array(0x30);
   a.fill(0xdf, 8, 14);
-  return {chip, a, b:new Uint8Array(12), commands:Array(7).fill('—'), starts:Array(7).fill(0)};
+  return {chip, a, b:new Uint8Array(12), lastTriggers:Array(6).fill(null), commands:Array(7).fill('—'), starts:Array(7).fill(0)};
 }
 
-export function writeOpnAdpcm(state, port, reg, value, now) {
+export function writeOpnAdpcm(state, port, reg, value, now, commandEnd = null) {
   function control(channel, command) {
     state.commands[channel] = command;
     state.starts[channel] = command === 'Start' ? now : 0;
@@ -21,7 +21,15 @@ export function writeOpnAdpcm(state, port, reg, value, now) {
     state.a[reg] = value;
     if (reg === 0) {
       for (let ch = 0; ch < 6; ch++) {
-        if (value & (1 << ch)) control(ch, value & 128 ? 'Stop' : 'Start');
+        if (!(value & (1 << ch))) continue;
+        control(ch, value & 128 ? 'Stop' : 'Start');
+        if (!opna && !(value & 128)) {
+          // playStep has consumed this write before dispatch. Its end offset
+          // identifies the same command in the live player and the offline scan.
+          const a = state.a;
+          state.lastTriggers[ch] = {channel:ch+1, commandEnd,
+            rawStart:a[16+ch] | (a[24+ch]<<8), rawEnd:a[32+ch] | (a[40+ch]<<8)};
+        }
       }
     }
     return true;

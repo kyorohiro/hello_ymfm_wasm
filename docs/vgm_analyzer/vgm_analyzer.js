@@ -38,7 +38,7 @@ import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
 import {mountPokeyMonitor} from './pokey_monitor.js?v=pokey-vgm-1';
 import { mountTfiInfo } from "./tfi_info.js?v=fm2612-snapshot-1";
-import { mountSampleExplorer } from './sample_explorer.js?v=pokey-vgm-1';
+import { mountSampleExplorer } from './sample_explorer.js?v=adpcm-a-jump-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=pokey-vgm-1';
 import { seekPlayback } from './seek_playback.js';
@@ -1418,6 +1418,25 @@ function renderChannelMonitor() {
       const rows = opnAdpcmRows(opnAdpcm, part);
       rows.forEach((row,i) => { row.active = recentAdpcmStart(opnAdpcm.starts[part === 'A' ? i : 6]); });
       renderRegisterRows(table, rows, part === 'A' ? adpcmAChannelMutes[currentChipKind] : null);
+      if (part === 'A' && !rhythm) {
+        for (const [i, row] of Array.from(table.tBodies[0].rows).entries()) {
+          let open = row.querySelector('[data-open-sample]');
+          if (!open) {
+            open = document.createElement('button');
+            open.type = 'button';
+            open.dataset.openSample = '';
+            open.textContent = 'Open sample';
+            open.onclick = () => {
+              const trigger = opnAdpcm?.lastTriggers[i];
+              if (!trigger || sampleTab.disabled) return;
+              setOutputTab('samples');
+              void sampleExplorer.openAdpcmTrigger(trigger);
+            };
+            row.insertCell().append(open);
+          }
+          open.disabled = !opnAdpcm.lastTriggers[i] || sampleTab.disabled;
+        }
+      }
       if (part === 'A') document.getElementById(rhythm ? 'rhythmTotalLevel' : 'adpcmTotalLevel').textContent = opnAdpcm.a[1] & 63;
     }
   }
@@ -2755,7 +2774,7 @@ async function ensurePlaybackReady(vgm) {
       const method = currentChipKind === "ym2608" ? "writeYm2608" : "writeYm2610B";
       const write = engine[method].bind(engine);
       engine[method] = (port, reg, value) => {
-        if (opnAdpcm && writeOpnAdpcm(opnAdpcm, port, reg, value, timelineSeekController ? 0 : performance.now())) requestChannelMonitorRender();
+        if (opnAdpcm && writeOpnAdpcm(opnAdpcm, port, reg, value, timelineSeekController ? 0 : performance.now(), player?.parser?.position)) requestChannelMonitorRender();
         return write(port, reg, value);
       };
       if (currentChipKind === 'ym2608') baseEngineWriteYm2608 = engine[method];
