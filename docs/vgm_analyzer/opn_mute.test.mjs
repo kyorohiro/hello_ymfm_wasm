@@ -22,7 +22,7 @@ for(const connected of [false,true])test(`CH toggles refresh the dock without So
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  const root={children:[],set innerHTML(v){this.children=[];},append(b){this.children.push(b);}};
  const writes=[];
- const context=vm.createContext({noteishHeader:{},currentChipKind:'ym2612',channelMonitor:[{channel:0,muted:false,b4Value:0xc0,changedAt:{}}],channelMuteStates:[],
+ const context=vm.createContext({createDockButtonAppender:root=>button=>root.append(button),noteishHeader:{},currentChipKind:'ym2612',channelMonitor:[{channel:0,muted:false,b4Value:0xc0,changedAt:{}}],channelMuteStates:[],
   performance,requestChannelMonitorRender(){},engine:connected?{}:null,
   monitorToggles:root,ensureMonitorToggleHandler(){},CHANNEL_MUTE_CHIPS:[],
   sourcesForChip:()=>[],sourceChipKind:()=> 'megacd',hasOkiSource:()=>false,

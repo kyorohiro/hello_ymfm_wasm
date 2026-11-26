@@ -253,6 +253,10 @@
         margin: 0 0 14px;
       }
 
+      .monitor-toggles fieldset { flex: 1 1 100%; min-width: 0; margin: 0; padding: 3px 6px 5px; border: 1px solid #bca590; border-radius: 5px; }
+      .monitor-toggles legend { padding: 0 4px; font-size: .8rem; font-weight: bold; }
+      .monitor-toggles fieldset button { margin: 2px; }
+
       .spc-brr-waveform { flex-basis: 100%; width: 100%; min-width: 0; scroll-margin-bottom: 180px; }
       .spc-brr-waveform canvas { display: block; width: 100%; max-width: 900px; height: 150px; }
       .spc-brr-waveform .subtext { margin: 6px 0 0; }
@@ -1129,7 +1133,7 @@
         "./playback_core.js?v=pokey-vgm-1&mix=console-songs-1":"./playback_core.js?v=dual-opn-2"
       }}
     </script>
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=dual-opn-2"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=dual-dock-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

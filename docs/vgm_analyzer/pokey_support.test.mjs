@@ -57,7 +57,7 @@ test('POKEY detection labels both physical chips and renders unique 4/8 output m
   assert.deepEqual(Array.from(metadata.detectHeaderChips({pokeyClock: 1789773 | 0x40000000})), ['POKEY × 2 (1.79 MHz)']);
   for (const count of [4, 8]) {
     const controls = [], pokeyChannelMutes = Array(count).fill(false), applied = [];
-    const context = vm.createContext({currentChipKind: 'pokey', noteishHeader: {}, pokeyChannelMutes,
+    const context = vm.createContext({createDockButtonAppender:root=>button=>root.append(button),currentChipKind: 'pokey', noteishHeader: {}, pokeyChannelMutes,
       CHANNEL_MUTE_CHIPS: ['pokey'], channelMonitor: [], monitorToggles: {append: b => controls.push(b)},
       ensureMonitorToggleHandler() {},
       sourcesForChip: () => [], sourceChipKind: () => 'pokey', hasOkiSource: () => false,

@@ -134,7 +134,7 @@ function refreshSong() {
   if (!songPlayer) return;
   const state = songPlayer.read();
   if (songPlayer.chip === 'SCSP') {
-    for (const button of monitorToggles.children) {
+    for (const button of monitorToggles.querySelectorAll('[data-scsp-slot]')) {
       const slot = Number(button.dataset.scspSlot);
       if (Number.isInteger(slot)) button.classList.toggle('is-key-on', Boolean(state.keyOnMask & (1 << slot)));
     }
@@ -805,9 +805,26 @@ function requestPlaybackUiRender() {
   });
 }
 
+function createDockButtonAppender(root, chip) {
+  const groups = new Map();
+  return (button,label = chip.toUpperCase()) => {
+    let group = groups.get(label);
+    if (!group) {
+      group = document.createElement('fieldset');
+      const legend = document.createElement('legend');
+      legend.textContent = label;
+      group.append(legend);
+      root.append(group);
+      groups.set(label,group);
+    }
+    group.append(button);
+  };
+}
+
 function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
+  const append = createDockButtonAppender(monitorToggles,currentChipKind);
   if (['sid','vsu','scsp','spu'].includes(currentChipKind)) {
     const keyOnMask = currentChipKind === 'scsp' ? songPlayer?.read().keyOnMask : 0;
     for (let channel = 0; songPlayer && channel < (songPlayer.channelCount ?? 3); channel++) {
@@ -824,7 +841,7 @@ function renderMonitorToggles() {
         button.classList.toggle('is-key-on', Boolean(keyOnMask & bit));
       }
       button.onclick = () => {songPlayer.setMuteMask(songPlayer.muteMask ^ bit); renderMonitorToggles();};
-      monitorToggles.append(button);
+      append(button);
     }
     return;
   }
@@ -832,15 +849,34 @@ function renderMonitorToggles() {
     for(const part of mixedPlaybackParts){
       const muted=Boolean(sourceMutes[part.id]),button=document.createElement('button');
       button.type='button';button.className=`channel-toggle${muted?' is-muted':''}`;
-      button.textContent=part.chips.join(' + ') + (part.chipIndex ? ' 2' : '');
       button.setAttribute('aria-pressed',String(!muted));
       button.setAttribute('data-monitor-toggle-kind','mixed-source');
-      button.setAttribute('data-mixed-source',part.id);monitorToggles.append(button);
+      const isDualFm = dualFm.length && part.chips.includes('ym2612');
+      const index = part.chipIndex ?? 0;
+      const label = part.chips.map(chip => {
+        const paired = noteishHeader[chip+'Clock'] & 0x40000000;
+        return chip.toUpperCase() + (paired ? ' ' + (index+1) : '');
+      }).join(' + ');
+      button.textContent = 'All';
+      button.setAttribute('aria-label',label + ' All');
+      button.setAttribute('data-mixed-source',part.id);
+      append(button,label);
+      if (isDualFm) dualFm[index].muted.forEach((muted,ch) => {
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'channel-toggle' + (muted ? ' is-muted' : '');
+        toggle.textContent = 'CH' + (ch+1);
+        toggle.dataset.monitorToggleKind = 'dual-fm-channel';
+        toggle.dataset.chipIndex = index;
+        toggle.dataset.channelIndex = ch;
+        toggle.setAttribute('aria-pressed',String(!muted));
+        append(toggle,label);
+      });
     }
     return;
   }
 
-  function appendChannelToggles(states, kind, labels) {
+  function appendChannelToggles(states, kind, labels, group) {
     states.forEach((muted, index) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -849,20 +885,20 @@ function renderMonitorToggles() {
       button.setAttribute('aria-pressed', String(!muted));
       button.dataset.monitorToggleKind = kind;
       button.dataset.channelIndex = String(index);
-      monitorToggles.append(button);
+      append(button,group);
     });
   }
   if (['ym2203','ym2608','ym2610'].includes(currentChipKind)) {
     appendChannelToggles(ssgChannelMutes, 'ssg-channel', ['SSG A','SSG B','SSG C']);
   } else if (noteishHeader?.psgClock & 0x3fffffff) {
-    appendChannelToggles(psgChannelMutes, 'psg-channel', ['PSG CH1','PSG CH2','PSG CH3','PSG CH4 Noise']);
+    appendChannelToggles(psgChannelMutes, 'psg-channel', ['PSG CH1','PSG CH2','PSG CH3','PSG CH4 Noise'], 'Sega PSG');
   }
   if (currentChipKind === 'ym2608' || currentChipKind === 'ym2610') {
     const labels = currentChipKind === 'ym2608' ? rhythmNames : Array.from({length:6}, (_,i) => 'ADPCM-A CH' + (i+1));
     appendChannelToggles(adpcmAChannelMutes[currentChipKind], 'adpcm-a-channel', labels);
   }
   if (currentChipKind === 'ym2612' && (noteishHeader?.rf5c164Clock & 0x3fffffff)) {
-    appendChannelToggles(rf5c164ChannelMutes, 'rf5c164-channel', rf5c164ChannelMutes.map((_,i) => 'PCM ' + (i+1)));
+    appendChannelToggles(rf5c164ChannelMutes, 'rf5c164-channel', rf5c164ChannelMutes.map((_,i) => 'PCM ' + (i+1)), 'RF5C164');
   }
   if (['msx', 'y8950'].includes(currentChipKind)) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) {
@@ -875,7 +911,7 @@ function renderMonitorToggles() {
       button.setAttribute('aria-pressed', String(!muted));
       button.setAttribute('data-monitor-toggle-kind', 'msx-control');
       button.setAttribute('data-msx-control', control.key);
-      monitorToggles.append(button);
+      append(button,control.chip.toUpperCase());
     }
     return;
   }
@@ -888,19 +924,20 @@ function renderMonitorToggles() {
       button.setAttribute('aria-pressed', String(!control.muted));
       button.setAttribute('data-monitor-toggle-kind', 'ay-control');
       button.setAttribute('data-ay-control', control.key);
-      monitorToggles.append(button);
+      append(button,control.key === 'opll' ? 'YM2413' : 'AY / YM2149');
     }
     return;
   }
   for (const source of sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock))) {
     const button = document.createElement("button");
+    if (source.key === 'psg' && !(noteishHeader?.psgClock & 0x3fffffff)) continue;
     const muted = sourceMutes[source.key];
     button.type = "button";
     button.className = `channel-toggle${muted ? " is-muted" : ""}`;
     button.textContent = source.label;
     button.setAttribute("aria-pressed", String(!muted));
     button.setAttribute("data-monitor-toggle-kind", source.key);
-    monitorToggles.append(button);
+    append(button,({psg:"Sega PSG",pcm:"RF5C164",pwm:"PWM",oki:"OKIM6258",oki6295:"OKIM6295",msm5205:"MSM5205",segapcm:"Sega PCM"})[source.key]);
   }
 
   if (CHANNEL_MUTE_CHIPS.includes(currentChipKind)) {
@@ -917,7 +954,7 @@ function renderMonitorToggles() {
       if (currentChipKind === 'pokey') button.title = 'Physical output channel. Joined lower channels and filter clocks may drive other voices; muting their output preserves those timer dependencies.';
       if (['gameboy','nes'].includes(currentChipKind)) button.title = currentChipKind==='nes'?'CH1/CH2 pulse, CH3 triangle, CH4 noise, CH5 DMC, CH6 FDS (when present).':'CH1/CH2 square, CH3 wave, CH4 noise.';
       button.setAttribute('data-channel-index', String(index));
-      monitorToggles.append(button);
+      append(button,currentChipKind === 'pokey' && pokeyChannelMutes.length > 4 ? 'POKEY ' + (1 + Math.floor(index/4)) : undefined);
     });
   }
   if (currentChipKind === 'ymf278b') {
@@ -931,7 +968,7 @@ function renderMonitorToggles() {
         button.setAttribute('aria-pressed', String(!muted));
         button.setAttribute('data-monitor-toggle-kind', kind);
         button.setAttribute('data-channel-index', String(index));
-        monitorToggles.append(button);
+        append(button);
       });
     }
   }
@@ -944,7 +981,7 @@ function renderMonitorToggles() {
     button.setAttribute("data-monitor-toggle-kind", "channel");
     button.setAttribute("aria-pressed", String(!channel.muted));
     button.setAttribute("data-channel-index", String(channel.channel));
-    monitorToggles.append(button);
+    append(button);
   });
 }
 
@@ -979,6 +1016,10 @@ function ensureMonitorToggleHandler() {
       flushPendingAudio();
       return;
     }
+    if (kind === 'dual-fm-channel' && currentChipKind === 'mixed') {
+      toggleDualFmChannel(Number(target.dataset.chipIndex),Number(target.dataset.channelIndex));
+      return;
+    }
     if(kind==='mixed-source' && currentChipKind==='mixed'){toggleSourceMute(target.getAttribute('data-mixed-source'));return;}
     if (kind === 'msx-control' && ['msx', 'y8950'].includes(currentChipKind)) {
       const control = msxMuteControls(currentChipKind, noteishHeader).find(c => c.key === target.getAttribute('data-msx-control'));
@@ -1011,6 +1052,9 @@ function ensureMonitorToggleHandler() {
       toggleChannelMute(channelIndex);
     }
   };
+  monitorToggles.addEventListener("click", event => {
+    if (event.detail === 0) handleToggle(event); // Keyboard or assistive activation.
+  });
   monitorToggles.addEventListener("pointerdown", handleToggle);
   for (const id of ["psgMonitor","rhythmMonitor","adpcmAMonitor","pcmMonitor","gameboyWaveMonitor"]) document.getElementById(id).addEventListener("click", handleToggle);
 }
@@ -3857,6 +3901,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     ? Array.from({length:2}, () => ({muted:Array(6).fill(false)})) : [];
   inspectedFm = 0;
   resetDualFmRegisters();
+  if (dualFm.length) renderMonitorToggles();
   if (currentChipKind === 'pokey') {
     pokeyChannelMutes.length = vgm.header.pokeyClock & 0x40000000 ? 8 : 4;
     pokeyChannelMutes.fill(false);
@@ -4476,6 +4521,20 @@ chipMonitorStorage.append(ym2413MonitorRoot);
 ym2413MonitorRoot.hidden = true;
 const ym2413Monitor = mountYm2413Monitor(ym2413MonitorRoot);
 // Keep the mounted monitors (and their register state) when changing tabs.
+function toggleDualFmChannel(index,ch) {
+  const fm = dualFm[index];
+  const muted = !fm.muted[ch];
+  if (engine?.fmInstances?.[index]) engine.setFmChannelMuted(index,ch,muted);
+  fm.muted[ch] = muted;
+  const button = chipMonitorPanels.querySelector('[data-dual-fm-control="' + index + '-' + ch + '"]');
+  if (button) {
+    button.setAttribute('aria-pressed',String(muted));
+    button.classList.toggle('is-muted',muted);
+  }
+  renderMonitorToggles();
+  flushPendingAudio();
+}
+
 function configureChipMonitorTabs() {
   const previous = chipMonitorTabs.querySelector('[aria-selected="true"]')?.textContent;
   const psg = document.getElementById('psgMonitor');
@@ -4548,12 +4607,8 @@ function configureChipMonitorTabs() {
       button.className = 'channel-toggle';
       button.textContent = 'Mute CH' + (ch + 1);
       button.setAttribute('aria-pressed',String(fm.muted[ch]));
-      button.onclick = () => {
-        fm.muted[ch] = !fm.muted[ch];
-        engine?.setFmChannelMuted(index,ch,fm.muted[ch]);
-        button.setAttribute('aria-pressed',String(fm.muted[ch]));
-        button.classList.toggle('is-muted',fm.muted[ch]);
-      };
+      button.dataset.dualFmControl = index + '-' + ch;
+      button.onclick = () => toggleDualFmChannel(index,ch);
       controls.append(button);
     });
     section.append(controls);

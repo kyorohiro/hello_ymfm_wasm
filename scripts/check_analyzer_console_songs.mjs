@@ -277,7 +277,7 @@ try {
   await page.locator('#effectEnabled').click();
   await tracks.first().click();
   await page.waitForFunction(() => document.querySelector('#playlistList [aria-current="true"]')?.textContent === 'b.psf');
-  await page.waitForFunction(() => document.querySelector('#monitorToggles')?.children.length === 24 && !document.querySelector('#pauseButton').disabled);
+  await page.waitForFunction(() => document.querySelectorAll('#monitorToggles button').length === 24 && !document.querySelector('#pauseButton').disabled);
   assert.equal(await page.locator('#effectEnabled').getAttribute('aria-pressed'),'true');
   await checkOutput(false);
   await page.locator('#effectEnabled').click();
@@ -322,6 +322,22 @@ try {
   opn.writeUInt32LE(0,0xc4);
   opn.writeUInt32LE(7670454,0x2c);
   opn.writeUInt32LE(3579545,0x0c);
+
+  await page.locator('#fileInput').setInputFiles('test/fixtures/dual-ym2612.vgm');
+  const dockChannels = page.locator('#monitorToggles');
+  const chip1 = dockChannels.getByRole('group',{name:'YM2612 1',exact:true});
+  const chip2 = dockChannels.getByRole('group',{name:'YM2612 2',exact:true});
+  const ch2 = chip2.getByRole('button',{name:'CH2',exact:true});
+  await ch2.click();
+  assert.equal(await ch2.getAttribute('aria-pressed'),'false');
+  assert.equal(await chip1.getByRole('button',{name:'CH2',exact:true}).getAttribute('aria-pressed'),'true');
+  assert.equal(await dockChannels.getByText('PSG',{exact:true}).count(),0);
+  await page.locator('#operatorInfoTab').click();
+  await page.locator('#chipMonitorTabs').getByRole('tab',{name:'YM2612 2'}).click();
+  const soundChipMute = page.getByRole('button',{name:'Mute CH2',exact:true});
+  assert.equal(await soundChipMute.getAttribute('aria-pressed'),'true');
+  await ch2.press('Space');
+  assert.equal(await soundChipMute.getAttribute('aria-pressed'),'false');
 
   async function openOpnMonitor() {
     await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});

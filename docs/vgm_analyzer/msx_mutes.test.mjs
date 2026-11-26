@@ -25,7 +25,7 @@ test('MSX dock buttons dispatch, reflect state and flush audio',()=>{
  class Button {constructor(){this.attrs={};}setAttribute(k,v){this.attrs[k]=v;}getAttribute(k){return this.attrs[k];}closest(){return this;}cloneNode(){return this;}}
  const root=()=>({children:[],set innerHTML(v){this.children=[];},append(b){this.children.push(b);},replaceChildren(...c){this.children=c;},addEventListener(_,fn){this.handler=fn;}});
  const main=root(),calls=[];
- const ctx=vm.createContext({Element:Button,currentChipKind:'msx',noteishHeader:header,msxMutes:new Map(),msxMuteControls,applyMsxMute:(...args)=>calls.push(args.slice(1)),engine:{},monitorToggleHandlerBound:false,monitorToggles:main,document:{createElement:()=>new Button(),getElementById:()=>root()},flushPendingAudio:()=>calls.push('flush')});
+ const ctx=vm.createContext({createDockButtonAppender:root=>button=>root.append(button),Element:Button,currentChipKind:'msx',noteishHeader:header,msxMutes:new Map(),msxMuteControls,applyMsxMute:(...args)=>calls.push(args.slice(1)),engine:{},monitorToggleHandlerBound:false,monitorToggles:main,document:{createElement:()=>new Button(),getElementById:()=>root()},flushPendingAudio:()=>calls.push('flush')});
  vm.runInContext(source.slice(source.indexOf('function renderMonitorToggles()'),source.indexOf('function createChannelMonitorState()')),ctx);
  ctx.renderMonitorToggles();assert.equal(main.children.length,25);
  const button=main.children.find(b=>b.textContent==='Y8950 ADPCM');
