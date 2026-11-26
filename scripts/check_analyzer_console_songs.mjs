@@ -36,6 +36,7 @@ try {
     };
     const start = AudioBufferSourceNode.prototype.start;
     AudioBufferSourceNode.prototype.start = function(...args) {
+      if (this.buffer) window.testPreviewDuration = this.buffer.duration;
       for (const sample of this.buffer?.getChannelData(0) || []) window.testPeak = Math.max(window.testPeak || 0,Math.abs(sample));
       return start.apply(this,args);
     };
@@ -393,7 +394,9 @@ try {
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c); header.writeUInt32LE(clock,offset);
     const opna = chip === 'YM2608';
     const percussion = opna ? 'Rhythm' : 'ADPCM-A';
-    const commands = [command,0x27,0x40,command,0xac,0x23,command,0xa8,0x55,command,0x28,0x52,
+    const deltaRom = opna || chip.startsWith('YM2610') ?
+      [0x67,0x66,opna ? 0x81 : 0x83,8,16,0,0,0,16,0,0,0,0,0,0,...Array(4096).fill(0x17)] : [];
+    const commands = [...deltaRom,command,0x27,0x40,command,0xac,0x23,command,0xa8,0x55,command,0x28,0x52,
       command,0,0x23,command,1,1,command,7,0x3e,command,8,9,
       ...(opna ? [0x56,0x11,47,0x56,0x18,0x91,0x56,0x10,3,
         0x57,1,0x40,0x57,2,4,0x57,4,9,0x57,9,0x34,0x57,10,0x12,0x57,11,200,0x57,0,0xb0] : []),
@@ -401,8 +404,8 @@ try {
         0x58,0x11,0x40,0x58,0x12,4,0x58,0x14,9,0x58,0x19,0x34,0x58,0x1a,0x12,0x58,0x1b,200,0x58,0x10,0x90] : []),
       ...Array(90).fill(0x62),command,0x42,56,command,6,11,command,7,0x36,
       command,11,0x34,command,12,2,command,13,14,command,8,16,
-      ...(opna ? [0x56,0x10,0x81,0x57,1,0x41,0x57,0,1] : []),
-      ...(chip.startsWith('YM2610') ? [0x59,0x10,3,0x59,0,1,0x59,0x10,2,0x59,0,0x81,0x58,0x10,1] : []),...Array(210).fill(0x62),0x66];
+      ...(opna ? [0x56,0x10,0x81,0x57,10,0x24,0x57,0,0xb0,0x57,1,0x41,0x57,0,1] : []),
+      ...(chip.startsWith('YM2610') ? [0x59,0x10,3,0x59,0,1,0x59,0x10,2,0x59,0,0x81,0x58,0x1a,0x24,0x58,0x10,0x90,0x58,0x10,1] : []),...Array(210).fill(0x62),0x66];
     const buffer = Buffer.concat([header,Buffer.from(commands)]);
     buffer.writeUInt32LE(buffer.length-4,4);
     await page.locator('#fileInput').setInputFiles({name:chip+'.vgm',mimeType:'application/octet-stream',buffer});
@@ -454,27 +457,34 @@ try {
       assert.deepEqual(await a.first().locator('td').allTextContents(),opna ? ['Stop','17','L'] : ['Stop','0x000200','0x0005FF','17','L','Open sample']);
       assert.equal(await a.nth(1).locator('td').first().innerText(),'Start');
       assert.equal(await page.locator(opna ? '#rhythmTotalLevel' : '#adpcmTotalLevel').innerText(),'47');
-      async function checkSampleJump(range, time) {
-        const open = a.first().getByRole('button',{name:'Open sample'});
-        assert(await a.last().getByRole('button',{name:'Open sample'}).isDisabled());
+      async function checkSampleJump(range, time, source = a) {
+        const open = source.first().getByRole('button',{name:'Open sample'});
+        if (source === a) assert(await a.last().getByRole('button',{name:'Open sample'}).isDisabled());
         await open.click();
         const row = page.locator('#sampleExplorerPanel details[open]').filter({has:page.locator('summary',{hasText:range})});
         await row.locator('summary').waitFor();
         assert(await row.locator('summary').evaluate(el=>el===document.activeElement));
         assert.match(await row.locator('option:checked').innerText(),time);
-        await page.waitForFunction(canvas => canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some(Boolean),await row.locator('canvas').elementHandle());
+        await page.waitForFunction(canvas => canvas.dataset.occurrence === canvas.closest('details').querySelector('select').value &&
+          canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some(Boolean), await row.locator('canvas').elementHandle());
         await page.evaluate(()=>{window.testPeak=0;});
         await row.getByRole('button',{name:'Preview centered (up to 10 s)'}).click();
         await page.waitForFunction(()=>window.testPeak>0);
+        const duration = await page.evaluate(()=>window.testPreviewDuration);
         await page.locator('#operatorInfoTab').click();
+        return duration;
       }
       if (!opna) await checkSampleJump('0x300–0x5ff',/1.500 s/);
       await sections.getByRole('tab',{name:'ADPCM-B'}).click();
       await b.getByText('Reset',{exact:true}).waitFor();
       if (opna) assert.deepEqual((await b.locator('td').allTextContents()).slice(1,3),['0x000080','0x00013F']);
+      const range = opna ? '0x10–0x27' : '0x400–0x9ff';
+      const highDuration = await checkSampleJump(range,/1.500 s/,b);
       await movePosition(.5);
       await b.getByText('Start',{exact:true}).waitFor();
-      assert.deepEqual(await b.locator('td').allTextContents(),['Start',opna?'0x000010':'0x000400',opna?'0x000027':'0x0009FF','200','R','4660','On']);
+      assert.deepEqual(await b.locator('td').allTextContents(),['Start',opna?'0x000010':'0x000400',opna?'0x000027':'0x0009FF','200','R','4660','On','Open sample']);
+      const lowDuration = await checkSampleJump(range,/0.000 s/,b);
+      assert(lowDuration > highDuration,chip+' lower Delta-N must play the same sample more slowly');
       await sections.getByRole('tab',{name:percussion}).click();
       await a.first().getByText('Start',{exact:true}).waitFor();
       if (!opna) await checkSampleJump('0x200–0x5ff',/0.000 s/);

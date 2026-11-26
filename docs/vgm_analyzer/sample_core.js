@@ -33,6 +33,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   let retainedBytes = 0;
   const memories = [0, 1, 2].map(() => ({ data: new Uint8Array(0), present: new Uint8Array(0), generation: 0 }));
   const opna = new Uint8Array(16);
+  opna[12] = opna[13] = 255;
   let prescale = 6, writeAddress = 0, pendingWriteStart = false;
   const opnaUnit = () => opnaAddressUnit(opna[1]);
   const bregs = new Uint8Array(16);
@@ -125,7 +126,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
         warnings.add('YM2608 ADPCM-B limit-wrapped playback is not extracted.'); return;
       }
       const deltaN = opna[9] | opna[10] << 8, chipClock = parser.header.ym2608Clock & 0x3fffffff;
-      begin('adpcm-b', 1, rawStart, rawEnd, { chip: 'ym2608', clock: chipClock,
+      begin('adpcm-b', 1, rawStart, rawEnd, { commandEnd:parser.position, chip: 'ym2608', clock: chipClock,
         addressUnit: unit, memoryMode: opna[1] & 3, limit, prescale,
         level: opna[11], pan: opna[1] >> 6, deltaN,
         rate: chipClock / (24 * prescale) * deltaN / 65536,
@@ -143,7 +144,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
       if (!(v & 128) || (v & 1)) return;
       const deltaN = bregs[9] | bregs[10] << 8;
       begin('adpcm-b', 1, bregs[2] | bregs[3] << 8, bregs[4] | bregs[5] << 8,
-        { level: bregs[11], pan: bregs[1] >> 6, deltaN,
+        { commandEnd:parser.position, level: bregs[11], pan: bregs[1] >> 6, deltaN,
           rate: clock / 144 * deltaN / 65536, loop: Boolean(v & 16), speakerOff: Boolean(v & 8) });
       return;
     }

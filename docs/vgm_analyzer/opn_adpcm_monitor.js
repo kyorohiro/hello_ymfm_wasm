@@ -7,7 +7,9 @@ export function opnaAddressUnit(control2) {
 export function createOpnAdpcmMonitor(chip = "ym2610") {
   const a = new Uint8Array(0x30);
   a.fill(0xdf, 8, 14);
-  return {chip, a, b:new Uint8Array(12), lastTriggers:Array(6).fill(null), commands:Array(7).fill('—'), starts:Array(7).fill(0)};
+  const b = new Uint8Array(14);
+  b[12] = b[13] = 255;
+  return {chip, a, b, lastTriggers:Array(7).fill(null), commands:Array(7).fill('—'), starts:Array(7).fill(0)};
 }
 
 export function writeOpnAdpcm(state, port, reg, value, now, commandEnd = null) {
@@ -34,12 +36,20 @@ export function writeOpnAdpcm(state, port, reg, value, now, commandEnd = null) {
     }
     return true;
   }
-  if (opna ? port === 1 && reg < 12 : port === 0 && reg >= 0x10 && reg <= 0x1b) {
+  if (opna ? port === 1 && reg < 14 : port === 0 && reg >= 0x10 && reg <= 0x1b) {
     if (!opna) reg -= 0x10;
     state.b[reg] = value;
     if (reg === 0) {
       const start = opna && (value & 64) ? 'Record' : 'Start';
       control(6, value & 1 ? 'Reset' : value & 128 ? start : 'Stop');
+      if ((value & 0x81) === 0x80) {
+        const b = state.b;
+        const rawStart = b[2] | (b[3] << 8), rawEnd = b[4] | (b[5] << 8);
+        const limit = b[12] | (b[13] << 8);
+        const external = !opna || ((value & 0x60) === 0x20 && !(rawStart <= limit && limit < rawEnd));
+        state.lastTriggers[6] = external && rawStart <= rawEnd ? {channel:1, commandEnd, rawStart, rawEnd,
+          deltaN:b[9] | (b[10] << 8), addressUnit:opna ? opnaAddressUnit(b[1]) : 256} : null;
+      }
     }
     return true;
   }

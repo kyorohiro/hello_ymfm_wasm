@@ -7,8 +7,33 @@ import {samplePreviewWav} from './sample_render.js?v=wonderswan-voice-samples-1'
 import {renderSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 export {configureSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 import { pwmCaptureWav } from './pwm_samples.js';
-import {sampleFile,extractSamples} from './sample_core.js?v=adpcm-a-jump-1';
-export {extractSamples} from './sample_core.js?v=adpcm-a-jump-1';
+import {sampleFile,extractSamples} from './sample_core.js?v=adpcm-b-jump-1';
+export {extractSamples} from './sample_core.js?v=adpcm-b-jump-1';
+
+// OPN previews can render at 1 MHz. Average native samples over each
+// output frame before handing the buffer to Web Audio.
+function opnPreviewBuffer(audio, pcm) {
+  const step = pcm.sampleRate / audio.sampleRate;
+  if (step <= 1) {
+    const buffer = audio.createBuffer(2, pcm.left.length, pcm.sampleRate);
+    buffer.copyToChannel(pcm.left,0); buffer.copyToChannel(pcm.right,1);
+    return buffer;
+  }
+  const frames = Math.ceil(pcm.left.length / step);
+  const buffer = audio.createBuffer(2, frames, audio.sampleRate);
+  for (const [ch,source] of [pcm.left,pcm.right].entries()) {
+    const output = buffer.getChannelData(ch);
+    for (let i = 0; i < frames; i++) {
+      const start = i * step, end = Math.min((i+1)*step,source.length);
+      let sum = 0;
+      for (let j = Math.floor(start); j < end; j++) {
+        sum += source[j] * (Math.min(end,j+1) - Math.max(start,j));
+      }
+      output[i] = sum / (end-start);
+    }
+  }
+  return buffer;
+}
 
 export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
   let controller, audio, playing, voicePreviewController, previewSerial = 0, gameboyMode = false;
@@ -110,26 +135,31 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             let drawn=false;row.addEventListener('toggle',()=>{if(!row.open||drawn)return;drawn=true;const pcm=s.chip==='segapcm'?Float32Array.from(s.data,v=>(v-128)/128):decodeYmf278bSample(s),ctx=canvas.getContext('2d');ctx.strokeStyle='#44aacc';ctx.beginPath();for(let x=0;x<512;x++){const start=Math.floor(x*pcm.length/512),end=Math.max(start+1,Math.floor((x+1)*pcm.length/512));let lo=1,hi=-1;for(let i=start;i<end;i++){lo=Math.min(lo,pcm[i]);hi=Math.max(hi,pcm[i]);}ctx.moveTo(x,48-hi*46);ctx.lineTo(x,48-lo*46);}ctx.stroke();});
           }
         }
-        if((s.chip==='okim6258' || s.kind==='adpcm-a') && s.data) {
+        const opnSample = s.kind === 'adpcm-a' || s.kind === 'adpcm-b';
+        if((s.chip==='okim6258' || opnSample) && s.data) {
           if (s.chip==='okim6258') {
             const info=document.createElement('p');info.textContent='Timed ADPCM register capture. Preview includes live pan and clock/divider changes, up to 10 seconds; divider phase restarts at capture start.';row.append(info);
           }
           const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;canvas.style.maxWidth='100%';canvas.setAttribute('aria-label','Decoded ADPCM waveform');row.append(canvas);
           const draw=document.createElement('button');draw.textContent='Show waveform (up to 10 s)';
-          if (s.kind==='adpcm-a') draw.dataset.adpcmWaveform = '';
-          draw.onclick=async()=>{draw.disabled=true;try{
-            const occurrence = s.kind === 'adpcm-a' ? Number(row.querySelector('select').value) : 0;
-            const pcm=await renderSamplePreview(s,uses[occurrence],{getFactory:async()=> s.kind==='adpcm-a' ?
-              (await import('../generated/ym2610b_wasm.js')).default : (await import('../generated/okim6258_wasm.js')).default});
-            if(own.signal.aborted)return;
+          if (opnSample) draw.dataset.adpcmWaveform = '';
+          let drawSerial = 0;
+          draw.onclick=async()=>{const serial = ++drawSerial; draw.disabled=!opnSample;try{
+            const occurrence = opnSample ? Number(row.querySelector('select').value) : 0;
+            const pcm=await renderSamplePreview(s,uses[occurrence],{getFactory:async name=> (await (name==='ym2608' ? import('../generated/ym2608_wasm.js') :
+              name==='ym2610b' ? import('../generated/ym2610b_wasm.js') : import('../generated/okim6258_wasm.js'))).default});
+            if(own.signal.aborted || serial !== drawSerial)return;
             const ctx=canvas.getContext('2d');
-            if (s.kind === 'adpcm-a') ctx.clearRect(0,0,canvas.width,canvas.height);
+            if (opnSample) ctx.clearRect(0,0,canvas.width,canvas.height);
             ctx.strokeStyle='#44aacc';ctx.beginPath();
             for(let x=0;x<512;x++){const from=Math.floor(x*pcm.left.length/512),end=Math.max(from+1,Math.floor((x+1)*pcm.left.length/512));let lo=1,hi=-1;
               for(let i=from;i<end;i++){lo=Math.min(lo,pcm.left[i],pcm.right[i]);hi=Math.max(hi,pcm.left[i],pcm.right[i]);}
               ctx.moveTo(x,48-hi*46);ctx.lineTo(x,48-lo*46);}
             ctx.stroke();
-          }catch(error){note.textContent=error.message;}finally{draw.disabled=false;}};row.append(draw);
+            if (opnSample) canvas.dataset.occurrence = String(occurrence);
+          }catch(error){
+            if (!own.signal.aborted && serial === drawSerial) note.textContent=error.message;
+          }finally{draw.disabled=false;}};row.append(draw);
         }
         if (s.data) {
           const save = document.createElement('button'); save.textContent = captured ? `Save timed ${s.kind.toUpperCase()} JSON` : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : ['ymf278b','segapcm'].includes(s.chip) ? 'Save raw PCM' : 'Save raw ADPCM';
@@ -144,6 +174,7 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             option.textContent = `${(e.startTime / 44100).toFixed(3)} s / ${e.rate.toFixed(2)} Hz`;
             selection.append(option);
           });
+          if (opnSample) selection.onchange = () => row.querySelector('[data-adpcm-waveform]').click();
           const listen = document.createElement('button'); listen.textContent = 'Preview centered (up to 10 s)';
           if(s.kind==='pwm'||['segapcm','okim6258'].includes(s.chip))listen.textContent='Preview stereo (up to 10 s)';
           listen.onclick = async () => {
@@ -155,8 +186,8 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
                   name==='okim6258'?import('../generated/okim6258_wasm.js'):name==='segapcm'?import('../generated/segapcm_wasm.js'):name==='ym2608'?import('../generated/ym2608_wasm.js'):import('../generated/ym2610b_wasm.js'));
                 return module.default;
               }});
-              const buffer=audio.createBuffer(2,pcm.left.length,pcm.sampleRate);
-              buffer.copyToChannel(pcm.left,0);buffer.copyToChannel(pcm.right,1);
+              const buffer = opnSample ? opnPreviewBuffer(audio,pcm) : audio.createBuffer(2,pcm.left.length,pcm.sampleRate);
+              if (!opnSample) {buffer.copyToChannel(pcm.left,0);buffer.copyToChannel(pcm.right,1);}
               if (own.signal.aborted || serial !== previewSerial) return;
               playing = audio.createBufferSource(); playing.buffer = buffer; playing.connect(audio.destination); playing.start();
             } catch (error) { note.textContent = `Preview failed: ${error.message}`; }
@@ -177,7 +208,7 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             row.append(wav);
           }
         }
-        if (s.kind === 'adpcm-a' && s.chip === 'ym2610') {
+        if (opnSample) {
           uses.forEach((event,index) => triggers.set(event.commandEnd + '/' + event.channel, {row,event,index}));
         }
         output.append(row);
@@ -196,7 +227,8 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
       if (controller !== own || !analyzed || panel.hidden) return;
     }
     const match = triggers.get(trigger.commandEnd + '/' + trigger.channel);
-    if (!match || match.event.rawStart !== trigger.rawStart || match.event.rawEnd !== trigger.rawEnd) {
+    if (!match || match.event.rawStart !== trigger.rawStart || match.event.rawEnd !== trigger.rawEnd ||
+        match.event.deltaN !== trigger.deltaN || (trigger.addressUnit && (match.event.addressUnit ?? 256) !== trigger.addressUnit)) {
       const note = output.querySelector('p');
       if (note) note.textContent = 'No matching sample was captured for this trigger.';
       return;

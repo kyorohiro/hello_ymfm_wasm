@@ -44,3 +44,22 @@ test('OPNA Delta-T programmed byte ranges match Sample Explorer at external play
     assert.deepEqual(values.slice(1,3).map(Number),[sample.byteStart,sample.byteEndExclusive-1]);
   }
 });
+
+test('OPNA links the external Delta-T start and clears it for CPU, recording or limit-wrapped starts', () => {
+  const state = createOpnAdpcmMonitor('ym2608');
+  const write = (reg,value,offset) => writeOpnAdpcm(state,1,reg,value,1,offset);
+  write(4,7); write(9,0x34); write(10,0x12);
+  write(0,0xa0,100);
+  const trigger = state.lastTriggers[6];
+  assert.deepEqual(trigger,{channel:1,commandEnd:100,rawStart:0,rawEnd:7,deltaN:0x1234,addressUnit:4});
+  write(1,1); write(10,0x24); write(0,1);
+  assert.equal(state.lastTriggers[6],trigger);
+  for (const command of [0x80,0xe0]) {
+    write(0,0xa0,110);
+    assert.equal(state.lastTriggers[6].addressUnit,32);
+    write(0,command,115);
+    assert.equal(state.lastTriggers[6],null);
+  }
+  write(12,3); write(13,0); write(0,0xa0,120);
+  assert.equal(state.lastTriggers[6],null);
+});

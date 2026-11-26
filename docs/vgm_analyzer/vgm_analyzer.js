@@ -38,7 +38,7 @@ import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
 import {mountPokeyMonitor} from './pokey_monitor.js?v=pokey-vgm-1';
 import { mountTfiInfo } from "./tfi_info.js?v=fm2612-snapshot-1";
-import { mountSampleExplorer } from './sample_explorer.js?v=adpcm-a-jump-1';
+import { mountSampleExplorer } from './sample_explorer.js?v=adpcm-b-jump-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=pokey-vgm-1';
 import { seekPlayback } from './seek_playback.js';
@@ -1418,8 +1418,9 @@ function renderChannelMonitor() {
       const rows = opnAdpcmRows(opnAdpcm, part);
       rows.forEach((row,i) => { row.active = recentAdpcmStart(opnAdpcm.starts[part === 'A' ? i : 6]); });
       renderRegisterRows(table, rows, part === 'A' ? adpcmAChannelMutes[currentChipKind] : null);
-      if (part === 'A' && !rhythm) {
+      if (!rhythm) {
         for (const [i, row] of Array.from(table.tBodies[0].rows).entries()) {
+          const triggerIndex = part === 'B' ? 6 : i;
           let open = row.querySelector('[data-open-sample]');
           if (!open) {
             open = document.createElement('button');
@@ -1427,14 +1428,14 @@ function renderChannelMonitor() {
             open.dataset.openSample = '';
             open.textContent = 'Open sample';
             open.onclick = () => {
-              const trigger = opnAdpcm?.lastTriggers[i];
+              const trigger = opnAdpcm?.lastTriggers[triggerIndex];
               if (!trigger || sampleTab.disabled) return;
               setOutputTab('samples');
               void sampleExplorer.openAdpcmTrigger(trigger);
             };
             row.insertCell().append(open);
           }
-          open.disabled = !opnAdpcm.lastTriggers[i] || sampleTab.disabled;
+          open.disabled = !opnAdpcm.lastTriggers[triggerIndex] || sampleTab.disabled;
         }
       }
       if (part === 'A') document.getElementById(rhythm ? 'rhythmTotalLevel' : 'adpcmTotalLevel').textContent = opnAdpcm.a[1] & 63;
