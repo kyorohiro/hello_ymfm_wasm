@@ -122,3 +122,28 @@ header::after {margin-left:0}
 #files select {width:100%}
 #hitPad {margin-top:.3rem}
 @media(max-width:719px){#workspace:has(> #files:not([hidden])) {grid-template-columns:minmax(0,1fr)}}
+#referenceSong {padding:.4rem .65rem}
+#referenceSong select {max-width:min(18rem,65vw)}
+#songVoice {margin-top:.45rem}
+#songPatch {display:block;margin:.3rem 0}
+#songChannels [data-sounding=true] {box-shadow:inset 0 -3px #ffc54b}
+#fm .chip-channel-list {position:sticky;top:0;z-index:1;background:var(--panel);padding:.2rem 0;gap:.25rem}
+#fm .chip-channel-list button {min-width:0;padding:.16rem .32rem;font-size:.85rem}
+[data-mode=code] #fm {max-height:65dvh;overflow:auto}
+.song-operators {overflow-x:auto}
+#songVoice details {margin:.25rem 0}
+#fm {scroll-padding-top:3rem}
+main:has(#referenceSong:not([hidden])) .output {margin:.3rem 0;padding:.45rem .65rem}
+main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem 0}
+#referenceSong {margin:.35rem 0}
+#referenceSong > .bar {gap:.3rem}
+#referenceSong > .bar label {min-width:0;flex:0 1 auto}
+#referenceSong > .bar select {width:clamp(6rem,17vw,15rem)}
+@media(max-width:719px) {
+  .output .bar {gap:.3rem}
+  .output .bar button,#workbench nav button,#referenceSong button {padding:.18rem .4rem}
+  #workbench,#files {margin-top:.4rem}
+  #keyChannels {gap:.12rem}
+  #keyChannels button {padding:.15rem .27rem}
+  main:has(#referenceSong:not([hidden])) .output canvas {height:36px}
+}

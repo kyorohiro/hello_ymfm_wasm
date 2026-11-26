@@ -37,6 +37,13 @@ try {
   await page.click('#hitPad');
   await page.waitForFunction(()=>document.querySelector('#hitPad').dataset.sounding==='true');
   await page.waitForFunction(()=>document.querySelector('#hitPad').dataset.sounding==='false');
+  const pinnedY=await page.locator('#fm .chip-channel-list').evaluate(row=>{
+    const fm=document.querySelector('#fm');
+    fm.scrollTop=100;const y=row.getBoundingClientRect().top;
+    fm.scrollTop=220;const delta=row.getBoundingClientRect().top-y;
+    fm.scrollTop=0;return delta;
+  });
+  assert.equal(pinnedY,0);
   const factoryCode = await page.inputValue('#editor');
   if (await page.locator('#power').isEnabled()) await page.click('#power');
   await page.waitForFunction(() => document.querySelector('#power').disabled);
@@ -200,7 +207,7 @@ try {
   const reg=(address,value)=>fmCommands.push(0x54,address,value);
   reg(0x20,0xc7);reg(0x28,0x40);
   for (let slot=0;slot<32;slot+=8) {reg(0x40+slot,1);reg(0x60+slot,24);reg(0x80+slot,31);}
-  reg(8,0x78);fmCommands.push(0x61,0x22,0x56,0x66);
+  reg(8,0x78);fmCommands.push(0x61,0xff,0xff,0x61,0xff,0xff,0x66);
   const fmSong=Buffer.concat([header,Buffer.from(fmCommands)]);
   fmSong.writeUInt32LE(0,0x98);fmSong.writeUInt32LE(fmSong.length-4,4);
   await page.locator('#vgmFile').setInputFiles({name:'fm.vgm',mimeType:'application/octet-stream',buffer:fmSong});
@@ -208,6 +215,23 @@ try {
   await page.evaluate(()=>{window.peak=0;});
   await page.click('#playSong');
   await page.waitForFunction(()=>window.peak>.001);
+  await page.click('#pauseSong');
+  await page.locator('#songVoice').waitFor({state:'visible'});
+  assert.equal(await page.locator('#songChannels button').count(),8);
+  assert.equal(await page.locator('#songChannels button').first().getAttribute('data-sounding'),'true');
+  const pausedAt=parseFloat(await page.locator('#songTime').textContent());
+  await page.waitForFunction(()=>window.lastPeak===0);
+  await page.selectOption('#songTarget','3');
+  await page.click('#useSongVoice');
+  await page.click('[data-tab="fm"]');
+  assert.equal(await page.locator('[data-chip-control="ym2151-feedback"]').inputValue(),'0');
+  assert.equal(await page.locator('[data-chip-channel="3"]').getAttribute('aria-pressed'),'true');
+  assert.equal(parseFloat(await page.locator('#songTime').textContent()),pausedAt);
+  await page.click('#playSong');
+  await page.waitForFunction(()=>window.lastPeak>.001);
+  await page.click('#pauseSong');
+  await page.locator('#songVoice').waitFor({state:'visible'});
+  assert.ok(parseFloat(await page.locator('#songTime').textContent())>pausedAt);
   await page.click('#stopSong');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   const download = page.waitForEvent('download');

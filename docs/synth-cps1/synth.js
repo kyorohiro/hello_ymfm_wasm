@@ -379,6 +379,44 @@ $('codeFile').onchange = () => openScript($('codeFile').value);
 $('openCode').onclick = () => openScript(entryPath);
 $('openRoundStart').onclick = () => openScript(roundPath);
 let songNode, songRequest=0;
+let pausedSong=null, sourceChannel=0;
+const songChannels=$('songChannels');
+for (let ch=0;ch<8;ch++) {
+  const button=document.createElement('button');
+  button.textContent='CH'+(ch+1);
+  button.onclick=()=>showSongChannel(ch);
+  songChannels.append(button);
+  $('songTarget').add(new Option('CH'+(ch+1),ch));
+}
+function showSongChannel(ch) {
+  sourceChannel=ch;
+  const voice=pausedSong.channels[ch];
+  Array.from(songChannels.children).forEach((button,i)=>{
+    button.setAttribute('aria-pressed',String(i===ch));
+    button.dataset.sounding=String(pausedSong.channels[i].active);
+    button.title=pausedSong.channels[i].active?'Key on':'Key off';
+  });
+  $('songOperators').replaceChildren();
+  voice.operators.forEach((op,i)=>{
+    const row=$('songOperators').insertRow();
+    row.insertCell().textContent='OP'+(i+1);
+    for (const key of ['mul','dt1','dt2','tl','ks','ar','d1r','d2r','d1l','rr','am'])
+      row.insertCell().textContent=String(Number(op[key]));
+  });
+  $('songPatch').textContent='Algorithm '+voice.algorithm+' · Feedback '+voice.feedback+
+    ' · OP1–4 TL '+voice.operators.map(op=>op.tl).join(' / ')+
+    ' · Key '+(voice.active?'on':'off');
+}
+$('useSongVoice').onclick=()=>{
+  const target=Number($('songTarget').value);
+  files.copySongVoice(target,pausedSong.channels[sourceChannel],pausedSong.masks[sourceChannel]);
+  panel.selectChannel(target);
+  status('Copied VGM CH'+(sourceChannel+1)+' to YM2151 CH'+(target+1));
+};
+$('pauseSong').onclick=()=>{
+  $('pauseSong').disabled=true;
+  songNode?.port.postMessage({pause:true});
+};
 function syncSongMutes() {songNode?.port.postMessage({fm:fmMutes,pcm:voiceMutes});}
 function stopSong() {
   songRequest++;
@@ -388,9 +426,19 @@ function stopSong() {
   }
   if (!$('stopSong').disabled) status('Stopped');
   $('stopSong').disabled=true;
+  $('pauseSong').disabled=true;
+  $('playSong').disabled=!$('songs').options.length;
+  $('playSong').textContent='Play';
+  $('songVoice').hidden=true;$('songTime').textContent='';pausedSong=null;
 }
 async function playSong(song) {
+  if (pausedSong && songNode) {
+    $('playSong').disabled=true;
+    songNode.port.postMessage({pause:false});
+    return;
+  }
   stopRun();
+  $('playSong').disabled=true;
   const request=songRequest;
   $('stopSong').disabled=false;
   try {
@@ -404,7 +452,21 @@ async function playSong(song) {
       processorOptions:{bytes:song.bytes,wasmBinary}});
     songNode.connect(audio.buses.fm,0);songNode.connect(audio.buses.pcm,1);
     syncSongMutes();
-    songNode.port.onmessage=({data})=>{if (request===songRequest && data.done) {stopSong();status(data.error ?? 'Finished');}};
+    songNode.port.onmessage=({data})=>{
+      if (request!==songRequest) return;
+      if (data.done) {stopSong();status(data.error ?? 'Finished');return;}
+      if (data.ready) {$('pauseSong').disabled=false;return;}
+      pausedSong=data.paused?data:null;
+      $('songVoice').hidden=!data.channels;
+      $('songTime').textContent=data.paused?data.seconds.toFixed(2)+' s':'';
+      $('playSong').textContent=data.paused?'Resume':'Play';
+      $('playSong').disabled=!data.paused;$('pauseSong').disabled=data.paused;
+      if (data.channels) {
+        $('songTarget').value=String(panel.getSelectedChannel());
+        showSongChannel(Math.max(0,data.channels.findIndex(ch=>ch.active)));
+      }
+      status((data.paused?'Paused ':'Playing ')+song.name);
+    };
     songNode.onprocessorerror=()=>{if (request===songRequest) {stopSong();status('VGM playback failed');}};
     status('Playing '+song.name);
   } catch(error) {if (request===songRequest) {stopSong();fail(error);}}

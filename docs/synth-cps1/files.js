@@ -26,6 +26,7 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
   }
   function renderSongs() {
     el('songs').replaceChildren(...songs.map((song,i)=>new Option(song.name,i)));
+    el('referenceSong').hidden=!songs.length;
     el('songs').disabled=el('playSong').disabled=!songs.length;
   }
   el('chooseVgm').onclick=()=>el('vgmFile').click();
@@ -203,7 +204,9 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
     } catch (error) {report(error.message);}
   };
   render();
-  return {addBank,restoreKit() {
+  return {addBank,copySongVoice(ch,voice,mask) {
+    applyVoice(ch,{...voicePatch(voice),keyMask:mask});
+  },restoreKit() {
     let i=banks.findIndex(bank=>bank===defaultBank);
     if (i<0) {banks.push(defaultBank);i=banks.length-1;render();}
     useBank(i);

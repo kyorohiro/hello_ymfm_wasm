@@ -11,10 +11,15 @@
 <h2>Import</h2><button id="chooseVgm" data-close-synth-menu>VGM / VGZ…</button><button id="chooseCassette" data-close-synth-menu>Cassette…</button>
 <h2>Export</h2><button id="exportCassette" data-close-synth-menu>Cassette · ZIP</button>
 </div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="filesToggle" aria-expanded="false" aria-controls="files">Files</button><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></header>
+<section id="referenceSong" aria-label="VGM reference playback" hidden>
+<div class="bar"><label>VGM <select id="songs" disabled></select></label><button id="playSong" disabled>Play</button><button id="pauseSong" disabled>Pause</button><button id="stopSong" disabled>Stop</button><output id="songTime"></output></div>
+<div id="songVoice" hidden><div id="songChannels" class="bar" role="group" aria-label="Paused YM2151 channels"></div><output id="songPatch"></output>
+<details><summary>Operators</summary><div class="song-operators"><table><thead><tr><th>OP</th><th>MUL</th><th>DT1</th><th>DT2</th><th>TL</th><th>KS</th><th>AR</th><th>D1R</th><th>D2R</th><th>D1L</th><th>RR</th><th>AM</th></tr></thead><tbody id="songOperators"></tbody></table></div></details>
+<div class="bar"><label>Copy to <select id="songTarget"></select></label><button id="useSongVoice">Use voice</button></div></div></section>
 <section class="output"><div class="bar"><h2>Output</h2><button id="scopeMode">Waveform</button><label>Master <input id="master" type="range" min="0" max="380" value="85"><output id="volume">85%</output></label><button id="toggleMixer" aria-expanded="false" aria-controls="mixer">Mixer</button><button id="power">Start audio</button></div>
 <canvas id="scope" width="900" height="96" aria-label="Output signal"></canvas><div id="mixer" role="group" aria-label="Output mixer" hidden></div><output id="status" role="status">Ready</output></section>
 <div id="workspace"><aside id="files" hidden><h2>Files</h2>
-<label>VGM / VGZ <select id="songs" disabled></select></label><div class="bar"><button id="playSong" disabled>Play VGM</button><button id="stopSong" disabled>Stop VGM</button></div>
+
 <div class="file-groups"><label>FM voices <select id="fmFiles" size="5"></select></label><label>Sample banks <select id="romFiles" size="5"></select></label></div>
 <div class="bar"><label>Import OPM <input id="importOpm" type="file" accept=".opm"></label><button id="opmGlobals" disabled>Apply shared LFO / CH8 noise</button></div>
 <div class="bar"><button id="loadVoice">Load voice on selected CH</button><button id="saveVoice">Save selected CH as preset</button><button id="loadBank">Load sample bank</button></div>
