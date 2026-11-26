@@ -83,7 +83,7 @@ async function signal(page) {
   assert.equal(result.bad,0,'Worklet output must contain only finite PCM');return result;
 }
 async function stop(page) {
-  await page.locator('#inlineStopButton').evaluate(button=>{if(!button.disabled)button.click();});
+  await page.locator('#stopButton').evaluate(button=>{if(!button.disabled)button.click();});
   await page.waitForFunction(()=>window.__pokeyAnalyzerTest.snapshot().mode===null);
 }
 async function chipRange(page,id,index,value) {
@@ -98,7 +98,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     const load=async(options={})=>{
       const {dual=false,chip=0,channel=0,stream=false}=options,filename=`original-${dual?'dual-':''}pokey-${stream?'stream-':''}${chip+1}-ch${channel+1}.vgm`;
       await page.locator('#fileInput').setInputFiles({name:filename,mimeType:'application/octet-stream',buffer:Buffer.from((stream?createStreamFixture:createFixture)(options))});
-      await page.waitForFunction(filename=>window.__pokeyAnalyzerTest.snapshot().file===filename&&document.getElementById('status').textContent.startsWith('Parsed '+filename+' ')&&!document.getElementById('inlinePlayButton').disabled,filename);
+      await page.waitForFunction(filename=>window.__pokeyAnalyzerTest.snapshot().file===filename&&document.getElementById('status').textContent.startsWith('Parsed '+filename+' ')&&!document.getElementById('playButton').disabled,filename);
       const state=await snapshot(page);assert.equal(state.kind,'pokey');assert.equal(state.header.pokeyClock>>>0,(1789790|(dual?0x40000000:0))>>>0);
       assert.match(await page.locator('#detectedChips').innerText(),/POKEY/i);
       assert.equal(await page.locator('#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"]').count(),dual?8:4);
@@ -148,11 +148,12 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     await chipRange(page,'pokey',1,0);await mute('pokey:2').click();await page.waitForTimeout(200);
     const restored=await signal(page);assert(restored.acRms>Math.max(firstOnly.acRms,secondOnly.acRms)*1.15,'Restoring both chips must restore their summed output');
     await page.locator('#playlistTab').click();
-    await page.locator('#inlinePauseButton').click();await page.waitForFunction(()=>window.__pokeyAnalyzerTest.snapshot().stats.paused&&window.__pokeyAnalyzerTest.snapshot().context==='suspended');
+    await page.locator('#dockPlayTab').click();
+    await page.locator('#pauseButton').click();await page.waitForFunction(()=>window.__pokeyAnalyzerTest.snapshot().stats.paused&&window.__pokeyAnalyzerTest.snapshot().context==='suspended');
     const paused=(await snapshot(page)).stats.processedWaitSamples;await page.waitForTimeout(120);assert.equal((await snapshot(page)).stats.processedWaitSamples,paused,'Pause must not advance VGM commands');
-    await page.locator('#inlinePlayButton').click();await page.waitForFunction(()=>window.__pokeyAnalyzerTest.snapshot().stats.playing&&window.__pokeyAnalyzerTest.snapshot().context==='running');assert((await signal(page)).acRms>.001);
+    await page.locator('#playButton').click();await page.waitForFunction(()=>window.__pokeyAnalyzerTest.snapshot().stats.playing&&window.__pokeyAnalyzerTest.snapshot().context==='running');assert((await signal(page)).acRms>.001);
     const workletsBefore=(await snapshot(page)).worklets;
-    await page.locator('#inlinePlaybackSeek').evaluate(input=>{input.value='88200';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
+    await page.locator('#playbackSeek').evaluate(input=>{input.value='88200';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
     await page.waitForFunction(before=>{const s=window.__pokeyAnalyzerTest.snapshot();return s.worklets>before&&s.stats.processedWaitSamples>=88200;},workletsBefore);
     const sought=await signal(page);assert(sought.acRms>.001,'Seek must reconstruct both chips');
     let state=await snapshot(page);assert.equal(state.channels[0].volume,12);assert.equal(state.channels[4].volume,12,'Seek must retain both independent channel monitors');
@@ -165,7 +166,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     await streamMute.click();await page.waitForTimeout(250);const streamMuted=await signal(page);assert(streamMuted.peak<1e-7,'Timed DAC stream channel mute must silence its output');
     await streamMute.click();await page.waitForTimeout(180);assert((await signal(page)).acRms>.001,'Timed DAC stream must survive mute/unmute');
     const streamWorklets=(await snapshot(page)).worklets;
-    await page.locator('#inlinePlaybackSeek').evaluate(input=>{input.value='88200';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
+    await page.locator('#playbackSeek').evaluate(input=>{input.value='88200';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
     await page.waitForFunction(before=>{const s=window.__pokeyAnalyzerTest.snapshot();return s.worklets>before&&s.stats.processedWaitSamples>=88200;},streamWorklets);
     const streamSought=await signal(page);assert(streamSought.acRms>.001,'Seek must reconstruct timed DAC stream setup and phase');
     await stop(page);await play();const streamReplay=await signal(page);assert(streamReplay.acRms>.001,'Stop/replay must restart timed DAC stream');await stop(page);

@@ -68,7 +68,7 @@ async function openSpc(page,fixture,name) {
   await page.locator('#fileInput').setInputFiles({name,mimeType:'application/octet-stream',buffer:fixture});
   await page.waitForFunction(name => window.__spcNoteishTest?.view.active
     && document.getElementById('spcInfoPanel').textContent.includes(name.replace(/\.spc$/i,''))
-    && !document.getElementById('inlinePlayButton').disabled,name);
+    && !document.getElementById('playButton').disabled,name);
   assert.equal(await page.locator('#noteishTab').isDisabled(),false,'SPC enables the shared Note-ish tab');
 }
 async function openNotes(page) {
@@ -410,7 +410,7 @@ async function checkBrowser(name,engine,url,fixture,musical) {
       'Held pitch changes remain bends while a real KON retrigger becomes a new MIDI note');
     assert(bentMidi.tracks[1].some(event => (event.status & 0xf0) === 0xe0 && event.tick > 0 && event.tick < 3840),
       'Mid-note hardware PITCH updates survive in the downloaded MIDI');
-    await page.locator('#inlinePlaybackSeek').evaluate(input => {
+    await page.locator('#playbackSeek').evaluate(input => {
       input.value = '400'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new Event('change'));
     });
     await page.waitForFunction(() => Math.abs(window.__spcNoteishTest.view.state.positionSeconds - .4) < .00001);
@@ -483,7 +483,7 @@ async function checkBrowser(name,engine,url,fixture,musical) {
 
     await armAnalysisResult(page);
     await page.locator('#fileInput').setInputFiles(path.join(root,'test/fixtures/psg-tone.vgm'));
-    await page.waitForFunction(() => !window.__spcNoteishTest.view.active && !document.getElementById('inlinePlayButton').disabled);
+    await page.waitForFunction(() => !window.__spcNoteishTest.view.active && !document.getElementById('playButton').disabled);
     await releaseAnalysisResult(page); await page.waitForTimeout(150);
     assert.equal(await page.locator('#spcNoteishControls').isVisible(),false);
     assert.equal(await page.locator('#spcNoteishControls [data-spc-note-sample]').count(),0);

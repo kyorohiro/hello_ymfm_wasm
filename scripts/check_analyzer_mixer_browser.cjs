@@ -108,12 +108,12 @@ async function chipRange(page,id,index,value) {
 }
 async function load(page,name) {
   await page.locator('#fileInput').setInputFiles({name,mimeType:'application/octet-stream',buffer:await fs.readFile(path.join(repository,'test/fixtures',name))});
-  await page.waitForFunction(name=>window.__analyzerMixerTest?.snapshot().file===name&&document.getElementById('status').textContent.startsWith(`Parsed ${name} `)&&!document.getElementById('inlinePlayButton').disabled,name);
+  await page.waitForFunction(name=>window.__analyzerMixerTest?.snapshot().file===name&&document.getElementById('status').textContent.startsWith(`Parsed ${name} `)&&!document.getElementById('playButton').disabled,name);
   await page.locator('#dockMixerTab').click();
 }
 async function play(page) {
   const before=await snapshot(page);
-  await page.locator('#inlinePlayButton').click();
+  await page.locator('#dockPlayTab').click(); await page.locator('#playButton').click(); await page.locator('#dockMixerTab').click();
   await page.waitForFunction(before=>{
     const state=window.__analyzerMixerTest.snapshot();
     return state.renderedFrames>before.renderedFrames&&state.workletStarts>before.workletStarts;
@@ -122,7 +122,7 @@ async function play(page) {
 async function stop(page) {
   // Short synthetic fixtures may finish between a separate enabled check and
   // Playwright's actionability check. An already finished track needs no Stop.
-  await page.locator('#inlineStopButton').evaluate(button=>{if(!button.disabled)button.click();});
+  await page.locator('#stopButton').evaluate(button=>{if(!button.disabled)button.click();});
 }
 
 async function checkOpnaPcm(page) {

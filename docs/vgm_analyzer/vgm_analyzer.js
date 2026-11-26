@@ -92,8 +92,6 @@ const romFileStatus = document.getElementById("romFileStatus");
 const playButton = document.getElementById("playButton");
 const playbackSeek = document.getElementById("playbackSeek");
 const playbackSeekTime = document.getElementById("playbackSeekTime");
-const inlinePlaybackSeek = document.getElementById("inlinePlaybackSeek");
-const inlinePlaybackSeekTime = document.getElementById("inlinePlaybackSeekTime");
 let seekSelection = null;
 let seekDragging = false;
 
@@ -164,10 +162,6 @@ function renderSeekPosition(sample, showSeekLimit = false) {
   };
   playbackSeekTime.textContent = showSeekLimit ? `${time(position)} (seek limit ${time(duration)})` : `${time(position)} / ${time(duration)}`;
   playbackSeek.setAttribute("aria-valuetext", playbackSeekTime.textContent);
-  inlinePlaybackSeek.max = playbackSeek.max;
-  inlinePlaybackSeek.value = playbackSeek.value;
-  inlinePlaybackSeekTime.textContent = playbackSeekTime.textContent;
-  inlinePlaybackSeek.setAttribute("aria-valuetext", playbackSeekTime.textContent);
 }
 
 function updateSeekPosition() {
@@ -179,7 +173,7 @@ function updateSeekPosition() {
     }
     const seconds = Math.floor(state.positionSeconds);
     const label = Math.floor(seconds/60) + ':' + String(seconds%60).padStart(2,'0');
-    playbackSeekTime.textContent = inlinePlaybackSeekTime.textContent = label;
+    playbackSeekTime.textContent = label;
     return;
   }
   if (spcView.active) {
@@ -221,31 +215,8 @@ const effectReverb = document.getElementById("effectReverb");
 const effectCompressor = document.getElementById("effectCompressor");
 const effectNoiseGate = document.getElementById("effectNoiseGate");
 
-// Mirror controls share the existing playback handlers, including their error paths.
-for (const [primary, mirror] of [
-  [playButton, document.getElementById("inlinePlayButton")],
-  [pauseButton, document.getElementById("inlinePauseButton")],
-  [stopButton, document.getElementById("inlineStopButton")],
-]) {
-  const sync = () => { mirror.disabled = primary.disabled; mirror.textContent = primary.textContent; };
-  new MutationObserver(sync).observe(primary, { attributes: true, attributeFilter: ["disabled"], childList: true, characterData: true, subtree: true });
-  mirror.addEventListener("click", () => primary.click());
-  sync();
-}
-new MutationObserver(() => {
-  inlinePlaybackSeek.disabled = playbackSeek.disabled;
-  inlinePlaybackSeek.max = playbackSeek.max;
-}).observe(playbackSeek, { attributes: true, attributeFilter: ["disabled", "max"] });
-for (const type of ["input", "change"]) {
-  inlinePlaybackSeek.addEventListener(type, () => {
-    playbackSeek.value = inlinePlaybackSeek.value;
-    playbackSeek.dispatchEvent(new Event(type));
-  });
-}
 const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
 const workletQueueSelect = document.getElementById("workletQueueSelect");
-const masterVolumeRange = document.getElementById("masterVolumeRange");
-const masterVolumeValue = document.getElementById("masterVolumeValue");
 const dockVolumeRange = document.getElementById("dockVolumeRange");
 const dockVolumeValue = document.getElementById("dockVolumeValue");
 const playlistPrevButton = document.getElementById("playlistPrevButton");
@@ -754,15 +725,6 @@ function updateMasterVolumeUi() {
   dockVolumeValue.textContent = `${Math.round(masterVolume * 100)}%`;
   document.getElementById('mixerMaster').value = String(Math.round(masterVolume * 100));
   document.getElementById('mixerMasterValue').textContent = `${Math.round(masterVolume * 100)}%`;
-  if (masterVolumeRange) {
-    masterVolumeRange.value =
-      String(Math.round(masterVolume * 100));
-  }
-
-  if (masterVolumeValue) {
-    masterVolumeValue.textContent =
-      `${Math.round(masterVolume * 100)}%`;
-  }
 }
 
 function applyMasterVolume() {
@@ -3105,7 +3067,7 @@ function updatePlaybackButtons(state = {}) {
     tfiInfoTab.textContent = 'Tfi info';
     for (const button of [exportAllTfiButton, exportAllVgiButton, exportLilyPondButton,
       document.getElementById('showSheetMusicButton'), document.getElementById('exportMusicSheetButton')]) button.disabled = true;
-    if (document.getElementById('playlistTab').ariaSelected !== 'true' && parsedOutputTab.ariaSelected !== 'true' && (exportTab.disabled || exportTab.ariaSelected !== 'true')) setOutputTab('parsed-output');
+    if (!isLibraryOrSettingTab() && parsedOutputTab.ariaSelected !== 'true' && (exportTab.disabled || exportTab.ariaSelected !== 'true')) setOutputTab('parsed-output');
   }
   if (songPlayer) refreshSong();
 }
@@ -3122,6 +3084,7 @@ function chipSupportMessage(currentChipKind, noteishHeader, mixedPlaybackParts) 
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
+  const keepMainTab = ['playlistTab', 'settingTab'].some(id => document.getElementById(id).ariaSelected === 'true');
   for (const id of ['exportAllSbiButton', 'exportSbiButton', 'exportSnapshotSbiButton']) {
     const button = document.getElementById(id);
     button.hidden = !['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
@@ -3158,7 +3121,7 @@ function updateChipSupport() {
       button.disabled = true; button.title = 'POKEY note, score and instrument exports are unavailable.';
     }
     for (const root of [opnMonitorRoot, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot]) root.hidden = true;
-    if (document.getElementById('playlistTab').ariaSelected === 'true' || document.getElementById('exportTab').ariaSelected === 'true') return;
+    if (keepMainTab || document.getElementById('exportTab').ariaSelected === 'true') return;
     if (operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
     return;
   }
@@ -3214,7 +3177,7 @@ function updateChipSupport() {
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
   ym2413MonitorRoot.hidden = !(opll || ayWithOpll);
-  if (document.getElementById('playlistTab').ariaSelected === 'true' || document.getElementById('exportTab').ariaSelected === 'true') return;
+  if (keepMainTab || document.getElementById('exportTab').ariaSelected === 'true') return;
   if (sheetMusicTab.getAttribute('aria-selected') === 'true' && !sheetMusicTab.disabled) return;
   if (sbi && !tfiInfoTab.disabled && tfiInfoTab.getAttribute('aria-selected') === 'true') return;
   if (!sampleTab.disabled && sampleTab.getAttribute('aria-selected') === 'true') return;
@@ -3616,7 +3579,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   spcScoreSource=null;spcScore=null;
   await spcView.clear();
   spcPanel.hidden = true;
-  playbackSeek.step = inlinePlaybackSeek.step = '4410';
+  playbackSeek.step = '4410';
   sbiInfo.loadVgm(null);
   if (!preserveEditor) commandEditor.load(null);
   msxMutes.clear();
@@ -3708,7 +3671,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     headerOutput.textContent = JSON.stringify({format,model,clock,songs,startSong},null,2);
     metadataOutput.textContent = [metadata.name,metadata.author,metadata.released].filter(Boolean).join(' · ');
     parsedOutputTab.disabled = false;
-    if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
+    if (!isLibraryOrSettingTab()) setOutputTab('parsed-output');
     updatePlaybackButtons();
     sidSubtune.replaceChildren(...Array.from({length:songs},(_,i) => new Option(String(i+1),String(i+1))));
     sidSubtune.value = String(startSong);
@@ -3754,7 +3717,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
       spcNoteish.load(new Uint8Array(rawBuffer),{durationSeconds:Math.min(120,info.durationSeconds)});
       timelineSelectionPending=false;
       playbackSeek.max = String(info.durationSeconds * 1000);
-      playbackSeek.step = inlinePlaybackSeek.step = '100';
+      playbackSeek.step = '100';
       renderSeekPosition(0);
       headerOutput.textContent = JSON.stringify({format:'SPC', cpu:parsed.cpu, internalSampleRate:32000,
         durationSeconds:info.durationSeconds, durationSource:parsed.metadata.durationSeconds ? 'SPC tags' : '180-second default', warnings:parsed.warnings}, null, 2);
@@ -3829,7 +3792,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     pcmRamWriteOutput.textContent = renderPcmRamWrites(vgm.pcmRamWriteSummary());
     command92ContextOutput.textContent = vgm.analyzeCommandContext(0x92).join("\n");
     tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
-    if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
+    if (!isLibraryOrSettingTab()) setOutputTab('parsed-output');
     setStatus(file.name + ' · ' + consoleChip + ' VGM');
     await prepareConsoleTrack({format:consoleChip,path:file.name,bytes:buffer});
     return;
@@ -4119,7 +4082,7 @@ async function prepareConsoleTrack(song) {
   detectedChipsOutput.textContent = track.chip+' · '+song.format+' · '+track.channelCount+' CH' + (track.chip === 'SCSP' ? ' · ● Key On' : '');
   if (track.loadedFiles?.length) metadataOutput.textContent = [song.title,...track.loadedFiles].filter(Boolean).join(' · ');
   renderMonitorToggles();
-  if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
+  if (!isLibraryOrSettingTab()) setOutputTab('parsed-output');
   updatePlaybackButtons();
 }
 
@@ -4353,13 +4316,6 @@ workletQueueSelect.addEventListener("change", () => {
 });
 
 updateMasterVolumeUi();
-masterVolumeRange?.addEventListener("input", () => {
-  masterVolume =
-    Number(masterVolumeRange.value) /
-    100;
-  updateMasterVolumeUi();
-  applyMasterVolume();
-});
 dockVolumeRange.addEventListener("input", () => {
   masterVolume = Number(dockVolumeRange.value) / 100;
   updateMasterVolumeUi();
@@ -4513,9 +4469,13 @@ const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), on
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) {clearSong();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
 
+function isLibraryOrSettingTab() {
+  return document.getElementById('playlistTab').ariaSelected === 'true' || document.getElementById('settingTab').ariaSelected === 'true';
+}
+
 function selectedOutputTab() {
   for (const [tab, name] of [
-    [document.getElementById('playlistTab'), 'playlist'], [operatorInfoTab, 'operator-info'], [parsedOutputTab, 'parsed-output'],
+    [document.getElementById('settingTab'), 'setting'], [document.getElementById('playlistTab'), 'playlist'], [operatorInfoTab, 'operator-info'], [parsedOutputTab, 'parsed-output'],
     [noteishTab, 'noteish'], [tfiInfoTab, 'tfi-info'],
     [sampleTab, 'samples'], [sheetMusicTab, 'sheet-music'], [document.getElementById('exportTab'), 'export'],
   ]) {
@@ -4529,7 +4489,7 @@ function setOutputTab(tabName) {
   const exportTab = document.getElementById('exportTab');
   if (tabName === 'export') {
     if (exportTab.disabled) tabName = 'parsed-output';
-  } else if (tabName !== 'playlist') {
+  } else if (tabName !== 'playlist' && tabName !== 'setting') {
     if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
     if (!currentBuffer && !spcView.active) tabName = 'parsed-output';
     if (currentChipKind === 'pokey' && !['operator-info', 'parsed-output'].includes(tabName)) tabName = 'operator-info';
@@ -4539,6 +4499,10 @@ function setOutputTab(tabName) {
     }
   }
   if (tabName === 'parsed-output' && parsedOutputTab.disabled) tabName = 'playlist';
+  const settingTab = document.getElementById('settingTab');
+  document.getElementById('settingPanel').hidden = tabName !== 'setting';
+  settingTab.ariaSelected = String(tabName === 'setting');
+  settingTab.tabIndex = tabName === 'setting' ? 0 : -1;
   const playlistTab = document.getElementById('playlistTab');
   document.getElementById('playlistPanel').hidden = tabName !== 'playlist';
   playlistTab.ariaSelected = String(tabName === 'playlist');
@@ -4597,6 +4561,7 @@ function setOutputTab(tabName) {
 }
 
 sheetMusicTab.addEventListener('click', () => setOutputTab('sheet-music'));
+document.getElementById('settingTab').addEventListener('click', () => setOutputTab('setting'));
 document.getElementById('playlistTab').addEventListener('click', () => setOutputTab('playlist'));
 document.getElementById('exportTab').addEventListener('click', () => setOutputTab('export'));
 function navigateTabList(event) {

@@ -41,7 +41,7 @@ try {
     };
   });
   await page.goto('http://127.0.0.1:'+server.address().port+(process.argv[2] ? '/' : '/vgm_analyzer/')+'index.html');
-  const play = page.locator('#inlinePlayButton'), pause = page.locator('#inlinePauseButton'), stop = page.locator('#inlineStopButton');
+  const play = page.locator('#playButton'), pause = page.locator('#pauseButton'), stop = page.locator('#stopButton');
   // Hold the browser's file read as it would be for a cloud-backed file.
   await page.evaluate(() => {
     const read = File.prototype.arrayBuffer;
@@ -55,6 +55,13 @@ try {
   });
   assert.equal(await page.getByRole('tab',{name:'Basic',exact:true}).getAttribute('aria-selected'),'true');
   assert(await page.getByRole('tab',{name:'VGM',exact:true}).isDisabled());
+  const setting = page.getByRole('tab',{name:'Setting',exact:true});
+  await setting.click();
+  await page.locator('#settingPanel #prefetchFactorSelect').selectOption('1.5');
+  await page.locator('#settingPanel #workletQueueSelect').selectOption('3');
+  await page.locator('#playlistTab').click();
+  assert.equal(await page.locator('#playlistPanel :is(#playButton,#playbackSeek,#playbackFade,#prefetchFactorSelect)').count(),0);
+  assert(await page.locator('#dockPlayPane #playbackFade').isVisible());
   async function chooseFromBasic(name, files) {
     const [chooser] = await Promise.all([
       page.waitForEvent('filechooser'),
@@ -129,11 +136,12 @@ try {
     await checkOutput(false);
     await effects.locator('#effectEnabled').click();
     await checkOutput(true);
+    await page.locator('#dockPlayTab').click();
     await stop.click();
     if (count === 32) await page.waitForFunction(() => !document.querySelector('[data-scsp-slot].is-key-on'));
   }
   function movePosition(seconds) {
-    const range = page.locator('#inlinePlaybackSeek');
+    const range = page.locator('#playbackSeek');
     return range.evaluate((input, ticks) => {
         if (input.disabled) throw Error('Position control is disabled');
         input.value = ticks;
@@ -148,8 +156,8 @@ try {
     await play.filter({hasText:'Resume'}).waitFor();
     await movePosition(.5);
     await page.waitForFunction(() => {
-      const range = document.querySelector('#inlinePlaybackSeek');
-      return !range.disabled && range.value === '22050' && !document.querySelector('#inlinePlayButton').disabled;
+      const range = document.querySelector('#playbackSeek');
+      return !range.disabled && range.value === '22050' && !document.querySelector('#playButton').disabled;
     });
     await checkOutput(false);
     await play.click();
@@ -162,8 +170,8 @@ try {
     await page.locator('#effectGain').evaluate(el => {el.value=0; el.dispatchEvent(new Event('input'));});
     await movePosition(.1);
     await page.waitForFunction(() => {
-      const range = document.querySelector('#inlinePlaybackSeek');
-      return !range.disabled && +range.value > 4410 && !document.querySelector('#inlinePauseButton').disabled;
+      const range = document.querySelector('#playbackSeek');
+      return !range.disabled && +range.value > 4410 && !document.querySelector('#pauseButton').disabled;
     });
     assert.equal(await voice.getAttribute('aria-pressed'),'true');
     await checkOutput(false);
@@ -172,10 +180,11 @@ try {
     await checkOutput(false);
     await page.locator('#effectEnabled').click();
     await checkOutput(true);
+    await page.locator('#dockPlayTab').click();
     await stop.click();
   }
   async function checkWav() {
-    const volume = page.locator('#masterVolumeRange');
+    const volume = page.locator('#dockVolumeRange');
     const level = n => volume.evaluate((el,value) => {el.value=value; el.dispatchEvent(new Event('input'));},n);
     const mutes = mode => page.evaluate(mode => {
       const buttons = () => document.querySelectorAll('#inlineMonitorToggles button');
@@ -213,9 +222,10 @@ try {
     for (let i=44;i<full.length;i+=2) assert(Math.abs(2*half.readInt16LE(i)-full.readInt16LE(i))<=2);
     await mutes('all');
     assert((await save()).subarray(44).every(v=>v===0));
-    assert.equal(await page.locator('#inlinePlaybackSeek').inputValue(),'22050');
+    assert.equal(await page.locator('#playbackSeek').inputValue(),'22050');
     assert.equal(await play.textContent(),'Resume');
     await level(100); await mutes('none'); await page.locator('#effectEnabled').click();
+    await page.locator('#dockPlayTab').click();
     await stop.click();
   }
   async function playAudible() {
@@ -248,15 +258,15 @@ try {
   await page.locator('#exportWavButton').click();
   assert.equal(await page.locator('#wavMaxSecondsInput').inputValue(),'120');
   await page.locator('#wavMaxSecondsInput').fill('2');
-  const before = Number(await page.locator('#inlinePlaybackSeek').inputValue());
+  const before = Number(await page.locator('#playbackSeek').inputValue());
   const saving = page.waitForEvent('download',{timeout:15000});
   await page.locator('#wavExportDialog [value=export]').click();
   const saved = await saving;
   await page.locator('#playlistTab').click();
   assert.equal(saved.suggestedFilename(),'untimed.wav');
   assert.equal((await readFile(await saved.path())).length,44+2*44100*4);
-  await page.waitForFunction(ticks => !document.querySelector('#inlinePauseButton').disabled &&
-    +document.querySelector('#inlinePlaybackSeek').value > ticks,before);
+  await page.waitForFunction(ticks => !document.querySelector('#pauseButton').disabled &&
+    +document.querySelector('#playbackSeek').value > ticks,before);
   await stop.click();
   await page.locator('#consoleFolder').setInputFiles(work);
   await tracks.nth(3).waitFor();
@@ -265,12 +275,13 @@ try {
   await page.locator('#effectEnabled').click();
   await tracks.first().click();
   await page.waitForFunction(() => document.querySelector('#playlistList [aria-current="true"]')?.textContent === 'b.psf');
-  await page.waitForFunction(() => document.querySelector('#inlineMonitorToggles')?.children.length === 24 && !document.querySelector('#inlinePauseButton').disabled);
+  await page.waitForFunction(() => document.querySelector('#inlineMonitorToggles')?.children.length === 24 && !document.querySelector('#pauseButton').disabled);
   assert.equal(await page.locator('#effectEnabled').getAttribute('aria-pressed'),'true');
   await checkOutput(false);
   await page.locator('#effectEnabled').click();
   await checkOutput(true);
   await page.waitForFunction(() => document.querySelector('#playlistList [aria-current="true"]')?.textContent === 'c.minissf');
+  await page.locator('#dockPlayTab').click();
   await stop.click();
   await page.locator('#fileInput').setInputFiles({name:'original.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(buildScspSongDemo())});
   await playAudible();
@@ -280,8 +291,8 @@ try {
   for (const [seconds, keyed] of [[.2,true],[.3,false]]) {
     await movePosition(seconds);
     await page.waitForFunction(({seconds,keyed}) =>
-      !document.querySelector('#inlinePlaybackSeek').disabled &&
-      +document.querySelector('#inlinePlaybackSeek').value === Math.round(seconds*44100) &&
+      !document.querySelector('#playbackSeek').disabled &&
+      +document.querySelector('#playbackSeek').value === Math.round(seconds*44100) &&
       document.querySelector('#inlineMonitorToggles [data-scsp-slot="0"]').classList.contains('is-key-on') === keyed,
       {seconds,keyed});
   }
@@ -320,7 +331,7 @@ try {
   }
   await openOpnMonitor();
   await page.locator('#fileInput').setInputFiles({name:'original-vsu.vgm',mimeType:'application/octet-stream',buffer:vsu});
-  await page.waitForFunction(() => document.querySelector('#parsedOutputTab').ariaSelected === 'true' && !document.querySelector('#inlinePlayButton').disabled);
+  await page.waitForFunction(() => document.querySelector('#parsedOutputTab').ariaSelected === 'true' && !document.querySelector('#playButton').disabled);
   for (const id of ['operatorInfoTab','noteishTab','sheetMusicTab','tfiInfoTab','sampleExplorerTab']) {
     assert.ok(await page.locator('#'+id).isDisabled(), 'VSU: '+id);
   }
@@ -340,9 +351,9 @@ try {
   await checkSeek();
   await play.click();
   await checkOutput(true);
-  await page.waitForFunction(() => !document.querySelector('#inlinePauseButton').disabled && !document.querySelector('#inlinePlaybackSeek').disabled);
+  await page.waitForFunction(() => !document.querySelector('#pauseButton').disabled && !document.querySelector('#playbackSeek').disabled);
   await movePosition(1.8);
-  await page.waitForFunction(() => +document.querySelector('#inlinePlaybackSeek').value >= 1.9*44100);
+  await page.waitForFunction(() => +document.querySelector('#playbackSeek').value >= 1.9*44100);
   await checkOutput(false);
   await movePosition(.2);
   await checkOutput(true);
@@ -351,7 +362,7 @@ try {
   await openOpnMonitor();
   console.log('VSU VGM and OPN tab switching passed');
   await page.locator('#playlistTab').click();
-  const mainPlay = page.locator('#inlinePlayButton');
+  const mainPlay = page.locator('#playButton');
   for (const [path, model] of [['tone.sid','6581'],['rsid/irq.sid','6581'],['tone.sid','8580']]) {
     const buffer = await readFile(new URL('../docs/sid-player/demos/'+path,import.meta.url));
     // Exercise non-first default subtune, selection, and both model-specific WASMs.
@@ -404,9 +415,10 @@ try {
       await page.locator('#effectEnabled').click();
       await checkSignal(true);
     }
-    await page.locator('#inlinePauseButton').click();
+    await page.locator('#dockPlayTab').click();
+    await page.locator('#pauseButton').click();
     await mainPlay.filter({hasText:'Resume'}).click();
-    await page.locator('#inlineStopButton').click();
+    await page.locator('#stopButton').click();
     console.log(model,path,'passed');
   }
   const ntsc = await readFile(new URL('../docs/sid-player/demos/tone.sid',import.meta.url));
@@ -425,7 +437,7 @@ try {
         window.testMeter?.getFloatTimeDomainData(pcm);
         return Math.max(...pcm)-Math.min(...pcm) > .001;
       },null,{timeout:15000});
-      await page.locator('#inlineStopButton').click();
+      await page.locator('#stopButton').click();
       console.log('Local SID passed:',process.argv[3]);
     } else {
       await playAudible();

@@ -167,17 +167,17 @@ async function load(page, name, bytes) {
     buffer:bytes ?? await fs.readFile(path.join(repo, 'test/fixtures', name))});
   await page.waitForFunction(name => __analyzerSourceTest.snapshot().file === name &&
     document.getElementById('status').textContent.startsWith('Parsed ' + name + ' ') &&
-    !document.getElementById('inlinePlayButton').disabled, name);
+    !document.getElementById('playButton').disabled, name);
   await page.locator('#playlistTab').click();
   await page.locator('#dockMixerTab').click();
 }
 async function play(page) {
-  const before = await snapshot(page); await page.locator('#inlinePlayButton').click();
+  const before = await snapshot(page); await page.locator('#dockPlayTab').click(); await page.locator('#playButton').click(); await page.locator('#dockMixerTab').click();
   await page.waitForFunction(before => {
     const state = __analyzerSourceTest.snapshot(); return state.frames > before.frames && state.worklets > before.worklets;
   }, before);
 }
-async function stop(page) {await page.locator('#inlineStopButton').evaluate(node => {if (!node.disabled) node.click();});}
+async function stop(page) {await page.locator('#stopButton').evaluate(node => {if (!node.disabled) node.click();});}
 async function rom(page) {
   await page.locator('#fileInput').setInputFiles({name:'ym2608_adpcm_rom.bin', mimeType:'application/octet-stream',
     buffer:await fs.readFile(path.join(repo, 'docs/js/tetorica_ym2608_adpcm_rom.bin'))});
@@ -305,15 +305,15 @@ async function checkBrowser(name, browser, origin) {
     measurements.live.zero = await page.evaluate(() => __sourceAudioAudit.read());
     assert((await snapshot(page)).playing, 'Live source zero stopped transport');
     await gain(page, 'fm', 64); await page.waitForFunction(() => __sourceAudioAudit.read().peak > 1e-5);
-    assert((await snapshot(page)).playing); await page.locator('#inlinePauseButton').click();
+    assert((await snapshot(page)).playing); await page.locator('#dockPlayTab').click(); await page.locator('#pauseButton').click(); await page.locator('#dockMixerTab').click();
     await page.waitForFunction(() => __analyzerSourceTest.snapshot().paused);
     assert.deepEqual((await snapshot(page)).sources, retained);
-    await range(page, '#inlinePlaybackSeek', 3 * 44100);
-    await page.locator('#inlinePlaybackSeek').evaluate(node => node.dispatchEvent(new Event('change', {bubbles:true})));
+    await range(page, '#playbackSeek', 3 * 44100);
+    await page.locator('#playbackSeek').evaluate(node => node.dispatchEvent(new Event('change', {bubbles:true})));
     assert((await snapshot(page)).paused); assert.deepEqual((await snapshot(page)).sources, retained);
-    await page.locator('#inlinePlayButton').click(); await page.waitForFunction(() => __analyzerSourceTest.snapshot().playing);
-    await range(page, '#inlinePlaybackSeek', 5 * 44100);
-    await page.locator('#inlinePlaybackSeek').evaluate(node => node.dispatchEvent(new Event('change', {bubbles:true})));
+    await page.locator('#dockPlayTab').click(); await page.locator('#playButton').click(); await page.locator('#dockMixerTab').click(); await page.waitForFunction(() => __analyzerSourceTest.snapshot().playing);
+    await range(page, '#playbackSeek', 5 * 44100);
+    await page.locator('#playbackSeek').evaluate(node => node.dispatchEvent(new Event('change', {bubbles:true})));
     await page.waitForFunction(() => __analyzerSourceTest.snapshot().playing && __analyzerSourceTest.snapshot().position >= 5 * 44100);
     assert.deepEqual((await snapshot(page)).sources, retained); await stop(page);
     await play(page); assert.deepEqual((await snapshot(page)).sources, retained); await stop(page);

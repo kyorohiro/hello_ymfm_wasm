@@ -129,7 +129,7 @@ async function downloadBytes(page, button) {
 async function verifyVoiceModes(page, original, name) {
   await page.locator('#fileInput').setInputFiles({name:'preview-voice.spc',mimeType:'application/octet-stream',buffer:withPreviewVoice(original)});
   await page.waitForFunction(() => /preview-voice/.test(document.querySelector('#spcInfoPanel p').textContent)
-    && !document.getElementById('inlinePlayButton').disabled);
+    && !document.getElementById('playButton').disabled);
   const row = page.locator('#spcInfoPanel [data-source-numbers="0"]');
   const mode = row.locator('select[data-spc-preview-mode]'), preview = row.getByRole('button',{name:'Preview',exact:true});
   assert.equal(await mode.inputValue(),'raw','Raw remains the default preview');
@@ -167,14 +167,14 @@ async function verifyVoiceModes(page, original, name) {
     try {
       await preview.click();
       await page.waitForFunction(() => window.__spcVoicePreviewGate.entered);
-      if (action === 'stop') await page.locator('#inlineStopButton').click();
+      if (action === 'stop') await page.locator('#stopButton').click();
       else if (action === 'play') {
-        await page.locator('#inlinePlayButton').click();
+        await page.locator('#playButton').click();
         await page.waitForFunction(() => window.__spcTest.view.state.playing);
       } else {
         await page.locator('#fileInput').setInputFiles({name:'preview-replacement.spc',mimeType:'application/octet-stream',buffer:original});
         await page.waitForFunction(() => /preview-replacement/.test(document.querySelector('#spcInfoPanel p').textContent)
-          && !document.getElementById('inlinePlayButton').disabled);
+          && !document.getElementById('playButton').disabled);
       }
     } finally {await page.evaluate(() => window.__spcVoicePreviewGate.release());}
     await page.waitForTimeout(120);
@@ -204,7 +204,7 @@ async function verifyVoiceModes(page, original, name) {
         await page.goto(`http://127.0.0.1:${server.address().port}${analyzerPath}/`);
         await page.waitForFunction(() => window.__spcTest);
         await page.locator('#fileInput').setInputFiles({name:'original.spc', mimeType:'application/octet-stream', buffer:fixture});
-        await page.waitForFunction(() => window.__spcTest.view.active && !document.querySelector('#inlinePlayButton').disabled).catch(async error => {
+        await page.waitForFunction(() => window.__spcTest.view.active && !document.querySelector('#playButton').disabled).catch(async error => {
           console.error({errors, status:await page.locator('body').innerText()}); throw error;
         });
         assert.match(await page.locator('#detectedChips').textContent(), /SPC700/);
@@ -249,7 +249,7 @@ async function verifyVoiceModes(page, original, name) {
         await unusedRow.waitFor({state:'visible'});
         assert.equal(await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count(), 1,
           'Explicit SRCN extraction must still work');
-        await page.locator('#inlinePlayButton').click();
+        await page.locator('#playButton').click();
         await page.waitForFunction(() => window.__spcTest.view.state.playing);
         const playing = await signal(page); assert.equal(playing.bad, 0); assert(playing.peak > .001 && playing.range > .001, JSON.stringify(playing));
         await page.locator('#dockEffectTab').click();
@@ -263,16 +263,17 @@ async function verifyVoiceModes(page, original, name) {
         const muted = await signal(page); assert(muted.peak < .00001, JSON.stringify(muted));
         await page.locator('#spcInfoPanel .monitor-toggles button').first().click();
         assert((await signal(page)).range > .001);
-        await page.locator('#inlinePauseButton').click();
+        await page.locator('#dockPlayTab').click();
+        await page.locator('#pauseButton').click();
         await page.waitForFunction(() => window.__spcTest.view.state.paused);
         const paused = await page.evaluate(() => window.__spcTest.view.state.positionSeconds);
         await page.waitForTimeout(250); assert.equal(await page.evaluate(() => window.__spcTest.view.state.positionSeconds), paused);
-        await page.locator('#inlinePlaybackSeek').evaluate(input => {input.value = '5000'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new Event('change'));});
+        await page.locator('#playbackSeek').evaluate(input => {input.value = '5000'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new Event('change'));});
         await page.waitForFunction(() => window.__spcTest.view.state.positionSeconds === 5);
-        await page.locator('#inlineStopButton').click();
+        await page.locator('#stopButton').click();
         await page.waitForFunction(() => window.__spcTest.view.state.positionSeconds === 0);
-        await page.locator('#inlinePlayButton').click(); assert((await signal(page)).range > .001);
-        await page.locator('#inlineStopButton').click();
+        await page.locator('#playButton').click(); assert((await signal(page)).range > .001);
+        await page.locator('#stopButton').click();
         const downloaded = page.waitForEvent('download');
         await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).first().click();
         const wav = await fs.readFile(await (await downloaded).path());
@@ -298,7 +299,7 @@ async function verifyVoiceModes(page, original, name) {
           await page.waitForFunction(() => window.__spcScanRace.entered);
           await page.locator('#fileInput').setInputFiles({name:'scan-race-next.spc', mimeType:'application/octet-stream', buffer:original});
           await page.waitForFunction(() => /scan-race-next/.test(document.querySelector('#spcInfoPanel p').textContent)
-            && !document.getElementById('inlinePlayButton').disabled);
+            && !document.getElementById('playButton').disabled);
         } finally {
           await page.evaluate(() => {window.__spcScanRace.release(); window.__spcScanRace.restore();});
         }
@@ -361,7 +362,7 @@ async function verifyVoiceModes(page, original, name) {
         await page.waitForFunction(()=>window.__spcTest.view.state.durationSeconds===2);
         await page.evaluate(()=>window.__spcTest.view.seek(1.5));
         await page.waitForFunction(()=>Math.abs(window.__spcTest.view.outputNode.gain.value-.5)<.01);
-        await page.locator('#inlinePlayButton').click();
+        await page.locator('#playButton').click();
         await page.waitForFunction(()=>window.__spcTest.view.state.playing);
         await page.waitForFunction(()=>window.__spcTest.view.outputNode.gain.value<.35);
         await page.waitForFunction(()=>!window.__spcTest.view.state.playing);
@@ -381,9 +382,9 @@ async function verifyVoiceModes(page, original, name) {
         },Array.from(fixture));
         assert.equal(race.stale,'AbortError'); assert.equal(race.active,true); assert.match(race.title,/new/);
         await page.locator('#fileInput').setInputFiles(path.join(root, 'test/fixtures/psg-tone.vgm'));
-        await page.waitForFunction(() => !window.__spcTest.view.active && !document.querySelector('#inlinePlayButton').disabled);
-        await page.locator('#inlinePlayButton').click();
-        await page.waitForTimeout(100); await page.locator('#inlineStopButton').click();
+        await page.waitForFunction(() => !window.__spcTest.view.active && !document.querySelector('#playButton').disabled);
+        await page.locator('#playButton').click();
+        await page.waitForTimeout(100); await page.locator('#stopButton').click();
         assert.deepEqual(errors, []);
         console.log(JSON.stringify({browser:name, passed:true, playing, muted, brrWavBytes:wav.length, allSrcnScan:true,
           unusedSources:[42,127], aliasMetadata:true, staleScanFenced:true, inlineWaveform:true, previewModes, tagFade:true, staleLoadFenced:true, vgmAfterSpc:true}));

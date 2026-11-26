@@ -77,7 +77,7 @@ async function signal(page) {
   assert.equal(result.bad,0,'Worklet output must contain only finite PCM');return result;
 }
 async function stop(page) {
-  await page.locator('#inlineStopButton').evaluate(button=>{if(!button.disabled)button.click();});
+  await page.locator('#stopButton').evaluate(button=>{if(!button.disabled)button.click();});
   await page.waitForFunction(()=>window.__wsAnalyzerTest.snapshot().mode===null);
 }
 async function runBrowser(name,type,origin,createFixture) {
@@ -89,7 +89,7 @@ async function runBrowser(name,type,origin,createFixture) {
     const load=async(channel,mode='wave')=>{
       const filename=`original-wonderswan-${mode}-ch${channel+1}.vgm`;
       await page.locator('#fileInput').setInputFiles({name:filename,mimeType:'application/octet-stream',buffer:Buffer.from(createFixture({channel,mode}))});
-      await page.waitForFunction(filename=>window.__wsAnalyzerTest.snapshot().file===filename&&document.getElementById('status').textContent.startsWith('Parsed '+filename+' ')&&!document.getElementById('inlinePlayButton').disabled,filename);
+      await page.waitForFunction(filename=>window.__wsAnalyzerTest.snapshot().file===filename&&document.getElementById('status').textContent.startsWith('Parsed '+filename+' ')&&!document.getElementById('playButton').disabled,filename);
       const state=await snapshot(page);assert.equal(state.kind,'wonderswan');assert.equal(state.header.wonderswanClock,3072000);
       assert.match(await page.locator('#detectedChips').innerText(),/WonderSwan/i);
       assert.equal(await page.locator('#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"]').count(),4);
@@ -97,7 +97,7 @@ async function runBrowser(name,type,origin,createFixture) {
       for(const selector of ['#operatorInfoTab','#tfiInfoTab'])assert.equal(await page.locator(selector).isDisabled(),true,selector+' should not promise unsupported instrument extraction');
       return state;
     };
-    const play=async()=>{const before=await snapshot(page);await page.locator('#inlinePlayButton').click();await page.waitForFunction(before=>{const s=window.__wsAnalyzerTest.snapshot();return s.mode==='worklet'&&s.worklets>before.worklets&&s.frames>before.frames;},{worklets:before.worklets,frames:before.frames});};
+    const play=async()=>{const before=await snapshot(page);await page.locator('#playButton').click();await page.waitForFunction(before=>{const s=window.__wsAnalyzerTest.snapshot();return s.mode==='worklet'&&s.worklets>before.worklets&&s.frames>before.frames;},{worklets:before.worklets,frames:before.frames});};
     const scenes=[];
     for(let channel=0;channel<4;channel++) {
       await load(channel);await play();await page.waitForTimeout(200);
@@ -113,11 +113,11 @@ async function runBrowser(name,type,origin,createFixture) {
       scenes.push({channel:channel+1,audible,muted,resumed});await stop(page);
     }
     await load(0);await play();await page.waitForTimeout(150);
-    await page.locator('#inlinePauseButton').click();await page.waitForFunction(()=>window.__wsAnalyzerTest.snapshot().stats.paused&&window.__wsAnalyzerTest.snapshot().context==='suspended');
+    await page.locator('#pauseButton').click();await page.waitForFunction(()=>window.__wsAnalyzerTest.snapshot().stats.paused&&window.__wsAnalyzerTest.snapshot().context==='suspended');
     const paused=(await snapshot(page)).stats.processedWaitSamples;await page.waitForTimeout(120);assert.equal((await snapshot(page)).stats.processedWaitSamples,paused,'Pause must not advance VGM commands');
-    await page.locator('#inlinePlayButton').click();await page.waitForFunction(()=>window.__wsAnalyzerTest.snapshot().stats.playing&&window.__wsAnalyzerTest.snapshot().context==='running');assert((await signal(page)).acRms>.001);
+    await page.locator('#playButton').click();await page.waitForFunction(()=>window.__wsAnalyzerTest.snapshot().stats.playing&&window.__wsAnalyzerTest.snapshot().context==='running');assert((await signal(page)).acRms>.001);
     const workletsBefore=(await snapshot(page)).worklets;
-    await page.locator('#inlinePlaybackSeek').evaluate(input=>{input.value='88200';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
+    await page.locator('#playbackSeek').evaluate(input=>{input.value='88200';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
     await page.waitForFunction(before=>{const s=window.__wsAnalyzerTest.snapshot();return s.worklets>before&&s.stats.processedWaitSamples>=88200;},workletsBefore);
     const sought=await signal(page);assert(sought.acRms>.001,'Seek must reconstruct wave RAM and enable registers');await stop(page);
     assert.equal((await snapshot(page)).stats.playing,false);await play();assert((await signal(page)).acRms>.001,'Play after Stop must reproduce the instrument');await stop(page);

@@ -573,7 +573,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=chip-tabs-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=dock-setting-1">
   </head>
   <body>
     <main>
@@ -711,6 +711,7 @@
           <button id="sheetMusicTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sheetMusicPanel" disabled>Sheet Music</button>
           <button id="tfiInfoTab" disabled class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="tfiInfoPanel">Tfi info</button>
           <button id="sampleExplorerTab" disabled class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sampleExplorerPanel">Sample Explorer</button>
+          <button id="settingTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="settingPanel">Setting</button>
         </div>
 
         <section id="playlistPanel" class="actions tab-panel" role="tabpanel" aria-labelledby="playlistTab">
@@ -724,30 +725,9 @@
             <label hidden id="playlistPageLabel">Playlist page <input id="playlistPage" type="number" min="1" value="1"></label>
             <ol id="playlistList"></ol>
           </section>
-          <div class="basic-transport" role="group" aria-label="Playback controls">
-            <div class="playback-seek">
-              <label for="inlinePlaybackSeek">Position</label>
-              <input id="inlinePlaybackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
-              <output id="inlinePlaybackSeekTime" for="inlinePlaybackSeek">0:00 / 0:00</output>
-            </div>
-            <div class="transport-row">
-              <button id="inlinePlayButton" type="button" disabled>Play</button>
-              <button id="inlinePauseButton" type="button" disabled>Pause</button>
-              <button id="inlineStopButton" type="button" disabled>Stop</button>
-              <button id="replayButton" type="button" disabled>Replay</button>
-            </div>
-            <div class="transport-row">
-              <label title="10 ms fades for browser playback; WAV export is unchanged"><input id="playbackFade" type="checkbox" checked> Fade in / out</label>
-              <label><input id="loopCheckbox" type="checkbox"> Loop</label>
-              <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
-            </div>
-            <label class="volume-control" for="masterVolumeRange">
-              <span>Vol</span>
-              <input id="masterVolumeRange" type="range" min="0" max="480" value="100" step="1">
-              <span id="masterVolumeValue" class="volume-readout">100%</span>
-            </label>
-          </div>
           <div id="inlineMonitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+        </section>
+        <section id="settingPanel" class="tab-panel" role="tabpanel" aria-labelledby="settingTab" hidden>
           <div class="queue-settings" role="group" aria-label="Playback queues">
             <label for="prefetchFactorSelect">VGM queue
               <select id="prefetchFactorSelect" aria-label="VGM queue length">
@@ -1017,13 +997,19 @@
             <button id="playButton" type="button" disabled>Play</button>
             <button id="pauseButton" type="button" disabled>Pause</button>
             <button id="stopButton" type="button" disabled>Stop</button>
+            <button id="replayButton" type="button" disabled>Replay</button>
             <button id="playlistPrevButton" type="button" aria-label="Previous track" disabled>&lt;</button>
             <button id="playlistNextButton" type="button" aria-label="Next track" disabled>&gt;</button>
-            <label class="volume-control" for="dockVolumeRange">
-              <span>Vol</span>
-              <input id="dockVolumeRange" aria-label="Playback volume" type="range" min="0" max="480" value="100" step="1">
-              <output id="dockVolumeValue" class="volume-readout" for="dockVolumeRange">100%</output>
-            </label>
+          </div>
+          <label class="volume-control" for="dockVolumeRange">
+            <span>Vol</span>
+            <input id="dockVolumeRange" aria-label="Playback volume" type="range" min="0" max="480" value="100" step="1">
+            <output id="dockVolumeValue" class="volume-readout" for="dockVolumeRange">100%</output>
+          </label>
+          <div class="transport-row">
+            <label title="10 ms fades for browser playback; WAV export is unchanged"><input id="playbackFade" type="checkbox" checked> Fade in / out</label>
+            <label><input id="loopCheckbox" type="checkbox"> Loop</label>
+            <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
           </div>
           <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
         </div>
@@ -1047,7 +1033,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=chip-tabs-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=dock-setting-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>
