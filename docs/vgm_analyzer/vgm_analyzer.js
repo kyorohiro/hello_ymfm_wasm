@@ -3092,7 +3092,7 @@ function updatePlaybackButtons(state = {}) {
   replayButton.disabled = !hasBuffer || wavExportBusy;
   pauseButton.disabled = !playing || wavExportBusy;
   stopButton.disabled = !hasBuffer || (!playing && !paused) || wavExportBusy;
-  exportWavButton.disabled = !hasBuffer || wavExportBusy;
+  exportWavButton.disabled = (!hasBuffer && !songPlayer?.exportWav) || wavExportBusy;
   exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
   exportSnapshotTfiButton.disabled = !hasBuffer;
   exportSnapshotVgiButton.disabled = !hasBuffer;
@@ -4091,7 +4091,7 @@ function releaseSongOutput(context) {
   if (effectsChain?.context === context) releaseEffectsChain();
   if (masterBoost?.context === context) {masterBoost.disconnect(); masterBoost = null;}
 }
-function loadConsoleModule() {return import('./console_songs.js?v=seek-1');}
+function loadConsoleModule() {return import('./console_songs.js?v=wav-1');}
 
 async function prepareConsoleTrack(song) {
   const module = await loadConsoleModule();
@@ -4697,10 +4697,41 @@ midiExportDialog.querySelector("form").addEventListener("submit", (event) => {
   } catch (error) { setStatus(`MIDI export failed: ${error.message}`); }
 });
 
+let wavSong, wavFilename;
+wavExportDialog.addEventListener('cancel',event => {if (wavExportBusy) event.preventDefault();});
+wavExportDialog.addEventListener('close',() => {if (!wavExportDialog.open) wavSong = null;});
+async function renderCurrentVgmWav(maxSeconds,onProgress) {
+  playlistRevision += 1;
+  timelineSeekController?.abort();
+  resetTimelineToStart();
+  stopActiveStream();
+  if (!isPlaybackReady()) {
+    await beginPreparePlayback(new Ym2612VGM(currentBuffer));
+    if (!isPlaybackReady()) {
+      throw new Error("Playback could not be prepared for this track.");
+    }
+  }
+  player.stop();
+  player.setLoopEnabled(loopCheckbox.checked);
+  player.play();
+  const result = await renderVgmToWav(player,{outputGain:Math.max(1,masterVolume/3.8),maxSeconds,onProgress});
+  player.stop();
+  return {...result,sampleRate:player.sampleRate()};
+}
+
 exportWavButton.addEventListener("click", () => {
-  if (!currentBuffer) return;
+  wavSong = songPlayer?.exportWav ? songPlayer : null;
+  if (!currentBuffer && !wavSong) return;
+  wavFilename = lastLoadedFileName;
+  const help = document.getElementById('wavMaxSecondsHelp');
+  help.hidden = Boolean(wavSong);
+  document.getElementById('consoleWavHelp').hidden = !wavSong;
   wavExportStatus.textContent = "";
-  try {
+  if (wavSong) {
+    wavMaxSecondsInput.max = '600';
+    const seconds = wavSong.wavDuration;
+    wavMaxSecondsInput.value = String(seconds == null ? 120 : Math.min(600,Math.max(1,Math.ceil(seconds))));
+  } else try {
     const totalSamples = new Ym2612VGM(currentBuffer).header.totalSamples;
     if (totalSamples > 0) {
       // VGM sample counts are always in 44100Hz-reference units regardless of
@@ -4717,52 +4748,33 @@ exportWavButton.addEventListener("click", () => {
 wavExportDialog.querySelector("form").addEventListener("submit", async (event) => {
   if (event.submitter?.value !== "export") return;
   event.preventDefault();
-  if (wavExportBusy || !currentBuffer || !wavMaxSecondsInput.reportValidity()) return;
+  if (wavExportBusy || (!currentBuffer && !wavSong) || !wavMaxSecondsInput.reportValidity()) return;
   const maxSeconds = Number(wavMaxSecondsInput.value);
   wavExportBusy = true;
   const dialogButtons = wavExportDialog.querySelectorAll("button");
   dialogButtons.forEach(b => b.disabled = true);
   wavMaxSecondsInput.disabled = true;
   wavExportStatus.textContent = "Preparing...";
-  playlistRevision += 1;
-  timelineSeekController?.abort();
-  resetTimelineToStart();
-  stopActiveStream();
   updatePlaybackButtons(player ? player.stats() : {});
   try {
-    if (!isPlaybackReady()) {
-      await beginPreparePlayback(new Ym2612VGM(currentBuffer));
-      if (!isPlaybackReady()) {
-        wavExportStatus.textContent = "Playback could not be prepared for this track.";
-        return; // ensurePlaybackReady already reported the reason elsewhere too.
-      }
-    }
-    player.stop();
-    player.setLoopEnabled(loopCheckbox.checked);
-    player.play();
-    let lastReported = -1;
-    const result = await renderVgmToWav(player, {
-      outputGain: Math.max(1,masterVolume / 3.8),
-      maxSeconds,
-      onProgress: (fraction) => {
-        const percent = Math.round(fraction * 100);
-        if (percent !== lastReported) { lastReported = percent; wavExportStatus.textContent = `Rendering... ${percent}%`; }
-      },
-    });
-    player.stop();
+    const onProgress = fraction => {
+      const message = `Rendering... ${Math.round(fraction*100)}%`;
+      if (wavExportStatus.textContent !== message) wavExportStatus.textContent = message;
+    };
+    const result = wavSong ? await wavSong.exportWav({maxSeconds,onProgress}) : await renderCurrentVgmWav(maxSeconds,onProgress);
     if (result.seconds <= 0) throw new Error("Nothing to render for this track.");
-    const summary = `Exported ${result.seconds.toFixed(1)}s at ${player.sampleRate()} Hz.${result.truncated ? ` Stopped at the ${maxSeconds}s limit; raise Max length to capture more.` : ""}`;
+    const summary = `Exported ${result.seconds.toFixed(1)}s at ${result.sampleRate} Hz.${result.truncated ? ` Stopped at the ${maxSeconds}s limit.` : ''}`;
     wavExportStatus.textContent = summary;
     const url = URL.createObjectURL(new Blob([result.bytes], { type: "audio/wav" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.wav`;
+    anchor.download = `${wavFilename.replace(/\.[^.]+$/, "") || "analysis"}.wav`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setStatus(`Exported WAV: ${summary}`);
     wavExportDialog.close();
   } catch (error) {
-    player?.stop();
+    if (!wavSong) player?.stop();
     wavExportStatus.textContent = `WAV export failed: ${error.message}`;
     setStatus(`WAV export failed: ${error.message}`);
   } finally {

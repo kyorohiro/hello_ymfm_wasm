@@ -17,6 +17,7 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
 console_songs.js
+console_wav_worker.js
 sid_song.js
 console_vgm.js
 spc_analyzer.js

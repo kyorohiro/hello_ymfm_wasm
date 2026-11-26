@@ -25,9 +25,9 @@ for (const [directory, files] of Object.entries({
   await mkdir(join(stage,directory),{recursive:true});
   for (const file of files.split(' ')) await cp(join(root,'docs',directory,file),join(stage,directory,file),{recursive:true});
 }
-for (const name of ['console_songs.js','sid_song.js']) {
+for (const name of ['console_songs.js','console_wav_worker.js','sid_song.js']) {
   const entry = join(stage,name);
-  await writeFile(entry,(await readFile(entry,'utf8')).replaceAll("from '../","from './").replaceAll("new URL('../generated/","new URL('./generated/"));
+  await writeFile(entry,(await readFile(entry,'utf8')).replaceAll("from '../","from './").replaceAll("new URL('../","new URL('./"));
 }
 await mkdir(join(stage,'sources'),{recursive:true});
 execFileSync('zip',['-q','-r',join(stage,'sources/console-song-engines.zip'),...SCSP_SSF_BUILD_INPUTS,

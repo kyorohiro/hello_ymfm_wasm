@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createScspSongPlayer} from '../synth-scsp/song_player.js';
-import {listScspSsfEntries, parseScspSsfTime, readScspSsfSet} from '../synth-scsp/ssf_source.js';
+import {listScspSsfEntries, parseScspSsfTime, prepareScspSsfSource, readScspSsfSet} from '../synth-scsp/ssf_source.js';
 import {readPsfFileSet} from '../playground/playground_ps1_psf.js';
 import {createPsfSongPreview} from '../synth-spu/psf_song_preview.js';
 import {preparePsfSongSource} from '../synth-spu/psf_song_source.js';
@@ -148,6 +148,27 @@ export async function createConsoleSong(song, {getMaster, update, connectOutput,
         if (seeking) return {...state,seekMax,seeking:true,canPlay:false,canResume:false,canPause:false,canStop:true,
           loading:true,message:state.seekMessage || (Number.isFinite(state.seekProgress) ? 'Seeking '+chip+' · '+Math.round(state.seekProgress*100)+'%' : 'Seeking '+chip+'…')};
         return {...state, seekMax, showSeekLimit:psf && (duration === null || duration > seekMax), loading:state.busy, error:state.error || state.errorMessage, message:state.errorMessage || state.message || message || chip+' · Ready'};
+      },
+      get wavDuration() {return psf ? duration : engine.read().durationSeconds;},
+      async exportWav({maxSeconds,onProgress}) {
+        const job = {maxSeconds,mask:muteMask,master:getMaster(),song,length,fade:duration === null ? 0 : duration-length};
+        if (song.format === 'SSF') {
+          const {ram,totalSamples,lengthSeconds,fadeSeconds,volume} = await prepareScspSsfSource(song.set,song.path);
+          job.song = {format:'SSF',source:{ram,totalSamples,lengthSeconds,fadeSeconds,volume}};
+        }
+        const worker = new Worker(new URL('./console_wav_worker.js',import.meta.url),{type:'module'});
+        try {
+          return await new Promise((resolve,reject) => {
+            worker.onerror = event => reject(new Error(event.message || 'WAV renderer failed to start'));
+            worker.onmessageerror = () => reject(new Error('Invalid WAV renderer response'));
+            worker.onmessage = ({data}) => {
+              if (data.error) reject(new Error(data.error));
+              else if (data.bytes) resolve(data);
+              else onProgress(data.progress);
+            };
+            worker.postMessage(job);
+          });
+        } finally {worker.terminate();}
       },
       async seek(seconds) {
         const revision = ++playRevision;

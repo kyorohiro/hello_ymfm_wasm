@@ -18,7 +18,7 @@ const later = () => new Promise((resolve) => nativeSchedule(resolve, 0));
 const aborted = () => new DOMException('SCSP song operation cancelled', 'AbortError');
 let wasmBinary = null;
 
-async function createCore() {
+export async function createScspSongCore() {
 	wasmBinary ??= fetch(new URL('../generated/scsp_wasm.wasm', import.meta.url))
 		.then((response) => {
 			if (!response.ok) throw new Error(`SCSP song WASM HTTP ${response.status}`);
@@ -141,7 +141,7 @@ export function createScspSongPlayer({
 	beforePlay = async () => {},
 	onState = () => {},
 	onStatus = () => {},
-	createEngine = createCore,
+	createEngine = createScspSongCore,
 	createSsfEngine = createScspSsfEngine,
 	allowSsfSeek = false,
 	schedule = nativeSchedule,

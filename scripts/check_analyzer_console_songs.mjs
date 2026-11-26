@@ -151,6 +151,48 @@ try {
     await checkOutput(true);
     await stop.click();
   }
+  async function checkWav() {
+    const volume = page.locator('#masterVolumeRange');
+    const level = n => volume.evaluate((el,value) => {el.value=value; el.dispatchEvent(new Event('input'));},n);
+    const mutes = mode => page.evaluate(mode => {
+      const buttons = () => document.querySelectorAll('#inlineMonitorToggles button');
+      for (let i=0;i<buttons().length;i++) {
+        const muted = mode === 'all' || (mode === 'solo' && i !== 0);
+        if ((buttons()[i].getAttribute('aria-pressed') === 'true') !== muted) buttons()[i].click();
+      }
+    },mode);
+    const save = async () => {
+      await page.locator('#exportWavButton').click();
+      await page.locator('#wavMaxSecondsInput').fill('1');
+      const pending = page.waitForEvent('download',{timeout:10000});
+      await page.locator('#wavExportDialog [value=export]').click();
+      const download = await pending.catch(async error => {throw Error(await page.locator('#wavExportStatus').textContent(),{cause:error});});
+      const bytes = await readFile(await download.path());
+      assert.equal(bytes.toString('ascii',0,4),'RIFF');
+      assert.equal(bytes.readUInt32LE(24),44100);
+      assert.equal(bytes.readUInt16LE(22),2);
+      assert.equal(bytes.length,44+44100*4);
+      return bytes;
+    };
+    await movePosition(.5);
+    await play.filter({hasText:'Resume'}).waitFor();
+    await level(100); await mutes('none');
+    const full = await save();
+    assert(full.subarray(44).some(v=>v));
+    await page.locator('#dockEffectTab').click();
+    await page.locator('#effectEnabled').click(); // Effect gain is zero from checkSeek.
+    await mutes('solo');
+    assert.deepEqual(await save(),full,'the single sounding voice is preserved and FX bypassed');
+    await level(50);
+    const half = await save();
+    for (let i=44;i<full.length;i+=2) assert(Math.abs(2*half.readInt16LE(i)-full.readInt16LE(i))<=2);
+    await mutes('all');
+    assert((await save()).subarray(44).every(v=>v===0));
+    assert.equal(await page.locator('#inlinePlaybackSeek').inputValue(),'22050');
+    assert.equal(await play.textContent(),'Resume');
+    await level(100); await mutes('none'); await page.locator('#effectEnabled').click();
+    await stop.click();
+  }
   async function playAudible() {
     await page.evaluate(()=>window.testPeak=0);
     await play.click({timeout:5000});
@@ -169,8 +211,28 @@ try {
     await playAudible();
     if (index < 2) await checkConsoleMixer(index === 0 ? 32 : 24);
     await checkSeek();
+    await checkWav();
     console.log(await tracks.nth(index).textContent());
   }
+  // A caller-selected duration bounds an untimed PSF without borrowing its playing core.
+  const untimed = Buffer.from(Buffer.from(psf.standalone).toString('latin1').replace('length=0:04','unused=0:04'),'latin1');
+  await page.locator('#fileInput').setInputFiles({name:'untimed.psf',mimeType:'application/octet-stream',buffer:untimed});
+  await play.click();
+  await checkOutput(true);
+  await page.locator('#exportWavButton').click();
+  assert.equal(await page.locator('#wavMaxSecondsInput').inputValue(),'120');
+  await page.locator('#wavMaxSecondsInput').fill('2');
+  const before = Number(await page.locator('#inlinePlaybackSeek').inputValue());
+  const saving = page.waitForEvent('download',{timeout:15000});
+  await page.locator('#wavExportDialog [value=export]').click();
+  const saved = await saving;
+  assert.equal(saved.suggestedFilename(),'untimed.wav');
+  assert.equal((await readFile(await saved.path())).length,44+2*44100*4);
+  await page.waitForFunction(ticks => !document.querySelector('#inlinePauseButton').disabled &&
+    +document.querySelector('#inlinePlaybackSeek').value > ticks,before);
+  await stop.click();
+  await page.locator('#consoleFolder').setInputFiles(work);
+  await tracks.nth(3).waitFor();
   // Carry active FX into the next audio context at the natural SSF and PSF ends.
   await page.locator('#dockEffectTab').click();
   await page.locator('#effectEnabled').click();
@@ -187,6 +249,7 @@ try {
   await playAudible();
   await checkConsoleMixer(32);
   await checkSeek();
+  await checkWav();
   console.log('SCSP VGM passed');
   const writes = [];
   const write = (word,value) => writes.push(0xc7,word >> 8,word & 255,value);
@@ -219,6 +282,7 @@ try {
   await movePosition(.2);
   await checkOutput(true);
   await stop.click();
+  await checkWav();
   console.log('VSU VGM passed');
   const mainPlay = page.locator('#inlinePlayButton');
   for (const [path, model] of [['tone.sid','6581'],['rsid/irq.sid','6581'],['tone.sid','8580']]) {

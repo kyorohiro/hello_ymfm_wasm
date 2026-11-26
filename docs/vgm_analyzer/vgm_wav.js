@@ -2,7 +2,7 @@
 // process() the same way the AudioWorklet output stream does, just without
 // real-time pacing.
 
-function wavHeader(totalFrames, sampleRate) {
+export function wavHeader(totalFrames, sampleRate) {
   const bytes = new Uint8Array(44), v = new DataView(bytes.buffer);
   const tag = (offset, text) => { for (let i = 0; i < text.length; i++) bytes[offset + i] = text.charCodeAt(i); };
   const dataBytes = totalFrames * 4;
@@ -13,7 +13,7 @@ function wavHeader(totalFrames, sampleRate) {
   return bytes;
 }
 
-function encodePcm16(left, right, frames) {
+export function encodePcm16(left, right, frames) {
   const bytes = new Uint8Array(frames * 4), v = new DataView(bytes.buffer);
   for (let i = 0; i < frames; i++) {
     const l = Math.max(-1, Math.min(1, left[i])), r = Math.max(-1, Math.min(1, right[i]));
