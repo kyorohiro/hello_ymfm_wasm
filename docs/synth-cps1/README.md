@@ -14,7 +14,7 @@ Files lists the eight current channel voices, saved FM presets, sample banks and
 
 ### Load an Analyzer OPM voice
 
-In Analyzer’s Instrument tab, export the selected YM2151 voice as an `.opm` file. In the Synth, select the destination channel under YM2151, then use **Files → Import OPM**. The first voice is applied immediately. For a text bank, select another name and use **Load voice on selected CH**. The keyboard uses the imported SLOT mask. Code may override it with an explicit `opm.keyOn(ch, mask)`.
+In Analyzer’s Instrument tab, export the selected YM2151 voice as an `.opm` file. In the Synth, select the destination channel under YM2151, then use **☰ → Import → OPM voice…**. The first voice is applied immediately. For a text bank, choose another **OPM voice** in Files. The keyboard uses the imported SLOT mask. Code may override it with an explicit `opm.keyOn(ch, mask)`.
 
 **Apply shared LFO / CH8 noise** applies the selected OPM voice’s global settings. Import leaves the running LFO and noise settings intact. Cassette retains the imported OPM texts and channel masks. The source clock, note pitch and playback position are not restored by voice import.
 
@@ -24,15 +24,15 @@ Choose **Use original kit** on the MSM6295 tab, open **Files → /examples/round
 
 The example programs the FM voices on CH1–3. Export a cassette first if you want to keep their current patches. The Code file selector switches between the example and your own `/index.js`. Each keeps its own edits in the browser, and both are included in a cassette export.
 
-Open **Output → Mixer** to adjust the two chips independently (0–380%) before Master. Mute silences the whole chip. The CH and Voice buttons show which channels are on. Switching a channel off leaves its sound engine running, so switching it back on reveals the current point in the note or sample. MSM6295 voice switches also follow the PCM panel and Code.
+Open the **Mixer** tab to adjust the two chips independently (0–380%) before Master. Mute silences the whole chip. The CH and Voice buttons show which channels are on. Switching a channel off leaves its sound engine running, so switching it back on reveals the current point in the note or sample. MSM6295 voice switches also follow the PCM panel and Code.
 
 **Synth** keeps the selected chip above a separate Keyboard / Code panel. **Code** opens a larger editor and puts the chips and Keyboard in the same tab row. Switching views keeps the current script, audio and keyboard channel. The computer keyboard plays the selected FM channel while the on-screen keyboard is hidden. Focus the editor to type code.
 
 **☰ → New → Cassette · ZIP** stops playback and starts again with the eight factory FM voices, original percussion kit and both bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.
 
-The buttons above the guitar keyboard select the same CH1–CH8 as the YM2151 panel. Use − / + or drag the Octave value horizontally to transpose new notes by up to two octaves in either direction. Held keys release on the channel where they started.
+The FM tab and the keyboard share **AUTO / CH1–CH8**. AUTO copies the current editor sound to successive idle physical channels as you play chords. If all eight are busy it can reuse the oldest AUTO key. Selecting a CH targets that physical voice. Algorithm, Feedback, AMS/PMS, operator and LFO values use the same minus / drag / plus controls as the FM2612 Synth. Pan and other switches toggle directly. Use − / + or drag the Octave value horizontally to transpose new notes by up to two octaves in either direction. Held keys release on the channel where they started.
 
-**Files** beside the mode buttons opens the cassette sidebar on the left (above the panels on narrow screens). **☰ → Import → VGM / VGZ…** adds a song to this cassette. Select it in the VGM playback bar above Output and use **Play**, **Pause / Resume** or **Stop**. Playback runs one pass on separate YM2151 / MSM6295 instances using the file clocks, embedded OKI ROM blocks and the shared Mixer. The chip editors continue to show the live instruments. Dual chips, QSound and other sound-chip commands are outside this player.
+**Files** beside the mode buttons opens the shared cassette file tree on the left (above the panels on narrow screens). **☰ → Import → VGM / VGZ…** adds a song to this cassette. Select it in the VGM playback bar above Output and use **Play**, **Pause / Resume** or **Stop**. Playback runs one pass on separate YM2151 / MSM6295 instances using the file clocks, embedded OKI ROM blocks and the shared Mixer. The chip editors continue to show the live instruments. Dual chips, QSound and other sound-chip commands are outside this player.
 
 **Hit · Voice 4** on the guitar keyboard plays the original kit’s arcade impact while Round Start uses voices 1–3. Its light follows the actual busy bit, including during mute. Older or imported banks without the arcade hit disable this pad.
 

@@ -8,7 +8,7 @@
 <summary id="synthMenuButton" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel">☰</summary>
 <div id="synthMenuPanel" class="synth-menu-panel">
 <h2>New</h2><button id="newCassette" data-close-synth-menu>Cassette · ZIP</button>
-<h2>Import</h2><button id="chooseVgm" data-close-synth-menu>VGM / VGZ…</button><button id="chooseCassette" data-close-synth-menu>Cassette…</button>
+<h2>Import</h2><button id="chooseOpm" data-close-synth-menu>OPM voice…</button><input id="importOpm" type="file" accept=".opm" hidden><button id="chooseVgm" data-close-synth-menu>VGM / VGZ…</button><button id="chooseCassette" data-close-synth-menu>Cassette…</button>
 <h2>Export</h2><button id="exportCassette" data-close-synth-menu>Cassette · ZIP</button>
 </div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="filesToggle" aria-expanded="false" aria-controls="files">Files</button><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></header>
 <section id="referenceSong" aria-label="VGM reference playback" hidden>
@@ -19,17 +19,17 @@
 <div id="songOki" hidden><h3>MSM6295</h3><div id="songOkiVoices" class="bar" aria-label="Paused MSM6295 voices"></div>
 <output id="songSampleInfo"></output><figure class="sample-preview"><canvas id="songSampleWave" width="768" height="96" aria-label="Paused sample waveform"></canvas></figure>
 <button id="previewSongSample" disabled>Preview</button></div></section>
-<section class="output"><div class="bar"><h2>Output</h2><button id="scopeMode">Waveform</button><label>Master <input id="master" type="range" min="0" max="380" value="85"><output id="volume">85%</output></label><button id="toggleMixer" aria-expanded="false" aria-controls="mixer">Mixer</button><button id="power">Start audio</button></div>
-<canvas id="scope" width="900" height="96" aria-label="Output signal"></canvas><div id="mixer" role="group" aria-label="Output mixer" hidden></div><output id="status" role="status">Ready</output></section>
-<div id="workspace"><aside id="files" hidden><h2>Files</h2>
+<section class="output"><div class="bar"><h2>Output</h2><button id="scopeMode">Waveform</button><label>Master <input id="master" type="range" min="0" max="380" value="85"><output id="volume">85%</output></label><button id="power">Start audio</button></div>
+<canvas id="scope" width="900" height="96" aria-label="Output signal"></canvas><output id="status" role="status">Ready</output></section>
+<div id="workspace"><aside id="files" hidden><div class="files-heading"><h2>Files</h2><button id="saveVoice" title="Save selected CH as preset">＋ Preset</button></div><p id="cassetteName">tetorica-cps1.cassette.zip</p>
 
-<div class="file-groups"><label>FM voices <select id="fmFiles" size="5"></select></label><label>Sample banks <select id="romFiles" size="5"></select></label></div>
-<div class="bar"><label>Import OPM <input id="importOpm" type="file" accept=".opm"></label><button id="opmGlobals" disabled>Apply shared LFO / CH8 noise</button></div>
-<div class="bar"><button id="loadVoice">Load voice on selected CH</button><button id="saveVoice">Save selected CH as preset</button><button id="loadBank">Load sample bank</button></div>
-<p><button id="openCode">/index.js</button> <button id="openRoundStart">/examples/round-start.js</button></p>
+<div id="fileTree" aria-label="Cassette files"></div><button id="copyChannelFile" hidden>Load voice on selected CH</button>
+<div class="bar"><label id="opmPick" hidden>OPM voice <select id="opmVoice"></select></label><button id="opmGlobals" hidden>Apply shared LFO / CH8 noise</button></div>
+
 <output id="fileStatus" role="status"></output></aside>
 <div id="workbench">
-<nav id="sourceTabs" aria-label="Sound chips"><button data-tab="fm">YM2151</button><button data-tab="pcm">MSM6295</button></nav>
+<nav id="sourceTabs" aria-label="Sound chips"><button data-tab="fm">FM</button><button data-tab="pcm">MSM6295</button><button data-tab="mixer">Mixer</button></nav>
+<section id="mixer" aria-label="Output mixer" hidden></section>
 <section id="fm"></section>
 <section id="pcm" hidden><h2>MSM6295</h2><div class="bar"><label>Sample <select id="sample"></select></label><label>Attenuation <input id="attenuation" type="number" min="0" max="15" value="2"></label></div>
 <figure class="sample-preview"><canvas id="sampleWave" width="768" height="96" aria-label="Decoded sample waveform"></canvas><figcaption id="sampleRange"></figcaption></figure>

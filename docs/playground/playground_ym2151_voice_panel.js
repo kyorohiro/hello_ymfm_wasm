@@ -209,7 +209,7 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
     };
     keyboardButton.setAttribute('aria-pressed', String(keyboardActive)); if (keyboardActive) onKeyboardTargetChange(target);
   }
-  function selectChannel(next) {if (channel === next) return; releaseAll(); channel = next; updateTarget(); if (state) update(state); onChannelChange(channel);}
+  function selectChannel(next) {if (channel === next) {onChannelChange(channel);return;} releaseAll(); channel = next; updateTarget(); if (state) update(state); onChannelChange(channel);}
   function holdStart(event) {
     if (!visible || !connected || event.type === 'pointerdown' && event.button !== undefined && event.button !== 0 || event.type === 'keydown' && (event.repeat || ![' ', 'Enter'].includes(event.key))) return;
     event.preventDefault(); releaseSource('hold'); const id = startNote(channel, Number(auditionNote.value), 'hold'); if (!id) return;

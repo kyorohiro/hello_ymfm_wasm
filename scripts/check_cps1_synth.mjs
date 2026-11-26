@@ -60,6 +60,10 @@ try {
   const keyChannels = page.locator('#keyChannels');
   const chipChannel = ch => page.locator('[data-chip-channel="'+(ch-1)+'"]');
   const chooseKeyChannel = ch => keyChannels.getByRole('button',{name:'CH'+ch,exact:true}).click();
+  assert.equal(await keyChannels.getByText('AUTO').getAttribute('aria-pressed'),'true');
+  await page.keyboard.down('a');await page.keyboard.down('s');
+  await page.waitForFunction(()=>document.querySelectorAll('#fm [data-chip-channel][data-sounding=true]').length===2);
+  await page.keyboard.up('s');await page.keyboard.up('a');
   await chipChannel(4).click();
   assert.equal(await keyChannels.getByText('CH4',{exact:true}).getAttribute('aria-pressed'),'true');
   await page.keyboard.down('a');
@@ -86,8 +90,8 @@ try {
   await chooseKeyChannel(1);
   await page.keyboard.down('a');
   await page.waitForFunction(() => window.peak>.001);
-  await page.locator('[data-chip-control="ym2151-feedback"]').fill('6');
-  await page.locator('[data-chip-control="ym2151-feedback"]').press('Tab');
+  const feedback=page.getByRole('button',{name:'Feedback (OP1)',exact:true});
+  for (let i=0;i<4;i++) await feedback.locator('..').getByRole('button',{name:'+',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-chip-control="ym2151-code"]').value.includes('opm.setAlgo(0, 4, 6)'));
   await voiceTab('Operators').click();
   const level = page.getByRole('button',{name:'OP1 · M1 TL',exact:true});
@@ -99,7 +103,7 @@ try {
   await page.mouse.move(box.x+box.width/2+20,box.y+box.height/2,{steps:4});
   await page.mouse.up();
   assert.ok(Number(await level.textContent()) > before);
-  await page.click('#toggleMixer');
+  await page.click('[data-tab="mixer"]');
   const channel = page.getByRole('button',{name:'YM2151 CH1 on',exact:true});
   await channel.click();
   await page.waitForFunction(()=>window.lastPeak===0);
@@ -115,8 +119,10 @@ try {
   await page.waitForTimeout(600);
   await page.evaluate(() => {window.peak=0;});
   const mute = page.getByRole('button',{name:'Mute Voice 1',exact:true});
-  const voice = page.getByRole('button',{name:'MSM6295 Voice 1 on',exact:true});
+  const voice = page.locator('#mixer [aria-label="MSM6295 Voice 1 on"]');
+  await page.click('[data-tab="mixer"]');
   await voice.click();
+  await page.click('[data-tab="pcm"]');
   assert.equal(await mute.getAttribute('aria-pressed'),'true');
   await page.locator('#voices button').first().click();
   await page.waitForFunction(() => document.querySelector('#busy').value==='0xF1');
@@ -124,7 +130,6 @@ try {
   assert.equal(await page.evaluate(() => window.peak),0);
   await mute.click();
   assert.equal(await voice.getAttribute('aria-pressed'),'true');
-  await page.click('#toggleMixer');
   assert.match(await page.locator('#sampleRange').textContent(),/0x00400/);
   await page.selectOption('#sample','1');
   assert.match(await page.locator('#sampleRange').textContent(),/0x00800/);
@@ -140,7 +145,7 @@ try {
   await page.click('#run'); await page.click('#stop');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
-  await page.click('#openRoundStart');
+  await page.click('[data-file-path="/examples/round-start.js"]');
   await page.waitForFunction(()=>document.querySelector('#codeFile').value==='/examples/round-start.js');
   const round = await page.inputValue('#editor');
   assert.match(round,/Round Start/);
@@ -182,7 +187,7 @@ try {
   await page.locator('#rom').setInputFiles({name:'test.rom',mimeType:'application/octet-stream',buffer:Buffer.alloc(2048)});
   await page.getByText('test.rom',{exact:true}).first().waitFor();
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
-  await page.click('#loadBank');
+  await page.click('button[data-file-path="/banks/1.rom"]');
   assert.ok(await page.locator('#pcm').isVisible());
   assert.match(await page.locator('#sampleRange').textContent(),/Empty/);
   assert.ok(await page.locator('#sampleWave').isHidden());
@@ -191,7 +196,7 @@ try {
   const opmText = ['@:0 Browser brass','LFO: 93 34 67 2 17','CH: 192 5 6 1 3 40 128',
     ...['M1','C1','M2','C2'].map((name,i)=>name+': 31 2 3 4 5 '+(28+i)+' 0 1 0 0 0')].join('\n');
   await page.locator('#importOpm').setInputFiles({name:'voice.opm',mimeType:'text/plain',buffer:Buffer.from(opmText)});
-  await page.waitForFunction(()=>document.querySelector('#fmFiles option:checked').textContent==='Browser brass');
+  await page.waitForFunction(()=>document.querySelector('#opmVoice option:checked')?.textContent==='Browser brass');
   await page.click('[data-tab="fm"]');
   assert.equal(await page.locator('[data-chip-control="ym2151-feedback"]').inputValue(),'5');
   await page.keyboard.down('a');
@@ -276,7 +281,7 @@ try {
   await page.click('#synthMenuButton');
   await page.click('#newCassette');
   assert.equal(await page.inputValue('#editor'),'// changed');
-  assert.equal(await page.locator('#fmFiles option').count(),10);
+  assert.equal(await page.locator('button[data-file-path^="/presets/"]').count(),10);
   await page.fill('#editor','while (true) {}');
   await page.click('#run');
   await page.waitForFunction(()=>document.querySelector('#status').textContent==='Running');
@@ -285,9 +290,9 @@ try {
   await page.click('#newCassette');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   assert.equal(await page.inputValue('#editor'),factoryCode);
-  assert.equal(await page.locator('#fmFiles option').count(),8);
-  assert.deepEqual(await page.locator('#romFiles option').allTextContents(),['Original kit']);
-  await page.click('#openRoundStart');
+  assert.equal(await page.locator('button[data-file-path^="/presets/"]').count(),8);
+  assert.deepEqual(await page.locator('button[data-file-path^="/banks/"]').count(),1);
+  await page.click('[data-file-path="/examples/round-start.js"]');
   await page.waitForFunction(()=>document.querySelector('#codeFile').value==='/examples/round-start.js');
   assert.equal(await page.inputValue('#editor'),round);
   await page.click('[data-tab="fm"]');
@@ -300,13 +305,13 @@ try {
   await (await chooser).setFiles({name:'test.cassette.zip',mimeType:'application/zip',buffer:await readFile(archive)});
   await page.getByText('Imported test.cassette.zip',{exact:true}).waitFor();
   assert.deepEqual(await page.locator('#songs option').allTextContents(),['hit.vgz','fm.vgm']);
-  assert.equal(await page.locator('#romFiles option:checked').textContent(),'test.rom');
-  assert.equal(await page.locator('#fmFiles option').count(),10);
-  await page.click('#openCode');
+  assert.equal(await page.locator('#romName').textContent(),'test.rom');
+  assert.equal(await page.locator('button[data-file-path^="/presets/"]').count(),10);
+  await page.click('[data-file-path="/index.js"]');
   assert.equal(await page.inputValue('#editor'),'while (true) {}');
   await page.click('[data-tab="fm"]');
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
-  await page.click('#openRoundStart');
+  await page.click('[data-file-path="/examples/round-start.js"]');
   assert.equal(await page.inputValue('#editor'),round+'\n// rehearsal');
   await page.click('[data-tab="fm"]');
   const sidebar = await page.locator('#files').boundingBox();

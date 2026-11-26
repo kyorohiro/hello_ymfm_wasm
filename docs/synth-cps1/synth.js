@@ -44,9 +44,19 @@ const opm = createYm2151RegisterClient((method,args) => {
 });
 const keyOn = opm.keyOn;
 opm.keyOn = (ch,mask=keyMasks[ch]) => keyOn(ch,mask);
-const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:arrangeVoiceSections,onChannelChange:syncKeyChannels,createOperatorControl:createParamControl,invoke(method,args) {
+let autoChannel=true, nextChannel=0;
+const autoHeld=new Map();
+function editVoice(method,args) {
+  const result=inspector.invoke(method,args);
+  if (['setVoice','setOperator'].includes(method)) files.recordEdit(args[0]);
+  if (autoChannel && ['setVoice','setOperator'].includes(method)) {
+    for (const ch of new Set(autoHeld.values())) if (ch!==args[0]) inspector.invoke(method,[ch,...args.slice(1)]);
+  }
+  return result;
+}
+const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:arrangeVoiceSections,onChannelChange:()=>{autoChannel=false;syncKeyChannels();},createOperatorControl:createParamControl,invoke(method,args) {
   if (method === 'auditionOn') startAudio().catch(fail);
-  return inspector.invoke(method,args);
+  return editVoice(method,args);
 },onError:fail});
 panel.setConnected(true);
 for (let ch=0;ch<8;ch++) {
@@ -113,7 +123,7 @@ new ResizeObserver(([entry]) => {
   canvas.height = Math.max(1,Math.round(entry.contentRect.height));
 }).observe(canvas);
 function draw() {
-  if (dirty) {panel.update(inspector.read()); dirty = false;}
+  if (dirty) {panel.update(inspector.read()); syncKeyChannels(); dirty = false;}
   scope.draw(canvas,ctx,mode);
   requestAnimationFrame(draw);
 }
@@ -137,7 +147,10 @@ function renderWorkspace() {
     const id = tab.dataset.tab;
     const visible = synth ? id === synthView.source || id === synthView.performance : id === codeView;
     $(id).hidden = !visible;
-    tab.setAttribute('aria-pressed',String(visible));
+    tab.setAttribute('role','tab');
+    tab.setAttribute('aria-selected',String(visible));
+    tab.tabIndex=visible?0:-1;
+    $(id).setAttribute('role','tabpanel');
     tab.setAttribute('aria-controls',id);
   }
   panel.setVisible(!$('fm').hidden);
@@ -166,6 +179,16 @@ for (const tab of tabs) tab.onclick = () => {
   else synthView.source = id;
   renderWorkspace();
 };
+for (const bar of [$('sourceTabs'),$('performanceTabs')]) {
+  bar.setAttribute('role','tablist');
+  bar.onkeydown=e=>{
+    const items=[...bar.children], index=items.indexOf(e.target);
+    if (index<0 || !['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return;
+    e.preventDefault();
+    const target=e.key==='Home'?0:e.key==='End'?items.length-1:(index+(e.key==='ArrowRight'?1:-1)+items.length)%items.length;
+    items[target].focus();items[target].click();
+  };
+}
 renderWorkspace();
 
 const hex = n => '0x'+n.toString(16).toUpperCase().padStart(2,'0');
@@ -268,10 +291,6 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
   });
   group.append(legend,row,channels); $('mixer').append(group);
 }
-$('toggleMixer').onclick=()=>{
-  $('mixer').hidden=!$('mixer').hidden;
-  $('toggleMixer').setAttribute('aria-expanded',String(!$('mixer').hidden));
-};
 showBusy(0xf0);
 let romRevision = 0;
 function installRom(bytes,names,label) {
@@ -289,16 +308,25 @@ $('rom').onchange = async () => {
 };
 $('restore').onclick = () => {romRevision++; $('rom').value=''; files.restoreKit();};
 
-function syncKeyChannels(channel) {
-  Array.from($('keyChannels').children).forEach((button,i) => button.setAttribute('aria-pressed',String(i === channel)));
+function syncKeyChannels() {
+  const target=autoChannel?-1:panel.getSelectedChannel();
+  for (const button of document.querySelectorAll('[data-key-channel],[data-chip-channel]')) {
+    const ch=Number(button.dataset.keyChannel ?? button.dataset.chipChannel);
+    button.setAttribute('aria-pressed',String(ch===target));
+  }
 }
-for (let ch=0;ch<8;ch++) {
-  const button = document.createElement('button');
-  button.textContent = 'CH'+(ch+1);
-  button.onclick = () => panel.selectChannel(ch);
-  $('keyChannels').append(button);
+function channelButton(ch) {
+  const button=document.createElement('button');
+  button.dataset.keyChannel=String(ch);button.textContent=ch<0?'AUTO':'CH'+(ch+1);
+  button.onclick=()=>{
+    if (ch<0) {autoChannel=true;nextChannel=panel.getSelectedChannel();syncKeyChannels();}
+    else panel.selectChannel(ch);
+  };
+  return button;
 }
-syncKeyChannels(panel.getSelectedChannel());
+$('fm').querySelector('.chip-channel-list').prepend(channelButton(-1));
+for (let ch=-1;ch<8;ch++) $('keyChannels').append(channelButton(ch));
+syncKeyChannels();
 const fretboard = createFretboardState();
 let layout = createFretboardLayout({state:fretboard});
 const octaveControl = createParamControl({label:'Octave',min:-2,max:2,step:1,value:0,showLabel:false,
@@ -316,12 +344,26 @@ $('keyOctave').append(octaveControl.element);
 const held = new Map();
 function press(id,entry) {
   if (held.has(id)) return;
-  const ch = panel.getSelectedChannel();
+  let ch=panel.getSelectedChannel();
+  if (autoChannel) {
+    const channels=inspector.read().channels;
+    const free=Array.from({length:8},(_,i)=>(nextChannel+i)%8).find(i=>!channels[i].active);
+    const oldest=autoHeld.entries().next().value;
+    if (free===undefined && !oldest) return;
+    const target=free ?? oldest[1];
+    for (const [owner,used] of autoHeld) if (used===target) autoHeld.delete(owner);
+    if (target!==ch) {
+      const {algorithm,feedback,pan,ams,pms,operators}=channels[ch];
+      inspector.invoke('setVoice',[target,{algorithm,feedback,pan,ams,pms,operators}]);
+      keyMasks[target]=keyMasks[ch];
+    }
+    ch=target;nextChannel=(ch+1)%8;autoHeld.set(id,ch);
+  }
   held.set(id,ch); inspector.invoke('auditionOn',[ch,entry.midi,id]); startAudio().catch(fail);
 }
 function release(id) {
   if (held.has(id)) inspector.invoke('auditionOff',[held.get(id),id]);
-  held.delete(id);
+  held.delete(id);autoHeld.delete(id);
 }
 buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entries,showPitch:false,
   onPointerDown:(e,key) => press('pointer'+e.pointerId,layout.entries.find(entry => entry.key === key.key)),
@@ -378,8 +420,6 @@ async function openScript(path) {
   } catch (error) {if (request === openRequest) {$('codeFile').value=activePath; fail(error);}}
 }
 $('codeFile').onchange = () => openScript($('codeFile').value);
-$('openCode').onclick = () => openScript(entryPath);
-$('openRoundStart').onclick = () => openScript(roundPath);
 let songNode, songRequest=0;
 let pausedSong=null, sourceChannel=0;
 let previewNode, previewGain, selectedOkiVoice=0, sampleBuffer;
@@ -541,7 +581,7 @@ async function playSong(song) {
 function stopRun() {
   stopSong();
   runId++; worker?.terminate(); worker = null;
-  panel.releaseAll(); held.clear();
+  panel.releaseAll(); held.clear();autoHeld.clear();
   for (let ch=0;ch<8;ch++) opm.keyOff(ch);
   write(0x78);
 }
@@ -567,7 +607,7 @@ $('run').onclick = async () => {
   } catch (error) {stopRun();fail(error);}
 };
 
-const files = setupFiles({inspector,panel,keyMasks,playSong,stopSong,openFiles:()=>setFilesOpen(true),defaultCode:example,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
+const files = setupFiles({inspector,panel,keyMasks,openScript,playSong,stopSong,openFiles:()=>setFilesOpen(true),defaultCode:example,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
   applyBank:installRom,getCode:() => scripts.get(entryPath),getRoundSource:roundSource,
   setCode:(value,round) => {
     openRequest++;

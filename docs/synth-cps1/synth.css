@@ -189,3 +189,22 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
   #workbench #fm {padding-block:.35rem}
   #referenceSong:not([hidden]) + .output canvas {height:38px}
 }
+
+#sourceTabs,#performanceTabs,.voice-tabs {display:flex;gap:.15rem;padding:0;border:0;border-bottom:2px solid var(--deep-green);border-radius:0;background:transparent}
+#workbench nav {padding:0}
+#sourceTabs button,#performanceTabs button,.voice-tabs button {background:#e6d7b8;border:1px solid var(--line);border-bottom:0;border-radius:.45rem .45rem 0 0;padding:.25rem .65rem;color:var(--ink)}
+#workbench [role=tab][aria-selected=true],.voice-tabs button[aria-pressed=true] {background:var(--deep-green);color:white}
+#fm .chip-channel-list {grid-template-columns:repeat(9,minmax(0,1fr))}
+#keyChannels button {font-size:.78rem}
+.chip-fields .param-control {min-width:3.6rem}
+.chip-fields .param-label {grid-column:1/-1;font-size:.75rem;text-align:center}
+#fileTree {font-size:.86rem}
+#fileTree ul {list-style:none;margin:0;padding:0}
+#fileTree ul ul {padding-left:.8rem;border-left:1px solid var(--line)}
+#fileTree summary {cursor:pointer;font-weight:600}
+#fileTree .file-entry {background:transparent;border:0;padding:.18rem .4rem;text-align:left;overflow-wrap:anywhere;width:100%;font-weight:400}
+#fileTree .file-entry[aria-current=true] {color:white;background:var(--deep-green)}
+.files-heading {display:flex;align-items:center;justify-content:space-between;gap:.4rem}
+.files-heading h2 {text-transform:uppercase;letter-spacing:.1em;font-size:.9rem}
+.files-heading button,#cassetteName {font-size:.75rem}
+#cassetteName {color:#58533f;overflow-wrap:anywhere}
