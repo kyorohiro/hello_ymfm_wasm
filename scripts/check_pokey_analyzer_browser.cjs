@@ -106,22 +106,26 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
       assert.deepEqual(Object.keys(state.configuration.chips.reduce((all,{id})=>(all[id]=true,all),{})),dual?['pokey','pokey:2']:['pokey']);
       assert.equal(await page.locator('#operatorInfoTab').isDisabled(),false,'POKEY register/channel monitor must be available');
       for(const selector of ['#noteishTab','#tfiInfoTab'])assert.equal(await page.locator(selector).isDisabled(),true,selector+' should not promise unsupported note/instrument extraction');
-      await page.locator('#operatorInfoTab').click();assert.equal(await page.locator('#pokeyMonitor').isVisible(),true,'Operator Info must show the POKEY monitor');
-      assert.equal(await page.locator('#pokeyMonitor > section').count(),dual?2:1,'One visible state section per physical chip');
-      for(let index=0;index<(dual?2:1);index++)assert.equal(await page.locator('#pokeyMonitor > section').nth(index).locator('p').count(),5,'Shared control plus four physical channel rows');
+      await page.locator('#operatorInfoTab').click();assert.equal(await page.locator('#chipMonitorPanels > div:visible').count(),1,'SoundChip shows one POKEY at a time');
+      assert.equal(await page.locator('#chipMonitorPanels > div > section').count(),dual?2:1,'One visible state section per physical chip');
+      for(let index=0;index<(dual?2:1);index++)assert.equal(await page.locator('#chipMonitorPanels > div > section').nth(index).locator('p').count(),5,'Shared control plus four physical channel rows');
+      await page.locator('#chipMonitorTabs button').nth(chip).click();
+      assert(await page.locator('#chipMonitorPanels > div').nth(chip).isVisible());
       return state;
     };
-    const play=async()=>{const before=await snapshot(page);await page.locator('#inlinePlayButton').click();await page.waitForFunction(before=>{const s=window.__pokeyAnalyzerTest.snapshot();return s.mode==='worklet'&&s.worklets>before.worklets&&s.frames>before.frames;},{worklets:before.worklets,frames:before.frames});};
+    const play=async()=>{const before=await snapshot(page);await page.locator('#dockPlayTab').click();await page.locator('#playButton').click();await page.waitForFunction(before=>{const s=window.__pokeyAnalyzerTest.snapshot();return s.mode==='worklet'&&s.worklets>before.worklets&&s.frames>before.frames;},{worklets:before.worklets,frames:before.frames});};
+    const {mixerDefaults} = await import('../docs/vgm_analyzer/mixer_defaults.js');
     const scenes=[];
     for(const dual of [false,true])for(let chip=0;chip<(dual?2:1);chip++)for(let channel=0;channel<4;channel++) {
       await load({dual,chip,channel});await play();await page.waitForTimeout(180);
       const audible=await signal(page);assert(audible.acRms>.001,`POKEY${chip+1} CH${channel+1} real Worklet is silent: ${JSON.stringify(audible)}`);
-      let state=await snapshot(page);assert.equal(state.mixer.pokey.gain,1,'Unmeasured POKEY default remains unity');
-      if(dual)assert.equal(state.mixer['pokey:2'].gain,1);
+      let state=await snapshot(page);assert.equal(state.mixer.pokey.gain,mixerDefaults('pokey').gain);
+      if(dual)assert.equal(state.mixer['pokey:2'].gain,mixerDefaults('pokey:2').gain);
       const active=chip*4+channel;assert.equal(state.channels[active].volume,12,'BB address chip bit must reach the matching register monitor');
       assert.equal(state.channels[active].chipIndex,chip);assert.equal(state.channels[active].channel,channel);
       for(let index=0;index<state.channels.length;index++)if(index!==active)assert.equal(state.channels[index].volume,0,`Inactive physical channel ${index} must remain off`);
-      await page.waitForFunction(({chip,channel})=>document.querySelectorAll('#pokeyMonitor > section')[chip]?.querySelectorAll('p')[channel+1]?.textContent.includes('Volume 12/15'),{chip,channel});
+      await page.waitForFunction(({chip,channel})=>document.querySelectorAll('#chipMonitorPanels > div > section')[chip]?.querySelectorAll('p')[channel+1]?.textContent.includes('Volume 12/15'),{chip,channel});
+      await page.locator('#playlistTab').click();
       const button=page.locator(`#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="${active}"]`);
       await button.click();assert.equal(await button.getAttribute('aria-pressed'),'false');await page.waitForTimeout(250);
       const muted=await signal(page);assert(muted.peak<1e-7,`POKEY${chip+1} CH${channel+1} channel mute leaked audio: ${JSON.stringify(muted)}`);
@@ -130,8 +134,9 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     }
     // Two distinct pitches keep independent chip routing visible in real PCM.
     await load({dual:true,seconds:20,voices:[{chip:0,channel:0,frequency:440},{chip:1,channel:0,frequency:660}]});await play();await page.waitForTimeout(180);
-    const both=await signal(page);assert(both.acRms>.001);
     await page.locator('#dockMixerTab').click();
+    await chipRange(page,'pokey',0,100);await chipRange(page,'pokey:2',0,100);await page.waitForTimeout(250);
+    const both=await signal(page);assert(both.acRms>.001);
     const mute=id=>page.locator(`#mixerStrips [data-chip="${id}"] button.channel-toggle`);
     await mute('pokey').click();await page.waitForTimeout(250);const secondOnly=await signal(page);assert(secondOnly.acRms>.001);
     assert.equal((await snapshot(page)).mixer.pokey.muted,true);assert.equal((await snapshot(page)).mixer['pokey:2'].muted,false);
@@ -142,6 +147,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     await chipRange(page,'pokey',1,-100);await page.waitForTimeout(250);const panLeft=await signal(page);assert(panLeft.sides[0].acRms>.001);assert(panLeft.sides[1].peak<1e-7,'POKEY1 full-left pan must silence only the right side');
     await chipRange(page,'pokey',1,0);await mute('pokey:2').click();await page.waitForTimeout(200);
     const restored=await signal(page);assert(restored.acRms>Math.max(firstOnly.acRms,secondOnly.acRms)*1.15,'Restoring both chips must restore their summed output');
+    await page.locator('#playlistTab').click();
     await page.locator('#inlinePauseButton').click();await page.waitForFunction(()=>window.__pokeyAnalyzerTest.snapshot().stats.paused&&window.__pokeyAnalyzerTest.snapshot().context==='suspended');
     const paused=(await snapshot(page)).stats.processedWaitSamples;await page.waitForTimeout(120);assert.equal((await snapshot(page)).stats.processedWaitSamples,paused,'Pause must not advance VGM commands');
     await page.locator('#inlinePlayButton').click();await page.waitForFunction(()=>window.__pokeyAnalyzerTest.snapshot().stats.playing&&window.__pokeyAnalyzerTest.snapshot().context==='running');assert((await signal(page)).acRms>.001);
@@ -154,6 +160,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     await load({dual:true,chip:1,channel:2,stream:true});await play();await page.waitForTimeout(180);
     const streamAudible=await signal(page);assert(streamAudible.acRms>.001,'Generic DAC stream 0x9e must reach POKEY2 AUDC3');
     state=await snapshot(page);assert.equal(state.channels[6].type,'Volume-only DAC');assert.equal(state.channels[6].midi,null,'Timed DAC values must not invent a note');
+    await page.locator('#playlistTab').click();
     const streamMute=page.locator('#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="6"]');
     await streamMute.click();await page.waitForTimeout(250);const streamMuted=await signal(page);assert(streamMuted.peak<1e-7,'Timed DAC stream channel mute must silence its output');
     await streamMute.click();await page.waitForTimeout(180);assert((await signal(page)).acRms>.001,'Timed DAC stream must survive mute/unmute');

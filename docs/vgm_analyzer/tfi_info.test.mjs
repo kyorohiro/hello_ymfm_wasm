@@ -78,6 +78,7 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
     MegaSynth: class { constructor(options) { this.options = options; synths.push(this); } },
     mountOpmInfo() { return {setVisible() {},dispose() {}}; },
     mountSbiInfo() { return {setVisible() {},dispose() {}}; },
+    chipMonitorStorage: {append() {}}, chipMonitorTabs: element(),
     mountYm2413Monitor() { return {}; },
     mountOplMonitor() { return {}; },
     sheetMusicPanel:element(),sheetMusicTab:element(),musicSheet:null,currentBuffer:null,midiExportAvailable:false,

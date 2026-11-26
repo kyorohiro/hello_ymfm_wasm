@@ -54,7 +54,7 @@ try {
     };
   });
   assert.equal(await page.getByRole('tab',{name:'Basic',exact:true}).getAttribute('aria-selected'),'true');
-  assert(await page.getByRole('tab',{name:'Parsed Output'}).isDisabled());
+  assert(await page.getByRole('tab',{name:'VGM',exact:true}).isDisabled());
   async function chooseFromBasic(name, files) {
     const [chooser] = await Promise.all([
       page.waitForEvent('filechooser'),
@@ -303,11 +303,20 @@ try {
   opn.writeUInt32LE(opn.length-4,4);
   opn.writeUInt32LE(0,0xc4);
   opn.writeUInt32LE(7670454,0x2c);
+  opn.writeUInt32LE(3579545,0x0c);
   opn.set([0x62,0x66],0xc8);
   async function openOpnMonitor() {
     await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});
     await page.locator('#operatorInfoTab').click();
-    assert.ok(await page.locator('#operatorInfoPanel').isVisible());
+    const soundChip = page.getByRole('tabpanel',{name:'SoundChip',exact:true});
+    const chips = soundChip.getByRole('tab');
+    assert.deepEqual(await chips.allTextContents(),['YM2612','Sega PSG']);
+    await chips.first().click();
+    assert(await soundChip.getByText('FM Channel Monitor',{exact:true}).isVisible());
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await chips.last().getAttribute('aria-selected'),'true');
+    assert(await page.locator('#psgMonitorTitle').isVisible());
+    assert(await page.locator('#channelGrid').isHidden());
   }
   await openOpnMonitor();
   await page.locator('#fileInput').setInputFiles({name:'original-vsu.vgm',mimeType:'application/octet-stream',buffer:vsu});
