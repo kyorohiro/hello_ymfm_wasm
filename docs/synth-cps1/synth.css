@@ -82,3 +82,19 @@ table {width:100%;border-collapse:collapse;font-size:.88rem}
 #mixer input {flex:1;min-width:4rem}
 #mixer output {min-width:4ch;text-align:right;font-variant-numeric:tabular-nums}
 #mixer button {padding:.2rem .5rem}
+
+.mode-switch {display:flex;gap:.25rem;margin-left:auto}
+header::after {margin-left:0}
+#workbench {display:grid;grid-template-columns:minmax(0,1fr);gap:.4rem;margin-top:.75rem}
+#workbench nav {margin:0;padding:.35rem .5rem}
+#sourceTabs {grid-row:1}
+#workbench > section {grid-row:2;min-width:0;padding:.65rem;border:1px solid var(--line);border-radius:.7rem;background:var(--panel)}
+#workbench #keyboardPanel {background:var(--blue);border-color:#15316b;border-bottom:4px solid #e6af26}
+#performanceTabs {grid-row:3}
+[data-mode=synth] #workbench :is(#code,#keyboardPanel) {grid-row:4}
+[data-mode=code] #editor {height:clamp(18rem,45vh,40rem)}
+@media(min-width:720px) and (min-height:580px) {
+  [data-mode=synth] #workbench :is(#fm,#pcm,#files) {max-height:clamp(15rem,36vh,30rem);overflow:auto}
+}
+@media(max-width:480px) {.mode-switch {margin-left:0}}
+[data-mode=code] #sourceTabs {position:sticky;top:0;z-index:2;background:#e7d7b8}

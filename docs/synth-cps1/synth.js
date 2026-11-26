@@ -113,13 +113,49 @@ function draw() {
   requestAnimationFrame(draw);
 }
 draw();
-for (const tab of document.querySelectorAll('[data-tab]')) tab.onclick = () => {
-  for (const button of document.querySelectorAll('[data-tab]')) {
-    $(button.dataset.tab).hidden = button !== tab;
-    button.setAttribute('aria-pressed',String(button === tab));
+const main = document.querySelector('main');
+const tabs = [...document.querySelectorAll('[data-tab]')];
+const synthView = {source:'fm',performance:'keyboardPanel'};
+let codeView = 'code';
+function renderWorkspace() {
+  const synth = main.dataset.mode === 'synth';
+  $('performanceTabs').hidden = !synth;
+  $('sourceTabs').setAttribute('aria-label',synth ? 'Sound chip and files' : 'Code workspace');
+  $('synthMode').setAttribute('aria-pressed',String(synth));
+  $('codeMode').setAttribute('aria-pressed',String(!synth));
+  for (const tab of tabs) {
+    const id = tab.dataset.tab;
+    const visible = synth ? id === synthView.source || id === synthView.performance : id === codeView;
+    $(id).hidden = !visible;
+    tab.setAttribute('aria-pressed',String(visible));
+    tab.setAttribute('aria-controls',id);
   }
-  panel.setVisible(tab.dataset.tab === 'fm');
+  panel.setVisible(!$('fm').hidden);
+}
+function changeMode(mode) {
+  if (main.dataset.mode === mode) return;
+  main.dataset.mode = mode;
+  const codeTab = tabs.find(tab=>tab.dataset.tab==='code');
+  const keyboardTab = tabs.find(tab=>tab.dataset.tab==='keyboardPanel');
+  if (mode === 'code') {
+    $('sourceTabs').prepend(codeTab);
+    $('sourceTabs').append(keyboardTab);
+    codeView = 'code';
+  } else {
+    $('performanceTabs').append(keyboardTab,codeTab);
+  }
+  renderWorkspace();
+}
+$('synthMode').onclick = () => changeMode('synth');
+$('codeMode').onclick = () => changeMode('code');
+for (const tab of tabs) tab.onclick = () => {
+  const id = tab.dataset.tab;
+  if (main.dataset.mode === 'code') codeView = id;
+  else if (tab.parentElement === $('performanceTabs')) synthView.performance = id;
+  else synthView.source = id;
+  renderWorkspace();
 };
+renderWorkspace();
 
 const hex = n => '0x'+n.toString(16).toUpperCase().padStart(2,'0');
 function limit(value,max,name) {
