@@ -573,7 +573,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=output-scope-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=import-hint-1">
   </head>
   <body>
     <main>
@@ -588,11 +588,6 @@
                 <input hidden id="fileInput" type="file" multiple aria-label="Music or ROM files" accept=".vgm,.vgz,.s98,.spc,.ssf,.minissf,.ssflib,.psf,.minipsf,.psflib,.sid,.psf1lib,.bin,.rom,application/octet-stream">
                 <button type="button" data-import-input="consoleFolder" title="Choose the folder containing the songs and their libraries">Folder…</button>
                 <input hidden type="file" multiple webkitdirectory id="consoleFolder" aria-label="Music folder">
-                <details class="import-rom-info">
-                  <summary>ROM files</summary>
-                  <p id="romFileStatus">Use Files… for yrw801.rom (2 MiB) or ym2608_adpcm_rom.bin.</p>
-                  <p>YM2608 rhythm: <a href="../js/tetorica_ym2608_adpcm_rom.bin" download>Download Tetorica synthetic ROM</a>. Sounds differ from the original. <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause license</a>.</p>
-                </details>
               </div>
               <button id="chipSupportButton" type="button" aria-haspopup="dialog" aria-controls="chipSupportDialog">Sound chip support</button>
               <button data-reset-offline-cache type="button">Reset Offline Cache</button>
@@ -715,8 +710,9 @@
         </div>
 
         <section id="playlistPanel" class="actions tab-panel" role="tabpanel" aria-labelledby="playlistTab">
-          <button type="button" data-import-input="fileInput">Select files…</button>
-          <button type="button" data-import-input="consoleFolder" title="Choose the folder containing the songs and their libraries">Select folder…</button>
+          <button type="button" data-import-input="fileInput" aria-describedby="importFormatHint">Select files…</button>
+          <button type="button" data-import-input="consoleFolder" aria-describedby="importFormatHint" title="Choose the folder containing the songs and their libraries">Select folder…</button>
+          <p id="importFormatHint" class="file-drop-hint"><strong>Music formats</strong> · VGM / VGZ / S98 / SPC / SID / SSF / miniSSF / PSF1 / miniPSF<br><strong>ROM files</strong> · ym2608_adpcm_rom.bin / yrw801.rom</p>
           <section class="playlist" aria-label="Playlist">
             <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
             <p id="detectedChips" class="file-drop-hint" aria-live="polite" hidden></p>
@@ -745,6 +741,12 @@
               </select>
             </label>
           </div>
+          <section class="import-rom-info" aria-labelledby="romFilesHeading">
+            <h2 id="romFilesHeading">ROM files</h2>
+            <p id="romFileStatus">Use Select files… for yrw801.rom (2 MiB) or ym2608_adpcm_rom.bin.</p>
+            <p>YM2608 rhythm: <a href="../js/tetorica_ym2608_adpcm_rom.bin" download>Download Tetorica synthetic ROM</a>. Sounds differ from the original. <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause license</a>.</p>
+          </section>
+          <p class="file-drop-hint">Version · <span id="analyzerVersion">Development</span></p>
         </section>
         <section id="exportPanel" class="tab-panel" role="tabpanel" aria-labelledby="exportTab" hidden>
           <div class="export-row">

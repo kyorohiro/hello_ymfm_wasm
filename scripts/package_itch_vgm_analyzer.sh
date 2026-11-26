@@ -467,6 +467,20 @@ EOF
 mkdir -p "${STAGE_DIR}/vendor/osmd"
 cp -R "${ROOT_DIR}/docs/vgm_analyzer/vendor/osmd/." "${STAGE_DIR}/vendor/osmd/"
 
+python3 - "${STAGE_DIR}/index.html" "${VERSION}" <<'PYVERSION'
+from html import escape
+from pathlib import Path
+import sys
+
+page = Path(sys.argv[1])
+text = page.read_text(encoding="utf-8")
+marker = '<span id="analyzerVersion">Development</span>'
+if text.count(marker) != 1:
+    raise SystemExit("Analyzer version field missing or duplicated")
+version = "Development" if sys.argv[2] == "dev" else escape(sys.argv[2])
+page.write_text(text.replace(marker, f'<span id="analyzerVersion">{version}</span>'), encoding="utf-8")
+PYVERSION
+
 # Make the analyzer runnable from itch.io as a standalone app.
 perl -0pi -e 's#\.\./synth/synth_output_visualizer\.js#./synth/synth_output_visualizer.js#g' "${STAGE_DIR}/vgm_analyzer.js"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
