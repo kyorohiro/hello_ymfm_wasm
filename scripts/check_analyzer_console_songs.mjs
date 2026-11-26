@@ -349,6 +349,14 @@ try {
     assert.deepEqual(await psgRows.last().locator('td').allTextContents(),[late?'32':'Tone 3 · period 515',late?'Periodic':'White','2']);
   };
   await checkPsg(false);
+  async function checkMonitorMute(rowButton, dockLabel) {
+    const dock = page.locator('#dockPlayPane').getByRole('button',{name:dockLabel,exact:true});
+    await rowButton.click();
+    assert.equal(await dock.getAttribute('aria-pressed'),'false');
+    await dock.click();
+    await page.waitForFunction(button=>button.ariaPressed==='true',await rowButton.elementHandle());
+  }
+  await checkMonitorMute(psgRows.last().getByRole('button'), 'PSG CH4 Noise');
   await movePosition(3);
   await psgRows.last().getByText('Periodic',{exact:true}).waitFor();
   await checkPsg(true);
@@ -413,18 +421,17 @@ try {
     const tl=rows.first().locator('td').nth(2);
     await page.waitForFunction(el=>el.textContent==='56' && el.getAnimations().length>0,await tl.elementHandle());
     const sections = page.getByRole('tablist',{name:chip+' sections',exact:true});
-    if (opna || chip.startsWith('YM2610')) {
-      assert.deepEqual(await sections.getByRole('tab').allTextContents(), ['FM','SSG',percussion,'ADPCM-B']);
-      assert.equal(await sections.getByRole('tab',{name:'FM',exact:true}).getAttribute('aria-selected'),'true');
-      await sections.getByRole('tab',{name:'SSG',exact:true}).click();
-      assert(await voiceView.isHidden());
-    }
+    assert.deepEqual(await sections.getByRole('tab').allTextContents(), chip === 'YM2203' ? ['FM','SSG'] : ['FM','SSG',percussion,'ADPCM-B']);
+    assert.equal(await sections.getByRole('tab',{name:'FM',exact:true}).getAttribute('aria-selected'),'true');
+    await sections.getByRole('tab',{name:'SSG',exact:true}).click();
+    assert(await voiceView.isHidden());
     await pause.click();
     assert.equal(await rows.first().getByText('On',{exact:true}).count(),1);
     const ssgRows = page.locator('#ssgChannels tbody tr');
     assert.deepEqual(await ssgRows.locator('th').allTextContents(), ['CH A','CH B','CH C']);
     const channelA = ssgRows.first();
     await channelA.getByText('ENV',{exact:true}).waitFor();
+    await checkMonitorMute(channelA.getByRole('button'), 'SSG A');
     assert.deepEqual(await channelA.locator('td').allTextContents(), ['291','ON','ON','ENV']);
     const shared = page.locator('#ssgShared');
     for (const text of ['NOISE PERIOD 11','ENV PERIOD 564','SHAPE 14']) {
@@ -462,6 +469,20 @@ try {
     }
     console.log(chip+' SSG live settings and paused backward/forward seek passed');
     console.log(chip+' channel list, CH3 slots, key mask and live parameter highlight passed');
+  }
+  {
+    const commands = [0xb1,7,0xc2,0xb1,6,0x35,0xb1,4,0x67,0xb1,5,0x45,0xb1,1,0xa4,0xb1,8,0xfb,...Array(300).fill(0x62),0x66];
+    const buffer = Buffer.concat([opn.subarray(0,0xc8),Buffer.from(commands)]);
+    buffer.writeUInt32LE(buffer.length-4,4); buffer.writeUInt32LE(12500000,0x6c);
+    await page.locator('#fileInput').setInputFiles({name:'pcm.vgm',mimeType:'application/octet-stream',buffer});
+    await page.locator('#operatorInfoTab').click();
+    await page.locator('#chipMonitorTabs').getByRole('tab',{name:'RF5C164'}).click();
+    await play.click();
+    const rows = page.locator('#pcmChannels tbody tr');
+    await rows.nth(2).getByText('0x3500',{exact:true}).waitFor();
+    assert.equal(await rows.count(),8);
+    assert.deepEqual(await rows.nth(2).locator('td').allTextContents(),['ON','0','4','10','0','0x3500','0x4567']);
+    await pause.click();
   }
   for (const chip of ['YM2151','YM2164']) {
     const header = Buffer.from(opn.subarray(0,0xc8));

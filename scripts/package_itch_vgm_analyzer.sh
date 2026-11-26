@@ -80,6 +80,7 @@ oki6258_samples.js
 dac_samples.js
 pwm_samples.js
 opn_adpcm_monitor.js
+ssg_channel_mutes.js
 psg_monitor.js
 rf5c164_monitor.js
 source_mutes.js

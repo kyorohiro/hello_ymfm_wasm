@@ -50,6 +50,7 @@ import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretbo
 import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pokey-vgm-1";
+import {installSsgChannelMutes} from './ssg_channel_mutes.js';
 import {createOpnAdpcmMonitor, writeOpnAdpcm, opnAdpcmRows} from './opn_adpcm_monitor.js';
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=pokey-vgm-1";
@@ -645,6 +646,7 @@ const huc6280ChannelMutes = Array(6).fill(false);
 const nesChannelMutes = Array(6).fill(false);
 let mixedPlaybackParts = [];
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, oki6295: false, segapcm: false, msm5205:false };
+const ssgChannelMutes = [false, false, false];
 const psgChannelMutes = [false, false, false, false];
 // Without the rhythm ROM, decoding its all-zero sample stream is audible
 // noise, not silence (see YM2608_RHYTHM_ROM_WARNING) - force the source
@@ -827,15 +829,17 @@ function renderMonitorToggles() {
     return;
   }
 
-  if (noteishHeader?.psgClock & 0x3fffffff) {
-    psgChannelMutes.forEach((muted, index) => {
+  const hasSsg = ['ym2203','ym2608','ym2610'].includes(currentChipKind);
+  if (hasSsg || (noteishHeader?.psgClock & 0x3fffffff)) {
+    const states = hasSsg ? ssgChannelMutes : psgChannelMutes;
+    states.forEach((muted, index) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
-      button.textContent = `PSG ${index === 3 ? 'CH4 Noise' : `CH${index + 1}`}`;
+      button.textContent = hasSsg ? 'SSG ' + 'ABC'[index] : `PSG ${index === 3 ? 'CH4 Noise' : 'CH'+(index+1)}`;
       button.setAttribute('aria-pressed', String(!muted));
-      button.setAttribute('data-monitor-toggle-kind', 'psg-channel');
-      button.setAttribute('data-channel-index', String(index));
+      button.dataset.monitorToggleKind = hasSsg ? 'ssg-channel' : 'psg-channel';
+      button.dataset.channelIndex = String(index);
       monitorToggles.append(button);
     });
   }
@@ -937,11 +941,14 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
-    if (kind === 'psg-channel') {
-      const index = Number(target.getAttribute('data-channel-index'));
-      if (!Number.isInteger(index) || index < 0 || index > 3 || !(noteishHeader?.psgClock & 0x3fffffff)) return;
-      psgChannelMutes[index] = !psgChannelMutes[index];
-      engine?.setPsgChannelMuted?.(index, psgChannelMutes[index]);
+    if (kind === 'psg-channel' || kind === 'ssg-channel') {
+      const index = Number(target.dataset.channelIndex);
+      const ssg = kind === 'ssg-channel';
+      const states = ssg ? ssgChannelMutes : psgChannelMutes;
+      if (!Number.isInteger(index) || index < 0 || index >= states.length) return;
+      states[index] = !states[index];
+      if (ssg) engine?.setSsgChannelMuted?.(index, states[index]);
+      else engine?.setPsgChannelMuted?.(index, states[index]);
       renderMonitorToggles();
       requestChannelMonitorRender();
       flushPendingAudio();
@@ -980,6 +987,7 @@ function ensureMonitorToggleHandler() {
     }
   };
   monitorToggles.addEventListener("pointerdown", handleToggle);
+  document.getElementById("psgMonitor").addEventListener("click", handleToggle);
 }
 
 function createChannelMonitorState() {
@@ -1163,7 +1171,7 @@ function requestNoteishRender() {
   noteishDirty = true;
 }
 
-function renderRegisterRows(table, rows) {
+function renderRegisterRows(table, rows, muteStates) {
   const body = table.tBodies[0];
   rows.forEach(({name, active, values}, index) => {
     const existing = body.rows[index];
@@ -1171,12 +1179,25 @@ function renderRegisterRows(table, rows) {
     if (!existing) {
       const header = document.createElement("th");
       header.scope = "row";
-      header.textContent = name;
+      if (muteStates) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = name;
+        button.className = 'channel-toggle';
+        button.dataset.monitorToggleKind = table.id === 'ssgChannels' ? 'ssg-channel' : 'psg-channel';
+        button.dataset.channelIndex = String(index);
+        header.append(button);
+      } else header.textContent = name;
       row.append(header);
       for (let i = 0; i < values.length; i++) row.insertCell();
     }
+    if (muteStates) {
+      const button = row.cells[0].firstElementChild;
+      button.setAttribute('aria-pressed', String(!muteStates[index]));
+      button.classList.toggle('is-muted', muteStates[index]);
+    }
     row.classList.toggle("is-active", active);
-    row.cells[0].title = table.dataset.pulse ? "Recent start command" : active ? "Volume register active" : "Volume register silent";
+    row.cells[0].title = table.id === 'pcmChannels' ? (active ? 'Channel enabled' : 'Channel disabled') : table.dataset.pulse ? "Recent start command" : active ? "Volume register active" : "Volume register silent";
     values.forEach((value, i) => {
       const cell = row.cells[i + 1];
       if (cell.textContent === String(value)) return;
@@ -1205,7 +1226,7 @@ function renderPsgMonitor() {
     renderRegisterRows(ssgTable, state.channels.map(ch => ({
       name: ch.name, active: ch.envelope || ch.volume > 0,
       values: [ch.period, ch.toneEnabled ? "ON" : "OFF", ch.noiseEnabled ? "ON" : "OFF", ch.envelope ? "ENV" : ch.volume],
-    })));
+    })), ssgChannelMutes);
     document.getElementById("ssgShared").innerHTML = token("NOISE PERIOD", state.noisePeriod, 6) +
       token("ENV PERIOD", state.envelope.period, 11, 12) + token("SHAPE", state.envelope.shape, 13) +
       ["continue", "attack", "alternate", "hold"].map(key => token(key.toUpperCase(), state.envelope[key] ? "ON" : "OFF", 13)).join("");
@@ -1216,7 +1237,7 @@ function renderPsgMonitor() {
       ["Noise", rate, noise.mode, noise.attenuation]];
     renderRegisterRows(segaTable, rows.map(([name, period, mode, attenuation]) => ({
       name, active: attenuation < 15, values: [period, mode, attenuation === 15 ? "15 · MUTE" : attenuation],
-    })));
+    })), psgChannelMutes);
   }
   document.getElementById("psgMonitorRegisters").innerHTML = state.registers.map((value, r) => token(`R${r.toString(16).toUpperCase().padStart(2, "0")}`, `0x${value.toString(16).toUpperCase().padStart(2, "0")}`, r)).join("");
 }
@@ -1230,17 +1251,12 @@ function renderPcmMonitor() {
   const grid = document.getElementById("pcmMonitorGrid");
   grid.hidden = !state.used;
   document.getElementById("pcmMonitorHelp").hidden = !state.used;
-  if (!state.used) { grid.innerHTML = ""; return; }
-  const token = (label, value, time) => renderChannelChip(label, value, time, "166 214 148");
-  grid.innerHTML = `<section class="channel-card"><div class="channel-head"><span class="channel-title">Shared control</span></div><div class="channel-row">${token("CHIP", state.enabled ? "ON" : "OFF", pcmMonitor.changedAt)}${token("SELECTED", state.selectedChannel, pcmMonitor.changedAt)}${token("RAM BANK", state.ramBank, pcmMonitor.changedAt)}</div></section>` +
-    state.channels.map((channel, i) => {
-      const t = pcmMonitor.channels[i].changedAt;
-      return `<section class="channel-card"><div class="channel-head"><span class="channel-title">${channel.name}</span></div><div class="channel-row">${
-        token("CHANNEL", channel.enabled ? "ON" : "OFF", t) + token("VOLUME", channel.volume, t) +
-        token("PAN L / R", `${channel.panLeft} / ${channel.panRight}`, t) + token("STEP", channel.step, t) +
-        token("START", formatHex(channel.startAddress, 4), t) + token("LOOP", formatHex(channel.loopAddress, 4), t)
-      }</div></section>`;
-    }).join("");
+  if (!state.used) return;
+  document.getElementById("pcmShared").textContent = `Selected CH ${state.selectedChannel} · RAM bank ${state.ramBank}`;
+  renderRegisterRows(document.getElementById("pcmChannels"), state.channels.map(ch => ({
+    name:ch.name, active:ch.enabled, values:[ch.enabled ? 'ON' : 'OFF', ch.volume, ch.panLeft, ch.panRight,
+      ch.step, formatHex(ch.startAddress,4), formatHex(ch.loopAddress,4)],
+  })));
 }
 
 function resetOpmNotes(clock) {
@@ -2632,6 +2648,7 @@ async function ensurePlaybackReady(vgm) {
   if (!engine) {
     engine = await createPlaybackEngine(vgm, {getFactory: getBrowserPlaybackFactory, masterVolume:Math.min(masterVolume,3.8), allowMissingYm2608RhythmRom: true,
       roms: {ym2608AdpcmA:ym2608AdpcmARomBytes, ymf278bWave:ymf278bWaveRomBytes}});
+    installSsgChannelMutes(engine, currentChipKind);
     if (currentChipKind === 'pokey') {
       engine.onWrite = (register, value, chipIndex) => {
         if (pokeyMonitor.write(register, value, chipIndex)) requestChannelMonitorRender();
@@ -2736,6 +2753,7 @@ async function ensurePlaybackReady(vgm) {
     }
   }
   mixerUi.attach(engine.playbackMixer);
+  if (engine.setSsgChannelMuted) ssgChannelMutes.forEach((muted,index) => engine.setSsgChannelMuted(index,muted));
   if (noteishHeader?.psgClock & 0x3fffffff) psgChannelMutes.forEach((muted, index) => engine.setPsgChannelMuted?.(index, muted));
   engineClockKey = nextClockKey;
   if (currentChipKind === "ym2203") channelMonitor.forEach((channel, index) => engine.setChannelMuted(index, channel.muted));
@@ -4335,9 +4353,9 @@ function configureChipMonitorTabs() {
   const add = (label, ...monitors) => addMonitorTab(chipMonitorTabs, chipMonitorPanels, 'chipMonitor', label, ...monitors);
   const kind = currentChipKind;
   const has = key => Boolean(noteishHeader[key+'Clock'] & 0x3fffffff);
-  if (kind === 'ym2608' || kind === 'ym2610') {
+  if (['ym2203','ym2608','ym2610'].includes(kind)) {
     const opna = kind === 'ym2608';
-    const label = opna ? 'YM2608' : noteishHeader.ym2610Clock & 0x80000000 ? 'YM2610B' : 'YM2610';
+    const label = kind === 'ym2610' && (noteishHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : kind.toUpperCase();
     const sections = document.createElement('div');
     sections.className = 'tabbar';
     sections.setAttribute('role', 'tablist');
@@ -4347,11 +4365,11 @@ function configureChipMonitorTabs() {
     add(label, sections, panels);
     const fmTab = addMonitorTab(sections, panels, 'opnSection', 'FM', opnMonitorRoot);
     addMonitorTab(sections, panels, 'opnSection', 'SSG', psg);
-    addMonitorTab(sections, panels, 'opnSection', opna ? 'Rhythm' : 'ADPCM-A', opna ? rhythm : adpcmA);
-    addMonitorTab(sections, panels, 'opnSection', 'ADPCM-B', adpcmB);
+    if (kind !== 'ym2203') {
+      addMonitorTab(sections, panels, 'opnSection', opna ? 'Rhythm' : 'ADPCM-A', opna ? rhythm : adpcmA);
+      addMonitorTab(sections, panels, 'opnSection', 'ADPCM-B', adpcmB);
+    }
     fmTab.click();
-  } else if (kind === 'ym2203') {
-    add(kind.toUpperCase(), opnMonitorRoot, psg);
   } else if (kind === 'ym2612' && has('ym2612')) add('YM2612', opnMonitorRoot);
   if (kind === 'ym2151') add(noteishHeader.ym2151Clock & 0x80000000 ? 'YM2164' : 'YM2151', opmMonitorRoot);
   if (['ym2612','ym2151'].includes(kind) && has('psg')) add('Sega PSG', psg);
