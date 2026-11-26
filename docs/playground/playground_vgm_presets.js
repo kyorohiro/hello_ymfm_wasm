@@ -21,11 +21,12 @@ export function createVgmPresetFiles(buffer, filename, existingPaths = []) {
     if (event.type === 'end') break;
     if (!['ym2612-write', 'ym2203-write', 'ym2608-write', 'ym2610-write'].includes(event.type)) continue;
     const chip = event.type.slice(0, -6);
-    if (!states.has(chip)) states.set(chip, {
+    const instance = event.chipIndex ? chip + '-' + (event.chipIndex + 1) : chip;
+    if (!states.has(instance)) states.set(instance, {
       registers: [new Uint8Array(256), new Uint8Array(256)],
       seen: Array.from({ length: 6 }, () => new Set()),
     });
-    const state = states.get(chip);
+    const state = states.get(instance);
     const port = event.port ?? 0;
     state.registers[port][event.register] = event.value;
     if (port !== 0 || event.register !== 0x28 || !(event.value & 0xf0)) continue;
@@ -61,7 +62,7 @@ export function createVgmPresetFiles(buffer, filename, existingPaths = []) {
     if (seen.has(signature)) continue;
     seen.add(signature);
     files.push({
-      path: `${directory}/${chip}_ch${channel + 1}_${String(seen.size).padStart(3, '0')}.tfi`,
+      path: `${directory}/${instance}_ch${channel + 1}_${String(seen.size).padStart(3, '0')}.tfi`,
       data,
     });
   }

@@ -67,7 +67,9 @@ The three one-second phrases use the first chip alone, the second an octave
 higher, then both together. The Yamaha files use FM only, with different OP4
 multipliers. Both DMGs use CH1 with 50% and 25% pulse duty respectively.
 
-Browser Analyzer observations at commit `399e19d4`:
+All four probes now support dual playback and separate mixer strips. Instrument lists both instances. Run `node --test docs/vgm_analyzer/dual_playback.test.mjs` to check the rendered phrases and isolation.
+
+Original browser observations at commit `399e19d4`:
 
 | Fixture | Select files | Instrument | Play |
 | --- | --- | --- | --- |
@@ -76,4 +78,4 @@ Browser Analyzer observations at commit `399e19d4`:
 | dual-ym2610.vgm | Unsupported raw VGM command 0xa8 | Disabled | Disabled |
 | dual-dmg.vgm | Parsed | Both DMG tabs expose their respective duty values | Dual/variant configuration is not supported |
 
-The Uses line identifies the model and clock in all four cases and omits the chip count.
+In that earlier revision the Uses line omitted the chip count.

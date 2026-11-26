@@ -119,6 +119,7 @@ const composition = {
   ym3812: ['ym3812','psg','okim6295'], ymf262: ['ymf262','psg'],
   huc6280: ['huc6280','msm5205'], msm5205:['msm5205'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], wonderswan: ['wonderswan'], pokey:['pokey'], okim6258: ['okim6258'], okim6295: ['okim6295'],
 };
+const dualKinds = new Set(['ym2612','ym2608','ym2610','gameBoyDmg']);
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
   const usage=vgm.analyzeCommandUsage();
@@ -133,16 +134,27 @@ export function selectPlaybackConfiguration(vgm) {
     const supported = new Set(Object.values(composition).flat());
     const unsupported=chips.filter(c=>!supported.has(c.id));
     if (unsupported.length) throw new Error(`Unsupported sound chip: ${unsupported.map(c=>c.id).join(', ')}`);
-    if (chips.some(c=>(c.rawClock & (c.id==='pokey'?0x80000000:['ym2610','ym2151','k051649','nesApu','okim6295'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    for (const {id,rawClock} of chips) {
+      const allowDual = id === 'pokey' || dualKinds.has(id);
+      const allowVariant = ['ym2610','ym2151','k051649','nesApu','okim6295'].includes(id);
+      if ((!allowDual && (rawClock & 0x40000000)) || (!allowVariant && (rawClock & 0x80000000))) {
+        throw new Error('Dual/variant configuration is not supported');
+      }
+    }
     if (header.pokeyClock) pokeyPlaybackConfiguration(header.pokeyClock);
     if (header.nesApuClock) validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
     if (header.ay8910Clock) validateAyPlaybackHeader({ay8910Clock:header.ay8910Clock,ay8910Type:header.ay8910Type,ay8910Flags:header.ay8910Flags});
     // These are compatibility paths (monitors and snapshots), not an allowlist.
     // Any other combination of supported chips is assembled by the mixer.
-    if (kind==='msm5205' || !chips.every(c=>composition[kind].includes(c.id) || c.id==='okim6258')) kind='mixed';
+    if (chips.some(c=>dualKinds.has(c.id) && (c.rawClock & 0x40000000)) || kind==='msm5205' || !chips.every(c=>composition[kind].includes(c.id) || c.id==='okim6258')) kind='mixed';
   } catch (error) { throw new PlaybackError('UNSUPPORTED_CONFIGURATION', error.message, {kind,header}); }
-  const sources=chips.flatMap(c=>c.id==='pokey'?Array.from({length:pokeyPlaybackConfiguration(c.rawClock).count},(_,chipIndex)=>({...c,id:chipIndex?'pokey:2':'pokey',kind:'pokey',chipIndex})):c);
+  const sources = chips.flatMap(chip => {
+    if (chip.id === 'pokey') return Array.from({length:pokeyPlaybackConfiguration(chip.rawClock).count},
+      (_,chipIndex)=>({...chip,id:chipIndex?'pokey:2':'pokey',kind:'pokey',chipIndex}));
+    if (dualKinds.has(chip.id) && (chip.rawClock & 0x40000000)) return [chip,{...chip,id:chip.id+':2',chipIndex:1}];
+    return [chip];
+  });
   return {kind, header, chips:sources, ignoredClocks, ...(kind==='mixed' ? {parts:planPlaybackParts(header)} : {}), requiredRoms: [
     ...(header.ym2608Clock && vgm.requiresYm2608RhythmRom?.() ? ['ym2608AdpcmA'] : []),
     ...(header.ymf278bClock && vgm.requiresYmf278bWaveRom?.() ? ['ymf278bWave'] : []),
@@ -161,9 +173,19 @@ function planPlaybackParts(header) {
     if(genesis.includes(id))continue;
     groups.push({id,kind:independentKinds[id]??id,chips:[id]});
   }
-  return groups.map(part=>({...part,header:Object.fromEntries(Object.entries(header).map(([key,value])=>[
-    key,key.endsWith('Clock')&&!part.chips.includes(key.slice(0,-5))?0:value,
-  ]))}));
+  for (const id of dualKinds) {
+    if (header[id+'Clock'] & 0x40000000) groups.push({id:id+'-2',kind:independentKinds[id]??id,chips:[id],chipIndex:1});
+  }
+  return groups.map(part => {
+    const clocks = {...header};
+    for (const key of Object.keys(clocks)) {
+      if (!key.endsWith('Clock')) continue;
+      const id = key.slice(0,-5);
+      if (!part.chips.includes(id)) clocks[key] = 0;
+      else if (dualKinds.has(id)) clocks[key] = (clocks[key] & ~0x40000000) >>> 0;
+    }
+    return {...part,header:clocks};
+  });
 }
 // Genesis renders at its native rate. Adapt without generating samples past
 // the current VGM wait, so writes between waits keep their original timing.
@@ -205,22 +227,31 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
       for(const id of part.chips){
         const name=names[id]??id;
         if(!targets[name])throw new Error(`Missing VGM adapter: ${id}`);
+        if (part.chipIndex) {
+          this.targetResolvers.set(name+':'+part.chipIndex,()=>targets[name]);
+          continue;
+        }
         this.vgmTargets[name]=targets[name];
         this.targetResolvers.set(name,index=>targets.resolveChip?targets.resolveChip(name,index):index===0?targets[name]:undefined);
       }
     }
     this.vgmTargets.resolveChip=this.getVgmTarget.bind(this);
   }
-  getVgmTarget(type,index=0){const target=this.targetResolvers.get(type)?.(index);if(!target)throw new Error(`No playback instance for ${type}:${index}`);return target;}
+  getVgmTarget(type,index=0) {
+    const resolve = this.targetResolvers.get(type+':'+index) ?? this.targetResolvers.get(type);
+    const target = resolve?.(index);
+    if (!target) throw new Error(`No playback instance for ${type}:${index}`);
+    return target;
+  }
   supportsState(){return false;}
   clearAdpcmBMemory(){for(const {engine} of this.entries.values())engine.clearAdpcmBMemory?.();}
   clearAdpcmRoms(){for(const {engine} of this.entries.values())engine.clearAdpcmRoms?.();}
   clearRf5c164Memory(){for(const {engine} of this.entries.values())engine.clearRf5c164Memory?.();}
   clearWonderSwanMemory(){for(const {engine} of this.entries.values())engine.clearWonderSwanMemory?.();}
   clearOki6295Rom(){for(const {engine} of this.entries.values())engine.clearOki6295Rom?.();}
-  loadAdpcmARom(data){this.entries.get('ym2608:0')?.engine.loadAdpcmARom(data);}
+  loadAdpcmARom(data){for(const id of ['ym2608:0','ym2608-2:0'])this.entries.get(id)?.engine.loadAdpcmARom(data);}
   loadWaveRom(data){this.entries.get('ymf278b:0')?.engine.loadWaveRom(data);}
-  setRhythmMuted(value){this.entries.get('ym2608:0')?.engine.setRhythmMuted(value);}
+  setRhythmMuted(value){for(const id of ['ym2608:0','ym2608-2:0'])this.entries.get(id)?.engine.setRhythmMuted(value);}
 }
 async function createHeaderMixedEngine(configuration,resource,volume,options){
   const parts=[];

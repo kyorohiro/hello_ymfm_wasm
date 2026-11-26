@@ -71,7 +71,9 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
     }
     resetButton.disabled = false;
     for (const [id, values] of settings) {
-      const name = names[id] ?? id.toUpperCase();
+      const base = id.split(':')[0];
+      const numbered = base !== 'pokey' && settings.has(base + ':2');
+      const name = numbered ? (names[base] ?? base.toUpperCase()) + (id === base ? ' 1' : ' 2') : names[id] ?? id.toUpperCase();
       const strip = document.createElement('div');
       strip.className = 'mixer-strip'; strip.dataset.chip = id;
       const title = document.createElement('div'); title.className = 'mixer-strip-title';

@@ -18,6 +18,7 @@ export function legacyEngineTrim(id, configuration) {
  * @param {string} id @param {object} [configuration] @param {number} [downstreamTrim]
  */
 export function mixerDefaults(id, configuration = undefined, downstreamTrim = undefined) {
+  if (['ym2612:2','ym2608:2','ym2610:2','gameBoyDmg:2'].includes(id)) id = id.slice(0,-2);
   const kind = Object.hasOwn(canonicalKinds,id) ? canonicalKinds[id] : id;
   const volume = Object.hasOwn(SOUNDCHIP_MIXER_LISTENING_LEVELS,kind) ? SOUNDCHIP_MIXER_LISTENING_LEVELS[kind]
     : Object.hasOwn(ANALYZER_MIXER_DEFAULTS,id) ? ANALYZER_MIXER_DEFAULTS[id] : measured.get(kind);

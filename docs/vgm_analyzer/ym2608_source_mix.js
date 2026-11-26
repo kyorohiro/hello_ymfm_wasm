@@ -1,7 +1,10 @@
 export const YM2608_SOURCE_LABELS = Object.freeze({fm:'FM',ssg:'SSG',rhythm:'Rhythm',adpcm:'ADPCM'});
+const ym2610Sources = Object.freeze({fm:'FM',ssg:'SSG',adpcmA:'ADPCM-A',adpcmB:'ADPCM-B'});
 export const SOURCE_LABELS = Object.freeze({
   ym2608: YM2608_SOURCE_LABELS,
-  ym2610: Object.freeze({fm:'FM',ssg:'SSG',adpcmA:'ADPCM-A',adpcmB:'ADPCM-B'}),
+  ym2610: ym2610Sources,
+  'ym2608:2': YM2608_SOURCE_LABELS,
+  'ym2610:2': ym2610Sources,
 });
 
 export const ym2608SourceDefaults = () => ({gain:1,muted:false});

@@ -51,8 +51,8 @@ export class PlaybackMixer extends PCMChipMixer {
 
 export function installPlaybackMixer(engine, configuration) {
   const mixer = new PlaybackMixer(configuration);
-  const visit = (part, ids) => {
-    if (part.mixerEngine) return visit(part.mixerEngine, ids);
+  const visit = (part, ids, index = 0) => {
+    if (part.mixerEngine) return visit(part.mixerEngine, ids, index);
     if (Array.isArray(part.playbackMixerSources)) {
       for(const {id,source,method,rate} of part.playbackMixerSources) {
         mixer.addSource(id,source,method,rate,1);
@@ -63,9 +63,10 @@ export function installPlaybackMixer(engine, configuration) {
     if (part.entries instanceof Map) {
       for (const [key, entry] of part.entries) {
         const type = key.split(':')[0];
-        const subset = configuration.parts?.find(p => p.id === type)?.chips ??
+        const descriptor = configuration.parts?.find(p => p.id === type);
+        const subset = descriptor?.chips ??
           ids.filter(id => id === type);
-        visit(entry.engine, subset);
+        visit(entry.engine, subset, descriptor?.chipIndex);
       }
       return;
     }
@@ -80,8 +81,9 @@ export function installPlaybackMixer(engine, configuration) {
         : typeof source.generateStereoInto === 'function' ? 'generateStereoInto' : 'generateStereo';
       if (typeof source[method] !== 'function') continue;
       const downstreamTrim = genesis ? id === 'ym2612' ? 0.9 : id === 'psg' ? 0.35 : 1 : 1;
-      mixer.addSource(id, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate(), downstreamTrim);
-      if (id === 'ym2608' || id === 'ym2610') mixer.sourceMixers.set(id,new OpnSourceMixer(source,id));
+      const stripId = index ? id + ':2' : id;
+      mixer.addSource(stripId, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate(), downstreamTrim);
+      if (id === 'ym2608' || id === 'ym2610') mixer.sourceMixers.set(stripId,new OpnSourceMixer(source,id));
       found = true;
     }
     // NES, HuC6280 and OKI render directly rather than through a chip wrapper.
