@@ -93,7 +93,7 @@ test('Play resumes a paused position but restarts from a newly selected cursor',
  assert.equal(c.timelineSelectionPending,false,'SPC cursor uses seconds and clears its pending selection');
 });
 
-test('seek bar previews a position and seeks immediately only during playback',async()=>{
+test('stopped VGM seek previews a position and playing VGM seeks immediately',async()=>{
  const {readFileSync}=await import('node:fs'),vm=await import('node:vm');
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  const a=source.indexOf('playbackSeek.addEventListener("input",');
@@ -102,7 +102,7 @@ test('seek bar previews a position and seeks immediately only during playback',a
   songPlayer:null, playbackSeek:{value:'88200',addEventListener(type,fn){handlers[type]=fn;}},
   spcView:{active:false,seek:async seconds=>actions.push(['spc-seek',seconds])},spcAction:async fn=>fn(),
   seekDragging:false,seekSelection:null,timelineSelectionPending:false,
-  player:{isPlaying:()=>playing,stats:()=>({})},
+  player:{isPlaying:()=>playing,isPaused:()=>false,stats:()=>({})},
   songTimeline:{cursor:sample=>actions.push(['cursor',sample])},
   renderSeekPosition:sample=>actions.push(['preview',sample]),
   updatePlaybackButtons:()=>{},playCurrentVgm:async sample=>actions.push(['play',sample]),

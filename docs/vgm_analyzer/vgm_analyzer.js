@@ -1164,24 +1164,48 @@ function renderPsgMonitor() {
   const token = (label, value, ...registers) => renderChannelChip(label, value,
     Math.max(0, ...registers.map((r) => psgMonitor.changedAt[r])), "166 214 148");
   const card = (name, content) => `<section class="channel-card"><div class="channel-head"><span class="channel-title">${name}</span></div><div class="channel-row">${content}</div></section>`;
-  let cards = state.channels.map((channel, i) => card(channel.name,
-    token("PERIOD", channel.period, i * 2, ...(state.kind === "ssg" ? [i * 2 + 1] : [])) +
-    (state.kind === "ssg" ?
+  const table = document.getElementById("segaPsgChannels");
+  const grid = document.getElementById("psgMonitorGrid");
+  table.hidden = state.kind !== "psg";
+  grid.hidden = !table.hidden;
+  if (state.kind === "psg") {
+    const noise = state.noise;
+    const rate = noise.tone3Linked ? `Tone 3 · period ${state.channels[2].period}` : [16, 32, 64][noise.rate];
+    const rows = [...state.channels.map(ch => [ch.name, ch.period, "Tone", ch.attenuation]),
+      ["Noise", rate, noise.mode, noise.attenuation]];
+    const body = table.tBodies[0];
+    rows.forEach(([name, period, mode, attenuation], index) => {
+      const existing = body.rows[index];
+      const row = existing ?? body.insertRow();
+      if (!existing) {
+        const header = document.createElement("th");
+        header.scope = "row";
+        header.textContent = name;
+        row.append(header);
+        for (let i = 0; i < 3; i++) row.insertCell();
+      }
+      row.classList.toggle("is-active", attenuation < 15);
+      row.cells[0].title = attenuation < 15 ? "Volume register active" : "Volume register silent";
+      [period, mode, attenuation === 15 ? "15 · MUTE" : attenuation].forEach((value, i) => {
+        const cell = row.cells[i + 1];
+        if (cell.textContent === String(value)) return;
+        cell.textContent = String(value);
+        if (existing && !table.closest("[hidden]")) {
+          for (const animation of cell.getAnimations()) animation.cancel();
+          cell.animate([{backgroundColor:"#ffcb79"}, {backgroundColor:"transparent"}], 750);
+        }
+      });
+    });
+  } else {
+    grid.innerHTML = state.channels.map((channel, i) => card(channel.name,
+      token("PERIOD", channel.period, i * 2, i * 2 + 1) +
       token("TONE", channel.toneEnabled ? "ON" : "OFF", 7) +
       token("NOISE", channel.noiseEnabled ? "ON" : "OFF", 7) +
-      token("VOLUME", channel.envelope ? "ENV" : channel.volume, 8 + i) :
-      token("ATTENUATION", channel.attenuation === 15 ? "15 · MUTE" : channel.attenuation, i * 2 + 1))
-  )).join("");
-  if (state.kind === "ssg") {
-    cards += card("Shared Noise / Envelope", token("NOISE PERIOD", state.noisePeriod, 6) +
+      token("VOLUME", channel.envelope ? "ENV" : channel.volume, 8 + i)
+    )).join("") + card("Shared Noise / Envelope", token("NOISE PERIOD", state.noisePeriod, 6) +
       token("ENV PERIOD", state.envelope.period, 11, 12) + token("SHAPE", state.envelope.shape, 13) +
       ["continue", "attack", "alternate", "hold"].map((key) => token(key.toUpperCase(), state.envelope[key] ? "ON" : "OFF", 13)).join(""));
-  } else {
-    cards += card("Noise", token("MODE", state.noise.mode, 6) +
-      token("RATE", state.noise.tone3Linked ? `Tone 3 · period ${state.channels[2].period}` : [16, 32, 64][state.noise.rate], 6, ...(state.noise.tone3Linked ? [4] : [])) +
-      token("ATTENUATION", state.noise.attenuation === 15 ? "15 · MUTE" : state.noise.attenuation, 7));
   }
-  document.getElementById("psgMonitorGrid").innerHTML = cards;
   document.getElementById("psgMonitorRegisters").innerHTML = state.registers.map((value, r) => token(`R${r.toString(16).toUpperCase().padStart(2, "0")}`, `0x${value.toString(16).toUpperCase().padStart(2, "0")}`, r)).join("");
 }
 
@@ -4057,7 +4081,25 @@ playbackSeek.addEventListener("change", async () => {
   timelineSelectionPending = true;
   songTimeline.cursor(sample, false);
   if (wasPlaying) await playCurrentVgm(sample);
-  else updatePlaybackButtons(player?.stats() || {});
+  else if (player?.isPaused() && (noteishHeader.psgClock & 0x3fffffff) &&
+           ['ym2612', 'ym2151'].includes(currentChipKind)) {
+    // The suspended output stream still contains audio from the old position.
+    // Keep the cursor pending so Resume builds a fresh stream at this sample.
+    stopActiveStream();
+    const controller = new AbortController();
+    timelineSeekController = controller;
+    playbackSeek.disabled = true;
+    try {
+      await seekPlayback(player, sample, {signal:controller.signal});
+      requestChannelMonitorRender();
+      requestNoteishRender();
+    } catch (error) {
+      if (error.name !== 'AbortError') reportPlaybackError(error);
+    } finally {
+      if (timelineSeekController === controller) timelineSeekController = null;
+      updatePlaybackButtons(player?.stats() || {});
+    }
+  } else updatePlaybackButtons(player?.stats() || {});
 });
 
 playButton.addEventListener("click", async () => {

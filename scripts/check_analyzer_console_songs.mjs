@@ -312,7 +312,9 @@ try {
   vsu.write('Vgm '); vsu.writeUInt32LE(vsu.length-4,4); vsu.writeUInt32LE(0x171,8); vsu.writeUInt32LE(0xc8-0x34,0x34);
   vsu.writeUInt32LE(5000000,0xc4); vsu.set(writes,0xc8);
   // Port 1 CH4, algorithm 3 / feedback 5, OP1 AR 19. Hold for five seconds.
-  const opnCommands = [0x53,0xb0,0x2b,0x53,0x50,19, ...Array(300).fill(0x62),0x66];
+  const opnCommands = [0x53,0xb0,0x2b,0x53,0x50,19,
+    0x50,0x85,0x50,0x12,0x50,0x91,0x50,0xc3,0x50,0x20,0x50,0xe7,0x50,0xf2,
+    ...Array(120).fill(0x62),0x50,0x9f,0x50,0xe1,...Array(180).fill(0x62),0x66];
   const opn = Buffer.concat([vsu.subarray(0,0xc8),Buffer.from(opnCommands)]);
   opn.writeUInt32LE(300*735,0x18);
   opn.writeUInt32LE(opn.length-4,4);
@@ -336,11 +338,29 @@ try {
     assert(await page.locator('#fm2612Voice').isHidden());
   }
   await openOpnMonitor();
+  const psgRows = page.locator('#segaPsgChannels tbody tr');
+  await play.click();
+  await psgRows.first().locator('td').first().filter({hasText:'293'}).waitFor();
+  await pause.click();
+  const checkPsg = async (late) => {
+    assert.equal(await psgRows.count(),4);
+    assert.equal(await psgRows.first().evaluate(row=>row.classList.contains('is-active')),!late);
+    assert.deepEqual(await psgRows.first().locator('td').allTextContents(),['293','Tone',late?'15 · MUTE':'1']);
+    assert.deepEqual(await psgRows.last().locator('td').allTextContents(),[late?'32':'Tone 3 · period 515',late?'Periodic':'White','2']);
+  };
+  await checkPsg(false);
+  await movePosition(3);
+  await psgRows.last().getByText('Periodic',{exact:true}).waitFor();
+  await checkPsg(true);
+  await movePosition(1);
+  await psgRows.last().getByText('White',{exact:true}).waitFor();
+  await checkPsg(false);
+  console.log('PSG tone, noise, attenuation and paused forward/backward seek passed');
   await page.locator('#chipMonitorTab0').click();
   const voiceView = page.locator('#fm2612Voice');
   await voiceView.getByRole('button',{name:'CH4',exact:true}).click();
   await play.click();
-  await voiceView.locator('[data-fm-feedback]').filter({hasText:'Feedback 5'}).waitFor();
+  await page.waitForFunction(() => !document.querySelector('#pauseButton').disabled && document.querySelector('[data-fm-feedback]').textContent === 'Feedback 5');
   await pause.click();
   assert.match(await voiceView.locator('[data-fm-routing]').innerText(),/ALGO 3/);
   assert.equal(await voiceView.locator('tbody tr').first().locator('td').nth(4).innerText(),'19');
