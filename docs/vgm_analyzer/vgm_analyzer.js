@@ -45,7 +45,7 @@ import { seekPlayback } from './seek_playback.js';
 import { timelinePlaybackPosition } from './note_timeline.js';
 import { describeToneNotes } from './tone_notes.js?v=pokey-vgm-1';
 import {drawGameboyWave} from '../js/gameboy_wave_canvas.js';
-import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js?v=dmg-wave-1';
+import { createGameboyMonitor, gameboyChannelSettings, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js?v=dmg-channels-1';
 import { midiChipKind } from "./vgm_notes.js?v=pokey-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
@@ -1004,7 +1004,7 @@ function ensureMonitorToggleHandler() {
     }
   };
   monitorToggles.addEventListener("pointerdown", handleToggle);
-  for (const id of ["psgMonitor","rhythmMonitor","adpcmAMonitor","pcmMonitor"]) document.getElementById(id).addEventListener("click", handleToggle);
+  for (const id of ["psgMonitor","rhythmMonitor","adpcmAMonitor","pcmMonitor","gameboyWaveMonitor"]) document.getElementById(id).addEventListener("click", handleToggle);
 }
 
 function createChannelMonitorState() {
@@ -1423,6 +1423,43 @@ function observePsgPlaybackEngine() {
   observeRf5c164Engine(engine, () => pcmMonitor, requestChannelMonitorRender, undefined, () => player?.parser?.position);
 }
 
+function renderGameboySettings() {
+  const cards = document.getElementById('gameboyChannels');
+  gameboyChannelSettings(apuNoteMonitor).forEach((fields, i) => {
+    let card = cards.children[i];
+    if (!card) {
+      card = document.createElement('section');
+      card.className = 'channel-card';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'channel-toggle';
+      button.dataset.monitorToggleKind = 'opm-channel';
+      button.dataset.channelIndex = String(i);
+      button.textContent = 'CH' + (i+1) + ' · ' + ['Pulse','Pulse','Wave','Noise'][i];
+      const list = document.createElement('dl');
+      for (const [label] of fields) {
+        const term = document.createElement('dt');
+        term.textContent = label;
+        list.append(term, document.createElement('dd'));
+      }
+      card.append(button, list);
+      cards.append(card);
+    }
+    const button = card.firstElementChild;
+    button.setAttribute('aria-pressed', String(!gameboyChannelMutes[i]));
+    button.classList.toggle('is-muted', gameboyChannelMutes[i]);
+    fields.forEach(([,value], index) => {
+      const cell = card.lastElementChild.children[index * 2 + 1];
+      if (cell.textContent === value) return;
+      if (cell.textContent && !cards.closest('[hidden]')) {
+        for (const animation of cell.getAnimations()) animation.cancel();
+        cell.animate([{backgroundColor:'#ffcb79'}, {backgroundColor:'transparent'}], 750);
+      }
+      cell.textContent = value;
+    });
+  });
+}
+
 function renderChannelMonitor() {
   const opn = ['ym2612','ym2203','ym2608','ym2610'].includes(currentChipKind);
   fm2612Voice.update(opn ? channelMonitor : [], currentChipKind);
@@ -1432,13 +1469,13 @@ function renderChannelMonitor() {
   if (currentChipKind === "ym2413") { renderMonitorToggles(); ym2413Monitor.render(); return; }
   if (isOpl(currentChipKind)) { renderMonitorToggles(); oplMonitor.render(); return; }
   if (currentChipKind === 'gameboy') {
+    renderGameboySettings();
     const values = Array.from(apuNoteMonitor.wave, value => value < 0 ? '·' : value.toString(16).toUpperCase()).join(' ');
     const readout = document.getElementById('gameboyWaveValues');
     if (readout.textContent !== values) {
       drawGameboyWave(document.getElementById('gameboyWaveCanvas'), apuNoteMonitor.wave);
       readout.textContent = values;
     }
-    renderMonitorToggles();
     return;
   }
   if (["msx","wonderswan","huc6280","nes","ymf278b","ymf262"].includes(currentChipKind)) { renderMonitorToggles(); return; }
@@ -2009,7 +2046,7 @@ function toggleOpmChannelMute(index) {
   const muted = !states[index];
   engine?.setChannelMuted(index, muted);
   states[index] = muted;
-  if (currentChipKind === 'pokey') requestChannelMonitorRender();
+  if (['pokey','gameboy'].includes(currentChipKind)) requestChannelMonitorRender();
   renderMonitorToggles();
   flushPendingAudio();
 }
@@ -2692,6 +2729,7 @@ async function ensurePlaybackReady(vgm) {
   noteishHeader = vgm.header;
 
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
+  if (currentChipKind === 'gameboy') renderMonitorToggles();
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
@@ -2745,7 +2783,10 @@ async function ensurePlaybackReady(vgm) {
             apuNoteMonitor.wave[index] = v >> 4;
             apuNoteMonitor.wave[index + 1] = v & 15;
             requestChannelMonitorRender();
-          } else if (applyGameboyWrite(apuNoteMonitor, r, v)) updateApuNoteMonitor();
+          } else {
+            if (applyGameboyWrite(apuNoteMonitor, r, v)) updateApuNoteMonitor();
+            requestChannelMonitorRender();
+          }
         };
         engine.reset = () => { gbReset(); resetApuNoteChannels(); requestChannelMonitorRender(); };
       }
@@ -3771,6 +3812,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   }
   if (["msx","y8950","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262","ym3526","ym3812"].includes(currentChipKind)) resetApuNoteChannels();
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
+  if (currentChipKind === 'gameboy') renderMonitorToggles();
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
   channelMonitor = createChannelMonitorState();
   monitorFrequencyHigh = [0, 0];

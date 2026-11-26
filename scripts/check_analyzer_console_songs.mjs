@@ -538,7 +538,9 @@ try {
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c);
     header.writeUInt32LE(4194304,0x80);
     const first = Array.from({length:16}, (_,i) => [0xb3,0x20+i,(i<<4)|(15-i)]).flat();
-    const commands = [...first,...Array(120).fill(0x62),0xb3,0x20,0xab,...Array(180).fill(0x62),0x66];
+    const registers = [[0x16,128],[0,0x23],[1,0x80],[2,0xa3],[6,0x40],[7,0x68],
+      [10,128],[12,0x40],[17,0xc2],[18,0x35]];
+    const commands = [...registers.flatMap(([r,v])=>[0xb3,r,v]),...first,...Array(120).fill(0x62),0xb3,0x20,0xab,0xb3,18,0x79,...Array(180).fill(0x62),0x66];
     const buffer = Buffer.concat([header,Buffer.from(commands)]);
     buffer.writeUInt32LE(buffer.length-4,4);
     await page.locator('#fileInput').setInputFiles({name:'wave.vgm',mimeType:'application/octet-stream',buffer});
@@ -552,10 +554,21 @@ try {
     await checkWave('0 F 1 E');
     await pause.click();
     const canvas = page.locator('#gameboyWaveCanvas');
+    const cards = page.locator('#gameboyChannels section');
+    const values = i => cards.nth(i).locator('dd').allTextContents();
+    assert.deepEqual(await values(0),['50%','10','Fade out','3','2','Up','3']);
+    assert.deepEqual(await values(1),['25%','6','Fade in','0 · hold']);
+    assert.deepEqual(await values(2),['50%','ON']);
+    const earlyNoise = ['15-bit','5','3','12','Fade out','2'];
+    assert.deepEqual(await values(3),earlyNoise);
+    await checkMonitorMute(cards.nth(3).getByRole('button'), 'CH4');
     const firstImage = await canvas.evaluate(el => el.toDataURL());
     await movePosition(3); await checkWave('A B 1 E');
+    assert.deepEqual(await values(3),['7-bit','1','7','12','Fade out','2']);
+    assert(await cards.nth(3).locator('dd').first().evaluate(el=>el.getAnimations().length>0));
     assert.notEqual(await canvas.evaluate(el => el.toDataURL()),firstImage);
     await movePosition(.5); await checkWave('0 F 1 E');
+    assert.deepEqual(await values(3),earlyNoise);
     assert.equal(await canvas.evaluate(el => el.toDataURL()),firstImage);
     console.log('Game Boy CH3 wave RAM and Synth waveform follow paused forward and backward seeks');
   }

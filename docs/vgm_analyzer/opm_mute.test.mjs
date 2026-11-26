@@ -5,13 +5,13 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 for (const [chip,count] of [['ym2151',8],['ymf262',18],['ym2413',9],['ym3526',9],['ym3812',9],['gameboy',4],['nes',5]]) test(`${chip} playback-only channel buttons and flush`,()=>{
  const root={children:[],innerHTML:'',append(b){this.children.push(b);}};
- const calls=[];
+ const calls=[]; let renders=0;
  const channelMutesByChip={ym2151:Array(8).fill(false),ymf262:Array(18).fill(false),ym2413:Array(9).fill(false),ym3526:Array(9).fill(false),ym3812:Array(9).fill(false),gameboy:Array(4).fill(false),nes:Array(5).fill(false)};
  const context=vm.createContext({noteishHeader:{},currentChipKind:chip,opmChannelMutes:channelMutesByChip.ym2151,opl3ChannelMutes:channelMutesByChip.ymf262,opllChannelMutes:channelMutesByChip.ym2413,
    ym3526ChannelMutes:channelMutesByChip.ym3526,ym3812ChannelMutes:channelMutesByChip.ym3812,gameboyChannelMutes:channelMutesByChip.gameboy,nesChannelMutes:channelMutesByChip.nes,channelMonitor:[],
    CHANNEL_MUTE_CHIPS:['ym2151','ymf262','ym2413','ym3526','ym3812','gameboy','nes'],channelMutesForChip:(k)=>channelMutesByChip[k]??null,
    ensureMonitorToggleHandler(){},sourcesForChip:()=>[],sourceChipKind:()=> 'ym2151',hasOkiSource:()=>false,
-   monitorToggles:root,
+   monitorToggles:root,requestChannelMonitorRender(){renders++;},
    document:{createElement(){return {attrs:{},setAttribute(k,v){this.attrs[k]=v;},cloneNode(){return this;}};}},
    engine:{setChannelMuted:(...args)=>calls.push(args)},flushPendingAudio:()=>calls.push('flush')});
  vm.runInContext(source.slice(source.indexOf('function renderMonitorToggles()'),source.indexOf('function ensureMonitorToggleHandler()')),context);
@@ -23,5 +23,6 @@ for (const [chip,count] of [['ym2151',8],['ymf262',18],['ym2413',9],['ym3526',9]
  root.children=[];context.toggleOpmChannelMute(lastIndex);assert.equal(root.children[lastIndex].textContent,`CH${count}`);
  assert.equal(root.children[lastIndex].attrs['aria-pressed'],'false');
  assert.deepEqual(calls,[[lastIndex,true],'flush']);
+ assert.equal(renders,chip==='gameboy'?1:0);
  context.toggleOpmChannelMute(count);assert.equal(calls.length,2);
 });

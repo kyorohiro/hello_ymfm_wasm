@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes, extractGameboyNotes } from './gameboy_notes.js';
+import { createGameboyMonitor, applyGameboyWrite, gameboyChannelSettings, describeGameboyNotes, extractGameboyNotes } from './gameboy_notes.js';
 
 function vgm(commands, { gameBoyDmgClock = 4194304 } = {}) {
   const bytes = new Uint8Array(256 + commands.length); bytes.set([86, 103, 109, 32]);
@@ -126,3 +126,13 @@ for (const [channel, dac, lo, hi, enable] of [[0,2,3,4,0xf0],[1,7,8,9,0xf0],[2,1
     assert.deepEqual(result.channels[channel].notes.map(n => [n.start,n.end,n.key]), [[0,2000,1],[2000,3000,2]]);
   });
 }
+
+test('APU power off invalidates written settings without erasing the captured wave', () => {
+  const state = createGameboyMonitor();
+  state.wave[0] = 12;
+  applyGameboyWrite(state, 18, 0x79);
+  assert.equal(gameboyChannelSettings(state)[3][0][1], '7-bit');
+  applyGameboyWrite(state, 22, 0);
+  assert.ok(gameboyChannelSettings(state).flat().every(([,value]) => value === '—'));
+  assert.equal(state.wave[0], 12);
+});

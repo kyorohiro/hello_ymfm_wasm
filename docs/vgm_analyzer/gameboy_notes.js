@@ -17,10 +17,14 @@ const NR30 = 0x0a;
 const NR52 = 0x16;
 
 export function createGameboyMonitor() {
-  return { wave: new Int8Array(32).fill(-1), channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false, trigger: 0 })) };
+  return { registers: new Int16Array(0x17).fill(-1), wave: new Int8Array(32).fill(-1), channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false, trigger: 0 })) };
 }
 
 export function applyGameboyWrite(state, register, value) {
+  if (register >= 0 && register < state.registers.length) {
+    if (register === NR52 && !(value & 0x80)) state.registers.fill(-1);
+    state.registers[register] = value;
+  }
   let changed = false;
   for (let ch = 0; ch < 3; ch++) {
     if (register === FREQ_LO[ch]) {
@@ -49,6 +53,31 @@ export function applyGameboyWrite(state, register, value) {
     changed = true;
   }
   return changed;
+}
+
+// Display the written settings, including the envelope's starting volume.
+export function gameboyChannelSettings({registers:r}) {
+  function field(reg, decode) {
+    return r[reg] < 0 ? '—' : String(decode(r[reg]));
+  }
+  const envelope = reg => [
+    ['Initial volume', field(reg, v => v >> 4)],
+    ['Direction', field(reg, v => v & 8 ? 'Fade in' : 'Fade out')],
+    ['Pace', field(reg, v => (v & 7) || '0 · hold')],
+  ];
+  const duty = reg => ['Duty', field(reg, v => ['12.5%', '25%', '50%', '75%'][v >> 6])];
+  return [
+    [duty(1), ...envelope(2),
+      ['Sweep pace', field(0, v => (v >> 4) & 7)],
+      ['Sweep direction', field(0, v => v & 8 ? 'Down' : 'Up')],
+      ['Sweep shift', field(0, v => v & 7)]],
+    [duty(6), ...envelope(7)],
+    [['Wave output level', field(12, v => ['Mute','100%','50%','25%'][(v >> 5) & 3])],
+      ['DAC', field(10, v => v & 128 ? 'ON' : 'OFF')]],
+    [['LFSR width', field(18, v => v & 8 ? '7-bit' : '15-bit')],
+      ['Clock divisor code', field(18, v => v & 7)],
+      ['Clock shift code', field(18, v => v >> 4)], ...envelope(17)],
+  ];
 }
 
 const LABELS = ["GB CH1", "GB CH2", "GB CH3"];
