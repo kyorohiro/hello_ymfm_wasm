@@ -94,7 +94,7 @@ test('segapcm also switches away from a stale operator-info tab to parsed-output
 });
 test('setOutputTab allows noteish and parsed-output for gameboy but forces parsed-output for anything else',()=>{
   const stub=()=>({setAttribute(){},hidden:false,tabIndex:0});
-  const context=vm.createContext({isOpl,currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,status:{textContent:'',hidden:true},
+  const context=vm.createContext({isOpl,currentChipKind:'gameboy',currentBuffer:new Uint8Array(1),midiExportAvailable:false,status:{textContent:'',hidden:true},
     document:{getElementById:stub,querySelectorAll:()=>[]},spcNoteish:{setVisible(){}},
     noteishViewMode:'live',sampleExplorer:{stop(){}},songTimeline:{active(){}},requestNoteishRender(){},renderNoteishGrid(){},
     sheetMusicPanel:stub(),sheetMusicTab:stub(),musicSheet:null,tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sbiInfo:{setVisible(){}},

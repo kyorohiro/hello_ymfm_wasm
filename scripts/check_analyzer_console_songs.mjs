@@ -261,8 +261,24 @@ try {
   const vsu = Buffer.alloc(0xc8 + writes.length);
   vsu.write('Vgm '); vsu.writeUInt32LE(vsu.length-4,4); vsu.writeUInt32LE(0x171,8); vsu.writeUInt32LE(0xc8-0x34,0x34);
   vsu.writeUInt32LE(5000000,0xc4); vsu.set(writes,0xc8);
+  const opn = Buffer.from(vsu.subarray(0,0xc8+2));
+  opn.writeUInt32LE(opn.length-4,4);
+  opn.writeUInt32LE(0,0xc4);
+  opn.writeUInt32LE(7670454,0x2c);
+  opn.set([0x62,0x66],0xc8);
+  async function openOpnMonitor() {
+    await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});
+    await page.locator('#operatorInfoTab').click();
+    assert.ok(await page.locator('#operatorInfoPanel').isVisible());
+  }
+  await openOpnMonitor();
   await page.locator('#fileInput').setInputFiles({name:'original-vsu.vgm',mimeType:'application/octet-stream',buffer:vsu});
   await play.click();
+  for (const id of ['operatorInfoTab','noteishTab','sheetMusicTab','tfiInfoTab','sampleExplorerTab']) {
+    assert.ok(await page.locator('#'+id).isDisabled(), 'VSU: '+id);
+  }
+  assert.equal(await page.locator('#parsedOutputTab').getAttribute('aria-selected'),'true');
+  assert.ok(await page.locator('#operatorInfoPanel').isHidden());
   await page.waitForFunction(() => {
     const pcm = new Float32Array(2048);
     window.testMeter?.getFloatTimeDomainData(pcm);
@@ -283,7 +299,8 @@ try {
   await checkOutput(true);
   await stop.click();
   await checkWav();
-  console.log('VSU VGM passed');
+  await openOpnMonitor();
+  console.log('VSU VGM and OPN tab switching passed');
   const mainPlay = page.locator('#inlinePlayButton');
   for (const [path, model] of [['tone.sid','6581'],['rsid/irq.sid','6581'],['tone.sid','8580']]) {
     const buffer = await readFile(new URL('../docs/sid-player/demos/'+path,import.meta.url));

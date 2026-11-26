@@ -3098,7 +3098,21 @@ function updatePlaybackButtons(state = {}) {
   exportSnapshotVgiButton.disabled = !hasBuffer;
   exportSnapshotButton.disabled = !hasBuffer;
   updatePlaylistNavigation();
-  updateChipSupport();
+  if (hasBuffer) {
+    updateChipSupport();
+  } else {
+    // Console song players provide parsed metadata without a VGM analysis source.
+    for (const tab of [operatorInfoTab, noteishTab, sheetMusicTab, tfiInfoTab, sampleTab]) {
+      tab.disabled = true;
+      tab.title = '';
+    }
+    sampleTab.textContent = 'Sample Explorer';
+    tfiInfoTab.textContent = 'Tfi info';
+    for (const button of [exportAllTfiButton, exportAllVgiButton, exportLilyPondButton,
+      document.getElementById('showSheetMusicButton'), document.getElementById('exportMusicSheetButton')]) button.disabled = true;
+    document.getElementById('chipSupportNotice').hidden = true;
+    if (parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('parsed-output');
+  }
   if (songPlayer) refreshSong();
 }
 
@@ -3788,6 +3802,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     stopButton.disabled = true;
     setStatus(`Error: ${error.message}`);
     detectedChipsOutput.hidden = true;
+    updatePlaybackButtons();
     return;
   }
 
@@ -3803,6 +3818,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     stopButton.disabled = true;
     setStatus(`Error: ${error.message}`);
     detectedChipsOutput.hidden = true;
+    updatePlaybackButtons();
     return;
   }
   const consoleChip = consoleVgmChip(buffer);
@@ -4458,6 +4474,7 @@ function selectedOutputTab() {
 
 function setOutputTab(tabName) {
   if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
+  if (!currentBuffer && !spcView.active) tabName = 'parsed-output';
   if (currentChipKind === 'pokey' && !['operator-info', 'parsed-output'].includes(tabName)) tabName = 'operator-info';
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
   if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy","wonderswan"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
