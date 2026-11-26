@@ -61,7 +61,7 @@ export function ym2151VoiceCode(state, channel = 0) {
   return lines.join('\n');
 }
 
-export function createPlaygroundYm2151VoicePanel({root, invoke, onKeyboardTargetChange = () => {}, onError = () => {}}) {
+export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorControl, onKeyboardTargetChange = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument ?? globalThis.document, win = doc.defaultView ?? globalThis;
   const panelId = ++panelSequence, listeners = [], held = new Map();
   let state = null, channel = 0, connected = false, visible = true, disposed = false, keyboardActive = false;
@@ -146,6 +146,12 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, onKeyboardTarget
     return Object.fromEntries(OP_FIELDS.map(([key, title, max]) => {
       const cell = make('td'); row.appendChild(cell);
       const change = value => command('setOperator', [channel, index, {[key]: value}]);
+      if (createOperatorControl) {
+        const control = createOperatorControl({label:label+' '+title, min:0, max, step:1, value:0,
+          showLabel:false, booleanMode:key === 'am', onChange:change});
+        cell.appendChild(control.element);
+        return [key,control];
+      }
       const node = key === 'am' ? checkbox(cell, `${label} ${title}`, `op-${index}-${key}`, change, true) : number(cell, `${label} ${title}`, `op-${index}-${key}`, {max, change, cell: true});
       return [key, node];
     }));
@@ -243,7 +249,12 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, onKeyboardTarget
     setValue(note, ym2151FrequencyNote(voice.frequency) === '—' ? '' : ym2151FrequencyNote(voice.frequency)); setValue(keyCode, voice.keyCode); setValue(keyFraction, voice.keyFraction);
     setValue(algorithm, voice.algorithm); setValue(feedback, voice.feedback); checked(panLeft, voice.pan?.left); checked(panRight, voice.pan?.right); setValue(ams, voice.ams); setValue(pms, voice.pms);
     routing.textContent = `Algorithm ${voice.algorithm ?? '—'} · ${ROUTING[voice.algorithm] ?? '—'}\nFeedback returns to OP1.`;
-    operatorControls.forEach((controls, index) => OP_FIELDS.forEach(([key]) => key === 'am' ? checked(controls[key], voice.operators?.[index]?.[key]) : setValue(controls[key], voice.operators?.[index]?.[key])));
+    operatorControls.forEach((controls,index) => OP_FIELDS.forEach(([key]) => {
+      const value = voice.operators?.[index]?.[key];
+      if (createOperatorControl) controls[key].updateVisual(Number(value ?? 0));
+      else if (key === 'am') checked(controls[key],value);
+      else setValue(controls[key],value);
+    }));
     setValue(lfoFrequency, snapshot.lfo?.frequency); setValue(amDepth, snapshot.lfo?.amDepth); setValue(pmDepth, snapshot.lfo?.pmDepth); setValue(lfoWaveform, snapshot.lfo?.waveform);
     checked(noiseEnabled, snapshot.noise?.enabled); setValue(noiseFrequency, snapshot.noise?.frequency); setValue(code, ym2151VoiceCode(snapshot, channel));
     registers.textContent = Array.from(snapshot.registers ?? [], (value, index) => `${index.toString(16).toUpperCase().padStart(2, '0')}: ${Number(value).toString(16).toUpperCase().padStart(2, '0')}`).join('  ');
