@@ -105,6 +105,11 @@ try {
   await tracks.nth(3).waitFor();
   await page.waitForFunction(() => !document.querySelector('#parsedOutputTab').disabled);
   assert.deepEqual(await tracks.allTextContents(),['a.ssf','b.psf','c.minissf','d.minipsf']);
+  const channelSummary = page.locator('#dockChannels > summary');
+  assert(await page.locator('#monitorToggles button').first().isHidden());
+  assert(await play.isVisible());
+  await channelSummary.press('Enter');
+  await page.locator('#monitorToggles button').first().waitFor();
   // Sample after the Analyzer's master/FX output, including renderer lookahead.
   const checkOutput = audible => page.waitForFunction(expected => {
     if (!window.testMeter) return false;
@@ -329,6 +334,10 @@ try {
   const chip2 = dockChannels.getByRole('group',{name:'YM2612 2',exact:true});
   const ch2 = chip2.getByRole('button',{name:'CH2',exact:true});
   await ch2.click();
+  await channelSummary.click();
+  assert(await ch2.isHidden());
+  assert(await play.isVisible());
+  await channelSummary.click();
   assert.equal(await ch2.getAttribute('aria-pressed'),'false');
   assert.equal(await chip1.getByRole('button',{name:'CH2',exact:true}).getAttribute('aria-pressed'),'true');
   assert.equal(await dockChannels.getByText('PSG',{exact:true}).count(),0);

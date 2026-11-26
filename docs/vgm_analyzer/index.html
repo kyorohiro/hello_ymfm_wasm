@@ -253,6 +253,8 @@
         margin: 0 0 14px;
       }
 
+      #dockChannels > summary { cursor: pointer; font-weight: bold; }
+      #dockChannels[open] > summary { margin-bottom: 6px; }
       .monitor-toggles fieldset { flex: 1 1 100%; min-width: 0; margin: 0; padding: 3px 6px 5px; border: 1px solid #bca590; border-radius: 5px; }
       .monitor-toggles legend { padding: 0 4px; font-size: .8rem; font-weight: bold; }
       .monitor-toggles fieldset button { margin: 2px; }
@@ -1092,7 +1094,10 @@
             <label><input id="loopCheckbox" type="checkbox"> Loop</label>
             <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
           </div>
-          <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+          <details id="dockChannels">
+            <summary>CH on/off</summary>
+            <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+          </details>
         </div>
         <div id="dockOutputPane" hidden>
           <div class="transport-row" role="group" aria-label="Output display">

@@ -95,6 +95,7 @@ async function runBrowser(name,type,origin,createFixture,createStreamFixture) {
     const page=await browser.newPage({serviceWorkers:'block',viewport:{width:1440,height:1000}}),errors=[];
     page.setDefaultTimeout(35000);page.on('pageerror',error=>errors.push(error.message));
     await page.goto(origin+analyzerPath+'/index.html');await page.waitForFunction(()=>window.__pokeyAnalyzerTest);
+    await page.locator('#dockChannels > summary').click();
     const load=async(options={})=>{
       const {dual=false,chip=0,channel=0,stream=false}=options,filename=`original-${dual?'dual-':''}pokey-${stream?'stream-':''}${chip+1}-ch${channel+1}.vgm`;
       await page.locator('#fileInput').setInputFiles({name:filename,mimeType:'application/octet-stream',buffer:Buffer.from((stream?createStreamFixture:createFixture)(options))});

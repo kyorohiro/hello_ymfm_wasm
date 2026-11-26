@@ -86,6 +86,7 @@ async function runBrowser(name,type,origin,createFixture) {
     const page=await browser.newPage({serviceWorkers:'block',viewport:{width:1440,height:1000}}),errors=[];
     page.setDefaultTimeout(35000);page.on('pageerror',error=>errors.push(error.message));
     await page.goto(origin+analyzerPath+'/index.html');await page.waitForFunction(()=>window.__wsAnalyzerTest);
+    await page.locator('#dockChannels > summary').click();
     const load=async(channel,mode='wave')=>{
       const filename=`original-wonderswan-${mode}-ch${channel+1}.vgm`;
       await page.locator('#fileInput').setInputFiles({name:filename,mimeType:'application/octet-stream',buffer:Buffer.from(createFixture({channel,mode}))});
@@ -98,12 +99,13 @@ async function runBrowser(name,type,origin,createFixture) {
       return state;
     };
     const play=async()=>{const before=await snapshot(page);await page.locator('#playButton').click();await page.waitForFunction(before=>{const s=window.__wsAnalyzerTest.snapshot();return s.mode==='worklet'&&s.worklets>before.worklets&&s.frames>before.frames;},{worklets:before.worklets,frames:before.frames});};
+    const {mixerDefaults} = await import('../docs/vgm_analyzer/mixer_defaults.js');
     const scenes=[];
     for(let channel=0;channel<4;channel++) {
       await load(channel);await play();await page.waitForTimeout(200);
       const audible=await signal(page);assert(audible.acRms>.001,`CH${channel+1} real Worklet is silent: ${JSON.stringify(audible)}`);
       let state=await snapshot(page);assert.equal(state.registers[0x10]&15,1<<channel);assert.deepEqual(state.memory,[255,255,255,255,255,255,255,255,0,0,0,0,0,0,0,0],'C6 must reach nonzero physical wave RAM bank');
-      assert.equal(state.mixer.gain,1,'Unmeasured WonderSwan default remains unity');
+      assert.equal(state.mixer.gain,mixerDefaults('wonderswan').gain,'WonderSwan uses its calibrated mixer default');
       assert.equal(state.notes.length,4);assert.equal(state.notes[channel].keyOn,true);assert.equal(state.notes[channel].kind,'Wave');
       assert(Number.isFinite(state.notes[channel].midi),'A waveform note must expose its base pitch');
       const button=page.locator(`#monitorToggles [data-monitor-toggle-kind="opm-channel"][data-channel-index="${channel}"]`);
