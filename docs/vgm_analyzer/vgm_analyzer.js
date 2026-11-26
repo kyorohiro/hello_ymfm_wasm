@@ -668,8 +668,6 @@ let workletQueueMultiplier = 2;
 let workletPumpScheduled = false;
 let playbackUiDirty = false;
 let playbackUiRenderScheduled = false;
-let lastStreamingStatusSuffix = "";
-let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
 let masterVolume = audioPreferences.getMaster();
 const mixerUi = createMixerUi({
@@ -783,8 +781,7 @@ function applyMasterVolume() {
   player?.setMasterVolume?.(level);
 }
 
-function requestPlaybackUiRender(extra = "") {
-  lastStreamingStatusSuffix = extra;
+function requestPlaybackUiRender() {
   playbackUiDirty = true;
   if (playbackUiRenderScheduled) {
     return;
@@ -798,18 +795,6 @@ function requestPlaybackUiRender(extra = "") {
     playbackUiDirty = false;
     const stats = player ? player.stats() : {};
     updatePlaybackButtons(stats);
-
-    // Refresh streaming counters at most once per second; transport controls
-    // and seek-position updates retain their existing cadence.
-    const now = performance.now();
-    const activePlayback = Boolean(stats.playing || stats.paused || stats.queuedFrames > 0);
-    if (
-      !activePlayback ||
-      (now - lastStreamingStatusAt) >= 1000
-    ) {
-      updateStreamingStatus(lastStreamingStatusSuffix);
-      lastStreamingStatusAt = now;
-    }
   });
 }
 
@@ -3425,7 +3410,7 @@ async function playCurrentVgm(startSample = 0) {
     }
 
     updatePlaybackButtons(player.stats());
-      setStatus(`Streaming VGM at ${sampleRate} Hz...${currentStatusSuffix()}`);
+    setStatus("");
   } catch (error) {
     stopActiveStream();
     player?.stop();
@@ -3435,20 +3420,6 @@ async function playCurrentVgm(startSample = 0) {
   } finally {
     updatePlaybackButtons(player ? player.stats() : {});
   }
-}
-
-function updateStreamingStatus(extra = "") {
-  if (!player) {
-    return;
-  }
-  const stats = player.stats();
-  const stream = activeStream;
-  const diagnostics = stream?.mode === "worklet"
-    ? ` buffer=${Math.round(stream.workletQueuedFrames / audioContext.sampleRate * 1000)}ms underruns=${stream.underruns} render=${stream.renderMs.toFixed(1)}ms max=${stream.maxRenderMs.toFixed(1)}ms` : "";
-  const suffix = (extra === "" ? "" : ` ${extra}`) + diagnostics;
-  setStatus(
-    `Streaming VGM... commands=${stats.processedEvents} queued=${stats.queuedFrames} audio=${stats.audioProgress.toFixed(1)}% loop=${loopCheckbox.checked ? "on" : "off"}${suffix}`,
-  );
 }
 
 function currentWorkletTargetFrames() {
@@ -3514,7 +3485,7 @@ function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
     activeStream.node.port.postMessage({ type: "end" });
     activeStream.endSent = true;
   }
-  requestPlaybackUiRender("(AudioWorklet)");
+  requestPlaybackUiRender();
 
   if (activeStream.workletQueuedFrames < targetFrames) {
     const statsAfter = player.stats();
@@ -3571,7 +3542,7 @@ async function startWorkletStream(sampleRate) {
         stopActiveStream();
       }
       resetTimelineToStart();
-      requestPlaybackUiRender("");
+      requestPlaybackUiRender();
       setStatus(`Ready.${currentStatusSuffix()}`);
       advancePlaylist();
       return;
@@ -3605,7 +3576,7 @@ function startScriptProcessorStream() {
       stream.fadePosition++;
     }
     stream.lastLeft = left[left.length - 1]; stream.lastRight = right[right.length - 1];
-    requestPlaybackUiRender("(ScriptProcessor)");
+    requestPlaybackUiRender();
 
     if (ended) {
       // The callback's final buffer still needs to reach the output device.
@@ -3617,7 +3588,7 @@ function startScriptProcessorStream() {
         if (activeStream !== stream) return;
         activeStream = null;
         resetTimelineToStart();
-        requestPlaybackUiRender("");
+        requestPlaybackUiRender();
         setStatus(`Ready.${currentStatusSuffix()}`);
         advancePlaylist();
       }, 1000 * bufferSize / audioContext.sampleRate + 20);
