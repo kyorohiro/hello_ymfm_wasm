@@ -62,11 +62,15 @@ try {
     ]);
     await chooser.setFiles(files);
   }
+  const tabsTop = () => page.locator('#outputTabs').evaluate(el => el.getBoundingClientRect().top + window.scrollY);
+  const initialTop = await tabsTop();
   await chooseFromBasic('Select files…',{name:'slow.vgm',mimeType:'application/octet-stream',buffer:Buffer.from('invalid')});
   const indicator = page.locator('#fileLoadProgress');
   await indicator.filter({hasText:'Reading slow.vgm'}).waitFor();
+  assert.equal(await tabsTop(),initialTop);
   await page.evaluate(() => window.finishFileRead());
   await indicator.waitFor({state:'hidden'});
+  assert.equal(await tabsTop(),initialTop);
   assert.match(await page.locator('#headerOutput').textContent(),/Failed to (decode|parse)/);
   assert(await page.locator('#playlistPanel').isVisible());
   assert(await page.locator('#parsedOutputTab').isDisabled());
@@ -399,7 +403,7 @@ try {
   const ntsc = await readFile(new URL('../docs/sid-player/demos/tone.sid',import.meta.url));
   ntsc.writeUInt16BE((ntsc.readUInt16BE(118)&~12)|8,118);
   await page.locator('#fileInput').setInputFiles({name:'ntsc.sid',mimeType:'application/octet-stream',buffer:ntsc});
-  await page.locator('#inlinePlaybackError').filter({hasText:'NTSC'}).waitFor();
+  await page.locator('#playbackError').filter({hasText:'NTSC'}).waitFor();
   assert(await mainPlay.isDisabled());
   console.log('NTSC rejection passed');
   if (process.argv.length > 3) {

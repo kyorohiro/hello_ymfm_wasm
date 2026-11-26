@@ -32,9 +32,9 @@ test('actual Player DAC warning reaches the persistent warning panel',async()=>{
  assert.equal(panel.hidden,true);
 });
 
-test('ROM preparation failure is visible next to both playback controls until resolved',async()=>{
+test('ROM preparation failure is visible in the header until resolved',async()=>{
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
- const panels={playbackError:{},inlinePlaybackError:{}};
+ const panels={playbackError:{}};
  const context=vm.createContext({document:{getElementById:id=>panels[id]},status:{},console,
    playbackPreparePromise:null,isPlaybackReady:()=>false,currentStatusSuffix:()=>'',
    ensurePlaybackReady:async()=>{throw new Error('Import yrw801.rom before playing this track.');}});
@@ -42,23 +42,23 @@ test('ROM preparation failure is visible next to both playback controls until re
  vm.runInContext(source.slice(source.indexOf('function beginPreparePlayback('),source.indexOf('function stopActiveStream(')),context);
  await context.beginPreparePlayback({});
  for(const panel of Object.values(panels)){assert.equal(panel.hidden,false);assert.match(panel.textContent,/yrw801\.rom/);}
- context.setStatus('Ready');assert.equal(panels.inlinePlaybackError.hidden,false);
+ context.setStatus('Ready');assert.equal(panels.playbackError.hidden,false);
  context.ensurePlaybackReady=async()=>({});await context.beginPreparePlayback({});
  for(const panel of Object.values(panels)){assert.equal(panel.hidden,true);assert.equal(panel.textContent,'');}
  const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
  for(const id of Object.keys(panels))assert.match(html,new RegExp(`id="${id}" role="alert"`));
 });
 
-test('unsupported sample blocks display once per type in both playback views',()=>{
+test('unsupported sample blocks display once per type in the header',()=>{
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
- const panels={playbackWarnings:{},inlinePlaybackWarnings:{}},logs=[];
+ const panels={playbackWarnings:{}},logs=[];
  const context=vm.createContext({document:{getElementById:id=>panels[id]},status:{},console:{warn:m=>logs.push(m)}});
  vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
  for(const size of [2936,3333,1373,2936])context.reportPlaybackWarning(`Skipping unsupported VGM data block 0x80 (size=${size})`);
  for(const panel of Object.values(panels)){
   assert.equal(panel.hidden,false);assert.match(panel.textContent,/Unsupported VGM data block 0x80/);assert.equal(panel.textContent.split('\n').length,1);
  }
- assert.deepEqual(logs,[]);context.setStatus('Parsed track');assert.equal(panels.inlinePlaybackWarnings.hidden,false);
+ assert.deepEqual(logs,[]);context.setStatus('Parsed track');assert.equal(panels.playbackWarnings.hidden,false);
  context.clearPlaybackWarnings();for(const panel of Object.values(panels)){assert.equal(panel.hidden,true);assert.equal(panel.textContent,'');}
 });
 

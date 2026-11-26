@@ -573,7 +573,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=playlist-group-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=status-line-1">
   </head>
   <body>
     <main>
@@ -600,6 +600,12 @@
           </details>
           <h1 id="pageTitle">Tetorica <span>FM</span>2612 Analyzer</h1>
         </header>
+        <div class="analyzer-status-line">
+          <div id="playbackError" role="alert" hidden></div>
+          <div id="fileLoadProgress" role="status" hidden><progress aria-label="Loading"></progress> <span></span></div>
+          <div id="playbackWarnings" role="status" hidden></div>
+          <div id="status" role="status" hidden></div>
+        </div>
         <dialog id="chipSupportDialog" class="notes-dialog chip-support-dialog" aria-labelledby="chipSupportTitle">
           <div class="notes-dialog-body">
             <div class="notes-dialog-head"><h3 id="chipSupportTitle">Sound chip support</h3><form method="dialog"><button type="submit" autofocus>Close</button></form></div>
@@ -665,10 +671,6 @@
             </ul>
           </div>
         </dialog>
-        <div id="fileLoadProgress" role="status" aria-live="polite" hidden><progress aria-label="Loading"></progress> <span></span></div>
-        <div class="status" id="playbackError" role="alert" style="white-space: pre-line" hidden></div>
-        <div class="status" id="status" hidden></div>
-        <div class="status" id="playbackWarnings" role="status" style="white-space: pre-line" hidden></div>
 
         <div id="outputTabs" class="tabbar" role="tablist" aria-label="Analyzer output panels">
           <button id="playlistTab" class="tab-button" type="button" role="tab" aria-selected="true" tabindex="0" aria-controls="playlistPanel">Basic</button>
@@ -722,8 +724,6 @@
             <label hidden id="playlistPageLabel">Playlist page <input id="playlistPage" type="number" min="1" value="1"></label>
             <ol id="playlistList"></ol>
           </section>
-          <div class="status" id="inlinePlaybackWarnings" role="status" style="flex-basis: 100%; white-space: pre-line" hidden></div>
-          <div class="status" id="inlinePlaybackError" role="alert" style="flex-basis: 100%; white-space: pre-line" hidden></div>
           <div class="basic-transport" role="group" aria-label="Playback controls">
             <div class="playback-seek">
               <label for="inlinePlaybackSeek">Position</label>
@@ -1037,7 +1037,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=quiet-playback-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=status-line-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

@@ -113,7 +113,7 @@ function setLoadProgress(owner, message = '') {
   message = Array.from(loadingMessages.values()).at(-1) || '';
   const indicator = document.getElementById('fileLoadProgress');
   const label = indicator.querySelector('span');
-  if (label.textContent !== message) label.textContent = message;
+  if (label.textContent !== message) label.textContent = indicator.title = message;
   indicator.hidden = !message;
 }
 function clearSong() {
@@ -704,12 +704,9 @@ const NOTEISH_HISTORY_WINDOW_MS = 8000;
 
 const playbackWarnings = new Set();
 function setPlaybackError(message = '') {
-  for (const id of ['playbackError', 'inlinePlaybackError']) {
-    const panel = document.getElementById(id);
-    if (!panel) continue;
-    panel.textContent = message;
-    panel.hidden = !message;
-  }
+  const panel = document.getElementById('playbackError');
+  panel.textContent = panel.title = message;
+  panel.hidden = !message;
 }
 function reportPlaybackError(error) {
   const message = error?.message || String(error);
@@ -718,12 +715,9 @@ function reportPlaybackError(error) {
 }
 
 function renderPlaybackWarnings() {
-  for (const id of ['playbackWarnings', 'inlinePlaybackWarnings']) {
-    const panel = document.getElementById(id);
-    if (!panel) continue;
-    panel.textContent = [...playbackWarnings].join('\n');
-    panel.hidden = playbackWarnings.size === 0;
-  }
+  const panel = document.getElementById('playbackWarnings');
+  panel.textContent = panel.title = [...playbackWarnings].join('\n');
+  panel.hidden = playbackWarnings.size === 0;
 }
 function reportPlaybackWarning(message) {
   const block = /^Skipping unsupported VGM data block (0x[0-9a-f]+) \(size=\d+\)$/i.exec(message);
@@ -741,7 +735,7 @@ function clearPlaybackWarnings() {
 }
 
 function setStatus(message) {
-  status.textContent = message;
+  status.textContent = status.title = message;
   status.hidden = !message;
 }
 

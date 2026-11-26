@@ -61,6 +61,17 @@ main { padding: 24px; }
 }
 .instrument-header h1 { margin: 0; font-size: clamp(1rem, 2vw, 1.45rem); letter-spacing: -.025em; }
 .instrument-header h1 > span:first-child { color: var(--accent); }
+.analyzer-status-line {
+  height: 1.75rem;
+  line-height: 1.75rem;
+  min-width: 0;
+  color: var(--ink);
+  font-size: .85rem;
+}
+.analyzer-status-line > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.analyzer-status-line > :not([hidden]) ~ div { display: none; }
+.analyzer-status-line progress { width: 3rem; vertical-align: middle; }
+.analyzer-status-line #playbackError { color: var(--accent-dark); }
 .analyzer-menu { position: relative; flex: none; }
 .analyzer-menu > summary {
   display: grid;
