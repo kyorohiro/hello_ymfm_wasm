@@ -16,15 +16,15 @@ test('OPM AMD and PMD share an address without overwriting each other; reset cle
  assert.deepEqual(s.snapshot().lfo,{rate:123,waveform:3,amd:45,pmd:86});
  assert.deepEqual(s.snapshot().noise,{enabled:true,rate:21});s.reset();assert.deepEqual(s.snapshot(),createOpmState().snapshot());
 });
-test('OPM observation preserves writes and resets, and renders eight channel tables',()=>{
+test('OPM observation preserves writes and resets, and renders the selected channel table',()=>{
  const state=createOpmState(),calls=[];
  const engine={writeYm2151:(...a)=>calls.push(a),reset:()=>calls.push('reset')};
  observeOpmEngine(engine,state,()=>calls.push('changed'));
  engine.writeYm2151(0x20,7);assert.equal(state.snapshot().channels[0].algorithm,7);engine.reset();
  assert.deepEqual(calls,[[0x20,7],'changed','reset','changed']);assert.equal(state.snapshot().channels[0].algorithm,0);
  const old=globalThis.document,tags=[];
- globalThis.document={createElement(tag){const el={style:{},children:[],append(...a){this.children.push(...a);}};tags.push([tag,el]);return el;}};
- try{const m=mountOpmMonitor({append(){}});m.write(0x20,7);m.render();assert.equal(tags.filter(([tag])=>tag==='table').length,8);assert(tags.some(([tag,el])=>tag==='span' && el.textContent==='ALG 7'));}finally{globalThis.document=old;}
+ globalThis.document={createElement(tag){const el={style:{},setAttribute(){},classList:{toggle(){}},children:[],append(...a){this.children.push(...a);}};tags.push([tag,el]);return el;}};
+ try{const m=mountOpmMonitor({append(){}});m.write(0x20,7);m.render();assert.equal(tags.filter(([tag])=>tag==='table').length,1);assert(tags.some(([tag,el])=>tag==='span' && el.textContent==='ALG 7'));}finally{globalThis.document=old;}
 });
 
 test('OPM changes track individual fields, transient changes, fade and reset',()=>{
@@ -44,7 +44,7 @@ test('OPM changes track individual fields, transient changes, fade and reset',()
 
 test('OPM cell highlight disappears after idle time and reset',()=>{
  let time=0;const tags=[],old=globalThis.document;
- globalThis.document={createElement(tag){const el={style:{},append(){}};tags.push([tag,el]);return el;}};
+ globalThis.document={createElement(tag){const el={style:{},setAttribute(){},classList:{toggle(){}},append(){}};tags.push([tag,el]);return el;}};
  try{
   const m=mountOpmMonitor({append(){}},()=>time);const cells=tags.filter(([tag])=>tag==='td').map(([,el])=>el);
   assert(cells.every(cell=>cell.style.background===''));

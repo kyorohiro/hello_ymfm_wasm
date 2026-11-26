@@ -23,8 +23,8 @@ test('OPM text preserves distinct register slots, channel settings and global LF
 test('Monitor is read-only; Export group downloads all CH snapshots at click time',async()=>{
  const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
  const old=globalThis.document,buttons=[];
- globalThis.document={createElement(tag){if(tag==='button')buttons.push(tag);return {style:{},append(){}};}};
- try{mountOpmMonitor({append(){}},()=>0);assert.equal(buttons.length,0);}finally{globalThis.document=old;}
+ globalThis.document={createElement(tag){if(tag==='button')buttons.push(tag);return {style:{},setAttribute(){},classList:{toggle(){}},append(){}};}};
+ try{mountOpmMonitor({append(){}},()=>0);assert.equal(buttons.length,8);}finally{globalThis.document=old;}
  const state=createOpmState();state.write(0x67,77);
  let handler,blob;const downloads=[];
  const ctx=vm.createContext({createStoredZipBytes,noteishHeader:{ym2151Clock:4000000},currentChipKind:'ym2151',currentBuffer:new Uint8Array(1),exportOpmButton:{addEventListener:(_,fn)=>handler=fn},opmMonitor:state,exportOpm,lastLoadedFileName:'song.vgm',Blob,TextEncoder,CRC32_TABLE:Uint32Array.from({length:256},(_,n)=>{for(let i=0;i<8;i++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;}),

@@ -316,8 +316,8 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 
 #fm2612Voice { margin-bottom: 16px; }
 #fm2612Voice p { margin: 8px 0; }
-#fm2612Voice [aria-pressed="true"] { background: var(--red-enamel); color: white; }
-#fm2612Voice canvas { display: block; width: 100%; height: 128px; background: #241d19; }
+.fm-channels button[aria-pressed="true"] { background: var(--red-enamel); color: white; }
+.fm-channel-detail canvas { display: block; width: 100%; height: 128px; background: #241d19; }
 .fm-operator-values { overflow-x: auto; margin-block: 8px; }
 .fm-operator-values table { border-collapse: collapse; font-size: .82rem; font-variant-numeric: tabular-nums; }
 .fm-operator-values :is(th, td) { padding: 3px 8px; border-bottom: 1px solid var(--line); text-align: right; }
@@ -326,3 +326,12 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 .fm-operator-values tbody tr:nth-child(2) th::before { background: #ff93bc; }
 .fm-operator-values tbody tr:nth-child(3) th::before { background: #9dff9b; }
 .fm-operator-values tbody tr:nth-child(4) th::before { background: #89b7ff; }
+
+.fm-voice-layout { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; gap: 12px; }
+.fm-channels { display: grid; gap: 4px; }
+.fm-channels button { min-height: 32px; padding: 4px 8px; }
+.fm-channels button::before { content: ""; display: inline-block; width: .6rem; height: .6rem; margin-right: 5px; border: 1px solid #897d73; border-radius: 50%; background: #ddd4ca; transition: background-color .25s; }
+.fm-channels button.is-key-on::before { background: #7ddd86; border-color: #306a3d; }
+.fm-channels button.is-key-on::before { transition-duration: 0s; }
+#fm2612Voice [hidden] { display: none; }
+.fm-channel-detail { min-width: 0; }

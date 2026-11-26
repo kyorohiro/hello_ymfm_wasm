@@ -62,26 +62,43 @@ export function observeOpmEngine(engine, state, changed) {
   engine.writeYm2151 = (r, v) => { write(r, v); state.write(r, v); changed(); };
   engine.reset = () => { reset(); state.reset(); changed(); };
 }
-export function mountOpmMonitor(root, now) {
+export function mountOpmMonitor(root, now, mountEnvelope) {
   const state = createOpmState(now);
-  const title = document.createElement('h3'); title.textContent = 'YM2151 / YM2164 Operator Info'; root.append(title);
+  const title = document.createElement('h3'); title.textContent = 'OPM / OPP Channel Monitor'; root.append(title);
   const note = document.createElement('p');
   note.textContent = 'Playback register state (may lead audible output by the audio queue). Key shows the last key command, not envelope activity. Raw register values; TFI export is not applicable. Slots follow register offsets +00/+08/+10/+18; algorithm order is 1/3/2/4.';
   root.append(note);
   const summary = document.createElement('p'); root.append(summary);
   const fields = ['slot','key','dt1','mul','tl','ks','ar','am','d1r','dt2','d2r','d1l','rr'];
-  const cards = Array.from({length:8}, () => {
-    const section = document.createElement('section'), heading = document.createElement('h4');section.append(heading);
-    const wrap = document.createElement('div');wrap.style.overflowX = 'auto';
-    const table = document.createElement('table'), head = document.createElement('tr');
-    for (const field of fields) { const th = document.createElement('th'); th.textContent = field.toUpperCase(); head.append(th); } table.append(head);
-    const rows = Array.from({length:4}, () => { const row = document.createElement('tr'); const cells = fields.map(() => {const cell = document.createElement('td');row.append(cell);return cell;});table.append(row);return cells;});
-    wrap.append(table);section.append(wrap);root.append(section);return {heading,rows};
+  const layout = document.createElement('div'); layout.className = 'fm-voice-layout';
+  const selector = document.createElement('div'); selector.className = 'fm-channels';
+  selector.setAttribute('role','group'); selector.setAttribute('aria-label','Inspect FM channel');
+  const detail = document.createElement('section'); detail.className = 'fm-channel-detail';
+  layout.append(selector, detail); root.append(layout);
+  let selected = 0;
+  const buttons = Array.from({length:8}, (_, i) => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.textContent = 'CH' + (i + 1);
+    button.onclick = () => {selected = i; render();};
+    selector.append(button); return button;
   });
+  const heading = document.createElement('h4'); detail.append(heading);
+  const envelope = mountEnvelope?.(detail);
+  const wrap = document.createElement('div'); wrap.className = 'fm-operator-values';
+  const table = document.createElement('table'), head = document.createElement('tr');
+  for (const field of fields) {
+    const th = document.createElement('th'); th.textContent = field.toUpperCase(); head.append(th);
+  }
+  table.append(head);
+  const rows = Array.from({length:4}, () => {
+    const row = document.createElement('tr');
+    const cells = fields.map(() => {const cell = document.createElement('td');row.append(cell);return cell;});
+    table.append(row);return cells;
+  });
+  wrap.append(table);detail.append(wrap);
   const channelFields = [['algorithm','ALG'],['feedback','FB'],['left','L'],['right','R'],['kc','KC'],['kf','KF'],['pms','PMS'],['ams','AMS']];
-  const channelTokens = cards.map(({heading}, i) => {
-    heading.textContent = `CH${i+1} · `;
-    return channelFields.map(() => { const span = document.createElement('span');span.className = 'param-token';heading.append(span);return span; });
+  const channelTokens = channelFields.map(() => {
+    const span = document.createElement('span');span.className = 'param-token';heading.append(span);return span;
   });
   const globalFields = [['lfo.rate','LFO rate'],['lfo.waveform','Wave'],['lfo.amd','AMD'],['lfo.pmd','PMD'],['noise.enabled','CH8 noise'],['noise.rate','Noise rate']];
   const globalTokens = globalFields.map(() => { const span = document.createElement('span');span.className = 'param-token';summary.append(span);return span; });
@@ -96,9 +113,13 @@ export function mountOpmMonitor(root, now) {
     const data = state.snapshot();
     globalFields.forEach(([path,label], i) => { const [group,field] = path.split('.'); paint(globalTokens[i],path,data[group][field],`${label} `); });
     data.channels.forEach((ch, i) => {
-      channelFields.forEach(([field,label], j) => paint(channelTokens[i][j],`ch${i}.${field}`,ch[field],`${label} `));
-      ch.operators.forEach((op, slot) => fields.forEach((key, col) => paint(cards[i].rows[slot][col],`ch${i}.op${slot}.${key}`,op[key])));
+      buttons[i].setAttribute('aria-pressed',String(i === selected));
+      buttons[i].classList.toggle('is-key-on',ch.operators.some(op=>op.key));
     });
+    const ch = data.channels[selected];
+    envelope?.update(ch);
+    channelFields.forEach(([field,label], j) => paint(channelTokens[j],`ch${selected}.${field}`,ch[field],`${label} `));
+    ch.operators.forEach((op, slot) => fields.forEach((key, col) => paint(rows[slot][col],`ch${selected}.op${slot}.${key}`,op[key])));
   }
-  render();return {...state,render};
+  render();return {...state,render,dispose() {envelope?.dispose();}};
 }

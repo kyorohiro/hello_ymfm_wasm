@@ -573,7 +573,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=fm2612-voice-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=opn-channels-1">
   </head>
   <body>
     <main>
@@ -783,18 +783,22 @@
           <div id="chipMonitorStorage" hidden>
             <section id="opnMonitor">
               <h2>FM Channel Monitor</h2>
-              <section id="fm2612Voice" aria-label="FM2612 voice" hidden>
+              <section id="fm2612Voice" aria-label="FM voice" hidden>
                 <p class="noteish-help">Register settings at the generated audio position. Pause to inspect a voice or open a TFI copy in Instrument to audition it.</p>
-                <div class="transport-row" data-fm-channels role="group" aria-label="Inspect FM channel"></div>
-                <p><strong data-fm-routing></strong> · <span data-fm-feedback></span></p>
-                <details open>
-                  <summary>Operator envelopes</summary>
-                  <canvas data-operator-envelope height="128" role="img" aria-label="Programmed envelope curves for OP1 through OP4"></canvas>
-                </details>
-                <div class="fm-operator-values"><table aria-label="FM operator parameters"></table></div>
-                <button type="button" data-fm-open>Open in Instrument</button>
+                <div class="fm-voice-layout">
+                  <div class="fm-channels" data-fm-channels role="group" aria-label="Inspect FM channel"></div>
+                  <div class="fm-channel-detail">
+                    <p><strong data-fm-routing></strong> · <span data-fm-feedback></span></p>
+                    <div class="channel-row" data-fm-status></div>
+                    <details open>
+                      <summary>Operator envelopes</summary>
+                      <canvas data-operator-envelope height="128" role="img" aria-label="Programmed envelope curves for OP1 through OP4"></canvas>
+                    </details>
+                    <div class="fm-operator-values"><table aria-label="FM operator parameters"></table></div>
+                    <button type="button" data-fm-open>Open in Instrument</button>
+                  </div>
+                </div>
               </section>
-              <div id="channelGrid" class="channel-grid"></div>
             </section>
             <section id="psgMonitor">
               <h2 id="psgMonitorTitle">Sega PSG</h2>
@@ -1052,7 +1056,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=fm2612-voice-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=opn-channels-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

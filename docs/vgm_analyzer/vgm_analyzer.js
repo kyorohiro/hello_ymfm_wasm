@@ -1,4 +1,4 @@
-import {mountFm2612VoiceView} from './fm2612_voice_view.js';
+import {mountFm2612VoiceView,mountOpmEnvelope} from './fm2612_voice_view.js?v=opn-channels-1';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {consoleVgmChip} from './console_vgm.js';
 import {createWonderSwanMonitor,applyWonderSwanWrite,describeWonderSwanNotes,extractWonderSwanNotes} from './wonderswan_notes.js?v=pokey-vgm-1';
@@ -32,7 +32,7 @@ import {mountSbiInfo} from './sbi_info.js?v=pokey-vgm-1';
 import {exportMxdrvMml} from './opm_mml.js?v=pokey-vgm-1';
 import {exportOpm, extractOpmPatches} from './opm_export.js?v=pokey-vgm-1';
 import {createOpmNoteTracker} from './opm_notes.js?v=pokey-vgm-1';
-import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=export-2';
+import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=channel-list-1';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
@@ -239,7 +239,6 @@ const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton
 const exportSnapshotVgiButton = document.getElementById("exportSnapshotVgiButton");
 const exportSnapshotButton = document.getElementById("exportSnapshotButton");
 const status = document.getElementById("status");
-const channelGrid = document.getElementById("channelGrid");
 const headerOutput = document.getElementById("headerOutput");
 const metadataOutput = document.getElementById("metadataOutput");
 
@@ -993,6 +992,9 @@ function buildMonitorChannel(index) {
   return {
     channel: index,
     keyOn: false,
+    keyMask: 0,
+    lfo: 0,
+    csm: false,
     panLeft: false,
     panRight: false,
     algorithm: 7,
@@ -1073,14 +1075,6 @@ function changeAgeOpacity(changedAt) {
     return 0;
   }
   return 1 - (age / 1800);
-}
-
-function renderParamToken(label, value, changedAt, hue = "255 184 92") {
-  const opacity = changeAgeOpacity(changedAt);
-  const background = opacity > 0
-    ? `background: color-mix(in srgb, rgba(${hue} / ${Math.max(0.22, opacity * 0.78)}) 75%, rgba(43, 36, 29, 0.06) 25%);`
-    : "";
-  return `<span class="param-token" style="${background}">${label} ${value}</span>`;
 }
 
 function hasRecentChannelChanges() {
@@ -1339,7 +1333,8 @@ function observePsgPlaybackEngine() {
 }
 
 function renderChannelMonitor() {
-  fm2612Voice.update(currentChipKind === 'ym2612' ? channelMonitor : []);
+  const opn = ['ym2612','ym2203','ym2608','ym2610'].includes(currentChipKind);
+  fm2612Voice.update(opn ? channelMonitor : [], currentChipKind);
   if (currentChipKind === 'pokey') {renderMonitorToggles(); pokeyMonitor.render(); return;}
   if (currentChipKind === "ym2151") opmMonitor.render();
   if (currentChipKind === "ay8910") { renderMonitorToggles(); ayMonitor.render(); if (noteishHeader.ym2413Clock & 0x3fffffff) ym2413Monitor.render(); return; }
@@ -1348,73 +1343,7 @@ function renderChannelMonitor() {
   if (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind)) { renderMonitorToggles(); return; }
   renderPsgMonitor();
   renderPcmMonitor();
-  channelGrid.innerHTML = "";
   renderMonitorToggles();
-  for (const channel of channelMonitor) {
-    if (channel.unavailable) continue;
-    const card = document.createElement("section");
-    card.className = `channel-card${channel.keyOn ? " is-key-on" : ""}`;
-    const pan = `${channel.panLeft ? "L" : "-"}${channel.panRight ? "R" : "-"}`;
-    const panChip = currentChipKind === "ym2612"
-      ? renderChannelChip("PAN", pan, channel.changedAt.pan, "166 214 148")
-      : "";
-    const dacChips = currentChipKind === "ym2612" && channel.channel === 5
-      ? [
-        renderChannelChip("DAC", channel.dacEnabled ? "ON" : "OFF", channel.changedAt.dacEnabled, "166 214 148"),
-        renderChannelChip("BYTE", channel.dacValue, channel.changedAt.dacValue, "255 184 92"),
-      ].join("")
-      : "";
-    card.innerHTML = `
-      <div class="channel-head">
-        <span class="channel-title">CH${channel.channel + 1}</span>
-        <span class="channel-meta">${channel.keyOn ? "key on" : "key off"}</span>
-      </div>
-      <div class="channel-row">
-        ${renderChannelChip("ALG", channel.algorithm, channel.changedAt.algorithm, "255 184 92")}
-        ${renderChannelChip("FB", channel.feedback, channel.changedAt.feedback, "255 184 92")}
-        ${panChip}
-        ${renderChannelChip("B", channel.block, channel.changedAt.block, "125 176 255")}
-        ${renderChannelChip("F", channel.fnum, channel.changedAt.fnum, "125 176 255")}
-        ${dacChips}
-      </div>
-      <div class="operators">
-        <div class="operator-box"><strong>OP1</strong> ${renderOperatorTokens(channel.operators[1])}</div>
-        <div class="operator-box"><strong>OP2</strong> ${renderOperatorTokens(channel.operators[2])}</div>
-        <div class="operator-box"><strong>OP3</strong> ${renderOperatorTokens(channel.operators[3])}</div>
-        <div class="operator-box"><strong>OP4</strong> ${renderOperatorTokens(channel.operators[4])}</div>
-      </div>
-    `;
-    channelGrid.append(card);
-  }
-
-  if (["ym2612", "ym2608", "ym2610"].includes(currentChipKind)) {
-    const specialCard = document.createElement("section");
-    const ch3 = channelMonitor[2];
-    specialCard.className = `channel-card${ch3?.keyOn ? " is-key-on" : ""}`;
-    specialCard.innerHTML = `
-      <div class="channel-head">
-        <span class="channel-title">CH3SP</span>
-        <span class="channel-meta">${ch3?.specialMode ? "special on" : "special off"}</span>
-      </div>
-      <div class="channel-row">
-        ${renderChannelChip("MODE", ch3?.specialMode ? "ON" : "OFF", ch3?.changedAt.specialMode, "166 214 148")}
-      </div>
-      <div class="operators">
-        ${renderSpecialFrequencyBox("OP1", ch3?.specialFrequencies?.[1])}
-        ${renderSpecialFrequencyBox("OP2", ch3?.specialFrequencies?.[2])}
-        ${renderSpecialFrequencyBox("OP3", ch3?.specialFrequencies?.[3])}
-        ${renderSpecialFrequencyBox("OP4", {
-          block: ch3?.block ?? 0,
-          fnum: ch3?.fnum ?? 0,
-          changedAt: {
-            block: ch3?.changedAt.block ?? 0,
-            fnum: ch3?.changedAt.fnum ?? 0,
-          },
-        })}
-      </div>
-    `;
-    channelGrid.append(specialCard);
-  }
 }
 
 function midiToNoteName(midi) {
@@ -1949,31 +1878,6 @@ function renderNoteishGrid() {
   existingCards.slice(noteishChannels().length).forEach(card => card.remove());
 }
 
-function renderOperatorTokens(operator) {
-  return [
-    renderParamToken("DT", operator.dt, operator.changedAt.dt, "125 176 255"),
-    renderParamToken("M", operator.multi, operator.changedAt.multi, "125 176 255"),
-    renderParamToken("TL", operator.tl, operator.changedAt.tl, "255 224 138"),
-    renderParamToken("RS", operator.rs, operator.changedAt.rs, "255 186 150"),
-    renderParamToken("AR", operator.ar, operator.changedAt.ar, "255 186 150"),
-    renderParamToken("AM", operator.am, operator.changedAt.am, "166 214 148"),
-    renderParamToken("D1R", operator.d1r, operator.changedAt.d1r, "255 186 150"),
-    renderParamToken("D2R", operator.d2r, operator.changedAt.d2r, "255 186 150"),
-    renderParamToken("SL", operator.sl, operator.changedAt.sl, "255 186 150"),
-    renderParamToken("RR", operator.rr, operator.changedAt.rr, "255 186 150"),
-    renderParamToken("SSG-EG", operator.ssg, operator.changedAt.ssg, "166 214 148"),
-  ].join("");
-}
-
-function renderSpecialFrequencyBox(label, frequency) {
-  return `<div class="operator-box"><strong>${label}</strong> ${
-    [
-      renderParamToken("B", frequency?.block ?? 0, frequency?.changedAt?.block ?? 0, "125 176 255"),
-      renderParamToken("F", frequency?.fnum ?? 0, frequency?.changedAt?.fnum ?? 0, "125 176 255"),
-    ].join("")
-  }</div>`;
-}
-
 function renderChannelChip(label, value, changedAt, hue) {
   const opacity = changeAgeOpacity(changedAt);
   const background = opacity > 0
@@ -2190,139 +2094,9 @@ function renderDetectedChips(header) {
 }
 
 function applyYm2203WriteToMonitor(register, value) {
-  // OPN high writes only latch; low writes commit the pitch. Both ports
-  // share the normal latch, with a separate latch for CH3 special mode.
-  if ((register & 0xf0) === 0xa0 && (register & 3) < 3 && (register & 4)) {
-    monitorFrequencyHigh[(register & 8) ? 1 : 0] = value & 0x3f;
-    return;
-  }
+  if (register === 0x28 && (value & 7) > 2) return;
+  applyYm2612WriteToMonitor(0, register, value);
 
-  let changed = false;
-  const now = performance.now();
-
-  if (register === 0x28) {
-    const channel = value & 0x03;
-    if (channel <= 2) {
-      const wasKeyOn = channelMonitor[channel].keyOn;
-      beginNoteishOnset(channelMonitor[channel], wasKeyOn, (value >> 4) & 15);
-      channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
-      channelMonitor[channel].changedAt.keyOn = now;
-      if (channelMonitor[channel].keyOn) {
-        updateChannelObservedRange(channel);
-        const estimated = estimateChannelNoteish(channelMonitor[channel]);
-        recordChannelNoteHistory(channel, estimated.midiFloat);
-        channelMonitor[channel].noteSequenceOpen = true;
-        appendChannelNoteSequence(channel, estimated.midiFloat, !wasKeyOn);
-      } else {
-        recordChannelNoteHistory(channel, null);
-        channelMonitor[channel].noteSequenceOpen = false;
-        channelMonitor[channel].lastSequenceNote = null;
-      }
-      changed = true;
-    }
-    if (changed) {
-      requestChannelMonitorRender();
-      requestNoteishRender();
-    }
-    return;
-  }
-
-  if (register >= 0xa0 && register <= 0xa2) {
-    const channel = register - 0xa0;
-    const state = channelMonitor[channel];
-    if (!state) {
-      return;
-    }
-    settleNoteishOnset(state);
-    state.block = monitorFrequencyHigh[0] >> 3;
-    state.fnum = ((monitorFrequencyHigh[0] & 7) << 8) | value;
-    state.changedAt.block = now;
-    state.changedAt.fnum = now;
-    updateChannelObservedRange(channel);
-    if (state.keyOn) {
-      const estimated = estimateChannelNoteish(state);
-      recordChannelNoteHistory(channel, estimated.midiFloat);
-      appendChannelNoteSequence(channel, estimated.midiFloat, false);
-    }
-    requestChannelMonitorRender();
-    requestNoteishRender();
-    return;
-  }
-
-  if (register >= 0xb0 && register <= 0xb2) {
-    const channel = register - 0xb0;
-    const state = channelMonitor[channel];
-    if (!state) {
-      return;
-    }
-    state.feedback = (value >> 3) & 0x07;
-    state.algorithm = value & 0x07;
-    state.changedAt.feedback = now;
-    state.changedAt.algorithm = now;
-    requestChannelMonitorRender();
-    requestNoteishRender();
-    return;
-  }
-
-  const lowNibble = register & 0x0f;
-  const channelOffset = lowNibble & 0x03;
-  if (channelOffset > 2) {
-    return;
-  }
-
-  const slotOffset = lowNibble - channelOffset;
-  const operator = findOperatorFromSlotOffset(slotOffset);
-  if (!operator) {
-    return;
-  }
-
-  const state = channelMonitor[channelOffset]?.operators[operator];
-  if (!state) {
-    return;
-  }
-  const registerBase = register & 0xf0;
-
-  if (registerBase === 0x30) {
-    state.dt = (value >> 4) & 0x07;
-    state.multi = value & 0x0f;
-    state.changedAt.dt = now;
-    state.changedAt.multi = now;
-    changed = true;
-  } else if (registerBase === 0x40) {
-    state.tl = value & 0x7f;
-    state.changedAt.tl = now;
-    changed = true;
-  } else if (registerBase === 0x50) {
-    state.rs = (value >> 6) & 0x03;
-    state.ar = value & 0x1f;
-    state.changedAt.rs = now;
-    state.changedAt.ar = now;
-    changed = true;
-  } else if (registerBase === 0x60) {
-    state.am = (value >> 7) & 0x01;
-    state.d1r = value & 0x1f;
-    state.changedAt.am = now;
-    state.changedAt.d1r = now;
-    changed = true;
-  } else if (registerBase === 0x70) {
-    state.d2r = value & 0x1f;
-    state.changedAt.d2r = now;
-    changed = true;
-  } else if (registerBase === 0x80) {
-    state.sl = (value >> 4) & 0x0f;
-    state.rr = value & 0x0f;
-    state.changedAt.sl = now;
-    state.changedAt.rr = now;
-    changed = true;
-  } else if (registerBase === 0x90) {
-    state.ssg = value & 0x0f;
-    state.changedAt.ssg = now;
-    changed = true;
-  }
-
-  if (changed) {
-    requestChannelMonitorRender();
-  }
 }
 
 async function loadYm2203ModuleFactory() {
@@ -2391,15 +2165,21 @@ function applyYm2612WriteToMonitor(port, register, value) {
     if (port === 0 && register < 0x20 || port === 1 && register < 0x30) return;
     if (!(noteishHeader.ym2610Clock & 0x80000000)) {
       const index = register === 0x28 && port === 0 ? decodeKeyOnChannel(value) : port*3 + (register&3);
-      if ((register === 0x28 || register >= 0x30) && [0,3].includes(index)) return;
+      if ((register === 0x28 || register >= 0x30) && !(port === 0 && register >= 0xa8 && register <= 0xaa) && [0,3].includes(index)) return;
     }
   }
   let changed = false;
   const now = performance.now();
   const channelBase = port === 0 ? 0 : 3;
 
+  if (port === 0 && register === 0x22 && currentChipKind !== 'ym2203') {
+    for (const ch of channelMonitor) ch.lfo = value & 15;
+    requestChannelMonitorRender();
+    return;
+  }
   if (port === 0 && register === 0x27) {
     const ch3 = channelMonitor[2];
+    ch3.csm = Boolean(value & 0x80);
     ch3.specialMode = (value & 0x40) !== 0;
     ch3.changedAt.specialMode = now;
     requestChannelMonitorRender();
@@ -2411,6 +2191,7 @@ function applyYm2612WriteToMonitor(port, register, value) {
     if (channel !== null) {
       const wasKeyOn = channelMonitor[channel].keyOn;
       beginNoteishOnset(channelMonitor[channel], wasKeyOn, (value >> 4) & 15);
+      channelMonitor[channel].keyMask = (value >> 4) & 15;
       channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
       channelMonitor[channel].changedAt.keyOn = now;
       if (channelMonitor[channel].keyOn) {
@@ -2477,7 +2258,7 @@ function applyYm2612WriteToMonitor(port, register, value) {
     return;
   }
 
-  if (register >= 0xb4 && register <= 0xb6) {
+  if (currentChipKind !== 'ym2203' && register >= 0xb4 && register <= 0xb6) {
     const channel = channelBase + (register - 0xb4);
     const state = channelMonitor[channel];
     state.b4Value = value;
@@ -2489,14 +2270,14 @@ function applyYm2612WriteToMonitor(port, register, value) {
     return;
   }
 
-  if (port === 0 && register === 0x2b && channelMonitor[5]) {
+  if (currentChipKind === 'ym2612' && port === 0 && register === 0x2b && channelMonitor[5]) {
     channelMonitor[5].dacEnabled = (value & 0x80) !== 0;
     channelMonitor[5].changedAt.dacEnabled = now;
     requestChannelMonitorRender();
     return;
   }
 
-  if (port === 0 && register === 0x2a && channelMonitor[5]) {
+  if (currentChipKind === 'ym2612' && port === 0 && register === 0x2a && channelMonitor[5]) {
     channelMonitor[5].dacValue = value;
     channelMonitor[5].changedAt.dacValue = now;
     requestChannelMonitorRender();
@@ -4389,7 +4170,7 @@ const fm2612Voice = mountFm2612VoiceView(document.getElementById('fm2612Voice'),
 const opmMonitorRoot = document.createElement('section');
 chipMonitorStorage.append(opmMonitorRoot);
 opmMonitorRoot.hidden = true;
-const opmMonitor = mountOpmMonitor(opmMonitorRoot);
+const opmMonitor = mountOpmMonitor(opmMonitorRoot, undefined, mountOpmEnvelope);
 exportAllOpmButton.addEventListener('click', () => {
   if (currentChipKind !== 'ym2151' || !currentBuffer) return;
   try {
@@ -4501,7 +4282,7 @@ const sbiInfo = mountSbiInfo({root:document.getElementById('sbiInfoPanel'),onSta
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) {fm2612Voice.dispose();clearSong();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
+window.addEventListener('pagehide', event => { if (!event.persisted) {fm2612Voice.dispose();opmMonitor.dispose();clearSong();spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
 
 function isLibraryOrSettingTab() {
   return document.getElementById('playlistTab').ariaSelected === 'true' || document.getElementById('settingTab').ariaSelected === 'true';

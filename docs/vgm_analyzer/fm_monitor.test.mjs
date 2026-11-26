@@ -235,3 +235,16 @@ test('Fretboard All renders only the combined board',()=>{
  c.noteishPanel.hidden=true;c.renderNoteishGrid();
  assert.equal(draws,1);
 });
+
+for (const kind of ['ym2203','ym2608','ym2610','ym2612']) {
+  test(kind+' preserves individual key gates and CH3 slot pitches',()=>{
+    const m=monitor(kind,8000000);
+    m.write(0x28,0x52);
+    m.write(0x27,0xc0);
+    m.write(0xac,0x23); m.write(0xa8,0x55);
+    const ch=m.context.channelMonitor[2];
+    assert.equal(ch.keyMask,5); assert.equal(ch.specialMode,true); assert.equal(ch.csm,true);
+    assert.equal(ch.specialFrequencies[3].fnum,0x355);
+    assert.equal(ch.specialFrequencies[3].block,4);
+  });
+}

@@ -333,7 +333,7 @@ try {
     await page.keyboard.press('ArrowRight');
     assert.equal(await chips.last().getAttribute('aria-selected'),'true');
     assert(await page.locator('#psgMonitorTitle').isVisible());
-    assert(await page.locator('#channelGrid').isHidden());
+    assert(await page.locator('#fm2612Voice').isHidden());
   }
   await openOpnMonitor();
   await page.locator('#chipMonitorTab0').click();
@@ -357,6 +357,55 @@ try {
   assert.equal(patch.length,42);
   assert.deepEqual([patch[0],patch[1],patch[6]],[3,5,19]); // ALG, FB, OP1 AR
   await page.locator('#operatorInfoTab').click();
+  for (const [chip,offset,command,clock,expected] of [
+    ['YM2203',0x44,0x55,4000000,[1,2,3]], ['YM2608',0x48,0x56,8000000,[1,2,3,4,5,6]],
+    ['YM2610',0x4c,0x58,8000000,[2,3,5,6]], ['YM2610B',0x4c,0x58,0x80000000+8000000,[1,2,3,4,5,6]],
+  ]) {
+    const header = Buffer.from(opn.subarray(0,0xc8));
+    header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c); header.writeUInt32LE(clock,offset);
+    const commands = [command,0x27,0x40,command,0xac,0x23,command,0xa8,0x55,command,0x28,0x52,
+      ...Array(90).fill(0x62),command,0x42,56,...Array(210).fill(0x62),0x66];
+    const buffer = Buffer.concat([header,Buffer.from(commands)]);
+    buffer.writeUInt32LE(buffer.length-4,4);
+    await page.locator('#fileInput').setInputFiles({name:chip+'.vgm',mimeType:'application/octet-stream',buffer});
+    await page.locator('#operatorInfoTab').click();
+    await page.locator('#chipMonitorTabs').getByRole('tab',{name:chip,exact:true}).click();
+    const channelButtons=voiceView.locator('[data-fm-channels] button:visible');
+    assert.deepEqual(await channelButtons.allTextContents(),expected.map(n=>'CH'+n));
+    const first=await channelButtons.first().boundingBox(), second=await channelButtons.nth(1).boundingBox();
+    assert.equal(first.x,second.x);assert(first.y<second.y);
+    const ch3=voiceView.getByRole('button',{name:'CH3',exact:true});
+    await ch3.click();await play.click();
+    await voiceView.locator('[data-fm-status]').getByText('CH3 mode 3-slot').waitFor();
+    assert(await ch3.evaluate(el=>el.classList.contains('is-key-on')));
+    const rows=voiceView.locator('tbody tr');
+    assert.equal(await rows.nth(2).locator('td').last().innerText(),'853');
+    const tl=rows.first().locator('td').nth(2);
+    await page.waitForFunction(el=>el.textContent==='56' && el.getAnimations().length>0,await tl.elementHandle());
+    await pause.click();
+    assert.equal(await rows.first().getByText('On',{exact:true}).count(),1);
+    console.log(chip+' channel list, CH3 slots, key mask and live parameter highlight passed');
+  }
+  for (const chip of ['YM2151','YM2164']) {
+    const header = Buffer.from(opn.subarray(0,0xc8));
+    header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c);
+    header.writeUInt32LE(4000000+(chip==='YM2164'?0x80000000:0),0x30);
+    const buffer=Buffer.concat([header,Buffer.from([0x54,0x27,0xcf,0x54,0x67,37,0x54,8,0x7f,...Array(300).fill(0x62),0x66])]);
+    buffer.writeUInt32LE(buffer.length-4,4);
+    await page.locator('#fileInput').setInputFiles({name:chip+'.vgm',mimeType:'application/octet-stream',buffer});
+    await page.locator('#operatorInfoTab').click();
+    const tab=page.locator('#chipMonitorTabs').getByRole('tab',{name:chip,exact:true});
+    await tab.click();
+    const panel=page.locator('#'+await tab.getAttribute('aria-controls'));
+    const ch=panel.getByRole('button',{name:'CH8',exact:true});await ch.click();
+    await play.click();
+    await panel.getByText('ALG 7',{exact:true}).waitFor();
+    assert(await ch.evaluate(el=>el.classList.contains('is-key-on')));
+    assert.equal(await panel.locator('td').nth(4).innerText(),'37');
+    assert(await panel.locator('[data-operator-envelope]').isVisible());
+    await pause.click();
+    console.log(chip+' CH8 register table and envelope passed');
+  }
   await page.locator('#fileInput').setInputFiles({name:'original-vsu.vgm',mimeType:'application/octet-stream',buffer:vsu});
   await page.waitForFunction(() => document.querySelector('#parsedOutputTab').ariaSelected === 'true' && !document.querySelector('#playButton').disabled);
   for (const id of ['operatorInfoTab','noteishTab','sheetMusicTab','tfiInfoTab','sampleExplorerTab']) {
