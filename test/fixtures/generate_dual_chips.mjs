@@ -42,3 +42,26 @@ for (const [name, clockField, clock, opcode] of [
     [0x34,header.length-0x34],[clockField,clock+0x40000000]]) header.writeUInt32LE(value,offset);
   await writeFile(new URL('dual-'+name+'.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
 }
+
+// Both OPNA chips use SSG A. Compare either solo with the final duet.
+{
+  const data = [];
+  const write = (chip,reg,value) => data.push(chip ? 0xa6 : 0x56,reg,value);
+  for (const chip of [0,1]) {
+    const period = chip ? 142 : 284;
+    write(chip,0,period & 255);
+    write(chip,1,period >> 8);
+    write(chip,7,0x3e);
+  }
+  for (const phrase of [[0],[1],[0,1]]) {
+    for (const chip of [0,1]) write(chip,8,phrase.includes(chip) ? 12 : 0);
+    data.push(0x61,0x44,0xac);
+  }
+  data.push(0x66);
+  const header = Buffer.alloc(256);
+  header.write('Vgm ');
+  for (const [offset,value] of [[4,252+data.length],[8,0x171],[0x18,132300],[0x34,204],[0x48,0x40000000+7987200]]) {
+    header.writeUInt32LE(value,offset);
+  }
+  await writeFile(new URL('dual-ym2608-ssg.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
+}

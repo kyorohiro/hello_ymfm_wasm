@@ -66,8 +66,8 @@ test('OPN port 1 and embedded sample memory reach the addressed instance', async
   ]);
 });
 
-test('muting CH2 on YM2612 2 preserves YM2612 1 through reset and unmute', async () => {
-  const bytes = await readFile(new URL('../../test/fixtures/dual-ym2612.vgm',import.meta.url));
+for (const chip of ['ym2612','ym2608']) test(chip+' second FM CH2 mute survives reset and unmute', async () => {
+  const bytes = await readFile(new URL('../../test/fixtures/dual-'+chip+'.vgm',import.meta.url));
   const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
   try {
     const player = createPlaybackPlayer(engine,bytes);
@@ -82,6 +82,29 @@ test('muting CH2 on YM2612 2 preserves YM2612 1 through reset and unmute', async
         const phrase = left.subarray(11025,33075);
         assert.equal(Math.max(...phrase)-Math.min(...phrase) > .001,expected);
       }
+    }
+  } finally {engine.dispose();}
+});
+
+test('dual OPNA SSG A outputs retain distinct pitches and independent masks',async () => {
+  const bytes = await readFile(new URL('../../test/fixtures/dual-ym2608-ssg.vgm',import.meta.url));
+  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
+  try {
+    const player = createPlaybackPlayer(engine,bytes);
+    for (const mask of [0,1,2,3,0]) {
+      for (const chip of [0,1]) engine.setInstanceSsgChannelMuted(chip,0,Boolean(mask & (1<<chip)));
+      player.reset(); player.setPrefetchFactor(1); player.play();
+      const edges = [];
+      for (const sources of [1,2,3]) {
+        const left = new Float32Array(44100), right = new Float32Array(44100);
+        player.process(left,right,left.length);
+        const signal = left.subarray(11025,33075);
+        const min = Math.min(...signal), max = Math.max(...signal);
+        assert.equal(max-min > .001,Boolean(sources & ~mask));
+        const mid = (min+max)/2;
+        edges.push(signal.reduce((n,v,i) => n + (i>0 && signal[i-1]<mid && v>=mid),0));
+      }
+      if (!mask) assert(Math.abs(edges[1]-2*edges[0]) <= 2,edges.join(','));
     }
   } finally {engine.dispose();}
 });

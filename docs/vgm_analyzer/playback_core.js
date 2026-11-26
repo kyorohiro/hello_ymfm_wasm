@@ -1,3 +1,4 @@
+import {installOpnChannelMutes} from './opn_channel_mutes.js';
 import {installPlaybackMixer} from './playback_mixer.js?v=console-songs-1';
 import {Msm5205AudioEngine,attachMsm5205} from '../js/msm5205audioengine.js';
 import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
@@ -216,6 +217,10 @@ function atOutputRate(engine,rate){
   }
   return adapter;
 }
+export function dualOpnParts(parts) {
+  return parts.filter(part => ['ym2612','ym2608'].includes(part.kind) &&
+    parts.some(other => other.kind === part.kind && other.chipIndex === 1));
+}
 class HeaderMixedAudioEngine extends MultiChipAudioEngine {
   constructor(parts,volume){
     super(parts.map(p=>({type:p.id,engine:atOutputRate(p.engine,44100),target:{}})),44100,volume);
@@ -223,15 +228,18 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
     this.targetResolvers=new Map();
     const names={segaPcm:'segapcm',gameBoyDmg:'gameboyDmg'};
     this.fmInstances = [];
-    const dualFm = parts.some(p => p.kind === 'ym2612' && p.chipIndex === 1);
+    const monitored = dualOpnParts(parts);
     for(const part of parts){
-      if (dualFm && part.kind === 'ym2612') {
-        const index = part.chipIndex ?? 0;
+      const index = monitored.indexOf(part);
+      if (index >= 0) {
+        const opna = part.kind === 'ym2608';
+        const method = opna ? 'writeYm2608' : 'writeYm2612';
+        if (opna) installOpnChannelMutes(part.engine,part.kind);
         const pan = new Uint8Array(6).fill(0xc0);
         const muted = new Uint8Array(6);
-        const write = part.engine.writeYm2612.bind(part.engine);
-        this.fmInstances[index] = {pan, muted, write};
-        part.engine.writeYm2612 = (port, reg, value) => {
+        const write = part.engine[method].bind(part.engine);
+        this.fmInstances[index] = {pan, muted, write, engine:part.engine};
+        part.engine[method] = (port, reg, value) => {
           this.onFmWrite?.(index, port, reg, value);
           if (reg >= 0xb4 && reg <= 0xb6) {
             const ch = 3 * port + reg - 0xb4;
@@ -267,6 +275,9 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
     const fm = this.fmInstances[index];
     fm.muted[ch] = Boolean(muted);
     fm.write(Math.floor(ch/3), 0xb4 + ch%3, muted ? fm.pan[ch] & 0x3f : fm.pan[ch]);
+  }
+  setInstanceSsgChannelMuted(index,ch,muted) {
+    this.fmInstances[index].engine.setSsgChannelMuted(ch,muted);
   }
   getVgmTarget(type,index=0) {
     const resolve = this.targetResolvers.get(type+':'+index) ?? this.targetResolvers.get(type);

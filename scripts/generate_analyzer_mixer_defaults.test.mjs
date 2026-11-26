@@ -89,7 +89,7 @@ test('AY Single Output refresh preserves canonical Analyzer statistics and rejec
 
 test('dual-chip routing retains every unit-gain sample and binds the current Analyzer graph',async()=>{
   const root=new URL('../',import.meta.url);
-  for(const [beforeName,afterName] of [['analyzer_extra_levels_09','analyzer_extra_levels_10'],['analyzer_psg_levels_12','analyzer_psg_levels_13']]) {
+  for(const [beforeName,afterName] of [['analyzer_extra_levels_10','analyzer_extra_levels_11'],['analyzer_psg_levels_13','analyzer_psg_levels_14']]) {
     const read=async name=>JSON.parse(await readFile(new URL('docs/issues/'+name+'.json',root),'utf8'));
     const before=await read(beforeName),after=await read(afterName);
     assert.deepEqual(after.defaults,before.defaults);

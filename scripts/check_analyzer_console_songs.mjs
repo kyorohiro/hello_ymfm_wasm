@@ -348,6 +348,32 @@ try {
   await ch2.press('Space');
   assert.equal(await soundChipMute.getAttribute('aria-pressed'),'false');
 
+  await page.locator('#fileInput').setInputFiles('test/fixtures/dual-ym2608-ssg.vgm');
+  const opnaTabs = page.locator('#chipMonitorTabs');
+  const ssgRow = page.locator('#ssgChannels tbody tr').first();
+  await page.locator('#operatorInfoTab').click();
+  await opnaTabs.getByRole('tab',{name:'YM2608 2'}).click();
+  await page.getByRole('tab',{name:'SSG',exact:true}).click();
+  await play.click();
+  await ssgRow.locator('td').first().filter({hasText:'142'}).waitFor();
+  await pause.click();
+  await movePosition(1.5);
+  await ssgRow.locator('td').last().filter({hasText:'12'}).waitFor();
+  const ssgA = dockChannels.getByRole('group',{name:'YM2608 2',exact:true}).getByRole('button',{name:'SSG A'});
+  await ssgA.click();
+  assert.equal(await ssgRow.getByRole('button').getAttribute('aria-pressed'),'false');
+  await opnaTabs.getByRole('tab',{name:'YM2608 1'}).click();
+  await page.getByRole('tab',{name:'SSG',exact:true}).click();
+  assert.equal(await ssgRow.locator('td').first().textContent(),'284');
+  assert.equal(await ssgRow.getByRole('button').getAttribute('aria-pressed'),'true');
+  await movePosition(.5);
+  await ssgRow.locator('td').last().filter({hasText:'12'}).waitFor();
+  await opnaTabs.getByRole('tab',{name:'YM2608 2'}).click();
+  assert.equal(await ssgRow.locator('td').last().textContent(),'0');
+  await ssgRow.getByRole('button').click();
+  assert.equal(await ssgA.getAttribute('aria-pressed'),'true');
+  await stop.click();
+
   async function openOpnMonitor() {
     await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});
     await page.locator('#operatorInfoTab').click();

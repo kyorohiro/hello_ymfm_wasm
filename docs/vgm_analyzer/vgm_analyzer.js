@@ -21,7 +21,7 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js?v=pokey-vgm-1';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js?v=pokey-vgm-1';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=pokey-vgm-1&mix=console-songs-1';
+import { dualOpnParts, createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=pokey-vgm-1&mix=console-songs-1';
 import { mountMusicSheet } from "./music_sheet.js?v=snes-score-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js?v=snes-score-1";
@@ -652,6 +652,7 @@ function resetDualFmRegisters() {
   for (const fm of dualFm) {
     fm.channels = Array.from({length:6}, (_,ch) => buildMonitorChannel(ch));
     fm.high = [0,0];
+    if (fm.ssgMuted) fm.ssg = createPsgMonitor(fm.part.kind);
   }
 }
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, oki6295: false, segapcm: false, msm5205:false };
@@ -851,7 +852,7 @@ function renderMonitorToggles() {
       button.type='button';button.className=`channel-toggle${muted?' is-muted':''}`;
       button.setAttribute('aria-pressed',String(!muted));
       button.setAttribute('data-monitor-toggle-kind','mixed-source');
-      const isDualFm = dualFm.length && part.chips.includes('ym2612');
+      const fmIndex = dualFm.findIndex(fm => fm.part.id === part.id);
       const index = part.chipIndex ?? 0;
       const label = part.chips.map(chip => {
         const paired = noteishHeader[chip+'Clock'] & 0x40000000;
@@ -861,17 +862,23 @@ function renderMonitorToggles() {
       button.setAttribute('aria-label',label + ' All');
       button.setAttribute('data-mixed-source',part.id);
       append(button,label);
-      if (isDualFm) dualFm[index].muted.forEach((muted,ch) => {
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'channel-toggle' + (muted ? ' is-muted' : '');
-        toggle.textContent = 'CH' + (ch+1);
-        toggle.dataset.monitorToggleKind = 'dual-fm-channel';
-        toggle.dataset.chipIndex = index;
-        toggle.dataset.channelIndex = ch;
-        toggle.setAttribute('aria-pressed',String(!muted));
-        append(toggle,label);
-      });
+      if (fmIndex < 0) continue;
+      const fm = dualFm[fmIndex];
+      function addChannels(states,ssg) {
+        states.forEach((muted,ch) => {
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'channel-toggle' + (muted ? ' is-muted' : '');
+          toggle.textContent = ssg ? 'SSG ' + 'ABC'[ch] : 'CH' + (ch+1);
+          toggle.dataset.monitorToggleKind = ssg ? 'dual-ssg-channel' : 'dual-fm-channel';
+          toggle.dataset.chipIndex = fmIndex;
+          toggle.dataset.channelIndex = ch;
+          toggle.setAttribute('aria-pressed',String(!muted));
+          append(toggle,label);
+        });
+      }
+      addChannels(fm.muted,false);
+      if (fm.ssgMuted) addChannels(fm.ssgMuted,true);
     }
     return;
   }
@@ -999,6 +1006,10 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
+    if (currentChipKind === 'mixed' && kind === 'ssg-channel' && dualFm[inspectedFm]?.ssgMuted) {
+      toggleDualFmChannel(inspectedFm,Number(target.dataset.channelIndex),true);
+      return;
+    }
     if (['rf5c164-channel','ssg-channel','psg-channel','adpcm-a-channel'].includes(kind)) {
       const channelControls = {
         'rf5c164-channel':[rf5c164ChannelMutes, 'setRf5c164ChannelMuted'],
@@ -1016,8 +1027,8 @@ function ensureMonitorToggleHandler() {
       flushPendingAudio();
       return;
     }
-    if (kind === 'dual-fm-channel' && currentChipKind === 'mixed') {
-      toggleDualFmChannel(Number(target.dataset.chipIndex),Number(target.dataset.channelIndex));
+    if (['dual-fm-channel','dual-ssg-channel'].includes(kind) && currentChipKind === 'mixed') {
+      toggleDualFmChannel(Number(target.dataset.chipIndex),Number(target.dataset.channelIndex),kind === 'dual-ssg-channel');
       return;
     }
     if(kind==='mixed-source' && currentChipKind==='mixed'){toggleSourceMute(target.getAttribute('data-mixed-source'));return;}
@@ -1279,13 +1290,14 @@ function renderRegisterRows(table, rows, muteStates) {
   });
 }
 
-function renderPsgMonitor() {
-  const state = describePsgMonitor(psgMonitor, psgMonitor.kind === "ssg" ? sourceMutes.ssg : sourceMutes.psg);
-  const title = document.getElementById("psgMonitorTitle");
-  title.textContent = state.kind === "ssg" ? `${(currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())} SSG${sourceMutes.ssg ? " · Muted" : ""}` : `Sega PSG${sourceMutes.psg ? " · Muted" : ""}`;
+function renderPsgMonitor(monitor = psgMonitor, mutes = ssgChannelMutes, label) {
+  const ssg = monitor.kind === 'ssg';
+  const muted = label ? sourceMutes[dualFm[inspectedFm].part.id] : ssg ? sourceMutes.ssg : sourceMutes.psg;
+  const state = describePsgMonitor(monitor,muted);
+  const chip = label ?? (currentChipKind === 'ym2610' && (noteishHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : currentChipKind.toUpperCase());
+  document.getElementById('psgMonitorTitle').textContent = (ssg ? chip + ' SSG' : 'Sega PSG') + (muted ? ' · Muted' : '');
   const token = (label, value, ...registers) => renderChannelChip(label, value,
-    Math.max(0, ...registers.map((r) => psgMonitor.changedAt[r])), "166 214 148");
-  const ssg = state.kind === "ssg";
+    Math.max(0, ...registers.map((r) => monitor.changedAt[r])), "166 214 148");
   const segaTable = document.getElementById("segaPsgChannels");
   const ssgTable = document.getElementById("ssgChannels");
   segaTable.hidden = ssg;
@@ -1295,7 +1307,7 @@ function renderPsgMonitor() {
     renderRegisterRows(ssgTable, state.channels.map(ch => ({
       name: ch.name, active: ch.envelope || ch.volume > 0,
       values: [ch.period, ch.toneEnabled ? "ON" : "OFF", ch.noiseEnabled ? "ON" : "OFF", ch.envelope ? "ENV" : ch.volume],
-    })), ssgChannelMutes);
+    })), mutes);
     document.getElementById("ssgShared").innerHTML = token("NOISE PERIOD", state.noisePeriod, 6) +
       token("ENV PERIOD", state.envelope.period, 11, 12) + token("SHAPE", state.envelope.shape, 13) +
       ["continue", "attack", "alternate", "hold"].map(key => token(key.toUpperCase(), state.envelope[key] ? "ON" : "OFF", 13)).join("");
@@ -1533,7 +1545,9 @@ function renderGameboySettings() {
 function renderChannelMonitor() {
   const opn = ['ym2612','ym2203','ym2608','ym2610'].includes(currentChipKind);
   if (currentChipKind === 'mixed' && dualFm.length) {
-    fm2612Voice.update(dualFm[inspectedFm].channels,'ym2612');
+    const fm = dualFm[inspectedFm];
+    fm2612Voice.update(fm.channels,fm.part.kind);
+    if (fm.ssg) renderPsgMonitor(fm.ssg,fm.ssgMuted,fm.label);
     return;
   }
   fm2612Voice.update(opn ? channelMonitor : [], currentChipKind);
@@ -2821,7 +2835,9 @@ async function ensurePlaybackReady(vgm) {
     if (engine.fmInstances?.length) {
       engine.onFmWrite = (index,port,register,value) => {
         const fm = dualFm[index];
-        if (fm) applyYm2612WriteToMonitor(port,register,value,fm.channels,fm.high,'ym2612');
+        if (!fm) return;
+        if (fm.ssg && applySsgWrite(fm.ssg,port,register,value,performance.now())) requestChannelMonitorRender();
+        else applyYm2612WriteToMonitor(port,register,value,fm.channels,fm.high,fm.part.kind);
       };
       engine.onFmReset = resetDualFmRegisters;
     }
@@ -2957,7 +2973,11 @@ async function ensurePlaybackReady(vgm) {
   }
   else if(currentChipKind==='mixed'){
     for(const part of mixedPlaybackParts)engine.setChipMuted(part.id,0,Boolean(sourceMutes[part.id]));
-    dualFm.forEach((fm,i) => fm.muted.forEach((muted,ch) => engine.setFmChannelMuted(i,ch,muted)));
+    dualFm.forEach((fm,i) => {
+      fm.engine = engine;
+      fm.muted.forEach((muted,ch) => engine.setFmChannelMuted(i,ch,muted));
+      fm.ssgMuted?.forEach((muted,ch) => engine.setInstanceSsgChannelMuted(i,ch,muted));
+    });
   }
   else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock));
   if (!player) {
@@ -3897,8 +3917,10 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   }
   currentChipKind = nextChipKind;
   noteishHeader = vgm.header;
-  dualFm = mixedPlaybackParts.some(p => p.kind === 'ym2612' && p.chipIndex === 1)
-    ? Array.from({length:2}, () => ({muted:Array(6).fill(false)})) : [];
+  dualFm = dualOpnParts(mixedPlaybackParts).map(part => ({
+    part, label:part.kind.toUpperCase() + ' ' + ((part.chipIndex ?? 0)+1),
+    muted:Array(6).fill(false), ssgMuted:part.kind === 'ym2608' ? Array(3).fill(false) : null,
+  }));
   inspectedFm = 0;
   resetDualFmRegisters();
   if (dualFm.length) renderMonitorToggles();
@@ -4461,7 +4483,7 @@ const fm2612Voice = mountFm2612VoiceView(document.getElementById('fm2612Voice'),
   const bytes = createTfiFromPreset(createTfiPresetFromChannelSnapshot(channel));
   setOutputTab('tfi-info');
   if (currentChipKind === 'mixed' && dualFm.length) {
-    [...instrumentTabs.children].find(tab => tab.textContent === 'YM2612 ' + (inspectedFm+1))?.click();
+    [...instrumentTabs.children].find(tab => tab.textContent === dualFm[inspectedFm].label)?.click();
   }
   tfiInfo.openSnapshot(name, bytes);
 });
@@ -4521,13 +4543,18 @@ chipMonitorStorage.append(ym2413MonitorRoot);
 ym2413MonitorRoot.hidden = true;
 const ym2413Monitor = mountYm2413Monitor(ym2413MonitorRoot);
 // Keep the mounted monitors (and their register state) when changing tabs.
-function toggleDualFmChannel(index,ch) {
+function toggleDualFmChannel(index,ch,ssg = false) {
   const fm = dualFm[index];
-  const muted = !fm.muted[ch];
-  if (engine?.fmInstances?.[index]) engine.setFmChannelMuted(index,ch,muted);
-  fm.muted[ch] = muted;
+  const states = ssg ? fm.ssgMuted : fm.muted;
+  const muted = !states[ch];
+  if (engine && fm.engine === engine) {
+    if (ssg) engine.setInstanceSsgChannelMuted(index,ch,muted);
+    else engine.setFmChannelMuted(index,ch,muted);
+  }
+  states[ch] = muted;
+  if (ssg && index === inspectedFm) renderPsgMonitor(fm.ssg,states,fm.label);
   const button = chipMonitorPanels.querySelector('[data-dual-fm-control="' + index + '-' + ch + '"]');
-  if (button) {
+  if (!ssg && button) {
     button.setAttribute('aria-pressed',String(muted));
     button.classList.toggle('is-muted',muted);
   }
@@ -4612,11 +4639,28 @@ function configureChipMonitorTabs() {
       controls.append(button);
     });
     section.append(controls);
-    const tab = add('YM2612 ' + (index+1),section);
+    const ssgPanel = document.createElement('div');
+    let tab;
+    if (fm.ssgMuted) {
+      const sections = document.createElement('div'), panels = document.createElement('div');
+      sections.className = 'tabbar';
+      sections.setAttribute('role','tablist');
+      sections.setAttribute('aria-label',fm.label + ' sections');
+      sections.addEventListener('keydown',navigateTabList);
+      tab = add(fm.label,sections,panels);
+      const prefix = 'dualOpn' + index;
+      const fmTab = addMonitorTab(sections,panels,prefix,'FM',section);
+      addMonitorTab(sections,panels,prefix,'SSG',ssgPanel);
+      fmTab.click();
+    } else tab = add(fm.label,section);
     tab.addEventListener('click',() => {
       inspectedFm = index;
       section.append(voice);
-      fm2612Voice.update(fm.channels,'ym2612');
+      if (fm.ssg) {
+        ssgPanel.append(psg);
+        renderPsgMonitor(fm.ssg,fm.ssgMuted,fm.label);
+      }
+      fm2612Voice.update(fm.channels,fm.part.kind);
     });
   });
   if (kind === 'gameboy') add('Game Boy DMG', gameboy);

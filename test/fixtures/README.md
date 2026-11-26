@@ -61,13 +61,15 @@ are generated in memory by `test/helpers/wonderswan_vgm_fixture.mjs`.
 
 ### Dual-chip playback probes
 
-Regenerate the four `dual-*.vgm` files with `node test/fixtures/generate_dual_chips.mjs`.
+Regenerate the `dual-*.vgm` files with `node test/fixtures/generate_dual_chips.mjs`.
 Each declares two identical chips and programs the same channel number on both.
 The three one-second phrases use the first chip alone, the second an octave
 higher, then both together. The Yamaha files use FM only, with different OP4
 multipliers. Both DMGs use CH1 with 50% and 25% pulse duty respectively.
 
-All four probes now support dual playback and separate mixer strips. Instrument lists both instances. Run `node --test docs/vgm_analyzer/dual_playback.test.mjs` to check the rendered phrases and isolation.
+The additional `dual-ym2608-ssg.vgm` plays SSG A on chip 1, then chip 2 an octave higher, then both together.
+
+All four chip families now support dual playback and separate mixer strips. Instrument lists both instances. Run `node --test docs/vgm_analyzer/dual_playback.test.mjs` to check the rendered phrases and isolation.
 
 Original browser observations at commit `399e19d4`:
 
