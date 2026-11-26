@@ -1,3 +1,4 @@
+import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {consoleVgmChip} from './console_vgm.js';
 import {createWonderSwanMonitor,applyWonderSwanWrite,describeWonderSwanNotes,extractWonderSwanNotes} from './wonderswan_notes.js?v=pokey-vgm-1';
 import {createAudioPreferences, effectDefaults} from './audio_preferences.js?v=pokey-vgm-1&mix=console-songs-1';
@@ -198,10 +199,6 @@ const loopCheckbox = document.getElementById("loopCheckbox");
 const playlistLoopCheckbox = document.getElementById("playlistLoopCheckbox");
 const playlistLoopControl = document.getElementById("playlistLoopControl");
 const monitorToggles = document.getElementById("monitorToggles");
-const dockPlayTab = document.getElementById("dockPlayTab");
-const dockEffectTab = document.getElementById("dockEffectTab");
-const dockPlayPane = document.getElementById("dockPlayPane");
-const dockEffectPane = document.getElementById("dockEffectPane");
 const effectEnabled = document.getElementById("effectEnabled");
 const effectControls = document.getElementById("effectControls");
 const effectGain = document.getElementById("effectGain");
@@ -354,18 +351,60 @@ function createReverbImpulse(context, duration = 2, decay = 3) {
   return impulse;
 }
 
-function setDockView(mode) {
-  if (!['play', 'effect', 'mixer'].includes(mode)) return;
-  dockPlayPane.hidden = mode !== 'play';
-  dockEffectPane.hidden = mode !== 'effect';
-  document.getElementById('dockMixerPane').hidden = mode !== 'mixer';
-  document.getElementById('dockMixerTab').setAttribute('aria-pressed', String(mode === 'mixer'));
-  dockPlayTab.setAttribute('aria-pressed', String(mode === 'play'));
-  dockEffectTab.setAttribute('aria-pressed', String(mode === 'effect'));
+const outputMonitor = createSynthOutputVisualizer({waveformMinRange: 1 / 64});
+const outputCanvas = document.getElementById('outputScope');
+const outputContext = outputCanvas.getContext('2d');
+const outputPane = document.getElementById('dockOutputPane');
+let outputMode = 'waveform';
+let observedBus = null;
+let outputFrame = 0;
+
+function drawOutput() {
+  // Playback can replace or suspend its context while this pane stays open.
+  const bus = masterBoost?.context.state === 'running' ? masterBoost : null;
+  if (bus !== observedBus) {
+    if (bus) outputMonitor.connect(bus.context, [bus]);
+    else outputMonitor.disconnect();
+    observedBus = bus;
+  }
+  const width = outputCanvas.clientWidth, height = outputCanvas.clientHeight;
+  const scale = window.devicePixelRatio || 1;
+  if (outputCanvas.width !== Math.round(width * scale) || outputCanvas.height !== Math.round(height * scale)) {
+    outputCanvas.width = Math.round(width * scale);
+    outputCanvas.height = Math.round(height * scale);
+  }
+  outputContext.setTransform(scale, 0, 0, scale, 0, 0);
+  outputMonitor.draw({width, height}, outputContext, outputMode);
+  outputFrame = requestAnimationFrame(drawOutput);
 }
-dockPlayTab.addEventListener('click', () => setDockView('play'));
-dockEffectTab.addEventListener('click', () => setDockView('effect'));
-document.getElementById('dockMixerTab').addEventListener('click', () => setDockView('mixer'));
+
+for (const button of outputPane.querySelectorAll('[data-output-mode]')) {
+  button.addEventListener('click', () => {
+    outputMode = button.dataset.outputMode;
+    outputCanvas.setAttribute('aria-label', 'Output ' + outputMode);
+    for (const option of outputPane.querySelectorAll('[data-output-mode]')) {
+      option.setAttribute('aria-pressed', String(option === button));
+    }
+  });
+}
+
+const dockTabs = document.querySelectorAll('.playback-dock-tools button[aria-controls]');
+for (const button of dockTabs) {
+  button.addEventListener('click', () => {
+    for (const tab of dockTabs) {
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = tab !== button;
+      tab.setAttribute('aria-pressed', String(tab === button));
+    }
+    if (outputPane.hidden) {
+      cancelAnimationFrame(outputFrame);
+      outputFrame = 0;
+      outputMonitor.disconnect();
+      observedBus = null;
+    } else if (!outputFrame) {
+      drawOutput();
+    }
+  });
+}
 
 // Textbook chain order: EQ -> Noise Gate -> Compressor -> time-based effects
 // (Reverb) -> final output Gain. Gate ahead of Compressor keeps the noise

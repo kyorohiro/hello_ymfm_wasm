@@ -573,7 +573,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=flat-frame-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=output-scope-1">
   </head>
   <body>
     <main>
@@ -981,6 +981,7 @@
     <section class="playback-dock" aria-label="Playback controls">
       <div class="playback-dock-tools">
         <button id="dockPlayTab" class="link-button" type="button" aria-controls="dockPlayPane" aria-pressed="true">Play/Ch</button>
+        <button id="dockOutputTab" class="link-button" type="button" aria-controls="dockOutputPane" aria-pressed="false">Output</button>
         <button id="dockEffectTab" class="link-button" type="button" aria-controls="dockEffectPane" aria-pressed="false">Effect</button>
         <button id="dockMixerTab" class="link-button" type="button" aria-controls="dockMixerPane" aria-pressed="false">Mixer</button>
       </div>
@@ -1011,6 +1012,13 @@
           </div>
           <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
         </div>
+        <div id="dockOutputPane" hidden>
+          <div class="transport-row" role="group" aria-label="Output display">
+            <button type="button" data-output-mode="waveform" aria-pressed="true">Waveform</button>
+            <button type="button" data-output-mode="spectrum" aria-pressed="false">Spectrum</button>
+          </div>
+          <canvas id="outputScope" role="img" aria-label="Output waveform"></canvas>
+        </div>
         <div id="dockMixerPane" hidden>
           <div class="mixer-toolbar"><strong>Chip Mixer</strong><button id="mixerReset" type="button" class="link-button" title="Restore measured chip levels and master volume">Reset</button></div>
           <label class="mixer-control">Master<input id="mixerMaster" aria-label="Mixer master volume" type="range" min="0" max="480" value="100"><output id="mixerMasterValue" for="mixerMaster">100%</output></label>
@@ -1031,7 +1039,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=instrument-tab-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=output-scope-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

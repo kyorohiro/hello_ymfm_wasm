@@ -352,7 +352,7 @@ mkdir -p "${STAGE_DIR}/playground" "${STAGE_DIR}/synth"
 for file in playground_tfi_editor.js playground_operator_tab.js playground_operator_visual.js playground_operator_keyboard.js playground_vgm_presets.js; do
   cp "${ROOT_DIR}/docs/playground/${file}" "${STAGE_DIR}/playground/${file}"
 done
-for file in synth_controls.js synth_keyboard.js synth_envelope.js synth_operator_envelope.js; do
+for file in synth_output_visualizer.js synth_controls.js synth_keyboard.js synth_envelope.js synth_operator_envelope.js; do
   cp "${ROOT_DIR}/docs/synth/${file}" "${STAGE_DIR}/synth/${file}"
 done
 perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated/#./generated/#g' "${STAGE_DIR}/tfi_info.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/sbi_info.js"
@@ -468,6 +468,7 @@ mkdir -p "${STAGE_DIR}/vendor/osmd"
 cp -R "${ROOT_DIR}/docs/vgm_analyzer/vendor/osmd/." "${STAGE_DIR}/vendor/osmd/"
 
 # Make the analyzer runnable from itch.io as a standalone app.
+perl -0pi -e 's#\.\./synth/synth_output_visualizer\.js#./synth/synth_output_visualizer.js#g' "${STAGE_DIR}/vgm_analyzer.js"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
   "${STAGE_DIR}/tfi_extract.js" "${STAGE_DIR}/tfi_archive.js" "${STAGE_DIR}/index.html" "${STAGE_DIR}/analyzer_core.js" "${STAGE_DIR}/playback_core.js" "${STAGE_DIR}/playback_mixer.js" "${STAGE_DIR}/mixer_defaults.js" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/spc_analyzer.js" "${STAGE_DIR}/spc_brr_candidates.js" "${STAGE_DIR}/spc_brr_preview.js" "${STAGE_DIR}/vgm_mml.js" \

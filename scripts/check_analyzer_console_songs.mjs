@@ -408,9 +408,23 @@ try {
       const ch1 = page.locator('#monitorToggles [aria-label="Mute SID CH1"]');
       await ch1.click();
       await checkSignal(false);
+      const outputTab = page.locator('#dockOutputTab');
+      const captureScope = async mode => {
+        await page.locator('[data-output-mode="'+mode+'"]').click();
+        return page.locator('#outputScope').evaluate(canvas => new Promise(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve(canvas.toDataURL())));
+        }));
+      };
+      await outputTab.click();
+      const silentWave = await captureScope('waveform');
+      const silentSpectrum = await captureScope('spectrum');
+      await page.locator('#dockPlayTab').click();
       assert.equal(await page.locator('#monitorToggles [aria-label="Mute SID CH1"]').getAttribute('aria-pressed'),'true');
       await ch1.click();
       await checkSignal(true);
+      await outputTab.click();
+      assert.notEqual(await captureScope('waveform'),silentWave,'audible SID changes the waveform');
+      assert.notEqual(await captureScope('spectrum'),silentSpectrum,'audible SID changes the spectrum');
       await page.locator('#dockEffectTab').click();
       await page.locator('#effectEnabled').click();
       await page.locator('#effectGain').evaluate(input => {input.value = '0'; input.dispatchEvent(new Event('input'));});
