@@ -482,6 +482,7 @@ try {
     const rows = page.locator('#pcmChannels tbody tr');
     await rows.nth(2).getByText('0x3500',{exact:true}).waitFor();
     assert.equal(await rows.count(),8);
+    await checkMonitorMute(rows.nth(2).getByRole('button'), 'PCM 3');
     assert.deepEqual(await rows.nth(2).locator('td').allTextContents(),['ON','0','4','10','0','0x3500','0x4567']);
     await pause.click();
   }

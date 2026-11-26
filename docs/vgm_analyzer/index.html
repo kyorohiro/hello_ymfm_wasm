@@ -624,7 +624,7 @@
                   <tr><th scope="row">YM2610 / YM2610B</th><td>FM + SSG + ADPCM-A/B<br><small>Seek cache</small></td><td>4 / 6 FM CH, SSG A/B/C and six ADPCM-A channels. Gain and mute for FM, SSG, ADPCM-A and ADPCM-B</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
                   <tr><th scope="row">YM2151 / YM2164 (OPM / OPP)</th><td>8 FM CH<br><small>Seek cache</small></td><td>8 CH</td><td>SoundChip</td><td>FM</td><td>Instrument (OPM), audition, OPM ZIP / snapshot, approximate TFI ZIP / snapshot, MIDI, MXDRV MML / FM-only MDX file, LilyPond</td></tr>
                   <tr><th scope="row">Sega PSG</th><td>Tone + noise<br><small>Seek cache: standalone / Genesis / YM2151 / YM2164</small></td><td>3 tones, noise and PSG group</td><td>PSG monitor</td><td>Tone</td><td>Tone MIDI / LilyPond; no FM voice export</td></tr>
-                  <tr><th scope="row">RF5C164</th><td>PCM (Mega-CD)<br><small>Seek cache: Genesis configuration</small></td><td>PCM group</td><td>PCM monitor / samples</td><td>—</td><td>Sample explorer</td></tr>
+                  <tr><th scope="row">RF5C164</th><td>PCM (Mega-CD)<br><small>Seek cache: Genesis configuration</small></td><td>8 PCM channels and PCM group</td><td>PCM monitor / samples</td><td>—</td><td>Sample explorer</td></tr>
                   <tr><th scope="row">32X PWM</th><td>MAME-derived PWM<br><small>Seek cache: Genesis configuration</small></td><td>PWM group</td><td>PWM / samples</td><td>—</td><td>Sample explorer</td></tr>
                   <tr><th scope="row">YM2413</th><td>OPLL</td><td>9 CH; rhythm groups</td><td>SoundChip</td><td>FM (base pitch); rhythm channels have no single pitch</td><td>Base-pitch MIDI / LilyPond, MGSDRV MML (9-sound mode; rhythm omitted except Bass Drum); no FM voice snapshot export</td></tr>
                   <tr><th scope="row">YMF262 (OPL3)</th><td>2OP / 4OP / rhythm</td><td>18 CH; 4OP pairs / rhythm groups</td><td>Instrument (SBI)</td><td>Note-ish / Sheet Music base pitch (2OP / 4OP)</td><td>SBI 2OP / 4OP, audition, ZIP / snapshot; MIDI / MusicXML / LilyPond; rhythm omitted, 4OP pairs use leading CH; MIDI requires multi-port support; register JSON snapshot</td></tr>
@@ -851,7 +851,7 @@
               <p id="pcmMonitorStatus" class="noteish-help">No file loaded.</p>
               <p id="pcmMonitorHelp" class="noteish-help" hidden>Register settings at the generated audio position, not live audio levels. Channel ON is the enable setting; output also depends on Chip ON, volume, pan, sample data and PCM mute.</p>
               <div id="pcmMonitorGrid" hidden>
-                <div style="overflow-x:auto"><table id="pcmChannels" class="psg-channels" aria-label="RF5C164 PCM channels">
+                <div style="overflow-x:auto"><table id="pcmChannels" data-mute-kind="rf5c164-channel" class="psg-channels" aria-label="RF5C164 PCM channels">
                   <thead><tr><th scope="col">Channel</th><th scope="col">Enable</th><th scope="col">Volume</th><th scope="col">Pan L</th><th scope="col">Pan R</th><th scope="col">Step</th><th scope="col">Start</th><th scope="col">Loop</th></tr></thead>
                   <tbody></tbody>
                 </table></div>
@@ -1102,7 +1102,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=adpcm-a-mute-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=rf5c164-mute-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

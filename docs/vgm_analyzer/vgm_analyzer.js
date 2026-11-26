@@ -48,7 +48,7 @@ import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from '.
 import { midiChipKind } from "./vgm_notes.js?v=pokey-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=pokey-vgm-1&mix=console-songs-1";
-import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
+import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js?v=channel-mute-1";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pokey-vgm-1";
 import {installOpnChannelMutes} from './opn_channel_mutes.js';
 import {rhythmNames, createOpnAdpcmMonitor, writeOpnAdpcm, opnAdpcmRows} from './opn_adpcm_monitor.js';
@@ -647,6 +647,7 @@ const nesChannelMutes = Array(6).fill(false);
 let mixedPlaybackParts = [];
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, oki6295: false, segapcm: false, msm5205:false };
 const adpcmAChannelMutes = {ym2608:Array(6).fill(false), ym2610:Array(6).fill(false)};
+const rf5c164ChannelMutes = Array(8).fill(false);
 const ssgChannelMutes = [false, false, false];
 const psgChannelMutes = [false, false, false, false];
 // Without the rhythm ROM, decoding its all-zero sample stream is audible
@@ -851,6 +852,9 @@ function renderMonitorToggles() {
     const labels = currentChipKind === 'ym2608' ? rhythmNames : Array.from({length:6}, (_,i) => 'ADPCM-A CH' + (i+1));
     appendChannelToggles(adpcmAChannelMutes[currentChipKind], 'adpcm-a-channel', labels);
   }
+  if (currentChipKind === 'ym2612' && (noteishHeader?.rf5c164Clock & 0x3fffffff)) {
+    appendChannelToggles(rf5c164ChannelMutes, 'rf5c164-channel', rf5c164ChannelMutes.map((_,i) => 'PCM ' + (i+1)));
+  }
   if (['msx', 'y8950'].includes(currentChipKind)) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) {
       const muted = msxMutes.get(control.key) ?? false;
@@ -949,16 +953,18 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
-    if (['psg-channel','ssg-channel','adpcm-a-channel'].includes(kind)) {
+    if (['rf5c164-channel','ssg-channel','psg-channel','adpcm-a-channel'].includes(kind)) {
+      const channelControls = {
+        'rf5c164-channel':[rf5c164ChannelMutes, 'setRf5c164ChannelMuted'],
+        'ssg-channel':[ssgChannelMutes, 'setSsgChannelMuted'],
+        'psg-channel':[psgChannelMutes, 'setPsgChannelMuted'],
+        'adpcm-a-channel':[adpcmAChannelMutes[currentChipKind], 'setAdpcmAChannelMuted'],
+      };
+      const [states, method] = channelControls[kind];
       const index = Number(target.dataset.channelIndex);
-      const ssg = kind === 'ssg-channel';
-      const adpcm = kind === 'adpcm-a-channel';
-      const states = adpcm ? adpcmAChannelMutes[currentChipKind] : ssg ? ssgChannelMutes : psgChannelMutes;
-      if (!Number.isInteger(index) || index < 0 || index >= states.length) return;
+      if (!states || !Number.isInteger(index) || index < 0 || index >= states.length) return;
       states[index] = !states[index];
-      if (adpcm) engine?.setAdpcmAChannelMuted?.(index, states[index]);
-      else if (ssg) engine?.setSsgChannelMuted?.(index, states[index]);
-      else engine?.setPsgChannelMuted?.(index, states[index]);
+      engine?.[method]?.(index, states[index]);
       renderMonitorToggles();
       requestChannelMonitorRender();
       flushPendingAudio();
@@ -997,7 +1003,7 @@ function ensureMonitorToggleHandler() {
     }
   };
   monitorToggles.addEventListener("pointerdown", handleToggle);
-  for (const id of ["psgMonitor","rhythmMonitor","adpcmAMonitor"]) document.getElementById(id).addEventListener("click", handleToggle);
+  for (const id of ["psgMonitor","rhythmMonitor","adpcmAMonitor","pcmMonitor"]) document.getElementById(id).addEventListener("click", handleToggle);
 }
 
 function createChannelMonitorState() {
@@ -1266,7 +1272,7 @@ function renderPcmMonitor() {
   renderRegisterRows(document.getElementById("pcmChannels"), state.channels.map(ch => ({
     name:ch.name, active:ch.enabled, values:[ch.enabled ? 'ON' : 'OFF', ch.volume, ch.panLeft, ch.panRight,
       ch.step, formatHex(ch.startAddress,4), formatHex(ch.loopAddress,4)],
-  })));
+  })), rf5c164ChannelMutes);
 }
 
 function resetOpmNotes(clock) {
@@ -2763,6 +2769,7 @@ async function ensurePlaybackReady(vgm) {
     }
   }
   mixerUi.attach(engine.playbackMixer);
+  if (currentChipKind === 'ym2612' && currentHasPcm) rf5c164ChannelMutes.forEach((muted,index) => engine.setRf5c164ChannelMuted(index,muted));
   if (engine.setAdpcmAChannelMuted) adpcmAChannelMutes[currentChipKind].forEach((muted,index) => engine.setAdpcmAChannelMuted(index,muted));
   if (engine.setSsgChannelMuted) ssgChannelMutes.forEach((muted,index) => engine.setSsgChannelMuted(index,muted));
   if (noteishHeader?.psgClock & 0x3fffffff) psgChannelMutes.forEach((muted, index) => engine.setPsgChannelMuted?.(index, muted));

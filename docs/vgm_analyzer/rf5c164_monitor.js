@@ -45,12 +45,37 @@ const observed = new WeakSet();
 export function observeRf5c164Engine(engine, getState, onChange, now = () => performance.now()) {
   if (observed.has(engine)) return;
   observed.add(engine);
+  let muteMask = 0;
+  if (engine.writeRf5c164) {
+    const write = engine.writeRf5c164.bind(engine);
+    engine.setRf5c164ChannelMuted = (channel, muted) => {
+      if (!Number.isInteger(channel) || channel < 0 || channel > 7) throw new RangeError('Invalid RF5C164 channel');
+      const bit = 1 << channel;
+      if (Boolean(muteMask & bit) === Boolean(muted)) return;
+      const state = getState();
+      // Register 8 would rewind disabled voices. Temporarily select the voice
+      // and gate only its volume; register 7's RAM bank is independent.
+      const select = 0x40 | (state.enabled ? 0x80 : 0);
+      if (channel !== state.selectedChannel) write(7, select | channel);
+      try {
+        write(0, muted ? 0 : state.channels[channel].registers[0]);
+      } finally {
+        if (channel !== state.selectedChannel) write(7, select | state.selectedChannel);
+      }
+      muteMask = muted ? muteMask | bit : muteMask & ~bit;
+    };
+    if (engine.stateSettingsKey) {
+      const key = engine.stateSettingsKey.bind(engine);
+      engine.stateSettingsKey = () => JSON.stringify([key(), muteMask]);
+    }
+  }
   for (const name of ['writeRf5c164', 'writeRf5c164Memory', 'loadRf5c164Memory']) {
     if (typeof engine[name] !== 'function') continue;
     const original = engine[name].bind(engine);
     engine[name] = (...args) => {
-      const result = original(...args);
       const state = getState();
+      const suppress = name === 'writeRf5c164' && args[0] === 0 && (muteMask & (1 << state.selectedChannel));
+      const result = suppress ? original(0, 0) : original(...args);
       if (name === 'writeRf5c164') {
         if (applyRf5c164Write(state, args[0], args[1], now())) onChange();
       } else {
