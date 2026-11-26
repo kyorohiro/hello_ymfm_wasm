@@ -99,6 +99,13 @@ let seekDragging = false;
 
 let sidSong = null, sidClock = null;
 const sidSubtune = document.getElementById('sidSubtune');
+let sidModulePromise;
+function loadSidModule() {
+  return sidModulePromise ??= import('./sid_song.js').catch(error => {
+    sidModulePromise = null;
+    throw error;
+  });
+}
 function clearSid() {
   const previous = sidSong;
   sidSong = null;
@@ -3542,7 +3549,8 @@ function startScriptProcessorStream() {
   return true;
 }
 
-async function handleFile(file, preserveEditor = false) {
+async function handleFile(file, preserveEditor = false, requestedAt = performance.now()) {
+  const enteredAt = performance.now();
   clearSid();
   loopCheckbox.disabled = false;
   spcNoteish.clear();
@@ -3577,9 +3585,12 @@ async function handleFile(file, preserveEditor = false) {
   lastLoadedFileName = file.name;
   mixerUi.load(null);
   const isSid = /\.sid$/i.test(file.name);
-  const sidModule = isSid ? await import('./sid_song.js') : null;
+  const setupAt = performance.now();
+  const sidModule = isSid ? await loadSidModule() : null;
+  const moduleAt = performance.now();
   if (isSid && file.size > sidModule.PSID_MAX_FILE_BYTES) throw new Error('SID exceeds the maximum C64 program size.');
   const rawBuffer = await file.arrayBuffer();
+  const fileAt = performance.now();
   currentBuffer = null;
   exportMmlButton.disabled = true;
   exportMidiButton.disabled = true;
@@ -3631,6 +3642,16 @@ async function handleFile(file, preserveEditor = false) {
     };
     sidSubtune.onchange = selectSubtune;
     selectSubtune();
+    if (sidSong) {
+      const readyAt = performance.now();
+      const ms = value => Math.round(value);
+      headerOutput.textContent = JSON.stringify({format,model,clock,songs,startSong,loadTimingMs:{
+        selectionToPlayEnabled:ms(readyAt-requestedAt),
+        playlistAndQueue:ms(enteredAt-requestedAt), resetPreviousTrack:ms(setupAt-enteredAt),
+        waitForSidModule:ms(moduleAt-setupAt), readLocalFile:ms(fileAt-moduleAt),
+        prepareControlsAndValidate:ms(readyAt-fileAt)
+      }},null,2);
+    }
     return;
   }
 
@@ -3918,25 +3939,26 @@ function renderPlaylist() {
   }
 }
 
-async function loadPlaylistTrack(index, autoplay, revision) {
+async function loadPlaylistTrack(index, autoplay, revision, requestedAt) {
   if (revision !== playlistRevision || !playlistFiles[index]) return;
   playlistIndex = index;
   let position = matchingTracks ? matchingTracks.indexOf(index) : index;
   if (position < 0) {matchingTracks = null; playlistSearch.value = ''; position = index;}
   playlistPage = Math.floor(position/pageSize);
   renderPlaylist();
-  await handleFile(playlistFiles[index]);
+  await handleFile(playlistFiles[index],false,requestedAt);
   if (autoplay && (currentBuffer || spcView.active || sidSong) && revision === playlistRevision) await playCurrentVgm();
 }
 
 function selectPlaylistTrack(index, autoplay) {
+  const requestedAt = performance.now();
   const file = playlistFiles[index];
   if (!file) return;
   const revision = ++playlistRevision;
   stopActiveStream();
   player?.pause();
   timelineSeekController?.abort();
-  return queuePlaylistTask(() => loadPlaylistTrack(playlistFiles.indexOf(file), autoplay, revision));
+  return queuePlaylistTask(() => loadPlaylistTrack(playlistFiles.indexOf(file), autoplay, revision, requestedAt));
 }
 
 function advancePlaylist() {
@@ -3999,6 +4021,7 @@ for (const id of ['consoleFiles','consoleFolder']) document.getElementById(id).o
 };
 
 function importPlaylistFiles(files) {
+  const requestedAt = performance.now();
   const songSet = Array.from(files).filter(file => /\.(ssf|minissf|ssflib|psf|minipsf|psf1?lib)$/i.test(file.name));
   const auxiliary = new Set(songSet);
   files = Array.from(files).filter(file => !auxiliary.has(file));
@@ -4030,7 +4053,7 @@ function importPlaylistFiles(files) {
         rejected.push(file.name);
       }
     }
-    if (tracks.length) await loadPlaylistTrack(0, false, revision);
+    if (tracks.length) await loadPlaylistTrack(0, false, revision, requestedAt);
     if (songSet.length) await openConsoleSongs(songSet);
     if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98, SPC, SID, SSF/miniSSF, PSF1/miniPSF, yrw801.rom or a YM2608 ROM .bin file.`);
   });
@@ -4718,3 +4741,7 @@ async function getBrowserPlaybackFactory(name) {
   };
   return loaders[name]?.();
 }
+
+// Warm the SID JavaScript after the main UI is installed. Audio/WASM startup
+// still belongs to Play. A failed background fetch can retry on selection.
+void loadSidModule().catch(() => {});

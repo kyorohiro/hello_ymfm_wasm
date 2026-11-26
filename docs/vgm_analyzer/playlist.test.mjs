@@ -18,7 +18,7 @@ function setup(load = async () => true, desktopHost = {}) {
   const input = element();
   const context = vm.createContext({
     connectDesktop: options => connectDesktop(options, desktopHost),
-    console, sidSong:null, playlistList: list, playlistSummary: element(), fileInput: input,
+    console, performance, sidSong:null, playlistList: list, playlistSummary: element(), fileInput: input,
     playlistLoopCheckbox: Object.assign(element(), { checked: false }), playlistLoopControl: element(),
     playlistPrevButton: element(), playlistNextButton: element(), wavExportBusy: false,
     document: { createElement: element, getElementById: element }, currentBuffer: null, spcView:{active:false},
