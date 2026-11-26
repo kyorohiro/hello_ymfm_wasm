@@ -1,3 +1,4 @@
+import {arrangeVoiceSections} from './voice-tabs.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createYm2151Audio} from '../js/playground_ym2151_audio.js';
 import {createYm2151RegisterClient} from '../js/playground_ym2151.js';
@@ -42,7 +43,7 @@ const opm = createYm2151RegisterClient((method,args) => {
 });
 const keyOn = opm.keyOn;
 opm.keyOn = (ch,mask=keyMasks[ch]) => keyOn(ch,mask);
-const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),onChannelChange:syncKeyChannels,createOperatorControl:createParamControl,invoke(method,args) {
+const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:arrangeVoiceSections,onChannelChange:syncKeyChannels,createOperatorControl:createParamControl,invoke(method,args) {
   if (method === 'auditionOn') startAudio().catch(fail);
   return inspector.invoke(method,args);
 },onError:fail});

@@ -37,3 +37,5 @@ The buttons above the guitar keyboard select the same CH1–CH8 as the YM2151 pa
 **Hit · Voice 4** on the guitar keyboard plays the original kit’s arcade impact while Round Start uses voices 1–3. Its light follows the actual busy bit, including during mute. Older or imported banks without the arcade hit disable this pad.
 
 Pause freezes both VGM chips at an audio block boundary. For YM2151 tracks, select a source channel to inspect its four operators. The channel indicator shows the last key-on state. **Copy to → Use voice** copies the channel patch and the last nonzero operator mask to the live keyboard channel you choose. Global LFO and CH8 noise settings remain shared live-chip controls. Resume continues from the paused frame.
+
+YM2151 keeps its channel selectors above four equal-height pages: Voice, Operators, LFO / Noise and Registers. Switch pages while holding a keyboard note to edit the sounding voice. Pitch / gate and Audition open from Voice. Registers shows 32 bytes at a time, with the channel JavaScript available alongside the range selector.

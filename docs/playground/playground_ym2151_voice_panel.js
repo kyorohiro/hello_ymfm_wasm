@@ -61,7 +61,7 @@ export function ym2151VoiceCode(state, channel = 0) {
   return lines.join('\n');
 }
 
-export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorControl, onChannelChange = () => {}, onKeyboardTargetChange = () => {}, onError = () => {}}) {
+export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorControl, arrangeSections, onChannelChange = () => {}, onKeyboardTargetChange = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument ?? globalThis.document, win = doc.defaultView ?? globalThis;
   const panelId = ++panelSequence, listeners = [], held = new Map();
   let state = null, channel = 0, connected = false, visible = true, disposed = false, keyboardActive = false;
@@ -181,6 +181,8 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
   const status = make('p', 'chip-editor-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); root.appendChild(status);
   root.appendChild(make('p', 'subtext', 'Values show applied YM2151 registers. Gate indicators record key writes, not the changing envelope amplitude. Code, audition and Keyboard share the same sound chip.'));
 
+  const layout = arrangeSections?.({body,channelList,selected,common,audition,operatorsCard,lfoCard,noiseCard,details,registers,code,status});
+
   function startNote(selectedChannel, midi, source, externalId, epoch) {
     if (!connected || disposed || !Number.isInteger(midi) || midi < 0 || midi > 127) return null;
     const id = `ym2151-panel:${panelId}:${++pressSequence}`; held.set(id, {channel: selectedChannel, source, externalId, epoch});
@@ -257,7 +259,8 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
     }));
     setValue(lfoFrequency, snapshot.lfo?.frequency); setValue(amDepth, snapshot.lfo?.amDepth); setValue(pmDepth, snapshot.lfo?.pmDepth); setValue(lfoWaveform, snapshot.lfo?.waveform);
     checked(noiseEnabled, snapshot.noise?.enabled); setValue(noiseFrequency, snapshot.noise?.frequency); setValue(code, ym2151VoiceCode(snapshot, channel));
-    registers.textContent = Array.from(snapshot.registers ?? [], (value, index) => `${index.toString(16).toUpperCase().padStart(2, '0')}: ${Number(value).toString(16).toUpperCase().padStart(2, '0')}`).join('  ');
+    if (layout) layout.updateRegisters(snapshot.registers);
+    else registers.textContent = Array.from(snapshot.registers ?? [], (value, index) => `${index.toString(16).toUpperCase().padStart(2, '0')}: ${Number(value).toString(16).toUpperCase().padStart(2, '0')}`).join('  ');
     drawEnvelope(voice.operators);
   }
   function setConnected(value) {

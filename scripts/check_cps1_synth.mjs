@@ -37,13 +37,23 @@ try {
   await page.click('#hitPad');
   await page.waitForFunction(()=>document.querySelector('#hitPad').dataset.sounding==='true');
   await page.waitForFunction(()=>document.querySelector('#hitPad').dataset.sounding==='false');
-  const pinnedY=await page.locator('#fm .chip-channel-list').evaluate(row=>{
-    const fm=document.querySelector('#fm');
-    fm.scrollTop=100;const y=row.getBoundingClientRect().top;
-    fm.scrollTop=220;const delta=row.getBoundingClientRect().top-y;
-    fm.scrollTop=0;return delta;
-  });
-  assert.equal(pinnedY,0);
+  const voiceTab=name=>page.locator('.voice-tabs').getByRole('button',{name,exact:true});
+  async function checkVoicePages() {
+    const positions=[];
+    for (const name of ['Voice','Operators','LFO / Noise','Registers']) {
+      await voiceTab(name).click();
+      positions.push(await page.evaluate(()=>{
+        const fm=document.querySelector('#fm');
+        if (fm.scrollHeight>fm.clientHeight+1) throw Error('YM2151 content overflows');
+        return document.querySelector('#keyboardPanel').getBoundingClientRect().top+scrollY;
+      }));
+    }
+    assert.ok(Math.max(...positions)-Math.min(...positions)<1);
+    await page.selectOption('[aria-label="Register range"]','224');
+    assert.match(await page.locator('[data-chip-output="ym2151-registers"]').textContent(),/F8 {3}/);
+    await voiceTab('Voice').click();
+  }
+  await checkVoicePages();
   const factoryCode = await page.inputValue('#editor');
   if (await page.locator('#power').isEnabled()) await page.click('#power');
   await page.waitForFunction(() => document.querySelector('#power').disabled);
@@ -79,6 +89,7 @@ try {
   await page.locator('[data-chip-control="ym2151-feedback"]').fill('6');
   await page.locator('[data-chip-control="ym2151-feedback"]').press('Tab');
   await page.waitForFunction(() => document.querySelector('[data-chip-control="ym2151-code"]').value.includes('opm.setAlgo(0, 4, 6)'));
+  await voiceTab('Operators').click();
   const level = page.getByRole('button',{name:'OP1 · M1 TL',exact:true});
   const before = Number(await level.textContent());
   await level.scrollIntoViewIfNeeded();
@@ -290,6 +301,7 @@ try {
     await page.setViewportSize({width,height:850});
     await page.click('#synthMode');
     assert.ok(await page.locator('#keys .key').first().isVisible());
+    await checkVoicePages();
     const keyboard = await page.locator('#keys .key').first().boundingBox();
     assert.ok(keyboard.y >= 0 && keyboard.y + keyboard.height <= 850, JSON.stringify({width,keyboard}));
     await page.click('#codeMode');

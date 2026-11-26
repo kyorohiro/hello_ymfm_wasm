@@ -93,7 +93,7 @@ header::after {margin-left:0}
 #performanceTabs {grid-row:3}
 [data-mode=synth] #workbench :is(#code,#keyboardPanel) {grid-row:4}
 [data-mode=code] #editor {height:clamp(18rem,45vh,40rem)}
-[data-mode=synth] #workbench :is(#fm,#pcm) {max-height:clamp(10rem,28dvh,30rem);overflow:auto}
+[data-mode=synth] #workbench #pcm {max-height:clamp(10rem,28dvh,30rem);overflow:auto}
 @media(max-width:480px) {.mode-switch {margin-left:0}}
 [data-mode=code] #sourceTabs {position:sticky;top:0;z-index:2;background:#e7d7b8}
 
@@ -107,7 +107,7 @@ header::after {margin-left:0}
   header {gap:.5rem;padding:.45rem .6rem}
   header img {width:2.5rem}
   .output canvas {height:52px}
-  [data-mode=synth] #workbench :is(#fm,#pcm) {max-height:clamp(8rem,21dvh,15rem)}
+  [data-mode=synth] #workbench #pcm {max-height:clamp(8rem,21dvh,15rem)}
 }
 .keyboard-toolbar,#keyChannels,#keyOctave {display:flex;align-items:center;flex-wrap:wrap;gap:.25rem}
 .keyboard-toolbar {justify-content:space-between;margin-bottom:.35rem}
@@ -129,10 +129,10 @@ header::after {margin-left:0}
 #songChannels [data-sounding=true] {box-shadow:inset 0 -3px #ffc54b}
 #fm .chip-channel-list {position:sticky;top:0;z-index:1;background:var(--panel);padding:.2rem 0;gap:.25rem}
 #fm .chip-channel-list button {min-width:0;padding:.16rem .32rem;font-size:.85rem}
-[data-mode=code] #fm {max-height:65dvh;overflow:auto}
+
 .song-operators {overflow-x:auto}
 #songVoice details {margin:.25rem 0}
-#fm {scroll-padding-top:3rem}
+
 main:has(#referenceSong:not([hidden])) .output {margin:.3rem 0;padding:.45rem .65rem}
 main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem 0}
 #referenceSong {margin:.35rem 0}
@@ -146,4 +146,46 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
   #keyChannels {gap:.12rem}
   #keyChannels button {padding:.15rem .27rem}
   main:has(#referenceSong:not([hidden])) .output canvas {height:36px}
+}
+
+.voice-tabs,.voice-tools {display:flex;gap:.25rem;flex-wrap:wrap}
+.voice-tabs {margin:.15rem 0 .35rem}
+.voice-tabs button,.voice-tools button,.voice-page button:not(.param-button,.param-value) {font-size:.84rem;padding:.15rem .45rem}
+.voice-pages {display:grid;grid-template-columns:minmax(0,1fr)}
+.voice-page {grid-area:1/1;min-width:0}
+.voice-page[inert] {visibility:hidden;pointer-events:none}
+.voice-page .chip-section {margin:0;padding:.15rem 0}
+.voice-page .chip-section h3 {margin:.1rem 0;font-size:.85rem}
+.voice-page .chip-fields {gap:.35rem;margin:.15rem 0}
+.voice-page .chip-field {gap:0}
+.voice-page .chip-field input[type=number] {width:4rem}
+.voice-page .chip-opm-envelope {height:44px;margin:.2rem 0}
+.voice-page .chip-opm-routing,.voice-page .subtext {margin:.2rem 0;font-size:.78rem}
+.voice-page .chip-memory-ranges {margin:.25rem 0;white-space:pre;font-size:.82rem}
+.voice-page .chip-opm-table {width:100%;border-spacing:0}
+.voice-page .param-control {margin:1px}
+.voice-page .param-control button {padding:.12rem 0}
+.voice-tool {max-width:min(34rem,90vw);border:1px solid var(--line);border-radius:.5rem;background:var(--panel);color:var(--ink);padding:1rem}
+.voice-tool:popover-open {visibility:visible}
+#fm .chip-editor-status:empty {display:none}
+#fm .chip-channel-list {display:grid;grid-template-columns:repeat(8,minmax(0,1fr));max-width:30rem}
+#fm .chip-channel-list button {white-space:nowrap;padding-inline:0}
+@media(max-width:719px) {
+  .output > .bar {display:grid;grid-template-columns:auto auto 1fr;gap:.2rem .35rem}
+  .output .bar h2 {font-size:1rem;margin:0}
+  .output > .bar label {grid-row:2;grid-column:1/3;font-size:.85rem}
+  .output > .bar button {font-size:.85rem}
+  .chip-field-label {font-size:.78rem}
+  .voice-page .chip-field input,.voice-page select {padding:.1rem .2rem;font-size:.85rem}
+  .voice-page .chip-section h3 {font-size:.78rem}
+  .voice-page .chip-opm-envelope {height:40px}
+  .voice-page .chip-opm-table {line-height:1.15}
+  .voice-page .chip-opm-table :is(th,td) {padding:0}
+  #workbench > section {padding:.38rem}
+  #keyChannels button {font-size:.78rem}
+}
+#opm-page-0 > .chip-section > h3,#opm-page-1 > .chip-section > h3 {display:none}
+@media(min-width:720px) {
+  #workbench #fm {padding-block:.35rem}
+  #referenceSong:not([hidden]) + .output canvas {height:38px}
 }
