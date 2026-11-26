@@ -3127,7 +3127,7 @@ function updatePlaybackButtons(state = {}) {
     for (const button of [exportAllTfiButton, exportAllVgiButton, exportLilyPondButton,
       document.getElementById('showSheetMusicButton'), document.getElementById('exportMusicSheetButton')]) button.disabled = true;
     document.getElementById('chipSupportNotice').hidden = true;
-    if (parsedOutputTab.ariaSelected !== 'true' && (exportTab.disabled || exportTab.ariaSelected !== 'true')) setOutputTab('parsed-output');
+    if (document.getElementById('playlistTab').ariaSelected !== 'true' && parsedOutputTab.ariaSelected !== 'true' && (exportTab.disabled || exportTab.ariaSelected !== 'true')) setOutputTab('parsed-output');
   }
   if (songPlayer) refreshSong();
 }
@@ -3172,7 +3172,7 @@ function updateChipSupport() {
     for (const root of [opnMonitorRoot, opmMonitorRoot, ayMonitorRoot, ym2413MonitorRoot, oplMonitorRoot]) root.hidden = true;
     const notice = document.getElementById('chipSupportNotice'); notice.hidden = false;
     notice.textContent = 'POKEY: one or two independent chips, four physical outputs each. Operator Info shows written AUDF/AUDC/AUDCTL/SKCTL state and nominal plain-square pitch. Noise, volume-only DAC, joined helpers, high-pass and two-tone modes are labelled without inferred notes. Physical channel mute preserves timer/filter dependencies. Normal seeking and WAV export are available; no seek checkpoints, Song, Sheet Music, MIDI/MML or FM instrument exports.';
-    if (document.getElementById('exportTab').ariaSelected === 'true') return;
+    if (document.getElementById('playlistTab').ariaSelected === 'true' || document.getElementById('exportTab').ariaSelected === 'true') return;
     if (operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
     return;
   }
@@ -3234,7 +3234,7 @@ function updateChipSupport() {
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
   ym2413MonitorRoot.hidden = !(opll || ayWithOpll);
-  if (document.getElementById('exportTab').ariaSelected === 'true') return;
+  if (document.getElementById('playlistTab').ariaSelected === 'true' || document.getElementById('exportTab').ariaSelected === 'true') return;
   if (sheetMusicTab.getAttribute('aria-selected') === 'true' && !sheetMusicTab.disabled) return;
   if (sbi && !tfiInfoTab.disabled && tfiInfoTab.getAttribute('aria-selected') === 'true') return;
   if (!sampleTab.disabled && sampleTab.getAttribute('aria-selected') === 'true') return;
@@ -3734,7 +3734,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     detectedChipsOutput.hidden = false;
     detectedChipsOutput.textContent = 'C64 SID';
     headerOutput.textContent = metadataOutput.textContent = '';
-    setOutputTab('parsed-output');
+    if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
     updatePlaybackButtons();
     const bytes = new Uint8Array(rawBuffer);
     const {format,metadata,songs,startSong,model,clock} = sidModule.parsePlayerStructure(bytes);
@@ -3857,7 +3857,7 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
     pcmRamWriteOutput.textContent = renderPcmRamWrites(vgm.pcmRamWriteSummary());
     command92ContextOutput.textContent = vgm.analyzeCommandContext(0x92).join("\n");
     tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
-    setOutputTab('parsed-output');
+    if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
     setStatus(file.name + ' · ' + consoleChip + ' VGM');
     await prepareConsoleTrack({format:consoleChip,path:file.name,bytes:buffer});
     return;
@@ -4141,7 +4141,7 @@ async function prepareConsoleTrack(song) {
   detectedChipsOutput.textContent = track.chip+' · '+song.format+' · '+track.channelCount+' CH' + (track.chip === 'SCSP' ? ' · ● Key On' : '');
   if (track.loadedFiles?.length) metadataOutput.textContent = [song.title,...track.loadedFiles].filter(Boolean).join(' · ');
   renderMonitorToggles();
-  setOutputTab('parsed-output');
+  if (document.getElementById('playlistTab').ariaSelected !== 'true') setOutputTab('parsed-output');
   updatePlaybackButtons();
 }
 
@@ -4481,7 +4481,7 @@ window.addEventListener('pagehide', event => { if (!event.persisted) {clearSong(
 
 function selectedOutputTab() {
   for (const [tab, name] of [
-    [operatorInfoTab, 'operator-info'], [parsedOutputTab, 'parsed-output'],
+    [document.getElementById('playlistTab'), 'playlist'], [operatorInfoTab, 'operator-info'], [parsedOutputTab, 'parsed-output'],
     [noteishTab, 'noteish'], [tfiInfoTab, 'tfi-info'],
     [sampleTab, 'samples'], [sheetMusicTab, 'sheet-music'], [document.getElementById('exportTab'), 'export'],
   ]) {
@@ -4495,7 +4495,7 @@ function setOutputTab(tabName) {
   const exportTab = document.getElementById('exportTab');
   if (tabName === 'export') {
     if (exportTab.disabled) tabName = 'parsed-output';
-  } else {
+  } else if (tabName !== 'playlist') {
     if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
     if (!currentBuffer && !spcView.active) tabName = 'parsed-output';
     if (currentChipKind === 'pokey' && !['operator-info', 'parsed-output'].includes(tabName)) tabName = 'operator-info';
@@ -4504,6 +4504,10 @@ function setOutputTab(tabName) {
       tabName = "parsed-output";
     }
   }
+  const playlistTab = document.getElementById('playlistTab');
+  document.getElementById('playlistPanel').hidden = tabName !== 'playlist';
+  playlistTab.ariaSelected = String(tabName === 'playlist');
+  playlistTab.tabIndex = tabName === 'playlist' ? 0 : -1;
   document.getElementById('exportPanel').hidden = tabName !== 'export';
   exportTab.ariaSelected = String(tabName === 'export');
   exportTab.tabIndex = tabName === 'export' ? 0 : -1;
@@ -4558,6 +4562,7 @@ function setOutputTab(tabName) {
 }
 
 sheetMusicTab.addEventListener('click', () => setOutputTab('sheet-music'));
+document.getElementById('playlistTab').addEventListener('click', () => setOutputTab('playlist'));
 document.getElementById('exportTab').addEventListener('click', () => setOutputTab('export'));
 document.getElementById('outputTabs').addEventListener('keydown', event => {
   const tabs = [...event.currentTarget.querySelectorAll('button:enabled')];

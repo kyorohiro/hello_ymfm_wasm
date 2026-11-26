@@ -59,6 +59,8 @@ try {
   await page.evaluate(() => window.finishFileRead());
   await indicator.waitFor({state:'hidden'});
   assert.match(await page.locator('#headerOutput').textContent(),/Failed to (decode|parse)/);
+  assert(await page.locator('#playlistPanel').isHidden());
+  await page.locator('#playlistTab').click();
   const ssf = createScspSsfPlaybackFixture(), psf = createPsfPlaybackFixture();
   const elapsed = await page.evaluate(async ({image,prefix}) => {
     const {createScspSsfEngine} = await import(prefix+'synth-scsp/scsp_ssf_engine.js');
@@ -180,6 +182,7 @@ try {
       assert.equal(bytes.readUInt32LE(24),44100);
       assert.equal(bytes.readUInt16LE(22),2);
       assert.equal(bytes.length,44+44100*4);
+      await page.locator('#playlistTab').click();
       return bytes;
     };
     await movePosition(.5);
@@ -235,6 +238,7 @@ try {
   const saving = page.waitForEvent('download',{timeout:15000});
   await page.locator('#wavExportDialog [value=export]').click();
   const saved = await saving;
+  await page.locator('#playlistTab').click();
   assert.equal(saved.suggestedFilename(),'untimed.wav');
   assert.equal((await readFile(await saved.path())).length,44+2*44100*4);
   await page.waitForFunction(ticks => !document.querySelector('#inlinePauseButton').disabled &&
@@ -293,12 +297,14 @@ try {
   }
   await openOpnMonitor();
   await page.locator('#fileInput').setInputFiles({name:'original-vsu.vgm',mimeType:'application/octet-stream',buffer:vsu});
-  await play.click();
+  await page.waitForFunction(() => document.querySelector('#parsedOutputTab').ariaSelected === 'true' && !document.querySelector('#inlinePlayButton').disabled);
   for (const id of ['operatorInfoTab','noteishTab','sheetMusicTab','tfiInfoTab','sampleExplorerTab']) {
     assert.ok(await page.locator('#'+id).isDisabled(), 'VSU: '+id);
   }
   assert.equal(await page.locator('#parsedOutputTab').getAttribute('aria-selected'),'true');
   assert.ok(await page.locator('#operatorInfoPanel').isHidden());
+  await page.locator('#playlistTab').click();
+  await play.click();
   await page.waitForFunction(() => {
     const pcm = new Float32Array(2048);
     window.testMeter?.getFloatTimeDomainData(pcm);
@@ -321,6 +327,7 @@ try {
   await checkWav();
   await openOpnMonitor();
   console.log('VSU VGM and OPN tab switching passed');
+  await page.locator('#playlistTab').click();
   const mainPlay = page.locator('#inlinePlayButton');
   for (const [path, model] of [['tone.sid','6581'],['rsid/irq.sid','6581'],['tone.sid','8580']]) {
     const buffer = await readFile(new URL('../docs/sid-player/demos/'+path,import.meta.url));

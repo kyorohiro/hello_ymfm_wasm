@@ -168,6 +168,7 @@ async function load(page, name, bytes) {
   await page.waitForFunction(name => __analyzerSourceTest.snapshot().file === name &&
     document.getElementById('status').textContent.startsWith('Parsed ' + name + ' ') &&
     !document.getElementById('inlinePlayButton').disabled, name);
+  await page.locator('#playlistTab').click();
   await page.locator('#dockMixerTab').click();
 }
 async function play(page) {
@@ -206,7 +207,9 @@ async function exportWav(page) {
   const pending = page.waitForEvent('download'); await page.locator('#wavExportDialog button[value=export]').click();
   const download = await pending; assert.equal(await download.failure(), null);
   const bytes = await fs.readFile(await download.path());
-  await page.waitForFunction(() => !document.getElementById('wavExportDialog').open); return wavStats(bytes);
+  await page.waitForFunction(() => !document.getElementById('wavExportDialog').open);
+  await page.locator('#playlistTab').click();
+  return wavStats(bytes);
 }
 
 async function checkBrowser(name, browser, origin) {

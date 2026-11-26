@@ -123,7 +123,7 @@ async function signal(page) {
   });
 }
 async function stop(page) {
-  await page.locator('#inlineStopButton').click();
+  await page.locator('#stopButton').click();
   await page.waitForFunction(() => !window.__spcNoteishTest.view.state.playing
     && window.__spcNoteishTest.view.state.positionSeconds === 0);
   const silence = await signal(page); assert.equal(silence.bad,0); assert(silence.peak < .00001,JSON.stringify(silence));
@@ -270,7 +270,7 @@ async function checkBrowser(name,engine,url,fixture,musical) {
     await previewSheet(page,`estimated-${name}`);
     await page.locator('#noteishTab').click();
     await page.locator('#notePitchTab').click();
-    await page.locator('#inlinePlayButton').click();
+    await page.locator('#playButton').click();
     await page.waitForFunction(() => window.__spcNoteishTest.view.state.playing);
     // Wait for actual first Worklet PCM after starting the audio context.
     // OSMD has just initialized in this run and browser startup is variable.
@@ -349,7 +349,7 @@ async function checkBrowser(name,engine,url,fixture,musical) {
     await page.locator('#spcInfoPanel .monitor-toggles button').first().click();
     await page.locator('#noteishTab').click();
     assert((await signal(page)).rms > .001);
-    await page.locator('#inlinePauseButton').click();
+    await page.locator('#pauseButton').click();
     await page.waitForFunction(() => window.__spcNoteishTest.view.state.paused);
     const paused = await page.evaluate(() => window.__spcNoteishTest.view.state.positionSeconds);
     const pausedChannels = await channelState(page);
@@ -456,7 +456,7 @@ async function checkBrowser(name,engine,url,fixture,musical) {
     // Analysis completion after Stop may update offline notes but never resume
     // audio; a completed obsolete file analysis may not update the next track.
     await armAnalysisResult(page);
-    await page.locator('#inlinePlayButton').click();
+    await page.locator('#playButton').click();
     await page.waitForFunction(() => window.__spcNoteishTest.view.state.playing);
     await stop(page); await releaseAnalysisResult(page); await readyNotes(page);
     assert.equal(await page.evaluate(() => window.__spcNoteishTest.view.state.playing),false);
@@ -488,8 +488,8 @@ async function checkBrowser(name,engine,url,fixture,musical) {
     assert.equal(await page.locator('#spcNoteishControls').isVisible(),false);
     assert.equal(await page.locator('#spcNoteishControls [data-spc-note-sample]').count(),0);
     assert((await channelState(page)).every(channel => !channel.snes),'VGM note channels must not retain stale SNES notes');
-    await page.locator('#inlinePlayButton').click(); await page.waitForTimeout(100);
-    await page.locator('#inlineStopButton').click();
+    await page.locator('#playButton').click(); await page.waitForTimeout(100);
+    await page.locator('#stopButton').click();
     assert.deepEqual(errors,[]);
     console.log(JSON.stringify({browser:name,passed:true,before,manual,octaveCorrected,muted,
       eightPhysicalVoices:true,workerAnalysis:true,noAudioCommandsForReference:true,pauseSeekStop:true,

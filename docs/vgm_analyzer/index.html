@@ -577,7 +577,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=import-menu-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=playlist-tab-1">
   </head>
   <body>
     <p id="chipSupportNotice" role="status" hidden>YM2413 analysis and instrument editing: Support coming soon.</p>
@@ -670,57 +670,13 @@
             </ul>
           </div>
         </dialog>
-        <div class="actions">
-          <section class="playlist" aria-label="Playlist">
-            <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
-            <p id="detectedChips" class="file-drop-hint" aria-live="polite" hidden></p>
-            <label hidden id="sidSubtuneLabel">Subtune <select id="sidSubtune"></select></label>
-            <label hidden>Find track <input id="playlistSearch" type="search" placeholder="Filename or folder"></label>
-            <label hidden id="playlistPageLabel">Playlist page <input id="playlistPage" type="number" min="1" value="1"></label>
-            <ol id="playlistList"></ol>
-          </section>
-          <span class="action-break" aria-hidden="true"></span>
-          <div class="playback-seek">
-            <label for="inlinePlaybackSeek">Position</label>
-            <input id="inlinePlaybackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
-            <output id="inlinePlaybackSeekTime" for="inlinePlaybackSeek">0:00 / 0:00</output>
-          </div>
-          <div id="fileLoadProgress" role="status" aria-live="polite" hidden><progress aria-label="Loading"></progress> <span></span></div>
-          <div class="status" id="inlinePlaybackWarnings" role="status" style="flex-basis: 100%; white-space: pre-line" hidden></div>
-          <div class="status" id="inlinePlaybackError" role="alert" style="flex-basis: 100%; white-space: pre-line" hidden></div>
-          <button id="inlinePlayButton" type="button" disabled>Play</button>
-          <button id="inlinePauseButton" type="button" disabled>Pause</button>
-          <button id="inlineStopButton" type="button" disabled>Stop</button>
-          <button id="replayButton" type="button" disabled>Replay</button>
-          <label title="10 ms fades for browser playback; WAV export is unchanged"><input id="playbackFade" type="checkbox" checked> Fade in / out</label>
-          <label><input id="loopCheckbox" type="checkbox"> Loop</label>
-          <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
-          <label class="volume-control" for="masterVolumeRange">
-            <span>Vol</span>
-            <input id="masterVolumeRange" type="range" min="0" max="480" value="100" step="1">
-            <span id="masterVolumeValue" class="volume-readout">100%</span>
-          </label>
-          <div id="inlineMonitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
-          <label for="prefetchFactorSelect">VGM queue</label>
-          <select id="prefetchFactorSelect" aria-label="VGM queue length">
-            <option value="1">x1</option>
-            <option value="1.5">x1.5</option>
-            <option value="2" selected>x2</option>
-            <option value="3">x3</option>
-          </select>
-          <label for="workletQueueSelect">Worklet queue</label>
-          <select id="workletQueueSelect" aria-label="Worklet queue length">
-            <option value="1">x1</option>
-            <option value="2" selected>x2</option>
-            <option value="3">x3</option>
-            <option value="4">x4</option>
-          </select>
-        </div>
+        <div id="fileLoadProgress" role="status" aria-live="polite" hidden><progress aria-label="Loading"></progress> <span></span></div>
         <div class="status" id="playbackError" role="alert" style="white-space: pre-line" hidden></div>
         <div class="status" id="status" hidden></div>
         <div class="status" id="playbackWarnings" role="status" style="white-space: pre-line" hidden></div>
 
         <div id="outputTabs" class="tabbar" role="tablist" aria-label="Analyzer output panels">
+          <button id="playlistTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="playlistPanel">Playlist</button>
           <button
             id="operatorInfoTab" disabled
             class="tab-button"
@@ -760,6 +716,51 @@
           <button id="exportTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="exportPanel" disabled>Export</button>
         </div>
 
+        <section id="playlistPanel" class="actions tab-panel" role="tabpanel" aria-labelledby="playlistTab" hidden>
+          <section class="playlist" aria-label="Playlist">
+            <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
+            <p id="detectedChips" class="file-drop-hint" aria-live="polite" hidden></p>
+            <label hidden id="sidSubtuneLabel">Subtune <select id="sidSubtune"></select></label>
+            <label hidden>Find track <input id="playlistSearch" type="search" placeholder="Filename or folder"></label>
+            <label hidden id="playlistPageLabel">Playlist page <input id="playlistPage" type="number" min="1" value="1"></label>
+            <ol id="playlistList"></ol>
+          </section>
+          <span class="action-break" aria-hidden="true"></span>
+          <div class="playback-seek">
+            <label for="inlinePlaybackSeek">Position</label>
+            <input id="inlinePlaybackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
+            <output id="inlinePlaybackSeekTime" for="inlinePlaybackSeek">0:00 / 0:00</output>
+          </div>
+          <div class="status" id="inlinePlaybackWarnings" role="status" style="flex-basis: 100%; white-space: pre-line" hidden></div>
+          <div class="status" id="inlinePlaybackError" role="alert" style="flex-basis: 100%; white-space: pre-line" hidden></div>
+          <button id="inlinePlayButton" type="button" disabled>Play</button>
+          <button id="inlinePauseButton" type="button" disabled>Pause</button>
+          <button id="inlineStopButton" type="button" disabled>Stop</button>
+          <button id="replayButton" type="button" disabled>Replay</button>
+          <label title="10 ms fades for browser playback; WAV export is unchanged"><input id="playbackFade" type="checkbox" checked> Fade in / out</label>
+          <label><input id="loopCheckbox" type="checkbox"> Loop</label>
+          <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
+          <label class="volume-control" for="masterVolumeRange">
+            <span>Vol</span>
+            <input id="masterVolumeRange" type="range" min="0" max="480" value="100" step="1">
+            <span id="masterVolumeValue" class="volume-readout">100%</span>
+          </label>
+          <div id="inlineMonitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+          <label for="prefetchFactorSelect">VGM queue</label>
+          <select id="prefetchFactorSelect" aria-label="VGM queue length">
+            <option value="1">x1</option>
+            <option value="1.5">x1.5</option>
+            <option value="2" selected>x2</option>
+            <option value="3">x3</option>
+          </select>
+          <label for="workletQueueSelect">Worklet queue</label>
+          <select id="workletQueueSelect" aria-label="Worklet queue length">
+            <option value="1">x1</option>
+            <option value="2" selected>x2</option>
+            <option value="3">x3</option>
+            <option value="4">x4</option>
+          </select>
+        </section>
         <section id="exportPanel" class="tab-panel" role="tabpanel" aria-labelledby="exportTab" hidden>
           <div class="export-row">
             <button id="exportAllTfiButton" type="button" disabled>All TFI ZIP</button>
@@ -1030,7 +1031,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=import-menu-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=playlist-tab-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>
