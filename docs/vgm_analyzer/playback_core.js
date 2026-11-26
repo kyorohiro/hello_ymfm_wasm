@@ -1,3 +1,4 @@
+import {SegaPSG} from '../js/segapsg.js';
 import {installOpnChannelMutes} from './opn_channel_mutes.js';
 import {installPlaybackMixer} from './playback_mixer.js?v=console-songs-1';
 import {Msm5205AudioEngine,attachMsm5205} from '../js/msm5205audioengine.js';
@@ -120,7 +121,7 @@ const composition = {
   ym3812: ['ym3812','psg','okim6295'], ymf262: ['ymf262','psg'],
   huc6280: ['huc6280','msm5205'], msm5205:['msm5205'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], wonderswan: ['wonderswan'], pokey:['pokey'], okim6258: ['okim6258'], okim6295: ['okim6295'],
 };
-const dualKinds = new Set(['ym2612','ym2608','ym2610','gameBoyDmg']);
+const dualKinds = new Set(['ym2612','ym2608','ym2610','gameBoyDmg','psg']);
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
   const usage=vgm.analyzeCommandUsage();
@@ -166,7 +167,7 @@ export function selectPlaybackConfiguration(vgm) {
 const independentKinds = {segaPcm:'segapcm',nesApu:'nes',gameBoyDmg:'gameboy',k051649:'msx'};
 function planPlaybackParts(header) {
   const groups=[];
-  const genesis=['ym2612','psg','rf5c164','pwm'].filter(id=>header[id+'Clock']);
+  const genesis=['ym2612','psg','rf5c164','pwm'].filter(id=>header[id+'Clock'] && !(id === 'psg' && (header.psgClock & 0x40000000)));
   if(genesis.length)groups.push({id:'genesis',kind:'ym2612',chips:genesis});
   for(const [key,value] of Object.entries(header)) {
     if(!key.endsWith('Clock') || !value)continue;
@@ -306,6 +307,14 @@ async function createHeaderMixedEngine(configuration,resource,volume,options){
 }
 
 const recipes = {
+  psg: async (vgm,resource) => {
+    const psg = await SegaPSG.create({moduleFactory:await resource('segapsg'),clock:vgm.header.psgClock});
+    return {
+      psg, sampleRate:() => psg.sampleRate(), processFrames:frames => psg.generateStereo(frames),
+      writePsg:value => psg.write(value), setPsgChannelMuted:(ch,muted) => psg.setChannelMuted(ch,muted),
+      reset:() => psg.reset(), dispose:() => psg.dispose(),
+    };
+  },
   msm5205: async (vgm,resource,masterVolume) => new Msm5205AudioEngine({clock:vgm.header.msm5205Clock,flags:vgm.header.msm5205Flags,masterVolume}),
   okim6295: async (vgm, resource, masterVolume) => new Oki6295AudioEngine({clock:vgm.header.okim6295Clock,masterVolume}),
   huc6280: async (vgm, resource, masterVolume) => Huc6280AudioEngine.create({moduleFactory:await resource("huc6280"),clock:vgm.header.huc6280Clock,masterVolume}),

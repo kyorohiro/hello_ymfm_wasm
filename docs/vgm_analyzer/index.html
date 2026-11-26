@@ -632,7 +632,7 @@
                   <tr><th scope="row">YM2608</th><td>FM + SSG + Rhythm + ADPCM-B<br><small>Seek cache</small></td><td>FM CH, SSG A/B/C and individual rhythm instruments. Gain and mute for FM, SSG, Rhythm and ADPCM-B</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
                   <tr><th scope="row">YM2610 / YM2610B</th><td>FM + SSG + ADPCM-A/B<br><small>Seek cache</small></td><td>4 / 6 FM CH, SSG A/B/C and six ADPCM-A channels. Gain and mute for FM, SSG, ADPCM-A and ADPCM-B</td><td>SoundChip / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
                   <tr><th scope="row">YM2151 / YM2164 (OPM / OPP)</th><td>8 FM CH<br><small>Seek cache</small></td><td>8 CH</td><td>SoundChip</td><td>FM</td><td>Instrument (OPM), audition, OPM ZIP / snapshot, approximate TFI ZIP / snapshot, MIDI, MXDRV MML / FM-only MDX file, LilyPond</td></tr>
-                  <tr><th scope="row">Sega PSG</th><td>Tone + noise<br><small>Seek cache: standalone / Genesis / YM2151 / YM2164</small></td><td>3 tones, noise and PSG group</td><td>PSG monitor</td><td>Tone</td><td>Tone MIDI / LilyPond; no FM voice export</td></tr>
+                  <tr><th scope="row">Sega PSG</th><td>Single or dual SN76489 tone + noise<br><small>Seek cache: standalone / Genesis / YM2151 / YM2164</small></td><td>3 tones, noise and group mute per chip</td><td>One PSG monitor per chip</td><td>Tone</td><td>Single-chip tone MIDI / LilyPond; dual register playback and WAV export</td></tr>
                   <tr><th scope="row">RF5C164</th><td>PCM (Mega-CD)<br><small>Seek cache: Genesis configuration</small></td><td>8 PCM channels and PCM group</td><td>PCM monitor / samples</td><td>—</td><td>Sample explorer</td></tr>
                   <tr><th scope="row">32X PWM</th><td>MAME-derived PWM<br><small>Seek cache: Genesis configuration</small></td><td>PWM group</td><td>PWM / samples</td><td>—</td><td>Sample explorer</td></tr>
                   <tr><th scope="row">YM2413</th><td>OPLL</td><td>9 CH; rhythm groups</td><td>SoundChip</td><td>FM (base pitch); rhythm channels have no single pitch</td><td>Base-pitch MIDI / LilyPond, MGSDRV MML (9-sound mode; rhythm omitted except Bass Drum); no FM voice snapshot export</td></tr>
@@ -1128,17 +1128,17 @@
 
     <script type="importmap">
       {"imports":{
-        "../js/ym2612vgm.js?v=pokey-vgm-1":"../js/ym2612vgm.js?v=dual-opn-2",
+        "../js/ym2612vgm.js?v=pokey-vgm-1":"../js/ym2612vgm.js?v=dual-psg-1",
         "../js/vgmplayer.js?v=pokey-vgm-1":"../js/vgmplayer.js?v=dual-opn-2",
         "./playback_mixer.js?v=console-songs-1":"./playback_mixer.js?v=dual-opn-2",
-        "./mixer_defaults.js":"./mixer_defaults.js?v=dual-opn-2",
+        "./mixer_defaults.js":"./mixer_defaults.js?v=dual-psg-1",
         "./mixer_ui.js?v=pokey-vgm-1&mix=console-songs-1":"./mixer_ui.js?v=dual-opn-2",
         "./ym2608_source_mix.js?v=console-songs-1":"./ym2608_source_mix.js?v=dual-opn-2",
         "../playground/playground_vgm_presets.js":"../playground/playground_vgm_presets.js?v=dual-opn-2",
-        "./playback_core.js?v=pokey-vgm-1&mix=console-songs-1":"./playback_core.js?v=dual-opnb-1"
+        "./playback_core.js?v=pokey-vgm-1&mix=console-songs-1":"./playback_core.js?v=dual-psg-1"
       }}
     </script>
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=dual-dmg-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=dual-psg-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

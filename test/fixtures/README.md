@@ -75,7 +75,10 @@ The additional `dual-ym2608-ssg.vgm` plays SSG A on chip 1, then chip 2 an octav
 
 `dual-dmg-wave.vgm` plays CH3 on both APUs. APU 1 goes left and APU 2 right; both replace their 32-point waves at one second. Seek across that boundary and switch SoundChip tabs to inspect either wave.
 
-All four chip families now support dual playback and separate mixer strips. Instrument lists both instances. Run `node --test docs/vgm_analyzer/dual_playback.test.mjs` to check the rendered phrases and isolation.
+The Yamaha and DMG fixtures support dual playback, separate mixer strips and Instrument tabs for both instances.
+
+`dual-psg.vgm` plays Sega PSG 1 for one second, PSG 2 for one second, then both together. The initial writes interleave the chips’ latch and data bytes. SoundChip shows Tone 1 periods 259 and 165 respectively. Each PSG has three tone mutes and a noise mute. The fixture uses ordinary SN76489 writes (VGM commands 0x50 and 0x30). [VGM dual-chip specification](https://vgmrips.net/wiki/VGM_Specification#Dual_Chip_Support)
+Run `node --test docs/vgm_analyzer/dual_playback.test.mjs` to check the rendered phrases and isolation.
 
 Original browser observations at commit `399e19d4`:
 

@@ -433,6 +433,29 @@ try {
     await stop.click();
   }
 
+  {
+    await page.locator('#fileInput').setInputFiles('test/fixtures/dual-psg.vgm');
+    const second = dockChannels.getByRole('group',{name:'Sega PSG 2',exact:true});
+    await second.waitFor();
+    await page.locator('#operatorInfoTab').click();
+    const select = n => page.locator('#chipMonitorTabs').getByRole('tab',{name:'Sega PSG '+n}).click();
+    await select(2);
+    await play.click();
+    const tone = page.locator('#segaPsgChannels tbody tr').first();
+    await tone.getByText('165',{exact:true}).waitFor();
+    await pause.click();
+    await second.getByRole('button',{name:'CH1',exact:true}).click();
+    assert.equal(await tone.getByRole('button').getAttribute('aria-pressed'),'false');
+    await select(1);
+    await tone.getByText('259',{exact:true}).waitFor();
+    assert.equal(await tone.getByRole('button').getAttribute('aria-pressed'),'true');
+    await movePosition(1.5);
+    await select(2);
+    await tone.getByText('4',{exact:true}).waitFor();
+    await tone.getByRole('button').click();
+    assert.equal(await second.getByRole('button',{name:'CH1',exact:true}).getAttribute('aria-pressed'),'true');
+    await stop.click();
+  }
   async function openOpnMonitor() {
     await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});
     await page.locator('#operatorInfoTab').click();

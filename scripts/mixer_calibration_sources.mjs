@@ -388,7 +388,7 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 const dualVgmRevision = new Map([
   ['js/ym2612vgm.js', [
     '1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b',
-    '8b0848892439c675972065b7a2ec380bf3367aff8fd5d4c45a00af248c7639e8',
+    '3028c2f57e70615d97b5d27a257b37307b2e8d012c0cd927df8b4c16e97dd466',
   ]],
   ['playground/playground_vgm_presets.js', [
     '2080a22787ee418a3e3bc76818bdf9111f9d1f2ff09c1cdbc46f84cf8103952e',

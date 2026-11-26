@@ -144,3 +144,16 @@ for (const variant of ['ym2610','ym2610b']) {
   for (const [offset,value] of [[4,252+data.length],[8,0x171],[0x18,88200],[0x34,204],[0x80,0x40000000+4194304]]) header.writeUInt32LE(value,offset);
   await writeFile(new URL('dual-dmg-wave.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
 }
+
+// Interleave tone and volume latches on separate chips, then play both tones.
+{
+  const data = [0x30,0x85,0x30,0x0a,0x50,0x83,0x30,0x9f,0x50,0x10,0x30,0x0f];
+  for (const [first,second] of [[2,15],[15,4],[2,4]]) {
+    data.push(0x50,0x90|first,0x30,0x90|second,0x61,0x44,0xac);
+  }
+  data.push(0x66);
+  const header = Buffer.alloc(256);
+  header.write('Vgm ');
+  for (const [offset,value] of [[4,252+data.length],[8,0x171],[12,3579545+0x40000000],[0x18,132300],[0x34,204]]) header.writeUInt32LE(value,offset);
+  await writeFile(new URL('dual-psg.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
+}

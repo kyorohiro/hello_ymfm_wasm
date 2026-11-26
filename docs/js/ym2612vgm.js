@@ -76,6 +76,7 @@ import {
 /**
  * @typedef {Object} SegaPsgWriteEvent
  * @property {"psg-write"} type
+ * @property {number} [chipIndex]
  * @property {number} value
  */
 
@@ -487,11 +488,12 @@ export class Ym2612VGM {
 
     const command = this.bytes[this.position];
     switch (command) {
+      case 0x30:
       case 0x50: {
         this.#ensureAvailable(2);
         const value = this.bytes[this.position + 1];
         this.position += 2;
-        return { type: "psg-write", value };
+        return command === 0x30 ? {type:"psg-write",value,chipIndex:1} : {type:"psg-write",value};
       }
       case 0xa0: {
         this.#ensureAvailable(3);
@@ -1083,7 +1085,8 @@ export class Ym2612VGM {
       }
     }
     if (event.type === "psg-write") {
-      const psg = targets.psg;
+      const psg = event.chipIndex ? targets.resolveChip?.('psg',event.chipIndex) : targets.psg;
+      if (event.chipIndex && !psg?.write) throw new Error('Second PSG requires an independent playback target');
       if (psg && typeof psg.write === "function") {
         psg.write(event.value);
       }
@@ -2816,7 +2819,7 @@ function bitLabel(value) {
  */
 export function rawCommandLength(bytes, view, position) {
   const command = bytes[position];
-  if (command === 0x50) {
+  if (command === 0x50 || command === 0x30) {
     return 2;
   }
   if ([0xa2,0xa3,0xa6,0xa7,0xa8,0xa9].includes(command)) return 3;

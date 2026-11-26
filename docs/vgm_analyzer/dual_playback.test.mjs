@@ -214,3 +214,61 @@ for (const ch of [0,1,2,3]) test('dual DMG CH'+(ch+1)+' independent left/right P
     }
   } finally {engine.dispose();}
 });
+
+test('dual Sega PSG preserves each latch and the first chip PCM when muting chip 2 CH1',async () => {
+  const bytes = await readFile(new URL('../../test/fixtures/dual-psg.vgm',import.meta.url));
+  async function render(mode) {
+    const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
+    try {
+      assert.deepEqual([...engine.playbackMixer.strips.keys()],['psg','psg:2']);
+      const part = engine.entries.get('psg-2:0').engine;
+      const player = createPlaybackPlayer(engine,bytes);
+      if (mode === 'source') engine.setChipMuted('psg-2',0,true);
+      if (mode === 'channel') part.setPsgChannelMuted(0,true);
+      player.reset();
+      player.setPrefetchFactor(1);
+      player.play();
+      const result = [];
+      for (let i=0;i<3;i++) {
+        const left = new Float32Array(44100);
+        player.process(left,new Float32Array(44100),44100);
+        result.push(left.slice(10000,30000));
+      }
+      return result;
+    } finally {engine.dispose();}
+  }
+  const duet = await render('both'), solo = await render('channel');
+  const reference = await render('source');
+  for (let i=0;i<3;i++) assert.ok(solo[i].every((x,j) => x === reference[i][j]),'source and channel isolation in phrase '+i);
+  assert.ok(duet[0].every((x,j) => x === solo[0][j]));
+  assert.ok(Math.max(...solo[0]) - Math.min(...solo[0]) > .001);
+  assert.ok(Math.max(...duet[1]) - Math.min(...duet[1]) > .001);
+  assert.ok(solo[1].every(x => x === 0));
+  assert.ok(duet[2].some((x,j) => x !== solo[2][j]));
+});
+
+test('dual Sega PSG keeps all four CH masks independent alongside YM2612', async () => {
+  const bytes = await readFile(new URL('../../test/fixtures/dual-psg.vgm',import.meta.url));
+  bytes.writeUInt32LE(7670454,0x2c);
+  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
+  try {
+    assert.equal(engine.fmInstances.length,0);
+    assert.deepEqual([...engine.playbackMixer.strips.keys()].sort(),['psg','psg:2','ym2612']);
+    const parts = ['psg:0','psg-2:0'].map(key => engine.entries.get(key).engine);
+    for (const ch of [0,1,2,3]) {
+      parts.forEach((part,index) => {
+        part.reset();
+        part.setPsgChannelMuted(ch,index === 1);
+        const target = engine.getVgmTarget('psg',index);
+        target.write(ch === 3 ? 0xe4 : 0x83+(ch<<5));
+        if (ch !== 3) target.write(12);
+        target.write(0x92+(ch<<5));
+      });
+      const [first,second] = parts.map(part => part.processFrames(4096).left);
+      assert.ok(first.some(sample => sample !== 0),'first PSG CH'+(ch+1));
+      assert.ok(second.every(sample => sample === 0),'second PSG CH'+(ch+1));
+      parts[1].setPsgChannelMuted(ch,false);
+      assert.ok(parts[1].processFrames(4096).left.some(sample => sample !== 0));
+    }
+  } finally {engine.dispose();}
+});
