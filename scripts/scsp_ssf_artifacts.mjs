@@ -103,7 +103,7 @@ async function createReceipt(root, wasm, compiler) {
   ])) throw new Error('The SCSP SSF WASM has unexpected host imports');
   const exported = new Map(WebAssembly.Module.exports(compiled).map(({ name, kind }) => [name, kind]));
   for (const name of ['_initialize', 'malloc', 'free', 'scsp_ssf_create',
-    'scsp_ssf_destroy', 'scsp_ssf_render', 'scsp_ssf_fault_address']) {
+    'scsp_ssf_destroy', 'scsp_ssf_key_on_mask', 'scsp_ssf_render', 'scsp_ssf_fault_address']) {
     if (exported.get(name) !== 'function') throw new Error('The SCSP SSF WASM is missing ' + name);
   }
   if (exported.get('memory') !== 'memory') throw new Error('The SCSP SSF WASM is missing exported memory');

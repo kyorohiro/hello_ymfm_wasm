@@ -130,7 +130,7 @@ export async function createConsoleSong(song, {getMaster, update, connectOutput,
       engine.setLiveEnabled(false);
       engine.setSource(song.set,song.path);
     } else {
-      engine = createScspSongPlayer({allowSsfSeek:true,getAudio:audio,getMuteMask:() => muteMask,onState:changed,
+      engine = createScspSongPlayer({observeKeys:true,allowSsfSeek:true,getAudio:audio,getMuteMask:() => muteMask,onState:changed,
         onStatus(value) {message = value; changed();}});
       if (song.bytes) await engine.load(new Uint8Array(song.bytes),song.path);
       else await engine.loadSsf(song.set,song.path);

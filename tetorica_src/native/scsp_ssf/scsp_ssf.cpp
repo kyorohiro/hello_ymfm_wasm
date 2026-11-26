@@ -247,6 +247,14 @@ public:
         reportFault(address);
     }
 
+    uint32_t keyOnMask() const {
+        uint32_t mask = 0;
+        for (unsigned slot = 0; slot < 32; ++slot)
+            if (scsp_read(chip, slot * 32) & 0x0800)
+                mask |= uint32_t{1} << slot;
+        return mask;
+    }
+
     void setMuteMask(uint32_t next) {
         for (unsigned slot = 0; slot < 32; ++slot) {
             const uint32_t bit = 1u << slot;
@@ -350,6 +358,10 @@ void *scsp_ssf_create(const uint8_t *ram, uint32_t size) {
         return nullptr;
     std::unique_ptr<SoundBoard> board(new (std::nothrow) SoundBoard);
     return board && board->start(ram) ? board.release() : nullptr;
+}
+
+uint32_t scsp_ssf_key_on_mask(const void *handle) {
+    return handle ? static_cast<const SoundBoard *>(handle)->keyOnMask() : 0;
 }
 
 void scsp_ssf_set_mute(void *handle, uint32_t mask) {

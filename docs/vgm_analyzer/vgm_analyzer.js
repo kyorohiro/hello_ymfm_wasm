@@ -130,6 +130,14 @@ function clearSong() {
 function refreshSong() {
   if (!songPlayer) return;
   const state = songPlayer.read();
+  if (songPlayer.chip === 'SCSP') {
+    for (const container of [monitorToggles, inlineMonitorToggles]) {
+      for (const button of container.children) {
+        const slot = Number(button.dataset.scspSlot);
+        if (Number.isInteger(slot)) button.classList.toggle('is-key-on', Boolean(state.keyOnMask & (1 << slot)));
+      }
+    }
+  }
   playButton.disabled = !(state.canPlay || state.canResume);
   pauseButton.disabled = !state.canPause;
   stopButton.disabled = !state.canStop;
@@ -809,6 +817,7 @@ function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
   if (['sid','vsu','scsp','spu'].includes(currentChipKind)) {
+    const keyOnMask = currentChipKind === 'scsp' ? songPlayer?.read().keyOnMask : 0;
     for (const container of [monitorToggles,inlineMonitorToggles]) {
       container.replaceChildren();
       for (let channel = 0; songPlayer && channel < (songPlayer.channelCount ?? 3); channel++) {
@@ -819,6 +828,11 @@ function renderMonitorToggles() {
         button.textContent = 'CH' + (channel+1);
         button.setAttribute('aria-label','Mute '+currentChipKind.toUpperCase()+' CH'+(channel+1));
         button.setAttribute('aria-pressed',String(muted));
+        if (currentChipKind === 'scsp') {
+          button.dataset.scspSlot = String(channel);
+          button.title = 'SCSP slot ' + (channel + 1) + ' · Indicator: Key On';
+          button.classList.toggle('is-key-on', Boolean(keyOnMask & bit));
+        }
         button.onclick = () => {songPlayer.setMuteMask(songPlayer.muteMask ^ bit); renderMonitorToggles();};
         container.append(button);
       }
@@ -4107,7 +4121,7 @@ function releaseSongOutput(context) {
   if (effectsChain?.context === context) releaseEffectsChain();
   if (masterBoost?.context === context) {masterBoost.disconnect(); masterBoost = null;}
 }
-function loadConsoleModule() {return import('./console_songs.js?v=wav-1');}
+function loadConsoleModule() {return import('./console_songs.js?v=keys-1');}
 
 async function prepareConsoleTrack(song) {
   const module = await loadConsoleModule();
@@ -4120,7 +4134,7 @@ async function prepareConsoleTrack(song) {
   currentChipKind = track.chip.toLowerCase();
   loopCheckbox.disabled = true;
   detectedChipsOutput.hidden = false;
-  detectedChipsOutput.textContent = track.chip+' · '+song.format+' · '+track.channelCount+' CH';
+  detectedChipsOutput.textContent = track.chip+' · '+song.format+' · '+track.channelCount+' CH' + (track.chip === 'SCSP' ? ' · ● Key On' : '');
   if (track.loadedFiles?.length) metadataOutput.textContent = [song.title,...track.loadedFiles].filter(Boolean).join(' · ');
   renderMonitorToggles();
   setOutputTab('parsed-output');

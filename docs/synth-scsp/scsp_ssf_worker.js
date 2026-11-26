@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createScspSsfWasmRenderer } from './scsp_ssf_wasm.js';
 
-const wasmUrl = new URL('../generated/scsp-ssf/scsp-ssf.wasm?v=mute-1', import.meta.url);
+const wasmUrl = new URL('../generated/scsp-ssf/scsp-ssf.wasm?v=keys-1', import.meta.url);
 let renderer = null;
 let ready = null;
 self.onmessage = async ({ data }) => {
@@ -17,7 +17,7 @@ self.onmessage = async ({ data }) => {
 			self.postMessage({ id });
 		} else if (operation === 'render' && ready) {
 			await ready;
-			const block = renderer.process(data.frames, data.muteMask);
+			const block = renderer.process(data.frames, data.muteMask, data.observeKeys);
 			self.postMessage({ id, block }, [block.left.buffer, block.right.buffer]);
 		} else throw new Error('Invalid SCSP SSF Worker request');
 	} catch (error) {

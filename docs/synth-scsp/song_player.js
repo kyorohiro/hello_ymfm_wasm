@@ -144,6 +144,7 @@ export function createScspSongPlayer({
 	createEngine = createScspSongCore,
 	createSsfEngine = createScspSsfEngine,
 	allowSsfSeek = false,
+	observeKeys = false,
 	schedule = nativeSchedule,
 	cancel = nativeCancel,
 	yieldTask = later,
@@ -186,6 +187,22 @@ export function createScspSongPlayer({
 		}
 		return Math.min(run.renderedFrames, frame);
 	}
+	// Masks describe the end of a PCM block. Keep the last completed block
+	// when pruning the queue so lookahead never advances the display.
+	function heardKeys(run, frame) {
+		let mask = run?.keyOnMask ?? 0;
+		for (const block of run?.segments ?? []) {
+			if (block.firstFrame + block.frames > frame) break;
+			mask = block.keyOnMask;
+		}
+		return mask;
+	}
+	function vgmKeys(core) {
+		let mask = 0;
+		for (let slot = 0; slot < 32; slot++)
+			if (core.read(slot * 32) & 0x0800) mask |= 1 << slot;
+		return mask >>> 0;
+	}
 	function getState() {
 		const busy = loading || playback === 'starting' || Boolean(seeking),
 			frames = position();
@@ -204,6 +221,7 @@ export function createScspSongPlayer({
 			sampleRate: RATE,
 			positionFrames: frames,
 			positionSeconds: frames / RATE,
+			keyOnMask: observeKeys ? heardKeys(active, frames) : undefined,
 			totalSamples: source?.totalSamples ?? 0,
 			durationSeconds: (source?.totalSamples ?? 0) / RATE,
 			format: source?.format ?? '',
@@ -419,7 +437,7 @@ export function createScspSongPlayer({
 		node.start(at, offset / RATE);
 		run.nextTime = at + (segment.frames - offset) / RATE;
 	}
-	function append(run, left, right, frames) {
+	function append(run, left, right, frames, keyOnMask) {
 		for (let index = 0; index < frames; index++)
 			if (!Number.isFinite(left[index]) || !Number.isFinite(right[index]))
 				throw new Error('SCSP renderer produced non-finite PCM');
@@ -430,6 +448,7 @@ export function createScspSongPlayer({
 			buffer,
 			frames,
 			firstFrame: run.renderedFrames,
+			keyOnMask,
 			node: null,
 			offset: 0,
 			playAt: null,
@@ -444,6 +463,7 @@ export function createScspSongPlayer({
 		const consumed = position();
 		positionFrames = consumed;
 		run.basePosition = consumed;
+		if (observeKeys) run.keyOnMask = heardKeys(run, consumed);
 		run.segments = run.segments.filter((segment) => segment.firstFrame + segment.frames > consumed);
 	}
 	function finishPump(run) {
@@ -473,9 +493,9 @@ export function createScspSongPlayer({
 			consume(run);
 			for (let count = 0; count < 6 && !run.eof && playback === 'playing'; count++) {
 				if ((run.renderedFrames - position()) / RATE >= SSF_LOOKAHEAD) break;
-				const { left, right, frames, ended } = await run.renderer.process(SSF_CHUNK, getMuteMask());
+				const { left, right, frames, ended, keyOnMask } = await run.renderer.process(SSF_CHUNK, getMuteMask(), observeKeys);
 				if (active !== run) return;
-				if (frames) append(run, left, right, frames);
+				if (frames) append(run, left, right, frames, keyOnMask);
 				run.eof = ended;
 				if (!frames) break;
 			}
@@ -504,7 +524,7 @@ export function createScspSongPlayer({
 				const left = new Float32Array(CHUNK),
 					right = new Float32Array(CHUNK),
 					frames = run.renderer.process(left, right, CHUNK);
-				if (frames) append(run, left, right, frames);
+				if (frames) append(run, left, right, frames, observeKeys ? vgmKeys(run.core) : undefined);
 				run.eof = run.renderer.ended;
 				if (!frames) break;
 			}
@@ -553,6 +573,7 @@ export function createScspSongPlayer({
 		if (!run || playback !== 'playing') return false;
 		run.basePosition = position();
 		positionFrames = run.basePosition;
+		if (observeKeys) run.keyOnMask = heardKeys(run, positionFrames);
 		cancelNodes(run);
 		run.segments = run.segments.filter(
 			(segment) => segment.firstFrame + segment.frames > positionFrames,
@@ -617,9 +638,16 @@ export function createScspSongPlayer({
 				if (!current(ticket) || controller.signal.aborted) throw aborted();
 				if (nowMs() > deadline) throw new Error('SCSP seek exceeded 30 seconds');
 				const count = Math.min(2048, target - frame);
-				const frames = source.kind === 'ssf'
-					? (await next.renderer.process(count, getMuteMask())).frames
-					: next.renderer.process(left, right, count);
+				const observeTarget = observeKeys && frame + count === target;
+				let frames;
+				if (source.kind === 'ssf') {
+					const block = await next.renderer.process(count, getMuteMask(), observeTarget);
+					frames = block.frames;
+					if (observeTarget) next.keyOnMask = block.keyOnMask;
+				} else {
+					frames = next.renderer.process(left, right, count);
+					if (observeTarget) next.keyOnMask = vgmKeys(next.core);
+				}
 				if (!current(ticket) || controller.signal.aborted) throw aborted();
 				frame += frames;
 				if (!frames) break;

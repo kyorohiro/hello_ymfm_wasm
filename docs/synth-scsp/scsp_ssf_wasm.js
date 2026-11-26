@@ -49,7 +49,7 @@ export async function createScspSsfWasmRenderer(wasmBinary, source) {
 		? Math.round(lengthSeconds * 44100)
 		: totalSamples;
 	return {
-		process(frames, muteMask = 0) {
+		process(frames, muteMask = 0, observeKeys = false) {
 			if (disposed) throw new Error('SSF renderer has been disposed');
 			if (!Number.isInteger(frames) || frames < 1 || frames > SSF_RENDER_FRAMES)
 				throw new RangeError(`SSF render request must have 1–${SSF_RENDER_FRAMES} frames`);
@@ -77,7 +77,7 @@ export async function createScspSsfWasmRenderer(wasmBinary, source) {
 				}
 			}
 			position += count;
-			return { left: pcmLeft, right: pcmRight, frames: count, ended: position === totalSamples };
+			return { left: pcmLeft, right: pcmRight, frames: count, keyOnMask: observeKeys ? native.scsp_ssf_key_on_mask(handle) >>> 0 : undefined, ended: position === totalSamples };
 		},
 		dispose,
 	};

@@ -96,8 +96,14 @@ try {
     await buttons.last().click();
     await play.click();
     await checkOutput(true);
+    if (count === 32) {
+      for (const id of ['monitorToggles','inlineMonitorToggles'])
+        await page.waitForSelector('#'+id+' [data-scsp-slot="0"].is-key-on',{state:'attached'});
+      assert.equal(await buttons.last().getAttribute('class').then(cls => cls.includes('is-key-on')),false);
+    }
     await buttons.first().click();
     await checkOutput(false);
+    if (count === 32) await page.waitForSelector('#inlineMonitorToggles .is-muted.is-key-on',{state:'attached'});
     await buttons.first().click();
     await checkOutput(true);
     const effects = page.locator('#dockEffectPane');
@@ -108,6 +114,7 @@ try {
     await effects.locator('#effectEnabled').click();
     await checkOutput(true);
     await stop.click();
+    if (count === 32) await page.waitForFunction(() => !document.querySelector('[data-scsp-slot].is-key-on'));
   }
   function movePosition(seconds) {
     const range = page.locator('#inlinePlaybackSeek');
@@ -248,6 +255,17 @@ try {
   await page.locator('#fileInput').setInputFiles({name:'original.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(buildScspSongDemo())});
   await playAudible();
   await checkConsoleMixer(32);
+  await play.click();
+  await pause.click();
+  for (const [seconds, keyed] of [[.2,true],[.3,false]]) {
+    await movePosition(seconds);
+    await page.waitForFunction(({seconds,keyed}) =>
+      !document.querySelector('#inlinePlaybackSeek').disabled &&
+      +document.querySelector('#inlinePlaybackSeek').value === Math.round(seconds*44100) &&
+      document.querySelector('#inlineMonitorToggles [data-scsp-slot="0"]').classList.contains('is-key-on') === keyed,
+      {seconds,keyed});
+  }
+  await stop.click();
   await checkSeek();
   await checkWav();
   console.log('SCSP VGM passed');

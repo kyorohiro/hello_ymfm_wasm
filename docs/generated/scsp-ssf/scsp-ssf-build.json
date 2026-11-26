@@ -26,20 +26,20 @@
       "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
     },
     "scripts/build_scsp_ssf_wasm.sh": {
-      "bytes": 1405,
-      "sha256": "b63e2dfd8923b14c1d5e9667be2bce8b52bdf4893c2e2507f5a67ca1292fc1a1"
+      "bytes": 1429,
+      "sha256": "6c1a2fcfbe54f022319e9f0e73aa7d02edf45eab06e9f07c43099c17d028fe53"
     },
     "scripts/scsp_ssf_artifacts.mjs": {
-      "bytes": 7548,
-      "sha256": "8f08960ec964cf825f0f5aba4acfcaa8275ed0bfefc95140a57957008d078cd5"
+      "bytes": 7572,
+      "sha256": "938d76c7bb0ff23e3d4f21d5dd3bbbedc88667339e22f26774ee666ad1ad3a06"
     },
     "tetorica_src/native/scsp_ssf/scsp_ssf.cpp": {
-      "bytes": 14536,
-      "sha256": "8155e32f3dff4a06d87de440b94cb79d86e564277b30ae23600d004c9874f853"
+      "bytes": 14906,
+      "sha256": "511af3e019973123c137dabb6a279820973d671d31f739ba4333442ceb629d99"
     },
     "tetorica_src/native/scsp_ssf/scsp_ssf.h": {
-      "bytes": 1026,
-      "sha256": "d2992878a5db87ca6c5c16cc148772d0ba024d2c208e99115f29cd403c4515f1"
+      "bytes": 1161,
+      "sha256": "d7add471c5ea1a57c089caf2316e5e994be9b916acf934257628e9488668199b"
     },
     "third_party/atari-audio/LICENSE": {
       "bytes": 1070,
@@ -135,8 +135,8 @@
     }
   },
   "output": {
-    "bytes": 250186,
-    "sha256": "f007ea051de29ae4ed7b1953be74640c8be53ff85c69440bb311aa173e6aca9c"
+    "bytes": 250272,
+    "sha256": "7ee937a5d9c9f01428096909b17cee0e0842f143bf3de68fe54cffbd69c101ee"
   },
   "notices": {
     "bytes": 5438,

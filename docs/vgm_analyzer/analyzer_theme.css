@@ -282,3 +282,14 @@ button.instrument-specs:focus-visible { outline: 3px solid var(--accent); outlin
 @media (max-width: 600px) {
   .mixer-source-group { grid-template-columns: minmax(0, 1fr); }
 }
+
+.channel-toggle[data-scsp-slot]::before {
+  content: '';
+  display: inline-block;
+  width: .6em;
+  height: .6em;
+  margin-right: .35em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.channel-toggle[data-scsp-slot].is-key-on::before { background: currentColor; }
