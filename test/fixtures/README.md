@@ -71,6 +71,8 @@ The additional `dual-ym2608-ssg.vgm` plays SSG A on chip 1, then chip 2 an octav
 
 `dual-ym2608-rhythm-delta.vgm` plays a snare on both chips for the first phrase and repeating ADPCM-B for the second. Chip 1 is on the left and chip 2 on the right. Load the bundled synthetic rhythm ROM for the snare. Both Delta-T sample memories are embedded in the VGM.
 
+`dual-ym2610-adpcm.vgm` and `dual-ym2610b-adpcm.vgm` embed both sample ROM types for both chips. In the first second both play ADPCM-A CH1. In the second both play Delta-T. Chip 1 reads page 0 on the left and chip 2 reads page 1 on the right, with different sample bytes.
+
 All four chip families now support dual playback and separate mixer strips. Instrument lists both instances. Run `node --test docs/vgm_analyzer/dual_playback.test.mjs` to check the rendered phrases and isolation.
 
 Original browser observations at commit `399e19d4`:

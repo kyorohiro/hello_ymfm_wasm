@@ -399,6 +399,40 @@ try {
   await deltaRow.getByText('—',{exact:true}).first().waitFor();
   await stop.click();
 
+  for (const variant of ['YM2610','YM2610B']) {
+    await page.locator('#fileInput').setInputFiles('test/fixtures/dual-'+variant.toLowerCase()+'-adpcm.vgm');
+    const second = dockChannels.getByRole('group',{name:variant+' 2',exact:true});
+    await second.waitFor();
+    const fmLabels = variant === 'YM2610' ? ['CH2','CH3','CH5','CH6'] : ['CH1','CH2','CH3','CH4','CH5','CH6'];
+    assert.deepEqual(await second.locator('[data-monitor-toggle-kind="dual-fm-channel"]').allTextContents(),fmLabels);
+    await page.locator('#operatorInfoTab').click();
+    await opnaTabs.getByRole('tab',{name:variant+' 2'}).click();
+    await page.getByRole('tab',{name:'FM',exact:true}).click();
+    assert.deepEqual(await page.locator('#fm2612Voice [data-fm-channels] button:visible').allTextContents(),fmLabels);
+    await page.getByRole('tab',{name:'ADPCM-A',exact:true}).click();
+    await play.click();
+    const sampleA = page.locator('#adpcmAChannels tbody tr').first();
+    await sampleA.getByText('0x000100',{exact:true}).waitFor();
+    await pause.click();
+    await sampleA.getByRole('button',{name:'CH1',exact:true}).click();
+    assert.equal(await second.getByRole('button',{name:'ADPCM-A CH1'}).getAttribute('aria-pressed'),'false');
+    await movePosition(1.5);
+    await page.getByRole('tab',{name:'ADPCM-B',exact:true}).click();
+    await deltaRow.getByText('0x000100',{exact:true}).waitFor();
+    await second.getByRole('button',{name:'ADPCM-B',exact:true}).click();
+    assert.equal(await page.getByRole('button',{name:'Mute ADPCM-B',exact:true}).getAttribute('aria-pressed'),'true');
+    await opnaTabs.getByRole('tab',{name:variant+' 1'}).click();
+    await page.getByRole('tab',{name:'ADPCM-B',exact:true}).click();
+    await deltaRow.getByText('0x000000',{exact:true}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Mute ADPCM-B',exact:true}).getAttribute('aria-pressed'),'false');
+    await movePosition(.25);
+    await deltaRow.getByText('—',{exact:true}).first().waitFor();
+    await page.getByRole('tab',{name:'ADPCM-A',exact:true}).click();
+    await sampleA.getByText('0x000000',{exact:true}).waitFor();
+    assert.equal(await sampleA.getByRole('button',{name:'CH1',exact:true}).getAttribute('aria-pressed'),'true');
+    await stop.click();
+  }
+
   async function openOpnMonitor() {
     await page.locator('#fileInput').setInputFiles({name:'monitor.vgm',mimeType:'application/octet-stream',buffer:opn});
     await page.locator('#operatorInfoTab').click();

@@ -90,3 +90,34 @@ for (const [name, clockField, clock, opcode] of [
   }
   await writeFile(new URL('dual-ym2608-rhythm-delta.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
 }
+
+// Chip 1 plays left and chip 2 right, using independent ROMs for both decoders.
+for (const variant of ['ym2610','ym2610b']) {
+  const data = [];
+  for (const chip of [0,1]) {
+    for (const type of [0x82,0x83]) {
+      const block = Buffer.alloc(15+512);
+      block.set([0x67,0x66,type]);
+      block.writeUInt32LE(520+chip*0x80000000,3);
+      block.writeUInt32LE(512,7);
+      for (let i=0;i<512;i++) block[15+i] = chip ? (i%4<2 ? 0x23 : 0xab) : (i%2 ? 0x99 : 0x11);
+      data.push(...block);
+    }
+  }
+  for (const delta of [false,true]) {
+    for (const chip of [0,1]) {
+      const pan = chip ? 0x40 : 0x80;
+      const opcode = (chip ? 0xa8 : 0x58) + (delta ? 0 : 1);
+      const regs = delta ? [[0x11,pan],[0x12,chip],[0x14,chip],[0x19,255],[0x1a,127],[0x1b,255],[0x10,0x90]]
+        : [[1,63],[8,pan|31],[16,chip],[32,chip],[0,1]];
+      for (const [reg,value] of regs) data.push(opcode,reg,value);
+    }
+    data.push(0x61,0x44,0xac);
+  }
+  data.push(0x66);
+  const header = Buffer.alloc(256);
+  header.write('Vgm ');
+  for (const [offset,value] of [[4,252+data.length],[8,0x171],[0x18,88200],[0x34,204],
+    [0x4c,8000000+(variant==='ym2610b'?0xc0000000:0x40000000)]]) header.writeUInt32LE(value,offset);
+  await writeFile(new URL('dual-'+variant+'-adpcm.vgm',import.meta.url),Buffer.concat([header,Buffer.from(data)]));
+}

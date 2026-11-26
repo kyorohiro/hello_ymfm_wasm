@@ -18,7 +18,7 @@ export async function measureAnalyzerYm2608SourceMix() {
     const sha256=createHash('sha256').update(bytes).digest('hex');
     report.sources[name]=report===extra?{sha256,size:bytes.length}:sha256;
   }
-  return {'analyzer_extra_levels_11.json':extra,'analyzer_psg_levels_14.json':psg};
+  return {'analyzer_extra_levels_12.json':extra,'analyzer_psg_levels_15.json':psg};
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {

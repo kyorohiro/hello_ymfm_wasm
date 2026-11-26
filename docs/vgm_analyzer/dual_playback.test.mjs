@@ -66,7 +66,7 @@ test('OPN port 1 and embedded sample memory reach the addressed instance', async
   ]);
 });
 
-for (const chip of ['ym2612','ym2608']) test(chip+' second FM CH2 mute survives reset and unmute', async () => {
+for (const chip of ['ym2612','ym2608','ym2610']) test(chip+' second FM CH2 mute survives reset and unmute', async () => {
   const bytes = await readFile(new URL('../../test/fixtures/dual-'+chip+'.vgm',import.meta.url));
   const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
   try {
@@ -109,25 +109,70 @@ test('dual OPNA SSG A outputs retain distinct pitches and independent masks',asy
   } finally {engine.dispose();}
 });
 
-test('dual OPNA rhythm and Delta-T mutes isolate chip, instrument and source across reset',async () => {
-  const bytes = await readFile(new URL('../../test/fixtures/dual-ym2608-rhythm-delta.vgm',import.meta.url));
+for (const chipKind of ['ym2608','ym2610','ym2610b']) test(chipKind+' dual sample mutes isolate chip, channel and source across reset',async () => {
+  const opna = chipKind === 'ym2608';
+  const file = opna ? 'dual-ym2608-rhythm-delta' : 'dual-'+chipKind+'-adpcm';
+  const bytes = await readFile(new URL('../../test/fixtures/'+file+'.vgm',import.meta.url));
   const rom = await readFile(new URL('../js/tetorica_ym2608_adpcm_rom.bin',import.meta.url));
-  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory,roms:{ym2608AdpcmA:rom}});
+  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory,roms:opna ? {ym2608AdpcmA:rom} : {}});
   try {
     const player = createPlaybackPlayer(engine,bytes);
-    for (const [snare,delta] of [[-1,-1],[0,1],[1,0],[-1,-1]]) {
+    for (const [sampleA,delta] of [[-1,-1],[0,1],[1,0],[-1,-1]]) {
       engine.fmInstances.forEach(({engine:chip},i) => {
-        chip.setAdpcmAChannelMuted(0,true); // Bass drum must leave the snare audible.
-        chip.setAdpcmAChannelMuted(1,i===snare);
+        chip.setAdpcmAChannelMuted(opna ? 0 : 1,true); // Mute a silent sibling channel.
+        chip.setAdpcmAChannelMuted(opna ? 1 : 0,i===sampleA);
         chip.setAdpcmBMuted(i===delta);
       });
       player.reset(); player.setPrefetchFactor(1); player.play();
-      for (const muted of [snare,delta]) {
+      for (const muted of [sampleA,delta]) {
         const left = new Float32Array(44100), right = new Float32Array(44100);
         player.process(left,right,left.length);
         const audible = [left,right].map(side => side.subarray(32,4096).some(v => Math.abs(v)>.0001));
         assert.deepEqual(audible,[muted!==0,muted!==1]);
       }
+    }
+  } finally {engine.dispose();}
+});
+
+test('overwriting chip 2 sample ROMs leaves chip 1 PCM identical',async () => {
+  const original = await readFile(new URL('../../test/fixtures/dual-ym2610-adpcm.vgm',import.meta.url));
+  const modified = Buffer.from(original);
+  for (let pos=256;modified[pos]===0x67;) {
+    const length = modified.readUInt32LE(pos+3);
+    const end = pos+7+(length & 0x7fffffff);
+    if (length & 0x80000000) modified.fill(0,pos+15,end);
+    pos = end;
+  }
+  async function render(bytes) {
+    const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
+    try {
+      const player = createPlaybackPlayer(engine,bytes);
+      player.reset(); player.setPrefetchFactor(1); player.play();
+      const left = new Float32Array(88200), right = new Float32Array(88200);
+      player.process(left,right,left.length);
+      return {left,right};
+    } finally {engine.dispose();}
+  }
+  const before = await render(original), after = await render(modified);
+  assert.deepEqual(before.left,after.left);
+  for (const start of [0,44100]) assert.notDeepEqual(before.right.subarray(start,start+4096),after.right.subarray(start,start+4096));
+});
+
+for (const variant of ['ym2610','ym2610b']) test(variant+' second SSG A can be muted independently',async () => {
+  const bytes = await readFile(new URL('../../test/fixtures/dual-'+variant+'-adpcm.vgm',import.meta.url));
+  const engine = await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory});
+  try {
+    engine.reset();
+    for (const i of [0,1]) {
+      const target = engine.getVgmTarget('ym2610',i);
+      for (const [reg,val] of [[0,i?96:192],[1,0],[7,0x3e],[8,12]]) target.writeRegister(reg,val,0);
+    }
+    for (const [a,b] of [[true,true],[false,true],[true,false]]) {
+      engine.setInstanceSsgChannelMuted(0,0,a);
+      engine.setInstanceSsgChannelMuted(1,0,b);
+      const {left} = engine.processFrames(4096);
+      const signal = left.subarray(64);
+      assert.equal(Math.max(...signal)-Math.min(...signal)>.001,!a || !b);
     }
   } finally {engine.dispose();}
 });

@@ -650,7 +650,7 @@ let dualFm = [];
 let inspectedFm = 0;
 function resetDualFmRegisters() {
   for (const fm of dualFm) {
-    fm.channels = Array.from({length:6}, (_,ch) => buildMonitorChannel(ch));
+    fm.channels = Array.from({length:6}, (_,ch) => buildMonitorChannel(ch,fm.part.kind));
     fm.high = [0,0];
     if (fm.ssgMuted) {
       fm.ssg = createPsgMonitor(fm.part.kind);
@@ -857,7 +857,7 @@ function renderMonitorToggles() {
       button.setAttribute('data-monitor-toggle-kind','mixed-source');
       const fmIndex = dualFm.findIndex(fm => fm.part.id === part.id);
       const index = part.chipIndex ?? 0;
-      const label = part.chips.map(chip => {
+      const label = dualFm[fmIndex]?.label && part.chips.length === 1 ? dualFm[fmIndex].label : part.chips.map(chip => {
         const paired = noteishHeader[chip+'Clock'] & 0x40000000;
         return chip.toUpperCase() + (paired ? ' ' + (index+1) : '');
       }).join(' + ');
@@ -869,6 +869,7 @@ function renderMonitorToggles() {
       const fm = dualFm[fmIndex];
       function addChannels(states,kind,labels) {
         states.forEach((muted,ch) => {
+          if (kind === 'dual-fm-channel' && fm.channels[ch].unavailable) return;
           const toggle = document.createElement('button');
           toggle.type = 'button';
           toggle.className = 'channel-toggle' + (muted ? ' is-muted' : '');
@@ -883,7 +884,8 @@ function renderMonitorToggles() {
       addChannels(fm.muted,'dual-fm-channel');
       if (fm.ssgMuted) {
         addChannels(fm.ssgMuted,'dual-ssg-channel',['SSG A','SSG B','SSG C']);
-        addChannels(fm.sampleMutes,'dual-sample-channel',[...rhythmNames,'ADPCM-B']);
+        const names = fm.part.kind === 'ym2608' ? rhythmNames : Array.from({length:6},(_,ch) => 'ADPCM-A CH' + (ch+1));
+        addChannels(fm.sampleMutes,'dual-sample-channel',[...names,'ADPCM-B']);
       }
     }
     return;
@@ -1089,7 +1091,8 @@ function createChannelMonitorState() {
   return Array.from({ length: channelCount }, (_, index) => buildMonitorChannel(index));
 }
 
-function buildMonitorChannel(index) {
+function buildMonitorChannel(index,kind = currentChipKind) {
+  const unavailable = kind === "ym2610" && !(noteishHeader.ym2610Clock & 0x80000000) && [0,3].includes(index);
   return {
     channel: index,
     keyOn: false,
@@ -1108,8 +1111,8 @@ function buildMonitorChannel(index) {
     noteSequence: [],
     noteSequenceOpen: false,
     lastSequenceNote: null,
-    muted: channelMuteStates[index] || (currentChipKind === "ym2610" && !(noteishHeader.ym2610Clock & 0x80000000) && [0,3].includes(index)),
-    unavailable: currentChipKind === "ym2610" && !(noteishHeader.ym2610Clock & 0x80000000) && [0,3].includes(index),
+    muted: channelMuteStates[index] || unavailable,
+    unavailable,
     b4Value: 0xc0,
     specialMode: false,
     specialFrequencies: {
@@ -3935,9 +3938,9 @@ async function loadTrackFile(file, preserveEditor, requestedAt, progress) {
   currentChipKind = nextChipKind;
   noteishHeader = vgm.header;
   dualFm = dualOpnParts(mixedPlaybackParts).map(part => ({
-    part, label:part.kind.toUpperCase() + ' ' + ((part.chipIndex ?? 0)+1),
-    muted:Array(6).fill(false), ssgMuted:part.kind === 'ym2608' ? Array(3).fill(false) : null,
-    sampleMutes:part.kind === 'ym2608' ? Array(7).fill(false) : null,
+    part, label:(part.kind === 'ym2610' && (part.header.ym2610Clock & 0x80000000) ? 'YM2610B' : part.kind.toUpperCase()) + ' ' + ((part.chipIndex ?? 0)+1),
+    muted:Array(6).fill(false), ssgMuted:part.kind !== 'ym2612' ? Array(3).fill(false) : null,
+    sampleMutes:part.kind !== 'ym2612' ? Array(7).fill(false) : null,
   }));
   inspectedFm = 0;
   resetDualFmRegisters();
@@ -4561,7 +4564,7 @@ chipMonitorStorage.append(ym2413MonitorRoot);
 ym2413MonitorRoot.hidden = true;
 const ym2413Monitor = mountYm2413Monitor(ym2413MonitorRoot);
 // Keep the mounted monitors (and their register state) when changing tabs.
-// Six OPNA rhythm outputs and the seventh, Delta-T, have separate mute controls.
+// Each chip has six rhythm or ADPCM-A outputs and one Delta-T output.
 function applyDualSampleMute(index,ch,muted) {
   const device = engine.fmInstances[index].engine;
   if (ch === 6) device.setAdpcmBMuted(muted);
@@ -4667,6 +4670,7 @@ function configureChipMonitorTabs() {
     const controls = document.createElement('div');
     controls.className = 'channel-row';
     fm.muted.forEach((_,ch) => {
+      if (fm.channels[ch].unavailable) return;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'channel-toggle';
@@ -4678,7 +4682,7 @@ function configureChipMonitorTabs() {
     });
     section.append(controls);
     const ssgPanel = document.createElement('div');
-    const rhythmPanel = document.createElement('div'), deltaPanel = document.createElement('div');
+    const samplePanel = document.createElement('div'), deltaPanel = document.createElement('div');
     let tab;
     if (fm.ssgMuted) {
       const sections = document.createElement('div'), panels = document.createElement('div');
@@ -4690,7 +4694,7 @@ function configureChipMonitorTabs() {
       const prefix = 'dualOpn' + index;
       const fmTab = addMonitorTab(sections,panels,prefix,'FM',section);
       addMonitorTab(sections,panels,prefix,'SSG',ssgPanel);
-      addMonitorTab(sections,panels,prefix,'Rhythm',rhythmPanel);
+      addMonitorTab(sections,panels,prefix,fm.part.kind === 'ym2608' ? 'Rhythm' : 'ADPCM-A',samplePanel);
       addMonitorTab(sections,panels,prefix,'ADPCM-B',deltaPanel);
       const delta = document.createElement('button');
       delta.type = 'button';
@@ -4707,7 +4711,7 @@ function configureChipMonitorTabs() {
       section.append(voice);
       if (fm.ssg) {
         ssgPanel.append(psg);
-        rhythmPanel.append(rhythm);
+        samplePanel.append(fm.part.kind === 'ym2608' ? rhythm : adpcmA);
         deltaPanel.append(adpcmB);
         renderAdpcmMonitor(fm.adpcm,fm.sampleMutes);
         renderPsgMonitor(fm.ssg,fm.ssgMuted,fm.label);

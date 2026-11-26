@@ -218,7 +218,7 @@ function atOutputRate(engine,rate){
   return adapter;
 }
 export function dualOpnParts(parts) {
-  return parts.filter(part => ['ym2612','ym2608'].includes(part.kind) &&
+  return parts.filter(part => ['ym2612','ym2608','ym2610'].includes(part.kind) &&
     parts.some(other => other.kind === part.kind && other.chipIndex === 1));
 }
 class HeaderMixedAudioEngine extends MultiChipAudioEngine {
@@ -232,9 +232,8 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
     for(const part of parts){
       const index = monitored.indexOf(part);
       if (index >= 0) {
-        const opna = part.kind === 'ym2608';
-        const method = opna ? 'writeYm2608' : 'writeYm2612';
-        if (opna) installOpnChannelMutes(part.engine,part.kind);
+        const method = {ym2612:'writeYm2612',ym2608:'writeYm2608',ym2610:'writeYm2610B'}[part.kind];
+        installOpnChannelMutes(part.engine,part.kind);
         const pan = new Uint8Array(6).fill(0xc0);
         const muted = new Uint8Array(6);
         const write = part.engine[method].bind(part.engine);
