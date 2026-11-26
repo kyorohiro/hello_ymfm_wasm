@@ -214,9 +214,43 @@ for (const note of ['C3', 'G3', 'Bb3', 'C4']) {
   oki.play(1, 1, 4);
   await sleep(0.18);
 }`;
-$('editor').value = example;
-try { $('editor').value = localStorage.getItem('cps1.code') ?? example; } catch {}
-$('editor').oninput = () => {try {localStorage.setItem('cps1.code',$('editor').value);} catch {}};
+const entryPath = '/index.js', roundPath = '/examples/round-start.js';
+const scripts = new Map([[entryPath,example]]);
+const storageKey = path => path === entryPath ? 'cps1.code' : 'cps1.round-start';
+for (const path of [entryPath,roundPath]) {
+  try {
+    const saved = localStorage.getItem(storageKey(path));
+    if (saved !== null) scripts.set(path,saved);
+  } catch {}
+}
+let activePath = entryPath, openRequest = 0;
+$('editor').value = scripts.get(activePath);
+function saveScript(path,text) {
+  scripts.set(path,text);
+  try {localStorage.setItem(storageKey(path),text);} catch {}
+}
+$('editor').oninput = () => saveScript(activePath,$('editor').value);
+async function roundSource() {
+  if (!scripts.has(roundPath)) {
+    const response = await fetch(new URL('./examples/round-start.js',import.meta.url));
+    if (!response.ok) throw Error('Could not load Round Start ('+response.status+')');
+    const source = await response.text();
+    if (!scripts.has(roundPath)) scripts.set(roundPath,source);
+  }
+  return scripts.get(roundPath);
+}
+async function openScript(path) {
+  const request = ++openRequest;
+  try {
+    if (path === roundPath) await roundSource();
+    if (request !== openRequest) return;
+    activePath = path; $('codeFile').value = path; $('editor').value = scripts.get(path);
+    document.querySelector('[data-tab="code"]').click();
+  } catch (error) {if (request === openRequest) {$('codeFile').value=activePath; fail(error);}}
+}
+$('codeFile').onchange = () => openScript($('codeFile').value);
+$('openCode').onclick = () => openScript(entryPath);
+$('openRoundStart').onclick = () => openScript(roundPath);
 function stopRun() {
   runId++; worker?.terminate(); worker = null;
   panel.releaseAll(); held.clear();
@@ -227,6 +261,7 @@ $('stop').onclick = () => {stopRun();status('Stopped');};
 $('run').onclick = async () => {
   stopRun(); const id = runId;
   try {
+    const source = $('editor').value;
     await startAudio(); if (id !== runId) return;
     worker = new Worker(new URL('./code-worker.js',import.meta.url),{type:'module'});
     status('Running');
@@ -240,10 +275,19 @@ $('run').onclick = async () => {
       } catch (error) {stopRun();fail(error);}
     };
     worker.onerror = event => {stopRun();fail(event.message);};
-    worker.postMessage($('editor').value);
+    worker.postMessage(source);
   } catch (error) {stopRun();fail(error);}
 };
 
 const files = setupFiles({inspector,panel,keyMasks,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
-  applyBank:installRom,getCode:() => $('editor').value,
-  setCode:value => {$('editor').value=value;$('editor').oninput();},stop:stopRun});
+  applyBank:installRom,getCode:() => scripts.get(entryPath),getRoundSource:roundSource,
+  setCode:(value,round) => {
+    openRequest++;
+    saveScript(entryPath,value);
+    if (round !== undefined) saveScript(roundPath,round);
+    else {
+      scripts.delete(roundPath);
+      try {localStorage.removeItem(storageKey(roundPath));} catch {}
+    }
+    activePath=entryPath; $('codeFile').value=entryPath; $('editor').value=value;
+  },stop:stopRun});

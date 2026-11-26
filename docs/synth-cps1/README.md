@@ -18,6 +18,8 @@ In Analyzer’s Instrument tab, export the selected YM2151 voice as an `.opm` fi
 
 **Apply shared LFO / CH8 noise** applies the selected OPM voice’s global settings. Import leaves the running LFO and noise settings intact. Cassette retains the imported OPM texts and channel masks. The source clock, note pitch and playback position are not restored by voice import.
 
-## Next steps
+### Play Round Start
 
-- Add a longer original example performance.
+Choose **Use original kit** on the MSM6295 tab, open **Files → /examples/round-start.js**, then select **Run**. The 8-bar score lasts about 16 seconds. CH1 plays bass, CH2 and CH3 trade brass phrases, and OKI voices 1–3 play kick, snare and closed hat. Select CH4 on the YM2151 panel to play along on the guitar keyboard. During bars 3 and 7, select CH1 and drag OP1 TL to hear the sustained bass change. Use MSM6295 Voice 2 Mute to drop the snare.
+
+The example programs the FM voices on CH1–3. Export a cassette first if you want to keep their current patches. The Code file selector switches between the example and your own `/index.js`. Each keeps its own edits in the browser, and both are included in a cassette export.

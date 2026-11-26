@@ -70,6 +70,29 @@ try {
   await page.fill('#editor','while (true) {}');
   await page.click('#run'); await page.click('#stop');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
+  await page.click('[data-tab="files"]');
+  await page.click('#openRoundStart');
+  await page.locator('#editor').waitFor({state:'visible'});
+  const round = await page.inputValue('#editor');
+  assert.match(round,/Round Start/);
+  await page.fill('#editor',round+'\n// rehearsal');
+  await page.click('#run');
+  await page.click('[data-tab="fm"]');
+  await page.locator('[data-chip-channel="3"]').click();
+  await page.keyboard.down('a');
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes('1111'));
+  await page.keyboard.up('a');
+  await page.click('[data-tab="pcm"]');
+  await page.getByRole('button',{name:'Mute Voice 2',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#busy').value!=='0xF0');
+  await page.getByRole('button',{name:'Mute Voice 2',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#status').textContent==='Finished');
+  await page.click('[data-tab="code"]');
+  await page.selectOption('#codeFile','/index.js');
+  assert.equal(await page.inputValue('#editor'),'while (true) {}');
+  await page.selectOption('#codeFile','/examples/round-start.js');
+  assert.equal(await page.inputValue('#editor'),round+'\n// rehearsal');
+
   await page.click('[data-tab="pcm"]');
   await page.locator('#rom').setInputFiles({name:'test.rom',mimeType:'application/octet-stream',buffer:Buffer.alloc(2048)});
   await page.getByText('test.rom',{exact:true}).first().waitFor();
@@ -97,6 +120,8 @@ try {
   await page.click('[data-tab="pcm"]');
   await page.click('#restore');
   await page.click('[data-tab="code"]');
+  await page.fill('#editor','// changed example');
+  await page.selectOption('#codeFile','/index.js');
   await page.fill('#editor','// changed');
   await page.click('[data-tab="files"]');
   page.once('dialog',dialog => dialog.accept());
@@ -106,6 +131,10 @@ try {
   assert.equal(await page.locator('#fmFiles option').count(),10);
   await page.click('#openCode');
   assert.equal(await page.inputValue('#editor'),'while (true) {}');
+  await page.click('[data-tab="fm"]');
+  await page.click('[data-tab="files"]');
+  await page.click('#openRoundStart');
+  assert.equal(await page.inputValue('#editor'),round+'\n// rehearsal');
   await page.click('[data-tab="fm"]');
   for (const width of [390,1100]) {
     await page.setViewportSize({width,height:850});

@@ -10,7 +10,7 @@ const voicePath = i => 'presets/ch'+(i+1)+'.fm.json';
 const bankPath = i => 'banks/'+i+'.rom';
 const presetPath = i => 'presets/saved-'+(i+1)+'.fm.json';
 
-export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,setCode,stop,keyMasks}) {
+export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,getRoundSource,setCode,stop,keyMasks}) {
   const el = id => document.getElementById(id);
   let banks = [defaultBank], presets = [], opmBanks = [], opmVoices = [], active = 0;
   const report = message => {el('fileStatus').textContent = message;};
@@ -77,12 +77,12 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,setCod
     render(); el('fmFiles').value = String(7+presets.length);
     report('Saved /'+presetPath(presets.length-1));
   };
-  el('openCode').onclick = () => document.querySelector('[data-tab="code"]').click();
-  el('exportCassette').onclick = () => {
+  el('exportCassette').onclick = async () => {
     try {
+      const round = await getRoundSource();
       const state = inspector.read();
       const text = (path,data) => ({path,type:'text',data});
-      const files = [text('index.js',getCode())];
+      const files = [text('index.js',getCode()),text('examples/round-start.js',round)];
       state.channels.forEach((v,i) => files.push(text(voicePath(i),JSON.stringify(currentVoice(i)))));
       presets.forEach((v,i) => files.push(text(presetPath(i),JSON.stringify(v))));
       opmBanks.forEach(({source},i) => files.push(text('presets/import-'+i+'.opm',source)));
@@ -112,6 +112,7 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,setCod
         return files.get(path);
       };
       const nextCode = decode(read('index.js'));
+      const round = files.has('examples/round-start.js') ? decode(read('examples/round-start.js')) : undefined;
       const nextBanks = m.banks.map(({name,names},i) => {
         const bytes = read(bankPath(i));
         if (typeof name!=='string' || !Array.isArray(names) || !names.length || names.length>128 ||
@@ -140,7 +141,7 @@ export function setupFiles({inspector,panel,defaultBank,applyBank,getCode,setCod
       voices.forEach((v,i) => applyVoice(i,v));
       inspector.invoke('setLFO',[m.lfo]); inspector.invoke('setNoise',[m.noise]);
       banks=nextBanks; presets=nextPresets; opmBanks=nextOpmBanks; active=m.active;
-      render(); useBank(active); setCode(nextCode); report('Imported '+file.name);
+      render(); useBank(active); setCode(nextCode,round); report('Imported '+file.name);
     } catch (error) {report(error.message);}
   };
   render();
