@@ -13,11 +13,12 @@ SID, SPC, Saturn SSF/miniSSF, PSF1/miniPSF and SCSP/VSU VGM/VGZ use the main pla
 - The main monitor exposes 32 SCSP slot mutes, 24 PS1 SPU voice mutes and six VSU channel mutes. SCSP gates direct output and the DSP send, PS1 gates voice mix volume, and VSU uses the hardware renderer's channel mask. Existing DSP/reverb tails decay normally. The player uses the Analyzer Effect controls and saved settings. Mutes take effect as scheduled audio buffers drain.
 - The browser check uses original executable songs, verifies nonzero PCM for both standalone and library-backed files, and exercises pause, resume and stop. Its VGM fixtures exercise the SCSP renderer and VSU AudioWorklet. Run `node scripts/check_analyzer_console_songs.mjs release/itch_vgm_analyzer_console-test` after packaging with `sh scripts/package_itch_vgm_analyzer.sh console-test`. Extra file arguments exercise a local SSF/PSF set without copying the music into the distribution.
 - YM2610 and YM2610B each expose FM, SSG, ADPCM-A and ADPCM-B source volume and mute. Integration tests render each source in isolation through the native engine. Master and chip strips reach 480%, individual YM2608 and YM2610 source gains reach 380%.
+- The main Position sliders seek SCSP/VSU VGM, SSF/miniSSF and PSF1/miniPSF during playback or while paused. VSU restores a checkpoint. SCSP and PSF rebuild a separate machine before committing the new position. SSF runs this fast-forward on its Worker. Untimed PSFs show the 30-minute seek limit and continue playing until Stop or a track change.
 - SNES SPC regression checks cover 8-voice monitoring, mute, raw and voice-configured BRR preview and returning to VGM.
 
 ## Next work
 
-- Add timeline seeking and offline WAV export for console songs. SCSP and VSU advance on engine completion. PSF1 advances at the end of its declared length and fade. Untimed PSFs continue until Stop or a track change.
+- Add offline WAV export for console songs. Evaluate periodic SSF machine checkpoints if long, CPU-heavy songs approach the reconstruction deadline.
 - Expose PS1 live voice observations and dry audition. Investigate a passive snapshot from the **running SSF worker** for Saturn slot monitoring, with positions matched to the audible PCM.
 - Evaluate NSF/NSFe (NES), GBS (Game Boy), HES (PC Engine) and SAP (Atari). Each needs a music-driver execution environment. Compare its generated PCM with a reference and determine which register/voice observations can be exposed. Game_Music_Emu provides reference implementations for these formats.
 - Evaluate MIDI + DX7 SysEx as a paired input for FM21290. Track program/patch selection and distinguish MIDI events from register writes synthesized by Tetorica.

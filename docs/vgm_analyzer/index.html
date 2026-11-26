@@ -645,7 +645,7 @@
               </table>
             </div>
             <ul>
-              <li><strong>Console songs:</strong> C64 PSID/RSID v2 (single SID, PAL, built-in IRQ environment, 6581 or 8580 Preview) uses the main playlist, playback controls, and subtune selector. Saturn SCSP and Virtual Boy VSU single-chip VGM/VGZ, Saturn SSF/miniSSF, and PlayStation PSF1/miniPSF support song playback, pause and resume. Select folders to preserve relative library paths. These formats share the main playlist, transport, channel mutes and Effect controls. SID and console songs have no score or WAV export.</li>
+              <li><strong>Console songs:</strong> C64 PSID/RSID v2 (single SID, PAL, built-in IRQ environment, 6581 or 8580 Preview) uses the main playlist, playback controls, and subtune selector. Saturn SCSP and Virtual Boy VSU single-chip VGM/VGZ, Saturn SSF/miniSSF, and PlayStation PSF1/miniPSF support playback, pause, resume and Position seeking. Select folders to preserve relative library paths. These formats share the main playlist, transport, channel mutes and Effect controls. SID and console songs have no score or WAV export.</li>
               <li><strong>Mixer:</strong> Master and chip volume reach 480%. YM2608 has separate FM, SSG, Rhythm and ADPCM controls. YM2610 and YM2610B have FM, SSG, ADPCM-A and ADPCM-B. Each source retains its volume (0–380%) when muted.</li>
               <li><strong>Seek cache:</strong> speeds up seeking by restoring a saved playback position and replaying only the remaining interval. Available for OPN (YM2203 / YM2608 / YM2610 / YM2610B), Genesis configurations (YM2612 / Sega PSG / RF5C164 / 32X PWM), YM2151 / YM2164 with optional Sega PSG / Sega PCM / OKIM6258, Game Boy DMG, and NES APU with optional FDS (NTSC). Every active chip must support restoration. Genesis or OPN mixed with OKIM6258, standalone Sega PCM / OKIM6258, and rows without a Seek cache label use normal seeking. Previously visited positions may be faster while their checkpoints remain cached; uncached sections still need replay. Changing the track, ROM or playback settings can invalidate the cache.</li>
               <li><strong>YM2164 (OPP):</strong> selected by the VGM YM2151 clock field's bit 31. Shares the OPM analysis/export path; Timer B runs at half the YM2151 rate. Undocumented registers 0x00–0x07 are not emulated specially. Mixing with MSX AY / OPLL / Y8950 / SCC / SCC+ is supported. A second OPM/OPP chip is not supported. Playback, seeking, Timer B and note/voice extraction are covered by synthetic VGM tests; real SFG tracks have not yet been verified.</li>
@@ -1034,7 +1034,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=console-playlist-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=console-seek-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

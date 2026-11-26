@@ -11,7 +11,7 @@ import {createVsuAudio} from '../synth-vsu/audio.js';
 import {parseVsuVgm} from '../synth-vsu/vgm.js';
 
 function vsuSong(plan, update, getMuteMask, setOutput) {
-  let state = 'stopped', position = 0, message = '', revision = 0;
+  let state = 'stopped', position = 0, message = '', revision = 0, seeking = false;
   const engine = createVsuAudio({volume:1,onVgmState(event) {
     state = event.state;
     position = event.positionTicks / 44100;
@@ -20,9 +20,9 @@ function vsuSong(plan, update, getMuteMask, setOutput) {
   return {
     usesOwnAudio:true,
     setMuteMask(mask) {if (engine.output) engine.setVgmMask(63 & ~mask);},
-    read:() => ({state,canPlay:['stopped','ended'].includes(state),canPause:state === 'playing',
+    read:() => ({state,seeking,canSeek:!seeking && state !== 'starting',durationSeconds:plan.durationTicks / 44100,canPlay:['stopped','ended'].includes(state),canPause:state === 'playing',
       canResume:state === 'paused',paused:state === 'paused',canStop:['starting','playing','paused'].includes(state),
-      positionSeconds:position,busy:state === 'starting',message:message || 'VSU · '+state}),
+      positionSeconds:position,busy:seeking || state === 'starting',message:message || 'VSU · '+state}),
     async play() {
       const ticket = ++revision;
       state = 'starting'; message = ''; update();
@@ -33,8 +33,21 @@ function vsuSong(plan, update, getMuteMask, setOutput) {
         engine.playVgm(plan,{mask:63 & ~getMuteMask()});
       } catch (error) {if (ticket === revision) {state = 'stopped'; message = error.message; update();}}
     },
+    async seek(seconds) {
+      const ticket = ++revision, paused = state !== 'playing';
+      seeking = true; message = ''; update();
+      try {
+        await engine.ensureReady();
+        if (ticket !== revision) return;
+        setOutput(engine.output);
+        const tick = Math.min(plan.durationTicks, Math.round(seconds*44100));
+        await engine.seekVgm(plan,tick,{mask:63 & ~getMuteMask(),paused});
+      } finally {
+        if (ticket === revision) {seeking = false; update();}
+      }
+    },
     resume:() => engine.pauseVgm(false), pause:() => engine.pauseVgm(true),
-    stop() {revision++; engine.stopVgm(); state = 'stopped'; position = 0; update();},
+    stop() {revision++; seeking = false; engine.stopVgm(); state = 'stopped'; position = 0; update();},
     dispose() {revision++; engine.dispose();},
   };
 }
@@ -56,7 +69,8 @@ export async function consoleSongEntries(files, signal) {
 
 /** One selected playlist track owns its engine, output and mute state. */
 export async function createConsoleSong(song, {getMaster, update, connectOutput, releaseOutput, onEnded}) {
-  let context, output, engine, psfCore, disposed = false, muteMask = 0;
+  const psfCores = new Set();
+  let context, output, engine, disposed = false, muteMask = 0;
   let message = '', finished = false, fadeGain = 1, playRevision = 0;
   const psf = song.format === 'PSF1';
   const chip = psf ? 'SPU' : song.format === 'VSU' ? 'VSU' : 'SCSP';
@@ -106,14 +120,17 @@ export async function createConsoleSong(song, {getMaster, update, connectOutput,
     } else if (psf) {
       engine = createPsfSongPreview({getAudio:audio,onUpdate:changed,async createCore({set,entry,signal}) {
         const image = await preparePsfSongSource(set,entry,{signal});
-        psfCore = await createPsfPlaybackCore({image,signal});
-        psfCore.setMuteMask(muteMask);
-        return psfCore;
+        const core = await createPsfPlaybackCore({image,signal});
+        psfCores.add(core);
+        core.setMuteMask(muteMask);
+        return {...core, get position() {return core.position;},
+          dispose() {psfCores.delete(core); core.dispose();}};
+
       }});
       engine.setLiveEnabled(false);
       engine.setSource(song.set,song.path);
     } else {
-      engine = createScspSongPlayer({getAudio:audio,getMuteMask:() => muteMask,onState:changed,
+      engine = createScspSongPlayer({allowSsfSeek:true,getAudio:audio,getMuteMask:() => muteMask,onState:changed,
         onStatus(value) {message = value; changed();}});
       if (song.bytes) await engine.load(new Uint8Array(song.bytes),song.path);
       else await engine.loadSsf(song.set,song.path);
@@ -122,11 +139,21 @@ export async function createConsoleSong(song, {getMaster, update, connectOutput,
       channelCount:chip === 'VSU' ? 6 : psf ? 24 : 32, chip,
       get loadedFiles() {return engine.read().loadedFiles;},
       get outputNode() {return output;}, get muteMask() {return muteMask;},
-      setMuteMask(mask) {muteMask = mask >>> 0; engine.setMuteMask?.(muteMask); psfCore?.setMuteMask(muteMask);},
+      setMuteMask(mask) {muteMask = mask >>> 0; engine.setMuteMask?.(muteMask); for (const core of psfCores) core.setMuteMask(muteMask);},
       setVolume, dispose,
       read() {
         const state = engine.read();
-        return {...state, loading:state.busy, error:state.error || state.errorMessage, message:state.errorMessage || state.message || message || chip+' · Ready'};
+        const seekMax = psf ? Math.min(duration ?? state.seekMaxSeconds,state.seekMaxSeconds) : state.durationSeconds;
+        const seeking = state.seeking || state.seekPreparing;
+        if (seeking) return {...state,seekMax,seeking:true,canPlay:false,canResume:false,canPause:false,canStop:true,
+          loading:true,message:state.seekMessage || (Number.isFinite(state.seekProgress) ? 'Seeking '+chip+' · '+Math.round(state.seekProgress*100)+'%' : 'Seeking '+chip+'…')};
+        return {...state, seekMax, showSeekLimit:psf && (duration === null || duration > seekMax), loading:state.busy, error:state.error || state.errorMessage, message:state.errorMessage || state.message || message || chip+' · Ready'};
+      },
+      async seek(seconds) {
+        const revision = ++playRevision;
+        finished = false;
+        if (chip !== 'VSU') await audio();
+        if (!disposed && revision === playRevision) await engine.seek(seconds);
       },
       async play() {
         const revision = ++playRevision;

@@ -99,7 +99,7 @@ test('seek bar previews a position and seeks immediately only during playback',a
  const a=source.indexOf('playbackSeek.addEventListener("input",');
  const handlers={},actions=[];let playing=false;
  const c=vm.createContext({
-  playbackSeek:{value:'88200',addEventListener(type,fn){handlers[type]=fn;}},
+  songPlayer:null, playbackSeek:{value:'88200',addEventListener(type,fn){handlers[type]=fn;}},
   spcView:{active:false,seek:async seconds=>actions.push(['spc-seek',seconds])},spcAction:async fn=>fn(),
   seekDragging:false,seekSelection:null,timelineSelectionPending:false,
   player:{isPlaying:()=>playing,stats:()=>({})},

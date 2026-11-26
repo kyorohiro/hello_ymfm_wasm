@@ -135,6 +135,8 @@ function refreshSong() {
   stopButton.disabled = !state.canStop;
   replayButton.disabled = !(state.canPause || state.canResume || state.canPlay);
   playButton.textContent = state.paused ? 'Resume' : 'Play';
+  playbackSeek.disabled = !state.canSeek || !(state.seekMax > 0);
+  if (state.seekMax > 0) playbackSeek.max = String(Math.round(state.seekMax*44100));
   setLoadProgress('song', state.loading ? state.message : '');
   setStatus(state.message);
   if (state.error) setPlaybackError(state.message);
@@ -144,7 +146,7 @@ function refreshSong() {
   if (!state.canPause) {clearInterval(songClock); songClock = null;}
 }
 
-function renderSeekPosition(sample) {
+function renderSeekPosition(sample, showSeekLimit = false) {
   const duration = Number(playbackSeek.max);
   const position = Math.max(0, Math.min(duration, sample || 0));
   playbackSeek.value = String(position);
@@ -152,7 +154,7 @@ function renderSeekPosition(sample) {
     const seconds = Math.floor(value / (spcView.active ? 1000 : 44100));
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   };
-  playbackSeekTime.textContent = `${time(position)} / ${time(duration)}`;
+  playbackSeekTime.textContent = showSeekLimit ? `${time(position)} (seek limit ${time(duration)})` : `${time(position)} / ${time(duration)}`;
   playbackSeek.setAttribute("aria-valuetext", playbackSeekTime.textContent);
   inlinePlaybackSeek.max = playbackSeek.max;
   inlinePlaybackSeek.value = playbackSeek.value;
@@ -162,7 +164,12 @@ function renderSeekPosition(sample) {
 
 function updateSeekPosition() {
   if (songPlayer) {
-    const seconds = Math.floor(songPlayer.read().positionSeconds);
+    const state = songPlayer.read();
+    if (state.seekMax > 0) {
+      if (!seekDragging && !state.seeking) renderSeekPosition(Math.round(state.positionSeconds*44100),state.showSeekLimit);
+      return;
+    }
+    const seconds = Math.floor(state.positionSeconds);
     const label = Math.floor(seconds/60) + ':' + String(seconds%60).padStart(2,'0');
     playbackSeekTime.textContent = inlinePlaybackSeekTime.textContent = label;
     return;
@@ -4084,7 +4091,7 @@ function releaseSongOutput(context) {
   if (effectsChain?.context === context) releaseEffectsChain();
   if (masterBoost?.context === context) {masterBoost.disconnect(); masterBoost = null;}
 }
-function loadConsoleModule() {return import('./console_songs.js?v=playlist-1');}
+function loadConsoleModule() {return import('./console_songs.js?v=seek-1');}
 
 async function prepareConsoleTrack(song) {
   const module = await loadConsoleModule();
@@ -4245,9 +4252,19 @@ var songTimeline = createNoteTimeline(document.getElementById('noteTimeline'), {
 
 playbackSeek.addEventListener("input", () => {
   seekDragging = true;
-  renderSeekPosition(Number(playbackSeek.value));
+  renderSeekPosition(Number(playbackSeek.value),songPlayer?.read().showSeekLimit);
 });
 playbackSeek.addEventListener("change", async () => {
+  if (songPlayer) {
+    const track = songPlayer;
+    const seconds = Number(playbackSeek.value)/44100;
+    seekDragging = false;
+    if (!track.read().canSeek) return;
+    try {await track.seek(seconds);}
+    catch (error) {if (songPlayer === track) reportPlaybackError(error);}
+    if (songPlayer === track) updateSeekPosition();
+    return;
+  }
   if (spcView.active) {seekDragging = false;timelineSelectionPending=false;seekSelection=null;await spcAction(() => spcView.seek(Number(playbackSeek.value) / 1000));return;}
   const sample = Number(playbackSeek.value);
   const wasPlaying = player?.isPlaying();

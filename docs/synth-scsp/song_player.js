@@ -143,6 +143,7 @@ export function createScspSongPlayer({
 	onStatus = () => {},
 	createEngine = createCore,
 	createSsfEngine = createScspSsfEngine,
+	allowSsfSeek = false,
 	schedule = nativeSchedule,
 	cancel = nativeCancel,
 	yieldTask = later,
@@ -217,7 +218,7 @@ export function createScspSongPlayer({
 			canPause: playback === 'playing',
 			canResume: playback === 'paused' && !busy,
 			canStop: busy || Boolean(active) || frames > 0,
-			canSeek: Boolean(source) && source.kind !== 'ssf' && !loading && playback !== 'starting',
+			canSeek: Boolean(source) && (allowSsfSeek || source.kind !== 'ssf') && !seeking && !loading && playback !== 'starting',
 		};
 	}
 	function emit() {
@@ -587,7 +588,7 @@ export function createScspSongPlayer({
 		open();
 		if (!source || loading || !Number.isFinite(seconds))
 			throw new TypeError('Choose a SCSP song and a finite seek time');
-		if (source.kind === 'ssf') return false;
+		if (source.kind === 'ssf' && !allowSsfSeek) return false;
 		const target = Math.round(
 			Math.max(0, Math.min(source.totalSamples / RATE, seconds)) * RATE,
 		);
@@ -607,24 +608,29 @@ export function createScspSongPlayer({
 		let next = null;
 		try {
 			const output = await host(ticket);
-			next = await createRun(ticket, source, output);
+			next = await createRun(ticket, source, output, controller.signal);
 			const left = new Float32Array(2048),
 				right = new Float32Array(2048),
 				deadline = nowMs() + 30000;
-			let frame = 0;
+			let frame = 0, lastReport = nowMs();
 			while (frame < target) {
 				if (!current(ticket) || controller.signal.aborted) throw aborted();
 				if (nowMs() > deadline) throw new Error('SCSP seek exceeded 30 seconds');
-				const frames = next.renderer.process(left, right, Math.min(2048, target - frame));
+				const count = Math.min(2048, target - frame);
+				const frames = source.kind === 'ssf'
+					? (await next.renderer.process(count, getMuteMask())).frames
+					: next.renderer.process(left, right, count);
+				if (!current(ticket) || controller.signal.aborted) throw aborted();
 				frame += frames;
-				if (!frames && next.renderer.ended) break;
+				if (!frames) break;
 				seeking.progress = target ? frame / target : 1;
-				emit();
-				await yieldTask();
+				const now = nowMs();
+				if (frame === target || now-lastReport >= 50) {emit(); lastReport = now;}
+				if (source.kind !== 'ssf') await yieldTask();
 			}
 			if (!current(ticket) || controller.signal.aborted) throw aborted();
 			next.basePosition = next.renderedFrames = frame;
-			next.eof = next.renderer.ended;
+			next.eof = frame >= source.totalSamples || Boolean(next.renderer.ended);
 			active = next;
 			positionFrames = frame;
 			seeking = null;

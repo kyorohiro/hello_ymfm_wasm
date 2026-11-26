@@ -60,6 +60,17 @@ try {
   await indicator.waitFor({state:'hidden'});
   assert.match(await page.locator('#headerOutput').textContent(),/Failed to (decode|parse)/);
   const ssf = createScspSsfPlaybackFixture(), psf = createPsfPlaybackFixture();
+  const elapsed = await page.evaluate(async ({image,prefix}) => {
+    const {createScspSsfEngine} = await import(prefix+'synth-scsp/scsp_ssf_engine.js');
+    const ram = new Uint8Array(512*1024); ram.set(image);
+    const totalSamples = 441000, start = performance.now();
+    const worker = await createScspSsfEngine({ram,totalSamples});
+    try {
+      for (let frame=0;frame<totalSamples;frame+=2048) await worker.process(Math.min(2048,totalSamples-frame));
+    } finally {worker.dispose();}
+    return Math.round(performance.now()-start);
+  },{image:Array.from(ssf.image),prefix:process.argv[2]?'./':'../'});
+  console.log('SSF Worker startup and 10 seconds of fast-forward:',elapsed,'ms');
   const files = {'a.ssf':ssf.standalone,'b.psf':psf.standalone,'c.minissf':ssf.mini,'d.minipsf':psf.mini,
     'lib/driver.ssflib':ssf.library,'lib/driver.psflib':psf.library};
   for (const [name,bytes] of Object.entries(files)) {
@@ -98,6 +109,48 @@ try {
     await checkOutput(true);
     await stop.click();
   }
+  function movePosition(seconds) {
+    const range = page.locator('#inlinePlaybackSeek');
+    return range.evaluate((input, ticks) => {
+        if (input.disabled) throw Error('Position control is disabled');
+        input.value = ticks;
+        input.dispatchEvent(new Event('input'));
+        input.dispatchEvent(new Event('change'));
+      },seconds*44100);
+  }
+  async function checkSeek() {
+    await play.click();
+    await checkOutput(true);
+    await pause.click();
+    await play.filter({hasText:'Resume'}).waitFor();
+    await movePosition(.5);
+    await page.waitForFunction(() => {
+      const range = document.querySelector('#inlinePlaybackSeek');
+      return !range.disabled && range.value === '22050' && !document.querySelector('#inlinePlayButton').disabled;
+    });
+    await checkOutput(false);
+    await play.click();
+    await checkOutput(true);
+    const voice = page.locator('#inlineMonitorToggles button').first();
+    await voice.click();
+    await checkOutput(false);
+    await page.locator('#dockEffectTab').click();
+    await page.locator('#effectEnabled').click();
+    await page.locator('#effectGain').evaluate(el => {el.value=0; el.dispatchEvent(new Event('input'));});
+    await movePosition(.1);
+    await page.waitForFunction(() => {
+      const range = document.querySelector('#inlinePlaybackSeek');
+      return !range.disabled && +range.value > 4410 && !document.querySelector('#inlinePauseButton').disabled;
+    });
+    assert.equal(await voice.getAttribute('aria-pressed'),'true');
+    await checkOutput(false);
+    await voice.click();
+    assert.equal(await page.locator('#effectEnabled').getAttribute('aria-pressed'),'true');
+    await checkOutput(false);
+    await page.locator('#effectEnabled').click();
+    await checkOutput(true);
+    await stop.click();
+  }
   async function playAudible() {
     await page.evaluate(()=>window.testPeak=0);
     await play.click({timeout:5000});
@@ -115,6 +168,7 @@ try {
     }
     await playAudible();
     if (index < 2) await checkConsoleMixer(index === 0 ? 32 : 24);
+    await checkSeek();
     console.log(await tracks.nth(index).textContent());
   }
   // Carry active FX into the next audio context at the natural SSF and PSF ends.
@@ -132,11 +186,14 @@ try {
   await page.locator('#fileInput').setInputFiles({name:'original.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(buildScspSongDemo())});
   await playAudible();
   await checkConsoleMixer(32);
+  await checkSeek();
   console.log('SCSP VGM passed');
   const writes = [];
   const write = (word,value) => writes.push(0xc7,word >> 8,word & 255,value);
   for (let n=0;n<32;n++) write(n,n < 16 ? 63 : 0);
   for (const [word,value] of [[0x101,0xff],[0x102,0xa0],[0x103,6],[0x104,0xf0],[0x100,0x80]]) write(word,value);
+  writes.push(0x61,0xff,0xff);
+  write(0x101,0); // The second half is silent while the transport keeps playing.
   writes.push(0x61,0xff,0xff,0x66);
   const vsu = Buffer.alloc(0xc8 + writes.length);
   vsu.write('Vgm '); vsu.writeUInt32LE(vsu.length-4,4); vsu.writeUInt32LE(0x171,8); vsu.writeUInt32LE(0xc8-0x34,0x34);
@@ -152,6 +209,16 @@ try {
   await play.filter({hasText:'Resume'}).waitFor();
   await stop.click();
   await checkConsoleMixer(6);
+  await checkSeek();
+  await play.click();
+  await checkOutput(true);
+  await page.waitForFunction(() => !document.querySelector('#inlinePauseButton').disabled && !document.querySelector('#inlinePlaybackSeek').disabled);
+  await movePosition(1.8);
+  await page.waitForFunction(() => +document.querySelector('#inlinePlaybackSeek').value >= 1.9*44100);
+  await checkOutput(false);
+  await movePosition(.2);
+  await checkOutput(true);
+  await stop.click();
   console.log('VSU VGM passed');
   const mainPlay = page.locator('#inlinePlayButton');
   for (const [path, model] of [['tone.sid','6581'],['rsid/irq.sid','6581'],['tone.sid','8580']]) {
