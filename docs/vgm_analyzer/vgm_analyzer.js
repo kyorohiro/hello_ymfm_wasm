@@ -1157,54 +1157,60 @@ function requestNoteishRender() {
   noteishDirty = true;
 }
 
+function renderPsgRows(table, rows) {
+  const body = table.tBodies[0];
+  rows.forEach(({name, active, values}, index) => {
+    const existing = body.rows[index];
+    const row = existing ?? body.insertRow();
+    if (!existing) {
+      const header = document.createElement("th");
+      header.scope = "row";
+      header.textContent = name;
+      row.append(header);
+      for (let i = 0; i < values.length; i++) row.insertCell();
+    }
+    row.classList.toggle("is-active", active);
+    row.cells[0].title = active ? "Volume register active" : "Volume register silent";
+    values.forEach((value, i) => {
+      const cell = row.cells[i + 1];
+      if (cell.textContent === String(value)) return;
+      cell.textContent = String(value);
+      if (existing && !table.closest("[hidden]")) {
+        for (const animation of cell.getAnimations()) animation.cancel();
+        cell.animate([{backgroundColor:"#ffcb79"}, {backgroundColor:"transparent"}], 750);
+      }
+    });
+  });
+}
+
 function renderPsgMonitor() {
   const state = describePsgMonitor(psgMonitor, psgMonitor.kind === "ssg" ? sourceMutes.ssg : sourceMutes.psg);
   const title = document.getElementById("psgMonitorTitle");
   title.textContent = state.kind === "ssg" ? `${(currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())} SSG${sourceMutes.ssg ? " · Muted" : ""}` : `Sega PSG${sourceMutes.psg ? " · Muted" : ""}`;
   const token = (label, value, ...registers) => renderChannelChip(label, value,
     Math.max(0, ...registers.map((r) => psgMonitor.changedAt[r])), "166 214 148");
-  const card = (name, content) => `<section class="channel-card"><div class="channel-head"><span class="channel-title">${name}</span></div><div class="channel-row">${content}</div></section>`;
-  const table = document.getElementById("segaPsgChannels");
-  const grid = document.getElementById("psgMonitorGrid");
-  table.hidden = state.kind !== "psg";
-  grid.hidden = !table.hidden;
-  if (state.kind === "psg") {
+  const ssg = state.kind === "ssg";
+  const segaTable = document.getElementById("segaPsgChannels");
+  const ssgTable = document.getElementById("ssgChannels");
+  segaTable.hidden = ssg;
+  ssgTable.hidden = !ssg;
+  document.getElementById("psgMonitorGrid").hidden = !ssg;
+  if (ssg) {
+    renderPsgRows(ssgTable, state.channels.map(ch => ({
+      name: ch.name, active: ch.envelope || ch.volume > 0,
+      values: [ch.period, ch.toneEnabled ? "ON" : "OFF", ch.noiseEnabled ? "ON" : "OFF", ch.envelope ? "ENV" : ch.volume],
+    })));
+    document.getElementById("ssgShared").innerHTML = token("NOISE PERIOD", state.noisePeriod, 6) +
+      token("ENV PERIOD", state.envelope.period, 11, 12) + token("SHAPE", state.envelope.shape, 13) +
+      ["continue", "attack", "alternate", "hold"].map(key => token(key.toUpperCase(), state.envelope[key] ? "ON" : "OFF", 13)).join("");
+  } else {
     const noise = state.noise;
     const rate = noise.tone3Linked ? `Tone 3 · period ${state.channels[2].period}` : [16, 32, 64][noise.rate];
     const rows = [...state.channels.map(ch => [ch.name, ch.period, "Tone", ch.attenuation]),
       ["Noise", rate, noise.mode, noise.attenuation]];
-    const body = table.tBodies[0];
-    rows.forEach(([name, period, mode, attenuation], index) => {
-      const existing = body.rows[index];
-      const row = existing ?? body.insertRow();
-      if (!existing) {
-        const header = document.createElement("th");
-        header.scope = "row";
-        header.textContent = name;
-        row.append(header);
-        for (let i = 0; i < 3; i++) row.insertCell();
-      }
-      row.classList.toggle("is-active", attenuation < 15);
-      row.cells[0].title = attenuation < 15 ? "Volume register active" : "Volume register silent";
-      [period, mode, attenuation === 15 ? "15 · MUTE" : attenuation].forEach((value, i) => {
-        const cell = row.cells[i + 1];
-        if (cell.textContent === String(value)) return;
-        cell.textContent = String(value);
-        if (existing && !table.closest("[hidden]")) {
-          for (const animation of cell.getAnimations()) animation.cancel();
-          cell.animate([{backgroundColor:"#ffcb79"}, {backgroundColor:"transparent"}], 750);
-        }
-      });
-    });
-  } else {
-    grid.innerHTML = state.channels.map((channel, i) => card(channel.name,
-      token("PERIOD", channel.period, i * 2, i * 2 + 1) +
-      token("TONE", channel.toneEnabled ? "ON" : "OFF", 7) +
-      token("NOISE", channel.noiseEnabled ? "ON" : "OFF", 7) +
-      token("VOLUME", channel.envelope ? "ENV" : channel.volume, 8 + i)
-    )).join("") + card("Shared Noise / Envelope", token("NOISE PERIOD", state.noisePeriod, 6) +
-      token("ENV PERIOD", state.envelope.period, 11, 12) + token("SHAPE", state.envelope.shape, 13) +
-      ["continue", "attack", "alternate", "hold"].map((key) => token(key.toUpperCase(), state.envelope[key] ? "ON" : "OFF", 13)).join(""));
+    renderPsgRows(segaTable, rows.map(([name, period, mode, attenuation]) => ({
+      name, active: attenuation < 15, values: [period, mode, attenuation === 15 ? "15 · MUTE" : attenuation],
+    })));
   }
   document.getElementById("psgMonitorRegisters").innerHTML = state.registers.map((value, r) => token(`R${r.toString(16).toUpperCase().padStart(2, "0")}`, `0x${value.toString(16).toUpperCase().padStart(2, "0")}`, r)).join("");
 }
@@ -4081,8 +4087,8 @@ playbackSeek.addEventListener("change", async () => {
   timelineSelectionPending = true;
   songTimeline.cursor(sample, false);
   if (wasPlaying) await playCurrentVgm(sample);
-  else if (player?.isPaused() && (noteishHeader.psgClock & 0x3fffffff) &&
-           ['ym2612', 'ym2151'].includes(currentChipKind)) {
+  else if (player?.isPaused() && (['ym2203', 'ym2608', 'ym2610'].includes(currentChipKind) ||
+           ((noteishHeader.psgClock & 0x3fffffff) && ['ym2612', 'ym2151'].includes(currentChipKind)))) {
     // The suspended output stream still contains audio from the old position.
     // Keep the cursor pending so Resume builds a fresh stream at this sample.
     stopActiveStream();

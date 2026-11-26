@@ -384,7 +384,9 @@ try {
     const header = Buffer.from(opn.subarray(0,0xc8));
     header.writeUInt32LE(0,0x0c); header.writeUInt32LE(0,0x2c); header.writeUInt32LE(clock,offset);
     const commands = [command,0x27,0x40,command,0xac,0x23,command,0xa8,0x55,command,0x28,0x52,
-      ...Array(90).fill(0x62),command,0x42,56,...Array(210).fill(0x62),0x66];
+      command,0,0x23,command,1,1,command,7,0x3e,command,8,9,
+      ...Array(90).fill(0x62),command,0x42,56,command,6,11,command,7,0x36,
+      command,11,0x34,command,12,2,command,13,14,command,8,16,...Array(210).fill(0x62),0x66];
     const buffer = Buffer.concat([header,Buffer.from(commands)]);
     buffer.writeUInt32LE(buffer.length-4,4);
     await page.locator('#fileInput').setInputFiles({name:chip+'.vgm',mimeType:'application/octet-stream',buffer});
@@ -404,6 +406,23 @@ try {
     await page.waitForFunction(el=>el.textContent==='56' && el.getAnimations().length>0,await tl.elementHandle());
     await pause.click();
     assert.equal(await rows.first().getByText('On',{exact:true}).count(),1);
+    const ssgRows = page.locator('#ssgChannels tbody tr');
+    assert.deepEqual(await ssgRows.locator('th').allTextContents(), ['CH A','CH B','CH C']);
+    const channelA = ssgRows.first();
+    await channelA.getByText('ENV',{exact:true}).waitFor();
+    assert.deepEqual(await channelA.locator('td').allTextContents(), ['291','ON','ON','ENV']);
+    const shared = page.locator('#ssgShared');
+    for (const text of ['NOISE PERIOD 11','ENV PERIOD 564','SHAPE 14']) {
+      assert(await shared.getByText(text,{exact:true}).isVisible());
+    }
+    await movePosition(.5);
+    await channelA.getByText('9',{exact:true}).waitFor();
+    assert.deepEqual(await channelA.locator('td').allTextContents(), ['291','ON','OFF','9']);
+    assert(await shared.getByText('SHAPE 0',{exact:true}).isVisible());
+    await movePosition(3);
+    await channelA.getByText('ENV',{exact:true}).waitFor();
+    assert(await shared.getByText('SHAPE 14',{exact:true}).isVisible());
+    console.log(chip+' SSG live settings and paused backward/forward seek passed');
     console.log(chip+' channel list, CH3 slots, key mask and live parameter highlight passed');
   }
   for (const chip of ['YM2151','YM2164']) {

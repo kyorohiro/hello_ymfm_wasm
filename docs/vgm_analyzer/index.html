@@ -188,10 +188,10 @@
       }
 
       #psgMonitorGrid[hidden] { display: none; }
-      #segaPsgChannels { border-collapse: collapse; width: 100%; margin-bottom: 1rem; font-variant-numeric: tabular-nums; }
-      #segaPsgChannels :is(td, th) { text-align: left; padding: .4em; border-bottom: 1px solid var(--line); }
-      #segaPsgChannels tbody th::before { content: ""; display: inline-block; width: .6em; height: .6em; margin-right: .45em; border-radius: 50%; background: #999; }
-      #segaPsgChannels tr.is-active th::before { background: #318143; }
+      .psg-channels { border-collapse: collapse; width: 100%; margin-bottom: 1rem; font-variant-numeric: tabular-nums; }
+      .psg-channels :is(td, th) { text-align: left; padding: .4em; border-bottom: 1px solid var(--line); }
+      .psg-channels tbody th::before { content: ""; display: inline-block; width: .6em; height: .6em; margin-right: .45em; border-radius: 50%; background: #999; }
+      .psg-channels tr.is-active th::before { background: #318143; }
 
       .channel-card {
         border: 1px solid var(--line);
@@ -809,11 +809,18 @@
             <section id="psgMonitor">
               <h2 id="psgMonitorTitle">Sega PSG</h2>
               <p class="noteish-help">Register settings at the generated audio position; playback may follow slightly later. These are not live audio levels.</p>
-              <table id="segaPsgChannels" hidden aria-label="Sega PSG channel settings">
+              <table id="segaPsgChannels" class="psg-channels" hidden aria-label="Sega PSG channel settings">
                 <thead><tr><th scope="col">Channel</th><th scope="col">Period / rate</th><th scope="col">Mode</th><th scope="col">Attenuation</th></tr></thead>
                 <tbody></tbody>
               </table>
-              <div id="psgMonitorGrid" class="channel-grid"></div>
+              <table id="ssgChannels" class="psg-channels" hidden aria-label="SSG channel settings">
+                <thead><tr><th scope="col">Channel</th><th scope="col">Period</th><th scope="col">Tone</th><th scope="col">Noise</th><th scope="col">Volume</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <section id="psgMonitorGrid" class="channel-card" hidden>
+                <div class="channel-head">Shared Noise / Envelope</div>
+                <div id="ssgShared" class="channel-row"></div>
+              </section>
               <details><summary>PSG / SSG registers</summary><div id="psgMonitorRegisters" class="channel-row"></div></details>
             </section>
             <section id="pcmMonitor">
@@ -1066,7 +1073,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=psg-channels-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=ssg-channels-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>
