@@ -14,7 +14,7 @@ function validateVolume(value) {
  * do not connect their output to destination a second time.
  * @param {{volume?:number,backend?:'psid'|'psid-cia'|'psid-vbi'|'rsid'|'8580',onError?:(error:Error)=>void,signal?:AbortSignal}} [options]
  */
-export async function createAudio({volume = .7, backend = 'psid', onError = () => {}, signal} = {}) {
+export async function createAudio({volume = .7, backend = 'psid', onError = () => {}, signal, mixerBinaryUrl, onProgress = () => {}} = {}) {
   validateVolume(volume);
   if (!['psid', 'psid-cia', 'psid-vbi', 'rsid', '8580'].includes(backend)) throw new RangeError('Unknown SID playback environment');
   if (signal?.aborted) throw new DOMException('SID player audio startup cancelled', 'AbortError');
@@ -74,15 +74,18 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
     const assetPaths = backend === '8580'
       ? ['../generated/sid8580-machine/sid8580-endpoint.wasm?sid-manual=1', '../generated/sid8580-machine/sid8580-machine.wasm?sid-manual=1']
       : [backend !== 'psid' ? '../generated/sid-rsid/sid-rsid.wasm?sid-manual=1' : '../generated/sid-player/sid-player.wasm?sid-manual=1'];
+    if (mixerBinaryUrl) assetPaths[0] = mixerBinaryUrl;
+    onProgress('Loading SID audio engine…');
     const binaries = await boundedStartup(Promise.all([
       ...assetPaths.map(path => fetch(new URL(path, import.meta.url), {signal: controller.signal}).then(response => {
         if (!response.ok) throw new Error(`SID WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       })),
       // Keep transport UI/facade and Worklet on the same cache generation.
-      context.audioWorklet.addModule(new URL('./processor.js?sid-manual=1', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL(mixerBinaryUrl ? './processor.js?sid-mixer=1' : './processor.js?sid-manual=1', import.meta.url)), resumed,
     ]));
     assertOpen();
+    onProgress('Starting SID audio processor…');
     const ready = new Promise(resolve => { resolveReady = resolve; });
     node = new AudioWorkletNode(context, 'tetorica-sid-player', {
       numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
@@ -115,7 +118,7 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
 
     async function command(method, args = []) {
       assertOpen();
-      if (!COMMANDS.has(method)) throw new Error(`Unknown SID command: ${method}`);
+      if (!COMMANDS.has(method) && !(method === 'setMuteMask' && supportedCommands?.includes(method))) throw new Error(`Unknown SID command: ${method}`);
       if (!Array.isArray(args)) throw new TypeError('SID command arguments must be an array');
       const id = ++nextId;
       return new Promise((resolve, reject) => {

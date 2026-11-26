@@ -20,14 +20,14 @@ for (const [directory, files] of Object.entries({
   synth:'synth_code_output.js',
   'synth-vsu':'audio.js vgm.js worklet.js vsu.js vsu.wasm ch5.js envelope.js timed-processor.js timed-operations.js vgm-transport.js vgm-seek.js vgm-seek-client.js vgm-seek-worker.js',
   js:'sid_rsid.js sid_psid.js sid_waveforms.js scsp.js soundchip_pitch.js register_timed_processor.js register_plan_validation.js playground_performance_queue.js',
-  generated:'sid-rsid sid-player sid8580-machine scsp_wasm.js scsp_wasm.wasm psf-player scsp-ssf',
+  generated:'sid-analyzer sid-rsid sid-player sid8580-machine scsp_wasm.js scsp_wasm.wasm psf-player scsp-ssf',
 })) {
   await mkdir(join(stage,directory),{recursive:true});
   for (const file of files.split(' ')) await cp(join(root,'docs',directory,file),join(stage,directory,file),{recursive:true});
 }
 for (const name of ['console_songs.js','sid_song.js']) {
   const entry = join(stage,name);
-  await writeFile(entry,(await readFile(entry,'utf8')).replaceAll("from '../","from './"));
+  await writeFile(entry,(await readFile(entry,'utf8')).replaceAll("from '../","from './").replaceAll("new URL('../generated/","new URL('./generated/"));
 }
 await mkdir(join(stage,'sources'),{recursive:true});
 execFileSync('zip',['-q','-r',join(stage,'sources/console-song-engines.zip'),...SCSP_SSF_BUILD_INPUTS,
@@ -40,6 +40,8 @@ try {
   for (const name of ['sid-player','sid-rsid']) {
     await cp(join(root,'docs/sources',name),join(sidKit,'sources',name),{recursive:true});
   }
+  await cp(join(root,'scripts/build_analyzer_sid_mixer.py'),join(sidKit,'sources/build_analyzer_sid_mixer.py'));
+  await writeFile(join(sidKit,'sources/Analyzer-Mixer.md'),'Build from this directory with Emscripten and Rust (wasm32-unknown-unknown):\n\n    python3 build_analyzer_sid_mixer.py --rsid sid-rsid --machine sid8580-machine --out generated/sid-analyzer\n');
   execFileSync('zip',['-q','-r',join(stage,'sources/sid-song-engines.zip'),'sources'],{cwd:sidKit});
 } finally {
   await rm(sidKit,{recursive:true,force:true});

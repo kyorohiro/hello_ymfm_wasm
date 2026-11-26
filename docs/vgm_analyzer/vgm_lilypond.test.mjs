@@ -115,7 +115,7 @@ test('dialog recommends BPM, excludes silent channels, retains edits and exports
   document:{getElementById:id=>id==='lilyPondChannels'?list:help,createTextNode:s=>s,createElement(tag){return tag==='a'?anchor:tag==='label'?{style:{},append(input){this.input=input;}}:{};}},
   URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Blob:class{},setTimeout(){},setStatus:message=>statuses.push(message),
  });
- vm.runInContext(source.slice(source.indexOf('let lilyPondPrepared =')),context);
+ vm.runInContext(source.slice(source.indexOf('let lilyPondPrepared ='),source.indexOf('void loadSidModule()')),context);
  open();assert.equal(bpm.value,137);assert.deepEqual(inputs.map(i=>i.checked),[true,false]);
  bpm.value='90';open();assert.equal(bpm.value,'90');assert.equal(scans,1);
  submit({submitter:{value:'cancel'}});assert.equal(clicked,0);

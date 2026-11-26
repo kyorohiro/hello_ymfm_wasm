@@ -108,12 +108,43 @@ try {
       await subtunes.selectOption('1');
     }
     await page.evaluate(()=>window.testMeter=null);
+    const checkLoading = path === 'tone.sid';
+    const wasm = '**/generated/sid-analyzer/*.wasm';
+    let releaseFetch;
+    const released = new Promise(resolve => {releaseFetch = resolve;});
+    if (checkLoading) await page.route(wasm,async route => {await released; await route.continue();});
     await mainPlay.click();
+    if (checkLoading) {
+      try {await page.locator('#sidLoadProgress').filter({hasText:'Loading SID audio engine'}).waitFor();}
+      finally {releaseFetch();}
+
+    }
     await page.waitForFunction(() => {
       const pcm = new Float32Array(2048);
       window.testMeter?.getFloatTimeDomainData(pcm);
       return pcm.some(value=>Math.abs(value)>0.00001);
     },null,{timeout:8000});
+    if (checkLoading) await page.unroute(wasm);
+    await page.locator('#sidLoadProgress').waitFor({state:'hidden'});
+    if (path === 'tone.sid') {
+      const checkSignal = audible => page.waitForFunction(expected => {
+        const pcm = new Float32Array(2048);
+        window.testMeter.getFloatTimeDomainData(pcm);
+        return (Math.max(...pcm)-Math.min(...pcm) > .001) === expected;
+      },audible,{timeout:5000});
+      const ch1 = page.locator('#inlineMonitorToggles [aria-label="Mute SID CH1"]');
+      await ch1.click();
+      await checkSignal(false);
+      assert.equal(await page.locator('#monitorToggles [aria-label="Mute SID CH1"]').getAttribute('aria-pressed'),'true');
+      await ch1.click();
+      await checkSignal(true);
+      await page.locator('#dockEffectTab').click();
+      await page.locator('#effectEnabled').click();
+      await page.locator('#effectGain').evaluate(input => {input.value = '0'; input.dispatchEvent(new Event('input'));});
+      await checkSignal(false);
+      await page.locator('#effectEnabled').click();
+      await checkSignal(true);
+    }
     await page.locator('#inlinePauseButton').click();
     await mainPlay.filter({hasText:'Resume'}).click();
     await page.locator('#inlineStopButton').click();
@@ -127,8 +158,20 @@ try {
   console.log('NTSC rejection passed');
   if (process.argv.length > 3) {
     await page.locator('#fileInput').setInputFiles(process.argv.slice(3));
-    await playAudible();
-    console.log('Local song passed:',await select.inputValue());
+    if (process.argv.length === 4 && /\.sid$/i.test(process.argv[3])) {
+      await page.locator('#detectedChips').filter({hasText:/6581|8580/}).waitFor();
+      await mainPlay.click();
+      await page.waitForFunction(() => {
+        const pcm = new Float32Array(2048);
+        window.testMeter?.getFloatTimeDomainData(pcm);
+        return Math.max(...pcm)-Math.min(...pcm) > .001;
+      },null,{timeout:15000});
+      await page.locator('#inlineStopButton').click();
+      console.log('Local SID passed:',process.argv[3]);
+    } else {
+      await playAudible();
+      console.log('Local song passed:',await select.inputValue());
+    }
   }
 } finally {
   await browser?.close();

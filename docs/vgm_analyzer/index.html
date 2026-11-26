@@ -636,7 +636,7 @@
                   <tr><th scope="row">Sega PCM (315-5218)</th><td>16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151 / YM2164<br><small>Seek cache: with YM2151 / YM2164 only</small></td><td>16 CH, chip</td><td>Sample Explorer</td><td>—</td><td>Unsigned 8-bit ROM snapshots, usage / bank / loop settings, waveform, raw PCM / ZIP and one-pass stereo preview / WAV; no wrapped ranges or live automation</td></tr>
                   <tr><th scope="row">NES APU + FDS (NTSC)</th><td>2 pulse + triangle + noise + DMC; optional FDS wavetable<br><small>Seek cache</small></td><td>5 CH + optional FDS CH6</td><td>—</td><td>Pulse / triangle / FDS base pitch; FDS modulation and timed envelopes omitted</td><td>MIDI / MusicXML / LilyPond; no MML or voice export. PAL/dual unsupported.</td></tr>
                   <tr><th scope="row">Game Boy DMG (LR35902)</th><td>2 square + wave + noise<br><small>Seek cache</small></td><td>4 CH, chip</td><td>—</td><td>CH1/CH2 square + CH3 wave (base pitch); CH4 noise has no pitch</td><td>Base-pitch MIDI / LilyPond; no MML or FM/PCM voice export</td></tr>
-                  <tr><th scope="row">C64 SID (6581 / 8580 Preview)</th><td>PSID / RSID v2 · PAL, one SID</td><td>Master volume only</td><td>Title, author, model and subtune</td><td>—</td><td>—</td></tr>
+                  <tr><th scope="row">C64 SID (6581 / 8580 Preview)</th><td>PSID / RSID v2 · PAL, one SID</td><td>CH1–3 mute, Master volume and Effect</td><td>Title, author, model and subtune</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">Saturn SCSP</th><td>SSF / miniSSF or single-chip VGM / VGZ</td><td>Master volume only</td><td>SSF title and loaded library paths</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">PlayStation SPU</th><td>PSF1 / miniPSF</td><td>Master volume only</td><td>Track title and path</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">Virtual Boy VSU</th><td>Single-chip VGM / VGZ</td><td>Master volume only</td><td>Track path and chip</td><td>—</td><td>—</td></tr>
@@ -701,6 +701,7 @@
             <input id="inlinePlaybackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
             <output id="inlinePlaybackSeekTime" for="inlinePlaybackSeek">0:00 / 0:00</output>
           </div>
+          <div id="sidLoadProgress" role="status" aria-live="polite" hidden><progress aria-label="SID loading"></progress> <span></span></div>
           <div class="status" id="inlinePlaybackWarnings" role="status" style="flex-basis: 100%; white-space: pre-line" hidden></div>
           <div class="status" id="inlinePlaybackError" role="alert" style="flex-basis: 100%; white-space: pre-line" hidden></div>
           <button id="inlinePlayButton" type="button" disabled>Play</button>
@@ -1044,7 +1045,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=sid-ready-2"></script>
+    <script type="module" src="./vgm_analyzer.js?v=pokey-vgm-1&amp;mix=sid-mixer-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

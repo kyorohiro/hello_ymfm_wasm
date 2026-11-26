@@ -25,8 +25,10 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
     this.ready = Core.create(options).then(core => {
       if (this.dead) {core.dispose(); return;}
       this.core = core;
+      const mixer = core.machine?.endpoint?.exports ?? core.exports;
+      this.setMuteMask = mixer?.analyzer_set_mute;
       this.manual = new SidPlayerManual(core);
-      this.port.postMessage({ready: true, transportProtocol: TRANSPORT_PROTOCOL, supportedCommands: [...COMMANDS]});
+      this.port.postMessage({ready: true, transportProtocol: TRANSPORT_PROTOCOL, supportedCommands: this.setMuteMask ? [...COMMANDS, 'setMuteMask'] : [...COMMANDS]});
     }).catch(error => this.fail(error));
     this.commands = this.ready;
   }
@@ -50,9 +52,13 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
     this.commands = this.commands.then(() => {
       if (this.dead) return;
       try {
-        if (!COMMANDS.has(data?.method)) throw new Error('Unknown SID player command');
+        if (!COMMANDS.has(data?.method) && !(data?.method === 'setMuteMask' && this.setMuteMask)) throw new Error('Unknown SID player command');
         if (data.args !== undefined && !Array.isArray(data.args)) throw new TypeError('SID player arguments must be an array');
         const args = data.args ?? [];
+        if (data.method === 'setMuteMask') {
+          if (!Number.isInteger(args[0]) || args[0] < 0 || args[0] > 7) throw new RangeError('Invalid SID channel mask');
+          this.setMuteMask(args[0]);
+        }
         if (data.method === 'load') {this.core.load(args[0], args[1]); this.manual.reset(); this.playing = false; this.paused = false; this.clearBridge();}
         if (['start', 'pause', 'resume'].includes(data.method) && startEpoch !== this.startEpoch)
           throw new Error(`SID ${data.method} was cancelled`);

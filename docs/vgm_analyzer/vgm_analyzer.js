@@ -101,12 +101,19 @@ let sidSong = null, sidClock = null;
 const sidSubtune = document.getElementById('sidSubtune');
 let sidModulePromise;
 function loadSidModule() {
-  return sidModulePromise ??= import('./sid_song.js').catch(error => {
+  return sidModulePromise ??= import('./sid_song.js?v=sid-mixer-1').catch(error => {
     sidModulePromise = null;
     throw error;
   });
 }
+function showSidProgress(message = '') {
+  const indicator = document.getElementById('sidLoadProgress');
+  const label = indicator.querySelector('span');
+  if (label.textContent !== message) label.textContent = message;
+  indicator.hidden = !message;
+}
 function clearSid() {
+  showSidProgress();
   const previous = sidSong;
   sidSong = null;
   previous?.dispose();
@@ -123,6 +130,7 @@ function refreshSid() {
   stopButton.disabled = !state.canStop;
   replayButton.disabled = !(state.canPause || state.canResume || state.canPlay);
   playButton.textContent = state.paused ? 'Resume' : 'Play';
+  showSidProgress(state.loading ? state.message : '');
   setStatus(state.message);
   updateSeekPosition();
   if (state.canPause && !sidClock) sidClock = setInterval(updateSeekPosition,250);
@@ -376,6 +384,7 @@ document.getElementById('dockMixerTab').addEventListener('click', () => setDockV
 // Gain sits last as an overall output-level trim rather than an input drive.
 function ensureEffectsChain(context) {
   if (effectsChain && effectsChain.context === context) return effectsChain;
+  if (effectsChain) releaseEffectsChain();
   const bassNode = context.createBiquadFilter();
   bassNode.type = 'lowshelf';
   bassNode.frequency.value = 200;
@@ -494,17 +503,18 @@ function releaseEffectsChain() {
 }
 
 function rewireAudioGraph() {
-  const node = spcView.active ? spcView.outputNode : activeStream?.node;
-  if (!node || !audioContext) return;
+  const node = sidSong?.outputNode ?? (spcView.active ? spcView.outputNode : activeStream?.node);
+  if (!node) return;
+  const context = node.context;
   node.disconnect();
-  if (masterBoost?.context !== audioContext) {
+  if (masterBoost?.context !== context) {
     masterBoost?.disconnect();
-    masterBoost = audioContext.createGain();
-    masterBoost.connect(audioContext.destination);
+    masterBoost = context.createGain();
+    masterBoost.connect(context.destination);
   }
-  masterBoost.gain.value = Math.max(1,masterVolume / 3.8);
+  masterBoost.gain.value = sidSong?.outputNode ? 1 : Math.max(1,masterVolume / 3.8);
   if (effectSettings.enabled) {
-    const chain = ensureEffectsChain(audioContext);
+    const chain = ensureEffectsChain(context);
     chain.output.disconnect();
     node.connect(chain.input);
     chain.output.connect(masterBoost);
@@ -745,7 +755,7 @@ function applyMasterVolume() {
   sidSong?.setVolume(masterVolume);
   audioPreferences.setMaster(masterVolume);
   const level = Math.min(masterVolume,3.8);
-  if (masterBoost) masterBoost.gain.value = Math.max(1,masterVolume / 3.8);
+  if (masterBoost) masterBoost.gain.value = sidSong?.outputNode ? 1 : Math.max(1,masterVolume / 3.8);
   spcView.setMasterVolume(level);
   engine?.setMasterVolume?.(level);
   player?.setMasterVolume?.(level);
@@ -784,6 +794,23 @@ function requestPlaybackUiRender(extra = "") {
 function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
+  if (currentChipKind === 'sid') {
+    for (const container of [monitorToggles,inlineMonitorToggles]) {
+      container.replaceChildren();
+      for (let channel = 0; sidSong && channel < 3; channel++) {
+        const button = document.createElement('button');
+        const bit = 1 << channel;
+        const muted = Boolean(sidSong.muteMask & bit);
+        button.type = 'button'; button.className = 'channel-toggle' + (muted ? ' is-muted' : '');
+        button.textContent = 'CH' + (channel+1);
+        button.setAttribute('aria-label','Mute SID CH'+(channel+1));
+        button.setAttribute('aria-pressed',String(muted));
+        button.onclick = () => {sidSong.setMuteMask(sidSong.muteMask ^ bit); renderMonitorToggles();};
+        container.append(button);
+      }
+    }
+    return;
+  }
   if(currentChipKind==='mixed'){
     for(const part of mixedPlaybackParts){
       const muted=Boolean(sourceMutes[part.id]),button=document.createElement('button');
@@ -3552,6 +3579,7 @@ function startScriptProcessorStream() {
 async function handleFile(file, preserveEditor = false, requestedAt = performance.now()) {
   const enteredAt = performance.now();
   clearSid();
+  if (/\.sid$/i.test(file.name)) showSidProgress('Opening '+file.name+'…');
   loopCheckbox.disabled = false;
   spcNoteish.clear();
   spcScoreSource=null;spcScore=null;
@@ -3589,6 +3617,7 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
   const sidModule = isSid ? await loadSidModule() : null;
   const moduleAt = performance.now();
   if (isSid && file.size > sidModule.PSID_MAX_FILE_BYTES) throw new Error('SID exceeds the maximum C64 program size.');
+  if (isSid) showSidProgress('Reading '+file.name+'…');
   const rawBuffer = await file.arrayBuffer();
   const fileAt = performance.now();
   currentBuffer = null;
@@ -3607,6 +3636,7 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
   renderNoteishGrid();
 
   if (isSid) {
+    showSidProgress('Checking SID format and subtunes…');
     engine?.dispose?.();
     engine = player = engineClockKey = null;
     workletModuleReady = false;
@@ -3634,11 +3664,18 @@ async function handleFile(file, preserveEditor = false, requestedAt = performanc
       previous?.dispose();
       clearInterval(sidClock); sidClock = null;
       try {
-        sidSong = sidModule.createSidSong(bytes,Number(sidSubtune.value),() => masterVolume,refreshSid);
+        sidSong = sidModule.createSidSong(bytes,Number(sidSubtune.value),() => masterVolume,refreshSid,{
+          connectOutput:rewireAudioGraph,
+          releaseOutput(context) {
+            if (effectsChain?.context === context) releaseEffectsChain();
+            if (masterBoost?.context === context) {masterBoost.disconnect(); masterBoost = null;}
+          },
+        });
+        renderMonitorToggles();
         detectedChipsOutput.textContent = sidSong.description;
         setPlaybackError();
         refreshSid();
-      } catch (error) {updatePlaybackButtons(); reportPlaybackError(error); setStatus(error.message);}
+      } catch (error) {showSidProgress(); renderMonitorToggles(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(error.message);}
     };
     sidSubtune.onchange = selectSubtune;
     selectSubtune();
@@ -3882,6 +3919,7 @@ let fileLoadQueue = Promise.resolve();
 function queuePlaylistTask(task) {
   fileLoadQueue = fileLoadQueue.then(task).catch((error) => {
     console.error(error);
+    showSidProgress();
     setStatus(`Error: ${error.message}`);
   });
   return fileLoadQueue;
