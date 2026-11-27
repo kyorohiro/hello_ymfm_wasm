@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {bankedSong} from './fixtures/oki6295_banked_vgm.mjs';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {chromium} from 'playwright';
 
-const root = new URL('../docs/',import.meta.url);
+const packageDir = process.argv[2];
+const root = packageDir ? pathToFileURL(resolve(packageDir) + '/') : new URL('../docs/',import.meta.url);
 const server = createServer(async (req,res) => {
   try {
     const file = new URL('.'+new URL(req.url,'http://local').pathname,root);
@@ -25,6 +29,7 @@ try {
   const commands=[];
   const reg=(r,v)=>commands.push(0x54,r,v);
   const second=()=>commands.push(0x61,0x44,0xac);
+  reg(0x98,31); // OP4 attack for the captured keyboard audition.
   reg(0x20,0xc7);reg(0x68,22);reg(0x70,46);reg(8,0x40);second();
   reg(8,0x60);second();
   reg(0x20,0xd4);reg(8,0x40);second();
@@ -36,7 +41,7 @@ try {
   buffer.write('Vgm ');buffer.writeUInt32LE(buffer.length-4,4);buffer.writeUInt32LE(0x171,8);
   buffer.writeUInt32LE(44100*5,0x18);buffer.writeUInt32LE(3579545,0x30);
   buffer.writeUInt32LE(0xcc,0x34);buffer.set(commands,256);
-  await page.goto('http://127.0.0.1:'+server.address().port+'/vgm_analyzer/index.html');
+  await page.goto('http://127.0.0.1:'+server.address().port+(packageDir ? '/index.html' : '/vgm_analyzer/index.html'));
   await page.locator('#fileInput').setInputFiles({name:'opm-keys.vgm',mimeType:'application/octet-stream',buffer});
   await page.click('#operatorInfoTab');
   await page.click('#dockPlayTab');await page.click('#playButton');
@@ -56,6 +61,29 @@ try {
   await buttons.getByText('CH1',{exact:true}).click();
   await check(7,'On');
   assert.equal(await view.locator('tr').nth(3).locator('td').nth(5).textContent(),'22');
+  assert.ok(await view.getByText('OP1 + OP2 + OP3 + OP4 → OUT', {exact:true}).isVisible());
+  await view.getByRole('button', {name:'Audition selected CH in Instrument'}).click();
+  const instrument = page.locator('#opmInfoPanel');
+  assert.match(await instrument.locator('.opm-detail').innerText(), /CH1 · Captured at/);
+  assert.match(await instrument.locator('.opm-voice').innerText(), /CH: 192 0 7 0 0 96 0/);
+  assert.ok(await instrument.locator('.tfi-info-keyboard').isVisible());
+  await page.evaluate(() => {
+    const start = AudioBufferSourceNode.prototype.start;
+    window.auditionPeak = 0;
+    AudioBufferSourceNode.prototype.start = function (...args) {
+      if (this.buffer) {
+        for (const sample of this.buffer.getChannelData(0)) window.auditionPeak = Math.max(window.auditionPeak, Math.abs(sample));
+      }
+      return start.apply(this, args);
+    };
+  });
+  const key = instrument.locator('.key:visible').first();
+  await key.hover();
+  await page.mouse.down();
+  try {await page.waitForFunction(() => window.auditionPeak > 0.0001);}
+  finally {await page.mouse.up();}
+
+  await page.click('#operatorInfoTab');
   await view.locator('summary').click();
   assert.ok(await view.locator('canvas').isVisible());
   await page.locator('#playbackSeek').evaluate(input=>{
@@ -82,6 +110,23 @@ try {
   });
   assert.equal(hiddenUpdates,0);
   console.log('TL repaint batches over 700 ms:',updates,'; hidden monitor batches:',hiddenUpdates);
+  for (const fm of [false,true]) {
+    await page.locator('#fileInput').setInputFiles({name:fm?'cps1.vgm':'msm6295.vgm',mimeType:'application/octet-stream',buffer:bankedSong(fm)});
+    await page.click('#operatorInfoTab');
+    await page.getByRole('tab',{name:'MSM6295',exact:true}).click();
+    await page.click('#playButton');
+    const panel = page.locator('#oki6295Monitor');
+    await panel.getByRole('button',{name:'Voice 2 · Sample 0 · Att 2'}).waitFor();
+    await page.click('#pauseButton');
+    await panel.getByRole('button',{name:/Voice 2/}).click();
+    await panel.locator('canvas:visible').waitFor();
+    assert.match(await panel.locator('p').innerText(),/0x40400/);
+    const audition = panel.locator('audio');
+    assert.ok(await audition.evaluate(async a => {await a.play(); return !a.paused;}));
+    await panel.getByRole('button',{name:/Voice 1/}).click();
+    assert.match(await panel.locator('p').innerText(),/0x400$/);
+    assert.ok(await audition.evaluate(a=>a.paused));
+  }
   assert.deepEqual(errors,[]);
-  console.log('YM2151 live key masks, channel selection, envelope, pause, seek and resume passed');
+  console.log('YM2151 captured keyboard audio and MSM6295 banked waveform auditions passed');
 } finally {await browser?.close();server.close();}

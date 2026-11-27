@@ -91,7 +91,15 @@ test('dual-chip routing retains every unit-gain sample and binds the current Ana
   const root=new URL('../',import.meta.url);
   for(const [beforeName,afterName] of [['analyzer_extra_levels_13','analyzer_extra_levels_14'],['analyzer_psg_levels_16','analyzer_psg_levels_17']]) {
     const read=async name=>JSON.parse(await readFile(new URL('docs/issues/'+name+'.json',root),'utf8'));
-    const before=await read(beforeName),after=await read(afterName);
+    const before=await read(beforeName),historical=await read(afterName);
+    const after=afterName==='analyzer_extra_levels_14'?await read('analyzer_extra_levels_15'):historical;
+    if (after!==historical) {
+      assert.deepEqual(after.rows,historical.rows);
+      assert.deepEqual(after.reference,historical.reference);
+      assert.deepEqual(after.defaults,historical.defaults);
+      assert.deepEqual(Object.keys(after.sources).sort(),Object.keys(historical.sources).sort());
+      await assert.rejects(verifyAnalyzerCalibrationSources([historical]),/okim6295audioengine/);
+    }
     assert.deepEqual(after.defaults,before.defaults);
     assert.deepEqual(after.rows,before.rows);
     assert.deepEqual(after.reference,before.reference);

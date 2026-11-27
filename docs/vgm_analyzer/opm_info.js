@@ -15,7 +15,7 @@ export function writeOpmPreview(chip, patch, kc = 0x4a, kf = 0) {
     const n=7+i*8;
     for(const [r,v] of [[0x40,(o.dt1<<4)|o.mul],[0x60,o.tl],[0x80,(o.ks<<6)|o.ar],[0xa0,(o.am<<7)|o.d1r],[0xc0,(o.dt2<<6)|o.d2r],[0xe0,(o.d1l<<4)|o.rr]])write(r+n,v);
   });
-  write(8,7|c.operators.reduce((n,o,i)=>n|(o.key?8<<i:0),0));
+  write(8,7|(c.operators.reduce((n,o,i)=>n|(o.key?8<<i:0),0) || 0x78));
 }
 
 // KC uses gapped semitone codes; KF supplies 1/64-semitone steps.
@@ -75,7 +75,8 @@ export function mountOpmInfo({root,onStatus,createKeyboard=createPlaygroundOpera
     </section>`;
   const select=root.querySelector('select'),save=root.querySelector('.opm-save');
   let buffer=null,patches=null,chip=null,context=null,audio=null,ready=null,visible=false,disposed=false;
-  const selected=()=>patches?.[Number(select.value)];
+  let capture = null;
+  const selected=()=>select.value === 'capture' ? capture : patches?.[Number(select.value)];
   const keyboard=createKeyboard({root:root.querySelector('.tfi-info-keyboard'),channelCount:1,getSelectedChannel:()=>0,idPrefix:'opm-',onStatus,
     async ensureAudioReady(){
       if(!ready)ready=(async()=>{
@@ -89,13 +90,26 @@ export function mountOpmInfo({root,onStatus,createKeyboard=createPlaygroundOpera
   });
   function stop(){keyboard.setView('code');audio?.stop();}
   function showKeyboard(){keyboard.setView(visible && selected() ? 'operator' : 'code');}
-  function refresh(){const p=selected();save.disabled=!p;root.querySelector('.opm-detail').textContent=p?`${p.name} · CH${p.channel+1} · First observed ${(p.sample/44100).toFixed(3)} s`:'';root.querySelector('.opm-voice').textContent=p?.text ?? '';showKeyboard();}
+  function refresh(){const p=selected();save.disabled=!p;root.querySelector('.opm-detail').textContent=p?`${p.name} · CH${p.channel+1} · ${p === capture ? 'Captured at' : 'First observed'} ${(p.sample/44100).toFixed(3)} s`:'';root.querySelector('.opm-voice').textContent=p?.text ?? '';showKeyboard();}
   function extract(){if(patches || !buffer)return;try{patches=extractOpmPatches(buffer,{includeSnapshots:true});select.replaceChildren();patches.forEach((p,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=`${p.name} · ${(p.sample/44100).toFixed(3)} s`;select.append(o);});refresh();if(!patches.length)root.querySelector('.opm-detail').textContent='No keyed YM2151 voices found.';}catch(e){onStatus(`OPM extraction failed: ${e.message}`);}}
   select.addEventListener('change',()=>{stop();refresh();select.blur();});
   root.querySelector('.opm-stop').addEventListener('click',()=>{stop();showKeyboard();});
   save.addEventListener('click',()=>{const p=selected();if(!p)return;const url=URL.createObjectURL(new Blob([p.text],{type:'text/plain'}));const a=document.createElement('a');a.href=url;a.download=p.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
   return {
-    loadVgm(value){stop();buffer=value;patches=null;select.replaceChildren();refresh();if(visible)extract();},
+    showCapture(patch) {
+      stop();
+      capture = patch;
+      let option = select.querySelector('option[value="capture"]');
+      if (!option) {
+        option = document.createElement('option');
+        option.value = 'capture';
+        select.prepend(option);
+      }
+      option.textContent = `Captured CH${patch.channel + 1} · ${(patch.sample / 44100).toFixed(3)} s`;
+      select.value = 'capture';
+      refresh();
+    },
+    loadVgm(value){stop();capture=null;buffer=value;patches=null;select.replaceChildren();refresh();if(visible)extract();},
     setVisible(value){if(visible===value)return;visible=value;root.hidden=!value;if(value){extract();showKeyboard();}else stop();},
     async dispose(){disposed=true;keyboard.dispose();audio?.dispose();chip?.dispose();chip=null;await context?.close();},
   };

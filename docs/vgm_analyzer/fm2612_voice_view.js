@@ -1,3 +1,4 @@
+import {ym2151Routing} from '../playground/playground_ym2151_voice_panel.js';
 import {createOperatorEnvelopeView} from '../synth/synth_operator_envelope.js';
 
 const routes = [
@@ -149,7 +150,8 @@ export function mountOpmEnvelope(root) {
   return {
     update(channel) {
       current=channel;
-      if(routing.textContent!==routes[channel.algorithm])routing.textContent=routes[channel.algorithm];
+      const route = ym2151Routing(channel.algorithm);
+      if (routing.textContent !== route) routing.textContent = route;
       view.setVisible(true);
       view.invalidate();
     },

@@ -118,7 +118,7 @@ function bufferedWrites(live, display, timing) {
     catchUp,
   };
 }
-export function mountOpmMonitor(root, now, mountEnvelope, timing) {
+export function mountOpmMonitor(root, now, mountEnvelope, timing, onCapture) {
   const state=createOpmState(now);
   const monitor=timing?bufferedWrites(createOpmState(now,false),state,timing):state;
   const summary = document.createElement('p'); root.append(summary);
@@ -138,6 +138,13 @@ export function mountOpmMonitor(root, now, mountEnvelope, timing) {
   });
   const envelope = mountEnvelope?.(detail);
   const heading = document.createElement('h4'); detail.append(heading);
+  if (onCapture) {
+    const capture = document.createElement('button');
+    capture.type = 'button';
+    capture.textContent = 'Audition selected CH in Instrument';
+    capture.onclick = () => onCapture(selected, monitor.snapshot());
+    detail.append(capture);
+  }
   const wrap = document.createElement('div'); wrap.className = 'fm-operator-values';
   const table = document.createElement('table'), head = document.createElement('tr');
   for (const field of fields) {

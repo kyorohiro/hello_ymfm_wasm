@@ -337,3 +337,5 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 .fm-channel-detail { min-width: 0; }
 
 .fm-operator-values .op-key-on {font-weight:700;color:#174b26;box-shadow:inset 3px 0 #429553}
+
+#oki6295Monitor .oki-recent-start { box-shadow: inset 0 0 0 3px #dc862b; }

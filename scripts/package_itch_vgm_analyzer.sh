@@ -87,6 +87,7 @@ rf5c164_monitor.js
 source_mutes.js
 msx_mutes.js
 opm_monitor.js
+oki6295_monitor.js
 opm_export.js
 opm_mml.js
 mdx_export.js
@@ -354,13 +355,17 @@ for file in ${JS_FILES}; do
 done
 
 mkdir -p "${STAGE_DIR}/playground" "${STAGE_DIR}/synth"
-for file in playground_tfi_editor.js playground_operator_tab.js playground_operator_visual.js playground_operator_keyboard.js playground_vgm_presets.js; do
+for file in playground_ym2151_voice_panel.js playground_tfi_editor.js playground_operator_tab.js playground_operator_visual.js playground_operator_keyboard.js playground_vgm_presets.js; do
   cp "${ROOT_DIR}/docs/playground/${file}" "${STAGE_DIR}/playground/${file}"
 done
 for file in synth_output_visualizer.js synth_controls.js synth_keyboard.js synth_envelope.js synth_operator_envelope.js; do
   cp "${ROOT_DIR}/docs/synth/${file}" "${STAGE_DIR}/synth/${file}"
 done
-perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated/#./generated/#g' "${STAGE_DIR}/tfi_info.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/sbi_info.js"
+perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated/#./generated/#g' "${STAGE_DIR}/fm2612_voice_view.js" "${STAGE_DIR}/tfi_info.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/sbi_info.js"
+
+mkdir -p "${STAGE_DIR}/synth-cps1"
+cp "${ROOT_DIR}/docs/synth-cps1/song-samples.js" "${ROOT_DIR}/docs/synth-cps1/sample-view.js" "${STAGE_DIR}/synth-cps1/"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./synth-cps1/#./synth-cps1/#g' "${STAGE_DIR}/oki6295_monitor.js"
 
 # vgi.js is shared with the web runtime; docs/js/vgi.js is a source-tree
 # re-export, while the standalone analyzer package needs the implementation.

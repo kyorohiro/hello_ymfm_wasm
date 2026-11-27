@@ -396,13 +396,34 @@ const dualVgmRevision = new Map([
   ]],
 ]);
 
+const cps1GuideRevisions = new Map([
+  ['synth/synth_envelope.js', ['f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d', '2be9cb5bbb2ae15df4c72538d23fbbd639fe402c2ee524d09288115ed4a64025']],
+  ['synth/synth_operator_envelope.js', ['045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a', 'b951f27f750b821e93b84c31c178b9d9025a91acca8a5f6dd24207b5a08f8065']],
+]);
+
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  // CPS1 customizes canvas labels and the visibility predicate of its editor.
+  // The calibration programs never draw or edit an operator envelope.
+  const guide = cps1GuideRevisions.get(path);
+  if (guide && record?.sha256 === guide[0] && sha(bytes) === guide[1]) return 'cps1-envelope-guide';
+  // Only CPS1 supplies processorName. Restore the measured default call for
+  // historical source checks; later checks still verify the entire file.
+  if (path === 'js/playground_ym2151_audio.js' &&
+      sha(bytes) === 'e86149f438b5a68c0e5652524c8ab63b5e7bfc22adb7d6da099aa47dd2ab34d9') {
+    bytes = Buffer.from(bytes.toString().replace(',processorName?:string}', '}')
+      .replace("options.processorName??'tetorica-ym2151'", "'tetorica-ym2151'"));
+    if (record && sha(bytes) === record.sha256 && bytes.length === record.bytes) return 'cps1-processor-option';
+  }
   // CPS1 supplies optional operator widgets. The original Playground uses its
   // existing inputs and the measurement probes never construct this editor.
   if (path === 'playground/playground_ym2151_voice_panel.js' &&
       record?.sha256 === 'aa0866710259a0056af8dacd5e320000cecb31a3a3e6ea4c18ddb18bc166c95a' &&
-      sha(bytes) === 'a06f52599010383c4e67786914d85af1be9a69f3391a9f2d49dc3c866faca3d5') return 'cps1-editor-controls';
+      [
+        'a06f52599010383c4e67786914d85af1be9a69f3391a9f2d49dc3c866faca3d5',
+        // Exports the same routing label for the Analyzer display.
+        '73c40a4a9c09ee56dc632d9c1d4e5fe1a880e23d55027a4d18e00dfb46031d09',
+      ].includes(sha(bytes))) return 'cps1-editor-controls';
   const revision = dualVgmRevision.get(path);
   if (revision && record?.sha256 === revision[0] && sha(bytes) === revision[1]) return 'dual-vgm-routing';
   const ym2608Context=createYm2608TimedRevisionReadContext(),ym2608Bytes=ym2608Context.restore(path,bytes);bytes=ym2608Bytes;

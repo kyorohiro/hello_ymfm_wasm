@@ -17,6 +17,10 @@ const ROUTING = [
   '(OP1 → OP2) + OP3 + OP4 → OUT',
   'OP1 + OP2 + OP3 + OP4 → OUT',
 ];
+export function ym2151Routing(algorithm) {
+  return ROUTING[algorithm] ?? '—';
+}
+
 let panelSequence = 0;
 
 export function ym2151FrequencyNote(hz) {
@@ -251,7 +255,7 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
     setValue(frequency, Number.isFinite(voice.frequency) ? Number(voice.frequency.toFixed(6)) : null);
     setValue(note, ym2151FrequencyNote(voice.frequency) === '—' ? '' : ym2151FrequencyNote(voice.frequency)); setValue(keyCode, voice.keyCode); setValue(keyFraction, voice.keyFraction);
     setValue(algorithm, voice.algorithm); setValue(feedback, voice.feedback); checked(panLeft, voice.pan?.left); checked(panRight, voice.pan?.right); setValue(ams, voice.ams); setValue(pms, voice.pms);
-    routing.textContent = `Algorithm ${voice.algorithm ?? '—'} · ${ROUTING[voice.algorithm] ?? '—'}\nFeedback returns to OP1.`;
+    routing.textContent = `Algorithm ${voice.algorithm ?? '—'} · ${ym2151Routing(voice.algorithm)}\nFeedback returns to OP1.`;
     operatorControls.forEach((controls,index) => OP_FIELDS.forEach(([key]) => {
       const value = voice.operators?.[index]?.[key];
       if (createOperatorControl) controls[key].updateVisual(Number(value ?? 0));
