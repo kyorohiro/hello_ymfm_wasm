@@ -21,20 +21,42 @@ export function inspectSong(bytes,onRomBlock) {
   if (!ticks) throw Error('VGM contains no playback time.');
 }
 
-// Build a standalone, single-window bank from the final uploaded image.
-export function embeddedSongBank(bytes) {
-  let rom, supplied;
+// The VGM image may contain several 18-bit chip address windows.
+export function embeddedSongBanks(bytes) {
+  const windows=new Map(), size=0x40000;
+  let imageSize;
   inspectSong(bytes,({memorySize,offset,data})=>{
-    if(memorySize<8 || memorySize>0x40000){rom=supplied=null;return;}
-    if(rom?.length!==memorySize){
-      rom=new Uint8Array(memorySize);supplied=new Uint8Array(memorySize);
+    if(imageSize!==memorySize){windows.clear();imageSize=memorySize;}
+    for(let pos=0;pos<data.length;){
+      const address=offset+pos,index=Math.floor(address/size),local=address%size;
+      const length=Math.min(size-local,data.length-pos);
+      if(!windows.has(index)){
+        const capacity=Math.min(size,memorySize-index*size);
+        windows.set(index,{rom:new Uint8Array(capacity),supplied:new Uint8Array(capacity)});
+      }
+      const {rom,supplied}=windows.get(index);
+      rom.set(data.subarray(pos,pos+length),local);
+      supplied.fill(1,local,local+length);
+      pos+=length;
     }
-    rom.set(data,offset);supplied.fill(1,offset,offset+data.length);
   });
-  if(!rom)return null;
-  if(supplied.every(Boolean))return rom;
-  // Preserve addresses and clear entries whose table or payload was omitted.
+  const banks=[];
+  for(const [index,{rom,supplied}] of windows){
+    const bytes=completeBank(rom,supplied);
+    if(bytes)banks.push({index,bytes});
+  }
+  return banks.sort((a,b)=>a.index-b.index);
+}
+function completeBank(rom,supplied){
+  if(rom.length<8)return null;
   const address=p=>((rom[p]&3)<<16)|(rom[p+1]<<8)|rom[p+2];
+  if(supplied.every(Boolean)){
+    for(let p=0;p<0x400 && p+6<=rom.length;p+=8){
+      if(address(p)<address(p+3) && address(p+3)<rom.length)return rom;
+    }
+    return null;
+  }
+  // Preserve addresses and clear entries whose table or payload was omitted.
   const missing=new Uint32Array(rom.length+1);
   for(let i=0;i<rom.length;i++)missing[i+1]=missing[i]+1-supplied[i];
   let complete=0;

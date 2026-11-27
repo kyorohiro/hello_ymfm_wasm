@@ -47,17 +47,14 @@
 <output data-envelope-readout></output>
 <p class="subtext">Drag a point sideways to change its rate. Drag the attack or decay point vertically to change TL or D1L. Curves show relative settings.</p>
 </template>
-<section id="fm"><p id="songFmLabel" hidden></p><div id="songVoice" hidden><label>Copy to <select id="songTarget"></select></label><button id="useSongVoice">Use voice</button></div></section>
-<section id="pcm" hidden><p id="songPcmLabel" hidden></p><div id="songOki" hidden><h3>VGM · MSM6295</h3><div id="songOkiVoices" class="bar" aria-label="VGM MSM6295 voices"></div>
-<output id="songSampleInfo"></output><figure class="sample-preview"><canvas id="songSampleWave" width="768" height="96" aria-label="Paused sample waveform"></canvas></figure>
-<button id="previewSongSample" disabled>Preview</button></div>
-<div id="pcmEditor">
+<section id="fm"><div id="songVoice" hidden><label>Copy to <select id="songTarget"></select></label><button id="useSongVoice">Use voice</button></div></section>
+<section id="pcm" hidden><div id="pcmEditor">
 <div id="attenuation" class="chip-fields"></div>
 <div class="bar"><label>ROM <select id="romList"></select></label><button id="importRom">Import ROM…</button><input id="rom" type="file" accept=".bin,.rom" hidden></div>
 <fieldset class="rom-editor"><legend id="romName">0_default.rom</legend><p id="bankInfo"></p>
 <div class="bar"><div id="slotControl" class="chip-fields"></div><button id="writeSlot">Load…</button><button id="deleteSlot">Del</button><input type="file" id="slotAudio" accept=".wav,.wave,.flac" hidden></div>
 <div id="sampleSlots" role="group" aria-label="Sample slots"></div><output id="selectedSample"></output>
-<figure class="sample-preview"><canvas id="sampleWave" width="768" height="96" aria-label="Decoded sample waveform"></canvas><figcaption id="sampleRange"></figcaption></figure>
+<figure class="sample-preview"><canvas id="sampleWave" width="768" height="96" aria-label="Decoded sample waveform"></canvas><figcaption id="sampleRange"></figcaption></figure><button id="previewSongSample" hidden>Preview</button>
 <div class="bar"><button id="chooseSamples">Import WAV / FLAC…</button><input id="audioSamples" type="file" multiple accept=".wav,.wave,.flac" hidden><button id="restore">Restore default bank</button></div></fieldset>
 <div id="voices" role="group" aria-label="MSM6295 voice assignments"></div>
 <p><span id="voiceCount">0 / 4 voices playing</span> · Command bytes <output id="command">—</output> · Status <output id="busy">0xF0</output></p></div></section>

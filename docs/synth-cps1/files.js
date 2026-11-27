@@ -3,7 +3,7 @@ import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {createSampleBank} from './kit.js';
-import {inspectSong,embeddedSongBank} from './vgm.js';
+import {inspectSong,embeddedSongBanks} from './vgm.js';
 import {playableSamples} from './sample-view.js';
 import {makeAudioBank,writeBankSample} from './audio-bank.js';
 import {parseOpm} from './opm.js';
@@ -23,7 +23,7 @@ const el=id=>document.getElementById(id);
 const report=text=>{el('fileStatus').textContent=text;};
 async function loadSong(name,raw,onBank) {
   const bytes=new Uint8Array(await maybeDecodeVgmFile(raw,{maxBytes:16*1024*1024}));
-  if(onBank)onBank(embeddedSongBank(bytes));else inspectSong(bytes);
+  if(onBank)onBank(embeddedSongBanks(bytes));else inspectSong(bytes);
   return {name,bytes,raw};
 }
 function validateVoice(patch,validator) {
@@ -36,6 +36,7 @@ function validateVoice(patch,validator) {
 export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initialCode,store,draft,applyBank,stop,playSong,stopSong,openFiles}) {
   let files=new Map(),folders=[],selected=entry,editor=entry,activeBank,presetChannel=null,opmBank=null,revision=0;
   let pending=new Map(),editPath=null,saveTimer;
+  const songBanks=new WeakMap();
   const initial=inspector.read(), history=[];
   const currentVoice=ch=>({...voicePatch(inspector.read().channels[ch]),keyMask:keyMasks[ch]});
   const initialVoices=initial.channels.map((_,i)=>currentVoice(i));
@@ -64,7 +65,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
       opmBank=v;el('opmVoice').replaceChildren(...v.voices.map((voice,i)=>new Option(voice.name,i)));
       el('opmVoice').onchange();fm();
     }
-    if(v.kind==='bank'){useBank(path);document.querySelector('[data-tab="pcm"]').click();}
+    if(v.kind==='bank'){stopSong();useBank(path);document.querySelector('[data-tab="pcm"]').click();}
     if(v.kind==='song')stopSong();
     render();
     if(v.kind==='song')el('songs').value=String(songEntries().findIndex(([p])=>p===path));
@@ -211,7 +212,17 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     const v=opmBank?.voices[Number(el('opmVoice').value)];
     if(v){inspector.invoke('setLFO',[v.lfo]);inspector.invoke('setNoise',[v.noise]);}
   };
-  el('playSong').onclick=()=>{const v=songEntries()[Number(el('songs').value)]?.[1];if(v)playSong(v);};
+  el('playSong').onclick=()=>{
+    const song=songEntries()[Number(el('songs').value)]?.[1];
+    if(!song)return;
+    if(!songBanks.has(song.bytes))songBanks.set(song.bytes,embeddedSongBanks(song.bytes));
+    const banks=songBanks.get(song.bytes);
+    if(!song.bankPaths){
+      song.bankPaths=stageSongBanks(song,banks,files,true);
+      render();persist();
+    }
+    playSong({...song,banks});
+  };
   el('songs').onchange=stopSong;el('stopSong').onclick=stopSong;
   el('codeFile').onchange=()=>open(el('codeFile').value);
   el('editor').oninput=()=>{
@@ -230,6 +241,18 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     const stem=dot>0?filename.slice(0,dot):filename, ext=dot>0?filename.slice(dot):'';
     const path=checkPath(nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+ext));
     remember();files.set(path,newBank({kind:'bank',bytes,names,name}));open(path);persist();
+  }
+  function stageSongBanks(song,banks,additions,recover=false){
+    const paths={};
+    for(const {index,bytes} of banks){
+      const stem=song.name.replace(/\.vg[zm]$/i,'')+(banks.length>1||index?'-bank'+index:'');
+      const existing=recover && items('bank').find(([path,bank])=>base(path)===stem+'.rom' &&
+        bank.bytes.length===bytes.length && bytes.every((b,i)=>b===bank.bytes[i]));
+      const path=existing?.[0] || checkPath(nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+'.rom',0,additions));
+      if(!existing)additions.set(path,newBank({kind:'bank',bytes,name:base(path),names:Array(128).fill('')}));
+      paths[index]=path;
+    }
+    return paths;
   }
   async function importFiles(incoming,parent,numbered=false) {
     const epoch=revision, additions=new Map();
@@ -257,11 +280,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
       else throw Error('Unsupported file: '+f.name);
       if(occupied(path)||additions.has(path))throw Error('Already exists: '+path);
       additions.set(path,v);
-      if(extracted){
-        const stem=f.name.replace(/\.vg[zm]$/i,'');
-        const target=checkPath(nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+'.rom',0,additions));
-        additions.set(target,newBank({kind:'bank',bytes:extracted,name:base(target),names:Array(128).fill('')}));
-      }
+      if(extracted){songBanks.set(v.bytes,extracted);v.bankPaths=stageSongBanks(v,extracted,additions);}
     }
     if(epoch!==revision)return;
     for(const path of additions.keys())if(occupied(path))throw Error('Already exists: '+path);
@@ -306,7 +325,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
         case 'channel':record.ch=v.ch;data=JSON.stringify(currentVoice(v.ch));break;
         case 'voice':data=JSON.stringify(v.voice);break;
         case 'bank':record.names=v.names;record.name=v.name;record.voiceSamples=v.voiceSamples;data=v.bytes;break;
-        case 'song':record.name=v.name;data=v.raw;break;
+        case 'song':record.bankPaths=v.bankPaths;record.name=v.name;data=v.raw;break;
         case 'opm':data=v.source;break;
         case 'code':data=v.text;break;
       }
@@ -343,7 +362,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
           case 'voice':value={voice:validateVoice(JSON.parse(decode(bytes)),validator)};break;
           case 'code':value={text:decode(bytes)};break;
           case 'opm':{const source=decode(bytes);value={source,voices:parseOpm(source)};break;}
-          case 'song':value=await loadSong(r.name,bytes);break;
+          case 'song':value=await loadSong(r.name,bytes);if(r.bankPaths && Object.values(r.bankPaths).every(p=>typeof p==='string'))value.bankPaths=r.bankPaths;break;
           case 'bank':value={bytes,name:r.name,names:r.names,voiceSamples:r.voiceSamples};break;
           default:throw Error('Unknown CPS1 file type.');
         }

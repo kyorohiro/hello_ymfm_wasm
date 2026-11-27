@@ -8,7 +8,7 @@ import {createParamControl} from '../synth/synth_controls.js';
 import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth/synth_keyboard.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {decodeSongSample} from './song-samples.js';
-import {displaySample,drawWave,inspectBank} from './sample-view.js';
+import {displaySample,inspectBank} from './sample-view.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
 import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
@@ -127,7 +127,7 @@ async function startAudio() {
         bus.gain.value = gainFor(mix[id]); bus.connect(master);
       }
       const pcm = new AudioWorkletNode(context,'cps1-oki',{numberOfInputs:0,outputChannelCount:[2]});
-      pcm.port.onmessage = ({data}) => showBusy(data.status,data.samples);
+      pcm.port.onmessage = ({data}) => {if(!observation)showBusy(data.status,data.samples);};
       pcm.connect(buses.pcm); master.connect(context.destination);
       scope.connect(context,[master]);
       audio = {fm,pcm,master,buses};
@@ -169,7 +169,7 @@ new ResizeObserver(([entry]) => {
 }).observe(canvas);
 function draw() {
   if (dirty && (!observation || !$('fm').hidden)) {
-    const source=observation ? observation.fm : inspector;
+    const source=observation ? observation.fm ?? observation.idleFm : inspector;
     if (source) panel.update(source.read());
     syncKeyChannels();dirty=false;
   }
@@ -293,7 +293,7 @@ function showBusy(value,ids=[]) {
 let sampleNames=[],selectedSlot=0;
 const voicePickers=[],voiceIds=[];
 let nextSampleVoice=0;
-function slotName(id){return sampleNames[id]?id+' · '+sampleNames[id]:String(id);}
+function slotName(id){return !observation && sampleNames[id]?id+' · '+sampleNames[id]:String(id);}
 function voiceSample(voice){return voiceIds[voice]<0?selectedSlot:voiceIds[voice];}
 let sampleAttenuation=2;
 const attenuationControl=createParamControl({label:'Attenuation',min:0,max:15,step:1,value:sampleAttenuation,
@@ -315,7 +315,8 @@ function selectSlot(id){
   const filled=slotButtons[id].dataset.filled==='true';
   $('deleteSlot').disabled=!filled;
   $('selectedSample').textContent=filled?slotName(id):id+' · Empty';
-  displaySample($('sampleWave'),$('sampleRange'),sampleRom,id);
+  displaySample($('sampleWave'),$('sampleRange'),observation ? observation.rom : sampleRom,id,observation?.rate);
+  if(observation){stopPreview();syncPreview();}
 }
 $('deleteSlot').onclick=()=>{try{files.deleteSample(selectedSlot);}catch(error){fail(error);}};
 $('writeSlot').onclick=()=>$('slotAudio').click();
@@ -323,22 +324,24 @@ $('slotAudio').onchange=async()=>{
   const input=$('slotAudio'),file=input.files[0];input.value='';
   if(file)try {await files.loadSampleFile(file,selectedSlot);} catch(error){fail(error);}
 };
-function chooseSamples(names,assignments=[],selected=0) {
-  const {ids,usedBytes}=inspectBank(sampleRom);
-  sampleNames=names;
+function showSlots(rom,selected,rate=1000000/132) {
+  const {ids,usedBytes}=inspectBank(rom);
   const occupied=new Set(ids);
   for(const [id,button] of slotButtons.entries()){
     button.dataset.filled=String(occupied.has(id));
     button.title=occupied.has(id)?slotName(id):id+' · Empty';
     button.setAttribute('aria-label',button.title);
   }
-  $('bankInfo').textContent=ids.length+' / 128 samples · ROM '+usedBytes.toLocaleString('en-US')+' / 262,144 bytes · 7.58 kHz';
+  $('bankInfo').textContent=ids.length+' / 128 samples · ROM '+usedBytes.toLocaleString('en-US')+' / 262,144 bytes · '+(rate/1000).toFixed(2)+' kHz';
+  selectSlot(selected);
+}
+function chooseSamples(names,assignments=[],selected=0) {
+  sampleNames=names;showSlots(sampleRom,selected);
   $('hitPad').disabled=names[3]!=='Arcade hit';
   for(const [voice,picker] of voicePickers.entries()){
     voiceIds[voice]=assignments[voice]??-1;
     picker.updateVisual(voiceIds[voice]);
   }
-  selectSlot(selected);
 }
 $('hitPad').onclick=()=>{
   oki.play(3,3,2);startAudio().catch(fail);
@@ -393,9 +396,10 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
   group.append(legend,row,channels); $('mixer').append(group);
 }
 showBusy(0xf0);
-let romRevision = 0;
+let romRevision = 0, synthRomLabel=$('romName').textContent;
 function installRom(bytes,names,label,assignments,extended=false,slot=null) {
   if(!extended)nextSampleVoice=0;
+  synthRomLabel=label;
   romRevision++; sampleRom = bytes; rawOki = [];
   audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,slot??(extended?selectedSlot:0)); $('romName').textContent = label;
 }
@@ -512,41 +516,48 @@ function stopPreview() {
   }
   $('previewSongSample').textContent='Preview';
 }
-function showOkiVoice(index) {
-  stopPreview();
-  selectedOkiVoice=index;
-  const {voices,rate}=observation.oki, voice=voices[index];
-  for (const [i,button] of Array.from($('songOkiVoices').children).entries()) {
-    button.textContent='Voice '+(i+1)+(voices[i].busy?' · Busy':' · Idle');
-    button.setAttribute('aria-pressed',String(i===index));
-  }
-  const info=[];
-  if (voice.requestedSample!==undefined) {
-    info.push('Last request '+voice.requestedSample+' · Attenuation '+voice.requestedAttenuation);
-    if (voice.sample!==undefined && (voice.requestedSample!==voice.sample || voice.requestedAttenuation!==voice.attenuation))
-      info.push('Last played '+voice.sample+' · Attenuation '+voice.attenuation);
-  } else info.push('No sample requested');
-  const canvas=$('songSampleWave');
-  sampleBuffer=null;
-  if (voice.bytes) {
-    const {pcm,min,max}=decodeSongSample(voice,canvas.width);
-    sampleBuffer=context.createBuffer(1,pcm.length,context.sampleRate);
-    sampleBuffer.copyToChannel(pcm,0);
-    drawWave(canvas,min,max);
-    info.push((pcm.length/rate).toFixed(3)+' s');
-  } else if (pausedSong && voice.requestedSample!==undefined) info.push('No complete sample available');
-  canvas.hidden=!sampleBuffer;
-  $('previewSongSample').disabled=!sampleBuffer;
-  $('songSampleInfo').textContent=info.join(' · ');
+function syncPreview(){
+  const index=pausedSong?.oki?.voices.findIndex(v=>v.sample===selectedSlot && v.bytes);
+  selectedOkiVoice=index>=0?index:0;
+  $('previewSongSample').hidden=!(index>=0);
 }
-for (let i=0;i<4;i++) {
-  const button=document.createElement('button');
-  button.onclick=()=>showOkiVoice(i);
-  $('songOkiVoices').append(button);
+const emptyRom=new Uint8Array();
+function showSongPcm(song,state){
+  const bank=!state?.nmk && song.banks.find(b=>b.index===state?.bank);
+  const rom=bank?.bytes ?? emptyRom;
+  if(observation.rom!==rom || observation.rate!==state?.rate){
+    observation.rom=rom;observation.rate=state?.rate;
+    const path=song.bankPaths?.[bank?.index];
+    const label=path?.split('/').pop() ?? (state?'No standalone ROM':'No MSM6295 in this VGM');
+    $('romName').textContent=label;
+    const list=$('romList');
+    list.querySelector('[data-song-bank]')?.remove();
+    if(!path || !Array.from(list.options).some(o=>o.value===path)){
+      const option=new Option(label,'');option.dataset.songBank='';list.add(option);option.selected=true;
+    }else list.value=path;
+    showSlots(rom,selectedSlot,state?.rate);
+  }
+  const voices=state?.voices ?? [];
+  const ids=voices.map(v=>v.sample ?? v.requestedSample);
+  voicePickers.forEach((picker,i)=>picker.updateVisual(ids[i]??-1));
+  const busy=voices.reduce((v,ch,i)=>v|(Number(ch.busy)<<i),0xf0);
+  showBusy(busy,ids);
+  $('command').value=state?.command==null?'—':hex(state.command);
+  const last=voices.find(v=>v.sample===selectedSlot) ?? voices.find(v=>v.busy);
+  attenuationControl.updateVisual(last?.attenuation??0);
+  voices.forEach((voice,i)=>{
+    const detail=voice.requestedSample==null?'No request':'Last request '+voice.requestedSample+' · Attenuation '+voice.requestedAttenuation;
+    muteButtons[i].title+=' · '+detail;
+  });
+  syncPreview();
 }
 $('previewSongSample').onclick=()=>{
   if (previewNode) {stopPreview();return;}
-  if (!pausedSong?.oki || !sampleBuffer) return;
+  const voice=pausedSong?.oki?.voices[selectedOkiVoice];
+  if(!voice?.bytes)return;
+  const {pcm}=decodeSongSample(voice,1);
+  sampleBuffer=context.createBuffer(1,pcm.length,context.sampleRate);
+  sampleBuffer.copyToChannel(pcm,0);
   previewNode=context.createBufferSource();previewGain=context.createGain();
   previewNode.buffer=sampleBuffer;
   previewNode.playbackRate.value=pausedSong.oki.rate/context.sampleRate;
@@ -566,14 +577,7 @@ $('useSongVoice').onclick=()=>{
   status('Copied VGM CH'+(ch+1)+' to YM2151 CH'+(target+1));
 };
 function setSongView(active) {
-  const fm=observation?.fm, pcm=observation?.oki;
-  $('fm').querySelector('fieldset').hidden=active && !fm;
-  $('songFmLabel').hidden=!active;
-  $('songFmLabel').textContent=fm?'VGM · YM2151':'No YM2151 in this VGM';
-  $('pcmEditor').hidden=active;
-  $('songOki').hidden=!active || !pcm;
-  $('songPcmLabel').hidden=!active || !!pcm;
-  $('songPcmLabel').textContent='No MSM6295 in this VGM';
+  for(const node of $('pcmEditor').querySelectorAll('#romList,#importRom,#writeSlot,#deleteSlot,#chooseSamples,#restore,#attenuation,#voices .param-control'))node.inert=active;
   $('keyboardPanel').inert=active;
   for (const node of $('fm').querySelectorAll('.param-control, table button, input, .opm-envelope-editor canvas, .voice-tools > button:nth-of-type(2), [data-key-channel="-1"]')) node.inert=active;
   dirty=true;
@@ -586,10 +590,16 @@ function syncSongMutes() {
   if (previewNode) previewGain.gain.value=voiceMutes[selectedOkiVoice]?0:1;
   songNode?.port.postMessage({fm:fmMutes,pcm:voiceMutes});}
 function stopSong() {
-  stopPreview();$('songOki').hidden=true;sampleBuffer=null;
+  stopPreview();$('previewSongSample').hidden=true;sampleBuffer=null;
   if (observation) {
-    const {channel,auto}=observation;
+    const {channel,auto,slot,bankPath,command}=observation;
     observation=null;
+    $('romList').querySelector('[data-song-bank]')?.remove();
+    $('romList').value=bankPath;
+    $('romName').textContent=synthRomLabel;
+    chooseSamples(sampleNames,[...voiceIds],slot);
+    attenuationControl.updateVisual(sampleAttenuation);showBusy(0xf0);
+    $('command').value=command;
     panel.selectChannel(channel);autoChannel=auto;
     setSongView(false);syncKeyChannels();
   }
@@ -631,7 +641,8 @@ async function playSong(song) {
       if (request!==songRequest) return;
       if (data.done) {stopSong();status(data.error ?? 'Finished');return;}
       if (data.ready) {
-        observation={channel:panel.getSelectedChannel(),auto:autoChannel,
+        observation={channel:panel.getSelectedChannel(),auto:autoChannel,slot:selectedSlot,bankPath:$('romList').value,command:$('command').value,
+          idleFm:data.fm ? null : new Ym2151VoiceInspector({}),
           fm:data.fm ? new Ym2151VoiceInspector({clock:data.clock,sampleRate:context.sampleRate}) : null,oki:data.oki};
         autoChannel=false;
         selectedOkiVoice=0;
@@ -641,9 +652,7 @@ async function playSong(song) {
       if (data.fm) {Object.assign(observation.fm,data.fm);dirty=true;}
       observation.oki=data.oki;
       if ('paused' in data) pausedSong=data.paused?data:null;
-      if (data.oki) {
-        showOkiVoice(selectedOkiVoice);
-      }
+      showSongPcm(song,data.oki);
       if (data.ready) {$('pauseSong').disabled=false;return;}
       if (data.playing) return;
       $('songVoice').hidden=!data.paused || !observation.fm;

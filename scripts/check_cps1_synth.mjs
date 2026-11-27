@@ -300,7 +300,7 @@ try {
   const rom=Buffer.from(createKit()), header=Buffer.alloc(0x100), block=Buffer.alloc(15);
   header.write('Vgm ');header.writeUInt32LE(0x171,8);header.writeUInt32LE(0xcc,0x34);
   header.writeUInt32LE(3579545,0x30);header.writeUInt32LE(0x80000000+1000000,0x98);
-  block.set([0x67,0x66,0x8b]);block.writeUInt32LE(8+rom.length,3);block.writeUInt32LE(rom.length,7);
+  block.set([0x67,0x66,0x8b]);block.writeUInt32LE(8+rom.length,3);block.writeUInt32LE(0x100000,7);
   const song=Buffer.concat([header,block,rom,Buffer.from([0x54,0x20,0xc7,0xb8,0,0x83,0xb8,0,0x82,0x61,0xff,0xff,0x66])]);
   song.writeUInt32LE(song.length-4,4);
   await page.click('#synthMenuButton');
@@ -313,19 +313,14 @@ try {
   await page.click('#playSong');
   await page.waitForFunction(()=>window.peak>.001);
   await page.click('[data-tab="pcm"]');
-  await page.locator('#songOkiVoices button').nth(3).click();
-  await page.waitForFunction(()=>document.querySelector('#songSampleInfo').textContent.includes('Last request 3'));
-  assert.ok(await page.locator('#pcmEditor').isHidden());
+  await page.waitForFunction(()=>document.querySelector('#romName').textContent==='hit.rom');
+  assert.ok(await page.locator('#pcmEditor').isVisible());
+  await page.waitForFunction(()=>document.querySelector('#command').value==='0x82');
   await page.click('#pauseSong');
   await page.waitForFunction(()=>document.querySelector('#playSong').textContent==='Resume');
-  await page.locator('#songOki').waitFor({state:'visible'});
   const frozen=await page.locator('#songTime').textContent();
-  assert.equal(await page.locator('#songOkiVoices button').count(),4);
-  await page.locator('#songOkiVoices button').first().click();
-  assert.ok(await page.locator('#previewSongSample').isDisabled());
-  await page.locator('#songOkiVoices button').nth(3).click();
-  assert.match(await page.locator('#songSampleInfo').textContent(),/Last request 3 · Attenuation 2/);
-  assert.ok(await page.locator('#songSampleWave').isVisible());
+  await page.locator('#sampleSlots button').nth(3).click();
+  assert.ok(await page.locator('#sampleWave').isVisible());
   await page.waitForFunction(()=>window.lastPeak===0);
   await page.evaluate(()=>{window.peak=0;});
   await page.click('#previewSongSample');
@@ -351,7 +346,7 @@ try {
   await page.waitForFunction(()=>window.peak>.001);
   await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-algorithm"]').value==='7');
   await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-feedback"]').value==='1');
-  assert.equal(await page.locator('#songPcmLabel').textContent(),'No MSM6295 in this VGM');
+  assert.equal(await page.locator('#romName').textContent(),'No MSM6295 in this VGM');
   await page.click('#pauseSong');
   await page.locator('#songVoice').waitFor({state:'visible'});
   assert.equal(await page.locator('[data-chip-channel]').count(),8);
@@ -514,9 +509,10 @@ try {
 
   const archived=await loadPlaygroundCassette(saved);
   const state=archived.metadata.cps1;
-  const legacyMeta={version:1,banks:[{name:'Legacy kit',names:['Kick']}],active:0,presets:0,songs:[],lfo:state.lfo,noise:state.noise};
+  const legacyMeta={version:1,banks:[{name:'Legacy kit',names:['Kick']}],active:0,presets:0,songs:['legacy.vgz'],lfo:state.lfo,noise:state.noise};
   const legacy=createPlaygroundCassetteZip([
     {path:'index.js',type:'text',data:'// legacy'},
+    {path:'songs/0.vgz',type:'binary',data:gzipSync(song)},
     {path:'banks/0.rom',type:'binary',data:createKit()},
     ...state.voices.map((voice,i)=>({path:'presets/ch'+(i+1)+'.fm.json',type:'text',data:JSON.stringify(voice)})),
   ],{metadata:{cps1:legacyMeta}});
@@ -524,6 +520,12 @@ try {
   await page.locator('#importCassette').setInputFiles({name:'old.cassette.zip',mimeType:'application/zip',buffer:Buffer.from(legacy)});
   await page.getByText('Imported old.cassette.zip',{exact:true}).waitFor();
   assert.equal(await page.inputValue('#editor'),'// legacy');
+  for(let pass=0;pass<2;pass++){
+    await page.click('#playSong');
+    await page.waitForFunction(()=>document.querySelector('#romName').textContent==='legacy.rom');
+    await page.click('#stopSong');
+    assert.deepEqual(await page.locator('#romList option').allTextContents(),['0.rom','legacy.rom']);
+  }
   await fileAction('/','Undo files');
   await row('/examples/take.js').click();
   assert.equal(await page.inputValue('#editor'),'// riff');

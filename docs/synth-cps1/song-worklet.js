@@ -43,6 +43,11 @@ class Song extends AudioWorkletProcessor {
       this.fmDirty=false;
     }
     message.oki=this.pcm ? this.sampleMemory.snapshot(this.pcm,!!message.paused) : null;
+    if(message.oki){
+      message.oki.bank=this.pcm.bank>>>18;
+      message.oki.nmk=this.pcm.nmkMode;
+      message.oki.command=this.lastCommand;
+    }
     if (message.paused) message.masks=this.lastMasks;
     this.port.postMessage(message);
   }
@@ -70,7 +75,10 @@ class Song extends AudioWorkletProcessor {
             this.voiceState.observeWrite(e.register,e.value);
             if (e.register===8 && (e.value & 0x78)) this.lastMasks[e.value & 7]=(e.value>>3)&15;
           }
-          if (e.type==='okim6295-write') this.pcm.writeOki6295(e.register,e.value);
+          if (e.type==='okim6295-write') {
+            this.pcm.writeOki6295(e.register,e.value);
+            if(!e.register)this.lastCommand=e.value;
+          }
           if (e.type==='okim6295-rom-data') {
             this.pcm.loadOki6295Rom(e.data,e.offset,e.memorySize);
             this.sampleMemory.observe(e.offset,e.data.length,e.memorySize);

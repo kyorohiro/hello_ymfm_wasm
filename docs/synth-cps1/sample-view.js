@@ -21,7 +21,7 @@ export function playableSamples(rom) {
   return inspectBank(rom).ids;
 }
 
-export function inspectSample(rom,sample,columns=640) {
+export function inspectSample(rom,sample,columns=640,rate=1000000/132) {
   if (8*sample+6 > rom.length) return {message:'No sample table entry in this ROM.'};
   const chip = new Oki6295AudioEngine({clock:1000000+0x80000000});
   chip.loadOki6295Rom(rom);
@@ -39,11 +39,11 @@ export function inspectSample(rom,sample,columns=640) {
     const bin = Math.floor(i*width/count), value = chip.voices[0].output;
     min[bin] = Math.min(min[bin],value); max[bin] = Math.max(max[bin],value);
   }
-  return {min,max,message:range+' (inclusive) · '+(stop-start+1)+' bytes · '+(count*132/1000000).toFixed(3)+' s'};
+  return {min,max,message:range+' (inclusive) · '+(stop-start+1)+' bytes · '+(count/rate).toFixed(3)+' s'};
 }
 
-export function displaySample(canvas,caption,rom,sample) {
-  const {min,max,message} = inspectSample(rom,sample,canvas.width);
+export function displaySample(canvas,caption,rom,sample,rate) {
+  const {min,max,message} = inspectSample(rom,sample,canvas.width,rate);
   caption.textContent = message;
   canvas.hidden = !min;
   if (!min) return;
