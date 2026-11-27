@@ -1,15 +1,46 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {createParamControl} from '../synth/synth_controls.js';
+import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 const $ = id => document.getElementById(id);
-const channels = Array.from({length:16},()=>({sample:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
+const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
 let selected = 0, context, ready, port, generation = 0;
 let revision = 0, demoPlaying = false, shown, cursor = null;
 const draw = createWaveEditor(edit);
+const echo = {delay:6,feedback:0};
+const echoControls = {};
+for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
+  ['delay','Delay · shared',0,1024],['feedback','Feedback · shared',-32768,32767]]) {
+  echoControls[key] = createParamControl({label,min,max,step:1,value:0,
+    formatValue:key === 'delay' ? ticks=>ticks+' ticks · '+(ticks*1000/QSOUND_PCM_RATE).toFixed(2)+' ms' : String,
+    onChange(value) {
+      revision++;
+      if (key === 'send') channels[selected].send = value;
+      else echo[key] = value;
+      port?.postMessage(echoWrite(key,value,selected));
+    }});
+  $('echo-controls').append(echoControls[key].element);
+}
+function echoWrite(key,value,ch) {
+  if (key === 'delay') return {type:'echo-delay',ticks:value};
+  return [[key === 'send' ? 0xba+ch : 0x93,value & 65535]];
+}
+function restoreEcho() {
+  if (!port) return;
+  port.postMessage(echoWrite('delay',echo.delay));
+  port.postMessage([[0x93,echo.feedback & 65535],...channels.map((v,i)=>[0xba+i,v.send & 65535])]);
+}
+function showEcho(send,delay,feedback) {
+  echoControls.send.updateVisual(send);
+  echoControls.delay.updateVisual(delay);
+  echoControls.feedback.updateVisual(feedback);
+}
 function refresh() {
   revision++;
   shown = channels[selected];
   cursor = null;
+  showEcho(shown.send,echo.delay,echo.feedback);
   $('wave').selectedIndex=shown.sample;
   draw(shown);
 }
@@ -39,9 +70,12 @@ function inspect({data}) {
   } else shown = v;
   if (demoPlaying && data.finished && !data.active) {
     demoPlaying = false;
+    restoreEcho();
     shown = v;
   }
   $('wave').selectedIndex=shown.sample;
+  if (demoPlaying) showEcho(data.send,data.delay,data.feedback);
+  else showEcho(v.send,echo.delay,echo.feedback);
   cursor = data.active ? data.address : null;
   draw(shown,cursor);
 }
@@ -54,7 +88,7 @@ async function audio() {
   await context.resume();
   ready ??= context.audioWorklet.addModule('./processor.js').then(()=>{
     const node = new AudioWorkletNode(context,'tetorica-cps2-preview',{outputChannelCount:[2]});
-    node.connect(context.destination); port = node.port; port.onmessage = inspect;
+    node.connect(context.destination); port = node.port; port.onmessage = inspect; restoreEcho();
   }).catch(error=>{ready=null;throw error;});
   await ready;
 }
@@ -104,7 +138,7 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();if(!e.repeat)press(e.code,notes[i]);
 });
 window.addEventListener('keyup',e=>release(e.code));
-function stop(){demoPlaying=false;refresh();generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');}
+function stop(){demoPlaying=false;refresh();generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');restoreEcho();}
 window.addEventListener('blur',stop);
 $('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation){demoPlaying=true;port.postMessage($('score').value);}});};
 $('stop').onclick=stop;

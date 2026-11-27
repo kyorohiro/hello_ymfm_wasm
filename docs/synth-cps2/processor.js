@@ -11,9 +11,14 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.index = 0;
     this.frame = 0;
     this.port.onmessage = ({data}) => {
+      if (data?.type === 'echo-delay') {
+        this.chip.writeRegister(0xd9,this.chip.echoBase + data.ticks);
+        return;
+      }
       if (data?.type === 'inspect') {
         const v = this.chip.voices[data.channel];
         this.port.postMessage({...data,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
+          send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,
           active:v.volume !== 0,finished:this.index === this.events.length,start:this.starts[data.channel]});
         return;
       }
