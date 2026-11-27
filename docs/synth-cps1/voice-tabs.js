@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createParamControl} from '../synth/synth_controls.js';
 
-export function arrangeVoiceSections({body,channelList,selected,common,audition,operatorsCard,lfoCard,noiseCard,details,registers,code,status}) {
+export function arrangeVoiceSections({body,channelList,selected,common,audition,operatorsCard,lfoCard,noiseCard,details,registers,code,status},keyMask) {
   const controls=[];
   for (const input of body.querySelectorAll('.chip-field > input,.chip-field > select')) {
     const isSelect=input.tagName==='SELECT', isToggle=input.type==='checkbox';
@@ -21,6 +21,27 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
     view.element.append(input);
     controls.push(()=>view.updateVisual(read()));
   }
+  // Register 0x08 follows the logical operator row order, including M2 before C1.
+  const table=operatorsCard.querySelector('table');
+  const heading=document.createElement('th');
+  heading.scope='col';
+  heading.textContent='Key';
+  table.tHead.rows[0].cells[0].after(heading);
+  for (const [index,row] of Array.from(table.tBodies[0].rows).entries()) {
+    const bit=1<<index;
+    const button=document.createElement('button');
+    button.type='button';
+    button.title='Include '+row.cells[0].textContent+' on the next key-on';
+    button.setAttribute('aria-label',button.title);
+    const sync=()=>{
+      const enabled=Boolean(keyMask.read() & bit);
+      button.setAttribute('aria-pressed',String(enabled));
+      button.textContent=enabled?'ON':'OFF';
+    };
+    button.onclick=()=>{keyMask.toggle(bit);sync();};
+    row.insertCell(1).append(button);
+    controls.push(sync);
+  }
   const tabs=document.createElement('div'), pages=document.createElement('div');
   tabs.className='voice-tabs';
   tabs.setAttribute('role','group');
@@ -39,7 +60,7 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
   tools.className='voice-tools';selected.append(tools);
   tool(tools,'Pitch / gate',[common]);
   tool(tools,'Audition',[audition,selected.querySelector('.subtext')]);
-  tool(operatorsCard,'Envelope guide',[...operatorsCard.querySelectorAll('p.subtext')]);
+  tool(tools,'Envelope',[operatorsCard.querySelector('canvas'),...operatorsCard.querySelectorAll('p.subtext')]);
   tool(noiseCard,'LFO / noise guide',[lfoCard.querySelector('.subtext'),noiseCard.querySelector('.subtext')]);
   const registerPage=document.createElement('section');
   const range=document.createElement('select');
@@ -63,7 +84,7 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
   }
   range.onchange=()=>updateRegisters(values);
 
-  const groups=[['Voice',selected],['Operators',operatorsCard],['LFO / Noise',lfoCard,noiseCard],['Registers',registerPage]];
+  const groups=[['Voice',selected,operatorsCard],['LFO / Noise',lfoCard,noiseCard],['Registers',registerPage]];
   for (const [index,[label,...sections]] of groups.entries()) {
     const tab=document.createElement('button'), page=document.createElement('div');
     page.className='voice-page';page.id='opm-page-'+index;

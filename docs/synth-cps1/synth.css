@@ -93,7 +93,6 @@ header::after {margin-left:0}
 #performanceTabs {grid-row:3}
 [data-mode=synth] #workbench :is(#code,#keyboardPanel) {grid-row:4}
 [data-mode=code] #editor {height:clamp(18rem,45vh,40rem)}
-[data-mode=synth] #workbench #pcm {max-height:clamp(10rem,28dvh,30rem);overflow:auto}
 @media(max-width:480px) {.mode-switch {margin-left:0}}
 [data-mode=code] #sourceTabs {position:sticky;top:0;z-index:2;background:#e7d7b8}
 
@@ -107,7 +106,6 @@ header::after {margin-left:0}
   header {gap:.5rem;padding:.45rem .6rem}
   header img {width:2.5rem}
   .output canvas {height:52px}
-  [data-mode=synth] #workbench #pcm {max-height:clamp(8rem,21dvh,15rem)}
 }
 .keyboard-toolbar,#keyChannels,#keyOctave {display:flex;align-items:center;flex-wrap:wrap;gap:.25rem}
 .keyboard-toolbar {justify-content:space-between;margin-bottom:.35rem}
@@ -184,7 +182,7 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
   #workbench > section {padding:.38rem}
   #keyChannels button {font-size:.78rem}
 }
-#opm-page-0 > .chip-section > h3,#opm-page-1 > .chip-section > h3 {display:none}
+#opm-page-0 > .chip-section > h3 {display:none}
 @media(min-width:720px) {
   #workbench #fm {padding-block:.35rem}
   #referenceSong:not([hidden]) + .output canvas {height:38px}
@@ -208,3 +206,14 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 .files-heading h2 {text-transform:uppercase;letter-spacing:.1em;font-size:.9rem}
 .files-heading button,#cassetteName {font-size:.75rem}
 #cassetteName {color:#58533f;overflow-wrap:anywhere}
+
+#pcm #voices {grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))}
+#pcm input[type=file] {max-width:100%;min-width:0}
+#pcm > label {max-width:100%;flex-wrap:wrap}
+#opm-page-0 .voice-tools {display:inline-flex}
+#opm-page-0 .chip-opm-routing {display:inline;margin-right:.5rem}
+.voice-tool .chip-opm-envelope {width:min(28rem,75vw);height:auto}
+@media(min-width:375px) and (max-width:719px) {
+  #opm-page-0 .chip-section > .chip-fields {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.15rem;align-items:stretch}
+  #opm-page-0 .chip-fields .param-control {min-width:0;align-content:space-between}
+}

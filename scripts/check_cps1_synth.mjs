@@ -40,7 +40,7 @@ try {
   const voiceTab=name=>page.locator('.voice-tabs').getByRole('button',{name,exact:true});
   async function checkVoicePages() {
     const positions=[];
-    for (const name of ['Voice','Operators','LFO / Noise','Registers']) {
+    for (const name of ['Voice','LFO / Noise','Registers']) {
       await voiceTab(name).click();
       positions.push(await page.evaluate(()=>{
         const fm=document.querySelector('#fm');
@@ -90,10 +90,19 @@ try {
   await chooseKeyChannel(1);
   await page.keyboard.down('a');
   await page.waitForFunction(() => window.peak>.001);
+  const slot=page.getByRole('button',{name:'Include OP2 · M2 on the next key-on'});
+  const gate=page.locator('[data-chip-output="ym2151-gate"]');
+  await slot.click();
+  assert.equal(await slot.getAttribute('aria-pressed'),'false');
+  assert.match(await gate.textContent(),/1111/);
+  await page.keyboard.up('a');
+  await page.keyboard.down('a');
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes('1101'));
+  await slot.click();
   const feedback=page.getByRole('button',{name:'Feedback (OP1)',exact:true});
   for (let i=0;i<4;i++) await feedback.locator('..').getByRole('button',{name:'+',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-chip-control="ym2151-code"]').value.includes('opm.setAlgo(0, 4, 6)'));
-  await voiceTab('Operators').click();
+  assert.ok(await page.getByRole('button',{name:'OP4 · C2 RR',exact:true}).isVisible());
   const level = page.getByRole('button',{name:'OP1 · M1 TL',exact:true});
   const before = Number(await level.textContent());
   await level.scrollIntoViewIfNeeded();
@@ -325,6 +334,10 @@ try {
     await checkVoicePages();
     const keyboard = await page.locator('#keys .key').first().boundingBox();
     assert.ok(keyboard.y >= 0 && keyboard.y + keyboard.height <= 850, JSON.stringify({width,keyboard}));
+    await page.click('[data-tab="pcm"]');
+    assert.ok(await page.locator('#pcm').evaluate(panel=>panel.scrollHeight<=panel.clientHeight+1 &&
+      panel.querySelector('#restore').getBoundingClientRect().bottom<=panel.getBoundingClientRect().bottom));
+    await page.click('[data-tab="fm"]');
     await page.click('#codeMode');
     await page.click('[data-tab="keyboardPanel"]');
     assert.ok(await page.locator('#keys .key').first().isVisible());
