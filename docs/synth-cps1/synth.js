@@ -139,13 +139,22 @@ async function startAudio() {
       master.gain.value = Number($('master').value)/100;
       await context.audioWorklet.addModule(new URL('./oki-worklet.js',import.meta.url));
       const buses = {fm:context.createGain(),pcm:context.createGain()};
-      fm = await createYm2151Audio(context,buses.fm);
+      fm = await createYm2151Audio(context,buses.fm,{processorName:'cps1-fm',workletUrl:new URL('./fm-worklet.js',import.meta.url)});
+      fm.port.postMessage({fmMutes});
+      fm.port.onmessage=({data})=>{
+        if(timedReply(data))return;
+        if(data.timedWrites){
+          for(const [r,v] of data.timedWrites)inspector.observeWrite(r,v);
+          opm._adoptState({registers:inspector.registers});
+          dirty=true;
+        }
+      };
       for (const [id,bus] of Object.entries(buses)) {
         bus.gain.value = gainFor(mix[id]); bus.connect(master);
       }
       const pcm = new AudioWorkletNode(context,'cps1-oki',{numberOfInputs:0,outputChannelCount:[2]});
       pcm.port.onmessage = ({data}) => {
-        if(observation)return;
+        if(timedReply(data)||observation)return;
         if(data.commands){if(worker)$('command').value=data.commands.map(hex).join(' ');}
         else showBusy(data.status,data.samples);
       };
@@ -435,6 +444,7 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
       if (id==='pcm') return oki.setVoiceMuted(i,!mutes[i]);
       mutes[i]=!mutes[i];syncSongMutes();
       button.setAttribute('aria-pressed',String(!mutes[i]));
+      audio?.fm.port.postMessage({fmMutes});
       const register=0x20+i;
       audio?.fm.port.postMessage({method:'writeRegister',args:audibleRegister(register,inspector.read().registers[register])});
     });
@@ -803,10 +813,17 @@ async function playSong(song) {
     status('Playing '+song.name);
   } catch(error) {if (request===songRequest) {stopSong();fail(error);}}
 }
+function timedReply(data){
+  if(data.scheduleFailure){fail(data.scheduleFailure);return true;}
+  if(!data.timedReply)return false;
+  if(data.timedReply.run===runId)worker?.postMessage(data);
+  return true;
+}
 function stopRun(keepSettings=false) {
   stopSong(keepSettings);
   $('applyCode').disabled=true;
   runId++; worker?.terminate(); worker = null;
+  audio?.fm.port.postMessage({clearTimeline:true});audio?.pcm.port.postMessage({clearTimeline:true});
   panel.releaseAll(); held.clear();autoHeld.clear();
   for (let ch=0;ch<8;ch++) opm.keyOff(ch);
   write(0x78);
@@ -824,6 +841,11 @@ $('run').onclick = async () => {
     worker.onmessage = ({data}) => {
       if (id !== runId) return;
       try {
+        if(data.timedRequest){
+          const port=data.chip==='ym2151'?audio.fm.port:audio.pcm.port;
+          port.postMessage({timedRequest:{run:id,seq:data.timedRequest},payload:data.payload});
+          return;
+        }
         if (data.error) throw Error(data.error);
         if(data.status){$('applyCode').disabled=false;status(data.status);return;}
         if(data.done){worker.terminate();worker=null;$('applyCode').disabled=true;status('Finished');return;}

@@ -3,7 +3,7 @@ import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-u
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
  * @param {AudioNode|null} destination
- * @param {{signal?:AbortSignal,fetch?:typeof fetch,wasmUrl?:string|URL,workletUrl?:string|URL}} [options] */
+ * @param {{signal?:AbortSignal,fetch?:typeof fetch,wasmUrl?:string|URL,workletUrl?:string|URL,processorName?:string}} [options] */
 export async function createYm2151Audio(context, destination, options = {}) {
   const signal = options.signal;
   signal?.throwIfAborted();
@@ -16,7 +16,7 @@ export async function createYm2151Audio(context, destination, options = {}) {
     bytes(), context.audioWorklet.addModule(options.workletUrl ?? new URL('./playground_ym2151_worklet.js?v=rf5c164-notes-1', import.meta.url)),
   ]), signal);
   signal?.throwIfAborted();
-  const node = new AudioWorkletNode(context, 'tetorica-ym2151', {
+  const node = new AudioWorkletNode(context, options.processorName??'tetorica-ym2151', {
     numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2], processorOptions:{wasmBinary},
   });
   const channel = new MessageChannel();

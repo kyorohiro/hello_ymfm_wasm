@@ -4,7 +4,7 @@ import factory from '../generated/ym2151_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=sid-timed-1';
 import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
-class Processor extends AudioWorkletProcessor {
+export class Ym2151Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false; this.remainder = 0; this.left = 0; this.right = 0;
     this.clock = 3579545;
@@ -147,4 +147,4 @@ class Processor extends AudioWorkletProcessor {
     else { left.fill(0,start,start+length); right.fill(0,start,start+length);return 0; }
   }
 }
-registerProcessor('tetorica-ym2151', Processor);
+registerProcessor('tetorica-ym2151', Ym2151Processor);

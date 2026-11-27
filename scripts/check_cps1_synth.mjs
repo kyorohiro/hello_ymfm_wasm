@@ -268,6 +268,21 @@ try {
   await page.click('#applyCode');
   await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-feedback"]').value==='7');
   await page.click('#stop');
+  await page.selectOption('#codeFile','/examples/live-round.js');
+  await page.click('#run');
+  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('2 live loop'));
+  await page.selectOption('#codeFile','/examples/scheduled-response.js');
+  await page.click('#run');
+  await page.waitForFunction(()=>document.querySelector('#status').textContent==='Scheduled');
+  await page.waitForFunction(()=>document.querySelector('#command').value==='0x81 0x23');
+  await page.waitForFunction(()=>document.querySelector('[data-chip-channel="0"]').dataset.sounding==='true');
+  await fillCode("await opm.clearSchedule('riff'); await oki.clearSchedule('drums');");
+  await page.click('#applyCode');
+  await page.waitForFunction(()=>document.querySelector('#status').textContent==='Finished');
+  await page.waitForFunction(()=>document.querySelector('#busy').value==='0xF0' &&
+    document.querySelector('[data-chip-channel="0"]').dataset.sounding==='false');
+  await page.click('#stop');
+  await page.selectOption('#codeFile','/index.js');
   await fillCode('while (true) {}');
   await page.click('#run');
   await page.waitForFunction(()=>document.querySelector('#status').textContent==='Running' && window.lastPeak===0);
@@ -577,6 +592,8 @@ try {
   if(await page.locator('#files').isHidden())await page.click('#filesToggle');
   const row=path=>page.locator('#fileTree [data-file-path]').and(page.locator('[data-file-path="'+path+'"]'));
   async function fileAction(path,label,answer){
+    await row(path).scrollIntoViewIfNeeded();
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     await row(path).click({button:'right'});
     const boxes=await page.getByRole('menuitem').evaluateAll(items=>items.map(item=>item.getBoundingClientRect().toJSON()));
     assert.ok(boxes.every((box,i)=>!i||(box.top>=boxes[i-1].bottom&&box.left===boxes[0].left)));

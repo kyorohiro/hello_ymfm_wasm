@@ -84,3 +84,9 @@ The [OKI datasheet](https://consolemods.org/wiki/images/1/1b/MSM6295.pdf) docume
 New cassettes start with three banks under /banks. 0_default.rom contains the percussion used by the examples. 1_sample.rom contains four synthesized arcade cues in slots 1–4. 99_empty.rom starts with an empty phrase table for importing your own audio.
 
 Importing a supported VGM or VGZ extracts complete samples into editable banks under Files → banks. The importer examines each populated 256 KiB window of the final ROM image, even when the declared ROM is larger. For sparse windows it requires a supplied table entry and the full phrase at or above 0x400. Each standalone window with usable data gets its own ROM. A track saved by an earlier version is checked the next time it plays. NMK mappings that assemble a phrase across physical windows are supported by playback and paused preview, but do not produce a standalone bank through this extractor.
+
+### Live coding with both chips
+
+Open **/examples/live-round.js**, select **0_default.rom** and **YM2151 CH4**, then Run. Play the brass part on the keyboard while CH1 plays bass and three MSM6295 voices play drums. Change the bass notes or the snare steps and press Apply. Each named loop picks up its edit on its next cycle.
+
+**/examples/scheduled-response.js** records FM notes and PCM triggers in two audio-thread plans. Both chip clients support `build`, `compile`, `schedule` and `clearSchedule`. A synchronous builder records writes at increasing offsets with `atSeconds` or `atSample` (48 kHz reference by default). Compile returns the ordered register bytes; MSM6295 writes use command port 0. Supply a name when scheduling; omit `repeatSeconds` for one pass. Apply replaces the entry's reservations, and Stop clears both worklet queues. Each chip starts its reservation on its own audio queue.

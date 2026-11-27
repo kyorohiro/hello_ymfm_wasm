@@ -177,7 +177,7 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     }
   });
   function capture(){
-    return {starterBanksVersion:1,files:new Map(files),folders:[...folders],selected,editor,activeBank,presetChannel,editPath,pending:new Map(pending)};
+    return {liveExamplesVersion:1,starterBanksVersion:1,files:new Map(files),folders:[...folders],selected,editor,activeBank,presetChannel,editPath,pending:new Map(pending)};
   }
   function remember(extra={}){history.push({...capture(),...extra});if(history.length>20)history.shift();}
   function nextPath(make,start=0,pendingFiles) {
@@ -471,13 +471,20 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     run:apply=>el(apply?'applyCode':'run').click(),
   });
   function layoutCode(){if(editor && !el('code').hidden)codeEditor.load().then(()=>codeEditor.layout());}
+  const newExamples=['/examples/live-round.js','/examples/scheduled-response.js'];
   const start=factory(initialCode);
+  function addLiveExamples(){
+    if(files.has('/examples'))return;
+    for(const path of newExamples)if(!occupied(path))files.set(path,{kind:'code',text:defaults.get(path)});
+  }
   files=start.docs;folders=start.dirs;activeBank=start.active;script(entry,false);render();
+  if(!draft){addLiveExamples();render();}
   if(draft?.files instanceof Map){
     files=draft.files;folders=draft.folders;selected=draft.selected;editPath=draft.editPath;presetChannel=draft.presetChannel;
     if(!draft.starterBanksVersion && files.get('/banks/0.rom')?.kind==='bank'){
       for(const [path,file] of start.docs)if(file.kind==='bank' && !occupied(path))files.set(path,file);
     }
+    if(!draft.liveExamplesVersion)addLiveExamples();
     pending=draft.pending??new Map();restoreSound(draft);
     useBank(draft.activeBank);script(draft.editor,false);el('cassetteName').textContent=draft.name;render();
   }
