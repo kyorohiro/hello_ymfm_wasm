@@ -52,7 +52,7 @@ In the MSM6295 tab, computer and on-screen keys trigger the selected sample at i
 
 **Import WAV / FLAC…** accepts one or more clips and builds a new sample bank in selection order. The browser mixes the audio to mono, resamples it to the kit’s playback rate (about 7.58 kHz), and encodes it as MSM6295 ADPCM. The bank fits up to 128 samples and 256 KiB including the address table. Export Cassette includes the playable bank and sample names.
 
-Each Voice has a numeric sample control. Follow uses the selected grid slot. Choose an existing number or use Load in that Voice’s row to add a phrase to the active bank and assign it only to that Voice. Play and keyboard triggers use these assignments. JavaScript commands still specify the sample number directly.
+Each Voice has a numeric sample control. Follow uses the selected grid slot. Use the ROM list to choose a bank or Import ROM to add one. Load a phrase into a numbered slot inside the ROM editor, then assign that number to a Voice below the editor. Keyboard triggers use these assignments. JavaScript commands still specify the sample number directly.
 
 Compare the sample count in the bank with the live playing-voice count. The voice rows retain the last accepted sample after it ends. The range under the waveform shows where the selected phrase begins and ends in ROM.
 

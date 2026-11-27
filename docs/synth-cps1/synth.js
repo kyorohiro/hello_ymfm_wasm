@@ -285,13 +285,14 @@ function showBusy(value,ids=[]) {
     const active = Boolean(value & (1<<i));
     if(active)playing++;
     const sample=ids[i],name=sample==null?'':slotName(sample);
-    lamp.textContent='Voice '+(i+1)+(active?' ●':' ○')+(name?' · '+(active?'':'Last ')+name:'');
+    lamp.title='Voice '+(i+1)+(name?' · '+(active?'Playing ':'Last ')+name:'');
     lamp.classList.toggle('on',active);
   });
   $('voiceCount').textContent=playing+' / 4 voices playing';
 }
 let sampleNames=[],selectedSlot=0;
 const voicePickers=[],voiceIds=[];
+let nextSampleVoice=0;
 function slotName(id){return sampleNames[id]?id+' · '+sampleNames[id]:String(id);}
 function voiceSample(voice){return voiceIds[voice]<0?selectedSlot:voiceIds[voice];}
 let sampleAttenuation=2;
@@ -320,7 +321,7 @@ $('deleteSlot').onclick=()=>{try{files.deleteSample(selectedSlot);}catch(error){
 $('writeSlot').onclick=()=>$('slotAudio').click();
 $('slotAudio').onchange=async()=>{
   const input=$('slotAudio'),file=input.files[0];input.value='';
-  if(file)try {await files.loadSampleFile(file,{slot:selectedSlot});} catch(error){fail(error);}
+  if(file)try {await files.loadSampleFile(file,selectedSlot);} catch(error){fail(error);}
 };
 function chooseSamples(names,assignments=[],selected=0) {
   const {ids,usedBytes}=inspectBank(sampleRom);
@@ -344,29 +345,15 @@ $('hitPad').onclick=()=>{
 };
 for (let i=0;i<4;i++) {
   const row = document.createElement('div'); row.className = 'bar';
-  const lamp = document.createElement('output'); lamp.className = 'lamp';
-  const play = document.createElement('button'); play.textContent = 'Play';
-  play.onclick = () => {try {
-    oki.play(i,voiceSample(i),sampleAttenuation); startAudio().catch(fail);
-  } catch (error) {fail(error);}};
-  const stop = document.createElement('button'); stop.textContent = 'Stop'; stop.onclick = () => oki.stop(i);
-  const mute = document.createElement('button');
-  mute.textContent = 'Mute'; mute.setAttribute('aria-label','Mute Voice '+(i+1));
-  mute.setAttribute('aria-pressed','false');
-  mute.onclick = () => oki.setVoiceMuted(i,!voiceMutes[i]);
-  muteButtons.push(mute);
+  const lamp=document.createElement('button');
+  lamp.className='lamp';lamp.textContent='Voice '+(i+1);
+  lamp.setAttribute('aria-label','Mute Voice '+(i+1));lamp.setAttribute('aria-pressed','false');
+  lamp.onclick=()=>oki.setVoiceMuted(i,!voiceMutes[i]);muteButtons.push(lamp);
   const picker=createParamControl({label:'Voice '+(i+1)+' sample',min:-1,max:127,step:1,value:0,showLabel:false,
     formatValue:id=>id<0?'Follow':String(id),onChange:id=>{files.assignSample(i,id);voiceIds[i]=id;},
   });
-  const input=document.createElement('input'),load=document.createElement('button');
-  load.textContent='Load…';load.setAttribute('aria-label','Load Voice '+(i+1)+' sample');load.onclick=()=>input.click();
-  input.type='file';input.accept='.wav,.wave,.flac';input.hidden=true;
-  input.onchange=async()=>{
-    const file=input.files[0];input.value='';
-    if(file)try {await files.loadSampleFile(file,{voice:i});} catch(error){fail(error);}
-  };
   voicePickers.push(picker);
-  row.append(lamp,picker.element,play,stop,mute,load,input); $('voices').append(row);
+  row.append(lamp,picker.element);$('voices').append(row);
 }
 chooseSamples(samples,[0,1,2,3]);
 function toggleButton(text,label,pressed,click) {
@@ -408,9 +395,11 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
 showBusy(0xf0);
 let romRevision = 0;
 function installRom(bytes,names,label,assignments,extended=false,slot=null) {
+  if(!extended)nextSampleVoice=0;
   romRevision++; sampleRom = bytes; rawOki = [];
   audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,slot??(extended?selectedSlot:0)); $('romName').textContent = label;
 }
+$('importRom').onclick=()=>$('rom').click();
 $('rom').onchange = async () => {
   const file = $('rom').files[0], revision = ++romRevision;
   if (!file) return;
@@ -467,7 +456,6 @@ const octaveControl = createParamControl({label:'Octave',min:-2,max:2,step:1,val
 });
 $('keyOctave').append(octaveControl.element);
 const held = new Map();
-let nextSampleVoice=0;
 function press(id,entry) {
   if (observation || held.has(id)) return;
   if (pcmKeyboard) {

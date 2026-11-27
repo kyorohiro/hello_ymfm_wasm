@@ -214,7 +214,13 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 .files-heading button,#cassetteName {font-size:.75rem}
 #cassetteName {color:#58533f;overflow-wrap:anywhere}
 
-#pcm #voices {grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))}
+#pcm .rom-editor {margin:.5rem 0;padding:.5rem;border:1px solid var(--line);border-radius:.45rem}
+#romList {max-width:min(55vw,22rem)}
+#pcm #voices {grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem}
+#voices .bar {border:0;padding:0;gap:.15rem}
+#voices .lamp {min-width:0;font-size:.8rem;padding:.1rem .25rem}
+#voices .param-control {min-width:3.5rem}
+#voices .lamp.on {box-shadow:inset 0 -3px #f0ae32}
 #pcm input[type=file] {max-width:100%;min-width:0}
 #pcmEditor > label {max-width:100%;flex-wrap:wrap}
 #opm-page-0 .voice-tools {display:inline-flex}

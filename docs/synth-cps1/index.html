@@ -51,11 +51,16 @@
 <section id="pcm" hidden><p id="songPcmLabel" hidden></p><div id="songOki" hidden><h3>VGM · MSM6295</h3><div id="songOkiVoices" class="bar" aria-label="VGM MSM6295 voices"></div>
 <output id="songSampleInfo"></output><figure class="sample-preview"><canvas id="songSampleWave" width="768" height="96" aria-label="Paused sample waveform"></canvas></figure>
 <button id="previewSongSample" disabled>Preview</button></div>
-<div id="pcmEditor"><h2>MSM6295</h2><p id="bankInfo"></p><div class="bar"><div id="slotControl" class="chip-fields"></div><div id="attenuation" class="chip-fields"></div><button id="writeSlot">Load…</button><button id="deleteSlot">Del</button><input type="file" id="slotAudio" accept=".wav,.wave,.flac" hidden></div>
+<div id="pcmEditor">
+<div id="attenuation" class="chip-fields"></div>
+<div class="bar"><label>ROM <select id="romList"></select></label><button id="importRom">Import ROM…</button><input id="rom" type="file" accept=".bin,.rom" hidden></div>
+<fieldset class="rom-editor"><legend id="romName">0.rom</legend><p id="bankInfo"></p>
+<div class="bar"><div id="slotControl" class="chip-fields"></div><button id="writeSlot">Load…</button><button id="deleteSlot">Del</button><input type="file" id="slotAudio" accept=".wav,.wave,.flac" hidden></div>
 <div id="sampleSlots" role="group" aria-label="Sample slots"></div><output id="selectedSample"></output>
 <figure class="sample-preview"><canvas id="sampleWave" width="768" height="96" aria-label="Decoded sample waveform"></canvas><figcaption id="sampleRange"></figcaption></figure>
-<div class="bar"><span id="voiceCount">0 / 4 voices playing</span></div><div id="voices"></div><p>Command bytes <output id="command">—</output> · Status <output id="busy">0xF0</output></p>
-<button id="chooseSamples">Import WAV / FLAC…</button><input id="audioSamples" type="file" multiple accept=".wav,.wave,.flac" hidden> <label>Sample ROM <input id="rom" type="file" accept=".bin,.rom"></label><button id="restore">Restore default bank</button><p id="romName">0.rom</p></div></section>
+<div class="bar"><button id="chooseSamples">Import WAV / FLAC…</button><input id="audioSamples" type="file" multiple accept=".wav,.wave,.flac" hidden><button id="restore">Restore default bank</button></div></fieldset>
+<div id="voices" role="group" aria-label="MSM6295 voice assignments"></div>
+<p><span id="voiceCount">0 / 4 voices playing</span> · Command bytes <output id="command">—</output> · Status <output id="busy">0xF0</output></p></div></section>
 
 <nav id="performanceTabs" aria-label="Performance"><button data-tab="keyboardPanel">Keyboard</button><button data-tab="code">Code</button></nav>
 <section id="keyboardPanel" aria-label="Guitar keyboard"><div class="keyboard-toolbar"><span id="pcmKeysHint" hidden>MSM6295 · Keys cycle through Voices 1–4 at fixed pitch</span><div id="keyChannels" role="group" aria-label="Keyboard channel"></div><div id="keyOctave" role="group" aria-label="Keyboard octave">Octave</div></div><div id="keys"></div><button id="hitPad">Hit · Voice 4</button></section>

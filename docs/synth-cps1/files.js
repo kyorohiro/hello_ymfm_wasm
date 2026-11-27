@@ -68,6 +68,10 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   }
   function render() {
     tree();
+    const banks=items('bank');
+    el('romList').replaceChildren(...banks.map(([path])=>new Option(base(path),path)));
+    el('romList').value=activeBank??'';
+    el('romList').disabled=!banks.length;
     const oldSong=el('songs').selectedOptions[0]?.dataset.path;
     const songs=songEntries();
     el('songs').replaceChildren(...songs.map(([path,v],i)=>{
@@ -194,6 +198,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     files=state.files;folders=state.folders;selected=state.selected;presetChannel=state.presetChannel;editPath=state.editPath;pending=state.pending;opmBank=null;
     useBank(state.activeBank);script(state.editor,false);render();persist();report('Undid file operation.');
   }
+  el('romList').onchange=()=>{open(el('romList').value);persist();};
   el('copyChannelFile').onclick=()=>{applyVoice(panel.getSelectedChannel(),currentVoice(files.get(selected).ch));persist();};
   el('opmVoice').onchange=()=>{
     const voice=opmBank?.voices[Number(el('opmVoice').value)];
@@ -391,22 +396,20 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     voiceSamples[voice]=id;
     editFile(activeBank,{...bank,voiceSamples});
   }
-  async function loadSampleFile(file,{voice=null,slot=null}){
+  async function loadSampleFile(file,slot){
     const bank=editableBank(),path=activeBank;
     const clip=await makeAudioBank([file]);
     if(path!==activeBank || files.get(path)!==bank)throw Error('Sample bank changed. Select the file again.');
-    updateSample(bank,clip,voice,slot);
+    updateSample(bank,clip,slot);
   }
-  function updateSample(bank,clip,voice,slot){
+  function updateSample(bank,clip,slot){
     const path=activeBank;
-    const {bytes,names,id}=writeBankSample(bank,clip,slot);
-    const voiceSamples=[...(bank.voiceSamples??Array(4).fill(-1))];
-    if(voice!==null)voiceSamples[voice]=id;
+    const {bytes,names}=writeBankSample(bank,clip,slot);
     remember();
-    editFile(path,{...bank,bytes,names,voiceSamples});
-    applyBank(bytes,names,base(path),voiceSamples,slot===null,slot);
+    editFile(path,{...bank,bytes,names});
+    applyBank(bytes,names,base(path),bank.voiceSamples,false,slot);
   }
-  return {addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
+  return {addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
     const target=files.get(editPath);
     if(target?.kind==='channel'&&target.ch===ch)editFile(editPath,{...target,voice:currentVoice(ch)});
     else if(ch===presetChannel&&target?.kind==='voice')editFile(editPath,{kind:'voice',voice:currentVoice(ch)});
