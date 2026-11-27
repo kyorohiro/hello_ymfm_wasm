@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
+import {createRomMap} from './rom-map.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {isPresetPath,bankHash,readPreset,presetRom,resolveRom} from './preset.js';
 import {checkPath} from '../synth-cps1/project-tree.js';
@@ -170,7 +171,7 @@ function edit(key,value) {
 const registerPanel=$('register-panel');
 const drawRegisters=createRegisterTable($('register-rows'),$('register-position'));
 function inspectChannel() {
-  port?.postMessage({type:'inspect',channel:selected,revision,skipWave:$('pcm-chip').hidden,padVoice:liveInstrument && !$('adpcm-chip').hidden?padVoice:null,registers:!registerPanel.hidden});
+  port?.postMessage({type:'inspect',channel:selected,revision,romMap:liveInstrument && !$('rom-chip').hidden,skipWave:$('pcm-chip').hidden,padVoice:liveInstrument && !$('adpcm-chip').hidden?padVoice:null,registers:!registerPanel.hidden});
 }
 function selectPcmTab(registers) {
   registerPanel.hidden=!registers;
@@ -185,6 +186,7 @@ $('register-tab').onclick=()=>selectPcmTab(true);
 $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
   if (data.revision !== revision || data.channel !== selected) return;
+  if(data.romMap && liveInstrument && !seeking && !$('rom-chip').hidden)drawRomMap(data.romMap,romPath??'Factory ROM');
   if(liveInstrument && !seeking && data.padVoice===padVoice && data.padState)showPad(data.padState);
   if (!registerPanel.hidden && data.words && !seeking)drawRegisters(selected,data.words,data.address);
   if (data.view && liveInstrument) {
@@ -381,7 +383,7 @@ function stop(keepInstrument=true){
   $('vol').value=channels[selected].volume;
   transport();refresh();
   port?.postMessage(liveInstrument?'stop-audition':'stop');
-  if(!liveInstrument)restoreEcho();
+  if(!liveInstrument){restoreEcho();showRomMap();}
   if(liveInstrument)inspectChannel();
   renderPresetInfo();
 }
@@ -458,11 +460,29 @@ function setFiles(visible){
   if(!$('code-panel').hidden)editor.layout();
 }
 $('files-toggle').onclick=()=>setFiles($('files').hidden);
+const drawRomMap=createRomMap(id=>{
+  if(id<16){
+    document.querySelector('[data-chip="pcm-chip"]').click();
+    select(id);selectPcmTab(false);
+  }else{
+    document.querySelector('[data-chip="adpcm-chip"]').click();
+    $('adpcm-voices').children[id-16].click();
+  }
+});
+const factoryRomSize=demoRom().length;
+function showRomMap(){
+  if($('rom-chip').hidden)return;
+  if(liveInstrument){inspectChannel();return;}
+  const voices=channels.map((v,id)=>({id,bank:0,start:v.sample*256,end:v.end,loop:v.loop}));
+  pads.forEach((v,i)=>voices.push({id:16+i,bank:v.bank,start:v.start,end:v.end,loop:0}));
+  drawRomMap({size:factoryRomSize,voices},'Factory ROM');
+}
 for(const tab of document.querySelectorAll('[data-chip]'))tab.onclick=()=>{
   for(const item of document.querySelectorAll('[data-chip]')){
     $(item.dataset.chip).hidden=item!==tab;
     item.setAttribute('aria-pressed',String(item===tab));
   }
+  revision++;showRomMap();
 };
 $('keyboard-tab').onclick=()=>selectPerformance(false);
 $('code-tab').onclick=()=>selectPerformance(true);
@@ -729,7 +749,7 @@ function replaceProject(project) {
   mixer.set(project.mix);
   Object.assign(echo,project.echo);
   restoreEcho();
-  select(project.selected);
+  select(project.selected);showRomMap();
   activePath=highlightedPath=project.active;editor.setSource(files.get(activePath).data,activePath);renderFiles();
   if(project.song)openScript(project.song);else selectDefaultSong();
 }

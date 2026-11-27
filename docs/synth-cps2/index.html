@@ -62,6 +62,11 @@ body{width:min(100%,76rem)}
 #files summary{display:list-item}#files .file-entry:hover,#files summary:hover{background:#d8e5da}
 #files .file-entry[aria-current=true]{background:#cee0d6}#files label{display:inline-flex;align-items:center;font-size:.8rem}
 #preset-info{display:block;overflow-wrap:anywhere}.spu-file-context-menu{z-index:10;display:grid;gap:2px;padding:5px;border:1px solid #739384;background:#fffaf0;border-radius:6px}.spu-file-context-menu button{text-align:left}
+.rom-row{display:grid;grid-template-columns:8rem minmax(0,1fr);align-items:center;gap:2px .5rem;text-align:left;width:100%;margin:.25rem 0;padding:.3rem .5rem}
+.rom-row strong{grid-row:span 2;font-size:.83rem}.rom-address,#rom-scale{font: .8rem/1.4 monospace}.rom-track{position:relative;height:.75rem;background:#e1e6dc;border-radius:2px;overflow:hidden}
+.rom-segment{position:absolute;height:100%;min-width:1px}.rom-pcm{background:#247866}.rom-adpcm{background:#235d93}.rom-loop{background:#b66614;height:40%;bottom:0}.rom-unavailable{z-index:1;background:repeating-linear-gradient(135deg,#102f4538 0 3px,transparent 3px 6px)}
+#rom-source{overflow-wrap:anywhere;font-size:.85rem}#rom-empty{padding:.65rem 0}
+@media(max-width:540px){.rom-row{grid-template-columns:6rem minmax(0,1fr)}}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
@@ -102,7 +107,7 @@ liveLoop('bass', async () => {
   }
 });</textarea><p id="editor-note" hidden></p></div>
 <section id="soundchip"><div class="chip-header"><h2>QSound</h2><button id="restore-instrument" hidden>Use synth instruments</button></div>
-<nav class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
+<nav class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="rom-chip" aria-pressed="false">ROM</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <nav id="pcm-tabs" aria-label="PCM channel view"><button id="pcm-tab" aria-controls="pcm-panel" aria-pressed="true">Voice</button>
 <button id="register-tab" aria-controls="register-panel" aria-pressed="false">Registers</button></nav>
@@ -120,6 +125,9 @@ liveLoop('bass', async () => {
 <section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
 <div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
+<section id="rom-chip" aria-label="ROM map" hidden><div class="chip-header"><label>ROM bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
+<p id="rom-scale"></p><small>Bank-relative byte addresses · End exclusive · Amber marks the PCM loop.</small>
+<div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></section>
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>

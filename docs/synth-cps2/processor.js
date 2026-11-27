@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {chipRomMap} from './rom-map.js';
 import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
 import {QSoundPcm,QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
@@ -107,7 +108,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         const words=data.registers ? pcmRegisterAddresses(data.channel).map(r=>this.chip.lastWrites[r]) : undefined;
         const pad=data.padVoice==null ? null : this.chip.adpcm[data.padVoice];
         const padState=pad && {start:pad.start,end:pad.end,bank:pad.bank,volume:pad.volume,panWord:pad.pan};
-        this.port.postMessage({...data,view,words,padState,pan:v.pan,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
+        this.port.postMessage({...data,romMap:data.romMap?chipRomMap(this.chip,this.starts):null,view,words,padState,pan:v.pan,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
           send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,
           active:v.volume !== 0,start:this.starts[data.channel]});
         return;

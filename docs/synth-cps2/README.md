@@ -7,7 +7,7 @@ and pan can change during a held note. The factory demo VGMs include their gener
 
 ## Workspace
 
-Press **Play VGM** on a fresh visit to hear PCM duet. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Code opens it beside the editor, and Synth returns to the instrument. PCM, ADPCM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. A–K play the white keys and W, E, T, Y and U play the sharps. Drag Octave or use its minus and plus buttons to change the range.
+Press **Play VGM** on a fresh visit to hear PCM duet. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Code opens it beside the editor, and Synth returns to the instrument. PCM, ADPCM, ROM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. A–K play the white keys and W, E, T, Y and U play the sharps. Drag Octave or use its minus and plus buttons to change the range.
 
 ## Register model
 
@@ -74,6 +74,12 @@ Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ti
 Pause a song, select a PCM channel, edit its controls and choose **Voice → Save preset…**. The JSON file under `/presets/` stores the C4 rate, sample start/end, loop length, bank, level, pan and channel echo send. It refers to the factory ROM or to the song under `/songs/`, with its ROM-write position and a SHA-256 fingerprint of the selected bank. The cassette carries the source song once.
 
 Choose a destination channel, then select the preset in Files and play C4. Use **Apply preset** when the shared ROM changes or Auto apply is off. Loading stops playback and restores the shared sample ROM and clock from the preset source. Other channels also address that ROM. Shared echo delay and feedback keep their current settings. A missing song or mismatched bank prevents loading. **☰ → Export → Export cassette** includes presets and songs together. **☰ → Import → Import cassette…** restores them.
+
+## ROM map
+
+Open **ROM** and select a bank. Each row plots one voice on the same bank-relative byte scale. Green shows the PCM sample interval, amber its positive loop window, and blue an ADPCM sample interval. The displayed end address is exclusive. Wrapped intervals appear at both edges. A partial bank expands to fill the plot; hatching marks addresses beyond the loaded ROM if a voice refers to them. A negative PCM loop register is shown numerically.
+
+Before playback, the map shows the authored instruments. During VGM or Code playback it follows the most recently programmed start/end addresses and bank. A voice remains visible after release. Click its row to open the corresponding PCM channel or ADPCM voice editor. Pause holds the song position for comparison. To see shared data, load Voice 2’s ADPCM trio preset onto Voice 3. Both rows then cover **0x0400–0x0600**, and the **2** and **3** keys trigger the two decoders while the map is open.
 
 ## ADPCM pads
 
