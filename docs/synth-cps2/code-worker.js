@@ -12,7 +12,20 @@ function integer(value,min,max,label) {
 const channel = n=>integer(n,1,16,'PCM channel')-1;
 let captured=false;
 let samples=new Map();
+async function hostCall(method,args){
+  const {port1,port2}=new MessageChannel();
+  try{
+    return await new Promise((resolve,reject)=>{
+      port1.onmessage=({data})=>data.error?reject(Error(data.error)):resolve(data);
+      postMessage({[method]:{...args,reply:port2}},[port2]);
+    });
+  }finally{port1.close();}
+}
 const qsound = {
+  async loadPreset(target,path,options={}){
+    const result=await hostCall('loadPreset',{target,path,options});
+    if('samples' in result)samples=result.samples===null?null:new Map(result.samples);
+  },
   assignSample(ch,path,options={}) {
     const index=channel(ch),base=index*8;
     if(!samples)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
@@ -29,13 +42,7 @@ const qsound = {
     integer(voice,1,3,'ADPCM voice');
     if(!samples)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
     if(!samples.has(path))throw Error('Missing WAV sample: '+path);
-    const {port1,port2}=new MessageChannel();
-    try{
-      await new Promise((resolve,reject)=>{
-        port1.onmessage=({data})=>data.error?reject(Error(data.error)):resolve();
-        postMessage({assignPad:{voice,path,reply:port2}},[port2]);
-      });
-    }finally{port1.close();}
+    await hostCall('assignPad',{voice,path});
   },
   writeRegister(reg,value) {
     postMessage({writes:[[integer(reg,0,255,'Register'),integer(value,0,65535,'Value')]]});

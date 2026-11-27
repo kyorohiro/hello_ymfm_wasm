@@ -92,17 +92,27 @@ class Cps2Preview extends AudioWorkletProcessor {
           bank:v.bank,end:v.end&65535,pan:v.pan,...fields,bytes:this.chip.rom.slice(begin,begin+65536)});
         data.reply.close();return;
       }
+      if(data?.type==='preset-bank'){
+        const begin=data.bank*65536;
+        const bytes=this.chip.rom.slice(begin+data.first,begin+data.last);
+        data.reply.postMessage({bytes,clock:Math.round(this.chip.tickRate*4000000/QSOUND_PCM_RATE)},[bytes.buffer]);
+        data.reply.close();return;
+      }
       if(data?.type==='load-preset'){
         const p=data.preset,ch=data.channel,base=8*ch;
-        this.capture();this.song=null;
-        this.chip.rom=data.rom;this.source=p.source;
-        this.chip.tickRate=QSOUND_PCM_RATE*p.clock/4000000;
+        if(data.rom){
+          this.timeline.clear();this.capture();this.song=null;
+          this.chip.rom=data.rom;this.source=p.source;
+          this.chip.tickRate=QSOUND_PCM_RATE*p.clock/4000000;
+        }
         if(p.format==='qsound-adpcm-1'){
           const reg=0xca+4*ch;
+          Object.assign(this.chip.adpcm[ch],{trigger:false,gain:0,output:0});
+          this.gates.delete(16+ch);
           this.apply([[reg,p.start],[reg+1,p.end],[reg+2,p.bank],[reg+3,p.volume&65535],[0x90+ch,p.pan]]);
           return;
         }
-        this.apply([[((ch+15)&15)*8,p.bank|0x8000],[base+1,p.start],[base+2,p.rate],
+        this.apply([[base+6,0],[((ch+15)&15)*8,p.bank|0x8000],[base+1,p.start],[base+2,p.rate],
           [base+3,0],[base+4,p.loop],[base+5,p.end],[0x80+ch,p.pan],[0xba+ch,p.send&65535]]);
         this.levels[ch]=p.volume;
         return;

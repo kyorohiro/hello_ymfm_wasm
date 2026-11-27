@@ -79,7 +79,21 @@ Files keeps the original WAV. The importer mixes its channels to mono and conver
 
 Pause a song, select a PCM channel, edit its controls and choose **Voice → Save preset…**. The JSON file under `/presets/` stores the C4 rate, sample start/end, loop length, bank, level, pan and channel echo send. It refers to the factory ROM or to the song under `/songs/`, with its ROM-write position and a SHA-256 fingerprint of the selected bank. The cassette carries the source song once.
 
-Choose a destination channel, then select the preset in Files and play C4. Use **Apply preset** when the shared ROM changes or Auto apply is off. Loading stops playback and restores the shared sample ROM and clock from the preset source. Other channels also address that ROM. Shared echo delay and feedback keep their current settings. A missing song or mismatched bank prevents loading. **☰ → Export → Export cassette** includes presets and songs together. **☰ → Import → Import cassette…** restores them.
+Choose a destination channel, then select the preset in Files and play C4. Use **Apply preset** when the shared ROM changes or Auto apply is off. Applying a preset while a VGM plays pauses the transport for audition. A matching source, clock and sample bank lets Code keep playing while the selected voice changes. Switching the shared ROM silences held voices and clears queued register schedules. Other channels also address that ROM. Shared echo delay and feedback keep their current settings. A missing song or mismatched bank prevents loading. **☰ → Export → Export cassette** includes presets and songs together. **☰ → Import → Import cassette…** restores them.
+
+### Loading a preset from Code
+
+Play **ADPCM trio**, pause after the first Voice 2 hit, select ADPCM Voice 2 and save its preset as **Hit**. With that ROM still active, run:
+
+```js
+await qsound.loadPreset(3, '/presets/Hit.adpcm.json');
+liveLoop('hit', async () => {
+  qsound.trigger(3);
+  await beat(1);
+});
+```
+
+For a PCM preset, use the same method with a channel from 1–16, then call `qsound.noteOn(3, 60)` to hear its saved C4 rate. The JSON format selects PCM or ADPCM (voices 1–3). When the preset needs another shared ROM, the error names the required source. To switch all voices explicitly, pass `{switchRom: '/songs/tetorica-cps2-adpcm-trio.vgm'}` as the third argument, or `{switchRom: null}` for the project ROM. A different saved bank image from the same song also requires an explicit switch. On a matching ROM, only the destination voice is reconfigured and scheduled accompaniment continues.
 
 ## ROM map
 

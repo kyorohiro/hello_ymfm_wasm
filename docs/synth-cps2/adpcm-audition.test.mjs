@@ -193,3 +193,19 @@ test('Code FX processes both QSound outputs, preserves state on Apply and restor
   send({codeFx:{op:'live-fx',action:'context',name:'test',context:{step:0}}});checkGain(0.5);
   send({type:'clear-code-fx'});checkGain(1);
 });
+
+test('same-ROM preset updates just its destination and preserves another held PCM voice',()=>{
+  const p=new Processor(),send=data=>p.port.onmessage({data});
+  send({type:'prepare-audition',writes:[[1,0],[2,4096],[4,256],[5,256],[6,8000]]});
+  send({type:'captured-note',channel:0,midi:60});
+  const original=p.chip,voice=original.voices[0];
+  p.process([],[[new Float32Array(137),new Float32Array(137)]]);
+  const position=voice.address;
+  const preset={format:'qsound-pcm-1',start:256,end:480,loop:32,bank:0,rate:2500,pan:0x120,volume:7234,send:910};
+  send({type:'load-preset',preset,channel:2});
+  assert.equal(p.chip,original);
+  assert.equal(voice.address,position);
+  assert.equal(voice.volume,8000);
+  send({type:'captured-note',channel:2,midi:60});
+  assert.deepEqual([p.starts[2],p.chip.voices[2].rate,p.chip.voices[2].loop,p.chip.voices[2].volume],[256,2500,32,7234]);
+});

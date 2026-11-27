@@ -498,6 +498,8 @@ declare const qsound:{
   compile(plan:QSoundPlan):Promise<QSoundWrite[]>;
   schedule(plan:QSoundPlan,options:{name:string;repeatSeconds?:number}):Promise<unknown>;
   clearSchedule(name:string):Promise<unknown>;
+  /** Load a PCM channel or ADPCM voice preset. Name the destination ROM explicitly to switch all voices. */
+  loadPreset(target:number,path:string,options?:{switchRom?:string|null}):Promise<void>;
   /** Assign a WAV from Files. Offset, length and loop are measured in ROM bytes. */
   /** Prepare a project WAV for a one-shot. Await before calling trigger(voice). */
   assignPad(voice:number,path:string):Promise<void>;
@@ -591,6 +593,14 @@ $('run-code').onclick=()=>run(async()=>{
     if(worker!==codeWorker)return;
     if(data.codeFx){port.postMessage({codeFx:data.codeFx});return;}
     if(data.timedRequest){port.postMessage(data,[data.reply]);return;}
+    if(data.loadPreset){
+      const {target,path,options,reply}=data.loadPreset;
+      applyPresetFile(path,target,options,()=>worker===codeWorker).then(
+        ()=>reply.postMessage({samples:codeSamples()}),
+        error=>reply.postMessage({error:error.message})
+      ).finally(()=>reply.close());
+      return;
+    }
     if(data.assignPad){
       const {voice,path,reply}=data.assignPad;
       try{
@@ -647,7 +657,7 @@ function openScript(path,prepared) {
   }
   if(isPresetPath(path)){
     renderFiles();
-    if($('auto-apply').checked && (readPreset(file.data).source?.path??null)===romPath)run(()=>loadPreset(path,file.data));
+    if($('auto-apply').checked && (readPreset(file.data).source?.path??null)===romPath)run(()=>loadPreset(path,file.data,false));
     return;
   }
   if (file.type==='binary') {
@@ -712,25 +722,68 @@ async function savePreset(kind){
 $('save-preset').onclick=()=>run(()=>savePreset('pcm'));
 $('save-pad-preset').onclick=()=>run(()=>savePreset('adpcm'));
 
-async function loadPreset(path,text){
-  const p=readPreset(text),adpcm=p.format==='qsound-adpcm-1',ch=adpcm?padVoice:selected,token=generation;
-  const sourceFile=p.source && files.get(p.source.path);
-  if(p.source && !sourceFile)throw Error('Missing preset source '+p.source.path);
-  const song=sourceFile?await prepareSong(sourceFile.data):null;
-  let rom=await presetRom(p,song?.bytes,library.rom);
-  if(!p.source && library.items.size)rom=library.rom.slice();
-  await audio();
-  if(token!==generation || path!==highlightedPath || ch!==(adpcm?padVoice:selected))return;
-  stop();
-  if(!liveInstrument)prepareSynthAudition();
-  liveInstrument=true;romPath=p.source?.path??null;attached={path,adpcm,ch};
-  songPath=p.source?.path??null;preparedSong=song;preparationRevision++;
-  port.postMessage({type:'load-preset',channel:ch,preset:p,rom},[rom.buffer]);
-  selectPerformance(false);
+let presetQueue=Promise.resolve();
+function applyPresetFile(path,target,options,current){
+  const token=generation;
+  function check(){
+    if(generation!==token || seeking || !current())throw Error('Preset load superseded.');
+  }
+  async function apply(){
+    check();
+    if(!isPresetPath(path) || !files.has(path))throw Error('Missing preset: '+path);
+    const p=readPreset(files.get(path).data),adpcm=p.format==='qsound-adpcm-1';
+    if(!Number.isInteger(target)||target<1||target>(adpcm?3:16))throw Error(adpcm?'Choose Voice 1–3.':'Choose CH1–16.');
+    const destination=p.source?.path??null;
+    const mismatch=()=>Error('Preset needs shared ROM '+(destination??'project')+
+      ' for all voices. Use Apply preset in Files or pass {switchRom: '+JSON.stringify(destination)+'}.');
+    const explicit=Object.hasOwn(options,'switchRom');
+    if(explicit && options.switchRom!==destination)throw mismatch();
+    if(!explicit && destination!==romPath)throw mismatch();
+    if(p.source && !files.has(destination))throw Error('Missing preset source '+destination);
+    await audio();check();
+    let same=false;
+    if(destination===romPath){
+      if(songState==='playing')pauseSong();
+      const [first,last]=p.projectRange??[0,!p.source && p.bank===0?factoryBank.length:65536];
+      const {port1,port2}=new MessageChannel();
+      const snapshot=new Promise(resolve=>port1.onmessage=e=>{port1.close();resolve(e.data);});
+      port.postMessage({type:'preset-bank',bank:p.bank,first,last,reply:port2},[port2]);
+      const {bytes,clock}=await snapshot;
+      same=clock===p.clock && bytes.length>0 && await bankHash(bytes)===p.bankHash;
+      check();
+    }
+    let rom,song;
+    if(!same){
+      if(!explicit)throw mismatch();
+      song=p.source?await prepareSong(files.get(destination).data):null;
+      rom=await presetRom(p,song?.bytes,library.rom);
+      if(!p.source)rom=library.rom.slice();
+      check();
+    }
+    if(songState==='playing')pauseSong();
+    if(!liveInstrument)prepareSynthAudition();
+    liveInstrument=true;
+    port.postMessage({type:'load-preset',channel:target-1,preset:p,rom},rom?[rom.buffer]:[]);
+    if(rom){
+      channels.forEach(v=>v.held=null);romPath=destination;
+      songPath=destination;preparedSong=song;preparationRevision++;songState='stopped';showPosition(0);
+      codeWorker?.postMessage({samples:codeSamples()});
+    }
+    attached=null;revision++;transport();inspectChannel();renderPresetInfo();
+    $('file-status').textContent='Loaded '+path+' on '+(adpcm?'Voice ':'CH')+target+' · Shared ROM: '+(destination??'project');
+  }
+  const result=presetQueue.then(apply);
+  presetQueue=result.catch(()=>{});
+  return result;
+}
+async function loadPreset(path,text,explicit=true){
+  const p=readPreset(text),adpcm=p.format==='qsound-adpcm-1',ch=adpcm?padVoice:selected;
+  const current=()=>path===highlightedPath && ch===(adpcm?padVoice:selected);
+  await applyPresetFile(path,ch+1,explicit?{switchRom:p.source?.path??null}:{},current);
+  attached={path,adpcm,ch};selectPerformance(false);
   document.querySelector(adpcm?'[data-chip="adpcm-chip"]':'[data-chip="pcm-chip"]').click();
   if(!adpcm)selectPcmTab(false);
-  showPosition(0);transport();inspectChannel();renderFiles();scheduleDraft();
-  $('file-status').textContent='Loaded '+path+' on '+(adpcm?'Voice ':'CH')+(ch+1)+' · Shared ROM: '+(songPath??'factory');
+  scheduleDraft();
 }
 let bankEdit=0;
 function editPreset(adpcm,key,value){
