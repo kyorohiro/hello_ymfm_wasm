@@ -27,11 +27,14 @@ export function validateProject(project) {
   const echo={delay:number(project.echo.delay,0,1024),feedback:number(project.echo.feedback,-32768,32767)};
   const files=createVirtualFileSystem();
   files.replace(project.files.map(({path,data})=>{
+    if (data instanceof Uint8Array && /\.(vgm|vgz)$/i.test(path)) return {path:checkPath(path),data};
     if (typeof data!=='string') throw Error('Expected JavaScript source.');
     return {path:scriptPath(path),data};
   }));
-  if (!files.has('/index.js') || !files.has(project.active)) throw Error('Cassette is missing its entry or selected file.');
-  return {version:1,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
+  if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
+  const song=project.song??null;
+  if(song!==null && files.get(song)?.type!=='binary')throw Error('Cassette is missing its selected song.');
+  return {version:1,song,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
 }
 
 export function exportProject(project) {
@@ -45,7 +48,7 @@ export async function importProject(bytes) {
   const decoder=new TextDecoder('utf-8',{fatal:true});
   for (const [path,data] of archive.files) {
     if (path==='metadata.json' || path==='cassette.metadata.js') continue;
-    files.push({path:'/'+path,data:decoder.decode(data)});
+    files.push({path:'/'+path,data:/\.(vgm|vgz)$/i.test(path)?data:decoder.decode(data)});
   }
   return validateProject({...archive.metadata.cps2,files});
 }

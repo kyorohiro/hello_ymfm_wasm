@@ -14,35 +14,37 @@ export function createWaveEditor(onEdit) {
     document.getElementById('pcm-controls').append(controls[key].element);
   }
   let previous = '';
-  return function draw({sample,rate,end,loop}, address = null) {
+  return function draw({sample,rate,end,loop}, address = null, view = null) {
     const signature = [sample,rate,end,loop,address].join(',');
-    if (signature === previous) return;
-    previous = signature;
-    const start = sample * 256, {width,height} = canvas;
-    controls.end.updateRange(start+1,start+256);
-    controls.loop.updateRange(0,end-start);
+    if (!view && signature === previous) return;
+    previous = view ? null : signature;
+    const start = view?.start ?? sample * 256, span=view?.span ?? 256, {width,height} = canvas;
+    controls.end.updateRange(view?0:start+1,view?65535:start+256);
+    controls.loop.updateRange(0,view?65535:end-start);
     controls.rate.updateVisual(rate);
     controls.end.updateVisual(end);
     controls.loop.updateVisual(loop);
     ctx.clearRect(0,0,width,height);
-    const x = byte => (byte-start)*width/256;
+    const x = byte => (byte-start)*width/span;
     ctx.fillStyle = '#235956';
-    ctx.fillRect(x(end-loop),0,x(end)-x(end-loop),height);
+    const boundary=view ? start+span : end;
+    ctx.fillRect(x(boundary-loop),0,x(boundary)-x(boundary-loop),height);
     ctx.strokeStyle = '#afeacb';
     ctx.beginPath();
     for (let i=0;i<256;i++) {
-      const signedByte = rom[start+i] << 24 >> 24;
+      const signedByte = (view?view.wave[i]:rom[start+i]) << 24 >> 24;
       const y = height/2 - signedByte*height/256;
       if (i===0) ctx.moveTo(0,y);
-      else ctx.lineTo(x(start+i),y);
+      else ctx.lineTo(i*width/256,y);
     }
     ctx.stroke();
     ctx.fillStyle = '#65bcb4';
-    ctx.fillRect(Math.min(width-2,x(end)),0,2,height);
-    if (address !== null && address >= start && address < start+256) {
+    ctx.fillRect(Math.min(width-2,x(boundary)),0,2,height);
+    const position = address===null ? null : view ? start+((address-start)&65535) : address;
+    if (position !== null && position >= start && position < start+span) {
       ctx.fillStyle = '#ffc45b';
-      ctx.fillRect(x(address),0,3,height);
+      ctx.fillRect(x(position),0,3,height);
     }
-    caption.textContent = 'Loop '+(end-loop)+'–'+end+' (end exclusive) · Position '+(address ?? '—');
+    caption.textContent = (view?'ROM bank '+view.bank+' · ':'')+'Loop '+((end-loop)&65535)+'–'+end+' (end exclusive) · Position '+(address ?? '—');
   };
 }

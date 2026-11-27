@@ -57,3 +57,9 @@ Open Code and press Run to play the CH1 bass loop. Select CH2 and play A–K ove
 The editor uses the shared Synth Monaco integration with QSound declarations and a textarea fallback. Code runs in a dedicated worker using the Playground loop runtime. PCM channels are numbered 1–16, ADPCM voices 1–3, and sample indices start at zero. Use `qsound.noteOn(channel, midi, sample?, pan?, volume?)`, `qsound.noteOff(channel)`, `qsound.trigger(voice, sample?, pan?, volume?)`, or `qsound.writeRegister(register, word)` for raw 8-bit addresses and unsigned 16-bit words. Open Files in the Code tab to switch between `/index.js` and `/examples/pad-loop.js`, or choose New script to create another performance. Edits are saved as a local browser draft.
 
 Files → Cassette → Export cassette downloads a ZIP with all scripts, the selected file and PCM channel, the 16 PCM settings, the shared echo and the three pad assignments. Import cassette restores the project; press Run to play its selected script. New cassette restores the factory files and settings. The generated factory ROM is shared by all projects.
+
+## VGM playback
+
+In Code → Files, choose **Import VGM / VGZ…**. Select a song under `/songs` and use the transport above the PCM channels. Pause freezes the chip and song position. Select different channels to see their ROM waveforms, addresses, loops and echo sends while paused or playing. The song supplies its own sample ROM. Stop restores the keyboard instruments. Imported VGM/VGZ bytes and the selected song travel in the cassette alongside your scripts. Local drafts use IndexedDB and can read earlier browser drafts.
+
+Playback covers one pass of a single QSound stream with embedded 0x8F ROM blocks, 0xC4 writes and standard waits. The existing PCM, ADPCM and echo preview applies. Spatial filtering and VGM loop repeats remain future work.

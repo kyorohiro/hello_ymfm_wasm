@@ -32,6 +32,8 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 #code-panel button{margin:.4rem .2rem .4rem 0}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
+<section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong>
+<button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button></section>
 <section><h2>PCM channel</h2><div id="channels"></div>
 <label>Sample<select id="wave"><option>Reed</option><option>Bell</option></select></label>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
@@ -45,6 +47,7 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <div id="keys"></div>
 <div id="code-panel" hidden>
 <aside aria-label="Files"><strong>Files</strong><div id="project-tree"></div><button id="new-script">New script…</button>
+<button id="import-song">Import VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
 <details><summary>Cassette</summary><button id="new-cassette">New cassette…</button><button id="export-cassette">Export cassette</button>
 <button id="import-cassette">Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden></details>
 <p id="file-status" role="status"></p></aside><div>

@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {inspectSong} from './song.js';
+import {maybeDecodeVgmFile} from '../js/vgm_file.js';
+import {createSynthProjectStore} from '../synth/synth_project_store.js';
 import {exportProject,importProject,validateProject,scriptPath} from './cassette.js';
 import {renderFileTree} from '../playground/playground_file_tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
@@ -12,6 +15,25 @@ const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000
 let selected = 0, context, ready, port, generation = 0;
 let revision = 0, demoPlaying = false, shown, cursor = null;
 let codeWorker = null;
+let songPath=null, songState='stopped', songSelection=0;
+const songLimit=16*1024*1024;
+async function songBytes(raw) {
+  const bytes=new Uint8Array(await maybeDecodeVgmFile(raw,{maxBytes:songLimit}));
+  inspectSong(bytes);
+  return bytes;
+}
+function transport() {
+  $('song-transport').hidden=!songPath;
+  $('song-title').textContent=songPath?.split('/').pop()??'';
+  $('song-play').disabled=songState==='playing';
+  $('song-play').textContent=songState==='paused'?'Resume':'Play VGM';
+  $('song-pause').disabled=songState!=='playing';
+  $('song-stop').disabled=songState==='stopped';
+  $('wave').disabled=songState!=='stopped';
+  $('vol').min=songState==='stopped'?0:-32768;
+  $('vol').max=songState==='stopped'?16384:32767;
+}
+
 const draw = createWaveEditor(edit);
 const echo = {delay:6,feedback:0};
 const echoControls = {};
@@ -21,8 +43,10 @@ for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
     formatValue:key === 'delay' ? ticks=>ticks+' ticks · '+(ticks*1000/QSOUND_PCM_RATE).toFixed(2)+' ms' : String,
     onChange(value) {
       revision++;
-      if (key === 'send') channels[selected].send = value;
-      else echo[key] = value;
+      if (songState==='stopped') {
+        if (key === 'send') channels[selected].send = value;
+        else echo[key] = value;
+      }
       port?.postMessage(echoWrite(key,value,selected));
     }});
   $('echo-controls').append(echoControls[key].element);
@@ -50,6 +74,11 @@ function refresh() {
   draw(shown);
 }
 function edit(key,value) {
+  if(songState!=='stopped'){
+    port?.postMessage([[selected*8+({rate:2,end:5,loop:4})[key],value]]);
+    revision++;
+    return;
+  }
   const v = channels[selected];
   Object.assign(v,{sample:shown.sample,rate:shown.rate,end:shown.end,loop:shown.loop});
   v[key] = value;
@@ -69,6 +98,15 @@ function edit(key,value) {
 }
 function inspect({data}) {
   if (data.revision !== revision || data.channel !== selected) return;
+  if (data.view && songState!=='stopped') {
+    if(data.view.ended){stop();return;}
+    $('wave').selectedIndex=-1;
+    $('pan').value=Math.min(32,Math.max(0,data.view.pan-0x110));
+    $('vol').value=data.view.volume;
+    showEcho(data.send,data.delay,data.feedback);
+    draw({sample:0,rate:data.rate,end:data.end&65535,loop:data.loop&65535},data.active?data.address:null,data.view);
+    return;
+  }
   const v = channels[selected];
   if ((demoPlaying || codeWorker) && [0,256].includes(data.start) && data.loop>=0 && data.loop<=data.end-data.start && data.end > data.start && data.end <= data.start+256) {
     shown = {sample:data.start/256,rate:data.rate,end:data.end,loop:data.loop};
@@ -85,7 +123,7 @@ function inspect({data}) {
   draw(shown,cursor);
 }
 setInterval(()=>{
-  if (port && !document.hidden && (demoPlaying || codeWorker || channels[selected].held || cursor !== null))
+  if (port && !document.hidden && (songState!=='stopped' || demoPlaying || codeWorker || channels[selected].held || cursor !== null))
     port.postMessage({type:'inspect',channel:selected,revision});
 },50);
 async function audio() {
@@ -119,8 +157,8 @@ $('wave').onchange=()=>{
   if (v.held) port?.postMessage(noteWrites(selected,v.note,v.sample,v.pan,v.volume,v.rate,v.end,v.loop));
   refresh();
 };
-$('pan').oninput=()=>{const value=channels[selected].pan=Number($('pan').value);port?.postMessage([[0x80+selected,0x110+value]]);};
-$('vol').oninput=()=>{const v=channels[selected];v.volume=Number($('vol').value);if(v.held)port?.postMessage([[selected*8+6,v.volume]]);};
+$('pan').oninput=()=>{const value=Number($('pan').value);if(songState==='stopped')channels[selected].pan=value;port?.postMessage([[0x80+selected,0x110+value]]);};
+$('vol').oninput=()=>{const v=channels[selected];const volume=Number($('vol').value);if(songState==='stopped')v.volume=volume;if(v.held || songState!=='stopped')port?.postMessage([[selected*8+6,volume]]);};
 function press(id,midi) {
   const ch=selected,v=channels[ch]; v.held=id;
   v.note=midi;
@@ -183,8 +221,8 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();if(!e.repeat)press(e.code,notes[i]);
 });
 window.addEventListener('keyup',e=>release(e.code));
-function stop(){stopWorker();demoPlaying=false;refresh();generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');restoreEcho();}
-window.addEventListener('blur',stop);
+function stop(){songState='stopped';transport();$('pan').value=channels[selected].pan;$('vol').value=channels[selected].volume;stopWorker();demoPlaying=false;refresh();generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');restoreEcho();}
+window.addEventListener('blur',()=>{if(songState==='stopped')stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
 $('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation){demoPlaying=true;port.postMessage($('score').value);}});};
 $('stop').onclick=stop;
 $('save').onclick=()=>{
@@ -223,7 +261,7 @@ declare const qsound:{
   trigger(voice:number,sample?:number,pan?:number,volume?:number):void;
 };
 declare function useSoundChip(name:'qsound'):Promise<typeof qsound>;`,
-  getPath:()=>activePath,listFiles:()=>files.list(),openFile:openScript,
+  getPath:()=>activePath,listFiles:()=>files.list().filter(f=>f.type==='text'),openFile:openScript,
   onEdit:()=>{files.writeText(activePath,source.value);scheduleDraft();},visible:()=>!$('code-panel').hidden,run:apply=>$(apply?'apply-code':'run-code').click(),
 });
 function selectPerformance(code) {
@@ -261,23 +299,28 @@ $('apply-code').onclick=()=>codeWorker?.postMessage({source:source.value,path:ac
 $('stop-code').onclick=stop;
 
 function renderFiles() {
-  renderFileTree($('project-tree'),files.list(),{expanded,selectedPath:activePath,onOpen:openScript});
+  renderFileTree($('project-tree'),files.list(),{expanded,selectedPath:songPath??activePath,onOpen:openScript});
 }
 function openScript(path) {
   const file=files.get(path);
   if (!file) return;
+  if (file.type==='binary') {
+    stop();songPath=path;transport();renderFiles();return;
+  }
+  if(songPath){stop();songPath=null;transport();}
   activePath=path;
   editor.setSource(file.data,path);
   renderFiles();
   scheduleDraft();
 }
 function snapshot() {
-  return {version:1,files:files.list(),active:activePath,channels:channels.map(({held,...settings})=>settings),
+  return {version:1,files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
     pads:pads.map(p=>({...p})),selected,echo:{...echo}};
 }
 const factory=snapshot();
 function replaceProject(project) {
   stop();
+  songSelection++;songPath=null;transport();
   files.replace(project.files);
   project.channels.forEach((v,i)=>Object.assign(channels[i],v,{held:null}));
   project.pads.forEach((v,i)=>{
@@ -288,12 +331,15 @@ function replaceProject(project) {
   restoreEcho();
   select(project.selected);
   openScript(project.active);
+  if(project.song)openScript(project.song);
 }
 const draftKey='tetorica.cps2.cassette.v1';
-let timer;
-function saveDraft() {
+const store=createSynthProjectStore({name:'tetorica-cps2-project'});
+let timer, draftReady=false;
+async function saveDraft() {
   clearTimeout(timer);
-  try {localStorage.setItem(draftKey,JSON.stringify(snapshot()));}
+  if(!draftReady)return;
+  try {if(!await store.write(snapshot())) throw Error();}
   catch { $('file-status').textContent='Local draft could not be saved. Export a cassette to keep your work.'; }
 }
 function scheduleDraft() {clearTimeout(timer);timer=setTimeout(saveDraft,350);}
@@ -324,12 +370,44 @@ $('cassette-input').onchange=async e=>{
   try {
     if (file.size>16*1024*1024) throw Error('Cassette exceeds 16 MiB.');
     const project=await importProject(await file.arrayBuffer());
+    for(const file of project.files)if(file.type==='binary')await songBytes(file.data);
     if (!confirm('Replace the current project with '+file.name+'?')) return;
     replaceProject(project);saveDraft();$('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
 };
+$('import-song').onclick=()=>$('song-input').click();
+$('song-input').onchange=async event=>{
+  const file=event.target.files[0];event.target.value='';
+  if(!file)return;
+  const token=++songSelection;
+  try {
+    if(file.size>songLimit || !/\.(vgm|vgz)$/i.test(file.name))throw Error('Choose a VGM or VGZ up to 16 MiB.');
+    const raw=new Uint8Array(await file.arrayBuffer());
+    await songBytes(raw);
+    if(token!==songSelection)return;
+    const path='/songs/'+file.name;
+    if(files.has(path) && !confirm('Replace '+path+'?'))return;
+    files.writeBinary(path,raw);openScript(path);saveDraft();
+    $('file-status').textContent='Imported '+file.name;
+  } catch(error){$('file-status').textContent=error.message;}
+};
+$('song-play').onclick=()=>run(async()=>{
+  if(songState==='paused'){songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
+  stop();
+  const token=generation;
+  const raw=files.get(songPath)?.data;
+  if(!raw)return;
+  const [bytes]=await Promise.all([songBytes(raw),audio()]);
+  if(token!==generation)return;
+  songState='playing';port.postMessage({type:'song',bytes},[bytes.buffer]);transport();
+});
+$('song-pause').onclick=()=>{
+  songState='paused';port.postMessage({type:'pause-song',paused:true});transport();
+};
+$('song-stop').onclick=stop;
 renderFiles();
 try {
-  const draft=localStorage.getItem(draftKey);
-  if (draft) replaceProject(validateProject(JSON.parse(draft)));
+  const draft=await store.read() ?? JSON.parse(localStorage.getItem(draftKey));
+  if (draft) replaceProject(validateProject(draft));
 } catch(error){$('file-status').textContent='Draft unavailable: '+error.message;}
+draftReady=true;
