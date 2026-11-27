@@ -62,7 +62,7 @@ Files → Cassette → Export cassette downloads a ZIP with all scripts, the sel
 
 In Code → Files, choose **Import VGM / VGZ…**. Select a song under `/songs` and use the transport above the PCM channels. Pause freezes the chip and song position. Select different channels to see their ROM waveforms, addresses, loops and echo sends while paused or playing. The song supplies its own sample ROM. Stop restores the keyboard instruments. Imported VGM/VGZ bytes and the selected song travel in the cassette alongside your scripts. Local drafts use IndexedDB and can read earlier browser drafts.
 
-Playback covers one pass of a single QSound stream with embedded 0x8F ROM blocks, 0xC4 writes and standard waits. The existing PCM, ADPCM and echo preview applies. Spatial filtering and VGM loop repeats remain future work.
+Playback supports a single QSound stream with embedded 0x8F ROM blocks, 0xC4 writes and standard waits. The existing PCM, ADPCM and echo preview applies. Turn on Loop to repeat from the file’s loop command offset. It is available only when the offset points to a command followed by playback time. The intro plays once. Turning Loop off lets the current pass finish. Spatial filtering remains future work.
 
 ## Sharing demo cassettes
 

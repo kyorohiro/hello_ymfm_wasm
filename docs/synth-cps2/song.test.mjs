@@ -7,7 +7,7 @@ import {inspectSong,SongTransport} from './song.js';
 
 test('imported echo comparison matches the original worklet score at 48 kHz across pause and block boundaries',()=>{
   const score=demoTracks.echo.score(), source=demoVgm(score), rate=48000;
-  assert.equal(inspectSong(source),score.at(-1).t);
+  assert.deepEqual(inspectSong(source),{ticks:score.at(-1).t,canLoop:false});
   const chip=new QSoundPcm(new Uint8Array(),rate);
   const transport=new SongTransport(source,chip,new Uint16Array(16));
   const reference=new QSoundPcm(demoRom(),rate);
@@ -43,4 +43,34 @@ test('preflight rejects other chip configurations and songs without embedded sam
   const start=256+7+header.getUint32(259,true);
   source.copyWithin(256,start);
   assert.throws(()=>inspectSong(source),/embedded/);
+});
+
+test('loop output matches an explicitly repeated command stream, including across pause and resume',()=>{
+  const intro=[[0x78,0x8000],[1,0],[2,0x1234],[4,256],[5,256],[6,9000],[0xba,7000]];
+  const source=demoVgm([{t:0,writes:intro},{t:23,writes:[[0x80,0x118]]},{t:61,writes:[]}]);
+  const target=source.length-8; // pan write, 38-tick wait, end command
+  const header=new DataView(source.buffer);
+  const make=bytes=>new SongTransport(bytes,new QSoundPcm(new Uint8Array(),48000),new Uint16Array(16));
+  for(const invalid of [target+1,source.length-1,source.length+4]){
+    header.setUint32(0x1c,invalid-0x1c,true);
+    assert.equal(inspectSong(source).canLoop,false);
+  }
+  header.setUint32(0x1c,target-0x1c,true);
+  assert.ok(inspectSong(source).canLoop);
+  const repeated=demoVgm([{t:0,writes:intro},...[23,61,99].map(t=>({t,writes:[[0x80,0x118]]})),{t:137,writes:[]}]);
+  const original=make(source),expected=make(repeated);
+  original.loop=true;
+  function compare(frames) {
+    const buffers=Array.from({length:4},()=>new Float32Array(frames));
+    original.render(buffers[0],buffers[1]);expected.render(buffers[2],buffers[3]);
+    assert.deepEqual(buffers[0],buffers[2]);assert.deepEqual(buffers[1],buffers[3]);
+  }
+  compare(100);
+  original.paused=true;
+  original.render(new Float32Array(128),new Float32Array(128));
+  original.paused=false;
+  compare(20);
+  original.loop=false;
+  compare(100);
+  assert.ok(original.parser.ended);
 });

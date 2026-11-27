@@ -7,9 +7,10 @@ export function inspectSong(bytes) {
   const clock=parser.header.qsoundClock;
   if (!clock || clock>8000000 || Object.entries(parser.header).some(([key,value])=>key.endsWith('Clock') && key!=='qsoundClock' && value))
     throw Error('Choose a single-chip QSound VGM.');
-  let ticks=0,rom=false;
+  let ticks=0,rom=false,loopStart=null;
   while (!parser.ended) {
     const pos=parser.position,cmd=bytes[pos];
+    if (pos===parser.header.loopOffset) loopStart=ticks;
     if (!(cmd===0xc4 || (cmd===0x67 && bytes[pos+2]===0x8f) || [0x61,0x62,0x63,0x66].includes(cmd) || (cmd>=0x70 && cmd<=0x7f)))
       throw Error('Unsupported QSound VGM command at '+pos);
     const event=parser.step();
@@ -17,7 +18,7 @@ export function inspectSong(bytes) {
     if (event.type==='qsound-rom-data' && event.data.length) rom=true;
   }
   if (!rom || !ticks) throw Error('The song needs embedded QSound ROM data and playback time.');
-  return ticks;
+  return {ticks,canLoop:loopStart!==null && loopStart<ticks};
 }
 
 // Reads the validated stream incrementally. Use absolute VGM ticks so that
@@ -30,12 +31,19 @@ export class SongTransport {
     this.starts=starts;
     this.frames=this.ticks=this.nextFrame=0;
     this.paused=false;
+    this.loop=false;
+    this.loopStart=null;
   }
   render(left,right) {
     let offset=0;
     while (!this.paused && offset<left.length && !this.parser.ended) {
       if (this.frames>=this.nextFrame) {
+        if(this.parser.position===this.parser.header.loopOffset)this.loopStart=this.ticks;
         const e=this.parser.step();
+        if(e.type==='end' && this.loop && this.loopStart!==null && this.ticks>this.loopStart){
+          this.parser.position=this.parser.header.loopOffset;
+          this.parser.ended=false;
+        }
         if(e.type==='wait'){
           this.ticks+=e.samples;
           this.nextFrame=Math.round(this.ticks*this.chip.sampleRate/44100);

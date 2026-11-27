@@ -18,16 +18,17 @@ let selected = 0, context, ready, port, masterGain, generation = 0;
 let revision = 0, demoPlaying = false, shown, cursor = null;
 let codeWorker = null;
 let songPath=null, songState='stopped', songSelection=0;
+let preparedSong=null, preparationRevision=0;
 const songLimit=16*1024*1024;
-async function songBytes(raw) {
+async function prepareSong(raw) {
   const bytes=new Uint8Array(await maybeDecodeVgmFile(raw,{maxBytes:songLimit}));
-  inspectSong(bytes);
-  return bytes;
+  return {bytes,...inspectSong(bytes)};
 }
 function transport() {
   $('song-transport').hidden=!songPath;
+  $('song-loop').disabled=!preparedSong?.canLoop;
   $('song-title').textContent=songPath?.split('/').pop()??'';
-  $('song-play').disabled=songState==='playing';
+  $('song-play').disabled=songState==='playing' || !preparedSong;
   $('song-play').textContent=songState==='paused'?'Resume':'Play VGM';
   $('song-pause').disabled=songState!=='playing';
   $('song-stop').disabled=songState==='stopped';
@@ -339,13 +340,21 @@ function renderFiles() {
   $('export-contents').textContent='Includes '+songs+' VGM/VGZ '+(songs===1?'file':'files')+' with embedded sample data.';
   renderFileTree($('project-tree'),entries,{expanded,selectedPath:songPath??activePath,onOpen:openScript});
 }
-function openScript(path) {
+function openScript(path,prepared) {
   const file=files.get(path);
   if (!file) return;
   if (file.type==='binary') {
-    stop();songPath=path;transport();renderFiles();return;
+    stop();songPath=path;
+    preparedSong=null;$('song-loop').checked=false;
+    transport();renderFiles();
+    const token=++preparationRevision;
+    Promise.resolve(prepared??prepareSong(file.data)).then(song=>{
+      if(token!==preparationRevision || path!==songPath)return;
+      preparedSong=song;transport();
+    }).catch(error=>{if(token===preparationRevision && path===songPath)$('file-status').textContent=error.message;});
+    return;
   }
-  if(songPath){stop();songPath=null;transport();}
+  if(songPath){stop();songPath=null;preparedSong=null;transport();}
   activePath=path;
   editor.setSource(file.data,path);
   renderFiles();
@@ -358,7 +367,7 @@ function snapshot() {
 const factory=snapshot();
 function replaceProject(project) {
   stop();
-  songSelection++;songPath=null;transport();
+  songSelection++;songPath=null;preparedSong=null;transport();
   files.replace(project.files);
   project.channels.forEach((v,i)=>Object.assign(channels[i],v,{held:null}));
   project.pads.forEach((v,i)=>{
@@ -416,7 +425,7 @@ $('cassette-input').onchange=async e=>{
   try {
     if (file.size>16*1024*1024) throw Error('Cassette exceeds 16 MiB.');
     const project=await importProject(await file.arrayBuffer());
-    for(const file of project.files)if(file.type==='binary')await songBytes(file.data);
+    for(const file of project.files)if(file.type==='binary')await prepareSong(file.data);
     if (!confirm('Replace the current project with '+file.name+'?')) return;
     replaceProject(project);saveDraft();$('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
@@ -429,11 +438,11 @@ $('song-input').onchange=async event=>{
   try {
     if(file.size>songLimit || !/\.(vgm|vgz)$/i.test(file.name))throw Error('Choose a VGM or VGZ up to 16 MiB.');
     const raw=new Uint8Array(await file.arrayBuffer());
-    await songBytes(raw);
+    const prepared=await prepareSong(raw);
     if(token!==songSelection)return;
     const path='/songs/'+file.name;
     if(files.has(path) && !confirm('Replace '+path+'?'))return;
-    files.writeBinary(path,raw);openScript(path);saveDraft();
+    files.writeBinary(path,raw);openScript(path,prepared);saveDraft();
     $('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
 };
@@ -441,16 +450,17 @@ $('song-play').onclick=()=>run(async()=>{
   if(songState==='paused'){songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
   stop();
   const token=generation;
-  const raw=files.get(songPath)?.data;
-  if(!raw)return;
-  const [bytes]=await Promise.all([songBytes(raw),audio()]);
+  if(!preparedSong)return;
+  const {bytes}=preparedSong;
+  await audio();
   if(token!==generation)return;
-  songState='playing';port.postMessage({type:'song',bytes},[bytes.buffer]);transport();
+  songState='playing';port.postMessage({type:'song',bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
 });
 $('song-pause').onclick=()=>{
   songState='paused';port.postMessage({type:'pause-song',paused:true});transport();
 };
 $('song-stop').onclick=stop;
+$('song-loop').onchange=()=>port?.postMessage({type:'loop-song',enabled:Boolean(preparedSong?.canLoop) && $('song-loop').checked});
 renderFiles();
 try {
   const draft=await store.read() ?? JSON.parse(localStorage.getItem(draftKey));

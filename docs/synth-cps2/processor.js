@@ -19,9 +19,11 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.applyMutes();
         this.starts.fill(0);
         this.song=new SongTransport(data.bytes,this.chip,this.starts);
+        this.song.loop=data.loop;
         this.events=[];
         return;
       }
+      if (data?.type === 'loop-song') {if(this.song)this.song.loop=data.enabled;return;}
       if (data?.type === 'pause-song') {if(this.song)this.song.paused=data.paused;return;}
       if (data?.type === 'echo-delay') {
         this.chip.writeRegister(0xd9,this.chip.echoBase + data.ticks);
