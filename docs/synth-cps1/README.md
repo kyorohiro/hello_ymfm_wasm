@@ -53,7 +53,7 @@ Open the **Mixer** tab to adjust the two chips independently (0–380%) before M
 
 **☰ → New → Cassette · ZIP** stops playback and starts again with the eight factory FM voices, original percussion kit and all three bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.
 
-Use **Load preset…** on the YM2151 tab to copy a Files instrument, an individual OPM bank voice, or another channel’s patch onto the selected channel. The shared LFO and noise settings stay under the separate Files control.
+Use **Load preset…** on the YM2151 tab to load a Files instrument, an individual OPM bank voice, or another channel’s patch onto the selected channel. Editing a saved FM instrument updates its Files entry. With Auto apply off, an asterisk marks the edited instrument or channel file and its parent folders until Save or Discard. PCM slot and voice assignment edits use the same marks on the active ROM bank. The shared LFO and noise settings stay under the separate Files control.
 
 The FM keyboard uses the FM2612 fretboard controls. Select Guitar, Bass or Ukulele, the Open, 5th or 12th fret, and a window of four strings. Left/right arrows move by one fret and up/down arrows select the next string window. The octave offset applies to new notes. The MSM6295 keyboard uses its four fixed voice pads.
 

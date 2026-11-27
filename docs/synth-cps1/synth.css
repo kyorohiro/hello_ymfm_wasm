@@ -277,3 +277,7 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 
 #codeEditorHost{height:clamp(18rem,45vh,40rem);min-width:0}
 #codeEditorHost:not([data-ready="true"]){display:none}
+
+.code-toolbar {display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.code-toolbar button {min-height:24px;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:inherit;line-height:1.2}
+.code-toolbar select {margin-left:auto;max-width:100%;min-width:0}

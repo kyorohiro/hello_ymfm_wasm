@@ -62,7 +62,8 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
   }
   function open(path) {
     const v=files.get(path);if(!v)return;
-    selected=path;editPath=path;opmBank=null;presetChannel=null;
+    selected=path;opmBank=null;
+    if(['channel','voice','opm'].includes(v.kind)){editPath=path;presetChannel=null;}
     if(v.kind==='code')script(path);
     if(v.kind==='channel'){panel.selectChannel(v.ch);files.set(path,{...v,voice:currentVoice(v.ch)});fm();}
     if(v.kind==='voice'){presetChannel=panel.getSelectedChannel();applyVoice(presetChannel,v.voice);fm();}
@@ -78,25 +79,26 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
   function renderPresets(){
     const select=el('fmPreset');
     const choices=[],groups=new Map();
-    function option(group,label,read){
+    function option(group,label,read,path=null){
       if(!groups.has(group)){
         const node=document.createElement('optgroup');node.label=group;groups.set(group,node);
       }
       groups.get(group).append(new Option(label,choices.length));
-      choices.push(read);
+      choices.push({read,path});
     }
     option('Factory','Initial voice',()=>initialVoices[0]);
     for(const [path,file] of files){
       if(file.kind==='channel')option('Channels',base(path),()=>currentVoice(file.ch));
-      if(file.kind==='voice')option('Saved voices',path,()=>files.get(path).voice);
+      if(file.kind==='voice')option('Saved voices',path,()=>files.get(path).voice,path);
       if(file.kind==='opm')file.voices.forEach(({name,patch,mask})=>option(path,name,()=>({...patch,keyMask:mask})));
     }
     select.replaceChildren(new Option('Load preset…',''),...groups.values());
     select.onchange=()=>{
       if(select.value==='')return;
-      const patch=choices[Number(select.value)]();
-      presetChannel=null; // Load a copy onto the channel, preserving saved instrument files.
-      loadPreset(patch);
+      const {read,path}=choices[Number(select.value)];
+      presetChannel=null;
+      loadPreset(read());
+      if(path){editPath=path;presetChannel=panel.getSelectedChannel();}
       select.selectedIndex=0;select.blur();
     };
   }
@@ -154,8 +156,8 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     el('fileAuto').checked=state.auto;el('cassetteName').textContent=state.name;
   }
   window.addEventListener('pagehide',()=>{if(saveTimer)writeDraft();});
-  function editFile(path,value) {
-    if(!el('fileAuto').checked&&!pending.has(path))pending.set(path,files.get(path));
+  function editFile(path,value,previous=files.get(path)) {
+    if(!el('fileAuto').checked&&!pending.has(path))pending.set(path,previous);
     files.set(path,value);updateButtons();persist();
   }
   function save(all=false){
@@ -166,9 +168,17 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
   el('fileSaveAll').onclick=()=>save(true);
   el('fileAuto').onchange=()=>{if(el('fileAuto').checked)save(true);else persist();};
   el('fileDiscard').onclick=()=>{
-    const saved=pending.get(selected);if(!saved)return;
+    if(!pending.has(selected))return;
+    const saved=pending.get(selected);
+    if(!saved){
+      const path=selected;
+      files.delete(path);pending.delete(path);
+      if(path===activeBank)useBank(items('bank')[0]?.[0]??null);
+      if(path===editPath){editPath=null;presetChannel=null;}
+      selected=dirname(path);opmBank=null;render();persist();return;
+    }
     files.set(selected,saved);pending.delete(selected);
-    if(saved.kind==='channel')applyVoice(saved.ch,saved.voice);
+    if(saved.kind==='channel' && saved.voice)applyVoice(saved.ch,saved.voice);
     open(selected);persist();
   };
   window.addEventListener('keydown',event=>{
@@ -189,7 +199,7 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     return files.has(path)||folders.includes(path)||[...files.keys()].some(p=>p.startsWith(path+'/'));
   }
   function makeVoice(path) {
-    presetChannel=panel.getSelectedChannel();files.set(path,{kind:'voice',voice:currentVoice(presetChannel)});
+    presetChannel=panel.getSelectedChannel();editFile(path,{kind:'voice',voice:currentVoice(presetChannel)});
     selected=editPath=path;opmBank=null;
   }
   function create(action,path) {
@@ -272,7 +282,7 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     const filename=base(name),dot=filename.lastIndexOf('.');
     const stem=dot>0?filename.slice(0,dot):filename, ext=dot>0?filename.slice(dot):'';
     const path=checkPath(nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+ext));
-    remember();files.set(path,newBank({kind:'bank',bytes,names,name}));open(path);persist();
+    remember();editFile(path,newBank({kind:'bank',bytes,names,name}));open(path);persist();
   }
   function stageSongBanks(song,banks,additions,recover=false){
     const paths={};
@@ -316,7 +326,11 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     }
     if(epoch!==revision)return;
     for(const path of additions.keys())if(occupied(path))throw Error('Already exists: '+path);
-    remember();for(const [path,v] of additions)files.set(path,v);
+    remember();
+    for(const [path,v] of additions){
+      if(['bank','voice','opm'].includes(v.kind))editFile(path,v);
+      else files.set(path,v);
+    }
     openFiles();open(additions.keys().next().value);persist();report('Imported '+incoming.map(f=>f.name).join(', '));
   }
   for(const [button,input] of [['chooseVgm','vgmFile'],['chooseOpm','importOpm'],['chooseSamples','audioSamples']]) {
@@ -538,10 +552,17 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     if(!Number.isInteger(index)||!file.voices[index])throw Error('Unknown OPM voice index: '+index);
     const {patch,mask}=file.voices[index];
     applyVoice(ch,{...patch,keyMask:mask});
-  },keepSongBank,persist,addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
+  },keepSongBank,persist,addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,slot);},restoreKit(){restoreKit();render();persist();},voiceBeforeEdit(ch){return currentVoice(ch);},recordEdit(ch,before){
+    const voice=currentVoice(ch);
     const target=files.get(editPath);
-    if(target?.kind==='channel'&&target.ch===ch)editFile(editPath,{...target,voice:currentVoice(ch)});
-    else if(ch===presetChannel&&target?.kind==='voice')editFile(editPath,{kind:'voice',voice:currentVoice(ch)});
-    else persist();
+    if(ch===presetChannel&&target?.kind==='voice'){
+      editFile(editPath,{...target,voice});
+      return;
+    }
+    const channel=items('channel').find(([,file])=>file.ch===ch);
+    if(channel){
+      const [path,file]=channel;
+      editFile(path,{...file,voice},{...file,voice:before});
+    }else persist();
   },copySongVoice(ch,voice,mask){applyVoice(ch,{...voicePatch(voice),keyMask:mask});}};
 }

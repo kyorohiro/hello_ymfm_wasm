@@ -82,15 +82,17 @@ let autoChannel=true, nextChannel=0;
 let observation=null;
 let voicePage='Voice';
 const autoHeld=new Map();
-function editVoice(method,args) {
+function editVoice(method,args,before) {
   if(observation){
     if(!observation.fm || !method.startsWith('set'))return;
     observation.fm.invoke(method,args);
     songNode.port.postMessage({fmEdit:{method,args}});
     dirty=true;return;
   }
+  const editsPatch=method==='setVoice'||method==='setOperator';
+  if(editsPatch)before??=files.voiceBeforeEdit(args[0]);
   const result=inspector.invoke(method,args);
-  if (['setVoice','setOperator'].includes(method)) files.recordEdit(args[0]);
+  if(editsPatch)files.recordEdit(args[0],before);
   if (autoChannel && ['setVoice','setOperator'].includes(method)) {
     for (const ch of new Set(autoHeld.values())) if (ch!==args[0]) inspector.invoke(method,[ch,...args.slice(1)]);
   }
@@ -107,8 +109,9 @@ const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:sec
       }
       return;
     }
+    const before=files.voiceBeforeEdit(ch);
     keyMasks[ch]^=bit;
-    files.recordEdit(ch);
+    files.recordEdit(ch,before);
   },
 },(ch,op,patch)=>editVoice('setOperator',[ch,op,patch]),page=>{
   voicePage=page;
@@ -864,12 +867,13 @@ $('applyCode').onclick=()=>worker?.postMessage({source:$('editor').value,path:$(
 
 files = setupFiles({inspector,panel,keyMasks,loadPreset({keyMask=15,...patch}){
   const ch=panel.getSelectedChannel();
+  const before=files.voiceBeforeEdit(ch);
   if(observation){
     if(!observation.fm)return;
     observation.masks[ch]=keyMask;
     songNode.port.postMessage({keyMask:[ch,keyMask]});
   }else keyMasks[ch]=keyMask;
-  editVoice('setVoice',[ch,patch]);
+  editVoice('setVoice',[ch,patch],before);
 },defaults,initialCode,store,draft,playSong,stopSong,openFiles:()=>setFilesOpen(true),
   defaultBank:{bytes:sampleRom,names:samples,name:'Original kit',voiceSamples:[0,1,2,3]},applyBank:installRom,stop:()=>{stopRun();status('Stopped');}});
 $('filesToggle').disabled=false;
