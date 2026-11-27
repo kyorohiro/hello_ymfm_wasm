@@ -335,3 +335,5 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 .fm-channels button.is-key-on::before { transition-duration: 0s; }
 #fm2612Voice [hidden] { display: none; }
 .fm-channel-detail { min-width: 0; }
+
+.fm-operator-values .op-key-on {font-weight:700;color:#174b26;box-shadow:inset 3px 0 #429553}

@@ -132,20 +132,24 @@ export function mountFm2612VoiceView(root, openInstrument) {
   };
 }
 
-// OPM register slots are M1/M2/C1/C2, while the envelope legend uses OP1–4.
+// OPM register slots are M1/C1/M2/C2, while the envelope legend uses OP1–4.
 export function mountOpmEnvelope(root) {
   const details = document.createElement('details');
-  details.open = true;
-  details.innerHTML = '<summary>Operator envelopes</summary><canvas data-operator-envelope height="128" role="img" aria-label="Envelope curves in slot order 1, 3, 2, 4"></canvas>';
+  details.open = false;
+  details.innerHTML = '<summary>Envelope</summary><canvas data-operator-envelope height="128" role="img" aria-label="Relative YM2151 envelope settings for OP1 through OP4"></canvas>';
   root.append(details);
-  let operators;
-  const view = createOperatorEnvelopeView({root:details, getOperators:() => operators});
+  const routing=document.createElement('p');root.append(routing);
+  let current;
+  const view = createOperatorEnvelopeView({root:details, getOperators() {
+    return Object.fromEntries([0,2,1,3].map((slot,i) => {
+      const op = current.operators[slot];
+      return [i+1,{dt:op.dt1, tl:op.tl, ar:op.ar, d1r:op.d1r, d2r:op.d2r, sl:op.d1l, rr:op.rr}];
+    }));
+  }});
   return {
     update(channel) {
-      operators = Object.fromEntries([0,2,1,3].map((slot,i) => {
-        const op = channel.operators[slot];
-        return [i+1,{dt:op.dt1, tl:op.tl, ar:op.ar, d1r:op.d1r, d2r:op.d2r, sl:op.d1l, rr:op.rr}];
-      }));
+      current=channel;
+      if(routing.textContent!==routes[channel.algorithm])routing.textContent=routes[channel.algorithm];
       view.setVisible(true);
       view.invalidate();
     },

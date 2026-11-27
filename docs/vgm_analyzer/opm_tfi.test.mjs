@@ -29,10 +29,10 @@ test('OPM metadata preserves voice fields and missing clock is not invented',()=
 });
 test('actual export dispatch uses All versus Snapshot OPM inputs and downloads ZIP',()=>{
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8'),downloads=[],inputs=[];let files,status;
- const ctx=vm.createContext({currentChipKind:'ym2151',currentBuffer:bytes(),noteishHeader:{ym2151Clock:4000000},lastLoadedFileName:'song.vgm',player:{processedWaitSamples:123},opmMonitor:{snapshot:fixture},OPM_TFI_NOTICE,
+ const ctx=vm.createContext({currentChipKind:'ym2151',currentBuffer:bytes(),noteishHeader:{ym2151Clock:4000000},lastLoadedFileName:'song.vgm',player:{processedWaitSamples:456},playbackHeadSample:()=>123,opmMonitor:{snapshot:fixture},OPM_TFI_NOTICE,
  createOpmTfiFiles:o=>{inputs.push(o);return createOpmTfiFiles(o);},createStoredZip:f=>{files=f;return {};},URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},document:{createElement:()=>({click(){downloads.push(this.download);}})},setTimeout:f=>f(),setStatus:s=>status=s});
  vm.runInContext(source.slice(source.indexOf('function downloadOpmTfiZip()')>=0?source.indexOf('function downloadOpmTfiZip()'):source.indexOf('function downloadOpmTfiZip('),source.indexOf('function downloadAllVgiZip(')),ctx);
  vm.runInContext(source.slice(source.indexOf('function downloadSnapshotTfiZip()'),source.indexOf('function downloadSnapshotVgiZip()')),ctx);
  ctx.downloadAllTfiZip();assert.equal(inputs[0].snapshot,undefined);assert.equal(files.filter(f=>f.name.endsWith('.tfi')).length,2);
- ctx.downloadSnapshotTfiZip();assert.equal(inputs[1].snapshot.channels.length,8);assert.equal(files.filter(f=>f.name.endsWith('.tfi')).length,8);assert.deepEqual(downloads,['all_tfi_patches.zip','song_snapshot_tfi.zip']);assert.match(status,/Approximate/);
+ ctx.downloadSnapshotTfiZip();assert.equal(inputs[1].sample,123);assert.equal(inputs[1].snapshot.channels.length,8);assert.equal(files.filter(f=>f.name.endsWith('.tfi')).length,8);assert.deepEqual(downloads,['all_tfi_patches.zip','song_snapshot_tfi.zip']);assert.match(status,/Approximate/);
 });

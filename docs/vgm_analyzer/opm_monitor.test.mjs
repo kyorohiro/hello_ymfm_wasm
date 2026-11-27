@@ -24,7 +24,7 @@ test('OPM observation preserves writes and resets, and renders the selected chan
  assert.deepEqual(calls,[[0x20,7],'changed','reset','changed']);assert.equal(state.snapshot().channels[0].algorithm,0);
  const old=globalThis.document,tags=[];
  globalThis.document={createElement(tag){const el={style:{},setAttribute(){},classList:{toggle(){}},children:[],append(...a){this.children.push(...a);}};tags.push([tag,el]);return el;}};
- try{const m=mountOpmMonitor({append(){}});m.write(0x20,7);m.render();assert.equal(tags.filter(([tag])=>tag==='table').length,1);assert(tags.some(([tag,el])=>tag==='span' && el.textContent==='ALG 7'));}finally{globalThis.document=old;}
+ try{const m=mountOpmMonitor({append(){}});m.write(0x20,7);m.render();assert.equal(tags.filter(([tag])=>tag==='table').length,1);assert(tags.some(([tag,el])=>tag==='span' && el.textContent==='Algorithm 7'));}finally{globalThis.document=old;}
 });
 
 test('OPM changes track individual fields, transient changes, fade and reset',()=>{
@@ -47,9 +47,9 @@ test('OPM cell highlight disappears after idle time and reset',()=>{
  globalThis.document={createElement(tag){const el={style:{},setAttribute(){},classList:{toggle(){}},append(){}};tags.push([tag,el]);return el;}};
  try{
   const m=mountOpmMonitor({append(){}},()=>time);const cells=tags.filter(([tag])=>tag==='td').map(([,el])=>el);
-  assert(cells.every(cell=>cell.style.background===''));
-  m.write(0x60,42);m.render();assert.match(cells[4].style.background,/255 224 138/);assert.equal(cells[3].style.background,'');
-  time=1800;m.render();assert.equal(cells[4].style.background,'');
-  m.write(0x60,43);m.render();assert(cells[4].style.background);m.reset();m.render();assert.equal(cells[4].style.background,'');
+  assert(cells.every(cell=>!cell.style.background));
+  m.write(0x60,42);m.render();assert.match(cells[5].style.background,/255 224 138/);assert.equal(cells[3].style.background,'');
+  time=1800;m.render();assert.equal(cells[5].style.background,'');
+  m.write(0x60,43);m.render();assert(cells[5].style.background);m.reset();m.render();assert.equal(cells[5].style.background,'');
  }finally{globalThis.document=old;}
 });

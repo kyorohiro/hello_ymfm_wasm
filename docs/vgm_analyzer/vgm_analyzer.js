@@ -167,6 +167,12 @@ function renderSeekPosition(sample, showSeekLimit = false) {
   playbackSeek.setAttribute("aria-valuetext", playbackSeekTime.textContent);
 }
 
+function playbackHeadSample() {
+  if (!player) return 0;
+  const queued=player.queuedFrames+(activeStream?.workletQueuedFrames??0);
+  return Math.max(0,player.processedWaitSamples-queued*44100/player.sampleRate());
+}
+
 function updateSeekPosition() {
   if (songPlayer) {
     const state = songPlayer.read();
@@ -187,8 +193,7 @@ function updateSeekPosition() {
   if (timelineSelectionPending) {
     renderSeekPosition(seekSelection ?? songTimeline.selected());
   } else if (player) {
-    const queued = player.queuedFrames + (activeStream?.workletQueuedFrames ?? 0);
-    const sample = Math.max(0, player.processedWaitSamples - queued * 44100 / player.sampleRate());
+    const sample = playbackHeadSample();
     renderSeekPosition(timelinePlaybackPosition(sample, Number(playbackSeek.max), noteishHeader?.loopSamples || 0, loopCheckbox.checked));
   }
 }
@@ -1243,7 +1248,8 @@ function ensureChannelMonitorRenderTimer() {
     return;
   }
   channelMonitorRenderTimer = window.setInterval(() => {
-    if (operatorInfoPanel.hidden) return;
+    if (currentChipKind==='ym2151') opmMonitor.catchUp();
+    if (document.hidden || operatorInfoPanel.hidden) return;
     const recentAdpcm = currentChipKind === 'mixed' ? dualFm[inspectedFm]?.adpcm : opnAdpcm;
     const activePsg = dualPsg[inspectedPsg]?.monitor ?? psgMonitor;
     const psgRecent = recentAdpcm?.starts.some(recentAdpcmStart) || (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || activePsg.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
@@ -1646,9 +1652,14 @@ function renderChannelMonitor() {
     if (fm.adpcm) renderAdpcmMonitor(fm.adpcm,fm.sampleMutes);
     return;
   }
+  if (currentChipKind==='ym2151') {
+    opmMonitor.render();
+    if (noteishHeader?.psgClock && !document.getElementById('psgMonitor').closest('[hidden]')) renderPsgMonitor();
+    return;
+  }
   fm2612Voice.update(opn ? channelMonitor : [], currentChipKind);
   if (currentChipKind === 'pokey') {renderMonitorToggles(); pokeyMonitor.render(); return;}
-  if (currentChipKind === "ym2151") opmMonitor.render();
+
   if (currentChipKind === "ay8910") { renderMonitorToggles(); ayMonitor.render(); if (noteishHeader.ym2413Clock & 0x3fffffff) ym2413Monitor.render(); return; }
   if (currentChipKind === "ym2413") { renderMonitorToggles(); ym2413Monitor.render(); return; }
   if (isOpl(currentChipKind)) { renderMonitorToggles(); oplMonitor.render(); return; }
@@ -2673,7 +2684,7 @@ function downloadOpmTfiZip(snapshot) {
     const result = createOpmTfiFiles({buffer:currentBuffer,
       snapshot:snapshot ? opmMonitor.snapshot() : undefined,
       clock:noteishHeader.ym2151Clock & 0x3fffffff,fileName:lastLoadedFileName,
-      sample:player?.processedWaitSamples ?? null});
+      sample:player ? Math.round(playbackHeadSample()) : null});
     if (!result.count) {setStatus('No keyed YM2151 tones found to export.');return;}
     const url=URL.createObjectURL(createStoredZip(result.files));
     const anchor=document.createElement('a');anchor.href=url;
@@ -4448,7 +4459,7 @@ playbackSeek.addEventListener("change", async () => {
   timelineSelectionPending = true;
   songTimeline.cursor(sample, false);
   if (wasPlaying) await playCurrentVgm(sample);
-  else if (player?.isPaused() && ((currentChipKind === 'mixed' && (dualFm.length || dualDmg.length || dualPsg.length)) || ['ym2203', 'ym2608', 'ym2610', 'gameboy'].includes(currentChipKind) ||
+  else if (player?.isPaused() && ((currentChipKind === 'mixed' && (dualFm.length || dualDmg.length || dualPsg.length)) || ['ym2203', 'ym2608', 'ym2610', 'ym2151', 'gameboy'].includes(currentChipKind) ||
            (currentChipKind === 'ym2612' && currentHasPcm) ||
            ((noteishHeader.psgClock & 0x3fffffff) && ['ym2612', 'ym2151'].includes(currentChipKind)))) {
     // The suspended output stream still contains audio from the old position.
@@ -4459,6 +4470,7 @@ playbackSeek.addEventListener("change", async () => {
     playbackSeek.disabled = true;
     try {
       await seekPlayback(player, sample, {signal:controller.signal});
+      if(currentChipKind==='ym2151')opmMonitor.render();
       requestChannelMonitorRender();
       requestNoteishRender();
     } catch (error) {
@@ -4489,6 +4501,7 @@ pauseButton.addEventListener("click", async () => {
   if (activeStream?.mode === 'worklet') activeStream.node.port.postMessage({type: 'pause'});
   await audioContext?.suspend();
   updatePlaybackButtons(player.stats());
+  if(currentChipKind==='ym2151')opmMonitor.render();
   setStatus("Paused.");
 });
 
@@ -4583,7 +4596,10 @@ const fm2612Voice = mountFm2612VoiceView(document.getElementById('fm2612Voice'),
 const opmMonitorRoot = document.createElement('section');
 chipMonitorStorage.append(opmMonitorRoot);
 opmMonitorRoot.hidden = true;
-const opmMonitor = mountOpmMonitor(opmMonitorRoot, undefined, mountOpmEnvelope);
+const opmMonitor = mountOpmMonitor(opmMonitorRoot, undefined, mountOpmEnvelope, {
+  writeSample:()=>player?.processedWaitSamples??0,
+  displaySample:()=>timelineSeekController&&seekSelection!==null?seekSelection:playbackHeadSample(),
+});
 exportAllOpmButton.addEventListener('click', () => {
   if (currentChipKind !== 'ym2151' || !currentBuffer) return;
   try {
