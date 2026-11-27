@@ -43,12 +43,17 @@ export function demoScore() {
   return events.sort((a,b)=>a.t-b.t);
 }
 
+export function adpcmTriggerWrites(voice, sample, pan, volume) {
+  const reg = 0xca + 4 * voice;
+  const start = 512 + 512 * sample;
+  return [[reg,start],[reg+1,start+512],[reg+2,0x8000],[reg+3,volume],
+    [0x90+voice,0x110+pan],[0xd6+voice,1]];
+}
+
 export function adpcmScore() {
-  const events = [0,1,2,0,2,1].map((voice, index) => {
-    const reg = 0xca + 4 * voice, start = 512 + 512 * voice;
-    return {t:index * 11025, writes:[[reg,start],[reg+1,start+512],[reg+2,0x8000],
-      [reg+3,0x7fff],[0x90+voice,0x110+voice*16],[0xd6+voice,1]]};
-  });
+  const events = [0,1,2,0,2,1].map((voice,index)=>({
+    t:index * 11025, writes:adpcmTriggerWrites(voice,voice,voice*16,0x7fff),
+  }));
   events.push({t:6 * 11025, writes:[]});
   return events;
 }

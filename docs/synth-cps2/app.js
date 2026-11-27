@@ -2,7 +2,7 @@
 import {createParamControl} from '../synth/synth_controls.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
-import {demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
+import {demoVgm,noteWrites,demoTracks,pcmRate,adpcmTriggerWrites} from './demo.js';
 const $ = id => document.getElementById(id);
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
 let selected = 0, context, ready, port, generation = 0;
@@ -132,8 +132,44 @@ const keys='asdfghjk',notes=[60,62,64,65,67,69,71,72];
   button.onpointerdown=e=>{button.setPointerCapture(e.pointerId);press('p'+e.pointerId,notes[i]);};
   button.onlostpointercapture=e=>release('p'+e.pointerId);$('keys').append(button);
 });
+const pads = Array.from({length:3},(_,i)=>({sample:i,pan:16*i,volume:0x7fff}));
+function triggerPad(i) {
+  const token = generation;
+  const {sample,pan,volume} = pads[i];
+  run(async()=>{
+    await audio();
+    if (token === generation) port.postMessage(adpcmTriggerWrites(i,sample,pan,volume));
+  });
+}
+pads.forEach((pad,i)=>{
+  const group = document.createElement('fieldset');
+  group.className = 'adpcm-voice';
+  const legend = document.createElement('legend');
+  legend.textContent = 'ADPCM '+(i+1);
+  const button = document.createElement('button');
+  button.className = 'adpcm-pad';
+  button.textContent = 'Trigger · '+(i+1);
+  button.onpointerdown = e=>{if(e.button===0)triggerPad(i);};
+  button.onclick = e=>{if(e.detail===0)triggerPad(i);};
+  group.append(legend,button);
+  for (const [key,label,max] of [['sample','Sample',2],['pan','Pan',32],['volume','Volume',32767]]) {
+    const control = createParamControl({label,min:0,max,step:1,value:pad[key],
+      formatValue:key==='sample' ? n=>'Pulse '+(n+1) : String,
+      onChange(value) {
+        pad[key]=value;
+        if (key==='pan') port?.postMessage([[0x90+i,0x110+value]]);
+      }});
+    group.append(control.element);
+  }
+  $('adpcm-pads').append(group);
+});
 window.addEventListener('keydown',e=>{
   if(e.ctrlKey||e.altKey||e.metaKey||e.target.matches('input,select'))return;
+  if (/^[123]$/.test(e.key)) {
+    e.preventDefault();
+    if (!e.repeat) triggerPad(Number(e.key)-1);
+    return;
+  }
   const i=keys.indexOf(e.key.toLowerCase()); if(i<0||e.key.length!==1)return;
   e.preventDefault();if(!e.repeat)press(e.code,notes[i]);
 });

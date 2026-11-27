@@ -16,6 +16,10 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 .param-control button{border:0;padding:.15rem .45rem;background:transparent}
 .param-value{cursor:ew-resize;touch-action:none;user-select:none;font-variant-numeric:tabular-nums}
 #pcm-caption{font-size:.85rem;font-variant-numeric:tabular-nums}
+#adpcm-pads{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(12rem,100%),1fr));gap:.6rem}
+.adpcm-voice{display:grid;gap:.3rem;min-width:0;margin:0;border:1px solid #7a9897;border-radius:6px}
+.adpcm-pad{background:#172f45;color:white;touch-action:manipulation}
+.adpcm-pad:active{background:#176481}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <section><h2>PCM channel</h2><div id="channels"></div>
@@ -27,4 +31,7 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <p id="pcm-caption"></p>
 <div class="echo-controls" id="echo-controls" role="group" aria-label="PCM echo"></div></section>
 <section><h2>Keyboard</h2><div id="keys"></div></section>
+<section aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
+<p>Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
+<div id="adpcm-pads"></div></section>
 <footer><label>Demo<select id="score"><option value="demo">PCM duet</option><option value="adpcm">ADPCM trio</option><option value="echo">PCM echo comparison</option></select></label> <button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer></main><script type="module" src="./app.js"></script></html>
