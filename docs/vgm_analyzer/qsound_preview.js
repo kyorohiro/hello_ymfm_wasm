@@ -8,7 +8,7 @@ export function createQSoundPreview(clock, masterVolume=1) {
   function reset() {
     chip = new QSoundPcm(rom,44100);
     chip.tickRate = QSOUND_PCM_RATE * clock / 4_000_000;
-    chip.voices.concat(chip.adpcm).forEach((voice,i)=>{voice.muted=muted[i];});
+    muted.forEach((value,i)=>chip.setChannelMuted(i,value));
   }
   reset();
   return {
@@ -21,7 +21,7 @@ export function createQSoundPreview(clock, masterVolume=1) {
       },
     },
     clearSampleMemory(){chip.rom=rom=new Uint8Array();},
-    setChannelMuted(i,value){const voice = i < 16 ? chip.voices[i] : chip.adpcm[i-16]; voice.muted = muted[i] = Boolean(value);},
+    setChannelMuted(i,value){muted[i]=Boolean(value);chip.setChannelMuted(i,value);},
     setMasterVolume(value){masterVolume=value;},
     getMasterVolume:()=>masterVolume,
     sampleRate:()=>44100,

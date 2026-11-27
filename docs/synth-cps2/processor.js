@@ -7,13 +7,16 @@ class Cps2Preview extends AudioWorkletProcessor {
   constructor() {
     super();
     this.chip = new QSoundPcm(demoRom(), sampleRate);
+    this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
     this.events = [];
     this.index = 0;
     this.frame = 0;
     this.port.onmessage = ({data}) => {
+      if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}
       if (data?.type === 'song') {
         this.chip=new QSoundPcm(new Uint8Array(),sampleRate);
+        this.applyMutes();
         this.starts.fill(0);
         this.song=new SongTransport(data.bytes,this.chip,this.starts);
         this.events=[];
@@ -43,10 +46,14 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.song=null;
         this.chip = new QSoundPcm(demoRom(), sampleRate);
         this.events = (data === 'stop' ? [] : demoTracks[data].score()).map(e=>({...e,frame:Math.round(e.t*sampleRate/44100)}));
+        this.applyMutes();
         this.starts.fill(0);
         this.frame = this.index = 0;
       } else this.apply(data);
     };
+  }
+  applyMutes() {
+    this.mutes.forEach((muted,i)=>this.chip.setChannelMuted(i,muted));
   }
   apply(writes) {
     for (const [reg,value] of writes) {

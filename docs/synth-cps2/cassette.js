@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
+import {validateMix} from './mixer.js';
 import {checkPath} from '../synth-cps1/project-tree.js';
 
 export function scriptPath(path) {
@@ -34,7 +35,7 @@ export function validateProject(project) {
   if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
   const song=project.song??null;
   if(song!==null && files.get(song)?.type!=='binary')throw Error('Cassette is missing its selected song.');
-  return {version:1,song,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
+  return {version:1,mix:validateMix(project.mix),song,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
 }
 
 export function exportProject(project) {

@@ -51,6 +51,11 @@ export class QSoundPcm {
     this.ticks = 1;
   }
 
+  setChannelMuted(index,muted) {
+    const voice=index<16 ? this.voices[index] : this.adpcm[index-16];
+    voice.muted=Boolean(muted);
+  }
+
   writeRegister(reg, value) {
     if (!Number.isInteger(reg) || reg < 0 || reg > 255 ||
         !Number.isInteger(value) || value < 0 || value > 65535)

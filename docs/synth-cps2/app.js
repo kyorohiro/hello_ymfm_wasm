@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {setupMixer,mutedVoices} from './mixer.js';
 import {inspectSong} from './song.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
@@ -12,7 +13,7 @@ import {createWaveEditor} from './wave_editor.js';
 import {demoVgm,noteWrites,demoTracks,pcmRate,adpcmTriggerWrites} from './demo.js';
 const $ = id => document.getElementById(id);
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
-let selected = 0, context, ready, port, generation = 0;
+let selected = 0, context, ready, port, masterGain, generation = 0;
 let revision = 0, demoPlaying = false, shown, cursor = null;
 let codeWorker = null;
 let songPath=null, songState='stopped', songSelection=0;
@@ -34,6 +35,11 @@ function transport() {
   $('vol').max=songState==='stopped'?16384:32767;
 }
 
+const mixer = setupMixer(applyMix);
+function applyMix(settings) {
+  if(masterGain)masterGain.gain.setTargetAtTime(settings.master/100,context.currentTime,0.005);
+  port?.postMessage({type:'mute-voices',mask:mutedVoices(settings)});
+}
 const draw = createWaveEditor(edit);
 const echo = {delay:6,feedback:0};
 const echoControls = {};
@@ -131,11 +137,14 @@ async function audio() {
   await context.resume();
   ready ??= context.audioWorklet.addModule('./processor.js').then(()=>{
     const node = new AudioWorkletNode(context,'tetorica-cps2-preview',{outputChannelCount:[2]});
-    node.connect(context.destination); port = node.port; port.onmessage = inspect; restoreEcho();
+    masterGain=context.createGain();
+    masterGain.gain.value=mixer.get().master/100;
+    node.connect(masterGain).connect(context.destination);
+    port = node.port; port.onmessage = inspect; applyMix(mixer.get()); restoreEcho();
   }).catch(error=>{ready=null;throw error;});
   await ready;
 }
-const status = document.querySelector('output');
+const status = document.querySelector('footer output');
 function run(task) {task().catch(e=>{status.textContent=e.message;});}
 function select(channel) {
   selected = channel;
@@ -318,7 +327,7 @@ function openScript(path) {
 }
 function snapshot() {
   return {version:1,files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
-    pads:pads.map(p=>({...p})),selected,echo:{...echo}};
+    pads:pads.map(p=>({...p})),mix:mixer.get(),selected,echo:{...echo}};
 }
 const factory=snapshot();
 function replaceProject(project) {
@@ -330,6 +339,7 @@ function replaceProject(project) {
     Object.assign(pads[i],v);
     for (const [key,value] of Object.entries(v)) padControls[i][key].updateVisual(value);
   });
+  mixer.set(project.mix);
   Object.assign(echo,project.echo);
   restoreEcho();
   select(project.selected);

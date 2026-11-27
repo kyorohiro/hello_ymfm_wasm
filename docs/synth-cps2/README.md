@@ -69,3 +69,7 @@ Playback covers one pass of a single QSound stream with embedded 0x8F ROM blocks
 Files → Cassette → **Download factory demos** builds a project from the factory scripts, the default instrument settings and the three generated demo VGMs. Each VGM contains the PCM and ADPCM sample bytes synthesized by `demoRom()`. This download is independent of the currently open project.
 
 **Export cassette** includes all songs in the current Files tree, including their embedded sample data. The menu shows the song count. When sharing that ZIP, check redistribution permission for both the music and the samples in any imported song.
+
+## Mixer
+
+Open Mixer for master gain (0–380%) and independent Mute and Solo buttons on PCM CH1–16 and ADPCM 1–3. Solos can be combined. Mute takes priority on a soloed voice. Muting stops the voice's dry output and new echo input while playback advances and the shared echo tail decays. Master gain affects the whole stereo output. The keyboard, pads, Code, demos and imported VGMs share these controls. The local draft and project cassette retain the mix.

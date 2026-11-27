@@ -30,8 +30,15 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 #code-panel .file-entry[aria-current=true]{font-weight:bold;background:#d9e6df}
 @media(max-width:600px){#code-panel:not([hidden]){grid-template-columns:1fr}}
 #code-panel button{margin:.4rem .2rem .4rem 0}
+.mix-voices{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.4rem}
+.mix-voices>div{display:flex;align-items:center;gap:.2rem}.mix-voices strong{flex:1}
+.mix-voices button{font-size:.85rem;padding:.2rem .35rem}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
+<section><details id="mixer"><summary>Mixer</summary>
+<label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
+<h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
+<h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></details></section>
 <section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong>
 <button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button></section>
 <section><h2>PCM channel</h2><div id="channels"></div>
