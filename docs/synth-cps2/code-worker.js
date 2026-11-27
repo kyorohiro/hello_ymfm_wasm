@@ -8,7 +8,20 @@ function integer(value,min,max,label) {
 }
 const channel = n=>integer(n,1,16,'PCM channel')-1;
 let captured=false;
+let samples=new Map();
 const qsound = {
+  assignSample(ch,path,options={}) {
+    const index=channel(ch),base=index*8;
+    if(!samples)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
+    const item=samples.get(path);
+    if(!item)throw Error('Missing PCM sample: '+path);
+    const offset=integer(options.offset??0,0,item.length-1,'Sample offset');
+    const length=integer(options.length??item.length-offset,1,item.length-offset,'Sample length');
+    const loop=integer(options.loop??length,0,length,'Loop length');
+    const start=item.start+offset;
+    postMessage({writes:[[((index+15)%16)*8,0x8000|item.bank],[base+1,start],[base+3,0],
+      [base+4,loop],[base+5,start+length],[base+2,item.rate]]});
+  },
   writeRegister(reg,value) {
     postMessage({writes:[[integer(reg,0,255,'Register'),integer(value,0,65535,'Value')]]});
   },
@@ -35,6 +48,8 @@ const runtime = createPlaygroundCodeRuntime({
 });
 let revision = 0;
 onmessage = async ({data})=>{
+  if('samples' in data)samples=data.samples===null?null:new Map(data.samples);
+  if(data.source===undefined)return;
   if(!data.apply)captured=Boolean(data.captured);
   const token = ++revision;
   try {

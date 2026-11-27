@@ -20,6 +20,7 @@ import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {isSamplePath,decodeSample,allocateSample,sampleLibrary,maxRom} from './samples.js';
+import {cabinetPluck,duetSamplePath,sampleDuet} from './sample-duet.js';
 let placements={},library=sampleLibrary([]);
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.sample*256;
@@ -437,6 +438,8 @@ $('save').onclick=()=>{
 const source = $('source');
 const files = createVirtualFileSystem([
   {path:'/index.js',data:source.value},
+  {path:duetSamplePath,data:cabinetPluck()},
+  {path:'/examples/sample-duet.js',data:sampleDuet},
   ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score())})),
   {path:'/examples/pad-loop.js',data:`setBpm(106);
 liveLoop('pads', async () => {
@@ -447,7 +450,9 @@ liveLoop('pads', async () => {
 });
 `},
 ]);
-$('add-demos').onclick=()=>{
+placements[duetSamplePath]=allocateSample([],decodeSample(files.get(duetSamplePath).data).pcm.length);
+rebuildSamples();
+$('add-demos').onclick=()=>run(async()=>{
   const additions=[];
   for(const track of Object.values(demoTracks)){
     const bytes=demoVgm(track.score());
@@ -459,10 +464,19 @@ $('add-demos').onclick=()=>{
     }
     if(!files.has(path))additions.push({path,data:bytes});
   }
-  files.writeFiles(additions);if(!songPath)selectDefaultSong();
+  if(!files.has('/examples/sample-duet.js'))additions.push({path:'/examples/sample-duet.js',data:sampleDuet});
+  let offset;
+  if(!files.has(duetSamplePath)){
+    const data=cabinetPluck();
+    offset=allocateSample(library.items.values(),decodeSample(data).pcm.length);
+    additions.push({path:duetSamplePath,data});
+  }
+  files.writeFiles(additions);
+  if(offset!==undefined){placements[duetSamplePath]=offset;rebuildSamples();}
+  if(!songPath)selectDefaultSong();
   setFiles(true);renderFiles();scheduleDraft();
   $('file-status').textContent=additions.length?'Added '+additions.length+' demo files.':'Demo files already present.';
-};
+});
 let activePath='/index.js', highlightedPath=activePath;
 const expanded=new Map([['/examples',true],['/songs',true],['/presets',true],['/samples',true]]);
 const editor = setupSynthMonacoEditor({
@@ -474,6 +488,8 @@ declare function setBpm(bpm:number):void;
 declare function sleep(seconds:number):Promise<void>;
 declare function stopLoop(name:string):void;
 declare const qsound:{
+  /** Assign a WAV from Files. Offset, length and loop are measured in ROM bytes. */
+  assignSample(channel:number,path:string,options?:{offset?:number,length?:number,loop?:number}):void;
   writeRegister(register:number,value:number):void;
   noteOn(channel:number,midi:number,sample?:number,pan?:number,volume?:number):void;
   noteOff(channel:number):void;
@@ -529,6 +545,10 @@ for(const tab of document.querySelectorAll('[data-chip]'))tab.onclick=()=>{
 };
 $('keyboard-tab').onclick=()=>selectPerformance(false);
 $('code-tab').onclick=()=>selectPerformance(true);
+function codeSamples(){
+  if(romPath)return null;
+  return [...library.items].map(([path,{bank,start,length,rate}])=>[path,{bank,start,length,rate}]);
+}
 function stopWorker() {
   codeWorker?.terminate();
   codeWorker=null;
@@ -558,9 +578,9 @@ $('run-code').onclick=()=>run(async()=>{
     if(data.status){$('code-status').textContent=data.status;$('apply-code').disabled=false;}
   };
   worker.onerror=e=>{if(worker===codeWorker){stop();$('code-status').textContent=e.message;}};
-  worker.postMessage({source:files.get(activePath).data,path:activePath,captured:liveInstrument});
+  worker.postMessage({source:files.get(activePath).data,path:activePath,captured:liveInstrument,samples:codeSamples()});
 });
-$('apply-code').onclick=()=>codeWorker?.postMessage({source:files.get(activePath).data,path:activePath,apply:true});
+$('apply-code').onclick=()=>codeWorker?.postMessage({source:files.get(activePath).data,path:activePath,apply:true,samples:codeSamples()});
 $('stop-code').onclick=stop;
 
 function renderFiles() {
@@ -885,6 +905,7 @@ function rebuildSamples(){
   while(selector.options.length>3)selector.remove(3);
   for(const path of library.items.keys())selector.add(new Option(path.split('/').pop(),path));
   if(port)port.postMessage({type:'project-rom',rom:library.rom});
+  codeWorker?.postMessage({samples:codeSamples()});
 }
 function assignSample(path){
   const item=library.items.get(path),v=channels[selected];

@@ -15,7 +15,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.port.onmessage = ({data}) => {
       if(data?.type==='project-rom'){
         this.projectRom=data.rom;
-        if(!this.song && !this.captured)this.chip.rom=data.rom;
+        if(!this.song && !this.source)this.chip.rom=data.rom;
         return;
       }
       if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}

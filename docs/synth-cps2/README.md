@@ -99,13 +99,17 @@ Select **Voice 2** during ADPCM trio, pause after its first hit, and choose **Sa
 
 Right-click a file (or use Shift+F10) to open/apply, duplicate, rename or delete it. Renaming a VGM updates the presets that refer to it. Files displays the source and bank for the selected preset. A change to another song’s shared ROM always uses **Apply preset**. Auto apply opens same-source presets on selection and saves edits to JavaScript and the connected preset. With Auto apply off, changed files show an asterisk; **Save files** commits those edits to the cassette. Run and Apply execute the saved JavaScript. The browser draft retains pending edits across reloads.
 
-The transport opens the factory PCM duet on a fresh visit. Select a different demo or imported VGM in Files to use Play VGM, Pause, Stop VGM and, for files with a loop point, Loop. **☰ → Import → Add factory VGM demos** adds missing demos to an older cassette. **☰ → Export → Download selected VGM / VGZ** preserves individual downloads.
+The transport opens the factory PCM duet on a fresh visit. Select a different demo or imported VGM in Files to use Play VGM, Pause, Stop VGM and, for files with a loop point, Loop. **☰ → Import → Add factory demos** adds missing demos to an older cassette. **☰ → Export → Download selected VGM / VGZ** preserves individual downloads.
 
 ## Live coding
 
 In the ADPCM tab, select Voice 2 and press **2** to follow the one-shot cursor. Shorten **End (exclusive)** and trigger again to hear the edited range. The waveform shows the decoded voice at its configured volume, scaled to fit the display. The caption gives its byte count and duration at the current chip clock.
 
 Open Code and press Run to play the CH1 bass loop. Select CH2 and play A–K over the bass, or use 1–3 for ADPCM. Click outside the editor to use the musical keys. Select CH1 to watch its PCM and echo settings. Edit the notes or the echo send and press Apply to update the named loop. Stop ends the loops and keeps the instruments available for audition. Ctrl/Cmd+Enter runs the source; Ctrl/Cmd+Shift+Enter applies it.
+
+Open **Files → /examples/sample-duet.js → Run** to play the bundled original `/samples/cabinet-pluck.wav`. CH1 loops the last 64 bytes of its first 256 bytes for the bass. CH2 uses all 2,048 bytes for the melody. Select the shared sample bank in ROM to see both intervals. Edit a note or loop length and press **Apply** while the duet plays.
+
+Use `qsound.assignSample(channel, path, {offset, length, loop})` before a two-argument `qsound.noteOn(channel, midi)`. Channel numbers start at 1. All three options are optional and use ROM bytes. Offset is relative to the clip, length defaults to the remaining clip, and loop defaults to length. C4 uses the imported rate. The API controls the current audition session and reads the project's shared ROM. After playing a song with its own ROM, choose **Use synth instruments** to return to the project's samples.
 
 With a captured instrument, `qsound.noteOn(1,60)` plays CH1 at its reference rate and `qsound.trigger(2)` retriggers the captured ADPCM voice 2. Passing a sample index explicitly addresses the generated pulse or waveform offsets in the current ROM. Starting Code during VGM playback pauses the song first. Switching Synth / Code leaves the performance running.
 
