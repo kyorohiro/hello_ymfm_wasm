@@ -108,6 +108,10 @@
       transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
     }
 
+    .card-featured {
+      border-width: 3px;
+    }
+
     .card-with-icon {
       display: flex;
       align-items: flex-start;
@@ -273,49 +277,6 @@
         including the sounds of the Sega Genesis / Mega Drive and Game Boy.
       </p>
 
-      <h2>Main apps</h2>
-
-      <div class="grid">
-        <div class="card card-synth card-with-icon">
-          <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
-          <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>YM2612 Synth Demo</strong>
-            Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
-            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="card card-playground card-with-icon">
-          <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
-          <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>YM2612 Playground</strong>
-            Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
-            raw <code>fm</code> access.
-            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=pc98">PC-98 YM2608 Playground &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=pc98-26">PC-98 YM2203 Playground &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=neogeo">Neo Geo YM2610 Playground &rarr;</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="card card-analyzer card-with-icon">
-          <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
-          <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>FM2612 VGM Analyzer</strong>
-            Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
-            <a class="card-engine-link" href="./vgm_analyzer/support.html">Sound chip support &rarr;</a>
-            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
-          </div>
-        </div>
-      </div>
-
       <h2>Goals</h2>
 
       <p>This repository has four goals:</p>
@@ -424,6 +385,47 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
       </div>
 
       <h2>Tetorica Tools (Experimental)</h2>
+
+      <div class="grid">
+        <div class="card card-synth card-with-icon card-featured">
+          <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
+          <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Synth Demo</strong>
+            Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
+            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card card-playground card-with-icon card-featured">
+          <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
+          <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Playground</strong>
+            Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
+            raw <code>fm</code> access.
+            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=pc98">PC-98 YM2608 Playground &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=pc98-26">PC-98 YM2203 Playground &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=neogeo">Neo Geo YM2610 Playground &rarr;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card card-analyzer card-with-icon card-featured">
+          <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
+          <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>FM2612 VGM Analyzer</strong>
+            Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
+            <a class="card-engine-link" href="./vgm_analyzer/support.html">Sound chip support &rarr;</a>
+            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          </div>
+        </div>
+      </div>
 
       <div class="grid">
         <a class="card card-synth card-with-icon" href="./synth-fm2608/index.html">
