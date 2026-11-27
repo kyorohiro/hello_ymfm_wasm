@@ -11,6 +11,7 @@ class Song extends AudioWorkletProcessor {
     super();
     this.parser=new Ym2612VGM(bytes);
     this.voiceState=new Ym2151VoiceInspector({clock:this.parser.header.ym2151Clock,sampleRate});
+    this.nextReport=0; this.fmDirty=true;
     this.lastMasks=Array(8).fill(15);
     this.mutes={fm:Array(8).fill(false),pcm:Array(4).fill(false)};
     this.sampleMemory=new SongSampleMemory();
@@ -19,8 +20,7 @@ class Song extends AudioWorkletProcessor {
       if (data.stop) this.finish();
       else if ('pause' in data) {
         this.paused=data.pause;
-        const channels=this.paused && this.fm ? this.voiceState.read().channels : null;
-        this.port.postMessage({paused:this.paused,seconds:this.frame/sampleRate,channels,oki:this.paused && this.pcm ? this.sampleMemory.snapshot(this.pcm) : null,masks:this.lastMasks});
+        this.report({paused:this.paused,seconds:this.frame/sampleRate},true);
       } else {this.mutes=data;this.applyMutes();}
     };
     this.init(wasmBinary).catch(error=>this.finish(error.message));
@@ -34,7 +34,17 @@ class Song extends AudioWorkletProcessor {
       this.fm=fm;
     }
     this.applyMutes();
-    this.ready=true;this.port.postMessage({ready:true});
+    this.ready=true;this.report({ready:true,clock:this.parser.header.ym2151Clock});
+  }
+  report(message,force=false) {
+    const state=this.voiceState;
+    if (this.fm && (this.fmDirty || force)) {
+      message.fm={registers:state.registers,keyMasks:state.keyMasks,amDepth:state.amDepth,pmDepth:state.pmDepth};
+      this.fmDirty=false;
+    }
+    message.oki=this.pcm ? this.sampleMemory.snapshot(this.pcm,!!message.paused) : null;
+    if (message.paused) message.masks=this.lastMasks;
+    this.port.postMessage(message);
   }
   applyMutes() {
     this.mutes.fm.forEach((v,i)=>this.fm?.setChannelMuted(i,v));
@@ -56,6 +66,7 @@ class Song extends AudioWorkletProcessor {
           if (e.type==='wait') {this.ticks+=e.samples;this.until=Math.round(this.ticks*sampleRate/44100);}
           if (e.type==='ym2151-write') {
             this.fm.writeYm2151(e.register,e.value);
+            this.fmDirty=true;
             this.voiceState.observeWrite(e.register,e.value);
             if (e.register===8 && (e.value & 0x78)) this.lastMasks[e.value & 7]=(e.value>>3)&15;
           }
@@ -73,6 +84,10 @@ class Song extends AudioWorkletProcessor {
           outputs[bus][0].set(left,i);outputs[bus][1].set(right,i);
         }
         this.frame+=count;i+=count;
+      }
+      if (!this.done && this.frame>=this.nextReport) {
+        this.nextReport=this.frame+Math.ceil(sampleRate/8);
+        if (this.fmDirty || this.pcm) this.report({playing:true});
       }
     } catch(error) {this.finish(error.message);}
     return !this.done;

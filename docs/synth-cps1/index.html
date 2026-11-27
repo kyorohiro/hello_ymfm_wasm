@@ -13,12 +13,7 @@
 </div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="workspace-actions"><button id="filesToggle" disabled aria-expanded="false" aria-controls="files">Files</button><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></div></header>
 <section id="referenceSong" aria-label="VGM reference playback" hidden>
 <div class="bar"><label>VGM <select id="songs" disabled></select></label><button id="playSong" disabled>Play</button><button id="pauseSong" disabled>Pause</button><button id="stopSong" disabled>Stop</button><output id="songTime"></output></div>
-<div id="songVoice" hidden><div id="songChannels" class="bar" role="group" aria-label="Paused YM2151 channels"></div><output id="songPatch"></output>
-<details><summary>Operators</summary><div class="song-operators"><table><thead><tr><th>OP</th><th>MUL</th><th>DT1</th><th>DT2</th><th>TL</th><th>KS</th><th>AR</th><th>D1R</th><th>D2R</th><th>D1L</th><th>RR</th><th>AM</th></tr></thead><tbody id="songOperators"></tbody></table></div></details>
-<div class="bar"><label>Copy to <select id="songTarget"></select></label><button id="useSongVoice">Use voice</button></div></div>
-<div id="songOki" hidden><h3>MSM6295</h3><div id="songOkiVoices" class="bar" aria-label="Paused MSM6295 voices"></div>
-<output id="songSampleInfo"></output><figure class="sample-preview"><canvas id="songSampleWave" width="768" height="96" aria-label="Paused sample waveform"></canvas></figure>
-<button id="previewSongSample" disabled>Preview</button></div></section>
+</section>
 <section class="output"><div class="bar"><h2>Output</h2><div class="scope-modes" role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button><button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div><label>Master <input id="master" type="range" min="0" max="380" value="85"><output id="volume">85%</output></label><button id="power" title="Enable audio now, or play a note to start automatically">Start audio</button></div>
 <canvas id="scope" width="900" height="96" aria-label="Output waveform"></canvas><output id="status" role="status">Ready</output></section>
 <div id="workspace"><aside id="files" hidden><div class="files-heading"><h2>Files</h2><button id="saveVoice" data-tree-action="instrument" title="Create an instrument from the selected CH">＋ Instrument</button><button data-tree-action="code">＋ JS</button></div><p id="cassetteName">tetorica-cps1.cassette.zip</p>
@@ -53,11 +48,14 @@
 <output data-envelope-readout></output>
 <p class="subtext">Drag a point sideways to change its rate. Drag the attack or decay point vertically to change TL or D1L. Curves show relative settings.</p>
 </template>
-<section id="fm"></section>
-<section id="pcm" hidden><h2>MSM6295</h2><div class="bar"><label>Sample <select id="sample"></select></label><label>Attenuation <input id="attenuation" type="number" min="0" max="15" value="2"></label></div>
+<section id="fm"><p id="songFmLabel" hidden></p><div id="songVoice" hidden><label>Copy to <select id="songTarget"></select></label><button id="useSongVoice">Use voice</button></div></section>
+<section id="pcm" hidden><p id="songPcmLabel" hidden></p><div id="songOki" hidden><h3>VGM · MSM6295</h3><div id="songOkiVoices" class="bar" aria-label="VGM MSM6295 voices"></div>
+<output id="songSampleInfo"></output><figure class="sample-preview"><canvas id="songSampleWave" width="768" height="96" aria-label="Paused sample waveform"></canvas></figure>
+<button id="previewSongSample" disabled>Preview</button></div>
+<div id="pcmEditor"><h2>MSM6295</h2><div class="bar"><label>Sample <select id="sample"></select></label><label>Attenuation <input id="attenuation" type="number" min="0" max="15" value="2"></label></div>
 <figure class="sample-preview"><canvas id="sampleWave" width="768" height="96" aria-label="Decoded sample waveform"></canvas><figcaption id="sampleRange"></figcaption></figure>
 <div id="voices"></div><p>Command bytes <output id="command">—</output> · Status <output id="busy">0xF0</output></p>
-<label>Sample ROM <input id="rom" type="file" accept=".bin,.rom"></label><button id="restore">Use original kit</button><p id="romName">Original kit</p></section>
+<label>Sample ROM <input id="rom" type="file" accept=".bin,.rom"></label><button id="restore">Use original kit</button><p id="romName">Original kit</p></div></section>
 
 <nav id="performanceTabs" aria-label="Performance"><button data-tab="keyboardPanel">Keyboard</button><button data-tab="code">Code</button></nav>
 <section id="keyboardPanel" aria-label="Guitar keyboard"><div class="keyboard-toolbar"><div id="keyChannels" role="group" aria-label="Keyboard channel"></div><div id="keyOctave" role="group" aria-label="Keyboard octave">Octave</div></div><div id="keys"></div><button id="hitPad">Hit · Voice 4</button></section>

@@ -74,8 +74,10 @@ const opm = createYm2151RegisterClient((method,args) => {
 const keyOn = opm.keyOn;
 opm.keyOn = (ch,mask=keyMasks[ch]) => keyOn(ch,mask);
 let autoChannel=true, nextChannel=0;
+let observation=null;
 const autoHeld=new Map();
 function editVoice(method,args) {
+  if (observation) return;
   const result=inspector.invoke(method,args);
   if (['setVoice','setOperator'].includes(method)) files.recordEdit(args[0]);
   if (autoChannel && ['setVoice','setOperator'].includes(method)) {
@@ -84,9 +86,10 @@ function editVoice(method,args) {
   return result;
 }
 const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:sections=>arrangeVoiceSections(sections,{
-  read:()=>keyMasks[panel.getSelectedChannel()],
+  read:()=>(observation?.fm?.keyMasks ?? keyMasks)[panel.getSelectedChannel()],
   toggle(bit) {
     const ch=panel.getSelectedChannel();
+    if (observation) return;
     keyMasks[ch]^=bit;
     files.recordEdit(ch);
   },
@@ -161,7 +164,11 @@ new ResizeObserver(([entry]) => {
   canvas.height = Math.max(1,Math.round(entry.contentRect.height));
 }).observe(canvas);
 function draw() {
-  if (dirty) {panel.update(inspector.read()); syncKeyChannels(); dirty = false;}
+  if (dirty && (!observation || !$('fm').hidden)) {
+    const source=observation ? observation.fm : inspector;
+    if (source) panel.update(source.read());
+    syncKeyChannels();dirty=false;
+  }
   scope.draw(canvas,ctx,mode);
   requestAnimationFrame(draw);
 }
@@ -381,7 +388,7 @@ const octaveControl = createParamControl({label:'Octave',min:-2,max:2,step:1,val
 $('keyOctave').append(octaveControl.element);
 const held = new Map();
 function press(id,entry) {
-  if (held.has(id)) return;
+  if (observation || held.has(id)) return;
   let ch=panel.getSelectedChannel();
   if (autoChannel) {
     const channels=inspector.read().channels;
@@ -415,7 +422,7 @@ window.addEventListener('keyup',e => release(e.code));
 window.addEventListener('blur',() => {for (const id of held.keys()) release(id);});
 
 let songNode, songRequest=0;
-let pausedSong=null, sourceChannel=0;
+let pausedSong=null;
 let previewNode, previewGain, selectedOkiVoice=0, sampleBuffer;
 function stopPreview() {
   if (previewNode) {
@@ -427,7 +434,7 @@ function stopPreview() {
 function showOkiVoice(index) {
   stopPreview();
   selectedOkiVoice=index;
-  const {voices,rate}=pausedSong.oki, voice=voices[index];
+  const {voices,rate}=observation.oki, voice=voices[index];
   for (const [i,button] of Array.from($('songOkiVoices').children).entries()) {
     button.textContent='Voice '+(i+1)+(voices[i].busy?' · Busy':' · Idle');
     button.setAttribute('aria-pressed',String(i===index));
@@ -446,7 +453,7 @@ function showOkiVoice(index) {
     sampleBuffer.copyToChannel(pcm,0);
     drawWave(canvas,min,max);
     info.push((pcm.length/rate).toFixed(3)+' s');
-  } else if (voice.requestedSample!==undefined) info.push('No complete sample available');
+  } else if (pausedSong && voice.requestedSample!==undefined) info.push('No complete sample available');
   canvas.hidden=!sampleBuffer;
   $('previewSongSample').disabled=!sampleBuffer;
   $('songSampleInfo').textContent=info.join(' · ');
@@ -471,39 +478,25 @@ $('previewSongSample').onclick=()=>{
   $('previewSongSample').textContent='Stop preview';
   previewNode.start();
 };
-const songChannels=$('songChannels');
-for (let ch=0;ch<8;ch++) {
-  const button=document.createElement('button');
-  button.textContent='CH'+(ch+1);
-  button.onclick=()=>showSongChannel(ch);
-  songChannels.append(button);
-  $('songTarget').add(new Option('CH'+(ch+1),ch));
-}
-function showSongChannel(ch) {
-  sourceChannel=ch;
-  const voice=pausedSong.channels[ch];
-  Array.from(songChannels.children).forEach((button,i)=>{
-    button.setAttribute('aria-pressed',String(i===ch));
-    button.dataset.sounding=String(pausedSong.channels[i].active);
-    button.title=pausedSong.channels[i].active?'Key on':'Key off';
-  });
-  $('songOperators').replaceChildren();
-  voice.operators.forEach((op,i)=>{
-    const row=$('songOperators').insertRow();
-    row.insertCell().textContent='OP'+(i+1);
-    for (const key of ['mul','dt1','dt2','tl','ks','ar','d1r','d2r','d1l','rr','am'])
-      row.insertCell().textContent=String(Number(op[key]));
-  });
-  $('songPatch').textContent='Algorithm '+voice.algorithm+' · Feedback '+voice.feedback+
-    ' · OP1–4 TL '+voice.operators.map(op=>op.tl).join(' / ')+
-    ' · Key '+(voice.active?'on':'off');
-}
+for (let ch=0;ch<8;ch++) $('songTarget').add(new Option('CH'+(ch+1),ch));
 $('useSongVoice').onclick=()=>{
-  const target=Number($('songTarget').value);
-  files.copySongVoice(target,pausedSong.channels[sourceChannel],pausedSong.masks[sourceChannel]);
-  panel.selectChannel(target);
-  status('Copied VGM CH'+(sourceChannel+1)+' to YM2151 CH'+(target+1));
+  const target=Number($('songTarget').value), ch=panel.getSelectedChannel();
+  files.copySongVoice(target,observation.fm.read().channels[ch],pausedSong.masks[ch]);
+  status('Copied VGM CH'+(ch+1)+' to YM2151 CH'+(target+1));
 };
+function setSongView(active) {
+  const fm=observation?.fm, pcm=observation?.oki;
+  $('fm').querySelector('fieldset').hidden=active && !fm;
+  $('songFmLabel').hidden=!active;
+  $('songFmLabel').textContent=fm?'VGM · YM2151':'No YM2151 in this VGM';
+  $('pcmEditor').hidden=active;
+  $('songOki').hidden=!active || !pcm;
+  $('songPcmLabel').hidden=!active || !!pcm;
+  $('songPcmLabel').textContent='No MSM6295 in this VGM';
+  $('keyboardPanel').inert=active;
+  for (const node of $('fm').querySelectorAll('.param-control, table button, input, .opm-envelope-editor canvas, .voice-tools > button:nth-of-type(2), [data-key-channel="-1"]')) node.inert=active;
+  dirty=true;
+}
 $('pauseSong').onclick=()=>{
   $('pauseSong').disabled=true;
   songNode?.port.postMessage({pause:true});
@@ -513,6 +506,12 @@ function syncSongMutes() {
   songNode?.port.postMessage({fm:fmMutes,pcm:voiceMutes});}
 function stopSong() {
   stopPreview();$('songOki').hidden=true;sampleBuffer=null;
+  if (observation) {
+    const {channel,auto}=observation;
+    observation=null;
+    panel.selectChannel(channel);autoChannel=auto;
+    setSongView(false);syncKeyChannels();
+  }
   songRequest++;
   if (songNode) {
     songNode.port.onmessage=null;songNode.port.postMessage({stop:true});songNode.disconnect();
@@ -527,7 +526,7 @@ function stopSong() {
 }
 async function playSong(song) {
   if (pausedSong && songNode) {
-    stopPreview();$('songOki').hidden=true;
+    stopPreview();
     $('playSong').disabled=true;
     songNode.port.postMessage({pause:false});
     return;
@@ -550,22 +549,27 @@ async function playSong(song) {
     songNode.port.onmessage=({data})=>{
       if (request!==songRequest) return;
       if (data.done) {stopSong();status(data.error ?? 'Finished');return;}
-      if (data.ready) {$('pauseSong').disabled=false;return;}
-      pausedSong=data.paused?data:null;
-      $('songOki').hidden=!data.oki;
+      if (data.ready) {
+        observation={channel:panel.getSelectedChannel(),auto:autoChannel,
+          fm:data.fm ? new Ym2151VoiceInspector({clock:data.clock,sampleRate:context.sampleRate}) : null,oki:data.oki};
+        autoChannel=false;
+        selectedOkiVoice=0;
+        setSongView(true);
+      }
+      if (!observation) return;
+      if (data.fm) {Object.assign(observation.fm,data.fm);dirty=true;}
+      observation.oki=data.oki;
+      if ('paused' in data) pausedSong=data.paused?data:null;
       if (data.oki) {
-        const voices=data.oki.voices;
-        const active=voices.findIndex(v=>v.busy);
-        showOkiVoice(active>=0?active:Math.max(0,voices.findIndex(v=>v.requestedSample!==undefined)));
-      } else sampleBuffer=null;
-      $('songVoice').hidden=!data.channels;
+        showOkiVoice(selectedOkiVoice);
+      }
+      if (data.ready) {$('pauseSong').disabled=false;return;}
+      if (data.playing) return;
+      $('songVoice').hidden=!data.paused || !observation.fm;
+      if (data.paused) $('songTarget').value=String(observation.channel);
       $('songTime').textContent=data.paused?data.seconds.toFixed(2)+' s':'';
       $('playSong').textContent=data.paused?'Resume':'Play';
       $('playSong').disabled=!data.paused;$('pauseSong').disabled=data.paused;
-      if (data.channels) {
-        $('songTarget').value=String(panel.getSelectedChannel());
-        showSongChannel(Math.max(0,data.channels.findIndex(ch=>ch.active)));
-      }
       status((data.paused?'Paused ':'Playing ')+song.name);
     };
     songNode.onprocessorerror=()=>{if (request===songRequest) {stopSong();status('VGM playback failed');}};

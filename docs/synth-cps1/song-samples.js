@@ -28,11 +28,11 @@ export class SongSampleMemory {
     }
     return bytes;
   }
-  snapshot(chip) {
+  snapshot(chip,includeBytes=true) {
     return {rate:chip.clock/(chip.pin7?132:165),voices:chip.voices.map(v=>({
       busy:v.playing,sample:v.sample,attenuation:v.attenuation,
       requestedSample:v.requestedSample,requestedAttenuation:v.requestedAttenuation,
-      bytes:v.count ? this.sampleBytes(chip,v.start,v.count/2) : null
+      bytes:includeBytes && v.count ? this.sampleBytes(chip,v.start,v.count/2) : null
     }))};
   }
 }

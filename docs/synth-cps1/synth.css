@@ -130,13 +130,11 @@ header::after {margin-left:0}
 #referenceSong {padding:.4rem .65rem}
 #referenceSong select {max-width:min(18rem,65vw)}
 #songVoice {margin-top:.45rem}
-#songPatch {display:block;margin:.3rem 0}
-#songChannels [data-sounding=true] {box-shadow:inset 0 -3px #ffc54b}
+#fm .chip-channel-list [data-sounding=true] {box-shadow:inset 0 -3px #ffc54b}
 #fm .chip-channel-list {position:sticky;top:0;z-index:1;background:var(--panel);padding:.2rem 0;gap:.25rem}
 #fm .chip-channel-list button {min-width:0;padding:.16rem .32rem;font-size:.85rem}
 
-.song-operators {overflow-x:auto}
-#songVoice details {margin:.25rem 0}
+#songFmLabel,#songPcmLabel {margin:.15rem 0;font-size:.85rem}
 
 main:has(#referenceSong:not([hidden])) .output {margin:.3rem 0;padding:.45rem .65rem}
 main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem 0}
@@ -217,7 +215,7 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 
 #pcm #voices {grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))}
 #pcm input[type=file] {max-width:100%;min-width:0}
-#pcm > label {max-width:100%;flex-wrap:wrap}
+#pcmEditor > label {max-width:100%;flex-wrap:wrap}
 #opm-page-0 .voice-tools {display:inline-flex}
 #opm-page-0 .chip-opm-routing {display:inline;margin-right:.5rem}
 .voice-tool .chip-opm-envelope {width:min(28rem,75vw);height:auto}
