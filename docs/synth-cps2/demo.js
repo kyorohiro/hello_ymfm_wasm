@@ -67,9 +67,23 @@ function echoScore() {
   ];
 }
 
+// A sharp attack followed by four volume steps, repeated with only pan changed.
+function panScore() {
+  const events=[];
+  for(const [index,pan] of [0,16,32].entries()){
+    const t=4410+index*22050;
+    events.push({t,writes:noteWrites(0,72,1,pan,6000)});
+    for(const [offset,volume] of [[220,3000],[550,1500],[1100,600],[2205,0]])
+      events.push({t:t+offset,writes:[[6,volume]]});
+  }
+  events.push({t:70560,writes:[]});
+  return events;
+}
+
 export const demoTracks = {
   demo:{score:demoScore, filename:'tetorica-cps2-first-round.vgm'},
   adpcm:{score:adpcmScore, filename:'tetorica-cps2-adpcm-trio.vgm'},
+  pan:{score:panScore, filename:'tetorica-cps2-pan-comparison.vgm'},
   echo:{score:echoScore, filename:'tetorica-cps2-echo.vgm'},
 };
 

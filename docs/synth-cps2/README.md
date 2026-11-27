@@ -34,6 +34,22 @@ See the [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/maste
 
 The exported demo plays in VGM Analyzer and renders in tetorica-vgm with the same PCM and ADPCM core. Each PCM or ADPCM voice can be muted independently.
 
+## Pan comparison
+
+Select **CH1 → Pan comparison → Play demo**. A 50 ms percussion hit plays at 0.10, 0.60 and 1.10 seconds. CH1 restarts the same generated waveform, rate, phase and volume envelope each time. Its pan register changes from 0x110 to 0x120 to 0x130. Watch Pan in the PCM view or the 0x80 row in Registers. Download demo VGM exports the same score with its ROM.
+
+The table gives left/right RMS in signed 16-bit sample units for the first 100 ms of each hit. The preview column uses the exported file in SongTransport at 44.1 kHz, before the output mixer. The reference column uses the same file in libvgm's CTR core, with its default player gain. Compare the balance within each stereo pair.
+
+| CH1 pan | Preview L / R | libvgm CTR L / R |
+|---|---:|---:|
+| 0x110 · left | 1449 / 0 | 2884 / 2340 |
+| 0x120 · center | 723 / 723 | 2371 / 1623 |
+| 0x130 · right | 0 / 1449 | 2332 / 2884 |
+
+With pan left, the reference's right output first reaches 8 counts in magnitude at 0.29 ms after the note write and last reaches that threshold at 53.74 ms. Its left output crosses at 1.97 and 51.95 ms. The preview's right output stays silent. These timings describe the complete reference render including resampling. Isolating the filter and stereo delay contributions and comparing against hardware remain open.
+
+To reproduce, export `tetorica-cps2-pan-comparison.vgm` (SHA-256 `2a89e645368bb1e17b7934e942e95a94f03f4589e8ea69c073e5270b1f11875f`) and run `vgm2wav --samplerate 44100 --bps 16 --fade 0 tetorica-cps2-pan-comparison.vgm ref.wav`. Check the render log for Core CTR. Each RMS window contains 4410 stereo frames starting at frame 4410, 26460 or 48510. [Reference implementation and revision](https://github.com/ValleyBell/libvgm/blob/c5c03a2c2514d38d2ab7b7e8dbd021af0b8292cb/emu/cores/qsound_ctr.c).
+
 ## Remaining work
 
 - Compare generated PCM with an independent renderer, including bank boundaries.
@@ -70,7 +86,7 @@ Playback supports a single QSound stream with embedded 0x8F ROM blocks, 0xC4 wri
 
 ## Sharing demo cassettes
 
-Files → Cassette → **Download factory demos** builds a project from the factory scripts, the default instrument settings and the three generated demo VGMs. Each VGM contains the PCM and ADPCM sample bytes synthesized by `demoRom()`. This download is independent of the currently open project.
+Files → Cassette → **Download factory demos** builds a project from the factory scripts, the default instrument settings and the generated demo VGMs. Each VGM contains the PCM and ADPCM sample bytes synthesized by `demoRom()`. This download is independent of the currently open project.
 
 **Export cassette** includes all songs in the current Files tree, including their embedded sample data. The menu shows the song count. When sharing that ZIP, check redistribution permission for both the music and the samples in any imported song.
 

@@ -91,3 +91,20 @@ test('seeking restores stereo output including PCM phase, ADPCM decoding and del
     assert.deepEqual(restored.starts,reference.starts);
   }
 });
+
+test('exported pan demo repeats the same PCM hit at left, center and right',()=>{
+  const bytes=demoVgm(demoTracks.pan.score());
+  const chip=new QSoundPcm(new Uint8Array(),44100);
+  const song=new SongTransport(bytes,chip,new Uint16Array(16));
+  const left=new Float32Array(inspectSong(bytes).ticks), right=left.slice();
+  song.render(left,right);
+  function energy(samples,start){
+    return samples.subarray(start,start+4410).reduce((sum,x)=>sum+x*x,0);
+  }
+  const first=energy(left,4410),middle=energy(left,26460),last=energy(right,48510);
+  assert.ok(first>0);
+  assert.equal(energy(right,4410),0);
+  assert.equal(energy(left,48510),0);
+  assert.equal(middle,energy(right,26460));
+  assert.ok(Math.abs(last/first-1)<0.01 && Math.abs(middle/first-0.25)<0.01);
+});

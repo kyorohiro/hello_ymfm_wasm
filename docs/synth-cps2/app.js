@@ -194,7 +194,9 @@ function inspect({data}) {
   if ((demoPlaying || codeWorker) && [0,256].includes(data.start) && data.loop>=0 && data.loop<=data.end-data.start && data.end > data.start && data.end <= data.start+256) {
     shown = {sample:data.start/256,rate:data.rate,end:data.end,loop:data.loop};
   } else shown = v;
+  if(demoPlaying)$('pan').value=Math.max(0,Math.min(32,data.pan-0x110));
   if (demoPlaying && data.finished && !data.active) {
+    $('pan').value=v.pan;
     demoPlaying = false;syncPadView();
     restoreEcho();
     shown = v;
@@ -246,7 +248,7 @@ $('wave').onchange=()=>{
   if (v.held) port?.postMessage(noteWrites(selected,v.note,v.sample,v.pan,v.volume,v.rate,v.end,v.loop));
   refresh();
 };
-$('pan').oninput=()=>{const value=Number($('pan').value);if(songState==='stopped')channels[selected].pan=value;port?.postMessage([[0x80+selected,0x110+value]]);};
+$('pan').oninput=()=>{const value=Number($('pan').value);if(songState==='stopped' && !demoPlaying)channels[selected].pan=value;port?.postMessage([[0x80+selected,0x110+value]]);};
 $('vol').oninput=()=>{const v=channels[selected];const volume=Number($('vol').value);if(songState==='stopped')v.volume=volume;if(v.held || songState!=='stopped')port?.postMessage([[selected*8+6,volume]]);};
 function press(id,midi) {
   const ch=selected,v=channels[ch]; v.held=id;
