@@ -2,6 +2,7 @@
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 import {isPresetPath,readPreset} from './preset.js';
+import {isSamplePath,sampleLibrary} from './samples.js';
 import {validateMix} from './mixer.js';
 import {checkPath} from '../synth-cps1/project-tree.js';
 
@@ -19,9 +20,13 @@ function number(value,min,max) {
 export function validateProject(project) {
   if (project?.version!==1 || !Array.isArray(project.channels) || project.channels.length!==16 ||
       !Array.isArray(project.pads) || project.pads.length!==3) throw Error('Expected a CPS2 cassette.');
+  const placements=project.placements??{};
+  const {items}=sampleLibrary(project.files,placements);
   const channels=project.channels.map(v=>{
-    const sample=number(v.sample,0,1), start=sample*256, end=number(v.end,start+1,start+256);
-    return {sample,end,loop:number(v.loop,0,end-start),pan:number(v.pan,0,32),volume:number(v.volume,0,16384),
+    const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??sample*256;
+    if(v.samplePath && !item)throw Error('Missing WAV sample.');
+    const end=number(v.end,start+1,start+(item?.length??256));
+    return {sample,samplePath:v.samplePath??null,end,loop:number(v.loop,0,end-start),pan:number(v.pan,0,32),volume:number(v.volume,0,16384),
       send:number(v.send,-32768,32767),rate:number(v.rate,0,65535),note:number(v.note,0,127),
       referenceNote:number(v.referenceNote,0,127),referenceRate:v.referenceRate===null?null:number(v.referenceRate,0,65535)};
   });
@@ -33,7 +38,7 @@ export function validateProject(project) {
   const echo={delay:number(project.echo.delay,0,1024),feedback:number(project.echo.feedback,-32768,32767)};
   const files=createVirtualFileSystem();
   files.replace(project.files.map(({path,data})=>{
-    if (data instanceof Uint8Array && /\.(vgm|vgz)$/i.test(path)) return {path:checkPath(path),data};
+    if (data instanceof Uint8Array && (/\.(vgm|vgz)$/i.test(path)||isSamplePath(path))) return {path:checkPath(path),data};
     if (typeof data!=='string') throw Error('Expected JavaScript source.');
     if(isPresetPath(path)){readPreset(data);return {path:checkPath(path),data};}
     return {path:scriptPath(path),data};
@@ -45,8 +50,8 @@ export function validateProject(project) {
   scriptPath(project.active);
   if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
   const song=project.song??null;
-  if(song!==null && files.get(song)?.type!=='binary')throw Error('Cassette is missing its selected song.');
-  return {version:1,mix:validateMix(project.mix),song,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
+  if(song!==null && (!/\.vg[mz]$/i.test(song)||files.get(song)?.type!=='binary'))throw Error('Cassette is missing its selected song.');
+  return {version:1,placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
 }
 
 export function exportProject(project) {
@@ -60,7 +65,7 @@ export async function importProject(bytes) {
   const decoder=new TextDecoder('utf-8',{fatal:true});
   for (const [path,data] of archive.files) {
     if (path==='metadata.json' || path==='cassette.metadata.js') continue;
-    files.push({path:'/'+path,data:/\.(vgm|vgz)$/i.test(path)?data:decoder.decode(data)});
+    files.push({path:'/'+path,data:/\.(vgm|vgz|wav)$/i.test(path)?data:decoder.decode(data)});
   }
   return validateProject({...archive.metadata.cps2,files});
 }

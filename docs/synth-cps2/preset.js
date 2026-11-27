@@ -13,6 +13,9 @@ export function readPreset(text){
     ['clock',1,8000000],['pan',0,65535],['volume',-32768,32767],...(p.format==='qsound-pcm-1'?[['loop',0,65535],['rate',0,65535],['send',-32768,32767]]:[])]){
     if(!Number.isInteger(p[key]) || p[key]<min || p[key]>max)throw Error('Invalid PCM preset '+key+'.');
   }
+  if(p.projectRange!==undefined && (p.source!==null || !Array.isArray(p.projectRange) || p.projectRange.length!==2 ||
+    !p.projectRange.every(Number.isInteger) || p.projectRange[0]<0 || p.projectRange[1]>65536 ||
+    p.projectRange[0]>=p.projectRange[1]))throw Error('Invalid project ROM range.');
   const s=p.source;
   if(s!==null && (!s || !/^\/songs\/[^/]+\.vg[mz]$/i.test(s.path) ||
     !Number.isSafeInteger(s.position) || s.position<0 || typeof s.looped!=='boolean'))throw Error('Invalid preset ROM source.');
@@ -43,11 +46,12 @@ export function resolveRom(source,bytes){
   return {rom,clock:parser.header.qsoundClock};
 }
 
-export async function presetRom(preset,bytes){
-  const {rom,clock}=resolveRom(preset.source,bytes);
+export async function presetRom(preset,bytes,projectRom){
+  const {rom,clock}=preset.projectRange?{rom:projectRom,clock:4000000}:resolveRom(preset.source,bytes);
   const begin=preset.bank*65536;
-  if(clock!==preset.clock || begin>=rom.length ||
-    await bankHash(rom.subarray(begin,begin+65536))!==preset.bankHash)
+  const [first,last]=preset.projectRange??[0,65536];
+  if(!rom || clock!==preset.clock || begin>=rom.length ||
+    await bankHash(rom.subarray(begin+first,begin+last))!==preset.bankHash)
     throw Error('Sample ROM or clock differs from the saved preset.');
   return rom;
 }

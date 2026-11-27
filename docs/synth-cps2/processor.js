@@ -13,6 +13,11 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
     this.port.onmessage = ({data}) => {
+      if(data?.type==='project-rom'){
+        this.projectRom=data.rom;
+        if(!this.song && !this.captured)this.chip.rom=data.rom;
+        return;
+      }
       if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}
       if (data?.type === 'song') {
         this.chip=new QSoundPcm(new Uint8Array(),sampleRate,{spatialPcm:true});
@@ -129,7 +134,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       }
       if (data === 'stop') {
         this.song=null;this.captured=false;this.source=null;
-        this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
+        this.chip = new QSoundPcm(this.projectRom??demoRom(), sampleRate,{spatialPcm:true});
         this.applyMutes();
         this.starts.fill(0);
       } else this.apply(data);

@@ -25,9 +25,9 @@ export function pcmRate(midi) {
   return Math.round(4096 * 256 * 440 * 2**((midi-69)/12) / QSOUND_PCM_RATE);
 }
 
-export function noteWrites(ch, midi, sample, pan, volume, rate = pcmRate(midi), end = (sample+1)*256, loop = 256) {
+export function noteWrites(ch, midi, sample, pan, volume, rate = pcmRate(midi), end = (sample+1)*256, loop = 256, bank = 0, start = sample*256) {
   const base = ch * 8;
-  return [[((ch+15)&15)*8,0x8000],[base+1,sample*256],[base+3,0],[base+4,loop],
+  return [[((ch+15)&15)*8,0x8000|bank],[base+1,start],[base+3,0],[base+4,loop],
     [base+5,end],[base+2,rate],[0x80+ch,0x110+pan],[base+6,volume]];
 }
 

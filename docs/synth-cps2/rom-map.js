@@ -40,7 +40,7 @@ export function createRomMap(openVoice){
   function paint(){
     const bank=Number(selector.value),available=Math.min(bankSize,Math.max(0,latest.size-bank*bankSize));
     const visible=latest.voices.filter(v=>v.bank===bank);
-    const signature=JSON.stringify([bank,available,visible]);
+    const signature=JSON.stringify([bank,available,visible,latest.samples]);
     if(signature===previousView)return;
     previousView=signature;
     // Expand small factory ROMs to the width of the plot. Include any configured addresses outside the ROM.
@@ -50,6 +50,16 @@ export function createRomMap(openVoice){
       if(v.start>v.end || v.loop>v.end)limit=bankSize;
     }
     element('rom-scale').textContent=hex(0)+' – '+hex(limit)+' · '+available.toLocaleString()+' bytes in bank';
+    const list=element('rom-samples');
+    if(list)list.replaceChildren(...(latest.samples??[]).filter(s=>s.bank===bank).map(s=>{
+      const line=document.createElement('div');
+      const label=document.createElement('span'),track=document.createElement('div'),segment=document.createElement('span');
+      label.textContent=s.path+' · '+hex(s.start)+' – '+hex(s.end);
+      track.className='rom-track';segment.className='rom-segment rom-pcm';
+      segment.style.left=100*s.start/limit+'%';segment.style.width=100*(s.end-s.start)/limit+'%';
+      track.append(segment);line.append(label,track);
+      return line;
+    }));
     element('rom-empty').hidden=visible.length>0;
     const ids=new Set(visible.map(v=>v.id));
     buttons.forEach(({button},i)=>button.hidden=!ids.has(i));

@@ -59,7 +59,7 @@ To reproduce, export `tetorica-cps2-pan-comparison.vgm` (SHA-256 `2a89e645368bb1
 
 - Compare generated PCM with an independent renderer, including bank boundaries.
 - Extend the standard PCM spatial path to filter selection, programmable delays, mode 2, ADPCM and the echo return. Verify DSP initialization and host timing.
-- Extend the code-file workspace with editable sample ROMs and sound presets.
+- Add direct replacement of imported sample audio while retaining compatible channel assignments.
 
 The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame-qsound/LICENSE).
 
@@ -68,6 +68,12 @@ The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame
 Select a PCM channel and hold a keyboard note. The shaded region runs from End minus Loop length to the exclusive End byte. The amber cursor samples the actual channel address at 20 Hz. A zero loop length allows the address to continue past the sample window. End and Loop length are bounded to the selected 256-byte instrument in this editor. Rate is the 4.12 register word for the current note. Editing Rate retunes the keyboard relative to that note. Each channel retains its settings. The controls also follow the selected PCM channel during demo playback.
 
 Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ticks and milliseconds) and signed Feedback apply to all 16 PCM channels. Drag a value for large changes or use the buttons for single steps. The controls follow VGM writes and retain the captured settings after Stop.
+
+## Playing your own WAV
+
+Select a PCM channel and choose **☰ → Import → PCM sample (WAV)…**. Press C4 to play at the clip’s original speed. To reuse it on another channel, select the channel and click the filename under **Files → /samples/**. With Auto apply off, or when switching away from a song ROM, use **Assign to CH**. Drag the start of the shaded loop or its right edge on the authored PCM waveform to edit loop length or exclusive end.
+
+Files keeps the original WAV. The importer mixes its channels to mono and converts it to signed 8-bit PCM. It accepts integer PCM (8/16/24/32-bit) and 32-bit float RIFF WAV. The converted clip fits one signed loop length (up to 32,767 bytes). Longer recordings use a lower playback rate to preserve duration, with reduced high-frequency detail. Bank 0 holds the generated instruments. Imported clips share the remaining banks, and their addresses stay fixed when another file is added or renamed. The ROM tab lists their paths and ranges. Cassettes include the WAV files, placements, selected channel and edited loops within the existing 16 MiB expanded cassette limit.
 
 ## Saving a PCM preset
 
