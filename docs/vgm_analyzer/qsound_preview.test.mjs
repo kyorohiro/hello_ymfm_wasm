@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {adpcmScore,demoVgm} from '../synth-cps2/demo.js';
+import {adpcmScore,demoVgm,demoTracks} from '../synth-cps2/demo.js';
 import {renderSource} from '../../tetorica_src/cli/render.js';
 
 test('CPS2 demo WAV contains two independently mutable, oppositely panned PCM voices', async () => {
@@ -51,4 +51,21 @@ test('ADPCM trio renders each one-shot only on its assigned voice', async () => 
       }
     }
   }
+});
+
+test('echo demo exports silence after the dry note and a decaying return after the second', async () => {
+  const demo = demoVgm(demoTracks.echo.score());
+  const {bytes} = await renderSource(demo);
+  const pcm = new Int16Array(bytes.buffer, bytes.byteOffset+44, (bytes.length-44)/2);
+  function peak(start,end) {
+    let amplitude = 0;
+    for (const value of pcm.subarray(2*start,2*end)) amplitude = Math.max(amplitude, Math.abs(value));
+    return amplitude;
+  }
+  assert.ok(peak(0,700)>0);
+  assert.equal(peak(705,22050),0);
+  const firstReturn = peak(23750,24550);
+  assert.ok(firstReturn > peak(25500,26350) && peak(25500,26350) > 0);
+  const muted = await renderSource(demo,{mute:['qsound-ch-1']});
+  assert.ok(muted.bytes.subarray(44).every(x=>x===0));
 });

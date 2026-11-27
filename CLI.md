@@ -1022,4 +1022,4 @@ playback intervals from unplayed RAM candidates; they do not simulate waveform
 audibility or infer note boundaries. Wave preview remains an isolated,
 fixed-pitch audition.
 
-Standalone CPS2 QSound VGM files can render 16 PCM voices (CH1–16) and three ADPCM voices (qsound-ch-17 through qsound-ch-19) with dry stereo panning. For example, use `tetorica-vgm render demo.vgm --mute qsound-ch-1,qsound-ch-2 --output muted.wav`. Sample ROM must be embedded. Spatial DSP effects are omitted.
+Standalone CPS2 QSound VGM files can render 16 PCM voices (CH1–16) and three ADPCM voices (qsound-ch-17 through qsound-ch-19) with dry stereo panning. For example, use `tetorica-vgm render demo.vgm --mute qsound-ch-1,qsound-ch-2 --output muted.wav`. Sample ROM must be embedded. PCM echo uses a centered return. Spatial filters are omitted.

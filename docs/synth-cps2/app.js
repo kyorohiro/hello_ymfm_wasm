@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {demoVgm,noteWrites,adpcmScore} from './demo.js';
+import {demoVgm,noteWrites,demoTracks} from './demo.js';
 const $ = id => document.getElementById(id);
 const channels = Array.from({length:16},()=>({sample:0,pan:16,volume:8000,held:null}));
 let selected = 0, context, ready, port, generation = 0;
@@ -52,7 +52,8 @@ window.addEventListener('blur',stop);
 $('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation)port.postMessage($('score').value);});};
 $('stop').onclick=stop;
 $('save').onclick=()=>{
-  const url=URL.createObjectURL(new Blob([demoVgm($('score').value === 'adpcm' ? adpcmScore() : undefined)],{type:'application/octet-stream'}));
-  const link=document.createElement('a');link.href=url;link.download=$('score').value === 'adpcm' ? 'tetorica-cps2-adpcm-trio.vgm' : 'tetorica-cps2-first-round.vgm';link.click();
+  const track = demoTracks[$('score').value];
+  const url=URL.createObjectURL(new Blob([demoVgm(track.score())],{type:'application/octet-stream'}));
+  const link=document.createElement('a');link.href=url;link.download=track.filename;link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 };

@@ -50,6 +50,21 @@ export function adpcmScore() {
   return events;
 }
 
+function echoScore() {
+  const note = noteWrites(0,72,1,4,8000);
+  return [
+    {t:0, writes:note}, {t:700, writes:[[6,0]]},
+    {t:22050, writes:[[0xd9,0x554+960],[0x93,0x3200],[0xba,0x4000],...note]},
+    {t:22750, writes:[[6,0]]}, {t:50000, writes:[]},
+  ];
+}
+
+export const demoTracks = {
+  demo:{score:demoScore, filename:'tetorica-cps2-first-round.vgm'},
+  adpcm:{score:adpcmScore, filename:'tetorica-cps2-adpcm-trio.vgm'},
+  echo:{score:echoScore, filename:'tetorica-cps2-echo.vgm'},
+};
+
 export function demoVgm(score = demoScore()) {
   const rom = demoRom(), commands = [];
   const u32 = n => [n&255,n>>>8&255,n>>>16&255,n>>>24];

@@ -131,7 +131,7 @@ Some tracks need sample ROMs; dual chips, variants and combinations have limits.
 | MSM5205 | 3/4-bit ADPCM; VGM 1.72 command 0x32 |
 | OKIM6295 | 4-voice ADPCM; standalone or with YM2151 / YM2164 (CPS-1 sound configuration), or YM3812 |
 | OKIM6258 | 4-bit ADPCM; standalone or mixed |
-| QSound (CPS2) | Standalone dry stereo preview of 16 PCM and 3 ADPCM voices |
+| QSound (CPS2) | Standalone stereo preview with PCM echo of 16 PCM and 3 ADPCM voices |
 | Sega PCM (315-5218) | 16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151 / YM2164 |
 | NES APU + FDS (NTSC) | 2 pulse + triangle + noise + DMC; optional FDS wavetable |
 | Game Boy DMG (LR35902) | 2 square + wave + noise |

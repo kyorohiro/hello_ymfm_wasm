@@ -53,3 +53,14 @@ test('ADPCM high/low nibble cadence, latched volume and retrigger', () => {
   chip.writeRegister(0xd6,1);
   assert.ok(Array.from({length:9},tick).every(x => x===0));
 });
+
+test('two-tick PCM echo has a two-sample return and signed feedback in both modes', () => {
+  for (const [mode,base] of [[0x314,0x554],[0x6b2,0x53c]]) {
+    const chip = new QSoundPcm(Uint8Array.of(64));
+    for (const [r,v] of [[0xe3,mode],[0xd9,base+2],[0x93,0xc000],[0xba,0x4000],[6,0x4000]]) chip.writeRegister(r,v);
+    chip.tick();
+    chip.voices[0].muted = true;
+    const tail = Array.from({length:5},()=>{chip.tick();return chip.left * 32768;});
+    assert.deepEqual(tail,[0,8192,8192,-4096,-8192]);
+  }
+});

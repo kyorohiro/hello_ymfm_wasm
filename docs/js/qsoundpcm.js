@@ -36,12 +36,16 @@ export class QSoundPcm {
     this.sampleRate = sampleRate;
     this.tickRate = QSOUND_PCM_RATE;
     this.voices = Array.from({length:16}, () => ({
-      muted:false, bank:0, address:0, phase:0, rate:0, loop:0, end:0, volume:0, pan:0x120,
+      muted:false, bank:0, address:0, phase:0, rate:0, loop:0, end:0, echoSend:0, volume:0, pan:0x120,
     }));
     this.adpcm = Array.from({length:3}, () => ({
       start:0, end:0, bank:0, address:0, volume:0, gain:0, trigger:false,
       step:0, output:0, muted:false, pan:0x120,
     }));
+    this.echoLine = new Int16Array(1024);
+    this.echoPosition = this.echoPrevious = this.echoFeedback = 0;
+    this.echoBase = 0x554;
+    this.echoEnd = this.echoBase + 6;
     this.adpcmSlot = 0;
     this.left = this.right = 0;
     this.ticks = 1;
@@ -53,6 +57,20 @@ export class QSoundPcm {
       throw new RangeError('Expected an 8-bit register and 16-bit data word');
     if (reg >= 0x80 && reg < 0x90) {this.voices[reg-0x80].pan = value; return;}
     if (reg >= 0x90 && reg <= 0x92) this.adpcm[reg-0x90].pan = value;
+    if (reg >= 0xba && reg < 0xca) this.voices[reg-0xba].echoSend = signed(value);
+    if (reg === 0x93) this.echoFeedback = signed(value);
+    if (reg === 0xd9) this.echoEnd = value;
+    if (reg === 0xe3) {
+      // Preview changes the echo address base immediately on recognized state requests.
+      if ([0x288,0x039,0x314].includes(value)) this.echoBase = 0x554;
+      if ([0x61a,0x04f,0x6b2].includes(value)) this.echoBase = 0x53c;
+      if (value === 0x288 || value === 0x61a) {
+        this.echoLine.fill(0);
+        this.echoPosition = this.echoPrevious = this.echoFeedback = 0;
+        this.echoEnd = this.echoBase + 6;
+        for (const voice of this.voices) voice.echoSend = 0;
+      }
+    }
     if (reg >= 0xca && reg < 0xd6) {
       const voice = this.adpcm[(reg-0xca) >> 2];
       switch ((reg-0xca) & 3) {
@@ -76,12 +94,24 @@ export class QSoundPcm {
     }
   }
 
+  advanceEcho(input) {
+    const delayed = this.echoLine[this.echoPosition];
+    const average = (delayed + this.echoPrevious) >> 1;
+    this.echoPrevious = delayed;
+    this.echoLine[this.echoPosition++] = (input + average * this.echoFeedback * 4) >> 16;
+    const length = Math.max(0, Math.min(1024, this.echoEnd - this.echoBase));
+    if (this.echoPosition >= length) this.echoPosition = 0;
+    return average;
+  }
+
   tick() {
-    let left = 0, right = 0;
+    let left = 0, right = 0, echoInput = 0;
     for (const v of this.voices) {
       if (v.volume && !v.muted) {
         const byte = this.rom[v.bank * 65536 + (v.address & 0xffff)] ?? 0;
-        const pcm = signed(((byte << 24 >> 24) * 256 * v.volume) >> 14) / 32768;
+        const sample = signed(((byte << 24 >> 24) * 256 * v.volume) >> 14);
+        echoInput += sample * v.echoSend * 4;
+        const pcm = sample / 32768;
         // Dry preview only. The DL-1425 spatial DSP uses different gain tables.
         const pan = Math.min(32, Math.max(0, v.pan - 0x110)) / 32;
         left += pcm * (1-pan);
@@ -101,8 +131,10 @@ export class QSoundPcm {
       left += voice.output / 32768 * (1-pan);
       right += voice.output / 32768 * pan;
     }
-    this.left = Math.max(-1, Math.min(1, left));
-    this.right = Math.max(-1, Math.min(1, right));
+    // Monitor the shared return centrally until the dry/wet spatial filters are modeled.
+    const echo = this.advanceEcho(echoInput) / 32768;
+    this.left = Math.max(-1, Math.min(1, left + echo));
+    this.right = Math.max(-1, Math.min(1, right + echo));
   }
 
   render(left, right) {
