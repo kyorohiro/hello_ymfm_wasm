@@ -308,7 +308,7 @@ function showBusy(value,ids=[]) {
 }
 let sampleNames=[],selectedSlot=0;
 const voicePickers=[],voiceIds=[];
-let nextSampleVoice=0;
+const pcmKeys='fghj';
 function slotName(id){return !observation && sampleNames[id]?id+' · '+sampleNames[id]:String(id);}
 function voiceSample(voice){return voiceIds[voice]<0?selectedSlot:voiceIds[voice];}
 let sampleAttenuation=2;
@@ -438,7 +438,6 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
 showBusy(0xf0);
 let romRevision = 0, synthRomLabel=$('romName').textContent;
 function installRom(bytes,names,label,assignments,extended=false,slot=null) {
-  if(!extended)nextSampleVoice=0;
   synthRomLabel=label;
   romRevision++; sampleRom = bytes; rawOki = [];
   audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,slot??(extended?selectedSlot:0)); $('romName').textContent = label;
@@ -504,10 +503,10 @@ function press(id,entry) {
   if (observation || held.has(id)) return;
   if (pcmKeyboard) {
     try {
-      const voice=nextSampleVoice;
+      const voice=pcmKeys.indexOf(entry.key);
+      if(voice<0)return;
       oki.stop(voice);
       oki.play(voice,voiceSample(voice),sampleAttenuation);
-      nextSampleVoice=(voice+1)%4;
       startAudio().catch(fail);
     } catch (error) {fail(error);}
     return;
@@ -537,11 +536,17 @@ function release(id) {
 buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entries,showPitch:false,
   onPointerDown:(e,key) => press('pointer'+e.pointerId,layout.entries.find(entry => entry.key === key.key)),
   onPointerUp:e => release('pointer'+e.pointerId),onPointerCancel:e => release('pointer'+e.pointerId)});
+Array.from(pcmKeys).forEach((key,voice)=>{
+  const button=$('keys').querySelector('[data-key="'+key+'"]');
+  const label=document.createElement('small');
+  label.className='pcm-voice-label';label.textContent='Voice '+(voice+1);
+  button.append(label);
+});
 window.addEventListener('keydown',e => {
   if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
   const entry = layout.entries.find(v => v.key === e.key.toLowerCase());
-  if (entry) {e.preventDefault();press(e.code,entry);}
+  if (entry && (!pcmKeyboard || pcmKeys.includes(entry.key))) {e.preventDefault();press(e.code,entry);}
 });
 window.addEventListener('keyup',e => release(e.code));
 window.addEventListener('blur',() => {for (const id of held.keys()) release(id);});

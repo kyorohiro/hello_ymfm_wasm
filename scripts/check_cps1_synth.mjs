@@ -185,7 +185,7 @@ try {
   await voice.click();
   await page.click('[data-tab="pcm"]');
   assert.equal(await mute.getAttribute('aria-pressed'),'true');
-  await page.keyboard.press('a');
+  await page.keyboard.press('f');
   await page.waitForFunction(() => document.querySelector('#busy').value==='0xF1');
   await page.waitForFunction(() => document.querySelector('#busy').value==='0xF0');
   assert.equal(await page.evaluate(() => window.peak),0);
@@ -193,7 +193,7 @@ try {
   assert.equal(await voice.getAttribute('aria-pressed'),'true');
   assert.deepEqual(await page.locator('#voices .param-value').allTextContents(),['0','1','2','3']);
   assert.match(await page.locator('#bankInfo').textContent(),/^4 \/ 128 samples/);
-  for(const key of ['a','s','d','f'])await page.keyboard.press(key);
+  for(const key of ['f','g','h','j'])await page.keyboard.press(key);
   await page.waitForFunction(()=>document.querySelector('#voiceCount').textContent==='4 / 4 voices playing');
   await page.waitForFunction(()=>document.querySelector('#busy').value==='0xF0');
   const lamps=await page.locator('#voices .lamp').evaluateAll(nodes=>nodes.map(node=>node.title));
@@ -202,8 +202,15 @@ try {
   await page.locator('#sampleSlots button').nth(1).click();
   assert.match(await page.locator('#sampleRange').textContent(),/0x00800/);
   assert.ok(await page.locator('#sampleWave').isVisible());
-  await page.keyboard.press('a');
+  await page.keyboard.press('g');
   await page.waitForFunction(() => document.querySelector('#busy').value==='0xF2');
+  assert.deepEqual(await page.locator('#keys .key:visible').evaluateAll(keys=>keys.map(b=>[b.dataset.key,b.querySelector('small').textContent])),[['f','Voice 1'],['g','Voice 2'],['h','Voice 3'],['j','Voice 4']]);
+  for(const [key,command] of [['j','0x83 0x82'],['f','0x80 0x12'],['f','0x80 0x12'],['h','0x82 0x42']]){
+    await page.keyboard.press(key);
+    assert.equal(await page.locator('#command').textContent(),command);
+  }
+  await page.locator('#keys [data-key="j"]').click();
+  assert.equal(await page.locator('#command').textContent(),'0x83 0x82');
   await page.waitForFunction(() => window.peak>.001);
   await page.waitForFunction(() => document.querySelector('#busy').value==='0xF0');
   await page.click('[data-tab="code"]');
@@ -263,7 +270,7 @@ try {
   await page.click('#run');
   await page.click('#synthMode');
   assert.ok(await page.locator('#files').isVisible());
-  assert.ok(await page.locator('#keys button').first().isVisible());
+  assert.ok(await page.locator('#keys .key:visible').first().isVisible());
   await page.click('[data-tab="code"]');
   await page.click('#stop');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
@@ -447,11 +454,11 @@ try {
   for (const width of [390,1100]) {
     await page.setViewportSize({width,height:850});
     await page.click('#synthMode');
-    assert.ok(await page.locator('#keys .key').first().isVisible());
+    assert.ok(await page.locator('#keys .key:visible').first().isVisible());
     await checkVoicePages();
     // Check the instrument and keyboard together from the top of the instrument.
     await page.locator('#sourceTabs').evaluate(node=>node.scrollIntoView({block:'start'}));
-    const keyboard = await page.locator('#keys .key').first().boundingBox();
+    const keyboard = await page.locator('#keys [data-key="a"]').boundingBox();
     assert.ok(keyboard.y >= 0 && keyboard.y + keyboard.height <= 850, JSON.stringify({width,keyboard}));
     await page.click('[data-tab="pcm"]');
     assert.equal(await page.locator('#voices').getByRole('button',{name:/^(Play|Stop|Load)/}).count(),0);
@@ -462,7 +469,7 @@ try {
     await page.click('[data-tab="fm"]');
     await page.click('#codeMode');
     await page.click('[data-tab="keyboardPanel"]');
-    assert.ok(await page.locator('#keys .key').first().isVisible());
+    assert.ok(await page.locator('#keys .key:visible').first().isVisible());
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   }
   if(await page.locator('#files').isHidden())await page.click('#filesToggle');
@@ -569,9 +576,9 @@ try {
   await page.locator('#voices .param-control').first().getByRole('button',{name:'-',exact:true}).click();
   await page.locator('#sampleSlots button').nth(1).focus();
   await page.evaluate(()=>{window.peak=0;});
-  await page.keyboard.press('a');
+  await page.keyboard.press('f');
   await page.waitForFunction(()=>document.querySelector('#command').value==='0x81 0x12' && window.peak>.001);
-  await page.click('#keys [data-key="s"]');
+  await page.click('#keys [data-key="g"]');
   await page.waitForFunction(()=>document.querySelector('#command').value==='0x81 0x22');
   assert.equal(await page.locator('[data-chip-channel][data-sounding=true]').count(),0);
   const pcmRows=page.locator('#voices .bar');
@@ -583,20 +590,20 @@ try {
   const bankRow=page.locator('button[data-file-path^="/banks/samples-"]').first();
   assert.equal(await bankRow.textContent(),(await bankRow.getAttribute('data-file-path')).split('/').pop());
   assert.equal(await page.locator('#selectedSample').textContent(),'1 · two.wav');
-  await page.keyboard.press('a');
+  await page.keyboard.press('f');
   assert.equal(await page.locator('#command').textContent(),'0x82 0x12');
-  await page.keyboard.press('s');
+  await page.keyboard.press('g');
   assert.equal(await page.locator('#command').textContent(),'0x81 0x22');
   const attenuation=page.locator('#attenuation');
   await attenuation.getByRole('button',{name:'+',exact:true}).click();
-  await page.keyboard.press('d');
+  await page.keyboard.press('h');
   assert.equal(await page.locator('#command').textContent(),'0x81 0x43');
   const value=attenuation.getByRole('button',{name:'Attenuation',exact:true});
   const knob=await value.boundingBox();
   await page.mouse.move(knob.x+knob.width/2,knob.y+knob.height/2);
   await page.mouse.down();await page.mouse.move(knob.x+knob.width/2+32,knob.y+knob.height/2);await page.mouse.up();
   assert.equal(await value.textContent(),'6');
-  await page.keyboard.press('f');
+  await page.keyboard.press('j');
   assert.equal(await page.locator('#command').textContent(),'0x81 0x86');
   await page.locator('#sampleSlots button').first().click();
   await page.locator('#slotAudio').setInputFiles({name:'replacement.wav',mimeType:'audio/wav',buffer:wav});

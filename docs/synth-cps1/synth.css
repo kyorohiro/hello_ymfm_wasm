@@ -256,7 +256,12 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 .file-tools button,.file-tools label,#filePath {font-size:.77rem}
 #filePath {display:block;overflow-wrap:anywhere}
 
-.pcm-keys #keys .key span {display:none}
+.pcm-voice-label,
+.pcm-keys #keys .key span,
+.pcm-keys .key:not(:has(.pcm-voice-label)),
+.pcm-keys .key-row:not(:has(.pcm-voice-label)) {display:none}
+.pcm-keys .key {max-width:none}
+.pcm-keys .pcm-voice-label {display:block}
 
 #sampleSlots {display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;margin:.35rem 0}
 #sampleSlots button {min-width:0;padding:.15rem 0;background:var(--panel);color:var(--ink);font-size:clamp(.61rem,1.9vw,.82rem);font-variant-numeric:tabular-nums}
