@@ -9,7 +9,8 @@ header{display:flex;align-items:center;gap:1rem;background:#176481;color:white;p
 h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;border:1px solid #7a9897;background:#fffaf0;border-radius:5px;padding:.4rem .7rem;cursor:pointer}button[aria-pressed=true]{background:#155876;color:white}
 #channels{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}#keys{display:flex;flex-wrap:wrap;gap:.3rem}#keys button{touch-action:none;min-height:3rem}
 output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-width:540px){#channels{grid-template-columns:repeat(4,1fr)}body{margin:0;padding:.5rem}}
-#pcm-wave{display:block;width:100%;height:6.5rem;background:#102c43;border-radius:5px}
+#pad-plot{position:relative}#pad-cursor{position:absolute;top:0;bottom:0;width:2px;background:#ffc75c;pointer-events:none}
+#pad-wave,#pcm-wave{display:block;width:100%;height:6.5rem;background:#102c43;border-radius:5px}
 #pcm-controls,.echo-controls{display:flex;gap:.45rem;flex-wrap:wrap;margin:.6rem 0}
 .param-control{display:grid;grid-template-columns:auto minmax(3rem,1fr) auto;border:1px solid #7a9897;border-radius:5px}
 .param-label{grid-column:1/-1;text-align:center;font-size:.82rem}
@@ -83,12 +84,13 @@ body{width:min(100%,76rem)}
 <button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div></div>
 <canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></section>
 
-<div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><label><input type="checkbox" id="auto-apply" title="Save edits automatically and apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
-<div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button></div><button id="new-script">New script…</button>
-<p id="file-status" role="status"></p></aside><div id="desk"><output id="status" role="status"></output><section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong> <small id="song-status" role="status"></small>
+<output id="status" role="status"></output><section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong> <small id="song-status" role="status"></small>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
+<div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><label><input type="checkbox" id="auto-apply" title="Save edits automatically and apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
+<div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button><button id="new-script">New script…</button>
+<p id="file-status" role="status"></p></aside><div id="desk">
 
 <div id="code-panel" hidden><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
 <span id="code-status" role="status"></span>
@@ -124,7 +126,7 @@ liveLoop('bass', async () => {
 <small>— means no write since reset.</small></div></section>
 <section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
-<div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
+<div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden><div class="chip-header"><label>ROM bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
 <p id="rom-scale"></p><small>Bank-relative byte addresses · End exclusive · Amber marks the PCM loop.</small>
 <div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></section>

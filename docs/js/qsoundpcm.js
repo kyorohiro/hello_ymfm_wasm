@@ -7,7 +7,7 @@ const signed = word => (word << 16) >> 16;
 // DSP step multipliers in signed nibble order (-8 through +7).
 const adpcmScale = [154,154,128,102,77,58,58,58,58,58,58,58,77,102,128,154];
 
-function advanceAdpcm(voice, rom, lowNibble) {
+export function advanceAdpcm(voice, rom, lowNibble) {
   if (!lowNibble) {
     if (voice.address === voice.end) voice.gain = 0;
     if (voice.trigger) {

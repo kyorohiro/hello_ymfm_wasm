@@ -9,6 +9,7 @@ class Cps2Preview extends AudioWorkletProcessor {
   constructor() {
     super();
     this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
+    this.previewVersion=0;
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
     this.port.onmessage = ({data}) => {
@@ -107,7 +108,20 @@ class Cps2Preview extends AudioWorkletProcessor {
         }
         const words=data.registers ? pcmRegisterAddresses(data.channel).map(r=>this.chip.lastWrites[r]) : undefined;
         const pad=data.padVoice==null ? null : this.chip.adpcm[data.padVoice];
-        const padState=pad && {start:pad.start,end:pad.end,bank:pad.bank,volume:pad.volume,panWord:pad.pan};
+        const padState=pad && {start:pad.start,end:pad.end,bank:pad.bank,volume:pad.volume,panWord:pad.pan,
+          address:pad.address,active:pad.gain!==0,configured:this.chip.lastWrites[0xcb+4*data.padVoice]>=0};
+        if(pad && data.livePad){
+          const revision=this.song?.romRevision;
+          if(this.previewRom!==this.chip.rom || this.previewRevision!==revision){
+            this.previewRom=this.chip.rom;this.previewRevision=revision;this.previewVersion++;
+          }
+          padState.key=this.previewVersion+'-'+pad.bank;
+          padState.tickRate=this.chip.tickRate;
+          if(padState.key!==data.padBankKey){
+            const offset=pad.bank*65536;
+            padState.bytes=this.chip.rom.subarray(offset,offset+65536);
+          }
+        }
         this.port.postMessage({...data,romMap:data.romMap?chipRomMap(this.chip,this.starts):null,view,words,padState,pan:v.pan,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
           send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,
           active:v.volume !== 0,start:this.starts[data.channel]});

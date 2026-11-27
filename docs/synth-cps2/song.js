@@ -37,6 +37,7 @@ export class SongTransport {
     chip.tickRate=QSOUND_PCM_RATE*this.parser.header.qsoundClock/4000000;
     this.starts=starts;
     this.frames=this.ticks=this.nextFrame=0;
+    this.romRevision=0;
     this.paused=false;
     this.loop=false;this.looped=false;
     this.loopStart=null;
@@ -65,6 +66,7 @@ export class SongTransport {
         if(e.register<128 && (e.register&7)===1)this.starts[e.register>>3]=e.value;
       } else if(e.type==='qsound-rom-data'){
         this.chip.rom=applyRomBlock(this.chip.rom,e);
+        this.romRevision++;
       }
     }
   }

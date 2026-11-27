@@ -97,6 +97,8 @@ The transport opens the factory PCM duet on a fresh visit. Select a different de
 
 ## Live coding
 
+In the ADPCM tab, select Voice 2 and press **2** to follow the one-shot cursor. Shorten **End (exclusive)** and trigger again to hear the edited range. The waveform shows the decoded voice at its configured volume, scaled to fit the display. The caption gives its byte count and duration at the current chip clock.
+
 Open Code and press Run to play the CH1 bass loop. Select CH2 and play A–K over the bass, or use 1–3 for ADPCM. Click outside the editor to use the musical keys. Select CH1 to watch its PCM and echo settings. Edit the notes or the echo send and press Apply to update the named loop. Stop ends the loops and keeps the instruments available for audition. Ctrl/Cmd+Enter runs the source; Ctrl/Cmd+Shift+Enter applies it.
 
 With a captured instrument, `qsound.noteOn(1,60)` plays CH1 at its reference rate and `qsound.trigger(2)` retriggers the captured ADPCM voice 2. Passing a sample index explicitly addresses the generated pulse or waveform offsets in the current ROM. Starting Code during VGM playback pauses the song first. Switching Synth / Code leaves the performance running.

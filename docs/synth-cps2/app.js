@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
+import {createPadWave} from './pad-wave.js';
 import {createRomMap} from './rom-map.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {isPresetPath,bankHash,readPreset,presetRom,resolveRom} from './preset.js';
@@ -171,7 +172,7 @@ function edit(key,value) {
 const registerPanel=$('register-panel');
 const drawRegisters=createRegisterTable($('register-rows'),$('register-position'));
 function inspectChannel() {
-  port?.postMessage({type:'inspect',channel:selected,revision,romMap:liveInstrument && !$('rom-chip').hidden,skipWave:$('pcm-chip').hidden,padVoice:liveInstrument && !$('adpcm-chip').hidden?padVoice:null,registers:!registerPanel.hidden});
+  port?.postMessage({type:'inspect',channel:selected,revision,romMap:liveInstrument && !$('rom-chip').hidden,skipWave:$('pcm-chip').hidden,livePad:liveInstrument,padBankKey,padVoice:!$('adpcm-chip').hidden?padVoice:null,registers:!registerPanel.hidden});
 }
 function selectPcmTab(registers) {
   registerPanel.hidden=!registers;
@@ -187,7 +188,15 @@ $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
   if (data.revision !== revision || data.channel !== selected) return;
   if(data.romMap && liveInstrument && !seeking && !$('rom-chip').hidden)drawRomMap(data.romMap,romPath??'Factory ROM');
-  if(liveInstrument && !seeking && data.padVoice===padVoice && data.padState)showPad(data.padState);
+  if(!seeking && data.padVoice===padVoice && data.padState){
+    const state=data.padState;
+    if(state.active)padInspectUntil=performance.now()+200;
+    if(liveInstrument){
+      if(state.bytes){padBankBytes=state.bytes;padBankKey=state.key;}
+      showPad(state);
+    }
+    drawPad(state.active?state.address:null,liveInstrument?state:undefined);
+  }
   if (!registerPanel.hidden && data.words && !seeking)drawRegisters(selected,data.words,data.address);
   if (data.view && liveInstrument) {
     if(seeking)return;
@@ -216,7 +225,7 @@ function inspect({data}) {
 let lastInspect=0;
 setInterval(()=>{
   if(!port || document.hidden)return;
-  const moving=songState==='playing' || codeWorker || channels[selected].held || cursor!==null;
+  const moving=(!$('adpcm-chip').hidden && performance.now()<padInspectUntil) || songState==='playing' || codeWorker || channels[selected].held || cursor!==null;
   if(!moving && !liveInstrument && registerPanel.hidden)return;
   const now=performance.now();
   if(!moving && now-lastInspect<250)return;
@@ -298,6 +307,13 @@ $('octave').append(createParamControl({label:'Octave',min:0,max:7,step:1,value:o
   $('keys').append(button);
 });
 const pads=Array.from({length:3},(_,i)=>({sample:i,start:(i+1)*512,end:(i+2)*512,bank:0,pan:16*i,volume:32767}));
+const factoryBank=demoRom();
+const paintPad=createPadWave($('pad-wave'),$('pad-caption'),$('pad-cursor'));
+let padBankBytes,padBankKey,padInspectUntil=0;
+function drawPad(address=null,state){
+  const pad=state??pads[padVoice];
+  paintPad(pad,state?padBankBytes:pad.bank===0?factoryBank:null,state?.tickRate??QSOUND_PCM_RATE,address);
+}
 let padVoice=0;
 const padControls={};
 const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
@@ -308,6 +324,7 @@ function showPad(state){
   for(const key of padFields)padControls[key].updateVisual(pad[key]);
   padControls.panWord.updateVisual(live?pad.panWord:0x110+pad.pan);
   padControls.sample.updateVisual(pads[padVoice].sample);
+  if(!live)drawPad();
 }
 function syncPadView(){
   padControls.panWord.updateRange(liveInstrument?0:0x110,liveInstrument?65535:0x130);
@@ -325,7 +342,10 @@ function triggerPad(i){
   const token=generation;
   const writes=liveInstrument ? [] : padWrites(i);
   writes.push([0xd6+i,1]);
-  run(async()=>{await audio();if(token===generation)port.postMessage(writes);});
+  run(async()=>{await audio();if(token===generation){
+    padInspectUntil=performance.now()+200;
+    port.postMessage(writes);inspectChannel();
+  }});
 }
 for(let i=0;i<3;i++){
   const b=document.createElement('button');
@@ -351,6 +371,7 @@ for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,655
         }
         if(key==='panWord')pad.pan=value-0x110;
         else pad[key]=value;
+        drawPad();
       }
       const reg=key==='panWord'?0x90+padVoice:0xca+4*padVoice+padFields.indexOf(key);
       port?.postMessage([[reg,value&65535]]);
@@ -469,7 +490,7 @@ const drawRomMap=createRomMap(id=>{
     $('adpcm-voices').children[id-16].click();
   }
 });
-const factoryRomSize=demoRom().length;
+const factoryRomSize=factoryBank.length;
 function showRomMap(){
   if($('rom-chip').hidden)return;
   if(liveInstrument){inspectChannel();return;}
