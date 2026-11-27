@@ -1,4 +1,5 @@
 import {writePerformanceCommand} from './pcm-performance.js';
+import {noteToHz,opmPitchFromHz} from '../js/soundchip_pitch.js';
 import {SongSampleMemory} from './song-samples.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {Ym2612VGM} from '../js/ym2612vgm.js';
@@ -13,7 +14,7 @@ class Song extends AudioWorkletProcessor {
     this.parser=new Ym2612VGM(bytes);
     this.voiceState=new Ym2151VoiceInspector({clock:this.parser.header.ym2151Clock,sampleRate,
       dispatch:({args})=>this.writeFm(...args)});
-    this.keyOverrides=[];
+    this.keyOverrides=[];this.keyboardOwners=[];
     this.nextReport=0; this.fmDirty=true;
     this.lastMasks=Array(8).fill(15);
     this.mutes={fm:Array(8).fill(false),pcm:Array(4).fill(false)};
@@ -21,7 +22,13 @@ class Song extends AudioWorkletProcessor {
     this.ticks=0; this.frame=0; this.until=0;
     this.port.onmessage=({data})=>{
       if (data.stop) this.finish();
-      else if(data.fmEdit && this.fm){
+      else if(data.keyboardFm && this.keyboardFm)this.playKeyboardFm(data.keyboardFm);
+      else if(data.keyboardPcm && this.keyboardPcm){
+        const {voice,sample,level}=data.keyboardPcm;
+        this.keyboardPcm.command(8<<voice);
+        this.keyboardPcm.command(128|sample);
+        this.keyboardPcm.command((16<<voice)|level);
+      }else if(data.fmEdit && this.fm){
         this.voiceState.invoke(data.fmEdit.method,data.fmEdit.args);
         if(this.paused)this.port.postMessage({editedFm:this.fmSnapshot()});
       }else if(data.keyMask){
@@ -38,14 +45,52 @@ class Song extends AudioWorkletProcessor {
   }
   async init(wasmBinary) {
     const {ym2151Clock,okim6295Clock}=this.parser.header;
-    if (okim6295Clock) this.pcm=new Oki6295AudioEngine({clock:okim6295Clock,outputSampleRate:sampleRate});
+    if(okim6295Clock){
+      const options={clock:okim6295Clock,outputSampleRate:sampleRate};
+      this.pcm=new Oki6295AudioEngine(options);
+      this.keyboardPcm=new Oki6295AudioEngine(options);
+    }
     if (ym2151Clock) {
-      const fm=await Ym2151AudioEngine.create({ym2151ModuleFactory:factory,ym2151ModuleOptions:{wasmBinary},ym2151Clock,outputSampleRate:sampleRate});
+      // Independent chip handles can share one compiled WASM module and heap.
+      const module=await factory({wasmBinary});
+      if(this.done)return;
+      const options={ym2151ModuleFactory:async()=>module,ym2151Clock,outputSampleRate:sampleRate};
+      const fm=await Ym2151AudioEngine.create(options);
       if (this.done) {fm.dispose();return;}
       this.fm=fm;
+      const keyboardFm=await Ym2151AudioEngine.create(options);
+      if(this.done){keyboardFm.dispose();return;}
+      this.keyboardFm=keyboardFm;
     }
     this.applyMutes();
     this.ready=true;this.report({ready:true,clock:this.parser.header.ym2151Clock});
+  }
+  playKeyboardFm({channel,midi,id}){
+    const chip=this.keyboardFm;
+    if(midi===undefined){
+      if(this.keyboardOwners[channel]===id){
+        chip.writeYm2151(8,channel);this.keyboardOwners[channel]=null;
+      }
+      return;
+    }
+    this.keyboardOwners[channel]=id;this.keyboardFmStarted=true;
+    const {registers,amDepth,pmDepth}=this.voiceState;
+    chip.writeYm2151(8,channel);
+    for(const r of [0x0f,0x18,0x1b])chip.writeYm2151(r,registers[r]);
+    chip.writeYm2151(0x19,amDepth);chip.writeYm2151(0x19,128|pmDepth);
+    for(let r=0x20+channel;r<256;r+=8)chip.writeYm2151(r,registers[r]);
+    const pitch=opmPitchFromHz(noteToHz(midi),this.parser.header.ym2151Clock);
+    chip.writeYm2151(0x28+channel,pitch.keyCode);
+    chip.writeYm2151(0x30+channel,pitch.keyFraction<<2);
+    chip.writeYm2151(8,channel|(this.lastMasks[channel]<<3));
+  }
+  mixKeyboard(outputs,size){
+    const mix=(chip,bus)=>{
+      const {left,right}=chip.processFrames(size);
+      for(let i=0;i<size;i++){outputs[bus][0][i]+=left[i];outputs[bus][1][i]+=right[i];}
+    };
+    if(this.keyboardFmStarted)mix(this.keyboardFm,0);
+    if(this.keyboardPcm?.voices.some(v=>v.playing))mix(this.keyboardPcm,1);
   }
   writeFm(register,value){
     if(register===8 && (value&0x78)){
@@ -78,26 +123,29 @@ class Song extends AudioWorkletProcessor {
     this.port.postMessage(message);
   }
   applyMutes() {
-    this.mutes.fm.forEach((v,i)=>this.fm?.setChannelMuted(i,v));
-    this.mutes.pcm.forEach((v,i)=>this.pcm?.setVoiceMuted(i,v));
+    this.mutes.fm.forEach((v,i)=>{this.fm?.setChannelMuted(i,v);this.keyboardFm?.setChannelMuted(i,v);});
+    this.mutes.pcm.forEach((v,i)=>{this.pcm?.setVoiceMuted(i,v);this.keyboardPcm?.setVoiceMuted(i,v);});
   }
   finish(error) {
     if (this.done) return;
-    this.done=true;this.fm?.dispose();this.pcm?.dispose();
+    this.done=true;this.fm?.dispose();this.pcm?.dispose();this.keyboardFm?.dispose();this.keyboardPcm?.dispose();
     this.port.postMessage({done:true,error});
   }
   process(inputs,outputs) {
-    if (!this.ready || this.done || this.paused) return !this.done;
+    if (!this.ready || this.done) return !this.done;
     const size=outputs[0][0].length;
     try {
-      for (let i=0;i<size;) {
+      for (let i=0;!this.paused && i<size;) {
         if (this.frame>=this.until) {
           const e=this.parser.step();
           if (e.type==='end') {this.report({playing:true},true);this.finish();break;}
           if (e.type==='wait') {this.ticks+=e.samples;this.until=Math.round(this.ticks*sampleRate/44100);}
           if (e.type==='ym2151-write') this.writeFm(e.register,e.value);
           if (e.type==='okim6295-write') {
-            if(e.register)this.pcm.writeOki6295(e.register,e.value);
+            if(e.register){
+              this.pcm.writeOki6295(e.register,e.value);
+              this.keyboardPcm.writeOki6295(e.register,e.value);
+            }
             else {
               if(this.pcm.pending>=0)this.sourceAttenuation=e.value&15;
               this.lastCommand=writePerformanceCommand(this.pcm,e.value,this.sampleOverrides,this.attenuationOverride);
@@ -105,6 +153,7 @@ class Song extends AudioWorkletProcessor {
           }
           if (e.type==='okim6295-rom-data') {
             this.pcm.loadOki6295Rom(e.data,e.offset,e.memorySize);
+            this.keyboardPcm.rom=this.pcm.rom;
             this.sampleMemory.observe(e.offset,e.data.length,e.memorySize);
           }
           continue;
@@ -117,7 +166,8 @@ class Song extends AudioWorkletProcessor {
         }
         this.frame+=count;i+=count;
       }
-      if (!this.done && this.frame>=this.nextReport) {
+      if(!this.done)this.mixKeyboard(outputs,size);
+      if (!this.done && !this.paused && this.frame>=this.nextReport) {
         this.nextReport=this.frame+Math.ceil(sampleRate/8);
         if (this.fmDirty || this.pcm) this.report({playing:true});
       }

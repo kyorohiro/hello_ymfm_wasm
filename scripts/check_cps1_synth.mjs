@@ -217,7 +217,13 @@ try {
   await page.click('#run');
   await page.waitForFunction(() => document.querySelector('#status').textContent==='Finished');
   await page.fill('#editor','while (true) {}');
-  await page.click('#run'); await page.click('#stop');
+  await page.click('#run');
+  await page.waitForFunction(()=>document.querySelector('#status').textContent==='Running' && window.lastPeak===0);
+  await page.evaluate(()=>{window.peak=0;});
+  await page.keyboard.press('j');
+  await page.waitForFunction(()=>window.peak>.001 && document.querySelector('#command').value==='0x83 0x82');
+  assert.equal(await page.inputValue('#editor'),'while (true) {}');
+  await page.click('#stop');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
   const algorithmPath='/examples/opm-algorithms.js';
@@ -255,6 +261,11 @@ try {
   await page.keyboard.down('a');
   await page.waitForFunction(()=>document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes('1111'));
   await page.keyboard.up('a');
+  await page.click('[data-tab="pcm"]');
+  await page.click('[data-tab="code"]');
+  assert.ok(await page.locator('#editor').isVisible());
+  await page.keyboard.press('j');
+  await page.waitForFunction(()=>document.querySelectorAll('#voices .lamp')[3].title.includes('3 · Arcade hit'));
   await page.click('[data-tab="pcm"]');
   await page.getByRole('button',{name:'Mute Voice 2',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('#busy').value!=='0xF0');
@@ -313,7 +324,7 @@ try {
   header.write('Vgm ');header.writeUInt32LE(0x171,8);header.writeUInt32LE(0xcc,0x34);
   header.writeUInt32LE(3579545,0x30);header.writeUInt32LE(0x80000000+1000000,0x98);
   block.set([0x67,0x66,0x8b]);block.writeUInt32LE(8+rom.length,3);block.writeUInt32LE(0x100000,7);
-  const song=Buffer.concat([header,block,rom,Buffer.from([0x54,0x20,0xc7,0xb8,0,0x83,0xb8,0,0x82,0x61,0xff,0xff,0xb8,0,0x83,0xb8,0,0x82,0x61,0xff,0xff,0x66])]);
+  const song=Buffer.concat([header,block,rom,Buffer.from([0x54,0x20,0xc7,0xb8,0,0x83,0xb8,0,0x82,0x61,0xff,0xff,0x61,0xff,0xff,0x61,0xff,0xff,0xb8,0,0x83,0xb8,0,0x82,0x61,0xff,0xff,0x66])]);
   song.writeUInt32LE(song.length-4,4);
   await page.click('#synthMenuButton');
   const pickSong=page.waitForEvent('filechooser');
@@ -321,6 +332,8 @@ try {
   await (await pickSong).setFiles({name:'hit.vgz',mimeType:'application/gzip',buffer:gzipSync(song)});
   await page.getByText('Imported hit.vgz',{exact:true}).waitFor();
   assert.ok((await page.locator('#romList option').allTextContents()).includes('hit.rom'));
+  await page.click('#synthMode');
+  await page.click('[data-tab="keyboardPanel"]');
   await page.evaluate(()=>{window.peak=0;});
   await page.click('#playSong');
   await page.waitForFunction(()=>window.peak>.001);
@@ -328,6 +341,11 @@ try {
   await page.waitForFunction(()=>document.querySelector('#romName').textContent==='hit.rom');
   assert.ok(await page.locator('#pcmEditor').isVisible());
   await page.waitForFunction(()=>document.querySelector('#command').value==='0x82');
+  await page.waitForFunction(()=>window.lastPeak<.001 && !document.querySelector('#pauseSong').disabled);
+  await page.evaluate(()=>{window.peak=0;});
+  await page.locator('#keys [data-key="j"]').click();
+  await page.waitForFunction(()=>window.peak>.001);
+  assert.ok(await page.locator('#pauseSong').isEnabled());
   await page.locator('#voices .param-control').first().getByRole('button',{name:'+',exact:true}).click();
   await page.click('#pauseSong');
   await page.waitForFunction(()=>document.querySelector('#playSong').textContent==='Resume');
@@ -360,6 +378,7 @@ try {
   const reg=(address,value)=>fmCommands.push(0x54,address,value);
   reg(0x20,0xc7);reg(0x28,0x40);
   for (let slot=0;slot<32;slot+=8) {reg(0x40+slot,1);reg(0x60+slot,24);reg(0x80+slot,31);}
+  fmCommands.push(0x61,0xff,0xff,0x61,0xff,0xff); // Silent intro for keyboard play-along.
   reg(8,0x78);fmCommands.push(0x61,0x22,0x56);reg(0x20,0xcf);fmCommands.push(0x61,0xff,0xff,0x61,0xff,0xff,0x66);
   const fmSong=Buffer.concat([header,Buffer.from(fmCommands)]);
   fmSong.writeUInt32LE(0,0x98);fmSong.writeUInt32LE(fmSong.length-4,4);
@@ -369,8 +388,12 @@ try {
   await page.click('[data-tab="fm"]');
   await page.click('[data-chip-channel="0"]');
   await page.click('#playSong');
-  await page.waitForFunction(()=>window.peak>.001);
   await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-algorithm"]').value==='7');
+  await page.waitForFunction(()=>window.lastPeak<.001);
+  await page.keyboard.down('a');
+  await page.waitForFunction(()=>window.lastPeak>.001);
+  assert.equal(await page.locator('[data-chip-channel="0"]').getAttribute('data-sounding'),'false');
+  await page.keyboard.up('a');
   await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-feedback"]').value==='1');
   assert.equal(await page.locator('#romName').textContent(),'No MSM6295 in this VGM');
   await page.locator('[data-chip-control="ym2151-feedback"]').locator('..').getByRole('button',{name:'+',exact:true}).click();
@@ -381,6 +404,10 @@ try {
   assert.equal(await page.locator('[data-chip-channel]').first().getAttribute('data-sounding'),'true');
   const pausedAt=parseFloat(await page.locator('#songTime').textContent());
   await page.waitForFunction(()=>window.lastPeak===0);
+  await page.keyboard.down('a');
+  await page.waitForFunction(()=>window.lastPeak>.001);
+  await page.keyboard.up('a');
+  assert.equal(parseFloat(await page.locator('#songTime').textContent()),pausedAt);
   await page.selectOption('#songTarget','3');
   await page.click('#useSongVoice');
   await page.click('[data-tab="fm"]');

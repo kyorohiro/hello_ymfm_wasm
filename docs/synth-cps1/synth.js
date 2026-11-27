@@ -218,7 +218,7 @@ function renderWorkspace() {
     $(id).setAttribute('role','tabpanel');
     tab.setAttribute('aria-controls',id);
   }
-  pcmKeyboard=!$('pcm').hidden || (!synth && codeView==='keyboardPanel' && lastCodeChip==='pcm');
+  pcmKeyboard=!$('pcm').hidden || (!synth && lastCodeChip==='pcm');
   $('keyboardPanel').classList.toggle('pcm-keys',pcmKeyboard);
   $('pcmKeysHint').hidden=!pcmKeyboard;
   $('keyChannels').hidden=$('keyOctave').hidden=pcmKeyboard;
@@ -235,7 +235,7 @@ function changeMode(mode) {
     setFilesOpen(true);
     $('sourceTabs').prepend(codeTab);
     $('sourceTabs').append(keyboardTab);
-    lastCodeChip=synthView.source;
+    if(synthView.source!=='mixer')lastCodeChip=synthView.source;
     codeView = 'code';
   } else {
     $('performanceTabs').append(keyboardTab,codeTab);
@@ -246,9 +246,9 @@ $('synthMode').onclick = () => changeMode('synth');
 $('codeMode').onclick = () => changeMode('code');
 for (const tab of tabs) tab.onclick = () => {
   const id = tab.dataset.tab;
+  if(id==='pcm' || id==='fm')lastCodeChip=id;
   if (main.dataset.mode === 'code') {
     codeView=id;
-    if (id==='pcm' || id==='fm') lastCodeChip=id;
   }
   else if (tab.parentElement === $('performanceTabs')) synthView.performance = id;
   else synthView.source = id;
@@ -500,15 +500,29 @@ const octaveControl = createParamControl({label:'Octave',min:-2,max:2,step:1,val
 $('keyOctave').append(octaveControl.element);
 const held = new Map();
 function press(id,entry) {
-  if (observation || held.has(id)) return;
+  if (held.has(id)) return;
   if (pcmKeyboard) {
     try {
       const voice=pcmKeys.indexOf(entry.key);
       if(voice<0)return;
+      if(observation?.oki){
+        const seen=observation.oki.voices[voice];
+        const assigned=observation.assignments[voice]??seen.sample??seen.requestedSample;
+        const sample=assigned==null || assigned<0 ? selectedSlot : assigned;
+        const level=observation.attenuation??observation.oki.sourceAttenuation??sampleAttenuation;
+        songNode.port.postMessage({keyboardPcm:{voice,sample,level}});
+        return;
+      }
       oki.stop(voice);
       oki.play(voice,voiceSample(voice),sampleAttenuation);
       startAudio().catch(fail);
     } catch (error) {fail(error);}
+    return;
+  }
+  if(observation?.fm){
+    const channel=panel.getSelectedChannel();
+    held.set(id,channel);
+    songNode.port.postMessage({keyboardFm:{channel,midi:entry.midi,id}});
     return;
   }
   let ch=keyboardChannel();
@@ -530,7 +544,10 @@ function press(id,entry) {
   held.set(id,ch); inspector.invoke('auditionOn',[ch,entry.midi,id]); startAudio().catch(fail);
 }
 function release(id) {
-  if (held.has(id)) inspector.invoke('auditionOff',[held.get(id),id]);
+  if(held.has(id)){
+    if(observation?.fm)songNode.port.postMessage({keyboardFm:{channel:held.get(id),id}});
+    else inspector.invoke('auditionOff',[held.get(id),id]);
+  }
   held.delete(id);autoHeld.delete(id);
 }
 buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entries,showPitch:false,
@@ -638,7 +655,7 @@ function setSongView(active) {
   $('attenuation').inert=active && !observation?.oki;
   $('followAttenuation').hidden=true;
   $('followVoices').hidden=true;
-  $('keyboardPanel').inert=active;
+
   for(const node of $('fm').querySelectorAll('.param-control,table button,input,.opm-envelope-editor canvas'))node.inert=active && !observation?.fm;
   for(const node of $('fm').querySelectorAll('.voice-tools > button:nth-of-type(2),[data-key-channel="-1"]'))node.inert=active;
   dirty=true;
@@ -653,6 +670,7 @@ function syncSongMutes() {
 function stopSong(keepSettings=false) {
   stopPreview();$('previewSongSample').hidden=true;sampleBuffer=null;
   if (observation) {
+    for(const id of held.keys())release(id);
     const state=observation, currentSlot=selectedSlot;
     const keep=keepSettings===true;
     const {channel,auto,slot,bankPath,command}=state;
@@ -721,6 +739,7 @@ async function playSong(song) {
       if(data.editedFm){Object.assign(observation.fm,data.editedFm);dirty=true;return;}
       if (data.done) {stopSong(!data.error);status(data.error ?? 'Finished');return;}
       if (data.ready) {
+        for(const id of held.keys())release(id);
         observation={song,assignments:Array(4).fill(null),bankPaths:song.bankPaths,copied:new Set(),channel:panel.getSelectedChannel(),auto:autoChannel,slot:selectedSlot,bankPath:$('romList').value,command:$('command').value,
           idleFm:data.fm ? null : new Ym2151VoiceInspector({}),
           fm:data.fm ? new Ym2151VoiceInspector({clock:data.clock,sampleRate:context.sampleRate,
@@ -759,6 +778,7 @@ function stopRun(keepSettings=false) {
 }
 $('stop').onclick = () => {stopRun(true);status('Stopped');};
 $('run').onclick = async () => {
+  $('run').focus({preventScroll:true});
   stopRun(true); const id = runId;
   try {
     const source = $('editor').value;
