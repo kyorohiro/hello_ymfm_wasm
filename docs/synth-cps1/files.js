@@ -3,7 +3,7 @@ import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {inspectSong} from './vgm.js';
-import {makeAudioBank} from './audio-bank.js';
+import {makeAudioBank,appendVoiceSample} from './audio-bank.js';
 import {parseOpm} from './opm.js';
 import {installProjectTree,base,checkPath,inside} from './project-tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
@@ -48,7 +48,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   }
   function useBank(path) {
     activeBank=path;const bank=files.get(path)??defaultBank;
-    applyBank(bank.bytes,bank.names,bank.name);
+    applyBank(bank.bytes,bank.names,bank.name,bank.voiceSamples);
   }
   function open(path) {
     const v=files.get(path);if(!v)return;
@@ -281,7 +281,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
       switch(v.kind) {
         case 'channel':record.ch=v.ch;data=JSON.stringify(currentVoice(v.ch));break;
         case 'voice':data=JSON.stringify(v.voice);break;
-        case 'bank':record.names=v.names;record.name=v.name;data=v.bytes;break;
+        case 'bank':record.names=v.names;record.name=v.name;record.voiceSamples=v.voiceSamples;data=v.bytes;break;
         case 'song':record.name=v.name;data=v.raw;break;
         case 'opm':data=v.source;break;
         case 'code':data=v.text;break;
@@ -320,7 +320,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
           case 'code':value={text:decode(bytes)};break;
           case 'opm':{const source=decode(bytes);value={source,voices:parseOpm(source)};break;}
           case 'song':value=await loadSong(r.name,bytes);break;
-          case 'bank':value={bytes,name:r.name,names:r.names};break;
+          case 'bank':value={bytes,name:r.name,names:r.names,voiceSamples:r.voiceSamples};break;
           default:throw Error('Unknown CPS1 file type.');
         }
         docs.set(path,{kind:r.kind,...value});
@@ -346,6 +346,8 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     for(const v of docs.values()) {
       if(v.kind==='bank'&&(typeof v.name!=='string'||!Array.isArray(v.names)||v.names.length<1||v.names.length>128||
         !v.names.every(n=>typeof n==='string')||v.bytes.length<8||v.bytes.length>0x40000))throw Error('Invalid sample bank.');
+      if(v.kind==='bank' && v.voiceSamples!==undefined && (!Array.isArray(v.voiceSamples) || v.voiceSamples.length!==4 ||
+        !v.voiceSamples.every(id=>Number.isInteger(id)&&id>=-1&&id<v.names.length)))throw Error('Invalid PCM voice samples.');
       if(v.kind==='song'&&typeof v.name!=='string')throw Error('Invalid song name.');
     }
     if(active!==null&&docs.get(active)?.kind!=='bank')throw Error('Missing active ROM.');
@@ -372,7 +374,27 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     pending=draft.pending??new Map();restoreSound(draft);
     useBank(draft.activeBank);script(draft.editor,false);el('cassetteName').textContent=draft.name;render();
   }
-  return {addBank,restoreKit(){restoreKit();render();persist();},recordEdit(ch){
+  function editableBank(){
+    if(!activeBank || !files.has(activeBank))restoreKit();
+    return files.get(activeBank);
+  }
+  function assignSample(voice,id){
+    const bank=editableBank(),voiceSamples=[...(bank.voiceSamples??Array(4).fill(-1))];
+    voiceSamples[voice]=id;
+    editFile(activeBank,{...bank,voiceSamples});
+  }
+  async function importVoiceSample(voice,file){
+    const bank=editableBank(),path=activeBank;
+    const clip=await makeAudioBank([file]);
+    if(path!==activeBank || files.get(path)!==bank)throw Error('Sample bank changed. Select the file again.');
+    const {bytes,names,id}=appendVoiceSample(bank,clip);
+    const voiceSamples=[...(bank.voiceSamples??Array(4).fill(-1))];
+    voiceSamples[voice]=id;
+    remember();
+    editFile(path,{...bank,bytes,names,voiceSamples});
+    applyBank(bytes,names,bank.name,voiceSamples,true);
+  }
+  return {addBank,assignSample,importVoiceSample,restoreKit(){restoreKit();render();persist();},recordEdit(ch){
     const target=files.get(editPath);
     if(target?.kind==='channel'&&target.ch===ch)editFile(editPath,{...target,voice:currentVoice(ch)});
     else if(ch===presetChannel&&target?.kind==='voice')editFile(editPath,{kind:'voice',voice:currentVoice(ch)});

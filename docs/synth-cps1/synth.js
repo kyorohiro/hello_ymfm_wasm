@@ -290,12 +290,22 @@ function updateSampleView() {
   displaySample($('sampleWave'),$('sampleRange'),sampleRom,Number($('sample').value));
 }
 $('sample').onchange = updateSampleView;
-function chooseSamples(names) {
+const voicePickers=[];
+function voiceSample(voice){
+  const id=Number(voicePickers[voice].value);
+  return id<0?Number($('sample').value):id;
+}
+function chooseSamples(names,assignments=[],selected=0) {
   $('hitPad').disabled=names[3]!=='Arcade hit';
   $('sample').replaceChildren(...names.map((name,i) => new Option(i+' · '+name,i)));
+  $('sample').value=String(selected);
+  for(const [voice,picker] of voicePickers.entries()){
+    picker.replaceChildren(new Option('Follow Sample',-1),...names.map((name,id)=>new Option(id+' · '+name,id)),new Option('Import WAV / FLAC…','import'));
+    picker.value=String(assignments[voice]??-1);
+    picker.dataset.sample=picker.value;
+  }
   updateSampleView();
 }
-chooseSamples(samples);
 $('hitPad').onclick=()=>{
   oki.play(3,3,2);startAudio().catch(fail);
 };
@@ -304,7 +314,7 @@ for (let i=0;i<4;i++) {
   const lamp = document.createElement('output'); lamp.className = 'lamp';
   const play = document.createElement('button'); play.textContent = 'Play';
   play.onclick = () => {try {
-    const sample = Number($('sample').value), attenuation = $('attenuation').valueAsNumber;
+    const sample = voiceSample(i), attenuation = $('attenuation').valueAsNumber;
     oki.play(i,sample,attenuation); startAudio().catch(fail);
   } catch (error) {fail(error);}};
   const stop = document.createElement('button'); stop.textContent = 'Stop'; stop.onclick = () => oki.stop(i);
@@ -313,8 +323,21 @@ for (let i=0;i<4;i++) {
   mute.setAttribute('aria-pressed','false');
   mute.onclick = () => oki.setVoiceMuted(i,!voiceMutes[i]);
   muteButtons.push(mute);
-  row.append(lamp,play,stop,mute); $('voices').append(row);
+  const picker=document.createElement('select'), input=document.createElement('input');
+  picker.setAttribute('aria-label','Voice '+(i+1)+' sample');
+  input.type='file';input.accept='.wav,.wave,.flac';input.hidden=true;
+  input.onchange=async()=>{
+    const file=input.files[0];input.value='';
+    if(file)try {await files.importVoiceSample(i,file);} catch(error){fail(error);}
+  };
+  picker.onchange=()=>{
+    if(picker.value==='import'){picker.value=picker.dataset.sample;input.click();return;}
+    files.assignSample(i,Number(picker.value));picker.dataset.sample=picker.value;
+  };
+  voicePickers.push(picker);
+  row.append(lamp,picker,input,play,stop,mute); $('voices').append(row);
 }
+chooseSamples(samples);
 function toggleButton(text,label,pressed,click) {
   const button = document.createElement('button');
   button.textContent=text; button.setAttribute('aria-label',label);
@@ -353,9 +376,9 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
 }
 showBusy(0xf0);
 let romRevision = 0;
-function installRom(bytes,names,label) {
+function installRom(bytes,names,label,assignments,extended=false) {
   romRevision++; sampleRom = bytes; rawOki = [];
-  audio?.pcm.port.postMessage({rom:bytes}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names); $('romName').textContent = label;
+  audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,extended?Number($('sample').value):0); $('romName').textContent = label;
 }
 $('rom').onchange = async () => {
   const file = $('rom').files[0], revision = ++romRevision;
@@ -421,7 +444,7 @@ function press(id,entry) {
       const attenuation=limit($('attenuation').valueAsNumber,15,'Attenuation');
       const voice=nextSampleVoice;
       oki.stop(voice);
-      oki.play(voice,Number($('sample').value),attenuation);
+      oki.play(voice,voiceSample(voice),attenuation);
       nextSampleVoice=(voice+1)%4;
       startAudio().catch(fail);
     } catch (error) {fail(error);}
@@ -454,7 +477,7 @@ buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entrie
   onPointerUp:e => release('pointer'+e.pointerId),onPointerCancel:e => release('pointer'+e.pointerId)});
 window.addEventListener('keydown',e => {
   if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-  const samplePicker=pcmKeyboard && e.target===$('sample');
+  const samplePicker=pcmKeyboard && (e.target===$('sample') || voicePickers.includes(e.target));
   if (!samplePicker && e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
   const entry = layout.entries.find(v => v.key === e.key.toLowerCase());
   if (entry) {e.preventDefault();press(e.code,entry);}

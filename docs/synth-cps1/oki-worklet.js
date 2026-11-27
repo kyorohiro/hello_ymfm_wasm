@@ -6,7 +6,7 @@ class OkiProcessor extends AudioWorkletProcessor {
     this.chip = new Oki6295AudioEngine({clock:0x80000000 + 1000000, outputSampleRate:sampleRate});
     this.port.onmessage = ({data}) => {
       if (data.rom) {
-        this.chip.reset();
+        if (!data.extended) this.chip.reset();
         this.chip.loadOki6295Rom(data.rom);
       } else if (data.voiceMutes) {
         data.voiceMutes.forEach((muted,i) => this.chip.setVoiceMuted(i,muted));

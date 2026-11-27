@@ -51,3 +51,5 @@ For MSM6295 tracks, the panel shows all four busy flags and each voice’s last 
 In the MSM6295 tab, computer and on-screen keys trigger the selected sample at its original chip pitch and current attenuation. Key presses cycle through the four voices. Reusing a voice restarts it, and releasing a key lets the sample finish.
 
 **Import WAV / FLAC…** accepts one or more clips and builds a new sample bank in selection order. The browser mixes the audio to mono, resamples it to the kit’s playback rate (about 7.58 kHz), and encodes it as MSM6295 ADPCM. The bank fits up to 128 samples and 256 KiB including the address table. Export Cassette includes the playable bank and sample names.
+
+Each Voice has a sample selector. Follow Sample uses the shared selection. Choose an existing sample or select Import WAV / FLAC in that Voice’s selector to add a phrase to the active bank and assign it only to that Voice. Play and keyboard triggers use these assignments. JavaScript commands still specify the sample number directly.

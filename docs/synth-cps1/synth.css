@@ -251,3 +251,5 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 #filePath {display:block;overflow-wrap:anywhere}
 
 .pcm-keys #keys .key span {display:none}
+
+#voices select {max-width:min(100%,12rem);min-width:0}
