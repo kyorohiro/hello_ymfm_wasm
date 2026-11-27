@@ -9,9 +9,9 @@ import {inspectSong,SongTransport} from './song.js';
 test('imported echo comparison matches the original worklet score at 48 kHz across pause and block boundaries',()=>{
   const score=demoTracks.echo.score(), source=demoVgm(score), rate=48000;
   assert.deepEqual(inspectSong(source),{ticks:score.at(-1).t,canLoop:false,loopTick:null});
-  const chip=new QSoundPcm(new Uint8Array(),rate);
+  const chip=new QSoundPcm(new Uint8Array(),rate,{spatialPcm:true});
   const transport=new SongTransport(source,chip,new Uint16Array(16));
-  const reference=new QSoundPcm(demoRom(),rate);
+  const reference=new QSoundPcm(demoRom(),rate,{spatialPcm:true});
   const length=Math.round(score.at(-1).t*rate/44100);
   const l=new Float32Array(length),r=new Float32Array(length);
   for(let i=0;i<score.length-1;i++){
@@ -79,7 +79,7 @@ test('loop output matches an explicitly repeated command stream, including acros
 test('seeking restores stereo output including PCM phase, ADPCM decoding and delayed echo',()=>{
   const events=[...demoTracks.echo.score(),...demoTracks.adpcm.score()].sort((a,b)=>a.t-b.t);
   const source=demoVgm(events),rate=48000;
-  const make=()=>new SongTransport(source,new QSoundPcm(new Uint8Array(),rate),new Uint16Array(16));
+  const make=()=>new SongTransport(source,new QSoundPcm(new Uint8Array(),rate,{spatialPcm:true}),new Uint16Array(16));
   for(const tick of [0,22050,24000,44099,inspectSong(source).ticks]){
     const reference=make(),restored=make();
     const frame=Math.round(tick*rate/44100);
@@ -92,19 +92,22 @@ test('seeking restores stereo output including PCM phase, ADPCM decoding and del
   }
 });
 
-test('exported pan demo repeats the same PCM hit at left, center and right',()=>{
-  const bytes=demoVgm(demoTracks.pan.score());
-  const chip=new QSoundPcm(new Uint8Array(),44100);
-  const song=new SongTransport(bytes,chip,new Uint16Array(16));
-  const left=new Float32Array(inspectSong(bytes).ticks), right=left.slice();
-  song.render(left,right);
-  function energy(samples,start){
-    return samples.subarray(start,start+4410).reduce((sum,x)=>sum+x*x,0);
+test('standard-mode PCM stereo balance tracks CTR at five pan positions',()=>{
+  const hits=demoTracks.pan.score().slice(0,5);
+  // 100 ms stereo RMS measurements of the same generated hits, libvgm CTR at 44.1 kHz.
+  const reference=[[2884,2340],[2562,1014],[2371,1623],[1479,2280],[2332,2884]];
+  for(const [i,pan] of [0,7,16,25,32].entries()){
+    const score=hits.map(({t,writes})=>({t,writes:writes.map(([r,v])=>[r,r===0x80?0x110+pan:v])}));
+    score.push({t:8820,writes:[]});
+    const chip=new QSoundPcm(new Uint8Array(),44100,{spatialPcm:true});
+    const song=new SongTransport(demoVgm(score),chip,new Uint16Array(16));
+    const left=new Float32Array(8820),right=left.slice();
+    song.render(left,right);
+    for(const [ch,samples] of [left,right].entries()){
+      const energy=samples.subarray(4410).reduce((n,v)=>n+v*v,0);
+      const rms=Math.sqrt(energy/4410)*32767;
+      // CTR's player gain is approximately twice the Synth gain.
+      assert.ok(Math.abs(2*rms/reference[i][ch]-1)<0.08,`pan ${pan}, side ${ch}`);
+    }
   }
-  const first=energy(left,4410),middle=energy(left,26460),last=energy(right,48510);
-  assert.ok(first>0);
-  assert.equal(energy(right,4410),0);
-  assert.equal(energy(left,48510),0);
-  assert.equal(middle,energy(right,26460));
-  assert.ok(Math.abs(last/first-1)<0.01 && Math.abs(middle/first-0.25)<0.01);
 });

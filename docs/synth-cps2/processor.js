@@ -7,7 +7,7 @@ import {demoRom, demoTracks} from './demo.js';
 class Cps2Preview extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.chip = new QSoundPcm(demoRom(), sampleRate);
+    this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
     this.events = [];
@@ -16,7 +16,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.port.onmessage = ({data}) => {
       if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}
       if (data?.type === 'song') {
-        this.chip=new QSoundPcm(new Uint8Array(),sampleRate);
+        this.chip=new QSoundPcm(new Uint8Array(),sampleRate,{spatialPcm:true});
         this.applyMutes();
         this.starts.fill(0);
         this.song=new SongTransport(data.bytes,this.chip,this.starts);
@@ -38,7 +38,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       if (data === 'stop-audition') {
         // Silence every voice and the echo tail, keeping the ADPCM source for retrigger.
         const previous=this.chip;
-        this.chip=new QSoundPcm(demoRom(),sampleRate);
+        this.chip=new QSoundPcm(demoRom(),sampleRate,{spatialPcm:true});
         this.chip.adpcmRom=previous.adpcmRom ?? previous.rom;
         for(let i=0;i<3;i++){
           const {start,end,bank,volume,pan}=previous.adpcm[i];
@@ -67,7 +67,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       }
       if (typeof data === 'string' && (data === 'stop' || Object.hasOwn(demoTracks,data))) {
         this.song=null;
-        this.chip = new QSoundPcm(demoRom(), sampleRate);
+        this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
         this.events = (data === 'stop' ? [] : demoTracks[data].score()).map(e=>({...e,frame:Math.round(e.t*sampleRate/44100)}));
         this.applyMutes();
         this.starts.fill(0);

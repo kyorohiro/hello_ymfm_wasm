@@ -28,10 +28,42 @@ function advanceAdpcm(voice, rom, lowNibble) {
   voice.step = Math.max(1, Math.min(2000, (voice.step * adpcmScale[8 + code]) >> 6));
 }
 
+// Approximate standard-mode responses measured with an original PCM impulse VGM.
+// Each coefficient averages three adjacent DSP output ticks. See synth-cps2/README.
+const wetResponse=[
+  [0,.00094,-.00217,-.00233,-.00094,.00439,.00178,.00128,-.00217,-.00444,-.00772,.00122,.00939,.00861,.00272,-.01494,-.05217,-.18728,-.02467,-.01478,.00622,.01722,-.00294,.00294,-.00639,-.00850,.00356,.00050,.00122,.00572,-.00228,0],
+  [0,.00039,-.00411,-.00167,-.00144,.00072,.00689,.00228,-.00372,-.00400,-.01017,.00733,.00867,.00344,-.00050,-.01072,-.18194,-.06411,-.02261,-.00739,.01222,.00856,-.00300,-.00222,-.00461,-.00467,.00394,.00511,.00128,-.00183,-.00139,0],
+];
+function panCurve(points){
+  return Array.from({length:33},(_,i)=>{
+    const k=i>>2;
+    return points[k]+((points[k+1]??points[k])-points[k])*(i%4)/4;
+  });
+}
+const dryGain=panCurve([1,1,1,1,1,.64,.38,.20,0]);
+const wetGain=panCurve([0,.18,.30,.46,.625,.65,.765,.79,1]);
+
+function spatialState(){
+  return {dry:new Float64Array(128),wetSums:new Float64Array(128),previous:0,older:0};
+}
+function spatialOutput(state,tick,side,dry,wet){
+  state.dry[tick]=dry;
+  state.wetSums[tick]=wet+state.previous+state.older;
+  state.older=state.previous;
+  state.previous=wet;
+  let output=state.dry[(tick-(side===0?46:48))&127];
+  const response=wetResponse[side];
+  for(let i=1;i<response.length-1;i++)
+    output+=response[i]*state.wetSums[(tick-3*i)&127];
+  return output;
+}
+
 export class QSoundPcm {
-  constructor(rom, sampleRate = QSOUND_PCM_RATE) {
+  constructor(rom, sampleRate = QSOUND_PCM_RATE, {spatialPcm=false}={}) {
     if (!(rom instanceof Uint8Array) || !(sampleRate > 0) || !Number.isFinite(sampleRate))
       throw new TypeError('Expected sample ROM bytes and a positive sample rate');
+    this.spatial=spatialPcm?[spatialState(),spatialState()]:null;
+    this.spatialTick=0;
     this.rom = rom;
     this.sampleRate = sampleRate;
     this.tickRate = QSOUND_PCM_RATE;
@@ -70,8 +102,12 @@ export class QSoundPcm {
     if (reg === 0xd9) this.echoEnd = value;
     if (reg === 0xe3) {
       // Preview changes the echo address base immediately on recognized state requests.
+      const previousBase=this.echoBase;
       if ([0x288,0x039,0x314].includes(value)) this.echoBase = 0x554;
       if ([0x61a,0x04f,0x6b2].includes(value)) this.echoBase = 0x53c;
+      if(this.spatial && (previousBase!==this.echoBase || value===0x288 || value===0x61a)){
+        this.spatial=[spatialState(),spatialState()];this.spatialTick=0;
+      }
       if (value === 0x288 || value === 0x61a) {
         this.echoLine.fill(0);
         this.echoPosition = this.echoPrevious = this.echoFeedback = 0;
@@ -114,22 +150,33 @@ export class QSoundPcm {
 
   tick() {
     let left = 0, right = 0, echoInput = 0;
+    const spatial=this.spatial && this.echoBase===0x554;
+    let dryL=0,dryR=0,wetL=0,wetR=0;
     for (const v of this.voices) {
       if (v.volume && !v.muted) {
         const byte = this.rom[v.bank * 65536 + (v.address & 0xffff)] ?? 0;
         const sample = signed(((byte << 24 >> 24) * 256 * v.volume) >> 14);
         echoInput += sample * v.echoSend * 4;
         const pcm = sample / 32768;
-        // Dry preview only. The DL-1425 spatial DSP uses different gain tables.
-        const pan = Math.min(32, Math.max(0, v.pan - 0x110)) / 32;
-        left += pcm * (1-pan);
-        right += pcm * pan;
+        const index=v.pan-0x110;
+        if(spatial && index>=0 && index<=32){
+          dryL+=pcm*dryGain[index];dryR+=pcm*dryGain[32-index];
+          wetL+=pcm*wetGain[index];wetR+=pcm*wetGain[32-index];
+        }else{
+          const pan=Math.max(0,Math.min(32,index))/32;
+          left+=pcm*(1-pan);right+=pcm*pan;
+        }
       }
       let position = v.address * 4096 + (v.phase >>> 4) + v.rate;
       if ((position >> 12) >= v.end) position -= v.loop * 4096;
       position = Math.min(0x7ffffff, Math.max(-0x8000000, position));
       v.address = position >> 12;
       v.phase = (position << 4) & 65535;
+    }
+    if(spatial){
+      left+=spatialOutput(this.spatial[0],this.spatialTick,0,dryL,wetL);
+      right+=spatialOutput(this.spatial[1],this.spatialTick,1,dryR,wetR);
+      this.spatialTick=(this.spatialTick+1)&127;
     }
     advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.adpcmRom ?? this.rom, this.adpcmSlot >= 3);
     this.adpcmSlot = (this.adpcmSlot + 1) % 6;

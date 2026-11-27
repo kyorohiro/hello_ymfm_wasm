@@ -21,18 +21,18 @@ The PCM update follows this software reference. Hardware comparison is pending.
 | +2 | Unsigned 4.12 rate. 0x1000 advances one ROM byte per DSP sample. |
 | +4, +5 | Signed loop length and end address. On reaching the end, subtract loop length. |
 | +6 | Signed volume. The keyboard releases a note by writing zero. |
-| 0x80–0x8f | Per-channel pan. The preview uses a linear dry mix across 0x110–0x130. |
+| 0x80–0x8f | Per-channel pan. The Synth applies an approximate spatial PCM mix across 0x110–0x130 in standard mode. |
 
 For ADPCM voice index `i` (0–2), the four registers at `0xca + 4*i` set the start byte, exclusive end byte, bank and signed volume. Write a nonzero word to `0xd6 + i` to trigger the sample. The voice latches volume at the start of the next high nibble. Pan uses `0x90 + i`. Each voice decodes one nibble every third DSP tick, high nibble first. The decoder follows MAME HLE and the step coefficients in [libvgm](https://github.com/ValleyBell/libvgm/blob/master/emu/cores/qsound_ctr.c).
 
-PCM echo comparison plays a short note twice. The second note feeds a shared delay line for an audible tail. Registers `0xba–0xc9` set each PCM voice’s signed send, `0x93` controls signed feedback, and `0xd9` sets the delay end. Subtract the mode base (0x554 or 0x53c) for the delay in DSP ticks, up to 1024. ADPCM has no send register. Muting a PCM voice stops new input while the existing tail decays. The line and its two-sample average follow MAME HLE. The preview centers the return and applies mode requests immediately. Spatial filtering and DSP state timing remain approximate.
+PCM echo comparison plays a short note twice. The second note feeds a shared delay line for an audible tail. Registers `0xba–0xc9` set each PCM voice’s signed send, `0x93` controls signed feedback, and `0xd9` sets the delay end. Subtract the mode base (0x554 or 0x53c) for the delay in DSP ticks, up to 1024. ADPCM has no send register. Muting a PCM voice stops new input while the existing tail decays. The line and its two-sample average follow MAME HLE. The preview centers the return and applies mode requests immediately. Echo routing and DSP state timing remain approximate.
 
 The DSP sample rate is 60 MHz / 2 / 1248. The audio worklet holds each sample
 until the next DSP tick. The VGM export uses the conventional 4 MHz QSound
 header, ROM block 0x8f, and big-endian 16-bit register data in command 0xc4.
 See the [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt).
 
-The exported demo plays in VGM Analyzer and renders in tetorica-vgm with the same PCM and ADPCM core. Each PCM or ADPCM voice can be muted independently.
+The exported demo plays in VGM Analyzer and renders in tetorica-vgm. The Synth enables spatial PCM. Other callers retain the linear preview by default. Each PCM or ADPCM voice can be muted independently.
 
 ## Pan comparison
 
@@ -42,18 +42,20 @@ The table gives left/right RMS in signed 16-bit sample units for the first 100 m
 
 | CH1 pan | Preview L / R | libvgm CTR L / R |
 |---|---:|---:|
-| 0x110 · left | 1449 / 0 | 2884 / 2340 |
-| 0x120 · center | 723 / 723 | 2371 / 1623 |
-| 0x130 · right | 0 / 1449 | 2332 / 2884 |
+| 0x110 · left | 1447 / 1149 | 2884 / 2340 |
+| 0x120 · center | 1202 / 827 | 2371 / 1623 |
+| 0x130 · right | 1144 / 1449 | 2332 / 2884 |
 
-With pan left, the reference's right output first reaches 8 counts in magnitude at 0.29 ms after the note write and last reaches that threshold at 53.74 ms. Its left output crosses at 1.97 and 51.95 ms. The preview's right output stays silent. These timings describe the complete reference render including resampling. Isolating the filter and stereo delay contributions and comparing against hardware remain open.
+Standard-mode PCM uses a separate direct and filtered mix per ear. The direct paths delay by 46 and 48 DSP ticks. To estimate the filtered paths, we rendered a generated single-byte impulse at 24038 Hz in CTR, normalized each opposite-ear response to the direct peak, and averaged adjacent groups of three ticks. Nine measured pan positions (0 through 32, step 4) supply gain anchors with linear interpolation. This approximation uses the measured output and runs at the chip tick rate, before browser resampling.
+
+For the left hit the Synth's right output first exceeds the comparison threshold at 0.27 ms and last exceeds it at 53.70 ms. CTR gives 0.29 and 53.74 ms. Thresholds were 4 and 8 signed 16-bit counts respectively to account for the player's gain. Additional checks at pan 7 and 25 included intermediate positions outside the gain anchors. Across five positions the unshifted stereo-channel waveform cosine similarities ranged from 0.962 to 0.997 over 100 ms. These measurements compare software renders. Hardware verification, custom filter/delay register settings and mode 2 remain open. ADPCM and the centered echo return retain their earlier mix.
 
 To reproduce, export `tetorica-cps2-pan-comparison.vgm` (SHA-256 `2a89e645368bb1e17b7934e942e95a94f03f4589e8ea69c073e5270b1f11875f`) and run `vgm2wav --samplerate 44100 --bps 16 --fade 0 tetorica-cps2-pan-comparison.vgm ref.wav`. Check the render log for Core CTR. Each RMS window contains 4410 stereo frames starting at frame 4410, 26460 or 48510. [Reference implementation and revision](https://github.com/ValleyBell/libvgm/blob/c5c03a2c2514d38d2ab7b7e8dbd021af0b8292cb/emu/cores/qsound_ctr.c).
 
 ## Remaining work
 
 - Compare generated PCM with an independent renderer, including bank boundaries.
-- Implement spatial pan/filter tables, stereo output delays, DSP initialization and host timing. Dry panning is an approximation.
+- Extend the standard PCM spatial path to filter selection, programmable delays, mode 2, ADPCM and the echo return. Verify DSP initialization and host timing.
 - Extend the code-file workspace with editable sample ROMs and sound presets.
 
 The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame-qsound/LICENSE).
@@ -82,7 +84,7 @@ Files → Cassette → Export cassette downloads a ZIP with all scripts, the sel
 
 In Code → Files, choose **Import VGM / VGZ…**. Select a song under `/songs` and use the transport above the PCM channels. The position bar shows elapsed time, first-pass duration, and a marker at the loop start. Release the slider to seek. Left/Right moves one second and Shift+Left/Right moves ten. Seeking from Stop or Pause leaves the song paused for inspection; seeking during playback resumes at the new position. A worker reconstructs the file’s register writes, PCM phase, ADPCM state and echo history with the current mix. Manual register edits from earlier playback are not replayed. Pause freezes the chip and song position. Select different channels to see their ROM waveforms, addresses, loops and echo sends while paused or playing. The song supplies its own sample ROM. Stop restores the keyboard instruments. Imported VGM/VGZ bytes and the selected song travel in the cassette alongside your scripts. Local drafts use IndexedDB and can read earlier browser drafts.
 
-Playback supports a single QSound stream with embedded 0x8F ROM blocks, 0xC4 writes and standard waits. The existing PCM, ADPCM and echo preview applies. Turn on Loop to repeat from the file’s loop command offset. It is available only when the offset points to a command followed by playback time. The intro plays once. Turning Loop off lets the current pass finish. Spatial filtering remains future work.
+Playback supports a single QSound stream with embedded 0x8F ROM blocks, 0xC4 writes and standard waits. The existing PCM, ADPCM and echo preview applies. Turn on Loop to repeat from the file’s loop command offset. It is available only when the offset points to a command followed by playback time. The intro plays once. Turning Loop off lets the current pass finish. Standard-mode PCM uses the spatial approximation described above.
 
 ## Sharing demo cassettes
 
