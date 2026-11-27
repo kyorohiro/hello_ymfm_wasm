@@ -11,14 +11,15 @@ class OkiProcessor extends AudioWorkletProcessor {
       } else if (data.voiceMutes) {
         data.voiceMutes.forEach((muted,i) => this.chip.setVoiceMuted(i,muted));
       } else for (const byte of data.commands) this.chip.writeOki6295(0,byte);
-      this.report();
+      this.report(true);
     };
   }
-  report() {
+  report(afterCommand=false) {
     const status = this.chip.readStatus();
-    if (status !== this.status) {
+    if (status !== this.status || (afterCommand && this.chip.voices.some((v,i)=>v.sample!==this.samples?.[i]))) {
       this.status = status;
-      this.port.postMessage(status);
+      this.samples=this.chip.voices.map(voice=>voice.sample);
+      this.port.postMessage({status,samples:this.samples});
     }
   }
   process(inputs,outputs) {

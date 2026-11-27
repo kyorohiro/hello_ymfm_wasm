@@ -191,6 +191,12 @@ try {
   assert.equal(await page.evaluate(() => window.peak),0);
   await mute.click();
   assert.equal(await voice.getAttribute('aria-pressed'),'true');
+  assert.match(await page.locator('#bankInfo').textContent(),/^4 \/ 128 samples/);
+  await page.click('#layerSamples');
+  await page.waitForFunction(()=>document.querySelector('#voiceCount').textContent==='4 / 4 voices playing');
+  await page.waitForFunction(()=>document.querySelector('#busy').value==='0xF0');
+  const lamps=await page.locator('#voices .lamp').allTextContents();
+  for(const [i,name] of ['Kick','Snare','Closed hat','Arcade hit'].entries())assert.ok(lamps[i].endsWith('Last '+i+' · '+name));
   assert.match(await page.locator('#sampleRange').textContent(),/0x00400/);
   await page.selectOption('#sample','1');
   assert.match(await page.locator('#sampleRange').textContent(),/0x00800/);

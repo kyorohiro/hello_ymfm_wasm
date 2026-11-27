@@ -1,13 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {Oki6295AudioEngine} from '../js/okim6295audioengine.js';
 
+export function playableSamples(rom) {
+  const chip=new Oki6295AudioEngine({clock:1000000+0x80000000});
+  chip.loadOki6295Rom(rom);
+  const ids=[];
+  for(let id=0;id<128 && id*8+6<=rom.length;id++){
+    const {start,stop}=chip.sampleRange(id);
+    if(start<stop && stop<rom.length) ids.push(id);
+  }
+  return ids;
+}
+
 export function inspectSample(rom,sample,columns=640) {
   if (8*sample+6 > rom.length) return {message:'No sample table entry in this ROM.'};
   const chip = new Oki6295AudioEngine({clock:1000000+0x80000000});
   chip.loadOki6295Rom(rom);
   const {start,stop} = chip.sampleRange(sample);
   const hex = n => '0x'+n.toString(16).toUpperCase().padStart(5,'0');
-  const range = hex(start)+' – '+hex(stop);
+  const range = 'ROM start '+hex(start)+' · end '+hex(stop);
   if (start>=stop) return {message:range+' · Empty or reversed range'};
   if (stop>=rom.length) return {message:range+' · Extends beyond loaded ROM'};
   const count = (stop-start+1)*2;

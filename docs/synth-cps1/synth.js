@@ -8,7 +8,7 @@ import {createParamControl} from '../synth/synth_controls.js';
 import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth/synth_keyboard.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {decodeSongSample} from './song-samples.js';
-import {displaySample,drawWave} from './sample-view.js';
+import {displaySample,drawWave,playableSamples} from './sample-view.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
 import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
@@ -127,7 +127,7 @@ async function startAudio() {
         bus.gain.value = gainFor(mix[id]); bus.connect(master);
       }
       const pcm = new AudioWorkletNode(context,'cps1-oki',{numberOfInputs:0,outputChannelCount:[2]});
-      pcm.port.onmessage = ({data}) => showBusy(data);
+      pcm.port.onmessage = ({data}) => showBusy(data.status,data.samples);
       pcm.connect(buses.pcm); master.connect(context.destination);
       scope.connect(context,[master]);
       audio = {fm,pcm,master,buses};
@@ -276,15 +276,19 @@ const oki = {
     audio?.pcm.port.postMessage({voiceMutes});syncSongMutes();
   },
 };
-function showBusy(value) {
+function showBusy(value,ids=[]) {
+  let playing=0;
   $('busy').value = hex(value);
   $('hitPad').dataset.sounding=String(Boolean(value & 8));
   $('hitPad').textContent='Hit · Voice 4'+(value & 8 ? ' ●' : '');
   document.querySelectorAll('.lamp').forEach((lamp,i) => {
     const active = Boolean(value & (1<<i));
-    lamp.textContent = 'Voice '+(i+1)+(active?' ●':' ○');
+    if(active)playing++;
+    const sample=ids[i],name=$('sample').options[sample]?.textContent;
+    lamp.textContent='Voice '+(i+1)+(active?' ●':' ○')+(name?' · '+(active?'':'Last ')+name:'');
     lamp.classList.toggle('on',active);
   });
+  $('voiceCount').textContent=playing+' / 4 voices playing';
 }
 function updateSampleView() {
   displaySample($('sampleWave'),$('sampleRange'),sampleRom,Number($('sample').value));
@@ -295,7 +299,21 @@ function voiceSample(voice){
   const id=Number(voicePickers[voice].value);
   return id<0?Number($('sample').value):id;
 }
+let phraseIds=[];
+$('layerSamples').onclick=()=>{
+  if(phraseIds.length<4)return;
+  try {
+    const attenuation=limit($('attenuation').valueAsNumber,15,'Attenuation');
+    const bytes=[0x78];
+    phraseIds.slice(0,4).forEach((sample,voice)=>bytes.push(0x80|sample,(0x10<<voice)|attenuation));
+    write(...bytes);
+    startAudio().catch(fail);
+  } catch(error){fail(error);}
+};
 function chooseSamples(names,assignments=[],selected=0) {
+  phraseIds=playableSamples(sampleRom);
+  $('layerSamples').disabled=phraseIds.length<4;
+  $('bankInfo').textContent=phraseIds.length+' / 128 samples · ROM '+(sampleRom.byteLength/1024).toLocaleString('en-US',{maximumFractionDigits:2})+' / 256 KiB · Playback 7.58 kHz (1 MHz ÷ 132)';
   $('hitPad').disabled=names[3]!=='Arcade hit';
   $('sample').replaceChildren(...names.map((name,i) => new Option(i+' · '+name,i)));
   $('sample').value=String(selected);
