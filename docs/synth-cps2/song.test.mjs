@@ -3,11 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {QSoundPcm} from '../js/qsoundpcm.js';
 import {demoVgm,demoRom,demoTracks} from './demo.js';
+import {rebuildSongState} from './song-seek.js';
 import {inspectSong,SongTransport} from './song.js';
 
 test('imported echo comparison matches the original worklet score at 48 kHz across pause and block boundaries',()=>{
   const score=demoTracks.echo.score(), source=demoVgm(score), rate=48000;
-  assert.deepEqual(inspectSong(source),{ticks:score.at(-1).t,canLoop:false});
+  assert.deepEqual(inspectSong(source),{ticks:score.at(-1).t,canLoop:false,loopTick:null});
   const chip=new QSoundPcm(new Uint8Array(),rate);
   const transport=new SongTransport(source,chip,new Uint16Array(16));
   const reference=new QSoundPcm(demoRom(),rate);
@@ -73,4 +74,20 @@ test('loop output matches an explicitly repeated command stream, including acros
   original.loop=false;
   compare(100);
   assert.ok(original.parser.ended);
+});
+
+test('seeking restores stereo output including PCM phase, ADPCM decoding and delayed echo',()=>{
+  const events=[...demoTracks.echo.score(),...demoTracks.adpcm.score()].sort((a,b)=>a.t-b.t);
+  const source=demoVgm(events),rate=48000;
+  const make=()=>new SongTransport(source,new QSoundPcm(new Uint8Array(),rate),new Uint16Array(16));
+  for(const tick of [0,22050,24000,44099,inspectSong(source).ticks]){
+    const reference=make(),restored=make();
+    const frame=Math.round(tick*rate/44100);
+    reference.render(new Float32Array(frame),new Float32Array(frame));
+    restored.restore(structuredClone(rebuildSongState(source,rate,tick,Array(19).fill(false))));
+    const buffers=Array.from({length:4},()=>new Float32Array(4096));
+    reference.render(buffers[0],buffers[1]);restored.render(buffers[2],buffers[3]);
+    assert.deepEqual(buffers[0],buffers[2]);assert.deepEqual(buffers[1],buffers[3]);
+    assert.deepEqual(restored.starts,reference.starts);
+  }
 });

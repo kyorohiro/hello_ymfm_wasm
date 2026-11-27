@@ -36,6 +36,10 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 .output-heading{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:.4rem}
 .output-heading h2{margin:0}.output-heading button{padding:.2rem .55rem}
 #output-scope{display:block;width:100%;height:7rem;border-radius:5px;background:#102c43}
+#song-position{display:block;font-variant-numeric:tabular-nums}
+.seek-track{position:relative;margin:.35rem 0}
+#song-seek{display:block;width:100%;margin:0}
+#loop-mark{position:absolute;bottom:0;height:.45rem;width:2px;background:#155876;pointer-events:none}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <section aria-labelledby="output-title"><div class="output-heading"><h2 id="output-title">Output</h2>
@@ -47,6 +51,8 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></details></section>
 <section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong>
+<output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
+<div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
 <section><h2>PCM channel</h2><div id="channels"></div>
 <label>Sample<select id="wave"><option>Reed</option><option>Bell</option></select></label>

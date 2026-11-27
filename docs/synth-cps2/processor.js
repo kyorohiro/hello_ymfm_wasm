@@ -19,7 +19,12 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.applyMutes();
         this.starts.fill(0);
         this.song=new SongTransport(data.bytes,this.chip,this.starts);
+        if(data.state) {
+          this.song.restore(data.state);
+          this.applyMutes();
+        }
         this.song.loop=data.loop;
+        this.song.paused=Boolean(data.paused);
         this.events=[];
         return;
       }
@@ -37,7 +42,7 @@ class Cps2Preview extends AudioWorkletProcessor {
           const span=((end-start)&65535)||256;
           const wave=new Uint8Array(256);
           for(let i=0;i<256;i++) wave[i]=this.chip.rom[v.bank*65536+((start+Math.floor(i*span/256))&65535)]??0;
-          view={wave,start,span,bank:v.bank,ended:this.song.parser.ended,pan:v.pan,volume:v.volume};
+          view={wave,start,span,seconds:this.song.frames/sampleRate,bank:v.bank,ended:this.song.parser.ended,pan:v.pan,volume:v.volume};
         }
         this.port.postMessage({...data,view,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
           send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,

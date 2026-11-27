@@ -18,7 +18,8 @@ export function inspectSong(bytes) {
     if (event.type==='qsound-rom-data' && event.data.length) rom=true;
   }
   if (!rom || !ticks) throw Error('The song needs embedded QSound ROM data and playback time.');
-  return {ticks,canLoop:loopStart!==null && loopStart<ticks};
+  const canLoop=loopStart!==null && loopStart<ticks;
+  return {ticks,canLoop,loopTick:canLoop?loopStart:null};
 }
 
 // Reads the validated stream incrementally. Use absolute VGM ticks so that
@@ -34,28 +35,39 @@ export class SongTransport {
     this.loop=false;
     this.loopStart=null;
   }
+  restore(state) {
+    const {chip,starts,position,ended,frames,ticks,nextFrame,loopStart}=state;
+    Object.assign(this.chip,chip);
+    this.starts.set(starts);
+    Object.assign(this,{frames,ticks,nextFrame,loopStart});
+    Object.assign(this.parser,{position,ended});
+  }
+  applyDueEvents(holdEnd=false) {
+    while (!this.parser.ended && this.frames>=this.nextFrame) {
+      if(holdEnd && this.parser.bytes[this.parser.position]===0x66)break;
+      if(this.parser.position===this.parser.header.loopOffset)this.loopStart=this.ticks;
+      const e=this.parser.step();
+      if(e.type==='end' && this.loop && this.loopStart!==null && this.ticks>this.loopStart){
+        this.parser.position=this.parser.header.loopOffset;
+        this.parser.ended=false;
+      }
+      if(e.type==='wait'){
+        this.ticks+=e.samples;
+        this.nextFrame=Math.round(this.ticks*this.chip.sampleRate/44100);
+      } else if(e.type==='qsound-write'){
+        this.chip.writeRegister(e.register,e.value);
+        if(e.register<128 && (e.register&7)===1)this.starts[e.register>>3]=e.value;
+      } else if(e.type==='qsound-rom-data'){
+        if(this.chip.rom.length!==e.memorySize)this.chip.rom=new Uint8Array(e.memorySize);
+        this.chip.rom.set(e.data,e.offset);
+      }
+    }
+  }
   render(left,right) {
     let offset=0;
     while (!this.paused && offset<left.length && !this.parser.ended) {
-      if (this.frames>=this.nextFrame) {
-        if(this.parser.position===this.parser.header.loopOffset)this.loopStart=this.ticks;
-        const e=this.parser.step();
-        if(e.type==='end' && this.loop && this.loopStart!==null && this.ticks>this.loopStart){
-          this.parser.position=this.parser.header.loopOffset;
-          this.parser.ended=false;
-        }
-        if(e.type==='wait'){
-          this.ticks+=e.samples;
-          this.nextFrame=Math.round(this.ticks*this.chip.sampleRate/44100);
-        } else if(e.type==='qsound-write'){
-          this.chip.writeRegister(e.register,e.value);
-          if(e.register<128 && (e.register&7)===1)this.starts[e.register>>3]=e.value;
-        } else if(e.type==='qsound-rom-data'){
-          if(this.chip.rom.length!==e.memorySize)this.chip.rom=new Uint8Array(e.memorySize);
-          this.chip.rom.set(e.data,e.offset);
-        }
-        continue;
-      }
+      this.applyDueEvents();
+      if(this.parser.ended)break;
       const n=Math.min(left.length-offset,this.nextFrame-this.frames);
       this.chip.render(left.subarray(offset,offset+n),right.subarray(offset,offset+n));
       offset+=n;this.frames+=n;
