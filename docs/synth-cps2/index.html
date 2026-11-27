@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tetorica CPS2 Synth · QSound PCM</title>
+<style>
+*{box-sizing:border-box}html{background:#122c47;color:#102f45;font:1rem/1.5 "Atkinson Hyperlegible Next",system-ui,sans-serif}
+body{margin:4vh auto;padding:1.25rem;width:min(100%,52rem)}main{background:#f4eedb;border-radius:18px;overflow:hidden}
+header{background:#176481;color:white;padding:1.2rem 1.5rem}h1,p{margin:0}h1{font-size:clamp(1.5rem,5vw,2.4rem)}section{padding:1.1rem 1.5rem}
+h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;border:1px solid #7a9897;background:#fffaf0;border-radius:5px;padding:.4rem .7rem;cursor:pointer}button[aria-pressed=true]{background:#155876;color:white}
+#channels{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}#keys{display:flex;flex-wrap:wrap;gap:.3rem}#keys button{touch-action:none;min-height:3rem}
+footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-width:540px){#channels{grid-template-columns:repeat(4,1fr)}body{margin:0;padding:.5rem}}
+</style>
+<main><header><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM preview</p></header>
+<section><h2>PCM channel</h2><div id="channels"></div>
+<label>Sample<select id="wave"><option>Reed</option><option>Bell</option></select></label>
+<label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
+<label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label></section>
+<section><h2>Keyboard</h2><div id="keys"></div></section>
+<footer><button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer></main><script type="module" src="./app.js"></script></html>
