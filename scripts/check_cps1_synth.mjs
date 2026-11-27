@@ -508,6 +508,35 @@ try {
   await fileAction('/','Undo files');
   await row('/examples/take.js').click();
   assert.equal(await page.inputValue('#editor'),'// riff');
+  await page.click('#synthMode');
+  await page.click('[data-tab="pcm"]');
+  const frames=8000,wav=Buffer.alloc(44+frames*2);
+  wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);
+  wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);
+  wav.writeUInt32LE(16000,24);wav.writeUInt32LE(32000,28);
+  wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(frames*2,40);
+  for(let i=0;i<frames;i++)wav.writeInt16LE(Math.round(12000*Math.sin(i*.2)),44+i*2);
+  // A 100 ms mono FLAC silence fixture at 16 kHz.
+  const flac=Buffer.from('ZkxhQwAAACIEgASAAAALAAANA+gA8AAABkCfCt/b50DLnNgYijV2HiR2hAAADgYAAABmZm1wZWcAAAAA//g1CAADAAAAakT/+HUIAQG/vQAAAAaW','base64');
+  await page.locator('#audioSamples').setInputFiles([
+    {name:'one.flac',mimeType:'audio/flac',buffer:flac},
+    {name:'two.wav',mimeType:'audio/wav',buffer:wav},
+  ]);
+  await page.waitForFunction(()=>document.querySelector('#sample option:last-child')?.textContent==='1 · two.wav');
+  await page.selectOption('#sample','1');
+  await page.locator('#sample').focus();
+  await page.evaluate(()=>{window.peak=0;});
+  await page.keyboard.press('a');
+  await page.waitForFunction(()=>document.querySelector('#command').value==='0x81 0x12' && window.peak>.001);
+  await page.click('#keys [data-key="s"]');
+  await page.waitForFunction(()=>document.querySelector('#command').value==='0x81 0x22');
+  assert.equal(await page.locator('[data-chip-channel][data-sounding=true]').count(),0);
+  const bankDownload=page.waitForEvent('download');
+  await page.click('#synthMenuButton');await page.click('#exportCassette');
+  const bankArchive=await loadPlaygroundCassette(await readFile(await (await bankDownload).path()));
+  const exported=bankArchive.metadata.cps1.records.find(record=>record.names?.includes('one.flac'));
+  assert.deepEqual(exported.names,['one.flac','two.wav']);
+  assert.equal(bankArchive.metadata.cps1.active,exported.path);
   assert.deepEqual(errors,[]);
   console.log('CPS1 FM audio, held-note editing, OKI audio/status, Code, cassette round-trip and responsive layouts passed');
 } finally {await browser?.close(); server.close();}

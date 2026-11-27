@@ -3,6 +3,7 @@ import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {inspectSong} from './vgm.js';
+import {makeAudioBank} from './audio-bank.js';
 import {parseOpm} from './opm.js';
 import {installProjectTree,base,checkPath,inside} from './project-tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
@@ -217,7 +218,14 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   async function importFiles(incoming,parent,numbered=false) {
     const epoch=revision, additions=new Map();
     if(incoming.length===1&&/\.cassette\.zip$/i.test(incoming[0].name)){await importCassette(incoming[0]);return;}
-    for(const f of incoming) {
+    const audioFiles=incoming.filter(file=>/\.(wav|wave|flac)$/i.test(file.name));
+    if(audioFiles.length){
+      openFiles();report('Encoding MSM6295 samples…');
+      const bank=await makeAudioBank(audioFiles);
+      const path=nextPath(i=>(numbered?'banks/':parent==='/'?'':parent.slice(1)+'/')+'samples-'+i+'.rom');
+      additions.set(path,bank);
+    }
+    for(const f of incoming.filter(file=>!audioFiles.includes(file))) {
       if(f.size>16*1024*1024)throw Error('File exceeds 16 MiB.');
       let path=checkPath((parent==='/'?'':parent)+'/'+f.name),v;
       if(/\.vg[zm]$/i.test(path)){
@@ -238,7 +246,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     remember();for(const [path,v] of additions)files.set(path,v);
     openFiles();open(additions.keys().next().value);persist();report('Imported '+incoming.map(f=>f.name).join(', '));
   }
-  for(const [button,input] of [['chooseVgm','vgmFile'],['chooseOpm','importOpm']]) {
+  for(const [button,input] of [['chooseVgm','vgmFile'],['chooseOpm','importOpm'],['chooseSamples','audioSamples']]) {
     el(button).onclick=()=>el(input).click();
     el(input).onchange=event=>{
       const incoming=[...event.target.files];event.target.value='';

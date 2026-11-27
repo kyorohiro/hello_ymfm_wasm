@@ -54,9 +54,9 @@
 <div id="pcmEditor"><h2>MSM6295</h2><div class="bar"><label>Sample <select id="sample"></select></label><label>Attenuation <input id="attenuation" type="number" min="0" max="15" value="2"></label></div>
 <figure class="sample-preview"><canvas id="sampleWave" width="768" height="96" aria-label="Decoded sample waveform"></canvas><figcaption id="sampleRange"></figcaption></figure>
 <div id="voices"></div><p>Command bytes <output id="command">—</output> · Status <output id="busy">0xF0</output></p>
-<label>Sample ROM <input id="rom" type="file" accept=".bin,.rom"></label><button id="restore">Use original kit</button><p id="romName">Original kit</p></div></section>
+<button id="chooseSamples">Import WAV / FLAC…</button><input id="audioSamples" type="file" multiple accept=".wav,.wave,.flac" hidden> <label>Sample ROM <input id="rom" type="file" accept=".bin,.rom"></label><button id="restore">Use original kit</button><p id="romName">Original kit</p></div></section>
 
 <nav id="performanceTabs" aria-label="Performance"><button data-tab="keyboardPanel">Keyboard</button><button data-tab="code">Code</button></nav>
-<section id="keyboardPanel" aria-label="Guitar keyboard"><div class="keyboard-toolbar"><div id="keyChannels" role="group" aria-label="Keyboard channel"></div><div id="keyOctave" role="group" aria-label="Keyboard octave">Octave</div></div><div id="keys"></div><button id="hitPad">Hit · Voice 4</button></section>
+<section id="keyboardPanel" aria-label="Guitar keyboard"><div class="keyboard-toolbar"><span id="pcmKeysHint" hidden>MSM6295 · Keys trigger the selected sample</span><div id="keyChannels" role="group" aria-label="Keyboard channel"></div><div id="keyOctave" role="group" aria-label="Keyboard octave">Octave</div></div><div id="keys"></div><button id="hitPad">Hit · Voice 4</button></section>
 <section id="code" hidden><div class="bar"><h2>JavaScript</h2><select id="codeFile" aria-label="Code file"><option>/index.js</option><option>/examples/round-start.js</option><option>/examples/opm-algorithms.js</option></select></div><label class="sr" for="editor">Live code</label><textarea id="editor" rows="12" spellcheck="false"></textarea><div class="bar"><button id="run">Run</button><button id="stop">Stop</button></div></section>
 </div></div></main><script type="module" src="./synth.js"></script></html>

@@ -185,7 +185,8 @@ $('filesToggle').onclick=()=>setFilesOpen($('files').hidden);
 const main = document.querySelector('main');
 const tabs = [...document.querySelectorAll('[data-tab]')];
 const synthView = {source:'fm',performance:'keyboardPanel'};
-let codeView = 'code';
+let codeView = 'code', lastCodeChip='fm';
+let pcmKeyboard=false;
 function renderWorkspace() {
   const synth = main.dataset.mode === 'synth';
   $('performanceTabs').hidden = !synth;
@@ -202,6 +203,10 @@ function renderWorkspace() {
     $(id).setAttribute('role','tabpanel');
     tab.setAttribute('aria-controls',id);
   }
+  pcmKeyboard=!$('pcm').hidden || (!synth && codeView==='keyboardPanel' && lastCodeChip==='pcm');
+  $('keyboardPanel').classList.toggle('pcm-keys',pcmKeyboard);
+  $('pcmKeysHint').hidden=!pcmKeyboard;
+  $('keyChannels').hidden=$('keyOctave').hidden=pcmKeyboard;
   panel.setVisible(!$('fm').hidden);
   syncKeyChannels();
 }
@@ -215,6 +220,7 @@ function changeMode(mode) {
     setFilesOpen(true);
     $('sourceTabs').prepend(codeTab);
     $('sourceTabs').append(keyboardTab);
+    lastCodeChip=synthView.source;
     codeView = 'code';
   } else {
     $('performanceTabs').append(keyboardTab,codeTab);
@@ -225,7 +231,10 @@ $('synthMode').onclick = () => changeMode('synth');
 $('codeMode').onclick = () => changeMode('code');
 for (const tab of tabs) tab.onclick = () => {
   const id = tab.dataset.tab;
-  if (main.dataset.mode === 'code') codeView = id;
+  if (main.dataset.mode === 'code') {
+    codeView=id;
+    if (id==='pcm' || id==='fm') lastCodeChip=id;
+  }
   else if (tab.parentElement === $('performanceTabs')) synthView.performance = id;
   else synthView.source = id;
   renderWorkspace();
@@ -404,8 +413,20 @@ const octaveControl = createParamControl({label:'Octave',min:-2,max:2,step:1,val
 });
 $('keyOctave').append(octaveControl.element);
 const held = new Map();
+let nextSampleVoice=0;
 function press(id,entry) {
   if (observation || held.has(id)) return;
+  if (pcmKeyboard) {
+    try {
+      const attenuation=limit($('attenuation').valueAsNumber,15,'Attenuation');
+      const voice=nextSampleVoice;
+      oki.stop(voice);
+      oki.play(voice,Number($('sample').value),attenuation);
+      nextSampleVoice=(voice+1)%4;
+      startAudio().catch(fail);
+    } catch (error) {fail(error);}
+    return;
+  }
   let ch=keyboardChannel();
   if (ch<0) {
     ch=panel.getSelectedChannel();
@@ -432,7 +453,9 @@ buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entrie
   onPointerDown:(e,key) => press('pointer'+e.pointerId,layout.entries.find(entry => entry.key === key.key)),
   onPointerUp:e => release('pointer'+e.pointerId),onPointerCancel:e => release('pointer'+e.pointerId)});
 window.addEventListener('keydown',e => {
-  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
+  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+  const samplePicker=pcmKeyboard && e.target===$('sample');
+  if (!samplePicker && e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
   const entry = layout.entries.find(v => v.key === e.key.toLowerCase());
   if (entry) {e.preventDefault();press(e.code,entry);}
 });

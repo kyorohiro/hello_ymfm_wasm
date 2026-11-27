@@ -249,3 +249,5 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 .file-tools {display:flex;flex-wrap:wrap;gap:.2rem;margin:.35rem 0}
 .file-tools button,.file-tools label,#filePath {font-size:.77rem}
 #filePath {display:block;overflow-wrap:anywhere}
+
+.pcm-keys #keys .key span {display:none}
