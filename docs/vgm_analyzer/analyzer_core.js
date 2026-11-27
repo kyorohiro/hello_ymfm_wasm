@@ -147,6 +147,7 @@ export async function inspectSourceSupport(source) {
     analysis:{status:'available'}, render, exports,
     scoreChannels:await probe(()=>listSourceScoreChannels(source)), samples,
     limitations:[
+      ...(render.engine === 'qsound' ? ['QSound preview renders 16 dry PCM voices. ADPCM, spatial filtering and echo are omitted.'] : []),
       'Render checks configuration and ROM requirements only; engine initialization and full command playback are not tested.',
       'Export probes use BPM 120; snapshots use time 0 and channel 1. Available outputs may be empty or approximate and may cover only part of a composite source.',
       'Unavailable exports may indicate missing convertible notes or patches; see reason. No files are written.',

@@ -10,8 +10,9 @@ export class QSoundPcm {
       throw new TypeError('Expected sample ROM bytes and a positive sample rate');
     this.rom = rom;
     this.sampleRate = sampleRate;
+    this.tickRate = QSOUND_PCM_RATE;
     this.voices = Array.from({length:16}, () => ({
-      bank:0, address:0, phase:0, rate:0, loop:0, end:0, volume:0, pan:0x120,
+      muted:false, bank:0, address:0, phase:0, rate:0, loop:0, end:0, volume:0, pan:0x120,
     }));
     this.left = this.right = 0;
     this.ticks = 1;
@@ -38,7 +39,7 @@ export class QSoundPcm {
   tick() {
     let left = 0, right = 0;
     for (const v of this.voices) {
-      if (v.volume) {
+      if (v.volume && !v.muted) {
         const byte = this.rom[v.bank * 65536 + (v.address & 0xffff)] ?? 0;
         const pcm = signed(((byte << 24 >> 24) * 256 * v.volume) >> 14) / 32768;
         // Dry preview only. The DL-1425 spatial DSP uses different gain tables.
@@ -61,7 +62,7 @@ export class QSoundPcm {
       while (this.ticks >= 1) {this.tick(); this.ticks--;}
       left[i] = this.left;
       right[i] = this.right;
-      this.ticks += QSOUND_PCM_RATE / this.sampleRate;
+      this.ticks += this.tickRate / this.sampleRate;
     }
   }
 }

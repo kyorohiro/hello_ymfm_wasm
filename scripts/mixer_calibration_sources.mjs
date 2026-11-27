@@ -424,6 +424,9 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
         // Exports the same routing label for the Analyzer display.
         '73c40a4a9c09ee56dc632d9c1d4e5fe1a880e23d55027a4d18e00dfb46031d09',
       ].includes(sha(bytes))) return 'cps1-editor-controls';
+  // QSound VGM commands are outside the direct register calibration programs.
+  if (path === 'js/ym2612vgm.js' && record?.sha256 === dualVgmRevision.get(path)[0] &&
+      sha(bytes) === '869f1299596ace18716d7962cd6e2b5207843ee1956d855d6dac7bea04cf5f34') return 'qsound-vgm-routing';
   const revision = dualVgmRevision.get(path);
   if (revision && record?.sha256 === revision[0] && sha(bytes) === revision[1]) return 'dual-vgm-routing';
   const ym2608Context=createYm2608TimedRevisionReadContext(),ym2608Bytes=ym2608Context.restore(path,bytes);bytes=ym2608Bytes;

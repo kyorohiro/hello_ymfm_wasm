@@ -103,6 +103,7 @@ tone_notes.js
 gameboy_notes.js
 huc6280_notes.js
 wonderswan_notes.js
+qsound_preview.js
 pokey_playback.js
 pokey_notes.js
 pokey_monitor.js
@@ -198,6 +199,7 @@ pokey.js
 pokeysynth.js
 pokeyaudioengine.js
 okim6258audioengine.js
+qsoundpcm.js
 okim6295audioengine.js
 ym2610b.js
 ym2610baudioengine.js
@@ -376,6 +378,8 @@ node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" analyzer --copy "${STAG
 
 mkdir -p "${STAGE_DIR}/licenses/mame-huc6280"
 cp "${ROOT_DIR}/third_party/mame-huc6280/LICENSE" "${ROOT_DIR}/third_party/mame-huc6280/README.md" "${STAGE_DIR}/licenses/mame-huc6280/"
+mkdir -p "${STAGE_DIR}/licenses/mame-qsound"
+cp "${ROOT_DIR}/third_party/mame-qsound/LICENSE" "${STAGE_DIR}/licenses/mame-qsound/"
 mkdir -p "${STAGE_DIR}/licenses/mame-okim6295"
 cp "${ROOT_DIR}/third_party/mame-okim6295/LICENSE" "${ROOT_DIR}/third_party/mame-okim6295/README.md" "${STAGE_DIR}/licenses/mame-okim6295/"
 mkdir -p "${STAGE_DIR}/licenses/mame-okim6258"
@@ -501,7 +505,7 @@ perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./ge
   "${STAGE_DIR}/spc_noteish.js" "${STAGE_DIR}/spc_noteish_worker.js" "${STAGE_DIR}/snes_notes.js" "${STAGE_DIR}/snes_score.js" \
   "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_render.js" "${STAGE_DIR}/sample_core.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/wonderswan_voice_render.js" "${STAGE_DIR}/pwm_samples.js" "${STAGE_DIR}/ym2413_monitor.js" "${STAGE_DIR}/ym2413_notes.js" "${STAGE_DIR}/mgsdrv_mml.js" \
   "${STAGE_DIR}/fm_snapshot.js" "${STAGE_DIR}/vgm_json.js" "${STAGE_DIR}/command_editor.js" "${STAGE_DIR}/ymf262_notes.js" "${STAGE_DIR}/opl_notes.js" "${STAGE_DIR}/msx_notes.js" "${STAGE_DIR}/sbi_export.js" \
-  "${STAGE_DIR}/pokey_playback.js" "${STAGE_DIR}/pokey_notes.js" "${STAGE_DIR}/pokey_monitor.js"
+  "${STAGE_DIR}/qsound_preview.js" "${STAGE_DIR}/pokey_playback.js" "${STAGE_DIR}/pokey_notes.js" "${STAGE_DIR}/pokey_monitor.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 

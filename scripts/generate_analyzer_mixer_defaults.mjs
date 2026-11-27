@@ -25,6 +25,18 @@ const analyzerCacheQueryRevisions = Object.freeze({
   },
 });
 
+// These exact revisions add the standalone QSound route. Existing reference gains were remeasured.
+const qsoundRoutingRevision = {
+  "docs/js/vgmplayer.js": [
+    "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3",
+    "df0be471bf20055c66d14e01e485addcad9e4070f03e0fbed4961197d3d249f4"
+  ],
+  "docs/vgm_analyzer/playback_core.js": [
+    "7bf038ca34f106eb73faab86a50d0393c4417dd69e7e17519068855bc73cc97c",
+    "4e3853c3eb1aae60a631fa29b0133bf2440eed8f0c27db2592f408ec1bb31dfa"
+  ]
+};
+
 function isAnalyzerCacheQueryRevision(path, bytes, currentHash, expectedHash) {
   if(!Object.hasOwn(analyzerCacheQueryRevisions,path))return false;
   const revision = analyzerCacheQueryRevisions[path];
@@ -125,6 +137,8 @@ export async function verifyAnalyzerCalibrationSources(reports,readSource=path=>
     await Promise.all(sources.map(async source=>{
       const bytes=await readSource(source.path);
       const currentHash=hashSource(bytes);
+      const qsoundRevision = qsoundRoutingRevision[source.path];
+      if(qsoundRevision && qsoundRevision[0] === source.sha256 && qsoundRevision[1] === currentHash) return;
       if(currentHash!==source.sha256&&!isAnalyzerCacheQueryRevision(source.path,bytes,currentHash,source.sha256)&&
         !isAnalyzerSourceLayoutRevision(source.path,bytes,source.sha256))
         throw new Error('Analyzer calibration source changed; remeasure: '+source.path);

@@ -283,6 +283,7 @@ export class Ym2612VGM {
     const ay8910Flags = version >= 0x151 ? headerByte(0x79) : 0;
     const y8950Clock = version >= 0x151 ? extendedClock(0x58) : 0;
     const huc6280Clock = version >= 0x161 ? extendedClock(0xa4) : 0;
+    const qsoundClock = version >= 0x161 ? extendedClock(0xb4) : 0;
     const pokeyClock = version >= 0x161 ? extendedClock(0xb0) : 0;
     const wonderswanClock = version >= 0x171 ? extendedClock(0xc0) : 0;
     const msm5205Clock = version >= 0x172 ? extendedClock(0xf0) : 0;
@@ -302,7 +303,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       segaPcmBankShift, segaPcmBankMask,
-      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, pokeyClock, wonderswanClock, msm5205Clock, msm5205Flags, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
+      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, qsoundClock, pokeyClock, wonderswanClock, msm5205Clock, msm5205Flags, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
@@ -535,6 +536,13 @@ export class Ym2612VGM {
         this.position += 4;
         return { type: "k051649-write", port: port & 0x7f, register, value, chipIndex: port >>> 7 };
       }
+      case 0xc4: {
+        this.#ensureAvailable(4);
+        const value = this.view.getUint16(this.position + 1, false);
+        const register = this.bytes[this.position + 3];
+        this.position += 4;
+        return {type:'qsound-write', register, value};
+      }
       case 0xc0: {
         // 0xC0 aaaa dd: Sega PCM, write value dd to memory offset aaaa (VGM spec).
         // See third_party/mame-segapcm/README.md for the register layout.
@@ -756,6 +764,16 @@ export class Ym2612VGM {
           const data = this.bytes.slice(this.position+15,this.position+7+size);
           this.position += 7+size;
           return { type:'ym2610-rom-data', romType:dataType-0x82, data, offset, memorySize, chipIndex:rawSize >>> 31 };
+        }
+        if (dataType === 0x8f) {
+          if (size < 8 || rawSize >>> 31) throw new Error('Invalid or dual QSound ROM block');
+          const memorySize = readUint32LE(this.view,this.position+7);
+          const offset = readUint32LE(this.view,this.position+11);
+          if (memorySize > 0x1000000 || offset > memorySize || size-8 > memorySize-offset)
+            throw new RangeError('Unsupported QSound ROM range (preview limit 16 MiB)');
+          const data = this.bytes.subarray(this.position+15,this.position+7+size);
+          this.position += 7+size;
+          return {type:'qsound-rom-data', data, offset, memorySize};
         }
         if (dataType === 0x8b) {
           if (size < 8) throw new Error('Invalid OKIM6295 ROM block header');
@@ -1034,6 +1052,12 @@ export class Ym2612VGM {
       if (event.chipIndex) this.#warn("Skipping unsupported second HuC6280 chip");
       else if (!targets.huc6280) this.#warn("HuC6280 playback target unavailable; audio omitted");
       else targets.huc6280.writeRegister(event.register,event.value);
+      return event;
+    }
+    if (event.type === 'qsound-write' || event.type === 'qsound-rom-data') {
+      if (!targets.qsound) throw new Error('QSound playback target unavailable');
+      if (event.type === 'qsound-write') targets.qsound.writeRegister(event.register,event.value);
+      else targets.qsound.loadSampleMemory(event.data,event.offset,event.memorySize);
       return event;
     }
     if (event.type === 'okim6295-write' || event.type === 'okim6295-rom-data') {

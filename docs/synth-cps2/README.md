@@ -26,11 +26,12 @@ until the next DSP tick. The VGM export uses the conventional 4 MHz QSound
 header, ROM block 0x8f, and big-endian 16-bit register data in command 0xc4.
 See the [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt).
 
+The exported demo plays in VGM Analyzer and renders in tetorica-vgm with the same dry PCM core. Each PCM voice can be muted independently.
+
 ## Remaining work
 
 - Compare generated PCM with an independent renderer, including bank boundaries.
 - Implement the three ADPCM voices, spatial pan/filter tables, echo, delay, DSP initialization and host timing. Dry panning is an approximation.
-- Integrate VGM identification, register/ROM dispatch, CH mute and WAV render into Analyzer and tetorica-vgm; verify the exported demo with both.
 - Bring the Files, Code / liveLoop and cassette workspace across from CPS1 Synth.
 
 The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame-qsound/LICENSE).

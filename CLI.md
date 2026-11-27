@@ -1021,3 +1021,5 @@ observation's `audible` fields distinguish enabled, nonzero-volume headphone
 playback intervals from unplayed RAM candidates; they do not simulate waveform
 audibility or infer note boundaries. Wave preview remains an isolated,
 fixed-pitch audition.
+
+Standalone CPS2 QSound VGM files can render their 16 PCM voices with dry stereo panning. For example, use `tetorica-vgm render demo.vgm --mute qsound-ch-1,qsound-ch-2 --output muted.wav`. Sample ROM must be embedded. ADPCM voices and spatial DSP effects are omitted.

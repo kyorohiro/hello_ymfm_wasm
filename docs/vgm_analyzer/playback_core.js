@@ -1,3 +1,4 @@
+import {createQSoundPreview} from './qsound_preview.js';
 import {SegaPSG} from '../js/segapsg.js';
 import {installOpnChannelMutes} from './opn_channel_mutes.js';
 import {installPlaybackMixer} from './playback_mixer.js?v=console-songs-1';
@@ -51,6 +52,7 @@ export function detectPlaybackChipKind(header) {
   }
   if (header.huc6280Clock & 0x3fffffff) return "huc6280";
   if (header.msm5205Clock & 0x3fffffff) return 'msm5205';
+  if (header.qsoundClock) return "qsound";
   if (header.okim6295Clock & 0x3fffffff) return "okim6295";
   if (header.okim6258Clock && !header.ym2612Clock && !header.psgClock && !header.pwmClock) return "okim6258";
   if (header.ym2612Clock & 0x3fffffff) return "ym2612";
@@ -112,6 +114,7 @@ export class PlaybackError extends Error {
   constructor(code, message, details = {}) { super(message); this.name = 'PlaybackError'; this.code = code; this.details = details; }
 }
 const composition = {
+  qsound: ['qsound'],
   ym2612: ['ym2612','psg','rf5c164','pwm'],
   ym2203: ['ym2203'], ym2608: ['ym2608'], ym2610: ['ym2610'],
   ym2151: ['ym2151','psg','segaPcm','okim6295'], ay8910: ['ay8910','ym2413'],
@@ -143,6 +146,8 @@ export function selectPlaybackConfiguration(vgm) {
         throw new Error('Dual/variant configuration is not supported');
       }
     }
+    if (header.qsoundClock && (chips.length !== 1 || header.qsoundClock > 8_000_000))
+      throw new Error('QSound PCM preview supports one QSound chip and input clocks up to 8 MHz');
     if (header.pokeyClock) pokeyPlaybackConfiguration(header.pokeyClock);
     if (header.nesApuClock) validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
@@ -307,6 +312,7 @@ async function createHeaderMixedEngine(configuration,resource,volume,options){
 }
 
 const recipes = {
+  qsound: async (vgm,resource,volume) => createQSoundPreview(vgm.header.qsoundClock,volume),
   psg: async (vgm,resource) => {
     const psg = await SegaPSG.create({moduleFactory:await resource('segapsg'),clock:vgm.header.psgClock});
     return {
@@ -475,7 +481,7 @@ export function playbackMuteControls(configuration) {
   const add=(id,method,...args)=>controls.push({id,method,args});
   const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
   if(kind==='pokey')channels('pokey-ch',pokeyPlaybackConfiguration(h.pokeyClock).count*4,'setChannelMuted');
-  const counts={huc6280:6,wonderswan:4,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
+  const counts={qsound:16,huc6280:6,wonderswan:4,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
   if(h.psgClock){add('psg','setPsgMuted');channels('psg-ch',4,'setPsgChannelMuted');}

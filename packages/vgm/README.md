@@ -115,7 +115,7 @@ Some tracks need sample ROMs; dual chips, variants and combinations have limits.
 | YM2608 | FM + SSG + Rhythm + ADPCM-B |
 | YM2610 / YM2610B | FM + SSG + ADPCM-A/B |
 | YM2151 / YM2164 (OPM / OPP) | 8 FM CH |
-| Sega PSG | Tone + noise |
+| Sega PSG | Single or dual SN76489 tone + noise |
 | RF5C164 | PCM (Mega-CD) |
 | 32X PWM | MAME-derived PWM |
 | YM2413 | OPLL |
@@ -131,9 +131,14 @@ Some tracks need sample ROMs; dual chips, variants and combinations have limits.
 | MSM5205 | 3/4-bit ADPCM; VGM 1.72 command 0x32 |
 | OKIM6295 | 4-voice ADPCM; standalone or with YM2151 / YM2164 (CPS-1 sound configuration), or YM3812 |
 | OKIM6258 | 4-bit ADPCM; standalone or mixed |
+| QSound (CPS2) | Standalone dry stereo preview of the 16 PCM voices |
 | Sega PCM (315-5218) | 16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151 / YM2164 |
 | NES APU + FDS (NTSC) | 2 pulse + triangle + noise + DMC; optional FDS wavetable |
 | Game Boy DMG (LR35902) | 2 square + wave + noise |
+| C64 SID (6581 / 8580 Preview) | PSID / RSID v2 · PAL, one SID |
+| Saturn SCSP | SSF / miniSSF or single-chip VGM / VGZ |
+| PlayStation SPU | PSF1 / miniPSF |
+| Virtual Boy VSU | Single-chip VGM / VGZ |
 <!-- chip-list:end -->
 
 - [Sound chip support table](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html): the shared browser Analyzer reference, with playback/export coverage and limitations.

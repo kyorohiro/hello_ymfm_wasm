@@ -640,6 +640,7 @@ export function createVgmTargets(engine) {
       writeRegister:(r,v)=>engine.writeHuc6280(r,v),
       writeStream:(p,r,v)=>engine.writeHuc6280Stream(p,r,v),
     } : undefined,
+    qsound: engine.qsoundTarget,
     okim6295: typeof engine.writeOki6295 === 'function' ? {
       writeRegister:(r,v)=>engine.writeOki6295(r,v),
       loadSampleMemory:(data,offset,size)=>engine.loadOki6295Rom(data,offset,size),
