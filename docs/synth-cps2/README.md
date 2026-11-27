@@ -3,12 +3,11 @@
 Serve the repository's docs directory over localhost or HTTPS and open
 `/synth-cps2/`. Select CH1–16, then hold A S D F G H J K or a screen key.
 Pitch follows the key. The sample selector can switch the held note; volume
-and pan can change during a held note. Play demo and Download demo VGM use
-the selected score and generated ROM. PCM duet uses two pitched PCM channels. ADPCM trio triggers three one-shot samples, panned left, center and right.
+and pan can change during a held note. The factory demo VGMs include their generated sample ROM. PCM duet uses two pitched PCM channels. ADPCM trio triggers three one-shot samples, panned left, center and right.
 
 ## Workspace
 
-Press **Play demo** on a fresh visit to hear PCM duet. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Code opens it beside the editor, and Synth returns to the instrument. PCM, ADPCM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. A–K play the white keys and W, E, T, Y and U play the sharps. Drag Octave or use its minus and plus buttons to change the range.
+Press **Play VGM** on a fresh visit to hear PCM duet. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Code opens it beside the editor, and Synth returns to the instrument. PCM, ADPCM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. A–K play the white keys and W, E, T, Y and U play the sharps. Drag Octave or use its minus and plus buttons to change the range.
 
 ## Register model
 
@@ -40,7 +39,7 @@ The exported demo plays in VGM Analyzer and renders in tetorica-vgm. The Synth e
 
 ## Pan comparison
 
-Select **CH1 → Pan comparison → Play demo**. A 50 ms percussion hit plays at 0.10, 0.60 and 1.10 seconds. CH1 restarts the same generated waveform, rate, phase and volume envelope each time. Its pan register changes from 0x110 to 0x120 to 0x130. Watch Pan in the PCM view or the 0x80 row in Registers. Download demo VGM exports the same score with its ROM.
+Select **Files → /songs/tetorica-cps2-pan-comparison.vgm → CH1 → Play VGM**. A 50 ms percussion hit plays at 0.10, 0.60 and 1.10 seconds. CH1 restarts the same generated waveform, rate, phase and volume envelope each time. Its pan register changes from 0x110 to 0x120 to 0x130. Watch Pan in the PCM view or the 0x80 row in Registers. ☰ → Export → Download selected VGM / VGZ exports the selected file with its ROM.
 
 The table gives left/right RMS in signed 16-bit sample units for the first 100 ms of each hit. The preview column uses the exported file in SongTransport at 44.1 kHz, before the output mixer. The reference column uses the same file in libvgm's CTR core, with its default player gain. Compare the balance within each stereo pair.
 
@@ -74,13 +73,21 @@ Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ti
 
 Pause a song, select a PCM channel, edit its controls and choose **Voice → Save preset…**. The JSON file under `/presets/` stores the C4 rate, sample start/end, loop length, bank, level, pan and channel echo send. It refers to the factory ROM or to the song under `/songs/`, with its ROM-write position and a SHA-256 fingerprint of the selected bank. The cassette carries the source song once.
 
-Choose a destination channel, then click the preset in Files and play C4. Loading stops playback and restores the shared sample ROM and clock from the preset source. Other channels also address that ROM. Shared echo delay and feedback keep their current settings. A missing song or mismatched bank prevents loading. **☰ → Export → Export cassette** includes presets and songs together. **☰ → Import → Import cassette…** restores them.
+Choose a destination channel, then select the preset in Files and play C4. Use **Apply preset** when the shared ROM changes or Auto apply is off. Loading stops playback and restores the shared sample ROM and clock from the preset source. Other channels also address that ROM. Shared echo delay and feedback keep their current settings. A missing song or mismatched bank prevents loading. **☰ → Export → Export cassette** includes presets and songs together. **☰ → Import → Import cassette…** restores them.
 
 ## ADPCM pads
 
 Select Voice 1–3 to edit its start byte, exclusive end byte, ROM bank, signed volume and pan register. Trigger plays the selected voice. Keys 1, 2 and 3 trigger their respective voices independently. Key release leaves a one-shot running. The Sample control loads a generated pulse's bank and address range. Custom synth pad settings are saved with the cassette.
 
 During demos, Code and imported VGMs the controls follow the selected chip voice. Pause a VGM to inspect it. Stop silences playback and retains all three ADPCM configurations and their sample ROM for audition. For example, play ADPCM trio, select Voice 2, press Stop, then Trigger. Edits to this captured configuration last for the audition session. **Use synth instruments** restores your manual PCM and pad settings with the generated ROM.
+
+Select **Voice 2** during ADPCM trio, pause after its first hit, and choose **Save preset…** in the ADPCM tab. Select **Voice 3**, open the saved `.adpcm.json` under Files → /presets, then press **3**. The preset carries its address range, bank, signed level and pan and identifies its source ROM using the same scheme as PCM presets. All three voices and all PCM channels share the resulting ROM.
+
+## Files and Auto apply
+
+Right-click a file (or use Shift+F10) to open/apply, duplicate, rename or delete it. Renaming a VGM updates the presets that refer to it. Files displays the source and bank for the selected preset. A change to another song’s shared ROM always uses **Apply preset**. Auto apply opens same-source presets on selection and saves edits to JavaScript and the connected preset. With Auto apply off, changed files show an asterisk; **Save files** commits those edits to the cassette. Run and Apply execute the saved JavaScript. The browser draft retains pending edits across reloads.
+
+The transport opens the factory PCM duet on a fresh visit. Select a different demo or imported VGM in Files to use Play VGM, Pause, Stop VGM and, for files with a loop point, Loop. **☰ → Import → Add factory VGM demos** adds missing demos to an older cassette. **☰ → Export → Download selected VGM / VGZ** preserves individual downloads.
 
 ## Live coding
 

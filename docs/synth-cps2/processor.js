@@ -32,6 +32,9 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.chip.writeRegister(0xd9,this.chip.echoBase + data.ticks);
         return;
       }
+      if(data?.type==='prepare-audition'){
+        this.apply(data.writes);this.capture();return;
+      }
       if(data?.type==='silence-audition'){
         this.capture();
         return;
@@ -41,12 +44,19 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.song=null;
         return;
       }
+      if(data?.type==='rename-song'){
+        if(this.sourcePath===data.from)this.sourcePath=data.to;
+        if(this.source?.path===data.from)this.source={...this.source,path:data.to};
+        return;
+      }
       if(data?.type==='read-preset'){
-        const ch=data.channel,v=this.chip.voices[ch],begin=v.bank*65536;
-        data.reply.postMessage({source:this.romSource(),clock:Math.round(this.chip.tickRate*4000000/QSOUND_PCM_RATE),bank:v.bank,start:this.starts[ch],end:v.end&65535,
-          loop:v.loop&65535,volume:this.captured?this.levels[ch]:(v.volume||v.lastLevel||0),
-          rate:this.captured?this.rates[ch]:v.rate,pan:v.pan,send:v.echoSend,
-          bytes:this.chip.rom.slice(begin,begin+65536)});
+        const ch=data.channel,adpcm=data.kind==='adpcm';
+        const v=adpcm?this.chip.adpcm[ch]:this.chip.voices[ch],begin=v.bank*65536;
+        const fields=adpcm?{start:v.start,volume:v.volume}:{
+          start:this.starts[ch],loop:v.loop&65535,volume:this.captured?this.levels[ch]:(v.volume||v.lastLevel||0),
+          rate:this.captured?this.rates[ch]:v.rate,send:v.echoSend};
+        data.reply.postMessage({source:this.romSource(),clock:Math.round(this.chip.tickRate*4000000/QSOUND_PCM_RATE),
+          bank:v.bank,end:v.end&65535,pan:v.pan,...fields,bytes:this.chip.rom.slice(begin,begin+65536)});
         data.reply.close();return;
       }
       if(data?.type==='load-preset'){
@@ -54,6 +64,11 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.capture();this.song=null;
         this.chip.rom=data.rom;this.source=p.source;
         this.chip.tickRate=QSOUND_PCM_RATE*p.clock/4000000;
+        if(p.format==='qsound-adpcm-1'){
+          const reg=0xca+4*ch;
+          this.apply([[reg,p.start],[reg+1,p.end],[reg+2,p.bank],[reg+3,p.volume&65535],[0x90+ch,p.pan]]);
+          return;
+        }
         this.apply([[((ch+15)&15)*8,p.bank|0x8000],[base+1,p.start],[base+2,p.rate],
           [base+3,0],[base+4,p.loop],[base+5,p.end],[0x80+ch,p.pan],[0xba+ch,p.send&65535]]);
         this.levels[ch]=p.volume;

@@ -103,3 +103,29 @@ test('PCM preset resolves its VGM bank and plays identical stereo samples on ano
   assert.equal(player.chip.voices[4].pan,0x117);
   assert.deepEqual(strike(4),original);
 });
+
+test('saved Voice 2 ADPCM one-shot retriggers on Voice 3 with the same decoded stereo output',async()=>{
+  const player=new Processor(),send=data=>player.port.onmessage({data});
+  const bytes=demoVgm(demoTracks.adpcm.score());
+  send({type:'song',bytes,path:'/songs/trio.vgm'});
+  player.process([],[[new Float32Array(20000),new Float32Array(20000)]]);
+  send({type:'pause-song',paused:true});
+  let snapshot;
+  send({type:'read-preset',kind:'adpcm',channel:1,reply:{postMessage:data=>{snapshot=data;},close(){}}});
+  const {bytes:bank,...fields}=snapshot;
+  const preset=readPreset(JSON.stringify({format:'qsound-adpcm-1',bankHash:await bankHash(bank),...fields}));
+  function hit(voice){
+    send([[0xd6+voice,1]]);
+    // Each decoder is serviced in its own DSP slot. Align the first high nibble.
+    for(let i=0;i<voice;i++)player.chip.tick();
+    return Array.from({length:3500},()=>{
+      player.chip.tick();
+      return [player.chip.left,player.chip.right];
+    });
+  }
+  const original=hit(1);
+  assert.ok(original.some(pair=>pair[0]!==0 && pair[1]!==0));
+  send('stop');
+  send({type:'load-preset',channel:2,preset,rom:await presetRom(preset,bytes)});
+  assert.deepEqual(hit(2),original);
+});

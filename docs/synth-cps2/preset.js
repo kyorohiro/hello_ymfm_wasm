@@ -3,14 +3,14 @@ import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {applyRomBlock} from './song.js';
 import {demoRom} from './demo.js';
 
-export const isPresetPath=path=>/^\/presets\/[^/]+\.pcm\.json$/i.test(path);
+export const isPresetPath=path=>/^\/presets\/[^/]+\.(?:adpcm|pcm)\.json$/i.test(path);
 
 export function readPreset(text){
   const p=JSON.parse(text);
-  if(p?.format!=='qsound-pcm-1' || !/^[a-f0-9]{64}$/.test(p.bankHash))
-    throw Error('Invalid QSound PCM preset.');
-  for(const [key,min,max] of [['bank',0,32767],['start',0,65535],['end',0,65535],['loop',0,65535],
-    ['clock',1,8000000],['rate',0,65535],['pan',0,65535],['volume',-32768,32767],['send',-32768,32767]]){
+  if(!['qsound-pcm-1','qsound-adpcm-1'].includes(p?.format) || !/^[a-f0-9]{64}$/.test(p.bankHash))
+    throw Error('Invalid QSound preset.');
+  for(const [key,min,max] of [['bank',0,32767],['start',0,65535],['end',0,65535],
+    ['clock',1,8000000],['pan',0,65535],['volume',-32768,32767],...(p.format==='qsound-pcm-1'?[['loop',0,65535],['rate',0,65535],['send',-32768,32767]]:[])]){
     if(!Number.isInteger(p[key]) || p[key]<min || p[key]>max)throw Error('Invalid PCM preset '+key+'.');
   }
   const s=p.source;
