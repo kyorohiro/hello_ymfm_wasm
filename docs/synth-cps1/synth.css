@@ -114,7 +114,7 @@ header::after {margin-left:0}
   header img {width:2.5rem}
   .output canvas {height:52px}
 }
-.keyboard-toolbar,#keyChannels,#keyOctave {display:flex;align-items:center;flex-wrap:wrap;gap:.25rem}
+.fretboard-row,#fretboardControls [role=group],.keyboard-toolbar,#keyChannels,#keyOctave {display:flex;align-items:center;flex-wrap:wrap;gap:.25rem}
 .keyboard-toolbar {justify-content:space-between;margin-bottom:.35rem}
 #keyChannels button {padding:.16rem .38rem;font-size:.85rem}
 #keyOctave {font-size:.85rem}
@@ -268,3 +268,12 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 #sampleSlots button[data-filled=true] {background:var(--deep-green);color:white}
 #sampleSlots button[aria-pressed=true] {outline:2px solid #c1610c;outline-offset:-2px}
 #selectedSample {font-weight:bold}
+
+.fretboard-row {column-gap:.7rem;margin-bottom:.3rem;font-size:.85rem}
+.fretboard-row .toolbar-button {padding:.16rem .38rem;font-size:inherit}
+.fretboard-row .is-selected {background:var(--deep-green);color:white}
+
+#fmPreset {max-width:min(100%,14rem);min-width:0;font-size:.85rem;padding:.12rem .3rem}
+
+#codeEditorHost{height:clamp(18rem,45vh,40rem);min-width:0}
+#codeEditorHost:not([data-ready="true"]){display:none}

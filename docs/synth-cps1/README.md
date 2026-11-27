@@ -8,6 +8,8 @@ MSM6295 reads an OKI sample table and ADPCM bytes from ROM. The built-in percuss
 
 The MSM6295 panel shows the selected sample’s inclusive ROM range, duration and decoded waveform. Mute silences one voice while its decoder and busy bit continue normally. For example, `oki.setVoiceMuted(0,true)` mutes Voice 1 and `oki.setVoiceMuted(0,false)` restores its current output.
 
+The Code tab uses the shared Monaco JavaScript editor. Type `opm.` or `oki.` to see chip methods. The editor loads from the same CDN as FM2612 Synth and falls back to a textarea when unavailable. A new cassette starts with a named `liveLoop` in /index.js. Run starts the riff, Apply replaces its callback at the next cycle, and Stop releases the chips. Use Ctrl/Cmd+Enter for Run and Ctrl/Cmd+Shift+Enter for Apply.
+
 Code runs in a dedicated worker. `opm` and `oki` share the instruments used by the panels. JavaScript uses zero-based channels and voices. For example, `oki.play(1, 2, 4)` plays sample 2 on voice 1 at attenuation 4. `oki.write(0x10)` stops that voice. Stop interrupts the running script and releases both chips. The edited script is saved in this browser.
 
 Files lists the eight current channel voices, saved FM presets, sample banks and imported VGM songs. Export Cassette saves those files with the current code and global LFO/noise settings in a Tetorica cassette ZIP. Import restores the project without running its code. The browser keeps a local project draft. Right-click a file or folder (or use Shift+F10) to duplicate, rename, delete, or create an instrument, script or folder. Drag to move, or hold Option/Ctrl while dropping to copy. Drop supported music, ROM, voice and JavaScript files into a folder to import them. Undo files restores the previous file operation. With Auto apply off, Save or Discard the selected file’s edits. Save all accepts every pending edit.
@@ -50,6 +52,10 @@ Open the **Mixer** tab to adjust the two chips independently (0–380%) before M
 **Synth** keeps the selected chip above a separate Keyboard / Code panel. **Code** opens a larger editor and puts the chips and Keyboard in the same tab row. Switching views keeps the current script, audio and keyboard channel. The computer keyboard plays the selected FM channel while the on-screen keyboard is hidden. Focus the editor to type code.
 
 **☰ → New → Cassette · ZIP** stops playback and starts again with the eight factory FM voices, original percussion kit and all three bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.
+
+Use **Load preset…** on the YM2151 tab to copy a Files instrument, an individual OPM bank voice, or another channel’s patch onto the selected channel. The shared LFO and noise settings stay under the separate Files control.
+
+The FM keyboard uses the FM2612 fretboard controls. Select Guitar, Bass or Ukulele, the Open, 5th or 12th fret, and a window of four strings. Left/right arrows move by one fret and up/down arrows select the next string window. The octave offset applies to new notes. The MSM6295 keyboard uses its four fixed voice pads.
 
 The YM2151 tab and the keyboard share **AUTO / CH1–CH8**. AUTO copies the current editor sound to successive idle physical channels as you play chords. If all eight are busy it can reuse the oldest AUTO key. Selecting a CH targets that physical voice. Algorithm, Feedback, AMS/PMS, operator and LFO values use the same minus / drag / plus controls as the FM2612 Synth. Pan and other switches toggle directly. Use − / + or drag the Octave value horizontally to transpose new notes by up to two octaves in either direction. Held keys release on the channel where they started.
 

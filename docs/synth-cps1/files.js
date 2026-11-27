@@ -34,7 +34,10 @@ function validateVoice(patch,validator) {
   validator.invoke('setVoice',[0,voice]);return patch;
 }
 
-export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initialCode,store,draft,applyBank,stop,playSong,stopSong,openFiles}) {
+import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
+import {cps1Declarations} from './code-declarations.js';
+
+export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defaults,initialCode,store,draft,applyBank,stop,playSong,stopSong,openFiles}) {
   let files=new Map(),folders=[],selected=entry,editor=entry,activeBank,presetChannel=null,opmBank=null,revision=0;
   let pending=new Map(),editPath=null,saveTimer;
   const songBanks=new WeakMap();
@@ -49,7 +52,8 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   const songEntries=()=>items('song');
   function script(path,show=true) {
     editor=path;el('editor').disabled=el('run').disabled=!path;
-    el('editor').value=files.get(path)?.text??'';el('codeFile').value=path??'';
+    codeEditor.setSource(files.get(path)?.text??'',path??entry);el('codeFile').value=path??'';
+    el('codeEditorHost').hidden=!path;
     if(show)document.querySelector('[data-tab="code"]').click();
   }
   function useBank(path) {
@@ -71,7 +75,33 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     render();
     if(v.kind==='song')el('songs').value=String(songEntries().findIndex(([p])=>p===path));
   }
+  function renderPresets(){
+    const select=el('fmPreset');
+    const choices=[],groups=new Map();
+    function option(group,label,read){
+      if(!groups.has(group)){
+        const node=document.createElement('optgroup');node.label=group;groups.set(group,node);
+      }
+      groups.get(group).append(new Option(label,choices.length));
+      choices.push(read);
+    }
+    option('Factory','Initial voice',()=>initialVoices[0]);
+    for(const [path,file] of files){
+      if(file.kind==='channel')option('Channels',base(path),()=>currentVoice(file.ch));
+      if(file.kind==='voice')option('Saved voices',path,()=>files.get(path).voice);
+      if(file.kind==='opm')file.voices.forEach(({name,patch,mask})=>option(path,name,()=>({...patch,keyMask:mask})));
+    }
+    select.replaceChildren(new Option('Load preset…',''),...groups.values());
+    select.onchange=()=>{
+      if(select.value==='')return;
+      const patch=choices[Number(select.value)]();
+      presetChannel=null; // Load a copy onto the channel, preserving saved instrument files.
+      loadPreset(patch);
+      select.selectedIndex=0;select.blur();
+    };
+  }
   function render() {
+    renderPresets();
     tree();
     const banks=items('bank');
     el('romList').replaceChildren(...banks.map(([path])=>new Option(base(path),path)));
@@ -226,7 +256,8 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   };
   el('songs').onchange=stopSong;el('stopSong').onclick=()=>stopSong(true);
   el('codeFile').onchange=()=>open(el('codeFile').value);
-  el('editor').oninput=()=>{
+  function saveSource(){
+    if(!editor)return;
     editFile(editor,{kind:'code',text:el('editor').value});
     persistCode();
   };
@@ -432,6 +463,14 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     const file=event.target.files[0];event.target.value='';
     if(file)importCassette(file).catch(error=>report(error.message));
   };
+  const codeEditor=setupSynthMonacoEditor({
+    textarea:el('editor'),editorHost:el('codeEditorHost'),editorNote:el('editorNote'),
+    chip:'cps1',transformDeclarations:cps1Declarations,declarationsOnly:true,
+    getPath:()=>editor??entry,listFiles:()=>items('code').map(([path,v])=>({path,type:'text',data:v.text})),
+    openFile:open,onEdit:saveSource,visible:()=>!el('code').hidden && Boolean(editor),
+    run:apply=>el(apply?'applyCode':'run').click(),
+  });
+  function layoutCode(){if(editor && !el('code').hidden)codeEditor.load().then(()=>codeEditor.layout());}
   const start=factory(initialCode);
   files=start.docs;folders=start.dirs;activeBank=start.active;script(entry,false);render();
   if(draft?.files instanceof Map){
@@ -486,7 +525,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     useBank(path);el('romList').value=path;
     return true;
   }
-  return {loadOpmVoice(ch,path,index=0){
+  return {layoutCode,loadOpmVoice(ch,path,index=0){
     const file=files.get(path);
     if(file?.kind!=='opm')throw Error('OPM file not found: '+path);
     if(!Number.isInteger(index)||!file.voices[index])throw Error('Unknown OPM voice index: '+index);

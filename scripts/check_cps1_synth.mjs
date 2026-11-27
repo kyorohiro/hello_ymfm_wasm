@@ -16,7 +16,13 @@ const server = createServer(async (req,res) => {
     if (!file.href.startsWith(root.href)) throw Error();
     const type = file.pathname.split('.').at(-1);
     res.setHeader('Content-Type',({js:'text/javascript',html:'text/html',wasm:'application/wasm',css:'text/css'})[type] ?? 'application/octet-stream');
-    res.end(await readFile(file));
+    if(process.env.MONACO_MIN && file.pathname.includes('/__monaco/')){
+      const path=file.pathname.split('/__monaco/')[1].replace('loader.min.js','loader.js');
+      res.end(await readFile(process.env.MONACO_MIN+'/'+path));
+    }else if(process.env.MONACO_MIN && file.pathname.endsWith('/playground_monaco.js')){
+      const source=await readFile(file,'utf8');
+      res.end(source.replaceAll('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min','http://127.0.0.1:'+server.address().port+'/__monaco'));
+    }else res.end(await readFile(file));
   } catch {res.writeHead(404).end();}
 });
 await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
@@ -24,6 +30,12 @@ let browser;
 try {
   browser = await chromium.launch();
   const page = await browser.newPage();
+  if(!process.env.MONACO_MIN)await page.route('https://cdnjs.cloudflare.com/**',route=>route.abort());
+  async function fillCode(source){
+    if(await page.locator('#codeEditorHost[data-ready="true"]').count()){
+      await page.evaluate(source=>window.monaco.editor.getEditors()[0].setValue(source),source);
+    }else await page.fill('#editor',source);
+  }
   const errors = [];
   page.on('pageerror',e => errors.push(e.message));
   await page.addInitScript(() => {
@@ -104,6 +116,25 @@ try {
   const octave = page.locator('#keyOctave');
   const note = page.locator('#keys [data-key="a"] span');
   const base = await note.textContent();
+  const instrument=page.locator('#instrumentControls');
+  const position=page.locator('#positionControls');
+  const strings=page.locator('#stringWindowControls');
+  await instrument.getByRole('button',{name:'Bass',exact:true}).click();
+  assert.equal(await note.textContent(),'A1');
+  await position.getByRole('button',{name:'12th',exact:true}).click();
+  assert.equal(await note.textContent(),'A2');
+  await instrument.getByRole('button',{name:'Ukulele',exact:true}).click();
+  assert.equal(await note.textContent(),'C5');
+  await instrument.getByRole('button',{name:'Guitar',exact:true}).click();
+  await strings.getByRole('button',{name:'4-1',exact:true}).click();
+  assert.equal(await note.textContent(),'G4');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.locator('#fretDisplay').textContent(),'Fret: 13');
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.locator('#stringDisplay').textContent(),'String 5-2');
+  await position.getByRole('button',{name:'Open',exact:true}).click();
+  await strings.getByRole('button',{name:'6-3',exact:true}).click();
+  assert.equal(await note.textContent(),base);
   await octave.getByRole('button',{name:'+',exact:true}).click();
   assert.equal(await note.textContent(),base.slice(0,-1)+(Number(base.at(-1))+1));
   await chooseKeyChannel(5);
@@ -216,9 +247,28 @@ try {
   await page.waitForFunction(() => window.peak>.001);
   await page.waitForFunction(() => document.querySelector('#busy').value==='0xF0');
   await page.click('[data-tab="code"]');
+  if(process.env.MONACO_MIN){
+    await page.waitForSelector('#codeEditorHost[data-ready="true"]');
+    const names=await page.evaluate(async()=>{
+      const model=monaco.editor.getEditors()[0].getModel(), original=model.getValue();
+      const worker=await (await monaco.languages.typescript.getJavaScriptWorker())(model.uri);
+      const results=[];
+      for(const prefix of ['opm.','oki.','liveL']){
+        model.setValue(prefix);
+        const completions=await worker.getCompletionsAtPosition(model.uri.toString(),prefix.length,{});
+        results.push(completions.entries.map(entry=>entry.name));
+      }
+      model.setValue(original);return results;
+    });
+    assert.ok(names[0].includes('loadVoice') && names[1].includes('play') && names[2].includes('liveLoop'));
+  }
   await page.click('#run');
-  await page.waitForFunction(() => document.querySelector('#status').textContent==='Finished');
-  await page.fill('#editor','while (true) {}');
+  await page.waitForFunction(()=>!document.querySelector('#applyCode').disabled);
+  await fillCode("liveLoop('round',async()=>{for(let ch=0;ch<8;ch++) opm.setAlgo(ch,3,7); await beat(1);});");
+  await page.click('#applyCode');
+  await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-feedback"]').value==='7');
+  await page.click('#stop');
+  await fillCode('while (true) {}');
   await page.click('#run');
   await page.waitForFunction(()=>document.querySelector('#status').textContent==='Running' && window.lastPeak===0);
   await page.evaluate(()=>{window.peak=0;});
@@ -234,7 +284,7 @@ try {
   await page.waitForFunction(path=>document.querySelector('#codeFile').value===path,algorithmPath);
   const algorithmSource=await page.inputValue('#editor');
   const editedAlgorithm=algorithmSource+'\n// comparison';
-  await page.fill('#editor',editedAlgorithm);
+  await fillCode(editedAlgorithm);
   await page.click('#run');
   for (const [algorithm,mask] of [[7,'1000'],[7,'1100'],[4,'1000'],[4,'1100']]) {
     await page.waitForFunction(([algo,bits])=>
@@ -250,7 +300,7 @@ try {
   assert.match(round,/Round Start/);
   await page.click('#codeMode');
   assert.ok(await page.locator('#performanceTabs').isHidden());
-  await page.fill('#editor',round+'\n// rehearsal');
+  await fillCode(round+'\n// rehearsal');
   await page.click('#run');
   await page.click('[data-tab="fm"]');
   assert.ok(await page.locator('#editor').isHidden());
@@ -265,7 +315,7 @@ try {
   await page.keyboard.up('a');
   await page.click('[data-tab="pcm"]');
   await page.click('[data-tab="code"]');
-  assert.ok(await page.locator('#editor').isVisible());
+  assert.ok(await page.locator('#editor:visible,#codeEditorHost:visible').count());
   await page.keyboard.press('j');
   await page.waitForFunction(()=>document.querySelectorAll('#voices .lamp')[3].title.includes('3 · Arcade hit'));
   await page.click('[data-tab="pcm"]');
@@ -317,7 +367,11 @@ try {
   await page.locator('#importOpm').setInputFiles({name:'voice.opm',mimeType:'text/plain',buffer:Buffer.from(opmBank)});
   await page.waitForFunction(()=>document.querySelector('#opmVoice option:checked')?.textContent==='Browser brass');
   await page.click('[data-tab="fm"]');
-  assert.equal(await page.locator('[data-chip-control="ym2151-feedback"]').inputValue(),'5');
+  if(await page.locator('#files').isVisible())await page.click('#filesToggle');
+  await page.selectOption('#fmPreset',{label:'Second patch'});
+  await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-feedback"]').value==='6');
+  await page.selectOption('#fmPreset',{label:'Browser brass'});
+  await page.waitForFunction(()=>document.querySelector('[data-chip-control="ym2151-feedback"]').value==='5');
   await page.keyboard.down('a');
   await page.waitForFunction(()=>document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes('0101'));
   await page.keyboard.up('a');
@@ -325,10 +379,10 @@ try {
   await page.click('#opmGlobals');
   await page.click('[data-tab="code"]');
   const previousCode=await page.inputValue('#editor');
-  await page.fill('#editor',"opm.loadVoice(7, '/presets/voice.opm', 1); opm.noteOn(7,'C4'); await sleep(0.1); opm.keyOff(7);");
+  await fillCode("opm.loadVoice(7, '/presets/voice.opm', 1); opm.noteOn(7,'C4'); await sleep(0.1); opm.keyOff(7);");
   await page.click('#run');
   await page.waitForFunction(()=>document.querySelector('#status').textContent==='Finished');
-  await page.fill('#editor',previousCode);
+  await fillCode(previousCode);
   const presetDownload=page.waitForEvent('download');
   await page.click('#synthMenuButton');
   await page.click('#exportPresets');
@@ -450,16 +504,16 @@ try {
   await page.click('[data-tab="pcm"]');
   await page.click('#restore');
   await page.click('[data-tab="code"]');
-  await page.fill('#editor','// changed example');
+  await fillCode('// changed example');
   await page.selectOption('#codeFile','/index.js');
-  await page.fill('#editor','// changed');
+  await fillCode('// changed');
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
   page.once('dialog',dialog => dialog.dismiss());
   await page.click('#synthMenuButton');
   await page.click('#newCassette');
   assert.equal(await page.inputValue('#editor'),'// changed');
   assert.equal(await page.locator('button[data-file-path^="/presets/"]').count(),10);
-  await page.fill('#editor','while (true) {}');
+  await fillCode('while (true) {}');
   await page.click('#run');
   await page.waitForFunction(()=>document.querySelector('#status').textContent==='Running');
   page.once('dialog',dialog => dialog.accept());
@@ -535,13 +589,15 @@ try {
   }
   await fileAction('/','New folder…','lab');
   await fileAction('/lab','New JavaScript file…','riff');
-  await page.fill('#editor','// riff');
+  await page.waitForFunction(()=>document.querySelector('#codeFile').value==='/lab/riff.js');
+  await fillCode('// riff');
+  assert.equal(await page.inputValue('#editor'),'// riff');
   await fileAction('/lab/riff.js','Duplicate');
   await fileAction('/lab/riff copy.js','Rename…','take');
   await row('/lab/take.js').click();
   assert.equal(await page.inputValue('#editor'),'// riff');
   await page.locator('#fileAuto').uncheck();
-  await page.fill('#editor','// draft');
+  await fillCode('// draft');
   for (const path of ['/lab/take.js','/lab','/']) {
     assert.equal(await row(path).evaluate(node=>getComputedStyle(node,'::after').content),'" *"');
   }

@@ -5,7 +5,9 @@ import {createYm2151RegisterClient} from '../js/playground_ym2151.js';
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
 import {createPlaygroundYm2151VoicePanel} from '../playground/playground_ym2151_voice_panel.js';
 import {createParamControl} from '../synth/synth_controls.js';
-import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth/synth_keyboard.js';
+import {noteToHz,opmPitchFromHz} from '../js/soundchip_pitch.js';
+import {createFretboardLayout,createFretboardState,buildKeyboard,renderFretboardControls,
+  setInstrument,setFretPosition,setStringWindowIndex,shiftFretPosition,shiftStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {decodeSongSample} from './song-samples.js';
 import {displaySample,inspectBank} from './sample-view.js';
@@ -14,15 +16,18 @@ import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
 
 const $ = id => document.getElementById(id);
-const example = `// OPM channels 0–7, OKI voices 0–3. Sleep is in seconds.
-for (const note of ['C3', 'G3', 'Bb3', 'C4']) {
-  opm.noteOn(0, note);
-  oki.play(0, 0, 2);
-  await sleep(0.18);
-  opm.keyOff(0);
-  oki.play(1, 1, 4);
-  await sleep(0.18);
-}`;
+const example = `// Edit the riff and press Apply to change the next cycle.
+setBpm(132);
+liveLoop('round', async () => {
+  for (const note of ['C3', 'G3', 'Bb3', 'C4']) {
+    opm.noteOn(0, note);
+    oki.play(0, 0, 2);
+    await beat(0.5);
+    opm.keyOff(0);
+    oki.play(1, 1, 4);
+    await beat(0.5);
+  }
+});`;
 const defaults=new Map([['/index.js',example]]);
 for(const option of Array.from($('codeFile').options).slice(1)){
   const response=await fetch(new URL('.'+option.value,import.meta.url));
@@ -113,6 +118,7 @@ const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:sec
   return editVoice(method,args);
 },onError:fail});
 panel.setConnected(true);
+$('fm').querySelector('.voice-tabs').append($('fmPreset'));
 for (let ch=0;ch<8;ch++) {
   opm.setPan(ch,true,true);
   opm.setAlgo(ch,4,2);
@@ -201,6 +207,7 @@ const main = document.querySelector('main');
 const tabs = [...document.querySelectorAll('[data-tab]')];
 const synthView = {source:'fm',performance:'keyboardPanel'};
 let codeView = 'code', lastCodeChip='fm';
+let files;
 let pcmKeyboard=false;
 function renderWorkspace() {
   const synth = main.dataset.mode === 'synth';
@@ -221,8 +228,9 @@ function renderWorkspace() {
   pcmKeyboard=!$('pcm').hidden || (!synth && lastCodeChip==='pcm');
   $('keyboardPanel').classList.toggle('pcm-keys',pcmKeyboard);
   $('pcmKeysHint').hidden=!pcmKeyboard;
-  $('keyChannels').hidden=$('keyOctave').hidden=pcmKeyboard;
+  $('keyChannels').hidden=$('fretboardControls').hidden=pcmKeyboard;
   panel.setVisible(!$('fm').hidden);
+  files?.layoutCode();
   syncKeyChannels();
 }
 function changeMode(mode) {
@@ -486,16 +494,32 @@ for (let ch=-1;ch<8;ch++) $('keyChannels').append(channelButton(ch));
 syncKeyChannels();
 const fretboard = createFretboardState();
 let layout = createFretboardLayout({state:fretboard});
+let keyboardOctave=0;
+function refreshFretboard(){
+  layout=createFretboardLayout({state:fretboard,octave:keyboardOctave});
+  // Update the mounted keys so a held pointer can still release its original note.
+  const keys=$('keys');
+  for(const row of keys.querySelectorAll('.key-row'))row.dataset.string=layout.rowDefs[Number(row.dataset.row)].stringNumber;
+  for(const entry of layout.entries){
+    const button=keys.querySelector('[data-key="'+entry.key+'"]');
+    button.dataset.string=entry.stringNumber;
+    button.dataset.fret=entry.fret;
+    button.querySelector('span').textContent=entry.noteName;
+  }
+  renderFretboardControls({
+    instrumentRoot:$('instrumentControls'),positionRoot:$('positionControls'),stringWindowRoot:$('stringWindowControls'),
+    fretDisplayRoot:$('fretDisplay'),stringDisplayRoot:$('stringDisplay'),state:fretboard,
+    onInstrumentChange:value=>{setInstrument(fretboard,value);refreshFretboard();},
+    onPositionPresetSelect:value=>{setFretPosition(fretboard,value);refreshFretboard();},
+    onStringWindowChange:value=>{setStringWindowIndex(fretboard,value);refreshFretboard();},
+  });
+  for(const button of $('fretboardControls').querySelectorAll('.toolbar-button')){
+    button.setAttribute('aria-pressed',String(button.classList.contains('is-selected')));
+  }
+}
 const octaveControl = createParamControl({label:'Octave',min:-2,max:2,step:1,value:0,showLabel:false,
   formatValue:value => value > 0 ? '+'+value : String(value),
-  onChange(octave) {
-    layout = createFretboardLayout({state:fretboard,octave});
-    // Keep the buttons mounted so held pointers still receive their release.
-    for (const button of $('keys').querySelectorAll('.key')) {
-      const entry = layout.entries.find(note => note.key === button.dataset.key);
-      button.querySelector('span').textContent = entry.noteName;
-    }
-  },
+  onChange:value=>{keyboardOctave=value;refreshFretboard();},
 });
 $('keyOctave').append(octaveControl.element);
 const held = new Map();
@@ -519,6 +543,8 @@ function press(id,entry) {
     } catch (error) {fail(error);}
     return;
   }
+  try {opmPitchFromHz(noteToHz(entry.midi),observation?.fm?.clock()??opm.clock);}
+  catch(error){fail(error);return;}
   if(observation?.fm){
     const channel=panel.getSelectedChannel();
     held.set(id,channel);
@@ -559,9 +585,16 @@ Array.from(pcmKeys).forEach((key,voice)=>{
   label.className='pcm-voice-label';label.textContent='Voice '+(voice+1);
   button.append(label);
 });
+refreshFretboard();
 window.addEventListener('keydown',e => {
-  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
+  if (e.defaultPrevented || e.isComposing || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest('.monaco-editor,textarea,input:not([type=range]),select,[contenteditable=true]')) return;
+  if(!pcmKeyboard && !e.target.closest('input,[role="tablist"],dialog') && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault();
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight')shiftFretPosition(fretboard,e.key==='ArrowRight'?1:-1);
+    else shiftStringWindowIndex(fretboard,e.key==='ArrowUp'?1:-1);
+    refreshFretboard();return;
+  }
   const entry = layout.entries.find(v => v.key === e.key.toLowerCase());
   if (entry && (!pcmKeyboard || pcmKeys.includes(entry.key))) {e.preventDefault();press(e.code,entry);}
 });
@@ -652,6 +685,7 @@ $('useSongVoice').onclick=()=>{
 function setSongView(active) {
   for(const node of $('pcmEditor').querySelectorAll('#romList,#importRom,#writeSlot,#deleteSlot,#chooseSamples,#restore'))node.inert=active;
   for(const picker of voicePickers)picker.element.inert=active && !observation?.oki;
+  $('fmPreset').disabled=active && !observation?.fm;
   $('attenuation').inert=active && !observation?.oki;
   $('followAttenuation').hidden=true;
   $('followVoices').hidden=true;
@@ -771,6 +805,7 @@ async function playSong(song) {
 }
 function stopRun(keepSettings=false) {
   stopSong(keepSettings);
+  $('applyCode').disabled=true;
   runId++; worker?.terminate(); worker = null;
   panel.releaseAll(); held.clear();autoHeld.clear();
   for (let ch=0;ch<8;ch++) opm.keyOff(ch);
@@ -778,7 +813,7 @@ function stopRun(keepSettings=false) {
 }
 $('stop').onclick = () => {stopRun(true);status('Stopped');};
 $('run').onclick = async () => {
-  $('run').focus({preventScroll:true});
+  if(!document.activeElement.closest('.monaco-editor,textarea'))$('run').focus({preventScroll:true});
   stopRun(true); const id = runId;
   try {
     const source = $('editor').value;
@@ -790,8 +825,8 @@ $('run').onclick = async () => {
       if (id !== runId) return;
       try {
         if (data.error) throw Error(data.error);
-        if(data.editedFm){Object.assign(observation.fm,data.editedFm);dirty=true;return;}
-      if (data.done) {worker.terminate();worker=null;status('Finished');return;}
+        if(data.status){$('applyCode').disabled=false;status(data.status);return;}
+        if(data.done){worker.terminate();worker=null;$('applyCode').disabled=true;status('Finished');return;}
         if(data.chip==='opm' && data.method==='loadVoice'){files.loadOpmVoice(...data.args);return;}
         const api = data.chip === 'opm' ? opm : oki;
         writingCode=true;
@@ -799,10 +834,22 @@ $('run').onclick = async () => {
       } catch (error) {stopRun();fail(error);}
     };
     worker.onerror = event => {stopRun();fail(event.message);};
-    worker.postMessage(source);
+    worker.postMessage({source,path:$('codeFile').value});
   } catch (error) {stopRun();fail(error);}
 };
 
-const files = setupFiles({inspector,panel,keyMasks,defaults,initialCode,store,draft,playSong,stopSong,openFiles:()=>setFilesOpen(true),
+$('applyCode').onclick=()=>worker?.postMessage({source:$('editor').value,path:$('codeFile').value,apply:true});
+
+files = setupFiles({inspector,panel,keyMasks,loadPreset({keyMask=15,...patch}){
+  const ch=panel.getSelectedChannel();
+  if(observation){
+    if(!observation.fm)return;
+    observation.masks[ch]=keyMask;
+    songNode.port.postMessage({keyMask:[ch,keyMask]});
+  }else keyMasks[ch]=keyMask;
+  editVoice('setVoice',[ch,patch]);
+},defaults,initialCode,store,draft,playSong,stopSong,openFiles:()=>setFilesOpen(true),
   defaultBank:{bytes:sampleRom,names:samples,name:'Original kit',voiceSamples:[0,1,2,3]},applyBank:installRom,stop:()=>{stopRun();status('Stopped');}});
 $('filesToggle').disabled=false;
+
+files.layoutCode();
