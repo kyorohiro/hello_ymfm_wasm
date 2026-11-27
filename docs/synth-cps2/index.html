@@ -40,6 +40,10 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 .seek-track{position:relative;margin:.35rem 0}
 #song-seek{display:block;width:100%;margin:0}
 #loop-mark{position:absolute;bottom:0;height:.45rem;width:2px;background:#155876;pointer-events:none}
+#pcm-tabs{margin:.6rem 0}
+#register-panel table{border-collapse:collapse;width:min(100%,32rem);text-align:left}
+#register-panel th,#register-panel td{padding:.15rem .6rem;border-bottom:1px solid #bcc5ba}
+#register-panel td,#register-position{font-family:monospace;font-variant-numeric:tabular-nums}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <section aria-labelledby="output-title"><div class="output-heading"><h2 id="output-title">Output</h2>
@@ -55,13 +59,19 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
 <section><h2>PCM channel</h2><div id="channels"></div>
+<nav id="pcm-tabs" aria-label="PCM channel view"><button id="pcm-tab" aria-controls="pcm-panel" aria-pressed="true">PCM</button>
+<button id="register-tab" aria-controls="register-panel" aria-pressed="false">Registers</button></nav>
+<div id="pcm-panel">
 <label>Sample<select id="wave"><option>Reed</option><option>Bell</option></select></label>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <div id="pcm-controls"></div>
 <canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
 <p id="pcm-caption"></p>
-<div class="echo-controls" id="echo-controls" role="group" aria-label="PCM echo"></div></section>
+<div class="echo-controls" id="echo-controls" role="group" aria-label="PCM echo"></div></div>
+<div id="register-panel" hidden><p>Playback address <strong id="register-position">—</strong></p>
+<table aria-label="Selected PCM channel registers"><thead><tr><th>Parameter</th><th>Register</th><th>Last write</th></tr></thead><tbody id="register-rows"></tbody></table>
+<small>— means no write since reset.</small></div></section>
 <section><nav aria-label="Performance"><button id="keyboard-tab" aria-controls="keys" aria-pressed="true">Keyboard</button>
 <button id="code-tab" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
 <div id="keys"></div>

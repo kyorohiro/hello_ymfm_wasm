@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
 import {QSoundPcm} from '../js/qsoundpcm.js';
 import {demoRom, demoTracks} from './demo.js';
@@ -40,11 +41,12 @@ class Cps2Preview extends AudioWorkletProcessor {
         if (this.song) {
           const start=this.starts[data.channel], end=v.end & 65535;
           const span=((end-start)&65535)||256;
-          const wave=new Uint8Array(256);
-          for(let i=0;i<256;i++) wave[i]=this.chip.rom[v.bank*65536+((start+Math.floor(i*span/256))&65535)]??0;
+          const wave=data.registers ? null : new Uint8Array(256);
+          if(wave)for(let i=0;i<wave.length;i++) wave[i]=this.chip.rom[v.bank*65536+((start+Math.floor(i*span/256))&65535)]??0;
           view={wave,start,span,seconds:this.song.frames/sampleRate,bank:v.bank,ended:this.song.parser.ended,pan:v.pan,volume:v.volume};
         }
-        this.port.postMessage({...data,view,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
+        const words=data.registers ? pcmRegisterAddresses(data.channel).map(r=>this.chip.lastWrites[r]) : undefined;
+        this.port.postMessage({...data,view,words,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
           send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,
           active:v.volume !== 0,finished:this.index === this.events.length,start:this.starts[data.channel]});
         return;

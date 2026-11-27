@@ -8,6 +8,8 @@ the selected score and generated ROM. PCM duet uses two pitched PCM channels. AD
 
 ## Register model
 
+Select a PCM channel and open **Registers** to see the last 16-bit word written to each of its nine registers. A dash means the register has received no write. The sample address row retains the last written address while the playback address follows the PCM cursor. Seeking in a VGM restores both to the selected position.
+
 Based on the [MAME QSound HLE implementation](https://github.com/mamedev/mame/blob/master/src/devices/sound/qsoundhle.cpp)
 and [header](https://github.com/mamedev/mame/blob/master/src/devices/sound/qsoundhle.h).
 The PCM update follows this software reference. Hardware comparison is pending.

@@ -35,6 +35,8 @@ export class QSoundPcm {
     this.rom = rom;
     this.sampleRate = sampleRate;
     this.tickRate = QSOUND_PCM_RATE;
+    // -1 distinguishes an unwritten register from an explicit zero.
+    this.lastWrites = new Int32Array(256).fill(-1);
     this.voices = Array.from({length:16}, () => ({
       muted:false, bank:0, address:0, phase:0, rate:0, loop:0, end:0, echoSend:0, volume:0, pan:0x120,
     }));
@@ -60,6 +62,7 @@ export class QSoundPcm {
     if (!Number.isInteger(reg) || reg < 0 || reg > 255 ||
         !Number.isInteger(value) || value < 0 || value > 65535)
       throw new RangeError('Expected an 8-bit register and 16-bit data word');
+    this.lastWrites[reg] = value;
     if (reg >= 0x80 && reg < 0x90) {this.voices[reg-0x80].pan = value; return;}
     if (reg >= 0x90 && reg <= 0x92) this.adpcm[reg-0x90].pan = value;
     if (reg >= 0xba && reg < 0xca) this.voices[reg-0xba].echoSend = signed(value);

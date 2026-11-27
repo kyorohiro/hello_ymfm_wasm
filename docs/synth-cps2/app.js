@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
+import {createRegisterTable} from './registers.js';
 import {setupMixer,mutedVoices} from './mixer.js';
 import {inspectSong} from './song.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
@@ -151,8 +152,25 @@ function edit(key,value) {
   shown = v;
   draw(v,cursor);
 }
+const registerPanel=$('register-panel');
+const drawRegisters=createRegisterTable($('register-rows'),$('register-position'));
+function inspectChannel() {
+  port?.postMessage({type:'inspect',channel:selected,revision,registers:!registerPanel.hidden});
+}
+function selectPcmTab(registers) {
+  registerPanel.hidden=!registers;
+  $('pcm-panel').hidden=registers;
+  $('pcm-tab').setAttribute('aria-pressed',String(!registers));
+  $('register-tab').setAttribute('aria-pressed',String(registers));
+  revision++;
+  if(registers)drawRegisters(selected);
+  inspectChannel();
+}
+$('register-tab').onclick=()=>selectPcmTab(true);
+$('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
   if (data.revision !== revision || data.channel !== selected) return;
+  if (!registerPanel.hidden && data.words && !seeking)drawRegisters(selected,data.words,data.address);
   if (data.view && songState!=='stopped') {
     if(seeking)return;
     if(data.view.ended && songState==='playing'){stop();return;}
@@ -166,6 +184,7 @@ function inspect({data}) {
     $('pan').value=Math.min(32,Math.max(0,data.view.pan-0x110));
     $('vol').value=data.view.volume;
     showEcho(data.send,data.delay,data.feedback);
+    if(!registerPanel.hidden)return;
     draw({sample:0,rate:data.rate,end:data.end&65535,loop:data.loop&65535},data.active?data.address:null,data.view);
     return;
   }
@@ -182,11 +201,11 @@ function inspect({data}) {
   if (demoPlaying || codeWorker) showEcho(data.send,data.delay,data.feedback);
   else showEcho(v.send,echo.delay,echo.feedback);
   cursor = data.active ? data.address : null;
-  draw(shown,cursor);
+  if(registerPanel.hidden)draw(shown,cursor);
 }
 setInterval(()=>{
-  if (port && !document.hidden && (songState!=='stopped' || demoPlaying || codeWorker || channels[selected].held || cursor !== null))
-    port.postMessage({type:'inspect',channel:selected,revision});
+  if (port && !document.hidden && (!registerPanel.hidden || songState!=='stopped' || demoPlaying || codeWorker || channels[selected].held || cursor !== null))
+    inspectChannel();
 },50);
 async function audio() {
   context ??= new AudioContext();
@@ -205,10 +224,12 @@ const status = document.querySelector('footer output');
 function run(task) {task().catch(e=>{status.textContent=e.message;});}
 function select(channel) {
   selected = channel;
+  if(!registerPanel.hidden)drawRegisters(selected);
   [...$('channels').children].forEach((b,i)=>b.setAttribute('aria-pressed',i===channel));
   const v = channels[channel];
   $('wave').selectedIndex=v.sample; $('pan').value=v.pan; $('vol').value=v.volume;
   refresh();
+  if(!registerPanel.hidden)inspectChannel();
 }
 for(let i=0;i<16;i++) {
   const button=document.createElement('button');
