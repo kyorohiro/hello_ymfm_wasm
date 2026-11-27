@@ -272,6 +272,48 @@
         Tetoricaは、JavaScriptでメガドライブやゲームボーイなどのレトロゲームサウンドをライブコーディングするツールです。
       </p>
 
+      <h2>メインアプリ</h2>
+
+      <div class="grid">
+        <div class="card card-synth card-with-icon">
+          <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
+          <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Synth Demo</strong>
+            ギター風に配置したPCキーボードとプリセット切り替えで、YM2612の音色を演奏・試聴できます。
+            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card card-playground card-with-icon">
+          <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
+          <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Playground</strong>
+            <code>play()</code>、<code>beat()</code>、<code>liveLoop()</code>と低レベルの<code>fm</code>操作を使い、JavaScriptで音楽を作れます。
+            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=pc98">PC-98 YM2608で試す &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=pc98-26">PC-98 YM2203で試す &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=neogeo">Neo Geo YM2610で試す &rarr;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card card-analyzer card-with-icon">
+          <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
+          <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>FM2612 VGM Analyzer</strong>
+            解析したコマンドとYM2612の6チャンネルを確認し、スナップショットやTFI音色をエクスポートできます。
+            <a class="card-engine-link" href="./vgm_analyzer/support.html">音源チップの対応状況 &rarr;</a>
+            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
+          </div>
+        </div>
+      </div>
+
       <h2>プロジェクトの目標</h2>
 
       <p>このリポジトリーには4つの目標があります。</p>
@@ -346,30 +388,12 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
       <h2>Tetoricaのツール（実験的）</h2>
 
       <div class="grid">
-        <div class="card card-playground card-with-icon">
-          <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
-          <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>YM2612 Playground</strong>
-            <code>play()</code>、<code>beat()</code>、<code>liveLoop()</code>と低レベルの<code>fm</code>操作を使い、JavaScriptで音楽を作れます。
-            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=pc98">PC-98 YM2608で試す &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=pc98-26">PC-98 YM2203で試す &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=neogeo">Neo Geo YM2610で試す &rarr;</a>
+        <a class="card card-synth card-with-icon" href="./synth-cps2/index.html">
+          <img class="card-icon" src="./tetorica_cps2_synth.webp" width="192" height="192" alt="" decoding="async">
+          <div class="card-content"><strong>Tetorica CPS2 Synth</strong>
+            <p>QSound の PCM を鍵盤で演奏できます。ADPCM 3声のデモや PCM エコーを聴き比べ、演奏を VGM に書き出せます。</p>
           </div>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="card card-synth card-with-icon">
-          <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
-          <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>YM2612 Synth Demo</strong>
-            ギター風に配置したPCキーボードとプリセット切り替えで、YM2612の音色を演奏・試聴できます。
-            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
-          </div>
-        </div>
+        </a>
       </div>
 
       <div class="grid">
@@ -438,19 +462,6 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
           <img class="card-icon" src="./tetorica_sid_synth.webp" width="192" height="192" alt="" decoding="async">
           <div class="card-content"><strong>SID Player</strong><p>対応するPALのPSID・RSIDをAuto／6581／8580 Previewで再生し、3声とfilter設定を表示。安全なdriver RAMと限定内蔵環境または手元のROMで、VBI／CIA割り込みをC64機械に接続します。Direct VBIは6581で選択可能。自作デモ付きです。</p></div>
         </a>
-      </div>
-
-      <div class="grid">
-        <div class="card card-analyzer card-with-icon">
-          <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
-          <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>FM2612 VGM Analyzer</strong>
-            解析したコマンドとYM2612の6チャンネルを確認し、スナップショットやTFI音色をエクスポートできます。
-            <a class="card-engine-link" href="./vgm_analyzer/support.html">音源チップの対応状況 &rarr;</a>
-            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
-          </div>
-        </div>
       </div>
 
       <div class="grid">

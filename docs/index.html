@@ -273,6 +273,49 @@
         including the sounds of the Sega Genesis / Mega Drive and Game Boy.
       </p>
 
+      <h2>Main apps</h2>
+
+      <div class="grid">
+        <div class="card card-synth card-with-icon">
+          <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
+          <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Synth Demo</strong>
+            Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
+            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card card-playground card-with-icon">
+          <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
+          <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Playground</strong>
+            Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
+            raw <code>fm</code> access.
+            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=pc98">PC-98 YM2608 Playground &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=pc98-26">PC-98 YM2203 Playground &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?mode=neogeo">Neo Geo YM2610 Playground &rarr;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card card-analyzer card-with-icon">
+          <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
+          <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>FM2612 VGM Analyzer</strong>
+            Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
+            <a class="card-engine-link" href="./vgm_analyzer/support.html">Sound chip support &rarr;</a>
+            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          </div>
+        </div>
+      </div>
+
       <h2>Goals</h2>
 
       <p>This repository has four goals:</p>
@@ -383,34 +426,6 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
       <h2>Tetorica Tools (Experimental)</h2>
 
       <div class="grid">
-        <div class="card card-playground card-with-icon">
-          <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
-          <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>YM2612 Playground</strong>
-            Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
-            raw <code>fm</code> access.
-            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=pc98">PC-98 YM2608 Playground &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=pc98-26">PC-98 YM2203 Playground &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?mode=neogeo">Neo Geo YM2610 Playground &rarr;</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="card card-synth card-with-icon">
-          <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
-          <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>YM2612 Synth Demo</strong>
-            Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
-            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid">
         <a class="card card-synth card-with-icon" href="./synth-fm2608/index.html">
           <img class="card-icon" src="./tetorica_fm2608_synth.webp" width="192" height="192" alt="" decoding="async">
           <div class="card-content">
@@ -440,6 +455,15 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
           <img class="card-icon" src="./tetorica_cps1_synth.webp" width="192" height="192" alt="" decoding="async">
           <div class="card-content"><strong>Tetorica CPS1 Synth</strong>
             <p>Play the YM2151 and MSM6295. Edit FM voices, trigger ADPCM samples and control both chips with JavaScript.</p>
+          </div>
+        </a>
+      </div>
+
+      <div class="grid">
+        <a class="card card-synth card-with-icon" href="./synth-cps2/index.html">
+          <img class="card-icon" src="./tetorica_cps2_synth.webp" width="192" height="192" alt="" decoding="async">
+          <div class="card-content"><strong>Tetorica CPS2 Synth</strong>
+            <p>Play QSound PCM voices on the keyboard, hear the three ADPCM voices, and compare a note with and without echo. Download the demos as VGM.</p>
           </div>
         </a>
       </div>
@@ -584,19 +608,6 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
           <img class="card-icon" src="./tetorica_sid_synth.webp" width="192" height="192" alt="" decoding="async">
           <div class="card-content"><strong>SID Player</strong><p>Open a supported PAL PSID or RSID tune with Auto / 6581 / 8580 Preview model selection. Watch voice and filter settings. VBI / CIA interrupts run in the C64 machine with safe driver RAM and a limited built-in environment or your own ROMs. Direct VBI is a 6581 option. Original demos included.</p></div>
         </a>
-      </div>
-
-      <div class="grid">
-        <div class="card card-analyzer card-with-icon">
-          <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
-          <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
-          <div class="card-content">
-            <strong>FM2612 VGM Analyzer</strong>
-            Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
-            <a class="card-engine-link" href="./vgm_analyzer/support.html">Sound chip support &rarr;</a>
-            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
-          </div>
-        </div>
       </div>
 
       <div class="grid">
