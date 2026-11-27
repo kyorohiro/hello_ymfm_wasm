@@ -20,7 +20,7 @@ In Analyzer’s Instrument tab, export the selected YM2151 voice as an `.opm` fi
 
 ### Compare OPM algorithms
 
-Open **Files → /examples/opm-algorithms.js**, select **Run**, then open **FM → CH1**. The example sets CH1’s voice and plays four A3 notes. In Algorithm 7, listen to OP4 alone and then to OP3 adding an octave. Algorithm 4 repeats the same two key masks, this time with OP3 modulating OP4. During the final eight-second note, raise OP3 TL toward 127 to reduce modulation. To repeat this by hand, switch off OP1 and OP2 in the Key column, leave OP4 on, and toggle OP3 between key presses.
+Open **Files → /examples/opm-algorithms.js**, select **Run**, then open **YM2151 → CH1**. The example sets CH1’s voice and plays four A3 notes. In Algorithm 7, listen to OP4 alone and then to OP3 adding an octave. Algorithm 4 repeats the same two key masks, this time with OP3 modulating OP4. During the final eight-second note, raise OP3 TL toward 127 to reduce modulation. To repeat this by hand, switch off OP1 and OP2 in the Key column, leave OP4 on, and toggle OP3 between key presses.
 
 ### Play Round Start
 
@@ -34,7 +34,7 @@ Open the **Mixer** tab to adjust the two chips independently (0–380%) before M
 
 **☰ → New → Cassette · ZIP** stops playback and starts again with the eight factory FM voices, original percussion kit and all three bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.
 
-The FM tab and the keyboard share **AUTO / CH1–CH8**. AUTO copies the current editor sound to successive idle physical channels as you play chords. If all eight are busy it can reuse the oldest AUTO key. Selecting a CH targets that physical voice. Algorithm, Feedback, AMS/PMS, operator and LFO values use the same minus / drag / plus controls as the FM2612 Synth. Pan and other switches toggle directly. Use − / + or drag the Octave value horizontally to transpose new notes by up to two octaves in either direction. Held keys release on the channel where they started.
+The YM2151 tab and the keyboard share **AUTO / CH1–CH8**. AUTO copies the current editor sound to successive idle physical channels as you play chords. If all eight are busy it can reuse the oldest AUTO key. Selecting a CH targets that physical voice. Algorithm, Feedback, AMS/PMS, operator and LFO values use the same minus / drag / plus controls as the FM2612 Synth. Pan and other switches toggle directly. Use − / + or drag the Octave value horizontally to transpose new notes by up to two octaves in either direction. Held keys release on the channel where they started.
 
 **Files** beside the mode buttons opens the shared cassette file tree on the left (above the panels on narrow screens). **☰ → Import → VGM / VGZ…** adds a song to this cassette. Select it in the VGM playback bar above Output and use **Play**, **Pause / Resume** or **Stop**. Playback runs one pass on separate YM2151 / MSM6295 instances using the file clocks, embedded OKI ROM blocks and the shared Mixer. The chip editors continue to show the live instruments. Dual chips, QSound and other sound-chip commands are outside this player.
 

@@ -1,5 +1,5 @@
 // OPM algorithms · CH1. Compare four A3 notes with the same two operators.
-// In FM → CH1, watch Algorithm. During the last note, drag OP3 TL.
+// In YM2151 → CH1, watch Algorithm. During the last note, drag OP3 TL.
 const ch = 0;
 const op4 = 0b1000;
 const op3And4 = 0b1100;
