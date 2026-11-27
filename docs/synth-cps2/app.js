@@ -22,6 +22,7 @@ import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {isSamplePath,decodeSample,padByteLength,allocateSample,sampleLibrary,maxRom} from './samples.js';
 import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet,padGroove,scheduledBar,filterGroove} from './sample-duet.js';
+import {presetJamFiles} from './preset-jam.js';
 let placements={},padPlacements={},library=sampleLibrary([]);
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.sample*256;
@@ -415,6 +416,7 @@ $('save').onclick=()=>{
 const source = $('source');
 const files = createVirtualFileSystem([
   {path:'/index.js',data:source.value},
+  ...presetJamFiles,
   {path:duetSamplePath,data:cabinetPluck()},
   {path:drumPath,data:cabinetSnare()},
   {path:'/examples/sample-duet.js',data:sampleDuet},
@@ -441,7 +443,7 @@ channels[0].loop=1;
 setPadSample(pads[0],drumPath);
 refresh();showPad();
 $('add-demos').onclick=()=>run(async()=>{
-  const additions=[];
+  const additions=presetJamFiles.filter(file=>!files.has(file.path));
   for(const track of Object.values(demoTracks)){
     const bytes=demoVgm(track.score());
     let path='/songs/'+track.filename,n=1;

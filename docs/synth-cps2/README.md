@@ -125,6 +125,8 @@ In the ADPCM tab, select Voice 2 and press **2** to follow the one-shot cursor. 
 
 Open Code and press Run to play the CH1 bass loop. Select CH2 and play the fretboard over the bass, or use 1–3 for ADPCM. Click outside the editor to use the musical keys. Select CH1 to watch its PCM and echo settings. Edit the notes or the echo send and press Apply to update the named loop. Stop ends the loops and keeps the instruments available for audition. Ctrl/Cmd+Enter runs the source; Ctrl/Cmd+Shift+Enter applies it.
 
+Open **Files → /examples/preset-jam.js → Run** for a PCM bass on CH1 and an ADPCM backbeat on Voice 2. Change `round-bass` to `bright-bass` in the preset path and press **Apply**. The two basses loop different waveforms in the same factory ROM. The drum keeps its beat, and PCM CH3 is free for the keyboard. Existing cassettes can add the example and its three presets through **☰ → Import → Add factory demos**. If auditioning a song ROM, choose **Use synth instruments** first.
+
 Open **Files → /examples/sample-duet.js → Run** to play the bundled original `/samples/cabinet-pluck.wav`. CH1 loops the last 64 bytes of its first 256 bytes for the bass. CH2 uses all 2,048 bytes for the melody. Select the shared sample bank in ROM to see both intervals. Edit a note or loop length and press **Apply** while the duet plays.
 
 Open **/examples/filter-groove.js → Run** for a bass and snare through a stereo low-pass filter. Change `cutoffHz` and press Apply, or set `bypass = true` and Apply to hear the dry groove. PCM CH3 keyboard notes pass through the same filter. The QSound chip mix (including its echo) feeds named Code effects, then Master and the output visualizer. Code Stop clears the effects and their DSP state.

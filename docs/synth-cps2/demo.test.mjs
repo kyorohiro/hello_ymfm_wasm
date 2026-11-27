@@ -4,6 +4,17 @@ import assert from 'node:assert/strict';
 import {QSoundPcm} from '../js/qsoundpcm.js';
 import {demoRom,demoScore,demoVgm,noteWrites} from './demo.js';
 
+import {presetJamFiles} from './preset-jam.js';
+import {isPresetPath,readPreset,presetRom} from './preset.js';
+
+test('preset jam voices resolve against the factory ROM',async()=>{
+  for(const {path,data} of presetJamFiles.filter(file=>isPresetPath(file.path))){
+    const p=readPreset(data);
+    const rom=await presetRom(p);
+    assert.ok(p.start<p.end && p.end<=rom.length,path);
+  }
+});
+
 test('CH1 bank is in CH16 register 0x78; half-rate phase and loop survive render boundaries',()=>{
   const rom = new Uint8Array(65538);
   rom.set([64,192],65536);
