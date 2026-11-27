@@ -2,7 +2,7 @@
 
 Serve the repository's docs directory over localhost or HTTPS and open
 `/synth-cps2/`. Select CH1–16, then hold A S D F G H J K or a screen key.
-Pitch follows the key. The sample selector applies on the next note; volume
+Pitch follows the key. The sample selector can switch the held note; volume
 and pan can change during a held note. Play demo and Download demo VGM use
 the selected score and generated ROM. PCM duet uses two pitched PCM channels. ADPCM trio triggers three one-shot samples, panned left, center and right.
 
@@ -39,3 +39,7 @@ The exported demo plays in VGM Analyzer and renders in tetorica-vgm with the sam
 - Bring the Files, Code / liveLoop and cassette workspace across from CPS1 Synth.
 
 The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame-qsound/LICENSE).
+
+## PCM waveform editor
+
+Select a PCM channel and hold a keyboard note. The shaded region runs from End minus Loop length to the exclusive End byte. The amber cursor samples the actual channel address at 20 Hz. A zero loop length allows the address to continue past the sample window. End and Loop length are bounded to the selected 256-byte instrument in this editor. Rate is the 4.12 register word for the current note. Editing Rate retunes the keyboard relative to that note. Each channel retains its settings. The controls also follow the selected PCM channel during demo playback.

@@ -21,11 +21,14 @@ export function demoRom() {
   return rom;
 }
 
-export function noteWrites(ch, midi, sample, pan, volume) {
+export function pcmRate(midi) {
+  return Math.round(4096 * 256 * 440 * 2**((midi-69)/12) / QSOUND_PCM_RATE);
+}
+
+export function noteWrites(ch, midi, sample, pan, volume, rate = pcmRate(midi), end = (sample+1)*256, loop = 256) {
   const base = ch * 8;
-  const rate = Math.round(4096 * 256 * 440 * 2**((midi-69)/12) / QSOUND_PCM_RATE);
-  return [[((ch+15)&15)*8,0x8000],[base+1,sample*256],[base+3,0],[base+4,256],
-    [base+5,(sample+1)*256],[base+2,rate],[0x80+ch,0x110+pan],[base+6,volume]];
+  return [[((ch+15)&15)*8,0x8000],[base+1,sample*256],[base+3,0],[base+4,loop],
+    [base+5,end],[base+2,rate],[0x80+ch,0x110+pan],[base+6,volume]];
 }
 
 // Event positions are in VGM ticks (44.1 kHz). Both playback and export use this score.

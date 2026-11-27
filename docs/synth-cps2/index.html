@@ -9,11 +9,21 @@ header{display:flex;align-items:center;gap:1rem;background:#176481;color:white;p
 h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;border:1px solid #7a9897;background:#fffaf0;border-radius:5px;padding:.4rem .7rem;cursor:pointer}button[aria-pressed=true]{background:#155876;color:white}
 #channels{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}#keys{display:flex;flex-wrap:wrap;gap:.3rem}#keys button{touch-action:none;min-height:3rem}
 footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-width:540px){#channels{grid-template-columns:repeat(4,1fr)}body{margin:0;padding:.5rem}}
+#pcm-wave{display:block;width:100%;height:6.5rem;background:#102c43;border-radius:5px}
+#pcm-controls{display:flex;gap:.45rem;flex-wrap:wrap;margin:.6rem 0}
+.param-control{display:grid;grid-template-columns:auto minmax(3rem,1fr) auto;border:1px solid #7a9897;border-radius:5px}
+.param-label{grid-column:1/-1;text-align:center;font-size:.82rem}
+.param-control button{border:0;padding:.15rem .45rem;background:transparent}
+.param-value{cursor:ew-resize;touch-action:none;user-select:none;font-variant-numeric:tabular-nums}
+#pcm-caption{font-size:.85rem;font-variant-numeric:tabular-nums}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <section><h2>PCM channel</h2><div id="channels"></div>
 <label>Sample<select id="wave"><option>Reed</option><option>Bell</option></select></label>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
-<label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label></section>
+<label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
+<div id="pcm-controls"></div>
+<canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
+<p id="pcm-caption"></p></section>
 <section><h2>Keyboard</h2><div id="keys"></div></section>
 <footer><label>Demo<select id="score"><option value="demo">PCM duet</option><option value="adpcm">ADPCM trio</option><option value="echo">PCM echo comparison</option></select></label> <button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer></main><script type="module" src="./app.js"></script></html>

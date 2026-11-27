@@ -6,19 +6,30 @@ class Cps2Preview extends AudioWorkletProcessor {
   constructor() {
     super();
     this.chip = new QSoundPcm(demoRom(), sampleRate);
+    this.starts = new Uint16Array(16);
     this.events = [];
     this.index = 0;
     this.frame = 0;
     this.port.onmessage = ({data}) => {
+      if (data?.type === 'inspect') {
+        const v = this.chip.voices[data.channel];
+        this.port.postMessage({...data,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
+          active:v.volume !== 0,finished:this.index === this.events.length,start:this.starts[data.channel]});
+        return;
+      }
       if (typeof data === 'string' && (data === 'stop' || Object.hasOwn(demoTracks,data))) {
         this.chip = new QSoundPcm(this.chip.rom, sampleRate);
         this.events = (data === 'stop' ? [] : demoTracks[data].score()).map(e=>({...e,frame:Math.round(e.t*sampleRate/44100)}));
+        this.starts.fill(0);
         this.frame = this.index = 0;
       } else this.apply(data);
     };
   }
   apply(writes) {
-    for (const [reg,value] of writes) this.chip.writeRegister(reg,value);
+    for (const [reg,value] of writes) {
+      if (reg < 0x80 && (reg & 7) === 1) this.starts[reg >> 3] = value;
+      this.chip.writeRegister(reg,value);
+    }
   }
   process(_, outputs) {
     const [left,right] = outputs[0];
