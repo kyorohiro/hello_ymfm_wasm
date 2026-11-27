@@ -6,6 +6,7 @@ import {inspectSong} from './vgm.js';
 import {parseOpm} from './opm.js';
 import {installProjectTree,base,checkPath,inside} from './project-tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
+import {dirname} from '../js/tetorica_virtual_files/path.js';
 
 const decode=bytes=>new TextDecoder('utf-8',{fatal:true}).decode(bytes);
 const voicePatch=({algorithm,feedback,pan,ams,pms,operators})=>({algorithm,feedback,pan,ams,pms,operators});
@@ -80,13 +81,18 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   function updateButtons(){
     const v=files.get(selected);
     el('copyChannelFile').hidden=v?.kind!=='channel';
-    el('filePath').textContent=selected+(pending.has(selected)?' *':'');
+    el('filePath').textContent=selected;
+    const marked=new Set();
+    for (const path of pending.keys()) {
+      for (let item=path;!marked.has(item);item=dirname(item)) {
+        marked.add(item);
+        if (item==='/') break;
+      }
+    }
+    for (const row of el('fileTree').querySelectorAll('[data-file-path]'))
+      row.toggleAttribute('data-draft',marked.has(row.dataset.filePath));
     el('fileSave').disabled=!v;
     el('fileSaveAll').disabled=!pending.size;el('fileDiscard').disabled=!pending.has(selected);
-    el('fileUndo').disabled=!history.length;
-    for(const b of document.querySelectorAll('[data-tree-action]')){
-      b.disabled=selected==='/'&&['rename','delete','duplicate'].includes(b.dataset.treeAction);
-    }
   }
   function persist(){
     clearTimeout(saveTimer);
@@ -180,12 +186,12 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     if(!path){path=nextPath(bankPath);files.set(path,{kind:'bank',...defaultBank});}
     useBank(path);
   }
-  el('fileUndo').onclick=()=>{
+  function undo(){
     const state=history.pop();if(!state)return;
     if(state.voices){revision++;stop();restoreSound(state);}else stopSong();
     files=state.files;folders=state.folders;selected=state.selected;presetChannel=state.presetChannel;editPath=state.editPath;pending=state.pending;opmBank=null;
     useBank(state.activeBank);script(state.editor,false);render();persist();report('Undid file operation.');
-  };
+  }
   el('copyChannelFile').onclick=()=>{applyVoice(panel.getSelectedChannel(),currentVoice(files.get(selected).ch));persist();};
   el('opmVoice').onchange=()=>{
     const voice=opmBank?.voices[Number(el('opmVoice').value)];
@@ -242,7 +248,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   const tree=installProjectTree({select:path=>{selected=path;
     for(const row of el('fileTree').querySelectorAll('[data-file-path]'))row.setAttribute('aria-current',String(row.dataset.filePath===path));
     updateButtons();},root:el('fileTree'),getFiles:()=>files,getFolders:()=>folders,selected:()=>selected,open,
-    label:v=>v?.name,create,change,importFiles,report});
+    label:v=>v?.name,create,change,undo,canUndo:()=>history.length>0,importFiles,report});
   function factory(code=defaults) {
     const docs=new Map([...code].map(([path,text])=>[path,{kind:'code',text}]));
     initialVoices.forEach((_,ch)=>docs.set('/'+voicePath(ch),{kind:'channel',ch}));

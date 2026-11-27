@@ -397,6 +397,8 @@ try {
     await page.click('#synthMode');
     assert.ok(await page.locator('#keys .key').first().isVisible());
     await checkVoicePages();
+    // Check the instrument and keyboard together from the top of the instrument.
+    await page.locator('#sourceTabs').evaluate(node=>node.scrollIntoView({block:'start'}));
     const keyboard = await page.locator('#keys .key').first().boundingBox();
     assert.ok(keyboard.y >= 0 && keyboard.y + keyboard.height <= 850, JSON.stringify({width,keyboard}));
     await page.click('[data-tab="pcm"]');
@@ -430,10 +432,15 @@ try {
   assert.equal(await page.inputValue('#editor'),'// riff');
   await page.locator('#fileAuto').uncheck();
   await page.fill('#editor','// draft');
+  for (const path of ['/lab/take.js','/lab','/']) {
+    assert.equal(await row(path).evaluate(node=>getComputedStyle(node,'::after').content),'" *"');
+  }
+  assert.equal(await row('/lab/riff.js').getAttribute('data-draft'),null);
   await page.click('#fileDiscard');
+  assert.equal(await page.locator('#fileTree [data-draft]').count(),0);
   assert.equal(await page.inputValue('#editor'),'// riff');
   await fileAction('/lab/take.js','Delete','');
-  await page.click('#fileUndo');
+  await fileAction('/','Undo files');
   await row('/lab/take.js').click();
   await row('/lab/take.js').dragTo(row('/examples'));
   await row('/examples/take.js').click();
@@ -478,7 +485,7 @@ try {
   await page.locator('#importCassette').setInputFiles({name:'old.cassette.zip',mimeType:'application/zip',buffer:Buffer.from(legacy)});
   await page.getByText('Imported old.cassette.zip',{exact:true}).waitFor();
   assert.equal(await page.inputValue('#editor'),'// legacy');
-  await page.click('#fileUndo');
+  await fileAction('/','Undo files');
   await row('/examples/take.js').click();
   assert.equal(await page.inputValue('#editor'),'// riff');
   assert.deepEqual(errors,[]);

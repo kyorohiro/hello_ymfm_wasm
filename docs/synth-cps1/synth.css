@@ -205,6 +205,7 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 #fileTree {font-size:.86rem}
 #fileTree ul {list-style:none;margin:0;padding:0}
 #fileTree ul ul {padding-left:.8rem;border-left:1px solid var(--line)}
+#fileTree [data-draft]::after {content:" *";font-weight:bold}
 #fileTree summary {cursor:pointer;font-weight:600}
 #fileTree .file-entry {background:transparent;border:0;padding:.18rem .4rem;text-align:left;overflow-wrap:anywhere;width:100%;font-weight:400}
 #fileTree .file-entry[aria-current=true] {color:white;background:var(--deep-green)}

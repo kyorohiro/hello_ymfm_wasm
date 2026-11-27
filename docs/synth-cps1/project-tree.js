@@ -15,7 +15,7 @@ export function checkPath(path) {
   return path;
 }
 
-export function installProjectTree({root,getFiles,getFolders,selected,select,open,label,create,change,importFiles,report}) {
+export function installProjectTree({root,getFiles,getFolders,selected,select,open,label,create,change,undo,canUndo,importFiles,report}) {
   const expanded=new Map([['/examples',true]]);
   const actions={duplicate:'Duplicate',rename:'Rename…',delete:'Delete',instrument:'New instrument…',code:'New JavaScript file…',folder:'New folder…'};
   function index() {
@@ -48,6 +48,7 @@ export function installProjectTree({root,getFiles,getFolders,selected,select,ope
     });
   }
   async function perform(action,path) {
+    if (action==='undo') {undo();return;}
     const fs=index(), file=fs.has(path), parent=file?dirname(path):path;
     if (action==='delete') {
       if (!confirm('Delete '+path+'?')) return;
@@ -70,7 +71,7 @@ export function installProjectTree({root,getFiles,getFolders,selected,select,ope
     create(action,to);
   }
   const getActions=path=>Object.entries(actions).map(([id,label])=>({id,label,
-    disabled:path==='/'&&['duplicate','rename','delete'].includes(id)}));
+    disabled:path==='/'&&['duplicate','rename','delete'].includes(id)})).concat({id:'undo',label:'Undo files',disabled:!canUndo()});
   installSpuFileContextMenu({root,getActions,onTarget:select,onAction:perform,onError:error=>report(error.message)});
   root.addEventListener('click',event=>{const folder=event.target.closest('summary,.file-tree-root');if(folder)select(folder.dataset.filePath);});
   for(const button of document.querySelectorAll('[data-tree-action]')) button.onclick=()=>{
