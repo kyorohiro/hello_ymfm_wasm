@@ -9,7 +9,7 @@
 <div id="synthMenuPanel" class="synth-menu-panel">
 <h2>New</h2><button id="newCassette" data-close-synth-menu>Cassette · ZIP</button>
 <h2>Import</h2><button id="chooseOpm" data-close-synth-menu>OPM voice…</button><input id="importOpm" type="file" accept=".opm" hidden><button id="chooseVgm" data-close-synth-menu>VGM / VGZ…</button><button id="chooseCassette" data-close-synth-menu>Cassette…</button>
-<h2>Export</h2><button id="exportCassette" data-close-synth-menu>Cassette · ZIP</button>
+<h2>Export</h2><button id="exportPresets" data-close-synth-menu>Presets (.opm) · ZIP</button><button id="exportCassette" data-close-synth-menu>Cassette · ZIP</button>
 </div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="workspace-actions"><button id="filesToggle" disabled aria-expanded="false" aria-controls="files">Files</button><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></div></header>
 <section id="referenceSong" aria-label="VGM reference playback" hidden>
 <div class="bar"><label>VGM <select id="songs" disabled></select></label><button id="playSong" disabled>Play</button><button id="pauseSong" disabled>Pause</button><button id="stopSong" disabled>Stop</button><output id="songTime"></output></div>

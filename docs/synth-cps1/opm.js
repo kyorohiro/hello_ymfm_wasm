@@ -38,3 +38,19 @@ export function parseOpm(text) {
   if (!voices.length) throw Error('No OPM voices found.');
   return voices;
 }
+
+export function formatOpmVoice(name,voice,lfo,noise){
+  const {pan={},feedback=0,algorithm=0,ams=0,pms=0,keyMask=15}=voice;
+  const lines=[
+    '// Tetorica CPS1 Synth',
+    '@:0 '+name,
+    'LFO: '+[lfo.frequency,lfo.amDepth,lfo.pmDepth,lfo.waveform,noise.frequency].join(' '),
+    'CH: '+[(pan.left?64:0)|(pan.right?128:0),feedback,algorithm,ams,pms,keyMask<<3,noise.enabled?128:0].join(' '),
+  ];
+  for(const index of [0,2,1,3]){
+    const op=voice.operators[index];
+    const values=fields.map(field=>field==='am' ? (op.am?128:0) : op[field]??0);
+    lines.push(slots[index]+': '+values.join(' '));
+  }
+  return lines.join('\r\n')+'\r\n';
+}

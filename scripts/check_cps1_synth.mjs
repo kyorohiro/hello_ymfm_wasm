@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {unzipSync,strFromU8} from '../docs/playground/vendor/fflate.js';
+import {parseOpm} from '../docs/synth-cps1/opm.js';
 import {gzipSync} from 'node:zlib';
 import {loadPlaygroundCassette,createPlaygroundCassetteZip} from '../docs/playground/playground_cassette.js';
 import {createKit} from '../docs/synth-cps1/kit.js';
@@ -311,7 +313,8 @@ try {
   await page.locator('#fileNameDialog').getByRole('button',{name:'Save',exact:true}).click();
   const opmText = ['@:0 Browser brass','LFO: 93 34 67 2 17','CH: 192 5 6 1 3 40 128',
     ...['M1','C1','M2','C2'].map((name,i)=>name+': 31 2 3 4 5 '+(28+i)+' 0 1 0 0 0')].join('\n');
-  await page.locator('#importOpm').setInputFiles({name:'voice.opm',mimeType:'text/plain',buffer:Buffer.from(opmText)});
+  const opmBank=opmText+'\n'+opmText.replace('@:0 Browser brass','@:7 Second patch').replace('CH: 192 5','CH: 192 6');
+  await page.locator('#importOpm').setInputFiles({name:'voice.opm',mimeType:'text/plain',buffer:Buffer.from(opmBank)});
   await page.waitForFunction(()=>document.querySelector('#opmVoice option:checked')?.textContent==='Browser brass');
   await page.click('[data-tab="fm"]');
   assert.equal(await page.locator('[data-chip-control="ym2151-feedback"]').inputValue(),'5');
@@ -320,6 +323,24 @@ try {
   await page.keyboard.up('a');
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
   await page.click('#opmGlobals');
+  await page.click('[data-tab="code"]');
+  const previousCode=await page.inputValue('#editor');
+  await page.fill('#editor',"opm.loadVoice(7, '/presets/voice.opm', 1); opm.noteOn(7,'C4'); await sleep(0.1); opm.keyOff(7);");
+  await page.click('#run');
+  await page.waitForFunction(()=>document.querySelector('#status').textContent==='Finished');
+  await page.fill('#editor',previousCode);
+  const presetDownload=page.waitForEvent('download');
+  await page.click('#synthMenuButton');
+  await page.click('#exportPresets');
+  const presetFile=await presetDownload;
+  assert.equal(presetFile.suggestedFilename(),'tetorica-cps1-presets.zip');
+  const presets=unzipSync(await readFile(await presetFile.path()));
+  assert.equal(Object.keys(presets).length,10);
+  assert.ok(Object.keys(presets).every(p=>p.endsWith('.opm')));
+  assert.equal(strFromU8(presets['voice.opm']),opmBank);
+  const [exportedVoice]=parseOpm(strFromU8(presets['ch8.opm']));
+  const expected=parseOpm(opmBank)[1];
+  assert.deepEqual({...exportedVoice,name:expected.name},expected);
   const rom=Buffer.from(createKit()), header=Buffer.alloc(0x100), block=Buffer.alloc(15);
   header.write('Vgm ');header.writeUInt32LE(0x171,8);header.writeUInt32LE(0xcc,0x34);
   header.writeUInt32LE(3579545,0x30);header.writeUInt32LE(0x80000000+1000000,0x98);

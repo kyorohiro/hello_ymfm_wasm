@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createOpmState} from '../vgm_analyzer/opm_monitor.js';
 import {exportOpm} from '../vgm_analyzer/opm_export.js';
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
-import {parseOpm} from './opm.js';
+import {formatOpmVoice,parseOpm} from './opm.js';
 
 test('Analyzer OPM on CH8 restores exact voice registers on CH3 without changing chip globals',()=>{
   const source=createOpmState(), writes=[];
@@ -28,4 +28,17 @@ test('Analyzer OPM on CH8 restores exact voice registers on CH3 without changing
   assert.equal(dest.registers[0x18],93);assert.equal(dest.registers[0x0f],0x91);
   assert.throws(()=>parseOpm(text.replace(/^C2:.*$/m,'')),/missing C2/);
   assert.throws(()=>parseOpm(text.replace(/^M2: /m,'M2: 999 ')),/Invalid M2/);
+});
+
+test('CPS1 export preserves a silent operator mask and distinct M2 and C1 parameters',()=>{
+  const chip=new Ym2151VoiceInspector({dispatch:({args})=>chip.observeWrite(...args)});
+  const voice={feedback:6,algorithm:2,pan:{left:true,right:false},ams:3,pms:7,
+    operators:[0,1,2,3].map(i=>({tl:10+i,dt1:i,dt2:3-i,am:!!(i%2)}))};
+  chip.invoke('setVoice',[7,voice]);
+  const {channels,lfo,noise}=chip.read();
+  const [actual]=parseOpm(formatOpmVoice('Bell',{...channels[7],keyMask:0},lfo,noise));
+  assert.equal(actual.mask,0);
+  assert.equal(actual.name,'Bell');
+  assert.deepEqual(actual.patch.operators,channels[7].operators);
+  assert.deepEqual(actual.patch.pan,voice.pan);
 });

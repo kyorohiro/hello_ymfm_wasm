@@ -20,6 +20,21 @@ In Analyzer’s Instrument tab, export the selected YM2151 voice as an `.opm` fi
 
 **Apply shared LFO / CH8 noise** applies the selected OPM voice’s global settings. Import leaves the running LFO and noise settings intact. Cassette retains the imported OPM texts and channel masks. The source clock, note pitch and playback position are not restored by voice import.
 
+### Use Files presets from Code
+
+With `brass.opm` in Files under `/presets`, run:
+
+```js
+opm.loadVoice(0, '/presets/brass.opm');
+opm.noteOn(0, 'C4');
+await sleep(0.5);
+opm.keyOff(0);
+```
+
+The first argument is the zero-based YM2151 channel. For a bank pass a third argument to select a voice by its zero-based position in the file. Loading applies the channel patch and operator mask. Shared LFO and noise settings remain under the Files control above.
+
+**☰ → Export → Presets (.opm) · ZIP** downloads the channel and saved instrument files as individual OPM voices alongside the original imported OPM banks. Converted voices snapshot the current shared LFO and noise rate. Only a CH8 snapshot enables noise. Cassette continues to store channel and instrument files as JSON.
+
 ### Compare OPM algorithms
 
 Open **Files → /examples/opm-algorithms.js**, select **Run**, then open **YM2151 → CH1**. The example sets CH1’s voice and plays four A3 notes. In Algorithm 7, listen to OP4 alone and then to OP3 adding an octave. Algorithm 4 repeats the same two key masks, this time with OP3 modulating OP4. During the final eight-second note, raise OP3 TL toward 127 to reduce modulation. To repeat this by hand, switch off OP1 and OP2 in the Key column, leave OP4 on, and toggle OP3 between key presses.

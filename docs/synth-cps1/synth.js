@@ -792,6 +792,7 @@ $('run').onclick = async () => {
         if (data.error) throw Error(data.error);
         if(data.editedFm){Object.assign(observation.fm,data.editedFm);dirty=true;return;}
       if (data.done) {worker.terminate();worker=null;status('Finished');return;}
+        if(data.chip==='opm' && data.method==='loadVoice'){files.loadOpmVoice(...data.args);return;}
         const api = data.chip === 'opm' ? opm : oki;
         writingCode=true;
         try{api[data.method](...data.args);}finally{writingCode=false;}

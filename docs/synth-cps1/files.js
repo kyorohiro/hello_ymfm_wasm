@@ -6,7 +6,8 @@ import {createSampleBank} from './kit.js';
 import {inspectSong,embeddedSongBanks} from './vgm.js';
 import {playableSamples} from './sample-view.js';
 import {makeAudioBank,writeBankSample} from './audio-bank.js';
-import {parseOpm} from './opm.js';
+import {strToU8,zipSync} from '../playground/vendor/fflate.js';
+import {formatOpmVoice,parseOpm} from './opm.js';
 import {installProjectTree,base,checkPath,inside} from './project-tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 import {dirname} from '../js/tetorica_virtual_files/path.js';
@@ -273,7 +274,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
         if(numbered)path=nextPath(i=>songPath(i,f.name),songEntries().length,additions);
       }else if(/\.opm$/i.test(path)){
         const source=await f.text();v={kind:'opm',source,voices:parseOpm(source)};
-        if(numbered)path=nextPath(i=>'presets/import-'+i+'.opm');
+        if(numbered)path=nextPath(i=>'presets/'+f.name.slice(0,-4)+(i?' ('+i+')':'')+'.opm',0,additions);
       }else if(/\.m?js$/i.test(path))v={kind:'code',text:await f.text()};
       else if(/\.fm\.json$/i.test(path))v={kind:'voice',voice:validateVoice(JSON.parse(await f.text()),new Ym2151VoiceInspector({dispatch(){}}))};
       else if(/\.(bin|rom)$/i.test(path)&&f.size>=8&&f.size<=0x40000)v=newBank({kind:'bank',bytes:new Uint8Array(await f.arrayBuffer()),names:Array(128).fill('ROM sample'),name:f.name});
@@ -334,13 +335,34 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     const cps1={version:2,records,active:activeBank,voices:state.channels.map((_,i)=>currentVoice(i)),lfo:state.lfo,noise:state.noise};
     return createPlaygroundCassetteZip(entries,{directories:folders,metadata:{cps1}});
   }
-  el('exportCassette').onclick=()=>{
+  function presetZip(){
+    const entries=Object.create(null),used=new Set();
+    const {channels,lfo,noise}=inspector.read();
+    for(const [path,file] of files){
+      if(!['channel','voice','opm'].includes(file.kind))continue;
+      const stem=base(path).replace(/(?:\.fm\.json|\.opm)$/i,'');
+      let filename=stem+'.opm',suffix=2;
+      while(used.has(filename.toLowerCase())){filename=stem+' ('+suffix+').opm';suffix++;}
+      used.add(filename.toLowerCase());
+      let text=file.source;
+      if(file.kind!=='opm'){
+        const voice=file.kind==='channel'?{...channels[file.ch],keyMask:keyMasks[file.ch]}:file.voice;
+        text=formatOpmVoice(stem,voice,lfo,{...noise,enabled:file.ch===7 && noise.enabled});
+      }
+      entries[filename]=strToU8(text);
+    }
+    if(!used.size)throw Error('No FM presets to export.');
+    return zipSync(entries);
+  }
+  function downloadZip(filename,makeBytes,message){
     try{
-      const url=URL.createObjectURL(new Blob([serialize()],{type:'application/zip'}));
-      const a=document.createElement('a');a.href=url;a.download='tetorica-cps1.cassette.zip';a.click();
-      setTimeout(()=>URL.revokeObjectURL(url),1000);report('Exported Cassette');
+      const url=URL.createObjectURL(new Blob([makeBytes()],{type:'application/zip'}));
+      const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);report(message);
     }catch(error){report(error.message);}
-  };
+  }
+  el('exportCassette').onclick=()=>downloadZip('tetorica-cps1.cassette.zip',serialize,'Exported Cassette');
+  el('exportPresets').onclick=()=>downloadZip('tetorica-cps1-presets.zip',presetZip,'Exported OPM presets');
   async function parseProject(archive) {
     const m=archive.metadata.cps1,validator=new Ym2151VoiceInspector({dispatch(){}});
     const docs=new Map(),read=path=>{
@@ -464,7 +486,13 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     useBank(path);el('romList').value=path;
     return true;
   }
-  return {keepSongBank,persist,addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
+  return {loadOpmVoice(ch,path,index=0){
+    const file=files.get(path);
+    if(file?.kind!=='opm')throw Error('OPM file not found: '+path);
+    if(!Number.isInteger(index)||!file.voices[index])throw Error('Unknown OPM voice index: '+index);
+    const {patch,mask}=file.voices[index];
+    applyVoice(ch,{...patch,keyMask:mask});
+  },keepSongBank,persist,addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
     const target=files.get(editPath);
     if(target?.kind==='channel'&&target.ch===ch)editFile(editPath,{...target,voice:currentVoice(ch)});
     else if(ch===presetChannel&&target?.kind==='voice')editFile(editPath,{kind:'voice',voice:currentVoice(ch)});
