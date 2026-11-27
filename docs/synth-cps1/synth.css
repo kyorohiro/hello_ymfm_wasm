@@ -83,14 +83,16 @@ table {width:100%;border-collapse:collapse;font-size:.88rem}
 #mixer output {min-width:4ch;text-align:right;font-variant-numeric:tabular-nums}
 #mixer button {padding:.2rem .5rem}
 
-.workspace-actions {display:flex;align-items:center;gap:.65rem;margin-left:auto}
-.mode-switch {display:inline-flex;gap:0;padding:2px;border:1px solid #827c68;border-radius:2rem;background:#35342e}
-.mode-switch button {min-width:4rem;padding:.15rem .65rem;border:0;border-radius:2rem;background:transparent;color:#f5e8cd}
+.workspace-actions {display:flex;align-items:center;gap:.25rem;margin-left:auto}
+.mode-switch {display:inline-flex;gap:0;padding:0;border:1px solid #827c68;border-radius:.4rem;background:#35342e}
+.mode-switch button {padding:.32rem .56rem;border:0;border-radius:0;background:transparent;color:#f5e8cd}
+.mode-switch button:first-child {border-radius:.32rem 0 0 .32rem}
+.mode-switch button:last-child {border-left:1px solid #827c68;border-radius:0 .32rem .32rem 0}
 .mode-switch button:hover {background:#514e42}
 .mode-switch button[aria-pressed=true] {background:var(--green);color:#182915}
 .mode-switch button:focus-visible {outline:2px solid white;outline-offset:1px}
 header::after {margin-left:0}
-#workbench {display:grid;grid-template-columns:minmax(0,1fr);gap:.4rem;margin-top:.75rem}
+#workbench {display:grid;grid-template-columns:minmax(0,1fr);gap:.2rem;margin-top:.75rem}
 #workbench nav {margin:0;padding:.35rem .5rem}
 #sourceTabs {grid-row:1}
 #workbench > section {grid-row:2;min-width:0;padding:.65rem;border:1px solid var(--line);border-radius:.7rem;background:var(--panel)}
@@ -184,6 +186,7 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
   .voice-page .chip-opm-envelope {height:40px}
   .voice-page .chip-opm-table {line-height:1.15}
   .voice-page .chip-opm-table :is(th,td) {padding:0}
+  #workbench {row-gap:.15rem}
   #workbench > section {padding:.38rem}
   #keyChannels button {font-size:.78rem}
 }
@@ -223,7 +226,9 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
   #opm-page-0 .chip-fields .param-control {min-width:0;align-content:space-between}
 }
 
-.opm-envelope-editor {width:min(36rem,94vw);max-height:85vh;overflow:auto}
+.opm-envelope-editor {min-width:0}
+.opm-envelope-editor summary {cursor:pointer;font-weight:600;font-size:.85rem}
+.opm-envelope-editor[open] {padding-bottom:.4rem}
 .opm-envelope-editor .envelope-plot {position:relative;margin:.4rem 0}
 .envelope-plot canvas {display:block;width:100%;height:150px;border-radius:.35rem}
 .envelope-plot button[data-envelope-handle] {position:absolute;width:24px;height:24px;transform:translate(-50%,-50%);border:0;padding:0;background:transparent;cursor:ew-resize;touch-action:none}
@@ -237,7 +242,7 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 
 .scope-modes {display:inline-flex;gap:.15rem}
 
-.spu-file-context-menu {z-index:20;display:grid;gap:.15rem;padding:.35rem;background:var(--panel);border:1px solid var(--line);border-radius:.4rem}
+#spuFileContextMenu {z-index:20;display:flex;flex-direction:column;align-items:stretch;min-width:11rem;gap:.15rem;padding:.35rem;background:var(--panel);border:1px solid var(--line);border-radius:.4rem}
 .spu-file-context-menu button {text-align:left}
 .file-drop-target {outline:2px dashed var(--deep-green)}
 .file-tree-root {cursor:default;font-weight:600}

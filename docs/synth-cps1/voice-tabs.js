@@ -62,14 +62,17 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
   tools.className='voice-tools';selected.append(tools);
   tool(tools,'Pitch / gate',[common]);
   tool(tools,'Audition',[audition,selected.querySelector('.subtext')]);
-  const popup=tool(tools,'Envelope',[document.getElementById('envelopeEditor').content.cloneNode(true)]);
-  popup.classList.add('opm-envelope-editor');
+  const editor=document.createElement('details');
+  editor.className='opm-envelope-editor';
+  const summary=document.createElement('summary');
+  summary.textContent='Envelope';
+  editor.append(summary,document.getElementById('envelopeEditor').content.cloneNode(true));
+  selected.querySelector('.chip-fields').before(editor);
   operatorsCard.querySelector('canvas').remove();
-  for (const guide of operatorsCard.querySelectorAll('p.subtext')) popup.append(guide);
+  for (const guide of operatorsCard.querySelectorAll('p.subtext')) editor.append(guide);
   let operatorStates, envelopeChannel;
   const envelopeView=createOperatorEnvelopeView({
-    root:popup,
-    isOpen:()=>popup.matches(':popover-open'),
+    root:editor,
     getSelectionKey:()=>envelopeChannel,
     getOperators:()=>operatorStates,
     paramLabel:key=>key==='sl'?'D1L':key.toUpperCase(),

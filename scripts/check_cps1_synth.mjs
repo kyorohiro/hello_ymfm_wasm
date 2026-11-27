@@ -114,8 +114,8 @@ try {
   await page.keyboard.down('a');
   await page.waitForFunction(()=>document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes('1101'));
   await slot.click();
-  await page.getByRole('button',{name:'Envelope',exact:true}).click();
   const envelope=page.locator('.opm-envelope-editor');
+  await envelope.locator('summary').click();
   await envelope.getByRole('button',{name:'OP3',exact:true}).click();
   const decay=envelope.locator('[data-envelope-handle="decay"]');
   await page.waitForFunction(()=>document.querySelector('[data-envelope-handle="decay"]').title.startsWith('OP3 '));
@@ -130,7 +130,7 @@ try {
   assert.ok(d1r>8 && d1l>5);
   assert.match(await envelope.locator('[data-envelope-readout]').textContent(),new RegExp('D1R '+d1r+' · D1L '+d1l));
   assert.match(await gate.textContent(),/1101/);
-  await page.keyboard.press('Escape');
+  await envelope.locator('summary').click();
   const feedback=page.getByRole('button',{name:'Feedback (OP1)',exact:true});
   for (let i=0;i<4;i++) await feedback.locator('..').getByRole('button',{name:'+',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-chip-control="ym2151-code"]').value.includes('opm.setAlgo(0, 4, 6)'));
@@ -400,6 +400,8 @@ try {
   const row=path=>page.locator('#fileTree [data-file-path]').and(page.locator('[data-file-path="'+path+'"]'));
   async function fileAction(path,label,answer){
     await row(path).click({button:'right'});
+    const boxes=await page.getByRole('menuitem').evaluateAll(items=>items.map(item=>item.getBoundingClientRect().toJSON()));
+    assert.ok(boxes.every((box,i)=>!i||(box.top>=boxes[i-1].bottom&&box.left===boxes[0].left)));
     if(label==='Delete')page.once('dialog',d=>d.accept());
     await page.getByRole('menuitem',{name:label,exact:true}).click();
     if(answer!==undefined&&label!=='Delete'){
