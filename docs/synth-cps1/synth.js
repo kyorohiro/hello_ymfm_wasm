@@ -299,13 +299,17 @@ function voiceSample(voice){
   const id=Number(voicePickers[voice].value);
   return id<0?Number($('sample').value):id;
 }
+let sampleAttenuation=2;
+const attenuationControl=createParamControl({label:'Attenuation',min:0,max:15,step:1,value:sampleAttenuation,
+  onChange:value=>{sampleAttenuation=value;},
+});
+$('attenuation').append(attenuationControl.element);
 let phraseIds=[];
 $('layerSamples').onclick=()=>{
   if(phraseIds.length<4)return;
   try {
-    const attenuation=limit($('attenuation').valueAsNumber,15,'Attenuation');
     const bytes=[0x78];
-    phraseIds.slice(0,4).forEach((sample,voice)=>bytes.push(0x80|sample,(0x10<<voice)|attenuation));
+    phraseIds.slice(0,4).forEach((sample,voice)=>bytes.push(0x80|sample,(0x10<<voice)|sampleAttenuation));
     write(...bytes);
     startAudio().catch(fail);
   } catch(error){fail(error);}
@@ -332,8 +336,7 @@ for (let i=0;i<4;i++) {
   const lamp = document.createElement('output'); lamp.className = 'lamp';
   const play = document.createElement('button'); play.textContent = 'Play';
   play.onclick = () => {try {
-    const sample = voiceSample(i), attenuation = $('attenuation').valueAsNumber;
-    oki.play(i,sample,attenuation); startAudio().catch(fail);
+    oki.play(i,voiceSample(i),sampleAttenuation); startAudio().catch(fail);
   } catch (error) {fail(error);}};
   const stop = document.createElement('button'); stop.textContent = 'Stop'; stop.onclick = () => oki.stop(i);
   const mute = document.createElement('button');
@@ -459,10 +462,9 @@ function press(id,entry) {
   if (observation || held.has(id)) return;
   if (pcmKeyboard) {
     try {
-      const attenuation=limit($('attenuation').valueAsNumber,15,'Attenuation');
       const voice=nextSampleVoice;
       oki.stop(voice);
-      oki.play(voice,voiceSample(voice),attenuation);
+      oki.play(voice,voiceSample(voice),sampleAttenuation);
       nextSampleVoice=(voice+1)%4;
       startAudio().catch(fail);
     } catch (error) {fail(error);}

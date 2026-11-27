@@ -548,6 +548,17 @@ try {
   assert.equal(await page.locator('#command').textContent(),'0x82 0x12');
   await pcmRows.nth(1).getByText('Play',{exact:true}).click();
   assert.equal(await page.locator('#command').textContent(),'0x81 0x22');
+  const attenuation=page.locator('#attenuation');
+  await attenuation.getByRole('button',{name:'+',exact:true}).click();
+  await page.keyboard.press('d');
+  assert.equal(await page.locator('#command').textContent(),'0x81 0x43');
+  const value=attenuation.getByRole('button',{name:'Attenuation',exact:true});
+  const knob=await value.boundingBox();
+  await page.mouse.move(knob.x+knob.width/2,knob.y+knob.height/2);
+  await page.mouse.down();await page.mouse.move(knob.x+knob.width/2+32,knob.y+knob.height/2);await page.mouse.up();
+  assert.equal(await value.textContent(),'6');
+  await page.keyboard.press('f');
+  assert.equal(await page.locator('#command').textContent(),'0x81 0x86');
   const bankDownload=page.waitForEvent('download');
   await page.click('#synthMenuButton');await page.click('#exportCassette');
   const bankArchive=await loadPlaygroundCassette(await readFile(await (await bankDownload).path()));
