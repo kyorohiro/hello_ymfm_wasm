@@ -42,6 +42,12 @@ try {
   for (const name of ['Synth','Code','Synth']) {
     await modes.getByRole('button',{name,exact:true}).click();
     assert.equal(await modes.getByRole('button',{pressed:true}).textContent(),name);
+    if (name==='Code') {
+      assert.ok(await page.locator('#files').isVisible());
+      assert.equal(await page.locator('#filesToggle').getAttribute('aria-expanded'),'true');
+      await page.click('#filesToggle');
+      assert.ok(await page.locator('#files').isHidden());
+    }
   }
   assert.ok(await page.locator('#fm').isVisible());
   assert.ok(await page.locator('#keyboardPanel').isVisible());

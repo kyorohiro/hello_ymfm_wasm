@@ -207,6 +207,7 @@ function changeMode(mode) {
   const codeTab = tabs.find(tab=>tab.dataset.tab==='code');
   const keyboardTab = tabs.find(tab=>tab.dataset.tab==='keyboardPanel');
   if (mode === 'code') {
+    setFilesOpen(true);
     $('sourceTabs').prepend(codeTab);
     $('sourceTabs').append(keyboardTab);
     codeView = 'code';
