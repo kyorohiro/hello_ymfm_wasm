@@ -73,3 +73,7 @@ Files → Cassette → **Download factory demos** builds a project from the fact
 ## Mixer
 
 Open Mixer for master gain (0–380%) and independent Mute and Solo buttons on PCM CH1–16 and ADPCM 1–3. Solos can be combined. Mute takes priority on a soloed voice. Muting stops the voice's dry output and new echo input while playback advances and the shared echo tail decays. Master gain affects the whole stereo output. The keyboard, pads, Code, demos and imported VGMs share these controls. The local draft and project cassette retain the mix.
+
+## Output
+
+Switch between Waveform (amplitude over time) and Spectrum (level by frequency) above the Mixer. Both show the shared stereo output downmixed for display after voice mute/solo and Master gain. The PCM channel waveform below shows the selected sample ROM data. The output display refreshes at up to 30 Hz while visible.

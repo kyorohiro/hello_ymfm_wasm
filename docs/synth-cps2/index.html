@@ -33,8 +33,15 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 .mix-voices{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.4rem}
 .mix-voices>div{display:flex;align-items:center;gap:.2rem}.mix-voices strong{flex:1}
 .mix-voices button{font-size:.85rem;padding:.2rem .35rem}
+.output-heading{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:.4rem}
+.output-heading h2{margin:0}.output-heading button{padding:.2rem .55rem}
+#output-scope{display:block;width:100%;height:7rem;border-radius:5px;background:#102c43}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
+<section aria-labelledby="output-title"><div class="output-heading"><h2 id="output-title">Output</h2>
+<div role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button>
+<button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div></div>
+<canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></section>
 <section><details id="mixer"><summary>Mixer</summary>
 <label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {setupMixer,mutedVoices} from './mixer.js';
 import {inspectSong} from './song.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
@@ -35,6 +36,30 @@ function transport() {
   $('vol').max=songState==='stopped'?16384:32767;
 }
 
+const scope=createSynthOutputVisualizer({background:'#102c43',grid:'#305067',trace:'#afeacb'});
+const canvas=$('output-scope'), scopeContext=canvas.getContext('2d');
+let scopeMode='waveform', scopeVisible=false, scopeTimer;
+function drawScope(){scope.draw(canvas,scopeContext,scopeMode);}
+function updateScope() {
+  clearInterval(scopeTimer);
+  if (!scopeVisible || document.hidden) return;
+  drawScope();
+  if (masterGain) scopeTimer=setInterval(drawScope,1000/30);
+}
+new IntersectionObserver(([entry])=>{scopeVisible=entry.isIntersecting;updateScope();}).observe(canvas);
+new ResizeObserver(([entry])=>{
+  canvas.width=Math.max(1,Math.round(entry.contentRect.width));
+  canvas.height=Math.max(1,Math.round(entry.contentRect.height));
+  if(scopeVisible)drawScope();
+}).observe(canvas);
+document.addEventListener('visibilitychange',updateScope);
+const modes=document.querySelectorAll('[data-visual-mode]');
+for(const button of modes)button.onclick=()=>{
+  scopeMode=button.dataset.visualMode;
+  for(const item of modes)item.setAttribute('aria-pressed',String(item===button));
+  canvas.setAttribute('aria-label','Output '+scopeMode);
+  drawScope();
+};
 const mixer = setupMixer(applyMix);
 function applyMix(settings) {
   if(masterGain)masterGain.gain.setTargetAtTime(settings.master/100,context.currentTime,0.005);
@@ -140,6 +165,7 @@ async function audio() {
     masterGain=context.createGain();
     masterGain.gain.value=mixer.get().master/100;
     node.connect(masterGain).connect(context.destination);
+    scope.connect(context,[masterGain]);updateScope();
     port = node.port; port.onmessage = inspect; applyMix(mixer.get()); restoreEcho();
   }).catch(error=>{ready=null;throw error;});
   await ready;
