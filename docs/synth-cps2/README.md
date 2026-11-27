@@ -36,7 +36,7 @@ The exported demo plays in VGM Analyzer and renders in tetorica-vgm with the sam
 
 - Compare generated PCM with an independent renderer, including bank boundaries.
 - Implement spatial pan/filter tables, stereo output delays, DSP initialization and host timing. Dry panning is an approximation.
-- Bring the Files and cassette workspace across from CPS1 Synth.
+- Extend the code-file workspace with editable sample ROMs and sound presets.
 
 The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame-qsound/LICENSE).
 
@@ -54,4 +54,6 @@ Keys 1, 2 and 3 and the matching on-screen pads trigger ADPCM voices 1–3. Each
 
 Open Code and press Run to play the CH1 bass loop. Select CH2 and play A–K over the bass, or use 1–3 for ADPCM. Click outside the editor to use the musical keys. Select CH1 to watch its PCM and echo settings. Edit the notes or the echo send and press Apply to update the named loop. Stop resets playback on the shared chip. Ctrl/Cmd+Enter runs the source; Ctrl/Cmd+Shift+Enter applies it.
 
-The editor uses the shared Synth Monaco integration with QSound declarations and a textarea fallback. Code runs in a dedicated worker using the Playground loop runtime. PCM channels are numbered 1–16, ADPCM voices 1–3, and sample indices start at zero. Use `qsound.noteOn(channel, midi, sample?, pan?, volume?)`, `qsound.noteOff(channel)`, `qsound.trigger(voice, sample?, pan?, volume?)`, or `qsound.writeRegister(register, word)` for raw 8-bit addresses and unsigned 16-bit words. The first example is editable for the current session.
+The editor uses the shared Synth Monaco integration with QSound declarations and a textarea fallback. Code runs in a dedicated worker using the Playground loop runtime. PCM channels are numbered 1–16, ADPCM voices 1–3, and sample indices start at zero. Use `qsound.noteOn(channel, midi, sample?, pan?, volume?)`, `qsound.noteOff(channel)`, `qsound.trigger(voice, sample?, pan?, volume?)`, or `qsound.writeRegister(register, word)` for raw 8-bit addresses and unsigned 16-bit words. Open Files in the Code tab to switch between `/index.js` and `/examples/pad-loop.js`, or choose New script to create another performance. Edits are saved as a local browser draft.
+
+Files → Cassette → Export cassette downloads a ZIP with all scripts, the selected file and PCM channel, the 16 PCM settings, the shared echo and the three pad assignments. Import cassette restores the project; press Run to play its selected script. New cassette restores the factory files and settings. The generated factory ROM is shared by all projects.

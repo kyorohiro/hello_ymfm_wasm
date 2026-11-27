@@ -24,6 +24,11 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 #code-host{height:clamp(18rem,45vh,40rem)}
 #code-host:not([data-ready="true"]){display:none}
 #source{width:100%;min-height:18rem;font:1rem/1.5 monospace}
+#code-panel:not([hidden]){display:grid;grid-template-columns:minmax(9rem,13rem) minmax(0,1fr);gap:.6rem}
+#code-panel aside{background:#e6e0cc;padding:.5rem;border-radius:.4rem}
+#code-panel .file-tree{list-style:none;padding-left:.55rem;margin:.2rem 0}
+#code-panel .file-entry[aria-current=true]{font-weight:bold;background:#d9e6df}
+@media(max-width:600px){#code-panel:not([hidden]){grid-template-columns:1fr}}
 #code-panel button{margin:.4rem .2rem .4rem 0}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
@@ -39,6 +44,10 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <button id="code-tab" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
 <div id="keys"></div>
 <div id="code-panel" hidden>
+<aside aria-label="Files"><strong>Files</strong><div id="project-tree"></div><button id="new-script">New script…</button>
+<details><summary>Cassette</summary><button id="new-cassette">New cassette…</button><button id="export-cassette">Export cassette</button>
+<button id="import-cassette">Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden></details>
+<p id="file-status" role="status"></p></aside><div>
 <button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
 <span id="code-status" role="status"></span>
 <div id="code-host"></div><textarea id="source" aria-label="JavaScript source" spellcheck="false">// Select CH2 to play over the CH1 bass. Trigger ADPCM with 1, 2, 3.
@@ -54,7 +63,7 @@ liveLoop('bass', async () => {
     qsound.noteOff(1);
     await beat(0.12);
   }
-});</textarea><p id="editor-note" hidden></p></div></section>
+});</textarea><p id="editor-note" hidden></p></div></div></section>
 <section aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
 <div id="adpcm-pads"></div></section>

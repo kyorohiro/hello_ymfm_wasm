@@ -32,7 +32,7 @@ let revision = 0;
 onmessage = async ({data})=>{
   const token = ++revision;
   try {
-    const state = await runtime[data.apply?'apply':'run'](data.source,{path:'/index.js'});
+    const state = await runtime[data.apply?'apply':'run'](data.source,{path:data.path});
     if(token===revision)postMessage({status:state.status});
   } catch(error) {if(token===revision)postMessage({status:error.message});}
 };

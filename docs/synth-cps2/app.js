@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {exportProject,importProject,validateProject,scriptPath} from './cassette.js';
+import {renderFileTree} from '../playground/playground_file_tree.js';
+import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {createParamControl} from '../synth/synth_controls.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
@@ -143,7 +146,10 @@ function triggerPad(i) {
     if (token === generation) port.postMessage(adpcmTriggerWrites(i,sample,pan,volume));
   });
 }
+const padControls = [];
 pads.forEach((pad,i)=>{
+  const controls={};
+  padControls.push(controls);
   const group = document.createElement('fieldset');
   group.className = 'adpcm-voice';
   const legend = document.createElement('legend');
@@ -161,6 +167,7 @@ pads.forEach((pad,i)=>{
         pad[key]=value;
         if (key==='pan') port?.postMessage([[0x90+i,0x110+value]]);
       }});
+    controls[key]=control;
     group.append(control.element);
   }
   $('adpcm-pads').append(group);
@@ -188,6 +195,19 @@ $('save').onclick=()=>{
 };
 
 const source = $('source');
+const files = createVirtualFileSystem([
+  {path:'/index.js',data:source.value},
+  {path:'/examples/pad-loop.js',data:`setBpm(106);
+liveLoop('pads', async () => {
+  for (const voice of [1, 2, 1, 3]) {
+    qsound.trigger(voice, voice - 1, (voice - 1) * 16);
+    await beat(0.5);
+  }
+});
+`},
+]);
+let activePath='/index.js';
+const expanded=new Map([['/examples',true]]);
 const editor = setupSynthMonacoEditor({
   textarea:source,editorHost:$('code-host'),editorNote:$('editor-note'),chip:'cps2',
   declarationsOnly:true,transformDeclarations:()=>`
@@ -203,8 +223,8 @@ declare const qsound:{
   trigger(voice:number,sample?:number,pan?:number,volume?:number):void;
 };
 declare function useSoundChip(name:'qsound'):Promise<typeof qsound>;`,
-  getPath:()=>'/index.js',listFiles:()=>[{path:'/index.js',type:'text',data:source.value}],
-  onEdit:()=>{},visible:()=>!$('code-panel').hidden,run:apply=>$(apply?'apply-code':'run-code').click(),
+  getPath:()=>activePath,listFiles:()=>files.list(),openFile:openScript,
+  onEdit:()=>{files.writeText(activePath,source.value);scheduleDraft();},visible:()=>!$('code-panel').hidden,run:apply=>$(apply?'apply-code':'run-code').click(),
 });
 function selectPerformance(code) {
   $('code-panel').hidden=!code;
@@ -235,7 +255,81 @@ $('run-code').onclick=()=>run(async()=>{
     if(data.status){$('code-status').textContent=data.status;$('apply-code').disabled=false;}
   };
   worker.onerror=e=>{if(worker===codeWorker){stop();$('code-status').textContent=e.message;}};
-  worker.postMessage({source:source.value});
+  worker.postMessage({source:source.value,path:activePath});
 });
-$('apply-code').onclick=()=>codeWorker?.postMessage({source:source.value,apply:true});
+$('apply-code').onclick=()=>codeWorker?.postMessage({source:source.value,path:activePath,apply:true});
 $('stop-code').onclick=stop;
+
+function renderFiles() {
+  renderFileTree($('project-tree'),files.list(),{expanded,selectedPath:activePath,onOpen:openScript});
+}
+function openScript(path) {
+  const file=files.get(path);
+  if (!file) return;
+  activePath=path;
+  editor.setSource(file.data,path);
+  renderFiles();
+  scheduleDraft();
+}
+function snapshot() {
+  return {version:1,files:files.list(),active:activePath,channels:channels.map(({held,...settings})=>settings),
+    pads:pads.map(p=>({...p})),selected,echo:{...echo}};
+}
+const factory=snapshot();
+function replaceProject(project) {
+  stop();
+  files.replace(project.files);
+  project.channels.forEach((v,i)=>Object.assign(channels[i],v,{held:null}));
+  project.pads.forEach((v,i)=>{
+    Object.assign(pads[i],v);
+    for (const [key,value] of Object.entries(v)) padControls[i][key].updateVisual(value);
+  });
+  Object.assign(echo,project.echo);
+  restoreEcho();
+  select(project.selected);
+  openScript(project.active);
+}
+const draftKey='tetorica.cps2.cassette.v1';
+let timer;
+function saveDraft() {
+  clearTimeout(timer);
+  try {localStorage.setItem(draftKey,JSON.stringify(snapshot()));}
+  catch { $('file-status').textContent='Local draft could not be saved. Export a cassette to keep your work.'; }
+}
+function scheduleDraft() {clearTimeout(timer);timer=setTimeout(saveDraft,350);}
+window.addEventListener('pagehide',saveDraft);
+for (const event of ['click','change','pointerup','wheel']) document.querySelector('main').addEventListener(event,scheduleDraft);
+$('new-script').onclick=()=>run(async()=>{
+  const name=prompt('JavaScript file path','/examples/untitled.js')?.trim();
+  if (!name) return;
+  const path=scriptPath(name.startsWith('/')?name:'/'+name);
+  if (files.has(path) || files.listDirectories().includes(path)) throw Error('Path already exists.');
+  files.writeText(path,'');
+  openScript(path);
+});
+$('new-cassette').onclick=()=>{
+  if (!confirm('Replace the current files and instrument settings with the factory cassette?')) return;
+  replaceProject(factory);saveDraft();$('file-status').textContent='New cassette';
+};
+$('export-cassette').onclick=()=>run(async()=>{
+  const url=URL.createObjectURL(new Blob([exportProject(snapshot())],{type:'application/zip'}));
+  const a=document.createElement('a');a.href=url;a.download='tetorica-cps2.cassette.zip';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  $('file-status').textContent='Cassette exported';
+});
+$('import-cassette').onclick=()=>$('cassette-input').click();
+$('cassette-input').onchange=async e=>{
+  const file=e.target.files[0];e.target.value='';
+  if (!file) return;
+  try {
+    if (file.size>16*1024*1024) throw Error('Cassette exceeds 16 MiB.');
+    const project=await importProject(await file.arrayBuffer());
+    if (!confirm('Replace the current project with '+file.name+'?')) return;
+    replaceProject(project);saveDraft();$('file-status').textContent='Imported '+file.name;
+  } catch(error){$('file-status').textContent=error.message;}
+};
+renderFiles();
+try {
+  const draft=localStorage.getItem(draftKey);
+  if (draft) replaceProject(validateProject(JSON.parse(draft)));
+} catch(error){$('file-status').textContent='Draft unavailable: '+error.message;}
