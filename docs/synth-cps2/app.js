@@ -74,7 +74,7 @@ function transport() {
   }
   $('song-transport').hidden=false;
   $('song-loop').disabled=!preparedSong?.canLoop;
-  $('song-title').textContent=songPath?.split('/').pop()??'';
+  $('song-select').value=songPath??'';
   $('song-status').textContent=seeking?'Seeking…':songState==='paused'?'Paused · audition':songState==='playing'?'Playing':liveInstrument?'Stopped · audition':'Ready';
   $('song-play').disabled=seeking || songState==='playing' || !preparedSong;
   $('song-play').textContent=songState==='paused'?'Resume':'Play VGM';
@@ -262,21 +262,31 @@ async function audio() {
 }
 const status = $('status');
 function run(task) {task().catch(e=>{status.textContent=e.message;});}
-function select(channel) {
+let autoChannel=true;
+function select(channel,auto=false) {
+  autoChannel=auto;
   selected = channel;
   if(!registerPanel.hidden)drawRegisters(selected);
-  [...$('channels').children].forEach((b,i)=>b.setAttribute('aria-pressed',i===channel));
+  [...$('channels').children].forEach((b,i)=>{
+    b.setAttribute('aria-pressed',auto ? i===0 : i===channel+1);
+    b.classList.toggle('auto-target',auto && i===channel+1);
+  });
   const v = channels[channel];
   if($('apply-preset').textContent.startsWith('Assign to CH'))$('apply-preset').textContent='Assign to CH'+(channel+1);
   $('wave').value=v.samplePath??String(v.sample); $('pan').value=v.pan; $('vol').value=v.volume;
   if(liveInstrument){revision++;inspectChannel();}
   else{refresh();if(!registerPanel.hidden)inspectChannel();}
 }
+const autoButton=document.createElement('button');
+autoButton.textContent='AUTO';
+autoButton.title='Assign held keyboard notes to separate PCM channels. The outlined channel is shown in the editor.';
+autoButton.onclick=()=>select(selected,true);
+$('channels').append(autoButton);
 for(let i=0;i<16;i++) {
   const button=document.createElement('button');
   button.textContent='CH'+(i+1); button.onclick=()=>select(i); $('channels').append(button);
 }
-select(0);
+select(0,true);
 $('wave').onchange=()=>{
   const v=channels[selected];
   if(isSamplePath($('wave').value)){assignSample($('wave').value);return;}
@@ -291,7 +301,16 @@ $('vol').oninput=()=>{const v=channels[selected];const volume=Number($('vol').va
   if(liveInstrument && songState!=='playing')port?.postMessage({type:'voice-setting',channel:selected,field:'volume',value:volume});
   else if(v.held || liveInstrument)port?.postMessage([[selected*8+6,volume&65535]]);};
 function press(id,midi) {
-  const ch=selected,v=channels[ch]; v.held=id;
+  let ch=selected;
+  if(autoChannel && channels[ch].held){
+    for(let step=1;step<channels.length;step++){
+      const candidate=(selected+step)%channels.length;
+      if(!channels[candidate].held){ch=candidate;break;}
+    }
+    if(channels[ch].held)return;
+    select(ch,true);
+  }
+  const v=channels[ch]; v.held=id;
   if(liveInstrument){
     if(!seeking)port?.postMessage({type:'captured-note',channel:ch,midi});
     return;
@@ -515,13 +534,45 @@ declare function useSoundChip(name:'qsound'):Promise<typeof qsound>;`,
   getPath:()=>activePath,listFiles:()=>files.list().filter(f=>f.type==='text' && f.path.endsWith('.js')),openFile:openScript,
   onEdit:()=>editFile(activePath,source.value),visible:()=>!$('code-panel').hidden,run:apply=>$(apply?'apply-code':'run-code').click(),
 });
+let codeMode=false, chipView='pcm-chip', mainView='code-panel', lowerView='keyboard';
+const chipTabs=[...document.querySelectorAll('[data-chip]')];
+const performanceTabs=[...document.querySelectorAll('[data-performance]')];
+function drawWorkspace(){
+  const chip=codeMode?mainView:chipView, performance=codeMode?mainView:lowerView;
+  for(const tab of chipTabs){
+    const active=tab.dataset.chip===chip;
+    $(tab.dataset.chip).hidden=!active;
+    tab.setAttribute('aria-pressed',String(active));
+  }
+  for(const tab of performanceTabs){
+    const active=tab.dataset.performance===performance;
+    $(tab.dataset.performance).hidden=!active;
+    tab.setAttribute('aria-pressed',String(active));
+  }
+  revision++;showRomMap();renderPresetInfo();
+  if(!$('code-panel').hidden)editor.load().then(()=>editor.layout());
+}
 function selectPerformance(code) {
-  $('code-panel').hidden=!code;
-  if(code)setFiles(true);
+  codeMode=code;
+  const [keyboard,script]=performanceTabs;
+  if(code){
+    mainView='code-panel';
+    $('chip-tabs').prepend(script);
+    $('chip-tabs').append(keyboard);
+    setFiles(true);
+  }else{
+    $('performance-tabs').append(keyboard,script);
+  }
+  $('performance-tabs').hidden=code;
   $('keyboard-tab').setAttribute('aria-pressed',String(!code));
   $('code-tab').setAttribute('aria-pressed',String(code));
-  if(code)editor.load().then(()=>editor.layout());
+  drawWorkspace();
 }
+for(const tab of performanceTabs)tab.onclick=()=>{
+  if(codeMode)mainView=tab.dataset.performance;
+  else lowerView=tab.dataset.performance;
+  drawWorkspace();
+};
 function setFiles(visible){
   $('files').hidden=!visible;
   $('workspace').classList.toggle('files-hidden',!visible);
@@ -552,12 +603,10 @@ function displayMap(map){
   const used=factoryBank.length+samples.reduce((sum,s)=>sum+s.end-s.start,0);
   drawRomMap({...map,samples},samples.length?'Project ROM · '+used.toLocaleString()+' bytes used / 16 MiB':'Factory ROM');
 }
-for(const tab of document.querySelectorAll('[data-chip]'))tab.onclick=()=>{
-  for(const item of document.querySelectorAll('[data-chip]')){
-    $(item.dataset.chip).hidden=item!==tab;
-    item.setAttribute('aria-pressed',String(item===tab));
-  }
-  revision++;showRomMap();renderPresetInfo();
+for(const tab of chipTabs)tab.onclick=()=>{
+  chipView=tab.dataset.chip;
+  mainView=chipView;
+  drawWorkspace();
 };
 $('keyboard-tab').onclick=()=>selectPerformance(false);
 $('code-tab').onclick=()=>selectPerformance(true);
@@ -625,7 +674,11 @@ $('stop-code').onclick=stop;
 
 function renderFiles() {
   const entries=files.list();
-  const songs=entries.filter(file=>/\.vg[mz]$/i.test(file.path)).length;
+  const tracks=entries.filter(file=>/\.vg[mz]$/i.test(file.path));
+  const songs=tracks.length, picker=$('song-select');
+  picker.replaceChildren(...tracks.map(({path})=>new Option(path.split('/').pop(),path)));
+  picker.value=songPath??'';
+  picker.disabled=!songs;
   $('export-contents').textContent='Includes '+songs+' VGM/VGZ '+(songs===1?'file':'files')+' with embedded sample data.';
   renderFileTree($('project-tree'),entries,{expanded,selectedPath:highlightedPath,onOpen:openScript});
   for(const row of $('project-tree').querySelectorAll('button[data-file-path]')){
@@ -648,6 +701,7 @@ function renderPresetInfo(){
     ? (target!==romPath?'Switch shared ROM (all voices): '+(romPath??'factory')+' → ':'Shared ROM: ')+(target??'factory')+' · Bank '+preset.bank
     : 'Shared ROM: '+(romPath??(library.items.size?'project':'factory'));
 }
+$('song-select').onchange=event=>openScript(event.target.value);
 function openScript(path,prepared) {
   const file=files.get(path);
   if (!file) return;
@@ -670,11 +724,11 @@ function openScript(path,prepared) {
     const token=++preparationRevision;
     Promise.resolve(prepared??prepareSong(file.data)).then(song=>{
       if(token!==preparationRevision || path!==songPath)return;
-      preparedSong=song;transport();
+      preparedSong=song;transport();scheduleDraft();
     }).catch(error=>{if(token===preparationRevision && path===songPath)$('file-status').textContent=error.message;});
     return;
   }
-  selectPerformance(true);
+  if(codeMode || lowerView!=='code-panel')selectPerformance(true);
   activePath=path;
   editor.setSource(pending.get(path)??file.data,path);
   renderFiles();
@@ -917,7 +971,7 @@ installSpuFileContextMenu({root:$('project-tree'),getActions:fileActions,
   onError:e=>{$('file-status').textContent=e.message;}});
 function snapshot() {
   return {version:1,padPlacements:{...padPlacements},placements:{...placements},files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
-    pads:pads.map(p=>({...p})),mix:mixer.get(),selected,echo:{...echo}};
+    pads:pads.map(p=>({...p})),mix:mixer.get(),selected,autoChannel,echo:{...echo}};
 }
 const factory=snapshot();
 function replaceProject(project) {
@@ -933,7 +987,7 @@ function replaceProject(project) {
   mixer.set(project.mix);
   Object.assign(echo,project.echo);
   restoreEcho();
-  select(project.selected);showRomMap();
+  select(project.selected,project.autoChannel===true);showRomMap();
   activePath=highlightedPath=project.active;editor.setSource(files.get(activePath).data,activePath);renderFiles();
   if(project.song)openScript(project.song);else selectDefaultSong();
 }
@@ -1026,7 +1080,7 @@ function assignSample(path){
   if(v.held)release(v.held);
   setPcmSample(v,path);
   selectPerformance(false);document.querySelector('[data-chip="pcm-chip"]').click();selectPcmTab(false);
-  select(selected);renderFiles();scheduleDraft();
+  select(selected,autoChannel);renderFiles();scheduleDraft();
   $('file-status').textContent=path+' → CH'+(selected+1)+' · Bank '+item.bank+' · '+item.length+' bytes';
 }
 $('import-wav').onclick=()=>$('wav-input').click();

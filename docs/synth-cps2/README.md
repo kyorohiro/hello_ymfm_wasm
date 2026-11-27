@@ -1,13 +1,13 @@
 # Tetorica CPS2 Synth · PCM preview
 
 Serve the repository's docs directory over localhost or HTTPS and open
-`/synth-cps2/`. Select CH1–16, then hold A S D F G H J K or a screen key.
-Pitch follows the key. The sample selector can switch the held note; volume
+`/synth-cps2/`. Use AUTO for chords or select CH1–16 for a fixed PCM channel, then hold A S D F G H J K or a screen key.
+AUTO uses the displayed channel first and finds another free keyboard channel for overlapping notes. The outlined channel shows which physical voice you are editing. Each channel keeps its own sound. Pitch follows the key. The sample selector can switch the held note; volume
 and pan can change during a held note. The factory demo VGMs include their generated sample ROM. PCM duet uses two pitched PCM channels. ADPCM trio triggers three one-shot samples, panned left, center and right.
 
 ## Workspace
 
-Press **Play VGM** on a fresh visit to hear PCM duet. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Code opens it beside the editor, and Synth returns to the instrument. PCM, ADPCM, ROM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. Use Guitar, Bass or Ukulele on the selected PCM channel. Choose Open, 5th or 12th, select the visible strings, or drag Octave (−2 to +2). Left/Right shifts the fret and Up/Down changes the string window. The four rows match the displayed keys. Physical keys 1–3 trigger ADPCM; click the first three top-row frets (F labels) to play their PCM notes.
+Choose a track in the **VGM** list above the transport and press **Play VGM**. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Synth keeps the chip editor above the Keyboard / Code tabs. Code mode opens Files and groups Code, PCM, ADPCM, ROM, Mixer and Keyboard in one tab row. PCM, ADPCM, ROM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. Use Guitar, Bass or Ukulele on the selected PCM channel. Choose Open, 5th or 12th, select the visible strings, or drag Octave (−2 to +2). Left/Right shifts the fret and Up/Down changes the string window. The four rows match the displayed keys. Physical keys 1–3 trigger ADPCM; click the first three top-row frets (F labels) to play their PCM notes.
 
 ## Register model
 

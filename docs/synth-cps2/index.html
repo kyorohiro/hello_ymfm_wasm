@@ -7,8 +7,9 @@
 body{margin:4vh auto;padding:1.25rem;width:min(100%,52rem)}main{background:#f4eedb;border-radius:18px;overflow:hidden}
 header{display:flex;align-items:center;gap:1rem;background:#176481;color:white;padding:1.2rem 1.5rem}h1,p{margin:0}h1{font-size:clamp(1.5rem,5vw,2.4rem)}section{padding:1.1rem 1.5rem}
 h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;border:1px solid #7a9897;background:#fffaf0;border-radius:5px;padding:.4rem .7rem;cursor:pointer}button[aria-pressed=true]{background:#155876;color:white}
-#channels{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}
+#channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(3.5rem,1fr));gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}
 output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-width:540px){#channels{grid-template-columns:repeat(4,1fr)}body{margin:0;padding:.5rem}}
+#channels .auto-target{box-shadow:inset 0 0 0 2px #155876}
 #pad-plot{position:relative}#pad-cursor{position:absolute;top:0;bottom:0;width:2px;background:#ffc75c;pointer-events:none}
 #pad-wave,#pcm-wave{display:block;width:100%;height:6.5rem;background:#102c43;border-radius:5px}
 #pcm-controls,.echo-controls{display:flex;gap:.45rem;flex-wrap:wrap;margin:.6rem 0}
@@ -50,6 +51,7 @@ body{width:min(100%,76rem)}
 .output-heading{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:.4rem}
 .output-heading h2{margin:0}.output-heading button{padding:.2rem .55rem}
 #output-scope{display:block;width:100%;height:7rem;border-radius:5px;background:#102c43}
+#song-picker{display:inline-flex;align-items:center;max-width:100%}#song-select{min-width:0;max-width:100%}
 #song-position{display:block;font-variant-numeric:tabular-nums}
 .seek-track{position:relative;margin:.35rem 0}
 #song-seek{display:block;width:100%;margin:0}
@@ -90,7 +92,7 @@ body{width:min(100%,76rem)}
 <button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div></div>
 <canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></section>
 
-<output id="status" role="status"></output><section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong> <small id="song-status" role="status"></small>
+<output id="status" role="status"></output><section id="song-transport" hidden aria-label="VGM playback"><label id="song-picker">VGM <select id="song-select"></select></label> <small id="song-status" role="status"></small>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
@@ -98,24 +100,8 @@ body{width:min(100%,76rem)}
 <div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button><button id="new-script">New script…</button>
 <p id="file-status" role="status"></p></aside><div id="desk">
 
-<div id="code-panel" hidden><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
-<span id="code-status" role="status"></span>
-<div id="code-host"></div><textarea id="source" aria-label="JavaScript source" spellcheck="false">// Select CH2 to play over the CH1 bass. Trigger ADPCM with 1, 2, 3.
-// Edit the notes or echo send and press Apply.
-setBpm(112);
-qsound.writeRegister(0xba, 8192);  // CH1 echo send
-qsound.writeRegister(0xd9, 0x554 + 720);
-qsound.writeRegister(0x93, 10000);
-liveLoop('bass', async () => {
-  for (const note of [36, 43, 39, 46]) {
-    qsound.noteOn(1, note);
-    await beat(0.38);
-    qsound.noteOff(1);
-    await beat(0.12);
-  }
-});</textarea><p id="editor-note" hidden></p></div>
 <section id="soundchip"><div class="chip-header"><h2>QSound</h2><button id="restore-instrument" hidden>Use synth instruments</button></div>
-<nav class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="rom-chip" aria-pressed="false">ROM</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
+<nav id="chip-tabs" class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="rom-chip" aria-pressed="false">ROM</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <nav id="pcm-tabs" aria-label="PCM channel view"><button id="pcm-tab" aria-controls="pcm-panel" aria-pressed="true">Voice</button>
 <button id="register-tab" aria-controls="register-panel" aria-pressed="false">Registers</button></nav>
@@ -139,5 +125,22 @@ liveLoop('bass', async () => {
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>
+<nav id="performance-tabs" class="chip-tabs" aria-label="Performance"><button data-performance="keyboard" aria-controls="keyboard" aria-pressed="true">Keyboard</button><button data-performance="code-panel" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
+<div id="code-panel" hidden><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
+<span id="code-status" role="status"></span>
+<div id="code-host"></div><textarea id="source" aria-label="JavaScript source" spellcheck="false">// Select CH2 to play over the CH1 bass. Trigger ADPCM with 1, 2, 3.
+// Edit the notes or echo send and press Apply.
+setBpm(112);
+qsound.writeRegister(0xba, 8192);  // CH1 echo send
+qsound.writeRegister(0xd9, 0x554 + 720);
+qsound.writeRegister(0x93, 10000);
+liveLoop('bass', async () => {
+  for (const note of [36, 43, 39, 46]) {
+    qsound.noteOn(1, note);
+    await beat(0.38);
+    qsound.noteOff(1);
+    await beat(0.12);
+  }
+});</textarea><p id="editor-note" hidden></p></div>
 <section id="keyboard"><div class="output-heading"><h2>Keyboard</h2><div id="octave"></div></div><p id="audition-note" hidden>C4 plays the selected channel at its captured rate. Keys 1–3 trigger ADPCM.</p><div id="board-controls"><div id="instruments" role="group" aria-label="Instrument"></div><div id="positions" role="group" aria-label="Fret position"></div><span id="fret"></span><div id="strings" role="group" aria-label="Visible strings"></div></div>
 <div id="keys" aria-label="PCM fretboard"></div><div id="pad-keys" role="group" aria-label="ADPCM pads"></div></section></div></div></main><script type="module" src="./app.js"></script></html>
