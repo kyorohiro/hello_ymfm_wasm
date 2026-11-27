@@ -191,6 +191,7 @@ try {
   assert.equal(await page.evaluate(() => window.peak),0);
   await mute.click();
   assert.equal(await voice.getAttribute('aria-pressed'),'true');
+  assert.deepEqual(await page.locator('#voices select').evaluateAll(rows=>rows.map(row=>row.value)),['0','1','2','3']);
   assert.match(await page.locator('#bankInfo').textContent(),/^4 \/ 128 samples/);
   await page.click('#layerSamples');
   await page.waitForFunction(()=>document.querySelector('#voiceCount').textContent==='4 / 4 voices playing');
@@ -531,6 +532,7 @@ try {
   ]);
   await page.waitForFunction(()=>document.querySelector('#sample option:last-child')?.textContent==='1 · two.wav');
   await page.selectOption('#sample','1');
+  await page.locator('#voices select').first().selectOption('-1');
   await page.locator('#sample').focus();
   await page.evaluate(()=>{window.peak=0;});
   await page.keyboard.press('a');
@@ -559,12 +561,17 @@ try {
   assert.equal(await value.textContent(),'6');
   await page.keyboard.press('f');
   assert.equal(await page.locator('#command').textContent(),'0x81 0x86');
+  await page.locator('#slotAudio').setInputFiles({name:'replacement.wav',mimeType:'audio/wav',buffer:wav});
+  await page.waitForFunction(()=>document.querySelector('#sample option').textContent==='0 · replacement.wav');
+  for(let i=0;i<4;i++)await page.locator('#slotControl').getByRole('button',{name:'+',exact:true}).click();
+  await page.locator('#slotAudio').setInputFiles({name:'four.wav',mimeType:'audio/wav',buffer:wav});
+  await page.waitForFunction(()=>document.querySelector('#sample').value==='4');
   const bankDownload=page.waitForEvent('download');
   await page.click('#synthMenuButton');await page.click('#exportCassette');
   const bankArchive=await loadPlaygroundCassette(await readFile(await (await bankDownload).path()));
-  const exported=bankArchive.metadata.cps1.records.find(record=>record.names?.includes('one.flac'));
-  assert.deepEqual(exported.names,['one.flac','two.wav','new.wav']);
-  assert.deepEqual(exported.voiceSamples,[2,-1,-1,-1]);
+  const exported=bankArchive.metadata.cps1.records.find(record=>record.names?.includes('replacement.wav'));
+  assert.deepEqual(exported.names,['replacement.wav','two.wav','new.wav','','four.wav']);
+  assert.deepEqual(exported.voiceSamples,[2,1,-1,-1]);
   assert.equal(bankArchive.metadata.cps1.active,exported.path);
   assert.deepEqual(errors,[]);
   console.log('CPS1 FM audio, held-note editing, OKI audio/status, Code, cassette round-trip and responsive layouts passed');

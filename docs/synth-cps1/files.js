@@ -3,7 +3,8 @@ import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {inspectSong} from './vgm.js';
-import {makeAudioBank,appendVoiceSample} from './audio-bank.js';
+import {playableSamples} from './sample-view.js';
+import {makeAudioBank,writeBankSample} from './audio-bank.js';
 import {parseOpm} from './opm.js';
 import {installProjectTree,base,checkPath,inside} from './project-tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
@@ -212,11 +213,15 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   function persistCode() {
     try {localStorage.setItem('cps1.scripts.v2',JSON.stringify(items('code').map(([path,v])=>[path,v.text])));} catch {}
   }
+  function newBank(bank){
+    const ids=playableSamples(bank.bytes);
+    return {...bank,voiceSamples:Array.from({length:4},(_,voice)=>ids[voice]??-1)};
+  }
   function addBank(bytes,names,name){
     const filename=base(name),dot=filename.lastIndexOf('.');
     const stem=dot>0?filename.slice(0,dot):filename, ext=dot>0?filename.slice(dot):'';
     const path=checkPath(nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+ext));
-    remember();files.set(path,{kind:'bank',bytes,names,name});open(path);persist();
+    remember();files.set(path,newBank({kind:'bank',bytes,names,name}));open(path);persist();
   }
   async function importFiles(incoming,parent,numbered=false) {
     const epoch=revision, additions=new Map();
@@ -226,7 +231,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
       openFiles();report('Encoding MSM6295 samples…');
       const bank=await makeAudioBank(audioFiles);
       const path=nextPath(i=>(numbered?'banks/':parent==='/'?'':parent.slice(1)+'/')+'samples-'+i+'.rom');
-      additions.set(path,bank);
+      additions.set(path,newBank(bank));
     }
     for(const f of incoming.filter(file=>!audioFiles.includes(file))) {
       if(f.size>16*1024*1024)throw Error('File exceeds 16 MiB.');
@@ -239,7 +244,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
         if(numbered)path=nextPath(i=>'presets/import-'+i+'.opm');
       }else if(/\.m?js$/i.test(path))v={kind:'code',text:await f.text()};
       else if(/\.fm\.json$/i.test(path))v={kind:'voice',voice:validateVoice(JSON.parse(await f.text()),new Ym2151VoiceInspector({dispatch(){}}))};
-      else if(/\.(bin|rom)$/i.test(path)&&f.size>=8&&f.size<=0x40000)v={kind:'bank',bytes:new Uint8Array(await f.arrayBuffer()),names:Array(128).fill('ROM sample'),name:f.name};
+      else if(/\.(bin|rom)$/i.test(path)&&f.size>=8&&f.size<=0x40000)v=newBank({kind:'bank',bytes:new Uint8Array(await f.arrayBuffer()),names:Array(128).fill('ROM sample'),name:f.name});
       else throw Error('Unsupported file: '+f.name);
       if(occupied(path)||additions.has(path))throw Error('Already exists: '+path);
       additions.set(path,v);
@@ -386,16 +391,16 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     voiceSamples[voice]=id;
     editFile(activeBank,{...bank,voiceSamples});
   }
-  async function importVoiceSample(voice,file){
+  async function importVoiceSample(voice,file,slot=null){
     const bank=editableBank(),path=activeBank;
     const clip=await makeAudioBank([file]);
     if(path!==activeBank || files.get(path)!==bank)throw Error('Sample bank changed. Select the file again.');
-    const {bytes,names,id}=appendVoiceSample(bank,clip);
+    const {bytes,names,id}=writeBankSample(bank,clip,slot);
     const voiceSamples=[...(bank.voiceSamples??Array(4).fill(-1))];
-    voiceSamples[voice]=id;
+    if(voice!==null)voiceSamples[voice]=id;
     remember();
     editFile(path,{...bank,bytes,names,voiceSamples});
-    applyBank(bytes,names,base(path),voiceSamples,true);
+    applyBank(bytes,names,base(path),voiceSamples,slot===null,slot);
   }
   return {addBank,assignSample,importVoiceSample,restoreKit(){restoreKit();render();persist();},recordEdit(ch){
     const target=files.get(editPath);

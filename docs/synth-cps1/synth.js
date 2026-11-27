@@ -304,7 +304,19 @@ const attenuationControl=createParamControl({label:'Attenuation',min:0,max:15,st
   onChange:value=>{sampleAttenuation=value;},
 });
 $('attenuation').append(attenuationControl.element);
-let phraseIds=[];
+let phraseIds=[], selectedSlot=0;
+function showSlotAction(){
+  $('writeSlot').textContent=(phraseIds.includes(selectedSlot)?'Replace':'Add')+' #'+selectedSlot+' from WAV / FLAC…';
+}
+const slotControl=createParamControl({label:'Sample slot',min:0,max:127,step:1,value:0,
+  onChange:value=>{selectedSlot=value;showSlotAction();},
+});
+$('slotControl').append(slotControl.element);
+$('writeSlot').onclick=()=>$('slotAudio').click();
+$('slotAudio').onchange=async()=>{
+  const input=$('slotAudio'),file=input.files[0];input.value='';
+  if(file)try {await files.importVoiceSample(null,file,selectedSlot);} catch(error){fail(error);}
+};
 $('layerSamples').onclick=()=>{
   if(phraseIds.length<4)return;
   try {
@@ -316,13 +328,14 @@ $('layerSamples').onclick=()=>{
 };
 function chooseSamples(names,assignments=[],selected=0) {
   phraseIds=playableSamples(sampleRom);
+  showSlotAction();
   $('layerSamples').disabled=phraseIds.length<4;
   $('bankInfo').textContent=phraseIds.length+' / 128 samples · ROM '+(sampleRom.byteLength/1024).toLocaleString('en-US',{maximumFractionDigits:2})+' / 256 KiB · Playback 7.58 kHz (1 MHz ÷ 132)';
   $('hitPad').disabled=names[3]!=='Arcade hit';
-  $('sample').replaceChildren(...names.map((name,i) => new Option(i+' · '+name,i)));
+  $('sample').replaceChildren(...names.map((name,i) => new Option(name?i+' · '+name:String(i),i)));
   $('sample').value=String(selected);
   for(const [voice,picker] of voicePickers.entries()){
-    picker.replaceChildren(new Option('Follow Sample',-1),...names.map((name,id)=>new Option(id+' · '+name,id)),new Option('Import WAV / FLAC…','import'));
+    picker.replaceChildren(new Option('Follow Sample',-1),...names.map((name,id)=>new Option(name?id+' · '+name:String(id),id)),new Option('Import WAV / FLAC…','import'));
     picker.value=String(assignments[voice]??-1);
     picker.dataset.sample=picker.value;
   }
@@ -358,7 +371,7 @@ for (let i=0;i<4;i++) {
   voicePickers.push(picker);
   row.append(lamp,picker,input,play,stop,mute); $('voices').append(row);
 }
-chooseSamples(samples);
+chooseSamples(samples,[0,1,2,3]);
 function toggleButton(text,label,pressed,click) {
   const button = document.createElement('button');
   button.textContent=text; button.setAttribute('aria-label',label);
@@ -397,9 +410,9 @@ for (const [id,name,mutes] of [['fm','YM2151',fmMutes],['pcm','MSM6295',voiceMut
 }
 showBusy(0xf0);
 let romRevision = 0;
-function installRom(bytes,names,label,assignments,extended=false) {
+function installRom(bytes,names,label,assignments,extended=false,slot=null) {
   romRevision++; sampleRom = bytes; rawOki = [];
-  audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,extended?Number($('sample').value):0); $('romName').textContent = label;
+  audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,slot??(extended?Number($('sample').value):0)); $('romName').textContent = label;
 }
 $('rom').onchange = async () => {
   const file = $('rom').files[0], revision = ++romRevision;
@@ -690,5 +703,5 @@ $('run').onclick = async () => {
 };
 
 const files = setupFiles({inspector,panel,keyMasks,defaults,initialCode,store,draft,playSong,stopSong,openFiles:()=>setFilesOpen(true),
-  defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},applyBank:installRom,stop:()=>{stopRun();status('Stopped');}});
+  defaultBank:{bytes:sampleRom,names:samples,name:'Original kit',voiceSamples:[0,1,2,3]},applyBank:installRom,stop:()=>{stopRun();status('Stopped');}});
 $('filesToggle').disabled=false;
