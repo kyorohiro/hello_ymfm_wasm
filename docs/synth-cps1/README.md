@@ -90,3 +90,7 @@ Importing a supported VGM or VGZ extracts complete samples into editable banks u
 Open **/examples/live-round.js**, select **0_default.rom** and **YM2151 CH4**, then Run. Play the brass part on the keyboard while CH1 plays bass and three MSM6295 voices play drums. Change the bass notes or the snare steps and press Apply. Each named loop picks up its edit on its next cycle.
 
 **/examples/scheduled-response.js** records FM notes and PCM triggers in two audio-thread plans. Both chip clients support `build`, `compile`, `schedule` and `clearSchedule`. A synchronous builder records writes at increasing offsets with `atSeconds` or `atSample` (48 kHz reference by default). Compile returns the ordered register bytes; MSM6295 writes use command port 0. Supply a name when scheduling; omit `repeatSeconds` for one pass. Apply replaces the entry's reservations, and Stop clears both worklet queues. Each chip starts its reservation on its own audio queue.
+
+### Browser release
+
+From the repository root, run `sh scripts/package_itch_cps1_synth.sh VERSION` to create `release/tetorica_cps1_synth_VERSION_itch.zip`. Use a new version for each build. Upload the ZIP as a playable HTML file on itch.io. To test the packaged app locally, extract the ZIP and run `node scripts/check_cps1_synth.mjs PATH_TO_EXTRACTED_DIRECTORY`.

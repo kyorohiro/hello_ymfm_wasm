@@ -5,11 +5,13 @@ import {gzipSync} from 'node:zlib';
 import {loadPlaygroundCassette,createPlaygroundCassetteZip} from '../docs/playground/playground_cassette.js';
 import {createKit} from '../docs/synth-cps1/kit.js';
 import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 
-const root = new URL('../docs/',import.meta.url);
+const root = process.argv[2] ? pathToFileURL(resolve(process.argv[2])+'/') : new URL('../docs/',import.meta.url);
 const server = createServer(async (req,res) => {
   try {
     const file = new URL('.'+new URL(req.url,'http://local').pathname,root);
@@ -50,7 +52,7 @@ try {
       window.peak = Math.max(window.peak ?? 0,window.lastPeak);
     };
   });
-  await page.goto('http://127.0.0.1:'+server.address().port+'/synth-cps1/index.html');
+  await page.goto('http://127.0.0.1:'+server.address().port+(process.argv[2]?'/index.html':'/synth-cps1/index.html'));
   const modes=page.getByRole('group',{name:'Workspace mode'});
   assert.deepEqual(await modes.getByRole('button').allTextContents(),['Synth','Code']);
   for (const name of ['Synth','Code','Synth']) {
