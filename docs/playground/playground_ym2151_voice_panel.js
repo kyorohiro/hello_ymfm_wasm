@@ -222,6 +222,7 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
   listen(hold, 'blur', () => releaseSource('hold')); listen(win, 'blur', releaseAll); listen(doc, 'visibilitychange', () => {if (doc.hidden) releaseAll();});
 
   function drawEnvelope(operators) {
+    if (layout?.updateEnvelope) {layout.updateEnvelope(operators,channel); return;}
     if (!visible) return;
     const signature = JSON.stringify(operators?.map(operator => OP_FIELDS.map(([key]) => operator[key])));
     if (envelopeSignature === signature) return; envelopeSignature = signature;
@@ -273,6 +274,6 @@ export function createPlaygroundYm2151VoicePanel({root, invoke, createOperatorCo
     update, setConnected, releaseAll, selectChannel, getSelectedChannel: () => channel, getNoteTarget: () => target,
     setVisible(value) {visible = Boolean(value); if (!visible) {releaseSource('hold'); releaseSource('preview');} else if (state) {envelopeSignature = ''; drawEnvelope(state.channels?.[channel]?.operators);}},
     setKeyboardActive(value) {if (!value && keyboardActive) {keyboardActive = false; releaseSource('keyboard'); bindingEpoch++; keyboardButton.setAttribute('aria-pressed', 'false');}},
-    dispose() {if (disposed) return; setConnected(false); disposed = true; for (const remove of listeners) remove();},
+    dispose() {if (disposed) return; setConnected(false); layout?.dispose?.(); disposed = true; for (const remove of listeners) remove();},
   };
 }

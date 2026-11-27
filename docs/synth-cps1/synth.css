@@ -83,7 +83,12 @@ table {width:100%;border-collapse:collapse;font-size:.88rem}
 #mixer output {min-width:4ch;text-align:right;font-variant-numeric:tabular-nums}
 #mixer button {padding:.2rem .5rem}
 
-.mode-switch {display:flex;gap:.25rem;margin-left:auto}
+.workspace-actions {display:flex;align-items:center;gap:.65rem;margin-left:auto}
+.mode-switch {display:inline-flex;gap:0;padding:2px;border:1px solid #827c68;border-radius:2rem;background:#35342e}
+.mode-switch button {min-width:4rem;padding:.15rem .65rem;border:0;border-radius:2rem;background:transparent;color:#f5e8cd}
+.mode-switch button:hover {background:#514e42}
+.mode-switch button[aria-pressed=true] {background:var(--green);color:#182915}
+.mode-switch button:focus-visible {outline:2px solid white;outline-offset:1px}
 header::after {margin-left:0}
 #workbench {display:grid;grid-template-columns:minmax(0,1fr);gap:.4rem;margin-top:.75rem}
 #workbench nav {margin:0;padding:.35rem .5rem}
@@ -93,7 +98,7 @@ header::after {margin-left:0}
 #performanceTabs {grid-row:3}
 [data-mode=synth] #workbench :is(#code,#keyboardPanel) {grid-row:4}
 [data-mode=code] #editor {height:clamp(18rem,45vh,40rem)}
-@media(max-width:480px) {.mode-switch {margin-left:0}}
+@media(max-width:480px) {.workspace-actions {margin-left:0}}
 [data-mode=code] #sourceTabs {position:sticky;top:0;z-index:2;background:#e7d7b8}
 
 #synthMenu {position:relative;z-index:3}
@@ -217,3 +222,15 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
   #opm-page-0 .chip-section > .chip-fields {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.15rem;align-items:stretch}
   #opm-page-0 .chip-fields .param-control {min-width:0;align-content:space-between}
 }
+
+.opm-envelope-editor {width:min(36rem,94vw);max-height:85vh;overflow:auto}
+.opm-envelope-editor .envelope-plot {position:relative;margin:.4rem 0}
+.envelope-plot canvas {display:block;width:100%;height:150px;border-radius:.35rem}
+.envelope-plot button[data-envelope-handle] {position:absolute;width:24px;height:24px;transform:translate(-50%,-50%);border:0;padding:0;background:transparent;cursor:ew-resize;touch-action:none}
+.envelope-plot button:is([data-envelope-handle=attack],[data-envelope-handle=decay]) {cursor:move}
+.opm-envelope-editor output {font-size:.85rem}
+[data-envelope-operator] {box-shadow:inset 0 -3px var(--op-color)}
+[data-envelope-operator="1"] {--op-color:#f2c078}
+[data-envelope-operator="2"] {--op-color:#ff93bc}
+[data-envelope-operator="3"] {--op-color:#9dff9b}
+[data-envelope-operator="4"] {--op-color:#89b7ff}

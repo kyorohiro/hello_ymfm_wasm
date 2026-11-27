@@ -10,7 +10,7 @@
 <h2>New</h2><button id="newCassette" data-close-synth-menu>Cassette · ZIP</button>
 <h2>Import</h2><button id="chooseOpm" data-close-synth-menu>OPM voice…</button><input id="importOpm" type="file" accept=".opm" hidden><button id="chooseVgm" data-close-synth-menu>VGM / VGZ…</button><button id="chooseCassette" data-close-synth-menu>Cassette…</button>
 <h2>Export</h2><button id="exportCassette" data-close-synth-menu>Cassette · ZIP</button>
-</div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="filesToggle" aria-expanded="false" aria-controls="files">Files</button><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></header>
+</div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="workspace-actions"><button id="filesToggle" aria-expanded="false" aria-controls="files">Files</button><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></div></header>
 <section id="referenceSong" aria-label="VGM reference playback" hidden>
 <div class="bar"><label>VGM <select id="songs" disabled></select></label><button id="playSong" disabled>Play</button><button id="pauseSong" disabled>Pause</button><button id="stopSong" disabled>Stop</button><output id="songTime"></output></div>
 <div id="songVoice" hidden><div id="songChannels" class="bar" role="group" aria-label="Paused YM2151 channels"></div><output id="songPatch"></output>
@@ -30,6 +30,23 @@
 <div id="workbench">
 <nav id="sourceTabs" aria-label="Sound chips"><button data-tab="fm">YM2151</button><button data-tab="pcm">MSM6295</button><button data-tab="mixer">Mixer</button></nav>
 <section id="mixer" aria-label="Output mixer" hidden></section>
+<template id="envelopeEditor">
+<div role="group" aria-label="Edit operator envelope">
+  <button data-envelope-operator="1">OP1</button>
+  <button data-envelope-operator="2">OP2</button>
+  <button data-envelope-operator="3">OP3</button>
+  <button data-envelope-operator="4">OP4</button>
+</div>
+<div class="envelope-plot">
+  <canvas data-operator-envelope width="540" height="150" role="img" aria-label="Relative YM2151 operator envelope guides"></canvas>
+  <button data-envelope-handle="attack" aria-label="Attack"></button>
+  <button data-envelope-handle="decay" aria-label="Decay"></button>
+  <button data-envelope-handle="sustain" aria-label="Sustain"></button>
+  <button data-envelope-handle="release" aria-label="Release"></button>
+</div>
+<output data-envelope-readout></output>
+<p class="subtext">Drag a point sideways to change its rate. Drag the attack or decay point vertically to change TL or D1L. Curves show relative settings.</p>
+</template>
 <section id="fm"></section>
 <section id="pcm" hidden><h2>MSM6295</h2><div class="bar"><label>Sample <select id="sample"></select></label><label>Attenuation <input id="attenuation" type="number" min="0" max="15" value="2"></label></div>
 <figure class="sample-preview"><canvas id="sampleWave" width="768" height="96" aria-label="Decoded sample waveform"></canvas><figcaption id="sampleRange"></figcaption></figure>

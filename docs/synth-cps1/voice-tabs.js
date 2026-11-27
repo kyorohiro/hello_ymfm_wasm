@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {createOperatorEnvelopeView} from '../synth/synth_operator_envelope.js';
 import {createParamControl} from '../synth/synth_controls.js';
 
-export function arrangeVoiceSections({body,channelList,selected,common,audition,operatorsCard,lfoCard,noiseCard,details,registers,code,status},keyMask) {
+export function arrangeVoiceSections({body,channelList,selected,common,audition,operatorsCard,lfoCard,noiseCard,details,registers,code,status},keyMask,editOperator) {
   const controls=[];
   for (const input of body.querySelectorAll('.chip-field > input,.chip-field > select')) {
     const isSelect=input.tagName==='SELECT', isToggle=input.type==='checkbox';
@@ -55,12 +56,35 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
     popup.popover='auto';popup.className='voice-tool';
     toggle.textContent=label;toggle.popoverTargetElement=popup;
     popup.append(...nodes);parent.append(toggle,popup);
+    return popup;
   }
   const tools=document.createElement('div');
   tools.className='voice-tools';selected.append(tools);
   tool(tools,'Pitch / gate',[common]);
   tool(tools,'Audition',[audition,selected.querySelector('.subtext')]);
-  tool(tools,'Envelope',[operatorsCard.querySelector('canvas'),...operatorsCard.querySelectorAll('p.subtext')]);
+  const popup=tool(tools,'Envelope',[document.getElementById('envelopeEditor').content.cloneNode(true)]);
+  popup.classList.add('opm-envelope-editor');
+  operatorsCard.querySelector('canvas').remove();
+  for (const guide of operatorsCard.querySelectorAll('p.subtext')) popup.append(guide);
+  let operatorStates, envelopeChannel;
+  const envelopeView=createOperatorEnvelopeView({
+    root:popup,
+    isOpen:()=>popup.matches(':popover-open'),
+    getSelectionKey:()=>envelopeChannel,
+    getOperators:()=>operatorStates,
+    paramLabel:key=>key==='sl'?'D1L':key.toUpperCase(),
+    onEdit(operator,{sl,...patch}) {
+      if (sl!==undefined) patch.d1l=sl;
+      editOperator(envelopeChannel,operator-1,patch);
+    },
+  });
+  function updateEnvelope(operators,channel) {
+    if (!operators) return;
+    envelopeChannel=channel;
+    operatorStates=[null,...operators.map(op=>({...op,sl:op.d1l}))];
+    envelopeView.setVisible(true);
+    envelopeView.invalidate();
+  }
   tool(noiseCard,'LFO / noise guide',[lfoCard.querySelector('.subtext'),noiseCard.querySelector('.subtext')]);
   const registerPage=document.createElement('section');
   const range=document.createElement('select');
@@ -99,5 +123,5 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
     });
   }
   selectPage(0);
-  return {updateRegisters};
+  return {updateRegisters,updateEnvelope,dispose:envelopeView.dispose};
 }

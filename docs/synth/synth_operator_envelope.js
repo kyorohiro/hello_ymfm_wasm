@@ -6,7 +6,7 @@ import {
 
 // Patch editing without an analyser, audio initialization or animation loop.
 // Synth can supply its existing RMS history; Playground remains guide-only.
-export function createOperatorEnvelopeView({ root, getOperators, onEdit, getSelectionKey = () => 0, getOutputEnvelope = () => null }) {
+export function createOperatorEnvelopeView({ root, getOperators, onEdit, getSelectionKey = () => 0, getOutputEnvelope = () => null, isOpen = () => root.open, paramLabel = key => key.toUpperCase() }) {
   const canvas = root.querySelector('[data-operator-envelope]');
   const context = canvas.getContext('2d');
   const operatorButtons = [...(root.querySelectorAll?.('[data-envelope-operator]') ?? [])];
@@ -38,7 +38,7 @@ export function createOperatorEnvelopeView({ root, getOperators, onEdit, getSele
   }
 
   function canDraw() {
-    return !disposed && visible && inView && root.open && !document.hidden;
+    return !disposed && visible && inView && isOpen() && !document.hidden;
   }
 
   function edit(patch) {
@@ -80,11 +80,11 @@ export function createOperatorEnvelopeView({ root, getOperators, onEdit, getSele
       if (!handle) continue;
       button.style.left = `${handle.x / canvas.width * 100}%`;
       button.style.top = `${handle.y / canvas.height * 100}%`;
-      const label = `OP${selectedOperator} ${handle.params.map(key => `${key.toUpperCase()} ${settings[key]}`).join(', ')}`;
+      const label = `OP${selectedOperator} ${handle.params.map(key => `${paramLabel(key)} ${settings[key]}`).join(', ')}`;
       button.setAttribute('aria-label', label);
       button.title = label;
     }
-    if (readout) readout.textContent = `OP${selectedOperator} · ${['ar', 'tl', 'd1r', 'sl', 'd2r', 'rr'].map(key => `${key.toUpperCase()} ${settings[key]}`).join(' · ')}`;
+    if (readout) readout.textContent = `OP${selectedOperator} · ${['ar', 'tl', 'd1r', 'sl', 'd2r', 'rr'].map(key => `${paramLabel(key)} ${settings[key]}`).join(' · ')}`;
   }
 
   function draw() {
@@ -102,7 +102,7 @@ export function createOperatorEnvelopeView({ root, getOperators, onEdit, getSele
     previousSignature = signature;
     if (canvas.width !== width) canvas.width = width;
     drawOperatorEnvelopeGuides({ canvas, context, operatorStates: operators, editable, selectedOperator,
-      outputEnvelope: getOutputEnvelope() });
+      paramLabel, outputEnvelope: getOutputEnvelope() });
     if (guidesChanged) updateHandles(operators);
   }
 

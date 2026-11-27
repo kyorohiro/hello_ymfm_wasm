@@ -32,6 +32,12 @@ try {
     };
   });
   await page.goto('http://127.0.0.1:'+server.address().port+'/synth-cps1/index.html');
+  const modes=page.getByRole('group',{name:'Workspace mode'});
+  assert.deepEqual(await modes.getByRole('button').allTextContents(),['Synth','Code']);
+  for (const name of ['Synth','Code','Synth']) {
+    await modes.getByRole('button',{name,exact:true}).click();
+    assert.equal(await modes.getByRole('button',{pressed:true}).textContent(),name);
+  }
   assert.ok(await page.locator('#fm').isVisible());
   assert.ok(await page.locator('#keyboardPanel').isVisible());
   await page.click('#hitPad');
@@ -99,6 +105,23 @@ try {
   await page.keyboard.down('a');
   await page.waitForFunction(()=>document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes('1101'));
   await slot.click();
+  await page.getByRole('button',{name:'Envelope',exact:true}).click();
+  const envelope=page.locator('.opm-envelope-editor');
+  await envelope.getByRole('button',{name:'OP3',exact:true}).click();
+  const decay=envelope.locator('[data-envelope-handle="decay"]');
+  await page.waitForFunction(()=>document.querySelector('[data-envelope-handle="decay"]').title.startsWith('OP3 '));
+  const handle=await decay.boundingBox();
+  const x=handle.x+handle.width/2, y=handle.y+handle.height/2;
+  await page.mouse.move(x,y);
+  await page.mouse.down();
+  await page.mouse.move(x-25,y+20,{steps:5});
+  await page.mouse.up();
+  const d1r=Number(await page.getByRole('button',{name:'OP3 · C1 D1R',exact:true}).textContent());
+  const d1l=Number(await page.getByRole('button',{name:'OP3 · C1 D1L',exact:true}).textContent());
+  assert.ok(d1r>8 && d1l>5);
+  assert.match(await envelope.locator('[data-envelope-readout]').textContent(),new RegExp('D1R '+d1r+' · D1L '+d1l));
+  assert.match(await gate.textContent(),/1101/);
+  await page.keyboard.press('Escape');
   const feedback=page.getByRole('button',{name:'Feedback (OP1)',exact:true});
   for (let i=0;i<4;i++) await feedback.locator('..').getByRole('button',{name:'+',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-chip-control="ym2151-code"]').value.includes('opm.setAlgo(0, 4, 6)'));

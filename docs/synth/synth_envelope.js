@@ -346,10 +346,10 @@ export function drawEnvelopeGuide(options) {
 }
 
 const EDITABLE_GUIDE_STAGES = {
-  attack: {min: 0.04, max: 0.24, rate: 'ar', maxRate: 31, params: ['ar', 'tl'], label: 'AR / TL'},
-  decay: {min: 0.30, max: 0.48, rate: 'd1r', maxRate: 31, params: ['d1r', 'sl'], label: 'D1R / SL'},
-  sustain: {min: 0.54, max: 0.72, rate: 'd2r', maxRate: 31, params: ['d2r'], label: 'D2R'},
-  release: {min: 0.78, max: 0.96, rate: 'rr', maxRate: 15, params: ['rr'], label: 'RR'},
+  attack: {min: 0.04, max: 0.24, rate: 'ar', maxRate: 31, params: ['ar', 'tl']},
+  decay: {min: 0.30, max: 0.48, rate: 'd1r', maxRate: 31, params: ['d1r', 'sl']},
+  sustain: {min: 0.54, max: 0.72, rate: 'd2r', maxRate: 31, params: ['d2r']},
+  release: {min: 0.78, max: 0.96, rate: 'rr', maxRate: 15, params: ['rr']},
 };
 const EDITABLE_GUIDE_LIMITS = {ar: 31, d1r: 31, d2r: 31, rr: 15, tl: 127, sl: 15};
 const EDITABLE_GUIDE_COLORS = ['#f2c078', '#ff93bc', '#9dff9b', '#89b7ff'];
@@ -428,7 +428,7 @@ export function operatorEnvelopePatchFromPoint({width, height, settings, handle,
   return patch;
 }
 
-function drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator, outputEnvelope}) {
+function drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator, outputEnvelope, paramLabel}) {
   clearCanvas(context, canvas);
   const layout = editableGuideLayout(canvas.width, canvas.height);
   if (!layout) return;
@@ -505,7 +505,7 @@ function drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, op
   context.fillText('Time →', right - 44, top - 5);
   context.textAlign = 'center';
   for (const stage of Object.values(EDITABLE_GUIDE_STAGES)) {
-    context.fillText(stage.label, left + innerWidth * (stage.min + stage.max) / 2, bottom + 15);
+    context.fillText(stage.params.map(paramLabel).join(' / '), left + innerWidth * (stage.min + stage.max) / 2, bottom + 15);
   }
   context.textAlign = 'start';
 }
@@ -519,10 +519,11 @@ export function drawOperatorEnvelopeGuides({
   operatorNumbers = [1, 2, 3, 4],
   editable = false,
   selectedOperator = 1,
+  paramLabel = key => key.toUpperCase(),
   outputEnvelope = null,
 }) {
   if (editable) {
-    drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator, outputEnvelope});
+    drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator, outputEnvelope, paramLabel});
     return;
   }
   drawEnvelopeGuideCanvas({

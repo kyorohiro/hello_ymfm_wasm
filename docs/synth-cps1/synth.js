@@ -61,7 +61,7 @@ const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:sec
     keyMasks[ch]^=bit;
     files.recordEdit(ch);
   },
-}),onChannelChange:()=>{autoChannel=false;syncKeyChannels();},createOperatorControl:createParamControl,invoke(method,args) {
+},(ch,op,patch)=>editVoice('setOperator',[ch,op,patch])),onChannelChange:()=>{autoChannel=false;syncKeyChannels();},createOperatorControl:createParamControl,invoke(method,args) {
   if (method === 'auditionOn') startAudio().catch(fail);
   return editVoice(method,args);
 },onError:fail});
