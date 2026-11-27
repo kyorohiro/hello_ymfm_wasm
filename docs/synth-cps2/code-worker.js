@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {attachRegisterTimedClient} from '../js/register_timed_client.js';
+import {qsoundPlanTools} from './timed-plan.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {adpcmTriggerWrites,noteWrites} from './demo.js';
 
@@ -53,6 +55,13 @@ const qsound = {
       integer(pan,0,32,'Pan'),integer(volume,0,32767,'Volume'))});
   },
 };
+attachRegisterTimedClient(qsound,payload=>{
+  const {port1,port2}=new MessageChannel();
+  return new Promise((resolve,reject)=>{
+    port1.onmessage=({data})=>{port1.close();if(data.failure)reject(Error(data.failure));else resolve(data.value);};
+    postMessage({timedRequest:payload,reply:port2},[port2]);
+  });
+},qsoundPlanTools(path=>samples?.get(path)));
 const runtime = createPlaygroundCodeRuntime({
   ensureReady:()=>{}, now:()=>performance.now()/1000, supportedSoundChips:['qsound'],
   useSoundChip:()=>qsound,prepareSource:source=>'const qsound=await useSoundChip("qsound");\n'+source,

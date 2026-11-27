@@ -129,3 +129,46 @@ test('saved Voice 2 ADPCM one-shot retriggers on Voice 3 with the same decoded s
   send({type:'load-preset',channel:2,preset,rom:await presetRom(preset,bytes)});
   assert.deepEqual(hit(2),original);
 });
+
+test('scheduled PCM and ADPCM writes share output frames across block boundaries and cancel together',async()=>{
+  const {qsoundPlanTools}=await import('./timed-plan.js');
+  const {attachRegisterTimedClient}=await import('../js/register_timed_client.js');
+  for(const hz of [44100,48000]){
+    globalThis.sampleRate=hz;
+    try{
+      const p=new Processor(), reference=new Processor();
+      const send=(processor,writes)=>processor.port.onmessage({data:writes});
+      for(const chip of [p,reference])send(chip,[[0xce,512],[0xcf,1024],[0xd0,0],[0xd1,32767]]);
+      const api=attachRegisterTimedClient({},payload=>p.timeline.request(payload),qsoundPlanTools());
+      const plan=api.build(b=>{
+        b.atSample(5).noteOn(1,60,0).trigger(2);
+        b.atSample(48).noteOff(1);
+      },{referenceSampleRate:hz});
+      const trace=await api.compile(plan);
+      assert.equal(p.chip.lastWrites[0xd7],-1);
+      const cycle=137;
+      await api.schedule(plan,{name:'bar',repeatSeconds:cycle/hz});
+      const render=(chip,n)=>{
+        const left=new Float32Array(n),right=left.slice();chip.process([],[[left,right]]);return left;
+      };
+      const actual=[...render(p,132),...render(p,181),...render(p,90)];
+      const expected=[];
+      for(let frame=0;frame<actual.length;frame++){
+        if(frame>=128)for(const w of trace){
+          if(Math.round(w.offsetSeconds*hz)===(frame-128)%cycle)send(reference,[[w.register,w.value]]);
+        }
+        expected.push(render(reference,1)[0]);
+      }
+      assert.ok(actual.some(x=>x!==0));
+      assert.deepEqual(actual,expected);
+      send(p,[[6,1234]]); // A newer manual gate survives cancellation.
+      await api.clearSchedule('bar');
+      render(p,cycle*2);
+      assert.equal(p.chip.voices[0].volume,1234);
+      assert.equal(p.chip.adpcm[1].gain,0);
+      await api.schedule(plan,{name:'pending',repeatSeconds:cycle/hz});
+      send(p,{type:'clear-timeline'});render(p,cycle*3);
+      assert.equal(p.chip.voices[0].volume,1234);
+    }finally{globalThis.sampleRate=48000;}
+  }
+});

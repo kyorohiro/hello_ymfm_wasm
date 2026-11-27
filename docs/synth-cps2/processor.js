@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {createRegisterTimedProcessor} from '../js/register_timed_processor.js';
+import {qsoundPlanTools} from './timed-plan.js';
 import {chipRomMap} from './rom-map.js';
 import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
@@ -12,7 +14,23 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.previewVersion=0;
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
+    this.gates=new Map();
+    this.renderedFrames=0;
+    this.timeline=createRegisterTimedProcessor({
+      nowFrame:()=>this.renderedFrames,sampleRate,defaultOwner:'qsound',
+      write:(reg,value,owner)=>this.applyRegister(reg,value,true,owner),
+      release:(name,scope)=>this.releaseScheduled(name,scope),
+      checkAvailable:()=>{if(this.song && !this.song.paused)throw Error('Pause the VGM before scheduling.');},
+      reportError:({message})=>this.port.postMessage({scheduleFailure:message}),
+    },qsoundPlanTools());
     this.port.onmessage = ({data}) => {
+      if(data?.type==='clear-timeline'){this.timeline.clear();return;}
+      if(data?.timedRequest){
+        try{data.reply.postMessage({value:this.timeline.request(data.timedRequest)});}
+        catch(error){data.reply.postMessage({failure:error.message});}
+        finally{data.reply.close();}
+        return;
+      }
       if(data?.type==='project-rom'){
         this.projectRom=data.rom;
         if(!this.song && !this.source)this.chip.rom=data.rom;
@@ -86,7 +104,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         return;
       }
       if(data?.type==='captured-off'){
-        this.chip.writeRegister(data.channel*8+6,0);
+        this.apply([[data.channel*8+6,0]],false);
         return;
       }
       if(data?.type==='voice-setting'){
@@ -182,20 +200,36 @@ class Cps2Preview extends AudioWorkletProcessor {
   applyMutes() {
     this.mutes.forEach((muted,i)=>this.chip.setChannelMuted(i,muted));
   }
-  apply(writes,remember=true) {
-    for (const [reg,value] of writes) {
-      if (reg < 0x80 && (reg & 7) === 1) this.starts[reg >> 3] = value;
-      if(this.captured && remember && reg<128){
-        if((reg&7)===2)this.rates[reg>>3]=value;
-        if((reg&7)===6)this.levels[reg>>3]=(value<<16)>>16;
-      }
-      this.chip.writeRegister(reg,value);
+  releaseScheduled(name,scope){
+    let released=false;
+    for(const [voice,owner] of this.gates){
+      if((name!==undefined && name!==owner.patternName)||(scope?.owner && scope.owner!==owner.owner))continue;
+      released=true;this.gates.delete(voice);
+      if(voice<16)this.chip.writeRegister(8*voice+6,0);
+      else Object.assign(this.chip.adpcm[voice-16],{trigger:false,gain:0,output:0});
     }
+    return released;
+  }
+  apply(writes,remember=true){
+    for(const [reg,value] of writes)this.applyRegister(reg,value,remember);
+  }
+  applyRegister(reg,value,remember,owner){
+    const voice=reg<128 && (reg&7)===6?reg>>3:reg>=0xd6 && reg<=0xd8?16+reg-0xd6:null;
+    if(voice!==null){
+      if(owner && value)this.gates.set(voice,owner);else this.gates.delete(voice);
+    }
+    if (reg < 0x80 && (reg & 7) === 1) this.starts[reg >> 3] = value;
+    if(this.captured && remember && reg<128){
+      if((reg&7)===2)this.rates[reg>>3]=value;
+      if((reg&7)===6)this.levels[reg>>3]=(value<<16)>>16;
+    }
+    this.chip.writeRegister(reg,value);
   }
   process(_, outputs) {
     const [left,right] = outputs[0];
-    if(this.song && !this.song.paused){this.song.render(left,right);return true;}
-    this.chip.render(left,right);
+    if(this.song && !this.song.paused)this.song.render(left,right);
+    else this.timeline.render(left.length,(offset,count)=>this.chip.render(left,right,offset,count));
+    this.renderedFrames+=left.length;
     return true;
   }
 }

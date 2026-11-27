@@ -76,3 +76,19 @@ liveLoop('backbeat', async () => {
   await beat(1);
 });
 `;
+
+export const scheduledBar=`// Change bpm, then Apply. Select PCM CH3 to play along.
+const bpm = 112;
+const beatSeconds = 60 / bpm;
+await qsound.assignPad(2, '/samples/cabinet-snare.wav');
+const bar = qsound.build(b => {
+  const notes = [36, 43, 39, 41];
+  for (let i = 0; i < notes.length; i++) {
+    b.atSeconds(i * beatSeconds).noteOn(1, notes[i], '/samples/cabinet-pluck.wav');
+    if (i % 2 === 1) b.trigger(2);
+    b.atSeconds((i + 0.75) * beatSeconds).noteOff(1);
+  }
+});
+const writes = await qsound.compile(bar);
+if (writes.length) await qsound.schedule(bar, {name: 'bar', repeatSeconds: 4 * beatSeconds});
+`;

@@ -21,7 +21,7 @@ import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {isSamplePath,decodeSample,padByteLength,allocateSample,sampleLibrary,maxRom} from './samples.js';
-import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet,padGroove} from './sample-duet.js';
+import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet,padGroove,scheduledBar} from './sample-duet.js';
 let placements={},padPlacements={},library=sampleLibrary([]);
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.sample*256;
@@ -198,6 +198,7 @@ function selectPcmTab(registers) {
 $('register-tab').onclick=()=>selectPcmTab(true);
 $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
+  if(data.scheduleFailure){$('code-status').textContent=data.scheduleFailure;return;}
   if (data.revision !== revision || data.channel !== selected) return;
   if(data.romMap && liveInstrument && !seeking && !$('rom-chip').hidden)displayMap(data.romMap);
   if(!seeking && data.padVoice===padVoice && data.padState){
@@ -417,6 +418,7 @@ const files = createVirtualFileSystem([
   {path:drumPath,data:cabinetSnare()},
   {path:'/examples/sample-duet.js',data:sampleDuet},
   {path:'/examples/pad-groove.js',data:padGroove},
+  {path:'/examples/scheduled-bar.js',data:scheduledBar},
   ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score())})),
   {path:'/examples/pad-loop.js',data:`setBpm(106);
 liveLoop('pads', async () => {
@@ -450,6 +452,7 @@ $('add-demos').onclick=()=>run(async()=>{
   }
   if(!files.has('/examples/sample-duet.js'))additions.push({path:'/examples/sample-duet.js',data:sampleDuet});
   if(!files.has('/examples/pad-groove.js'))additions.push({path:'/examples/pad-groove.js',data:padGroove});
+  if(!files.has('/examples/scheduled-bar.js'))additions.push({path:'/examples/scheduled-bar.js',data:scheduledBar});
   const regions=[...library.regions],newOffsets={};
   for(const [path,generate] of [[duetSamplePath,cabinetPluck],[drumPath,cabinetSnare]]){
     if(files.has(path))continue;
@@ -472,7 +475,18 @@ declare function beat(beats?:number):Promise<void>;
 declare function setBpm(bpm:number):void;
 declare function sleep(seconds:number):Promise<void>;
 declare function stopLoop(name:string):void;
+interface QSoundWrite {offsetSeconds:number;register:number;value:number}
+interface QSoundPlan {chip:'qsound';version:1;referenceSampleRate:number;writes:QSoundWrite[]}
+interface QSoundBuilder {
+  atSeconds(seconds:number):this; atSample(offset:number):this; writeRegister(register:number,value:number):this;
+  noteOn(channel:number,midi:number,sample:number|string,pan?:number,volume?:number):this;
+  noteOff(channel:number):this; trigger(voice:number):this;
+}
 declare const qsound:{
+  build(record:(b:QSoundBuilder)=>void,options?:{referenceSampleRate?:number}):QSoundPlan;
+  compile(plan:QSoundPlan):Promise<QSoundWrite[]>;
+  schedule(plan:QSoundPlan,options:{name:string;repeatSeconds?:number}):Promise<unknown>;
+  clearSchedule(name:string):Promise<unknown>;
   /** Assign a WAV from Files. Offset, length and loop are measured in ROM bytes. */
   /** Prepare a project WAV for a one-shot. Await before calling trigger(voice). */
   assignPad(voice:number,path:string):Promise<void>;
@@ -537,6 +551,7 @@ function codeSamples(){
   return [...library.items].map(([path,{bank,start,length,rate}])=>[path,{bank,start,length,rate}]);
 }
 function stopWorker() {
+  if(codeWorker)port?.postMessage({type:'clear-timeline'});
   codeWorker?.terminate();
   codeWorker=null;
   $('apply-code').disabled=$('stop-code').disabled=true;
@@ -560,6 +575,7 @@ $('run-code').onclick=()=>run(async()=>{
   $('stop-code').disabled=false;
   worker.onmessage=({data})=>{
     if(worker!==codeWorker)return;
+    if(data.timedRequest){port.postMessage(data,[data.reply]);return;}
     if(data.assignPad){
       const {voice,path,reply}=data.assignPad;
       try{

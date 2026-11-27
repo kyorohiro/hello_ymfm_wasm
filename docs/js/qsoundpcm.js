@@ -201,8 +201,8 @@ export class QSoundPcm {
     this.right = Math.max(-1, Math.min(1, right + echo));
   }
 
-  render(left, right) {
-    for (let i=0; i<left.length; i++) {
+  render(left, right, offset=0, count=left.length-offset) {
+    for (let i=offset; i<offset+count; i++) {
       while (this.ticks >= 1) {this.tick(); this.ticks--;}
       left[i] = this.left;
       right[i] = this.right;
