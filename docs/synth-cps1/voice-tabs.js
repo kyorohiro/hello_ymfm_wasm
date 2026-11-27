@@ -2,7 +2,7 @@
 import {createOperatorEnvelopeView} from '../synth/synth_operator_envelope.js';
 import {createParamControl} from '../synth/synth_controls.js';
 
-export function arrangeVoiceSections({body,channelList,selected,common,audition,operatorsCard,lfoCard,noiseCard,details,registers,code,status},keyMask,editOperator) {
+export function arrangeVoiceSections({body,channelList,selected,common,audition,operatorsCard,lfoCard,noiseCard,details,registers,code,status},keyMask,editOperator,onPageChange) {
   const controls=[];
   for (const input of body.querySelectorAll('.chip-field > input,.chip-field > select')) {
     const isSelect=input.tagName==='SELECT', isToggle=input.type==='checkbox';
@@ -88,7 +88,10 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
     envelopeView.setVisible(true);
     envelopeView.invalidate();
   }
-  tool(noiseCard,'LFO / noise guide',[lfoCard.querySelector('.subtext'),noiseCard.querySelector('.subtext')]);
+  const keyboardHint=document.createElement('p');
+  keyboardHint.className='subtext';
+  keyboardHint.textContent='AUTO keyboard → CH8 on this tab. Hold a note and toggle noise to hear OP4 change.';
+  noiseCard.append(keyboardHint);
   const registerPage=document.createElement('section');
   const range=document.createElement('select');
   range.setAttribute('aria-label','Register range');
@@ -111,13 +114,13 @@ export function arrangeVoiceSections({body,channelList,selected,common,audition,
   }
   range.onchange=()=>updateRegisters(values);
 
-  const groups=[['Voice',selected,operatorsCard],['LFO / Noise',lfoCard,noiseCard],['Registers',registerPage]];
+  const groups=[['Voice',selected,operatorsCard],['LFO',lfoCard],['Noise',noiseCard],['Registers',registerPage]];
   for (const [index,[label,...sections]] of groups.entries()) {
     const tab=document.createElement('button'), page=document.createElement('div');
     page.className='voice-page';page.id='opm-page-'+index;
-    tab.textContent=label;tab.setAttribute('aria-controls',page.id);
+    tab.dataset.voicePage=label;tab.textContent=label;tab.setAttribute('aria-controls',page.id);
     page.append(...sections);pages.append(page);tabs.append(tab);
-    tab.onclick=()=>selectPage(index);
+    tab.onclick=()=>{selectPage(index);onPageChange(label);};
   }
   function selectPage(index) {
     Array.from(pages.children).forEach((node,i)=>{

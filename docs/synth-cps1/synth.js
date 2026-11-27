@@ -75,6 +75,7 @@ const keyOn = opm.keyOn;
 opm.keyOn = (ch,mask=keyMasks[ch]) => keyOn(ch,mask);
 let autoChannel=true, nextChannel=0;
 let observation=null;
+let voicePage='Voice';
 const autoHeld=new Map();
 function editVoice(method,args) {
   if (observation) return;
@@ -93,7 +94,10 @@ const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:sec
     keyMasks[ch]^=bit;
     files.recordEdit(ch);
   },
-},(ch,op,patch)=>editVoice('setOperator',[ch,op,patch])),onChannelChange:()=>{autoChannel=false;syncKeyChannels();},createOperatorControl:createParamControl,invoke(method,args) {
+},(ch,op,patch)=>editVoice('setOperator',[ch,op,patch]),page=>{
+  voicePage=page;
+  syncKeyChannels();
+}),onChannelChange:()=>{autoChannel=false;syncKeyChannels();},createOperatorControl:createParamControl,invoke(method,args) {
   if (method === 'auditionOn') startAudio().catch(fail);
   return editVoice(method,args);
 },onError:fail});
@@ -199,6 +203,7 @@ function renderWorkspace() {
     tab.setAttribute('aria-controls',id);
   }
   panel.setVisible(!$('fm').hidden);
+  syncKeyChannels();
 }
 function changeMode(mode) {
   if (mode === 'synth') synthView.performance = 'keyboardPanel';
@@ -354,8 +359,19 @@ $('rom').onchange = async () => {
 };
 $('restore').onclick = () => {romRevision++; $('rom').value=''; files.restoreKit();};
 
+function keyboardChannel() {
+  if (autoChannel && voicePage==='Noise' && !$('fm').hidden && !observation) return 7;
+  return autoChannel?-1:panel.getSelectedChannel();
+}
 function syncKeyChannels() {
   const target=autoChannel?-1:panel.getSelectedChannel();
+  const showNoise=target===-1 || target===7;
+  const noiseTab=$('fm').querySelector('[data-voice-page="Noise"]');
+  noiseTab.hidden=!showNoise;
+  if (!showNoise && voicePage==='Noise') {
+    $('fm').querySelector('[data-voice-page="Voice"]').click();
+    return;
+  }
   for (const button of document.querySelectorAll('[data-key-channel],[data-chip-channel]')) {
     const ch=Number(button.dataset.keyChannel ?? button.dataset.chipChannel);
     button.setAttribute('aria-pressed',String(ch===target));
@@ -390,8 +406,9 @@ $('keyOctave').append(octaveControl.element);
 const held = new Map();
 function press(id,entry) {
   if (observation || held.has(id)) return;
-  let ch=panel.getSelectedChannel();
-  if (autoChannel) {
+  let ch=keyboardChannel();
+  if (ch<0) {
+    ch=panel.getSelectedChannel();
     const channels=inspector.read().channels;
     const free=Array.from({length:8},(_,i)=>(nextChannel+i)%8).find(i=>!channels[i].active);
     const oldest=autoHeld.entries().next().value;

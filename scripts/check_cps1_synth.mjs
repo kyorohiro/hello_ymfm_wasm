@@ -57,7 +57,8 @@ try {
   const voiceTab=name=>page.locator('.voice-tabs').getByRole('button',{name,exact:true});
   async function checkVoicePages() {
     const positions=[];
-    for (const name of ['Voice','LFO / Noise','Registers']) {
+    for (const name of ['Voice','LFO','Noise','Registers']) {
+      if (name==='Noise' && await voiceTab(name).isHidden()) continue;
       await voiceTab(name).click();
       positions.push(await page.evaluate(()=>{
         const fm=document.querySelector('#fm');
@@ -81,7 +82,20 @@ try {
   await page.keyboard.down('a');await page.keyboard.down('s');
   await page.waitForFunction(()=>document.querySelectorAll('#fm [data-chip-channel][data-sounding=true]').length===2);
   await page.keyboard.up('s');await page.keyboard.up('a');
+  await voiceTab('Noise').click();
+  assert.equal(await keyChannels.getByText('AUTO').getAttribute('aria-pressed'),'true');
+  await page.keyboard.down('a');
+  await page.waitForFunction(()=>document.querySelector('[data-chip-channel="7"]').dataset.sounding==='true');
+  await voiceTab('LFO').click();
+  assert.equal(await keyChannels.getByText('AUTO').getAttribute('aria-pressed'),'true');
+  await page.keyboard.up('a');
+  await page.waitForFunction(()=>document.querySelector('[data-chip-channel="7"]').dataset.sounding==='false');
+  await chipChannel(8).click();
+  await voiceTab('Noise').click();
   await chipChannel(4).click();
+  assert.ok(await voiceTab('Noise').isHidden());
+  assert.equal(await voiceTab('Voice').getAttribute('aria-pressed'),'true');
+  assert.ok(await voiceTab('LFO').isVisible());
   assert.equal(await keyChannels.getByText('CH4',{exact:true}).getAttribute('aria-pressed'),'true');
   await page.keyboard.down('a');
   await page.waitForFunction(()=>document.querySelector('[data-chip-channel="3"]').dataset.sounding==='true');
