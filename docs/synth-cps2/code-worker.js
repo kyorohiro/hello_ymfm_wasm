@@ -22,6 +22,18 @@ const qsound = {
     postMessage({writes:[[((index+15)%16)*8,0x8000|item.bank],[base+1,start],[base+3,0],
       [base+4,loop],[base+5,start+length],[base+2,item.rate]]});
   },
+  async assignPad(voice,path){
+    integer(voice,1,3,'ADPCM voice');
+    if(!samples)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
+    if(!samples.has(path))throw Error('Missing WAV sample: '+path);
+    const {port1,port2}=new MessageChannel();
+    try{
+      await new Promise((resolve,reject)=>{
+        port1.onmessage=({data})=>data.error?reject(Error(data.error)):resolve();
+        postMessage({assignPad:{voice,path,reply:port2}},[port2]);
+      });
+    }finally{port1.close();}
+  },
   writeRegister(reg,value) {
     postMessage({writes:[[integer(reg,0,255,'Register'),integer(value,0,65535,'Value')]]});
   },

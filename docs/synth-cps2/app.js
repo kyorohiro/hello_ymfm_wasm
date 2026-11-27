@@ -20,7 +20,7 @@ import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {isSamplePath,decodeSample,padByteLength,allocateSample,sampleLibrary,maxRom} from './samples.js';
-import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet} from './sample-duet.js';
+import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet,padGroove} from './sample-duet.js';
 let placements={},padPlacements={},library=sampleLibrary([]);
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.sample*256;
@@ -444,6 +444,7 @@ const files = createVirtualFileSystem([
   {path:duetSamplePath,data:cabinetPluck()},
   {path:drumPath,data:cabinetSnare()},
   {path:'/examples/sample-duet.js',data:sampleDuet},
+  {path:'/examples/pad-groove.js',data:padGroove},
   ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score())})),
   {path:'/examples/pad-loop.js',data:`setBpm(106);
 liveLoop('pads', async () => {
@@ -476,6 +477,7 @@ $('add-demos').onclick=()=>run(async()=>{
     if(!files.has(path))additions.push({path,data:bytes});
   }
   if(!files.has('/examples/sample-duet.js'))additions.push({path:'/examples/sample-duet.js',data:sampleDuet});
+  if(!files.has('/examples/pad-groove.js'))additions.push({path:'/examples/pad-groove.js',data:padGroove});
   const regions=[...library.regions],newOffsets={};
   for(const [path,generate] of [[duetSamplePath,cabinetPluck],[drumPath,cabinetSnare]]){
     if(files.has(path))continue;
@@ -500,6 +502,8 @@ declare function sleep(seconds:number):Promise<void>;
 declare function stopLoop(name:string):void;
 declare const qsound:{
   /** Assign a WAV from Files. Offset, length and loop are measured in ROM bytes. */
+  /** Prepare a project WAV for a one-shot. Await before calling trigger(voice). */
+  assignPad(voice:number,path:string):Promise<void>;
   assignSample(channel:number,path:string,options?:{offset?:number,length?:number,loop?:number}):void;
   writeRegister(register:number,value:number):void;
   noteOn(channel:number,midi:number,sample?:number,pan?:number,volume?:number):void;
@@ -584,6 +588,16 @@ $('run-code').onclick=()=>run(async()=>{
   $('stop-code').disabled=false;
   worker.onmessage=({data})=>{
     if(worker!==codeWorker)return;
+    if(data.assignPad){
+      const {voice,path,reply}=data.assignPad;
+      try{
+        if(romPath)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
+        const pad=ensurePadSample(path),base=0xca+4*(voice-1);
+        port.postMessage([[base,pad.start],[base+1,pad.start+pad.length],[base+2,pad.bank]]);
+        reply.postMessage({});
+      }catch(error){reply.postMessage({error:error.message});}
+      finally{reply.close();}
+    }
     if(data.audition)port.postMessage(data.audition);
     if(data.writes)port.postMessage(data.writes);
     if(data.status){$('code-status').textContent=data.status;$('apply-code').disabled=false;}
@@ -928,11 +942,21 @@ function setPadSample(pad,path){
   const item=library.padItems.get(path);
   Object.assign(pad,{samplePath:path,bank:item.bank,start:item.start,end:item.start+item.length});
 }
+function ensurePadSample(path){
+  if(!library.padItems.has(path)){
+    const item=library.items.get(path);
+    if(!item)throw Error('Missing WAV sample: '+path);
+    padPlacements[path]=allocateSample(library.regions,padByteLength(item.seconds),65536);
+    try{rebuildSamples();}catch(error){delete padPlacements[path];throw error;}
+    scheduleDraft();
+  }
+  return library.padItems.get(path);
+}
 function assignSample(path){
   const item=library.items.get(path),v=channels[selected],adpcm=!$('adpcm-chip').hidden;
-  if(adpcm && !library.padItems.has(path)){
-    try{padPlacements[path]=allocateSample(library.regions,padByteLength(item.seconds),65536);rebuildSamples();}
-    catch(error){delete padPlacements[path];$('file-status').textContent=error.message;return;}
+  if(adpcm){
+    try{ensurePadSample(path);}
+    catch(error){$('file-status').textContent=error.message;return;}
   }
   if(liveInstrument)stop(false);
   attached=null;highlightedPath=path;

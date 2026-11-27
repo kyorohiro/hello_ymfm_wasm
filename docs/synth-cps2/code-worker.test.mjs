@@ -22,6 +22,22 @@ test('Code assigns a project WAV slice on CH16 and resolves the latest file path
     await execute("qsound.assignSample(16,'/samples/low.wav',{offset:599,length:2});",{apply:true});
     assert.match(messages.at(-1).status,/Sample length/);
     assert.ok(messages.every(m=>!m.writes));
+    globalThis.postMessage=message=>{
+      messages.push(message);
+      if(message.assignPad){
+        const {path,voice,reply}=message.assignPad;
+        assert.equal(path,'/samples/low.wav');
+        reply.postMessage(voice===2?{}:{error:'Sample ROM is full'});
+        reply.close();
+      }
+    };
+    await execute("await qsound.assignPad(2,'/samples/low.wav');qsound.trigger(2);",{apply:true});
+    assert.deepEqual(messages[1].writes,[[0xd7,1]]);
+    await execute("await qsound.assignPad(3,'/samples/low.wav');qsound.trigger(3);",{apply:true});
+    assert.match(messages.at(-1).status,/Sample ROM is full/);
+    assert.ok(messages.every(m=>!m.writes));
+    await execute("await qsound.assignPad(4,'/samples/low.wav');");
+    assert.match(messages.at(-1).status,/ADPCM voice/);
     await execute("qsound.assignSample(1,'/samples/low.wav');",{apply:true,samples:null});
     assert.match(messages.at(-1).status,/Use synth instruments/);
   }finally{

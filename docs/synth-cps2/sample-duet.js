@@ -55,3 +55,24 @@ liveLoop('pluck', async () => {
   }
 });
 `;
+
+export const padGroove=`// Select PCM CH3 and play the keyboard over the bass and snare.
+qsound.assignSample(1, '/samples/cabinet-pluck.wav', { length: 256, loop: 64 });
+await qsound.assignPad(2, '/samples/cabinet-snare.wav');
+setBpm(112);
+
+liveLoop('bass', async () => {
+  for (const note of [36, 43, 39, 41]) {
+    qsound.noteOn(1, note);
+    await beat(0.75);
+    qsound.noteOff(1);
+    await beat(0.25);
+  }
+});
+
+liveLoop('backbeat', async () => {
+  await beat(1);
+  qsound.trigger(2);
+  await beat(1);
+});
+`;
