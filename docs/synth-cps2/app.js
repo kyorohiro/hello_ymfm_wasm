@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {demoVgm,noteWrites} from './demo.js';
+import {demoVgm,noteWrites,adpcmScore} from './demo.js';
 const $ = id => document.getElementById(id);
 const channels = Array.from({length:16},()=>({sample:0,pan:16,volume:8000,held:null}));
 let selected = 0, context, ready, port, generation = 0;
@@ -49,10 +49,10 @@ window.addEventListener('keydown',e=>{
 window.addEventListener('keyup',e=>release(e.code));
 function stop(){generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');}
 window.addEventListener('blur',stop);
-$('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation)port.postMessage('demo');});};
+$('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation)port.postMessage($('score').value);});};
 $('stop').onclick=stop;
 $('save').onclick=()=>{
-  const url=URL.createObjectURL(new Blob([demoVgm()],{type:'application/octet-stream'}));
-  const link=document.createElement('a');link.href=url;link.download='tetorica-cps2-first-round.vgm';link.click();
+  const url=URL.createObjectURL(new Blob([demoVgm($('score').value === 'adpcm' ? adpcmScore() : undefined)],{type:'application/octet-stream'}));
+  const link=document.createElement('a');link.href=url;link.download=$('score').value === 'adpcm' ? 'tetorica-cps2-adpcm-trio.vgm' : 'tetorica-cps2-first-round.vgm';link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 };

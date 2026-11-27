@@ -10,10 +10,10 @@ h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;b
 #channels{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}#keys{display:flex;flex-wrap:wrap;gap:.3rem}#keys button{touch-action:none;min-height:3rem}
 footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-width:540px){#channels{grid-template-columns:repeat(4,1fr)}body{margin:0;padding:.5rem}}
 </style>
-<main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM preview</p></div></header>
+<main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <section><h2>PCM channel</h2><div id="channels"></div>
 <label>Sample<select id="wave"><option>Reed</option><option>Bell</option></select></label>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label></section>
 <section><h2>Keyboard</h2><div id="keys"></div></section>
-<footer><button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer></main><script type="module" src="./app.js"></script></html>
+<footer><label>Demo<select id="score"><option value="demo">PCM duet</option><option value="adpcm">ADPCM trio</option></select></label> <button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer></main><script type="module" src="./app.js"></script></html>

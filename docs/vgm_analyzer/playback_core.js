@@ -481,7 +481,7 @@ export function playbackMuteControls(configuration) {
   const add=(id,method,...args)=>controls.push({id,method,args});
   const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
   if(kind==='pokey')channels('pokey-ch',pokeyPlaybackConfiguration(h.pokeyClock).count*4,'setChannelMuted');
-  const counts={qsound:16,huc6280:6,wonderswan:4,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
+  const counts={qsound:19,huc6280:6,wonderswan:4,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
   if(h.psgClock){add('psg','setPsgMuted');channels('psg-ch',4,'setPsgChannelMuted');}

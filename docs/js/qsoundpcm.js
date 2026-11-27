@@ -4,6 +4,30 @@
 export const QSOUND_PCM_RATE = 60_000_000 / (2 * 1248);
 const signed = word => (word << 16) >> 16;
 
+// DSP step multipliers in signed nibble order (-8 through +7).
+const adpcmScale = [154,154,128,102,77,58,58,58,58,58,58,58,77,102,128,154];
+
+function advanceAdpcm(voice, rom, lowNibble) {
+  if (!lowNibble) {
+    if (voice.address === voice.end) voice.gain = 0;
+    if (voice.trigger) {
+      voice.address = voice.start;
+      voice.gain = voice.volume;
+      voice.step = 10;
+      voice.output = 0;
+      voice.trigger = false;
+    }
+  }
+  const byte = rom[voice.bank * 65536 + voice.address] ?? 0;
+  const nibble = lowNibble ? byte & 15 : byte >>> 4;
+  const code = nibble < 8 ? nibble : nibble - 16;
+  if (lowNibble) voice.address = (voice.address + 1) & 65535;
+  const magnitude = ((1 + 2 * Math.abs(code)) * voice.step) >> 1;
+  const sample = Math.max(-32768, Math.min(32767, voice.output + (code <= 0 ? -magnitude : magnitude)));
+  voice.output = (sample * voice.gain) >> 16;
+  voice.step = Math.max(1, Math.min(2000, (voice.step * adpcmScale[8 + code]) >> 6));
+}
+
 export class QSoundPcm {
   constructor(rom, sampleRate = QSOUND_PCM_RATE) {
     if (!(rom instanceof Uint8Array) || !(sampleRate > 0) || !Number.isFinite(sampleRate))
@@ -14,6 +38,11 @@ export class QSoundPcm {
     this.voices = Array.from({length:16}, () => ({
       muted:false, bank:0, address:0, phase:0, rate:0, loop:0, end:0, volume:0, pan:0x120,
     }));
+    this.adpcm = Array.from({length:3}, () => ({
+      start:0, end:0, bank:0, address:0, volume:0, gain:0, trigger:false,
+      step:0, output:0, muted:false, pan:0x120,
+    }));
+    this.adpcmSlot = 0;
     this.left = this.right = 0;
     this.ticks = 1;
   }
@@ -23,6 +52,17 @@ export class QSoundPcm {
         !Number.isInteger(value) || value < 0 || value > 65535)
       throw new RangeError('Expected an 8-bit register and 16-bit data word');
     if (reg >= 0x80 && reg < 0x90) {this.voices[reg-0x80].pan = value; return;}
+    if (reg >= 0x90 && reg <= 0x92) this.adpcm[reg-0x90].pan = value;
+    if (reg >= 0xca && reg < 0xd6) {
+      const voice = this.adpcm[(reg-0xca) >> 2];
+      switch ((reg-0xca) & 3) {
+        case 0: voice.start = value; break;
+        case 1: voice.end = value; break;
+        case 2: voice.bank = value & 0x7fff; break;
+        case 3: voice.volume = signed(value); break;
+      }
+    }
+    if (reg >= 0xd6 && reg <= 0xd8) this.adpcm[reg-0xd6].trigger = value !== 0;
     if (reg >= 0x80) return;
     const ch = reg >> 3, voice = this.voices[ch];
     switch (reg & 7) {
@@ -52,6 +92,14 @@ export class QSoundPcm {
       position = Math.min(0x7ffffff, Math.max(-0x8000000, position));
       v.address = position >> 12;
       v.phase = (position << 4) & 65535;
+    }
+    advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.rom, this.adpcmSlot >= 3);
+    this.adpcmSlot = (this.adpcmSlot + 1) % 6;
+    for (const voice of this.adpcm) {
+      if (!voice.output || voice.muted) continue;
+      const pan = Math.min(32, Math.max(0, voice.pan - 0x110)) / 32;
+      left += voice.output / 32768 * (1-pan);
+      right += voice.output / 32768 * pan;
     }
     this.left = Math.max(-1, Math.min(1, left));
     this.right = Math.max(-1, Math.min(1, right));

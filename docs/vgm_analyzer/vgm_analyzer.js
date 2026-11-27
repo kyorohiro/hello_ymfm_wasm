@@ -648,7 +648,7 @@ const ymf278bFmChannelMutes = Array(18).fill(false);
 const ymf278bPcmChannelMutes = Array(24).fill(false);
 const gameboyChannelMutes = Array(4).fill(false);
 const wonderswanChannelMutes = Array(4).fill(false);
-const qsoundChannelMutes = Array(16).fill(false);
+const qsoundChannelMutes = Array(19).fill(false);
 const pokeyChannelMutes = Array(4).fill(false);
 const huc6280ChannelMutes = Array(6).fill(false);
 const nesChannelMutes = Array(6).fill(false);
@@ -978,6 +978,7 @@ function renderMonitorToggles() {
       button.type = 'button';
       button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
       button.textContent = currentChipKind === 'pokey' ? `POKEY${pokeyChannelMutes.length > 4 ? ` ${Math.floor(index / 4) + 1}` : ''} CH${index % 4 + 1}` : `CH${index + 1}`;
+      if (currentChipKind === 'qsound' && index >= 16) button.textContent = 'ADPCM ' + (index-15);
       button.setAttribute('aria-pressed', String(!muted));
       button.setAttribute('data-monitor-toggle-kind', 'opm-channel');
       if (currentChipKind === 'ym2413') button.title = 'Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
@@ -2404,7 +2405,7 @@ const HEADER_CHIP_FIELDS = [
   ['ym3526Clock', 'YM3526'],
   ['ym3812Clock', 'YM3812'],
   ['ymf262Clock', 'YMF262'],
-  ['qsoundClock','QSound (PCM preview)'],
+  ['qsoundClock','QSound (PCM + ADPCM preview)'],
   ['okim6295Clock', 'OKIM6295'],
   ['okim6258Clock', 'OKIM6258'],
   ['k051649Clock', 'K051649 (SCC)'],

@@ -33,7 +33,7 @@ const qsoundRoutingRevision = {
   ],
   "docs/vgm_analyzer/playback_core.js": [
     "7bf038ca34f106eb73faab86a50d0393c4417dd69e7e17519068855bc73cc97c",
-    "4e3853c3eb1aae60a631fa29b0133bf2440eed8f0c27db2592f408ec1bb31dfa"
+    "3fede4403f576c4ef230645c8c6d93eaca3ad079a4f3c0027172f6b8224028be"
   ]
 };
 

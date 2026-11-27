@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {demoVgm} from '../synth-cps2/demo.js';
+import {adpcmScore,demoVgm} from '../synth-cps2/demo.js';
 import {renderSource} from '../../tetorica_src/cli/render.js';
 
 test('CPS2 demo WAV contains two independently mutable, oppositely panned PCM voices', async () => {
@@ -30,4 +30,25 @@ test('QSound rejects a ROM write beyond its declared size before rendering', asy
   const demo = demoVgm();
   new DataView(demo.buffer).setUint32(256 + 11, 1, true);
   await assert.rejects(renderSource(demo), /QSound ROM range/);
+});
+
+test('ADPCM trio renders each one-shot only on its assigned voice', async () => {
+  const bytes = demoVgm(adpcmScore());
+  for (const voice of [0,1,2]) {
+    const mute = [0,1,2].filter(i => i !== voice).map(i => 'qsound-ch-' + (17+i));
+    const wav = await renderSource(bytes, {mute});
+    const samples = new Int16Array(wav.bytes.buffer, wav.bytes.byteOffset+44, (wav.bytes.length-44)/2);
+    for (const [beat,active] of [0,1,2,0,2,1].entries()) {
+      const start = beat*11025*2;
+      const pulse = samples.subarray(start, start+11025*2);
+      assert.equal(pulse.some(Boolean), active === voice);
+      if (active !== voice) continue;
+      assert.ok(pulse.subarray(6500*2).every(x=>x===0));
+      for (let i=0; i<pulse.length; i+=2) {
+        if (voice === 0) assert.equal(pulse[i+1],0);
+        if (voice === 1) assert.equal(pulse[i],pulse[i+1]);
+        if (voice === 2) assert.equal(pulse[i],0);
+      }
+    }
+  }
 });

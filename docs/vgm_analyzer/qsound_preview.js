@@ -4,11 +4,11 @@ import {QSoundPcm,QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 // The VGM header stores the external clock (4 MHz on CPS2).
 export function createQSoundPreview(clock, masterVolume=1) {
   let rom = new Uint8Array(), chip;
-  const muted = Array(16).fill(false);
+  const muted = Array(19).fill(false);
   function reset() {
     chip = new QSoundPcm(rom,44100);
     chip.tickRate = QSOUND_PCM_RATE * clock / 4_000_000;
-    chip.voices.forEach((voice,i)=>{voice.muted=muted[i];});
+    chip.voices.concat(chip.adpcm).forEach((voice,i)=>{voice.muted=muted[i];});
   }
   reset();
   return {
@@ -21,7 +21,7 @@ export function createQSoundPreview(clock, masterVolume=1) {
       },
     },
     clearSampleMemory(){chip.rom=rom=new Uint8Array();},
-    setChannelMuted(i,value){muted[i]=chip.voices[i].muted=Boolean(value);},
+    setChannelMuted(i,value){const voice = i < 16 ? chip.voices[i] : chip.adpcm[i-16]; voice.muted = muted[i] = Boolean(value);},
     setMasterVolume(value){masterVolume=value;},
     getMasterVolume:()=>masterVolume,
     sampleRate:()=>44100,
