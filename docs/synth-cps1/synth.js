@@ -317,19 +317,9 @@ $('slotAudio').onchange=async()=>{
   const input=$('slotAudio'),file=input.files[0];input.value='';
   if(file)try {await files.importVoiceSample(null,file,selectedSlot);} catch(error){fail(error);}
 };
-$('layerSamples').onclick=()=>{
-  if(phraseIds.length<4)return;
-  try {
-    const bytes=[0x78];
-    phraseIds.slice(0,4).forEach((sample,voice)=>bytes.push(0x80|sample,(0x10<<voice)|sampleAttenuation));
-    write(...bytes);
-    startAudio().catch(fail);
-  } catch(error){fail(error);}
-};
 function chooseSamples(names,assignments=[],selected=0) {
   phraseIds=playableSamples(sampleRom);
   showSlotAction();
-  $('layerSamples').disabled=phraseIds.length<4;
   $('bankInfo').textContent=phraseIds.length+' / 128 samples · ROM '+(sampleRom.byteLength/1024).toLocaleString('en-US',{maximumFractionDigits:2})+' / 256 KiB · Playback 7.58 kHz (1 MHz ÷ 132)';
   $('hitPad').disabled=names[3]!=='Arcade hit';
   $('sample').replaceChildren(...names.map((name,i) => new Option(name?i+' · '+name:String(i),i)));

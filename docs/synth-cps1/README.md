@@ -54,7 +54,7 @@ In the MSM6295 tab, computer and on-screen keys trigger the selected sample at i
 
 Each Voice has a sample selector. Follow Sample uses the shared selection. Choose an existing sample or select Import WAV / FLAC in that Voice’s selector to add a phrase to the active bank and assign it only to that Voice. Play and keyboard triggers use these assignments. JavaScript commands still specify the sample number directly.
 
-**Layer first 4 samples** plays the first four valid ROM phrases together, one per Voice. Compare the sample count in the bank with the live playing-voice count. The voice rows retain the last accepted sample after it ends. The range under the waveform shows where the selected phrase begins and ends in ROM.
+Compare the sample count in the bank with the live playing-voice count. The voice rows retain the last accepted sample after it ends. The range under the waveform shows where the selected phrase begins and ends in ROM.
 
 New banks assign the first four playable sample IDs to Voices 1–4. Extra voices follow the Sample selector when fewer than four phrases are present. Select a **Sample slot** and use **Add** or **Replace** to write one WAV or FLAC to that number in the active bank. Replacing a slot changes the phrase for every Voice and script referring to that ID. Undo files restores the previous bank.
 

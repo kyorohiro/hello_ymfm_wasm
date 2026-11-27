@@ -193,7 +193,7 @@ try {
   assert.equal(await voice.getAttribute('aria-pressed'),'true');
   assert.deepEqual(await page.locator('#voices select').evaluateAll(rows=>rows.map(row=>row.value)),['0','1','2','3']);
   assert.match(await page.locator('#bankInfo').textContent(),/^4 \/ 128 samples/);
-  await page.click('#layerSamples');
+  await page.locator('#voices').getByRole('button',{name:'Play',exact:true}).evaluateAll(buttons=>buttons.forEach(button=>button.click()));
   await page.waitForFunction(()=>document.querySelector('#voiceCount').textContent==='4 / 4 voices playing');
   await page.waitForFunction(()=>document.querySelector('#busy').value==='0xF0');
   const lamps=await page.locator('#voices .lamp').allTextContents();
