@@ -7,18 +7,23 @@ function integer(value,min,max,label) {
   return value;
 }
 const channel = n=>integer(n,1,16,'PCM channel')-1;
+let captured=false;
 const qsound = {
   writeRegister(reg,value) {
     postMessage({writes:[[integer(reg,0,255,'Register'),integer(value,0,65535,'Value')]]});
   },
   noteOn(ch,midi,sample=0,pan=16,volume=8000) {
+    if(captured && arguments.length===2){
+      postMessage({audition:{type:'captured-note',channel:channel(ch),midi:integer(midi,0,127,'MIDI note')}});return;
+    }
     const writes = noteWrites(channel(ch),integer(midi,0,127,'MIDI note'),integer(sample,0,1,'PCM sample'),
       integer(pan,0,32,'Pan'),integer(volume,0,32767,'Volume'));
     for (const [reg,value] of writes) if (value>65535) throw RangeError('Note exceeds the PCM rate register');
     postMessage({writes});
   },
-  noteOff(ch) {this.writeRegister(channel(ch)*8+6,0);},
+  noteOff(ch) {if(captured){postMessage({audition:{type:'captured-off',channel:channel(ch)}});return;}this.writeRegister(channel(ch)*8+6,0);},
   trigger(voice,sample=0,pan=16,volume=32767) {
+    if(captured && arguments.length===1){this.writeRegister(0xd6+integer(voice,1,3,'ADPCM voice')-1,1);return;}
     postMessage({writes:adpcmTriggerWrites(integer(voice,1,3,'ADPCM voice')-1,integer(sample,0,2,'ADPCM sample'),
       integer(pan,0,32,'Pan'),integer(volume,0,32767,'Volume'))});
   },
@@ -30,6 +35,7 @@ const runtime = createPlaygroundCodeRuntime({
 });
 let revision = 0;
 onmessage = async ({data})=>{
+  if(!data.apply)captured=Boolean(data.captured);
   const token = ++revision;
   try {
     const state = await runtime[data.apply?'apply':'run'](data.source,{path:data.path});

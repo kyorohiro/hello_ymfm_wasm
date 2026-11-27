@@ -134,7 +134,7 @@ export class QSoundPcm {
       case 3: voice.phase = value; break;
       case 4: voice.loop = signed(value); break;
       case 5: voice.end = signed(value); break;
-      case 6: voice.volume = signed(value); break;
+      case 6: voice.volume = signed(value); if(value)voice.lastLevel=voice.volume; break;
     }
   }
 
@@ -153,6 +153,7 @@ export class QSoundPcm {
     const spatial=this.spatial && this.echoBase===0x554;
     let dryL=0,dryR=0,wetL=0,wetR=0;
     for (const v of this.voices) {
+      if(v.freezeWhileSilent && !v.volume)continue;
       if (v.volume && !v.muted) {
         const byte = this.rom[v.bank * 65536 + (v.address & 0xffff)] ?? 0;
         const sample = signed(((byte << 24 >> 24) * 256 * v.volume) >> 14);
@@ -178,7 +179,7 @@ export class QSoundPcm {
       right+=spatialOutput(this.spatial[1],this.spatialTick,1,dryR,wetR);
       this.spatialTick=(this.spatialTick+1)&127;
     }
-    advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.adpcmRom ?? this.rom, this.adpcmSlot >= 3);
+    advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.rom, this.adpcmSlot >= 3);
     this.adpcmSlot = (this.adpcmSlot + 1) % 6;
     for (const voice of this.adpcm) {
       if (!voice.output || voice.muted) continue;

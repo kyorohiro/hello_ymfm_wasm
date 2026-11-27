@@ -2,7 +2,7 @@
 import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
 import {QSoundPcm} from '../js/qsoundpcm.js';
-import {demoRom, demoTracks} from './demo.js';
+import {demoRom} from './demo.js';
 
 class Cps2Preview extends AudioWorkletProcessor {
   constructor() {
@@ -10,9 +10,6 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
-    this.events = [];
-    this.index = 0;
-    this.frame = 0;
     this.port.onmessage = ({data}) => {
       if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}
       if (data?.type === 'song') {
@@ -25,78 +22,122 @@ class Cps2Preview extends AudioWorkletProcessor {
           this.applyMutes();
         }
         this.song.loop=data.loop;
-        this.song.paused=Boolean(data.paused);
-        this.events=[];
+        this.captured=false;
+        this.setPaused(Boolean(data.paused));
         return;
       }
       if (data?.type === 'loop-song') {if(this.song)this.song.loop=data.enabled;return;}
-      if (data?.type === 'pause-song') {if(this.song)this.song.paused=data.paused;return;}
+      if (data?.type === 'pause-song') {this.setPaused(data.paused);return;}
       if (data?.type === 'echo-delay') {
         this.chip.writeRegister(0xd9,this.chip.echoBase + data.ticks);
         return;
       }
+      if(data?.type==='silence-audition'){
+        this.capture();
+        return;
+      }
       if (data === 'stop-audition') {
-        // Silence every voice and the echo tail, keeping the ADPCM source for retrigger.
-        const previous=this.chip;
-        this.chip=new QSoundPcm(demoRom(),sampleRate,{spatialPcm:true});
-        this.chip.adpcmRom=previous.adpcmRom ?? previous.rom;
-        for(let i=0;i<3;i++){
-          const {start,end,bank,volume,pan}=previous.adpcm[i];
-          Object.assign(this.chip.adpcm[i],{start,end,bank,volume,pan});
+        this.capture();
+        this.song=null;
+        return;
+      }
+      if(data?.type==='captured-note'){
+        this.playCaptured(data.channel,data.midi);
+        return;
+      }
+      if(data?.type==='captured-off'){
+        this.chip.writeRegister(data.channel*8+6,0);
+        return;
+      }
+      if(data?.type==='voice-setting'){
+        if(!this.captured)return;
+        const {channel,field,value}=data, v=this.chip.voices[channel];
+        if(field==='volume'){
+          this.levels[channel]=value;
+          if(v.volume)this.chip.writeRegister(channel*8+6,value&65535);
+        }else{
+          this.rates[channel]=value;
+          this.chip.writeRegister(channel*8+2,value);
         }
-        this.applyMutes();this.song=null;this.events=[];this.frame=this.index=0;this.starts.fill(0);
         return;
       }
       if (data?.type === 'inspect') {
         const v = this.chip.voices[data.channel];
         let view;
-        if (this.song) {
+        if (this.song || this.captured) {
           const start=this.starts[data.channel], end=v.end & 65535;
           const span=((end-start)&65535)||256;
-          const wave=data.registers ? null : new Uint8Array(256);
+          const wave=data.registers || data.skipWave ? null : new Uint8Array(256);
           if(wave)for(let i=0;i<wave.length;i++) wave[i]=this.chip.rom[v.bank*65536+((start+Math.floor(i*span/256))&65535)]??0;
-          view={wave,start,span,seconds:this.song.frames/sampleRate,bank:v.bank,ended:this.song.parser.ended,pan:v.pan,volume:v.volume};
+          view={wave,start,span,seconds:(this.song?.frames??0)/sampleRate,bank:v.bank,ended:this.song?.parser.ended??false,pan:v.pan,volume:this.captured?this.levels[data.channel]:v.volume};
         }
         const words=data.registers ? pcmRegisterAddresses(data.channel).map(r=>this.chip.lastWrites[r]) : undefined;
         const pad=data.padVoice==null ? null : this.chip.adpcm[data.padVoice];
         const padState=pad && {start:pad.start,end:pad.end,bank:pad.bank,volume:pad.volume,panWord:pad.pan};
         this.port.postMessage({...data,view,words,padState,pan:v.pan,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
           send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,
-          active:v.volume !== 0,finished:this.index === this.events.length,start:this.starts[data.channel]});
+          active:v.volume !== 0,start:this.starts[data.channel]});
         return;
       }
-      if (typeof data === 'string' && (data === 'stop' || Object.hasOwn(demoTracks,data))) {
-        this.song=null;
+      if (data === 'stop') {
+        this.song=null;this.captured=false;
         this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
-        this.events = (data === 'stop' ? [] : demoTracks[data].score()).map(e=>({...e,frame:Math.round(e.t*sampleRate/44100)}));
         this.applyMutes();
         this.starts.fill(0);
-        this.frame = this.index = 0;
       } else this.apply(data);
     };
+  }
+  capture(){
+    const source=this.chip;
+    const chip=new QSoundPcm(source.rom,sampleRate,{spatialPcm:true});
+    chip.tickRate=source.tickRate;
+    chip.lastWrites.set(source.lastWrites);
+    chip.echoBase=source.echoBase;chip.echoEnd=source.echoEnd;chip.echoFeedback=source.echoFeedback;
+    if(!this.captured){
+      this.rates=source.voices.map(v=>v.rate);
+      this.levels=source.voices.map(v=>v.volume || v.lastLevel || 0);
+    }
+    chip.voices.forEach((v,i)=>Object.assign(v,source.voices[i],{volume:0,freezeWhileSilent:true}));
+    chip.adpcm.forEach((v,i)=>{
+      const {bank,start,end,pan,volume}=source.adpcm[i];
+      Object.assign(v,{bank,start,end,pan,volume});
+    });
+    this.starts=this.starts.slice();
+    this.chip=chip;this.captured=true;this.applyMutes();
+  }
+  setPaused(paused){
+    if(!this.song || paused===this.song.paused)return;
+    if(paused)this.capture();
+    else{
+      this.chip=this.song.chip;this.starts=this.song.starts;
+      this.captured=false;this.applyMutes();
+    }
+    this.song.paused=paused;
+  }
+  playCaptured(ch,midi){
+    const v=this.chip.voices[ch], base=ch*8;
+    const rate=this.captured?this.rates[ch]:v.rate;
+    const level=this.captured?this.levels[ch]:(v.volume || v.lastLevel || 0);
+    this.apply([[base+1,this.starts[ch]],[base+3,0],
+      [base+2,Math.min(65535,Math.round(rate*2**((midi-60)/12)))],[base+6,level&65535]],false);
   }
   applyMutes() {
     this.mutes.forEach((muted,i)=>this.chip.setChannelMuted(i,muted));
   }
-  apply(writes) {
+  apply(writes,remember=true) {
     for (const [reg,value] of writes) {
       if (reg < 0x80 && (reg & 7) === 1) this.starts[reg >> 3] = value;
+      if(this.captured && remember && reg<128){
+        if((reg&7)===2)this.rates[reg>>3]=value;
+        if((reg&7)===6)this.levels[reg>>3]=(value<<16)>>16;
+      }
       this.chip.writeRegister(reg,value);
     }
   }
   process(_, outputs) {
     const [left,right] = outputs[0];
-    if(this.song){this.song.render(left,right);return true;}
-    let offset = 0;
-    while (offset < left.length) {
-      const event = this.events[this.index];
-      if (event && event.frame <= this.frame) {this.apply(event.writes); this.index++; continue;}
-      const count = Math.min(left.length-offset, event ? event.frame-this.frame : Infinity);
-      if (offset===0 && count===left.length) this.chip.render(left,right);
-      else this.chip.render(left.subarray(offset,offset+count),right.subarray(offset,offset+count));
-      offset += count;
-      this.frame += count;
-    }
+    if(this.song && !this.song.paused){this.song.render(left,right);return true;}
+    this.chip.render(left,right);
     return true;
   }
 }

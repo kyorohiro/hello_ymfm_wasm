@@ -23,12 +23,21 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 #code-host{height:clamp(18rem,45vh,40rem)}
 #code-host:not([data-ready="true"]){display:none}
 #source{width:100%;min-height:18rem;font:1rem/1.5 monospace}
-#code-panel:not([hidden]){display:grid;grid-template-columns:minmax(9rem,13rem) minmax(0,1fr);gap:.6rem}
-#code-panel aside{background:#e6e0cc;padding:.5rem;border-radius:.4rem}
-#code-panel .file-tree{list-style:none;padding-left:.55rem;margin:.2rem 0}
-#code-panel .file-entry[aria-current=true]{font-weight:bold;background:#d9e6df}
-@media(max-width:600px){#code-panel:not([hidden]){grid-template-columns:1fr}}
-#code-panel button{margin:.4rem .2rem .4rem 0}
+[hidden]{display:none!important}
+body{width:min(100%,76rem)}
+.workspace-tools,.chip-tabs,.chip-header{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.workspace-tools{padding:.6rem 1.5rem;border-bottom:1px solid #afbfba}
+.switch{display:inline-flex}.switch button:first-child{border-radius:6px 0 0 6px}.switch button:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
+#workspace{display:grid;grid-template-columns:minmax(11rem,15rem) minmax(0,1fr)}
+#workspace.files-hidden{grid-template-columns:minmax(0,1fr)}
+#files{background:#e6e0cc;padding:1rem;overflow-wrap:anywhere}#files button,#code-panel button{margin:.2rem}
+#files .file-tree{padding-left:.7rem;list-style:none}#files .file-entry[aria-current=true]{font-weight:bold}
+#files .file-entry{max-width:100%;overflow-wrap:anywhere;text-align:left}#desk{min-width:0}#code-panel{padding:.8rem 1.5rem}
+#soundchip>section{padding:.7rem 0}.chip-header{justify-content:space-between}
+.chip-tabs{border-bottom:2px solid #155876;margin:.3rem 0}
+.chip-tabs button{border-radius:6px 6px 0 0}
+#keyboard{background:#193d5c;color:white}#keys button{color:#102f45}#keys .sharp{background:#182f42;color:white}#octave button{color:white}
+@media(max-width:700px){#workspace{grid-template-columns:minmax(0,1fr)}#files{padding:.6rem}section,footer{padding:.8rem}}
 .mix-voices{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.4rem}
 .mix-voices>div{display:flex;align-items:center;gap:.2rem}.mix-voices strong{flex:1}
 .mix-voices button{font-size:.85rem;padding:.2rem .35rem}
@@ -49,40 +58,21 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <div role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button>
 <button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div></div>
 <canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></section>
-<section><details id="mixer"><summary>Mixer</summary>
-<label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
-<h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
-<h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></details></section>
-<section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong>
-<output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
-<div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
-<button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
-<section><h2>PCM channel</h2><div id="channels"></div>
-<nav id="pcm-tabs" aria-label="PCM channel view"><button id="pcm-tab" aria-controls="pcm-panel" aria-pressed="true">PCM</button>
-<button id="register-tab" aria-controls="register-panel" aria-pressed="false">Registers</button></nav>
-<div id="pcm-panel">
-<label>Sample<select id="wave"><option>Reed</option><option>Bell</option></select></label>
-<label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
-<label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
-<div id="pcm-controls"></div>
-<canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
-<p id="pcm-caption"></p>
-<div class="echo-controls" id="echo-controls" role="group" aria-label="PCM echo"></div></div>
-<div id="register-panel" hidden><p>Playback address <strong id="register-position">—</strong></p>
-<table aria-label="Selected PCM channel registers"><thead><tr><th>Parameter</th><th>Register</th><th>Last write</th></tr></thead><tbody id="register-rows"></tbody></table>
-<small>— means no write since reset.</small></div></section>
-<section><nav aria-label="Performance"><button id="keyboard-tab" aria-controls="keys" aria-pressed="true">Keyboard</button>
-<button id="code-tab" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
-<div id="keys"></div>
-<div id="code-panel" hidden>
-<aside aria-label="Files"><strong>Files</strong><div id="project-tree"></div><button id="new-script">New script…</button>
+
+<nav class="workspace-tools" aria-label="Workspace"><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
+<div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
+<div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><div id="project-tree"></div><button id="new-script">New script…</button>
 <button id="import-song">Import VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
 <details><summary>Cassette</summary><button id="new-cassette">New cassette…</button><button id="export-cassette" aria-describedby="export-contents">Export cassette</button>
 <small id="export-contents"></small>
 <button id="demo-cassette">Download factory demos</button>
 <button id="import-cassette">Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden></details>
-<p id="file-status" role="status"></p></aside><div>
-<button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
+<p id="file-status" role="status"></p></aside><div id="desk"><footer><label>Demo<select id="score"><option value="demo">PCM duet</option><option value="adpcm">ADPCM trio</option><option value="echo">PCM echo comparison</option><option value="pan">Pan comparison</option></select></label> <button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer><section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong> <small id="song-status" role="status"></small>
+<output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
+<div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
+<button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
+
+<div id="code-panel" hidden><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
 <span id="code-status" role="status"></span>
 <div id="code-host"></div><textarea id="source" aria-label="JavaScript source" spellcheck="false">// Select CH2 to play over the CH1 bass. Trigger ADPCM with 1, 2, 3.
 // Edit the notes or echo send and press Apply.
@@ -97,8 +87,27 @@ liveLoop('bass', async () => {
     qsound.noteOff(1);
     await beat(0.12);
   }
-});</textarea><p id="editor-note" hidden></p></div></div></section>
-<section aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
+});</textarea><p id="editor-note" hidden></p></div>
+<section id="soundchip"><div class="chip-header"><h2>QSound</h2><button id="restore-instrument" hidden>Use synth instruments</button></div>
+<nav class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
+<section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
+<nav id="pcm-tabs" aria-label="PCM channel view"><button id="pcm-tab" aria-controls="pcm-panel" aria-pressed="true">Voice</button>
+<button id="register-tab" aria-controls="register-panel" aria-pressed="false">Registers</button></nav>
+<div id="pcm-panel">
+<label>Sample<select id="wave"><option>Reed</option><option>Bell</option><option disabled>Channel ROM</option></select></label>
+<label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
+<label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
+<div id="pcm-controls"></div>
+<canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
+<p id="pcm-caption"></p>
+<div class="echo-controls" id="echo-controls" role="group" aria-label="PCM echo"></div></div>
+<div id="register-panel" hidden><p>Playback address <strong id="register-position">—</strong></p>
+<table aria-label="Selected PCM channel registers"><thead><tr><th>Parameter</th><th>Register</th><th>Last write</th></tr></thead><tbody id="register-rows"></tbody></table>
+<small>— means no write since reset.</small></div></section>
+<section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
-<div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="adpcm-pads"></div><button id="pad-trigger" class="adpcm-pad">Trigger</button> <button id="pad-restore" hidden>Use synth pads</button> <output id="pad-status"></output></section>
-<footer><label>Demo<select id="score"><option value="demo">PCM duet</option><option value="adpcm">ADPCM trio</option><option value="echo">PCM echo comparison</option><option value="pan">Pan comparison</option></select></label> <button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer></main><script type="module" src="./app.js"></script></html>
+<div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="adpcm-pads"></div><button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
+<section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
+<h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
+<h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>
+<section id="keyboard"><div class="output-heading"><h2>Keyboard</h2><div id="octave"></div></div><p id="audition-note" hidden>C4 plays the selected channel at its captured rate. Keys 1–3 trigger ADPCM.</p><div id="keys"></div></section></div></div></main><script type="module" src="./app.js"></script></html>

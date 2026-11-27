@@ -16,8 +16,8 @@ import {demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 const $ = id => document.getElementById(id);
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
 let selected = 0, context, ready, port, masterGain, generation = 0;
-let revision = 0, demoPlaying = false, shown, cursor = null;
-let codeWorker = null;
+let revision = 0, shown, cursor = null;
+let codeWorker = null, liveInstrument=false;
 let songPath=null, songState='stopped', songSelection=0;
 let preparedSong=null, preparationRevision=0;
 let seekWorker=null, seeking=false, sliding=false;
@@ -43,7 +43,7 @@ function transport() {
   syncPadView();
   $('song-seek').disabled=!preparedSong;
   $('song-seek').max=preparedSong?.ticks??1;
-  if(songState==='stopped' && !seeking)showPosition(0);
+  if(songState==='stopped' && !seeking && !liveInstrument)showPosition(0);
   const mark=$('loop-mark');
   mark.hidden=!preparedSong?.canLoop;
   if(!mark.hidden){
@@ -53,13 +53,17 @@ function transport() {
   $('song-transport').hidden=!songPath;
   $('song-loop').disabled=!preparedSong?.canLoop;
   $('song-title').textContent=songPath?.split('/').pop()??'';
+  $('song-status').textContent=seeking?'Seeking…':songState==='paused'?'Paused · audition':songState==='playing'?'Playing':liveInstrument?'Stopped · audition':'Ready';
   $('song-play').disabled=seeking || songState==='playing' || !preparedSong;
   $('song-play').textContent=songState==='paused'?'Resume':'Play VGM';
   $('song-pause').disabled=seeking || songState!=='playing';
   $('song-stop').disabled=songState==='stopped';
-  $('wave').disabled=songState!=='stopped';
-  $('vol').min=songState==='stopped'?0:-32768;
-  $('vol').max=songState==='stopped'?16384:32767;
+  $('wave').disabled=liveInstrument;
+  $('stop').hidden=Boolean(songPath) && songState!=='stopped';
+  $('audition-note').hidden=!liveInstrument;
+  $('restore-instrument').hidden=!liveInstrument;
+  $('vol').min=liveInstrument?-32768:0;
+  $('vol').max=liveInstrument?32767:16384;
 }
 
 const scope=createSynthOutputVisualizer({background:'#102c43',grid:'#305067',trace:'#afeacb'});
@@ -100,7 +104,7 @@ for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
     formatValue:key === 'delay' ? ticks=>ticks+' ticks · '+(ticks*1000/QSOUND_PCM_RATE).toFixed(2)+' ms' : String,
     onChange(value) {
       revision++;
-      if (songState==='stopped') {
+      if (!liveInstrument) {
         if (key === 'send') channels[selected].send = value;
         else echo[key] = value;
       }
@@ -131,8 +135,9 @@ function refresh() {
   draw(shown);
 }
 function edit(key,value) {
-  if(songState!=='stopped'){
-    port?.postMessage([[selected*8+({rate:2,end:5,loop:4})[key],value]]);
+  if(liveInstrument){
+    if(key==='rate' && songState!=='playing')port?.postMessage({type:'voice-setting',channel:selected,field:'rate',value});
+    else port?.postMessage([[selected*8+({rate:2,end:5,loop:4})[key],value]]);
     revision++;
     return;
   }
@@ -156,7 +161,7 @@ function edit(key,value) {
 const registerPanel=$('register-panel');
 const drawRegisters=createRegisterTable($('register-rows'),$('register-position'));
 function inspectChannel() {
-  port?.postMessage({type:'inspect',channel:selected,revision,padVoice:followPads?padVoice:null,registers:!registerPanel.hidden});
+  port?.postMessage({type:'inspect',channel:selected,revision,skipWave:$('pcm-chip').hidden,padVoice:liveInstrument && !$('adpcm-chip').hidden?padVoice:null,registers:!registerPanel.hidden});
 }
 function selectPcmTab(registers) {
   registerPanel.hidden=!registers;
@@ -171,45 +176,41 @@ $('register-tab').onclick=()=>selectPcmTab(true);
 $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
   if (data.revision !== revision || data.channel !== selected) return;
-  if(followPads && !seeking && data.padVoice===padVoice && data.padState)showPad(data.padState);
+  if(liveInstrument && !seeking && data.padVoice===padVoice && data.padState)showPad(data.padState);
   if (!registerPanel.hidden && data.words && !seeking)drawRegisters(selected,data.words,data.address);
-  if (data.view && songState!=='stopped') {
+  if (data.view && liveInstrument) {
     if(seeking)return;
-    if(data.view.ended && songState==='playing'){stop();return;}
+    cursor=data.active?data.address:null;
+    if(data.view.ended && songState==='playing'){showPosition(preparedSong.ticks);stop();return;}
     let tick=Math.round(data.view.seconds*44100);
     if(preparedSong?.canLoop && tick>preparedSong.ticks){
       const span=preparedSong.ticks-preparedSong.loopTick;
       tick=preparedSong.loopTick+(tick-preparedSong.ticks)%span;
     }
-    if(!sliding)showPosition(tick);
-    $('wave').selectedIndex=-1;
+    if(!sliding && songState!=='stopped')showPosition(tick);
+    $('wave').selectedIndex=2;
     $('pan').value=Math.min(32,Math.max(0,data.view.pan-0x110));
     $('vol').value=data.view.volume;
     showEcho(data.send,data.delay,data.feedback);
-    if(!registerPanel.hidden)return;
+    if(!registerPanel.hidden || !data.view.wave)return;
     draw({sample:0,rate:data.rate,end:data.end&65535,loop:data.loop&65535},data.active?data.address:null,data.view);
     return;
   }
-  const v = channels[selected];
-  if ((demoPlaying || codeWorker) && [0,256].includes(data.start) && data.loop>=0 && data.loop<=data.end-data.start && data.end > data.start && data.end <= data.start+256) {
-    shown = {sample:data.start/256,rate:data.rate,end:data.end,loop:data.loop};
-  } else shown = v;
-  if(demoPlaying)$('pan').value=Math.max(0,Math.min(32,data.pan-0x110));
-  if (demoPlaying && data.finished && !data.active) {
-    $('pan').value=v.pan;
-    demoPlaying = false;syncPadView();
-    restoreEcho();
-    shown = v;
-  }
+  shown=channels[selected];
   $('wave').selectedIndex=shown.sample;
-  if (demoPlaying || codeWorker) showEcho(data.send,data.delay,data.feedback);
-  else showEcho(v.send,echo.delay,echo.feedback);
+  showEcho(shown.send,echo.delay,echo.feedback);
   cursor = data.active ? data.address : null;
   if(registerPanel.hidden)draw(shown,cursor);
 }
+let lastInspect=0;
 setInterval(()=>{
-  if (port && !document.hidden && (!registerPanel.hidden || songState!=='stopped' || demoPlaying || codeWorker || channels[selected].held || cursor !== null))
-    inspectChannel();
+  if(!port || document.hidden)return;
+  const moving=songState==='playing' || codeWorker || channels[selected].held || cursor!==null;
+  if(!moving && !liveInstrument && registerPanel.hidden)return;
+  const now=performance.now();
+  if(!moving && now-lastInspect<250)return;
+  lastInspect=now;
+  inspectChannel();
 },50);
 async function audio() {
   context ??= new AudioContext();
@@ -232,8 +233,8 @@ function select(channel) {
   [...$('channels').children].forEach((b,i)=>b.setAttribute('aria-pressed',i===channel));
   const v = channels[channel];
   $('wave').selectedIndex=v.sample; $('pan').value=v.pan; $('vol').value=v.volume;
-  refresh();
-  if(!registerPanel.hidden)inspectChannel();
+  if(liveInstrument){revision++;inspectChannel();}
+  else{refresh();if(!registerPanel.hidden)inspectChannel();}
 }
 for(let i=0;i<16;i++) {
   const button=document.createElement('button');
@@ -248,26 +249,45 @@ $('wave').onchange=()=>{
   if (v.held) port?.postMessage(noteWrites(selected,v.note,v.sample,v.pan,v.volume,v.rate,v.end,v.loop));
   refresh();
 };
-$('pan').oninput=()=>{const value=Number($('pan').value);if(songState==='stopped' && !demoPlaying)channels[selected].pan=value;port?.postMessage([[0x80+selected,0x110+value]]);};
-$('vol').oninput=()=>{const v=channels[selected];const volume=Number($('vol').value);if(songState==='stopped')v.volume=volume;if(v.held || songState!=='stopped')port?.postMessage([[selected*8+6,volume]]);};
+$('pan').oninput=()=>{const value=Number($('pan').value);if(!liveInstrument)channels[selected].pan=value;port?.postMessage([[0x80+selected,0x110+value]]);};
+$('vol').oninput=()=>{const v=channels[selected];const volume=Number($('vol').value);if(!liveInstrument)v.volume=volume;
+  if(liveInstrument && songState!=='playing')port?.postMessage({type:'voice-setting',channel:selected,field:'volume',value:volume});
+  else if(v.held || liveInstrument)port?.postMessage([[selected*8+6,volume&65535]]);};
 function press(id,midi) {
   const ch=selected,v=channels[ch]; v.held=id;
+  if(liveInstrument){
+    if(!seeking)port?.postMessage({type:'captured-note',channel:ch,midi});
+    return;
+  }
   v.note=midi;
-  v.rate=v.referenceRate === null ? pcmRate(midi) : Math.min(65535,Math.round(v.referenceRate*2**((midi-v.referenceNote)/12)));
+  v.rate=v.referenceRate === null ? Math.min(65535,pcmRate(midi)) : Math.min(65535,Math.round(v.referenceRate*2**((midi-v.referenceNote)/12)));
   refresh();
   run(async()=>{await audio();if(v.held===id)port.postMessage(noteWrites(ch,midi,v.sample,v.pan,v.volume,v.rate,v.end,v.loop));});
 }
 function release(id) {
-  channels.forEach((v,ch)=>{if(v.held===id){v.held=null;port?.postMessage([[ch*8+6,0]]);}});
+  channels.forEach((v,ch)=>{if(v.held===id){v.held=null;port?.postMessage(liveInstrument?{type:'captured-off',channel:ch}:[[ch*8+6,0]]);}});
 }
-const keys='asdfghjk',notes=[60,62,64,65,67,69,71,72];
+const keys='awsedftgyhujk';
+const noteNames=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
+let octave=4;
+const keyboardNote=i=>(octave+1)*12+i;
+$('octave').append(createParamControl({label:'Octave',min:0,max:7,step:1,value:octave,
+  onChange:value=>{octave=value;}}).element);
 [...keys].forEach((key,i)=>{
-  const button=document.createElement('button');button.textContent=key.toUpperCase()+' · '+'CDEFGABC'[i];
-  button.onpointerdown=e=>{button.setPointerCapture(e.pointerId);press('p'+e.pointerId,notes[i]);};
-  button.onlostpointercapture=e=>release('p'+e.pointerId);$('keys').append(button);
+  const button=document.createElement('button');
+  button.textContent=key.toUpperCase()+' · '+noteNames[i];
+  if(noteNames[i].includes('♯'))button.className='sharp';
+  button.onpointerdown=e=>{button.setPointerCapture(e.pointerId);press('p'+e.pointerId,keyboardNote(i));};
+  button.onlostpointercapture=e=>release('p'+e.pointerId);
+  button.onkeydown=e=>{
+    if(e.code==='Space' || e.code==='Enter'){
+      e.preventDefault();if(!e.repeat)press(e.code,keyboardNote(i));
+    }
+  };
+  $('keys').append(button);
 });
 const pads=Array.from({length:3},(_,i)=>({sample:i,start:(i+1)*512,end:(i+2)*512,bank:0,pan:16*i,volume:32767}));
-let padVoice=0, followPads=false;
+let padVoice=0;
 const padControls={};
 const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
 const padFields=['start','end','bank','volume'];
@@ -279,21 +299,20 @@ function showPad(state){
   padControls.sample.updateVisual(pads[padVoice].sample);
 }
 function syncPadView(){
-  $('pad-restore').hidden=!followPads || songState!=='stopped' || Boolean(codeWorker) || demoPlaying;
-  padControls.panWord.updateRange(followPads?0:0x110,followPads?65535:0x130);
-  padControls.sample.element.style.display=followPads?'none':'';
-  $('pad-trigger').disabled=songState==='paused' || seeking;
-  $('pad-status').textContent=songState==='paused'?'Paused · Stop to audition this ROM.':'';
-  if(!followPads)showPad();
+  padControls.panWord.updateRange(liveInstrument?0:0x110,liveInstrument?65535:0x130);
+  padControls.sample.element.style.display=liveInstrument?'none':'';
+  $('pad-trigger').disabled=seeking;
+  $('pad-status').textContent=songState==='paused'?'Paused · Audition the captured ROM.':'';
+  if(!liveInstrument)showPad();
 }
 function padWrites(i){
   const pad=pads[i],base=0xca+4*i;
   return [[base,pad.start],[base+1,pad.end],[base+2,pad.bank],[base+3,pad.volume&65535],[0x90+i,0x110+pad.pan]];
 }
 function triggerPad(i){
-  if(songState==='paused' || seeking)return;
+  if(seeking)return;
   const token=generation;
-  const writes=followPads ? [] : padWrites(i);
+  const writes=liveInstrument ? [] : padWrites(i);
   writes.push([0xd6+i,1]);
   run(async()=>{await audio();if(token===generation)port.postMessage(writes);});
 }
@@ -304,7 +323,7 @@ for(let i=0;i<3;i++){
   b.onclick=()=>{
     padVoice=i;revision++;
     for(const item of $('adpcm-voices').children)item.setAttribute('aria-pressed',String(item===b));
-    if(followPads)inspectChannel();else showPad();
+    if(liveInstrument)inspectChannel();else showPad();
   };
   $('adpcm-voices').append(b);
 }
@@ -314,7 +333,7 @@ for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,655
     onChange(value){
       revision++;
       const pad=pads[padVoice];
-      if(!followPads){
+      if(!liveInstrument){
         if(key==='sample'){
           Object.assign(pad,{sample:value,start:(value+1)*512,end:(value+2)*512,bank:0});showPad();return;
         }
@@ -323,40 +342,59 @@ for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,655
       }
       const reg=key==='panWord'?0x90+padVoice:0xca+4*padVoice+padFields.indexOf(key);
       port?.postMessage([[reg,value&65535]]);
-      if(followPads)inspectChannel();
+      if(liveInstrument)inspectChannel();
     }});
   padControls[key]=control;
   $('adpcm-pads').append(control.element);
 }
-$('pad-restore').onclick=()=>stop(false);
 $('pad-trigger').onclick=()=>triggerPad(padVoice);
 syncPadView();
 window.addEventListener('keydown',e=>{
-  if(e.ctrlKey||e.altKey||e.metaKey||e.target.closest('input,select,textarea,.monaco-editor,[contenteditable=true]'))return;
+  if(e.ctrlKey||e.altKey||e.metaKey||e.target.closest('input:not([type=range]):not([type=checkbox]),textarea,.monaco-editor,[contenteditable=true]'))return;
   if (/^[123]$/.test(e.key)) {
     e.preventDefault();
     if (!e.repeat) triggerPad(Number(e.key)-1);
     return;
   }
   const i=keys.indexOf(e.key.toLowerCase()); if(i<0||e.key.length!==1)return;
-  e.preventDefault();if(!e.repeat)press(e.code,notes[i]);
+  e.preventDefault();if(!e.repeat)press(e.code,keyboardNote(i));
 });
 window.addEventListener('keyup',e=>release(e.code));
-function stop(keepPads=true){
-  followPads=keepPads && followPads;
+function stop(keepInstrument=true){
+  liveInstrument=Boolean(keepInstrument && liveInstrument);
   cancelSeek();sliding=false;songState='stopped';
-  stopWorker();demoPlaying=false;
+  stopWorker();
   generation++;
   channels.forEach(v=>v.held=null);
   $('pan').value=channels[selected].pan;
   $('vol').value=channels[selected].volume;
   transport();refresh();
-  port?.postMessage(followPads?'stop-audition':'stop');
-  restoreEcho();
-  if(followPads)inspectChannel();
+  port?.postMessage(liveInstrument?'stop-audition':'stop');
+  if(!liveInstrument)restoreEcho();
+  if(liveInstrument)inspectChannel();
 }
 window.addEventListener('blur',()=>{if(songState==='stopped')stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
-$('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation){demoPlaying=true;followPads=true;syncPadView();port.postMessage($('score').value);}});};
+$('restore-instrument').onclick=()=>stop(false);
+$('demo').onclick=()=>run(async()=>{
+  const track=demoTracks[$('score').value],bytes=demoVgm(track.score());
+  stop(false);
+  songPath='/songs/'+track.filename;
+  // Old cassettes need not contain the built-in demo files.
+  if(files.has(songPath))songPath=availableDemoPath(track,bytes);
+  if(!files.has(songPath))files.writeBinary(songPath,bytes);
+  highlightedPath=songPath;preparationRevision++;preparedSong={bytes,...inspectSong(bytes)};
+  transport();renderFiles();await playSong();
+});
+function availableDemoPath(track,bytes){
+  const original='/songs/'+track.filename;
+  let path=original,n=1;
+  while(files.has(path)){
+    const data=files.get(path).data;
+    if(data instanceof Uint8Array && bytes.length===data.length && bytes.every((v,i)=>v===data[i]))break;
+    path=original.replace('.vgm','-'+(++n)+'.vgm');
+  }
+  return path;
+}
 $('stop').onclick=stop;
 $('save').onclick=()=>{
   const track = demoTracks[$('score').value];
@@ -368,6 +406,7 @@ $('save').onclick=()=>{
 const source = $('source');
 const files = createVirtualFileSystem([
   {path:'/index.js',data:source.value},
+  ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score())})),
   {path:'/examples/pad-loop.js',data:`setBpm(106);
 liveLoop('pads', async () => {
   for (const voice of [1, 2, 1, 3]) {
@@ -377,8 +416,8 @@ liveLoop('pads', async () => {
 });
 `},
 ]);
-let activePath='/index.js';
-const expanded=new Map([['/examples',true]]);
+let activePath='/index.js', highlightedPath=activePath;
+const expanded=new Map([['/examples',true],['/songs',true]]);
 const editor = setupSynthMonacoEditor({
   textarea:source,editorHost:$('code-host'),editorNote:$('editor-note'),chip:'cps2',
   declarationsOnly:true,transformDeclarations:()=>`
@@ -399,11 +438,24 @@ declare function useSoundChip(name:'qsound'):Promise<typeof qsound>;`,
 });
 function selectPerformance(code) {
   $('code-panel').hidden=!code;
-  $('keys').hidden=code;
+  if(code)setFiles(true);
   $('keyboard-tab').setAttribute('aria-pressed',String(!code));
   $('code-tab').setAttribute('aria-pressed',String(code));
   if(code)editor.load().then(()=>editor.layout());
 }
+function setFiles(visible){
+  $('files').hidden=!visible;
+  $('workspace').classList.toggle('files-hidden',!visible);
+  $('files-toggle').setAttribute('aria-pressed',String(visible));
+  if(!$('code-panel').hidden)editor.layout();
+}
+$('files-toggle').onclick=()=>setFiles($('files').hidden);
+for(const tab of document.querySelectorAll('[data-chip]'))tab.onclick=()=>{
+  for(const item of document.querySelectorAll('[data-chip]')){
+    $(item.dataset.chip).hidden=item!==tab;
+    item.setAttribute('aria-pressed',String(item===tab));
+  }
+};
 $('keyboard-tab').onclick=()=>selectPerformance(false);
 $('code-tab').onclick=()=>selectPerformance(true);
 function stopWorker() {
@@ -413,21 +465,29 @@ function stopWorker() {
   $('code-status').textContent='';
 }
 $('run-code').onclick=()=>run(async()=>{
-  stop(false);
-  const token=generation;
+  if(songState==='playing')pauseSong();
+  if(codeWorker && liveInstrument)port?.postMessage({type:'silence-audition'});
+  stopWorker();
+  if(!liveInstrument)stop(false);
+  const token=++generation;
   await audio();
   if(token!==generation)return;
   const worker=new Worker('./code-worker.js',{type:'module'});
-  port.postMessage(pads.flatMap((_,i)=>padWrites(i)));
-  codeWorker=worker;followPads=true;syncPadView();
+  if(!liveInstrument){
+    const settings=channels.flatMap((v,ch)=>noteWrites(ch,v.note,v.sample,v.pan,v.volume,v.rate,v.end,v.loop));
+    port.postMessage([...settings,...pads.flatMap((_,i)=>padWrites(i))]);
+    port.postMessage('stop-audition');
+  }
+  codeWorker=worker;liveInstrument=true;transport();
   $('stop-code').disabled=false;
   worker.onmessage=({data})=>{
     if(worker!==codeWorker)return;
+    if(data.audition)port.postMessage(data.audition);
     if(data.writes)port.postMessage(data.writes);
     if(data.status){$('code-status').textContent=data.status;$('apply-code').disabled=false;}
   };
   worker.onerror=e=>{if(worker===codeWorker){stop();$('code-status').textContent=e.message;}};
-  worker.postMessage({source:source.value,path:activePath});
+  worker.postMessage({source:source.value,path:activePath,captured:liveInstrument});
 });
 $('apply-code').onclick=()=>codeWorker?.postMessage({source:source.value,path:activePath,apply:true});
 $('stop-code').onclick=stop;
@@ -436,13 +496,15 @@ function renderFiles() {
   const entries=files.list();
   const songs=entries.filter(file=>file.type==='binary').length;
   $('export-contents').textContent='Includes '+songs+' VGM/VGZ '+(songs===1?'file':'files')+' with embedded sample data.';
-  renderFileTree($('project-tree'),entries,{expanded,selectedPath:songPath??activePath,onOpen:openScript});
+  renderFileTree($('project-tree'),entries,{expanded,selectedPath:highlightedPath,onOpen:openScript});
 }
 function openScript(path,prepared) {
   const file=files.get(path);
   if (!file) return;
+  highlightedPath=path;
   if (file.type==='binary') {
-    stop();songPath=path;
+    if(path===songPath && preparedSong && !prepared){renderFiles();return;}
+    stop(false);songPath=path;
     preparedSong=null;$('song-loop').checked=false;
     transport();renderFiles();
     const token=++preparationRevision;
@@ -452,7 +514,7 @@ function openScript(path,prepared) {
     }).catch(error=>{if(token===preparationRevision && path===songPath)$('file-status').textContent=error.message;});
     return;
   }
-  if(songPath){stop();songPath=null;preparedSong=null;transport();}
+  selectPerformance(true);
   activePath=path;
   editor.setSource(file.data,path);
   renderFiles();
@@ -476,7 +538,7 @@ function replaceProject(project) {
   Object.assign(echo,project.echo);
   restoreEcho();
   select(project.selected);
-  openScript(project.active);
+  activePath=highlightedPath=project.active;editor.setSource(files.get(activePath).data,activePath);renderFiles();
   if(project.song)openScript(project.song);
 }
 const draftKey='tetorica.cps2.cassette.v1';
@@ -511,15 +573,13 @@ function downloadCassette(project,filename) {
 }
 $('export-cassette').onclick=()=>run(async()=>downloadCassette(snapshot(),'tetorica-cps2.cassette.zip'));
 $('demo-cassette').onclick=()=>run(async()=>{
-  const songs=Object.values(demoTracks).map(track=>({
-    path:'/songs/'+track.filename,type:'binary',data:demoVgm(track.score()),
-  }));
-  downloadCassette({...factory,files:[...factory.files,...songs]},'tetorica-cps2-demos.cassette.zip');
+  downloadCassette(factory,'tetorica-cps2-demos.cassette.zip');
 });
 $('import-cassette').onclick=()=>$('cassette-input').click();
 $('cassette-input').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';
   if (!file) return;
+  highlightedPath=path;
   try {
     if (file.size>16*1024*1024) throw Error('Cassette exceeds 16 MiB.');
     const project=await importProject(await file.arrayBuffer());
@@ -544,19 +604,22 @@ $('song-input').onchange=async event=>{
     $('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
 };
-$('song-play').onclick=()=>run(async()=>{
-  if(songState==='paused'){songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
+async function playSong(){
+  if(songState==='paused'){stopWorker();channels.forEach(v=>v.held=null);revision++;songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
   stop();
   const token=generation;
   if(!preparedSong)return;
   const {bytes}=preparedSong;
   await audio();
   if(token!==generation)return;
-  followPads=true;songState='playing';port.postMessage({type:'song',bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
-});
-$('song-pause').onclick=()=>{
-  songState='paused';port.postMessage({type:'pause-song',paused:true});transport();
-};
+  liveInstrument=true;songState='playing';port.postMessage({type:'song',bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
+}
+$('song-play').onclick=()=>run(playSong);
+function pauseSong(){
+  revision++;channels.forEach(v=>v.held=null);
+  songState='paused';port.postMessage({type:'pause-song',paused:true});transport();inspectChannel();
+}
+$('song-pause').onclick=pauseSong;
 function cancelSeek(){
   seekWorker?.terminate();
   seekWorker=null;
@@ -576,8 +639,9 @@ slider.onkeydown=e=>{
 slider.onchange=()=>run(async()=>{
   const tick=Number(slider.value),song=preparedSong;
   if(!song)return;
+  stopWorker();channels.forEach(v=>v.held=null);
   sliding=false;
-  if(songState==='stopped'){stop();followPads=true;songState='paused';}
+  if(songState==='stopped'){stop();liveInstrument=true;songState='paused';}
   cancelSeek();
   const token=++generation;
   port?.postMessage({type:'pause-song',paused:true});
@@ -593,7 +657,7 @@ slider.onchange=()=>run(async()=>{
       revision++;
       port.postMessage({type:'song',bytes:song.bytes,state,loop:$('song-loop').checked,paused:songState==='paused'},
         [state.chip.rom.buffer,state.chip.echoLine.buffer,state.starts.buffer]);
-      cancelSeek();transport();
+      cancelSeek();transport();inspectChannel();
     };
     worker.onerror=e=>{if(token===generation){stop();status.textContent=e.message;}};
     worker.postMessage({bytes:song.bytes,rate:context.sampleRate,tick,mutes:mutedVoices(mixer.get())});

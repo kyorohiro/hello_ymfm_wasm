@@ -4,12 +4,13 @@ import assert from 'node:assert/strict';
 import {demoVgm,demoTracks} from './demo.js';
 import {QSoundPcm} from '../js/qsoundpcm.js';
 
-test('Stop retains the imported ROM and retriggers only the selected ADPCM voice',async()=>{
-  let Processor;
-  globalThis.sampleRate=48000;
-  globalThis.AudioWorkletProcessor=class {port={};};
-  globalThis.registerProcessor=(_,type)=>{Processor=type;};
-  await import('./processor.js');
+let Processor;
+globalThis.sampleRate=48000;
+globalThis.AudioWorkletProcessor=class {port={};};
+globalThis.registerProcessor=(_,type)=>{Processor=type;};
+await import('./processor.js');
+
+test('Stop retains the imported ROM and retriggers only the selected ADPCM voice',()=>{
   const processor=new Processor();
   const send=data=>processor.port.onmessage({data});
   send({type:'song',bytes:demoVgm(demoTracks.adpcm.score())});
@@ -19,7 +20,7 @@ test('Stop retains the imported ROM and retriggers only the selected ADPCM voice
   const settings=[[0xce,40],[0xcf,60],[0xd0,0],[0xd1,0x7600],[0x91,0x130]];
   send(settings);
   send('stop-audition');
-  assert.equal(processor.chip.adpcmRom,rom);
+  assert.equal(processor.chip.rom,rom);
   assert.ok(processor.chip.adpcm.every(v=>v.gain===0 && !v.trigger));
   send([[0xd7,1]]);
   const reference=new QSoundPcm(rom,48000);
@@ -33,4 +34,42 @@ test('Stop retains the imported ROM and retriggers only the selected ADPCM voice
   assert.deepEqual(result,render(reference));
   assert.ok(result[1].some(x=>x!==0));
   assert.ok(result[0].every(x=>x===0));
+});
+
+test('Pause auditions a detached PCM voice, Resume matches continuous playback, Stop keeps edits',()=>{
+  const player=new Processor(), reference=new Processor();
+  const send=(p,data)=>p.port.onmessage({data});
+  const render=(p,n)=>{
+    const left=new Float32Array(n),right=left.slice();
+    p.process([],[[left,right]]);
+    return [left,right];
+  };
+  const bytes=demoVgm(demoTracks.demo.score());
+  for(const p of [player,reference]){
+    send(p,{type:'song',bytes});
+    render(p,1400);
+  }
+  send(player,{type:'pause-song',paused:true});
+  const song=player.song,rom=song.chip.rom;
+  assert.equal(player.chip.rom,rom);
+  assert.ok(render(player,4096).every(side=>side.every(x=>x===0)));
+  send(player,[[0x80,0x12a]]);
+  const rate=player.rates[0];
+  send(player,{type:'captured-note',channel:0,midi:72});
+  assert.equal(player.chip.voices[0].rate,rate*2);
+  assert.ok(render(player,2048).some(side=>side.some(x=>x!==0)));
+  assert.equal(song.frames,1400);
+  send(player,{type:'pause-song',paused:false});
+  assert.deepEqual(render(player,2048),render(reference,2048));
+  send(player,{type:'pause-song',paused:true});
+  send(player,{type:'voice-setting',channel:0,field:'rate',value:2400});
+  send(player,[[0x80,0x12a]]);
+  send(player,'stop-audition');
+  assert.equal(player.song,null);
+  assert.equal(player.chip.rom,rom);
+  assert.equal(player.chip.voices[0].pan,0x12a);
+  assert.ok(render(player,128).every(side=>side.every(x=>x===0)));
+  send(player,{type:'captured-note',channel:0,midi:60});
+  assert.equal(player.chip.voices[0].rate,2400);
+  assert.ok(render(player,2048).some(side=>side.some(x=>x!==0)));
 });
