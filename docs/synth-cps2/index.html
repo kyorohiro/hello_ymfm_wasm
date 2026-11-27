@@ -74,7 +74,7 @@ body{width:min(100%,76rem)}
 <div id="synthMenuPanel" class="synth-menu-panel">
 <strong>New</strong><button id="new-cassette" data-close-synth-menu>New cassette…</button>
 <strong>Import</strong><button id="add-demos" data-close-synth-menu>Add factory demos</button><button id="import-song" data-close-synth-menu>VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
-<button id="import-wav" data-close-synth-menu>PCM sample (WAV)…</button><input id="wav-input" type="file" accept=".wav" hidden>
+<button id="import-wav" data-close-synth-menu>Sample (WAV)…</button><input id="wav-input" type="file" accept=".wav" hidden>
 <button id="import-cassette" data-close-synth-menu>Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden>
 <strong>Export</strong><button id="save" data-close-synth-menu>Download selected VGM / VGZ</button><button id="export-cassette" aria-describedby="export-contents" data-close-synth-menu>Export cassette</button>
 <small id="export-contents"></small><button id="demo-cassette" data-close-synth-menu>Download factory demos</button>
@@ -126,7 +126,7 @@ liveLoop('bass', async () => {
 <table aria-label="Selected PCM channel registers"><thead><tr><th>Parameter</th><th>Register</th><th>Last write</th></tr></thead><tbody id="register-rows"></tbody></table>
 <small>— means no write since reset.</small></div></section>
 <section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
-<p>Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
+<p>Select a voice and choose a WAV in Files. Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
 <div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden><div class="chip-header"><label>ROM bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
 <p id="rom-scale"></p><small>Bank-relative byte addresses · End exclusive · Amber marks the PCM loop.</small>

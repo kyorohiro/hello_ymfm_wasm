@@ -71,7 +71,7 @@ Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ti
 
 ## Playing your own WAV
 
-Select a PCM channel and choose **☰ → Import → PCM sample (WAV)…**. Press C4 to play at the clip’s original speed. To reuse it on another channel, select the channel and click the filename under **Files → /samples/**. With Auto apply off, or when switching away from a song ROM, use **Assign to CH**. Drag the start of the shaded loop or its right edge on the authored PCM waveform to edit loop length or exclusive end.
+Select a PCM channel and choose **☰ → Import → Sample (WAV)…**. Press C4 to play at the clip’s original speed. To reuse it on another channel, select the channel and click the filename under **Files → /samples/**. With Auto apply off, or when switching away from a song ROM, use **Assign to CH**. Drag the start of the shaded loop or its right edge on the authored PCM waveform to edit loop length or exclusive end.
 
 Files keeps the original WAV. The importer mixes its channels to mono and converts it to signed 8-bit PCM. It accepts integer PCM (8/16/24/32-bit) and 32-bit float RIFF WAV. The converted clip fits one signed loop length (up to 32,767 bytes). Longer recordings use a lower playback rate to preserve duration, with reduced high-frequency detail. Bank 0 holds the generated instruments. Imported clips share the remaining banks, and their addresses stay fixed when another file is added or renamed. The ROM tab lists their paths and ranges. Cassettes include the WAV files, placements, selected channel and edited loops within the existing 16 MiB expanded cassette limit.
 
@@ -88,6 +88,10 @@ Open **ROM** and select a bank. Each row plots one voice on the same bank-relati
 Before playback, the map shows the authored instruments. During VGM or Code playback it follows the most recently programmed start/end addresses and bank. A voice remains visible after release. Click its row to open the corresponding PCM channel or ADPCM voice editor. Pause holds the song position for comparison. To see shared data, load Voice 2’s ADPCM trio preset onto Voice 3. Both rows then cover **0x0400–0x0600**, and the **2** and **3** keys trigger the two decoders while the map is open.
 
 ## ADPCM pads
+
+A new cassette assigns the original `/samples/cabinet-snare.wav` to PCM CH1 and ADPCM Voice 1. Play C4 on CH1, then play a different note to transpose the snare. Press **1** to hear the same source as a fixed-rate ADPCM one-shot. On an existing cassette, choose **☰ → Import → Add factory demos** and assign the snare to the channels you want to compare.
+
+Open ADPCM, select Voice 1–3, then choose a WAV in Files or import one with **☰ → Import → Sample (WAV)…**. With Auto apply off, click **Assign to Voice**. Each file's first pad assignment creates one encoded range. Additional pads share that range and keep independent start, end, volume and pan. The encoder mixes to mono, resamples at the project clock (about 8.01 kHz), and chooses each nibble using the chip decoder at volume 32767. A pad clip must fit in one bank (up to 65,535 encoded bytes, about 16.35 seconds). ROM shows the PCM and ADPCM ranges separately. Export cassette retains the original WAV, both placements and all voice assignments.
 
 Select Voice 1–3 to edit its start byte, exclusive end byte, ROM bank, signed volume and pan register. Trigger plays the selected voice. Keys 1, 2 and 3 trigger their respective voices independently. Key release leaves a one-shot running. The Sample control loads a generated pulse's bank and address range. Custom synth pad settings are saved with the cassette.
 

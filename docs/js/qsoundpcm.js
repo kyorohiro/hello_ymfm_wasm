@@ -22,10 +22,18 @@ export function advanceAdpcm(voice, rom, lowNibble) {
   const nibble = lowNibble ? byte & 15 : byte >>> 4;
   const code = nibble < 8 ? nibble : nibble - 16;
   if (lowNibble) voice.address = (voice.address + 1) & 65535;
-  const magnitude = ((1 + 2 * Math.abs(code)) * voice.step) >> 1;
-  const sample = Math.max(-32768, Math.min(32767, voice.output + (code <= 0 ? -magnitude : magnitude)));
-  voice.output = (sample * voice.gain) >> 16;
-  voice.step = Math.max(1, Math.min(2000, (voice.step * adpcmScale[8 + code]) >> 6));
+  voice.output=adpcmOutput(voice.output,voice.step,code,voice.gain);
+  voice.step=adpcmNextStep(voice.step,code);
+}
+
+export function adpcmOutput(previous,step,code,gain){
+  const magnitude = ((1 + 2 * Math.abs(code)) * step) >> 1;
+  const sample = Math.max(-32768, Math.min(32767, previous + (code <= 0 ? -magnitude : magnitude)));
+  return (sample * gain) >> 16;
+}
+
+export function adpcmNextStep(step,code){
+  return Math.max(1,Math.min(2000,(step*adpcmScale[8+code])>>6));
 }
 
 // Approximate standard-mode responses measured with an original PCM impulse VGM.

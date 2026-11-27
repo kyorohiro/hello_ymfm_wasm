@@ -54,8 +54,8 @@ export function createRomMap(openVoice){
     if(list)list.replaceChildren(...(latest.samples??[]).filter(s=>s.bank===bank).map(s=>{
       const line=document.createElement('div');
       const label=document.createElement('span'),track=document.createElement('div'),segment=document.createElement('span');
-      label.textContent=s.path+' · '+hex(s.start)+' – '+hex(s.end);
-      track.className='rom-track';segment.className='rom-segment rom-pcm';
+      label.textContent=s.path+' · '+s.kind+' · '+hex(s.start)+' – '+hex(s.end);
+      track.className='rom-track';segment.className='rom-segment '+(s.kind==='ADPCM'?'rom-adpcm':'rom-pcm');
       segment.style.left=100*s.start/limit+'%';segment.style.width=100*(s.end-s.start)/limit+'%';
       track.append(segment);line.append(label,track);
       return line;

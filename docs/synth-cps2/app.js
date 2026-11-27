@@ -19,9 +19,9 @@ import {createParamControl} from '../synth/synth_controls.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
-import {isSamplePath,decodeSample,allocateSample,sampleLibrary,maxRom} from './samples.js';
-import {cabinetPluck,duetSamplePath,sampleDuet} from './sample-duet.js';
-let placements={},library=sampleLibrary([]);
+import {isSamplePath,decodeSample,padByteLength,allocateSample,sampleLibrary,maxRom} from './samples.js';
+import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet} from './sample-duet.js';
+let placements={},padPlacements={},library=sampleLibrary([]);
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.sample*256;
 function authoredNote(ch,midi,v){
@@ -338,9 +338,10 @@ const padFields=['start','end','bank','volume'];
 function showPad(state){
   const live=state?.panWord!==undefined;
   const pad=state??pads[padVoice];
+  padControls.sample.updateRange(pads[padVoice].samplePath?-1:0,2);
   for(const key of padFields)padControls[key].updateVisual(pad[key]);
   padControls.panWord.updateVisual(live?pad.panWord:0x110+pad.pan);
-  padControls.sample.updateVisual(pads[padVoice].sample);
+  padControls.sample.updateVisual(pads[padVoice].samplePath?-1:pads[padVoice].sample);
   if(!live)drawPad();
 }
 function syncPadView(){
@@ -372,19 +373,21 @@ for(let i=0;i<3;i++){
     padVoice=i;revision++;
     for(const item of $('adpcm-voices').children)item.setAttribute('aria-pressed',String(item===b));
     if(liveInstrument)inspectChannel();else showPad();
+    renderPresetInfo();
   };
   $('adpcm-voices').append(b);
 }
 for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,65535],['end','End (exclusive)',0,65535],
   ['bank','ROM bank',0,32767],['volume','Volume',-32768,32767],['panWord','Pan register',0x110,0x130]]){
-  const control=createParamControl({label,min,max,step:1,value:min,formatValue:key==='sample'?n=>'Pulse '+(n+1):key==='volume'?String:padHex,
+  const control=createParamControl({label,min,max,step:1,value:min,formatValue:key==='sample'?n=>n===-1?(pads[padVoice].samplePath??'WAV').split('/').pop():'Pulse '+(n+1):key==='volume'?String:padHex,
     onChange(value){
       revision++;
       editPreset(true,key==='panWord'?'pan':key,value);
       const pad=pads[padVoice];
       if(!liveInstrument){
         if(key==='sample'){
-          Object.assign(pad,{sample:value,start:(value+1)*512,end:(value+2)*512,bank:0});showPad();return;
+          if(value<0)return;
+          Object.assign(pad,{samplePath:null,sample:value,start:(value+1)*512,end:(value+2)*512,bank:0});showPad();return;
         }
         if(key==='panWord')pad.pan=value-0x110;
         else pad[key]=value;
@@ -439,6 +442,7 @@ const source = $('source');
 const files = createVirtualFileSystem([
   {path:'/index.js',data:source.value},
   {path:duetSamplePath,data:cabinetPluck()},
+  {path:drumPath,data:cabinetSnare()},
   {path:'/examples/sample-duet.js',data:sampleDuet},
   ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score())})),
   {path:'/examples/pad-loop.js',data:`setBpm(106);
@@ -451,7 +455,14 @@ liveLoop('pads', async () => {
 `},
 ]);
 placements[duetSamplePath]=allocateSample([],decodeSample(files.get(duetSamplePath).data).pcm.length);
+const factoryDrum=decodeSample(files.get(drumPath).data);
+placements[drumPath]=placements[duetSamplePath]+decodeSample(files.get(duetSamplePath).data).pcm.length;
+padPlacements[drumPath]=placements[drumPath]+factoryDrum.pcm.length;
 rebuildSamples();
+setPcmSample(channels[0],drumPath);
+channels[0].loop=1;
+setPadSample(pads[0],drumPath);
+refresh();showPad();
 $('add-demos').onclick=()=>run(async()=>{
   const additions=[];
   for(const track of Object.values(demoTracks)){
@@ -465,14 +476,14 @@ $('add-demos').onclick=()=>run(async()=>{
     if(!files.has(path))additions.push({path,data:bytes});
   }
   if(!files.has('/examples/sample-duet.js'))additions.push({path:'/examples/sample-duet.js',data:sampleDuet});
-  let offset;
-  if(!files.has(duetSamplePath)){
-    const data=cabinetPluck();
-    offset=allocateSample(library.items.values(),decodeSample(data).pcm.length);
-    additions.push({path:duetSamplePath,data});
+  const regions=[...library.regions],newOffsets={};
+  for(const [path,generate] of [[duetSamplePath,cabinetPluck],[drumPath,cabinetSnare]]){
+    if(files.has(path))continue;
+    const data=generate(),length=decodeSample(data).pcm.length,offset=allocateSample(regions,length);
+    newOffsets[path]=offset;regions.push({offset,length});additions.push({path,data});
   }
   files.writeFiles(additions);
-  if(offset!==undefined){placements[duetSamplePath]=offset;rebuildSamples();}
+  Object.assign(placements,newOffsets);rebuildSamples();
   if(!songPath)selectDefaultSong();
   setFiles(true);renderFiles();scheduleDraft();
   $('file-status').textContent=additions.length?'Added '+additions.length+' demo files.':'Demo files already present.';
@@ -532,7 +543,7 @@ function showRomMap(){
 }
 function displayMap(map){
   if(romPath){drawRomMap(map,romPath);return;}
-  const samples=[...library.items].map(([path,v])=>({path,bank:v.bank,start:v.start,end:v.start+v.length}));
+  const samples=library.regions.map(v=>({path:v.path,kind:library.padItems.get(v.path)===v?'ADPCM':'PCM',bank:v.bank,start:v.start,end:v.start+v.length}));
   const used=factoryBank.length+samples.reduce((sum,s)=>sum+s.end-s.start,0);
   drawRomMap({...map,samples},samples.length?'Project ROM · '+used.toLocaleString()+' bytes used / 16 MiB':'Factory ROM');
 }
@@ -541,7 +552,7 @@ for(const tab of document.querySelectorAll('[data-chip]'))tab.onclick=()=>{
     $(item.dataset.chip).hidden=item!==tab;
     item.setAttribute('aria-pressed',String(item===tab));
   }
-  revision++;showRomMap();
+  revision++;showRomMap();renderPresetInfo();
 };
 $('keyboard-tab').onclick=()=>selectPerformance(false);
 $('code-tab').onclick=()=>selectPerformance(true);
@@ -600,7 +611,7 @@ function renderPresetInfo(){
   const preset=f?readPreset(f.data):null;
   const sample=library.items.get(highlightedPath);
   $('apply-preset').hidden=!preset && !sample;
-  $('apply-preset').textContent=sample?'Assign to CH'+(selected+1):'Apply preset';
+  $('apply-preset').textContent=sample?(!$('adpcm-chip').hidden?'Assign to Voice '+(padVoice+1):'Assign to CH'+(selected+1)):'Apply preset';
   $('save-files').hidden=$('auto-apply').checked;
   $('save-files').disabled=!pending.size;
   const target=preset?.source?.path??null;
@@ -662,7 +673,7 @@ async function savePreset(kind){
   if(!settings.source && library.items.size){
     if(!settings.bank)bytes=bytes.subarray(0,factoryBank.length);
     else{
-      const item=[...library.items.values()].find(i=>i.bank===settings.bank && i.start<=settings.start && settings.start<i.start+i.length);
+      const item=library.regions.find(i=>i.bank===settings.bank && i.start<=settings.start && settings.start<i.start+i.length);
       settings.projectRange=item?[item.start,item.start+item.length]:[0,bytes.length];
       bytes=bytes.subarray(...settings.projectRange);
     }
@@ -748,11 +759,11 @@ $('apply-preset').onclick=()=>{
   else run(()=>loadPreset(highlightedPath,files.get(highlightedPath).data));
 };
 function presetReferences(path){
-  const item=library.items.get(path);
+  const regions=library.regions.filter(i=>i.path===path);
   return files.list().filter(f=>{
     if(!isPresetPath(f.path))return false;
     const p=readPreset(f.data);
-    return p.source?.path===path || (item && p.bank===item.bank && p.projectRange &&
+    return p.source?.path===path || regions.some(item=>p.bank===item.bank && p.projectRange &&
       item.start<p.projectRange[1] && item.start+item.length>p.projectRange[0]);
   });
 }
@@ -765,7 +776,7 @@ function fileActions(path){
   if(!files.has(path))return [{id:'new',label:'New JavaScript file…'}];
   return [{id:'open',label:isPresetPath(path)?'Apply preset':'Open'},
     {id:'duplicate',label:'Duplicate'},{id:'rename',label:'Rename…',disabled:path==='/index.js'},
-    {id:'delete',label:'Delete',disabled:path==='/index.js' || presetReferences(path).length>0 || (isSamplePath(path) && channels.some(v=>v.samplePath===path))}];
+    {id:'delete',label:'Delete',disabled:path==='/index.js' || presetReferences(path).length>0 || (isSamplePath(path) && [...channels,...pads].some(v=>v.samplePath===path))}];
 }
 function fileAction(action,path){
   if(action==='new'){$('new-script').click();return;}
@@ -778,7 +789,7 @@ function fileAction(action,path){
   if(action==='delete'){
     if(!confirm('Delete '+path+'?'))return;
     files.delete(path);pending.delete(path);
-    if(isSamplePath(path)){delete placements[path];rebuildSamples();}
+    if(isSamplePath(path)){delete placements[path];delete padPlacements[path];rebuildSamples();}
     if(attached?.path===path)attached=null;
     if(path===songPath){stop(false);songPath=null;preparedSong=null;transport();selectDefaultSong();}
     if(path===activePath)openScript('/index.js');
@@ -802,7 +813,7 @@ function fileAction(action,path){
       for(const f of presetReferences(path))entries.push({path:f.path,data:renameSource(f.data,path,dest)});
     }
     const item=library.items.get(path);
-    const offset=item && (action==='duplicate'?allocateSample(library.items.values(),item.length):item.offset);
+    const offset=item && (action==='duplicate'?allocateSample(library.regions,item.length):item.offset);
     files.writeFiles(entries);
     if(pending.has(path))pending.set(dest,pending.get(path));
     if(action==='rename'){
@@ -820,9 +831,10 @@ function fileAction(action,path){
       placements[dest]=offset;
       if(action==='rename'){
         delete placements[path];
-        for(const v of channels)if(v.samplePath===path)v.samplePath=dest;
+        if(Object.hasOwn(padPlacements,path)){padPlacements[dest]=padPlacements[path];delete padPlacements[path];}
+        for(const v of [...channels,...pads])if(v.samplePath===path)v.samplePath=dest;
       }
-      rebuildSamples();if(!liveInstrument)refresh();
+      rebuildSamples();if(!liveInstrument){refresh();showPad();}
     }
     highlightedPath=dest;
   }
@@ -832,7 +844,7 @@ installSpuFileContextMenu({root:$('project-tree'),getActions:fileActions,
   onTarget:path=>{highlightedPath=path;renderFiles();},onAction:fileAction,
   onError:e=>{$('file-status').textContent=e.message;}});
 function snapshot() {
-  return {version:1,placements:{...placements},files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
+  return {version:1,padPlacements:{...padPlacements},placements:{...placements},files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
     pads:pads.map(p=>({...p})),mix:mixer.get(),selected,echo:{...echo}};
 }
 const factory=snapshot();
@@ -840,10 +852,10 @@ function replaceProject(project) {
   stop(false);
   songSelection++;songPath=null;preparedSong=null;transport();
   attached=null;pending.clear();$('auto-apply').checked=true;
-  files.replace(project.files);placements={...project.placements};rebuildSamples();
+  files.replace(project.files);placements={...project.placements};padPlacements={...project.padPlacements};rebuildSamples();
   project.channels.forEach((v,i)=>Object.assign(channels[i],{samplePath:null},v,{held:null}));
   project.pads.forEach((v,i)=>{
-    Object.assign(pads[i],v);
+    Object.assign(pads[i],{samplePath:null},v);
   });
   syncPadView();
   mixer.set(project.mix);
@@ -900,19 +912,37 @@ $('cassette-input').onchange=async e=>{
   } catch(error){$('file-status').textContent=error.message;}
 };
 function rebuildSamples(){
-  library=sampleLibrary(files.list(),placements);
+  library=sampleLibrary(files.list(),placements,padPlacements);
   const selector=$('wave');
   while(selector.options.length>3)selector.remove(3);
   for(const path of library.items.keys())selector.add(new Option(path.split('/').pop(),path));
   if(port)port.postMessage({type:'project-rom',rom:library.rom});
   codeWorker?.postMessage({samples:codeSamples()});
 }
-function assignSample(path){
-  const item=library.items.get(path),v=channels[selected];
-  if(liveInstrument)stop(false);
-  if(v.held)release(v.held);attached=null;highlightedPath=path;
+function setPcmSample(v,path){
+  const item=library.items.get(path);
   Object.assign(v,{samplePath:path,sample:0,note:60,referenceNote:60,rate:item.rate,referenceRate:item.rate,
     end:item.start+item.length,loop:item.length});
+}
+function setPadSample(pad,path){
+  const item=library.padItems.get(path);
+  Object.assign(pad,{samplePath:path,bank:item.bank,start:item.start,end:item.start+item.length});
+}
+function assignSample(path){
+  const item=library.items.get(path),v=channels[selected],adpcm=!$('adpcm-chip').hidden;
+  if(adpcm && !library.padItems.has(path)){
+    try{padPlacements[path]=allocateSample(library.regions,padByteLength(item.seconds),65536);rebuildSamples();}
+    catch(error){delete padPlacements[path];$('file-status').textContent=error.message;return;}
+  }
+  if(liveInstrument)stop(false);
+  attached=null;highlightedPath=path;
+  if(adpcm){
+    setPadSample(pads[padVoice],path);revision++;showPad();renderFiles();scheduleDraft();
+    $('file-status').textContent=path+' → ADPCM Voice '+(padVoice+1)+' · Key '+(padVoice+1);
+    return;
+  }
+  if(v.held)release(v.held);
+  setPcmSample(v,path);
   selectPerformance(false);document.querySelector('[data-chip="pcm-chip"]').click();selectPcmTab(false);
   select(selected);renderFiles();scheduleDraft();
   $('file-status').textContent=path+' → CH'+(selected+1)+' · Bank '+item.bank+' · '+item.length+' bytes';
@@ -925,9 +955,10 @@ $('wav-input').onchange=async event=>{
     if(file.size>maxRom)throw Error('WAV exceeds 16 MiB.');
     const path=checkPath('/samples/'+file.name);
     if(!isSamplePath(path))throw Error('Choose a .wav file.');
-    const data=new Uint8Array(await file.arrayBuffer()),{pcm}=decodeSample(data);
+    const data=new Uint8Array(await file.arrayBuffer()),decoded=decodeSample(data),{pcm}=decoded;
     if(files.has(path))throw Error('A sample with that name already exists.');
-    const offset=allocateSample(library.items.values(),pcm.length);
+    const offset=allocateSample(library.regions,pcm.length);
+    if(!$('adpcm-chip').hidden)allocateSample([...library.regions,{offset,length:pcm.length}],padByteLength(decoded.seconds),65536);
     const project=snapshot();
     const payloadBytes=project.files.reduce((sum,f)=>sum+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),data.length);
     if(payloadBytes>maxRom)throw Error('These files exceed the 16 MiB cassette limit.');

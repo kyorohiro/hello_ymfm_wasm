@@ -40,3 +40,23 @@ test('a project preset survives additional samples in the same bank',async()=>{
   rom[65536]=12;
   await assert.rejects(presetRom(preset,null,rom),/differs/);
 });
+
+test('WAV pad preserves one-shot duration and signal through the QSound decoder',async()=>{
+  const {cabinetSnare,drumPath}=await import('./sample-duet.js');
+  const {advanceAdpcm}=await import('../js/qsoundpcm.js');
+  const bytes=cabinetSnare(),decoded=decodeSample(bytes,true),start=12000;
+  const lib=sampleLibrary([{path:drumPath,data:bytes}],{[drumPath]:65536},{[drumPath]:65536+start});
+  const item=lib.padItems.get(drumPath);
+  assert.equal(item.length,Math.ceil(decoded.seconds*QSOUND_PCM_RATE/6));
+  const voice={bank:1,start,end:start+item.length,trigger:true,volume:32767};
+  let cross=0,sourcePower=0,outputPower=0;
+  for(let i=0;i<item.length*2;i++){
+    advanceAdpcm(voice,lib.rom,i%2);
+    const source=(decoded.pcm[i]<<24)>>24;
+    cross+=source*voice.output;sourcePower+=source*source;outputPower+=voice.output**2;
+  }
+  assert.ok(cross/Math.sqrt(sourcePower*outputPower)>.8);
+  advanceAdpcm(voice,lib.rom,false);
+  assert.equal(voice.gain,0);
+  assert.throws(()=>sampleLibrary([{path:drumPath,data:bytes}],{[drumPath]:65536},{[drumPath]:65540}),/Overlapping/);
+});

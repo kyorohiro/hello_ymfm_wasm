@@ -21,7 +21,8 @@ export function validateProject(project) {
   if (project?.version!==1 || !Array.isArray(project.channels) || project.channels.length!==16 ||
       !Array.isArray(project.pads) || project.pads.length!==3) throw Error('Expected a CPS2 cassette.');
   const placements=project.placements??{};
-  const {items}=sampleLibrary(project.files,placements);
+  const padPlacements=project.padPlacements??{};
+  const {items,padItems}=sampleLibrary(project.files,placements,padPlacements);
   const channels=project.channels.map(v=>{
     const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??sample*256;
     if(v.samplePath && !item)throw Error('Missing WAV sample.');
@@ -32,7 +33,8 @@ export function validateProject(project) {
   });
   const pads=project.pads.map(p=>{
     const sample=number(p.sample,0,2),start=(sample+1)*512;
-    return {sample,start:number(p.start??start,0,65535),end:number(p.end??start+512,0,65535),
+    if(p.samplePath && !padItems.has(p.samplePath))throw Error('Missing ADPCM sample.');
+    return {sample,samplePath:p.samplePath??null,start:number(p.start??start,0,65535),end:number(p.end??start+512,0,65535),
       bank:number(p.bank??0,0,32767),pan:number(p.pan,0,32),volume:number(p.volume,-32768,32767)};
   });
   const echo={delay:number(project.echo.delay,0,1024),feedback:number(project.echo.feedback,-32768,32767)};
@@ -51,7 +53,7 @@ export function validateProject(project) {
   if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
   const song=project.song??null;
   if(song!==null && (!/\.vg[mz]$/i.test(song)||files.get(song)?.type!=='binary'))throw Error('Cassette is missing its selected song.');
-  return {version:1,placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
+  return {version:1,padPlacements:Object.fromEntries([...padItems].map(([path,i])=>[path,i.offset])),placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,selected:number(project.selected,0,15),pads,channels,echo};
 }
 
 export function exportProject(project) {
