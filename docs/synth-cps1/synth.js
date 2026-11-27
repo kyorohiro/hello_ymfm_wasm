@@ -9,10 +9,39 @@ import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {decodeSongSample} from './song-samples.js';
 import {displaySample,drawWave} from './sample-view.js';
+import {createSynthProjectStore} from '../synth/synth_project_store.js';
 import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
 
 const $ = id => document.getElementById(id);
+const example = `// OPM channels 0–7, OKI voices 0–3. Sleep is in seconds.
+for (const note of ['C3', 'G3', 'Bb3', 'C4']) {
+  opm.noteOn(0, note);
+  oki.play(0, 0, 2);
+  await sleep(0.18);
+  opm.keyOff(0);
+  oki.play(1, 1, 4);
+  await sleep(0.18);
+}`;
+const defaults=new Map([['/index.js',example]]);
+for(const option of Array.from($('codeFile').options).slice(1)){
+  const response=await fetch(new URL('.'+option.value,import.meta.url));
+  if(!response.ok)throw Error('Could not load '+option.value);
+  defaults.set(option.value,await response.text());
+}
+let initialCode=new Map(defaults);
+try{
+  const saved=localStorage.getItem('cps1.scripts.v2');
+  if(saved){
+    const code=new Map(JSON.parse(saved));
+    if(code.has('/index.js')&&[...code].every(([p,v])=>/^\/.*\.m?js$/i.test(p)&&typeof v==='string'))initialCode=code;
+  }else for(const path of defaults.keys()){
+    const key=path==='/index.js'?'cps1.code':'cps1.'+path.split('/').pop().replace(/\.js$/,'');
+    const text=localStorage.getItem(key);if(text!==null)initialCode.set(path,text);
+  }
+}catch{}
+const store=createSynthProjectStore({name:'tetorica-cps1-synth-files'});
+const draft=await store.read().catch(()=>null);
 setupSynthMenu({document,window});
 $('chooseCassette').onclick = () => $('importCassette').click();
 const status = message => { $('status').textContent = message; };
@@ -120,9 +149,11 @@ $('master').oninput = () => {
   $('volume').value = $('master').value+'%';
   if (audio) audio.master.gain.setTargetAtTime(Number($('master').value)/100,context.currentTime,.01);
 };
-$('scopeMode').onclick = () => {
-  mode = mode === 'waveform' ? 'spectrum' : 'waveform';
-  $('scopeMode').textContent = mode === 'waveform' ? 'Waveform' : 'Spectrum';
+const visualModes=document.querySelectorAll('[data-visual-mode]');
+for (const button of visualModes) button.onclick=()=>{
+  mode=button.dataset.visualMode;
+  for (const item of visualModes) item.setAttribute('aria-pressed',String(item===button));
+  $('scope').setAttribute('aria-label','Output '+mode);
 };
 const canvas = $('scope'), ctx = canvas.getContext('2d');
 new ResizeObserver(([entry]) => {
@@ -383,51 +414,6 @@ window.addEventListener('keydown',e => {
 window.addEventListener('keyup',e => release(e.code));
 window.addEventListener('blur',() => {for (const id of held.keys()) release(id);});
 
-const example = `// OPM channels 0–7, OKI voices 0–3. Sleep is in seconds.
-for (const note of ['C3', 'G3', 'Bb3', 'C4']) {
-  opm.noteOn(0, note);
-  oki.play(0, 0, 2);
-  await sleep(0.18);
-  opm.keyOff(0);
-  oki.play(1, 1, 4);
-  await sleep(0.18);
-}`;
-const scriptPaths = Array.from($('codeFile').options, option => option.value);
-const [entryPath,...examplePaths] = scriptPaths;
-const scripts = new Map([[entryPath,example]]);
-const storageKey = path => path === entryPath ? 'cps1.code' : 'cps1.'+path.split('/').pop().replace(/\.js$/, '');
-for (const path of scriptPaths) {
-  try {
-    const saved = localStorage.getItem(storageKey(path));
-    if (saved !== null) scripts.set(path,saved);
-  } catch {}
-}
-let activePath = entryPath, openRequest = 0;
-$('editor').value = scripts.get(activePath);
-function saveScript(path,text) {
-  scripts.set(path,text);
-  try {localStorage.setItem(storageKey(path),text);} catch {}
-}
-$('editor').oninput = () => saveScript(activePath,$('editor').value);
-async function scriptSource(path) {
-  if (!scripts.has(path)) {
-    const response = await fetch(new URL('.'+path,import.meta.url));
-    if (!response.ok) throw Error('Could not load '+path+' ('+response.status+')');
-    const source = await response.text();
-    if (!scripts.has(path)) scripts.set(path,source);
-  }
-  return scripts.get(path);
-}
-async function openScript(path) {
-  const request = ++openRequest;
-  try {
-    await scriptSource(path);
-    if (request !== openRequest) return;
-    activePath = path; $('codeFile').value = path; $('editor').value = scripts.get(path);
-    document.querySelector('[data-tab="code"]').click();
-  } catch (error) {if (request === openRequest) {$('codeFile').value=activePath; fail(error);}}
-}
-$('codeFile').onchange = () => openScript($('codeFile').value);
 let songNode, songRequest=0;
 let pausedSong=null, sourceChannel=0;
 let previewNode, previewGain, selectedOkiVoice=0, sampleBuffer;
@@ -615,17 +601,6 @@ $('run').onclick = async () => {
   } catch (error) {stopRun();fail(error);}
 };
 
-const files = setupFiles({inspector,panel,keyMasks,openScript,playSong,stopSong,openFiles:()=>setFilesOpen(true),defaultCode:example,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
-  applyBank:installRom,getCode:() => scripts.get(entryPath),examplePaths,scriptSource,
-  setCode:(value,examples=new Map()) => {
-    openRequest++;
-    saveScript(entryPath,value);
-    for (const path of examplePaths) {
-      if (examples.has(path)) saveScript(path,examples.get(path));
-      else {
-        scripts.delete(path);
-        try {localStorage.removeItem(storageKey(path));} catch {}
-      }
-    }
-    activePath=entryPath; $('codeFile').value=entryPath; $('editor').value=value;
-  },stop:() => {stopRun();status('Stopped');}});
+const files = setupFiles({inspector,panel,keyMasks,defaults,initialCode,store,draft,playSong,stopSong,openFiles:()=>setFilesOpen(true),
+  defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},applyBank:installRom,stop:()=>{stopRun();status('Stopped');}});
+$('filesToggle').disabled=false;

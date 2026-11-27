@@ -10,7 +10,9 @@ The MSM6295 panel shows the selected sample’s inclusive ROM range, duration an
 
 Code runs in a dedicated worker. `opm` and `oki` share the instruments used by the panels. JavaScript uses zero-based channels and voices. For example, `oki.play(1, 2, 4)` plays sample 2 on voice 1 at attenuation 4. `oki.write(0x10)` stops that voice. Stop interrupts the running script and releases both chips. The edited script is saved in this browser.
 
-Files lists the eight current channel voices, saved FM presets, sample banks and imported VGM songs. Export Cassette saves those files with the current code and global LFO/noise settings in a Tetorica cassette ZIP. Import restores the project without running its code. Export before closing the page to keep the voices and banks.
+Files lists the eight current channel voices, saved FM presets, sample banks and imported VGM songs. Export Cassette saves those files with the current code and global LFO/noise settings in a Tetorica cassette ZIP. Import restores the project without running its code. The browser keeps a local project draft. Right-click a file or folder (or use Shift+F10) to duplicate, rename, delete, or create an instrument, script or folder. Drag to move, or hold Option/Ctrl while dropping to copy. Drop supported music, ROM, voice and JavaScript files into a folder to import them. Undo files restores the previous file operation. With Auto apply off, Save or Discard the selected file’s edits. Save all accepts every pending edit.
+
+**Output → Waveform / Spectrum** switches between the mixed signal in time and its frequency spectrum while playing.
 
 ### Load an Analyzer OPM voice
 

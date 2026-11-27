@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {gzipSync} from 'node:zlib';
+import {loadPlaygroundCassette,createPlaygroundCassetteZip} from '../docs/playground/playground_cassette.js';
 import {createKit} from '../docs/synth-cps1/kit.js';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
@@ -24,6 +25,10 @@ try {
   const errors = [];
   page.on('pageerror',e => errors.push(e.message));
   await page.addInitScript(() => {
+    const readSpectrum=AnalyserNode.prototype.getFloatFrequencyData;
+    AnalyserNode.prototype.getFloatFrequencyData=function(buffer){
+      readSpectrum.call(this,buffer);window.spectrumPeak=Math.max(...buffer);
+    };
     const original = AnalyserNode.prototype.getFloatTimeDomainData;
     AnalyserNode.prototype.getFloatTimeDomainData = function(data) {
       original.call(this,data);
@@ -96,6 +101,10 @@ try {
   await chooseKeyChannel(1);
   await page.keyboard.down('a');
   await page.waitForFunction(() => window.peak>.001);
+  await page.getByRole('button',{name:'Spectrum',exact:true}).click();
+  await page.waitForFunction(()=>window.spectrumPeak>-85);
+  assert.equal(await page.getByRole('button',{name:'Spectrum',exact:true}).getAttribute('aria-pressed'),'true');
+  await page.getByRole('button',{name:'Waveform',exact:true}).click();
   const slot=page.getByRole('button',{name:'Include OP2 · M2 on the next key-on'});
   const gate=page.locator('[data-chip-output="ym2151-gate"]');
   await slot.click();
@@ -241,6 +250,7 @@ try {
   assert.ok(await page.locator('#sampleWave').isHidden());
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
   await page.click('#saveVoice');
+  await page.locator('#fileNameDialog').getByRole('button',{name:'Save',exact:true}).click();
   const opmText = ['@:0 Browser brass','LFO: 93 34 67 2 17','CH: 192 5 6 1 3 40 128',
     ...['M1','C1','M2','C2'].map((name,i)=>name+': 31 2 3 4 5 '+(28+i)+' 0 1 0 0 0')].join('\n');
   await page.locator('#importOpm').setInputFiles({name:'voice.opm',mimeType:'text/plain',buffer:Buffer.from(opmText)});
@@ -386,6 +396,77 @@ try {
     assert.ok(await page.locator('#keys .key').first().isVisible());
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   }
+  if(await page.locator('#files').isHidden())await page.click('#filesToggle');
+  const row=path=>page.locator('#fileTree [data-file-path]').and(page.locator('[data-file-path="'+path+'"]'));
+  async function fileAction(path,label,answer){
+    await row(path).click({button:'right'});
+    if(label==='Delete')page.once('dialog',d=>d.accept());
+    await page.getByRole('menuitem',{name:label,exact:true}).click();
+    if(answer!==undefined&&label!=='Delete'){
+      await page.fill('#fileName',answer);
+      await page.locator('#fileNameDialog').getByRole('button',{name:'Save',exact:true}).click();
+    }
+  }
+  await fileAction('/','New folder…','lab');
+  await fileAction('/lab','New JavaScript file…','riff');
+  await page.fill('#editor','// riff');
+  await fileAction('/lab/riff.js','Duplicate');
+  await fileAction('/lab/riff copy.js','Rename…','take');
+  await row('/lab/take.js').click();
+  assert.equal(await page.inputValue('#editor'),'// riff');
+  await page.locator('#fileAuto').uncheck();
+  await page.fill('#editor','// draft');
+  await page.click('#fileDiscard');
+  assert.equal(await page.inputValue('#editor'),'// riff');
+  await fileAction('/lab/take.js','Delete','');
+  await page.click('#fileUndo');
+  await row('/lab/take.js').click();
+  await row('/lab/take.js').dragTo(row('/examples'));
+  await row('/examples/take.js').click();
+  assert.equal(await page.inputValue('#editor'),'// riff');
+  await fileAction('/lab','New instrument…','lead');
+  await row('/presets/lead.fm.json').click();
+  const result=page.waitForEvent('download');
+  await page.click('#synthMenuButton');await page.click('#exportCassette');
+  const saved=await readFile(await (await result).path());
+  page.once('dialog',d=>d.accept());
+  await page.locator('#importCassette').setInputFiles({name:'files.cassette.zip',mimeType:'application/zip',buffer:saved});
+  await page.getByText('Imported files.cassette.zip',{exact:true}).waitFor();
+  await row('/examples/take.js').click();
+  assert.equal(await page.inputValue('#editor'),'// riff');
+  // Wait for the ordered draft write before reopening in the same browser profile.
+  await page.evaluate(async()=>{
+    const db=await new Promise(resolve=>{const req=indexedDB.open('tetorica-cps1-synth-files');req.onsuccess=()=>resolve(req.result);});
+    try{
+      for(let attempt=0;attempt<100;attempt++){
+        const draft=await new Promise(resolve=>{const req=db.transaction('projects').objectStore('projects').get('current');req.onsuccess=()=>resolve(req.result);});
+        if(draft?.files.has('/examples/take.js')&&draft.name==='files.cassette.zip')return;
+        await new Promise(resolve=>setTimeout(resolve,50));
+      }
+      throw Error('File draft was not saved.');
+    }finally{db.close();}
+  });
+  await page.reload();
+  await page.waitForFunction(()=>document.querySelector('#cassetteName').textContent==='files.cassette.zip');
+  if(await page.locator('#files').isHidden())await page.click('#filesToggle');
+  await row('/examples/take.js').click();
+  assert.equal(await page.inputValue('#editor'),'// riff');
+
+  const archived=await loadPlaygroundCassette(saved);
+  const state=archived.metadata.cps1;
+  const legacyMeta={version:1,banks:[{name:'Legacy kit',names:['Kick']}],active:0,presets:0,songs:[],lfo:state.lfo,noise:state.noise};
+  const legacy=createPlaygroundCassetteZip([
+    {path:'index.js',type:'text',data:'// legacy'},
+    {path:'banks/0.rom',type:'binary',data:createKit()},
+    ...state.voices.map((voice,i)=>({path:'presets/ch'+(i+1)+'.fm.json',type:'text',data:JSON.stringify(voice)})),
+  ],{metadata:{cps1:legacyMeta}});
+  page.once('dialog',d=>d.accept());
+  await page.locator('#importCassette').setInputFiles({name:'old.cassette.zip',mimeType:'application/zip',buffer:Buffer.from(legacy)});
+  await page.getByText('Imported old.cassette.zip',{exact:true}).waitFor();
+  assert.equal(await page.inputValue('#editor'),'// legacy');
+  await page.click('#fileUndo');
+  await row('/examples/take.js').click();
+  assert.equal(await page.inputValue('#editor'),'// riff');
   assert.deepEqual(errors,[]);
   console.log('CPS1 FM audio, held-note editing, OKI audio/status, Code, cassette round-trip and responsive layouts passed');
 } finally {await browser?.close(); server.close();}

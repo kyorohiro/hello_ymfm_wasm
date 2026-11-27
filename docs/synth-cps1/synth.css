@@ -234,3 +234,14 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 [data-envelope-operator="2"] {--op-color:#ff93bc}
 [data-envelope-operator="3"] {--op-color:#9dff9b}
 [data-envelope-operator="4"] {--op-color:#89b7ff}
+
+.scope-modes {display:inline-flex;gap:.15rem}
+
+.spu-file-context-menu {z-index:20;display:grid;gap:.15rem;padding:.35rem;background:var(--panel);border:1px solid var(--line);border-radius:.4rem}
+.spu-file-context-menu button {text-align:left}
+.file-drop-target {outline:2px dashed var(--deep-green)}
+.file-tree-root {cursor:default;font-weight:600}
+
+.file-tools {display:flex;flex-wrap:wrap;gap:.2rem;margin:.35rem 0}
+.file-tools button,.file-tools label,#filePath {font-size:.77rem}
+#filePath {display:block;overflow-wrap:anywhere}

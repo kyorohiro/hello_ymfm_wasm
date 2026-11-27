@@ -1,244 +1,367 @@
-import {renderFileTree} from '../playground/playground_file_tree.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
-
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {inspectSong} from './vgm.js';
 import {parseOpm} from './opm.js';
+import {installProjectTree,base,checkPath,inside} from './project-tree.js';
+import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 
-const decode = bytes => new TextDecoder('utf-8',{fatal:true}).decode(bytes);
-const voicePatch = ({algorithm,feedback,pan,ams,pms,operators}) => ({algorithm,feedback,pan,ams,pms,operators});
-const voicePath = i => 'presets/ch'+(i+1)+'.fm.json';
-const bankPath = i => 'banks/'+i+'.rom';
-const songPath = (i,name) => 'songs/'+i+(/\.vgz$/i.test(name) ? '.vgz' : '.vgm');
-const presetPath = i => 'presets/saved-'+(i+1)+'.fm.json';
+const decode=bytes=>new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+const voicePatch=({algorithm,feedback,pan,ams,pms,operators})=>({algorithm,feedback,pan,ams,pms,operators});
+const voicePath=i=>'presets/ch'+(i+1)+'.fm.json';
+const bankPath=i=>'banks/'+i+'.rom';
+const songPath=(i,name)=>'songs/'+i+(/\.vgz$/i.test(name)?'.vgz':'.vgm');
+const presetPath=i=>'presets/saved-'+(i+1)+'.fm.json';
+const entry='/index.js';
+const el=id=>document.getElementById(id);
+const report=text=>{el('fileStatus').textContent=text;};
+async function loadSong(name,raw) {
+  const bytes=new Uint8Array(await maybeDecodeVgmFile(raw,{maxBytes:16*1024*1024}));
+  inspectSong(bytes);return {name,bytes,raw};
+}
+function validateVoice(patch,validator) {
+  if(!Array.isArray(patch?.operators)||patch.operators.length!==4)throw Error('Invalid YM2151 voice.');
+  const {keyMask=15,...voice}=patch;
+  if(!Number.isInteger(keyMask)||keyMask<0||keyMask>15)throw Error('Invalid operator mask.');
+  validator.invoke('setVoice',[0,voice]);return patch;
+}
 
-export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,getCode,scriptSource,examplePaths,setCode,stop,playSong,stopSong,openFiles,openScript,keyMasks}) {
-  const el = id => document.getElementById(id);
-  let banks = [defaultBank], presets = [], opmBanks = [], active = 0;
-  const initial = inspector.read();
-  const initialVoices = initial.channels.map(voice => ({...voicePatch(voice),keyMask:keyMasks[voice.channel]}));
-  let selectedPath='/index.js', selectedOpmBank=null, presetChannel=null;
-  const expanded=new Map([['/examples',true]]);
-  let cassetteRevision = 0, songs=[];
-  async function loadSong(name,raw) {
-    const bytes=new Uint8Array(await maybeDecodeVgmFile(raw,{maxBytes:16*1024*1024}));
-    inspectSong(bytes);
-    return {name,raw,bytes};
+export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initialCode,store,draft,applyBank,stop,playSong,stopSong,openFiles}) {
+  let files=new Map(),folders=[],selected=entry,editor=entry,activeBank,presetChannel=null,opmBank=null,revision=0;
+  let pending=new Map(),editPath=null,saveTimer;
+  const initial=inspector.read(), history=[];
+  const currentVoice=ch=>({...voicePatch(inspector.read().channels[ch]),keyMask:keyMasks[ch]});
+  const initialVoices=initial.channels.map((_,i)=>currentVoice(i));
+  function applyVoice(ch,{keyMask=15,...patch}) {
+    inspector.invoke('setVoice',[ch,patch]);keyMasks[ch]=keyMask;
   }
-  function renderSongs() {
-    el('songs').replaceChildren(...songs.map((song,i)=>new Option(song.name,i)));
-    el('referenceSong').hidden=!songs.length;
-    el('songs').disabled=el('playSong').disabled=!songs.length;
+  const fm=()=>document.querySelector('[data-tab="fm"]').click();
+  const items=kind=>[...files].filter(([,v])=>v.kind===kind);
+  const songEntries=()=>items('song');
+  function script(path,show=true) {
+    editor=path;el('editor').disabled=el('run').disabled=!path;
+    el('editor').value=files.get(path)?.text??'';el('codeFile').value=path??'';
+    if(show)document.querySelector('[data-tab="code"]').click();
   }
-  el('chooseVgm').onclick=()=>el('vgmFile').click();
-  el('vgmFile').onchange=async event=>{
-    const file=event.target.files[0], revision=cassetteRevision;
-    event.target.value='';
-    if (!file) return;
-    openFiles();
-    try {
-      if (file.size>16*1024*1024) throw Error('VGM exceeds 16 MiB.');
-      const song=await loadSong(file.name,new Uint8Array(await file.arrayBuffer()));
-      if (revision!==cassetteRevision) return;
-      stopSong();songs.push(song);renderSongs();el('songs').value=String(songs.length-1);selectFile('/'+songPath(songs.length-1,song.name));
-      report('Imported '+song.name);
-    } catch(error) {if (revision===cassetteRevision) report(error.message);}
-  };
-  el('playSong').onclick=()=>playSong(songs[Number(el('songs').value)]);
-  el('songs').onchange=stopSong;
-  el('stopSong').onclick=stopSong;
-  const report = message => {el('fileStatus').textContent = message;};
-  function fileActions() {
-    const actions=new Map();
-    for (const path of ['/index.js',...examplePaths]) actions.set(path,()=>openScript(path));
-    const fm=()=>document.querySelector('[data-tab="fm"]').click();
-    for (let i=0;i<8;i++) actions.set('/'+voicePath(i),()=>{panel.selectChannel(i);fm();});
-    presets.forEach((v,i)=>actions.set('/'+presetPath(i),()=>{presetChannel=panel.getSelectedChannel();applyVoice(presetChannel,v);fm();}));
-    opmBanks.forEach((bank,i)=>actions.set('/presets/import-'+i+'.opm',()=>{
-      selectedOpmBank=bank;
-      el('opmVoice').replaceChildren(...bank.voices.map((v,index)=>new Option(v.name,index)));
+  function useBank(path) {
+    activeBank=path;const bank=files.get(path)??defaultBank;
+    applyBank(bank.bytes,bank.names,bank.name);
+  }
+  function open(path) {
+    const v=files.get(path);if(!v)return;
+    selected=path;editPath=path;opmBank=null;presetChannel=null;
+    if(v.kind==='code')script(path);
+    if(v.kind==='channel'){panel.selectChannel(v.ch);files.set(path,{...v,voice:currentVoice(v.ch)});fm();}
+    if(v.kind==='voice'){presetChannel=panel.getSelectedChannel();applyVoice(presetChannel,v.voice);fm();}
+    if(v.kind==='opm'){
+      opmBank=v;el('opmVoice').replaceChildren(...v.voices.map((voice,i)=>new Option(voice.name,i)));
       el('opmVoice').onchange();fm();
-    }));
-    banks.forEach((bank,i)=>actions.set('/'+bankPath(i),()=>{
-      useBank(i);report(bank.name);document.querySelector('[data-tab="pcm"]').click();
-    }));
-    songs.forEach((song,i)=>actions.set('/'+songPath(i,song.name),()=>{
-      stopSong();el('songs').value=String(i);report(song.name);
-    }));
-    return actions;
-  }
-  function selectFile(path) {
-    selectedPath=path;selectedOpmBank=null;presetChannel=null;
-    expanded.set(path.slice(0,path.lastIndexOf('/')),true);
-    fileActions().get(path)?.();
+    }
+    if(v.kind==='bank'){useBank(path);document.querySelector('[data-tab="pcm"]').click();}
+    if(v.kind==='song')stopSong();
     render();
+    if(v.kind==='song')el('songs').value=String(songEntries().findIndex(([p])=>p===path));
   }
   function render() {
-    renderFileTree(el('fileTree'),[...fileActions().keys()].map(path=>({path})),{
-      selectedPath,expanded,onOpen:selectFile,
-    });
-    function describe(path,label) {
-      const node=el('fileTree').querySelector('button[data-file-path="'+path+'"]');
-      if (node) {node.textContent=label;node.title=path;}
+    tree();
+    const oldSong=el('songs').selectedOptions[0]?.dataset.path;
+    const songs=songEntries();
+    el('songs').replaceChildren(...songs.map(([path,v],i)=>{
+      const option=new Option(v.name,i);option.dataset.path=path;option.selected=path===oldSong;return option;
+    }));
+    el('referenceSong').hidden=!songs.length;el('songs').disabled=el('playSong').disabled=!songs.length;
+    el('codeFile').replaceChildren(...items('code').map(([path])=>new Option(path,path)));
+    el('codeFile').value=editor;
+    el('copyChannelFile').hidden=files.get(selected)?.kind!=='channel';
+    el('opmPick').hidden=el('opmGlobals').hidden=!opmBank;
+    updateButtons();
+  }
+  function updateButtons(){
+    const v=files.get(selected);
+    el('copyChannelFile').hidden=v?.kind!=='channel';
+    el('filePath').textContent=selected+(pending.has(selected)?' *':'');
+    el('fileSave').disabled=!v;
+    el('fileSaveAll').disabled=!pending.size;el('fileDiscard').disabled=!pending.has(selected);
+    el('fileUndo').disabled=!history.length;
+    for(const b of document.querySelectorAll('[data-tree-action]')){
+      b.disabled=selected==='/'&&['rename','delete','duplicate'].includes(b.dataset.treeAction);
     }
-    banks.forEach((bank,i)=>describe('/'+bankPath(i),bank.name));
-    songs.forEach((song,i)=>describe('/'+songPath(i,song.name),song.name));
-    el('copyChannelFile').hidden=!/^\/presets\/ch[1-8]\.fm\.json$/.test(selectedPath);
-    el('opmPick').hidden=el('opmGlobals').hidden=!selectedOpmBank;
   }
-  function useBank(index) {
-    active=index;
-    const {bytes,names,name}=banks[index];applyBank(bytes,names,name);
+  function persist(){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(writeDraft,180);
   }
-  function addBank(bytes,names,name) {
-    banks.push({bytes,names,name});selectFile('/'+bankPath(banks.length-1));
+  function writeDraft(){
+    clearTimeout(saveTimer);saveTimer=null;
+    store.write({...capture(),...soundState()}).catch(error=>report('Local save failed: '+error.message));
   }
-  function currentVoice(ch) {
-    return {...voicePatch(inspector.read().channels[ch]),keyMask:keyMasks[ch]};
+  function soundState() {
+    const state=inspector.read();
+    return {voices:state.channels.map((_,i)=>currentVoice(i)),lfo:state.lfo,noise:state.noise,
+      auto:el('fileAuto').checked,name:el('cassetteName').textContent};
   }
-  function applyVoice(ch,{keyMask=15,...patch}) {
-    inspector.invoke('setVoice',[ch,patch]); keyMasks[ch]=keyMask;
+  function restoreSound(state) {
+    state.voices.forEach((voice,ch)=>applyVoice(ch,voice));
+    inspector.invoke('setLFO',[state.lfo]);inspector.invoke('setNoise',[state.noise]);
+    el('fileAuto').checked=state.auto;el('cassetteName').textContent=state.name;
   }
-  el('copyChannelFile').onclick=()=>{
-    const source=Number(selectedPath.match(/ch([1-8])/)[1])-1, target=panel.getSelectedChannel();
-    applyVoice(target,currentVoice(source));report('Loaded voice on CH'+(target+1));
+  window.addEventListener('pagehide',()=>{if(saveTimer)writeDraft();});
+  function editFile(path,value) {
+    if(!el('fileAuto').checked&&!pending.has(path))pending.set(path,files.get(path));
+    files.set(path,value);updateButtons();persist();
+  }
+  function save(all=false){
+    if(all)pending.clear();else pending.delete(selected);
+    updateButtons();persist();report(all?'Saved all files.':'Saved '+selected);
+  }
+  el('fileSave').onclick=()=>save();
+  el('fileSaveAll').onclick=()=>save(true);
+  el('fileAuto').onchange=()=>{if(el('fileAuto').checked)save(true);else persist();};
+  el('fileDiscard').onclick=()=>{
+    const saved=pending.get(selected);if(!saved)return;
+    files.set(selected,saved);pending.delete(selected);
+    if(saved.kind==='channel')applyVoice(saved.ch,saved.voice);
+    open(selected);persist();
   };
-  function selectedOpm() {return selectedOpmBank?.voices[Number(el('opmVoice').value)];}
-  el('chooseOpm').onclick=()=>el('importOpm').click();
+  window.addEventListener('keydown',event=>{
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){
+      event.preventDefault();if(files.has(selected))save();
+    }
+  });
+  function capture(){
+    return {files:new Map(files),folders:[...folders],selected,editor,activeBank,presetChannel,editPath,pending:new Map(pending)};
+  }
+  function remember(extra={}){history.push({...capture(),...extra});if(history.length>20)history.shift();}
+  function nextPath(make,start=0) {
+    let i=start,path;
+    do {path='/'+make(i++);}while(occupied(path));
+    return path;
+  }
+  function occupied(path) {
+    return files.has(path)||folders.includes(path)||[...files.keys()].some(p=>p.startsWith(path+'/'));
+  }
+  function makeVoice(path) {
+    presetChannel=panel.getSelectedChannel();files.set(path,{kind:'voice',voice:currentVoice(presetChannel)});
+    selected=editPath=path;opmBank=null;
+  }
+  function create(action,path) {
+    remember();
+    if(action==='folder'){folders.push(path);selected=path;}
+    if(action==='code'){files.set(path,{kind:'code',text:''});open(path);}
+    if(action==='instrument')makeVoice(path);
+    render();writeDraft();report('Created '+path);
+  }
+  function change({from,to,copy=false,moves=[],folders:nextFolders}) {
+    remember();
+    for(const move of moves) {
+      let v=files.get(move.from);
+      if(copy && v.kind==='channel')v={kind:'voice',voice:currentVoice(v.ch)};
+      if(v.kind==='song'||v.kind==='bank')v={...v,name:base(move.to)};
+      files.set(move.to,v);
+      if(!copy&&pending.has(move.from))pending.set(move.to,pending.get(move.from));
+    }
+    const moved=path=>!copy&&inside(path,from)?(to?to+path.slice(from.length):null):path;
+    if(!copy)for(const path of [...files.keys()])if(inside(path,from)){files.delete(path);pending.delete(path);}
+    folders=nextFolders;
+    if(!to && !copy)stopSong();
+    const bank=moved(activeBank);
+    if(!bank)useBank(items('bank')[0]?.[0]??null);
+    else if(bank!==activeBank)useBank(bank);
+    const nextEditor=moved(editor)??items('code')[0]?.[0]??null;
+    if(nextEditor!==editor)script(nextEditor,false);
+    editPath=moved(editPath);selected=to??nextEditor??'/';opmBank=null;
+    if(copy&&['code','voice'].includes(files.get(to)?.kind))open(to);else render();
+    writeDraft();
+    report((copy?'Duplicated ':to?'Moved ':'Deleted ')+from);
+  }
+  function restoreKit() {
+    let path=items('bank').find(([,bank])=>bank.bytes===defaultBank.bytes||(bank.name===defaultBank.name&&bank.bytes.length===defaultBank.bytes.length&&bank.bytes.every((b,i)=>b===defaultBank.bytes[i])))?.[0];
+    if(!path){path=nextPath(bankPath);files.set(path,{kind:'bank',...defaultBank});}
+    useBank(path);
+  }
+  el('fileUndo').onclick=()=>{
+    const state=history.pop();if(!state)return;
+    if(state.voices){revision++;stop();restoreSound(state);}else stopSong();
+    files=state.files;folders=state.folders;selected=state.selected;presetChannel=state.presetChannel;editPath=state.editPath;pending=state.pending;opmBank=null;
+    useBank(state.activeBank);script(state.editor,false);render();persist();report('Undid file operation.');
+  };
+  el('copyChannelFile').onclick=()=>{applyVoice(panel.getSelectedChannel(),currentVoice(files.get(selected).ch));persist();};
   el('opmVoice').onchange=()=>{
-    const voice=selectedOpm();
-    if (voice) applyVoice(panel.getSelectedChannel(),{...voice.patch,keyMask:voice.mask});
+    const voice=opmBank?.voices[Number(el('opmVoice').value)];
+    if(voice)applyVoice(panel.getSelectedChannel(),{...voice.patch,keyMask:voice.mask});
   };
-  el('opmGlobals').onclick = () => {
-    const v=selectedOpm();
-    if (!v) return;
-    inspector.invoke('setLFO',[v.lfo]); inspector.invoke('setNoise',[v.noise]);
-    report('Applied shared LFO and CH8 noise from '+v.name);
+  el('opmGlobals').onclick=()=>{
+    const v=opmBank?.voices[Number(el('opmVoice').value)];
+    if(v){inspector.invoke('setLFO',[v.lfo]);inspector.invoke('setNoise',[v.noise]);}
   };
-  el('importOpm').onchange = async event => {
-    const revision=cassetteRevision;
-    const file=event.target.files[0]; event.target.value='';
-    if (!file) return;
-    try {
-      if (file.size>1024*1024) throw Error('OPM exceeds 1 MiB.');
-      const source=await file.text(), voices=parseOpm(source);
-      if (revision!==cassetteRevision) return;
-      opmBanks.push({source,voices});openFiles();
-      selectFile('/presets/import-'+(opmBanks.length-1)+'.opm');
-      report('Imported '+voices.length+' voice(s). '+voices[0].name+' loaded on CH'+(panel.getSelectedChannel()+1));
-    } catch (error) {report(error.message);}
+  el('playSong').onclick=()=>{const v=songEntries()[Number(el('songs').value)]?.[1];if(v)playSong(v);};
+  el('songs').onchange=stopSong;el('stopSong').onclick=stopSong;
+  el('codeFile').onchange=()=>open(el('codeFile').value);
+  el('editor').oninput=()=>{
+    editFile(editor,{kind:'code',text:el('editor').value});
+    persistCode();
   };
-  el('saveVoice').onclick = () => {
-    presets.push(currentVoice(panel.getSelectedChannel()));
-    presetChannel=panel.getSelectedChannel();selectedPath='/'+presetPath(presets.length-1);selectedOpmBank=null;expanded.set('/presets',true);render();
-    report('Saved /'+presetPath(presets.length-1));
-  };
-  function replaceCassette(project) {
-    cassetteRevision++;
-    stop();songs=project.songs ?? [];renderSongs();
-    project.voices.forEach((voice,ch) => applyVoice(ch,voice));
-    inspector.invoke('setLFO',[project.lfo]);
-    inspector.invoke('setNoise',[project.noise]);
-    banks=project.banks; presets=project.presets; opmBanks=project.opmBanks; active=project.active;
-    selectedPath="/index.js";selectedOpmBank=null;render(); useBank(active); setCode(project.code,project.examples);
-    el('rom').value='';
+  function persistCode() {
+    try {localStorage.setItem('cps1.scripts.v2',JSON.stringify(items('code').map(([path,v])=>[path,v.text])));} catch {}
   }
-  el('newCassette').onclick = () => {
-    if (!window.confirm('Start a new Cassette? This replaces the current voices, sample banks and code.')) return;
-    replaceCassette({voices:initialVoices,lfo:initial.lfo,noise:initial.noise,
-      banks:[defaultBank],active:0,presets:[],opmBanks:[],code:defaultCode});
-    el('cassetteName').textContent='tetorica-cps1.cassette.zip';report('New Cassette');
+  function addBank(bytes,names,name){
+    remember();const path=nextPath(bankPath);files.set(path,{kind:'bank',bytes,names,name});open(path);persist();
+  }
+  async function importFiles(incoming,parent,numbered=false) {
+    const epoch=revision, additions=new Map();
+    if(incoming.length===1&&/\.cassette\.zip$/i.test(incoming[0].name)){await importCassette(incoming[0]);return;}
+    for(const f of incoming) {
+      if(f.size>16*1024*1024)throw Error('File exceeds 16 MiB.');
+      let path=checkPath((parent==='/'?'':parent)+'/'+f.name),v;
+      if(/\.vg[zm]$/i.test(path)){
+        v={kind:'song',...await loadSong(f.name,new Uint8Array(await f.arrayBuffer()))};
+        if(numbered)path=nextPath(i=>songPath(i,f.name),songEntries().length);
+      }else if(/\.opm$/i.test(path)){
+        const source=await f.text();v={kind:'opm',source,voices:parseOpm(source)};
+        if(numbered)path=nextPath(i=>'presets/import-'+i+'.opm');
+      }else if(/\.m?js$/i.test(path))v={kind:'code',text:await f.text()};
+      else if(/\.fm\.json$/i.test(path))v={kind:'voice',voice:validateVoice(JSON.parse(await f.text()),new Ym2151VoiceInspector({dispatch(){}}))};
+      else if(/\.(bin|rom)$/i.test(path)&&f.size>=8&&f.size<=0x40000)v={kind:'bank',bytes:new Uint8Array(await f.arrayBuffer()),names:Array(128).fill('ROM sample'),name:f.name};
+      else throw Error('Unsupported file: '+f.name);
+      if(occupied(path)||additions.has(path))throw Error('Already exists: '+path);
+      additions.set(path,v);
+    }
+    if(epoch!==revision)return;
+    for(const path of additions.keys())if(occupied(path))throw Error('Already exists: '+path);
+    remember();for(const [path,v] of additions)files.set(path,v);
+    openFiles();open(additions.keys().next().value);persist();report('Imported '+incoming.map(f=>f.name).join(', '));
+  }
+  for(const [button,input] of [['chooseVgm','vgmFile'],['chooseOpm','importOpm']]) {
+    el(button).onclick=()=>el(input).click();
+    el(input).onchange=event=>{
+      const incoming=[...event.target.files];event.target.value='';
+      if(incoming.length)importFiles(incoming,'/',true).catch(error=>report(error.message));
+    };
+  }
+  const tree=installProjectTree({select:path=>{selected=path;
+    for(const row of el('fileTree').querySelectorAll('[data-file-path]'))row.setAttribute('aria-current',String(row.dataset.filePath===path));
+    updateButtons();},root:el('fileTree'),getFiles:()=>files,getFolders:()=>folders,selected:()=>selected,open,
+    label:v=>v?.name,create,change,importFiles,report});
+  function factory(code=defaults) {
+    const docs=new Map([...code].map(([path,text])=>[path,{kind:'code',text}]));
+    initialVoices.forEach((_,ch)=>docs.set('/'+voicePath(ch),{kind:'channel',ch}));
+    docs.set('/'+bankPath(0),{kind:'bank',...defaultBank});
+    return {docs,dirs:[],active:'/'+bankPath(0),voices:initialVoices,lfo:initial.lfo,noise:initial.noise};
+  }
+  function replace(project) {
+    remember(soundState());revision++;stop();files=project.docs;folders=project.dirs;editor=files.has(entry)?entry:items('code')[0]?.[0]??null;selected=editor??'/';editPath=opmBank=presetChannel=null;pending.clear();
+    project.voices.forEach((v,i)=>applyVoice(i,v));
+    inspector.invoke('setLFO',[project.lfo]);inspector.invoke('setNoise',[project.noise]);
+    useBank(project.active);script(editor,false);render();persistCode();persist();el('rom').value='';
+  }
+  el('newCassette').onclick=()=>{
+    if(confirm('Start a new Cassette? This replaces the current voices, sample banks and code.')){
+      replace(factory());el('cassetteName').textContent='tetorica-cps1.cassette.zip';writeDraft();report('New Cassette');
+    }
   };
-  el('exportCassette').onclick = async () => {
-    try {
-      const sources = await Promise.all(examplePaths.map(scriptSource));
-      const state = inspector.read();
-      const text = (path,data) => ({path,type:'text',data});
-      const files = [text('index.js',getCode()),...examplePaths.map((path,i)=>text(path.slice(1),sources[i]))];
-      state.channels.forEach((v,i) => files.push(text(voicePath(i),JSON.stringify(currentVoice(i)))));
-      presets.forEach((v,i) => files.push(text(presetPath(i),JSON.stringify(v))));
-      opmBanks.forEach(({source},i) => files.push(text('presets/import-'+i+'.opm',source)));
-      banks.forEach(({bytes},i) => files.push({path:bankPath(i),type:'binary',data:bytes}));
-      songs.forEach(({name,raw},i)=>files.push({path:songPath(i,name),type:'binary',data:raw}));
-      const cps1 = {version:1,songs:songs.map(song=>song.name),lfo:state.lfo,noise:state.noise,active,opmBanks:opmBanks.length,presets:presets.length,
-        banks:banks.map(({name,names}) => ({name,names}))};
-      const zip = createPlaygroundCassetteZip(files,{metadata:{cps1}});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([zip],{type:'application/zip'}));
-      a.download = 'tetorica-cps1.cassette.zip'; a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href),1000);
-      report('Exported Cassette');
-    } catch (error) {report(error.message);}
-  };
-  el('importCassette').onchange = async event => {
-    const revision=cassetteRevision;
-    const file = event.target.files[0]; event.target.value = '';
-    if (!file) return;
-    try {
-      if (file.size > 16*1024*1024) throw Error('Cassette exceeds 16 MiB.');
-      const {files,metadata} = await loadPlaygroundCassette(await file.arrayBuffer());
-      const m = metadata.cps1;
-      if (m?.version!==1 || !Array.isArray(m.banks) || !m.banks.length ||
-          !Number.isInteger(m.active) || !m.banks[m.active] || !Number.isInteger(m.presets) ||
-          m.presets<0 || m.presets>files.size) throw Error('Invalid CPS1 Cassette.');
-      const read = path => {
-        if (!files.has(path)) throw Error('Missing '+path);
-        return files.get(path);
-      };
-      const nextCode = decode(read('index.js'));
-      const examples = new Map();
-      for (const path of examplePaths) {
-        if (files.has(path.slice(1))) examples.set(path,decode(read(path.slice(1))));
+  function serialize(){
+    const state=inspector.read(),records=[],entries=[];
+    for(const [path,v] of files) {
+      const record={path,kind:v.kind};let data;
+      switch(v.kind) {
+        case 'channel':record.ch=v.ch;data=JSON.stringify(currentVoice(v.ch));break;
+        case 'voice':data=JSON.stringify(v.voice);break;
+        case 'bank':record.names=v.names;record.name=v.name;data=v.bytes;break;
+        case 'song':record.name=v.name;data=v.raw;break;
+        case 'opm':data=v.source;break;
+        case 'code':data=v.text;break;
       }
-      const nextBanks = m.banks.map(({name,names},i) => {
-        const bytes = read(bankPath(i));
-        if (typeof name!=='string' || !Array.isArray(names) || !names.length || names.length>128 ||
-            !names.every(v=>typeof v==='string') || bytes.length<8 || bytes.length>0x40000) throw Error('Invalid sample bank.');
-        return {name,names,bytes};
-      });
-      const validator = new Ym2151VoiceInspector({dispatch(){}});
-      const loadVoice = path => {
-        const patch = JSON.parse(decode(read(path)));
-        if (!Array.isArray(patch?.operators) || patch.operators.length!==4) throw Error('Invalid FM voice in '+path);
-        const {keyMask=15,...voice} = patch;
-        if (!Number.isInteger(keyMask) || keyMask<0 || keyMask>15) throw Error('Invalid operator mask.');
-        validator.invoke('setVoice',[0,voice]); return patch;
-      };
-      const voices = Array.from({length:8},(_,i) => loadVoice(voicePath(i)));
-      const nextPresets = Array.from({length:m.presets},(_,i) => loadVoice(presetPath(i)));
-      validator.invoke('setLFO',[m.lfo]); validator.invoke('setNoise',[m.noise]);
-      const count=m.opmBanks ?? 0;
-      if (!Number.isInteger(count) || count<0 || count>files.size) throw Error('Invalid OPM bank count.');
-      const nextOpmBanks=Array.from({length:count},(_,i) => {
-        const source=decode(read('presets/import-'+i+'.opm'));
-        return {source,voices:parseOpm(source)};
-      });
-      const songNames=m.songs ?? [];
-      if (!Array.isArray(songNames) || songNames.length>files.size) throw Error('Invalid VGM list.');
-      const nextSongs=[];
-      for (const [i,name] of songNames.entries()) {
-        if (typeof name!=='string') throw Error('Invalid VGM name.');
-        nextSongs.push(await loadSong(name,read(songPath(i,name))));
-      }
-      if (revision!==cassetteRevision) return;
-      if (!window.confirm('Replace the current voices, sample banks and code with this Cassette?')) return;
-      replaceCassette({voices,songs:nextSongs,lfo:m.lfo,noise:m.noise,banks:nextBanks,active:m.active,
-        presets:nextPresets,opmBanks:nextOpmBanks,code:nextCode,examples});
-      el('cassetteName').textContent=file.name;report('Imported '+file.name);
-    } catch (error) {report(error.message);}
+      entries.push({path,type:typeof data==='string'?'text':'binary',data});records.push(record);
+    }
+    const cps1={version:2,records,active:activeBank,voices:state.channels.map((_,i)=>currentVoice(i)),lfo:state.lfo,noise:state.noise};
+    return createPlaygroundCassetteZip(entries,{directories:folders,metadata:{cps1}});
+  }
+  el('exportCassette').onclick=()=>{
+    try{
+      const url=URL.createObjectURL(new Blob([serialize()],{type:'application/zip'}));
+      const a=document.createElement('a');a.href=url;a.download='tetorica-cps1.cassette.zip';a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);report('Exported Cassette');
+    }catch(error){report(error.message);}
   };
-  render();
-  return {addBank,recordEdit(ch) {
-    if (ch!==presetChannel) return;
-    const index=presets.findIndex((_,i)=>selectedPath==='/'+presetPath(i));
-    if (index>=0) presets[index]=currentVoice(ch);
-  },copySongVoice(ch,voice,mask) {
-    applyVoice(ch,{...voicePatch(voice),keyMask:mask});
-  },restoreKit() {
-    let i=banks.findIndex(bank=>bank===defaultBank);
-    if (i<0) {banks.push(defaultBank);i=banks.length-1;render();}
-    useBank(i);
-  }};
+  async function parseProject(archive) {
+    const m=archive.metadata.cps1,validator=new Ym2151VoiceInspector({dispatch(){}});
+    const docs=new Map(),read=path=>{
+      if(!archive.files.has(path))throw Error('Missing '+path);
+      return archive.files.get(path);
+    };
+    let active,voices;
+    if(m?.version===2){
+      if(!Array.isArray(m.records)||m.records.length>archive.files.size||m.voices?.length!==8)throw Error('Invalid project records.');
+      voices=m.voices.map(v=>validateVoice(v,validator));active=m.active;
+      for(const r of m.records) {
+        const path=checkPath(r.path),bytes=read(path.slice(1));
+        if(docs.has(path))throw Error('Duplicate file: '+path);
+        let value;
+        switch(r.kind) {
+          case 'channel':
+            if(!Number.isInteger(r.ch)||r.ch<0||r.ch>7)throw Error('Invalid channel.');
+            value={ch:r.ch};break;
+          case 'voice':value={voice:validateVoice(JSON.parse(decode(bytes)),validator)};break;
+          case 'code':value={text:decode(bytes)};break;
+          case 'opm':{const source=decode(bytes);value={source,voices:parseOpm(source)};break;}
+          case 'song':value=await loadSong(r.name,bytes);break;
+          case 'bank':value={bytes,name:r.name,names:r.names};break;
+          default:throw Error('Unknown CPS1 file type.');
+        }
+        docs.set(path,{kind:r.kind,...value});
+      }
+    }else if(m?.version===1){
+      const numbers=(n,fn)=>{
+        if(!Number.isInteger(n)||n<0||n>archive.files.size)throw Error('Invalid cassette file count.');
+        return Array.from({length:n},(_,i)=>fn(i));
+      };
+      voices=numbers(8,i=>validateVoice(JSON.parse(decode(read(voicePath(i)))),validator));
+      for(const [path,text] of defaults)docs.set(path,{kind:'code',text:archive.files.has(path.slice(1))?decode(read(path.slice(1))):text});
+      voices.forEach((_,ch)=>docs.set('/'+voicePath(ch),{kind:'channel',ch}));
+      numbers(m.presets,i=>docs.set('/'+presetPath(i),{kind:'voice',voice:validateVoice(JSON.parse(decode(read(presetPath(i)))),validator)}));
+      numbers(m.opmBanks??0,i=>{
+        const path='presets/import-'+i+'.opm',source=decode(read(path));docs.set('/'+path,{kind:'opm',source,voices:parseOpm(source)});
+      });
+      active='/'+bankPath(m.active);
+      m.banks.forEach(({name,names},i)=>docs.set('/'+bankPath(i),{kind:'bank',name,names,bytes:read(bankPath(i))}));
+      for(const [i,name] of (m.songs??[]).entries()){
+        const path=songPath(i,name);docs.set('/'+path,{kind:'song',...await loadSong(name,read(path))});
+      }
+    }else throw Error('Unsupported CPS1 cassette.');
+    for(const v of docs.values()) {
+      if(v.kind==='bank'&&(typeof v.name!=='string'||!Array.isArray(v.names)||v.names.length<1||v.names.length>128||
+        !v.names.every(n=>typeof n==='string')||v.bytes.length<8||v.bytes.length>0x40000))throw Error('Invalid sample bank.');
+      if(v.kind==='song'&&typeof v.name!=='string')throw Error('Invalid song name.');
+    }
+    if(active!==null&&docs.get(active)?.kind!=='bank')throw Error('Missing active ROM.');
+    const dirs=archive.directories.filter(p=>p!=='/').map(checkPath);
+    createVirtualFileSystem().replace(Array.from(docs.keys(),path=>({path,data:''})),dirs);
+    validator.invoke('setLFO',[m.lfo]);validator.invoke('setNoise',[m.noise]);
+    return {docs,dirs,active,voices,lfo:m.lfo,noise:m.noise};
+  }
+  async function importCassette(file){
+    const epoch=revision;
+    if(file.size>16*1024*1024)throw Error('Cassette exceeds 16 MiB.');
+    const project=await parseProject(await loadPlaygroundCassette(await file.arrayBuffer()));
+    if(epoch!==revision||!confirm('Replace the current voices, sample banks and code with this Cassette?'))return;
+    replace(project);el('cassetteName').textContent=file.name;writeDraft();report('Imported '+file.name);
+  }
+  el('importCassette').onchange=event=>{
+    const file=event.target.files[0];event.target.value='';
+    if(file)importCassette(file).catch(error=>report(error.message));
+  };
+  const start=factory(initialCode);
+  files=start.docs;folders=start.dirs;activeBank=start.active;script(entry,false);render();
+  if(draft?.files instanceof Map){
+    files=draft.files;folders=draft.folders;selected=draft.selected;editPath=draft.editPath;presetChannel=draft.presetChannel;
+    pending=draft.pending??new Map();restoreSound(draft);
+    useBank(draft.activeBank);script(draft.editor,false);el('cassetteName').textContent=draft.name;render();
+  }
+  return {addBank,restoreKit(){restoreKit();render();persist();},recordEdit(ch){
+    const target=files.get(editPath);
+    if(target?.kind==='channel'&&target.ch===ch)editFile(editPath,{...target,voice:currentVoice(ch)});
+    else if(ch===presetChannel&&target?.kind==='voice')editFile(editPath,{kind:'voice',voice:currentVoice(ch)});
+    else persist();
+  },copySongVoice(ch,voice,mask){applyVoice(ch,{...voicePatch(voice),keyMask:mask});}};
 }

@@ -10,7 +10,7 @@
 <h2>New</h2><button id="newCassette" data-close-synth-menu>Cassette · ZIP</button>
 <h2>Import</h2><button id="chooseOpm" data-close-synth-menu>OPM voice…</button><input id="importOpm" type="file" accept=".opm" hidden><button id="chooseVgm" data-close-synth-menu>VGM / VGZ…</button><button id="chooseCassette" data-close-synth-menu>Cassette…</button>
 <h2>Export</h2><button id="exportCassette" data-close-synth-menu>Cassette · ZIP</button>
-</div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="workspace-actions"><button id="filesToggle" aria-expanded="false" aria-controls="files">Files</button><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></div></header>
+</div></details><input id="vgmFile" type="file" accept=".vgm,.vgz" hidden><input type="file" id="importCassette" aria-label="Import Cassette" accept=".zip" hidden><img src="../tetorica_cps1_synth.webp" alt="" width="80" height="80"><div><a href="../index.html">← Tetorica</a><h1>Tetorica CPS1 Synth</h1></div><div class="workspace-actions"><button id="filesToggle" disabled aria-expanded="false" aria-controls="files">Files</button><div class="mode-switch" role="group" aria-label="Workspace mode"><button id="synthMode" aria-pressed="true">Synth</button><button id="codeMode" aria-pressed="false">Code</button></div></div></header>
 <section id="referenceSong" aria-label="VGM reference playback" hidden>
 <div class="bar"><label>VGM <select id="songs" disabled></select></label><button id="playSong" disabled>Play</button><button id="pauseSong" disabled>Pause</button><button id="stopSong" disabled>Stop</button><output id="songTime"></output></div>
 <div id="songVoice" hidden><div id="songChannels" class="bar" role="group" aria-label="Paused YM2151 channels"></div><output id="songPatch"></output>
@@ -19,14 +19,20 @@
 <div id="songOki" hidden><h3>MSM6295</h3><div id="songOkiVoices" class="bar" aria-label="Paused MSM6295 voices"></div>
 <output id="songSampleInfo"></output><figure class="sample-preview"><canvas id="songSampleWave" width="768" height="96" aria-label="Paused sample waveform"></canvas></figure>
 <button id="previewSongSample" disabled>Preview</button></div></section>
-<section class="output"><div class="bar"><h2>Output</h2><button id="scopeMode">Waveform</button><label>Master <input id="master" type="range" min="0" max="380" value="85"><output id="volume">85%</output></label><button id="power">Start audio</button></div>
-<canvas id="scope" width="900" height="96" aria-label="Output signal"></canvas><output id="status" role="status">Ready</output></section>
-<div id="workspace"><aside id="files" hidden><div class="files-heading"><h2>Files</h2><button id="saveVoice" title="Save selected CH as preset">＋ Preset</button></div><p id="cassetteName">tetorica-cps1.cassette.zip</p>
+<section class="output"><div class="bar"><h2>Output</h2><div class="scope-modes" role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button><button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div><label>Master <input id="master" type="range" min="0" max="380" value="85"><output id="volume">85%</output></label><button id="power">Start audio</button></div>
+<canvas id="scope" width="900" height="96" aria-label="Output waveform"></canvas><output id="status" role="status">Ready</output></section>
+<div id="workspace"><aside id="files" hidden><div class="files-heading"><h2>Files</h2><button id="saveVoice" data-tree-action="instrument" title="Create an instrument from the selected CH">＋ Instrument</button><button data-tree-action="code">＋ JS</button></div><p id="cassetteName">tetorica-cps1.cassette.zip</p>
 
-<div id="fileTree" aria-label="Cassette files"></div><button id="copyChannelFile" hidden>Load voice on selected CH</button>
+<div class="file-tools"><label><input id="fileAuto" type="checkbox" checked>Auto apply</label><button id="fileSave">Save</button><button id="fileSaveAll">Save all</button><button id="fileDiscard">Discard</button></div>
+<output id="filePath"></output><div id="fileTree" aria-label="Cassette files"></div><button id="copyChannelFile" hidden>Load voice on selected CH</button>
 <div class="bar"><label id="opmPick" hidden>OPM voice <select id="opmVoice"></select></label><button id="opmGlobals" hidden>Apply shared LFO / CH8 noise</button></div>
 
+<div class="file-tools"><button data-tree-action="duplicate">Duplicate</button><button data-tree-action="rename">Rename…</button><button data-tree-action="delete">Delete</button><button data-tree-action="folder">New folder…</button><button id="fileUndo" disabled>Undo files</button></div>
 <output id="fileStatus" role="status"></output></aside>
+<dialog id="fileNameDialog" aria-labelledby="fileNameTitle"><form method="dialog">
+<h3 id="fileNameTitle"></h3><label>Name <input id="fileName" required autocomplete="off"></label>
+<div class="file-tools"><button type="submit" value="save">Save</button><button type="button" id="fileNameCancel">Cancel</button></div>
+</form></dialog>
 <div id="workbench">
 <nav id="sourceTabs" aria-label="Sound chips"><button data-tab="fm">YM2151</button><button data-tab="pcm">MSM6295</button><button data-tab="mixer">Mixer</button></nav>
 <section id="mixer" aria-label="Output mixer" hidden></section>
