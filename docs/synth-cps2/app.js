@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {createParamControl} from '../synth/synth_controls.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
@@ -7,6 +8,7 @@ const $ = id => document.getElementById(id);
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
 let selected = 0, context, ready, port, generation = 0;
 let revision = 0, demoPlaying = false, shown, cursor = null;
+let codeWorker = null;
 const draw = createWaveEditor(edit);
 const echo = {delay:6,feedback:0};
 const echoControls = {};
@@ -65,7 +67,7 @@ function edit(key,value) {
 function inspect({data}) {
   if (data.revision !== revision || data.channel !== selected) return;
   const v = channels[selected];
-  if (demoPlaying && data.end > data.start && data.end <= data.start+256 && data.start % 256 === 0) {
+  if ((demoPlaying || codeWorker) && [0,256].includes(data.start) && data.loop>=0 && data.loop<=data.end-data.start && data.end > data.start && data.end <= data.start+256) {
     shown = {sample:data.start/256,rate:data.rate,end:data.end,loop:data.loop};
   } else shown = v;
   if (demoPlaying && data.finished && !data.active) {
@@ -74,13 +76,13 @@ function inspect({data}) {
     shown = v;
   }
   $('wave').selectedIndex=shown.sample;
-  if (demoPlaying) showEcho(data.send,data.delay,data.feedback);
+  if (demoPlaying || codeWorker) showEcho(data.send,data.delay,data.feedback);
   else showEcho(v.send,echo.delay,echo.feedback);
   cursor = data.active ? data.address : null;
   draw(shown,cursor);
 }
 setInterval(()=>{
-  if (port && !document.hidden && (demoPlaying || channels[selected].held || cursor !== null))
+  if (port && !document.hidden && (demoPlaying || codeWorker || channels[selected].held || cursor !== null))
     port.postMessage({type:'inspect',channel:selected,revision});
 },50);
 async function audio() {
@@ -164,7 +166,7 @@ pads.forEach((pad,i)=>{
   $('adpcm-pads').append(group);
 });
 window.addEventListener('keydown',e=>{
-  if(e.ctrlKey||e.altKey||e.metaKey||e.target.matches('input,select'))return;
+  if(e.ctrlKey||e.altKey||e.metaKey||e.target.closest('input,select,textarea,.monaco-editor,[contenteditable=true]'))return;
   if (/^[123]$/.test(e.key)) {
     e.preventDefault();
     if (!e.repeat) triggerPad(Number(e.key)-1);
@@ -174,7 +176,7 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();if(!e.repeat)press(e.code,notes[i]);
 });
 window.addEventListener('keyup',e=>release(e.code));
-function stop(){demoPlaying=false;refresh();generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');restoreEcho();}
+function stop(){stopWorker();demoPlaying=false;refresh();generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');restoreEcho();}
 window.addEventListener('blur',stop);
 $('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation){demoPlaying=true;port.postMessage($('score').value);}});};
 $('stop').onclick=stop;
@@ -184,3 +186,56 @@ $('save').onclick=()=>{
   const link=document.createElement('a');link.href=url;link.download=track.filename;link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
+
+const source = $('source');
+const editor = setupSynthMonacoEditor({
+  textarea:source,editorHost:$('code-host'),editorNote:$('editor-note'),chip:'cps2',
+  declarationsOnly:true,transformDeclarations:()=>`
+declare function liveLoop(name:string, play:()=>Promise<void>):void;
+declare function beat(beats?:number):Promise<void>;
+declare function setBpm(bpm:number):void;
+declare function sleep(seconds:number):Promise<void>;
+declare function stopLoop(name:string):void;
+declare const qsound:{
+  writeRegister(register:number,value:number):void;
+  noteOn(channel:number,midi:number,sample?:number,pan?:number,volume?:number):void;
+  noteOff(channel:number):void;
+  trigger(voice:number,sample?:number,pan?:number,volume?:number):void;
+};
+declare function useSoundChip(name:'qsound'):Promise<typeof qsound>;`,
+  getPath:()=>'/index.js',listFiles:()=>[{path:'/index.js',type:'text',data:source.value}],
+  onEdit:()=>{},visible:()=>!$('code-panel').hidden,run:apply=>$(apply?'apply-code':'run-code').click(),
+});
+function selectPerformance(code) {
+  $('code-panel').hidden=!code;
+  $('keys').hidden=code;
+  $('keyboard-tab').setAttribute('aria-pressed',String(!code));
+  $('code-tab').setAttribute('aria-pressed',String(code));
+  if(code)editor.load().then(()=>editor.layout());
+}
+$('keyboard-tab').onclick=()=>selectPerformance(false);
+$('code-tab').onclick=()=>selectPerformance(true);
+function stopWorker() {
+  codeWorker?.terminate();
+  codeWorker=null;
+  $('apply-code').disabled=$('stop-code').disabled=true;
+  $('code-status').textContent='';
+}
+$('run-code').onclick=()=>run(async()=>{
+  stop();
+  const token=generation;
+  await audio();
+  if(token!==generation)return;
+  const worker=new Worker('./code-worker.js',{type:'module'});
+  codeWorker=worker;
+  $('stop-code').disabled=false;
+  worker.onmessage=({data})=>{
+    if(worker!==codeWorker)return;
+    if(data.writes)port.postMessage(data.writes);
+    if(data.status){$('code-status').textContent=data.status;$('apply-code').disabled=false;}
+  };
+  worker.onerror=e=>{if(worker===codeWorker){stop();$('code-status').textContent=e.message;}};
+  worker.postMessage({source:source.value});
+});
+$('apply-code').onclick=()=>codeWorker?.postMessage({source:source.value,apply:true});
+$('stop-code').onclick=stop;

@@ -20,6 +20,11 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 .adpcm-voice{display:grid;gap:.3rem;min-width:0;margin:0;border:1px solid #7a9897;border-radius:6px}
 .adpcm-pad{background:#172f45;color:white;touch-action:manipulation}
 .adpcm-pad:active{background:#176481}
+#keys[hidden]{display:none}
+#code-host{height:clamp(18rem,45vh,40rem)}
+#code-host:not([data-ready="true"]){display:none}
+#source{width:100%;min-height:18rem;font:1rem/1.5 monospace}
+#code-panel button{margin:.4rem .2rem .4rem 0}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <section><h2>PCM channel</h2><div id="channels"></div>
@@ -30,7 +35,26 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
 <p id="pcm-caption"></p>
 <div class="echo-controls" id="echo-controls" role="group" aria-label="PCM echo"></div></section>
-<section><h2>Keyboard</h2><div id="keys"></div></section>
+<section><nav aria-label="Performance"><button id="keyboard-tab" aria-controls="keys" aria-pressed="true">Keyboard</button>
+<button id="code-tab" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
+<div id="keys"></div>
+<div id="code-panel" hidden>
+<button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
+<span id="code-status" role="status"></span>
+<div id="code-host"></div><textarea id="source" aria-label="JavaScript source" spellcheck="false">// Select CH2 to play over the CH1 bass. Trigger ADPCM with 1, 2, 3.
+// Edit the notes or echo send and press Apply.
+setBpm(112);
+qsound.writeRegister(0xba, 8192);  // CH1 echo send
+qsound.writeRegister(0xd9, 0x554 + 720);
+qsound.writeRegister(0x93, 10000);
+liveLoop('bass', async () => {
+  for (const note of [36, 43, 39, 46]) {
+    qsound.noteOn(1, note);
+    await beat(0.38);
+    qsound.noteOff(1);
+    await beat(0.12);
+  }
+});</textarea><p id="editor-note" hidden></p></div></section>
 <section aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
 <div id="adpcm-pads"></div></section>

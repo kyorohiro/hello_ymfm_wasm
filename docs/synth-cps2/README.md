@@ -36,7 +36,7 @@ The exported demo plays in VGM Analyzer and renders in tetorica-vgm with the sam
 
 - Compare generated PCM with an independent renderer, including bank boundaries.
 - Implement spatial pan/filter tables, stereo output delays, DSP initialization and host timing. Dry panning is an approximation.
-- Bring the Files, Code / liveLoop and cassette workspace across from CPS1 Synth.
+- Bring the Files and cassette workspace across from CPS1 Synth.
 
 The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame-qsound/LICENSE).
 
@@ -49,3 +49,9 @@ Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ti
 ## ADPCM pads
 
 Keys 1, 2 and 3 and the matching on-screen pads trigger ADPCM voices 1–3. Each pad can use any of the three generated pulse samples. Trigger several pads together, or retrigger one while the other voices finish. Key release leaves the one-shot running to its end address. Sample and volume take effect on the next trigger. Pan also works during playback. The A–K note keys continue to play the selected PCM channel.
+
+## Live coding
+
+Open Code and press Run to play the CH1 bass loop. Select CH2 and play A–K over the bass, or use 1–3 for ADPCM. Click outside the editor to use the musical keys. Select CH1 to watch its PCM and echo settings. Edit the notes or the echo send and press Apply to update the named loop. Stop resets playback on the shared chip. Ctrl/Cmd+Enter runs the source; Ctrl/Cmd+Shift+Enter applies it.
+
+The editor uses the shared Synth Monaco integration with QSound declarations and a textarea fallback. Code runs in a dedicated worker using the Playground loop runtime. PCM channels are numbered 1–16, ADPCM voices 1–3, and sample indices start at zero. Use `qsound.noteOn(channel, midi, sample?, pan?, volume?)`, `qsound.noteOff(channel)`, `qsound.trigger(voice, sample?, pan?, volume?)`, or `qsound.writeRegister(register, word)` for raw 8-bit addresses and unsigned 16-bit words. The first example is editable for the current session.
