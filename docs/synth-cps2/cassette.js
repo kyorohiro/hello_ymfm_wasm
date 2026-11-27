@@ -24,7 +24,11 @@ export function validateProject(project) {
       send:number(v.send,-32768,32767),rate:number(v.rate,0,65535),note:number(v.note,0,127),
       referenceNote:number(v.referenceNote,0,127),referenceRate:v.referenceRate===null?null:number(v.referenceRate,0,65535)};
   });
-  const pads=project.pads.map(p=>({sample:number(p.sample,0,2),pan:number(p.pan,0,32),volume:number(p.volume,0,32767)}));
+  const pads=project.pads.map(p=>{
+    const sample=number(p.sample,0,2),start=(sample+1)*512;
+    return {sample,start:number(p.start??start,0,65535),end:number(p.end??start+512,0,65535),
+      bank:number(p.bank??0,0,32767),pan:number(p.pan,0,32),volume:number(p.volume,-32768,32767)};
+  });
   const echo={delay:number(project.echo.delay,0,1024),feedback:number(project.echo.feedback,-32768,32767)};
   const files=createVirtualFileSystem();
   files.replace(project.files.map(({path,data})=>{

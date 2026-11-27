@@ -50,7 +50,9 @@ Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ti
 
 ## ADPCM pads
 
-Keys 1, 2 and 3 and the matching on-screen pads trigger ADPCM voices 1–3. Each pad can use any of the three generated pulse samples. Trigger several pads together, or retrigger one while the other voices finish. Key release leaves the one-shot running to its end address. Sample and volume take effect on the next trigger. Pan also works during playback. The A–K note keys continue to play the selected PCM channel.
+Select Voice 1–3 to edit its start byte, exclusive end byte, ROM bank, signed volume and pan register. Trigger plays the selected voice. Keys 1, 2 and 3 trigger their respective voices independently. Key release leaves a one-shot running. The Sample control loads a generated pulse's bank and address range. Custom synth pad settings are saved with the cassette.
+
+During demos, Code and imported VGMs the controls follow the selected chip voice. Pause a VGM to inspect it. Stop silences playback and retains all three ADPCM configurations and their sample ROM for audition. For example, play ADPCM trio, select Voice 2, press Stop, then Trigger. Edits to this captured configuration last for the audition session. Use synth pads restores your manual pad settings and the generated ROM.
 
 ## Live coding
 

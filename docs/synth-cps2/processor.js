@@ -35,6 +35,18 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.chip.writeRegister(0xd9,this.chip.echoBase + data.ticks);
         return;
       }
+      if (data === 'stop-audition') {
+        // Silence every voice and the echo tail, keeping the ADPCM source for retrigger.
+        const previous=this.chip;
+        this.chip=new QSoundPcm(demoRom(),sampleRate);
+        this.chip.adpcmRom=previous.adpcmRom ?? previous.rom;
+        for(let i=0;i<3;i++){
+          const {start,end,bank,volume,pan}=previous.adpcm[i];
+          Object.assign(this.chip.adpcm[i],{start,end,bank,volume,pan});
+        }
+        this.applyMutes();this.song=null;this.events=[];this.frame=this.index=0;this.starts.fill(0);
+        return;
+      }
       if (data?.type === 'inspect') {
         const v = this.chip.voices[data.channel];
         let view;
@@ -46,7 +58,9 @@ class Cps2Preview extends AudioWorkletProcessor {
           view={wave,start,span,seconds:this.song.frames/sampleRate,bank:v.bank,ended:this.song.parser.ended,pan:v.pan,volume:v.volume};
         }
         const words=data.registers ? pcmRegisterAddresses(data.channel).map(r=>this.chip.lastWrites[r]) : undefined;
-        this.port.postMessage({...data,view,words,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
+        const pad=data.padVoice==null ? null : this.chip.adpcm[data.padVoice];
+        const padState=pad && {start:pad.start,end:pad.end,bank:pad.bank,volume:pad.volume,panWord:pad.pan};
+        this.port.postMessage({...data,view,words,padState,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
           send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,
           active:v.volume !== 0,finished:this.index === this.events.length,start:this.starts[data.channel]});
         return;

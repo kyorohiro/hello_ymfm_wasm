@@ -12,7 +12,7 @@ import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {createParamControl} from '../synth/synth_controls.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
-import {demoVgm,noteWrites,demoTracks,pcmRate,adpcmTriggerWrites} from './demo.js';
+import {demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 const $ = id => document.getElementById(id);
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
 let selected = 0, context, ready, port, masterGain, generation = 0;
@@ -40,6 +40,7 @@ function showPosition(tick) {
   if($('song-position').value!==text)$('song-position').value=text;
 }
 function transport() {
+  syncPadView();
   $('song-seek').disabled=!preparedSong;
   $('song-seek').max=preparedSong?.ticks??1;
   if(songState==='stopped' && !seeking)showPosition(0);
@@ -155,7 +156,7 @@ function edit(key,value) {
 const registerPanel=$('register-panel');
 const drawRegisters=createRegisterTable($('register-rows'),$('register-position'));
 function inspectChannel() {
-  port?.postMessage({type:'inspect',channel:selected,revision,registers:!registerPanel.hidden});
+  port?.postMessage({type:'inspect',channel:selected,revision,padVoice:followPads?padVoice:null,registers:!registerPanel.hidden});
 }
 function selectPcmTab(registers) {
   registerPanel.hidden=!registers;
@@ -170,6 +171,7 @@ $('register-tab').onclick=()=>selectPcmTab(true);
 $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
   if (data.revision !== revision || data.channel !== selected) return;
+  if(followPads && !seeking && data.padVoice===padVoice && data.padState)showPad(data.padState);
   if (!registerPanel.hidden && data.words && !seeking)drawRegisters(selected,data.words,data.address);
   if (data.view && songState!=='stopped') {
     if(seeking)return;
@@ -193,7 +195,7 @@ function inspect({data}) {
     shown = {sample:data.start/256,rate:data.rate,end:data.end,loop:data.loop};
   } else shown = v;
   if (demoPlaying && data.finished && !data.active) {
-    demoPlaying = false;
+    demoPlaying = false;syncPadView();
     restoreEcho();
     shown = v;
   }
@@ -262,41 +264,71 @@ const keys='asdfghjk',notes=[60,62,64,65,67,69,71,72];
   button.onpointerdown=e=>{button.setPointerCapture(e.pointerId);press('p'+e.pointerId,notes[i]);};
   button.onlostpointercapture=e=>release('p'+e.pointerId);$('keys').append(button);
 });
-const pads = Array.from({length:3},(_,i)=>({sample:i,pan:16*i,volume:0x7fff}));
-function triggerPad(i) {
-  const token = generation;
-  const {sample,pan,volume} = pads[i];
-  run(async()=>{
-    await audio();
-    if (token === generation) port.postMessage(adpcmTriggerWrites(i,sample,pan,volume));
-  });
+const pads=Array.from({length:3},(_,i)=>({sample:i,start:(i+1)*512,end:(i+2)*512,bank:0,pan:16*i,volume:32767}));
+let padVoice=0, followPads=false;
+const padControls={};
+const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
+const padFields=['start','end','bank','volume'];
+function showPad(state){
+  const live=state?.panWord!==undefined;
+  const pad=state??pads[padVoice];
+  for(const key of padFields)padControls[key].updateVisual(pad[key]);
+  padControls.panWord.updateVisual(live?pad.panWord:0x110+pad.pan);
+  padControls.sample.updateVisual(pads[padVoice].sample);
 }
-const padControls = [];
-pads.forEach((pad,i)=>{
-  const controls={};
-  padControls.push(controls);
-  const group = document.createElement('fieldset');
-  group.className = 'adpcm-voice';
-  const legend = document.createElement('legend');
-  legend.textContent = 'ADPCM '+(i+1);
-  const button = document.createElement('button');
-  button.className = 'adpcm-pad';
-  button.textContent = 'Trigger · '+(i+1);
-  button.onpointerdown = e=>{if(e.button===0)triggerPad(i);};
-  button.onclick = e=>{if(e.detail===0)triggerPad(i);};
-  group.append(legend,button);
-  for (const [key,label,max] of [['sample','Sample',2],['pan','Pan',32],['volume','Volume',32767]]) {
-    const control = createParamControl({label,min:0,max,step:1,value:pad[key],
-      formatValue:key==='sample' ? n=>'Pulse '+(n+1) : String,
-      onChange(value) {
-        pad[key]=value;
-        if (key==='pan') port?.postMessage([[0x90+i,0x110+value]]);
-      }});
-    controls[key]=control;
-    group.append(control.element);
-  }
-  $('adpcm-pads').append(group);
-});
+function syncPadView(){
+  $('pad-restore').hidden=!followPads || songState!=='stopped' || Boolean(codeWorker) || demoPlaying;
+  padControls.panWord.updateRange(followPads?0:0x110,followPads?65535:0x130);
+  padControls.sample.element.style.display=followPads?'none':'';
+  $('pad-trigger').disabled=songState==='paused' || seeking;
+  $('pad-status').textContent=songState==='paused'?'Paused · Stop to audition this ROM.':'';
+  if(!followPads)showPad();
+}
+function padWrites(i){
+  const pad=pads[i],base=0xca+4*i;
+  return [[base,pad.start],[base+1,pad.end],[base+2,pad.bank],[base+3,pad.volume&65535],[0x90+i,0x110+pad.pan]];
+}
+function triggerPad(i){
+  if(songState==='paused' || seeking)return;
+  const token=generation;
+  const writes=followPads ? [] : padWrites(i);
+  writes.push([0xd6+i,1]);
+  run(async()=>{await audio();if(token===generation)port.postMessage(writes);});
+}
+for(let i=0;i<3;i++){
+  const b=document.createElement('button');
+  b.textContent='Voice '+(i+1);
+  b.setAttribute('aria-pressed',String(i===0));
+  b.onclick=()=>{
+    padVoice=i;revision++;
+    for(const item of $('adpcm-voices').children)item.setAttribute('aria-pressed',String(item===b));
+    if(followPads)inspectChannel();else showPad();
+  };
+  $('adpcm-voices').append(b);
+}
+for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,65535],['end','End (exclusive)',0,65535],
+  ['bank','ROM bank',0,32767],['volume','Volume',-32768,32767],['panWord','Pan register',0x110,0x130]]){
+  const control=createParamControl({label,min,max,step:1,value:min,formatValue:key==='sample'?n=>'Pulse '+(n+1):key==='volume'?String:padHex,
+    onChange(value){
+      revision++;
+      const pad=pads[padVoice];
+      if(!followPads){
+        if(key==='sample'){
+          Object.assign(pad,{sample:value,start:(value+1)*512,end:(value+2)*512,bank:0});showPad();return;
+        }
+        if(key==='panWord')pad.pan=value-0x110;
+        else pad[key]=value;
+      }
+      const reg=key==='panWord'?0x90+padVoice:0xca+4*padVoice+padFields.indexOf(key);
+      port?.postMessage([[reg,value&65535]]);
+      if(followPads)inspectChannel();
+    }});
+  padControls[key]=control;
+  $('adpcm-pads').append(control.element);
+}
+$('pad-restore').onclick=()=>stop(false);
+$('pad-trigger').onclick=()=>triggerPad(padVoice);
+syncPadView();
 window.addEventListener('keydown',e=>{
   if(e.ctrlKey||e.altKey||e.metaKey||e.target.closest('input,select,textarea,.monaco-editor,[contenteditable=true]'))return;
   if (/^[123]$/.test(e.key)) {
@@ -308,9 +340,21 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();if(!e.repeat)press(e.code,notes[i]);
 });
 window.addEventListener('keyup',e=>release(e.code));
-function stop(){cancelSeek();sliding=false;songState='stopped';transport();$('pan').value=channels[selected].pan;$('vol').value=channels[selected].volume;stopWorker();demoPlaying=false;refresh();generation++; channels.forEach(v=>v.held=null);port?.postMessage('stop');restoreEcho();}
+function stop(keepPads=true){
+  followPads=keepPads && followPads;
+  cancelSeek();sliding=false;songState='stopped';
+  stopWorker();demoPlaying=false;
+  generation++;
+  channels.forEach(v=>v.held=null);
+  $('pan').value=channels[selected].pan;
+  $('vol').value=channels[selected].volume;
+  transport();refresh();
+  port?.postMessage(followPads?'stop-audition':'stop');
+  restoreEcho();
+  if(followPads)inspectChannel();
+}
 window.addEventListener('blur',()=>{if(songState==='stopped')stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
-$('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation){demoPlaying=true;port.postMessage($('score').value);}});};
+$('demo').onclick=()=>{stop();const token=generation;run(async()=>{await audio();if(token===generation){demoPlaying=true;followPads=true;syncPadView();port.postMessage($('score').value);}});};
 $('stop').onclick=stop;
 $('save').onclick=()=>{
   const track = demoTracks[$('score').value];
@@ -367,12 +411,13 @@ function stopWorker() {
   $('code-status').textContent='';
 }
 $('run-code').onclick=()=>run(async()=>{
-  stop();
+  stop(false);
   const token=generation;
   await audio();
   if(token!==generation)return;
   const worker=new Worker('./code-worker.js',{type:'module'});
-  codeWorker=worker;
+  port.postMessage(pads.flatMap((_,i)=>padWrites(i)));
+  codeWorker=worker;followPads=true;syncPadView();
   $('stop-code').disabled=false;
   worker.onmessage=({data})=>{
     if(worker!==codeWorker)return;
@@ -417,14 +462,14 @@ function snapshot() {
 }
 const factory=snapshot();
 function replaceProject(project) {
-  stop();
+  stop(false);
   songSelection++;songPath=null;preparedSong=null;transport();
   files.replace(project.files);
   project.channels.forEach((v,i)=>Object.assign(channels[i],v,{held:null}));
   project.pads.forEach((v,i)=>{
     Object.assign(pads[i],v);
-    for (const [key,value] of Object.entries(v)) padControls[i][key].updateVisual(value);
   });
+  syncPadView();
   mixer.set(project.mix);
   Object.assign(echo,project.echo);
   restoreEcho();
@@ -505,7 +550,7 @@ $('song-play').onclick=()=>run(async()=>{
   const {bytes}=preparedSong;
   await audio();
   if(token!==generation)return;
-  songState='playing';port.postMessage({type:'song',bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
+  followPads=true;songState='playing';port.postMessage({type:'song',bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
 });
 $('song-pause').onclick=()=>{
   songState='paused';port.postMessage({type:'pause-song',paused:true});transport();
@@ -530,7 +575,7 @@ slider.onchange=()=>run(async()=>{
   const tick=Number(slider.value),song=preparedSong;
   if(!song)return;
   sliding=false;
-  if(songState==='stopped'){stop();songState='paused';}
+  if(songState==='stopped'){stop();followPads=true;songState='paused';}
   cancelSeek();
   const token=++generation;
   port?.postMessage({type:'pause-song',paused:true});

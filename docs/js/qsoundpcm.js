@@ -131,7 +131,7 @@ export class QSoundPcm {
       v.address = position >> 12;
       v.phase = (position << 4) & 65535;
     }
-    advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.rom, this.adpcmSlot >= 3);
+    advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.adpcmRom ?? this.rom, this.adpcmSlot >= 3);
     this.adpcmSlot = (this.adpcmSlot + 1) % 6;
     for (const voice of this.adpcm) {
       if (!voice.output || voice.muted) continue;
