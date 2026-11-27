@@ -52,21 +52,28 @@ body{width:min(100%,76rem)}
 #register-panel table{border-collapse:collapse;width:min(100%,32rem);text-align:left}
 #register-panel th,#register-panel td{padding:.15rem .6rem;border-bottom:1px solid #bcc5ba}
 #register-panel td,#register-position{font-family:monospace;font-variant-numeric:tabular-nums}
+#synthMenu{position:relative}
+#synthMenuButton{display:grid;place-items:center;list-style:none;width:2.6rem;height:2.4rem;border:1px solid #7a9897;border-radius:5px;background:#fffaf0;cursor:pointer}
+#synthMenuButton::-webkit-details-marker{display:none}
+.synth-menu-panel{position:absolute;z-index:5;top:100%;left:0;width:min(18rem,83vw);display:grid;gap:.3rem;padding:.8rem;border:1px solid #7a9897;border-radius:6px;background:#fffaf0;box-shadow:0 4px 15px #102f4530}
+.synth-menu-panel button{text-align:left}.synth-menu-panel strong:not(:first-child){margin-top:.45rem}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
+<nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
+<div id="synthMenuPanel" class="synth-menu-panel">
+<strong>New</strong><button id="new-cassette" data-close-synth-menu>New cassette…</button>
+<strong>Import</strong><button id="import-song" data-close-synth-menu>VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
+<button id="import-cassette" data-close-synth-menu>Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden>
+<strong>Export</strong><button id="export-cassette" aria-describedby="export-contents" data-close-synth-menu>Export cassette</button>
+<small id="export-contents"></small><button id="demo-cassette" data-close-synth-menu>Download factory demos</button>
+</div></details><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
+<div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
 <section aria-labelledby="output-title"><div class="output-heading"><h2 id="output-title">Output</h2>
 <div role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button>
 <button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div></div>
 <canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></section>
 
-<nav class="workspace-tools" aria-label="Workspace"><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
-<div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
 <div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><div id="project-tree"></div><button id="new-script">New script…</button>
-<button id="import-song">Import VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
-<details><summary>Cassette</summary><button id="new-cassette">New cassette…</button><button id="export-cassette" aria-describedby="export-contents">Export cassette</button>
-<small id="export-contents"></small>
-<button id="demo-cassette">Download factory demos</button>
-<button id="import-cassette">Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden></details>
 <p id="file-status" role="status"></p></aside><div id="desk"><footer><label>Demo<select id="score"><option value="demo">PCM duet</option><option value="adpcm">ADPCM trio</option><option value="echo">PCM echo comparison</option><option value="pan">Pan comparison</option></select></label> <button id="demo">Play demo</button> <button id="stop">Stop</button> <button id="save">Download demo VGM</button><output aria-live="polite"></output></footer><section id="song-transport" hidden aria-label="VGM playback"><strong id="song-title"></strong> <small id="song-status" role="status"></small>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
@@ -93,7 +100,7 @@ liveLoop('bass', async () => {
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <nav id="pcm-tabs" aria-label="PCM channel view"><button id="pcm-tab" aria-controls="pcm-panel" aria-pressed="true">Voice</button>
 <button id="register-tab" aria-controls="register-panel" aria-pressed="false">Registers</button></nav>
-<div id="pcm-panel">
+<div id="pcm-panel"><button id="save-preset">Save preset…</button>
 <label>Sample<select id="wave"><option>Reed</option><option>Bell</option><option disabled>Channel ROM</option></select></label>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>

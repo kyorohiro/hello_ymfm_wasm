@@ -22,6 +22,12 @@ export function inspectSong(bytes) {
   return {ticks,canLoop,loopTick:canLoop?loopStart:null};
 }
 
+export function applyRomBlock(rom,event){
+  if(rom.length!==event.memorySize)rom=new Uint8Array(event.memorySize);
+  rom.set(event.data,event.offset);
+  return rom;
+}
+
 // Reads the validated stream incrementally. Use absolute VGM ticks so that
 // resampling thousands of short waits does not accumulate rounding error.
 export class SongTransport {
@@ -32,7 +38,7 @@ export class SongTransport {
     this.starts=starts;
     this.frames=this.ticks=this.nextFrame=0;
     this.paused=false;
-    this.loop=false;
+    this.loop=false;this.looped=false;
     this.loopStart=null;
   }
   restore(state) {
@@ -48,7 +54,7 @@ export class SongTransport {
       if(this.parser.position===this.parser.header.loopOffset)this.loopStart=this.ticks;
       const e=this.parser.step();
       if(e.type==='end' && this.loop && this.loopStart!==null && this.ticks>this.loopStart){
-        this.parser.position=this.parser.header.loopOffset;
+        this.looped=true;this.parser.position=this.parser.header.loopOffset;
         this.parser.ended=false;
       }
       if(e.type==='wait'){
@@ -58,8 +64,7 @@ export class SongTransport {
         this.chip.writeRegister(e.register,e.value);
         if(e.register<128 && (e.register&7)===1)this.starts[e.register>>3]=e.value;
       } else if(e.type==='qsound-rom-data'){
-        if(this.chip.rom.length!==e.memorySize)this.chip.rom=new Uint8Array(e.memorySize);
-        this.chip.rom.set(e.data,e.offset);
+        this.chip.rom=applyRomBlock(this.chip.rom,e);
       }
     }
   }

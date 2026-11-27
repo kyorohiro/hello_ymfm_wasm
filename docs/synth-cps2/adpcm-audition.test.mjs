@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {demoVgm,demoTracks} from './demo.js';
 import {QSoundPcm} from '../js/qsoundpcm.js';
 
+import {readPreset,bankHash,presetRom} from './preset.js';
+
 let Processor;
 globalThis.sampleRate=48000;
 globalThis.AudioWorkletProcessor=class {port={};};
@@ -72,4 +74,32 @@ test('Pause auditions a detached PCM voice, Resume matches continuous playback, 
   send(player,{type:'captured-note',channel:0,midi:60});
   assert.equal(player.chip.voices[0].rate,2400);
   assert.ok(render(player,2048).some(side=>side.some(x=>x!==0)));
+});
+
+test('PCM preset resolves its VGM bank and plays identical stereo samples on another channel',async()=>{
+  const bytes=demoVgm(demoTracks.demo.score()),path='/songs/bass.vgm';
+  // Change the embedded sample bytes so a fallback to the factory ROM cannot pass.
+  bytes.fill(78,271,271+128);
+  const player=new Processor(),send=data=>player.port.onmessage({data});
+  send({type:'song',path,bytes});
+  player.song.applyDueEvents();
+  send({type:'pause-song',paused:true});
+  send([[0x80,0x117]]);
+  let snapshot;
+  send({type:'read-preset',channel:0,reply:{postMessage:data=>{snapshot=data;},close(){}}});
+  const {bytes:bank,...settings}=snapshot;
+  const p=readPreset(JSON.stringify({...settings,format:'qsound-pcm-1',bankHash:await bankHash(bank)}));
+  const strike=channel=>{
+    send({type:'captured-note',channel,midi:60});
+    const left=new Float32Array(2048),right=left.slice();
+    player.process([],[[left,right]]);
+    return [left,right];
+  };
+  const original=strike(0);
+  assert.ok(original[0].some(x=>x!==0));
+  send('stop');
+  await assert.rejects(presetRom(p,demoVgm()),/differs/);
+  send({type:'load-preset',channel:4,preset:p,rom:await presetRom(p,bytes)});
+  assert.equal(player.chip.voices[4].pan,0x117);
+  assert.deepEqual(strike(4),original);
 });

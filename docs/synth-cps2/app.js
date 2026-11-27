@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {setupSynthMenu} from '../synth/synth_menu.js';
+import {isPresetPath,bankHash,readPreset,presetRom} from './preset.js';
+import {checkPath} from '../synth-cps1/project-tree.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {createRegisterTable} from './registers.js';
 import {setupMixer,mutedVoices} from './mixer.js';
@@ -12,8 +15,9 @@ import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {createParamControl} from '../synth/synth_controls.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
-import {demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
+import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 const $ = id => document.getElementById(id);
+setupSynthMenu({document,window});
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
 let selected = 0, context, ready, port, masterGain, generation = 0;
 let revision = 0, shown, cursor = null;
@@ -417,7 +421,7 @@ liveLoop('pads', async () => {
 `},
 ]);
 let activePath='/index.js', highlightedPath=activePath;
-const expanded=new Map([['/examples',true],['/songs',true]]);
+const expanded=new Map([['/examples',true],['/songs',true],['/presets',true]]);
 const editor = setupSynthMonacoEditor({
   textarea:source,editorHost:$('code-host'),editorNote:$('editor-note'),chip:'cps2',
   declarationsOnly:true,transformDeclarations:()=>`
@@ -433,7 +437,7 @@ declare const qsound:{
   trigger(voice:number,sample?:number,pan?:number,volume?:number):void;
 };
 declare function useSoundChip(name:'qsound'):Promise<typeof qsound>;`,
-  getPath:()=>activePath,listFiles:()=>files.list().filter(f=>f.type==='text'),openFile:openScript,
+  getPath:()=>activePath,listFiles:()=>files.list().filter(f=>f.type==='text' && f.path.endsWith('.js')),openFile:openScript,
   onEdit:()=>{files.writeText(activePath,source.value);scheduleDraft();},visible:()=>!$('code-panel').hidden,run:apply=>$(apply?'apply-code':'run-code').click(),
 });
 function selectPerformance(code) {
@@ -502,6 +506,7 @@ function openScript(path,prepared) {
   const file=files.get(path);
   if (!file) return;
   highlightedPath=path;
+  if(isPresetPath(path)){run(()=>loadPreset(path,file.data));return;}
   if (file.type==='binary') {
     if(path===songPath && preparedSong && !prepared){renderFiles();return;}
     stop(false);songPath=path;
@@ -519,6 +524,54 @@ function openScript(path,prepared) {
   editor.setSource(file.data,path);
   renderFiles();
   scheduleDraft();
+}
+async function savePreset(){
+  const ch=selected,token=generation;
+  let voice;
+  if(liveInstrument){
+    const {port1,port2}=new MessageChannel();
+    const result=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
+    port.postMessage({type:'read-preset',channel:ch,reply:port2},[port2]);
+    voice=await result;
+  }else{
+    const v=channels[ch];
+    const rate=v.referenceRate===null?pcmRate(60):Math.min(65535,Math.round(v.referenceRate*2**((60-v.referenceNote)/12)));
+    voice={source:null,clock:4000000,bytes:demoRom(),bank:0,start:v.sample*256,end:v.end,loop:v.loop,
+      rate,pan:0x110+v.pan,volume:v.volume,send:v.send};
+  }
+  const {bytes,...settings}=voice;
+  if(!bytes.length)throw Error('This channel has no sample ROM in its bank.');
+  const preset={format:'qsound-pcm-1',...settings,bankHash:await bankHash(bytes)};
+  if(generation!==token)return;
+  const name=prompt('PCM preset name','CH'+(ch+1))?.trim();
+  if(!name)return;
+  const path=checkPath('/presets/'+name.replace(/\.pcm\.json$/i,'')+'.pcm.json');
+  if(!isPresetPath(path))throw Error('Enter a file name without folders.');
+  if(files.has(path) && !confirm('Replace '+path+'?'))return;
+  const text=JSON.stringify(preset,null,2);
+  readPreset(text);
+  files.writeText(path,text);
+  highlightedPath=path;setFiles(true);renderFiles();await saveDraft();
+  $('file-status').textContent='Saved '+path;
+}
+$('save-preset').onclick=()=>run(savePreset);
+
+async function loadPreset(path,text){
+  const p=readPreset(text),ch=selected,token=generation;
+  const sourceFile=p.source && files.get(p.source.path);
+  if(p.source && !sourceFile)throw Error('Missing preset source '+p.source.path);
+  const song=sourceFile?await prepareSong(sourceFile.data):null;
+  const rom=await presetRom(p,song?.bytes);
+  await audio();
+  if(token!==generation || path!==highlightedPath || ch!==selected)return;
+  stop();
+  liveInstrument=true;
+  songPath=p.source?.path??null;preparedSong=song;preparationRevision++;
+  port.postMessage({type:'load-preset',channel:ch,preset:p,rom},[rom.buffer]);
+  selectPerformance(false);
+  document.querySelector('[data-chip="pcm-chip"]').click();selectPcmTab(false);
+  showPosition(0);transport();inspectChannel();renderFiles();scheduleDraft();
+  $('file-status').textContent='Loaded '+path+' on CH'+(ch+1)+' · Shared ROM: '+(songPath??'factory');
 }
 function snapshot() {
   return {version:1,files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
@@ -579,7 +632,6 @@ $('import-cassette').onclick=()=>$('cassette-input').click();
 $('cassette-input').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';
   if (!file) return;
-  highlightedPath=path;
   try {
     if (file.size>16*1024*1024) throw Error('Cassette exceeds 16 MiB.');
     const project=await importProject(await file.arrayBuffer());
@@ -612,7 +664,7 @@ async function playSong(){
   const {bytes}=preparedSong;
   await audio();
   if(token!==generation)return;
-  liveInstrument=true;songState='playing';port.postMessage({type:'song',bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
+  liveInstrument=true;songState='playing';port.postMessage({type:'song',path:songPath,bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
 }
 $('song-play').onclick=()=>run(playSong);
 function pauseSong(){
@@ -655,7 +707,7 @@ slider.onchange=()=>run(async()=>{
     worker.onmessage=({data:state})=>{
       if(token!==generation)return;
       revision++;
-      port.postMessage({type:'song',bytes:song.bytes,state,loop:$('song-loop').checked,paused:songState==='paused'},
+      port.postMessage({type:'song',path:songPath,bytes:song.bytes,state,loop:$('song-loop').checked,paused:songState==='paused'},
         [state.chip.rom.buffer,state.chip.echoLine.buffer,state.starts.buffer]);
       cancelSeek();transport();inspectChannel();
     };

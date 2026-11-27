@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
+import {isPresetPath,readPreset} from './preset.js';
 import {validateMix} from './mixer.js';
 import {checkPath} from '../synth-cps1/project-tree.js';
 
@@ -34,8 +35,14 @@ export function validateProject(project) {
   files.replace(project.files.map(({path,data})=>{
     if (data instanceof Uint8Array && /\.(vgm|vgz)$/i.test(path)) return {path:checkPath(path),data};
     if (typeof data!=='string') throw Error('Expected JavaScript source.');
+    if(isPresetPath(path)){readPreset(data);return {path:checkPath(path),data};}
     return {path:scriptPath(path),data};
   }));
+  for(const file of files.list().filter(f=>isPresetPath(f.path))){
+    const {source}=readPreset(file.data);
+    if(source && files.get(source.path)?.type!=='binary')throw Error('Missing preset source '+source.path);
+  }
+  scriptPath(project.active);
   if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
   const song=project.song??null;
   if(song!==null && files.get(song)?.type!=='binary')throw Error('Cassette is missing its selected song.');

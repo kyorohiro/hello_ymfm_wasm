@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
-import {QSoundPcm} from '../js/qsoundpcm.js';
+import {QSoundPcm,QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {demoRom} from './demo.js';
 
 class Cps2Preview extends AudioWorkletProcessor {
@@ -22,7 +22,7 @@ class Cps2Preview extends AudioWorkletProcessor {
           this.applyMutes();
         }
         this.song.loop=data.loop;
-        this.captured=false;
+        this.sourcePath=data.path;this.source=null;this.captured=false;
         this.setPaused(Boolean(data.paused));
         return;
       }
@@ -39,6 +39,24 @@ class Cps2Preview extends AudioWorkletProcessor {
       if (data === 'stop-audition') {
         this.capture();
         this.song=null;
+        return;
+      }
+      if(data?.type==='read-preset'){
+        const ch=data.channel,v=this.chip.voices[ch],begin=v.bank*65536;
+        data.reply.postMessage({source:this.romSource(),clock:Math.round(this.chip.tickRate*4000000/QSOUND_PCM_RATE),bank:v.bank,start:this.starts[ch],end:v.end&65535,
+          loop:v.loop&65535,volume:this.captured?this.levels[ch]:(v.volume||v.lastLevel||0),
+          rate:this.captured?this.rates[ch]:v.rate,pan:v.pan,send:v.echoSend,
+          bytes:this.chip.rom.slice(begin,begin+65536)});
+        data.reply.close();return;
+      }
+      if(data?.type==='load-preset'){
+        const p=data.preset,ch=data.channel,base=8*ch;
+        this.capture();this.song=null;
+        this.chip.rom=data.rom;this.source=p.source;
+        this.chip.tickRate=QSOUND_PCM_RATE*p.clock/4000000;
+        this.apply([[((ch+15)&15)*8,p.bank|0x8000],[base+1,p.start],[base+2,p.rate],
+          [base+3,0],[base+4,p.loop],[base+5,p.end],[0x80+ch,p.pan],[0xba+ch,p.send&65535]]);
+        this.levels[ch]=p.volume;
         return;
       }
       if(data?.type==='captured-note'){
@@ -80,14 +98,19 @@ class Cps2Preview extends AudioWorkletProcessor {
         return;
       }
       if (data === 'stop') {
-        this.song=null;this.captured=false;
+        this.song=null;this.captured=false;this.source=null;
         this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
         this.applyMutes();
         this.starts.fill(0);
       } else this.apply(data);
     };
   }
+  romSource(){
+    if(this.song && !this.captured)return {path:this.sourcePath,position:this.song.parser.position,looped:this.song.looped};
+    return this.source??null;
+  }
   capture(){
+    this.source=this.romSource();
     const source=this.chip;
     const chip=new QSoundPcm(source.rom,sampleRate,{spatialPcm:true});
     chip.tickRate=source.tickRate;
