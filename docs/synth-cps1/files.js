@@ -223,7 +223,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     }
     playSong({...song,banks});
   };
-  el('songs').onchange=stopSong;el('stopSong').onclick=stopSong;
+  el('songs').onchange=stopSong;el('stopSong').onclick=()=>stopSong(true);
   el('codeFile').onchange=()=>open(el('codeFile').value);
   el('editor').oninput=()=>{
     editFile(editor,{kind:'code',text:el('editor').value});
@@ -442,7 +442,29 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     editFile(path,{...bank,bytes,names});
     applyBank(bytes,names,base(path),bank.voiceSamples,false,slot);
   }
-  return {addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
+  function keepSongBank(path,bytes,assignments){
+    if(!bytes?.length || !path)return false;
+    const matches=bank=>bank?.kind==='bank' && (bank.bytes===bytes ||
+      bank.bytes.length===bytes.length && bytes.every((b,i)=>b===bank.bytes[i]));
+    let bank=files.get(path);
+    if(!matches(bank)){
+      // A user may have renamed or edited the extracted copy since import.
+      const existing=items('bank').find(([,v])=>matches(v));
+      if(existing)[path,bank]=existing;
+      else {
+        const stem=base(path).replace(/\.rom$/i,'');
+        path=nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+'.rom');
+        bank=newBank({kind:'bank',bytes,names:Array(128).fill(''),name:base(path)});
+        files.set(path,bank);
+        render();
+      }
+    }
+    activeBank=path;
+    editFile(path,{...bank,voiceSamples:assignments});
+    useBank(path);el('romList').value=path;
+    return true;
+  }
+  return {keepSongBank,persist,addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
     const target=files.get(editPath);
     if(target?.kind==='channel'&&target.ch===ch)editFile(editPath,{...target,voice:currentVoice(ch)});
     else if(ch===presetChannel&&target?.kind==='voice')editFile(editPath,{kind:'voice',voice:currentVoice(ch)});

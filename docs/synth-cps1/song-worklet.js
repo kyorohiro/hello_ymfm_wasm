@@ -1,3 +1,4 @@
+import {writePerformanceCommand} from './pcm-performance.js';
 import {SongSampleMemory} from './song-samples.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {Ym2612VGM} from '../js/ym2612vgm.js';
@@ -10,7 +11,9 @@ class Song extends AudioWorkletProcessor {
   constructor({processorOptions:{bytes,wasmBinary}}) {
     super();
     this.parser=new Ym2612VGM(bytes);
-    this.voiceState=new Ym2151VoiceInspector({clock:this.parser.header.ym2151Clock,sampleRate});
+    this.voiceState=new Ym2151VoiceInspector({clock:this.parser.header.ym2151Clock,sampleRate,
+      dispatch:({args})=>this.writeFm(...args)});
+    this.keyOverrides=[];
     this.nextReport=0; this.fmDirty=true;
     this.lastMasks=Array(8).fill(15);
     this.mutes={fm:Array(8).fill(false),pcm:Array(4).fill(false)};
@@ -18,6 +21,14 @@ class Song extends AudioWorkletProcessor {
     this.ticks=0; this.frame=0; this.until=0;
     this.port.onmessage=({data})=>{
       if (data.stop) this.finish();
+      else if(data.fmEdit && this.fm){
+        this.voiceState.invoke(data.fmEdit.method,data.fmEdit.args);
+        if(this.paused)this.port.postMessage({editedFm:this.fmSnapshot()});
+      }else if(data.keyMask){
+        const [ch,mask]=data.keyMask;
+        this.keyOverrides[ch]=this.lastMasks[ch]=mask;
+      }else if ('samples' in data) this.sampleOverrides=data.samples;
+      else if ('attenuation' in data) this.attenuationOverride=data.attenuation;
       else if ('pause' in data) {
         this.paused=data.pause;
         this.report({paused:this.paused,seconds:this.frame/sampleRate},true);
@@ -36,10 +47,24 @@ class Song extends AudioWorkletProcessor {
     this.applyMutes();
     this.ready=true;this.report({ready:true,clock:this.parser.header.ym2151Clock});
   }
-  report(message,force=false) {
+  writeFm(register,value){
+    if(register===8 && (value&0x78)){
+      const ch=value&7;
+      this.lastMasks[ch]=this.keyOverrides[ch]??((value>>3)&15);
+      value=ch|(this.lastMasks[ch]<<3);
+    }
+    this.fm.writeYm2151(register,value);
+    this.voiceState.observeWrite(register,value);
+    this.fmDirty=true;
+  }
+  fmSnapshot(){
     const state=this.voiceState;
+    return {registers:state.registers,keyMasks:state.keyMasks,amDepth:state.amDepth,pmDepth:state.pmDepth};
+  }
+  report(message,force=false) {
     if (this.fm && (this.fmDirty || force)) {
-      message.fm={registers:state.registers,keyMasks:state.keyMasks,amDepth:state.amDepth,pmDepth:state.pmDepth};
+      message.fm=this.fmSnapshot();
+      message.masks=this.lastMasks;
       this.fmDirty=false;
     }
     message.oki=this.pcm ? this.sampleMemory.snapshot(this.pcm,!!message.paused) : null;
@@ -47,6 +72,7 @@ class Song extends AudioWorkletProcessor {
       message.oki.bank=this.pcm.bank>>>18;
       message.oki.nmk=this.pcm.nmkMode;
       message.oki.command=this.lastCommand;
+      message.oki.sourceAttenuation=this.sourceAttenuation;
     }
     if (message.paused) message.masks=this.lastMasks;
     this.port.postMessage(message);
@@ -67,17 +93,15 @@ class Song extends AudioWorkletProcessor {
       for (let i=0;i<size;) {
         if (this.frame>=this.until) {
           const e=this.parser.step();
-          if (e.type==='end') {this.finish();break;}
+          if (e.type==='end') {this.report({playing:true},true);this.finish();break;}
           if (e.type==='wait') {this.ticks+=e.samples;this.until=Math.round(this.ticks*sampleRate/44100);}
-          if (e.type==='ym2151-write') {
-            this.fm.writeYm2151(e.register,e.value);
-            this.fmDirty=true;
-            this.voiceState.observeWrite(e.register,e.value);
-            if (e.register===8 && (e.value & 0x78)) this.lastMasks[e.value & 7]=(e.value>>3)&15;
-          }
+          if (e.type==='ym2151-write') this.writeFm(e.register,e.value);
           if (e.type==='okim6295-write') {
-            this.pcm.writeOki6295(e.register,e.value);
-            if(!e.register)this.lastCommand=e.value;
+            if(e.register)this.pcm.writeOki6295(e.register,e.value);
+            else {
+              if(this.pcm.pending>=0)this.sourceAttenuation=e.value&15;
+              this.lastCommand=writePerformanceCommand(this.pcm,e.value,this.sampleOverrides,this.attenuationOverride);
+            }
           }
           if (e.type==='okim6295-rom-data') {
             this.pcm.loadOki6295Rom(e.data,e.offset,e.memorySize);

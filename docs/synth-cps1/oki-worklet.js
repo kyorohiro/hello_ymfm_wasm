@@ -1,3 +1,4 @@
+import {writePerformanceCommand} from './pcm-performance.js';
 import {Oki6295AudioEngine} from '../js/okim6295audioengine.js';
 
 class OkiProcessor extends AudioWorkletProcessor {
@@ -10,7 +11,13 @@ class OkiProcessor extends AudioWorkletProcessor {
         this.chip.loadOki6295Rom(data.rom);
       } else if (data.voiceMutes) {
         data.voiceMutes.forEach((muted,i) => this.chip.setVoiceMuted(i,muted));
-      } else for (const byte of data.commands) this.chip.writeOki6295(0,byte);
+      } else if('codeAttenuation' in data || 'codeSamples' in data){
+        if('codeAttenuation' in data)this.codeAttenuation=data.codeAttenuation;
+        if('codeSamples' in data)this.codeSamples=data.codeSamples;
+      } else if(data.code){
+        const commands=data.commands.map(byte=>writePerformanceCommand(this.chip,byte,this.codeSamples,this.codeAttenuation));
+        this.port.postMessage({commands});
+      } else for(const byte of data.commands)this.chip.writeOki6295(0,byte);
       this.report(true);
     };
   }

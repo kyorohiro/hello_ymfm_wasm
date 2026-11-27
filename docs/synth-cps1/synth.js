@@ -78,7 +78,12 @@ let observation=null;
 let voicePage='Voice';
 const autoHeld=new Map();
 function editVoice(method,args) {
-  if (observation) return;
+  if(observation){
+    if(!observation.fm || !method.startsWith('set'))return;
+    observation.fm.invoke(method,args);
+    songNode.port.postMessage({fmEdit:{method,args}});
+    dirty=true;return;
+  }
   const result=inspector.invoke(method,args);
   if (['setVoice','setOperator'].includes(method)) files.recordEdit(args[0]);
   if (autoChannel && ['setVoice','setOperator'].includes(method)) {
@@ -87,10 +92,16 @@ function editVoice(method,args) {
   return result;
 }
 const panel = createPlaygroundYm2151VoicePanel({root:$('fm'),arrangeSections:sections=>arrangeVoiceSections(sections,{
-  read:()=>(observation?.fm?.keyMasks ?? keyMasks)[panel.getSelectedChannel()],
+  read:()=>(observation?.masks ?? keyMasks)[panel.getSelectedChannel()],
   toggle(bit) {
     const ch=panel.getSelectedChannel();
-    if (observation) return;
+    if(observation){
+      if(observation.fm){
+        observation.masks[ch]^=bit;
+        songNode.port.postMessage({keyMask:[ch,observation.masks[ch]]});
+      }
+      return;
+    }
     keyMasks[ch]^=bit;
     files.recordEdit(ch);
   },
@@ -127,7 +138,11 @@ async function startAudio() {
         bus.gain.value = gainFor(mix[id]); bus.connect(master);
       }
       const pcm = new AudioWorkletNode(context,'cps1-oki',{numberOfInputs:0,outputChannelCount:[2]});
-      pcm.port.onmessage = ({data}) => {if(!observation)showBusy(data.status,data.samples);};
+      pcm.port.onmessage = ({data}) => {
+        if(observation)return;
+        if(data.commands){if(worker)$('command').value=data.commands.map(hex).join(' ');}
+        else showBusy(data.status,data.samples);
+      };
       pcm.connect(buses.pcm); master.connect(context.destination);
       scope.connect(context,[master]);
       audio = {fm,pcm,master,buses};
@@ -256,10 +271,11 @@ function limit(value,max,name) {
   if (!Number.isInteger(value) || value<0 || value>max) throw RangeError(name+' must be 0–'+max);
   return value;
 }
+let writingCode=false;
 function write(...bytes) {
   bytes.forEach(b => limit(b,255,'Command'));
-  if (audio) audio.pcm.port.postMessage({commands:bytes}); else rawOki.push(...bytes);
-  $('command').value = bytes.map(hex).join(' ');
+  if (audio) audio.pcm.port.postMessage({commands:bytes,code:writingCode}); else rawOki.push(...bytes);
+  if(!writingCode)$('command').value = bytes.map(hex).join(' ');
 }
 const oki = {
   write:byte => write(byte),
@@ -296,10 +312,27 @@ let nextSampleVoice=0;
 function slotName(id){return !observation && sampleNames[id]?id+' · '+sampleNames[id]:String(id);}
 function voiceSample(voice){return voiceIds[voice]<0?selectedSlot:voiceIds[voice];}
 let sampleAttenuation=2;
+let codeSamples=[];
+function syncCodeSamples(){
+  audio?.pcm.port.postMessage({codeSamples:Array.from(codeSamples,id=>id===-1?selectedSlot:id)});
+}
 const attenuationControl=createParamControl({label:'Attenuation',min:0,max:15,step:1,value:sampleAttenuation,
-  onChange:value=>{sampleAttenuation=value;},
+  onChange:value=>{
+    if(observation)setSongAttenuation(value);
+    else {
+      sampleAttenuation=value;
+      if(worker){audio.pcm.port.postMessage({codeAttenuation:value});}
+    }
+  },
 });
 $('attenuation').append(attenuationControl.element);
+function setSongAttenuation(value){
+  observation.attenuation=value;
+  songNode.port.postMessage({attenuation:value});
+  $('followAttenuation').hidden=value==null;
+  attenuationControl.updateVisual(value??observation.oki?.sourceAttenuation??0);
+}
+$('followAttenuation').onclick=()=>setSongAttenuation(null);
 const slotControl=createParamControl({label:'Sample slot',min:0,max:127,step:1,value:0,onChange:selectSlot});
 $('slotControl').append(slotControl.element);
 const slotButtons=Array.from({length:128},(_,id)=>{
@@ -316,7 +349,8 @@ function selectSlot(id){
   $('deleteSlot').disabled=!filled;
   $('selectedSample').textContent=filled?slotName(id):id+' · Empty';
   displaySample($('sampleWave'),$('sampleRange'),observation ? observation.rom : sampleRom,id,observation?.rate);
-  if(observation){stopPreview();syncPreview();}
+  if(observation){stopPreview();syncPreview();syncSongAssignments();}
+  else if(worker && codeSamples.includes(-1))syncCodeSamples();
 }
 $('deleteSlot').onclick=()=>{try{files.deleteSample(selectedSlot);}catch(error){fail(error);}};
 $('writeSlot').onclick=()=>$('slotAudio').click();
@@ -344,7 +378,7 @@ function chooseSamples(names,assignments=[],selected=0) {
   }
 }
 $('hitPad').onclick=()=>{
-  oki.play(3,3,2);startAudio().catch(fail);
+  oki.play(3,3,sampleAttenuation);startAudio().catch(fail);
 };
 for (let i=0;i<4;i++) {
   const row = document.createElement('div'); row.className = 'bar';
@@ -353,7 +387,13 @@ for (let i=0;i<4;i++) {
   lamp.setAttribute('aria-label','Mute Voice '+(i+1));lamp.setAttribute('aria-pressed','false');
   lamp.onclick=()=>oki.setVoiceMuted(i,!voiceMutes[i]);muteButtons.push(lamp);
   const picker=createParamControl({label:'Voice '+(i+1)+' sample',min:-1,max:127,step:1,value:0,showLabel:false,
-    formatValue:id=>id<0?'Follow':String(id),onChange:id=>{files.assignSample(i,id);voiceIds[i]=id;},
+    formatValue:id=>id<0?'Follow':String(id),onChange:id=>{
+      if(observation){
+        observation.assignments[i]=id;
+        syncSongAssignments();
+      }else {files.assignSample(i,id);voiceIds[i]=id;
+        if(worker){codeSamples[i]=id;syncCodeSamples();}}
+    },
   });
   voicePickers.push(picker);
   row.append(lamp,picker.element);$('voices').append(row);
@@ -522,6 +562,17 @@ function syncPreview(){
   $('previewSongSample').hidden=!(index>=0);
 }
 const emptyRom=new Uint8Array();
+function syncSongAssignments(){
+  if(!observation.assignments.some(id=>id!=null))return;
+  songNode?.port.postMessage({samples:observation.assignments.map(id=>id===-1?selectedSlot:id)});
+  $('followVoices').hidden=false;
+}
+$('followVoices').onclick=()=>{
+  observation.assignments.fill(null);
+  songNode.port.postMessage({samples:observation.assignments});
+  $('followVoices').hidden=true;
+  showSongPcm(observation.song,observation.oki);
+};
 function showSongPcm(song,state){
   const bank=!state?.nmk && song.banks.find(b=>b.index===state?.bank);
   const rom=bank?.bytes ?? emptyRom;
@@ -539,12 +590,11 @@ function showSongPcm(song,state){
   }
   const voices=state?.voices ?? [];
   const ids=voices.map(v=>v.sample ?? v.requestedSample);
-  voicePickers.forEach((picker,i)=>picker.updateVisual(ids[i]??-1));
+  voicePickers.forEach((picker,i)=>picker.updateVisual(observation.assignments[i]??ids[i]??-1));
   const busy=voices.reduce((v,ch,i)=>v|(Number(ch.busy)<<i),0xf0);
   showBusy(busy,ids);
   $('command').value=state?.command==null?'—':hex(state.command);
-  const last=voices.find(v=>v.sample===selectedSlot) ?? voices.find(v=>v.busy);
-  attenuationControl.updateVisual(last?.attenuation??0);
+  attenuationControl.updateVisual(observation.attenuation??state?.sourceAttenuation??0);
   voices.forEach((voice,i)=>{
     const detail=voice.requestedSample==null?'No request':'Last request '+voice.requestedSample+' · Attenuation '+voice.requestedAttenuation;
     muteButtons[i].title+=' · '+detail;
@@ -555,7 +605,7 @@ $('previewSongSample').onclick=()=>{
   if (previewNode) {stopPreview();return;}
   const voice=pausedSong?.oki?.voices[selectedOkiVoice];
   if(!voice?.bytes)return;
-  const {pcm}=decodeSongSample(voice,1);
+  const {pcm}=decodeSongSample({...voice,attenuation:observation.attenuation??voice.attenuation},1);
   sampleBuffer=context.createBuffer(1,pcm.length,context.sampleRate);
   sampleBuffer.copyToChannel(pcm,0);
   previewNode=context.createBufferSource();previewGain=context.createGain();
@@ -573,13 +623,19 @@ $('previewSongSample').onclick=()=>{
 for (let ch=0;ch<8;ch++) $('songTarget').add(new Option('CH'+(ch+1),ch));
 $('useSongVoice').onclick=()=>{
   const target=Number($('songTarget').value), ch=panel.getSelectedChannel();
-  files.copySongVoice(target,observation.fm.read().channels[ch],pausedSong.masks[ch]);
+  observation.copied.add(target);
+  files.copySongVoice(target,observation.fm.read().channels[ch],observation.masks[ch]);
   status('Copied VGM CH'+(ch+1)+' to YM2151 CH'+(target+1));
 };
 function setSongView(active) {
-  for(const node of $('pcmEditor').querySelectorAll('#romList,#importRom,#writeSlot,#deleteSlot,#chooseSamples,#restore,#attenuation,#voices .param-control'))node.inert=active;
+  for(const node of $('pcmEditor').querySelectorAll('#romList,#importRom,#writeSlot,#deleteSlot,#chooseSamples,#restore'))node.inert=active;
+  for(const picker of voicePickers)picker.element.inert=active && !observation?.oki;
+  $('attenuation').inert=active && !observation?.oki;
+  $('followAttenuation').hidden=true;
+  $('followVoices').hidden=true;
   $('keyboardPanel').inert=active;
-  for (const node of $('fm').querySelectorAll('.param-control, table button, input, .opm-envelope-editor canvas, .voice-tools > button:nth-of-type(2), [data-key-channel="-1"]')) node.inert=active;
+  for(const node of $('fm').querySelectorAll('.param-control,table button,input,.opm-envelope-editor canvas'))node.inert=active && !observation?.fm;
+  for(const node of $('fm').querySelectorAll('.voice-tools > button:nth-of-type(2),[data-key-channel="-1"]'))node.inert=active;
   dirty=true;
 }
 $('pauseSong').onclick=()=>{
@@ -589,18 +645,36 @@ $('pauseSong').onclick=()=>{
 function syncSongMutes() {
   if (previewNode) previewGain.gain.value=voiceMutes[selectedOkiVoice]?0:1;
   songNode?.port.postMessage({fm:fmMutes,pcm:voiceMutes});}
-function stopSong() {
+function stopSong(keepSettings=false) {
   stopPreview();$('previewSongSample').hidden=true;sampleBuffer=null;
   if (observation) {
-    const {channel,auto,slot,bankPath,command}=observation;
+    const state=observation, currentSlot=selectedSlot;
+    const keep=keepSettings===true;
+    const {channel,auto,slot,bankPath,command}=state;
     observation=null;
     $('romList').querySelector('[data-song-bank]')?.remove();
-    $('romList').value=bankPath;
-    $('romName').textContent=synthRomLabel;
-    chooseSamples(sampleNames,[...voiceIds],slot);
+    const pcm=keep && state.oki;
+    const bankKept=pcm && !pcm.nmk && files.keepSongBank(state.bankPaths[pcm.bank],state.rom,
+      pcm.voices.map((v,i)=>state.assignments[i]??v.sample??v.requestedSample??-1));
+    if(bankKept)selectSlot(currentSlot);
+    else {
+      $('romList').value=bankPath;
+      $('romName').textContent=synthRomLabel;
+      chooseSamples(sampleNames,[...voiceIds],slot);
+    }
+    if(pcm)sampleAttenuation=state.attenuation??pcm.sourceAttenuation??sampleAttenuation;
     attenuationControl.updateVisual(sampleAttenuation);showBusy(0xf0);
-    $('command').value=command;
-    panel.selectChannel(channel);autoChannel=auto;
+    if(!pcm)$('command').value=command;
+    if(keep && state.fm){
+      const {channels,lfo,noise}=state.fm.read();
+      for(const ch of channels){
+        if(state.copied.has(ch.channel))continue;
+        files.copySongVoice(ch.channel,ch,state.masks[ch.channel]);
+        inspector.invoke('setPitch',[ch.channel,ch.keyCode,ch.keyFraction]);
+      }
+      inspector.invoke('setLFO',[lfo]);inspector.invoke('setNoise',[noise]);
+    }else {panel.selectChannel(channel);autoChannel=auto;}
+    if(keep)files.persist();
     setSongView(false);syncKeyChannels();
   }
   songRequest++;
@@ -639,19 +713,24 @@ async function playSong(song) {
     syncSongMutes();
     songNode.port.onmessage=({data})=>{
       if (request!==songRequest) return;
-      if (data.done) {stopSong();status(data.error ?? 'Finished');return;}
+      if(data.editedFm){Object.assign(observation.fm,data.editedFm);dirty=true;return;}
+      if (data.done) {stopSong(!data.error);status(data.error ?? 'Finished');return;}
       if (data.ready) {
-        observation={channel:panel.getSelectedChannel(),auto:autoChannel,slot:selectedSlot,bankPath:$('romList').value,command:$('command').value,
+        observation={song,assignments:Array(4).fill(null),bankPaths:song.bankPaths,copied:new Set(),channel:panel.getSelectedChannel(),auto:autoChannel,slot:selectedSlot,bankPath:$('romList').value,command:$('command').value,
           idleFm:data.fm ? null : new Ym2151VoiceInspector({}),
-          fm:data.fm ? new Ym2151VoiceInspector({clock:data.clock,sampleRate:context.sampleRate}) : null,oki:data.oki};
+          fm:data.fm ? new Ym2151VoiceInspector({clock:data.clock,sampleRate:context.sampleRate,
+            dispatch:({args})=>observation.fm.observeWrite(...args)}) : null,oki:data.oki};
         autoChannel=false;
         selectedOkiVoice=0;
         setSongView(true);
       }
       if (!observation) return;
+      if(data.masks)observation.masks=data.masks;
       if (data.fm) {Object.assign(observation.fm,data.fm);dirty=true;}
       observation.oki=data.oki;
-      if ('paused' in data) pausedSong=data.paused?data:null;
+      if ('paused' in data){
+        pausedSong=data.paused?data:null;
+      }
       showSongPcm(song,data.oki);
       if (data.ready) {$('pauseSong').disabled=false;return;}
       if (data.playing) return;
@@ -666,28 +745,31 @@ async function playSong(song) {
     status('Playing '+song.name);
   } catch(error) {if (request===songRequest) {stopSong();fail(error);}}
 }
-function stopRun() {
-  stopSong();
+function stopRun(keepSettings=false) {
+  stopSong(keepSettings);
   runId++; worker?.terminate(); worker = null;
   panel.releaseAll(); held.clear();autoHeld.clear();
   for (let ch=0;ch<8;ch++) opm.keyOff(ch);
   write(0x78);
 }
-$('stop').onclick = () => {stopRun();status('Stopped');};
+$('stop').onclick = () => {stopRun(true);status('Stopped');};
 $('run').onclick = async () => {
-  stopRun(); const id = runId;
+  stopRun(true); const id = runId;
   try {
     const source = $('editor').value;
     await startAudio(); if (id !== runId) return;
+    codeSamples=[];audio.pcm.port.postMessage({codeSamples:[],codeAttenuation:null});
     worker = new Worker(new URL('./code-worker.js',import.meta.url),{type:'module'});
     status('Running');
     worker.onmessage = ({data}) => {
       if (id !== runId) return;
       try {
         if (data.error) throw Error(data.error);
-        if (data.done) {worker.terminate();worker=null;status('Finished');return;}
+        if(data.editedFm){Object.assign(observation.fm,data.editedFm);dirty=true;return;}
+      if (data.done) {worker.terminate();worker=null;status('Finished');return;}
         const api = data.chip === 'opm' ? opm : oki;
-        api[data.method](...data.args);
+        writingCode=true;
+        try{api[data.method](...data.args);}finally{writingCode=false;}
       } catch (error) {stopRun();fail(error);}
     };
     worker.onerror = event => {stopRun();fail(event.message);};
