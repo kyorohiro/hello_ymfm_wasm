@@ -53,6 +53,12 @@ export function writeBankSample(bank,clip,slot=null) {
   }
   if(ranges.some(({start,end})=>start<=id*8+5 && end>=id*8))
     throw Error('This table entry overlaps existing sample data.');
+  if(!clip){
+    if(slot===null || !occupied.has(id))throw Error('Choose an occupied sample slot.');
+    const bytes=bank.bytes.slice(),names=Array.from({length:Math.max(bank.names.length,id+1)},(_,i)=>bank.names[i]??'');
+    bytes.fill(0,id*8,id*8+6);names[id]='';
+    return {bytes,names,id};
+  }
   const data=clip.bytes.subarray(0x400);
   let start=0x400;
   for(const range of ranges.sort((a,b)=>a.start-b.start)){

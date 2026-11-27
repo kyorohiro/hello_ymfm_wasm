@@ -8,7 +8,7 @@ import {createParamControl} from '../synth/synth_controls.js';
 import {createFretboardLayout,createFretboardState,buildKeyboard} from '../synth/synth_keyboard.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {decodeSongSample} from './song-samples.js';
-import {displaySample,drawWave,playableSamples} from './sample-view.js';
+import {displaySample,drawWave,inspectBank} from './sample-view.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
 import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
@@ -284,52 +284,60 @@ function showBusy(value,ids=[]) {
   document.querySelectorAll('.lamp').forEach((lamp,i) => {
     const active = Boolean(value & (1<<i));
     if(active)playing++;
-    const sample=ids[i],name=$('sample').options[sample]?.textContent;
+    const sample=ids[i],name=sample==null?'':slotName(sample);
     lamp.textContent='Voice '+(i+1)+(active?' ●':' ○')+(name?' · '+(active?'':'Last ')+name:'');
     lamp.classList.toggle('on',active);
   });
   $('voiceCount').textContent=playing+' / 4 voices playing';
 }
-function updateSampleView() {
-  displaySample($('sampleWave'),$('sampleRange'),sampleRom,Number($('sample').value));
-}
-$('sample').onchange = updateSampleView;
-const voicePickers=[];
-function voiceSample(voice){
-  const id=Number(voicePickers[voice].value);
-  return id<0?Number($('sample').value):id;
-}
+let sampleNames=[],selectedSlot=0;
+const voicePickers=[],voiceIds=[];
+function slotName(id){return sampleNames[id]?id+' · '+sampleNames[id]:String(id);}
+function voiceSample(voice){return voiceIds[voice]<0?selectedSlot:voiceIds[voice];}
 let sampleAttenuation=2;
 const attenuationControl=createParamControl({label:'Attenuation',min:0,max:15,step:1,value:sampleAttenuation,
   onChange:value=>{sampleAttenuation=value;},
 });
 $('attenuation').append(attenuationControl.element);
-let phraseIds=[], selectedSlot=0;
-function showSlotAction(){
-  $('writeSlot').textContent=(phraseIds.includes(selectedSlot)?'Replace':'Add')+' #'+selectedSlot+' from WAV / FLAC…';
-}
-const slotControl=createParamControl({label:'Sample slot',min:0,max:127,step:1,value:0,
-  onChange:value=>{selectedSlot=value;showSlotAction();},
-});
+const slotControl=createParamControl({label:'Sample slot',min:0,max:127,step:1,value:0,onChange:selectSlot});
 $('slotControl').append(slotControl.element);
+const slotButtons=Array.from({length:128},(_,id)=>{
+  const button=document.createElement('button');
+  button.textContent=id;button.setAttribute('aria-pressed','false');button.onclick=()=>selectSlot(id);
+  $('sampleSlots').append(button);return button;
+});
+function selectSlot(id){
+  slotButtons[selectedSlot].setAttribute('aria-pressed','false');
+  selectedSlot=id;
+  slotButtons[id].setAttribute('aria-pressed','true');
+  slotControl.updateVisual(id);
+  const filled=slotButtons[id].dataset.filled==='true';
+  $('deleteSlot').disabled=!filled;
+  $('selectedSample').textContent=filled?slotName(id):id+' · Empty';
+  displaySample($('sampleWave'),$('sampleRange'),sampleRom,id);
+}
+$('deleteSlot').onclick=()=>{try{files.deleteSample(selectedSlot);}catch(error){fail(error);}};
 $('writeSlot').onclick=()=>$('slotAudio').click();
 $('slotAudio').onchange=async()=>{
   const input=$('slotAudio'),file=input.files[0];input.value='';
-  if(file)try {await files.importVoiceSample(null,file,selectedSlot);} catch(error){fail(error);}
+  if(file)try {await files.loadSampleFile(file,{slot:selectedSlot});} catch(error){fail(error);}
 };
 function chooseSamples(names,assignments=[],selected=0) {
-  phraseIds=playableSamples(sampleRom);
-  showSlotAction();
-  $('bankInfo').textContent=phraseIds.length+' / 128 samples · ROM '+(sampleRom.byteLength/1024).toLocaleString('en-US',{maximumFractionDigits:2})+' / 256 KiB · Playback 7.58 kHz (1 MHz ÷ 132)';
-  $('hitPad').disabled=names[3]!=='Arcade hit';
-  $('sample').replaceChildren(...names.map((name,i) => new Option(name?i+' · '+name:String(i),i)));
-  $('sample').value=String(selected);
-  for(const [voice,picker] of voicePickers.entries()){
-    picker.replaceChildren(new Option('Follow Sample',-1),...names.map((name,id)=>new Option(name?id+' · '+name:String(id),id)),new Option('Import WAV / FLAC…','import'));
-    picker.value=String(assignments[voice]??-1);
-    picker.dataset.sample=picker.value;
+  const {ids,usedBytes}=inspectBank(sampleRom);
+  sampleNames=names;
+  const occupied=new Set(ids);
+  for(const [id,button] of slotButtons.entries()){
+    button.dataset.filled=String(occupied.has(id));
+    button.title=occupied.has(id)?slotName(id):id+' · Empty';
+    button.setAttribute('aria-label',button.title);
   }
-  updateSampleView();
+  $('bankInfo').textContent=ids.length+' / 128 samples · ROM '+usedBytes.toLocaleString('en-US')+' / 262,144 bytes · 7.58 kHz';
+  $('hitPad').disabled=names[3]!=='Arcade hit';
+  for(const [voice,picker] of voicePickers.entries()){
+    voiceIds[voice]=assignments[voice]??-1;
+    picker.updateVisual(voiceIds[voice]);
+  }
+  selectSlot(selected);
 }
 $('hitPad').onclick=()=>{
   oki.play(3,3,2);startAudio().catch(fail);
@@ -347,19 +355,18 @@ for (let i=0;i<4;i++) {
   mute.setAttribute('aria-pressed','false');
   mute.onclick = () => oki.setVoiceMuted(i,!voiceMutes[i]);
   muteButtons.push(mute);
-  const picker=document.createElement('select'), input=document.createElement('input');
-  picker.setAttribute('aria-label','Voice '+(i+1)+' sample');
+  const picker=createParamControl({label:'Voice '+(i+1)+' sample',min:-1,max:127,step:1,value:0,showLabel:false,
+    formatValue:id=>id<0?'Follow':String(id),onChange:id=>{files.assignSample(i,id);voiceIds[i]=id;},
+  });
+  const input=document.createElement('input'),load=document.createElement('button');
+  load.textContent='Load…';load.setAttribute('aria-label','Load Voice '+(i+1)+' sample');load.onclick=()=>input.click();
   input.type='file';input.accept='.wav,.wave,.flac';input.hidden=true;
   input.onchange=async()=>{
     const file=input.files[0];input.value='';
-    if(file)try {await files.importVoiceSample(i,file);} catch(error){fail(error);}
-  };
-  picker.onchange=()=>{
-    if(picker.value==='import'){picker.value=picker.dataset.sample;input.click();return;}
-    files.assignSample(i,Number(picker.value));picker.dataset.sample=picker.value;
+    if(file)try {await files.loadSampleFile(file,{voice:i});} catch(error){fail(error);}
   };
   voicePickers.push(picker);
-  row.append(lamp,picker,input,play,stop,mute); $('voices').append(row);
+  row.append(lamp,picker.element,play,stop,mute,load,input); $('voices').append(row);
 }
 chooseSamples(samples,[0,1,2,3]);
 function toggleButton(text,label,pressed,click) {
@@ -402,7 +409,7 @@ showBusy(0xf0);
 let romRevision = 0;
 function installRom(bytes,names,label,assignments,extended=false,slot=null) {
   romRevision++; sampleRom = bytes; rawOki = [];
-  audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,slot??(extended?Number($('sample').value):0)); $('romName').textContent = label;
+  audio?.pcm.port.postMessage({rom:bytes,extended}); audio?.pcm.port.postMessage({voiceMutes}); chooseSamples(names,assignments,slot??(extended?selectedSlot:0)); $('romName').textContent = label;
 }
 $('rom').onchange = async () => {
   const file = $('rom').files[0], revision = ++romRevision;
@@ -500,8 +507,7 @@ buildKeyboard({root:$('keys'),rowDefs:layout.rowDefs,layoutEntries:layout.entrie
   onPointerUp:e => release('pointer'+e.pointerId),onPointerCancel:e => release('pointer'+e.pointerId)});
 window.addEventListener('keydown',e => {
   if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-  const samplePicker=pcmKeyboard && (e.target===$('sample') || voicePickers.includes(e.target));
-  if (!samplePicker && e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
+  if (e.target.closest('textarea,input:not([type=range]),select,[contenteditable=true]')) return;
   const entry = layout.entries.find(v => v.key === e.key.toLowerCase());
   if (entry) {e.preventDefault();press(e.code,entry);}
 });

@@ -252,4 +252,8 @@ main:has(#referenceSong:not([hidden])) .output canvas {height:48px;margin:.25rem
 
 .pcm-keys #keys .key span {display:none}
 
-#voices select {max-width:min(100%,12rem);min-width:0}
+#sampleSlots {display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;margin:.35rem 0}
+#sampleSlots button {min-width:0;padding:.15rem 0;background:var(--panel);color:var(--ink);font-size:clamp(.61rem,1.9vw,.82rem);font-variant-numeric:tabular-nums}
+#sampleSlots button[data-filled=true] {background:var(--deep-green);color:white}
+#sampleSlots button[aria-pressed=true] {outline:2px solid #c1610c;outline-offset:-2px}
+#selectedSample {font-weight:bold}

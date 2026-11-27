@@ -355,7 +355,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
       if(v.kind==='bank'&&(typeof v.name!=='string'||!Array.isArray(v.names)||v.names.length<1||v.names.length>128||
         !v.names.every(n=>typeof n==='string')||v.bytes.length<8||v.bytes.length>0x40000))throw Error('Invalid sample bank.');
       if(v.kind==='bank' && v.voiceSamples!==undefined && (!Array.isArray(v.voiceSamples) || v.voiceSamples.length!==4 ||
-        !v.voiceSamples.every(id=>Number.isInteger(id)&&id>=-1&&id<v.names.length)))throw Error('Invalid PCM voice samples.');
+        !v.voiceSamples.every(id=>Number.isInteger(id)&&id>=-1&&id<128)))throw Error('Invalid PCM voice samples.');
       if(v.kind==='song'&&typeof v.name!=='string')throw Error('Invalid song name.');
     }
     if(active!==null&&docs.get(active)?.kind!=='bank')throw Error('Missing active ROM.');
@@ -391,10 +391,14 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     voiceSamples[voice]=id;
     editFile(activeBank,{...bank,voiceSamples});
   }
-  async function importVoiceSample(voice,file,slot=null){
+  async function loadSampleFile(file,{voice=null,slot=null}){
     const bank=editableBank(),path=activeBank;
     const clip=await makeAudioBank([file]);
     if(path!==activeBank || files.get(path)!==bank)throw Error('Sample bank changed. Select the file again.');
+    updateSample(bank,clip,voice,slot);
+  }
+  function updateSample(bank,clip,voice,slot){
+    const path=activeBank;
     const {bytes,names,id}=writeBankSample(bank,clip,slot);
     const voiceSamples=[...(bank.voiceSamples??Array(4).fill(-1))];
     if(voice!==null)voiceSamples[voice]=id;
@@ -402,7 +406,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     editFile(path,{...bank,bytes,names,voiceSamples});
     applyBank(bytes,names,base(path),voiceSamples,slot===null,slot);
   }
-  return {addBank,assignSample,importVoiceSample,restoreKit(){restoreKit();render();persist();},recordEdit(ch){
+  return {addBank,assignSample,loadSampleFile,deleteSample(slot){updateSample(editableBank(),null,null,slot);},restoreKit(){restoreKit();render();persist();},recordEdit(ch){
     const target=files.get(editPath);
     if(target?.kind==='channel'&&target.ch===ch)editFile(editPath,{...target,voice:currentVoice(ch)});
     else if(ch===presetChannel&&target?.kind==='voice')editFile(editPath,{kind:'voice',voice:currentVoice(ch)});
