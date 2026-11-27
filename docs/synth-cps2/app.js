@@ -299,7 +299,10 @@ $('apply-code').onclick=()=>codeWorker?.postMessage({source:source.value,path:ac
 $('stop-code').onclick=stop;
 
 function renderFiles() {
-  renderFileTree($('project-tree'),files.list(),{expanded,selectedPath:songPath??activePath,onOpen:openScript});
+  const entries=files.list();
+  const songs=entries.filter(file=>file.type==='binary').length;
+  $('export-contents').textContent='Includes '+songs+' VGM/VGZ '+(songs===1?'file':'files')+' with embedded sample data.';
+  renderFileTree($('project-tree'),entries,{expanded,selectedPath:songPath??activePath,onOpen:openScript});
 }
 function openScript(path) {
   const file=files.get(path);
@@ -357,11 +360,18 @@ $('new-cassette').onclick=()=>{
   if (!confirm('Replace the current files and instrument settings with the factory cassette?')) return;
   replaceProject(factory);saveDraft();$('file-status').textContent='New cassette';
 };
-$('export-cassette').onclick=()=>run(async()=>{
-  const url=URL.createObjectURL(new Blob([exportProject(snapshot())],{type:'application/zip'}));
-  const a=document.createElement('a');a.href=url;a.download='tetorica-cps2.cassette.zip';a.click();
+function downloadCassette(project,filename) {
+  const url=URL.createObjectURL(new Blob([exportProject(project)],{type:'application/zip'}));
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
-  $('file-status').textContent='Cassette exported';
+  $('file-status').textContent='Exported '+filename;
+}
+$('export-cassette').onclick=()=>run(async()=>downloadCassette(snapshot(),'tetorica-cps2.cassette.zip'));
+$('demo-cassette').onclick=()=>run(async()=>{
+  const songs=Object.values(demoTracks).map(track=>({
+    path:'/songs/'+track.filename,type:'binary',data:demoVgm(track.score()),
+  }));
+  downloadCassette({...factory,files:[...factory.files,...songs]},'tetorica-cps2-demos.cassette.zip');
 });
 $('import-cassette').onclick=()=>$('cassette-input').click();
 $('cassette-input').onchange=async e=>{

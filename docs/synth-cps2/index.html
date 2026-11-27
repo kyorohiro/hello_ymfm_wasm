@@ -48,7 +48,9 @@ footer{padding:1rem 1.5rem;background:#d9e6df}output{display:block}button:focus-
 <div id="code-panel" hidden>
 <aside aria-label="Files"><strong>Files</strong><div id="project-tree"></div><button id="new-script">New script…</button>
 <button id="import-song">Import VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
-<details><summary>Cassette</summary><button id="new-cassette">New cassette…</button><button id="export-cassette">Export cassette</button>
+<details><summary>Cassette</summary><button id="new-cassette">New cassette…</button><button id="export-cassette" aria-describedby="export-contents">Export cassette</button>
+<small id="export-contents"></small>
+<button id="demo-cassette">Download factory demos</button>
 <button id="import-cassette">Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden></details>
 <p id="file-status" role="status"></p></aside><div>
 <button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
