@@ -268,11 +268,16 @@ try {
   assert.equal(await page.inputValue('#editor'),round+'\n// rehearsal');
 
   await page.click('[data-tab="pcm"]');
-  assert.equal(await page.locator('button[data-file-path="/banks/0.rom"]').textContent(),'0.rom');
+  assert.equal(await page.locator('button[data-file-path="/banks/0_default.rom"]').textContent(),'0_default.rom');
+  assert.deepEqual(await page.locator('#romList option').allTextContents(),['0_default.rom','1_sample.rom','99_empty.rom']);
+  await page.selectOption('#romList','/banks/1_sample.rom');
+  assert.equal(await page.locator('#sampleSlots button[data-filled=true]').count(),4);
+  await page.selectOption('#romList','/banks/99_empty.rom');
+  assert.equal(await page.locator('#sampleSlots button[data-filled=true]').count(),0);
   await page.locator('#rom').setInputFiles({name:'test.rom',mimeType:'application/octet-stream',buffer:Buffer.alloc(2048)});
   await page.waitForFunction(()=>document.querySelector('#romList').value==='/banks/test.rom');
-  await page.selectOption('#romList','/banks/0.rom');
-  assert.equal(await page.locator('#romName').textContent(),'0.rom');
+  await page.selectOption('#romList','/banks/0_default.rom');
+  assert.equal(await page.locator('#romName').textContent(),'0_default.rom');
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
   await page.click('button[data-file-path="/banks/test.rom"]');
   assert.ok(await page.locator('#pcm').isVisible());
@@ -303,6 +308,7 @@ try {
   await page.click('#chooseVgm');
   await (await pickSong).setFiles({name:'hit.vgz',mimeType:'application/gzip',buffer:gzipSync(song)});
   await page.getByText('Imported hit.vgz',{exact:true}).waitFor();
+  assert.ok((await page.locator('#romList option').allTextContents()).includes('hit.rom'));
   await page.evaluate(()=>{window.peak=0;});
   await page.click('#playSong');
   await page.waitForFunction(()=>window.peak>.001);
@@ -391,7 +397,7 @@ try {
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   assert.equal(await page.inputValue('#editor'),factoryCode);
   assert.equal(await page.locator('button[data-file-path^="/presets/"]').count(),8);
-  assert.deepEqual(await page.locator('button[data-file-path^="/banks/"]').count(),1);
+  assert.equal(await page.locator('button[data-file-path^="/banks/"]').count(),3);
   await algorithmFile.click();
   await page.waitForFunction(source=>document.querySelector('#editor').value===source,algorithmSource);
   await page.click('[data-file-path="/examples/round-start.js"]');

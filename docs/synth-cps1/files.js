@@ -2,7 +2,8 @@
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {Ym2151VoiceInspector} from '../js/playground_ym2151_inspector.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
-import {inspectSong} from './vgm.js';
+import {createSampleBank} from './kit.js';
+import {inspectSong,embeddedSongBank} from './vgm.js';
 import {playableSamples} from './sample-view.js';
 import {makeAudioBank,writeBankSample} from './audio-bank.js';
 import {parseOpm} from './opm.js';
@@ -13,15 +14,17 @@ import {dirname} from '../js/tetorica_virtual_files/path.js';
 const decode=bytes=>new TextDecoder('utf-8',{fatal:true}).decode(bytes);
 const voicePatch=({algorithm,feedback,pan,ams,pms,operators})=>({algorithm,feedback,pan,ams,pms,operators});
 const voicePath=i=>'presets/ch'+(i+1)+'.fm.json';
+const defaultPath='/banks/0_default.rom';
 const bankPath=i=>'banks/'+i+'.rom';
 const songPath=(i,name)=>'songs/'+i+(/\.vgz$/i.test(name)?'.vgz':'.vgm');
 const presetPath=i=>'presets/saved-'+(i+1)+'.fm.json';
 const entry='/index.js';
 const el=id=>document.getElementById(id);
 const report=text=>{el('fileStatus').textContent=text;};
-async function loadSong(name,raw) {
+async function loadSong(name,raw,onBank) {
   const bytes=new Uint8Array(await maybeDecodeVgmFile(raw,{maxBytes:16*1024*1024}));
-  inspectSong(bytes);return {name,bytes,raw};
+  if(onBank)onBank(embeddedSongBank(bytes));else inspectSong(bytes);
+  return {name,bytes,raw};
 }
 function validateVoice(patch,validator) {
   if(!Array.isArray(patch?.operators)||patch.operators.length!==4)throw Error('Invalid YM2151 voice.');
@@ -142,12 +145,12 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     }
   });
   function capture(){
-    return {files:new Map(files),folders:[...folders],selected,editor,activeBank,presetChannel,editPath,pending:new Map(pending)};
+    return {starterBanksVersion:1,files:new Map(files),folders:[...folders],selected,editor,activeBank,presetChannel,editPath,pending:new Map(pending)};
   }
   function remember(extra={}){history.push({...capture(),...extra});if(history.length>20)history.shift();}
-  function nextPath(make,start=0) {
+  function nextPath(make,start=0,pendingFiles) {
     let i=start,path;
-    do {path='/'+make(i++);}while(occupied(path));
+    do {path='/'+make(i++);}while(occupied(path)||pendingFiles?.has(path));
     return path;
   }
   function occupied(path) {
@@ -189,7 +192,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   }
   function restoreKit() {
     let path=items('bank').find(([,bank])=>bank.bytes===defaultBank.bytes||(bank.name===defaultBank.name&&bank.bytes.length===defaultBank.bytes.length&&bank.bytes.every((b,i)=>b===defaultBank.bytes[i])))?.[0];
-    if(!path){path=nextPath(bankPath);files.set(path,{kind:'bank',...defaultBank});}
+    if(!path){path=nextPath(i=>'banks/0_default'+(i?' ('+i+')':'')+'.rom');files.set(path,{kind:'bank',...defaultBank});}
     useBank(path);
   }
   function undo(){
@@ -240,10 +243,11 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     }
     for(const f of incoming.filter(file=>!audioFiles.includes(file))) {
       if(f.size>16*1024*1024)throw Error('File exceeds 16 MiB.');
+      let extracted;
       let path=checkPath((parent==='/'?'':parent)+'/'+f.name),v;
       if(/\.vg[zm]$/i.test(path)){
-        v={kind:'song',...await loadSong(f.name,new Uint8Array(await f.arrayBuffer()))};
-        if(numbered)path=nextPath(i=>songPath(i,f.name),songEntries().length);
+        v={kind:'song',...await loadSong(f.name,new Uint8Array(await f.arrayBuffer()),bytes=>{extracted=bytes;})};
+        if(numbered)path=nextPath(i=>songPath(i,f.name),songEntries().length,additions);
       }else if(/\.opm$/i.test(path)){
         const source=await f.text();v={kind:'opm',source,voices:parseOpm(source)};
         if(numbered)path=nextPath(i=>'presets/import-'+i+'.opm');
@@ -253,6 +257,11 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
       else throw Error('Unsupported file: '+f.name);
       if(occupied(path)||additions.has(path))throw Error('Already exists: '+path);
       additions.set(path,v);
+      if(extracted){
+        const stem=f.name.replace(/\.vg[zm]$/i,'');
+        const target=checkPath(nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+'.rom',0,additions));
+        additions.set(target,newBank({kind:'bank',bytes:extracted,name:base(target),names:Array(128).fill('')}));
+      }
     }
     if(epoch!==revision)return;
     for(const path of additions.keys())if(occupied(path))throw Error('Already exists: '+path);
@@ -273,8 +282,10 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   function factory(code=defaults) {
     const docs=new Map([...code].map(([path,text])=>[path,{kind:'code',text}]));
     initialVoices.forEach((_,ch)=>docs.set('/'+voicePath(ch),{kind:'channel',ch}));
-    docs.set('/'+bankPath(0),{kind:'bank',...defaultBank});
-    return {docs,dirs:[],active:'/'+bankPath(0),voices:initialVoices,lfo:initial.lfo,noise:initial.noise};
+    docs.set(defaultPath,{kind:'bank',...defaultBank});
+    docs.set('/banks/1_sample.rom',createSampleBank());
+    docs.set('/banks/99_empty.rom',{kind:'bank',name:'99_empty.rom',names:[''],bytes:new Uint8Array(0x400),voiceSamples:[0,1,2,3]});
+    return {docs,dirs:[],active:defaultPath,voices:initialVoices,lfo:initial.lfo,noise:initial.noise};
   }
   function replace(project) {
     remember(soundState());revision++;stop();files=project.docs;folders=project.dirs;editor=files.has(entry)?entry:items('code')[0]?.[0]??null;selected=editor??'/';editPath=opmBank=presetChannel=null;pending.clear();
@@ -384,6 +395,9 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   files=start.docs;folders=start.dirs;activeBank=start.active;script(entry,false);render();
   if(draft?.files instanceof Map){
     files=draft.files;folders=draft.folders;selected=draft.selected;editPath=draft.editPath;presetChannel=draft.presetChannel;
+    if(!draft.starterBanksVersion && files.get('/banks/0.rom')?.kind==='bank'){
+      for(const [path,file] of start.docs)if(file.kind==='bank' && !occupied(path))files.set(path,file);
+    }
     pending=draft.pending??new Map();restoreSound(draft);
     useBank(draft.activeBank);script(draft.editor,false);el('cassetteName').textContent=draft.name;render();
   }

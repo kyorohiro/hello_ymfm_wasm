@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 
-export function inspectSong(bytes) {
+export function inspectSong(bytes,onRomBlock) {
   const parser = new Ym2612VGM(bytes);
   const {ym2151Clock,okim6295Clock} = parser.header;
   if (!(ym2151Clock || okim6295Clock) || (ym2151Clock & 0xc0000000) || (okim6295Clock & 0x40000000))
@@ -15,7 +15,34 @@ export function inspectSong(bytes) {
       throw Error('Unsupported CPS1 VGM command at '+pos+'.');
     const event = parser.step();
     if (parser.position>bytes.length || event.chipIndex) throw Error('Truncated or dual-chip CPS1 VGM.');
+    if (event.type==='okim6295-rom-data') onRomBlock?.(event);
     if (event.type==='wait') ticks+=event.samples;
   }
   if (!ticks) throw Error('VGM contains no playback time.');
+}
+
+// Build a standalone, single-window bank from the final uploaded image.
+export function embeddedSongBank(bytes) {
+  let rom, supplied;
+  inspectSong(bytes,({memorySize,offset,data})=>{
+    if(memorySize<8 || memorySize>0x40000){rom=supplied=null;return;}
+    if(rom?.length!==memorySize){
+      rom=new Uint8Array(memorySize);supplied=new Uint8Array(memorySize);
+    }
+    rom.set(data,offset);supplied.fill(1,offset,offset+data.length);
+  });
+  if(!rom)return null;
+  if(supplied.every(Boolean))return rom;
+  // Preserve addresses and clear entries whose table or payload was omitted.
+  const address=p=>((rom[p]&3)<<16)|(rom[p+1]<<8)|rom[p+2];
+  const missing=new Uint32Array(rom.length+1);
+  for(let i=0;i<rom.length;i++)missing[i+1]=missing[i]+1-supplied[i];
+  let complete=0;
+  for(let p=0;p<0x400 && p+6<=rom.length;p+=8){
+    const start=address(p),end=address(p+3);
+    if(start>=0x400 && start<end && end<rom.length &&
+       missing[p]===missing[p+6] && missing[start]===missing[end+1])complete++;
+    else rom.fill(0,p,p+6);
+  }
+  return complete?rom:null;
 }

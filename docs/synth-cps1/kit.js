@@ -47,3 +47,29 @@ export function encodeSample(pcm) {
   }
   return bytes;
 }
+
+// Four original cues for comparing the four fixed-rate PCM voices.
+export function createSampleBank() {
+  const names=['','Coin','Spring','Bell','Power down'];
+  const rate=1000000/132;
+  const clips=[0.18,0.35,0.5,0.42].map((duration,i)=>{
+    const pcm=new Float32Array(Math.ceil(duration*rate));
+    let phase=0;
+    for(let n=0;n<pcm.length;n++){
+      const t=n/rate;
+      const hz=[t<0.065?880:1320,420+130*Math.sin(28*t),550,620-480*t/duration][i];
+      phase+=2*Math.PI*hz/rate;
+      const wave=i===2?(Math.sin(phase)+0.4*Math.sin(2.73*phase))/1.4:Math.sin(phase);
+      pcm[n]=1750*wave*Math.min(1,t*500)*Math.exp(-5*t/duration);
+    }
+    return encodeSample(pcm);
+  });
+  const bytes=new Uint8Array(0x400+clips.reduce((n,c)=>n+c.length,0));
+  let start=0x400;
+  clips.forEach((clip,i)=>{
+    const end=start+clip.length-1;
+    bytes.set([start>>16,start>>8,start,end>>16,end>>8,end],8*(i+1));
+    bytes.set(clip,start);start=end+1;
+  });
+  return {kind:'bank',name:'1_sample.rom',names,bytes,voiceSamples:[1,2,3,4]};
+}
