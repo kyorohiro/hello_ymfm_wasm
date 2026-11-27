@@ -267,10 +267,11 @@ try {
   assert.equal(await page.inputValue('#editor'),round+'\n// rehearsal');
 
   await page.click('[data-tab="pcm"]');
+  assert.equal(await page.locator('button[data-file-path="/banks/0.rom"]').textContent(),'0.rom');
   await page.locator('#rom').setInputFiles({name:'test.rom',mimeType:'application/octet-stream',buffer:Buffer.alloc(2048)});
   await page.getByText('test.rom',{exact:true}).first().waitFor();
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
-  await page.click('button[data-file-path="/banks/1.rom"]');
+  await page.click('button[data-file-path="/banks/test.rom"]');
   assert.ok(await page.locator('#pcm').isVisible());
   assert.match(await page.locator('#sampleRange').textContent(),/Empty/);
   assert.ok(await page.locator('#sampleWave').isHidden());
@@ -540,6 +541,8 @@ try {
   const pcmRows=page.locator('#voices .bar');
   await pcmRows.first().locator('input').setInputFiles({name:'new.wav',mimeType:'audio/wav',buffer:wav});
   await page.waitForFunction(()=>document.querySelector('#voices select').value==='2');
+  const bankRow=page.locator('button[data-file-path^="/banks/samples-"]').first();
+  assert.equal(await bankRow.textContent(),(await bankRow.getAttribute('data-file-path')).split('/').pop());
   assert.equal(await page.inputValue('#sample'),'1');
   await pcmRows.first().getByText('Play',{exact:true}).click();
   assert.equal(await page.locator('#command').textContent(),'0x82 0x12');

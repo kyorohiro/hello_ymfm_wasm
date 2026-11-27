@@ -48,7 +48,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   }
   function useBank(path) {
     activeBank=path;const bank=files.get(path)??defaultBank;
-    applyBank(bank.bytes,bank.names,bank.name,bank.voiceSamples);
+    applyBank(bank.bytes,bank.names,path?base(path):'—',bank.voiceSamples);
   }
   function open(path) {
     const v=files.get(path);if(!v)return;
@@ -213,7 +213,10 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     try {localStorage.setItem('cps1.scripts.v2',JSON.stringify(items('code').map(([path,v])=>[path,v.text])));} catch {}
   }
   function addBank(bytes,names,name){
-    remember();const path=nextPath(bankPath);files.set(path,{kind:'bank',bytes,names,name});open(path);persist();
+    const filename=base(name),dot=filename.lastIndexOf('.');
+    const stem=dot>0?filename.slice(0,dot):filename, ext=dot>0?filename.slice(dot):'';
+    const path=checkPath(nextPath(i=>'banks/'+stem+(i?' ('+i+')':'')+ext));
+    remember();files.set(path,{kind:'bank',bytes,names,name});open(path);persist();
   }
   async function importFiles(incoming,parent,numbered=false) {
     const epoch=revision, additions=new Map();
@@ -256,7 +259,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
   const tree=installProjectTree({select:path=>{selected=path;
     for(const row of el('fileTree').querySelectorAll('[data-file-path]'))row.setAttribute('aria-current',String(row.dataset.filePath===path));
     updateButtons();},root:el('fileTree'),getFiles:()=>files,getFolders:()=>folders,selected:()=>selected,open,
-    label:v=>v?.name,create,change,undo,canUndo:()=>history.length>0,importFiles,report});
+    label:file=>file.kind==='bank'?undefined:file.name,create,change,undo,canUndo:()=>history.length>0,importFiles,report});
   function factory(code=defaults) {
     const docs=new Map([...code].map(([path,text])=>[path,{kind:'code',text}]));
     initialVoices.forEach((_,ch)=>docs.set('/'+voicePath(ch),{kind:'channel',ch}));
@@ -392,7 +395,7 @@ export function setupFiles({inspector,panel,keyMasks,defaultBank,defaults,initia
     voiceSamples[voice]=id;
     remember();
     editFile(path,{...bank,bytes,names,voiceSamples});
-    applyBank(bytes,names,bank.name,voiceSamples,true);
+    applyBank(bytes,names,base(path),voiceSamples,true);
   }
   return {addBank,assignSample,importVoiceSample,restoreKit(){restoreKit();render();persist();},recordEdit(ch){
     const target=files.get(editPath);
