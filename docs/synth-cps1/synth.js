@@ -392,10 +392,11 @@ for (const note of ['C3', 'G3', 'Bb3', 'C4']) {
   oki.play(1, 1, 4);
   await sleep(0.18);
 }`;
-const entryPath = '/index.js', roundPath = '/examples/round-start.js';
+const scriptPaths = Array.from($('codeFile').options, option => option.value);
+const [entryPath,...examplePaths] = scriptPaths;
 const scripts = new Map([[entryPath,example]]);
-const storageKey = path => path === entryPath ? 'cps1.code' : 'cps1.round-start';
-for (const path of [entryPath,roundPath]) {
+const storageKey = path => path === entryPath ? 'cps1.code' : 'cps1.'+path.split('/').pop().replace(/\.js$/, '');
+for (const path of scriptPaths) {
   try {
     const saved = localStorage.getItem(storageKey(path));
     if (saved !== null) scripts.set(path,saved);
@@ -408,19 +409,19 @@ function saveScript(path,text) {
   try {localStorage.setItem(storageKey(path),text);} catch {}
 }
 $('editor').oninput = () => saveScript(activePath,$('editor').value);
-async function roundSource() {
-  if (!scripts.has(roundPath)) {
-    const response = await fetch(new URL('./examples/round-start.js',import.meta.url));
-    if (!response.ok) throw Error('Could not load Round Start ('+response.status+')');
+async function scriptSource(path) {
+  if (!scripts.has(path)) {
+    const response = await fetch(new URL('.'+path,import.meta.url));
+    if (!response.ok) throw Error('Could not load '+path+' ('+response.status+')');
     const source = await response.text();
-    if (!scripts.has(roundPath)) scripts.set(roundPath,source);
+    if (!scripts.has(path)) scripts.set(path,source);
   }
-  return scripts.get(roundPath);
+  return scripts.get(path);
 }
 async function openScript(path) {
   const request = ++openRequest;
   try {
-    if (path === roundPath) await roundSource();
+    await scriptSource(path);
     if (request !== openRequest) return;
     activePath = path; $('codeFile').value = path; $('editor').value = scripts.get(path);
     document.querySelector('[data-tab="code"]').click();
@@ -615,14 +616,16 @@ $('run').onclick = async () => {
 };
 
 const files = setupFiles({inspector,panel,keyMasks,openScript,playSong,stopSong,openFiles:()=>setFilesOpen(true),defaultCode:example,defaultBank:{bytes:sampleRom,names:samples,name:'Original kit'},
-  applyBank:installRom,getCode:() => scripts.get(entryPath),getRoundSource:roundSource,
-  setCode:(value,round) => {
+  applyBank:installRom,getCode:() => scripts.get(entryPath),examplePaths,scriptSource,
+  setCode:(value,examples=new Map()) => {
     openRequest++;
     saveScript(entryPath,value);
-    if (round !== undefined) saveScript(roundPath,round);
-    else {
-      scripts.delete(roundPath);
-      try {localStorage.removeItem(storageKey(roundPath));} catch {}
+    for (const path of examplePaths) {
+      if (examples.has(path)) saveScript(path,examples.get(path));
+      else {
+        scripts.delete(path);
+        try {localStorage.removeItem(storageKey(path));} catch {}
+      }
     }
     activePath=entryPath; $('codeFile').value=entryPath; $('editor').value=value;
   },stop:() => {stopRun();status('Stopped');}});

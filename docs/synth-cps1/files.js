@@ -14,7 +14,7 @@ const bankPath = i => 'banks/'+i+'.rom';
 const songPath = (i,name) => 'songs/'+i+(/\.vgz$/i.test(name) ? '.vgz' : '.vgm');
 const presetPath = i => 'presets/saved-'+(i+1)+'.fm.json';
 
-export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,getCode,getRoundSource,setCode,stop,playSong,stopSong,openFiles,openScript,keyMasks}) {
+export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,getCode,scriptSource,examplePaths,setCode,stop,playSong,stopSong,openFiles,openScript,keyMasks}) {
   const el = id => document.getElementById(id);
   let banks = [defaultBank], presets = [], opmBanks = [], active = 0;
   const initial = inspector.read();
@@ -52,7 +52,7 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
   const report = message => {el('fileStatus').textContent = message;};
   function fileActions() {
     const actions=new Map();
-    for (const path of ['/index.js','/examples/round-start.js']) actions.set(path,()=>openScript(path));
+    for (const path of ['/index.js',...examplePaths]) actions.set(path,()=>openScript(path));
     const fm=()=>document.querySelector('[data-tab="fm"]').click();
     for (let i=0;i<8;i++) actions.set('/'+voicePath(i),()=>{panel.selectChannel(i);fm();});
     presets.forEach((v,i)=>actions.set('/'+presetPath(i),()=>{presetChannel=panel.getSelectedChannel();applyVoice(presetChannel,v);fm();}));
@@ -142,7 +142,7 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
     inspector.invoke('setLFO',[project.lfo]);
     inspector.invoke('setNoise',[project.noise]);
     banks=project.banks; presets=project.presets; opmBanks=project.opmBanks; active=project.active;
-    selectedPath="/index.js";selectedOpmBank=null;render(); useBank(active); setCode(project.code,project.round);
+    selectedPath="/index.js";selectedOpmBank=null;render(); useBank(active); setCode(project.code,project.examples);
     el('rom').value='';
   }
   el('newCassette').onclick = () => {
@@ -153,10 +153,10 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
   };
   el('exportCassette').onclick = async () => {
     try {
-      const round = await getRoundSource();
+      const sources = await Promise.all(examplePaths.map(scriptSource));
       const state = inspector.read();
       const text = (path,data) => ({path,type:'text',data});
-      const files = [text('index.js',getCode()),text('examples/round-start.js',round)];
+      const files = [text('index.js',getCode()),...examplePaths.map((path,i)=>text(path.slice(1),sources[i]))];
       state.channels.forEach((v,i) => files.push(text(voicePath(i),JSON.stringify(currentVoice(i)))));
       presets.forEach((v,i) => files.push(text(presetPath(i),JSON.stringify(v))));
       opmBanks.forEach(({source},i) => files.push(text('presets/import-'+i+'.opm',source)));
@@ -188,7 +188,10 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
         return files.get(path);
       };
       const nextCode = decode(read('index.js'));
-      const round = files.has('examples/round-start.js') ? decode(read('examples/round-start.js')) : undefined;
+      const examples = new Map();
+      for (const path of examplePaths) {
+        if (files.has(path.slice(1))) examples.set(path,decode(read(path.slice(1))));
+      }
       const nextBanks = m.banks.map(({name,names},i) => {
         const bytes = read(bankPath(i));
         if (typeof name!=='string' || !Array.isArray(names) || !names.length || names.length>128 ||
@@ -222,7 +225,7 @@ export function setupFiles({inspector,panel,defaultBank,defaultCode,applyBank,ge
       if (revision!==cassetteRevision) return;
       if (!window.confirm('Replace the current voices, sample banks and code with this Cassette?')) return;
       replaceCassette({voices,songs:nextSongs,lfo:m.lfo,noise:m.noise,banks:nextBanks,active:m.active,
-        presets:nextPresets,opmBanks:nextOpmBanks,code:nextCode,round});
+        presets:nextPresets,opmBanks:nextOpmBanks,code:nextCode,examples});
       el('cassetteName').textContent=file.name;report('Imported '+file.name);
     } catch (error) {report(error.message);}
   };

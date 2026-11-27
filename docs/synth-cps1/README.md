@@ -18,17 +18,21 @@ In Analyzer’s Instrument tab, export the selected YM2151 voice as an `.opm` fi
 
 **Apply shared LFO / CH8 noise** applies the selected OPM voice’s global settings. Import leaves the running LFO and noise settings intact. Cassette retains the imported OPM texts and channel masks. The source clock, note pitch and playback position are not restored by voice import.
 
+### Compare OPM algorithms
+
+Open **Files → /examples/opm-algorithms.js**, select **Run**, then open **FM → CH1**. The example sets CH1’s voice and plays four A3 notes. In Algorithm 7, listen to OP4 alone and then to OP3 adding an octave. Algorithm 4 repeats the same two key masks, this time with OP3 modulating OP4. During the final eight-second note, raise OP3 TL toward 127 to reduce modulation. To repeat this by hand, switch off OP1 and OP2 in the Key column, leave OP4 on, and toggle OP3 between key presses.
+
 ### Play Round Start
 
 Choose **Use original kit** on the MSM6295 tab, open **Files → /examples/round-start.js**, then select **Run**. The 8-bar score lasts about 16 seconds. CH1 plays bass, CH2 and CH3 trade brass phrases, and OKI voices 1–3 play kick, snare and closed hat. Select CH4 on the YM2151 panel to play along on the guitar keyboard. During bars 3 and 7, select CH1 and drag OP1 TL to hear the sustained bass change. Use MSM6295 Voice 2 Mute to drop the snare.
 
-The example programs the FM voices on CH1–3. Export a cassette first if you want to keep their current patches. The Code file selector switches between the example and your own `/index.js`. Each keeps its own edits in the browser, and both are included in a cassette export.
+The example programs the FM voices on CH1–3. Export a cassette first if you want to keep their current patches. The Code file selector switches between both examples and your own `/index.js`. Each keeps its own edits in the browser, and all three are included in a cassette export.
 
 Open the **Mixer** tab to adjust the two chips independently (0–380%) before Master. Mute silences the whole chip. The CH and Voice buttons show which channels are on. Switching a channel off leaves its sound engine running, so switching it back on reveals the current point in the note or sample. MSM6295 voice switches also follow the PCM panel and Code.
 
 **Synth** keeps the selected chip above a separate Keyboard / Code panel. **Code** opens a larger editor and puts the chips and Keyboard in the same tab row. Switching views keeps the current script, audio and keyboard channel. The computer keyboard plays the selected FM channel while the on-screen keyboard is hidden. Focus the editor to type code.
 
-**☰ → New → Cassette · ZIP** stops playback and starts again with the eight factory FM voices, original percussion kit and both bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.
+**☰ → New → Cassette · ZIP** stops playback and starts again with the eight factory FM voices, original percussion kit and all three bundled scripts. Export Cassette first to keep the current project. The confirmation can be cancelled to continue editing.
 
 The FM tab and the keyboard share **AUTO / CH1–CH8**. AUTO copies the current editor sound to successive idle physical channels as you play chords. If all eight are busy it can reuse the oldest AUTO key. Selecting a CH targets that physical voice. Algorithm, Feedback, AMS/PMS, operator and LFO values use the same minus / drag / plus controls as the FM2612 Synth. Pan and other switches toggle directly. Use − / + or drag the Octave value horizontally to transpose new notes by up to two octaves in either direction. Held keys release on the channel where they started.
 

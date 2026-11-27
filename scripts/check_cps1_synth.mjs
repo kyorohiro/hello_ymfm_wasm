@@ -154,6 +154,22 @@ try {
   await page.click('#run'); await page.click('#stop');
   assert.equal(await page.locator('#status').textContent(),'Stopped');
   if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
+  const algorithmPath='/examples/opm-algorithms.js';
+  const algorithmFile=page.locator(`[data-file-path="${algorithmPath}"]`);
+  await algorithmFile.click();
+  await page.waitForFunction(path=>document.querySelector('#codeFile').value===path,algorithmPath);
+  const algorithmSource=await page.inputValue('#editor');
+  const editedAlgorithm=algorithmSource+'\n// comparison';
+  await page.fill('#editor',editedAlgorithm);
+  await page.click('#run');
+  for (const [algorithm,mask] of [[7,'1000'],[7,'1100'],[4,'1000'],[4,'1100']]) {
+    await page.waitForFunction(([algo,bits])=>
+      Number(document.querySelector('[data-chip-control="ym2151-algorithm"]').value)===algo &&
+      document.querySelector('[data-chip-output="ym2151-gate"]').textContent.includes(bits) &&
+      window.lastPeak>.001,[algorithm,mask]);
+  }
+  await page.waitForFunction(()=>document.querySelector('#status').textContent==='Finished');
+  if (await page.locator('#files').isHidden()) await page.click('#filesToggle');
   await page.click('[data-file-path="/examples/round-start.js"]');
   await page.waitForFunction(()=>document.querySelector('#codeFile').value==='/examples/round-start.js');
   const round = await page.inputValue('#editor');
@@ -301,6 +317,8 @@ try {
   assert.equal(await page.inputValue('#editor'),factoryCode);
   assert.equal(await page.locator('button[data-file-path^="/presets/"]').count(),8);
   assert.deepEqual(await page.locator('button[data-file-path^="/banks/"]').count(),1);
+  await algorithmFile.click();
+  await page.waitForFunction(source=>document.querySelector('#editor').value===source,algorithmSource);
   await page.click('[data-file-path="/examples/round-start.js"]');
   await page.waitForFunction(()=>document.querySelector('#codeFile').value==='/examples/round-start.js');
   assert.equal(await page.inputValue('#editor'),round);
@@ -316,6 +334,8 @@ try {
   assert.deepEqual(await page.locator('#songs option').allTextContents(),['hit.vgz','fm.vgm']);
   assert.equal(await page.locator('#romName').textContent(),'test.rom');
   assert.equal(await page.locator('button[data-file-path^="/presets/"]').count(),10);
+  await algorithmFile.click();
+  await page.waitForFunction(source=>document.querySelector('#editor').value===source,editedAlgorithm);
   await page.click('[data-file-path="/index.js"]');
   assert.equal(await page.inputValue('#editor'),'while (true) {}');
   await page.click('[data-tab="fm"]');
