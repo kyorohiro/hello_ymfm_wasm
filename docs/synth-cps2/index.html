@@ -7,7 +7,7 @@
 body{margin:4vh auto;padding:1.25rem;width:min(100%,52rem)}main{background:#f4eedb;border-radius:18px;overflow:hidden}
 header{display:flex;align-items:center;gap:1rem;background:#176481;color:white;padding:1.2rem 1.5rem}h1,p{margin:0}h1{font-size:clamp(1.5rem,5vw,2.4rem)}section{padding:1.1rem 1.5rem}
 h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;border:1px solid #7a9897;background:#fffaf0;border-radius:5px;padding:.4rem .7rem;cursor:pointer}button[aria-pressed=true]{background:#155876;color:white}
-#channels{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}#keys{display:flex;flex-wrap:wrap;gap:.3rem}#keys button{touch-action:none;min-height:3rem}
+#channels{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}
 output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-width:540px){#channels{grid-template-columns:repeat(4,1fr)}body{margin:0;padding:.5rem}}
 #pad-plot{position:relative}#pad-cursor{position:absolute;top:0;bottom:0;width:2px;background:#ffc75c;pointer-events:none}
 #pad-wave,#pcm-wave{display:block;width:100%;height:6.5rem;background:#102c43;border-radius:5px}
@@ -37,7 +37,12 @@ body{width:min(100%,76rem)}
 #soundchip>section{padding:.7rem 0}.chip-header{justify-content:space-between}
 .chip-tabs{border-bottom:2px solid #155876;margin:.3rem 0}
 .chip-tabs button{border-radius:6px 6px 0 0}
-#keyboard{background:#193d5c;color:white}#keys button{color:#102f45}#keys .sharp{background:#182f42;color:white}#octave button{color:white}
+#keyboard{background:#193d5c;color:white}#keys button{color:#102f45}#board-controls,#board-controls [role=group],#pad-keys{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap}
+#board-controls{gap:.4rem .8rem;margin:.4rem 0}#keyboard button{color:#102f45}
+#keyboard button[aria-pressed=true],#keys .playing{background:#155876;color:white}
+#keys{display:grid;gap:3px;margin:.5rem 0}#keys .key-row{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
+#keys .key{display:grid;padding:.25rem 0;touch-action:none;min-width:0;font-size:clamp(.65rem,2.3vw,.95rem)}
+#keys .key span{font-size:.85em}#octave .param-value{color:white}#octave button{color:white}
 @media(max-width:700px){#workspace{grid-template-columns:minmax(0,1fr)}#files{padding:.6rem}section{padding:.8rem}}
 .mix-voices{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.4rem}
 .mix-voices>div{display:flex;align-items:center;gap:.2rem}.mix-voices strong{flex:1}
@@ -134,4 +139,5 @@ liveLoop('bass', async () => {
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>
-<section id="keyboard"><div class="output-heading"><h2>Keyboard</h2><div id="octave"></div></div><p id="audition-note" hidden>C4 plays the selected channel at its captured rate. Keys 1–3 trigger ADPCM.</p><div id="keys"></div></section></div></div></main><script type="module" src="./app.js"></script></html>
+<section id="keyboard"><div class="output-heading"><h2>Keyboard</h2><div id="octave"></div></div><p id="audition-note" hidden>C4 plays the selected channel at its captured rate. Keys 1–3 trigger ADPCM.</p><div id="board-controls"><div id="instruments" role="group" aria-label="Instrument"></div><div id="positions" role="group" aria-label="Fret position"></div><span id="fret"></span><div id="strings" role="group" aria-label="Visible strings"></div></div>
+<div id="keys" aria-label="PCM fretboard"></div><div id="pad-keys" role="group" aria-label="ADPCM pads"></div></section></div></div></main><script type="module" src="./app.js"></script></html>

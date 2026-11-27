@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
+import {setupKeyboard} from './keyboard.js';
 import {createPadWave} from './pad-wave.js';
 import {createRomMap} from './rom-map.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -300,25 +301,6 @@ function press(id,midi) {
 function release(id) {
   channels.forEach((v,ch)=>{if(v.held===id){v.held=null;port?.postMessage(liveInstrument?{type:'captured-off',channel:ch}:[[ch*8+6,0]]);}});
 }
-const keys='awsedftgyhujk';
-const noteNames=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
-let octave=4;
-const keyboardNote=i=>(octave+1)*12+i;
-$('octave').append(createParamControl({label:'Octave',min:0,max:7,step:1,value:octave,
-  onChange:value=>{octave=value;}}).element);
-[...keys].forEach((key,i)=>{
-  const button=document.createElement('button');
-  button.textContent=key.toUpperCase()+' · '+noteNames[i];
-  if(noteNames[i].includes('♯'))button.className='sharp';
-  button.onpointerdown=e=>{button.setPointerCapture(e.pointerId);press('p'+e.pointerId,keyboardNote(i));};
-  button.onlostpointercapture=e=>release('p'+e.pointerId);
-  button.onkeydown=e=>{
-    if(e.code==='Space' || e.code==='Enter'){
-      e.preventDefault();if(!e.repeat)press(e.code,keyboardNote(i));
-    }
-  };
-  $('keys').append(button);
-});
 const pads=Array.from({length:3},(_,i)=>({sample:i,start:(i+1)*512,end:(i+2)*512,bank:0,pan:16*i,volume:32767}));
 const factoryBank=demoRom();
 const paintPad=createPadWave($('pad-wave'),$('pad-caption'),$('pad-cursor'));
@@ -402,17 +384,7 @@ for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,655
 }
 $('pad-trigger').onclick=()=>triggerPad(padVoice);
 syncPadView();
-window.addEventListener('keydown',e=>{
-  if(e.ctrlKey||e.altKey||e.metaKey||e.target.closest('input:not([type=range]):not([type=checkbox]),textarea,.monaco-editor,[contenteditable=true]'))return;
-  if (/^[123]$/.test(e.key)) {
-    e.preventDefault();
-    if (!e.repeat) triggerPad(Number(e.key)-1);
-    return;
-  }
-  const i=keys.indexOf(e.key.toLowerCase()); if(i<0||e.key.length!==1)return;
-  e.preventDefault();if(!e.repeat)press(e.code,keyboardNote(i));
-});
-window.addEventListener('keyup',e=>release(e.code));
+setupKeyboard({press,release,triggerPad:voice=>triggerPad(voice-1)});
 function stop(keepInstrument=true){
   liveInstrument=Boolean(keepInstrument && liveInstrument);
   if(!liveInstrument){attached=null;romPath=null;}

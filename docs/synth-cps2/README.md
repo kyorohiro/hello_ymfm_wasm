@@ -7,7 +7,7 @@ and pan can change during a held note. The factory demo VGMs include their gener
 
 ## Workspace
 
-Press **Play VGM** on a fresh visit to hear PCM duet. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Code opens it beside the editor, and Synth returns to the instrument. PCM, ADPCM, ROM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. A–K play the white keys and W, E, T, Y and U play the sharps. Drag Octave or use its minus and plus buttons to change the range.
+Press **Play VGM** on a fresh visit to hear PCM duet. The built-in demos use the same transport as imported VGMs and appear under Files → /songs. Output shows the waveform or spectrum. The Files sidebar is available in both modes. Code opens it beside the editor, and Synth returns to the instrument. PCM, ADPCM, ROM and Mixer each have a tab. PCM contains the voice and register views. The keyboard is available in both modes when focus is outside the text editor. Use Guitar, Bass or Ukulele on the selected PCM channel. Choose Open, 5th or 12th, select the visible strings, or drag Octave (−2 to +2). Left/Right shifts the fret and Up/Down changes the string window. The four rows match the displayed keys. Physical keys 1–3 trigger ADPCM; click the first three top-row frets (F labels) to play their PCM notes.
 
 ## Register model
 
@@ -109,7 +109,7 @@ The transport opens the factory PCM duet on a fresh visit. Select a different de
 
 In the ADPCM tab, select Voice 2 and press **2** to follow the one-shot cursor. Shorten **End (exclusive)** and trigger again to hear the edited range. The waveform shows the decoded voice at its configured volume, scaled to fit the display. The caption gives its byte count and duration at the current chip clock.
 
-Open Code and press Run to play the CH1 bass loop. Select CH2 and play A–K over the bass, or use 1–3 for ADPCM. Click outside the editor to use the musical keys. Select CH1 to watch its PCM and echo settings. Edit the notes or the echo send and press Apply to update the named loop. Stop ends the loops and keeps the instruments available for audition. Ctrl/Cmd+Enter runs the source; Ctrl/Cmd+Shift+Enter applies it.
+Open Code and press Run to play the CH1 bass loop. Select CH2 and play the fretboard over the bass, or use 1–3 for ADPCM. Click outside the editor to use the musical keys. Select CH1 to watch its PCM and echo settings. Edit the notes or the echo send and press Apply to update the named loop. Stop ends the loops and keeps the instruments available for audition. Ctrl/Cmd+Enter runs the source; Ctrl/Cmd+Shift+Enter applies it.
 
 Open **Files → /examples/sample-duet.js → Run** to play the bundled original `/samples/cabinet-pluck.wav`. CH1 loops the last 64 bytes of its first 256 bytes for the bass. CH2 uses all 2,048 bytes for the melody. Select the shared sample bank in ROM to see both intervals. Edit a note or loop length and press **Apply** while the duet plays.
 
