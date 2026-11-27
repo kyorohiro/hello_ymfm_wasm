@@ -172,3 +172,24 @@ test('scheduled PCM and ADPCM writes share output frames across block boundaries
     }finally{globalThis.sampleRate=48000;}
   }
 });
+
+test('Code FX processes both QSound outputs, preserves state on Apply and restores the dry route on Stop',()=>{
+  const p=new Processor(),dry=new Processor();
+  const send=data=>p.port.onmessage({data});
+  const render=processor=>{
+    const stereo=[new Float32Array(128),new Float32Array(128)];
+    processor.process([],[stereo]);return stereo;
+  };
+  for(const processor of [p,dry])processor.port.onmessage({data:[[0x78,0x8000],[1,0],[2,4096],[4,256],[5,256],[6,8192]]});
+  const register={op:'live-fx',action:'register',name:'test',context:{step:0.125},source:
+    'process(input,output,state,params){state.gain=(state.gain??0)+params.step;for(let c=0;c<2;c++)for(let i=0;i<input[c].length;i++)output[c][i]=input[c][i]*state.gain;}'};
+  function checkGain(gain){
+    const output=render(p),reference=render(dry);
+    assert.ok(reference.every(channel=>channel.some(v=>v!==0)));
+    for(let c=0;c<2;c++)assert.deepEqual(output[c],reference[c].map(v=>v*gain));
+  }
+  send({codeFx:register});checkGain(0.125);
+  send({codeFx:{...register,context:{step:0.375}}});checkGain(0.5);
+  send({codeFx:{op:'live-fx',action:'context',name:'test',context:{step:0}}});checkGain(0.5);
+  send({type:'clear-code-fx'});checkGain(1);
+});

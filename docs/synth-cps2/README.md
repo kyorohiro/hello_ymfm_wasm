@@ -113,6 +113,10 @@ Open Code and press Run to play the CH1 bass loop. Select CH2 and play the fretb
 
 Open **Files → /examples/sample-duet.js → Run** to play the bundled original `/samples/cabinet-pluck.wav`. CH1 loops the last 64 bytes of its first 256 bytes for the bass. CH2 uses all 2,048 bytes for the melody. Select the shared sample bank in ROM to see both intervals. Edit a note or loop length and press **Apply** while the duet plays.
 
+Open **/examples/filter-groove.js → Run** for a bass and snare through a stereo low-pass filter. Change `cutoffHz` and press Apply, or set `bypass = true` and Apply to hear the dry groove. PCM CH3 keyboard notes pass through the same filter. The QSound chip mix (including its echo) feeds named Code effects, then Master and the output visualizer. Code Stop clears the effects and their DSP state.
+
+Use `liveFx(name, {context, process(input, output, state, context) { … }})` to process stereo frames. Each synchronous callback runs in the AudioWorklet with its own persistent state and access to the audio output's `sampleRate`. Apply keeps state for the same name unless `resetState: true` is set. Omitting a declaration on a successful Apply removes that effect. `fx.updateContext(name, values)` changes parameters during playback.
+
 Open **/examples/scheduled-bar.js → Run** to schedule one bar of PCM bass and ADPCM backbeats. Select PCM CH3 to play along. Edit the example’s `bpm` and press Apply to replace the named reservation at the new tempo. Both instruments use one AudioWorklet frame clock.
 
 - `qsound.build(b => { … }, {referenceSampleRate: 48000})` records synchronously. Use `b.atSeconds(t)` or `b.atSample(n)` in nondecreasing order. Writes at one offset execute in recorded order on the same output frame.

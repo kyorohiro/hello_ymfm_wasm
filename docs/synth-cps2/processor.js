@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createRegisterTimedProcessor} from '../js/register_timed_processor.js';
 import {qsoundPlanTools} from './timed-plan.js';
+import {LiveFX} from '../js/custom_fx.js';
 import {chipRomMap} from './rom-map.js';
 import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
@@ -16,6 +17,8 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.starts = new Uint16Array(16);
     this.gates=new Map();
     this.renderedFrames=0;
+    this.effects=new LiveFX(sampleRate);
+    this.reportFxError=message=>this.port.postMessage({fxError:String(message)});
     this.timeline=createRegisterTimedProcessor({
       nowFrame:()=>this.renderedFrames,sampleRate,defaultOwner:'qsound',
       write:(reg,value,owner)=>this.applyRegister(reg,value,true,owner),
@@ -24,6 +27,11 @@ class Cps2Preview extends AudioWorkletProcessor {
       reportError:({message})=>this.port.postMessage({scheduleFailure:message}),
     },qsoundPlanTools());
     this.port.onmessage = ({data}) => {
+      if(data?.codeFx){
+        try{this.effects.command(data.codeFx);}catch(error){this.reportFxError(error.message);}
+        return;
+      }
+      if(data?.type==='clear-code-fx'){this.effects.clear();return;}
       if(data?.type==='clear-timeline'){this.timeline.clear();return;}
       if(data?.timedRequest){
         try{data.reply.postMessage({value:this.timeline.request(data.timedRequest)});}
@@ -229,6 +237,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     const [left,right] = outputs[0];
     if(this.song && !this.song.paused)this.song.render(left,right);
     else this.timeline.render(left.length,(offset,count)=>this.chip.render(left,right,offset,count));
+    this.effects.process(outputs[0],this.reportFxError);
     this.renderedFrames+=left.length;
     return true;
   }

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {createNativeFXController} from '../js/native_fx.js';
 import {attachRegisterTimedClient} from '../js/register_timed_client.js';
 import {qsoundPlanTools} from './timed-plan.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
@@ -62,7 +63,9 @@ attachRegisterTimedClient(qsound,payload=>{
     postMessage({timedRequest:payload,reply:port2},[port2]);
   });
 },qsoundPlanTools(path=>samples?.get(path)));
+const {liveFx,removeLiveFx,updateContext}=createNativeFXController(command=>postMessage({codeFx:command}));
 const runtime = createPlaygroundCodeRuntime({
+  fx:{liveFx,removeLiveFx,updateContext},
   ensureReady:()=>{}, now:()=>performance.now()/1000, supportedSoundChips:['qsound'],
   useSoundChip:()=>qsound,prepareSource:source=>'const qsound=await useSoundChip("qsound");\n'+source,
   guardExecution:false,onState:({status})=>{if(status.startsWith('Loop error'))postMessage({status});},

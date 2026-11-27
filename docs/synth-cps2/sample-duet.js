@@ -92,3 +92,25 @@ const bar = qsound.build(b => {
 const writes = await qsound.compile(bar);
 if (writes.length) await qsound.schedule(bar, {name: 'bar', repeatSeconds: 4 * beatSeconds});
 `;
+
+export const filterGroove=`// Edit cutoffHz or set bypass to true and press Apply. Play along on PCM CH3.
+const cutoffHz = 650;
+const bypass = false;
+if (!bypass) {
+  liveFx('lowpass', {
+    context: {cutoffHz},
+    process(input, output, state, params) {
+      const alpha = 1 - Math.exp(-2 * Math.PI * params.cutoffHz / sampleRate);
+      for (let ch = 0; ch < input.length; ch++) {
+        let last = state[ch] ?? 0;
+        for (let i = 0; i < input[ch].length; i++) {
+          last += alpha * (input[ch][i] - last);
+          output[ch][i] = last;
+        }
+        state[ch] = last;
+      }
+    }
+  });
+}
+
+`+padGroove;

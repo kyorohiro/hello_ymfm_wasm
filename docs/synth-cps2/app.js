@@ -21,7 +21,7 @@ import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {isSamplePath,decodeSample,padByteLength,allocateSample,sampleLibrary,maxRom} from './samples.js';
-import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet,padGroove,scheduledBar} from './sample-duet.js';
+import {cabinetPluck,cabinetSnare,drumPath,duetSamplePath,sampleDuet,padGroove,scheduledBar,filterGroove} from './sample-duet.js';
 let placements={},padPlacements={},library=sampleLibrary([]);
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.sample*256;
@@ -198,6 +198,7 @@ function selectPcmTab(registers) {
 $('register-tab').onclick=()=>selectPcmTab(true);
 $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
+  if(data.fxError){$('code-status').textContent=data.fxError;return;}
   if(data.scheduleFailure){$('code-status').textContent=data.scheduleFailure;return;}
   if (data.revision !== revision || data.channel !== selected) return;
   if(data.romMap && liveInstrument && !seeking && !$('rom-chip').hidden)displayMap(data.romMap);
@@ -419,6 +420,7 @@ const files = createVirtualFileSystem([
   {path:'/examples/sample-duet.js',data:sampleDuet},
   {path:'/examples/pad-groove.js',data:padGroove},
   {path:'/examples/scheduled-bar.js',data:scheduledBar},
+  {path:'/examples/filter-groove.js',data:filterGroove},
   ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score())})),
   {path:'/examples/pad-loop.js',data:`setBpm(106);
 liveLoop('pads', async () => {
@@ -453,6 +455,7 @@ $('add-demos').onclick=()=>run(async()=>{
   if(!files.has('/examples/sample-duet.js'))additions.push({path:'/examples/sample-duet.js',data:sampleDuet});
   if(!files.has('/examples/pad-groove.js'))additions.push({path:'/examples/pad-groove.js',data:padGroove});
   if(!files.has('/examples/scheduled-bar.js'))additions.push({path:'/examples/scheduled-bar.js',data:scheduledBar});
+  if(!files.has('/examples/filter-groove.js'))additions.push({path:'/examples/filter-groove.js',data:filterGroove});
   const regions=[...library.regions],newOffsets={};
   for(const [path,generate] of [[duetSamplePath,cabinetPluck],[drumPath,cabinetSnare]]){
     if(files.has(path))continue;
@@ -470,6 +473,14 @@ const expanded=new Map([['/examples',true],['/songs',true],['/presets',true],['/
 const editor = setupSynthMonacoEditor({
   textarea:source,editorHost:$('code-host'),editorNote:$('editor-note'),chip:'cps2',
   declarationsOnly:true,transformDeclarations:()=>`
+/** AudioWorklet sample rate inside a liveFx process callback. */
+declare const sampleRate:number;
+interface LiveFxOptions<T extends object> {
+  context?:T; resetState?:boolean;
+  process(input:Float32Array[],output:Float32Array[],state:Record<string,any>,context:T):void;
+}
+declare function liveFx<T extends object>(name:string,options:LiveFxOptions<T>):void;
+declare const fx:{liveFx:typeof liveFx;updateContext(name:string,values:object):void;removeLiveFx(name:string):void};
 declare function liveLoop(name:string, play:()=>Promise<void>):void;
 declare function beat(beats?:number):Promise<void>;
 declare function setBpm(bpm:number):void;
@@ -551,7 +562,10 @@ function codeSamples(){
   return [...library.items].map(([path,{bank,start,length,rate}])=>[path,{bank,start,length,rate}]);
 }
 function stopWorker() {
-  if(codeWorker)port?.postMessage({type:'clear-timeline'});
+  if(codeWorker){
+    port?.postMessage({type:'clear-timeline'});
+    port?.postMessage({type:'clear-code-fx'});
+  }
   codeWorker?.terminate();
   codeWorker=null;
   $('apply-code').disabled=$('stop-code').disabled=true;
@@ -575,6 +589,7 @@ $('run-code').onclick=()=>run(async()=>{
   $('stop-code').disabled=false;
   worker.onmessage=({data})=>{
     if(worker!==codeWorker)return;
+    if(data.codeFx){port.postMessage({codeFx:data.codeFx});return;}
     if(data.timedRequest){port.postMessage(data,[data.reply]);return;}
     if(data.assignPad){
       const {voice,path,reply}=data.assignPad;
