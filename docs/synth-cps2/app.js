@@ -170,6 +170,11 @@ function setPcmAddress(key,value){
 const echo = {delay:6,feedback:0};
 let echoTickRate=QSOUND_PCM_RATE;
 const echoControls = {};
+$('echo-help-toggle').onclick=()=>{
+  const help=$('echo-help');
+  help.hidden=!help.hidden;
+  $('echo-help-toggle').setAttribute('aria-expanded',String(!help.hidden));
+};
 for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
   ['delay','Delay · shared',0,1024],['feedback','Feedback · shared',-32768,32767]]) {
   echoControls[key] = createParamControl({label,min,max,step:1,value:0,

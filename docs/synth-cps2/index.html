@@ -101,6 +101,9 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #pcm-panel .preset-actions{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem}
 #pcm-range{max-width:100%}
 #echo-controls{margin:0}
+#echo-help-toggle{width:1.5rem;height:1.5rem;padding:0;border-radius:50%;font-size:.8rem;line-height:1}
+#echo-help{max-width:64ch;margin-top:.45rem;padding:.4rem .65rem;border-left:2px solid #7a9897;font-size:.85rem}
+#echo-help p+p{margin-top:.3rem}
 .voice-controls{display:flex;align-items:center;flex-wrap:wrap;gap:.25rem .4rem;margin-bottom:.4rem}
 .voice-controls label{display:grid;gap:0;margin:0;font-size:.8rem}
 .voice-controls input[type=range]{width:clamp(4.5rem,7vw,6.5rem);margin:0}
@@ -179,7 +182,14 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <div id="pcm-address" title="Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256."></div><div id="pcm-controls"></div></div>
 <canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
 <p id="pcm-caption"></p></fieldset>
-<fieldset><legend>DSP</legend><div class="echo-controls" id="echo-controls"></div></fieldset></div>
+<fieldset><legend>DSP <button id="echo-help-toggle" type="button" aria-label="Echo controls help" aria-expanded="false" aria-controls="echo-help">?</button></legend>
+<div class="echo-controls" id="echo-controls"></div>
+<div id="echo-help" hidden>
+<p><strong>Echo send</strong> sets how much of this PCM channel reaches the shared delay. Higher values make the first repeat louder.</p>
+<p><strong>Delay</strong> sets the time between repeats for all PCM channels. The control shows DSP ticks and milliseconds.</p>
+<p><strong>Feedback</strong> sets how much of each repeat feeds the next. At 8192 (50%), repeats fade quickly. At 16000 (98%), they linger. Above 16384 (100%), the echo can grow and distort. Negative values invert the signal on each pass.</p>
+<p><strong>Try it.</strong> Set send to 8192 and delay to 960 ticks (about 40 ms at the default clock). Tap one short note with feedback at 8192, then at 16000. Listen after releasing the key.</p>
+</div></fieldset></div>
 <div id="register-panel" role="tabpanel" aria-labelledby="register-tab" hidden><p>Playback address <strong id="register-position">—</strong></p>
 <table aria-label="Selected PCM channel registers"><thead><tr><th>Parameter</th><th>Register</th><th>Last write</th></tr></thead><tbody id="register-rows"></tbody></table>
 <small>— means no write since reset.</small></div></section>
