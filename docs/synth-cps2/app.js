@@ -161,7 +161,7 @@ function applyMix(settings) {
   port?.postMessage({type:'mute-voices',mask:mutedVoices(settings)});
 }
 const noRom=new Uint8Array();
-let pcmFull=false,padFull=false;
+let pcmFull=true,padFull=true;
 const draw = createWaveEditor(edit,v=>romPath?null:itemFor(v),()=>romPath?(selectedRomBytes(syncedBank)??noRom):library.rom,()=>pcmFull);
 const romDragPixelsPerStep=4;
 const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
