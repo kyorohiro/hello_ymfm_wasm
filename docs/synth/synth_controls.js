@@ -37,6 +37,7 @@ export function createParamControl(config) {
     booleanMode = false,
     category = "",
     wheelAdjust = true,
+    dragPixelsPerStep,
     formatValue = String,
   } = config;
   let min=initialMin,max=initialMax;
@@ -184,11 +185,9 @@ export function createParamControl(config) {
 
       const deltaX =
         event.clientX - dragStartX;
-      const deltaSteps =
-        Math.round(
-          (deltaX / dragPixelsForFullRange) *
-          (Math.max(step,max-min) / step)
-        );
+      const pixelsPerStep = dragPixelsPerStep ??
+        (dragPixelsForFullRange * step / Math.max(step, max - min));
+      const deltaSteps = Math.round(deltaX / pixelsPerStep);
 
       applyValue(
         dragStartValue +

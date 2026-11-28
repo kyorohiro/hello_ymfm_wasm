@@ -137,7 +137,8 @@ function applyMix(settings) {
   port?.postMessage({type:'mute-voices',mask:mutedVoices(settings)});
 }
 const draw = createWaveEditor(edit,itemFor,()=>library.rom);
-const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,value:0,onChange:value=>setPcmAddress('bank',value)});
+const bankDragPixelsPerStep=4;
+const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,dragPixelsPerStep:bankDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
 const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,value:0,onChange:value=>setPcmAddress('start',value)});
 $('pcm-address').append(pcmBank.element,pcmStart.element);
 function setPcmAddress(key,value){
@@ -441,7 +442,7 @@ for(let i=0;i<3;i++){
 }
 for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,65535],['end','End (exclusive)',0,65535],
   ['bank','ROM bank',0,32767],['volume','Volume',-32768,32767],['panWord','Pan register',0x110,0x130]]){
-  const control=createParamControl({label,min,max,step:1,value:min,formatValue:key==='sample'?n=>n===-1?(pads[padVoice].samplePath??'WAV').split('/').pop():'Pulse '+(n+1):key==='volume'?String:padHex,
+  const control=createParamControl({label,min,max,step:1,value:min,dragPixelsPerStep:key==='bank'?bankDragPixelsPerStep:undefined,formatValue:key==='sample'?n=>n===-1?(pads[padVoice].samplePath??'WAV').split('/').pop():'Pulse '+(n+1):key==='volume'?String:padHex,
     onChange(value){
       revision++;
       editPreset(true,key==='panWord'?'pan':key,value);
@@ -1230,6 +1231,7 @@ const itemControls={};
 for(const [key,label,max] of [['bank','Bank',32767],['start','Start',65535],['end','End (exclusive)',65535],
     ['rate','Rate',65535],['loop','Loop length',65535]]){
   const control=createParamControl({label,min:0,max,step:1,value:0,
+    dragPixelsPerStep:key==='bank'?bankDragPixelsPerStep:undefined,
     formatValue:key==='start'||key==='end'?n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0'):String,
     onChange(value){if(itemDraft){itemDraft[key]=value;drawItem();}}});
   $('item-controls').append(control.element);itemControls[key]=control;
