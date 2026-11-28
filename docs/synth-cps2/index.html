@@ -35,9 +35,14 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #workspace{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(11rem,15rem) minmax(0,1fr)}
 #workspace.files-hidden{grid-template-columns:minmax(0,1fr)}
 #files,#desk{min-height:0;overflow:auto;overscroll-behavior:contain}
-#files{background:#e6e0cc;padding:1rem;overflow-wrap:anywhere}#files button,#code-panel button{margin:.2rem}
+#files{background:#e6e0cc;padding:1rem;overflow-wrap:anywhere}#files button{margin:.2rem}
 #files .file-entry[aria-current=true]{font-weight:bold}
-#files .file-entry{max-width:100%;overflow-wrap:anywhere;text-align:left}#desk{min-width:0}#code-panel{padding:.8rem 1.5rem}
+#files .file-entry{max-width:100%;overflow-wrap:anywhere;text-align:left}#desk{min-width:0}#code-panel{padding:4px 1.5rem .8rem}
+#soundchip:has(#chip-tabs [data-performance="code-panel"][aria-pressed="true"]){padding-bottom:0}
+#chip-tabs:has([data-performance="code-panel"][aria-pressed="true"]),#performance-tabs:has([data-performance="code-panel"][aria-pressed="true"]){margin-bottom:0}
+.code-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.code-toolbar button{min-height:24px;padding:2px 8px;border-radius:999px;font-size:.68rem;line-height:1.2}
+#code-status{margin-left:auto;font-size:.7rem;overflow-wrap:anywhere}
 #soundchip>section{padding:.7rem 0}.chip-header{justify-content:space-between}
 .chip-tabs{border-bottom:2px solid #155876;margin:.3rem 0}
 .chip-tabs button{border-radius:6px 6px 0 0}
@@ -174,8 +179,8 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>
 <nav id="performance-tabs" class="chip-tabs" aria-label="Performance"><button data-performance="keyboard" aria-controls="keyboard" aria-pressed="true">Keyboard</button><button data-performance="code-panel" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
-<div id="code-panel" hidden><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
-<span id="code-status" role="status"></span>
+<div id="code-panel" hidden><div class="code-toolbar"><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
+<span id="code-status" role="status"></span></div>
 <div id="code-host"></div><textarea id="source" aria-label="JavaScript source" spellcheck="false">// Select CH2 to play over the CH1 bass. Trigger ADPCM with 1, 2, 3.
 // Edit the notes or echo send and press Apply.
 setBpm(112);
