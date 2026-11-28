@@ -137,9 +137,9 @@ function applyMix(settings) {
   port?.postMessage({type:'mute-voices',mask:mutedVoices(settings)});
 }
 const draw = createWaveEditor(edit,itemFor,()=>library.rom);
-const bankDragPixelsPerStep=4;
-const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,dragPixelsPerStep:bankDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
-const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,value:0,onChange:value=>setPcmAddress('start',value)});
+const romDragPixelsPerStep=4;
+const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
+const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('start',value)});
 $('pcm-address').append(pcmBank.element,pcmStart.element);
 function setPcmAddress(key,value){
   const v=editedVoice(),reg=key==='bank'?((selected+15)&15)*8:selected*8+1;
@@ -442,7 +442,7 @@ for(let i=0;i<3;i++){
 }
 for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,65535],['end','End (exclusive)',0,65535],
   ['bank','ROM bank',0,32767],['volume','Volume',-32768,32767],['panWord','Pan register',0x110,0x130]]){
-  const control=createParamControl({label,min,max,step:1,value:min,dragPixelsPerStep:key==='bank'?bankDragPixelsPerStep:undefined,formatValue:key==='sample'?n=>n===-1?(pads[padVoice].samplePath??'WAV').split('/').pop():'Pulse '+(n+1):key==='volume'?String:padHex,
+  const control=createParamControl({label,min,max,step:1,value:min,dragPixelsPerStep:['bank','start','end'].includes(key)?romDragPixelsPerStep:undefined,formatValue:key==='sample'?n=>n===-1?(pads[padVoice].samplePath??'WAV').split('/').pop():'Pulse '+(n+1):key==='volume'?String:padHex,
     onChange(value){
       revision++;
       editPreset(true,key==='panWord'?'pan':key,value);
@@ -1231,9 +1231,17 @@ const itemControls={};
 for(const [key,label,max] of [['bank','Bank',32767],['start','Start',65535],['end','End (exclusive)',65535],
     ['rate','Rate',65535],['loop','Loop length',65535]]){
   const control=createParamControl({label,min:0,max,step:1,value:0,
-    dragPixelsPerStep:key==='bank'?bankDragPixelsPerStep:undefined,
+    dragPixelsPerStep:romDragPixelsPerStep,
     formatValue:key==='start'||key==='end'?n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0'):String,
-    onChange(value){if(itemDraft){itemDraft[key]=value;drawItem();}}});
+    onChange(value){
+      if(!itemDraft)return;
+      itemDraft[key]=value;
+      if(key==='bank'){
+        updateItemBounds();
+        for(const field of ['start','end','loop'])if(field in itemDraft)itemControls[field].updateVisual(itemDraft[field]);
+      }
+      drawItem();
+    }});
   $('item-controls').append(control.element);itemControls[key]=control;
 }
 function selectedRomBytes(path){
@@ -1257,6 +1265,7 @@ function showItem(){
   rangeDrag=null;stopItemPreview();itemSignature=signature;itemRom=rom;itemDraft=p?{...p}:null;
   $('item-editor').hidden=!itemDraft;
   if(!p)return;
+  updateItemBounds();
   $('item-encoding').textContent=p.kind==='PCM'?'8-bit PCM':'4-bit ADPCM';
   for(const [key,control] of Object.entries(itemControls)){
     control.element.hidden=!(key in p);
@@ -1269,6 +1278,13 @@ const bankWave=document.createElement('canvas');
 bankWave.width=$('item-wave').width;bankWave.height=$('item-wave').height;
 let drawnRom,drawnBank,drawnKind;
 function bankLength(){return Math.min(65536,Math.max(0,(itemRom?.length??0)-itemDraft.bank*65536));}
+function updateItemBounds(){
+  const size=bankLength(),last=Math.max(0,size-1),end=Math.min(65535,size);
+  itemControls.bank.updateRange(0,Math.max(0,Math.ceil((itemRom?.length??0)/65536)-1));
+  itemControls.start.updateRange(0,last);
+  itemControls.end.updateRange(0,end);
+  itemControls.loop.updateRange(0,end);
+}
 function drawFullBank(){
   const p=itemDraft,base=p.bank*65536,size=bankLength();
   if(drawnRom!==itemRom||drawnBank!==p.bank||drawnKind!==p.kind){
@@ -1309,13 +1325,18 @@ itemWave.onpointerdown=e=>{
   const startDistance=Math.abs(anchor-itemDraft.start),endDistance=Math.abs(anchor-((itemDraft.start && !itemDraft.end)?65536:itemDraft.end));
   let edge=null;
   if(Math.min(startDistance,endDistance)<=tolerance)edge=startDistance<endDistance?'start':'end';
-  rangeDrag={pointer:e.pointerId,anchor,edge};
+  const initial=edge==='end' && itemDraft.start && !itemDraft.end?65536:itemDraft[edge];
+  rangeDrag={pointer:e.pointerId,anchor,edge,x:e.clientX,initial};
   itemWave.setPointerCapture(e.pointerId);e.preventDefault();
 };
 function moveRange(e){
   if(!rangeDrag||rangeDrag.pointer!==e.pointerId)return;
   const address=pointerAddress(e),{anchor,edge}=rangeDrag;
-  if(edge)itemDraft[edge]=edge==='end'?address&65535:Math.min(65535,address);
+  if(edge){
+    const max=edge==='end'?bankLength():bankLength()-1;
+    const delta=Math.round((e.clientX-rangeDrag.x)/romDragPixelsPerStep);
+    itemDraft[edge]=Math.max(0,Math.min(max,rangeDrag.initial+delta))&65535;
+  }
   else if(anchor!==address){
     itemDraft.start=Math.min(anchor,address,65535);itemDraft.end=Math.max(anchor,address)&65535;
   }

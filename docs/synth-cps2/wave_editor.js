@@ -8,7 +8,7 @@ export function createWaveEditor(onEdit,itemFor,getRom) {
   const caption = document.getElementById('pcm-caption');
   const controls = {};
   for (const [key,label,max] of [['rate','Rate',65535],['end','End',256],['loop','Loop length',256]]) {
-    controls[key] = createParamControl({label,min:0,max,step:1,value:0,
+    controls[key] = createParamControl({label,min:0,max,step:1,value:0,dragPixelsPerStep:4,
       onChange:value=>onEdit(key,value)});
     document.getElementById('pcm-controls').append(controls[key].element);
   }
