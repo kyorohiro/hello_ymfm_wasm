@@ -54,7 +54,11 @@ let selected = 0, context, ready, port, masterGain, generation = 0;
 let revision = 0, shown, cursor = null;
 let codeWorker = null, liveInstrument=false, romPath=null;
 let attached=null;
-const pending=new Map();
+const pending=new Map(),pendingBanks=new Map();
+function pendingBankPath(path){
+  if(pendingBanks.has(path))return path;
+  if(isCatalogPath(path))return [...pendingBanks.keys()].find(bank=>catalogPath(bank)===path);
+}
 let songPath=null, songState='stopped', songSelection=0;
 let preparedSong=null, preparationRevision=0;
 let seekWorker=null, seeking=false, sliding=false;
@@ -740,6 +744,9 @@ $('stop-code').onclick=stop;
 function renderFiles() {
   renderBankEditor();
   const entries=files.list();
+  for(const [path,pair] of pendingBanks){
+    if(!files.has(path))entries.push({path,type:'binary',data:pair.rom},{path:catalogPath(path),type:'text',data:pair.json});
+  }
   const tracks=entries.filter(file=>/\.vg[mz]$/i.test(file.path));
   const songs=tracks.length, picker=$('song-select');
   picker.replaceChildren(...tracks.map(({path})=>new Option(path.split('/').pop(),path)));
@@ -749,7 +756,7 @@ function renderFiles() {
   renderFileTree($('project-tree'),entries,{expanded,selectedPath:highlightedPath,onOpen:openScript});
   for(const row of $('project-tree').querySelectorAll('button[data-file-path]')){
     const path=row.dataset.filePath;
-    if(pending.has(path))row.append(' *');
+    if(pending.has(path)||pendingBankPath(path))row.append(' *');
     if(isPresetPath(path))row.title=path+' · ROM: '+(readPreset(files.get(path).data).source?.path??'factory');
   }
   renderPresetInfo();
@@ -760,7 +767,7 @@ function renderPresetInfo(){
   $('apply-preset').hidden=!preset;
   $('apply-preset').textContent='Apply preset';
   $('save-files').hidden=$('auto-apply').checked;
-  $('save-files').disabled=!pending.size;
+  $('save-files').disabled=!pending.size&&!pendingBanks.size;
   const target=preset?.source?.path??null;
   $('preset-info').textContent=preset
     ? (target!==romPath?'Switch shared ROM (all voices): '+(romPath??'factory')+' → ':'Shared ROM: ')+(target??'factory')+' · Bank '+preset.bank
@@ -768,6 +775,10 @@ function renderPresetInfo(){
 }
 $('song-select').onchange=event=>openScript(event.target.value);
 function openScript(path,prepared) {
+  if(pendingBankPath(path)){
+    $('file-status').textContent='Choose Save files to use this ROM and its presets.';
+    return;
+  }
   const file=files.get(path);
   if (!file) return;
   highlightedPath=path;
@@ -942,7 +953,17 @@ function editFile(path,text){
   scheduleDraft();
 }
 function saveFiles(){
-  files.writeFiles([...pending].map(([path,data])=>({path,data})));
+  const entries=[...pending].map(([path,data])=>({path,data}));
+  for(const [path,pair] of pendingBanks){
+    if(pair.rom)entries.push({path,data:pair.rom});
+    entries.push({path:catalogPath(path),data:pair.json});
+  }
+  files.writeFiles(entries);
+  for(const [path,pair] of pendingBanks){
+    const catalog=readCatalog(pair.json);
+    bankSlots[path]=catalog.slots;rangePresets.set(path,catalog.presets);
+  }
+  pendingBanks.clear();
   pending.clear();renderFiles();scheduleDraft();
 }
 $('auto-apply').onchange=()=>{if($('auto-apply').checked)saveFiles();else renderFiles();scheduleDraft();};
@@ -965,6 +986,7 @@ function renameSource(text,from,to){
   return JSON.stringify(p,null,2);
 }
 function fileActions(path){
+  if(pendingBankPath(path))return [{id:'open',label:'View pending ROM'}];
   if(isCatalogPath(path))return [{id:'open',label:'Open ROM presets'}];
   if(path==='/banks')return [{id:'new-rom',label:'New ROM…'},{id:'import-rom',label:'Import ROM…'}];
   if(!files.has(path))return [{id:'new',label:'New JavaScript file…'}];
@@ -996,7 +1018,7 @@ function fileAction(action,path){
     let dest;
     if(action==='duplicate'){
       const stem=leaf.slice(0,-ext.length);
-      let n=1;do{dest=parent+stem+' copy'+(n===1?'':' '+n)+ext;n++;}while(files.has(dest)||(isBankPath(path)&&files.has(catalogPath(dest))));
+      let n=1;do{dest=parent+stem+' copy'+(n===1?'':' '+n)+ext;n++;}while(files.has(dest)||(isBankPath(path)&&(files.has(catalogPath(dest))||pendingBankPath(catalogPath(dest)))));
     }else{
       const name=prompt('Rename file',leaf)?.trim();
       if(!name || name===leaf)return;
@@ -1009,7 +1031,7 @@ function fileAction(action,path){
       for(const f of presetReferences(path))entries.push({path:f.path,data:renameSource(f.data,path,dest)});
     }
     if(isBankPath(path)){
-      if(!isBankPath(dest)||files.has(catalogPath(dest)))throw Error('Choose an unused ROM and catalog name.');
+      if(!isBankPath(dest)||files.has(catalogPath(dest))||pendingBankPath(catalogPath(dest)))throw Error('Choose an unused ROM and catalog name.');
       entries.push({path:catalogPath(dest),data:catalogText(bankSlots[path],rangePresets.get(path)??[])});
     }
     files.writeFiles(entries);
@@ -1045,7 +1067,7 @@ const factory=snapshot();
 function replaceProject(project) {
   stop(false);
   songSelection++;songPath=null;preparedSong=null;transport();
-  attached=null;pending.clear();$('auto-apply').checked=true;
+  attached=null;pending.clear();pendingBanks.clear();$('auto-apply').checked=true;
   files.replace(project.files);rangePresets.clear();
   if(project.bankPath){
     bankPath=project.bankPath;bankSlots=structuredClone(project.bankSlots);
@@ -1083,7 +1105,7 @@ let timer, draftReady=false;
 async function saveDraft() {
   clearTimeout(timer);
   if(!draftReady)return;
-  try {if(!await store.write({...snapshot(),autoApply:$('auto-apply').checked,pending:[...pending]})) throw Error();}
+  try {if(!await store.write({...snapshot(),autoApply:$('auto-apply').checked,pending:[...pending],pendingBanks:[...pendingBanks]})) throw Error();}
   catch { $('file-status').textContent='Local draft could not be saved. Export a cassette to keep your work.'; }
 }
 function scheduleDraft() {clearTimeout(timer);timer=setTimeout(saveDraft,350);}
@@ -1299,17 +1321,19 @@ function syncPlayingBank({source,bytes,current,ranges,romRevision,version}){
     const stem='/banks/'+source.split('/').pop().replace(/\.vg[mz]$/i,'').replace(/[\x00-\x1f\\<>:"|?*]/g,'_');
     for(let n=1;;n++){
       path=stem+(n===1?'':' '+n)+'.bin';
-      const catalog=files.get(catalogPath(path));
-      if(!files.has(path)&&!catalog)break;
-      if(!catalog || readCatalog(catalog.data).source!==source)continue;
-      const existing=files.get(path)?.data;
+      const staged=pendingBanks.get(path);
+      const json=staged?.json??files.get(catalogPath(path))?.data;
+      if(!files.has(path)&&!json)break;
+      if(!json || readCatalog(json).source!==source)continue;
+      const existing=staged?.rom??files.get(path)?.data;
       if(existing?.length===bytes.length && existing.every((v,i)=>v===bytes[i]))break;
     }
   }
-  if(!path || (!bytes && !files.has(path)))return;
+  const staged=pendingBanks.get(path);
+  if(!path || (!bytes && !staged && !files.has(path)))return;
   const signature=JSON.stringify([path,version,current]);
   if(!bytes && signature===syncedRangeSignature)return;
-  const fresh=!files.has(path),presets=rangePresets.get(path)??[],keys=new Set(presets.map(rangeKey));
+  const fresh=!staged&&!files.has(path),presets=staged?readCatalog(staged.json).presets:(rangePresets.get(path)??[]),keys=new Set(presets.map(rangeKey));
   const added=[];
   for(const {voice,...p} of [...(ranges??vgmRanges),...current]){
     const key=rangeKey(p);
@@ -1329,13 +1353,17 @@ function syncPlayingBank({source,bytes,current,ranges,romRevision,version}){
         return {path,rom:bytes,json:text};
       }
     }
-    files.writeFiles(entries);
-    bankSlots[path]??=[];rangePresets.set(path,list);
+    if($('auto-apply').checked){
+      files.writeFiles(entries);
+      bankSlots[path]??=[];rangePresets.set(path,list);
+    }else{
+      pendingBanks.set(path,{rom:fresh?bytes:staged?.rom,json:text});
+    }
     scheduleDraft();
   }
   const switched=syncedBank!==path;
   syncedBank=path;syncedRomRevision=romRevision;syncedRangeSignature=signature;
-  if(fresh || switched)renderFiles();
+  if(fresh || switched || (!staged && pendingBanks.has(path)))renderFiles();
 }
 $('range-export').onclick=()=>run(async()=>{
   let path=bankPath,overflow;
@@ -1349,7 +1377,8 @@ $('range-export').onclick=()=>run(async()=>{
     overflow=syncPlayingBank(data);path=overflow?.path??syncedBank;
   }
   const name=path.split('/').pop(),jsonName=catalogPath(name);
-  const rom=overflow?.rom??files.get(path).data,json=overflow?.json??files.get(catalogPath(path)).data;
+  const staged=pendingBanks.get(path);
+  const rom=overflow?.rom??staged?.rom??files.get(path).data,json=overflow?.json??staged?.json??files.get(catalogPath(path)).data;
   const bytes=zipSync({[name]:rom,[jsonName]:new TextEncoder().encode(json)});
   const url=URL.createObjectURL(new Blob([bytes],{type:'application/zip'})),link=document.createElement('a');
   link.href=url;link.download=name.replace(/\.(rom|bin)$/i,'.zip');link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -1377,6 +1406,7 @@ function renderBankEditor(){
   $('slot-use').textContent=s?.kind==='ADPCM'?'Assign to Voice '+(padVoice+1):autoChannel?'Assign to AUTO':'Assign to CH'+(selected+1);
 }
 function selectBank(path){
+  if(pendingBankPath(path)){renderBankEditor();$('file-status').textContent='Choose Save files to use this ROM and its presets.';return;}
   if(!isBankPath(path)||!files.has(path))throw Error('Missing ROM '+path);
   if(bankPath!==path || romPath){
     for(const v of [...channels,autoVoice]){v.bank=bankFor(v);v.start=startFor(v);}
@@ -1397,12 +1427,13 @@ function selectBank(path){
 $('rom-file').onchange=e=>selectBank(e.target.value);
 function checkBankSize(path,bytes,extraSize=0){
   const total=files.list().reduce((n,f)=>f.path===path?n:n+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),bytes.length+extraSize);
-  if(total>maxRom)throw new RangeError('The cassette exceeds 16 MiB.');
+  const stagedSize=[...pendingBanks].reduce((n,[bank,pair])=>n+(pair.rom?.length??0)+new TextEncoder().encode(pair.json).length-(files.has(catalogPath(bank))?files.stat(catalogPath(bank)).size:0),0);
+  if(total+stagedSize>maxRom)throw new RangeError('The cassette exceeds 16 MiB.');
 }
 function addRom(name,bytes,presets=[],slots=[]){
   if(!name.trim() || /[/\\]/.test(name))throw Error('Enter a ROM file name.');
   const path=checkPath('/banks/'+name.trim()+(/\.(bin|rom)$/i.test(name.trim())?'':'.bin'));
-  if(!isBankPath(path)||files.has(path)||files.has(catalogPath(path)))throw Error('Choose a new ROM file name.');
+  if(!isBankPath(path)||files.has(path)||files.has(catalogPath(path))||pendingBankPath(catalogPath(path)))throw Error('Choose a new ROM file name.');
   bankLibrary(bytes,slots);
   const text=catalogText(slots,presets);readCatalog(text);
   checkBankSize(path,bytes,new TextEncoder().encode(text).length);
@@ -1553,6 +1584,12 @@ try {
   if(draft){
     replaceProject(validateProject(draft));
     $('auto-apply').checked=draft.autoApply!==false;
+    if(!draft.autoApply){
+      for(const [path,pair] of draft.pendingBanks??[]){
+        if(!isBankPath(path)||!(pair.rom instanceof Uint8Array || files.has(path)))continue;
+        readCatalog(pair.json);pendingBanks.set(path,pair);
+      }
+    }
     if(!draft.autoApply && Array.isArray(draft.pending)){
       for(const [path,text] of draft.pending)if(typeof text==='string' && files.get(path)?.type==='text'){
         if(isPresetPath(path))readPreset(text);
