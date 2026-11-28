@@ -21,7 +21,7 @@ export function inspectSong(bytes) {
   }
   if (!rom || !ticks) throw Error('The song needs embedded QSound ROM data and playback time.');
   const canLoop=loopStart!==null && loopStart<ticks;
-  return {ticks,canLoop,loopTick:canLoop?loopStart:null};
+  return {clock,ticks,canLoop,loopTick:canLoop?loopStart:null};
 }
 
 export function applyRomBlock(rom,event){

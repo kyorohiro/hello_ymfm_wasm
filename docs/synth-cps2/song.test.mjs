@@ -8,7 +8,7 @@ import {inspectSong,SongTransport} from './song.js';
 
 test('imported echo comparison matches the original worklet score at 48 kHz across pause and block boundaries',()=>{
   const score=demoTracks.echo.score(), source=demoVgm(score), rate=48000;
-  assert.deepEqual(inspectSong(source),{ticks:score.at(-1).t,canLoop:false,loopTick:null});
+  assert.deepEqual(inspectSong(source),{clock:4000000,ticks:score.at(-1).t,canLoop:false,loopTick:null});
   const chip=new QSoundPcm(new Uint8Array(),rate,{spatialPcm:true});
   const transport=new SongTransport(source,chip,new Uint16Array(16));
   const reference=new QSoundPcm(demoRom(),rate,{spatialPcm:true});

@@ -122,7 +122,7 @@ body{width:min(100%,76rem)}
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <div role="tablist" id="pcm-tabs" aria-label="PCM channel view"><button role="tab" id="pcm-tab" aria-controls="pcm-panel" aria-selected="true">Voice</button>
 <button role="tab" id="register-tab" aria-controls="register-panel" aria-selected="false" tabindex="-1">Registers</button></div>
-<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><small id="preset-pitch" role="status"></small><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
+<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><button id="pcm-measure">Measure pitch</button> <small id="preset-pitch" role="status"></small><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <div id="pcm-controls"></div>
@@ -147,7 +147,7 @@ body{width:min(100%,76rem)}
 <div role="group" aria-label="Waveform view"><button id="item-full" aria-pressed="true">Full bank</button> <button id="item-selection" aria-pressed="false">Selection</button> <strong id="item-encoding"></strong></div>
 <canvas id="item-wave" aria-describedby="item-encoding" width="640" height="84" aria-label="Full bank waveform"></canvas>
 <small id="item-wave-help">Drag across the waveform to select a range. Drag an edge 4 px per byte to fine-tune Start or End.</small>
-<button id="item-preview">Preview 1 s</button> <button id="item-save">Save item</button></div>
+<span id="item-tuning"><button id="item-measure">Measure pitch</button> <small id="item-pitch" role="status"></small></span> <button id="item-preview">Preview 1 s</button> <button id="item-save">Save item</button></div>
 <label id="range-history-label" hidden>VGM range history<select data-performance-picker id="range-history"></select></label>
 <button id="use-history" hidden>Use selected range</button>
 

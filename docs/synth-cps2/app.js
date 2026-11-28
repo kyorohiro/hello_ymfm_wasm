@@ -145,6 +145,7 @@ const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,direct
 const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,directEntry:true,coarseDragSteps:256,dragPixelsPerStep:romDragPixelsPerStep,value:0,formatValue:padHex,onChange:value=>setPcmAddress('start',value)});
 $('pcm-address').append(pcmBank.element,pcmStart.element);
 function setPcmAddress(key,value){
+  clearPresetPitch();
   const v=editedVoice(),reg=key==='bank'?((selected+15)&15)*8:selected*8+1;
   const writes=[[reg,key==='bank'?value|0x8000:value]];
   if(autoChannel || !liveInstrument){
@@ -193,6 +194,7 @@ function refresh() {
   draw(shown);
 }
 function edit(key,value) {
+  clearPresetPitch();
   editPreset(false,key,value);
   if(liveInstrument && !autoChannel){
     if(key==='rate' && songState!=='playing')port?.postMessage({type:'voice-setting',channel:selected,field:'rate',value});
@@ -1385,6 +1387,9 @@ function drawItem(){
     item={pcm,length,kind:p.kind};
   }
   if(selectionView)drawSampleWave($('item-wave'),item);else drawFullBank();
+  $('item-tuning').hidden=p.kind!=='PCM';
+  $('item-measure').disabled=!valid;
+  $('item-pitch').replaceChildren();
   $('item-preview').disabled=!valid;
   $('item-save').disabled=!valid || rangeKey(p)===rangeKey(itemRanges.get($('range-current').value));
 }
@@ -1393,6 +1398,7 @@ $('item-preview').onclick=()=>run(async()=>{
   await audio();if(signature!==itemSignature)return;
   stopItemPreview();
   const rate=context.sampleRate,chip=new QSoundPcm(rom,rate);
+  chip.tickRate=itemTickRate();
   const writes=p.kind==='PCM'?noteWrites(0,60,0,16,16384,p.rate,p.end,p.loop,p.bank,p.start):
     [[0xca,p.start],[0xcb,p.end],[0xcc,p.bank],[0xcd,32767],[0x90,0x120],[0xd6,1]];
   for(const [reg,value] of writes)chip.writeRegister(reg,value);
@@ -1487,31 +1493,66 @@ function renderRanges(){
 function clearPresetPitch(){
   pitchRequest++;$('preset-pitch').textContent='';
 }
-async function showPresetPitch(p){
+function pitchResults(output,p,pitches,apply){
+  const entries=p.loop?[['Loop',pitches.loop],['Onset',pitches.onset]]:[['Onset',pitches.onset]];
+  output.textContent='Estimated at rate '+(p.rate||4096);
+  for(const [label,pitch] of entries){
+    output.append(' · '+label+' '+(pitch?pitch.name+' ('+pitch.hz.toFixed(1)+' Hz)':'undetermined'));
+    if(!pitch || pitch.c4Rate<1 || pitch.c4Rate>65535)continue;
+    const button=document.createElement('button');
+    button.textContent='Use C4 rate '+pitch.c4Rate;
+    button.onclick=()=>apply(pitch.c4Rate);
+    output.append(' ',button);
+  }
+}
+function useKeyboardRate(rate){
+  if(!liveInstrument || autoChannel){
+    Object.assign(editedVoice(),{rate,referenceRate:rate,referenceNote:60,note:60});
+    refresh();
+  }else port?.postMessage({type:'voice-setting',channel:selected,field:'rate',value:rate});
+  inspectChannel();scheduleDraft();
+}
+$('pcm-measure').onclick=()=>run(async()=>{
+  if(songState==='playing')pauseSong();
+  if(liveInstrument && !autoChannel){await showPresetPitch(null,false);return;}
+  const v=editedVoice();
+  await showPresetPitch({...v,bank:bankFor(v),start:startFor(v)},false);
+});
+$('item-measure').onclick=()=>{
+  const p=itemDraft,base=p.bank*65536;
+  const pitches=presetPitches(itemRom.subarray(base,base+65536),p,itemTickRate());
+  pitchResults($('item-pitch'),p,pitches,rate=>{
+    p.rate=rate;itemControls.rate.updateVisual(rate);drawItem();
+  });
+};
+function itemTickRate(){return QSOUND_PCM_RATE*(romPath?(preparedSong?.clock??4000000):4000000)/4000000;}
+async function showPresetPitch(p,autoTune=true){
   clearPresetPitch();
   const token=pitchRequest;
   let bytes,clock=4000000;
   if(liveInstrument && port){
     const {port1,port2}=new MessageChannel();
     const response=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
-    port.postMessage({type:'preset-bank',bank:p.bank,first:0,last:65536,reply:port2},[port2]);
-    ({bytes,clock}=await response);
+    const request=p?{type:'preset-bank',bank:p.bank,first:0,last:65536}:{type:'read-preset',kind:'pcm',channel:selected};
+    port.postMessage({...request,reply:port2},[port2]);
+    const result=await response;
+    ({bytes,clock}=result);
+    p??=result;
     if(token!==pitchRequest)return;
   }else bytes=library.rom.subarray(p.bank*65536,(p.bank+1)*65536);
   const pitches=presetPitches(bytes,p,QSOUND_PCM_RATE*clock/4000000);
-  const describe=(label,pitch)=>label+' '+(pitch?pitch.name+' ('+pitch.hz.toFixed(1)+' Hz)':'undetermined');
-  const parts=[];
-  if(p.loop)parts.push(describe('Loop',pitches.loop));
-  parts.push(describe('Onset',pitches.onset));
-  const reference=pitches.loop??pitches.onset;
-  if(reference && reference.c4Rate<=65535)parts.push('C4 rate '+reference.c4Rate);
-  $('preset-pitch').textContent='Estimated at rate '+(p.rate||4096)+' · '+parts.join(' · ');
+  const output=$('preset-pitch');
+  pitchResults(output,p,pitches,useKeyboardRate);
+  if(autoTune && p.rate===0){
+    const rate=[pitches.loop,pitches.onset].map(v=>v?.c4Rate).find(n=>n>=1 && n<=65535)??4096;
+    useKeyboardRate(rate);
+    output.append(' · Keyboard rate '+rate);
+  }
 }
 function applyRange(p){
   if(!p||p.earlierImage)return;
   if(songState==='playing')pauseSong();
   if(p.kind==='PCM'){
-    run(()=>showPresetPitch(p));
     if(!liveInstrument||autoChannel){
       Object.assign(editedVoice(),{samplePath:null,sample:0,bank:p.bank,start:p.start,end:p.end,loop:p.loop,
         rate:p.rate,note:60,referenceNote:60,referenceRate:p.rate});
@@ -1526,6 +1567,7 @@ function applyRange(p){
     if(!liveInstrument)showPad();
   }
   attached=null;refresh();inspectChannel();scheduleDraft();
+  if(p.kind==='PCM')run(()=>showPresetPitch(p));
 }
 $('pcm-range').onchange=$('adpcm-range').onchange=e=>{if(e.target.value!=='')applyRange(availableRanges()[Number(e.target.value)]);};
 $('range-history').onchange=()=>{$('use-history').disabled=Boolean(vgmRanges[Number($('range-history').value)]?.earlierImage);};
