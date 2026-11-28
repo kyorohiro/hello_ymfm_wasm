@@ -472,7 +472,7 @@ for(let i=0;i<3;i++){
     padVoice=i;revision++;
     for(const item of $('adpcm-voices').children)item.setAttribute('aria-pressed',String(item===b));
     if(liveInstrument)inspectChannel();else showPad();
-    renderPresetInfo();
+    updateFileActions();
   };
   $('adpcm-voices').append(b);
 }
@@ -519,7 +519,7 @@ function stop(keepInstrument=true){
   port?.postMessage(liveInstrument?'stop-audition':'stop');
   if(!liveInstrument){restoreEcho();showRomMap();}
   if(liveInstrument)inspectChannel();
-  renderPresetInfo();
+  updateFileActions();
 }
 let replacingWav=null;
 window.addEventListener('blur',()=>{if(songState==='stopped' && !replacingWav)stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
@@ -641,7 +641,7 @@ function drawWorkspace(){
     $(tab.dataset.performance).hidden=!active;
     tab.setAttribute('aria-pressed',String(active));
   }
-  revision++;showRomMap();renderPresetInfo();renderBankEditor();
+  revision++;showRomMap();updateFileActions();renderBankEditor();
   if(!$('code-panel').hidden)editor.load().then(()=>editor.layout());
 }
 function selectPerformance(code) {
@@ -790,19 +790,12 @@ function renderFiles() {
     if(pending.has(path)||pendingBankPath(path))row.append(' *');
     if(isPresetPath(path))row.title=path+' · ROM: '+(readPreset(files.get(path).data).source?.path??'factory');
   }
-  renderPresetInfo();
+  updateFileActions();
 }
-function renderPresetInfo(){
-  const f=isPresetPath(highlightedPath)?files.get(highlightedPath):null;
-  const preset=f?readPreset(f.data):null;
-  $('apply-preset').hidden=!preset;
-  $('apply-preset').textContent='Apply preset';
+function updateFileActions(){
+  $('apply-preset').hidden=!(isPresetPath(highlightedPath)&&files.has(highlightedPath));
   $('save-files').hidden=$('auto-apply').checked;
   $('save-files').disabled=!pending.size&&!pendingBanks.size;
-  const target=preset?.source?.path??null;
-  $('preset-info').textContent=preset
-    ? (target!==romPath?'Switch shared ROM (all voices): '+(romPath??'factory')+' → ':'Shared ROM: ')+(target??'factory')+' · Bank '+preset.bank
-    : 'Shared ROM: '+(romPath??bankPath);
 }
 $('song-select').onchange=event=>openScript(event.target.value);
 function openScript(path,prepared) {
@@ -930,8 +923,8 @@ function applyPresetFile(path,target,options,current){
       songPath=destination;preparedSong=song;preparationRevision++;songState='stopped';showPosition(0);
       codeWorker?.postMessage({samples:codeSamples()});
     }
-    attached=null;revision++;transport();inspectChannel();renderPresetInfo();
-    $('file-status').textContent='Loaded '+path+' on '+(adpcm?'Voice ':'CH')+target+' · Shared ROM: '+(destination??'project');
+    attached=null;revision++;transport();inspectChannel();updateFileActions();
+    $('file-status').textContent='Loaded '+path+' on '+(adpcm?'Voice ':'CH')+target;
   }
   const result=presetQueue.then(apply);
   presetQueue=result.catch(()=>{});
@@ -1887,7 +1880,7 @@ async function playSong(){
   const {bytes}=preparedSong;
   await audio();
   if(token!==generation)return;
-  followSong();attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();liveInstrument=true;songState='playing';port.postMessage({type:'song',path:songPath,bytes,loop:preparedSong.canLoop && $('song-loop').checked});
+  followSong();attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];updateFileActions();liveInstrument=true;songState='playing';port.postMessage({type:'song',path:songPath,bytes,loop:preparedSong.canLoop && $('song-loop').checked});
   port.postMessage({type:'range-state',known:-1,knownRom:-1});transport();
 }
 $('song-play').onclick=()=>run(playSong);
@@ -1930,7 +1923,7 @@ slider.onchange=()=>run(async()=>{
     seekWorker=worker;
     worker.onmessage=({data:state})=>{
       if(token!==generation)return;
-      revision++;followSong();attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();
+      revision++;followSong();attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];updateFileActions();
       port.postMessage({type:'song',path:songPath,bytes:song.bytes,state,loop:$('song-loop').checked,paused:songState==='paused'},
         [state.chip.rom.buffer,state.chip.echoLine.buffer,state.starts.buffer]);
       cancelSeek();transport();inspectChannel();

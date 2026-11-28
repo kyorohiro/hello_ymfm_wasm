@@ -37,7 +37,11 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #workspace{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(11rem,15rem) minmax(0,1fr)}
 #workspace.files-hidden{grid-template-columns:minmax(0,1fr)}
 #files,#desk{min-height:0;overflow:auto;overscroll-behavior:contain}
-#files{background:#e6e0cc;padding:1rem;overflow-wrap:anywhere}#files button{margin:.2rem}
+#files{background:#e6e0cc;padding:.5rem;overflow-wrap:anywhere}
+.files-heading,.files-actions{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+.files-heading{justify-content:space-between}
+.files-heading button,.files-actions button{font-size:.8rem;padding:2px 6px}
+#file-status{font-size:.8rem;margin:4px 0}#file-status:empty{margin:0}
 #files .file-entry[aria-current=true]{font-weight:bold}
 #files .file-entry{max-width:100%;overflow-wrap:anywhere;text-align:left}#desk{min-width:0}#code-panel{padding:4px 1.5rem .8rem}
 #soundchip:has(#chip-tabs [data-performance="code-panel"][aria-pressed="true"]){padding-bottom:0}
@@ -115,7 +119,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #files .file-entry,#files summary{display:block;width:100%;margin:0;padding:5px 6px;border:0;background:transparent;font-size:.82rem;text-align:left;cursor:pointer}
 #files summary{display:list-item}#files .file-entry:hover,#files summary:hover{background:#d8e5da}
 #files .file-entry[aria-current=true]{background:#cee0d6}#files label{display:inline-flex;align-items:center;font-size:.8rem}
-#preset-info{display:block;overflow-wrap:anywhere}.spu-file-context-menu{z-index:10;display:grid;gap:2px;padding:5px;border:1px solid #739384;background:#fffaf0;border-radius:6px}.spu-file-context-menu button{text-align:left}
+.spu-file-context-menu{z-index:10;display:grid;gap:2px;padding:5px;border:1px solid #739384;background:#fffaf0;border-radius:6px}.spu-file-context-menu button{text-align:left}
 .rom-row{display:grid;grid-template-columns:8rem minmax(0,1fr);align-items:center;gap:2px .5rem;text-align:left;width:100%;margin:.25rem 0;padding:.3rem .5rem}
 .rom-row strong{grid-row:span 2;font-size:.83rem}.rom-address,#rom-scale{font: .8rem/1.4 monospace}.rom-track{position:relative;height:.75rem;background:#e1e6dc;border-radius:2px;overflow:hidden}
 .rom-segment{position:absolute;height:100%;min-width:1px}.rom-pcm{background:#247866}.rom-adpcm{background:#235d93}.rom-loop{background:#b66614;height:40%;bottom:0}.rom-unavailable{z-index:1;background:repeating-linear-gradient(135deg,#102f4538 0 3px,transparent 3px 6px)}
@@ -145,8 +149,8 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <strong>Options</strong><label><input id="auto-fade" type="checkbox" checked> PCM note-off fade (4 ms)</label>
 </div></details><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
 <div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
-<div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><label><input type="checkbox" id="auto-apply" title="Save edits and sync playing ROMs automatically. Apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
-<div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button><button id="new-script">New script…</button>
+<div id="workspace"><aside id="files" aria-label="Files"><div class="files-heading"><strong>Files</strong><button id="new-script" title="New JavaScript file">＋ JS</button></div><div class="files-actions"><label><input type="checkbox" id="auto-apply" title="Save edits and sync playing ROMs automatically. Apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
+<button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button></div><div id="project-tree"></div>
 <p id="file-status" role="status"></p></aside><div id="desk">
 <output id="status" role="status"></output><details class="desk-group" id="song-transport" open hidden><summary>VGM <span class="summary-file" id="song-summary-file"></span></summary><div class="desk-group-body"><label id="song-picker"><select id="song-select" aria-label="VGM file"></select></label>
 <button id="song-play">Play</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop</button>
