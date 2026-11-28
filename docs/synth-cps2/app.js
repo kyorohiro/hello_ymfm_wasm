@@ -103,7 +103,7 @@ function transport() {
   $('song-select').value=songPath??'';
   $('song-status').textContent=seeking?'Seeking…':songState==='paused'?'Paused · audition':songState==='playing'?'Playing':liveInstrument?'Stopped · audition':'Ready';
   $('song-play').disabled=seeking || songState==='playing' || !preparedSong;
-  $('song-play').textContent=songState==='paused'?'Resume':'Play VGM';
+  $('song-play').textContent=songState==='paused'?'Resume':'Play';
   $('song-pause').disabled=seeking || songState!=='playing';
   $('song-stop').disabled=false;
   $('save').disabled=!songPath;
@@ -1863,7 +1863,10 @@ $('song-input').onchange=async event=>{
     if(token!==songSelection)return;
     const path='/songs/'+file.name;
     if(files.has(path) && !confirm('Replace '+path+'?'))return;
-    files.writeBinary(path,raw);openScript(path,prepared);saveDraft();
+    files.writeBinary(path,raw);openScript(path,prepared);
+    const panel=$('song-transport');
+    panel.open=true;panel.scrollIntoView({block:'nearest'});
+    saveDraft();
     $('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
 };
