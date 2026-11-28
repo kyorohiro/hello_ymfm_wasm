@@ -241,3 +241,20 @@ test('PCM note-off ramps one voice for 8 ms and respects retriggers, key-off and
   send({type:'note-off',channel:0});
   assert.equal(v.volume,0);
 });
+
+test('selecting a VGM installs its ROM silently and leaves the first note playable',()=>{
+  const processor=new Processor(),path='/songs/duet.vgm';
+  const bytes=demoVgm(demoTracks.demo.score());
+  processor.port.onmessage({data:{type:'song',bytes,path,audition:true}});
+  assert.equal(processor.song,null);
+  assert.equal(processor.romSource().path,path);
+  assert.ok(processor.chip.rom.some(byte=>byte!==0));
+  const render=()=>{
+    const left=new Float32Array(1024),right=left.slice();
+    processor.process([],[[left,right]]);
+    return left.some(Boolean)||right.some(Boolean);
+  };
+  assert.equal(render(),false);
+  processor.port.onmessage({data:{type:'captured-note',channel:0,midi:60}});
+  assert.equal(render(),true);
+});

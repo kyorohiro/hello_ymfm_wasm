@@ -77,7 +77,7 @@ function pendingBankPath(path){
   if(isCatalogPath(path))return [...pendingBanks.keys()].find(bank=>catalogPath(bank)===path);
 }
 let songPath=null, songState='stopped', songSelection=0;
-let preparedSong=null, preparationRevision=0;
+let preparedSong=null, preparationRevision=0,sourceChoice=0;
 let seekWorker=null, seeking=false, sliding=false;
 const songLimit=16*1024*1024;
 async function prepareSong(raw) {
@@ -859,7 +859,7 @@ function updateFileActions(){
   $('save-files').disabled=!pending.size&&!pendingBanks.size;
 }
 $('song-select').onchange=event=>openScript(event.target.value);
-function openScript(path,prepared) {
+function openScript(path,prepared,activateRom=true) {
   if(pendingBankPath(path)){
     $('file-status').textContent='Choose Save files to use this ROM and its presets.';
     return;
@@ -879,7 +879,11 @@ function openScript(path,prepared) {
     return;
   }
   if (file.type==='binary') {
-    if(path===songPath && preparedSong && !prepared){renderFiles();return;}
+    const choice=++sourceChoice;
+    if(path===songPath && preparedSong && !prepared){
+      if(activateRom && romPath!==path)run(()=>previewSongRom(path,preparedSong,choice));
+      renderFiles();return;
+    }
     stop(false);songPath=path;
     preparedSong=null;$('song-loop').checked=false;
     transport();renderFiles();
@@ -887,6 +891,7 @@ function openScript(path,prepared) {
     Promise.resolve(prepared??prepareSong(file.data)).then(song=>{
       if(token!==preparationRevision || path!==songPath)return;
       preparedSong=song;transport();scheduleDraft();
+      if(activateRom && choice===sourceChoice)return previewSongRom(path,song,choice);
     }).catch(error=>{if(token===preparationRevision && path===songPath)$('file-status').textContent=error.message;});
     return;
   }
@@ -1029,7 +1034,7 @@ function editPreset(adpcm,key,value){
 function selectDefaultSong(){
   const first='/songs/'+demoTracks.demo.filename;
   const path=files.has(first)?first:files.list().find(f=>/\.vg[mz]$/i.test(f.path))?.path;
-  if(path)openScript(path);
+  if(path)openScript(path,undefined,false);
 }
 function editFile(path,text){
   const wasDirty=pending.has(path);
@@ -1204,7 +1209,7 @@ function replaceProject(project) {
   restoreEcho();
   select(project.selected,project.autoChannel===true);showRomMap();
   activePath=highlightedPath=project.active;editor.setSource(files.get(activePath).data,activePath);renderFiles();
-  if(project.song)openScript(project.song);else selectDefaultSong();
+  if(project.song)openScript(project.song,undefined,false);else selectDefaultSong();
 }
 const draftKey='tetorica.cps2.cassette.v1';
 const store=createSynthProjectStore({name:'tetorica-cps2-project'});
@@ -1754,6 +1759,7 @@ function renderBankEditor(){
 function selectBank(path,clearAssignments=false){
   if(pendingBankPath(path)){renderBankEditor();$('file-status').textContent='Choose Save files to use this ROM and its presets.';return;}
   if(!isBankPath(path)||!files.has(path))throw Error('Missing ROM '+path);
+  sourceChoice++;
   if(bankPath!==path || romPath){
     for(const v of [...channels,autoVoice]){v.bank=bankFor(v);v.start=startFor(v);}
     stop(false);bankPath=path;
@@ -1934,6 +1940,16 @@ $('song-input').onchange=async event=>{
     $('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
 };
+async function previewSongRom(path,song,choice){
+  const token=generation;
+  await audio();
+  if(token!==generation || choice!==sourceChoice || path!==songPath || song!==preparedSong)return;
+  followSong();attached=null;romPath=path;syncedBank=null;syncedRomRevision=-1;
+  rangeVersion=-1;vgmRanges=[];currentRanges=[];liveInstrument=true;songState='stopped';
+  port.postMessage({type:'song',path,bytes:song.bytes,audition:true});
+  port.postMessage({type:'range-state',known:-1,knownRom:-1});
+  revision++;transport();inspectChannel();
+}
 async function playSong(){
   clearPresetPitch();
   if(songState==='paused'){followSong();attached=null;stopWorker();channels.forEach(v=>v.held=null);revision++;songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}

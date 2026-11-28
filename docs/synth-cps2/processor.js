@@ -63,9 +63,18 @@ class Cps2Preview extends AudioWorkletProcessor {
           this.applyMutes();
         }
         this.song.applyDueEvents(true);
+        if(data.audition){
+          // Some streams start with waits before loading their first ROM image.
+          while(!this.song.romRevision && !this.song.parser.ended &&
+              this.song.parser.bytes[this.song.parser.position]!==0x66){
+            this.song.frames=this.song.nextFrame;
+            this.song.applyDueEvents(true);
+          }
+        }
         this.song.loop=data.loop;
         this.sourcePath=data.path;this.source=null;this.captured=false;
-        this.setPaused(Boolean(data.paused));
+        if(data.audition)this.stopAudition();
+        else this.setPaused(Boolean(data.paused));
         return;
       }
       if (data?.type === 'loop-song') {if(this.song)this.song.loop=data.enabled;return;}
@@ -83,9 +92,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         return;
       }
       if (data === 'stop-audition') {
-        if(this.song){this.frozenRomRevision=this.song.romRevision;this.frozenRanges=this.song.ranges;this.frozenRangeRevision=this.song.rangeRevision;}
-        this.capture();
-        this.song=null;
+        this.stopAudition();
         return;
       }
       if(data?.type==='rename-song'){
@@ -216,6 +223,15 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.starts.fill(0);
       } else this.apply(data);
     };
+  }
+  stopAudition(){
+    if(this.song){
+      this.frozenRomRevision=this.song.romRevision;
+      this.frozenRanges=this.song.ranges;
+      this.frozenRangeRevision=this.song.rangeRevision;
+    }
+    this.capture();
+    this.song=null;
   }
   romSource(){
     if(this.song && !this.captured)return {path:this.sourcePath,position:this.song.parser.position,looped:this.song.looped};
