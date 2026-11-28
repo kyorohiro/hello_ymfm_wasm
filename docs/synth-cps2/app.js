@@ -1240,10 +1240,17 @@ function rangeOptions(id,options){
 }
 function availableRanges(){return romPath?vgmRanges:projectRanges();}
 let renderedHistory=null;
+function currentRomRanges(){
+  const ranges=new Map();
+  for(const {voice,...range} of liveInstrument?currentRanges:authoredRanges()){
+    ranges.set(rangeKey(range),range);
+  }
+  return ranges;
+}
 function renderRanges(){
-  const current=liveInstrument?currentRanges:authoredRanges();
-  rangeOptions('range-current',current.map((p,i)=>[i,(p.voice===-1?'AUTO':p.voice<16?'CH'+(p.voice+1):'Voice '+(p.voice-15))+' · '+rangeName(p)]));
-  $('range-save').disabled=Boolean(romPath)||!current.length;
+  const current=currentRomRanges();
+  rangeOptions('range-current',Array.from(current,([key,range])=>[key,rangeName(range)]));
+  $('range-save').disabled=Boolean(romPath)||!current.size;
   if(romPath && renderedHistory===vgmRanges)return;
   renderedHistory=romPath?vgmRanges:null;
   const presets=availableRanges();
@@ -1288,13 +1295,15 @@ for(const [button,picker] of [['use-history','range-history'],['use-saved','rang
   };
 }
 $('range-save').onclick=()=>{
-  const current=liveInstrument?currentRanges:authoredRanges();
-  const selectedRange=current[Number($('range-current').value)];
-  if(!selectedRange||romPath)return;
-  const {voice,...p}=selectedRange;
+  const key=$('range-current').value,range=currentRomRanges().get(key);
+  if(!range||romPath)return;
   const list=rangePresets.get(bankPath)??[];
-  list.push({...p,name:rangeName(p)});rangePresets.set(bankPath,list);syncCatalog(bankPath);
-  renderRanges();$('range-saved').value=String(projectRanges().length-1);scheduleDraft();
+  let index=list.findIndex(p=>rangeKey(p)===key);
+  if(index<0){
+    index=list.push({...range,name:rangeName(range)})-1;
+    rangePresets.set(bankPath,list);syncCatalog(bankPath);scheduleDraft();
+  }
+  renderRanges();$('range-saved').value=String(bankSlots[bankPath].filter(Boolean).length+index);
 };
 $('range-rename').onclick=()=>{
   const i=Number($('range-saved').value),p=projectRanges()[i];
