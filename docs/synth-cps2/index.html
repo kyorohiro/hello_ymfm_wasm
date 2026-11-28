@@ -83,6 +83,7 @@ body{width:min(100%,76rem)}
 #slot-buttons{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;max-width:32rem;margin:.5rem 0}#slot-buttons button{padding:0;font-size:.75rem}#slot-buttons button.filled{background:#237066;color:white}#slot-buttons button[aria-pressed=true]{outline:2px solid #d78220}
 #item-wave,#slot-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
 #rom-chip > details{margin-top:.6rem}#rom-chip > details > summary{cursor:pointer;font-weight:600;padding:.35rem 0}
+.item-picker-row{display:flex;align-items:center;gap:.4rem;margin:.3rem 0}.item-picker-row select{min-width:0;max-width:85%}#item-wave{touch-action:none;cursor:crosshair}#item-wave-help{display:block}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
@@ -128,13 +129,16 @@ body{width:min(100%,76rem)}
 <label>Preset<select data-performance-picker id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden>
 
-<fieldset><legend>Preset <button id="range-new" type="button">NEW</button></legend>
+<fieldset><legend>Preset</legend>
+<div class="item-picker-row"><label for="range-current">Item</label> <button id="range-new" type="button">NEW</button></div>
 <dialog id="range-create" aria-labelledby="range-create-title"><form method="dialog"><h3 id="range-create-title">New preset</h3>
 <label>ROM range<select id="range-source"></select></label><label>Name <input id="range-name" required></label>
 <button type="submit" value="create">Create</button> <button type="submit" value="cancel" formnovalidate>Cancel</button></form></dialog>
-<div id="preset-item"><label>Item <select data-performance-picker id="range-current"></select></label> <button id="range-del" title="Delete the selected preset">DEL</button></div>
+<div id="preset-item" class="item-picker-row"><select data-performance-picker id="range-current"></select> <button id="range-del" title="Delete the selected preset">DEL</button></div>
 <div id="item-editor" hidden><div id="item-controls" class="chip-header"></div>
-<canvas id="item-wave" width="640" height="84" aria-label="Selected item waveform"></canvas>
+<div role="group" aria-label="Waveform view"><button id="item-full" aria-pressed="true">Full bank</button> <button id="item-selection" aria-pressed="false">Selection</button></div>
+<canvas id="item-wave" width="640" height="84" aria-label="Full bank waveform"></canvas>
+<small id="item-wave-help">Drag across the waveform to select a range, or drag its edges to adjust Start and End.</small>
 <button id="item-preview">Preview 1 s</button> <button id="item-save">Save item</button></div>
 <label id="range-history-label" hidden>VGM range history<select data-performance-picker id="range-history"></select></label>
 <button id="use-history" hidden>Use selected range</button>

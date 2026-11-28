@@ -1288,7 +1288,7 @@ function showItem(){
   const id=$('range-current').value,p=itemRanges.get(id),path=romPath?syncedBank:bankPath;
   const rom=selectedRomBytes(path),signature=JSON.stringify([path,id,p]);
   if(signature===itemSignature && rom===itemRom)return;
-  stopItemPreview();itemSignature=signature;itemRom=rom;itemDraft=p?{...p}:null;
+  rangeDrag=null;stopItemPreview();itemSignature=signature;itemRom=rom;itemDraft=p?{...p}:null;
   $('item-editor').hidden=!itemDraft;
   if(!p)return;
   for(const [key,control] of Object.entries(itemControls)){
@@ -1297,19 +1297,80 @@ function showItem(){
   }
   drawItem();
 }
+let selectionView=false,rangeDrag;
+const bankWave=document.createElement('canvas');
+bankWave.width=$('item-wave').width;bankWave.height=$('item-wave').height;
+let drawnRom,drawnBank,drawnKind;
+function bankLength(){return Math.min(65536,Math.max(0,(itemRom?.length??0)-itemDraft.bank*65536));}
+function drawFullBank(){
+  const p=itemDraft,base=p.bank*65536,size=bankLength();
+  if(drawnRom!==itemRom||drawnBank!==p.bank||drawnKind!==p.kind){
+    const pcm=itemRom?.subarray(base,base+size);
+    drawSampleWave(bankWave,size?{pcm,length:size,kind:p.kind}:null);
+    drawnRom=itemRom;drawnBank=p.bank;drawnKind=p.kind;
+  }
+  const canvas=$('item-wave'),ctx=canvas.getContext('2d'),{width,height}=canvas;
+  ctx.clearRect(0,0,width,height);ctx.drawImage(bankWave,0,0);
+  if(!size)return;
+  const x=n=>Math.min(width,n*width/size);
+  ctx.fillStyle='rgba(255,196,66,.24)';
+  if(p.end>=p.start)ctx.fillRect(x(p.start),0,x(p.end)-x(p.start),height);
+  else{ctx.fillRect(x(p.start),0,width-x(p.start),height);ctx.fillRect(0,0,x(p.end),height);}
+  for(const address of [p.start,(p.start && !p.end)?65536:p.end]){
+    ctx.fillStyle='#ffd674';ctx.fillRect(Math.min(width-2,x(address)),0,2,height);
+  }
+}
+function setItemView(selection){
+  selectionView=selection;rangeDrag=null;
+  $('item-selection').setAttribute('aria-pressed',String(selection));
+  $('item-full').setAttribute('aria-pressed',String(!selection));
+  $('item-wave').setAttribute('aria-label',selection?'Selected range waveform':'Full bank waveform');
+  $('item-wave').style.cursor=selection?'default':'crosshair';
+  $('item-wave-help').hidden=selection;
+  if(itemDraft)drawItem();
+}
+$('item-full').onclick=()=>setItemView(false);
+$('item-selection').onclick=()=>setItemView(true);
+const itemWave=$('item-wave');
+function pointerAddress(e){
+  const rect=itemWave.getBoundingClientRect();
+  return Math.max(0,Math.min(bankLength(),Math.round((e.clientX-rect.left)*bankLength()/rect.width)));
+}
+itemWave.onpointerdown=e=>{
+  if(selectionView||!itemDraft||!bankLength()||e.button!==0||rangeDrag)return;
+  const anchor=pointerAddress(e),tolerance=6*bankLength()/itemWave.getBoundingClientRect().width;
+  const startDistance=Math.abs(anchor-itemDraft.start),endDistance=Math.abs(anchor-((itemDraft.start && !itemDraft.end)?65536:itemDraft.end));
+  let edge=null;
+  if(Math.min(startDistance,endDistance)<=tolerance)edge=startDistance<endDistance?'start':'end';
+  rangeDrag={pointer:e.pointerId,anchor,edge};
+  itemWave.setPointerCapture(e.pointerId);e.preventDefault();
+};
+function moveRange(e){
+  if(!rangeDrag||rangeDrag.pointer!==e.pointerId)return;
+  const address=pointerAddress(e),{anchor,edge}=rangeDrag;
+  if(edge)itemDraft[edge]=edge==='end'?address&65535:Math.min(65535,address);
+  else if(anchor!==address){
+    itemDraft.start=Math.min(anchor,address,65535);itemDraft.end=Math.max(anchor,address)&65535;
+  }
+  itemControls.start.updateVisual(itemDraft.start);itemControls.end.updateVisual(itemDraft.end);
+  drawItem();
+}
+itemWave.onpointermove=moveRange;
+itemWave.onpointerup=e=>{moveRange(e);if(rangeDrag?.pointer===e.pointerId)rangeDrag=null;};
+itemWave.onlostpointercapture=e=>{if(rangeDrag?.pointer===e.pointerId)rangeDrag=null;};
 function drawItem(){
   const p=itemDraft,base=p.bank*65536,length=(p.end-p.start)&65535;
   const wraps=p.end<p.start;
   const valid=itemRom && length && base+(wraps?65536:p.end)<=itemRom.length;
   let item;
-  if(valid){
+  if(selectionView && valid){
     let pcm=itemRom.subarray(base+p.start,base+(wraps?65536:p.end));
     if(wraps){
       const joined=new Uint8Array(length);joined.set(pcm);joined.set(itemRom.subarray(base,base+p.end),pcm.length);pcm=joined;
     }
     item={pcm,length,kind:p.kind};
   }
-  drawSampleWave($('item-wave'),item);
+  if(selectionView)drawSampleWave($('item-wave'),item);else drawFullBank();
   $('item-preview').disabled=!valid;
   $('item-save').disabled=!valid || rangeKey(p)===rangeKey(itemRanges.get($('range-current').value));
 }
