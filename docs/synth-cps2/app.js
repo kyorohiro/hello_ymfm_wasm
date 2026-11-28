@@ -629,8 +629,8 @@ const chipTabs=[...document.querySelectorAll('[data-chip]')];
 const performanceTabs=[...document.querySelectorAll('[data-performance]')];
 function drawWorkspace(){
   $('desk').classList.toggle('code-workspace',codeMode && mainView==='code-panel');
-  setPadKeyboard(chipView==='adpcm-chip');
   const chip=codeMode?mainView:chipView, performance=codeMode?mainView:lowerView;
+  setPadKeyboard(($('use-adpcm').checked?chipView:chip)==='adpcm-chip');
   for(const tab of chipTabs){
     const active=tab.dataset.chip===chip;
     $(tab.dataset.chip).hidden=!active;
@@ -993,6 +993,7 @@ function saveFiles(){
   pendingBanks.clear();
   pending.clear();renderFiles();scheduleDraft();
 }
+$('use-adpcm').onchange=()=>{drawWorkspace();scheduleDraft();};
 function syncAutoFade(){port?.postMessage({type:'auto-fade',enabled:$('auto-fade').checked});}
 $('auto-fade').onchange=()=>{syncAutoFade();scheduleDraft();};
 $('auto-apply').onchange=()=>{if($('auto-apply').checked)saveFiles();else renderFiles();scheduleDraft();};
@@ -1089,11 +1090,12 @@ installSpuFileContextMenu({root:$('project-tree'),getActions:fileActions,
   onTarget:path=>{highlightedPath=path;renderFiles();},onAction:fileAction,
   onError:e=>{$('file-status').textContent=e.message;}});
 function snapshot() {
-  return {version:1,autoFade:$('auto-fade').checked,bankPath,bankSlots:structuredClone(bankSlots),files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
+  return {version:1,useAdpcm:$('use-adpcm').checked,autoFade:$('auto-fade').checked,bankPath,bankSlots:structuredClone(bankSlots),files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
     pads:pads.map(p=>({...p})),mix:mixer.get(),selected,autoChannel,autoVoice:{...(projectAutoVoice??autoVoice)},echo:{...echo}};
 }
 const factory=snapshot();
 function replaceProject(project) {
+  $('use-adpcm').checked=project.useAdpcm!==false;drawWorkspace();
   $('auto-fade').checked=project.autoFade!==false;syncAutoFade();
   stop(false);
   songSelection++;songPath=null;preparedSong=null;transport();

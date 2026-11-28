@@ -41,7 +41,7 @@ export function setupKeyboard({press,release,triggerPad}){
       onPointerUp:e=>up('pointer'+e.pointerId),onPointerCancel:e=>up('pointer'+e.pointerId)});
     for(const button of root.querySelectorAll('button')){
       const entry=findLayoutEntry(layout.entries,button.dataset.key);
-      const pointerOnly=/^[123]$/.test(entry.key);
+      const pointerOnly=el('use-adpcm').checked && /^[123]$/.test(entry.key);
       if(pointerOnly)button.querySelector('strong').textContent='F'+entry.fret;
       button.setAttribute('aria-label','String '+entry.stringNumber+', fret '+entry.fret+', '+entry.noteName);
       if(!pointerOnly)button.setAttribute('aria-keyshortcuts',entry.label);
@@ -51,16 +51,15 @@ export function setupKeyboard({press,release,triggerPad}){
     onChange:value=>{octave=value;render();}}).element);
   for(let i=1;i<=3;i++){
     const b=document.createElement('button');b.textContent='ADPCM '+i;
-    b.setAttribute('aria-keyshortcuts',String(i));b.onclick=()=>triggerPad(i);el('pad-keys').append(b);
+    b.onclick=()=>triggerPad(i);el('pad-keys').append(b);
   }
-  render();
   window.addEventListener('keydown',e=>{
     if(e.defaultPrevented || e.isComposing || e.ctrlKey || e.altKey || e.metaKey ||
       e.target.isContentEditable || e.target.closest?.('input:not([type=range]):not([type=checkbox]),select:not([data-performance-picker]),textarea,.monaco-editor,[role=textbox]'))return;
     const key=e.key.toLowerCase();
     // Preserve native picker navigation while letting mapped note keys play.
     if(e.target.matches?.('select[data-performance-picker]') && key.length!==1)return;
-    if(/^[123]$/.test(key)){
+    if((padMode || el('use-adpcm').checked) && /^[123]$/.test(key)){
       e.preventDefault();if(!e.repeat)triggerPad(Number(key));return;
     }
     if(padMode){
@@ -81,16 +80,21 @@ export function setupKeyboard({press,release,triggerPad}){
   });
   window.addEventListener('keyup',e=>up(e.code));
   window.addEventListener('blur',clear);
-  return function setPadMode(enabled){
-    if(padMode===enabled)return;
-    clear();padMode=enabled;
+  let useAdpcm;
+  function setPadMode(enabled){
+    const checked=el('use-adpcm').checked;
+    if(padMode===enabled && useAdpcm===checked)return;
+    padMode=enabled;useAdpcm=checked;
+    render();
     root.hidden=el('board-controls').hidden=el('octave').hidden=enabled;
     el('keyboard').classList.toggle('pad-mode',enabled);
     [...el('pad-keys').children].forEach((button,i)=>{
       const key=padLetters[i].toUpperCase();
       button.textContent=enabled?padVoiceLabel(i):'ADPCM '+(i+1);
-      button.setAttribute('aria-keyshortcuts',enabled?key+' '+(i+1):String(i+1));
+      if(enabled || checked)button.setAttribute('aria-keyshortcuts',enabled?key+' '+(i+1):String(i+1));
+      else button.removeAttribute('aria-keyshortcuts');
     });
-  };
-
+  }
+  setPadMode(false);
+  return setPadMode;
 }

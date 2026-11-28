@@ -69,7 +69,7 @@ export function validateProject(project) {
   if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
   const song=project.song??null;
   if(song!==null && (!/\.vg[mz]$/i.test(song)||files.get(song)?.type!=='binary'))throw Error('Cassette is missing its selected song.');
-  return {version:1,autoFade:project.autoFade!==false,...(bankPath?{bankPath,bankSlots}:{}),padPlacements:Object.fromEntries([...padItems].map(([path,i])=>[path,i.offset])),placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,autoChannel:project.autoChannel===true,autoVoice:pcmVoice(project.autoVoice??project.channels[project.selected],true),selected:number(project.selected,0,15),pads,channels,echo};
+  return {version:1,useAdpcm:project.useAdpcm!==false,autoFade:project.autoFade!==false,...(bankPath?{bankPath,bankSlots}:{}),padPlacements:Object.fromEntries([...padItems].map(([path,i])=>[path,i.offset])),placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,autoChannel:project.autoChannel===true,autoVoice:pcmVoice(project.autoVoice??project.channels[project.selected],true),selected:number(project.selected,0,15),pads,channels,echo};
 }
 
 export function exportProject(project) {
