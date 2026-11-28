@@ -88,6 +88,7 @@ export class QSoundPcm {
       start:0, end:0, bank:0, address:0, volume:0, gain:0, trigger:false,
       step:0, output:0, muted:false, pan:0x120,
     }));
+    this.echoTransition = null;
     this.echoLine = new Int16Array(1024);
     this.echoPosition = this.echoPrevious = this.echoFeedback = 0;
     this.echoBase = 0x554;
@@ -111,12 +112,13 @@ export class QSoundPcm {
     if (reg >= 0x90 && reg <= 0x92) this.adpcm[reg-0x90].pan = value;
     if (reg >= 0xba && reg < 0xca) this.voices[reg-0xba].echoSend = signed(value);
     if (reg === 0x93) this.echoFeedback = signed(value);
-    if (reg === 0xd9) this.echoEnd = value;
+    if (reg === 0xd9) {this.echoEnd = value;this.echoTransition = null;}
     if (reg === 0xe3) {
       // Preview changes the echo address base immediately on recognized state requests.
       const previousBase=this.echoBase;
       if ([0x288,0x039,0x314].includes(value)) this.echoBase = 0x554;
       if ([0x61a,0x04f,0x6b2].includes(value)) this.echoBase = 0x53c;
+      if(previousBase!==this.echoBase || value===0x288 || value===0x61a)this.echoTransition=null;
       if(this.spatial && (previousBase!==this.echoBase || value===0x288 || value===0x61a)){
         this.spatial=[spatialState(),spatialState()];this.spatialTick=0;
       }
@@ -150,13 +152,42 @@ export class QSoundPcm {
     }
   }
 
+  setManualEchoDelay(ticks) {
+    const oldLength=this.echoLength;
+    this.lastWrites[0xd9]=this.echoEnd=this.echoBase+ticks;
+    if(!this.echoTransition && oldLength!==this.echoLength)this.beginEchoTransition(oldLength);
+  }
+
+  beginEchoTransition(oldLength) {
+    // Keep the outgoing delay sounding until the new ring has received a full cycle.
+    this.echoTransition={
+      line:this.echoLine.slice(), position:this.echoPosition, previous:this.echoPrevious,
+      oldLength, newLength:this.echoLength, warmup:Math.max(1,this.echoLength)+1,
+      step:0, duration:Math.max(1,Math.round(this.tickRate*0.008)),
+    };
+  }
+
   advanceEcho(input) {
+    const transition=this.echoTransition;
     const delayed = this.echoLine[this.echoPosition];
     const average = (delayed + this.echoPrevious) >> 1;
     this.echoPrevious = delayed;
     this.echoLine[this.echoPosition++] = (input + average * this.echoFeedback * 4) >> 16;
-    if (this.echoPosition >= this.echoLength) this.echoPosition = 0;
-    return average;
+    if (this.echoPosition >= (transition?.newLength??this.echoLength)) this.echoPosition = 0;
+    if(!transition)return average;
+
+    const old=transition.line[transition.position];
+    const oldAverage=(old+transition.previous)>>1;
+    transition.previous=old;
+    transition.line[transition.position++]=(input+oldAverage*this.echoFeedback*4)>>16;
+    if(transition.position>=transition.oldLength)transition.position=0;
+    if(transition.warmup>0){transition.warmup--;return oldAverage;}
+    const blend=++transition.step/transition.duration;
+    if(transition.step===transition.duration){
+      this.echoTransition=null;
+      if(transition.newLength!==this.echoLength)this.beginEchoTransition(transition.newLength);
+    }
+    return oldAverage+(average-oldAverage)*blend;
   }
 
   fadePcmOff(channel, milliseconds) {

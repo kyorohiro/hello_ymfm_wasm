@@ -71,7 +71,8 @@ class Cps2Preview extends AudioWorkletProcessor {
       if (data?.type === 'loop-song') {if(this.song)this.song.loop=data.enabled;return;}
       if (data?.type === 'pause-song') {this.setPaused(data.paused);return;}
       if (data?.type === 'echo-delay') {
-        this.chip.writeRegister(0xd9,this.chip.echoBase + data.ticks);
+        if(data.manual)this.chip.setManualEchoDelay(data.ticks);
+        else this.chip.writeRegister(0xd9,this.chip.echoBase + data.ticks);
         return;
       }
       if(data?.type==='prepare-audition'){

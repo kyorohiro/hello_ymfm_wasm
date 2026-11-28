@@ -50,3 +50,27 @@ test('linear pan monitor compares the same PCM voice without changing its phase 
   assert(heardLeft && heardFilteredRight);
   assert.deepEqual(monitor.lastWrites,spatial.lastWrites);
 });
+
+test('manual delay sweeps crossfade repeats and settle on the last register value',()=>{
+  const raw=new QSoundPcm(new Uint8Array(0)), manual=new QSoundPcm(new Uint8Array(0));
+  let prevRaw=0,prevManual=0,rawJump=0,manualJump=0;
+  for(let tick=0;tick<8000;tick++){
+    if(tick>=1200 && tick<5700 && tick%140===0){
+      const length=20+(tick/140*91)%700;
+      raw.writeRegister(0xd9,raw.echoBase+length);
+      manual.setManualEchoDelay(length);
+      assert.equal(manual.lastWrites[0xd9],raw.lastWrites[0xd9]);
+    }
+    const input=Math.round(7000*Math.sin(tick*.049))*65536;
+    const a=raw.advanceEcho(input),b=manual.advanceEcho(input);
+    rawJump=Math.max(rawJump,Math.abs(a-prevRaw));
+    manualJump=Math.max(manualJump,Math.abs(b-prevManual));
+    prevRaw=a;prevManual=b;
+    if(tick>7500)assert.equal(a,b);
+  }
+  assert(rawJump>6000);
+  assert(manualJump<450);
+  manual.setManualEchoDelay(0);
+  manual.writeRegister(0xd9,manual.echoBase+6);
+  assert.equal(manual.echoTransition,null);
+});

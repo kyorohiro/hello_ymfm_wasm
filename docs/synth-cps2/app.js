@@ -181,12 +181,12 @@ for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
         else echo[key] = value;
       }
       if(key==='send')editPreset(false,key,value);
-      if(key!=='send'||keyboardOwnsTarget())port?.postMessage(echoWrite(key,value,selected));
+      if(key!=='send'||keyboardOwnsTarget())port?.postMessage(echoWrite(key,value,selected,true));
     }});
   $('echo-controls').append(echoControls[key].element);
 }
-function echoWrite(key,value,ch) {
-  if (key === 'delay') return {type:'echo-delay',ticks:value};
+function echoWrite(key,value,ch,manual=false) {
+  if (key === 'delay') return {type:'echo-delay',ticks:value,manual};
   return [[key === 'send' ? 0xba+ch : 0x93,value & 65535]];
 }
 function restoreEcho() {
