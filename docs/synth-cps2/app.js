@@ -2,6 +2,7 @@
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
 import {presetPitches} from './pitch.js';
 import {padVoiceLabel,setupKeyboard} from './keyboard.js';
+import {createBankWave,drawSampleWave} from './bank-wave.js';
 import {createPadWave} from './pad-wave.js';
 import {setupRomCreator} from './rom-creator.js';
 import {createRomPages} from './rom-pages.js';
@@ -20,7 +21,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {createParamControl} from '../synth/synth_controls.js';
-import {QSoundPcm,QSOUND_PCM_RATE,advanceAdpcm} from '../js/qsoundpcm.js';
+import {QSoundPcm,QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {decodeSample,isSamplePath,sampleLibrary,maxRom} from './samples.js';
@@ -160,7 +161,8 @@ function applyMix(settings) {
   port?.postMessage({type:'mute-voices',mask:mutedVoices(settings)});
 }
 const noRom=new Uint8Array();
-const draw = createWaveEditor(edit,v=>romPath?null:itemFor(v),()=>romPath?(selectedRomBytes(syncedBank)??noRom):library.rom);
+let pcmFull=false,padFull=false;
+const draw = createWaveEditor(edit,v=>romPath?null:itemFor(v),()=>romPath?(selectedRomBytes(syncedBank)??noRom):library.rom,()=>pcmFull);
 const romDragPixelsPerStep=4;
 const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
 const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,directEntry:true,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
@@ -448,7 +450,7 @@ function drawPad(address=null,state){
     manualPadRom=library.rom;manualPadBank=pad.bank;
     manualPadBytes=library.rom.subarray(pad.bank*65536,(pad.bank+1)*65536);
   }
-  paintPad(pad,state?padBankBytes:manualPadBytes,state?.tickRate??QSOUND_PCM_RATE,address);
+  paintPad(pad,state?padBankBytes:manualPadBytes,state?.tickRate??QSOUND_PCM_RATE,address,padFull);
 }
 let padVoice=0;
 const padControls={};
@@ -540,6 +542,20 @@ function stop(keepInstrument=true){
   if(!liveInstrument){restoreEcho();showRomMap();}
   if(liveInstrument)inspectChannel();
   updateFileActions();
+}
+for(const group of document.querySelectorAll('[data-voice-wave]')){
+  for(const button of group.querySelectorAll('button'))button.onclick=()=>{
+    const full=button.value==='full';
+    for(const option of group.querySelectorAll('button'))option.setAttribute('aria-pressed',String(option===button));
+    if(group.dataset.voiceWave==='pcm'){
+      pcmFull=full;
+      if(!liveInstrument)draw(editedVoice(),cursor);
+    }else{
+      padFull=full;
+      if(!liveInstrument)drawPad();
+    }
+    if(liveInstrument)inspectChannel();
+  };
 }
 let replacingWav=null;
 window.addEventListener('blur',()=>{if(songState==='stopped' && !replacingWav)stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
@@ -1258,28 +1274,7 @@ function ensurePadSample(path){
   }
   return library.padItems.get(path);
 }
-function drawSampleWave(canvas,item){
-  const {width,height}=canvas,ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,width,height);
-  if(!item){
-    ctx.fillStyle='#527083';ctx.fillRect(0,height/2,width,1);
-    return;
-  }
-  const adpcm=item.kind==='ADPCM';
-  const voice={start:0,end:item.length,bank:0,volume:32767,trigger:true};
-  const count=item.length*(adpcm?2:1);
-  ctx.fillStyle='#8ae2d1';
-  for(let x=0,i=0;x<width;x++){
-    let min=1,max=-1;
-    const until=Math.ceil((x+1)*count/width);
-    for(;i<until;i++){
-      if(adpcm)advanceAdpcm(voice,item.pcm,i%2);
-      const v=adpcm?voice.output/32768:((item.pcm[i]<<24)>>24)/128;
-      min=Math.min(min,v);max=Math.max(max,v);
-    }
-    if(max>=min)ctx.fillRect(x,(1-max)*height/2,1,1+(max-min)*height/2);
-  }
-}
+
 function syncCatalog(path){
   const catalog=files.get(catalogPath(path));
   const source=catalog && readCatalog(catalog.data).source;
@@ -1395,9 +1390,7 @@ function showItem(){
   drawItem();
 }
 let selectionView=false,rangeDrag;
-const bankWave=document.createElement('canvas');
-bankWave.width=$('item-wave').width;bankWave.height=$('item-wave').height;
-let drawnRom,drawnBank,drawnKind;
+const paintItemBank=createBankWave($('item-wave'));
 function bankLength(){return Math.min(65536,Math.max(0,(itemRom?.length??0)-itemDraft.bank*65536));}
 function updateItemBounds(){
   const size=bankLength(),last=Math.max(0,size-1),end=Math.min(65535,size);
@@ -1407,22 +1400,7 @@ function updateItemBounds(){
   itemControls.loop.updateRange(0,end);
 }
 function drawFullBank(){
-  const p=itemDraft,base=p.bank*65536,size=bankLength();
-  if(drawnRom!==itemRom||drawnBank!==p.bank||drawnKind!==p.kind){
-    const pcm=itemRom?.subarray(base,base+size);
-    drawSampleWave(bankWave,size?{pcm,length:size,kind:p.kind}:null);
-    drawnRom=itemRom;drawnBank=p.bank;drawnKind=p.kind;
-  }
-  const canvas=$('item-wave'),ctx=canvas.getContext('2d'),{width,height}=canvas;
-  ctx.clearRect(0,0,width,height);ctx.drawImage(bankWave,0,0);
-  if(!size)return;
-  const x=n=>Math.min(width,n*width/size);
-  ctx.fillStyle='rgba(255,196,66,.24)';
-  if(p.end>=p.start)ctx.fillRect(x(p.start),0,x(p.end)-x(p.start),height);
-  else{ctx.fillRect(x(p.start),0,width-x(p.start),height);ctx.fillRect(0,0,x(p.end),height);}
-  for(const address of [p.start,(p.start && !p.end)?65536:p.end]){
-    ctx.fillStyle='#ffd674';ctx.fillRect(Math.min(width-2,x(address)),0,2,height);
-  }
+  const p=itemDraft;paintItemBank(itemRom,p.bank*65536,p.kind,p.start,p.end);
 }
 function setItemView(selection){
   selectionView=selection;rangeDrag=null;

@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {createBankWave} from './bank-wave.js';
 import {advanceAdpcm} from '../js/qsoundpcm.js';
 
 export function createPadWave(canvas, caption, cursor){
   const ctx=canvas.getContext('2d'), width=canvas.width, height=canvas.height;
+  const paintBank=createBankWave(canvas);
   let previousBank,previousRange;
-  return (pad,bytes,tickRate,playingAddress=null)=>{
+  return (pad,bytes,tickRate,playingAddress=null,full=false)=>{
     const span=((pad.end-pad.start)&65535)||65536;
-    const range=[pad.start,pad.end,pad.volume,tickRate,pad.configured].join(',');
-    const available=bytes?.length && pad.configured!==false;
+    const range=[full,pad.start,pad.end,pad.volume,tickRate,pad.configured].join(',');
+    const available=bytes?.length && pad.configured!==false && pad.start!==pad.end;
     if(previousBank!==bytes || previousRange!==range){
+      canvas.setAttribute('aria-label',full?'Full ADPCM bank with selected range':'Decoded ADPCM selection');
       previousBank=bytes;previousRange=range;
       ctx.clearRect(0,0,width,height);
-      if(available){
+      if(full){
+        paintBank(bytes,0,'ADPCM',pad.start,pad.end);
+        caption.textContent='ROM bank '+pad.bank+' · '+pad.start+'–'+pad.end+' (end exclusive)';
+      }else if(available){
         const voice={...pad,bank:0,trigger:true};
         const count=span*2,low=new Int16Array(width),high=new Int16Array(width);
         let peak=1;
@@ -29,6 +35,6 @@ export function createPadWave(canvas, caption, cursor){
     }
     const offset=(playingAddress-pad.start)&65535;
     cursor.hidden=!available || playingAddress===null || offset>=span;
-    if(!cursor.hidden)cursor.style.left=(100*offset/span)+'%';
+    if(!cursor.hidden)cursor.style.left=(full?100*playingAddress/bytes.length:100*offset/span)+'%';
   };
 }

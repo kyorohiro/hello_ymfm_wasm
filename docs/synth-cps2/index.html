@@ -145,6 +145,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #rom-creator dialog{width:min(24rem,92vw);max-height:85vh;overflow:auto;border:1px solid #7a9897;border-radius:6px;background:#fffaf0;color:inherit;padding:.85rem}#rom-creator dialog h3{margin:0 0 .5rem}#rom-creator dialog label{display:grid;margin:.45rem 0}#creator-library{width:100%}#creator-picker small{display:block;margin:.4rem 0}#creator-status:empty,#creator-library-status:empty{display:none}
 .voice-rom{display:inline-flex;align-items:center;gap:.3rem;max-width:100%;margin:0}.voice-rom select{min-width:0;max-width:100%}
 #voice-rom-confirm{max-width:min(25rem,90vw);color:inherit;background:#fffaf0}#voice-rom-confirm p{margin-bottom:.6rem;overflow-wrap:anywhere}
+.voice-wave-mode button{font-size:.8rem;padding:.15rem .45rem}.voice-wave-mode{margin:.25rem 0}
 </style>
 <main>
 <nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
@@ -185,7 +186,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <div id="pcm-address" title="Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256."></div><div id="pcm-controls"></div></div>
-<canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
+<div role="group" class="voice-wave-mode" data-voice-wave="pcm" aria-label="PCM waveform view"><button value="full" aria-pressed="false">Full bank</button> <button value="selection" aria-pressed="true">Selection</button></div><canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
 <p id="pcm-caption"></p></fieldset>
 <fieldset><legend>DSP <button id="echo-help-toggle" type="button" aria-label="Echo controls help" aria-expanded="false" aria-controls="echo-help">?</button></legend>
 <div class="echo-controls" id="echo-controls"></div>
@@ -200,7 +201,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <small>— means no write since reset.</small></div></section>
 <section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Choose an ADPCM preset for the selected voice. Press A / S / D or 1 / 2 / 3 to trigger Voice 1–3. Volume applies on the next trigger.</p>
-<label class="voice-rom">ROM <select id="adpcm-rom" data-performance-picker aria-label="ADPCM preset ROM"></select></label><label>Preset<select data-performance-picker id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
+<label class="voice-rom">ROM <select id="adpcm-rom" data-performance-picker aria-label="ADPCM preset ROM"></select></label><label>Preset<select data-performance-picker id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div role="group" class="voice-wave-mode" data-voice-wave="adpcm" aria-label="ADPCM waveform view"><button value="full" aria-pressed="false">Full bank</button> <button value="selection" aria-pressed="true">Selection</button></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden>
 
 <fieldset><legend>Preset</legend>
