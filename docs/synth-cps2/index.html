@@ -40,6 +40,11 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #files .file-entry{max-width:100%;overflow-wrap:anywhere;text-align:left}#desk{min-width:0}#code-panel{padding:4px 1.5rem .8rem}
 #soundchip:has(#chip-tabs [data-performance="code-panel"][aria-pressed="true"]){padding-bottom:0}
 #chip-tabs:has([data-performance="code-panel"][aria-pressed="true"]),#performance-tabs:has([data-performance="code-panel"][aria-pressed="true"]){margin-bottom:0}
+#desk.code-workspace{display:flex;flex-direction:column}
+#desk.code-workspace>*{flex-shrink:0}
+#desk.code-workspace>#code-panel{display:flex;flex-direction:column;flex:1 0 auto;padding-bottom:0}
+#desk.code-workspace #code-host,
+#desk.code-workspace #source{flex:1 0 8rem;height:0;min-height:8rem}
 .code-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .code-toolbar button{min-height:24px;padding:2px 8px;border-radius:999px;font-size:.68rem;line-height:1.2}
 #code-status{margin-left:auto;font-size:.7rem;overflow-wrap:anywhere}

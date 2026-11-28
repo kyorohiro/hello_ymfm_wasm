@@ -620,6 +620,7 @@ let codeMode=false, chipView='pcm-chip', mainView='code-panel', lowerView='keybo
 const chipTabs=[...document.querySelectorAll('[data-chip]')];
 const performanceTabs=[...document.querySelectorAll('[data-performance]')];
 function drawWorkspace(){
+  $('desk').classList.toggle('code-workspace',codeMode && mainView==='code-panel');
   setPadKeyboard(chipView==='adpcm-chip');
   const chip=codeMode?mainView:chipView, performance=codeMode?mainView:lowerView;
   for(const tab of chipTabs){
