@@ -35,14 +35,14 @@ export function createRomMap(previewAddress){
     button.append(name,address,track);rows.append(button);
     button.onclick=()=>{
       const voice=latest?.voices.find(v=>v.id===id);
-      if(voice)previewAddress(voice.start);
+      if(voice)previewAddress(voice.start,voice.id>=16);
     };
     return {button,name,address,track};
   });
   function paint(){
     const bank=Number(selector.value),available=Math.min(bankSize,Math.max(0,latest.size-bank*bankSize));
     const visible=latest.voices.filter(v=>v.bank===bank);
-    const signature=JSON.stringify([bank,available,visible,latest.samples]);
+    const signature=JSON.stringify([bank,available,visible]);
     if(signature===previousView)return;
     previousView=signature;
     // Expand small factory ROMs to the width of the plot. Include any configured addresses outside the ROM.
@@ -52,16 +52,6 @@ export function createRomMap(previewAddress){
       if(v.start>v.end || v.loop>v.end)limit=bankSize;
     }
     element('rom-scale').textContent=hex(0)+' – '+hex(limit)+' · '+available.toLocaleString()+' bytes in bank';
-    const list=element('rom-samples');
-    if(list)list.replaceChildren(...(latest.samples??[]).filter(s=>s.bank===bank).map(s=>{
-      const line=document.createElement('div');
-      const label=document.createElement('span'),track=document.createElement('div'),segment=document.createElement('span');
-      label.textContent=s.path+' · '+s.kind+' · '+hex(s.start)+' – '+hex(s.end);
-      track.className='rom-track';segment.className='rom-segment '+(s.kind==='ADPCM'?'rom-adpcm':'rom-pcm');
-      segment.style.left=100*s.start/limit+'%';segment.style.width=100*(s.end-s.start)/limit+'%';
-      track.append(segment);line.append(label,track);
-      return line;
-    }));
     element('rom-empty').hidden=visible.length>0;
     const ranges=new Map();
     for(const voice of visible){

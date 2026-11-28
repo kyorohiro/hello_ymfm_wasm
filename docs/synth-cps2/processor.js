@@ -118,7 +118,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       if(data?.type==='rom-pages'){
         const base=data.bank*256,offset=(base+data.page)*256;
         this.port.postMessage({type:'rom-pages',bank:data.bank,page:data.page,
-          usage:this.chip.romUsage.slice(base,base+256),bytes:this.chip.rom.slice(offset,offset+256),
+          bytes:this.chip.rom.slice(offset,offset+256),
           size:this.chip.rom.length});
         return;
       }

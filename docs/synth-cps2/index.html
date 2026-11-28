@@ -81,11 +81,6 @@ body{width:min(100%,76rem)}
 #rom-source{overflow-wrap:anywhere;font-size:.85rem}#rom-empty{padding:.65rem 0}
 @media(max-width:540px){.rom-row{grid-template-columns:6rem minmax(0,1fr)}}
 #slot-buttons{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;max-width:32rem;margin:.5rem 0}#slot-buttons button{padding:0;font-size:.75rem}#slot-buttons button.filled{background:#237066;color:white}#slot-buttons button[aria-pressed=true]{outline:2px solid #d78220}
-#rom-pages{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;width:min(100%,22rem);margin:.5rem 0}
-#rom-pages button{min-width:0;aspect-ratio:1;padding:0;border-radius:2px;background:#e4e1d8}
-#rom-pages button:disabled{opacity:.32}#rom-pages button[data-kind="1"]{background:#247866}
-#rom-pages button[data-kind="2"]{background:#235d93}#rom-pages button[data-kind="3"]{background:#825897}
-#rom-pages button[aria-pressed=true]{outline:2px solid #ce7520;outline-offset:-2px}
 #slot-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
 #rom-chip > details{margin-top:.6rem}#rom-chip > details > summary{cursor:pointer;font-weight:600;padding:.35rem 0}
 </style>
@@ -140,13 +135,11 @@ body{width:min(100%,76rem)}
 
 <label id="range-saved-label">Saved preset<select data-performance-picker id="range-saved"></select></label><button id="use-saved">Use preset</button><button id="range-rename">Rename…</button>
 </fieldset>
-<details id="slot-editor"><summary>Edit sample slots</summary><fieldset><legend id="bank-name"></legend><p id="bank-size"></p><div class="chip-header"><span id="bank-slot"></span><select aria-label="Sample encoding" id="slot-kind"><option>PCM</option><option>ADPCM</option></select>
+<details id="slot-editor" open><summary>Edit sample slots</summary><fieldset><legend id="bank-name"></legend><p id="bank-size"></p><div class="chip-header"><span id="bank-slot"></span><select aria-label="Sample encoding" id="slot-kind"><option>PCM</option><option>ADPCM</option></select>
 <button id="slot-load">Load…</button><button id="slot-del">Del</button><button id="slot-use">Assign</button></div><div id="slot-buttons" aria-label="Sample slots"></div><p id="slot-info"></p><canvas id="slot-wave" width="512" height="64" aria-label="Selected ROM slot waveform" aria-describedby="slot-info"></canvas></fieldset></details><details id="bank-inspector"><summary>ROM usage map</summary><div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
 
-<h3>Playback history</h3><p>Select a 256-byte block to preview its waveform. Green = read by PCM, blue = ADPCM, purple = both.</p>
-<div id="rom-pages" role="group" aria-label="ROM playback history"></div>
-<canvas id="rom-preview" width="512" height="84" aria-label="Selected ROM block waveform"></canvas><p id="rom-page-caption"></p>
-<div id="rom-samples"></div><h3>Current sample ranges</h3><p>Select a range to preview its starting block in this bank. Amber marks the PCM loop.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
+<canvas id="rom-preview" width="512" height="84" aria-label="Waveform of the selected ROM block"></canvas>
+<p>Select a range to preview its starting block.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>

@@ -631,7 +631,7 @@ function setFiles(visible){
   if(!$('code-panel').hidden)editor.layout();
 }
 $('files-toggle').onclick=()=>setFiles($('files').hidden);
-const drawRomMap=createRomMap(address=>romPages.selectPage(address>>>8));
+const drawRomMap=createRomMap((address,adpcm)=>romPages.selectPage(address>>>8,adpcm));
 const romPages=createRomPages((bank,page)=>{
   if(port){
     port.postMessage({type:'rom-pages',bank,page});
@@ -639,7 +639,7 @@ const romPages=createRomPages((bank,page)=>{
   }
   else{
     const offset=(bank*256+page)*256;
-    romPages.draw({bank,page,size:library.rom.length,usage:[],bytes:library.rom.slice(offset,offset+256)});
+    romPages.draw({bank,page,size:library.rom.length,bytes:library.rom.slice(offset,offset+256)});
   }
 });
 $('bank-inspector').ontoggle=()=>{if($('bank-inspector').open)romPages.refresh();};
@@ -658,9 +658,7 @@ function showRomMap(){
   displayMap({size:library.rom.length,voices});
 }
 function displayMap(map){
-  if(romPath){drawRomMap(map,romPath);return;}
-  const samples=library.regions.map(v=>({path:v.path,kind:library.padItems.get(v.path)===v?'ADPCM':'PCM',bank:v.bank,start:v.start,end:v.start+v.length}));
-  drawRomMap({...map,samples},bankPath);
+  drawRomMap(map,romPath??bankPath);
   if(!port)romPages.refresh();
 }
 for(const tab of chipTabs)tab.onclick=()=>{
