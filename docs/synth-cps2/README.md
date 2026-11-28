@@ -2,7 +2,7 @@
 
 Serve the repository's docs directory over localhost or HTTPS and open
 `/synth-cps2/`. Use AUTO for chords or select CH1–16 for a fixed PCM channel, then hold A S D F G H J K or a screen key.
-AUTO uses the displayed channel first and finds another free keyboard channel for overlapping notes. The outlined channel shows which physical voice you are editing. Each channel keeps its own sound. Pitch follows the key. The sample selector can switch the held note; volume
+AUTO uses the displayed channel first and finds another free keyboard channel for overlapping notes. The outlined channel shows which physical voice you are editing. Each channel keeps its own sound. Pitch follows the key. The ROM bank control can switch the held note’s sample data; volume
 and pan can change during a held note. The factory demo VGMs include their generated sample ROM. PCM duet uses two pitched PCM channels. ADPCM trio triggers three one-shot samples, panned left, center and right.
 
 ## Workspace
@@ -68,21 +68,15 @@ Select a PCM channel and hold a keyboard note. The shaded region runs from End m
 
 Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ticks and milliseconds) and signed Feedback apply to all 16 PCM channels. Drag a value for large changes or use the buttons for single steps. The controls follow VGM writes and retain the captured settings after Stop.
 
-## Playing your own WAV
+## Editing sample ROMs
 
-Select a PCM channel and choose **☰ → Import → Sample (WAV)…**. Press C4 to play at the clip’s original speed. To reuse it on another channel, select the channel and click the filename under **Files → /samples/**. With Auto apply off, or when switching away from a song ROM, use **Assign to CH**. Drag the start of the shaded loop or its right edge on the authored PCM waveform to edit loop length or exclusive end.
+Files → /banks contains 0_default.rom (the examples), 1_sample.rom (two PCM waves and three ADPCM hits) and 99_empty.rom. Select the shared ROM in the QSound header or click its file in /banks. **New ROM…** creates an empty, named .rom in Files and opens it for editing. **Import ROM…** adds an existing raw image to the same list. Select slot 0–127, choose PCM or ADPCM and press **Load…**. The editor encodes the WAV directly into the selected ROM. **Del** clears its bytes. Choose **Assign** to set the selected PCM channel or ADPCM voice to the slot's addresses.
 
-Files keeps the original WAV. The importer mixes its channels to mono and converts it to signed 8-bit PCM. It accepts integer PCM (8/16/24/32-bit) and 32-bit float RIFF WAV. The converted clip fits one signed loop length (up to 32,767 bytes). Longer recordings use a lower playback rate to preserve duration, with reduced high-frequency detail. Bank 0 holds the generated instruments. Imported clips share the remaining banks, and their addresses stay fixed when another file is added or renamed. The ROM tab lists their paths and ranges. Cassettes include the WAV files, placements, selected channel and edited loops within the existing 16 MiB expanded cassette limit.
+The 128 slots are a Tetorica editing directory. Each entry describes a byte range in the raw ROM. Import ROM loads raw bytes without guessing sample boundaries. An imported image can be played via ROM bank and address controls; new slots append after its original data. Export cassette preserves the raw images, names, slot directories and voice settings. Download current ROM exports only the audio bytes. A VGM snapshot can be saved under /banks with **Save playing ROM to Files…**.
 
-### Replacing a WAV during a groove
+PCM → **Voice** edits the channel's 64 KiB ROM bank number, start, end, loop and rate. **Registers** shows the applied register words. The bank number selects a region inside the shared ROM file. The two tabs support Left/Right, Home and End while focused.
 
-Run `/examples/pad-groove.js`, right-click `/samples/cabinet-snare.wav` in Files and choose **Replace WAV…**. Pick a WAV of the same duration and sample rate to hear the change on the next backbeat. Files keeps the original project path. PCM and any allocated ADPCM copy both receive the new audio at their existing addresses. Voices retain their pitch settings, sample range, loop and pan. If you are playing a VGM with its own ROM, the change applies to the project instruments.
-
-The new data must fit at those addresses. If the new WAV is too short for an assigned voice, shorten that voice’s End first. Choose **Use synth instruments** before shortening a sample during live audition. When a saved preset depends on bytes that would change, or the next sample leaves too little space, use **Import → Sample (WAV)…** to add a separate file.
-
-## Saving a PCM preset
-
-Pause a song, select a PCM channel, edit its controls and choose **Voice → Save preset…**. The JSON file under `/presets/` stores the C4 rate, sample start/end, loop length, bank, level, pan and channel echo send. It refers to the factory ROM or to the song under `/songs/`, with its ROM-write position and a SHA-256 fingerprint of the selected bank. The cassette carries the source song once.
+## Loading saved presets
 
 Choose a destination channel, then select the preset in Files and play C4. Use **Apply preset** when the shared ROM changes or Auto apply is off. Applying a preset while a VGM plays pauses the transport for audition. A matching source, clock and sample bank lets Code keep playing while the selected voice changes. Switching the shared ROM silences held voices and clears queued register schedules. Other channels also address that ROM. Shared echo delay and feedback keep their current settings. A missing song or mismatched bank prevents loading. **☰ → Export → Export cassette** includes presets and songs together. **☰ → Import → Import cassette…** restores them.
 
@@ -115,7 +109,7 @@ Before playback, the map shows the authored instruments. During VGM or Code play
 
 A new cassette assigns the original `/samples/cabinet-snare.wav` to PCM CH1 and ADPCM Voice 1. Play C4 on CH1, then play a different note to transpose the snare. Press **1** to hear the same source as a fixed-rate ADPCM one-shot. On an existing cassette, choose **☰ → Import → Add factory demos** and assign the snare to the channels you want to compare.
 
-Open ADPCM, select Voice 1–3, then choose a WAV in Files or import one with **☰ → Import → Sample (WAV)…**. With Auto apply off, click **Assign to Voice**. Each file's first pad assignment creates one encoded range. Additional pads share that range and keep independent start, end, volume and pan. The encoder mixes to mono, resamples at the project clock (about 8.01 kHz), and chooses each nibble using the chip decoder at volume 32767. A pad clip must fit in one bank (up to 65,535 encoded bytes, about 16.35 seconds). ROM shows the PCM and ADPCM ranges separately. Export cassette retains the original WAV, both placements and all voice assignments.
+Select an ADPCM voice, then use ROM → Assign on an ADPCM slot. In ADPCM, the Keyboard panel shows three pads. A / S / D and 1 / 2 / 3 trigger voices 1–3, including while Code plays. Return to PCM to play pitched notes. The encoder mixes to mono and resamples at the project clock (about 8.01 kHz). Each pad fits one 64 KiB address bank.
 
 Select Voice 1–3 to edit its start byte, exclusive end byte, ROM bank, signed volume and pan register. Trigger plays the selected voice. Keys 1, 2 and 3 trigger their respective voices independently. Key release leaves a one-shot running. The Sample control loads a generated pulse's bank and address range. Custom synth pad settings are saved with the cassette.
 
@@ -149,7 +143,7 @@ Open **/examples/scheduled-bar.js → Run** to schedule one bar of PCM bass and 
 - `b.noteOn(channel, midi, sample, pan?, volume?)` takes an explicit factory sample (0 or 1) or project WAV path. `b.noteOff(channel)`, `b.trigger(voice)` and `b.writeRegister(register, word)` are also available. Prepare an imported ADPCM pad with `await qsound.assignPad(voice, path)` before scheduling.
 - `await qsound.compile(plan)` returns the register trace without playing it. `await qsound.schedule(plan, {name, repeatSeconds})` resolves on acceptance. Omit the repeat interval for a one-shot. Use `await qsound.clearSchedule(name)` to cancel a reservation. Code Stop clears repeating and pending writes. Register offsets and repeat intervals are in seconds; the example converts its tempo to seconds when building the bar.
 
-Open **/examples/pad-groove.js → Run** for a bass on PCM CH1 and a backbeat on ADPCM Voice 2. Choose PCM CH3 and play along on the keyboard. Set up any project WAV with `await qsound.assignPad(2, '/samples/cabinet-snare.wav')` before the loop, then use `qsound.trigger(2)` on each hit. The first assignment prepares the ADPCM bytes. Other voices reuse that ROM range with independent pan and volume. Code changes the current audition voice. The authored pad settings are restored by **Use synth instruments**.
+Open **/examples/pad-groove.js → Run** for a bass on PCM CH1 and a backbeat on ADPCM Voice 2. Choose PCM CH3 and play along on the keyboard. Assign the factory snare slot with `await qsound.assignPad(2, '/samples/cabinet-snare.wav')` before the loop, then use `qsound.trigger(2)` on each hit. The default ROM already contains the encoded ADPCM slot. Other voices reuse that ROM range with independent pan and volume. Code changes the current audition voice. The authored pad settings are restored by **Use synth instruments**.
 
 Use `qsound.assignSample(channel, path, {offset, length, loop})` before a two-argument `qsound.noteOn(channel, midi)`. Channel numbers start at 1. All three options are optional and use ROM bytes. Offset is relative to the clip, length defaults to the remaining clip, and loop defaults to length. C4 uses the imported rate. The API controls the current audition session and reads the project's shared ROM. After playing a song with its own ROM, choose **Use synth instruments** to return to the project's samples.
 

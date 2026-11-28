@@ -6,7 +6,8 @@ import {createParamControl} from '../synth/synth_controls.js';
 export function setupKeyboard({press,release,triggerPad}){
   const el=id=>document.getElementById(id);
   const state=createFretboardState(),held=new Map(),root=el('keys');
-  let octave=0,layout;
+  let octave=0,layout,padMode=false;
+  const letters=['a','s','d'];
   function down(id,entry){
     if(held.has(id))return;
     const button=root.querySelector('[data-key="'+entry.key+'"]');
@@ -56,6 +57,11 @@ export function setupKeyboard({press,release,triggerPad}){
     if(/^[123]$/.test(key)){
       e.preventDefault();if(!e.repeat)triggerPad(Number(key));return;
     }
+    if(padMode){
+      const i=letters.indexOf(key);
+      if(i>=0){e.preventDefault();if(!e.repeat)triggerPad(i+1);}
+      return;
+    }
     if(key.startsWith('arrow')){
       if(e.target.closest?.('input,[role=slider],[role=tablist],.param-control'))return;
       e.preventDefault();
@@ -69,4 +75,16 @@ export function setupKeyboard({press,release,triggerPad}){
   });
   window.addEventListener('keyup',e=>up(e.code));
   window.addEventListener('blur',clear);
+  return function setPadMode(enabled){
+    if(padMode===enabled)return;
+    clear();padMode=enabled;
+    root.hidden=el('board-controls').hidden=el('octave').hidden=enabled;
+    el('keyboard').classList.toggle('pad-mode',enabled);
+    [...el('pad-keys').children].forEach((button,i)=>{
+      const key=letters[i].toUpperCase();
+      button.textContent=enabled?key+' / '+(i+1)+' · Voice '+(i+1):'ADPCM '+(i+1);
+      button.setAttribute('aria-keyshortcuts',enabled?key+' '+(i+1):String(i+1));
+    });
+  };
+
 }

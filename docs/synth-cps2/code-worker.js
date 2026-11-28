@@ -41,7 +41,7 @@ const qsound = {
   async assignPad(voice,path){
     integer(voice,1,3,'ADPCM voice');
     if(!samples)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
-    if(!samples.has(path))throw Error('Missing WAV sample: '+path);
+
     await hostCall('assignPad',{voice,path});
   },
   writeRegister(reg,value) {

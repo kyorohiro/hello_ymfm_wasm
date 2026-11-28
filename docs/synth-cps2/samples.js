@@ -56,7 +56,7 @@ export function padByteLength(seconds){
 }
 
 // Choose each high/low nibble against the same predictor as the sound chip.
-function encodePad({pcm,seconds}){
+export function encodePad({pcm,seconds}){
   const bytes=new Uint8Array(padByteLength(seconds));
   let previous=0,step=10;
   for(let i=0;i<bytes.length*2;i++){

@@ -3,6 +3,7 @@ import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 import {isPresetPath,readPreset} from './preset.js';
 import {isSamplePath,sampleLibrary} from './samples.js';
+import {bankLibrary,isBankPath} from './banks.js';
 import {validateMix} from './mixer.js';
 import {checkPath} from '../synth-cps1/project-tree.js';
 
@@ -22,12 +23,19 @@ export function validateProject(project) {
       !Array.isArray(project.pads) || project.pads.length!==3) throw Error('Expected a CPS2 cassette.');
   const placements=project.placements??{};
   const padPlacements=project.padPlacements??{};
-  const {items,padItems}=sampleLibrary(project.files,placements,padPlacements);
+  const bankSlots=project.bankSlots??{},bankPath=project.bankPath;
+  for(const [path,slots] of Object.entries(bankSlots)){
+    if(!isBankPath(path))throw Error('Invalid ROM path.');
+    bankLibrary(project.files.find(f=>f.path===path)?.data,slots);
+  }
+  if(bankPath && !isBankPath(bankPath))throw Error('Invalid selected ROM.');
+  const {items,padItems}=bankPath?bankLibrary(project.files.find(f=>f.path===bankPath)?.data,bankSlots[bankPath]):
+    sampleLibrary(project.files,placements,padPlacements);
   const channels=project.channels.map(v=>{
-    const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??sample*256;
+    const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??number(v.start??sample*256,0,65534);
     if(v.samplePath && !item)throw Error('Missing WAV sample.');
-    const end=number(v.end,start+1,start+(item?.length??256));
-    return {sample,samplePath:v.samplePath??null,end,loop:number(v.loop,0,end-start),pan:number(v.pan,0,32),volume:number(v.volume,0,16384),
+    const end=number(v.end,start+1,item?start+item.length:65535);
+    return {sample,bank:number(v.bank??0,0,32767),start,samplePath:v.samplePath??null,end,loop:number(v.loop,0,end-start),pan:number(v.pan,0,32),volume:number(v.volume,0,16384),
       send:number(v.send,-32768,32767),rate:number(v.rate,0,65535),note:number(v.note,0,127),
       referenceNote:number(v.referenceNote,0,127),referenceRate:v.referenceRate===null?null:number(v.referenceRate,0,65535)};
   });
@@ -40,7 +48,7 @@ export function validateProject(project) {
   const echo={delay:number(project.echo.delay,0,1024),feedback:number(project.echo.feedback,-32768,32767)};
   const files=createVirtualFileSystem();
   files.replace(project.files.map(({path,data})=>{
-    if (data instanceof Uint8Array && (/\.(vgm|vgz)$/i.test(path)||isSamplePath(path))) return {path:checkPath(path),data};
+    if (data instanceof Uint8Array && (/\.(vgm|vgz)$/i.test(path)||isSamplePath(path)||isBankPath(path))) return {path:checkPath(path),data};
     if (typeof data!=='string') throw Error('Expected JavaScript source.');
     if(isPresetPath(path)){readPreset(data);return {path:checkPath(path),data};}
     return {path:scriptPath(path),data};
@@ -53,7 +61,7 @@ export function validateProject(project) {
   if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
   const song=project.song??null;
   if(song!==null && (!/\.vg[mz]$/i.test(song)||files.get(song)?.type!=='binary'))throw Error('Cassette is missing its selected song.');
-  return {version:1,padPlacements:Object.fromEntries([...padItems].map(([path,i])=>[path,i.offset])),placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,autoChannel:project.autoChannel===true,selected:number(project.selected,0,15),pads,channels,echo};
+  return {version:1,...(bankPath?{bankPath,bankSlots}:{}),padPlacements:Object.fromEntries([...padItems].map(([path,i])=>[path,i.offset])),placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,autoChannel:project.autoChannel===true,selected:number(project.selected,0,15),pads,channels,echo};
 }
 
 export function exportProject(project) {
@@ -67,7 +75,7 @@ export async function importProject(bytes) {
   const decoder=new TextDecoder('utf-8',{fatal:true});
   for (const [path,data] of archive.files) {
     if (path==='metadata.json' || path==='cassette.metadata.js') continue;
-    files.push({path:'/'+path,data:/\.(vgm|vgz|wav)$/i.test(path)?data:decoder.decode(data)});
+    files.push({path:'/'+path,data:/\.(vgm|vgz|wav|rom)$/i.test(path)?data:decoder.decode(data)});
   }
   return validateProject({...archive.metadata.cps2,files});
 }

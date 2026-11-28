@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createParamControl} from '../synth/synth_controls.js';
-import {demoRom} from './demo.js';
 
-export function createWaveEditor(onEdit,itemFor) {
-  const rom = demoRom();
+
+export function createWaveEditor(onEdit,itemFor,getRom) {
   const canvas = document.getElementById('pcm-wave');
   const ctx = canvas.getContext('2d');
   const caption = document.getElementById('pcm-caption');
@@ -30,16 +29,17 @@ export function createWaveEditor(onEdit,itemFor) {
   };
   canvas.onpointermove=e=>{if(drag && editRange)move(e);};
   canvas.onlostpointercapture=()=>{drag=null;};
-  let previousItem;
+  let previousItem,previousRom;
   return function draw(voice, address = null, view = null) {
+    const rom=getRom();
     const {sample,rate,end,loop}=voice,item=view?null:itemFor(voice);
-    const signature = [sample,rate,end,loop,address].join(',');
-    if (!view && signature === previous && previousItem===item) return;
-    previousItem=item;
+    const signature = [sample,voice.start,voice.bank,rate,end,loop,address].join(',');
+    if (!view && signature === previous && previousItem===item && previousRom===rom) return;
+    previousItem=item;previousRom=rom;
     previous = view ? null : signature;
-    const start = view?.start ?? item?.start ?? sample * 256, span=view?.span ?? item?.length ?? 256, {width,height} = canvas;
+    const start = view?.start ?? item?.start ?? voice.start ?? sample * 256, span=view?.span ?? item?.length ?? Math.max(1,end-start), {width,height} = canvas;
     editRange=view?null:{start,span,end,loop};
-    controls.end.updateRange(view?0:start+1,view?65535:start+span);
+    controls.end.updateRange(view?0:start+1,view||!item?65535:start+span);
     controls.loop.updateRange(0,view?65535:end-start);
     controls.rate.updateVisual(rate);
     controls.end.updateVisual(end);
@@ -52,7 +52,7 @@ export function createWaveEditor(onEdit,itemFor) {
     ctx.strokeStyle = '#afeacb';
     ctx.beginPath();
     for (let i=0;i<256;i++) {
-      const signedByte = (view?view.wave[i]:item?item.pcm[Math.floor(i*span/256)]:rom[start+i]) << 24 >> 24;
+      const signedByte = (view?view.wave[i]:item?item.pcm[Math.floor(i*span/256)]:rom[(voice.bank??0)*65536+start+Math.floor(i*span/256)]) << 24 >> 24;
       const y = height/2 - signedByte*height/256;
       if (i===0) ctx.moveTo(0,y);
       else ctx.lineTo(i*width/256,y);
