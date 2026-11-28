@@ -3,11 +3,15 @@ import {buildKeyboard,createFretboardLayout,createFretboardState,findLayoutEntry
   setFretPosition,setInstrument,setStringWindowIndex,shiftStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createParamControl} from '../synth/synth_controls.js';
 
+const padLetters=['a','s','d'];
+export function padVoiceLabel(index){
+  return 'Voice '+(index+1)+' ('+padLetters[index]+')';
+}
+
 export function setupKeyboard({press,release,triggerPad}){
   const el=id=>document.getElementById(id);
   const state=createFretboardState(),held=new Map(),root=el('keys');
   let octave=0,layout,padMode=false;
-  const letters=['a','s','d'];
   function down(id,entry){
     if(held.has(id))return;
     const button=root.querySelector('[data-key="'+entry.key+'"]');
@@ -60,7 +64,7 @@ export function setupKeyboard({press,release,triggerPad}){
       e.preventDefault();if(!e.repeat)triggerPad(Number(key));return;
     }
     if(padMode){
-      const i=letters.indexOf(key);
+      const i=padLetters.indexOf(key);
       if(i>=0){e.preventDefault();if(!e.repeat)triggerPad(i+1);}
       return;
     }
@@ -83,8 +87,8 @@ export function setupKeyboard({press,release,triggerPad}){
     root.hidden=el('board-controls').hidden=el('octave').hidden=enabled;
     el('keyboard').classList.toggle('pad-mode',enabled);
     [...el('pad-keys').children].forEach((button,i)=>{
-      const key=letters[i].toUpperCase();
-      button.textContent=enabled?key+' / '+(i+1)+' · Voice '+(i+1):'ADPCM '+(i+1);
+      const key=padLetters[i].toUpperCase();
+      button.textContent=enabled?padVoiceLabel(i):'ADPCM '+(i+1);
       button.setAttribute('aria-keyshortcuts',enabled?key+' '+(i+1):String(i+1));
     });
   };

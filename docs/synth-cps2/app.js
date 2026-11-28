@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
 import {presetPitches} from './pitch.js';
-import {setupKeyboard} from './keyboard.js';
+import {padVoiceLabel,setupKeyboard} from './keyboard.js';
 import {createPadWave} from './pad-wave.js';
 import {createRomPages} from './rom-pages.js';
 import {createRomMap} from './rom-map.js';
@@ -466,7 +466,7 @@ function triggerPad(i){
 }
 for(let i=0;i<3;i++){
   const b=document.createElement('button');
-  b.textContent='Voice '+(i+1);
+  b.textContent=padVoiceLabel(i);
   b.setAttribute('aria-pressed',String(i===0));
   b.onclick=()=>{
     padVoice=i;revision++;
