@@ -161,11 +161,12 @@ function setPcmAddress(key,value){
   attached=null;if(keyboardOwnsTarget())port?.postMessage(writes);inspectChannel();
 }
 const echo = {delay:6,feedback:0};
+let echoTickRate=QSOUND_PCM_RATE;
 const echoControls = {};
 for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
   ['delay','Delay · shared',0,1024],['feedback','Feedback · shared',-32768,32767]]) {
   echoControls[key] = createParamControl({label,min,max,step:1,value:0,
-    formatValue:key === 'delay' ? ticks=>ticks+' ticks · '+(ticks*1000/QSOUND_PCM_RATE).toFixed(2)+' ms' : String,
+    formatValue:key === 'delay' ? ticks=>ticks+' ticks · '+(ticks*1000/echoTickRate).toFixed(2)+' ms' : String,
     onChange(value) {
       revision++;
       if (!liveInstrument || autoChannel) {
@@ -186,7 +187,8 @@ function restoreEcho() {
   port.postMessage(echoWrite('delay',echo.delay));
   port.postMessage([[0x93,echo.feedback & 65535],...channels.map((v,i)=>[0xba+i,v.send & 65535])]);
 }
-function showEcho(send,delay,feedback) {
+function showEcho(send,delay,feedback,tickRate=QSOUND_PCM_RATE) {
+  echoTickRate=tickRate;
   echoControls.send.updateVisual(send);
   echoControls.delay.updateVisual(delay);
   echoControls.feedback.updateVisual(feedback);
@@ -297,14 +299,14 @@ function inspect({data}) {
       shown=autoVoice;
     }
     if(autoChannel && !(followSongVoice && romPath)){
-      showEcho(autoVoice.send,data.delay,data.feedback);
+      showEcho(autoVoice.send,data.delay,data.feedback,data.tickRate);
       if(registerPanel.hidden)draw(autoVoice);return;
     }
     followPcmRange(data.view.bank,data.view.start,data.end&65535,data.loop&65535);
     pcmBank.updateVisual(data.view.bank);pcmStart.updateVisual(data.view.start);
     $('pan').value=Math.min(32,Math.max(0,data.view.pan-0x110));
     $('vol').value=autoChannel?autoVoice.volume:data.view.volume;
-    showEcho(data.send,data.delay,data.feedback);
+    showEcho(data.send,data.delay,data.feedback,data.tickRate);
     if(!registerPanel.hidden || !data.view.wave)return;
     draw({sample:0,rate:data.rate,end:data.end&65535,loop:data.loop&65535},data.active?data.address:null,data.view);
     return;

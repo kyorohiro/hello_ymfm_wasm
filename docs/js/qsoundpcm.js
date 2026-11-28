@@ -154,8 +154,7 @@ export class QSoundPcm {
     const average = (delayed + this.echoPrevious) >> 1;
     this.echoPrevious = delayed;
     this.echoLine[this.echoPosition++] = (input + average * this.echoFeedback * 4) >> 16;
-    const length = Math.max(0, Math.min(1024, this.echoEnd - this.echoBase));
-    if (this.echoPosition >= length) this.echoPosition = 0;
+    if (this.echoPosition >= this.echoLength) this.echoPosition = 0;
     return average;
   }
 
@@ -167,6 +166,10 @@ export class QSoundPcm {
     if(!initial)return;
     v.volume=v.releaseStart=initial;
     v.releaseTicks=v.releaseLength=Math.max(1,Math.round(this.tickRate*milliseconds/1000));
+  }
+
+  get echoLength() {
+    return Math.max(0,Math.min(this.echoLine.length,signed(this.echoEnd-this.echoBase)));
   }
 
   tick() {

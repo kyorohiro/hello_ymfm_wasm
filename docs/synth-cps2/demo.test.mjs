@@ -75,3 +75,14 @@ test('two-tick PCM echo has a two-sample return and signed feedback in both mode
     assert.deepEqual(tail,[0,8192,8192,-4096,-8192]);
   }
 });
+
+test('echo delay uses a signed offset from the current mode base and fits the preview buffer',()=>{
+  const chip=new QSoundPcm(demoRom());
+  for(const mode of [0x314,0x6b2]){
+    chip.writeRegister(0xe3,mode);
+    for(const [offset,expected] of [[-1,0],[0,0],[6,6],[683,683],[1024,1024],[1025,1024],[0x8000,0]]){
+      chip.writeRegister(0xd9,(chip.echoBase+offset)&65535);
+      assert.equal(chip.echoLength,expected);
+    }
+  }
+});
