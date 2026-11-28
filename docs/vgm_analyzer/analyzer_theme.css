@@ -54,8 +54,11 @@ main {
   flex-direction: column;
   position: relative;
   padding: 32px;
-  border: 10px solid #cc1a11;
-  border-radius: 48px;
+  --frame-width: 10px;
+  --frame-radius: 48px;
+  --frame-color: #cc1a11;
+  border: var(--frame-width) solid var(--frame-color);
+  border-radius: var(--frame-radius);
   background: linear-gradient(115deg, #fffbf4, #f6ebde 75%, #fff8ed);
   box-shadow: none;
 }
@@ -68,8 +71,29 @@ main {
 }
 .instrument-header h1 { margin: 0; font-size: clamp(1rem, 2vw, 1.45rem); letter-spacing: -.025em; }
 .instrument-header h1 strong { color: var(--accent); }
-.panel-tools { position: absolute; top: -5px; right: clamp(16px, 4vw, 48px); transform: translateY(-50%); display: flex; gap: 4px; }
-.panel-tools button { min-height: 28px; line-height: 1.2; font-size: .78rem; padding: 4px 8px; white-space: nowrap; }
+.panel-tools {
+  position: absolute;
+  top: calc(var(--frame-width) / -2);
+  right: calc(var(--frame-radius) - var(--frame-width));
+  transform: translateY(-50%);
+  display: inline-flex;
+  border: 2px solid var(--frame-color);
+  border-radius: 20px;
+  background: #fff8ed;
+}
+.panel-tools button {
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+  line-height: 1.2;
+  font-size: .76rem;
+  white-space: nowrap;
+}
+.panel-tools button + button { border-left: 1px solid var(--line); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.panel-tools button:hover, .panel-tools button:focus-visible { background: #f4e2cf; }
 .analyzer-status-line {
   height: 1.75rem;
   line-height: 1.75rem;
@@ -263,8 +287,7 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
   .playback-dock-tools { right: 4px; gap: 4px; }
   .playback-dock-tools .link-button { padding-inline: 8px; }
   main { padding: 16px 12px 12px; }
-  .panel-tools { top: -3px; }
-  .panel { padding: 20px 14px; border-width: 6px; border-radius: 28px; }
+  .panel { padding: 20px 14px; --frame-width: 6px; --frame-radius: 28px; }
   .actions, .sub-actions { padding: 12px; }
   .tabbar > .tab-button { padding-inline: 6px; font-size: .76rem; }
   .tab-panel { padding: 16px 10px; }
