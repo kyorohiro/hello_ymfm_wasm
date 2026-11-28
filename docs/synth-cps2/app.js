@@ -1217,6 +1217,21 @@ function rangeOptions(id,options){
   pickerSignatures.set(picker,signature);
 }
 function availableRanges(){return romPath?vgmRanges:projectRanges();}
+// Keep the native popup stable while the song discovers new sample ranges.
+const voicePickers=[['pcm-range','PCM'],['adpcm-range','ADPCM']];
+let lockedPicker=null,lockedSource=null;
+for(const [id] of voicePickers){
+  const picker=$(id);
+  const lock=()=>{
+    if(songState==='playing' && picker.options.length>1){lockedPicker=picker;lockedSource=romPath;}
+  };
+  picker.addEventListener('focus',lock);
+  picker.addEventListener('pointerdown',lock);
+  picker.addEventListener('blur',()=>{
+    if(lockedPicker!==picker)return;
+    lockedPicker=null;renderedHistory=null;renderRanges();
+  });
+}
 let renderedHistory=null;
 function currentRomRanges(){
   const ranges=new Map();
@@ -1453,7 +1468,8 @@ function renderRanges(){
   if(romPath && renderedHistory===vgmRanges)return;
   renderedHistory=romPath?vgmRanges:null;
   const presets=availableRanges();
-  for(const [id,kind] of [['pcm-range','PCM'],['adpcm-range','ADPCM']]){
+  for(const [id,kind] of voicePickers){
+    if(lockedPicker===$(id) && lockedSource===romPath && songState==='playing')continue;
     rangeOptions(id,[['','Choose preset…'],...presets.flatMap((p,i)=>p.kind===kind&&!p.earlierImage?[[i,p.name??rangeName(p)]]:[])]);
   }
   $('range-history-label').hidden=$('use-history').hidden=!romPath;
