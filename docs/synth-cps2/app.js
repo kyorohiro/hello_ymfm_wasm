@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
+import {presetPitches} from './pitch.js';
 import {setupKeyboard} from './keyboard.js';
 import {createPadWave} from './pad-wave.js';
 import {createRomPages} from './rom-pages.js';
@@ -50,6 +51,7 @@ let autoChannel=true,nextAuto=0;
 let autoVoice={...channels[0]};
 const editedVoice=()=>autoChannel?autoVoice:channels[selected];
 const keyboardOwnsTarget=()=>!autoChannel || Boolean(channels[selected].held);
+let pitchRequest=0;
 let selected = 0, context, ready, port, masterGain, generation = 0;
 let revision = 0, shown, cursor = null;
 let codeWorker = null, liveInstrument=false, romPath=null;
@@ -322,6 +324,7 @@ async function audio() {
 const status = $('status');
 function run(task) {task().catch(e=>{status.textContent=e.message;});}
 function select(channel,auto=false) {
+  if(autoChannel!==auto || (!auto && channel!==selected))clearPresetPitch();
   autoChannel=auto;
   selected = channel;
   if(!registerPanel.hidden)drawRegisters(selected);
@@ -468,6 +471,7 @@ $('pad-trigger').onclick=()=>triggerPad(padVoice);
 syncPadView();
 const setPadKeyboard=setupKeyboard({press,release,triggerPad:voice=>triggerPad(voice-1)});
 function stop(keepInstrument=true){
+  clearPresetPitch();
   liveInstrument=Boolean(keepInstrument && liveInstrument);
   if(!liveInstrument){attached=null;romPath=null;vgmRanges=[];currentRanges=[];rangeVersion=-1;syncedBank=null;syncedRomRevision=-1;syncedRangeSignature=null;}
   cancelSeek();sliding=false;songState='stopped';
@@ -907,7 +911,7 @@ async function loadPreset(path,text,explicit=true){
   }
   attached={path,adpcm,ch};selectPerformance(false);
   document.querySelector(adpcm?'[data-chip="adpcm-chip"]':'[data-chip="pcm-chip"]').click();
-  if(!adpcm)selectPcmTab(false);
+  if(!adpcm){selectPcmTab(false);run(()=>showPresetPitch(p));}
   scheduleDraft();
 }
 let bankEdit=0;
@@ -1141,6 +1145,7 @@ $('cassette-input').onchange=async e=>{
   } catch(error){$('file-status').textContent=error.message;}
 };
 function rebuildSamples(next=bankLibrary(files.get(bankPath).data,bankSlots[bankPath])){
+  clearPresetPitch();
   library=next;
   if(port)port.postMessage({type:'project-rom',rom:library.rom});
   codeWorker?.postMessage({samples:codeSamples()});
@@ -1478,10 +1483,35 @@ function renderRanges(){
   $('use-history').disabled=!vgmRanges.length||Boolean(vgmRanges[Number($('range-history').value)]?.earlierImage);
 
 }
+
+function clearPresetPitch(){
+  pitchRequest++;$('preset-pitch').textContent='';
+}
+async function showPresetPitch(p){
+  clearPresetPitch();
+  const token=pitchRequest;
+  let bytes,clock=4000000;
+  if(liveInstrument && port){
+    const {port1,port2}=new MessageChannel();
+    const response=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
+    port.postMessage({type:'preset-bank',bank:p.bank,first:0,last:65536,reply:port2},[port2]);
+    ({bytes,clock}=await response);
+    if(token!==pitchRequest)return;
+  }else bytes=library.rom.subarray(p.bank*65536,(p.bank+1)*65536);
+  const pitches=presetPitches(bytes,p,QSOUND_PCM_RATE*clock/4000000);
+  const describe=(label,pitch)=>label+' '+(pitch?pitch.name+' ('+pitch.hz.toFixed(1)+' Hz)':'undetermined');
+  const parts=[];
+  if(p.loop)parts.push(describe('Loop',pitches.loop));
+  parts.push(describe('Onset',pitches.onset));
+  const reference=pitches.loop??pitches.onset;
+  if(reference && reference.c4Rate<=65535)parts.push('C4 rate '+reference.c4Rate);
+  $('preset-pitch').textContent='Estimated at rate '+(p.rate||4096)+' · '+parts.join(' · ');
+}
 function applyRange(p){
   if(!p||p.earlierImage)return;
   if(songState==='playing')pauseSong();
   if(p.kind==='PCM'){
+    run(()=>showPresetPitch(p));
     if(!liveInstrument||autoChannel){
       Object.assign(editedVoice(),{samplePath:null,sample:0,bank:p.bank,start:p.start,end:p.end,loop:p.loop,
         rate:p.rate,note:60,referenceNote:60,referenceRate:p.rate});
@@ -1744,6 +1774,7 @@ $('song-input').onchange=async event=>{
   } catch(error){$('file-status').textContent=error.message;}
 };
 async function playSong(){
+  clearPresetPitch();
   if(songState==='paused'){attached=null;stopWorker();channels.forEach(v=>v.held=null);revision++;songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
   stop();
   const token=generation;
