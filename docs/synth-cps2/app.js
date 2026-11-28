@@ -115,7 +115,7 @@ let scopeMode='waveform', scopeVisible=false, scopeTimer;
 function drawScope(){scope.draw(canvas,scopeContext,scopeMode);}
 function updateScope() {
   clearInterval(scopeTimer);
-  if (!scopeVisible || document.hidden) return;
+  if (!scopeVisible || document.hidden || !$('output-panel').open) return;
   drawScope();
   if (masterGain) scopeTimer=setInterval(drawScope,1000/30);
 }
@@ -125,6 +125,7 @@ new ResizeObserver(([entry])=>{
   canvas.height=Math.max(1,Math.round(entry.contentRect.height));
   if(scopeVisible)drawScope();
 }).observe(canvas);
+$('output-panel').addEventListener('toggle',updateScope);
 document.addEventListener('visibilitychange',updateScope);
 const modes=document.querySelectorAll('[data-visual-mode]');
 for(const button of modes)button.onclick=()=>{

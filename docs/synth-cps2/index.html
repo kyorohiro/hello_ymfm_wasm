@@ -54,6 +54,9 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 .output-heading{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:.4rem}
 .output-heading h2{margin:0}.output-heading button{padding:.2rem .55rem}
 #output-scope{display:block;width:100%;height:7rem;border-radius:5px;background:#102c43}
+.desk-group{margin:.55rem clamp(.6rem,2vw,1.5rem);border:1px solid #afbfba;border-radius:6px}
+.desk-group>summary{padding:.4rem .65rem;cursor:pointer;font-weight:650}
+.desk-group-body{padding:0 .65rem .65rem}
 #song-picker{display:inline-flex;align-items:center;max-width:100%}#song-select{min-width:0;max-width:100%}
 #song-position{display:block;font-variant-numeric:tabular-nums}
 .seek-track{position:relative;margin:.35rem 0}
@@ -109,14 +112,14 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 <div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><label><input type="checkbox" id="auto-apply" title="Save edits and sync playing ROMs automatically. Apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
 <div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button><button id="new-script">New script…</button>
 <p id="file-status" role="status"></p></aside><div id="desk">
-<output id="status" role="status"></output><section id="song-transport" hidden aria-label="VGM playback"><label id="song-picker">VGM <select id="song-select"></select></label> <small id="song-status" role="status"></small>
+<output id="status" role="status"></output><details class="desk-group" id="song-transport" open hidden><summary>VGM</summary><div class="desk-group-body"><label id="song-picker"><select id="song-select" aria-label="VGM file"></select></label> <small id="song-status" role="status"></small>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
-<button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
-<section aria-labelledby="output-title"><div class="output-heading"><h2 id="output-title">Output</h2>
+<button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></div></details>
+<details class="desk-group" id="output-panel" open><summary id="output-title">Output</summary><div class="desk-group-body"><div class="output-heading">
 <div role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button>
 <button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div></div>
-<canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></section>
+<canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></div></details>
 
 
 
