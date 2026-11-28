@@ -631,16 +631,7 @@ function setFiles(visible){
   if(!$('code-panel').hidden)editor.layout();
 }
 $('files-toggle').onclick=()=>setFiles($('files').hidden);
-const drawRomMap=createRomMap(id=>{
-  if(id<16){
-    document.querySelector('[data-chip="pcm-chip"]').click();
-    select(id);selectPcmTab(false);
-  }else{
-    document.querySelector('[data-chip="adpcm-chip"]').click();
-    $('adpcm-voices').children[id-16].click();
-  }
-});
-
+const drawRomMap=createRomMap(address=>romPages.selectPage(address>>>8));
 const romPages=createRomPages((bank,page)=>{
   if(port){
     port.postMessage({type:'rom-pages',bank,page});

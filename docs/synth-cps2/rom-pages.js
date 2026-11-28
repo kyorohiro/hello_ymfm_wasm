@@ -2,7 +2,7 @@
 import {advanceAdpcm} from '../js/qsoundpcm.js';
 
 const hex=n=>n.toString(16).toUpperCase().padStart(4,'0');
-const labels=['Unused','PCM','ADPCM','PCM + ADPCM'];
+const labels=['No reads recorded','PCM','ADPCM','PCM + ADPCM'];
 
 export function createRomPages(request){
   const grid=document.getElementById('rom-pages'),canvas=document.getElementById('rom-preview');
@@ -12,7 +12,7 @@ export function createRomPages(request){
   const cells=Array.from({length:256},(_,i)=>{
     const b=document.createElement('button');
     b.type='button';
-    b.onclick=()=>{page=i;refresh();};
+    b.onclick=()=>selectPage(i);
     grid.append(b);return b;
   });
   grid.onkeydown=e=>{
@@ -22,6 +22,7 @@ export function createRomPages(request){
     const cell=cells[page+delta];
     if(cell && !cell.disabled){cell.click();cell.focus();}
   };
+  function selectPage(index){page=index;refresh();}
   function refresh(){request(Number(bank.value),page);}
   function draw({bank:selectedBank,page:selectedPage,size,usage,bytes}){
     if(selectedBank!==Number(bank.value)||selectedPage!==page)return;
@@ -58,5 +59,5 @@ export function createRomPages(request){
       ' · '+labels[kind]+' · '+(adpcm?'ADPCM preview (decoder reset at block start)':'Signed PCM bytes');
   }
   bank.addEventListener('change',()=>{page=0;refresh();});
-  return {draw,refresh};
+  return {draw,refresh,selectPage};
 }

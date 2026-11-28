@@ -22,7 +22,7 @@ export function intervals(start,end){
   return [[start,bankSize],...(end?[[0,end]]:[])];
 }
 
-export function createRomMap(openVoice){
+export function createRomMap(previewAddress){
   const element=id=>document.getElementById(id);
   const selector=element('rom-bank'),rows=element('rom-rows');
   let latest=null,source='',previousMap='',previousBanks='',previousView='';
@@ -34,7 +34,10 @@ export function createRomMap(openVoice){
     name.textContent=id<16?'PCM CH'+(id+1):'ADPCM Voice '+(id-15);
     address.className='rom-address';track.className='rom-track';track.setAttribute('aria-hidden','true');
     button.append(name,address,track);rows.append(button);
-    button.onclick=()=>openVoice(id);
+    button.onclick=()=>{
+      const voice=latest?.voices.find(v=>v.id===id);
+      if(voice)previewAddress(voice.start);
+    };
     return {button,address,track};
   });
   function paint(){
@@ -68,7 +71,8 @@ export function createRomMap(openVoice){
       const loopStart=(v.end-v.loop)&65535;
       const loopText=v.loop>0?' · Loop '+hex(loopStart):v.loop<0?' · Signed loop '+v.loop:'';
       address.textContent=hex(v.start)+' – '+hex(v.end)+loopText;
-      button.title=button.firstChild.textContent+' · '+address.textContent+' (end exclusive)';
+      button.disabled=v.start>=available;
+      button.title=button.disabled?'Start address outside loaded ROM':'Preview block at '+hex(v.start);
       track.replaceChildren();
       function segment(start,end,kind){
         const part=document.createElement('span');
