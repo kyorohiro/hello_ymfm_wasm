@@ -1254,26 +1254,13 @@ function editablePresets(){
   const staged=pendingBanks.get(bankPath);
   return staged?readCatalog(staged.json).presets:(rangePresets.get(bankPath)??[]);
 }
+let creationRanges;
 function updateRangeActions(){
-  const value=$('range-current').value,registered=value.startsWith('preset:');
-  $('range-new').disabled=Boolean(romPath)||!value||registered;
-  $('range-del').disabled=Boolean(romPath)||!registered;
+  $('range-new').disabled=Boolean(romPath);
+  $('range-del').disabled=Boolean(romPath)||!$('range-current').value;
 }
 $('range-current').onchange=updateRangeActions;
-function editRangePreset(remove){
-  if(romPath)return;
-  const value=$('range-current').value,list=[...editablePresets()];
-  let next;
-  if(remove){
-    if(!value.startsWith('preset:'))return;
-    const index=Number(value.slice(7)),preset=list[index];
-    if(!preset || !confirm('Delete preset '+preset.name+'?'))return;
-    next=rangeKey(preset);list.splice(index,1);
-  }else{
-    const range=currentRomRanges().get(value);
-    if(!range || list.some(p=>rangeKey(p)===value))return;
-    next='preset:'+list.length;list.push({...range,name:rangeName(range)});
-  }
+function writeRangePresets(list,next){
   if($('auto-apply').checked){
     rangePresets.set(bankPath,list);syncCatalog(bankPath);
   }else{
@@ -1286,17 +1273,37 @@ function editRangePreset(remove){
   if([...$('range-current').options].some(o=>o.value===next))$('range-current').value=next;
   updateRangeActions();scheduleDraft();
 }
-$('range-new').onclick=()=>editRangePreset(false);
-$('range-del').onclick=()=>editRangePreset(true);
+$('range-new').onclick=()=>{
+  creationRanges=currentRomRanges();
+  const options=Array.from(creationRanges,([key,range])=>[key,rangeName(range)]);
+  rangeOptions('range-source',options);
+  const range=creationRanges.get($('range-source').value);
+  $('range-name').value=range?rangeName(range):'';
+  $('range-create').showModal();
+};
+$('range-source').onchange=()=>{
+  $('range-name').value=rangeName(creationRanges.get($('range-source').value));
+};
+$('range-create').querySelector('form').onsubmit=e=>{
+  if(e.submitter?.value==='cancel')return;
+  const name=$('range-name').value.trim(),range=creationRanges.get($('range-source').value);
+  if(!range||!name||romPath){e.preventDefault();return;}
+  const list=[...editablePresets(),{...range,name}];
+  writeRangePresets(list,'preset:'+(list.length-1));
+};
+$('range-del').onclick=()=>{
+  const value=$('range-current').value;
+  if(romPath||!value.startsWith('preset:'))return;
+  const list=[...editablePresets()],index=Number(value.slice(7)),preset=list[index];
+  if(!preset||!confirm('Delete preset '+preset.name+'?'))return;
+  list.splice(index,1);
+  writeRangePresets(list,'preset:'+Math.min(index,list.length-1));
+};
 function renderRanges(){
-  const current=currentRomRanges(),options=[];
-  if(!romPath){
-    editablePresets().forEach((preset,index)=>{
-      options.push(['preset:'+index,preset.name]);current.delete(rangeKey(preset));
-    });
-  }
-  for(const [key,range] of current)options.push([key,rangeName(range)]);
+  $('preset-item').hidden=Boolean(romPath);
+  const options=romPath?[]:editablePresets().map((preset,index)=>['preset:'+index,preset.name]);
   rangeOptions('range-current',options);
+  $('range-current').disabled=!options.length;
   updateRangeActions();
   if(romPath && renderedHistory===vgmRanges)return;
   renderedHistory=romPath?vgmRanges:null;
