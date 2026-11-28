@@ -138,7 +138,8 @@ function applyMix(settings) {
   if(masterGain)masterGain.gain.setTargetAtTime(settings.master/100,context.currentTime,0.005);
   port?.postMessage({type:'mute-voices',mask:mutedVoices(settings)});
 }
-const draw = createWaveEditor(edit,itemFor,()=>library.rom);
+const noRom=new Uint8Array();
+const draw = createWaveEditor(edit,v=>romPath?null:itemFor(v),()=>romPath?(selectedRomBytes(syncedBank)??noRom):library.rom);
 const romDragPixelsPerStep=4;
 const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
 const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,directEntry:true,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
@@ -286,6 +287,7 @@ function inspect({data}) {
       showEcho(autoVoice.send,data.delay,data.feedback);
       if(registerPanel.hidden)draw(autoVoice);return;
     }
+    followPcmRange(data.view.bank,data.view.start,data.end&65535,data.loop&65535);
     pcmBank.updateVisual(data.view.bank);pcmStart.updateVisual(data.view.start);
     $('pan').value=Math.min(32,Math.max(0,data.view.pan-0x110));
     $('vol').value=data.view.volume;
@@ -335,6 +337,10 @@ function select(channel,auto=false) {
     b.classList.toggle('auto-target',auto && i===channel+1);
   });
   const v = editedVoice();
+  if($('pcm-range').options.length){
+    if(!liveInstrument || auto)followPcmRange(bankFor(v),startFor(v),v.end,v.loop);
+    else $('pcm-range').value='';
+  }
   $('pan').value=v.pan; $('vol').value=v.volume;
   if(!liveInstrument || autoChannel)refresh();
   if(liveInstrument || !registerPanel.hidden){revision++;inspectChannel();}
@@ -1223,6 +1229,13 @@ function rangeOptions(id,options){
   if(options.some(([value])=>String(value)===old))picker.value=old;
   pickerSignatures.set(picker,signature);
 }
+let pcmPickerKeys=new Map();
+function followPcmRange(bank,start,end,loop){
+  const picker=$('pcm-range');
+  if(lockedPicker===picker && songState==='playing')return;
+  const value=pcmPickerKeys.get(instrumentKey({kind:'PCM',bank,start,end,loop}));
+  if(picker.value!==(value??''))picker.value=value??'';
+}
 function availableRanges(){return romPath?vgmRanges:projectRanges();}
 // Keep the native popup stable while the song discovers new sample ranges.
 const voicePickers=[['pcm-range','PCM'],['adpcm-range','ADPCM']];
@@ -1482,7 +1495,14 @@ function renderRanges(){
   const presets=availableRanges();
   for(const [id,kind] of voicePickers){
     if(lockedPicker===$(id) && lockedSource===romPath && songState==='playing')continue;
-    rangeOptions(id,[['','Choose preset…'],...presets.flatMap((p,i)=>p.kind===kind&&!p.earlierImage?[[i,p.name??rangeName(p)]]:[])]);
+    const choices=presets.flatMap((p,i)=>p.kind===kind&&!p.earlierImage && !(romPath && p.played===false)?[[i,p.name??rangeName(p)]]:[]);
+    rangeOptions(id,[['','Choose preset…'],...choices]);
+    if(kind==='PCM'){
+      pcmPickerKeys=new Map(choices.map(([i])=>[instrumentKey(presets[i]),String(i)]));
+      if(autoChannel || !liveInstrument){
+        const v=editedVoice();followPcmRange(bankFor(v),startFor(v),v.end,v.loop);
+      }
+    }
   }
   $('range-history-label').hidden=$('use-history').hidden=!romPath;
   rangeOptions('range-history',romPath?vgmRanges.map((p,i)=>[i,rangeName(p)+(p.earlierImage?' · Earlier ROM image':'')]):[]);
@@ -1600,8 +1620,8 @@ function syncPlayingBank({source,bytes,current,ranges,romRevision,version}){
   const fresh=!staged&&!files.has(path),presets=staged?readCatalog(staged.json).presets:(rangePresets.get(path)??[]);
   const list=[...presets],indexes=new Map(list.map((p,i)=>[instrumentKey(p),i]));
   let changed=false;
-  for(const {voice,...p} of [...(ranges??vgmRanges),...current]){
-    if(p.earlierImage)continue;
+  for(const {voice,played,...p} of [...(ranges??vgmRanges),...current.filter(p=>p.kind==='ADPCM')]){
+    if(p.earlierImage || played===false)continue;
     const key=instrumentKey(p),index=indexes.get(key);
     if(index!==undefined){
       const prior=list[index];

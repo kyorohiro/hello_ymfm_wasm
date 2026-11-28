@@ -68,7 +68,8 @@ export class SongTransport {
           if(this.chip.lastWrites[id<16?id*8+5:0xcb+4*(id-16)]<0)continue;
           const p=voiceRange(this.chip,this.starts,id);
           const key=instrumentKey(p),prior=this.ranges.get(key);
-          if(!prior||prior.earlierImage||(!prior.rate && p.rate)){this.ranges.set(key,p);this.rangeRevision++;}
+          if(id<16)p.played=Boolean(p.rate && this.chip.voices[id].volume) || Boolean(prior?.played && !prior.earlierImage);
+          if(!prior||prior.earlierImage||(p.played && !prior.played)||(!prior.rate && p.rate)){this.ranges.set(key,p);this.rangeRevision++;}
         }
         this.changedVoices=0;
         this.ticks+=e.samples;
@@ -76,7 +77,7 @@ export class SongTransport {
       } else if(e.type==='qsound-write'){
         this.chip.writeRegister(e.register,e.value);
         const r=e.register;
-        if(r<128 && [0,1,2,4,5].includes(r&7))this.changedVoices|=1<<((r&7)?r>>3:((r>>3)+1)&15);
+        if(r<128 && [0,1,2,4,5,6].includes(r&7))this.changedVoices|=1<<((r&7)?r>>3:((r>>3)+1)&15);
         else if(r>=0xca && r<=0xd5)this.changedVoices|=1<<(16+((r-0xca)>>2));
         if(e.register<128 && (e.register&7)===1)this.starts[e.register>>3]=e.value;
       } else if(e.type==='qsound-rom-data'){

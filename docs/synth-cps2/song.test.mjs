@@ -147,3 +147,18 @@ test('VGM pitch changes share one PCM preset and retain an independent ADPCM pre
   assert.deepEqual(ranges.filter(p=>p.kind==='PCM').map(p=>[p.start,p.end,p.rate,p.loop]),[[8,24,512,16]]);
   assert.deepEqual(ranges.filter(p=>p.kind==='ADPCM'),[{kind:'ADPCM',bank:0,start:8,end:24}]);
 });
+
+test('a programmed PCM range enters the playable list only after rate and level overlap',()=>{
+  const bytes=demoVgm([
+    {t:0,writes:[[1,8],[2,0],[4,16],[5,24],[6,8000]]},
+    {t:50,writes:[[6,0],[2,512]]},
+    {t:100,writes:[[6,8000]]},
+    {t:150,writes:[[6,0]]},
+    {t:200,writes:[]},
+  ]);
+  const range=t=>rebuildSongState(bytes,44100,t,Array(19).fill(false)).ranges[0][1];
+  assert.equal(range(25).played,false);
+  assert.equal(range(75).played,false);
+  assert.equal(range(125).played,true);
+  assert.equal(range(175).played,true);
+});
