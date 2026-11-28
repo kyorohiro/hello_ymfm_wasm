@@ -1325,7 +1325,7 @@ function syncPlayingBank({source,bytes,current,ranges,romRevision,version}){
       catch(error){
         if(!(error instanceof RangeError))throw error;
         syncedRomRevision=romRevision;syncedBank=null;
-        $('file-status').textContent='The cassette is full. Export ZIP… keeps the playing ROM and its presets together.';
+        $('file-status').textContent='The cassette is full. Export ROM keeps the playing ROM and its presets together.';
         return {path,rom:bytes,json:text};
       }
     }
