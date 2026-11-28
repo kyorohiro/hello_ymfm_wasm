@@ -422,7 +422,8 @@ function stop(keepInstrument=true){
   if(liveInstrument)inspectChannel();
   renderPresetInfo();
 }
-window.addEventListener('blur',()=>{if(songState==='stopped')stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
+let replacingWav=null;
+window.addEventListener('blur',()=>{if(songState==='stopped' && !replacingWav)stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
 $('restore-instrument').onclick=()=>stop(false);
 $('save').onclick=()=>{
   const file=files.get(songPath);
@@ -901,6 +902,7 @@ function renameSource(text,from,to){
 function fileActions(path){
   if(!files.has(path))return [{id:'new',label:'New JavaScript file…'}];
   return [{id:'open',label:isPresetPath(path)?'Apply preset':'Open'},
+    ...(isSamplePath(path)?[{id:'replace-wav',label:'Replace WAV…'}]:[]),
     {id:'duplicate',label:'Duplicate'},{id:'rename',label:'Rename…',disabled:path==='/index.js'},
     {id:'delete',label:'Delete',disabled:path==='/index.js' || presetReferences(path).length>0 || (isSamplePath(path) && [...channels,...pads].some(v=>v.samplePath===path))}];
 }
@@ -911,6 +913,10 @@ function fileAction(action,path){
   if(action==='open'){
     if(isPresetPath(path))return loadPreset(path,file.data);
     if(isSamplePath(path))assignSample(path);else openScript(path);return;
+  }
+  if(action==='replace-wav'){
+    replacingWav={path,revision:file.revision};
+    $('replace-wav-input').click();return;
   }
   if(action==='delete'){
     if(!confirm('Delete '+path+'?'))return;
@@ -1037,8 +1043,8 @@ $('cassette-input').onchange=async e=>{
     replaceProject(project);saveDraft();$('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
 };
-function rebuildSamples(){
-  library=sampleLibrary(files.list(),placements,padPlacements);
+function rebuildSamples(next=sampleLibrary(files.list(),placements,padPlacements)){
+  library=next;
   const selector=$('wave');
   while(selector.options.length>3)selector.remove(3);
   for(const path of library.items.keys())selector.add(new Option(path.split('/').pop(),path));
@@ -1083,6 +1089,52 @@ function assignSample(path){
   select(selected,autoChannel);renderFiles();scheduleDraft();
   $('file-status').textContent=path+' → CH'+(selected+1)+' · Bank '+item.bank+' · '+item.length+' bytes';
 }
+const replaceInput=$('replace-wav-input');
+replaceInput.oncancel=()=>{replacingWav=null;};
+replaceInput.onchange=async()=>{
+  const target=replacingWav,file=replaceInput.files[0];
+  replacingWav=null;replaceInput.value='';
+  if(!file || !target)return;
+  try{
+    if(file.size>maxRom)throw Error('WAV exceeds 16 MiB.');
+    const data=new Uint8Array(await file.arrayBuffer()),{path}=target;
+    if(files.get(path)?.revision!==target.revision)throw Error('The target WAV changed. Choose Replace WAV again.');
+    const project=snapshot(),entry=project.files.find(f=>f.path===path);
+    entry.data=data;
+    // Build with the existing addresses before changing the cassette or the sounding ROM.
+    const next=sampleLibrary(project.files,placements,padPlacements);
+    const pcm=next.items.get(path),pad=next.padItems.get(path);
+    const old=library.items.get(path),oldPad=library.padItems.get(path);
+    for(const [i,v] of channels.entries()){
+      if(v.samplePath===path && v.end>pcm.start+pcm.length)
+        throw Error('The replacement is too short for PCM CH'+(i+1)+'. Shorten its End first.');
+    }
+    for(const [i,v] of pads.entries()){
+      if(v.samplePath===path && v.bank===pad.bank && v.start<oldPad.start+oldPad.length &&
+        v.end>pad.start+pad.length && v.end<=oldPad.start+oldPad.length)
+        throw Error('The replacement is too short for ADPCM Voice '+(i+1)+'. Shorten its End first.');
+    }
+    if(liveInstrument && !romPath && (pcm.length<old.length || (pad && pad.length<oldPad.length)))
+      throw Error('Choose Use synth instruments before shortening a sample used for live audition.');
+    for(const f of project.files.filter(f=>isPresetPath(f.path))){
+      for(const text of new Set([f.data,pending.get(f.path)].filter(Boolean))){
+        const p=readPreset(text);
+        if(p.source || !p.projectRange)continue;
+        const [first,last]=p.projectRange.map(n=>n+p.bank*65536);
+        if(next.rom.subarray(first,last).some((v,i)=>library.rom[first+i]!==v) ||
+          next.rom.subarray(first,last).length!==library.rom.subarray(first,last).length)
+          throw Error('Saved preset '+f.path+' uses this ROM range. Import the WAV as a new sample instead.');
+      }
+    }
+    const payload=project.files.reduce((n,f)=>n+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),0);
+    if(payload>maxRom)throw Error('These files exceed the 16 MiB cassette limit.');
+    if(payload>maxRom-65536)exportProject(project);
+    files.writeBinary(path,data);rebuildSamples(next);
+    if(!liveInstrument){refresh();showPad();}
+    revision++;inspectChannel();showRomMap();renderFiles();scheduleDraft();
+    $('file-status').textContent='Replaced '+path+' with '+file.name+'. ROM addresses and voice settings retained.';
+  }catch(error){$('file-status').textContent=error.message;}
+};
 $('import-wav').onclick=()=>$('wav-input').click();
 $('wav-input').onchange=async event=>{
   const file=event.target.files[0];event.target.value='';

@@ -97,7 +97,7 @@ body{width:min(100%,76rem)}
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <button id="song-play">Play VGM</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop VGM</button> <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label></section>
 <div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><label><input type="checkbox" id="auto-apply" title="Save edits automatically and apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
-<div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button><button id="new-script">New script…</button>
+<input type="file" accept=".wav" id="replace-wav-input" hidden><div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button><button id="new-script">New script…</button>
 <p id="file-status" role="status"></p></aside><div id="desk">
 
 <section id="soundchip"><div class="chip-header"><h2>QSound</h2><button id="restore-instrument" hidden>Use synth instruments</button></div>
