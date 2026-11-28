@@ -177,9 +177,9 @@ $('echo-help-toggle').onclick=()=>{
 };
 for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
   ['delay','Delay · shared',0,1024],['feedback','Feedback · shared',-32768,32767]]) {
-  echoControls[key] = createParamControl({label,min,max,step:1,value:0,
+  echoControls[key] = createParamControl({label,min,max,step:1,value:0,dragSensitivity:0.6,
     formatValue:key === 'delay' ? ticks=>ticks+' ticks · '+(ticks*1000/echoTickRate).toFixed(2)+' ms'
-      : key === 'feedback' ? value=>value+' · '+Number((value*100/16384).toFixed(2))+'%' : String,
+      : value=>value+' · '+Number((value*100/16384).toFixed(2))+'%',
     onChange(value) {
       revision++;
       if (!liveInstrument || autoChannel) {

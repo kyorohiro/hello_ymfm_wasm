@@ -38,6 +38,7 @@ export function createParamControl(config) {
     category = "",
     wheelAdjust = true,
     dragPixelsPerStep,
+    dragSensitivity = 1,
     directEntry = false,
     coarseDragSteps = 1,
     formatValue = String,
@@ -191,7 +192,7 @@ export function createParamControl(config) {
         event.clientX - dragStartX;
       const pixelsPerStep = dragPixelsPerStep ??
         (dragPixelsForFullRange * step / Math.max(step, max - min));
-      const deltaSteps = Math.round(deltaX / pixelsPerStep);
+      const deltaSteps = Math.round(deltaX * dragSensitivity / pixelsPerStep);
 
       if(directEntry){
         if(deltaSteps!==0)dragged=true;
