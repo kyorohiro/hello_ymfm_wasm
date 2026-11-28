@@ -11,7 +11,7 @@ import {demoRom} from './demo.js';
 class Cps2Preview extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true});
+    this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true,trackRom:true});
     this.previewVersion=0;
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
@@ -46,7 +46,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       }
       if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}
       if (data?.type === 'song') {
-        this.chip=new QSoundPcm(new Uint8Array(),sampleRate,{spatialPcm:true});
+        this.chip=new QSoundPcm(new Uint8Array(),sampleRate,{spatialPcm:true,trackRom:true});
         this.applyMutes();
         this.starts.fill(0);
         this.song=new SongTransport(data.bytes,this.chip,this.starts);
@@ -92,6 +92,17 @@ class Cps2Preview extends AudioWorkletProcessor {
           bank:v.bank,end:v.end&65535,pan:v.pan,...fields,bytes:this.chip.rom.slice(begin,begin+65536)});
         data.reply.close();return;
       }
+      if(data?.type==='export-rom'){
+        const bytes=this.chip.rom.slice();
+        data.reply.postMessage(bytes,[bytes.buffer]);data.reply.close();return;
+      }
+      if(data?.type==='rom-pages'){
+        const base=data.bank*256,offset=(base+data.page)*256;
+        this.port.postMessage({type:'rom-pages',bank:data.bank,page:data.page,
+          usage:this.chip.romUsage.slice(base,base+256),bytes:this.chip.rom.slice(offset,offset+256),
+          size:this.chip.rom.length});
+        return;
+      }
       if(data?.type==='preset-bank'){
         const begin=data.bank*65536;
         const bytes=this.chip.rom.slice(begin+data.first,begin+data.last);
@@ -102,7 +113,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         const p=data.preset,ch=data.channel,base=8*ch;
         if(data.rom){
           this.timeline.clear();this.capture();this.song=null;
-          this.chip.rom=data.rom;this.source=p.source;
+          this.chip.rom=data.rom;this.chip.romUsage=new Uint8Array(Math.ceil(data.rom.length/256));this.source=p.source;
           this.chip.tickRate=QSOUND_PCM_RATE*p.clock/4000000;
         }
         if(p.format==='qsound-adpcm-1'){
@@ -170,7 +181,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       }
       if (data === 'stop') {
         this.song=null;this.captured=false;this.source=null;
-        this.chip = new QSoundPcm(this.projectRom??demoRom(), sampleRate,{spatialPcm:true});
+        this.chip = new QSoundPcm(this.projectRom??demoRom(), sampleRate,{spatialPcm:true,trackRom:true});
         this.applyMutes();
         this.starts.fill(0);
       } else this.apply(data);
@@ -183,7 +194,8 @@ class Cps2Preview extends AudioWorkletProcessor {
   capture(){
     this.source=this.romSource();
     const source=this.chip;
-    const chip=new QSoundPcm(source.rom,sampleRate,{spatialPcm:true});
+    const chip=new QSoundPcm(source.rom,sampleRate,{spatialPcm:true,trackRom:true});
+    chip.romUsage=source.romUsage;
     chip.tickRate=source.tickRate;
     chip.lastWrites.set(source.lastWrites);
     chip.echoBase=source.echoBase;chip.echoEnd=source.echoEnd;chip.echoFeedback=source.echoFeedback;

@@ -104,6 +104,11 @@ For a PCM preset, use the same method with a channel from 1–16, then call `qso
 
 Open **ROM** and select a bank. Each row plots one voice on the same bank-relative byte scale. Green shows the PCM sample interval, amber its positive loop window, and blue an ADPCM sample interval. The displayed end address is exclusive. Wrapped intervals appear at both edges. A partial bank expands to fill the plot; hatching marks addresses beyond the loaded ROM if a voice refers to them. A negative PCM loop register is shown numerically.
 
+Each square in the ROM tab covers 256 bytes of the selected 64 KiB bank.
+Green, blue and purple record reads by enabled-volume PCM voices, ADPCM voices, or both, including mixer-muted voices. The marks survive key-off, Pause and Stop. Seek reconstructs the first pass up to the new position. Starting a new song starts its history over.
+Click a square or use the arrow keys to inspect its current bytes. An ADPCM-only block is decoded with a fresh predictor for this preview. A block played by both types shows signed PCM bytes.
+Bank register changes redirect reads into another bank. VGM ROM data blocks update the image at their recorded positions. The history marks addresses; selecting an overwritten address shows the new data. **Download current ROM (.rom)** exports the complete raw image at that moment. Pause or seek to export a particular version.
+
 Before playback, the map shows the authored instruments. During VGM or Code playback it follows the most recently programmed start/end addresses and bank. A voice remains visible after release. Click its row to open the corresponding PCM channel or ADPCM voice editor. Pause holds the song position for comparison. To see shared data, load Voice 2’s ADPCM trio preset onto Voice 3. Both rows then cover **0x0400–0x0600**, and the **2** and **3** keys trigger the two decoders while the map is open.
 
 ## ADPCM pads

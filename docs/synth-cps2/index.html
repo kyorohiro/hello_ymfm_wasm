@@ -75,6 +75,12 @@ body{width:min(100%,76rem)}
 .rom-segment{position:absolute;height:100%;min-width:1px}.rom-pcm{background:#247866}.rom-adpcm{background:#235d93}.rom-loop{background:#b66614;height:40%;bottom:0}.rom-unavailable{z-index:1;background:repeating-linear-gradient(135deg,#102f4538 0 3px,transparent 3px 6px)}
 #rom-source{overflow-wrap:anywhere;font-size:.85rem}#rom-empty{padding:.65rem 0}
 @media(max-width:540px){.rom-row{grid-template-columns:6rem minmax(0,1fr)}}
+#rom-pages{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;width:min(100%,22rem);margin:.5rem 0}
+#rom-pages button{min-width:0;aspect-ratio:1;padding:0;border-radius:2px;background:#e4e1d8}
+#rom-pages button:disabled{opacity:.32}#rom-pages button[data-kind="1"]{background:#247866}
+#rom-pages button[data-kind="2"]{background:#235d93}#rom-pages button[data-kind="3"]{background:#825897}
+#rom-pages button[aria-pressed=true]{outline:2px solid #ce7520;outline-offset:-2px}
+#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
@@ -120,6 +126,10 @@ body{width:min(100%,76rem)}
 <p>Select a voice and choose a WAV in Files. Press 1, 2 or 3 to trigger a one-shot. Volume applies on the next trigger.</p>
 <div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden><div class="chip-header"><label>ROM bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
+<button id="export-rom">Download current ROM (.rom)</button>
+<p>256 bytes per square · Green: PCM · Blue: ADPCM · Purple: both</p>
+<div id="rom-pages" role="group" aria-label="ROM playback history"></div>
+<canvas id="rom-preview" width="512" height="84" aria-label="Selected ROM block waveform"></canvas><p id="rom-page-caption"></p>
 <p id="rom-scale"></p><small>Bank-relative byte addresses · End exclusive · Amber marks the PCM loop.</small>
 <div id="rom-samples"></div><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></section>
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>

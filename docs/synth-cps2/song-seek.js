@@ -5,7 +5,7 @@ import {SongTransport} from './song.js';
 // Reproduce the first pass off the audio thread, including PCM phase, ADPCM
 // predictors and the echo line. Only validated QSound commands reach this path.
 export function rebuildSongState(bytes,rate,targetTicks,mutes) {
-  const chip=new QSoundPcm(new Uint8Array(),rate,{spatialPcm:true});
+  const chip=new QSoundPcm(new Uint8Array(),rate,{spatialPcm:true,trackRom:true});
   mutes.forEach((muted,i)=>chip.setChannelMuted(i,muted));
   const starts=new Uint16Array(16);
   const song=new SongTransport(bytes,chip,starts);

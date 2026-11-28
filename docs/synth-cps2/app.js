@@ -2,6 +2,7 @@
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
 import {setupKeyboard} from './keyboard.js';
 import {createPadWave} from './pad-wave.js';
+import {createRomPages} from './rom-pages.js';
 import {createRomMap} from './rom-map.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {isPresetPath,bankHash,readPreset,presetRom,resolveRom} from './preset.js';
@@ -199,6 +200,10 @@ function selectPcmTab(registers) {
 $('register-tab').onclick=()=>selectPcmTab(true);
 $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
+  if(data.type==='rom-pages'){
+    if(!$('rom-chip').hidden)romPages.draw(data);
+    return;
+  }
   if(data.fxError){$('code-status').textContent=data.fxError;return;}
   if(data.scheduleFailure){$('code-status').textContent=data.scheduleFailure;return;}
   if (data.revision !== revision || data.channel !== selected) return;
@@ -591,6 +596,28 @@ const drawRomMap=createRomMap(id=>{
   }
 });
 
+const romPages=createRomPages((bank,page)=>{
+  if(port)port.postMessage({type:'rom-pages',bank,page});
+  else{
+    const offset=(bank*256+page)*256;
+    romPages.draw({bank,page,size:library.rom.length,usage:[],bytes:library.rom.slice(offset,offset+256)});
+  }
+});
+setInterval(()=>{if(!document.hidden && !$('rom-chip').hidden && port)romPages.refresh();},250);
+$('export-rom').onclick=()=>run(async()=>{
+  let bytes=library.rom;
+  const name=romPath?.split('/').pop().replace(/\.vg[mz]$/i,'')??'project';
+  if(port){
+    const {port1,port2}=new MessageChannel();
+    const snapshot=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
+    port.postMessage({type:'export-rom',reply:port2},[port2]);
+    bytes=await snapshot;
+  }
+  if(!bytes.length)throw Error('No sample ROM loaded.');
+  const url=URL.createObjectURL(new Blob([bytes])),link=document.createElement('a');
+  link.href=url;link.download=name+'.rom';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 function showRomMap(){
   if($('rom-chip').hidden)return;
   if(liveInstrument){inspectChannel();return;}
@@ -603,6 +630,7 @@ function displayMap(map){
   const samples=library.regions.map(v=>({path:v.path,kind:library.padItems.get(v.path)===v?'ADPCM':'PCM',bank:v.bank,start:v.start,end:v.start+v.length}));
   const used=factoryBank.length+samples.reduce((sum,s)=>sum+s.end-s.start,0);
   drawRomMap({...map,samples},samples.length?'Project ROM · '+used.toLocaleString()+' bytes used / 16 MiB':'Factory ROM');
+  if(!port)romPages.refresh();
 }
 for(const tab of chipTabs)tab.onclick=()=>{
   chipView=tab.dataset.chip;

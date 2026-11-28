@@ -111,3 +111,23 @@ test('standard-mode PCM stereo balance tracks CTR at five pan positions',()=>{
     }
   }
 });
+
+test('ROM history follows played banks and seek restores the ROM image at the requested tick',()=>{
+  const u32=n=>[n&255,n>>>8&255,n>>>16&255,n>>>24];
+  const block=(offset,bytes)=>[0x67,0x66,0x8f,...u32(8+bytes.length),...u32(0x10100),...u32(offset),...bytes];
+  const write=(reg,value)=>[0xc4,value>>>8,value&255,reg];
+  const commands=[
+    ...block(0,[12]),...write(5,256),...write(6,1000),0x61,100,0,
+    ...block(0,[34]),...block(0x10000,[56]),...write(0x78,0x8001),0x61,100,0,
+    ...write(6,0),0x61,100,0,0x66,
+  ];
+  const bytes=new Uint8Array(256+commands.length);
+  bytes.set(demoVgm().subarray(0,256));bytes.set(commands,256);
+  new DataView(bytes.buffer).setUint32(4,bytes.length-4,true);
+  const at=t=>rebuildSongState(bytes,44100,t,Array(19).fill(false)).chip;
+  const early=at(50),late=at(250);
+  assert.equal(early.rom[0],12);assert.equal(early.romUsage[256],0);
+  assert.equal(late.rom[0],34);assert.equal(late.rom[65536],56);
+  assert.equal(late.voices[0].volume,0);
+  assert.deepEqual([...late.romUsage.entries()].filter(([,used])=>used),[[0,1],[256,1]]);
+});

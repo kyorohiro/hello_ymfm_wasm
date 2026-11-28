@@ -7,7 +7,7 @@ const signed = word => (word << 16) >> 16;
 // DSP step multipliers in signed nibble order (-8 through +7).
 const adpcmScale = [154,154,128,102,77,58,58,58,58,58,58,58,77,102,128,154];
 
-export function advanceAdpcm(voice, rom, lowNibble) {
+export function advanceAdpcm(voice, rom, lowNibble, usage) {
   if (!lowNibble) {
     if (voice.address === voice.end) voice.gain = 0;
     if (voice.trigger) {
@@ -18,7 +18,9 @@ export function advanceAdpcm(voice, rom, lowNibble) {
       voice.trigger = false;
     }
   }
-  const byte = rom[voice.bank * 65536 + voice.address] ?? 0;
+  const address = voice.bank * 65536 + voice.address;
+  if(usage && voice.gain && address<rom.length)usage[address>>>8]|=2;
+  const byte = rom[address] ?? 0;
   const nibble = lowNibble ? byte & 15 : byte >>> 4;
   const code = nibble < 8 ? nibble : nibble - 16;
   if (lowNibble) voice.address = (voice.address + 1) & 65535;
@@ -67,12 +69,13 @@ function spatialOutput(state,tick,side,dry,wet){
 }
 
 export class QSoundPcm {
-  constructor(rom, sampleRate = QSOUND_PCM_RATE, {spatialPcm=false}={}) {
+  constructor(rom, sampleRate = QSOUND_PCM_RATE, {spatialPcm=false,trackRom=false}={}) {
     if (!(rom instanceof Uint8Array) || !(sampleRate > 0) || !Number.isFinite(sampleRate))
       throw new TypeError('Expected sample ROM bytes and a positive sample rate');
     this.spatial=spatialPcm?[spatialState(),spatialState()]:null;
     this.spatialTick=0;
     this.rom = rom;
+    this.romUsage=trackRom?new Uint8Array(Math.ceil(rom.length/256)):null;
     this.sampleRate = sampleRate;
     this.tickRate = QSOUND_PCM_RATE;
     // -1 distinguishes an unwritten register from an explicit zero.
@@ -162,8 +165,13 @@ export class QSoundPcm {
     let dryL=0,dryR=0,wetL=0,wetR=0;
     for (const v of this.voices) {
       if(v.freezeWhileSilent && !v.volume)continue;
+      if(this.romUsage && v.volume){
+        const address=v.bank*65536+(v.address&65535);
+        if(address<this.rom.length)this.romUsage[address>>>8]|=1;
+      }
       if (v.volume && !v.muted) {
-        const byte = this.rom[v.bank * 65536 + (v.address & 0xffff)] ?? 0;
+        const address=v.bank * 65536 + (v.address & 0xffff);
+        const byte = this.rom[address] ?? 0;
         const sample = signed(((byte << 24 >> 24) * 256 * v.volume) >> 14);
         echoInput += sample * v.echoSend * 4;
         const pcm = sample / 32768;
@@ -187,7 +195,7 @@ export class QSoundPcm {
       right+=spatialOutput(this.spatial[1],this.spatialTick,1,dryR,wetR);
       this.spatialTick=(this.spatialTick+1)&127;
     }
-    advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.rom, this.adpcmSlot >= 3);
+    advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.rom, this.adpcmSlot >= 3,this.romUsage);
     this.adpcmSlot = (this.adpcmSlot + 1) % 6;
     for (const voice of this.adpcm) {
       if (!voice.output || voice.muted) continue;
@@ -202,6 +210,10 @@ export class QSoundPcm {
   }
 
   render(left, right, offset=0, count=left.length-offset) {
+    if(this.romUsage && this.romUsage.length!==Math.ceil(this.rom.length/256)){
+      const next=new Uint8Array(Math.ceil(this.rom.length/256));
+      next.set(this.romUsage.subarray(0,next.length));this.romUsage=next;
+    }
     for (let i=offset; i<offset+count; i++) {
       while (this.ticks >= 1) {this.tick(); this.ticks--;}
       left[i] = this.left;
