@@ -31,6 +31,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 body{width:min(100%,76rem)}
 .workspace-tools,.chip-tabs,.chip-header{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
 .workspace-tools{padding:.6rem 1.5rem;border-bottom:1px solid #afbfba}
+.workspace-actions{display:flex;align-items:center;gap:.4rem;margin-inline-start:auto}
 .switch{display:inline-flex}.switch button:first-child{border-radius:6px 0 0 6px}.switch button:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
 #workspace{display:grid;grid-template-columns:minmax(11rem,15rem) minmax(0,1fr)}
 #workspace.files-hidden{grid-template-columns:minmax(0,1fr)}
@@ -103,8 +104,8 @@ body{width:min(100%,76rem)}
 <strong>Export</strong><button id="save" data-close-synth-menu>Download selected VGM / VGZ</button><button id="export-cassette" aria-describedby="export-contents" data-close-synth-menu>Export cassette</button>
 <small id="export-contents"></small><button id="demo-cassette" data-close-synth-menu>Download factory demos</button>
 <strong>Options</strong><label><input id="auto-fade" type="checkbox" checked> PCM note-off fade (4 ms)</label>
-</div></details><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
-<div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
+</div></details><div class="workspace-actions"><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
+<div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></div></nav>
 <output id="status" role="status"></output><section id="song-transport" hidden aria-label="VGM playback"><label id="song-picker">VGM <select id="song-select"></select></label> <small id="song-status" role="status"></small>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
