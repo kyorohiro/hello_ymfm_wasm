@@ -66,7 +66,7 @@ The MAME-derived PCM code uses the [BSD 3-Clause license](../../third_party/mame
 
 ## PCM waveform editor
 
-Select a PCM channel and hold a keyboard note. The shaded region runs from End minus Loop length to the exclusive End byte. The amber cursor samples the actual channel address at 20 Hz. A zero loop length allows the address to continue past the sample window. End and Loop length are bounded to the selected 256-byte instrument in this editor. Rate is the 4.12 register word for the current note. Editing Rate retunes the keyboard relative to that note. Each channel retains its settings. The controls also follow the selected PCM channel during demo playback.
+Select a PCM channel. Drag the Start, End and Loop labels on its waveform to set the playback range and loop start. Hold a note to hear the changes. The shaded region runs from End minus Loop length to the exclusive End byte. The amber cursor samples the actual channel address at 20 Hz. A zero loop length allows the address to continue past the sample window. End and Loop length are bounded to the selected 256-byte instrument in this editor. Rate is the 4.12 register word for the current note. Editing Rate retunes the keyboard relative to that note. Each channel retains its settings. The controls also follow the selected PCM channel during demo playback.
 
 Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ticks and milliseconds) and signed Feedback apply to all 16 PCM channels. Drag a value for large changes or use the buttons for single steps. The controls follow VGM writes and retain the captured settings after Stop.
 

@@ -144,6 +144,9 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 
 .voice-rom{display:inline-flex;align-items:center;gap:.3rem;max-width:100%;margin:0}.voice-rom select{min-width:0;max-width:100%}
 #voice-rom-confirm{max-width:min(25rem,90vw);color:inherit;background:#fffaf0}#voice-rom-confirm p{margin-bottom:.6rem;overflow-wrap:anywhere}
+#echo-controls .param-value{cursor:ew-resize}
+.wave-grip{position:absolute;left:clamp(0px,calc(var(--position) - 1.5rem),calc(100% - 3rem));width:3rem;line-height:1.15;padding:1px 0;font-size:.72rem;color:#fff;background:#18394d;border:1px solid #ffd674;border-radius:3px;cursor:ew-resize;touch-action:none;user-select:none}
+.wave-grip[data-edge=start]{top:25%}.wave-grip[data-edge=end]{top:49%}.wave-grip[data-edge=loop]{bottom:2%;border-color:#62ddff}
 .voice-wave-mode{position:absolute;z-index:1;top:4px;right:4px;display:inline-flex}
 .voice-wave-mode button{font-size:.72rem;line-height:1.2;padding:2px 6px;border-radius:0}
 .voice-wave-mode button:first-child{border-radius:4px 0 0 4px}

@@ -162,7 +162,7 @@ function applyMix(settings) {
 }
 const noRom=new Uint8Array();
 let pcmFull=true,padFull=true;
-const draw = createWaveEditor(edit,v=>romPath?null:itemFor(v),()=>romPath?(selectedRomBytes(syncedBank)??noRom):library.rom,()=>pcmFull);
+const draw = createWaveEditor((field,value)=>field==='start'?setPcmAddress(field,value):edit(field,value),v=>romPath?null:itemFor(v),()=>romPath?(selectedRomBytes(syncedBank)??noRom):library.rom,()=>pcmFull);
 const romDragPixelsPerStep=4;
 const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
 const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,directEntry:true,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
@@ -201,6 +201,7 @@ for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
       if(key==='send')editPreset(false,key,value);
       if(key!=='send'||keyboardOwnsTarget())port?.postMessage(echoWrite(key,value,selected,true));
     }});
+  echoControls[key].element.querySelector('.param-value').title='Drag left or right to adjust '+label.split(' · ')[0];
   $('echo-controls').append(echoControls[key].element);
 }
 function echoWrite(key,value,ch,manual=false) {

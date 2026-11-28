@@ -16,23 +16,50 @@ export function createWaveEditor(onEdit,itemFor,getRom,isFull) {
     document.getElementById('pcm-controls').append(controls[key].element);
   }
   let previous = '';
-  let editRange,drag,dragRange;
+  let editRange, drag;
+  const edges=['start','end','loop'];
+  const grips=edges.map(edge=>{
+    const grip=document.createElement('span');
+    grip.className='wave-grip';grip.dataset.edge=edge;
+    grip.textContent=edge[0].toUpperCase()+edge.slice(1);
+    grip.title='Drag to adjust '+edge;
+    canvas.parentElement.append(grip);
+    return grip;
+  });
   canvas.style.touchAction='none';
-  function move(event){
-    const r=canvas.getBoundingClientRect();
-    const byte=dragRange.origin+Math.round((event.clientX-r.left)*dragRange.span/r.width);
-    if(drag==='end')onEdit('end',Math.max(editRange.start+1,Math.min(editRange.maxEnd,byte)));
-    else onEdit('loop',Math.max(0,Math.min(editRange.end-editRange.start,editRange.end-byte)));
+  function edgeAddress(range,edge){
+    return edge==='loop'?range.end-range.loop:range[edge];
   }
-  canvas.onpointerdown=e=>{
-    if(!editRange || e.button!==0)return;
-    const r=canvas.getBoundingClientRect(),byte=editRange.origin+(e.clientX-r.left)*editRange.span/r.width;
-    dragRange=editRange;
-    drag=Math.abs(byte-editRange.end)<Math.abs(byte-(editRange.end-editRange.loop))?'end':'loop';
-    canvas.setPointerCapture(e.pointerId);move(e);
-  };
-  canvas.onpointermove=e=>{if(drag && editRange)move(e);};
-  canvas.onlostpointercapture=()=>{drag=null;dragRange=null;};
+  function move(event){
+    if(!drag || event.pointerId!==drag.id)return;
+    const {range,edge}=drag;
+    const delta=(event.clientX-drag.x)*range.span/canvas.getBoundingClientRect().width;
+    const address=Math.round(drag.initial+delta);
+    if(edge==='start'){
+      const start=Math.max(0,Math.min(range.end-1,address));
+      if(range.loop>range.end-start)onEdit('loop',range.end-start);
+      onEdit('start',start);
+    }else if(edge==='end'){
+      const end=Math.max(range.start+1,Math.min(range.maxEnd,address));
+      if(range.loop>end-range.start)onEdit('loop',end-range.start);
+      onEdit('end',end);
+    }else onEdit('loop',Math.max(0,Math.min(range.end-range.start,range.end-address)));
+  }
+  for(const target of [canvas,...grips]){
+    target.onpointerdown=event=>{
+      if(!editRange || event.button!==0 || drag)return;
+      const box=canvas.getBoundingClientRect();
+      const byte=editRange.origin+(event.clientX-box.left)*editRange.span/box.width;
+      const edge=target.dataset.edge??edges.reduce((a,b)=>
+        Math.abs(byte-edgeAddress(editRange,a))<=Math.abs(byte-edgeAddress(editRange,b))?a:b);
+      drag={id:event.pointerId,range:editRange,edge,x:event.clientX,
+        initial:target===canvas?byte:edgeAddress(editRange,edge)};
+      target.setPointerCapture(event.pointerId);event.preventDefault();
+      if(target===canvas)move(event);
+    };
+    target.onpointermove=move;
+    target.onlostpointercapture=()=>{drag=null;};
+  }
   let previousItem,previousRom;
   return function draw(voice, address = null, view = null) {
     const rom=getRom();
@@ -44,7 +71,12 @@ export function createWaveEditor(onEdit,itemFor,getRom,isFull) {
     previous = view ? null : signature;
     const start = view?.start ?? item?.start ?? voice.start ?? sample * 256, span=view?.span ?? (((end-start)&65535)||65536), {width,height} = canvas;
     const size=Math.max(0,Math.min(65536,rom.length-bank*65536));
-    editRange=view||start>=end?null:{start,origin:full?0:start,span:full?size:span,end,loop,maxEnd:item?item.start+item.length:65535};
+    const maxEnd=Math.min(65535,size,item?item.start+item.length:65535);
+    editRange=start>=end || end>maxEnd?null:{start,origin:full?0:start,span:full?size:span,end,loop,maxEnd};
+    for(const grip of grips){
+      grip.hidden=!editRange;
+      if(editRange)grip.style.setProperty('--position',100*(edgeAddress(editRange,grip.dataset.edge)-editRange.origin)/editRange.span+'%');
+    }
     controls.end.updateRange(view||!item?0:start+1,view||!item?65535:item.start+item.length);
     controls.loop.updateRange(0,view||!item?65535:end-start);
     controls.rate.updateVisual(rate);
