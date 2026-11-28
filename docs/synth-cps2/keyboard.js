@@ -54,7 +54,7 @@ export function setupKeyboard({press,release,triggerPad}){
     b.onclick=()=>triggerPad(i);el('pad-keys').append(b);
   }
   window.addEventListener('keydown',e=>{
-    if(e.defaultPrevented || e.isComposing || e.ctrlKey || e.altKey || e.metaKey ||
+    if(e.target.closest?.('dialog[open]') || e.defaultPrevented || e.isComposing || e.ctrlKey || e.altKey || e.metaKey ||
       e.target.isContentEditable || e.target.closest?.('input:not([type=range]):not([type=checkbox]),select:not([data-performance-picker]),textarea,.monaco-editor,[role=textbox]'))return;
     const key=e.key.toLowerCase();
     // Preserve native picker navigation while letting mapped note keys play.

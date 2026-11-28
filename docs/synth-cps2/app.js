@@ -739,9 +739,13 @@ function displayMap(map){
 const romCreator=setupRomCreator((name,rom,presets)=>{
   addRom(name,rom,presets);
   document.querySelector('[data-chip="rom-chip"]').click();
+},()=>{
+  let n=1,name;
+  do{name=n===1?'my-samples.rom':'my-samples-'+n+'.rom';n++;}
+  while(files.has('/banks/'+name)||files.has(catalogPath('/banks/'+name))||pendingBankPath(catalogPath('/banks/'+name)));
+  return name;
 });
 for(const tab of chipTabs)tab.onclick=()=>{
-  if(tab.dataset.chip==='rom-creator')romCreator.load();
   chipView=tab.dataset.chip;
   mainView=chipView;
   drawWorkspace();
