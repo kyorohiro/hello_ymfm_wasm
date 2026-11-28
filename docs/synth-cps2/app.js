@@ -595,13 +595,13 @@ $('add-demos').onclick=()=>run(async()=>{
     additions.push({path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,b.presets??[])});bankSlots[path]=structuredClone(b.slots);
     if(b.presets)rangePresets.set(path,structuredClone(b.presets));
   }
-  // The first kit contained only bank zero. Upgrade that exact factory pair on request.
-  const originalPresets=kitCatalog.presets.filter(p=>p.bank===0);
-  const originalSize=Math.max(...originalPresets.map(p=>p.end));
+  // Earlier factory ROMs end after bank 0 or 3. Preserve user edits to either file.
   const existingKit=files.get(kitPath)?.data;
-  if(!pendingBanks.has(kitPath) && !pending.has(catalogPath(kitPath)) &&
-      existingKit?.length===originalSize && existingKit.every((byte,i)=>byte===kit[kitName+'.rom'][i]) &&
-      files.get(catalogPath(kitPath))?.data===catalogText([],originalPresets)){
+  const previousPresets=[0,3].map(lastBank=>kitCatalog.presets.filter(p=>p.bank<=lastBank))
+    .find(list=>Math.max(...list.map(p=>p.bank*65536+p.end))===existingKit?.length);
+  if(previousPresets && !pendingBanks.has(kitPath) && !pending.has(catalogPath(kitPath)) &&
+      existingKit.every((byte,i)=>byte===kit[kitName+'.rom'][i]) &&
+      files.get(catalogPath(kitPath))?.data===catalogText([],previousPresets)){
     additions.push({path:kitPath,data:kit[kitName+'.rom']},
       {path:catalogPath(kitPath),data:catalogText(kitCatalog.slots,kitCatalog.presets)});
     rangePresets.set(kitPath,structuredClone(kitCatalog.presets));

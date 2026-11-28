@@ -72,7 +72,7 @@ Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ti
 
 ## Editing sample ROMs
 
-New cassettes include **Files → /banks/sonic-pi-black-dog.rom** and its matching preset JSON. Select the ROM, then choose Highkey C4, Pad 1, Pad 2 or Voctone by filename in PCM. C4 plays each recording at its source speed. In ADPCM, assign the blip, hat and tap to voices 1–3. In an older cassette, **Import → Add factory demos** adds the missing pair. The [standalone kit](rom-sets/sonic-pi-black-dog.zip) includes the CC0 sample credits.
+New cassettes include **Files → /banks/sonic-pi-black-dog.rom** and its matching preset JSON. Select the ROM, then choose Highkey C4, Pad 1, Pad 2, Voctone or the Playground choir (ambi_choir) by filename in PCM. C4 plays each recording at its source speed. In ADPCM, assign the blip, hat and tap to voices 1–3. In an older cassette, **Import → Add factory demos** adds the missing pair. The [standalone kit](rom-sets/sonic-pi-black-dog.zip) includes the CC0 sample credits.
 
 Files → /banks contains 0_default.rom (the examples), 1_sample.rom (two PCM waves and three ADPCM hits) and 99_empty.rom. Select the shared ROM in the QSound header or click its file in /banks. **New ROM…** creates an empty, named .bin in Files and opens it for editing. **Import ROM…** adds an existing raw image to the same list. Use **Import → PCM sample (WAV)…** to place PCM in a project ROM, or **ADPCM sample (WAV)…** to append an encoded pad. Choose the resulting preset in PCM or ADPCM.
 
