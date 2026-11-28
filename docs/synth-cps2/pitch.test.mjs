@@ -9,7 +9,7 @@ test('reports distinct pitches in the attack and the sustained loop',()=>{
   assert.equal(onset.name,'A3');assert.equal(loop.name,'A4');
   assert.ok(Math.abs(loop.hz-440)<1);
   assert.ok(Math.abs(loop.c4Rate-2435)<2);
-  assert.equal(presetPitches(bytes,{...p,rate:2048},22000).loop.name,'A3');
+  for(const rate of [0,2048,8192])assert.deepEqual(presetPitches(bytes,{...p,rate},22000),{onset,loop});
 });
 test('silence, unpitched noise and unavailable bytes yield no pitch',()=>{
   let seed=1;

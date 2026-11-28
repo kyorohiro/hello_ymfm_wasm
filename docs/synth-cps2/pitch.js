@@ -23,7 +23,6 @@ function periodOf(samples,hz){
 }
 
 export function presetPitches(bytes,p,tickRate){
-  const rate=p.rate||4096;
   function measure(start,length,loop){
     if(!length)return null;
     const samples=new Int8Array(loop?2048:Math.min(2048,length));
@@ -34,7 +33,7 @@ export function presetPitches(bytes,p,tickRate){
     }
     const period=periodOf(samples,tickRate);
     if(!period)return null;
-    const hz=tickRate*rate/(4096*period);
+    const hz=tickRate/period;
     const midi=Math.round(69+12*Math.log2(hz/440));
     const name=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][(midi%12+12)%12]+(Math.floor(midi/12)-1);
     const c4Rate=Math.round(4096*period*261.625565/tickRate);
