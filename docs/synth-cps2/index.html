@@ -173,6 +173,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
 <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label><small id="song-status" role="status"></small></div></details>
+<details class="desk-group" id="rom-tools" open><summary>ROM <span class="summary-file" id="rom-summary-file"></span></summary><div class="desk-group-body rom-picker"><select id="rom-file" aria-label="ROM file"></select><button id="new-rom">New…</button><button id="import-rom">Import…</button><button id="range-export">Export</button><input id="rom-input" type="file" multiple accept=".rom,.bin,.json" hidden></div></details>
 <details class="desk-group" id="output-panel" open><summary id="output-title">Output</summary><div class="desk-group-body"><div class="output-heading">
 <div role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button>
 <button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div><label class="volume-control">Master <input id="mix-master" type="range" min="0" max="480" value="100"><output id="mix-level" for="mix-master">100%</output></label></div>
@@ -180,7 +181,6 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 
 
 
-<details class="desk-group" id="rom-tools" open><summary>ROM <span class="summary-file" id="rom-summary-file"></span></summary><div class="desk-group-body rom-picker"><select id="rom-file" aria-label="ROM file"></select><button id="new-rom">New…</button><button id="import-rom">Import…</button><button id="range-export">Export</button><input id="rom-input" type="file" multiple accept=".rom,.bin,.json" hidden></div></details>
 <section id="soundchip">
 <nav id="chip-tabs" class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="rom-chip" aria-pressed="false">ROM</button><button data-chip="rom-creator" aria-pressed="false">ROM Creator</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
