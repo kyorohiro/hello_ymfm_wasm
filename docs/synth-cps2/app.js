@@ -25,7 +25,7 @@ import {decodeSample,isSamplePath,sampleLibrary,maxRom} from './samples.js';
 import {drumPath,sampleDuet,padGroove,scheduledBar,filterGroove} from './sample-duet.js';
 import {presetJamFiles} from './preset-jam.js';
 import {bankLibrary,defaultRom,editSlot,factoryBanks,isBankPath,padFromPcm} from './banks.js';
-import {catalogPath,catalogText,isCatalogPath,rangeKey,rangeName,readCatalog} from './range-presets.js';
+import {catalogPath,catalogText,isCatalogPath,instrumentKey,keyboardRate,rangeKey,rangeName,readCatalog} from './range-presets.js';
 import {zipSync} from '../playground/vendor/fflate.js';
 const rangePresets=new Map();
 let syncedBank=null,syncedRomRevision=-1,syncedRangeSignature=null;
@@ -375,7 +375,7 @@ function press(id,midi) {
   const v=autoChannel?{...autoVoice}:physical;
   v.note=midi;
   v.rate=v.referenceRate===null?Math.min(65535,pcmRate(midi)):
-    Math.min(65535,Math.round(v.referenceRate*2**((midi-v.referenceNote)/12)));
+    keyboardRate(v.referenceRate,midi,v.referenceNote);
   const writes=[[0xba+ch,v.send&65535],...authoredNote(ch,midi,v)];
   refresh();
   run(async()=>{await audio();if(physical.held===id)port.postMessage(writes);});
@@ -1236,7 +1236,8 @@ let renderedHistory=null;
 function currentRomRanges(){
   const ranges=new Map();
   for(const {voice,...range} of liveInstrument?currentRanges:authoredRanges()){
-    ranges.set(rangeKey(range),range);
+    const key=instrumentKey(range);
+    if(!ranges.has(key) || !ranges.get(key).rate)ranges.set(key,range);
   }
   return ranges;
 }
@@ -1454,12 +1455,12 @@ function renderRanges(){
   itemRanges=new Map();
   if(!romPath){
     for(const range of slotRanges()){
-      itemRanges.set('slot:'+rangeKey(range),range);options.push(['slot:'+rangeKey(range),range.name]);current.delete(rangeKey(range));
+      itemRanges.set('slot:'+rangeKey(range),range);options.push(['slot:'+rangeKey(range),range.name]);current.delete(instrumentKey(range));
     }
   }
   const path=romPath?syncedBank:bankPath;
   if(path)editablePresets(path).forEach((preset,index)=>{
-    itemRanges.set('preset:'+index,preset);options.push(['preset:'+index,preset.name]);current.delete(rangeKey(preset));
+    itemRanges.set('preset:'+index,preset);options.push(['preset:'+index,preset.name]);current.delete(instrumentKey(preset));
   });
   for(const [key,range] of current){itemRanges.set(key,range);options.push([key,rangeName(range)]);}
   rangeOptions('range-current',options);
@@ -1524,15 +1525,23 @@ function syncPlayingBank({source,bytes,current,ranges,romRevision,version}){
   if(!path || (!bytes && !staged && !files.has(path)))return;
   const signature=JSON.stringify([path,version,current]);
   if(!bytes && signature===syncedRangeSignature)return;
-  const fresh=!staged&&!files.has(path),presets=staged?readCatalog(staged.json).presets:(rangePresets.get(path)??[]),keys=new Set(presets.map(rangeKey));
-  const added=[];
+  const fresh=!staged&&!files.has(path),presets=staged?readCatalog(staged.json).presets:(rangePresets.get(path)??[]);
+  const list=[...presets],indexes=new Map(list.map((p,i)=>[instrumentKey(p),i]));
+  let changed=false;
   for(const {voice,...p} of [...(ranges??vgmRanges),...current]){
-    const key=rangeKey(p);
-    if(p.earlierImage || keys.has(key))continue;
-    keys.add(key);added.push({...p,name:rangeName(p)});
+    if(p.earlierImage)continue;
+    const key=instrumentKey(p),index=indexes.get(key);
+    if(index!==undefined){
+      const prior=list[index];
+      if(!p.rate || prior.rate || prior.name!==rangeName(prior))continue;
+      list[index]={...p,name:rangeName(p)};
+    }else{
+      indexes.set(key,list.length);list.push({...p,name:rangeName(p)});
+    }
+    changed=true;
   }
-  if(fresh || added.length){
-    const list=[...presets,...added],text=catalogText(bankSlots[path]??[],list,source);
+  if(fresh || changed){
+    const text=catalogText(bankSlots[path]??[],list,source);
     const entries=[{path:catalogPath(path),data:text}];
     if(fresh)entries.unshift({path,data:bytes});
     if(fresh){

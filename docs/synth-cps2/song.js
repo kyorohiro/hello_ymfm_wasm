@@ -2,7 +2,7 @@
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 
-import {rangeKey,voiceRange} from './range-presets.js';
+import {instrumentKey,voiceRange} from './range-presets.js';
 
 export function inspectSong(bytes) {
   const parser=new Ym2612VGM(bytes);
@@ -67,8 +67,8 @@ export class SongTransport {
           const id=31-Math.clz32(mask&-mask);
           if(this.chip.lastWrites[id<16?id*8+5:0xcb+4*(id-16)]<0)continue;
           const p=voiceRange(this.chip,this.starts,id);
-          const key=rangeKey(p),prior=this.ranges.get(key);
-          if(!prior||prior.earlierImage){this.ranges.set(key,p);this.rangeRevision++;}
+          const key=instrumentKey(p),prior=this.ranges.get(key);
+          if(!prior||prior.earlierImage||(!prior.rate && p.rate)){this.ranges.set(key,p);this.rangeRevision++;}
         }
         this.changedVoices=0;
         this.ticks+=e.samples;

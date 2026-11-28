@@ -2,7 +2,7 @@
 import {createRegisterTimedProcessor} from '../js/register_timed_processor.js';
 import {qsoundPlanTools} from './timed-plan.js';
 import {LiveFX} from '../js/custom_fx.js';
-import {voiceRange} from './range-presets.js';
+import {keyboardRate,voiceRange} from './range-presets.js';
 import {chipRomMap} from './rom-map.js';
 import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
@@ -252,7 +252,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     const rate=this.captured?this.rates[ch]:v.rate;
     const level=this.captured?this.levels[ch]:(v.volume || v.lastLevel || 0);
     this.apply([[base+1,this.starts[ch]],[base+3,0],
-      [base+2,Math.min(65535,Math.round(rate*2**((midi-60)/12)))],[base+6,level&65535]],false);
+      [base+2,keyboardRate(rate,midi)],[base+6,level&65535]],false);
   }
   applyMutes() {
     this.mutes.forEach((muted,i)=>this.chip.setChannelMuted(i,muted));

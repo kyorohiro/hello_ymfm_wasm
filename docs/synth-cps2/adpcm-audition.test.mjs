@@ -60,6 +60,13 @@ test('Pause auditions a detached PCM voice, Resume matches continuous playback, 
   send(player,{type:'captured-note',channel:0,midi:72});
   assert.equal(player.chip.voices[0].rate,rate*2);
   assert.ok(render(player,2048).some(side=>side.some(x=>x!==0)));
+  send(player,{type:'voice-setting',channel:0,field:'rate',value:0});
+  assert.equal(player.chip.voices[0].rate,0);
+  for(const [midi,expected] of [[60,4096],[72,8192],[48,2048]]){
+    send(player,{type:'captured-note',channel:0,midi});
+    assert.equal(player.chip.voices[0].rate,expected);
+    assert.ok(render(player,2048).some(side=>side.some(x=>x!==0)));
+  }
   assert.equal(song.frames,1400);
   send(player,{type:'pause-song',paused:false});
   assert.deepEqual(render(player,2048),render(reference,2048));

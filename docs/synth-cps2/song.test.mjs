@@ -137,13 +137,13 @@ test('ROM history follows played banks and seek restores the ROM image at the re
   assert.deepEqual([...late.romUsage.entries()].filter(([,used])=>used),[[0,1],[256,1]]);
 });
 
-test('one ROM region can have multiple PCM rates and an independent fixed-rate ADPCM preset',()=>{
+test('VGM pitch changes share one PCM preset and retain an independent ADPCM preset',()=>{
   const bytes=demoVgm([
-    {t:0,writes:[[1,8],[2,512],[4,16],[5,24],[0xca,8],[0xcb,24],[0xcc,0]]},
-    {t:100,writes:[[2,768]]},
+    {t:0,writes:[[1,8],[2,0],[4,16],[5,24],[0xca,8],[0xcb,24],[0xcc,0]]},
+    {t:50,writes:[[2,512]]},{t:100,writes:[[2,768]]},
     {t:200,writes:[]},
   ]);
   const ranges=rebuildSongState(bytes,44100,150,Array(19).fill(false)).ranges.map(([,p])=>p);
-  assert.deepEqual(ranges.filter(p=>p.kind==='PCM').map(p=>[p.start,p.end,p.rate,p.loop]),[[8,24,512,16],[8,24,768,16]]);
+  assert.deepEqual(ranges.filter(p=>p.kind==='PCM').map(p=>[p.start,p.end,p.rate,p.loop]),[[8,24,512,16]]);
   assert.deepEqual(ranges.filter(p=>p.kind==='ADPCM'),[{kind:'ADPCM',bank:0,start:8,end:24}]);
 });
