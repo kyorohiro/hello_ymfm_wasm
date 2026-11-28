@@ -595,7 +595,19 @@ $('add-demos').onclick=()=>run(async()=>{
     additions.push({path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,b.presets??[])});bankSlots[path]=structuredClone(b.slots);
     if(b.presets)rangePresets.set(path,structuredClone(b.presets));
   }
+  // The first kit contained only bank zero. Upgrade that exact factory pair on request.
+  const originalPresets=kitCatalog.presets.filter(p=>p.bank===0);
+  const originalSize=Math.max(...originalPresets.map(p=>p.end));
+  const existingKit=files.get(kitPath)?.data;
+  if(!pendingBanks.has(kitPath) && !pending.has(catalogPath(kitPath)) &&
+      existingKit?.length===originalSize && existingKit.every((byte,i)=>byte===kit[kitName+'.rom'][i]) &&
+      files.get(catalogPath(kitPath))?.data===catalogText([],originalPresets)){
+    additions.push({path:kitPath,data:kit[kitName+'.rom']},
+      {path:catalogPath(kitPath),data:catalogText(kitCatalog.slots,kitCatalog.presets)});
+    rangePresets.set(kitPath,structuredClone(kitCatalog.presets));
+  }
   files.writeFiles(additions);
+  if(bankPath===kitPath && additions.some(f=>f.path===kitPath))rebuildSamples();
   if(!songPath)selectDefaultSong();
   setFiles(true);renderFiles();scheduleDraft();
   $('file-status').textContent=additions.length?'Added '+additions.length+' demo files.':'Demo files already present.';
