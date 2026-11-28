@@ -78,6 +78,11 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #pcm-tabs [role=tab]{margin-bottom:-2px;border:1px solid #859d9d;border-bottom:2px solid #155876;border-radius:6px 6px 0 0;background:#e1e3d6;padding:.28rem .85rem}
 #pcm-tabs [aria-selected=true]{background:#fffaf0;border:2px solid #155876;border-bottom-color:#fffaf0;font-weight:bold}
 #pcm-panel,#register-panel{padding:.65rem;border:1px solid #afbfba;border-top:0;background:#fffaf0}
+#pcm-panel fieldset{min-width:0;margin:0;padding:.35rem 0 .5rem;border:0;border-top:1px solid #afbfba}
+#pcm-panel legend{padding:0 .45rem 0 0;font-weight:650}
+#pcm-panel .preset-actions{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem}
+#pcm-range{max-width:100%}
+#echo-controls{margin:0}
 #pcm-address{justify-content:flex-start}.rom-picker{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}.rom-picker select{max-width:min(19rem,65vw)}
 #register-panel table{border-collapse:collapse;width:min(100%,32rem);text-align:left}
 #register-panel th,#register-panel td{padding:.15rem .6rem;border-bottom:1px solid #bcc5ba}
@@ -141,13 +146,15 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <div role="tablist" id="pcm-tabs" aria-label="PCM channel view"><button role="tab" id="pcm-tab" aria-controls="pcm-panel" aria-selected="true">Voice</button>
 <button role="tab" id="register-tab" aria-controls="register-panel" aria-selected="false" tabindex="-1">Registers</button></div>
-<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><button id="save-pcm-preset">Save preset…</button> <button id="pcm-measure">Measure pitch</button> <small id="preset-pitch" role="status"></small><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
+<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab">
+<fieldset><legend>Preset</legend><div class="preset-actions"><select data-performance-picker id="pcm-range" aria-label="PCM preset"></select><button id="save-pcm-preset">Save preset…</button><button id="pcm-measure">Measure pitch</button></div><small id="preset-pitch" role="status"></small></fieldset>
+<fieldset><legend>Voice</legend><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <div id="pcm-controls"></div>
 <canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
-<p id="pcm-caption"></p>
-<div class="echo-controls" id="echo-controls" role="group" aria-label="PCM echo"></div></div>
+<p id="pcm-caption"></p></fieldset>
+<fieldset><legend>DSP</legend><div class="echo-controls" id="echo-controls"></div></fieldset></div>
 <div id="register-panel" role="tabpanel" aria-labelledby="register-tab" hidden><p>Playback address <strong id="register-position">—</strong></p>
 <table aria-label="Selected PCM channel registers"><thead><tr><th>Parameter</th><th>Register</th><th>Last write</th></tr></thead><tbody id="register-rows"></tbody></table>
 <small>— means no write since reset.</small></div></section>
