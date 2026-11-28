@@ -31,14 +31,15 @@ export function validateProject(project) {
   if(bankPath && !isBankPath(bankPath))throw Error('Invalid selected ROM.');
   const {items,padItems}=bankPath?bankLibrary(project.files.find(f=>f.path===bankPath)?.data,bankSlots[bankPath]):
     sampleLibrary(project.files,placements,padPlacements);
-  const channels=project.channels.map(v=>{
-    const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??number(v.start??sample*256,0,65534);
+  function pcmVoice(v,auto=false){
+    const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??number(v.start??sample*256,0,auto?65535:65534);
     if(v.samplePath && !item)throw Error('Missing WAV sample.');
-    const end=number(v.end,start+1,item?start+item.length:65535);
-    return {sample,bank:number(v.bank??0,0,32767),start,samplePath:v.samplePath??null,end,loop:number(v.loop,0,end-start),pan:number(v.pan,0,32),volume:number(v.volume,0,16384),
+    const end=number(v.end,auto&&!item?0:start+1,item?start+item.length:65535);
+    return {sample,bank:number(v.bank??0,0,32767),start,samplePath:v.samplePath??null,end,loop:number(v.loop,0,auto&&!item?65535:end-start),pan:number(v.pan,auto?-0x110:0,auto?65535-0x110:32),volume:number(v.volume,auto?-32768:0,auto?32767:16384),
       send:number(v.send,-32768,32767),rate:number(v.rate,0,65535),note:number(v.note,0,127),
       referenceNote:number(v.referenceNote,0,127),referenceRate:v.referenceRate===null?null:number(v.referenceRate,0,65535)};
-  });
+  }
+  const channels=project.channels.map(v=>pcmVoice(v));
   const pads=project.pads.map(p=>{
     const sample=number(p.sample,0,2),start=(sample+1)*512;
     if(p.samplePath && !padItems.has(p.samplePath))throw Error('Missing ADPCM sample.');
@@ -61,7 +62,7 @@ export function validateProject(project) {
   if (!files.has('/index.js') || files.get(project.active)?.type!=='text') throw Error('Cassette is missing its entry or selected file.');
   const song=project.song??null;
   if(song!==null && (!/\.vg[mz]$/i.test(song)||files.get(song)?.type!=='binary'))throw Error('Cassette is missing its selected song.');
-  return {version:1,...(bankPath?{bankPath,bankSlots}:{}),padPlacements:Object.fromEntries([...padItems].map(([path,i])=>[path,i.offset])),placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,autoChannel:project.autoChannel===true,selected:number(project.selected,0,15),pads,channels,echo};
+  return {version:1,...(bankPath?{bankPath,bankSlots}:{}),padPlacements:Object.fromEntries([...padItems].map(([path,i])=>[path,i.offset])),placements:Object.fromEntries([...items].map(([path,i])=>[path,i.offset])),mix:validateMix(project.mix),song,files:files.list(),active:project.active,autoChannel:project.autoChannel===true,autoVoice:pcmVoice(project.autoVoice??project.channels[project.selected],true),selected:number(project.selected,0,15),pads,channels,echo};
 }
 
 export function exportProject(project) {

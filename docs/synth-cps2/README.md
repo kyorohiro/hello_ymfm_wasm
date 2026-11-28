@@ -2,7 +2,7 @@
 
 Serve the repository's docs directory over localhost or HTTPS and open
 `/synth-cps2/`. Use AUTO for chords or select CH1–16 for a fixed PCM channel, then hold A S D F G H J K or a screen key.
-AUTO uses the displayed channel first and finds another free keyboard channel for overlapping notes. The outlined channel shows which physical voice you are editing. Each channel keeps its own sound. Pitch follows the key. The ROM bank control can switch the held note’s sample data; volume
+AUTO has its own PCM voice. Each key press writes that voice to the next free channel in circular order, including when playing single notes. Held keys keep their channels. The outline marks the most recent destination. Use Assign to AUTO on a ROM slot to change the sound across the rotation. Fixed channels keep their own editor settings, and the cassette saves the AUTO voice separately. Pitch follows the key. The ROM bank control can switch the held note’s sample data; volume
 and pan can change during a held note. The factory demo VGMs include their generated sample ROM. PCM duet uses two pitched PCM channels. ADPCM trio triggers three one-shot samples, panned left, center and right.
 
 ## Workspace

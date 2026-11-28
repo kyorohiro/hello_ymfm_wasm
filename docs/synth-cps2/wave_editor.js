@@ -39,8 +39,8 @@ export function createWaveEditor(onEdit,itemFor,getRom) {
     previous = view ? null : signature;
     const start = view?.start ?? item?.start ?? voice.start ?? sample * 256, span=view?.span ?? item?.length ?? Math.max(1,end-start), {width,height} = canvas;
     editRange=view?null:{start,span,end,loop};
-    controls.end.updateRange(view?0:start+1,view||!item?65535:start+span);
-    controls.loop.updateRange(0,view?65535:end-start);
+    controls.end.updateRange(view||start===65535?0:start+1,view||!item?65535:start+span);
+    controls.loop.updateRange(0,view||end<start?65535:end-start);
     controls.rate.updateVisual(rate);
     controls.end.updateVisual(end);
     controls.loop.updateVisual(loop);

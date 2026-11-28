@@ -41,6 +41,10 @@ function installRom(){
 const $ = id => document.getElementById(id);
 setupSynthMenu({document,window});
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
+let autoChannel=true,nextAuto=0;
+let autoVoice={...channels[0]};
+const editedVoice=()=>autoChannel?autoVoice:channels[selected];
+const keyboardOwnsTarget=()=>!autoChannel || Boolean(channels[selected].held);
 let selected = 0, context, ready, port, masterGain, generation = 0;
 let revision = 0, shown, cursor = null;
 let codeWorker = null, liveInstrument=false, romPath=null;
@@ -128,15 +132,15 @@ const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,value:
 const pcmStart=createParamControl({label:'Start',min:0,max:65534,step:1,value:0,onChange:value=>setPcmAddress('start',value)});
 $('pcm-address').append(pcmBank.element,pcmStart.element);
 function setPcmAddress(key,value){
-  const v=channels[selected],reg=key==='bank'?((selected+15)&15)*8:selected*8+1;
+  const v=editedVoice(),reg=key==='bank'?((selected+15)&15)*8:selected*8+1;
   const writes=[[reg,key==='bank'?value|0x8000:value]];
-  if(!liveInstrument){
+  if(autoChannel || !liveInstrument){
     v.bank=bankFor(v);v.start=startFor(v);v.samplePath=null;v[key]=value;
     if(v.end<=v.start){v.end=v.start+1;writes.push([selected*8+5,v.end]);}
     if(v.loop>v.end-v.start){v.loop=v.end-v.start;writes.push([selected*8+4,v.loop]);}
     refresh();
   }
-  attached=null;port?.postMessage(writes);inspectChannel();
+  attached=null;if(keyboardOwnsTarget())port?.postMessage(writes);inspectChannel();
 }
 const echo = {delay:6,feedback:0};
 const echoControls = {};
@@ -146,12 +150,12 @@ for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
     formatValue:key === 'delay' ? ticks=>ticks+' ticks · '+(ticks*1000/QSOUND_PCM_RATE).toFixed(2)+' ms' : String,
     onChange(value) {
       revision++;
-      if (!liveInstrument) {
-        if (key === 'send') channels[selected].send = value;
+      if (!liveInstrument || autoChannel) {
+        if (key === 'send') editedVoice().send = value;
         else echo[key] = value;
       }
       if(key==='send')editPreset(false,key,value);
-      port?.postMessage(echoWrite(key,value,selected));
+      if(key!=='send'||keyboardOwnsTarget())port?.postMessage(echoWrite(key,value,selected));
     }});
   $('echo-controls').append(echoControls[key].element);
 }
@@ -171,7 +175,7 @@ function showEcho(send,delay,feedback) {
 }
 function refresh() {
   revision++;
-  shown = channels[selected];
+  shown = editedVoice();
   cursor = null;
   showEcho(shown.send,echo.delay,echo.feedback);
   pcmBank.updateVisual(bankFor(shown));pcmStart.updateVisual(startFor(shown));
@@ -179,13 +183,13 @@ function refresh() {
 }
 function edit(key,value) {
   editPreset(false,key,value);
-  if(liveInstrument){
+  if(liveInstrument && !autoChannel){
     if(key==='rate' && songState!=='playing')port?.postMessage({type:'voice-setting',channel:selected,field:'rate',value});
     else port?.postMessage([[selected*8+({rate:2,end:5,loop:4})[key],value]]);
     revision++;
     return;
   }
-  const v = channels[selected];
+  const v = editedVoice();
   Object.assign(v,{sample:shown.sample,rate:shown.rate,end:shown.end,loop:shown.loop});
   v[key] = value;
   const writes = [[selected*8+({rate:2,end:5,loop:4})[key],value]];
@@ -197,7 +201,7 @@ function edit(key,value) {
     v.loop = value-startFor(v);
     writes.push([selected*8+4,v.loop]);
   }
-  port?.postMessage(writes);
+  if(keyboardOwnsTarget())port?.postMessage(writes);
   revision++;
   shown = v;
   draw(v,cursor);
@@ -255,6 +259,10 @@ function inspect({data}) {
       tick=preparedSong.loopTick+(tick-preparedSong.ticks)%span;
     }
     if(!sliding && songState!=='stopped')showPosition(tick);
+    if(autoChannel){
+      showEcho(autoVoice.send,data.delay,data.feedback);
+      if(registerPanel.hidden)draw(autoVoice);return;
+    }
     pcmBank.updateVisual(data.view.bank);pcmStart.updateVisual(data.view.start);
     $('pan').value=Math.min(32,Math.max(0,data.view.pan-0x110));
     $('vol').value=data.view.volume;
@@ -263,7 +271,7 @@ function inspect({data}) {
     draw({sample:0,rate:data.rate,end:data.end&65535,loop:data.loop&65535},data.active?data.address:null,data.view);
     return;
   }
-  shown=channels[selected];
+  shown=editedVoice();
   pcmBank.updateVisual(bankFor(shown));pcmStart.updateVisual(startFor(shown));
   showEcho(shown.send,echo.delay,echo.feedback);
   cursor = data.active ? data.address : null;
@@ -294,7 +302,6 @@ async function audio() {
 }
 const status = $('status');
 function run(task) {task().catch(e=>{status.textContent=e.message;});}
-let autoChannel=true;
 function select(channel,auto=false) {
   autoChannel=auto;
   selected = channel;
@@ -303,44 +310,56 @@ function select(channel,auto=false) {
     b.setAttribute('aria-pressed',auto ? i===0 : i===channel+1);
     b.classList.toggle('auto-target',auto && i===channel+1);
   });
-  const v = channels[channel];
+  const v = editedVoice();
   $('pan').value=v.pan; $('vol').value=v.volume;
-  if(liveInstrument){revision++;inspectChannel();}
-  else{refresh();if(!registerPanel.hidden)inspectChannel();}
+  if(!liveInstrument || autoChannel)refresh();
+  if(liveInstrument || !registerPanel.hidden){revision++;inspectChannel();}
 }
 const autoButton=document.createElement('button');
 autoButton.textContent='AUTO';
-autoButton.title='Assign held keyboard notes to separate PCM channels. The outlined channel is shown in the editor.';
-autoButton.onclick=()=>select(selected,true);
+autoButton.title='Edit the AUTO voice. Each note uses the next available PCM channel; the outline shows the destination.';
+autoButton.onclick=()=>{if(!autoChannel)nextAuto=selected;select(selected,true);};
 $('channels').append(autoButton);
 for(let i=0;i<16;i++) {
   const button=document.createElement('button');
   button.textContent='CH'+(i+1); button.onclick=()=>select(i); $('channels').append(button);
 }
 select(0,true);
-$('pan').oninput=()=>{const value=Number($('pan').value);editPreset(false,'pan',0x110+value);if(!liveInstrument)channels[selected].pan=value;port?.postMessage([[0x80+selected,0x110+value]]);};
-$('vol').oninput=()=>{const v=channels[selected];const volume=Number($('vol').value);editPreset(false,'volume',volume);if(!liveInstrument)v.volume=volume;
-  if(liveInstrument && songState!=='playing')port?.postMessage({type:'voice-setting',channel:selected,field:'volume',value:volume});
-  else if(v.held || liveInstrument)port?.postMessage([[selected*8+6,volume&65535]]);};
+$('pan').oninput=()=>{
+  const value=Number($('pan').value);editPreset(false,'pan',0x110+value);
+  if(autoChannel || !liveInstrument)editedVoice().pan=value;
+  if(keyboardOwnsTarget())port?.postMessage([[0x80+selected,0x110+value]]);
+};
+$('vol').oninput=()=>{
+  const volume=Number($('vol').value);editPreset(false,'volume',volume);
+  if(autoChannel || !liveInstrument)editedVoice().volume=volume;
+  if(!keyboardOwnsTarget())return;
+  if(!autoChannel && liveInstrument && songState!=='playing')port?.postMessage({type:'voice-setting',channel:selected,field:'volume',value:volume});
+  else if(channels[selected].held || liveInstrument)port?.postMessage([[selected*8+6,volume&65535]]);
+};
 function press(id,midi) {
+  if(seeking)return;
   let ch=selected;
-  if(autoChannel && channels[ch].held){
-    for(let step=1;step<channels.length;step++){
-      const candidate=(selected+step)%channels.length;
-      if(!channels[candidate].held){ch=candidate;break;}
+  if(autoChannel){
+    ch=nextAuto;
+    while(channels[ch].held){
+      ch=(ch+1)%channels.length;
+      if(ch===nextAuto)return;
     }
-    if(channels[ch].held)return;
+    nextAuto=(ch+1)%channels.length;
     select(ch,true);
   }
-  const v=channels[ch]; v.held=id;
-  if(liveInstrument){
-    if(!seeking)port?.postMessage({type:'captured-note',channel:ch,midi});
-    return;
+  const physical=channels[ch];physical.held=id;
+  if(liveInstrument && !autoChannel){
+    port?.postMessage({type:'captured-note',channel:ch,midi});return;
   }
+  const v=autoChannel?{...autoVoice}:physical;
   v.note=midi;
-  v.rate=v.referenceRate === null ? Math.min(65535,pcmRate(midi)) : Math.min(65535,Math.round(v.referenceRate*2**((midi-v.referenceNote)/12)));
+  v.rate=v.referenceRate===null?Math.min(65535,pcmRate(midi)):
+    Math.min(65535,Math.round(v.referenceRate*2**((midi-v.referenceNote)/12)));
+  const writes=[[0xba+ch,v.send&65535],...authoredNote(ch,midi,v)];
   refresh();
-  run(async()=>{await audio();if(v.held===id)port.postMessage(authoredNote(ch,midi,v));});
+  run(async()=>{await audio();if(physical.held===id)port.postMessage(writes);});
 }
 function release(id) {
   channels.forEach((v,ch)=>{if(v.held===id){v.held=null;port?.postMessage(liveInstrument?{type:'captured-off',channel:ch}:[[ch*8+6,0]]);}});
@@ -436,8 +455,8 @@ function stop(keepInstrument=true){
   stopWorker();
   generation++;
   channels.forEach(v=>v.held=null);
-  $('pan').value=channels[selected].pan;
-  $('vol').value=channels[selected].volume;
+  $('pan').value=editedVoice().pan;
+  $('vol').value=editedVoice().volume;
   transport();refresh();
   port?.postMessage(liveInstrument?'stop-audition':'stop');
   if(!liveInstrument){restoreEcho();showRomMap();}
@@ -476,7 +495,7 @@ liveLoop('pads', async () => {
 ]);
 rebuildSamples();
 setPcmSample(channels[0],drumPath);
-channels[0].loop=1;
+channels[0].loop=1;autoVoice={...channels[0]};
 setPadSample(pads[0],drumPath);
 refresh();showPad();
 $('add-demos').onclick=()=>run(async()=>{
@@ -867,6 +886,11 @@ async function loadPreset(path,text,explicit=true){
   const p=readPreset(text),adpcm=p.format==='qsound-adpcm-1',ch=adpcm?padVoice:selected;
   const current=()=>path===highlightedPath && ch===(adpcm?padVoice:selected);
   await applyPresetFile(path,ch+1,explicit?{switchRom:p.source?.path??null}:{},current);
+  if(autoChannel && !adpcm){
+    autoVoice={sample:0,samplePath:null,bank:p.bank,start:p.start,end:p.end,loop:p.loop,send:p.send,
+      pan:p.pan-0x110,volume:p.volume,note:60,rate:p.rate,referenceNote:60,referenceRate:p.rate,held:null};
+    select(ch,true);
+  }
   attached={path,adpcm,ch};selectPerformance(false);
   document.querySelector(adpcm?'[data-chip="adpcm-chip"]':'[data-chip="pcm-chip"]').click();
   if(!adpcm)selectPcmTab(false);
@@ -998,7 +1022,7 @@ installSpuFileContextMenu({root:$('project-tree'),getActions:fileActions,
   onError:e=>{$('file-status').textContent=e.message;}});
 function snapshot() {
   return {version:1,bankPath,bankSlots:structuredClone(bankSlots),files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
-    pads:pads.map(p=>({...p})),mix:mixer.get(),selected,autoChannel,echo:{...echo}};
+    pads:pads.map(p=>({...p})),mix:mixer.get(),selected,autoChannel,autoVoice:{...autoVoice},echo:{...echo}};
 }
 const factory=snapshot();
 function replaceProject(project) {
@@ -1019,6 +1043,7 @@ function replaceProject(project) {
   }
   rebuildSamples();
   project.channels.forEach((v,i)=>Object.assign(channels[i],{samplePath:null},v,{held:null}));
+  autoVoice={...(project.autoVoice??channels[project.selected]),held:null};nextAuto=project.selected;
   project.pads.forEach((v,i)=>{
     Object.assign(pads[i],{samplePath:null},v);
   });
@@ -1102,7 +1127,7 @@ function ensurePadSample(path){
   return library.padItems.get(path);
 }
 function assignSample(path){
-  const item=library.items.get(path),v=channels[selected],adpcm=!$('adpcm-chip').hidden;
+  const item=library.items.get(path),v=editedVoice(),adpcm=!$('adpcm-chip').hidden;
   if(adpcm){
     try{ensurePadSample(path);}
     catch(error){$('file-status').textContent=error.message;return;}
@@ -1118,7 +1143,7 @@ function assignSample(path){
   setPcmSample(v,path);
   selectPerformance(false);document.querySelector('[data-chip="pcm-chip"]').click();selectPcmTab(false);
   select(selected,autoChannel);renderFiles();scheduleDraft();
-  $('file-status').textContent=path+' → CH'+(selected+1)+' · Bank '+item.bank+' · '+item.length+' bytes';
+  $('file-status').textContent=path+' → '+(autoChannel?'AUTO':'CH'+(selected+1))+' · Bank '+item.bank+' · '+item.length+' bytes';
 }
 const slotControl=createParamControl({label:'Sample slot',min:0,max:127,step:1,value:0,onChange:chooseSlot});
 $('bank-slot').append(slotControl.element);
@@ -1169,15 +1194,15 @@ function renderBankEditor(){
   $('slot-info').textContent=s?s.name+' · '+s.kind+' · Bank '+Math.floor(s.offset/65536)+' · '+s.length+' bytes':'Empty slot';
   $('slot-del').disabled=!s || Boolean(romPath);$('slot-load').disabled=Boolean(romPath);
   $('slot-use').disabled=!s || Boolean(romPath);$('capture-rom').disabled=!romPath;
-  $('slot-use').textContent=s?.kind==='ADPCM'?'Assign to Voice '+(padVoice+1):'Assign to CH'+(selected+1);
+  $('slot-use').textContent=s?.kind==='ADPCM'?'Assign to Voice '+(padVoice+1):autoChannel?'Assign to AUTO':'Assign to CH'+(selected+1);
 }
 function selectBank(path){
   if(!isBankPath(path)||!files.has(path))throw Error('Missing ROM '+path);
   if(bankPath!==path || romPath){
-    for(const v of channels){v.bank=bankFor(v);v.start=startFor(v);}
+    for(const v of [...channels,autoVoice]){v.bank=bankFor(v);v.start=startFor(v);}
     stop(false);bankPath=path;
     rebuildSamples();
-    for(const v of channels){
+    for(const v of [...channels,autoVoice]){
       if(library.items.has(v.samplePath))setPcmSample(v,v.samplePath);
       else v.samplePath=null;
     }
@@ -1232,7 +1257,7 @@ function updateSlot(data,name,kind){
   files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;
   rebuildSamples(result.library);
   if(old){
-    for(const v of channels)if(old.kind==='PCM'&&v.samplePath===old.path){
+    for(const v of [...channels,autoVoice])if(old.kind==='PCM'&&v.samplePath===old.path){
       const item=library.items.get(old.path);
       if(item){const end=v.end-old.offset%65536,loop=v.loop;setPcmSample(v,old.path);
         if(end>0&&end<=item.length){v.end=item.start+end;v.loop=Math.min(end,loop);}}
