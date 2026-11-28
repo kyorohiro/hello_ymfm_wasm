@@ -129,11 +129,10 @@ body{width:min(100%,76rem)}
 <section id="rom-chip" aria-label="ROM map" hidden>
 
 <fieldset><legend>Preset</legend>
-<label>Current ROM ranges<select data-performance-picker id="range-current"></select></label><button id="range-save">Save range</button>
+<label>Current ROM ranges<select data-performance-picker id="range-current"></select></label>
 <label id="range-history-label" hidden>VGM range history<select data-performance-picker id="range-history"></select></label>
 <button id="use-history" hidden>Use selected range</button>
 
-<label id="range-saved-label">Saved preset<select data-performance-picker id="range-saved"></select></label><button id="use-saved">Use preset</button><button id="range-rename">Rename…</button>
 </fieldset>
 <details id="slot-editor" open><summary>Edit sample slots</summary><fieldset><legend id="bank-name"></legend><p id="bank-size"></p><div class="chip-header"><span id="bank-slot"></span><select aria-label="Sample encoding" id="slot-kind"><option>PCM</option><option>ADPCM</option></select>
 <button id="slot-load">Load…</button><button id="slot-del">Del</button><button id="slot-use">Assign</button></div><div id="slot-buttons" aria-label="Sample slots"></div><p id="slot-info"></p><canvas id="slot-wave" width="512" height="64" aria-label="Selected ROM slot waveform" aria-describedby="slot-info"></canvas></fieldset></details><details id="bank-inspector"><summary>ROM usage map</summary><div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>

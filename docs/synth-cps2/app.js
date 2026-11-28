@@ -1250,7 +1250,6 @@ function currentRomRanges(){
 function renderRanges(){
   const current=currentRomRanges();
   rangeOptions('range-current',Array.from(current,([key,range])=>[key,rangeName(range)]));
-  $('range-save').disabled=Boolean(romPath)||!current.size;
   if(romPath && renderedHistory===vgmRanges)return;
   renderedHistory=romPath?vgmRanges:null;
   const presets=availableRanges();
@@ -1258,12 +1257,8 @@ function renderRanges(){
     rangeOptions(id,[['','Choose preset…'],...presets.flatMap((p,i)=>p.kind===kind&&!p.earlierImage?[[i,p.name??rangeName(p)]]:[])]);
   }
   $('range-history-label').hidden=$('use-history').hidden=!romPath;
-  $('range-saved-label').hidden=$('use-saved').hidden=$('range-rename').hidden=Boolean(romPath);
   rangeOptions('range-history',romPath?vgmRanges.map((p,i)=>[i,rangeName(p)+(p.earlierImage?' · Earlier ROM image':'')]):[]);
   $('use-history').disabled=!vgmRanges.length||Boolean(vgmRanges[Number($('range-history').value)]?.earlierImage);
-  $('use-saved').disabled=!presets.length;
-  rangeOptions('range-saved',(romPath?[]:presets).map((p,i)=>[i,p.name??rangeName(p)]));
-  $('range-rename').disabled=Boolean(romPath)||!presets.length;
 
 }
 function applyRange(p){
@@ -1287,32 +1282,10 @@ function applyRange(p){
 }
 $('pcm-range').onchange=$('adpcm-range').onchange=e=>{if(e.target.value!=='')applyRange(availableRanges()[Number(e.target.value)]);};
 $('range-history').onchange=()=>{$('use-history').disabled=Boolean(vgmRanges[Number($('range-history').value)]?.earlierImage);};
-for(const [button,picker] of [['use-history','range-history'],['use-saved','range-saved']]){
-  $(button).onclick=()=>{
-    const p=availableRanges()[Number($(picker).value)];
-    if(!p||p.earlierImage)return;
-    applyRange(p);document.querySelector('[data-chip="'+p.kind.toLowerCase()+'-chip"]').click();
-  };
-}
-$('range-save').onclick=()=>{
-  const key=$('range-current').value,range=currentRomRanges().get(key);
-  if(!range||romPath)return;
-  const list=rangePresets.get(bankPath)??[];
-  let index=list.findIndex(p=>rangeKey(p)===key);
-  if(index<0){
-    index=list.push({...range,name:rangeName(range)})-1;
-    rangePresets.set(bankPath,list);syncCatalog(bankPath);scheduleDraft();
-  }
-  renderRanges();$('range-saved').value=String(bankSlots[bankPath].filter(Boolean).length+index);
-};
-$('range-rename').onclick=()=>{
-  const i=Number($('range-saved').value),p=projectRanges()[i];
-  if(!p||romPath)return;
-  const name=prompt('Preset name',p.name)?.trim();if(!name)return;
-  const slots=bankSlots[bankPath].filter(Boolean);
-  if(i<slots.length){slots[i].name=name;rebuildSamples();}
-  else rangePresets.get(bankPath)[i-slots.length].name=name;
-  syncCatalog(bankPath);renderBankEditor();scheduleDraft();
+$('use-history').onclick=()=>{
+  const p=vgmRanges[Number($('range-history').value)];
+  if(!p||p.earlierImage)return;
+  applyRange(p);document.querySelector('[data-chip="'+p.kind.toLowerCase()+'-chip"]').click();
 };
 // Keep separate images when a later VGM data block replaces sample bytes.
 function syncPlayingBank({source,bytes,current,ranges,romRevision,version}){
