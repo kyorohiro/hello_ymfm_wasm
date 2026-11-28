@@ -56,7 +56,7 @@ function followSong(){
 const editedVoice=()=>autoChannel?autoVoice:channels[selected];
 const keyboardOwnsTarget=()=>!autoChannel || Boolean(channels[selected].held);
 let pitchRequest=0;
-let selected = 0, context, ready, port, masterGain, generation = 0;
+let selected = 0, context, ready, port, soundGain, masterGain, generation = 0;
 let revision = 0, shown, cursor = null;
 let codeWorker = null, liveInstrument=false, romPath=null;
 let attached=null;
@@ -145,6 +145,7 @@ for(const button of modes)button.onclick=()=>{
 };
 const mixer = setupMixer(applyMix);
 function applyMix(settings) {
+  if(soundGain)soundGain.gain.setTargetAtTime(settings.soundVolume/100,context.currentTime,0.005);
   if(masterGain)masterGain.gain.setTargetAtTime(settings.master/100,context.currentTime,0.005);
   port?.postMessage({type:'mute-voices',mask:mutedVoices(settings)});
 }
@@ -338,9 +339,12 @@ async function audio() {
   await context.resume();
   ready ??= context.audioWorklet.addModule('./processor.js').then(()=>{
     const node = new AudioWorkletNode(context,'tetorica-cps2-preview',{outputChannelCount:[2]});
+    const settings=mixer.get();
+    soundGain=context.createGain();
+    soundGain.gain.value=settings.soundVolume/100;
     masterGain=context.createGain();
-    masterGain.gain.value=mixer.get().master/100;
-    node.connect(masterGain).connect(context.destination);
+    masterGain.gain.value=settings.master/100;
+    node.connect(soundGain).connect(masterGain).connect(context.destination);
     scope.connect(context,[masterGain]);updateScope();
     port = node.port; port.onmessage = inspect; syncAutoFade(); applyMix(mixer.get()); installRom();restoreEcho();
   }).catch(error=>{ready=null;throw error;});
@@ -1450,7 +1454,7 @@ $('item-preview').onclick=()=>run(async()=>{
   for(const [reg,value] of writes)chip.writeRegister(reg,value);
   const buffer=context.createBuffer(2,rate,rate);
   chip.render(buffer.getChannelData(0),buffer.getChannelData(1));
-  const node=context.createBufferSource();node.buffer=buffer;node.connect(masterGain);
+  const node=context.createBufferSource();node.buffer=buffer;node.connect(soundGain);
   node.onended=()=>{node.disconnect();if(previewNode===node)previewNode=null;};
   previewNode=node;node.start();
 });

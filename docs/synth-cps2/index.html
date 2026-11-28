@@ -69,6 +69,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 .mix-voices>div{display:flex;align-items:center;gap:.2rem}.mix-voices strong{flex:1}
 .mix-voices button{font-size:.85rem;padding:.2rem .35rem}
 .output-heading{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:.4rem}
+.volume-control{display:inline-flex;align-items:center;gap:.4rem;margin:0;font-size:.85rem}.volume-control input{width:clamp(5rem,19vw,10rem)}.volume-control output{min-width:4ch;font-variant-numeric:tabular-nums}
 .output-heading h2{margin:0}.output-heading button{padding:.2rem .55rem}
 #output-scope{display:block;width:100%;height:7rem;border-radius:5px;background:#102c43}
 .desk-group{margin:.55rem clamp(.6rem,2vw,1.5rem);border:1px solid #afbfba;border-radius:6px}
@@ -159,7 +160,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <label><span><input id="song-loop" type="checkbox" disabled> Loop</span></label><small id="song-status" role="status"></small></div></details>
 <details class="desk-group" id="output-panel" open><summary id="output-title">Output</summary><div class="desk-group-body"><div class="output-heading">
 <div role="group" aria-label="Output display"><button data-visual-mode="waveform" aria-pressed="true">Waveform</button>
-<button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div></div>
+<button data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div><label class="volume-control">Master <input id="mix-master" type="range" min="0" max="480" value="100"><output id="mix-level" for="mix-master">100%</output></label></div>
 <canvas id="output-scope" width="768" height="112" aria-label="Output waveform"></canvas></div></details>
 
 
@@ -214,7 +215,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <p id="pcm-placement-status" role="status"></p><button id="pcm-place" type="submit">Load PCM</button> <button id="pcm-place-cancel" type="button">Cancel</button></form></dialog>
 <canvas id="rom-preview" width="512" height="84" aria-label="Waveform of the selected ROM block"></canvas>
 <p>Select a range to preview its starting block.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
-<section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
+<section id="mixer" hidden><label class="volume-control">Sound Volume <input id="mix-sound" type="range" min="0" max="480" value="100"><output id="mix-sound-level" for="mix-sound">100%</output></label>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>
 <nav id="performance-tabs" class="chip-tabs" aria-label="Performance"><button data-performance="keyboard" aria-controls="keyboard" aria-pressed="true">Keyboard</button><button data-performance="code-panel" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
