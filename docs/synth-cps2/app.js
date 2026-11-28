@@ -21,7 +21,7 @@ import {createParamControl} from '../synth/synth_controls.js';
 import {QSoundPcm,QSOUND_PCM_RATE,advanceAdpcm} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
-import {isSamplePath,sampleLibrary,maxRom} from './samples.js';
+import {decodeSample,isSamplePath,sampleLibrary,maxRom} from './samples.js';
 import {drumPath,sampleDuet,padGroove,scheduledBar,filterGroove} from './sample-duet.js';
 import {presetJamFiles} from './preset-jam.js';
 import {bankLibrary,defaultRom,editSlot,factoryBanks,isBankPath,padFromPcm} from './banks.js';
@@ -953,6 +953,7 @@ function saveFiles(){
     const catalog=readCatalog(pair.json);
     bankSlots[path]=catalog.slots;rangePresets.set(path,catalog.presets);
   }
+  if(pendingBanks.get(bankPath)?.rom){rebuildSamples();refresh();showPad();showRomMap();}
   pendingBanks.clear();
   pending.clear();renderFiles();scheduleDraft();
 }
@@ -1246,9 +1247,9 @@ for(const [key,label,max] of [['bank','Bank',32767],['start','Start',65535],['en
 }
 function selectedRomBytes(path){
   if(!path)return null;
-  if(!romPath)return library.rom;
   const staged=pendingBanks.get(path)?.rom;
   if(staged)return staged;
+  if(!romPath)return library.rom;
   const revision=files.getRevision(path);
   if(path!==cachedRomPath||revision!==cachedRevision){
     cachedRomPath=path;cachedRevision=revision;cachedRom=files.get(path)?.data;
@@ -1561,6 +1562,7 @@ function renderBankEditor(){
   if(paths.join('\n')!==Array.from(picker.options,o=>o.value).join('\n'))
     picker.replaceChildren(...paths.map(path=>new Option(path.split('/').pop(),path)));
   picker.value=selectedRom;
+  $('bank-load-pcm').disabled=Boolean(romPath);
 }
 function selectBank(path){
   if(pendingBankPath(path)){renderBankEditor();$('file-status').textContent='Choose Save files to use this ROM and its presets.';return;}
@@ -1582,9 +1584,9 @@ function selectBank(path){
   highlightedPath=path;renderFiles();scheduleDraft();
 }
 $('rom-file').onchange=e=>selectBank(e.target.value);
-function checkBankSize(path,bytes,extraSize=0){
+function checkBankSize(path,bytes,extraSize=0,replacingPair=false){
   const total=files.list().reduce((n,f)=>f.path===path?n:n+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),bytes.length+extraSize);
-  const stagedSize=[...pendingBanks].reduce((n,[bank,pair])=>n+(pair.rom?.length??0)+new TextEncoder().encode(pair.json).length-(files.has(catalogPath(bank))?files.stat(catalogPath(bank)).size:0),0);
+  const stagedSize=[...pendingBanks].reduce((n,[bank,pair])=>replacingPair&&bank===path?n:n+(pair.rom?.length??0)+new TextEncoder().encode(pair.json).length-(files.has(catalogPath(bank))?files.stat(catalogPath(bank)).size:0),0);
   if(total+stagedSize>maxRom)throw new RangeError('The cassette exceeds 16 MiB.');
 }
 function addRom(name,bytes,presets=[],slots=[]){
@@ -1614,12 +1616,65 @@ $('rom-input').onchange=e=>run(async()=>{
   const c=json?readCatalog(await json.text()):{slots:[],presets:[]};
   addRom(rom.name,new Uint8Array(await rom.arrayBuffer()),c.presets,c.slots);
 });
-function importWav(kind){
+function importWav(kind,destinationBank){
   if(romPath){$('file-status').textContent='Select a project ROM before importing a sample.';return;}
-  replacingWav={path:bankPath,revision:files.getRevision(bankPath),kind};
+  if(kind==='ADPCM'&&pendingBanks.get(bankPath)?.rom){$('file-status').textContent='Save files before appending an ADPCM sample.';return;}
+  replacingWav={path:bankPath,revision:files.getRevision(bankPath),kind,destinationBank};
   $('wav-input').click();
 }
-$('import-wav').onclick=()=>importWav('PCM');
+let placement;
+$('bank-load-pcm').onclick=()=>importWav('PCM',Number($('rom-bank').value));
+function placementOffset(){
+  const bank=$('pcm-dest-bank').valueAsNumber,start=$('pcm-dest-start').valueAsNumber;
+  const length=placement.pcm.length,end=start+length;
+  if(!Number.isInteger(bank)||bank<0||bank>=maxRom/65536||!Number.isInteger(start)||start<0||start>65535)
+    throw Error('Choose a valid bank and byte offset.');
+  if(start%32768+length>=32768)throw Error('Choose a start that keeps this PCM sample and its end in one 32 KiB address half.');
+  return {bank,start,end,offset:bank*65536+start};
+}
+function showPlacement(){
+  try{
+    const {bank,start,end,offset}=placementOffset();
+    const overlap=Math.max(0,Math.min(placement.pcm.length,placement.rom.length-offset));
+    $('pcm-placement-status').textContent='Bank '+bank+' · '+padHex(start)+' – '+padHex(end)+' (end exclusive)'+
+      (overlap?' · Replaces '+overlap.toLocaleString()+' existing bytes.':'');
+    $('pcm-place').textContent=overlap?'Replace bytes and load':'Load PCM';$('pcm-place').disabled=false;
+  }catch(error){$('pcm-placement-status').textContent=error.message;$('pcm-place').disabled=true;}
+}
+function suggestStart(){
+  const bank=$('pcm-dest-bank').valueAsNumber,used=Math.max(0,Math.min(65536,placement.rom.length-bank*65536));
+  let start=used;
+  if(start%32768+placement.pcm.length>=32768)start=Math.ceil(start/32768)*32768;
+  $('pcm-dest-start').value=start+placement.pcm.length<65536?start:0;
+  showPlacement();
+}
+$('pcm-dest-bank').oninput=suggestStart;
+$('pcm-dest-start').oninput=showPlacement;
+$('pcm-place-cancel').onclick=()=>$('pcm-placement').close();
+$('pcm-placement').onclose=()=>{placement=null;};
+$('place-pcm-form').onsubmit=e=>{
+  e.preventDefault();
+  try{
+    const {bank,start,end,offset}=placementOffset(),{rom,pcm,name,rate,path}=placement;
+    if(path!==bankPath||romPath||rom!==selectedRomBytes(path))throw Error('The selected ROM changed. Reopen Load PCM.');
+    const bytes=new Uint8Array(Math.max(rom.length,offset+pcm.length));bytes.set(rom);bytes.set(pcm,offset);
+    const presets=[...editablePresets(),{kind:'PCM',name,bank,start,end,rate,loop:pcm.length}];
+    const saved=files.get(catalogPath(path)).data;
+    const json=catalogText(bankSlots[path],presets,readCatalog(saved).source);
+    const encoder=new TextEncoder();
+    checkBankSize(path,bytes,encoder.encode(json).length-encoder.encode(saved).length,true);
+    if($('auto-apply').checked){
+      files.writeFiles([{path,data:bytes},{path:catalogPath(path),data:json}]);
+      rangePresets.set(path,presets);rebuildSamples();refresh();showPad();showRomMap();
+    }else pendingBanks.set(path,{rom:bytes,json});
+    renderFiles();$('range-current').value='preset:'+(presets.length-1);updateRangeActions();showItem();
+    if([...$('rom-bank').options].some(o=>Number(o.value)===bank)){
+      $('rom-bank').value=String(bank);$('rom-bank').dispatchEvent(new Event('change'));
+    }
+    scheduleDraft();$('pcm-placement').close();
+  }catch(error){$('pcm-placement-status').textContent=error.message;}
+};
+$('import-wav').onclick=()=>importWav('PCM',Math.floor(selectedRomBytes(bankPath).length/65536));
 $('import-pad-wav').onclick=()=>importWav('ADPCM');
 $('wav-input').oncancel=()=>{replacingWav=null;};
 $('wav-input').onchange=e=>run(async()=>{
@@ -1628,6 +1683,13 @@ $('wav-input').onchange=e=>run(async()=>{
   if(f.size>maxRom)throw Error('WAV exceeds 16 MiB.');
   const data=new Uint8Array(await f.arrayBuffer());
   if(romPath||target.path!==bankPath||target.revision!==files.getRevision(bankPath))throw Error('The selected ROM changed.');
+  if(target.destinationBank!==undefined){
+    const decoded=decodeSample(data);
+    placement={...decoded,rate:Math.min(65535,decoded.rate),name:f.name,path:bankPath,rom:selectedRomBytes(bankPath)};
+    $('pcm-file-info').textContent=f.name+' · '+decoded.pcm.length.toLocaleString()+' bytes · signed 8-bit PCM';
+    $('pcm-dest-bank').max=String(maxRom/65536-1);$('pcm-dest-bank').value=target.destinationBank;
+    suggestStart();$('pcm-placement').showModal();return;
+  }
   const slots=bankSlots[bankPath];
   let index=0;while(slots[index])index++;
   const result=editSlot(library.rom,slots,index,data,target.kind,f.name);

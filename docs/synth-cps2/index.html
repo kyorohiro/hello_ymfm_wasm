@@ -153,8 +153,13 @@ body{width:min(100%,76rem)}
 <details id="bank-inspector" open><summary>ROM bank map</summary>
 <div id="bank-grid" aria-label="64 KiB ROM banks"></div>
 <small id="bank-legend"><span data-state="empty">No data</span> · <span data-state="loaded">Loaded</span> · <span data-state="pcm">PCM read</span> · <span data-state="adpcm">ADPCM read</span> · <span data-state="both">Both read</span></small>
-<div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
+<div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><button id="bank-load-pcm">Load PCM (WAV)…</button><span id="rom-source"></span></div>
 
+<dialog id="pcm-placement" aria-labelledby="pcm-placement-title"><form id="place-pcm-form">
+<h3 id="pcm-placement-title">Load PCM into bank</h3><p id="pcm-file-info"></p>
+<label>Bank <input id="pcm-dest-bank" type="number" min="0" step="1" required></label>
+<label>Start (byte offset) <input id="pcm-dest-start" type="number" min="0" max="65535" step="1" required></label>
+<p id="pcm-placement-status" role="status"></p><button id="pcm-place" type="submit">Load PCM</button> <button id="pcm-place-cancel" type="button">Cancel</button></form></dialog>
 <canvas id="rom-preview" width="512" height="84" aria-label="Waveform of the selected ROM block"></canvas>
 <p>Select a range to preview its starting block.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
