@@ -31,14 +31,13 @@ export function createRomMap(previewAddress){
     button.type='button';button.hidden=true;button.className='rom-row';
     button.dataset.voice=id;
     const name=document.createElement('strong'),address=document.createElement('span'),track=document.createElement('span');
-    name.textContent=id<16?'PCM CH'+(id+1):'ADPCM Voice '+(id-15);
     address.className='rom-address';track.className='rom-track';track.setAttribute('aria-hidden','true');
     button.append(name,address,track);rows.append(button);
     button.onclick=()=>{
       const voice=latest?.voices.find(v=>v.id===id);
       if(voice)previewAddress(voice.start);
     };
-    return {button,address,track};
+    return {button,name,address,track};
   });
   function paint(){
     const bank=Number(selector.value),available=Math.min(bankSize,Math.max(0,latest.size-bank*bankSize));
@@ -64,10 +63,19 @@ export function createRomMap(previewAddress){
       return line;
     }));
     element('rom-empty').hidden=visible.length>0;
-    const ids=new Set(visible.map(v=>v.id));
-    buttons.forEach(({button},i)=>button.hidden=!ids.has(i));
-    for(const v of visible){
-      const {button,address,track}=buttons[v.id];
+    const ranges=new Map();
+    for(const voice of visible){
+      const kind=voice.id<16?'PCM':'ADPCM';
+      const key=[kind,voice.start,voice.end,voice.loop].join('/');
+      const group=ranges.get(key);
+      if(group)group.count++;
+      else ranges.set(key,{voice,kind,count:1});
+    }
+    const shown=new Set();
+    for(const {voice:v,kind,count} of ranges.values()){
+      shown.add(v.id);
+      const {button,name,address,track}=buttons[v.id];
+      name.textContent=count===1?kind:kind+' · '+count+' voices';
       const loopStart=(v.end-v.loop)&65535;
       const loopText=v.loop>0?' · Loop '+hex(loopStart):v.loop<0?' · Signed loop '+v.loop:'';
       address.textContent=hex(v.start)+' – '+hex(v.end)+loopText;
@@ -84,6 +92,7 @@ export function createRomMap(previewAddress){
       for(const [a,b] of intervals(v.start,v.end))segment(a,b,v.id<16?'rom-pcm':'rom-adpcm');
       if(v.loop>0)for(const [a,b] of intervals(loopStart,v.end))segment(a,b,'rom-loop');
     }
+    buttons.forEach(({button},id)=>button.hidden=!shown.has(id));
   }
   selector.onchange=()=>{if(latest)paint();};
   return (map,path)=>{

@@ -146,7 +146,7 @@ body{width:min(100%,76rem)}
 <h3>Playback history</h3><p>Select a 256-byte block to preview its waveform. Green = read by PCM, blue = ADPCM, purple = both.</p>
 <div id="rom-pages" role="group" aria-label="ROM playback history"></div>
 <canvas id="rom-preview" width="512" height="84" aria-label="Selected ROM block waveform"></canvas><p id="rom-page-caption"></p>
-<div id="rom-samples"></div><h3>Current voice ranges</h3><p>Select a voice to preview its starting block in this bank. Amber marks the PCM loop.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
+<div id="rom-samples"></div><h3>Current sample ranges</h3><p>Select a range to preview its starting block in this bank. Amber marks the PCM loop.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>
