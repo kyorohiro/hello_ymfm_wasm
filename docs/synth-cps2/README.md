@@ -39,6 +39,8 @@ The exported demo plays in VGM Analyzer and renders in tetorica-vgm. The Synth e
 
 ## Pan comparison
 
+In Keyboard, play a fixed PCM channel with Echo send at zero. Toggle **QSound pan** while holding or repeating the same note. Checked uses the standard-mode spatial preview. Unchecked uses linear stereo balance at the same pan position. This listening control affects PCM playback, including Code and VGM, without writing chip registers. Start **/examples/pan-study.js** for a repeating left, center and right comparison using the factory ROM.
+
 Select **Files → /songs/tetorica-cps2-pan-comparison.vgm → CH1 → Play VGM**. A 50 ms percussion hit plays at 0.10, 0.60 and 1.10 seconds. CH1 restarts the same generated waveform, rate, phase and volume envelope each time. Its pan register changes from 0x110 to 0x120 to 0x130. Watch Pan in the PCM view or the 0x80 row in Registers. ☰ → Export → Download selected VGM / VGZ exports the selected file with its ROM.
 
 The table gives left/right RMS in signed 16-bit sample units for the first 100 ms of each hit. The preview column uses the exported file in SongTransport at 44.1 kHz, before the output mixer. The reference column uses the same file in libvgm's CTR core, with its default player gain. Compare the balance within each stereo pair.

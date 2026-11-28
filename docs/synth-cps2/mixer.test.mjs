@@ -31,3 +31,22 @@ test('muted voices resume at the same PCM address and ADPCM decoder step as unin
     assert.deepEqual([chips[0].left,chips[0].right],[chips[1].left,chips[1].right]);
   }
 });
+
+test('linear pan monitor compares the same PCM voice without changing its phase or register state',()=>{
+  const make=spatialPcm=>new QSoundPcm(demoRom(),44100,{spatialPcm});
+  const monitor=make(true),linear=make(false),spatial=make(true);
+  for(const chip of [monitor,linear,spatial])
+    for(const [reg,value] of noteWrites(0,72,1,0,6000))chip.writeRegister(reg,value);
+  let heardLeft=false,heardFilteredRight=false;
+  for(let tick=0;tick<300;tick++){
+    monitor.linearPanMonitor=tick<150;
+    for(const chip of [monitor,linear,spatial])chip.tick();
+    const reference=monitor.linearPanMonitor?linear:spatial;
+    assert.equal(monitor.left,reference.left);
+    assert.equal(monitor.right,reference.right);
+    if(tick<150 && monitor.left)heardLeft=true;
+    if(tick>=150 && monitor.right)heardFilteredRight=true;
+  }
+  assert(heardLeft && heardFilteredRight);
+  assert.deepEqual(monitor.lastWrites,spatial.lastWrites);
+});

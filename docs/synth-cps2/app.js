@@ -23,7 +23,7 @@ import {QSoundPcm,QSOUND_PCM_RATE,advanceAdpcm} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {decodeSample,isSamplePath,sampleLibrary,maxRom} from './samples.js';
-import {drumPath,sampleDuet,padGroove,scheduledBar,filterGroove} from './sample-duet.js';
+import {drumPath,sampleDuet,padGroove,scheduledBar,filterGroove,panStudy} from './sample-duet.js';
 import {presetJamFiles} from './preset-jam.js';
 import {bankLibrary,defaultRom,editSlot,factoryBanks,isBankPath,padFromPcm} from './banks.js';
 import {catalogPath,catalogText,isCatalogPath,instrumentKey,keyboardRate,rangeKey,rangeName,readCatalog} from './range-presets.js';
@@ -346,7 +346,7 @@ async function audio() {
     masterGain.gain.value=settings.master/100;
     node.connect(soundGain).connect(masterGain).connect(context.destination);
     scope.connect(context,[masterGain]);updateScope();
-    port = node.port; port.onmessage = inspect; syncAutoFade(); applyMix(mixer.get()); installRom();restoreEcho();
+    port = node.port; port.onmessage = inspect; syncAutoFade(); syncSpatialPan(); applyMix(mixer.get()); installRom();restoreEcho();
   }).catch(error=>{ready=null;throw error;});
   await ready;
 }
@@ -539,6 +539,7 @@ const source = $('source');
 const files = createVirtualFileSystem([
   {path:'/index.js',data:source.value},
   ...presetJamFiles,
+  {path:'/examples/pan-study.js',data:panStudy},
   ...stockBanks.flatMap(([path,b])=>[{path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,[])}]),
   {path:'/examples/sample-duet.js',data:sampleDuet},
   {path:'/examples/pad-groove.js',data:padGroove},
@@ -561,6 +562,7 @@ setPadSample(pads[0],drumPath);
 refresh();showPad();
 $('add-demos').onclick=()=>run(async()=>{
   const additions=presetJamFiles.filter(file=>!files.has(file.path));
+  if(!files.has('/examples/pan-study.js'))additions.push({path:'/examples/pan-study.js',data:panStudy});
   for(const track of Object.values(demoTracks)){
     const bytes=demoVgm(track.score(),{loop:true});
     let path='/songs/'+track.filename,n=1;
@@ -998,6 +1000,8 @@ function saveFiles(){
   pending.clear();renderFiles();scheduleDraft();
 }
 $('use-adpcm').onchange=()=>{drawWorkspace();scheduleDraft();};
+function syncSpatialPan(){port?.postMessage({type:'spatial-pan',enabled:$('spatial-pan').checked});}
+$('spatial-pan').onchange=syncSpatialPan;
 function syncAutoFade(){port?.postMessage({type:'auto-fade',enabled:$('auto-fade').checked});}
 $('auto-fade').onchange=()=>{syncAutoFade();scheduleDraft();};
 $('auto-apply').onchange=()=>{if($('auto-apply').checked)saveFiles();else renderFiles();scheduleDraft();};

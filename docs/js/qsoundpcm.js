@@ -74,6 +74,7 @@ export class QSoundPcm {
       throw new TypeError('Expected sample ROM bytes and a positive sample rate');
     this.spatial=spatialPcm?[spatialState(),spatialState()]:null;
     this.spatialTick=0;
+    this.linearPanMonitor=false;
     this.rom = rom;
     this.romUsage=trackRom?new Uint8Array(Math.ceil(rom.length/256)):null;
     this.sampleRate = sampleRate;
@@ -193,7 +194,8 @@ export class QSoundPcm {
         if(spatial && index>=0 && index<=32){
           dryL+=pcm*dryGain[index];dryR+=pcm*dryGain[32-index];
           wetL+=pcm*wetGain[index];wetR+=pcm*wetGain[32-index];
-        }else{
+        }
+        if(!spatial || index<0 || index>32 || this.linearPanMonitor){
           const pan=Math.max(0,Math.min(32,index))/32;
           left+=pcm*(1-pan);right+=pcm*pan;
         }
@@ -205,8 +207,9 @@ export class QSoundPcm {
       v.phase = (position << 4) & 65535;
     }
     if(spatial){
-      left+=spatialOutput(this.spatial[0],this.spatialTick,0,dryL,wetL);
-      right+=spatialOutput(this.spatial[1],this.spatialTick,1,dryR,wetR);
+      const l=spatialOutput(this.spatial[0],this.spatialTick,0,dryL,wetL);
+      const r=spatialOutput(this.spatial[1],this.spatialTick,1,dryR,wetR);
+      if(!this.linearPanMonitor){left+=l;right+=r;}
       this.spatialTick=(this.spatialTick+1)&127;
     }
     advanceAdpcm(this.adpcm[this.adpcmSlot % 3], this.rom, this.adpcmSlot >= 3,this.romUsage);

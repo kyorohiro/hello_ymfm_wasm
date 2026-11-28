@@ -114,3 +114,18 @@ if (!bypass) {
 }
 
 `+padGroove;
+
+export const panStudy=`// In Keyboard, toggle QSound pan while this phrase repeats.
+// Both modes use the same PCM hit. Listen on two speakers, then try other positions.
+const positions = [0, 16, 32];
+const phrase = qsound.build(b => {
+  b.writeRegister(0xba, 0); // CH1 echo send off
+  positions.forEach((pan, i) => {
+    const t = i * 0.6;
+    b.atSeconds(t).noteOn(1, 72, 1, pan, 6000);
+    b.atSeconds(t + 0.012).writeRegister(6, 1800);
+    b.atSeconds(t + 0.050).noteOff(1);
+  });
+});
+await qsound.schedule(phrase, {name: 'pan-study', repeatSeconds: 2});
+`;

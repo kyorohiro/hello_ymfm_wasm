@@ -15,6 +15,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true,trackRom:true});
     this.previewVersion=0;
     this.autoFade=true;
+    this.linearPanMonitor=false;
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
     this.gates=new Map();
@@ -29,6 +30,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       reportError:({message})=>this.port.postMessage({scheduleFailure:message}),
     },qsoundPlanTools());
     this.port.onmessage = ({data}) => {
+      if(data?.type==='spatial-pan'){this.linearPanMonitor=!data.enabled;return;}
       if(data?.codeFx){
         try{this.effects.command(data.codeFx);}catch(error){this.reportFxError(error.message);}
         return;
@@ -289,6 +291,7 @@ class Cps2Preview extends AudioWorkletProcessor {
   }
   process(_, outputs) {
     const [left,right] = outputs[0];
+    this.chip.linearPanMonitor=this.linearPanMonitor;
     if(this.song && !this.song.paused)this.song.render(left,right);
     else this.timeline.render(left.length,(offset,count)=>this.chip.render(left,right,offset,count));
     this.effects.process(outputs[0],this.reportFxError);
