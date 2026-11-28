@@ -1221,11 +1221,13 @@ function syncCatalog(path){
   const staged=pendingBanks.get(path);
   if(staged)staged.json=catalogText(bankSlots[path]??[],readCatalog(staged.json).presets,source);
 }
-function projectRanges(){
-  const ranges=(bankSlots[bankPath]??[]).flatMap(s=>s?[{name:s.name,kind:s.kind,
+function slotRanges(){
+  return (bankSlots[bankPath]??[]).flatMap(s=>s?[{name:s.name,kind:s.kind,
     bank:Math.floor(s.offset/65536),start:s.offset%65536,end:(s.offset+s.length)%65536,
     ...(s.kind==='PCM'?{rate:s.rate,loop:s.length}:{})}]:[]);
-  return [...ranges,...(rangePresets.get(bankPath)??[])];
+}
+function projectRanges(){
+  return [...slotRanges(),...(rangePresets.get(bankPath)??[])];
 }
 function authoredRanges(){
   return [...channels.map((v,i)=>({voice:i,kind:'PCM',bank:bankFor(v),start:startFor(v),end:v.end,rate:v.rate,loop:v.loop})),
@@ -1250,14 +1252,14 @@ function currentRomRanges(){
   }
   return ranges;
 }
-function editablePresets(){
-  const staged=pendingBanks.get(bankPath);
-  return staged?readCatalog(staged.json).presets:(rangePresets.get(bankPath)??[]);
+function editablePresets(path=bankPath){
+  const staged=pendingBanks.get(path);
+  return staged?readCatalog(staged.json).presets:(rangePresets.get(path)??[]);
 }
 let creationRanges;
 function updateRangeActions(){
   $('range-new').disabled=Boolean(romPath);
-  $('range-del').disabled=Boolean(romPath)||!$('range-current').value;
+  $('range-del').disabled=Boolean(romPath)||!$('range-current').value.startsWith('preset:');
 }
 $('range-current').onchange=updateRangeActions;
 function writeRangePresets(list,next){
@@ -1300,8 +1302,17 @@ $('range-del').onclick=()=>{
   writeRangePresets(list,'preset:'+Math.min(index,list.length-1));
 };
 function renderRanges(){
-  $('preset-item').hidden=Boolean(romPath);
-  const options=romPath?[]:editablePresets().map((preset,index)=>['preset:'+index,preset.name]);
+  const current=currentRomRanges(),options=[];
+  if(!romPath){
+    for(const range of slotRanges()){
+      options.push(['slot:'+rangeKey(range),range.name]);current.delete(rangeKey(range));
+    }
+  }
+  const path=romPath?syncedBank:bankPath;
+  if(path)editablePresets(path).forEach((preset,index)=>{
+    options.push(['preset:'+index,preset.name]);current.delete(rangeKey(preset));
+  });
+  for(const [key,range] of current)options.push([key,rangeName(range)]);
   rangeOptions('range-current',options);
   $('range-current').disabled=!options.length;
   updateRangeActions();
