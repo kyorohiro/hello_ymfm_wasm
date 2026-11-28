@@ -129,6 +129,8 @@ test('ROM history follows played banks and seek restores the ROM image at the re
   const history=t=>rebuildSongState(bytes,44100,t,Array(19).fill(false)).ranges.map(([,range])=>range);
   assert.deepEqual(history(50).map(p=>p.bank),[0]);
   assert.deepEqual(history(250).map(p=>[p.bank,Boolean(p.earlierImage)]),[[0,true],[1,false]]);
+  assert.deepEqual([...early.loadedBanks],[1,0]);
+  assert.deepEqual([...late.loadedBanks],[1,1]);
   assert.equal(early.rom[0],12);assert.equal(early.romUsage[256],0);
   assert.equal(late.rom[0],34);assert.equal(late.rom[65536],56);
   assert.equal(late.voices[0].volume,0);

@@ -42,7 +42,10 @@ class Cps2Preview extends AudioWorkletProcessor {
       }
       if(data?.type==='project-rom'){
         this.projectRom=data.rom;
-        if(!this.song && !this.source)this.chip.rom=data.rom;
+        if(!this.song && !this.source){
+          this.chip.rom=data.rom;this.chip.loadedBanks=null;
+          this.chip.romUsage=new Uint8Array(Math.ceil(data.rom.length/256));
+        }
         return;
       }
       if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}
@@ -117,7 +120,9 @@ class Cps2Preview extends AudioWorkletProcessor {
       }
       if(data?.type==='rom-pages'){
         const base=data.bank*256,offset=(base+data.page)*256;
-        this.port.postMessage({type:'rom-pages',bank:data.bank,page:data.page,
+        const bankUsage=new Uint8Array(Math.ceil(this.chip.rom.length/65536));
+        this.chip.romUsage.forEach((bits,i)=>{bankUsage[i>>>8]|=bits;});
+        this.port.postMessage({type:'rom-pages',bank:data.bank,page:data.page,bankUsage,loadedBanks:this.chip.loadedBanks,
           bytes:this.chip.rom.slice(offset,offset+256),
           size:this.chip.rom.length});
         return;
@@ -132,7 +137,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         const p=data.preset,ch=data.channel,base=8*ch;
         if(data.rom){
           this.timeline.clear();this.capture();this.song=null;
-          this.chip.rom=data.rom;this.chip.romUsage=new Uint8Array(Math.ceil(data.rom.length/256));this.source=p.source;this.sourcePath=p.source?.path;this.frozenRanges=null;
+          this.chip.rom=data.rom;this.chip.loadedBanks=null;this.chip.romUsage=new Uint8Array(Math.ceil(data.rom.length/256));this.source=p.source;this.sourcePath=p.source?.path;this.frozenRanges=null;
           this.chip.tickRate=QSOUND_PCM_RATE*p.clock/4000000;
         }
         if(p.format==='qsound-adpcm-1'){
@@ -214,7 +219,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.source=this.romSource();
     const source=this.chip;
     const chip=new QSoundPcm(source.rom,sampleRate,{spatialPcm:true,trackRom:true});
-    chip.romUsage=source.romUsage;
+    chip.romUsage=source.romUsage;chip.loadedBanks=source.loadedBanks;
     chip.tickRate=source.tickRate;
     chip.lastWrites.set(source.lastWrites);
     chip.echoBase=source.echoBase;chip.echoEnd=source.echoEnd;chip.echoFeedback=source.echoFeedback;

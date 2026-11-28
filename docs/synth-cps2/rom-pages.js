@@ -7,8 +7,35 @@ export function createRomPages(request){
   let page=0,adpcm=false,lastBank=-1,lastBytes,lastKind,lastPage=-1;
   function selectPage(index,decodeAdpcm=false){page=index;adpcm=decodeAdpcm;refresh();}
   function refresh(){request(Number(bank.value),page);}
-  function draw({bank:selectedBank,page:selectedPage,size,bytes}){
+  const grid=document.getElementById('bank-grid');
+  let bankSignature='';
+  function drawBanks(size,loadedBanks,bankUsage){
+    const states=['loaded','pcm','adpcm','both'];
+    const options=Array.from(bank.options,o=>Number(o.value));
+    const cells=options.map(i=>{
+      const loaded=loadedBanks?loadedBanks[i]:i*65536<size;
+      const read=bankUsage?.[i]??0;
+      return [i,states[read],Boolean(loaded),read];
+    });
+    const signature=JSON.stringify(cells);
+    if(signature!==bankSignature){
+      bankSignature=signature;
+      const buttons=cells.map(([i,state,loaded,read])=>{
+        const b=document.createElement('button');
+        b.dataset.state=read||loaded?state:'empty';b.value=i;b.textContent='0x'+i.toString(16).toUpperCase().padStart(2,'0');
+        b.title='Bank '+b.textContent+' · '+(loaded?'Loaded':'No data')+
+          (read?' · '+['','PCM','ADPCM','PCM + ADPCM'][read]+' read':'');
+        b.setAttribute('aria-label',b.title);
+        b.onclick=()=>{bank.value=b.value;bank.dispatchEvent(new Event('change'));};
+        return b;
+      });
+      grid.replaceChildren(...buttons);
+    }
+    for(const b of grid.children)b.setAttribute('aria-pressed',String(b.value===bank.value));
+  }
+  function draw({bank:selectedBank,page:selectedPage,size,bytes,loadedBanks,bankUsage}){
     if(selectedBank!==Number(bank.value)||selectedPage!==page)return;
+    drawBanks(size,loadedBanks,bankUsage);
     const available=Math.max(0,Math.min(256,Math.ceil((size-selectedBank*65536)/256)));
     if(page>=available && page!==0){page=0;refresh();return;}
     if(lastBank===selectedBank && lastPage===page && adpcm===lastKind &&

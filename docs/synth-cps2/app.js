@@ -32,7 +32,7 @@ let syncedBank=null,syncedRomRevision=-1,syncedRangeSignature=null;
 let currentRanges=[],vgmRanges=[],rangeVersion=-1;
 const stockBanks=factoryBanks();
 let bankPath=defaultRom,bankSlots=Object.fromEntries(stockBanks.map(([path,b])=>[path,b.slots]));
-let library=bankLibrary(stockBanks[0][1].rom,bankSlots[bankPath]),slot=0;
+let library=bankLibrary(stockBanks[0][1].rom,bankSlots[bankPath]);
 
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.start??v.sample*256;
@@ -1159,42 +1159,6 @@ function ensurePadSample(path){
   }
   return library.padItems.get(path);
 }
-function assignSample(path){
-  const item=library.items.get(path),v=editedVoice(),adpcm=!$('adpcm-chip').hidden;
-  if(adpcm){
-    try{ensurePadSample(path);}
-    catch(error){$('file-status').textContent=error.message;return;}
-  }
-  if(liveInstrument)stop(false);
-  attached=null;highlightedPath=bankPath;
-  if(adpcm){
-    setPadSample(pads[padVoice],path);revision++;showPad();renderFiles();scheduleDraft();
-    $('file-status').textContent=path+' → ADPCM Voice '+(padVoice+1)+' · Key '+(padVoice+1);
-    return;
-  }
-  if(v.held)release(v.held);
-  setPcmSample(v,path);
-  selectPerformance(false);document.querySelector('[data-chip="pcm-chip"]').click();selectPcmTab(false);
-  select(selected,autoChannel);renderFiles();scheduleDraft();
-  $('file-status').textContent=path+' → '+(autoChannel?'AUTO':'CH'+(selected+1))+' · Bank '+item.bank+' · '+item.length+' bytes';
-}
-const slotControl=createParamControl({label:'Sample slot',min:0,max:127,step:1,value:0,onChange:chooseSlot});
-$('bank-slot').append(slotControl.element);
-const slotButtons=Array.from({length:128},(_,i)=>{
-  const b=document.createElement('button');b.textContent=i;b.onclick=()=>chooseSlot(i);
-  $('slot-buttons').append(b);return b;
-});
-function chooseSlot(i){
-  slot=i;
-  const s=bankSlots[bankPath]?.[slot];if(s)$('slot-kind').value=s.kind;
-  renderBankEditor();
-}
-let previewItem=null;
-function drawSlotWave(item){
-  if(previewItem===item)return;
-  previewItem=item;
-  drawSampleWave($('slot-wave'),item);
-}
 function drawSampleWave(canvas,item){
   const {width,height}=canvas,ctx=canvas.getContext('2d');
   ctx.clearRect(0,0,width,height);
@@ -1573,20 +1537,7 @@ function renderBankEditor(){
   if(!paths.includes(selectedRom))paths.unshift(selectedRom);
   if(paths.join('\n')!==Array.from(picker.options,o=>o.value).join('\n'))
     picker.replaceChildren(...paths.map(path=>new Option(path.split('/').pop(),path)));
-  picker.value=selectedRom;$('bank-name').textContent=bankPath.split('/').pop();
-  const slots=bankSlots[bankPath]??[],s=slots[slot];
-  slotControl.updateVisual(slot);
-  drawSlotWave(library.regions.find(item=>item.slot===slot));
-  slotButtons.forEach((b,i)=>{
-    b.classList.toggle('filled',Boolean(slots[i]));
-    b.setAttribute('aria-pressed',String(i===slot));b.title=slots[i]?.name??'Empty slot '+i;
-  });
-  $('bank-size').textContent=slots.filter(Boolean).length+' / 128 slots · ROM '+library.rom.length.toLocaleString()+' / '+maxRom.toLocaleString()+' bytes';
-  $('slot-info').textContent=s?s.name+' · '+s.kind+' · Bank '+Math.floor(s.offset/65536)+' · '+s.length+' bytes':'Empty slot';
-  $('slot-del').disabled=!s || Boolean(romPath);$('slot-load').disabled=Boolean(romPath);
-  $('slot-editor').hidden=Boolean(romPath);
-  $('slot-use').disabled=!s || Boolean(romPath);
-  $('slot-use').textContent=s?.kind==='ADPCM'?'Assign to Voice '+(padVoice+1):autoChannel?'Assign to AUTO':'Assign to CH'+(selected+1);
+  picker.value=selectedRom;
 }
 function selectBank(path){
   if(pendingBankPath(path)){renderBankEditor();$('file-status').textContent='Choose Save files to use this ROM and its presets.';return;}
@@ -1605,7 +1556,7 @@ function selectBank(path){
     }
     refresh();showPad();showRomMap();
   }
-  highlightedPath=path;renderFiles();chooseSlot(slot);scheduleDraft();
+  highlightedPath=path;renderFiles();scheduleDraft();
 }
 $('rom-file').onchange=e=>selectBank(e.target.value);
 function checkBankSize(path,bytes,extraSize=0){
@@ -1628,7 +1579,7 @@ $('new-rom').onclick=()=>run(async()=>{
   let n=1;while(files.has('/banks/user-'+n+'.bin'))n++;
   const name=prompt('New ROM file name','user-'+n+'.bin');
   if(!name?.trim())return;
-  addRom(name,new Uint8Array());chooseSlot(0);$('slot-editor').open=true;
+  addRom(name,new Uint8Array());$('bank-inspector').open=true;
   document.querySelector('[data-chip="rom-chip"]').click();
 });
 $('import-rom').onclick=()=>$('rom-input').click();
@@ -1640,49 +1591,28 @@ $('rom-input').onchange=e=>run(async()=>{
   const c=json?readCatalog(await json.text()):{slots:[],presets:[]};
   addRom(rom.name,new Uint8Array(await rom.arrayBuffer()),c.presets,c.slots);
 });
-function updateSlot(data,name,kind){
-  if(romPath)throw Error('Load a project ROM first.');
-  const old=bankSlots[bankPath][slot],result=editSlot(library.rom,bankSlots[bankPath],slot,data,kind,name);
-  checkBankSize(bankPath,result.library.rom);
-  if(liveInstrument)stop(false);
-  files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;syncCatalog(bankPath);
-  rebuildSamples(result.library);
-  if(old){
-    for(const v of [...channels,autoVoice])if(old.kind==='PCM'&&v.samplePath===old.path){
-      const item=library.items.get(old.path);
-      if(item){const end=v.end-old.offset%65536,loop=v.loop;setPcmSample(v,old.path);
-        if(end>0&&end<=item.length){v.end=item.start+end;v.loop=Math.min(end,loop);}}
-      else Object.assign(v,{samplePath:null,sample:0,bank:0,start:0,end:256,loop:256,referenceRate:null});
-    }
-    for(const [i,p] of pads.entries())if(old.kind==='ADPCM'&&p.samplePath===old.path){
-      if(library.padItems.has(old.path))setPadSample(p,old.path);
-      else Object.assign(p,{samplePath:null,sample:i,bank:0,start:(i+1)*512,end:(i+2)*512});
-    }
-  }
-  chooseSlot(slot);revision++;refresh();showPad();showRomMap();renderFiles();scheduleDraft();
-}
-$('slot-load').onclick=()=>{
-  replacingWav={path:bankPath,slot,revision:files.getRevision(bankPath),kind:$('slot-kind').value};
+function importWav(kind){
+  if(romPath){$('file-status').textContent='Select a project ROM before importing a sample.';return;}
+  replacingWav={path:bankPath,revision:files.getRevision(bankPath),kind};
   $('wav-input').click();
-};
+}
+$('import-wav').onclick=()=>importWav('PCM');
+$('import-pad-wav').onclick=()=>importWav('ADPCM');
 $('wav-input').oncancel=()=>{replacingWav=null;};
 $('wav-input').onchange=e=>run(async()=>{
   const target=replacingWav,f=e.target.files[0];replacingWav=null;e.target.value='';
   if(!target||!f)return;
   if(f.size>maxRom)throw Error('WAV exceeds 16 MiB.');
   const data=new Uint8Array(await f.arrayBuffer());
-  if(target.path!==bankPath||target.slot!==slot||target.revision!==files.getRevision(bankPath))throw Error('The selected slot changed.');
-  updateSlot(data,f.name,target.kind);
+  if(romPath||target.path!==bankPath||target.revision!==files.getRevision(bankPath))throw Error('The selected ROM changed.');
+  const slots=bankSlots[bankPath];
+  let index=0;while(slots[index])index++;
+  const result=editSlot(library.rom,slots,index,data,target.kind,f.name);
+  checkBankSize(bankPath,result.library.rom);
+  if(liveInstrument)stop(false);
+  files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;
+  syncCatalog(bankPath);rebuildSamples(result.library);refresh();showPad();showRomMap();renderFiles();scheduleDraft();
 });
-$('slot-del').onclick=()=>run(async()=>{
-  if(confirm('Delete slot '+slot+' from '+bankPath+'?'))updateSlot(null);
-});
-$('slot-use').onclick=()=>{
-  const s=bankSlots[bankPath][slot];if(!s)return;
-  document.querySelector(s.kind==='PCM'?'[data-chip="pcm-chip"]':'[data-chip="adpcm-chip"]').click();
-  assignSample(s.path);
-};
-$('import-wav').onclick=()=>{document.querySelector('[data-chip="rom-chip"]').click();$('slot-load').click();};
 $('import-song').onclick=()=>$('song-input').click();
 $('song-input').onchange=async event=>{
   const file=event.target.files[0];event.target.value='';

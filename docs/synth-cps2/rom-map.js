@@ -91,6 +91,7 @@ export function createRomMap(previewAddress){
     previousMap=mapKey;latest=map;
     const banks=new Set(Array.from({length:Math.ceil(map.size/bankSize)},(_,i)=>i));
     for(const v of map.voices)banks.add(v.bank);
+    if(!banks.size)banks.add(0);
     const ordered=[...banks].sort((a,b)=>a-b);
     selector.disabled=!ordered.length;
     const signature=ordered.join(',');

@@ -100,6 +100,8 @@ export class SongTransport {
           });
           if(changed){p.earlierImage=true;this.rangeRevision++;}
         }
+        if(old.length!==e.memorySize||!this.chip.loadedBanks)this.chip.loadedBanks=new Uint8Array(Math.ceil(e.memorySize/65536));
+        if(e.data.length)this.chip.loadedBanks.fill(1,e.offset>>>16,((e.offset+e.data.length-1)>>>16)+1);
         this.chip.rom=applyRomBlock(this.chip.rom,e);
         this.romRevision++;
       }

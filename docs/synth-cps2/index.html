@@ -80,8 +80,14 @@ body{width:min(100%,76rem)}
 .rom-segment{position:absolute;height:100%;min-width:1px}.rom-pcm{background:#247866}.rom-adpcm{background:#235d93}.rom-loop{background:#b66614;height:40%;bottom:0}.rom-unavailable{z-index:1;background:repeating-linear-gradient(135deg,#102f4538 0 3px,transparent 3px 6px)}
 #rom-source{overflow-wrap:anywhere;font-size:.85rem}#rom-empty{padding:.65rem 0}
 @media(max-width:540px){.rom-row{grid-template-columns:6rem minmax(0,1fr)}}
-#slot-buttons{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;max-width:32rem;margin:.5rem 0}#slot-buttons button{padding:0;font-size:.75rem}#slot-buttons button.filled{background:#237066;color:white}#slot-buttons button[aria-pressed=true]{outline:2px solid #d78220}
-#item-wave,#slot-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
+#bank-grid{display:flex;gap:.25rem;flex-wrap:wrap;margin:.5rem 0}
+#bank-grid button{min-width:2.6rem;padding:.3rem;border:1px solid #536060}
+#bank-grid button[aria-pressed=true]{outline:2px solid #da781c}
+#bank-grid [data-state],#bank-legend span{background:var(--bank-color);color:var(--bank-text,#fff)}
+#bank-legend span{padding:.1rem .3rem}
+[data-state="empty"]{--bank-color:#eeeae1;--bank-text:#37352f}[data-state="loaded"]{--bank-color:#43566b}
+[data-state="pcm"]{--bank-color:#23665a}[data-state="adpcm"]{--bank-color:#255790}[data-state="both"]{--bank-color:#764c86}
+#item-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
 #rom-chip > details{margin-top:.6rem}#rom-chip > details > summary{cursor:pointer;font-weight:600;padding:.35rem 0}
 .item-picker-row{display:flex;align-items:center;gap:.4rem;margin:.3rem 0}.item-picker-row select{min-width:0;max-width:85%}#item-wave{touch-action:none;cursor:crosshair}#item-wave-help{display:block}
 </style>
@@ -90,7 +96,7 @@ body{width:min(100%,76rem)}
 <div id="synthMenuPanel" class="synth-menu-panel">
 <strong>New</strong><button id="new-cassette" data-close-synth-menu>New cassette…</button>
 <strong>Import</strong><button id="add-demos" data-close-synth-menu>Add factory demos</button><button id="import-song" data-close-synth-menu>VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
-<button id="import-wav" data-close-synth-menu>Sample into ROM slot…</button><input id="wav-input" type="file" accept=".wav" hidden>
+<button id="import-wav" data-close-synth-menu>PCM sample (WAV)…</button><button id="import-pad-wav" data-close-synth-menu>ADPCM sample (WAV)…</button><input id="wav-input" type="file" accept=".wav" hidden>
 <button id="import-cassette" data-close-synth-menu>Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden>
 <strong>Export</strong><button id="save" data-close-synth-menu>Download selected VGM / VGZ</button><button id="export-cassette" aria-describedby="export-contents" data-close-synth-menu>Export cassette</button>
 <small id="export-contents"></small><button id="demo-cassette" data-close-synth-menu>Download factory demos</button>
@@ -125,7 +131,7 @@ body{width:min(100%,76rem)}
 <table aria-label="Selected PCM channel registers"><thead><tr><th>Parameter</th><th>Register</th><th>Last write</th></tr></thead><tbody id="register-rows"></tbody></table>
 <small>— means no write since reset.</small></div></section>
 <section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
-<p>Assign an ADPCM slot in ROM to the selected voice. Press A / S / D or 1 / 2 / 3 to trigger Voice 1–3. Volume applies on the next trigger.</p>
+<p>Choose an ADPCM preset for the selected voice. Press A / S / D or 1 / 2 / 3 to trigger Voice 1–3. Volume applies on the next trigger.</p>
 <label>Preset<select data-performance-picker id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden>
 
@@ -144,8 +150,10 @@ body{width:min(100%,76rem)}
 <button id="use-history" hidden>Use selected range</button>
 
 </fieldset>
-<details id="slot-editor" open><summary>Edit sample slots</summary><fieldset><legend id="bank-name"></legend><p id="bank-size"></p><div class="chip-header"><span id="bank-slot"></span><select aria-label="Sample encoding" id="slot-kind"><option>PCM</option><option>ADPCM</option></select>
-<button id="slot-load">Load…</button><button id="slot-del">Del</button><button id="slot-use">Assign</button></div><div id="slot-buttons" aria-label="Sample slots"></div><p id="slot-info"></p><canvas id="slot-wave" width="512" height="64" aria-label="Selected ROM slot waveform" aria-describedby="slot-info"></canvas></fieldset></details><details id="bank-inspector"><summary>ROM usage map</summary><div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
+<details id="bank-inspector" open><summary>ROM bank map</summary>
+<div id="bank-grid" aria-label="64 KiB ROM banks"></div>
+<small id="bank-legend"><span data-state="empty">No data</span> · <span data-state="loaded">Loaded</span> · <span data-state="pcm">PCM read</span> · <span data-state="adpcm">ADPCM read</span> · <span data-state="both">Both read</span></small>
+<div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
 
 <canvas id="rom-preview" width="512" height="84" aria-label="Waveform of the selected ROM block"></canvas>
 <p>Select a range to preview its starting block.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>

@@ -2,7 +2,7 @@
 
 Serve the repository's docs directory over localhost or HTTPS and open
 `/synth-cps2/`. Use AUTO for chords or select CH1–16 for a fixed PCM channel, then hold A S D F G H J K or a screen key.
-AUTO has its own PCM voice. Each key press writes that voice to the next free channel in circular order, including when playing single notes. Held keys keep their channels. The outline marks the most recent destination. Use Assign to AUTO on a ROM slot to change the sound across the rotation. Fixed channels keep their own editor settings, and the cassette saves the AUTO voice separately. Pitch follows the key. The ROM bank control can switch the held note’s sample data; volume
+AUTO has its own PCM voice. Each key press writes that voice to the next free channel in circular order, including when playing single notes. Held keys keep their channels. The outline marks the most recent destination. Select a PCM preset with AUTO active to change the sound across the rotation. Fixed channels keep their own editor settings, and the cassette saves the AUTO voice separately. Pitch follows the key. The ROM bank control can switch the held note’s sample data; volume
 and pan can change during a held note. The factory demo VGMs include their generated sample ROM. PCM duet uses two pitched PCM channels. ADPCM trio triggers three one-shot samples, panned left, center and right.
 
 ## Workspace
@@ -70,7 +70,7 @@ Below the waveform, Echo send applies to the selected PCM channel. Delay (DSP ti
 
 ## Editing sample ROMs
 
-Files → /banks contains 0_default.rom (the examples), 1_sample.rom (two PCM waves and three ADPCM hits) and 99_empty.rom. Select the shared ROM in the QSound header or click its file in /banks. **New ROM…** creates an empty, named .bin in Files and opens it for editing. **Import ROM…** adds an existing raw image to the same list. Select slot 0–127, choose PCM or ADPCM and press **Load…**. The editor encodes the WAV directly into the selected ROM. **Del** clears its bytes. Choose **Assign** to set the selected PCM channel or ADPCM voice to the slot's addresses.
+Files → /banks contains 0_default.rom (the examples), 1_sample.rom (two PCM waves and three ADPCM hits) and 99_empty.rom. Select the shared ROM in the QSound header or click its file in /banks. **New ROM…** creates an empty, named .bin in Files and opens it for editing. **Import ROM…** adds an existing raw image to the same list. Use **Import → PCM sample (WAV)…** or **ADPCM sample (WAV)…** to append a sample to the selected project ROM. Choose the resulting preset in PCM or ADPCM.
 
 The 128 slots are a Tetorica editing directory. Each entry describes a byte range in the raw ROM. Import ROM loads raw bytes without guessing sample boundaries. An imported image can be played via ROM bank and address controls; new slots append after its original data. Export cassette preserves the raw images, names, slot directories and voice settings. In the ROM tab, **Preset** lists shared preset items and, during a VGM, distinct ranges configured up to the playback position. These can overlap. A programmed range can belong to a silent voice. Playing a VGM automatically adds its current ROM and matching preset JSON to **Files → /banks**. With **Auto apply** off, the ROM and JSON appear with an asterisk. **Save files** or enabling **Auto apply** commits the pair. **Export ROM** includes pending ranges. Newly observed ranges are merged into the catalog. A different ROM image gets a separate file. Entries marked **Earlier ROM image** refer to overwritten bytes. Seek back before that ROM write to capture the earlier image.
 
@@ -98,7 +98,7 @@ For a PCM preset, use the same method with a channel from 1–16, then call `qso
 
 ## ROM map
 
-Open **ROM → ROM usage map** and select a bank. Each row plots a distinct range in the selected bank. Voices with the same encoding, start, end and loop share a row. Green shows the PCM sample interval, amber its positive loop window, and blue an ADPCM sample interval. The displayed end address is exclusive. Wrapped intervals appear at both edges. A partial bank expands to fill the plot; hatching marks addresses beyond the loaded ROM if a voice refers to them. A negative PCM loop register is shown numerically.
+Open **ROM → ROM bank map**. Each numbered button represents one 64 KiB bank. The map distinguishes empty and loaded banks and records PCM and ADPCM reads. A raw file supplies all bytes up to its length, including zeros. For a playing VGM, a bank is loaded when a ROM data block supplies bytes in that bank. Select a number to inspect that bank. Each row plots a distinct range in the selected bank. Voices with the same encoding, start, end and loop share a row. Green shows the PCM sample interval, amber its positive loop window, and blue an ADPCM sample interval. The displayed end address is exclusive. Wrapped intervals appear at both edges. A partial bank expands to fill the plot; hatching marks addresses beyond the loaded ROM if a voice refers to them. A negative PCM loop register is shown numerically.
 
 Select a range to preview its starting 256-byte block. An ADPCM range uses a fresh predictor at the beginning of the block.
 Bank register changes redirect reads into another bank. VGM ROM data blocks update the image at their recorded positions. **Export ROM** exports the current image and its preset catalog together. Pause or seek to export a particular version.
@@ -109,7 +109,7 @@ Before playback, the map shows the authored instruments. During VGM or Code play
 
 A new cassette assigns the original `/samples/cabinet-snare.wav` to PCM CH1 and ADPCM Voice 1. Play C4 on CH1, then play a different note to transpose the snare. Press **1** to hear the same source as a fixed-rate ADPCM one-shot. On an existing cassette, choose **☰ → Import → Add factory demos** and assign the snare to the channels you want to compare.
 
-Select an ADPCM voice, then use ROM → Assign on an ADPCM slot. In ADPCM, the Keyboard panel shows three pads. A / S / D and 1 / 2 / 3 trigger voices 1–3, including while Code plays. Return to PCM to play pitched notes. The encoder mixes to mono and resamples at the project clock (about 8.01 kHz). Each pad fits one 64 KiB address bank.
+Select an ADPCM voice and choose its preset. In ADPCM, the Keyboard panel shows three pads. A / S / D and 1 / 2 / 3 trigger voices 1–3, including while Code plays. Return to PCM to play pitched notes. The encoder mixes to mono and resamples at the project clock (about 8.01 kHz). Each pad fits one 64 KiB address bank.
 
 Select Voice 1–3 to edit its start byte, exclusive end byte, ROM bank, signed volume and pan register. Trigger plays the selected voice. Keys 1, 2 and 3 trigger their respective voices independently. Key release leaves a one-shot running. The Sample control loads a generated pulse's bank and address range. Custom synth pad settings are saved with the cassette.
 
