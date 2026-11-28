@@ -86,6 +86,11 @@ function showPosition(tick) {
   slider.setAttribute('aria-valuetext',text);
   if($('song-position').value!==text)$('song-position').value=text;
 }
+function showPickerFilename(summaryId,picker){
+  const label=$(summaryId),name=picker.selectedOptions[0]?.text??'';
+  if(label.textContent!==name){label.textContent=name;label.title=name;}
+}
+
 function transport() {
   renderBankEditor();
   syncPadView();
@@ -101,6 +106,7 @@ function transport() {
   $('song-transport').hidden=false;
   $('song-loop').disabled=!preparedSong?.canLoop;
   $('song-select').value=songPath??'';
+  showPickerFilename('song-summary-file',$('song-select'));
   $('song-status').textContent=seeking?'Seeking…':songState==='paused'?'Paused · audition':songState==='playing'?'Playing':liveInstrument?'Stopped · audition':'Ready';
   $('song-play').disabled=seeking || songState==='playing' || !preparedSong;
   $('song-play').textContent=songState==='paused'?'Resume':'Play';
@@ -775,6 +781,7 @@ function renderFiles() {
   const songs=tracks.length, picker=$('song-select');
   picker.replaceChildren(...tracks.map(({path})=>new Option(path.split('/').pop(),path)));
   picker.value=songPath??'';
+  showPickerFilename('song-summary-file',picker);
   picker.disabled=!songs;
   $('export-contents').textContent='Includes '+songs+' VGM/VGZ '+(songs===1?'file':'files')+' with embedded sample data.';
   renderFileTree($('project-tree'),entries,{expanded,selectedPath:highlightedPath,onOpen:openScript});
@@ -1715,6 +1722,7 @@ function renderBankEditor(){
   if(paths.join('\n')!==Array.from(picker.options,o=>o.value).join('\n'))
     picker.replaceChildren(...paths.map(path=>new Option(path.split('/').pop(),path)));
   picker.value=selectedRom;
+  showPickerFilename('rom-summary-file',picker);
   $('bank-load-pcm').disabled=Boolean(romPath);
 }
 function selectBank(path){

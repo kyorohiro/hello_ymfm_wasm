@@ -70,6 +70,9 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 .desk-group>summary{padding:.4rem .65rem;cursor:pointer;font-weight:650}
 .desk-group:not([open]){margin-block:2px}
 .desk-group:not([open])>summary{padding-block:0;font-size:.875rem;line-height:1.2}
+.desk-group:not([open])>summary{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;list-style-position:inside}
+.desk-group[open]>summary .summary-file{display:none}
+.summary-file{font-weight:400}
 .desk-group-body{padding:0 .65rem .65rem}
 #song-transport .desk-group-body{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.7rem}
 #song-transport label{margin:0}
@@ -145,7 +148,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <div id="workspace"><aside id="files" aria-label="Files"><strong>Files</strong><label><input type="checkbox" id="auto-apply" title="Save edits and sync playing ROMs automatically. Apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
 <div id="project-tree"></div><small id="preset-info"></small><button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button><button id="new-script">New script…</button>
 <p id="file-status" role="status"></p></aside><div id="desk">
-<output id="status" role="status"></output><details class="desk-group" id="song-transport" open hidden><summary>VGM</summary><div class="desk-group-body"><label id="song-picker"><select id="song-select" aria-label="VGM file"></select></label>
+<output id="status" role="status"></output><details class="desk-group" id="song-transport" open hidden><summary>VGM <span class="summary-file" id="song-summary-file"></span></summary><div class="desk-group-body"><label id="song-picker"><select id="song-select" aria-label="VGM file"></select></label>
 <button id="song-play">Play</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop</button>
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>
@@ -157,7 +160,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 
 
 
-<details class="desk-group" id="rom-tools" open><summary>ROM</summary><div class="desk-group-body rom-picker"><select id="rom-file" aria-label="ROM file"></select><button id="new-rom">New…</button><button id="import-rom">Import…</button><button id="range-export">Export</button><input id="rom-input" type="file" multiple accept=".rom,.bin,.json" hidden></div></details>
+<details class="desk-group" id="rom-tools" open><summary>ROM <span class="summary-file" id="rom-summary-file"></span></summary><div class="desk-group-body rom-picker"><select id="rom-file" aria-label="ROM file"></select><button id="new-rom">New…</button><button id="import-rom">Import…</button><button id="range-export">Export</button><input id="rom-input" type="file" multiple accept=".rom,.bin,.json" hidden></div></details>
 <section id="soundchip">
 <nav id="chip-tabs" class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="rom-chip" aria-pressed="false">ROM</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
