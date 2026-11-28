@@ -1200,16 +1200,20 @@ function chooseSlot(i){
   const s=bankSlots[bankPath]?.[slot];if(s)$('slot-kind').value=s.kind;
   renderBankEditor();
 }
-let previewItem;
+let previewItem=null;
 function drawSlotWave(item){
   if(previewItem===item)return;
   previewItem=item;
-  const canvas=$('slot-wave');canvas.hidden=!item;
-  if(!item)return;
-  const ctx=canvas.getContext('2d'),adpcm=item.kind==='ADPCM';
+  const canvas=$('slot-wave'),{width,height}=canvas,ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,width,height);
+  if(!item){
+    ctx.fillStyle='#527083';ctx.fillRect(0,height/2,width,1);
+    return;
+  }
+  const adpcm=item.kind==='ADPCM';
   const voice={start:0,end:item.length,bank:0,volume:32767,trigger:true};
-  const count=item.length*(adpcm?2:1),{width,height}=canvas;
-  ctx.clearRect(0,0,width,height);ctx.fillStyle='#8ae2d1';
+  const count=item.length*(adpcm?2:1);
+  ctx.fillStyle='#8ae2d1';
   for(let x=0,i=0;x<width;x++){
     let min=1,max=-1;
     const until=Math.ceil((x+1)*count/width);

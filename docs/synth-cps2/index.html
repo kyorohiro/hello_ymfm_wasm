@@ -141,7 +141,7 @@ body{width:min(100%,76rem)}
 <label id="range-saved-label">Saved preset<select data-performance-picker id="range-saved"></select></label><button id="use-saved">Use preset</button><button id="range-rename">Rename…</button>
 </fieldset>
 <details id="slot-editor"><summary>Edit sample slots</summary><fieldset><legend id="bank-name"></legend><p id="bank-size"></p><div class="chip-header"><span id="bank-slot"></span><select aria-label="Sample encoding" id="slot-kind"><option>PCM</option><option>ADPCM</option></select>
-<button id="slot-load">Load…</button><button id="slot-del">Del</button><button id="slot-use">Assign</button></div><div id="slot-buttons" aria-label="Sample slots"></div><p id="slot-info"></p><canvas id="slot-wave" width="512" height="64" aria-label="Selected ROM slot waveform" hidden></canvas></fieldset></details><details id="bank-inspector"><summary>ROM banks and playback history</summary><div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
+<button id="slot-load">Load…</button><button id="slot-del">Del</button><button id="slot-use">Assign</button></div><div id="slot-buttons" aria-label="Sample slots"></div><p id="slot-info"></p><canvas id="slot-wave" width="512" height="64" aria-label="Selected ROM slot waveform" aria-describedby="slot-info"></canvas></fieldset></details><details id="bank-inspector"><summary>ROM banks and playback history</summary><div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
 
 <p>256 bytes per square · Green: PCM · Blue: ADPCM · Purple: both</p>
 <div id="rom-pages" role="group" aria-label="ROM playback history"></div>
