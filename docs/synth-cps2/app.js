@@ -1792,12 +1792,17 @@ function selectBank(path,clearAssignments=false){
   highlightedPath=path;renderFiles();scheduleDraft();
 }
 const voiceRomDialog=$('voice-rom-confirm');
+const skipRomWarningKey='tetorica.cps2.skipVoiceRomWarning';
+let skipRomWarning=false;
+try{skipRomWarning=localStorage.getItem(skipRomWarningKey)==='true';}catch{/* Storage can be unavailable in an embedded player. */}
 let requestedVoiceRom=null;
 for(const picker of [$('pcm-rom'),$('adpcm-rom')]){
   picker.onchange=()=>{
     const path=picker.value,current=romPath?(syncedBank??romPath):bankPath;
     picker.value=current;
     if(path===current)return;
+    if(skipRomWarning){selectBank(path,true);return;}
+    $('voice-rom-skip').checked=false;
     requestedVoiceRom=path;
     $('voice-rom-name').textContent=path.split('/').pop();
     voiceRomDialog.showModal();
@@ -1806,7 +1811,12 @@ for(const picker of [$('pcm-rom'),$('adpcm-rom')]){
 voiceRomDialog.querySelector('form').onsubmit=event=>{
   event.preventDefault();
   voiceRomDialog.close();
-  if(event.submitter?.value==='switch')selectBank(requestedVoiceRom,true);
+  if(event.submitter?.value!=='switch')return;
+  selectBank(requestedVoiceRom,true);
+  if($('voice-rom-skip').checked && !romPath && bankPath===requestedVoiceRom){
+    skipRomWarning=true;
+    try{localStorage.setItem(skipRomWarningKey,'true');}catch{/* Keep the preference for this session. */}
+  }
 };
 $('rom-file').onchange=e=>selectBank(e.target.value);
 function checkBankSize(path,bytes,extraSize=0,replacingPair=false){

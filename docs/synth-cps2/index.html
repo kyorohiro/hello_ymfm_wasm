@@ -253,6 +253,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <dialog id="voice-rom-confirm" aria-labelledby="voice-rom-title"><form method="dialog">
 <h3 id="voice-rom-title">Switch shared ROM?</h3>
 <p>Switching to <strong id="voice-rom-name"></strong> stops playback and clears the current preset assignments for PCM (AUTO and CH1–16) and ADPCM (voices 1–3). Your saved preset files are kept.</p>
+<label style="display:flex;align-items:center"><input type="checkbox" id="voice-rom-skip"> Don’t ask again</label>
 <button value="cancel" autofocus>Cancel</button> <button value="switch">Switch ROM</button></form></dialog>
 <nav id="performance-tabs" class="chip-tabs" aria-label="Performance"><button data-performance="keyboard" aria-controls="keyboard" aria-pressed="true">Keyboard</button><button data-performance="code-panel" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
 <div id="code-panel" hidden><div class="code-toolbar"><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
