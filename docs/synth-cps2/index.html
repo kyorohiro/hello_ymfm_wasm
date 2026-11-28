@@ -61,6 +61,8 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #output-scope{display:block;width:100%;height:7rem;border-radius:5px;background:#102c43}
 .desk-group{margin:.55rem clamp(.6rem,2vw,1.5rem);border:1px solid #afbfba;border-radius:6px}
 .desk-group>summary{padding:.4rem .65rem;cursor:pointer;font-weight:650}
+.desk-group:not([open]){margin-block:2px}
+.desk-group:not([open])>summary{padding-block:0;font-size:.875rem;line-height:1.2}
 .desk-group-body{padding:0 .65rem .65rem}
 #song-picker{display:inline-flex;align-items:center;max-width:100%}#song-select{min-width:0;max-width:100%}
 #song-position{display:block;font-variant-numeric:tabular-nums}
