@@ -315,7 +315,7 @@ async function audio() {
     masterGain.gain.value=mixer.get().master/100;
     node.connect(masterGain).connect(context.destination);
     scope.connect(context,[masterGain]);updateScope();
-    port = node.port; port.onmessage = inspect; applyMix(mixer.get()); installRom();restoreEcho();
+    port = node.port; port.onmessage = inspect; syncAutoFade(); applyMix(mixer.get()); installRom();restoreEcho();
   }).catch(error=>{ready=null;throw error;});
   await ready;
 }
@@ -381,7 +381,7 @@ function press(id,midi) {
   run(async()=>{await audio();if(physical.held===id)port.postMessage(writes);});
 }
 function release(id) {
-  channels.forEach((v,ch)=>{if(v.held===id){v.held=null;port?.postMessage(liveInstrument?{type:'captured-off',channel:ch}:[[ch*8+6,0]]);}});
+  channels.forEach((v,ch)=>{if(v.held===id){v.held=null;port?.postMessage({type:'note-off',channel:ch});}});
 }
 const pads=Array.from({length:3},(_,i)=>({sample:i,start:(i+1)*512,end:(i+2)*512,bank:0,pan:16*i,volume:32767}));
 const factoryBank=demoRom();
@@ -559,12 +559,12 @@ declare function beat(beats?:number):Promise<void>;
 declare function setBpm(bpm:number):void;
 declare function sleep(seconds:number):Promise<void>;
 declare function stopLoop(name:string):void;
-interface QSoundWrite {offsetSeconds:number;register:number;value:number}
+interface QSoundWrite {offsetSeconds:number;register:number;value:number;fadeMs?:4}
 interface QSoundPlan {chip:'qsound';version:1;referenceSampleRate:number;writes:QSoundWrite[]}
 interface QSoundBuilder {
   atSeconds(seconds:number):this; atSample(offset:number):this; writeRegister(register:number,value:number):this;
   noteOn(channel:number,midi:number,sample:number|string,pan?:number,volume?:number):this;
-  noteOff(channel:number):this; trigger(voice:number):this;
+  noteOff(channel:number):this; keyOff(channel:number):this; trigger(voice:number):this;
 }
 declare const qsound:{
   build(record:(b:QSoundBuilder)=>void,options?:{referenceSampleRate?:number}):QSoundPlan;
@@ -579,7 +579,7 @@ declare const qsound:{
   assignSample(channel:number,path:string,options?:{offset?:number,length?:number,loop?:number}):void;
   writeRegister(register:number,value:number):void;
   noteOn(channel:number,midi:number,sample?:number,pan?:number,volume?:number):void;
-  noteOff(channel:number):void;
+  noteOff(channel:number):void; keyOff(channel:number):void;
   trigger(voice:number,sample?:number,pan?:number,volume?:number):void;
 };
 declare function useSoundChip(name:'qsound'):Promise<typeof qsound>;`,
@@ -958,6 +958,8 @@ function saveFiles(){
   pendingBanks.clear();
   pending.clear();renderFiles();scheduleDraft();
 }
+function syncAutoFade(){port?.postMessage({type:'auto-fade',enabled:$('auto-fade').checked});}
+$('auto-fade').onchange=()=>{syncAutoFade();scheduleDraft();};
 $('auto-apply').onchange=()=>{if($('auto-apply').checked)saveFiles();else renderFiles();scheduleDraft();};
 $('save-files').onclick=saveFiles;
 $('apply-preset').onclick=()=>{
@@ -1052,11 +1054,12 @@ installSpuFileContextMenu({root:$('project-tree'),getActions:fileActions,
   onTarget:path=>{highlightedPath=path;renderFiles();},onAction:fileAction,
   onError:e=>{$('file-status').textContent=e.message;}});
 function snapshot() {
-  return {version:1,bankPath,bankSlots:structuredClone(bankSlots),files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
+  return {version:1,autoFade:$('auto-fade').checked,bankPath,bankSlots:structuredClone(bankSlots),files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
     pads:pads.map(p=>({...p})),mix:mixer.get(),selected,autoChannel,autoVoice:{...autoVoice},echo:{...echo}};
 }
 const factory=snapshot();
 function replaceProject(project) {
+  $('auto-fade').checked=project.autoFade!==false;syncAutoFade();
   stop(false);
   songSelection++;songPath=null;preparedSong=null;transport();
   attached=null;pending.clear();pendingBanks.clear();$('auto-apply').checked=true;

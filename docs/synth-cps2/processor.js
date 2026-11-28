@@ -14,6 +14,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     super();
     this.chip = new QSoundPcm(demoRom(), sampleRate,{spatialPcm:true,trackRom:true});
     this.previewVersion=0;
+    this.autoFade=true;
     this.mutes=Array(19).fill(false);
     this.starts = new Uint16Array(16);
     this.gates=new Map();
@@ -22,7 +23,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.reportFxError=message=>this.port.postMessage({fxError:String(message)});
     this.timeline=createRegisterTimedProcessor({
       nowFrame:()=>this.renderedFrames,sampleRate,defaultOwner:'qsound',
-      write:(reg,value,owner)=>this.applyRegister(reg,value,true,owner),
+      write:(reg,value,owner,mask,fadeMs)=>fadeMs?this.noteOff(reg>>3):this.applyRegister(reg,value,true,owner),
       release:(name,scope)=>this.releaseScheduled(name,scope),
       checkAvailable:()=>{if(this.song && !this.song.paused)throw Error('Pause the VGM before scheduling.');},
       reportError:({message})=>this.port.postMessage({scheduleFailure:message}),
@@ -156,7 +157,9 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.playCaptured(data.channel,data.midi);
         return;
       }
-      if(data?.type==='captured-off'){
+      if(data?.type==='auto-fade'){this.autoFade=data.enabled;return;}
+      if(data?.type==='note-off'){this.noteOff(data.channel);return;}
+      if(data?.type==='key-off' || data?.type==='captured-off'){
         this.apply([[data.channel*8+6,0]],false);
         return;
       }
@@ -227,7 +230,7 @@ class Cps2Preview extends AudioWorkletProcessor {
       this.rates=source.voices.map(v=>v.rate);
       this.levels=source.voices.map(v=>v.volume || v.lastLevel || 0);
     }
-    chip.voices.forEach((v,i)=>Object.assign(v,source.voices[i],{volume:0,freezeWhileSilent:true}));
+    chip.voices.forEach((v,i)=>Object.assign(v,source.voices[i],{volume:0,releaseTicks:0,freezeWhileSilent:true}));
     chip.adpcm.forEach((v,i)=>{
       const {bank,start,end,pan,volume}=source.adpcm[i];
       Object.assign(v,{bank,start,end,pan,volume});
@@ -263,6 +266,11 @@ class Cps2Preview extends AudioWorkletProcessor {
       else Object.assign(this.chip.adpcm[voice-16],{trigger:false,gain:0,output:0});
     }
     return released;
+  }
+  noteOff(channel){
+    this.gates.delete(channel);
+    if(this.autoFade)this.chip.fadePcmOff(channel,4);
+    else this.chip.writeRegister(channel*8+6,0);
   }
   apply(writes,remember=true){
     for(const [reg,value] of writes)this.applyRegister(reg,value,remember);

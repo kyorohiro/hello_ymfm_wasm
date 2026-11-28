@@ -56,7 +56,8 @@ const qsound = {
     for (const [reg,value] of writes) if (value>65535) throw RangeError('Note exceeds the PCM rate register');
     postMessage({writes});
   },
-  noteOff(ch) {if(captured){postMessage({audition:{type:'captured-off',channel:channel(ch)}});return;}this.writeRegister(channel(ch)*8+6,0);},
+  noteOff(ch) {postMessage({audition:{type:'note-off',channel:channel(ch)}});},
+  keyOff(ch) {postMessage({audition:{type:'key-off',channel:channel(ch)}});},
   trigger(voice,sample=0,pan=16,volume=32767) {
     if(captured && arguments.length===1){this.writeRegister(0xd6+integer(voice,1,3,'ADPCM voice')-1,1);return;}
     postMessage({writes:adpcmTriggerWrites(integer(voice,1,3,'ADPCM voice')-1,integer(sample,0,2,'ADPCM sample'),

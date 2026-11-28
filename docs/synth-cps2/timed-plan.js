@@ -16,11 +16,13 @@ export function qsoundPlanTools(sampleAt=()=>null){
     if(!Array.isArray(plan.writes)||plan.writes.length>limit)throw RangeError('Invalid register plan size.');
     let previous=0;
     const writes=Array.from(plan.writes,row=>{
-      validation.validateTimedFields(row,['offsetSeconds','register','value'],'QSound write');
+      validation.validateTimedFields(row,['offsetSeconds','register','value','fadeMs'],'QSound write');
       const {offsetSeconds,register,value}=row;
       if(!validation.validOffset(offsetSeconds)||offsetSeconds<previous)throw RangeError('Invalid time offset.');
       previous=offsetSeconds;
-      return {offsetSeconds,register:number(register,0,255,'register'),value:number(value,0,65535,'word')};
+      if(row.fadeMs!==undefined && (row.fadeMs!==4 || register>=128 || (register&7)!==6 || value!==0))
+        throw RangeError('Invalid PCM note-off fade.');
+      return {...(row.fadeMs===undefined?{}:{fadeMs:row.fadeMs}),offsetSeconds,register:number(register,0,255,'register'),value:number(value,0,65535,'word')};
     });
     return {chip:'qsound',version:1,referenceSampleRate:rate,writes};
   }
@@ -52,7 +54,8 @@ export function qsoundPlanTools(sampleAt=()=>null){
         for(const [r,v] of words)b.writeRegister(r,v);
         return b;
       },
-      noteOff(channel){return b.writeRegister((number(channel,1,16,'channel')-1)*8+6,0);},
+      noteOff(channel){b.keyOff(channel);writes[writes.length-1].fadeMs=4;return b;},
+      keyOff(channel){return b.writeRegister((number(channel,1,16,'channel')-1)*8+6,0);},
       trigger(voice){return b.writeRegister(0xd5+number(voice,1,3,'ADPCM voice'),1);},
     };
     try{

@@ -155,7 +155,7 @@ test('scheduled PCM and ADPCM writes share output frames across block boundaries
       const expected=[];
       for(let frame=0;frame<actual.length;frame++){
         if(frame>=128)for(const w of trace){
-          if(Math.round(w.offsetSeconds*hz)===(frame-128)%cycle)send(reference,[[w.register,w.value]]);
+          if(Math.round(w.offsetSeconds*hz)===(frame-128)%cycle)send(reference,w.fadeMs?{type:'note-off',channel:w.register>>3}:[[w.register,w.value]]);
         }
         expected.push(render(reference,1)[0]);
       }
@@ -208,4 +208,29 @@ test('same-ROM preset updates just its destination and preserves another held PC
   assert.equal(voice.volume,8000);
   send({type:'captured-note',channel:2,midi:60});
   assert.deepEqual([p.starts[2],p.chip.voices[2].rate,p.chip.voices[2].loop,p.chip.voices[2].volume],[256,2500,32,7234]);
+});
+
+test('PCM note-off ramps one voice for 4 ms and respects retriggers, key-off and the option',()=>{
+  const p=new Processor(),send=data=>p.port.onmessage({data});
+  const [v,other]=p.chip.voices;
+  send([[6,8000],[14,9000]]);
+  send({type:'note-off',channel:0});
+  const ticks=Math.round(p.chip.tickRate*.004);
+  for(let n=1;n<=ticks;n++){
+    p.chip.tick();
+    assert.equal(v.volume,Math.trunc(8000*(ticks-n)/ticks));
+    assert.equal(other.volume,9000);
+  }
+  send([[6,8000]]);
+  send({type:'note-off',channel:0});
+  p.chip.tick();
+  send([[6,5000]]);
+  p.chip.tick();
+  assert.equal(v.volume,5000);
+  send({type:'key-off',channel:0});
+  assert.equal(v.volume,0);
+  send({type:'auto-fade',enabled:false});
+  send([[6,8000]]);
+  send({type:'note-off',channel:0});
+  assert.equal(v.volume,0);
 });

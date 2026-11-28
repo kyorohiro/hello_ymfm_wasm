@@ -101,6 +101,7 @@ body{width:min(100%,76rem)}
 <button id="import-cassette" data-close-synth-menu>Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden>
 <strong>Export</strong><button id="save" data-close-synth-menu>Download selected VGM / VGZ</button><button id="export-cassette" aria-describedby="export-contents" data-close-synth-menu>Export cassette</button>
 <small id="export-contents"></small><button id="demo-cassette" data-close-synth-menu>Download factory demos</button>
+<strong>Options</strong><label><input id="auto-fade" type="checkbox" checked> PCM note-off fade (4 ms)</label>
 </div></details><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
 <div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
 <output id="status" role="status"></output><section id="song-transport" hidden aria-label="VGM playback"><label id="song-picker">VGM <select id="song-select"></select></label> <small id="song-status" role="status"></small>

@@ -81,7 +81,7 @@ export class QSoundPcm {
     // -1 distinguishes an unwritten register from an explicit zero.
     this.lastWrites = new Int32Array(256).fill(-1);
     this.voices = Array.from({length:16}, () => ({
-      muted:false, bank:0, address:0, phase:0, rate:0, loop:0, end:0, echoSend:0, volume:0, pan:0x120,
+      muted:false, bank:0, address:0, phase:0, rate:0, loop:0, end:0, echoSend:0, volume:0, releaseTicks:0, pan:0x120,
     }));
     this.adpcm = Array.from({length:3}, () => ({
       start:0, end:0, bank:0, address:0, volume:0, gain:0, trigger:false,
@@ -145,7 +145,7 @@ export class QSoundPcm {
       case 3: voice.phase = value; break;
       case 4: voice.loop = signed(value); break;
       case 5: voice.end = signed(value); break;
-      case 6: voice.volume = signed(value); if(value)voice.lastLevel=voice.volume; break;
+      case 6: voice.releaseTicks=0; voice.volume = signed(value); if(value)voice.lastLevel=voice.volume; break;
     }
   }
 
@@ -159,11 +159,22 @@ export class QSoundPcm {
     return average;
   }
 
+  fadePcmOff(channel, milliseconds) {
+    const v=this.voices[channel];
+    if(v.releaseTicks)return;
+    const initial=v.volume;
+    this.writeRegister(channel*8+6,0);
+    if(!initial)return;
+    v.volume=v.releaseStart=initial;
+    v.releaseTicks=v.releaseLength=Math.max(1,Math.round(this.tickRate*milliseconds/1000));
+  }
+
   tick() {
     let left = 0, right = 0, echoInput = 0;
     const spatial=this.spatial && this.echoBase===0x554;
     let dryL=0,dryR=0,wetL=0,wetR=0;
     for (const v of this.voices) {
+      if(v.releaseTicks)v.volume=Math.trunc(v.releaseStart*(--v.releaseTicks)/v.releaseLength);
       if(v.freezeWhileSilent && !v.volume)continue;
       if(this.romUsage && v.volume){
         const address=v.bank*65536+(v.address&65535);
