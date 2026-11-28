@@ -38,6 +38,8 @@ export function createParamControl(config) {
     category = "",
     wheelAdjust = true,
     dragPixelsPerStep,
+    directEntry = false,
+    coarseDragSteps = 1,
     formatValue = String,
   } = config;
   let min=initialMin,max=initialMax;
@@ -104,7 +106,7 @@ export function createParamControl(config) {
 
   let dragStartX = 0;
   let dragStartValue = value;
-  let dragPointer=null;
+  let dragPointer=null, dragged=false, dragMultiplier=1;
   const dragPixelsForFullRange = 160;
 
   function cancelDrag() {
@@ -157,6 +159,8 @@ export function createParamControl(config) {
         applyValue(!currentValue);
         return;
       }
+      dragged=false;
+      dragMultiplier=event.shiftKey?coarseDragSteps:1;
       dragStartX = event.clientX;
       dragStartValue = currentValue;
       dragPointer=event.pointerId;
@@ -189,9 +193,13 @@ export function createParamControl(config) {
         (dragPixelsForFullRange * step / Math.max(step, max - min));
       const deltaSteps = Math.round(deltaX / pixelsPerStep);
 
+      if(directEntry){
+        if(deltaSteps!==0)dragged=true;
+        if(!dragged)return;
+      }
       applyValue(
         dragStartValue +
-        deltaSteps * step
+        deltaSteps * step * dragMultiplier
       );
     }
   );
@@ -225,6 +233,52 @@ export function createParamControl(config) {
     if(dragPointer===event.pointerId)dragPointer=null;
     valueElement.classList.remove('is-dragging');
   });
+
+  if (directEntry && !booleanMode) {
+    valueElement.title = 'Click to enter a value or drag to adjust.' +
+      (coarseDragSteps > 1 ? ' Shift-drag for steps of '+coarseDragSteps+'.' : '');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'param-entry';
+    input.setAttribute('aria-label', label + ' value');
+    input.spellcheck = false;
+    let editing = false;
+    valueElement.addEventListener('click', event => {
+      if (event.detail && dragged) return;
+      editing = true;
+      input.value = formatValue(currentValue);
+      input.setCustomValidity('');
+      valueElement.replaceWith(input);
+      input.focus();
+      input.select();
+    });
+    function finish(commit, focusButton) {
+      if (!editing) return;
+      const text = input.value.trim();
+      let next = NaN;
+      if (/^-?\d+$/.test(text)) next = Number(text);
+      else if (/^(?:0x)?[0-9a-f]+$/i.test(text)) next = parseInt(text, 16);
+      if (commit && (!Number.isSafeInteger(next) || next < min || next > max)) {
+        if (focusButton) {
+          input.setCustomValidity('Enter a value from ' + min + ' to ' + max + ' (decimal or 0x hex).');
+          input.reportValidity();
+          return;
+        }
+        commit = false;
+      }
+      editing = false;
+      input.replaceWith(valueElement);
+      if (commit) applyValue(next);
+      if (focusButton) valueElement.focus();
+    }
+    input.addEventListener('input', () => input.setCustomValidity(''));
+    input.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== 'Escape') return;
+      event.preventDefault();
+      finish(event.key === 'Enter', true);
+    });
+    input.addEventListener('blur', () => finish(true, false));
+  }
 
   if (wheelAdjust) {
     wrapper.addEventListener(

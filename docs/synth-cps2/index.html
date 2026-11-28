@@ -17,6 +17,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 .param-label{grid-column:1/-1;text-align:center;font-size:.82rem}
 .param-control button{border:0;padding:.15rem .45rem;background:transparent}
 .param-value{cursor:ew-resize;touch-action:none;user-select:none;font-variant-numeric:tabular-nums}
+.param-entry{width:8ch;min-width:0;text-align:center;font:inherit;padding:0}
 #pcm-caption{font-size:.85rem;font-variant-numeric:tabular-nums}
 #adpcm-pads,#adpcm-voices{display:flex;gap:.4rem;flex-wrap:wrap;margin:.5rem 0}
 .adpcm-pad{background:#172f45;color:white;touch-action:manipulation}
@@ -120,7 +121,7 @@ body{width:min(100%,76rem)}
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <div role="tablist" id="pcm-tabs" aria-label="PCM channel view"><button role="tab" id="pcm-tab" aria-controls="pcm-panel" aria-selected="true">Voice</button>
 <button role="tab" id="register-tab" aria-controls="register-panel" aria-selected="false" tabindex="-1">Registers</button></div>
-<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><div id="pcm-address" class="chip-header"></div>
+<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <div id="pcm-controls"></div>

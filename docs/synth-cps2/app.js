@@ -138,8 +138,9 @@ function applyMix(settings) {
 }
 const draw = createWaveEditor(edit,itemFor,()=>library.rom);
 const romDragPixelsPerStep=4;
-const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
-const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('start',value)});
+const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
+const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,directEntry:true,dragPixelsPerStep:romDragPixelsPerStep,value:0,onChange:value=>setPcmAddress('bank',value)});
+const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,directEntry:true,coarseDragSteps:256,dragPixelsPerStep:romDragPixelsPerStep,value:0,formatValue:padHex,onChange:value=>setPcmAddress('start',value)});
 $('pcm-address').append(pcmBank.element,pcmStart.element);
 function setPcmAddress(key,value){
   const v=editedVoice(),reg=key==='bank'?((selected+15)&15)*8:selected*8+1;
@@ -396,7 +397,7 @@ function drawPad(address=null,state){
 }
 let padVoice=0;
 const padControls={};
-const padHex=n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0');
+
 const padFields=['start','end','bank','volume'];
 function showPad(state){
   const live=state?.panWord!==undefined;
@@ -442,7 +443,7 @@ for(let i=0;i<3;i++){
 }
 for(const [key,label,min,max] of [['sample','Sample',0,2],['start','Start',0,65535],['end','End (exclusive)',0,65535],
   ['bank','ROM bank',0,32767],['volume','Volume',-32768,32767],['panWord','Pan register',0x110,0x130]]){
-  const control=createParamControl({label,min,max,step:1,value:min,dragPixelsPerStep:['bank','start','end'].includes(key)?romDragPixelsPerStep:undefined,formatValue:key==='sample'?n=>n===-1?(pads[padVoice].samplePath??'WAV').split('/').pop():'Pulse '+(n+1):key==='volume'?String:padHex,
+  const control=createParamControl({label,min,max,step:1,value:min,coarseDragSteps:['start','end'].includes(key)?256:1,directEntry:['bank','start','end'].includes(key),dragPixelsPerStep:['bank','start','end'].includes(key)?romDragPixelsPerStep:undefined,formatValue:key==='sample'?n=>n===-1?(pads[padVoice].samplePath??'WAV').split('/').pop():'Pulse '+(n+1):key==='volume'?String:padHex,
     onChange(value){
       revision++;
       editPreset(true,key==='panWord'?'pan':key,value);
@@ -1232,7 +1233,7 @@ const itemControls={};
 for(const [key,label,max] of [['bank','Bank',32767],['start','Start',65535],['end','End (exclusive)',65535],
     ['rate','Rate',65535],['loop','Loop length',65535]]){
   const control=createParamControl({label,min:0,max,step:1,value:0,
-    dragPixelsPerStep:romDragPixelsPerStep,
+    directEntry:true,coarseDragSteps:key==='bank'?1:256,dragPixelsPerStep:romDragPixelsPerStep,
     formatValue:key==='start'||key==='end'?n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0'):String,
     onChange(value){
       if(!itemDraft)return;
