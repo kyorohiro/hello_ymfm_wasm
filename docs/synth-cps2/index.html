@@ -136,8 +136,8 @@ body{width:min(100%,76rem)}
 <button type="submit" value="create">Create</button> <button type="submit" value="cancel" formnovalidate>Cancel</button></form></dialog>
 <div id="preset-item" class="item-picker-row"><select data-performance-picker id="range-current"></select> <button id="range-del" title="Delete the selected preset">DEL</button></div>
 <div id="item-editor" hidden><div id="item-controls" class="chip-header"></div>
-<div role="group" aria-label="Waveform view"><button id="item-full" aria-pressed="true">Full bank</button> <button id="item-selection" aria-pressed="false">Selection</button></div>
-<canvas id="item-wave" width="640" height="84" aria-label="Full bank waveform"></canvas>
+<div role="group" aria-label="Waveform view"><button id="item-full" aria-pressed="true">Full bank</button> <button id="item-selection" aria-pressed="false">Selection</button> <strong id="item-encoding"></strong></div>
+<canvas id="item-wave" aria-describedby="item-encoding" width="640" height="84" aria-label="Full bank waveform"></canvas>
 <small id="item-wave-help">Drag across the waveform to select a range, or drag its edges to adjust Start and End.</small>
 <button id="item-preview">Preview 1 s</button> <button id="item-save">Save item</button></div>
 <label id="range-history-label" hidden>VGM range history<select data-performance-picker id="range-history"></select></label>

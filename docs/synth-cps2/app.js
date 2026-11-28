@@ -1291,6 +1291,7 @@ function showItem(){
   rangeDrag=null;stopItemPreview();itemSignature=signature;itemRom=rom;itemDraft=p?{...p}:null;
   $('item-editor').hidden=!itemDraft;
   if(!p)return;
+  $('item-encoding').textContent=p.kind==='PCM'?'8-bit PCM':'4-bit ADPCM';
   for(const [key,control] of Object.entries(itemControls)){
     control.element.hidden=!(key in p);
     if(key in p)control.updateVisual(p[key]);
