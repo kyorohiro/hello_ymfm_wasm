@@ -47,8 +47,9 @@ let library=bankLibrary(stockBanks[0][1].rom,bankSlots[bankPath]);
 const itemFor=v=>library.items.get(v.samplePath);
 const startFor=v=>itemFor(v)?.start??v.start??v.sample*256;
 const bankFor=v=>itemFor(v)?.bank??v.bank??0;
+const hasPcmRange=v=>Boolean(v.end || startFor(v) || v.loop);
 function authoredNote(ch,midi,v){
-  return noteWrites(ch,midi,v.sample,v.pan,v.volume,v.rate,v.end,v.loop,bankFor(v),startFor(v));
+  return noteWrites(ch,midi,v.sample,v.pan,hasPcmRange(v)?v.volume:0,v.rate,v.end,v.loop,bankFor(v),startFor(v));
 }
 function installRom(){
   port?.postMessage({type:'project-rom',rom:library.rom});
@@ -410,7 +411,7 @@ $('vol').oninput=()=>{
   else if(channels[selected].held || liveInstrument)port?.postMessage([[selected*8+6,volume&65535]]);
 };
 function press(id,midi) {
-  if(seeking)return;
+  if(seeking || (!liveInstrument && !hasPcmRange(editedVoice())))return;
   let ch=selected;
   if(autoChannel){
     ch=nextAuto;
@@ -474,7 +475,7 @@ function padWrites(i){
   return [[base,pad.start],[base+1,pad.end],[base+2,pad.bank],[base+3,pad.volume&65535],[0x90+i,0x110+pad.pan]];
 }
 function triggerPad(i){
-  if(seeking)return;
+  if(seeking || (!liveInstrument && !pads[i].start && !pads[i].end))return;
   const token=generation;
   const writes=liveInstrument ? [] : padWrites(i);
   writes.push([0xd6+i,1]);
@@ -1760,13 +1761,15 @@ function renderBankEditor(){
   const picker=$('rom-file'),paths=files.readdir('/banks').map(name=>'/banks/'+name).filter(path=>isBankPath(path)&&files.has(path));
   const selectedRom=romPath?(syncedBank??romPath):bankPath;
   if(!paths.includes(selectedRom))paths.unshift(selectedRom);
-  if(paths.join('\n')!==Array.from(picker.options,o=>o.value).join('\n'))
-    picker.replaceChildren(...paths.map(path=>new Option(path.split('/').pop(),path)));
-  picker.value=selectedRom;
+  for(const select of [picker,$('pcm-rom'),$('adpcm-rom')]){
+    if(paths.join('\n')!==Array.from(select.options,o=>o.value).join('\n'))
+      select.replaceChildren(...paths.map(path=>new Option(path.split('/').pop(),path)));
+    if(select.value!==selectedRom)select.value=selectedRom;
+  }
   showPickerFilename('rom-summary-file',picker);
   $('bank-load-pcm').disabled=Boolean(romPath);
 }
-function selectBank(path){
+function selectBank(path,clearAssignments=false){
   if(pendingBankPath(path)){renderBankEditor();$('file-status').textContent='Choose Save files to use this ROM and its presets.';return;}
   if(!isBankPath(path)||!files.has(path))throw Error('Missing ROM '+path);
   if(bankPath!==path || romPath){
@@ -1774,17 +1777,37 @@ function selectBank(path){
     stop(false);bankPath=path;
     rebuildSamples();
     for(const v of [...channels,autoVoice]){
-      if(library.items.has(v.samplePath))setPcmSample(v,v.samplePath);
+      if(clearAssignments)Object.assign(v,{samplePath:null,sample:0,bank:0,start:0,end:0,loop:0,rate:0,referenceRate:0});
+      else if(library.items.has(v.samplePath))setPcmSample(v,v.samplePath);
       else v.samplePath=null;
     }
     for(const p of pads){
-      if(library.padItems.has(p.samplePath))setPadSample(p,p.samplePath);
+      if(clearAssignments)Object.assign(p,{samplePath:null,sample:0,bank:0,start:0,end:0});
+      else if(library.padItems.has(p.samplePath))setPadSample(p,p.samplePath);
       else p.samplePath=null;
     }
+    if(clearAssignments){$('pcm-range').value='';$('adpcm-range').value='';}
     refresh();showPad();showRomMap();
   }
   highlightedPath=path;renderFiles();scheduleDraft();
 }
+const voiceRomDialog=$('voice-rom-confirm');
+let requestedVoiceRom=null;
+for(const picker of [$('pcm-rom'),$('adpcm-rom')]){
+  picker.onchange=()=>{
+    const path=picker.value,current=romPath?(syncedBank??romPath):bankPath;
+    picker.value=current;
+    if(path===current)return;
+    requestedVoiceRom=path;
+    $('voice-rom-name').textContent=path.split('/').pop();
+    voiceRomDialog.showModal();
+  };
+}
+voiceRomDialog.querySelector('form').onsubmit=event=>{
+  event.preventDefault();
+  voiceRomDialog.close();
+  if(event.submitter?.value==='switch')selectBank(requestedVoiceRom,true);
+};
 $('rom-file').onchange=e=>selectBank(e.target.value);
 function checkBankSize(path,bytes,extraSize=0,replacingPair=false){
   const total=files.list().reduce((n,f)=>f.path===path?n:n+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),bytes.length+extraSize);

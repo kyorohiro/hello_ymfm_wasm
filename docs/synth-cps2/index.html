@@ -143,6 +143,8 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #creator-controls{min-width:0;margin:0 0 .4rem;border:1px solid #97aba4;border-radius:5px;padding:.35rem .55rem}#creator-controls legend{padding:0 .25rem;font-weight:650}
 #rom-creator button,#creator-list select{font-size:.85rem;padding:.16rem .45rem}#creator-list{padding:0;list-style:none;margin:0}#creator-list li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:.35rem;padding:2px 0;font-size:.85rem}#creator-list li+li{border-top:1px solid #ccd3c8}#creator-list li span{overflow-wrap:anywhere}#creator-empty{font-size:.85rem}
 #rom-creator dialog{width:min(24rem,92vw);max-height:85vh;overflow:auto;border:1px solid #7a9897;border-radius:6px;background:#fffaf0;color:inherit;padding:.85rem}#rom-creator dialog h3{margin:0 0 .5rem}#rom-creator dialog label{display:grid;margin:.45rem 0}#creator-library{width:100%}#creator-picker small{display:block;margin:.4rem 0}#creator-status:empty,#creator-library-status:empty{display:none}
+.voice-rom{display:inline-flex;align-items:center;gap:.3rem;max-width:100%;margin:0}.voice-rom select{min-width:0;max-width:100%}
+#voice-rom-confirm{max-width:min(25rem,90vw);color:inherit;background:#fffaf0}#voice-rom-confirm p{margin-bottom:.6rem;overflow-wrap:anywhere}
 </style>
 <main>
 <nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
@@ -178,7 +180,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <div role="tablist" id="pcm-tabs" aria-label="PCM channel view"><button role="tab" id="pcm-tab" aria-controls="pcm-panel" aria-selected="true">Voice</button>
 <button role="tab" id="register-tab" aria-controls="register-panel" aria-selected="false" tabindex="-1">Registers</button></div>
 <div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab">
-<fieldset><legend>Preset</legend><div class="preset-actions"><select data-performance-picker id="pcm-range" aria-label="PCM preset"></select><button id="save-pcm-preset">Save preset…</button><button id="pcm-measure">Measure pitch</button></div><small id="preset-pitch" role="status"></small></fieldset>
+<fieldset><legend>Preset</legend><div class="preset-actions"><label class="voice-rom">ROM <select id="pcm-rom" data-performance-picker aria-label="PCM preset ROM"></select></label><select data-performance-picker id="pcm-range" aria-label="PCM preset"></select><button id="save-pcm-preset">Save preset…</button><button id="pcm-measure">Measure pitch</button></div><small id="preset-pitch" role="status"></small></fieldset>
 <fieldset><legend>Voice</legend><div class="voice-controls">
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
@@ -198,7 +200,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <small>— means no write since reset.</small></div></section>
 <section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Choose an ADPCM preset for the selected voice. Press A / S / D or 1 / 2 / 3 to trigger Voice 1–3. Volume applies on the next trigger.</p>
-<label>Preset<select data-performance-picker id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
+<label class="voice-rom">ROM <select id="adpcm-rom" data-performance-picker aria-label="ADPCM preset ROM"></select></label><label>Preset<select data-performance-picker id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden>
 
 <fieldset><legend>Preset</legend>
@@ -248,6 +250,10 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <section id="mixer" hidden><label class="volume-control">Sound Volume <input id="mix-sound" type="range" min="0" max="480" value="100"><output id="mix-sound-level" for="mix-sound">100%</output></label>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>
+<dialog id="voice-rom-confirm" aria-labelledby="voice-rom-title"><form method="dialog">
+<h3 id="voice-rom-title">Switch shared ROM?</h3>
+<p>Switching to <strong id="voice-rom-name"></strong> stops playback and clears the current preset assignments for PCM (AUTO and CH1–16) and ADPCM (voices 1–3). Your saved preset files are kept.</p>
+<button value="cancel" autofocus>Cancel</button> <button value="switch">Switch ROM</button></form></dialog>
 <nav id="performance-tabs" class="chip-tabs" aria-label="Performance"><button data-performance="keyboard" aria-controls="keyboard" aria-pressed="true">Keyboard</button><button data-performance="code-panel" aria-controls="code-panel" aria-pressed="false">Code</button></nav>
 <div id="code-panel" hidden><div class="code-toolbar"><button id="run-code">Run</button><button id="apply-code" disabled>Apply</button><button id="stop-code" disabled>Stop</button>
 <span id="code-status" role="status"></span></div>
