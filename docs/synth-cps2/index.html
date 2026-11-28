@@ -12,7 +12,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #channels .auto-target{box-shadow:inset 0 0 0 2px #155876}
 #pad-plot{position:relative}#pad-cursor{position:absolute;top:0;bottom:0;width:2px;background:#ffc75c;pointer-events:none}
 #pad-wave,#pcm-wave{display:block;width:100%;height:6.5rem;background:#102c43;border-radius:5px}
-#pcm-controls,.echo-controls{display:flex;gap:.45rem;flex-wrap:wrap;margin:.6rem 0}
+.echo-controls{display:flex;gap:.45rem;flex-wrap:wrap;margin:.6rem 0}
 .param-control{display:grid;grid-template-columns:auto minmax(3rem,1fr) auto;border:1px solid #7a9897;border-radius:5px}
 .param-label{grid-column:1/-1;text-align:center;font-size:.82rem}
 .param-control button{border:0;padding:.15rem .45rem;background:transparent}
@@ -83,7 +83,14 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #pcm-panel .preset-actions{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem}
 #pcm-range{max-width:100%}
 #echo-controls{margin:0}
-#pcm-address{justify-content:flex-start}.rom-picker{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}.rom-picker select{max-width:min(19rem,65vw)}
+.voice-controls{display:flex;align-items:center;flex-wrap:wrap;gap:.25rem .4rem;margin-bottom:.4rem}
+.voice-controls label{display:grid;gap:0;margin:0;font-size:.8rem}
+.voice-controls input[type=range]{width:clamp(4.5rem,7vw,6.5rem);margin:0}
+.voice-controls #pcm-address,.voice-controls #pcm-controls{display:contents}
+.voice-controls .param-control{grid-template-columns:auto auto auto;font-size:.83rem;line-height:1.2}
+.voice-controls .param-label{font-size:.74rem}
+.voice-controls .param-control button{padding:.15rem .28rem}
+.rom-picker{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}.rom-picker select{max-width:min(19rem,65vw)}
 #register-panel table{border-collapse:collapse;width:min(100%,32rem);text-align:left}
 #register-panel th,#register-panel td{padding:.15rem .6rem;border-bottom:1px solid #bcc5ba}
 #register-panel td,#register-position{font-family:monospace;font-variant-numeric:tabular-nums}
@@ -148,10 +155,10 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 <button role="tab" id="register-tab" aria-controls="register-panel" aria-selected="false" tabindex="-1">Registers</button></div>
 <div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab">
 <fieldset><legend>Preset</legend><div class="preset-actions"><select data-performance-picker id="pcm-range" aria-label="PCM preset"></select><button id="save-pcm-preset">Save preset…</button><button id="pcm-measure">Measure pitch</button></div><small id="preset-pitch" role="status"></small></fieldset>
-<fieldset><legend>Voice</legend><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
-<label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
+<fieldset><legend>Voice</legend><div class="voice-controls">
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
-<div id="pcm-controls"></div>
+<label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
+<div id="pcm-address" title="Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256."></div><div id="pcm-controls"></div></div>
 <canvas id="pcm-wave" width="768" height="112" aria-label="PCM sample waveform with loop region and playback cursor"></canvas>
 <p id="pcm-caption"></p></fieldset>
 <fieldset><legend>DSP</legend><div class="echo-controls" id="echo-controls"></div></fieldset></div>
