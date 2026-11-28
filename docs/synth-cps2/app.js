@@ -514,7 +514,7 @@ const files = createVirtualFileSystem([
   {path:'/examples/pad-groove.js',data:padGroove},
   {path:'/examples/scheduled-bar.js',data:scheduledBar},
   {path:'/examples/filter-groove.js',data:filterGroove},
-  ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score())})),
+  ...Object.values(demoTracks).map(track=>({path:'/songs/'+track.filename,data:demoVgm(track.score(),{loop:true})})),
   {path:'/examples/pad-loop.js',data:`setBpm(106);
 liveLoop('pads', async () => {
   for (const voice of [1, 2, 1, 3]) {
@@ -532,7 +532,7 @@ refresh();showPad();
 $('add-demos').onclick=()=>run(async()=>{
   const additions=presetJamFiles.filter(file=>!files.has(file.path));
   for(const track of Object.values(demoTracks)){
-    const bytes=demoVgm(track.score());
+    const bytes=demoVgm(track.score(),{loop:true});
     let path='/songs/'+track.filename,n=1;
     while(files.has(path)){
       const existing=files.get(path).data;
@@ -827,7 +827,7 @@ async function savePreset(kind){
     voice={source:null,clock:4000000,bytes:library.rom.subarray(v.bank*65536,(v.bank+1)*65536),bank:v.bank,start:v.start,end:v.end,
       pan:0x110+v.pan,volume:v.volume};
   }else{
-    const v=channels[ch];
+    const v=editedVoice();
     const rate=v.referenceRate===null?pcmRate(60):Math.min(65535,Math.round(v.referenceRate*2**((60-v.referenceNote)/12)));
     voice={source:null,clock:4000000,bytes:library.rom.subarray((bankFor(v))*65536,((bankFor(v))+1)*65536),bank:bankFor(v),start:startFor(v),end:v.end,loop:v.loop,
       rate,pan:0x110+v.pan,volume:v.volume,send:v.send};
@@ -852,6 +852,7 @@ async function savePreset(kind){
   pending.delete(path);attached={path,adpcm,ch};highlightedPath=path;setFiles(true);renderFiles();await saveDraft();
   $('file-status').textContent='Saved '+path;
 }
+$('save-pcm-preset').onclick=()=>run(()=>savePreset('pcm'));
 $('save-pad-preset').onclick=()=>run(()=>savePreset('adpcm'));
 
 let presetQueue=Promise.resolve();
@@ -1076,6 +1077,14 @@ function replaceProject(project) {
   songSelection++;songPath=null;preparedSong=null;transport();
   attached=null;pending.clear();pendingBanks.clear();$('auto-apply').checked=true;
   files.replace(project.files);rangePresets.clear();
+  // Older cassettes contain the same factory streams without the loop header.
+  for(const track of Object.values(demoTracks)){
+    const path='/songs/'+track.filename,existing=files.get(path)?.data;
+    if(!(existing instanceof Uint8Array) || existing[0x1c] || existing[0x1d])continue;
+    const legacy=demoVgm(track.score());
+    if(existing.length===legacy.length && legacy.every((byte,i)=>byte===existing[i]))
+      files.writeBinary(path,demoVgm(track.score(),{loop:true}));
+  }
   if(project.bankPath){
     bankPath=project.bankPath;bankSlots=structuredClone(project.bankSlots);
   }else{

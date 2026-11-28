@@ -122,7 +122,7 @@ body{width:min(100%,76rem)}
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <div role="tablist" id="pcm-tabs" aria-label="PCM channel view"><button role="tab" id="pcm-tab" aria-controls="pcm-panel" aria-selected="true">Voice</button>
 <button role="tab" id="register-tab" aria-controls="register-panel" aria-selected="false" tabindex="-1">Registers</button></div>
-<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><button id="pcm-measure">Measure pitch</button> <small id="preset-pitch" role="status"></small><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
+<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><button id="save-pcm-preset">Save preset…</button> <button id="pcm-measure">Measure pitch</button> <small id="preset-pitch" role="status"></small><div id="pcm-address" class="chip-header"></div><small>Click to type an address. Drag Start in steps of 1, or Shift-drag in steps of 256.</small>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <div id="pcm-controls"></div>

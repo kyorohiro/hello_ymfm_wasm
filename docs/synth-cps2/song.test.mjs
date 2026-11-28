@@ -162,3 +162,15 @@ test('a programmed PCM range enters the playable list only after rate and level 
   assert.equal(range(125).played,true);
   assert.equal(range(175).played,true);
 });
+
+test('each factory demo loops from tick zero after its ROM block',()=>{
+  for(const track of Object.values(demoTracks)){
+    const bytes=demoVgm(track.score(),{loop:true});
+    const {ticks,canLoop,loopTick}=inspectSong(bytes);
+    assert.equal(canLoop,true,track.filename);
+    assert.equal(loopTick,0);
+    const header=new DataView(bytes.buffer);
+    assert.equal(header.getUint32(0x20,true),ticks);
+    assert.equal(bytes[header.getUint32(0x1c,true)+0x1c],track===demoTracks.pan?0x61:0xc4);
+  }
+});

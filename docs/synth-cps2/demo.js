@@ -87,10 +87,11 @@ export const demoTracks = {
   echo:{score:echoScore, filename:'tetorica-cps2-echo.vgm'},
 };
 
-export function demoVgm(score = demoScore()) {
+export function demoVgm(score = demoScore(),{loop=false}={}) {
   const rom = demoRom(), commands = [];
   const u32 = n => [n&255,n>>>8&255,n>>>16&255,n>>>24];
   commands.push(0x67,0x66,0x8f,...u32(8+rom.length),...u32(rom.length),0,0,0,0,...rom);
+  const musicOffset=256+commands.length;
   let time = 0;
   for (const {t,writes} of score) {
     const wait = t-time;
@@ -103,5 +104,9 @@ export function demoVgm(score = demoScore()) {
   bytes.set([86,103,109,32]); bytes.set(commands,256);
   for (const [offset,value] of [[4,bytes.length-4],[8,0x171],[0x18,time],[0x34,204],[0xb4,4_000_000]])
     header.setUint32(offset,value,true);
+  if(loop && time>0){
+    header.setUint32(0x1c,musicOffset-0x1c,true);
+    header.setUint32(0x20,time,true);
+  }
   return bytes;
 }
