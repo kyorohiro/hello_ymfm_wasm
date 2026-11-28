@@ -1174,9 +1174,6 @@ function downloadCassette(project,filename) {
   $('file-status').textContent='Exported '+filename;
 }
 $('export-cassette').onclick=()=>run(async()=>downloadCassette(snapshot(),'tetorica-cps2.cassette.zip'));
-$('demo-cassette').onclick=()=>run(async()=>{
-  downloadCassette(factory,'tetorica-cps2-demos.cassette.zip');
-});
 $('import-cassette').onclick=()=>$('cassette-input').click();
 $('cassette-input').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';

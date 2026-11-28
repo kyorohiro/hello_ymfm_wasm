@@ -161,9 +161,7 @@ In ☰ → Import, choose **VGM / VGZ…**. Select a song under `/songs` and use
 
 Playback supports a single QSound stream with embedded 0x8F ROM blocks, 0xC4 writes and standard waits. The existing PCM, ADPCM and echo preview applies. Turn on Loop to repeat from the file’s loop command offset. It is available only when the offset points to a command followed by playback time. All four factory VGMs loop from their first musical command. The initial PCM duet plays on CH1 and CH2. Choose either channel in PCM and click **Save preset…** to capture its voice in Files. For a song with an intro before the loop, the intro plays once. Turning Loop off lets the current pass finish. Standard-mode PCM uses the spatial approximation described above.
 
-## Sharing demo cassettes
-
-☰ → Export → **Download factory demos** builds a project from the factory scripts, the default instrument settings and the generated demo VGMs. Each VGM contains the PCM and ADPCM sample bytes synthesized by `demoRom()`. This download is independent of the currently open project.
+## Sharing cassettes
 
 **Export cassette** includes all songs in the current Files tree, including their embedded sample data. The menu shows the song count. When sharing that ZIP, check redistribution permission for both the music and the samples in any imported song.
 
