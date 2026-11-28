@@ -245,7 +245,8 @@ test('PCM note-off ramps one voice for 8 ms and respects retriggers, key-off and
 test('selecting a VGM installs its ROM silently and leaves the first note playable',()=>{
   const processor=new Processor(),path='/songs/duet.vgm';
   const bytes=demoVgm(demoTracks.demo.score());
-  processor.port.onmessage({data:{type:'song',bytes,path,audition:true}});
+  processor.port.onmessage({data:{type:'song',bytes,path}});
+  processor.port.onmessage({data:{type:'load-song-rom',bytes,path}});
   assert.equal(processor.song,null);
   assert.equal(processor.romSource().path,path);
   assert.ok(processor.chip.rom.some(byte=>byte!==0));

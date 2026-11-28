@@ -77,6 +77,7 @@ function pendingBankPath(path){
   if(isCatalogPath(path))return [...pendingBanks.keys()].find(bank=>catalogPath(bank)===path);
 }
 let songPath=null, songState='stopped', songSelection=0;
+let songLoading=false;
 let preparedSong=null, preparationRevision=0,sourceChoice=0;
 let seekWorker=null, seeking=false, sliding=false;
 const songLimit=16*1024*1024;
@@ -105,7 +106,7 @@ function showPickerFilename(summaryId,picker){
 function transport() {
   renderBankEditor();
   syncPadView();
-  $('song-seek').disabled=!preparedSong;
+  $('song-seek').disabled=songLoading || !preparedSong;
   $('song-seek').max=preparedSong?.ticks??1;
   if(songState==='stopped' && !seeking && !liveInstrument)showPosition(0);
   const mark=$('loop-mark');
@@ -118,8 +119,8 @@ function transport() {
   $('song-loop').disabled=!preparedSong?.canLoop;
   $('song-select').value=songPath??'';
   showPickerFilename('song-summary-file',$('song-select'));
-  $('song-status').textContent=seeking?'Seeking…':songState==='paused'?'Paused · audition':songState==='playing'?'Playing':liveInstrument?'Stopped · audition':'Ready';
-  $('song-play').disabled=seeking || songState==='playing' || !preparedSong;
+  $('song-status').textContent=songLoading?'Loading…':seeking?'Seeking…':songState==='paused'?'Paused · audition':songState==='playing'?'Playing':liveInstrument?'Stopped · audition':'Ready';
+  $('song-play').disabled=songLoading || seeking || songState==='playing' || !preparedSong;
   $('song-play').textContent=songState==='paused'?'Resume':'Play';
   $('song-pause').disabled=seeking || songState!=='playing';
   $('song-stop').disabled=false;
@@ -286,6 +287,7 @@ function inspect({data}) {
       if(romPath){
         try{syncPlayingBank(data);}catch(error){$('file-status').textContent=error.message;}
       }
+      if(songLoading && data.choice===sourceChoice){songLoading=false;transport();}
       renderRanges();
     }
     return;
@@ -526,6 +528,7 @@ $('pad-trigger').onclick=()=>triggerPad(padVoice);
 syncPadView();
 const setPadKeyboard=setupKeyboard({press,release,triggerPad:voice=>triggerPad(voice-1)});
 function stop(keepInstrument=true){
+  songLoading=false;
   clearPresetPitch();
   liveInstrument=Boolean(keepInstrument && liveInstrument);
   if(!liveInstrument && projectAutoVoice){
@@ -880,19 +883,24 @@ function openScript(path,prepared,activateRom=true) {
   }
   if (file.type==='binary') {
     const choice=++sourceChoice;
-    if(path===songPath && preparedSong && !prepared){
-      if(activateRom && romPath!==path)run(()=>previewSongRom(path,preparedSong,choice));
-      renderFiles();return;
-    }
-    stop(false);songPath=path;
-    preparedSong=null;$('song-loop').checked=false;
+    const cached=path===songPath?preparedSong:null;
+    stop(false);stopItemPreview();songPath=path;
+    preparedSong=null;songLoading=true;$('song-loop').checked=false;
     transport();renderFiles();
-    const token=++preparationRevision;
-    Promise.resolve(prepared??prepareSong(file.data)).then(song=>{
+    const token=++preparationRevision,loadGeneration=generation;
+    Promise.resolve(prepared??cached??prepareSong(file.data)).then(async song=>{
       if(token!==preparationRevision || path!==songPath)return;
-      preparedSong=song;transport();scheduleDraft();
-      if(activateRom && choice===sourceChoice)return previewSongRom(path,song,choice);
-    }).catch(error=>{if(token===preparationRevision && path===songPath)$('file-status').textContent=error.message;});
+      preparedSong=song;scheduleDraft();
+      if(activateRom && choice===sourceChoice && loadGeneration===generation){
+        await previewSongRom(path,song,choice);
+      }else if(choice===sourceChoice){
+        songLoading=false;transport();
+      }
+    }).catch(error=>{
+      if(token===preparationRevision && choice===sourceChoice){
+        songLoading=false;transport();$('file-status').textContent=error.message;
+      }
+    });
     return;
   }
   if(codeMode || lowerView!=='code-panel')selectPerformance(true);
@@ -1759,7 +1767,7 @@ function renderBankEditor(){
 function selectBank(path,clearAssignments=false){
   if(pendingBankPath(path)){renderBankEditor();$('file-status').textContent='Choose Save files to use this ROM and its presets.';return;}
   if(!isBankPath(path)||!files.has(path))throw Error('Missing ROM '+path);
-  sourceChoice++;
+  sourceChoice++;songLoading=false;
   if(bankPath!==path || romPath){
     for(const v of [...channels,autoVoice]){v.bank=bankFor(v);v.start=startFor(v);}
     stop(false);bankPath=path;
@@ -1777,7 +1785,7 @@ function selectBank(path,clearAssignments=false){
     if(clearAssignments){$('pcm-range').value='';$('adpcm-range').value='';}
     refresh();showPad();showRomMap();
   }
-  highlightedPath=path;renderFiles();scheduleDraft();
+  highlightedPath=path;transport();renderFiles();scheduleDraft();
 }
 const voiceRomDialog=$('voice-rom-confirm');
 const skipRomWarningKey='tetorica.cps2.skipVoiceRomWarning';
@@ -1928,12 +1936,19 @@ $('song-input').onchange=async event=>{
   const token=++songSelection;
   try {
     if(file.size>songLimit || !/\.(vgm|vgz)$/i.test(file.name))throw Error('Choose a VGM or VGZ up to 16 MiB.');
-    const raw=new Uint8Array(await file.arrayBuffer());
-    const prepared=await prepareSong(raw);
-    if(token!==songSelection)return;
     const path='/songs/'+file.name;
     if(files.has(path) && !confirm('Replace '+path+'?'))return;
-    files.writeBinary(path,raw);openScript(path,prepared);
+    stop(false);stopItemPreview();
+    const importChoice=++sourceChoice;
+    $('song-transport').open=true;songLoading=true;transport();
+    try{
+      const raw=new Uint8Array(await file.arrayBuffer());
+      const prepared=await prepareSong(raw);
+      if(token!==songSelection || importChoice!==sourceChoice)return;
+      files.writeBinary(path,raw);openScript(path,prepared);
+    }finally{
+      if(importChoice===sourceChoice){songLoading=false;transport();}
+    }
     const panel=$('song-transport');
     panel.open=true;panel.scrollIntoView({block:'nearest'});
     saveDraft();
@@ -1946,11 +1961,12 @@ async function previewSongRom(path,song,choice){
   if(token!==generation || choice!==sourceChoice || path!==songPath || song!==preparedSong)return;
   followSong();attached=null;romPath=path;syncedBank=null;syncedRomRevision=-1;
   rangeVersion=-1;vgmRanges=[];currentRanges=[];liveInstrument=true;songState='stopped';
-  port.postMessage({type:'song',path,bytes:song.bytes,audition:true});
-  port.postMessage({type:'range-state',known:-1,knownRom:-1});
+  port.postMessage({type:'load-song-rom',path,bytes:song.bytes});
+  port.postMessage({type:'range-state',known:-1,knownRom:-1,choice});
   revision++;transport();inspectChannel();
 }
 async function playSong(){
+  if(songLoading)return;
   clearPresetPitch();
   if(songState==='paused'){followSong();attached=null;stopWorker();channels.forEach(v=>v.held=null);revision++;songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
   stop();

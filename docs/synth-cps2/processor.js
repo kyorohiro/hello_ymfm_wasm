@@ -52,7 +52,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         return;
       }
       if (data?.type === 'mute-voices') {this.mutes=data.mask;this.applyMutes();return;}
-      if (data?.type === 'song') {
+      if (data?.type === 'song' || data?.type === 'load-song-rom') {
         this.chip=new QSoundPcm(new Uint8Array(),sampleRate,{spatialPcm:true,trackRom:true});
         this.applyMutes();
         this.starts.fill(0);
@@ -63,7 +63,7 @@ class Cps2Preview extends AudioWorkletProcessor {
           this.applyMutes();
         }
         this.song.applyDueEvents(true);
-        if(data.audition){
+        if(data.type==='load-song-rom'){
           // Some streams start with waits before loading their first ROM image.
           while(!this.song.romRevision && !this.song.parser.ended &&
               this.song.parser.bytes[this.song.parser.position]!==0x66){
@@ -73,7 +73,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         }
         this.song.loop=data.loop;
         this.sourcePath=data.path;this.source=null;this.captured=false;
-        if(data.audition)this.stopAudition();
+        if(data.type==='load-song-rom')this.stopAudition();
         else this.setPaused(Boolean(data.paused));
         return;
       }
@@ -123,7 +123,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         }else{
           const bytes=this.sourcePath && (this.sentRom!==this.chip.rom || data.knownRom!==romRevision)?this.chip.rom.slice():null;
           this.sentRom=this.chip.rom;
-          this.port.postMessage({type:'range-state',source:this.sourcePath,current,version,romRevision,bytes,
+          this.port.postMessage({type:'range-state',choice:data.choice,source:this.sourcePath,current,version,romRevision,bytes,
             ...(this.sentRanges===ranges && data.known===version?{}:{ranges:[...(ranges?.values()??[])]})},bytes?[bytes.buffer]:[]);
           this.sentRanges=ranges;
         }
