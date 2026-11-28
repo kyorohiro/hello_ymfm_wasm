@@ -87,6 +87,7 @@ body{width:min(100%,76rem)}
 #rom-pages button[data-kind="2"]{background:#235d93}#rom-pages button[data-kind="3"]{background:#825897}
 #rom-pages button[aria-pressed=true]{outline:2px solid #ce7520;outline-offset:-2px}
 #slot-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
+#rom-chip > details{margin-top:.6rem}#rom-chip > details > summary{cursor:pointer;font-weight:600;padding:.35rem 0}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
 <nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
@@ -117,7 +118,7 @@ body{width:min(100%,76rem)}
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <div role="tablist" id="pcm-tabs" aria-label="PCM channel view"><button role="tab" id="pcm-tab" aria-controls="pcm-panel" aria-selected="true">Voice</button>
 <button role="tab" id="register-tab" aria-controls="register-panel" aria-selected="false" tabindex="-1">Registers</button></div>
-<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select id="pcm-range"></select></label><div id="pcm-address" class="chip-header"></div>
+<div id="pcm-panel" role="tabpanel" aria-labelledby="pcm-tab"><label>Preset<select data-performance-picker id="pcm-range"></select></label><div id="pcm-address" class="chip-header"></div>
 <label>Pan <input id="pan" type="range" min="0" max="32" value="16"></label>
 <label>Volume <input id="vol" type="range" min="0" max="16384" value="8000"></label>
 <div id="pcm-controls"></div>
@@ -129,24 +130,24 @@ body{width:min(100%,76rem)}
 <small>— means no write since reset.</small></div></section>
 <section id="adpcm-chip" hidden aria-labelledby="adpcm-heading"><h2 id="adpcm-heading">ADPCM pads</h2>
 <p>Assign an ADPCM slot in ROM to the selected voice. Press A / S / D or 1 / 2 / 3 to trigger Voice 1–3. Volume applies on the next trigger.</p>
-<label>Preset<select id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
+<label>Preset<select data-performance-picker id="adpcm-range"></select></label><div id="adpcm-voices" role="group" aria-label="ADPCM voice"></div><div id="pad-plot"><canvas id="pad-wave" width="640" height="104" aria-label="Decoded ADPCM waveform"></canvas><span id="pad-cursor" hidden></span></div><small id="pad-caption"></small><div id="adpcm-pads"></div><button id="save-pad-preset">Save preset…</button> <button id="pad-trigger" class="adpcm-pad">Trigger</button> <output id="pad-status"></output></section>
 <section id="rom-chip" aria-label="ROM map" hidden><div class="chip-header"><button id="capture-rom">Save playing ROM to Files…</button></div>
 
-<div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
-<button id="export-rom">Download current ROM</button>
+<fieldset><legend>Preset</legend>
+<label>Current voice range<select data-performance-picker id="range-current"></select></label><button id="range-save">Save range</button>
+<label id="range-history-label" hidden>VGM range history<select data-performance-picker id="range-history"></select></label>
+<button id="use-history" hidden>Use selected range</button>
+<p id="range-history-info" hidden>Save playing ROM to Files to keep its range history with the current ROM image.</p>
+<label id="range-saved-label">Saved preset<select data-performance-picker id="range-saved"></select></label><button id="use-saved">Use preset</button><button id="range-rename">Rename…</button>
+<button id="range-export">Download ROM + preset JSON</button> <button id="export-rom">Download current ROM</button></fieldset>
+<details id="slot-editor"><summary>Edit sample slots</summary><fieldset><legend id="bank-name"></legend><p id="bank-size"></p><div class="chip-header"><span id="bank-slot"></span><select aria-label="Sample encoding" id="slot-kind"><option>PCM</option><option>ADPCM</option></select>
+<button id="slot-load">Load…</button><button id="slot-del">Del</button><button id="slot-use">Assign</button></div><div id="slot-buttons" aria-label="Sample slots"></div><p id="slot-info"></p><canvas id="slot-wave" width="512" height="64" aria-label="Selected ROM slot waveform" hidden></canvas></fieldset></details><details id="bank-inspector"><summary>ROM banks and playback history</summary><div class="chip-header"><label>64 KiB bank <select id="rom-bank"></select></label><span id="rom-source"></span></div>
+
 <p>256 bytes per square · Green: PCM · Blue: ADPCM · Purple: both</p>
 <div id="rom-pages" role="group" aria-label="ROM playback history"></div>
 <canvas id="rom-preview" width="512" height="84" aria-label="Selected ROM block waveform"></canvas><p id="rom-page-caption"></p>
 <p id="rom-scale"></p><small>Bank-relative byte addresses · End exclusive · Amber marks the PCM loop.</small>
-<fieldset><legend>Preset</legend>
-<label>Current voice range<select id="range-current"></select></label><button id="range-save">Save range</button>
-<label id="range-history-label" hidden>VGM range history<select id="range-history"></select></label>
-<button id="use-history" hidden>Use selected range</button>
-<p id="range-history-info" hidden>Save playing ROM to Files to keep its range history with the current ROM image.</p>
-<label id="range-saved-label">Saved preset<select id="range-saved"></select></label><button id="use-saved">Use preset</button><button id="range-rename">Rename…</button>
-<button id="range-export">Download ROM + preset JSON</button></fieldset>
-<fieldset><legend id="bank-name"></legend><p id="bank-size"></p><div class="chip-header"><span id="bank-slot"></span><select aria-label="Sample encoding" id="slot-kind"><option>PCM</option><option>ADPCM</option></select>
-<button id="slot-load">Load…</button><button id="slot-del">Del</button><button id="slot-use">Assign</button></div><div id="slot-buttons" aria-label="Sample slots"></div><p id="slot-info"></p><canvas id="slot-wave" width="512" height="64" aria-label="Selected ROM slot waveform" hidden></canvas></fieldset><div id="rom-samples"></div><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></section>
+<div id="rom-samples"></div><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
 <section id="mixer" hidden><label>Master <input id="mix-master" type="range" min="0" max="380" value="100"></label> <output id="mix-level" for="mix-master">100%</output>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>

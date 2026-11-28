@@ -52,8 +52,10 @@ export function setupKeyboard({press,release,triggerPad}){
   render();
   window.addEventListener('keydown',e=>{
     if(e.defaultPrevented || e.isComposing || e.ctrlKey || e.altKey || e.metaKey ||
-      e.target.isContentEditable || e.target.closest?.('input:not([type=range]):not([type=checkbox]),select,textarea,.monaco-editor,[role=textbox]'))return;
+      e.target.isContentEditable || e.target.closest?.('input:not([type=range]):not([type=checkbox]),select:not([data-performance-picker]),textarea,.monaco-editor,[role=textbox]'))return;
     const key=e.key.toLowerCase();
+    // Preserve native picker navigation while letting mapped note keys play.
+    if(e.target.matches?.('select[data-performance-picker]') && key.length!==1)return;
     if(/^[123]$/.test(key)){
       e.preventDefault();if(!e.repeat)triggerPad(Number(key));return;
     }

@@ -636,17 +636,19 @@ const drawRomMap=createRomMap(id=>{
 const romPages=createRomPages((bank,page)=>{
   if(port){
     port.postMessage({type:'rom-pages',bank,page});
-    if(liveInstrument)port.postMessage({type:'range-state',known:rangeVersion});
+
   }
   else{
     const offset=(bank*256+page)*256;
     romPages.draw({bank,page,size:library.rom.length,usage:[],bytes:library.rom.slice(offset,offset+256)});
   }
 });
+$('bank-inspector').ontoggle=()=>{if($('bank-inspector').open)romPages.refresh();};
 setInterval(()=>{
   if(document.hidden||!port)return;
-  if(!$('rom-chip').hidden)romPages.refresh();
-  else if(romPath && (!$('pcm-chip').hidden||!$('adpcm-chip').hidden))
+  const romVisible=!$('rom-chip').hidden;
+  if(romVisible && $('bank-inspector').open)romPages.refresh();
+  if((liveInstrument && romVisible) || (romPath && (!$('pcm-chip').hidden||!$('adpcm-chip').hidden)))
     port.postMessage({type:'range-state',known:rangeVersion});
 },250);
 $('export-rom').onclick=()=>run(async()=>{
@@ -1320,6 +1322,7 @@ function renderBankEditor(){
   $('bank-size').textContent=slots.filter(Boolean).length+' / 128 slots · ROM '+library.rom.length.toLocaleString()+' / '+maxRom.toLocaleString()+' bytes';
   $('slot-info').textContent=s?s.name+' · '+s.kind+' · Bank '+Math.floor(s.offset/65536)+' · '+s.length+' bytes':'Empty slot';
   $('slot-del').disabled=!s || Boolean(romPath);$('slot-load').disabled=Boolean(romPath);
+  $('slot-editor').hidden=Boolean(romPath);
   $('slot-use').disabled=!s || Boolean(romPath);$('capture-rom').disabled=!romPath;
   $('slot-use').textContent=s?.kind==='ADPCM'?'Assign to Voice '+(padVoice+1):autoChannel?'Assign to AUTO':'Assign to CH'+(selected+1);
 }
@@ -1361,7 +1364,7 @@ $('new-rom').onclick=()=>run(async()=>{
   let n=1;while(files.has('/banks/user-'+n+'.bin'))n++;
   const name=prompt('New ROM file name','user-'+n+'.bin');
   if(!name?.trim())return;
-  addRom(name,new Uint8Array());chooseSlot(0);
+  addRom(name,new Uint8Array());chooseSlot(0);$('slot-editor').open=true;
   document.querySelector('[data-chip="rom-chip"]').click();
 });
 $('import-rom').onclick=()=>$('rom-input').click();
