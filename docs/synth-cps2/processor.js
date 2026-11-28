@@ -56,6 +56,7 @@ class Cps2Preview extends AudioWorkletProcessor {
           this.song.restore(data.state);
           this.applyMutes();
         }
+        this.song.applyDueEvents(true);
         this.song.loop=data.loop;
         this.sourcePath=data.path;this.source=null;this.captured=false;
         this.setPaused(Boolean(data.paused));
@@ -75,7 +76,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         return;
       }
       if (data === 'stop-audition') {
-        if(this.song){this.frozenRanges=this.song.ranges;this.frozenRangeRevision=this.song.rangeRevision;}
+        if(this.song){this.frozenRomRevision=this.song.romRevision;this.frozenRanges=this.song.ranges;this.frozenRangeRevision=this.song.rangeRevision;}
         this.capture();
         this.song=null;
         return;
@@ -101,19 +102,18 @@ class Cps2Preview extends AudioWorkletProcessor {
         const current=[];
         for(let i=0;i<19;i++)if(this.chip.lastWrites[i<16?i*8+5:0xcb+4*(i-16)]>=0)
           current.push({...voiceRange(this.chip,this.starts,i),voice:i});
+        const romRevision=this.song?.romRevision??this.frozenRomRevision??0;
         if(data.reply){
           const bytes=this.chip.rom.slice();
-          data.reply.postMessage({bytes,current,ranges:[...(ranges?.values()??[])]},[bytes.buffer]);data.reply.close();
+          data.reply.postMessage({source:this.sourcePath,bytes,current,romRevision,ranges:[...(ranges?.values()??[])]},[bytes.buffer]);data.reply.close();
         }else{
-          this.port.postMessage({type:'range-state',source:this.sourcePath,current,version,
-            ...(this.sentRanges===ranges && data.known===version?{}:{ranges:[...(ranges?.values()??[])]})});
+          const bytes=this.sourcePath && (this.sentRom!==this.chip.rom || data.knownRom!==romRevision)?this.chip.rom.slice():null;
+          this.sentRom=this.chip.rom;
+          this.port.postMessage({type:'range-state',source:this.sourcePath,current,version,romRevision,bytes,
+            ...(this.sentRanges===ranges && data.known===version?{}:{ranges:[...(ranges?.values()??[])]})},bytes?[bytes.buffer]:[]);
           this.sentRanges=ranges;
         }
         return;
-      }
-      if(data?.type==='export-rom'){
-        const bytes=this.chip.rom.slice();
-        data.reply.postMessage(bytes,[bytes.buffer]);data.reply.close();return;
       }
       if(data?.type==='rom-pages'){
         const base=data.bank*256,offset=(base+data.page)*256;

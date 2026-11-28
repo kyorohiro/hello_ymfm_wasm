@@ -28,6 +28,7 @@ import {bankLibrary,defaultRom,editSlot,factoryBanks,isBankPath,padFromPcm} from
 import {catalogPath,catalogText,isCatalogPath,rangeKey,rangeName,readCatalog} from './range-presets.js';
 import {zipSync} from '../playground/vendor/fflate.js';
 const rangePresets=new Map();
+let syncedBank=null,syncedRomRevision=-1,syncedRangeSignature=null;
 let currentRanges=[],vgmRanges=[],rangeVersion=-1;
 const stockBanks=factoryBanks();
 let bankPath=defaultRom,bankSlots=Object.fromEntries(stockBanks.map(([path,b])=>[path,b.slots]));
@@ -236,6 +237,9 @@ function inspect({data}) {
   if(data.type==='range-state'){
     if(liveInstrument && (!romPath||data.source===romPath)){
       currentRanges=data.current;rangeVersion=data.version;if(data.ranges)vgmRanges=data.ranges;
+      if(romPath){
+        try{syncPlayingBank(data);}catch(error){$('file-status').textContent=error.message;}
+      }
       renderRanges();
     }
     return;
@@ -459,7 +463,7 @@ syncPadView();
 const setPadKeyboard=setupKeyboard({press,release,triggerPad:voice=>triggerPad(voice-1)});
 function stop(keepInstrument=true){
   liveInstrument=Boolean(keepInstrument && liveInstrument);
-  if(!liveInstrument){attached=null;romPath=null;vgmRanges=[];currentRanges=[];rangeVersion=-1;}
+  if(!liveInstrument){attached=null;romPath=null;vgmRanges=[];currentRanges=[];rangeVersion=-1;syncedBank=null;syncedRomRevision=-1;syncedRangeSignature=null;}
   cancelSeek();sliding=false;songState='stopped';
   stopWorker();
   generation++;
@@ -645,26 +649,12 @@ const romPages=createRomPages((bank,page)=>{
 });
 $('bank-inspector').ontoggle=()=>{if($('bank-inspector').open)romPages.refresh();};
 setInterval(()=>{
-  if(document.hidden||!port)return;
+  if(!port || document.hidden && !romPath)return;
   const romVisible=!$('rom-chip').hidden;
   if(romVisible && $('bank-inspector').open)romPages.refresh();
-  if((liveInstrument && romVisible) || (romPath && (!$('pcm-chip').hidden||!$('adpcm-chip').hidden)))
-    port.postMessage({type:'range-state',known:rangeVersion});
+  if((liveInstrument && romVisible) || romPath)
+    port.postMessage({type:'range-state',known:rangeVersion,knownRom:syncedRomRevision});
 },250);
-$('export-rom').onclick=()=>run(async()=>{
-  let bytes=library.rom;
-  const name=(romPath??bankPath).split('/').pop().replace(/\.vg[mz]$/i,'.rom');
-  if(port){
-    const {port1,port2}=new MessageChannel();
-    const snapshot=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
-    port.postMessage({type:'export-rom',reply:port2},[port2]);
-    bytes=await snapshot;
-  }
-  if(!bytes.length && romPath)throw Error('No sample ROM loaded.');
-  const url=URL.createObjectURL(new Blob([bytes])),link=document.createElement('a');
-  link.href=url;link.download=name;link.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-});
 function showRomMap(){
   if($('rom-chip').hidden)return;
   if(liveInstrument){inspectChannel();return;}
@@ -1210,7 +1200,8 @@ function drawSlotWave(item){
   }
 }
 function syncCatalog(path){
-  files.writeText(catalogPath(path),catalogText(bankSlots[path]??[],rangePresets.get(path)??[]));
+  const catalog=files.get(catalogPath(path));
+  files.writeText(catalogPath(path),catalogText(bankSlots[path]??[],rangePresets.get(path)??[],catalog && readCatalog(catalog.data).source));
 }
 function projectRanges(){
   const ranges=(bankSlots[bankPath]??[]).flatMap(s=>s?[{name:s.name,kind:s.kind,
@@ -1244,14 +1235,14 @@ function renderRanges(){
   for(const [id,kind] of [['pcm-range','PCM'],['adpcm-range','ADPCM']]){
     rangeOptions(id,[['','Choose preset…'],...presets.flatMap((p,i)=>p.kind===kind&&!p.earlierImage?[[i,p.name??rangeName(p)]]:[])]);
   }
-  $('range-history-label').hidden=$('range-history-info').hidden=$('use-history').hidden=!romPath;
+  $('range-history-label').hidden=$('use-history').hidden=!romPath;
   $('range-saved-label').hidden=$('use-saved').hidden=$('range-rename').hidden=Boolean(romPath);
   rangeOptions('range-history',romPath?vgmRanges.map((p,i)=>[i,rangeName(p)+(p.earlierImage?' · Earlier ROM image':'')]):[]);
   $('use-history').disabled=!vgmRanges.length||Boolean(vgmRanges[Number($('range-history').value)]?.earlierImage);
   $('use-saved').disabled=!presets.length;
   rangeOptions('range-saved',(romPath?[]:presets).map((p,i)=>[i,p.name??rangeName(p)]));
   $('range-rename').disabled=Boolean(romPath)||!presets.length;
-  $('range-export').disabled=Boolean(romPath);
+
 }
 function applyRange(p){
   if(!p||p.earlierImage)return;
@@ -1299,19 +1290,78 @@ $('range-rename').onclick=()=>{
   else rangePresets.get(bankPath)[i-slots.length].name=name;
   syncCatalog(bankPath);renderBankEditor();scheduleDraft();
 };
-$('range-export').onclick=()=>{
-  const stem=bankPath.split('/').pop().replace(/\.(bin|rom)$/i,'');
-  const bytes=zipSync({[stem+'.bin']:library.rom,[stem+'.preset.json']:new TextEncoder().encode(files.get(catalogPath(bankPath)).data)});
-  const url=URL.createObjectURL(new Blob([bytes])),link=document.createElement('a');
-  link.href=url;link.download=stem+'.zip';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-};
+// Keep separate images when a later VGM data block replaces sample bytes.
+function syncPlayingBank({source,bytes,current,ranges,romRevision,version}){
+  if(!source || source!==romPath)return;
+  let path=syncedBank;
+  if(bytes){
+    if(!bytes.length)return;
+    const stem='/banks/'+source.split('/').pop().replace(/\.vg[mz]$/i,'').replace(/[\x00-\x1f\\<>:"|?*]/g,'_');
+    for(let n=1;;n++){
+      path=stem+(n===1?'':' '+n)+'.bin';
+      const catalog=files.get(catalogPath(path));
+      if(!files.has(path)&&!catalog)break;
+      if(!catalog || readCatalog(catalog.data).source!==source)continue;
+      const existing=files.get(path)?.data;
+      if(existing?.length===bytes.length && existing.every((v,i)=>v===bytes[i]))break;
+    }
+  }
+  if(!path || (!bytes && !files.has(path)))return;
+  const signature=JSON.stringify([path,version,current]);
+  if(!bytes && signature===syncedRangeSignature)return;
+  const fresh=!files.has(path),presets=rangePresets.get(path)??[],keys=new Set(presets.map(rangeKey));
+  const added=[];
+  for(const {voice,...p} of [...(ranges??vgmRanges),...current]){
+    const key=rangeKey(p);
+    if(p.earlierImage || keys.has(key))continue;
+    keys.add(key);added.push({...p,name:rangeName(p)});
+  }
+  if(fresh || added.length){
+    const list=[...presets,...added],text=catalogText(bankSlots[path]??[],list,source);
+    const entries=[{path:catalogPath(path),data:text}];
+    if(fresh)entries.unshift({path,data:bytes});
+    if(fresh){
+      try{checkBankSize(path,bytes,new TextEncoder().encode(text).length);}
+      catch(error){
+        if(!(error instanceof RangeError))throw error;
+        syncedRomRevision=romRevision;syncedBank=null;
+        $('file-status').textContent='The cassette is full. Export ZIP… keeps the playing ROM and its presets together.';
+        return {path,rom:bytes,json:text};
+      }
+    }
+    files.writeFiles(entries);
+    bankSlots[path]??=[];rangePresets.set(path,list);
+    scheduleDraft();
+  }
+  const switched=syncedBank!==path;
+  syncedBank=path;syncedRomRevision=romRevision;syncedRangeSignature=signature;
+  if(fresh || switched)renderFiles();
+}
+$('range-export').onclick=()=>run(async()=>{
+  let path=bankPath,overflow;
+  if(romPath){
+    const source=romPath;
+    const {port1,port2}=new MessageChannel();
+    const snapshot=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
+    port.postMessage({type:'export-pair',reply:port2},[port2]);
+    const data=await snapshot;
+    if(source!==romPath || data.source!==source || !data.bytes.length)throw Error('The selected ROM changed or is not ready.');
+    overflow=syncPlayingBank(data);path=overflow?.path??syncedBank;
+  }
+  const name=path.split('/').pop(),jsonName=catalogPath(name);
+  const rom=overflow?.rom??files.get(path).data,json=overflow?.json??files.get(catalogPath(path)).data;
+  const bytes=zipSync({[name]:rom,[jsonName]:new TextEncoder().encode(json)});
+  const url=URL.createObjectURL(new Blob([bytes],{type:'application/zip'})),link=document.createElement('a');
+  link.href=url;link.download=name.replace(/\.(rom|bin)$/i,'.zip');link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 function renderBankEditor(){
   renderRanges();
   const picker=$('rom-file'),paths=files.readdir('/banks').map(name=>'/banks/'+name).filter(path=>isBankPath(path)&&files.has(path));
-  if(romPath)paths.unshift(romPath);
+  const selectedRom=romPath?(syncedBank??romPath):bankPath;
+  if(!paths.includes(selectedRom))paths.unshift(selectedRom);
   if(paths.join('\n')!==Array.from(picker.options,o=>o.value).join('\n'))
     picker.replaceChildren(...paths.map(path=>new Option(path.split('/').pop(),path)));
-  picker.value=romPath??bankPath;$('bank-name').textContent=bankPath.split('/').pop();
+  picker.value=selectedRom;$('bank-name').textContent=bankPath.split('/').pop();
   const slots=bankSlots[bankPath]??[],s=slots[slot];
   slotControl.updateVisual(slot);
   drawSlotWave(library.regions.find(item=>item.slot===slot));
@@ -1323,7 +1373,7 @@ function renderBankEditor(){
   $('slot-info').textContent=s?s.name+' · '+s.kind+' · Bank '+Math.floor(s.offset/65536)+' · '+s.length+' bytes':'Empty slot';
   $('slot-del').disabled=!s || Boolean(romPath);$('slot-load').disabled=Boolean(romPath);
   $('slot-editor').hidden=Boolean(romPath);
-  $('slot-use').disabled=!s || Boolean(romPath);$('capture-rom').disabled=!romPath;
+  $('slot-use').disabled=!s || Boolean(romPath);
   $('slot-use').textContent=s?.kind==='ADPCM'?'Assign to Voice '+(padVoice+1):autoChannel?'Assign to AUTO':'Assign to CH'+(selected+1);
 }
 function selectBank(path){
@@ -1347,7 +1397,7 @@ function selectBank(path){
 $('rom-file').onchange=e=>selectBank(e.target.value);
 function checkBankSize(path,bytes,extraSize=0){
   const total=files.list().reduce((n,f)=>f.path===path?n:n+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),bytes.length+extraSize);
-  if(total>maxRom)throw Error('The cassette exceeds 16 MiB.');
+  if(total>maxRom)throw new RangeError('The cassette exceeds 16 MiB.');
 }
 function addRom(name,bytes,presets=[],slots=[]){
   if(!name.trim() || /[/\\]/.test(name))throw Error('Enter a ROM file name.');
@@ -1375,18 +1425,6 @@ $('rom-input').onchange=e=>run(async()=>{
   if(rom.size+(json?.size??0)>maxRom)throw Error('ROM pair exceeds 16 MiB.');
   const c=json?readCatalog(await json.text()):{slots:[],presets:[]};
   addRom(rom.name,new Uint8Array(await rom.arrayBuffer()),c.presets,c.slots);
-});
-$('capture-rom').onclick=()=>run(async()=>{
-  if(!romPath)return;
-  const name=prompt('Save ROM and preset JSON in /banks',romPath.split('/').pop().replace(/\.vg[mz]$/i,'.bin'));
-  if(!name)return;
-  const {port1,port2}=new MessageChannel();
-  const snapshot=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
-  port.postMessage({type:'export-pair',reply:port2},[port2]);
-  const {bytes,ranges,current}=await snapshot;
-  const unique=new Map();
-  for(const {voice,...p} of [...ranges.filter(p=>!p.earlierImage),...current])unique.set(rangeKey(p),{...p,name:rangeName(p)});
-  addRom(name,bytes,[...unique.values()]);
 });
 function updateSlot(data,name,kind){
   if(romPath)throw Error('Load a project ROM first.');
@@ -1455,7 +1493,8 @@ async function playSong(){
   const {bytes}=preparedSong;
   await audio();
   if(token!==generation)return;
-  attached=null;romPath=songPath;renderPresetInfo();liveInstrument=true;songState='playing';port.postMessage({type:'song',path:songPath,bytes,loop:preparedSong.canLoop && $('song-loop').checked});transport();
+  attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();liveInstrument=true;songState='playing';port.postMessage({type:'song',path:songPath,bytes,loop:preparedSong.canLoop && $('song-loop').checked});
+  port.postMessage({type:'range-state',known:-1,knownRom:-1});transport();
 }
 $('song-play').onclick=()=>run(playSong);
 function pauseSong(){
@@ -1497,7 +1536,7 @@ slider.onchange=()=>run(async()=>{
     seekWorker=worker;
     worker.onmessage=({data:state})=>{
       if(token!==generation)return;
-      revision++;attached=null;romPath=songPath;renderPresetInfo();
+      revision++;attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();
       port.postMessage({type:'song',path:songPath,bytes:song.bytes,state,loop:$('song-loop').checked,paused:songState==='paused'},
         [state.chip.rom.buffer,state.chip.echoLine.buffer,state.starts.buffer]);
       cancelSeek();transport();inspectChannel();

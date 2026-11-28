@@ -19,4 +19,4 @@ export function readCatalog(text){
   }
   return c;
 }
-export const catalogText=(slots,presets)=>JSON.stringify({format:'tetorica-qsound-ranges-1',slots,presets},null,2);
+export const catalogText=(slots,presets,source)=>JSON.stringify({format:'tetorica-qsound-ranges-1',slots,presets,...(source?{source}:{})},null,2);
