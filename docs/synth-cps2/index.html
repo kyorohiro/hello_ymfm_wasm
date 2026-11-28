@@ -7,8 +7,10 @@
 body{margin:0}main{display:flex;flex-direction:column;height:100vh;height:100dvh;background:#f4eedb}
 .synth-menu-panel header{display:flex;align-items:center;gap:.65rem;padding-bottom:.65rem;border-bottom:1px solid #afbfba}.synth-menu-panel h1{font-size:1.1rem}.synth-menu-panel header p{font-size:.8rem}h1,p{margin:0}section{padding:1.1rem 1.5rem}
 h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;border:1px solid #7a9897;background:#fffaf0;border-radius:5px;padding:.4rem .7rem;cursor:pointer}button[aria-pressed=true]{background:#155876;color:white}
-#channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(3.5rem,1fr));gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}
-output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-width:540px){#channels{grid-template-columns:repeat(4,1fr)}}
+#channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(3rem,1fr));gap:.25rem}
+#channels button{font-size:.875rem;line-height:1.25;min-height:1.875rem;padding:.2rem .35rem}
+label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}
+output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #channels .auto-target{box-shadow:inset 0 0 0 2px #155876}
 #pad-plot{position:relative}#pad-cursor{position:absolute;top:0;bottom:0;width:2px;background:#ffc75c;pointer-events:none}
 #pad-wave,#pcm-wave{display:block;width:100%;height:6.5rem;background:#102c43;border-radius:5px}
