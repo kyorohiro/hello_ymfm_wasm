@@ -1216,7 +1216,10 @@ function drawSlotWave(item){
 }
 function syncCatalog(path){
   const catalog=files.get(catalogPath(path));
-  files.writeText(catalogPath(path),catalogText(bankSlots[path]??[],rangePresets.get(path)??[],catalog && readCatalog(catalog.data).source));
+  const source=catalog && readCatalog(catalog.data).source;
+  files.writeText(catalogPath(path),catalogText(bankSlots[path]??[],rangePresets.get(path)??[],source));
+  const staged=pendingBanks.get(path);
+  if(staged)staged.json=catalogText(bankSlots[path]??[],readCatalog(staged.json).presets,source);
 }
 function projectRanges(){
   const ranges=(bankSlots[bankPath]??[]).flatMap(s=>s?[{name:s.name,kind:s.kind,
@@ -1247,9 +1250,54 @@ function currentRomRanges(){
   }
   return ranges;
 }
+function editablePresets(){
+  const staged=pendingBanks.get(bankPath);
+  return staged?readCatalog(staged.json).presets:(rangePresets.get(bankPath)??[]);
+}
+function updateRangeActions(){
+  const value=$('range-current').value,registered=value.startsWith('preset:');
+  $('range-new').disabled=Boolean(romPath)||!value||registered;
+  $('range-del').disabled=Boolean(romPath)||!registered;
+}
+$('range-current').onchange=updateRangeActions;
+function editRangePreset(remove){
+  if(romPath)return;
+  const value=$('range-current').value,list=[...editablePresets()];
+  let next;
+  if(remove){
+    if(!value.startsWith('preset:'))return;
+    const index=Number(value.slice(7)),preset=list[index];
+    if(!preset || !confirm('Delete preset '+preset.name+'?'))return;
+    next=rangeKey(preset);list.splice(index,1);
+  }else{
+    const range=currentRomRanges().get(value);
+    if(!range || list.some(p=>rangeKey(p)===value))return;
+    next='preset:'+list.length;list.push({...range,name:rangeName(range)});
+  }
+  if($('auto-apply').checked){
+    rangePresets.set(bankPath,list);syncCatalog(bankPath);
+  }else{
+    const source=readCatalog(files.get(catalogPath(bankPath)).data).source;
+    const json=catalogText(bankSlots[bankPath],list,source);
+    if(json===files.get(catalogPath(bankPath)).data)pendingBanks.delete(bankPath);
+    else pendingBanks.set(bankPath,{json});
+  }
+  renderFiles();
+  if([...$('range-current').options].some(o=>o.value===next))$('range-current').value=next;
+  updateRangeActions();scheduleDraft();
+}
+$('range-new').onclick=()=>editRangePreset(false);
+$('range-del').onclick=()=>editRangePreset(true);
 function renderRanges(){
-  const current=currentRomRanges();
-  rangeOptions('range-current',Array.from(current,([key,range])=>[key,rangeName(range)]));
+  const current=currentRomRanges(),options=[];
+  if(!romPath){
+    editablePresets().forEach((preset,index)=>{
+      options.push(['preset:'+index,preset.name]);current.delete(rangeKey(preset));
+    });
+  }
+  for(const [key,range] of current)options.push([key,rangeName(range)]);
+  rangeOptions('range-current',options);
+  updateRangeActions();
   if(romPath && renderedHistory===vgmRanges)return;
   renderedHistory=romPath?vgmRanges:null;
   const presets=availableRanges();
