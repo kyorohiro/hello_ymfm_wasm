@@ -20,7 +20,7 @@ async function copy(from,to){
 try{
   const entries=['app.js','processor.js','code-worker.js','seek-worker.js'];
   await copyReadableModules({root,stage:web,entries:entries.map(f=>'docs/synth-cps2/'+f),factories:[]});
-  for(const path of ['synth-cps2','tetorica_cps2_synth.webp',
+  for(const path of ['synth/sample_rom_creator.css','synth-cps2','tetorica_cps2_synth.webp',
     'playground/samples/sonic-pi','playground/tetorica-playground-globals.d.ts','playground/vendor/fflate-LICENSE','playground/vendor/es-module-lexer-LICENSE']){
     await copy(join(root,'docs',path),join(web,path));
   }

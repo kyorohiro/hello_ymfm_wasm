@@ -71,6 +71,8 @@ During VGM playback the MSM6295 tab uses the same ROM selector, slot grid, wavef
 
 In the MSM6295 tab, computer and on-screen keys trigger the selected sample at its original chip pitch and current attenuation. F triggers Voice 1, G triggers Voice 2, H triggers Voice 3 and J triggers Voice 4, matching the first four pads in FM2608 Rhythm and FM2610 ADPCM-A. The four on-screen pads use the same mapping. Reusing a voice restarts it, and releasing a key lets the sample finish.
 
+Open **ROM Creator → Add samples…** to combine local WAV or FLAC files with sounds from the Sonic Pi library. The list shows the sample number each clip will receive. Choose **Create…** to name the ROM and open it in MSM6295. The first four clips are assigned to the four keyboard pads in order.
+
 **Import WAV / FLAC…** accepts one or more clips and builds a new sample bank in selection order. The browser mixes the audio to mono, resamples it to the kit’s playback rate (about 7.58 kHz), and encodes it as MSM6295 ADPCM. The bank fits up to 128 samples and 256 KiB including the address table. Export Cassette includes the playable bank and sample names.
 
 Each Voice has a numeric sample control. Follow uses the selected grid slot. Use the ROM list to choose a bank or Import ROM to add one. Load a phrase into a numbered slot inside the ROM editor, then assign that number to a Voice below the editor. Keyboard triggers use these assignments. JavaScript commands still specify the sample number directly.

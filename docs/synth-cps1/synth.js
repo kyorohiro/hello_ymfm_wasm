@@ -12,6 +12,8 @@ import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {decodeSongSample} from './song-samples.js';
 import {displaySample,inspectBank} from './sample-view.js';
 import {createSynthProjectStore} from '../synth/synth_project_store.js';
+import {fetchSample,setupSampleRomCreator} from '../synth/sample_rom_creator.js';
+import {makeAudioBank} from './audio-bank.js';
 import {setupFiles} from './files.js';
 import {createKit,samples} from './kit.js';
 
@@ -255,7 +257,7 @@ function changeMode(mode) {
     setFilesOpen(true);
     $('sourceTabs').prepend(codeTab);
     $('sourceTabs').append(keyboardTab);
-    if(synthView.source!=='mixer')lastCodeChip=synthView.source;
+    if(['fm','pcm'].includes(synthView.source))lastCodeChip=synthView.source;
     codeView = 'code';
   } else {
     $('performanceTabs').append(keyboardTab,codeTab);
@@ -601,7 +603,7 @@ Array.from(pcmKeys).forEach((key,voice)=>{
 refreshFretboard();
 window.addEventListener('keydown',e => {
   if (e.defaultPrevented || e.isComposing || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.target.closest('.monaco-editor,textarea,input:not([type=range]),select,[contenteditable=true]')) return;
+  if (e.target.closest('dialog,.monaco-editor,textarea,input:not([type=range]),select,[contenteditable=true]')) return;
   if(!pcmKeyboard && !e.target.closest('input,[role="tablist"],dialog') && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
     e.preventDefault();
     if(e.key==='ArrowLeft'||e.key==='ArrowRight')shiftFretPosition(fretboard,e.key==='ArrowRight'?1:-1);
@@ -865,7 +867,19 @@ $('run').onclick = async () => {
 
 $('applyCode').onclick=()=>worker?.postMessage({source:$('editor').value,path:$('codeFile').value,apply:true});
 
-files = setupFiles({inspector,panel,keyMasks,loadPreset({keyMask=15,...patch}){
+const romCreator=setupSampleRomCreator({
+  defaultName:()=>'samples.rom',
+  build(entries,progress){
+    return makeAudioBank(entries.map(({name,file})=>file??{
+      name,arrayBuffer:async()=>(await fetchSample(name)).arrayBuffer()
+    }),progress);
+  },
+  save(name,bank){
+    if(/[/\\]/.test(name))throw Error('Enter a filename without a folder.');
+    files.addBank(bank.bytes,bank.names,/\.rom$/i.test(name)?name:name+'.rom');
+  }
+});
+files = setupFiles({resetCreator:romCreator.reset,inspector,panel,keyMasks,loadPreset({keyMask=15,...patch}){
   const ch=panel.getSelectedChannel();
   const before=files.voiceBeforeEdit(ch);
   if(observation){

@@ -1,3 +1,5 @@
+@import url('../synth/sample_rom_creator.css');
+#rom-creator #creator-list li {grid-template-columns:3ch minmax(0,1fr) auto}
 :root {
   color-scheme: light;
   --shell: #f3e6cc;

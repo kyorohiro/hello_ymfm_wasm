@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {encodeSample} from './kit.js';
 
-export async function makeAudioBank(files) {
+export async function makeAudioBank(files,progress=()=>{}) {
   if (!files.length || files.length>128) throw Error('Choose 1–128 samples per bank.');
   const rate=Math.round(1000000/132);
   const decoder=new OfflineAudioContext(1,1,rate);
   const samples=[];
   let size=0x400;
   for (const file of files) {
+    progress(file.name);
     if (file.size>16*1024*1024) throw Error(file.name+' exceeds 16 MiB.');
     let audio;
     try {audio=await decoder.decodeAudioData(await file.arrayBuffer());}

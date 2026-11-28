@@ -774,6 +774,22 @@ try {
   assert.deepEqual(exported.names,['replacement.wav','two.wav','new.wav','','']);
   assert.deepEqual(exported.voiceSamples,[2,1,-1,-1]);
   assert.equal(bankArchive.metadata.cps1.active,exported.path);
+  await page.click('[data-tab="rom-creator"]');
+  await page.click('#creator-open');
+  await page.click('#creator-browse');
+  await page.selectOption('#creator-library','ambi_choir.flac');
+  await page.click('#creator-add');
+  await page.click('#creator-open');
+  await page.setInputFiles('#creator-files',{name:'tone.wav',mimeType:'audio/wav',buffer:wav});
+  await page.click('#creator-build');
+  await page.fill('#creator-name','choir-kit');
+  await page.click('#creator-confirm');
+  await page.waitForFunction(()=>document.querySelector('#romList').value==='/banks/choir-kit.rom');
+  const slots=page.locator('#sampleSlots button[data-filled=true]');
+  assert.deepEqual(await slots.evaluateAll(nodes=>nodes.map(node=>node.title)),['0 · ambi_choir.flac','1 · tone.wav']);
+  await page.evaluate(()=>{window.peak=0;});
+  await page.keyboard.press('g');
+  await page.waitForFunction(()=>window.peak>.001 && document.querySelector('#command').value.startsWith('0x81 '));
   assert.deepEqual(errors,[]);
   console.log('CPS1 FM audio, held-note editing, OKI audio/status, Code, cassette round-trip and responsive layouts passed');
 } finally {await browser?.close(); server.close();}

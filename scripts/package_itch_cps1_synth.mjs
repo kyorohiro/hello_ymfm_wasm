@@ -21,7 +21,7 @@ try{
     await mkdir(dirname(join(web,destination)),{recursive:true});
     await cp(join(root,source),join(web,destination),{recursive:true});
   }
-  for(const path of ['synth-cps1/README.md','synth-cps1/examples','tetorica_cps1_synth.webp',
+  for(const path of ['playground/samples/sonic-pi','synth-cps1/README.md','synth-cps1/examples','tetorica_cps1_synth.webp',
     'generated/ym2151_wasm.js','generated/ym2151_wasm.wasm','playground/tetorica-playground-globals.d.ts',
     'playground/vendor/fflate-LICENSE','playground/vendor/es-module-lexer-LICENSE']){
     await copy('docs/'+path,path);

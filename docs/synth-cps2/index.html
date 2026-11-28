@@ -2,6 +2,7 @@
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/webp" href="../tetorica_cps2_synth.webp">
 <title>Tetorica CPS2 Synth · QSound PCM</title>
+<link rel="stylesheet" href="../synth/sample_rom_creator.css">
 <style>
 *{box-sizing:border-box}html{background:#122c47;color:#102f45;font:1rem/1.5 "Atkinson Hyperlegible Next",system-ui,sans-serif}
 body{margin:0}main{display:flex;flex-direction:column;height:100vh;height:100dvh;background:#f4eedb}
@@ -140,9 +141,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #item-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
 #rom-chip > details{margin-top:.6rem}#rom-chip > details > summary{cursor:pointer;font-weight:600;padding:.35rem 0}
 .item-picker-row{display:flex;align-items:center;gap:.4rem;margin:.3rem 0}.item-picker-row select{min-width:0;max-width:85%}#item-wave{touch-action:none;cursor:crosshair}#item-wave-help{display:block}
-#creator-controls{min-width:0;margin:0 0 .4rem;border:1px solid #97aba4;border-radius:5px;padding:.35rem .55rem}#creator-controls legend{padding:0 .25rem;font-weight:650}
-#rom-creator button,#creator-list select{font-size:.85rem;padding:.16rem .45rem}#creator-list{padding:0;list-style:none;margin:0}#creator-list li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:.35rem;padding:2px 0;font-size:.85rem}#creator-list li+li{border-top:1px solid #ccd3c8}#creator-list li span{overflow-wrap:anywhere}#creator-empty{font-size:.85rem}
-#rom-creator dialog{width:min(24rem,92vw);max-height:85vh;overflow:auto;border:1px solid #7a9897;border-radius:6px;background:#fffaf0;color:inherit;padding:.85rem}#rom-creator dialog h3{margin:0 0 .5rem}#rom-creator dialog label{display:grid;margin:.45rem 0}#creator-library{width:100%}#creator-picker small{display:block;margin:.4rem 0}#creator-status:empty,#creator-library-status:empty{display:none}
+
 .voice-rom{display:inline-flex;align-items:center;gap:.3rem;max-width:100%;margin:0}.voice-rom select{min-width:0;max-width:100%}
 #voice-rom-confirm{max-width:min(25rem,90vw);color:inherit;background:#fffaf0}#voice-rom-confirm p{margin-bottom:.6rem;overflow-wrap:anywhere}
 .voice-wave-mode{position:absolute;z-index:1;top:4px;right:4px;display:inline-flex}
@@ -236,22 +235,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <canvas id="rom-preview" width="512" height="84" aria-label="Waveform of the selected ROM block"></canvas>
 <p>Select a range to preview its starting block.</p><p id="rom-scale"></p><div id="rom-rows"></div><p id="rom-empty">No voice range configured in this bank.</p></details></section>
 <section id="rom-creator" hidden aria-label="ROM Creator">
-<fieldset id="creator-controls"><legend>ROM <button id="creator-open" type="button">Add samples…</button></legend>
-<p id="creator-empty">No samples added.</p><ul id="creator-list" aria-label="ROM samples"></ul></fieldset>
-<button id="creator-build" type="button" disabled>Create…</button>
-<dialog id="creator-picker" aria-labelledby="creator-picker-title"><h3 id="creator-picker-title">Add samples</h3>
-<button type="button" id="creator-import">Import WAV / FLAC…</button><input id="creator-files" hidden type="file" accept=".wav,.flac" multiple>
-<button type="button" id="creator-browse" aria-expanded="false" aria-controls="creator-browser">Sonic Pi Library</button>
-<div id="creator-browser" hidden><small>Samples marked <code>pi/</code> come from Sonic Pi’s CC0 sample library. <a href="../playground/samples/sonic-pi/README_SONICPI.md" target="_blank" rel="noopener">Sample credits</a></small>
-<label>Filter samples<input id="creator-filter" type="search"></label>
-<label>Samples<select id="creator-library" multiple size="7"></select></label>
-<output id="creator-library-status" role="status"></output>
-<button id="creator-add" type="button" disabled>Add selected</button></div>
-<button type="button" id="creator-close">Close</button></dialog>
-<dialog id="creator-naming" aria-labelledby="creator-name-title"><form id="creator-form">
-<h3 id="creator-name-title">Create ROM</h3><label>ROM name<input id="creator-name" required></label>
-<output id="creator-status" role="status"></output><button type="submit" id="creator-confirm">Create</button>
-<button type="button" id="creator-cancel">Cancel</button></form></dialog></section>
+</section>
 <section id="mixer" hidden><label class="volume-control">Sound Volume <input id="mix-sound" type="range" min="0" max="480" value="100"><output id="mix-sound-level" for="mix-sound">100%</output></label>
 <h3>PCM</h3><div class="mix-voices" id="mix-pcm"></div>
 <h3>ADPCM</h3><div class="mix-voices" id="mix-adpcm"></div></section></section>

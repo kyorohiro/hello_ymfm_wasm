@@ -37,7 +37,7 @@ function validateVoice(patch,validator) {
 import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {cps1Declarations} from './code-declarations.js';
 
-export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defaults,initialCode,store,draft,applyBank,stop,playSong,stopSong,openFiles}) {
+export function setupFiles({resetCreator,inspector,panel,keyMasks,loadPreset,defaultBank,defaults,initialCode,store,draft,applyBank,stop,playSong,stopSong,openFiles}) {
   let files=new Map(),folders=[],selected=entry,editor=entry,activeBank,presetChannel=null,opmBank=null,revision=0;
   let pending=new Map(),editPath=null,saveTimer;
   const songBanks=new WeakMap();
@@ -353,7 +353,7 @@ export function setupFiles({inspector,panel,keyMasks,loadPreset,defaultBank,defa
     return {docs,dirs:[],active:defaultPath,voices:initialVoices,lfo:initial.lfo,noise:initial.noise};
   }
   function replace(project) {
-    remember(soundState());revision++;stop();files=project.docs;folders=project.dirs;editor=files.has(entry)?entry:items('code')[0]?.[0]??null;selected=editor??'/';editPath=opmBank=presetChannel=null;pending.clear();
+    remember(soundState());revision++;resetCreator();stop();files=project.docs;folders=project.dirs;editor=files.has(entry)?entry:items('code')[0]?.[0]??null;selected=editor??'/';editPath=opmBank=presetChannel=null;pending.clear();
     project.voices.forEach((v,i)=>applyVoice(i,v));
     inspector.invoke('setLFO',[project.lfo]);inspector.invoke('setNoise',[project.noise]);
     useBank(project.active);script(editor,false);render();persistCode();persist();el('rom').value='';

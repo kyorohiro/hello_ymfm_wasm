@@ -2,12 +2,7 @@
 import {encodePad,maxRom,padByteLength} from './samples.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 
-const libraryUrl=new URL('../playground/samples/sonic-pi/',import.meta.url);
-async function fetchSample(name){
-  const response=await fetch(new URL(encodeURIComponent(name),libraryUrl));
-  if(!response.ok)throw Error('Could not load '+name);
-  return response;
-}
+import {fetchSample,setupSampleRomCreator} from '../synth/sample_rom_creator.js';
 
 async function makeRom(entries,progress){
   const parts=[],presets=[];
@@ -46,97 +41,6 @@ async function makeRom(entries,progress){
 }
 
 export function setupRomCreator(save,defaultName){
-  const el=id=>document.getElementById('creator-'+id);
-  const entries=[];
-  let names=[],loading=false,revision=0;
-  function showLibrary(){
-    const query=el('filter').value.toLowerCase();
-    el('library').replaceChildren(...names.filter(n=>n.includes(query)).map(n=>new Option('pi/'+n,n)));
-    el('add').disabled=true;
-    el('library-status').textContent=names.length && !el('library').length?'No matching samples.':'';
-  }
-  function render(){
-    el('list').replaceChildren(...entries.map(entry=>{
-      const row=document.createElement('li'),label=document.createElement('span');
-      label.textContent=entry.file?entry.name:'pi/'+entry.name;
-      const kind=document.createElement('select');kind.setAttribute('aria-label',entry.name+' format');
-      for(const format of ['PCM','ADPCM'])kind.add(new Option(format,format));
-      kind.value=entry.kind;kind.onchange=()=>{entry.kind=kind.value;};
-      const remove=document.createElement('button');remove.textContent='Remove';
-      remove.onclick=()=>{entries.splice(entries.indexOf(entry),1);render();};
-      row.append(label,kind,remove);return row;
-    }));
-    el('empty').hidden=entries.length>0;
-    el('build').disabled=!entries.length;
-  }
-  function add(name,file){
-    if(entries.some(e=>e.name===name && e.file===file))return;
-    entries.push({name,file,kind:'PCM'});
-  }
-  el('open').onclick=()=>{
-    el('browser').hidden=true;
-    el('browse').setAttribute('aria-expanded','false');
-    el('picker').showModal();
-  };
-  el('import').onclick=()=>el('files').click();
-  el('close').onclick=()=>el('picker').close();
-  el('browse').onclick=()=>{
-    el('browser').hidden=!el('browser').hidden;
-    el('browse').setAttribute('aria-expanded',String(!el('browser').hidden));
-    if(!el('browser').hidden){load();el('filter').focus();}
-  };
-  el('filter').oninput=showLibrary;
-  el('library').onchange=()=>{el('add').disabled=!el('library').selectedOptions.length;};
-  el('add').onclick=()=>{
-    for(const option of el('library').selectedOptions)add(option.value);
-    render();el('picker').close();
-  };
-  el('files').onchange=e=>{
-    for(const file of e.target.files)add(file.name,file);
-    e.target.value='';render();el('picker').close();
-  };
-  el('build').onclick=()=>{
-    el('name').value=defaultName();
-    el('status').textContent='';
-    el('naming').showModal();
-    el('name').select();
-  };
-  el('cancel').onclick=()=>el('naming').close();
-  el('naming').onclose=()=>{revision++;el('confirm').disabled=false;};
-  el('form').onsubmit=async event=>{
-    event.preventDefault();
-    if(el('confirm').disabled)return;
-    const name=el('name').value.trim();
-    if(!name){el('status').textContent='Enter a ROM name.';return;}
-    const buildRevision=revision;
-    el('confirm').disabled=true;
-    try{
-      const {rom,presets}=await makeRom([...entries],n=>{
-        if(revision!==buildRevision)throw Error('Cassette changed.');
-        el('status').textContent='Converting '+n;
-      });
-      if(revision!==buildRevision || !el('naming').open)return;
-      save(name,rom,presets);
-      el('naming').close();
-    }catch(error){if(revision===buildRevision)el('status').textContent=error.message;}
-    finally{if(revision===buildRevision)el('confirm').disabled=false;}
-  };
-  async function load(){
-    if(names.length||loading)return;
-    loading=true;
-    try{
-      const response=await fetchSample('samples.txt');
-      names=(await response.text()).trim().split(/\r?\n/);
-      showLibrary();
-    }catch(error){el('library-status').textContent=error.message;}
-    finally{loading=false;}
-  }
-  function reset(){
-    revision++;entries.length=0;
-    el('confirm').disabled=false;
-    el('status').textContent='';
-    el('picker').close();el('naming').close();
-    render();
-  }
-  return {reset};
+  return setupSampleRomCreator({build:makeRom,defaultName,formats:['PCM','ADPCM'],
+    save:(name,{rom,presets})=>save(name,rom,presets)});
 }
