@@ -4,7 +4,7 @@
 <title>Tetorica CPS2 Synth · QSound PCM</title>
 <style>
 *{box-sizing:border-box}html{background:#122c47;color:#102f45;font:1rem/1.5 "Atkinson Hyperlegible Next",system-ui,sans-serif}
-body{margin:0}main{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;background:#f4eedb}
+body{margin:0}main{display:flex;flex-direction:column;height:100vh;height:100dvh;background:#f4eedb}
 .synth-menu-panel header{display:flex;align-items:center;gap:.65rem;padding-bottom:.65rem;border-bottom:1px solid #afbfba}.synth-menu-panel h1{font-size:1.1rem}.synth-menu-panel header p{font-size:.8rem}h1,p{margin:0}section{padding:1.1rem 1.5rem}
 h2{font-size:1.15rem;margin:0 0 .6rem}button,select{font:inherit;color:inherit;border:1px solid #7a9897;background:#fffaf0;border-radius:5px;padding:.4rem .7rem;cursor:pointer}button[aria-pressed=true]{background:#155876;color:white}
 #channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(3.5rem,1fr));gap:.3rem}label{display:inline-grid;gap:.25rem;margin:.25rem .7rem .25rem 0}
@@ -29,11 +29,12 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #source{width:100%;min-height:18rem;font:1rem/1.5 monospace}
 [hidden]{display:none!important}
 .workspace-tools,.chip-tabs,.chip-header{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
-.workspace-tools{padding:.6rem 1.5rem;border-bottom:1px solid #afbfba}
+.workspace-tools{flex:none;padding:.6rem 1.5rem;border-bottom:1px solid #afbfba}
 #files-toggle{margin-inline-start:auto}
 .switch{display:inline-flex}.switch button:first-child{border-radius:6px 0 0 6px}.switch button:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
-#workspace{flex:1;display:grid;grid-template-columns:minmax(11rem,15rem) minmax(0,1fr)}
+#workspace{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(11rem,15rem) minmax(0,1fr)}
 #workspace.files-hidden{grid-template-columns:minmax(0,1fr)}
+#files,#desk{min-height:0;overflow:auto;overscroll-behavior:contain}
 #files{background:#e6e0cc;padding:1rem;overflow-wrap:anywhere}#files button,#code-panel button{margin:.2rem}
 #files .file-entry[aria-current=true]{font-weight:bold}
 #files .file-entry{max-width:100%;overflow-wrap:anywhere;text-align:left}#desk{min-width:0}#code-panel{padding:.8rem 1.5rem}
@@ -46,7 +47,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #keys{display:grid;gap:3px;margin:.5rem 0}#keys .key-row{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
 #keys .key{display:grid;padding:.25rem 0;touch-action:none;min-width:0;font-size:clamp(.65rem,2.3vw,.95rem)}
 #keys .key span{font-size:.85em}#octave .param-value{color:white}#octave button{color:white}
-@media(max-width:700px){#workspace{grid-template-columns:minmax(0,1fr)}#files{padding:.6rem}section{padding:.8rem}}
+@media(max-width:700px){#workspace{grid-template-columns:minmax(0,1fr);grid-template-rows:fit-content(32%) minmax(0,1fr)}#workspace.files-hidden{grid-template-rows:minmax(0,1fr)}#files{padding:.6rem}section{padding:.8rem}}
 .mix-voices{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.4rem}
 .mix-voices>div{display:flex;align-items:center;gap:.2rem}.mix-voices strong{flex:1}
 .mix-voices button{font-size:.85rem;padding:.2rem .35rem}
@@ -69,7 +70,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #synthMenu{position:relative}
 #synthMenuButton{display:grid;place-items:center;list-style:none;width:2.6rem;height:2.4rem;border:1px solid #7a9897;border-radius:5px;background:#fffaf0;cursor:pointer}
 #synthMenuButton::-webkit-details-marker{display:none}
-.synth-menu-panel{position:absolute;z-index:5;top:100%;left:0;width:min(18rem,83vw);display:grid;gap:.3rem;padding:.8rem;border:1px solid #7a9897;border-radius:6px;background:#fffaf0;box-shadow:0 4px 15px #102f4530}
+.synth-menu-panel{position:absolute;z-index:5;top:100%;left:0;width:min(18rem,83vw);max-height:calc(100dvh - 4rem);overflow-y:auto;display:grid;gap:.3rem;padding:.8rem;border:1px solid #7a9897;border-radius:6px;background:#fffaf0;box-shadow:0 4px 15px #102f4530}
 .synth-menu-panel button{text-align:left}.synth-menu-panel strong:not(:first-child){margin-top:.45rem}
 #files .file-tree{padding:0;margin:0;list-style:none}#files .file-tree .file-tree{padding-left:12px}
 #files .file-entry,#files summary{display:block;width:100%;margin:0;padding:5px 6px;border:0;background:transparent;font-size:.82rem;text-align:left;cursor:pointer}
