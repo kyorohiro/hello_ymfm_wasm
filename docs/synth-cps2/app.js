@@ -18,7 +18,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.js';
 import {setupSynthMonacoEditor} from '../synth/synth_monaco_editor.js';
 import {createParamControl} from '../synth/synth_controls.js';
-import {QSOUND_PCM_RATE,advanceAdpcm} from '../js/qsoundpcm.js';
+import {QSoundPcm,QSOUND_PCM_RATE,advanceAdpcm} from '../js/qsoundpcm.js';
 import {createWaveEditor} from './wave_editor.js';
 import {demoRom,demoVgm,noteWrites,demoTracks,pcmRate} from './demo.js';
 import {isSamplePath,sampleLibrary,maxRom} from './samples.js';
@@ -1193,7 +1193,10 @@ let previewItem=null;
 function drawSlotWave(item){
   if(previewItem===item)return;
   previewItem=item;
-  const canvas=$('slot-wave'),{width,height}=canvas,ctx=canvas.getContext('2d');
+  drawSampleWave($('slot-wave'),item);
+}
+function drawSampleWave(canvas,item){
+  const {width,height}=canvas,ctx=canvas.getContext('2d');
   ctx.clearRect(0,0,width,height);
   if(!item){
     ctx.fillStyle='#527083';ctx.fillRect(0,height/2,width,1);
@@ -1257,23 +1260,99 @@ function editablePresets(path=bankPath){
   return staged?readCatalog(staged.json).presets:(rangePresets.get(path)??[]);
 }
 let creationRanges;
+let itemRanges=new Map(),itemDraft,itemRom,itemSignature,previewNode;
+let cachedRomPath,cachedRevision,cachedRom;
+const itemControls={};
+for(const [key,label,max] of [['bank','Bank',32767],['start','Start',65535],['end','End (exclusive)',65535],
+    ['rate','Rate',65535],['loop','Loop length',65535]]){
+  const control=createParamControl({label,min:0,max,step:1,value:0,
+    formatValue:key==='start'||key==='end'?n=>'0x'+n.toString(16).toUpperCase().padStart(4,'0'):String,
+    onChange(value){if(itemDraft){itemDraft[key]=value;drawItem();}}});
+  $('item-controls').append(control.element);itemControls[key]=control;
+}
+function selectedRomBytes(path){
+  if(!path)return null;
+  if(!romPath)return library.rom;
+  const staged=pendingBanks.get(path)?.rom;
+  if(staged)return staged;
+  const revision=files.getRevision(path);
+  if(path!==cachedRomPath||revision!==cachedRevision){
+    cachedRomPath=path;cachedRevision=revision;cachedRom=files.get(path)?.data;
+  }
+  return cachedRom;
+}
+function stopItemPreview(){
+  if(previewNode){previewNode.stop();previewNode.disconnect();previewNode=null;}
+}
+function showItem(){
+  const id=$('range-current').value,p=itemRanges.get(id),path=romPath?syncedBank:bankPath;
+  const rom=selectedRomBytes(path),signature=JSON.stringify([path,id,p]);
+  if(signature===itemSignature && rom===itemRom)return;
+  stopItemPreview();itemSignature=signature;itemRom=rom;itemDraft=p?{...p}:null;
+  $('item-editor').hidden=!itemDraft;
+  if(!p)return;
+  for(const [key,control] of Object.entries(itemControls)){
+    control.element.hidden=!(key in p);
+    if(key in p)control.updateVisual(p[key]);
+  }
+  drawItem();
+}
+function drawItem(){
+  const p=itemDraft,base=p.bank*65536,length=(p.end-p.start)&65535;
+  const wraps=p.end<p.start;
+  const valid=itemRom && length && base+(wraps?65536:p.end)<=itemRom.length;
+  let item;
+  if(valid){
+    let pcm=itemRom.subarray(base+p.start,base+(wraps?65536:p.end));
+    if(wraps){
+      const joined=new Uint8Array(length);joined.set(pcm);joined.set(itemRom.subarray(base,base+p.end),pcm.length);pcm=joined;
+    }
+    item={pcm,length,kind:p.kind};
+  }
+  drawSampleWave($('item-wave'),item);
+  $('item-preview').disabled=!valid;
+  $('item-save').disabled=!valid || rangeKey(p)===rangeKey(itemRanges.get($('range-current').value));
+}
+$('item-preview').onclick=()=>run(async()=>{
+  const p={...itemDraft},rom=itemRom,signature=itemSignature;
+  await audio();if(signature!==itemSignature)return;
+  stopItemPreview();
+  const rate=context.sampleRate,chip=new QSoundPcm(rom,rate);
+  const writes=p.kind==='PCM'?noteWrites(0,60,0,16,16384,p.rate,p.end,p.loop,p.bank,p.start):
+    [[0xca,p.start],[0xcb,p.end],[0xcc,p.bank],[0xcd,32767],[0x90,0x120],[0xd6,1]];
+  for(const [reg,value] of writes)chip.writeRegister(reg,value);
+  const buffer=context.createBuffer(2,rate,rate);
+  chip.render(buffer.getChannelData(0),buffer.getChannelData(1));
+  const node=context.createBufferSource();node.buffer=buffer;node.connect(masterGain);
+  node.onended=()=>{node.disconnect();if(previewNode===node)previewNode=null;};
+  previewNode=node;node.start();
+});
+$('item-save').onclick=()=>{
+  const path=romPath?syncedBank:bankPath;if(!path||!itemDraft)return;
+  const list=[...editablePresets(path)],id=$('range-current').value;
+  const existing=id.startsWith('preset:'),index=existing?Number(id.slice(7)):list.length;
+  const name=existing?list[index].name:(itemDraft.name?itemDraft.name+' (edited)':rangeName(itemDraft));
+  list[index]={...itemDraft,name};
+  writeRangePresets(list,'preset:'+index,path);
+};
 function updateRangeActions(){
   $('range-new').disabled=Boolean(romPath);
   $('range-del').disabled=Boolean(romPath)||!$('range-current').value.startsWith('preset:');
 }
-$('range-current').onchange=updateRangeActions;
-function writeRangePresets(list,next){
+$('range-current').onchange=()=>{updateRangeActions();showItem();};
+function writeRangePresets(list,next,path=bankPath){
   if($('auto-apply').checked){
-    rangePresets.set(bankPath,list);syncCatalog(bankPath);
+    rangePresets.set(path,list);syncCatalog(path);
   }else{
-    const source=readCatalog(files.get(catalogPath(bankPath)).data).source;
-    const json=catalogText(bankSlots[bankPath],list,source);
-    if(json===files.get(catalogPath(bankPath)).data)pendingBanks.delete(bankPath);
-    else pendingBanks.set(bankPath,{json});
+    const staged=pendingBanks.get(path),saved=files.get(catalogPath(path))?.data;
+    const source=readCatalog(staged?.json??saved).source;
+    const json=catalogText(bankSlots[path]??[],list,source);
+    if(json===saved&&!staged?.rom)pendingBanks.delete(path);
+    else pendingBanks.set(path,{...staged,json});
   }
   renderFiles();
   if([...$('range-current').options].some(o=>o.value===next))$('range-current').value=next;
-  updateRangeActions();scheduleDraft();
+  updateRangeActions();showItem();scheduleDraft();
 }
 $('range-new').onclick=()=>{
   creationRanges=currentRomRanges();
@@ -1303,19 +1382,20 @@ $('range-del').onclick=()=>{
 };
 function renderRanges(){
   const current=currentRomRanges(),options=[];
+  itemRanges=new Map();
   if(!romPath){
     for(const range of slotRanges()){
-      options.push(['slot:'+rangeKey(range),range.name]);current.delete(rangeKey(range));
+      itemRanges.set('slot:'+rangeKey(range),range);options.push(['slot:'+rangeKey(range),range.name]);current.delete(rangeKey(range));
     }
   }
   const path=romPath?syncedBank:bankPath;
   if(path)editablePresets(path).forEach((preset,index)=>{
-    options.push(['preset:'+index,preset.name]);current.delete(rangeKey(preset));
+    itemRanges.set('preset:'+index,preset);options.push(['preset:'+index,preset.name]);current.delete(rangeKey(preset));
   });
-  for(const [key,range] of current)options.push([key,rangeName(range)]);
+  for(const [key,range] of current){itemRanges.set(key,range);options.push([key,rangeName(range)]);}
   rangeOptions('range-current',options);
   $('range-current').disabled=!options.length;
-  updateRangeActions();
+  updateRangeActions();showItem();
   if(romPath && renderedHistory===vgmRanges)return;
   renderedHistory=romPath?vgmRanges:null;
   const presets=availableRanges();

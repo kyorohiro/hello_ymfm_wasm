@@ -81,7 +81,7 @@ body{width:min(100%,76rem)}
 #rom-source{overflow-wrap:anywhere;font-size:.85rem}#rom-empty{padding:.65rem 0}
 @media(max-width:540px){.rom-row{grid-template-columns:6rem minmax(0,1fr)}}
 #slot-buttons{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;max-width:32rem;margin:.5rem 0}#slot-buttons button{padding:0;font-size:.75rem}#slot-buttons button.filled{background:#237066;color:white}#slot-buttons button[aria-pressed=true]{outline:2px solid #d78220}
-#slot-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
+#item-wave,#slot-wave,#rom-preview{display:block;width:min(100%,36rem);height:5rem;background:#102c43;border-radius:5px}
 #rom-chip > details{margin-top:.6rem}#rom-chip > details > summary{cursor:pointer;font-weight:600;padding:.35rem 0}
 </style>
 <main><header><img src="../tetorica_cps2_synth.webp" alt="" width="72" height="72"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
@@ -133,6 +133,9 @@ body{width:min(100%,76rem)}
 <label>ROM range<select id="range-source"></select></label><label>Name <input id="range-name" required></label>
 <button type="submit" value="create">Create</button> <button type="submit" value="cancel" formnovalidate>Cancel</button></form></dialog>
 <div id="preset-item"><label>Item <select data-performance-picker id="range-current"></select></label> <button id="range-del" title="Delete the selected preset">DEL</button></div>
+<div id="item-editor" hidden><div id="item-controls" class="chip-header"></div>
+<canvas id="item-wave" width="640" height="84" aria-label="Selected item waveform"></canvas>
+<button id="item-preview">Preview 1 s</button> <button id="item-save">Save item</button></div>
 <label id="range-history-label" hidden>VGM range history<select data-performance-picker id="range-history"></select></label>
 <button id="use-history" hidden>Use selected range</button>
 
