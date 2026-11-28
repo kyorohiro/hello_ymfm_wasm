@@ -71,7 +71,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 #pcm-tabs [role=tab]{margin-bottom:-2px;border:1px solid #859d9d;border-bottom:2px solid #155876;border-radius:6px 6px 0 0;background:#e1e3d6;padding:.28rem .85rem}
 #pcm-tabs [aria-selected=true]{background:#fffaf0;border:2px solid #155876;border-bottom-color:#fffaf0;font-weight:bold}
 #pcm-panel,#register-panel{padding:.65rem;border:1px solid #afbfba;border-top:0;background:#fffaf0}
-#pcm-address{justify-content:flex-start}.rom-picker{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}.rom-picker label{display:inline-flex;align-items:center;margin:0}.rom-picker select{max-width:min(19rem,65vw)}
+#pcm-address{justify-content:flex-start}.rom-picker{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}.rom-picker select{max-width:min(19rem,65vw)}
 #register-panel table{border-collapse:collapse;width:min(100%,32rem);text-align:left}
 #register-panel th,#register-panel td{padding:.15rem .6rem;border-bottom:1px solid #bcc5ba}
 #register-panel td,#register-position{font-family:monospace;font-variant-numeric:tabular-nums}
@@ -128,7 +128,8 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}@media(max-w
 
 
 
-<section id="soundchip"><div class="chip-header"><div class="rom-picker"><label>ROM <select id="rom-file"></select></label><button id="new-rom">New ROM…</button><button id="import-rom">Import ROM…</button><button id="range-export">Export ROM</button><input id="rom-input" type="file" multiple accept=".rom,.bin,.json" hidden></div></div>
+<details class="desk-group" id="rom-tools" open><summary>ROM</summary><div class="desk-group-body rom-picker"><select id="rom-file" aria-label="ROM file"></select><button id="new-rom">New…</button><button id="import-rom">Import…</button><button id="range-export">Export</button><input id="rom-input" type="file" multiple accept=".rom,.bin,.json" hidden></div></details>
+<section id="soundchip">
 <nav id="chip-tabs" class="chip-tabs" aria-label="QSound editor"><button data-chip="pcm-chip" aria-pressed="true">PCM</button><button data-chip="adpcm-chip" aria-pressed="false">ADPCM</button><button data-chip="rom-chip" aria-pressed="false">ROM</button><button data-chip="mixer" aria-pressed="false">Mixer</button></nav>
 <section id="pcm-chip" aria-label="PCM channels"><div id="channels"></div>
 <div role="tablist" id="pcm-tabs" aria-label="PCM channel view"><button role="tab" id="pcm-tab" aria-controls="pcm-panel" aria-selected="true">Voice</button>
