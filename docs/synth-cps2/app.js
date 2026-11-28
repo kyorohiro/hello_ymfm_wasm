@@ -2,7 +2,7 @@
 import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
 import {presetPitches} from './pitch.js';
 import {padVoiceLabel,setupKeyboard} from './keyboard.js';
-import {createBankWave,drawSampleWave} from './bank-wave.js';
+import {createBankWave,drawSampleWave,drawLoopRegion} from './bank-wave.js';
 import {createPadWave} from './pad-wave.js';
 import {setupRomCreator} from './rom-creator.js';
 import {createRomPages} from './rom-pages.js';
@@ -1400,7 +1400,7 @@ function updateItemBounds(){
   itemControls.loop.updateRange(0,end);
 }
 function drawFullBank(){
-  const p=itemDraft;paintItemBank(itemRom,p.bank*65536,p.kind,p.start,p.end);
+  const p=itemDraft;paintItemBank(itemRom,p.bank*65536,p.kind,p.start,p.end,null,p.loop);
 }
 function setItemView(selection){
   selectionView=selection;rangeDrag=null;
@@ -1457,7 +1457,10 @@ function drawItem(keepPitch=false){
     }
     item={pcm,length,kind:p.kind};
   }
-  if(selectionView)drawSampleWave($('item-wave'),item);else drawFullBank();
+  if(selectionView){
+    drawSampleWave(itemWave,item);
+    if(valid && p.kind==='PCM')drawLoopRegion(itemWave,p.start,length,p.end,p.loop);
+  }else drawFullBank();
   $('item-tuning').hidden=p.kind!=='PCM';
   $('item-measure').disabled=!valid;
   if(!keepPitch)$('item-pitch').replaceChildren();

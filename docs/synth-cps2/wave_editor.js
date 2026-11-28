@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createBankWave} from './bank-wave.js';
+import {createBankWave,drawLoopRegion} from './bank-wave.js';
 import {createParamControl} from '../synth/synth_controls.js';
 
 
@@ -52,13 +52,11 @@ export function createWaveEditor(onEdit,itemFor,getRom,isFull) {
     controls.loop.updateVisual(loop);
     caption.textContent='ROM bank '+bank+' · Loop '+((end-loop)&65535)+'–'+end+' (end exclusive) · Position '+(address ?? '—');
     canvas.setAttribute('aria-label',full?'Full PCM bank with selected range':'Selected PCM waveform with loop region');
-    if(full){paintBank(rom,bank*65536,'PCM',start,end,address);return;}
+    if(full){paintBank(rom,bank*65536,'PCM',start,end,address,loop);return;}
     ctx.clearRect(0,0,width,height);
     if(start===end && !loop)return;
     const x = byte => (byte-start)*width/span;
-    ctx.fillStyle = '#235956';
     const boundary=view ? start+span : end;
-    ctx.fillRect(x(boundary-loop),0,x(boundary)-x(boundary-loop),height);
     ctx.strokeStyle = '#afeacb';
     ctx.beginPath();
     for (let i=0;i<256;i++) {
@@ -70,6 +68,7 @@ export function createWaveEditor(onEdit,itemFor,getRom,isFull) {
     ctx.stroke();
     ctx.fillStyle = '#65bcb4';
     ctx.fillRect(Math.min(width-2,x(boundary)),0,2,height);
+    drawLoopRegion(canvas,start,span,end,loop);
     const position = address===null ? null : view ? start+((address-start)&65535) : address;
     if (position !== null && position >= start && position < start+span) {
       ctx.fillStyle = '#ffc45b';
