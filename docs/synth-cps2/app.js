@@ -27,11 +27,19 @@ import {drumPath,sampleDuet,padGroove,scheduledBar,filterGroove,panStudy} from '
 import {presetJamFiles} from './preset-jam.js';
 import {bankLibrary,defaultRom,editSlot,factoryBanks,isBankPath,padFromPcm} from './banks.js';
 import {catalogPath,catalogText,isCatalogPath,instrumentKey,keyboardRate,rangeKey,rangeName,readCatalog} from './range-presets.js';
-import {zipSync} from '../playground/vendor/fflate.js';
+import {unzipSync,zipSync} from '../playground/vendor/fflate.js';
 const rangePresets=new Map();
 let syncedBank=null,syncedRomRevision=-1,syncedRangeSignature=null;
 let currentRanges=[],vgmRanges=[],rangeVersion=-1;
 const stockBanks=factoryBanks();
+const kitName='sonic-pi-black-dog';
+const kitResponse=await fetch(new URL('./rom-sets/'+kitName+'.zip',import.meta.url));
+if(!kitResponse.ok)throw Error('Could not load the Sonic Pi factory bank.');
+const kit=unzipSync(new Uint8Array(await kitResponse.arrayBuffer()));
+const kitPath='/banks/'+kitName+'.rom';
+const kitCatalog=readCatalog(new TextDecoder().decode(kit[kitName+'.preset.json']));
+stockBanks.push([kitPath,{rom:kit[kitName+'.rom'],slots:kitCatalog.slots,presets:kitCatalog.presets}]);
+rangePresets.set(kitPath,kitCatalog.presets);
 let bankPath=defaultRom,bankSlots=Object.fromEntries(stockBanks.map(([path,b])=>[path,b.slots]));
 let library=bankLibrary(stockBanks[0][1].rom,bankSlots[bankPath]);
 
@@ -546,7 +554,7 @@ const files = createVirtualFileSystem([
   {path:'/index.js',data:source.value},
   ...presetJamFiles,
   {path:'/examples/pan-study.js',data:panStudy},
-  ...stockBanks.flatMap(([path,b])=>[{path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,[])}]),
+  ...stockBanks.flatMap(([path,b])=>[{path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,b.presets??[])}]),
   {path:'/examples/sample-duet.js',data:sampleDuet},
   {path:'/examples/pad-groove.js',data:padGroove},
   {path:'/examples/scheduled-bar.js',data:scheduledBar},
@@ -583,8 +591,9 @@ $('add-demos').onclick=()=>run(async()=>{
   if(!files.has('/examples/pad-groove.js'))additions.push({path:'/examples/pad-groove.js',data:padGroove});
   if(!files.has('/examples/scheduled-bar.js'))additions.push({path:'/examples/scheduled-bar.js',data:scheduledBar});
   if(!files.has('/examples/filter-groove.js'))additions.push({path:'/examples/filter-groove.js',data:filterGroove});
-  for(const [path,b] of stockBanks)if(!files.has(path)){
-    additions.push({path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,[])});bankSlots[path]=b.slots;
+  for(const [path,b] of stockBanks)if(!files.has(path) && !files.has(catalogPath(path))){
+    additions.push({path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,b.presets??[])});bankSlots[path]=structuredClone(b.slots);
+    if(b.presets)rangePresets.set(path,structuredClone(b.presets));
   }
   files.writeFiles(additions);
   if(!songPath)selectDefaultSong();
@@ -1132,7 +1141,10 @@ function replaceProject(project) {
       path:r.path,name:r.path.split('/').pop(),kind:legacy.padItems.get(r.path)===r?'ADPCM':'PCM',offset:r.offset,length:r.length,rate:r.rate,
     }))];
     for(const f of project.files)if(isSamplePath(f.path))files.delete(f.path);
-    for(const [path,b] of stockBanks)files.writeBinary(path,path===bankPath?legacy.rom:b.rom);
+    for(const [path,b] of stockBanks){
+      files.writeBinary(path,path===bankPath?legacy.rom:b.rom);
+      if(b.presets)rangePresets.set(path,structuredClone(b.presets));
+    }
   }
   for(const path of Object.keys(bankSlots)){
     const f=files.get(catalogPath(path));
