@@ -86,6 +86,11 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #song-picker,#rom-tools label{display:flex;align-items:center;gap:.35rem;flex:1 1 120px;min-width:0;max-width:300px}
 #song-select,#rom-file{width:100%;min-width:0;font:inherit;padding:4px 8px}
 #song-transport button{min-height:26px;padding:3px 9px;line-height:1.2}
+#song-loading:empty{display:none}
+#song-loading{display:inline-flex;align-items:center;gap:.4em;padding:.12em .55em;border-radius:4px;background:#145875;color:white;font-size:.85rem;vertical-align:middle}
+#song-loading::before{content:"";width:.75em;height:.75em;border:2px solid #ffffff70;border-top-color:white;border-radius:50%;animation:song-spin .8s linear infinite}
+@keyframes song-spin{to{transform:rotate(1turn)}}
+@media(prefers-reduced-motion:reduce){#song-loading::before{animation:none}}
 #song-status{font-size:inherit}
 #song-position{white-space:nowrap}
 #song-transport .seek-track{flex:1 1 90px;min-width:64px;max-width:140px;margin:0}
@@ -168,7 +173,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <div id="workspace"><aside id="files" aria-label="Files"><div class="files-heading"><strong>Files</strong><button id="new-script" title="New JavaScript file">＋ JS</button></div><div class="files-actions"><label><input type="checkbox" id="auto-apply" title="Save edits and sync playing ROMs automatically. Apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
 <button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button></div><div id="project-tree"></div>
 <p id="file-status" role="status"></p></aside><div id="desk">
-<output id="status" role="status"></output><details class="desk-group" id="song-transport" open hidden><summary>VGM / ROM <span class="summary-file"><span id="song-summary-file"></span> · <span id="rom-summary-file"></span></span></summary><div class="desk-group-body"><label id="song-picker">VGM <select id="song-select" aria-label="VGM file"></select></label>
+<output id="status" role="status"></output><details class="desk-group" id="song-transport" open hidden><summary>VGM / ROM <span id="song-loading" role="status"></span> <span class="summary-file"><span id="song-summary-file"></span> · <span id="rom-summary-file"></span></span></summary><div class="desk-group-body"><label id="song-picker">VGM <select id="song-select" aria-label="VGM file"></select></label>
 <button id="song-play">Play</button><button id="song-pause" disabled>Pause</button><button id="song-stop" disabled>Stop</button>
 <div class="seek-track"><input id="song-seek" aria-label="Song position" type="range" min="0" max="1" step="1" value="0" disabled><span id="loop-mark" hidden></span></div>
 <output id="song-position" for="song-seek" aria-live="off">0:00 / 0:00</output>

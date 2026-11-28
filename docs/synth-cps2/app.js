@@ -77,7 +77,11 @@ function pendingBankPath(path){
   if(isCatalogPath(path))return [...pendingBanks.keys()].find(bank=>catalogPath(bank)===path);
 }
 let songPath=null, songState='stopped', songSelection=0;
-let songLoading=false;
+let songLoading='';
+function setSongLoading(message){
+  songLoading=message;
+  $('song-loading').textContent=message;
+}
 let preparedSong=null, preparationRevision=0,sourceChoice=0;
 let seekWorker=null, seeking=false, sliding=false;
 const songLimit=16*1024*1024;
@@ -287,7 +291,7 @@ function inspect({data}) {
       if(romPath){
         try{syncPlayingBank(data);}catch(error){$('file-status').textContent=error.message;}
       }
-      if(songLoading && data.choice===sourceChoice){songLoading=false;transport();}
+      if(songLoading && data.choice===sourceChoice){setSongLoading('');transport();}
       renderRanges();
     }
     return;
@@ -357,7 +361,7 @@ setInterval(()=>{
 },50);
 async function audio() {
   context ??= new AudioContext();
-  await context.resume();
+  const resumed=context.state==='running'?undefined:context.resume();
   ready ??= context.audioWorklet.addModule('./processor.js').then(()=>{
     const node = new AudioWorkletNode(context,'tetorica-cps2-preview',{outputChannelCount:[2]});
     const settings=mixer.get();
@@ -369,7 +373,7 @@ async function audio() {
     scope.connect(context,[masterGain]);updateScope();
     port = node.port; port.onmessage = inspect; syncAutoFade(); syncSpatialPan(); applyMix(mixer.get()); installRom();restoreEcho();
   }).catch(error=>{ready=null;throw error;});
-  await ready;
+  await Promise.all([ready,resumed]);
 }
 const status = $('status');
 function run(task) {task().catch(e=>{status.textContent=e.message;});}
@@ -528,7 +532,7 @@ $('pad-trigger').onclick=()=>triggerPad(padVoice);
 syncPadView();
 const setPadKeyboard=setupKeyboard({press,release,triggerPad:voice=>triggerPad(voice-1)});
 function stop(keepInstrument=true){
-  songLoading=false;
+  setSongLoading('');
   clearPresetPitch();
   liveInstrument=Boolean(keepInstrument && liveInstrument);
   if(!liveInstrument && projectAutoVoice){
@@ -861,6 +865,9 @@ function updateFileActions(){
   $('save-files').hidden=$('auto-apply').checked;
   $('save-files').disabled=!pending.size&&!pendingBanks.size;
 }
+// Start the silent worklet while the user is still choosing a file.
+function warmSongAudio(){if(!port)audio().catch(()=>{});}
+$('song-select').addEventListener('pointerdown',warmSongAudio);
 $('song-select').onchange=event=>openScript(event.target.value);
 function openScript(path,prepared,activateRom=true) {
   if(pendingBankPath(path)){
@@ -882,10 +889,11 @@ function openScript(path,prepared,activateRom=true) {
     return;
   }
   if (file.type==='binary') {
+    if(activateRom)warmSongAudio();
     const choice=++sourceChoice;
     const cached=path===songPath?preparedSong:null;
     stop(false);stopItemPreview();songPath=path;
-    preparedSong=null;songLoading=true;$('song-loop').checked=false;
+    preparedSong=null;setSongLoading('Loading VGM…');$('song-loop').checked=false;
     transport();renderFiles();
     const token=++preparationRevision,loadGeneration=generation;
     Promise.resolve(prepared??cached??prepareSong(file.data)).then(async song=>{
@@ -894,11 +902,11 @@ function openScript(path,prepared,activateRom=true) {
       if(activateRom && choice===sourceChoice && loadGeneration===generation){
         await previewSongRom(path,song,choice);
       }else if(choice===sourceChoice){
-        songLoading=false;transport();
+        setSongLoading('');transport();
       }
     }).catch(error=>{
       if(token===preparationRevision && choice===sourceChoice){
-        songLoading=false;transport();$('file-status').textContent=error.message;
+        setSongLoading('');transport();$('file-status').textContent=error.message;
       }
     });
     return;
@@ -1767,7 +1775,7 @@ function renderBankEditor(){
 function selectBank(path,clearAssignments=false){
   if(pendingBankPath(path)){renderBankEditor();$('file-status').textContent='Choose Save files to use this ROM and its presets.';return;}
   if(!isBankPath(path)||!files.has(path))throw Error('Missing ROM '+path);
-  sourceChoice++;songLoading=false;
+  sourceChoice++;setSongLoading('');
   if(bankPath!==path || romPath){
     for(const v of [...channels,autoVoice]){v.bank=bankFor(v);v.start=startFor(v);}
     stop(false);bankPath=path;
@@ -1929,7 +1937,7 @@ $('wav-input').onchange=e=>run(async()=>{
   files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;
   syncCatalog(bankPath);rebuildSamples(result.library);refresh();showPad();showRomMap();renderFiles();scheduleDraft();
 });
-$('import-song').onclick=()=>$('song-input').click();
+$('import-song').onclick=()=>{warmSongAudio();$('song-input').click();};
 $('song-input').onchange=async event=>{
   const file=event.target.files[0];event.target.value='';
   if(!file)return;
@@ -1939,23 +1947,27 @@ $('song-input').onchange=async event=>{
     const path='/songs/'+file.name;
     if(files.has(path) && !confirm('Replace '+path+'?'))return;
     stop(false);stopItemPreview();
+    warmSongAudio();
     const importChoice=++sourceChoice;
-    $('song-transport').open=true;songLoading=true;transport();
+    $('song-transport').open=true;setSongLoading('Reading VGM…');transport();
     try{
       const raw=new Uint8Array(await file.arrayBuffer());
+      if(importChoice!==sourceChoice)return;
+      setSongLoading('Loading VGM…');
       const prepared=await prepareSong(raw);
       if(token!==songSelection || importChoice!==sourceChoice)return;
       files.writeBinary(path,raw);openScript(path,prepared);
     }finally{
-      if(importChoice===sourceChoice){songLoading=false;transport();}
+      if(importChoice===sourceChoice){setSongLoading('');transport();}
     }
     const panel=$('song-transport');
     panel.open=true;panel.scrollIntoView({block:'nearest'});
-    saveDraft();
+    scheduleDraft();
     $('file-status').textContent='Imported '+file.name;
   } catch(error){$('file-status').textContent=error.message;}
 };
 async function previewSongRom(path,song,choice){
+  setSongLoading('Loading ROM…');
   const token=generation;
   await audio();
   if(token!==generation || choice!==sourceChoice || path!==songPath || song!==preparedSong)return;
