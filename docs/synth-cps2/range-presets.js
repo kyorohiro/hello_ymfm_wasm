@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: BSD-3-Clause
+export const rangeKey=p=>[p.kind,p.bank,p.start,p.end,p.rate,p.loop].join('/');
+export const catalogPath=path=>path.replace(/\.(rom|bin)$/i,'.preset.json');
+export const isCatalogPath=path=>/^\/banks\/[^/]+\.preset\.json$/i.test(path);
+export const rangeName=p=>p.kind+' '+p.bank+':'+p.start.toString(16).padStart(4,'0')+'–'+p.end.toString(16).padStart(4,'0')+(p.kind==='PCM'?' · Rate '+p.rate+' · Loop '+p.loop:'');
+export function voiceRange(chip,starts,id){
+  const pcm=id<16,v=pcm?chip.voices[id]:chip.adpcm[id-16];
+  return {kind:pcm?'PCM':'ADPCM',bank:v.bank,start:pcm?starts[id]:v.start,end:v.end&65535,
+    ...(pcm?{rate:v.rate,loop:v.loop&65535}:{})};
+}
+export function readCatalog(text){
+  const c=JSON.parse(text);
+  if(c?.format!=='tetorica-qsound-ranges-1'||!Array.isArray(c.presets)||!Array.isArray(c.slots))throw Error('Invalid QSound preset catalog.');
+  for(const p of c.presets){
+    if(!p || !['PCM','ADPCM'].includes(p.kind)||typeof p.name!=='string'||!p.name.trim()||
+      !Number.isInteger(p.bank)||p.bank<0||p.bank>32767||
+      ![p.start,p.end,...(p.kind==='PCM'?[p.rate,p.loop]:[])].every(n=>Number.isInteger(n)&&n>=0&&n<=65535))
+      throw Error('Invalid QSound range preset.');
+  }
+  return c;
+}
+export const catalogText=(slots,presets)=>JSON.stringify({format:'tetorica-qsound-ranges-1',slots,presets},null,2);

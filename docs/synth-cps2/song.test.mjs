@@ -126,8 +126,22 @@ test('ROM history follows played banks and seek restores the ROM image at the re
   new DataView(bytes.buffer).setUint32(4,bytes.length-4,true);
   const at=t=>rebuildSongState(bytes,44100,t,Array(19).fill(false)).chip;
   const early=at(50),late=at(250);
+  const history=t=>rebuildSongState(bytes,44100,t,Array(19).fill(false)).ranges.map(([,range])=>range);
+  assert.deepEqual(history(50).map(p=>p.bank),[0]);
+  assert.deepEqual(history(250).map(p=>[p.bank,Boolean(p.earlierImage)]),[[0,true],[1,false]]);
   assert.equal(early.rom[0],12);assert.equal(early.romUsage[256],0);
   assert.equal(late.rom[0],34);assert.equal(late.rom[65536],56);
   assert.equal(late.voices[0].volume,0);
   assert.deepEqual([...late.romUsage.entries()].filter(([,used])=>used),[[0,1],[256,1]]);
+});
+
+test('one ROM region can have multiple PCM rates and an independent fixed-rate ADPCM preset',()=>{
+  const bytes=demoVgm([
+    {t:0,writes:[[1,8],[2,512],[4,16],[5,24],[0xca,8],[0xcb,24],[0xcc,0]]},
+    {t:100,writes:[[2,768]]},
+    {t:200,writes:[]},
+  ]);
+  const ranges=rebuildSongState(bytes,44100,150,Array(19).fill(false)).ranges.map(([,p])=>p);
+  assert.deepEqual(ranges.filter(p=>p.kind==='PCM').map(p=>[p.start,p.end,p.rate,p.loop]),[[8,24,512,16],[8,24,768,16]]);
+  assert.deepEqual(ranges.filter(p=>p.kind==='ADPCM'),[{kind:'ADPCM',bank:0,start:8,end:24}]);
 });

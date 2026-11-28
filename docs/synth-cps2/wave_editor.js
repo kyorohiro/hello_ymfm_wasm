@@ -37,10 +37,10 @@ export function createWaveEditor(onEdit,itemFor,getRom) {
     if (!view && signature === previous && previousItem===item && previousRom===rom) return;
     previousItem=item;previousRom=rom;
     previous = view ? null : signature;
-    const start = view?.start ?? item?.start ?? voice.start ?? sample * 256, span=view?.span ?? item?.length ?? Math.max(1,end-start), {width,height} = canvas;
-    editRange=view?null:{start,span,end,loop};
-    controls.end.updateRange(view||start===65535?0:start+1,view||!item?65535:start+span);
-    controls.loop.updateRange(0,view||end<start?65535:end-start);
+    const start = view?.start ?? item?.start ?? voice.start ?? sample * 256, span=view?.span ?? item?.length ?? (((end-start)&65535)||65536), {width,height} = canvas;
+    editRange=view||start>=end?null:{start,span,end,loop};
+    controls.end.updateRange(view||!item?0:start+1,view||!item?65535:start+span);
+    controls.loop.updateRange(0,view||!item?65535:end-start);
     controls.rate.updateVisual(rate);
     controls.end.updateVisual(end);
     controls.loop.updateVisual(loop);
@@ -52,7 +52,7 @@ export function createWaveEditor(onEdit,itemFor,getRom) {
     ctx.strokeStyle = '#afeacb';
     ctx.beginPath();
     for (let i=0;i<256;i++) {
-      const signedByte = (view?view.wave[i]:item?item.pcm[Math.floor(i*span/256)]:rom[(voice.bank??0)*65536+start+Math.floor(i*span/256)]) << 24 >> 24;
+      const signedByte = (view?view.wave[i]:item?item.pcm[Math.floor(i*span/256)]:rom[(voice.bank??0)*65536+((start+Math.floor(i*span/256))&65535)]) << 24 >> 24;
       const y = height/2 - signedByte*height/256;
       if (i===0) ctx.moveTo(0,y);
       else ctx.lineTo(i*width/256,y);

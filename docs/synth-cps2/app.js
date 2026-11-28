@@ -25,6 +25,10 @@ import {isSamplePath,sampleLibrary,maxRom} from './samples.js';
 import {drumPath,sampleDuet,padGroove,scheduledBar,filterGroove} from './sample-duet.js';
 import {presetJamFiles} from './preset-jam.js';
 import {bankLibrary,defaultRom,editSlot,factoryBanks,isBankPath,padFromPcm} from './banks.js';
+import {catalogPath,catalogText,isCatalogPath,rangeKey,rangeName,readCatalog} from './range-presets.js';
+import {zipSync} from '../playground/vendor/fflate.js';
+const rangePresets=new Map();
+let currentRanges=[],vgmRanges=[],rangeVersion=-1;
 const stockBanks=factoryBanks();
 let bankPath=defaultRom,bankSlots=Object.fromEntries(stockBanks.map(([path,b])=>[path,b.slots]));
 let library=bankLibrary(stockBanks[0][1].rom,bankSlots[bankPath]),slot=0;
@@ -129,15 +133,13 @@ function applyMix(settings) {
 }
 const draw = createWaveEditor(edit,itemFor,()=>library.rom);
 const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,value:0,onChange:value=>setPcmAddress('bank',value)});
-const pcmStart=createParamControl({label:'Start',min:0,max:65534,step:1,value:0,onChange:value=>setPcmAddress('start',value)});
+const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,value:0,onChange:value=>setPcmAddress('start',value)});
 $('pcm-address').append(pcmBank.element,pcmStart.element);
 function setPcmAddress(key,value){
   const v=editedVoice(),reg=key==='bank'?((selected+15)&15)*8:selected*8+1;
   const writes=[[reg,key==='bank'?value|0x8000:value]];
   if(autoChannel || !liveInstrument){
     v.bank=bankFor(v);v.start=startFor(v);v.samplePath=null;v[key]=value;
-    if(v.end<=v.start){v.end=v.start+1;writes.push([selected*8+5,v.end]);}
-    if(v.loop>v.end-v.start){v.loop=v.end-v.start;writes.push([selected*8+4,v.loop]);}
     refresh();
   }
   attached=null;if(keyboardOwnsTarget())port?.postMessage(writes);inspectChannel();
@@ -197,7 +199,7 @@ function edit(key,value) {
     v.referenceRate = value;
     v.referenceNote = v.note;
   }
-  if (key === 'end' && v.loop > value-startFor(v)) {
+  if (key === 'end' && itemFor(v) && v.loop > value-startFor(v)) {
     v.loop = value-startFor(v);
     writes.push([selected*8+4,v.loop]);
   }
@@ -231,6 +233,13 @@ $('pcm-tabs').onkeydown=e=>{
 $('register-tab').onclick=()=>selectPcmTab(true);
 $('pcm-tab').onclick=()=>selectPcmTab(false);
 function inspect({data}) {
+  if(data.type==='range-state'){
+    if(liveInstrument && (!romPath||data.source===romPath)){
+      currentRanges=data.current;rangeVersion=data.version;if(data.ranges)vgmRanges=data.ranges;
+      renderRanges();
+    }
+    return;
+  }
   if(data.type==='rom-pages'){
     if(!$('rom-chip').hidden)romPages.draw(data);
     return;
@@ -450,7 +459,7 @@ syncPadView();
 const setPadKeyboard=setupKeyboard({press,release,triggerPad:voice=>triggerPad(voice-1)});
 function stop(keepInstrument=true){
   liveInstrument=Boolean(keepInstrument && liveInstrument);
-  if(!liveInstrument){attached=null;romPath=null;}
+  if(!liveInstrument){attached=null;romPath=null;vgmRanges=[];currentRanges=[];rangeVersion=-1;}
   cancelSeek();sliding=false;songState='stopped';
   stopWorker();
   generation++;
@@ -478,7 +487,7 @@ const source = $('source');
 const files = createVirtualFileSystem([
   {path:'/index.js',data:source.value},
   ...presetJamFiles,
-  ...stockBanks.map(([path,b])=>({path,data:b.rom})),
+  ...stockBanks.flatMap(([path,b])=>[{path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,[])}]),
   {path:'/examples/sample-duet.js',data:sampleDuet},
   {path:'/examples/pad-groove.js',data:padGroove},
   {path:'/examples/scheduled-bar.js',data:scheduledBar},
@@ -515,7 +524,7 @@ $('add-demos').onclick=()=>run(async()=>{
   if(!files.has('/examples/scheduled-bar.js'))additions.push({path:'/examples/scheduled-bar.js',data:scheduledBar});
   if(!files.has('/examples/filter-groove.js'))additions.push({path:'/examples/filter-groove.js',data:filterGroove});
   for(const [path,b] of stockBanks)if(!files.has(path)){
-    additions.push({path,data:b.rom});bankSlots[path]=b.slots;
+    additions.push({path,data:b.rom},{path:catalogPath(path),data:catalogText(b.slots,[])});bankSlots[path]=b.slots;
   }
   files.writeFiles(additions);
   if(!songPath)selectDefaultSong();
@@ -625,16 +634,24 @@ const drawRomMap=createRomMap(id=>{
 });
 
 const romPages=createRomPages((bank,page)=>{
-  if(port)port.postMessage({type:'rom-pages',bank,page});
+  if(port){
+    port.postMessage({type:'rom-pages',bank,page});
+    if(liveInstrument)port.postMessage({type:'range-state',known:rangeVersion});
+  }
   else{
     const offset=(bank*256+page)*256;
     romPages.draw({bank,page,size:library.rom.length,usage:[],bytes:library.rom.slice(offset,offset+256)});
   }
 });
-setInterval(()=>{if(!document.hidden && !$('rom-chip').hidden && port)romPages.refresh();},250);
+setInterval(()=>{
+  if(document.hidden||!port)return;
+  if(!$('rom-chip').hidden)romPages.refresh();
+  else if(romPath && (!$('pcm-chip').hidden||!$('adpcm-chip').hidden))
+    port.postMessage({type:'range-state',known:rangeVersion});
+},250);
 $('export-rom').onclick=()=>run(async()=>{
   let bytes=library.rom;
-  const name=(romPath??bankPath).split('/').pop().replace(/\.(vg[mz]|rom)$/i,'');
+  const name=(romPath??bankPath).split('/').pop().replace(/\.vg[mz]$/i,'.rom');
   if(port){
     const {port1,port2}=new MessageChannel();
     const snapshot=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
@@ -643,7 +660,7 @@ $('export-rom').onclick=()=>run(async()=>{
   }
   if(!bytes.length && romPath)throw Error('No sample ROM loaded.');
   const url=URL.createObjectURL(new Blob([bytes])),link=document.createElement('a');
-  link.href=url;link.download=name+'.rom';link.click();
+  link.href=url;link.download=name;link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 function showRomMap(){
@@ -762,6 +779,9 @@ function openScript(path,prepared) {
   const file=files.get(path);
   if (!file) return;
   highlightedPath=path;
+  if(isCatalogPath(path)){
+    const rom=Object.keys(bankSlots).find(p=>catalogPath(p)===path);if(rom)openScript(rom);return;
+  }
   if(isBankPath(path)){
     selectBank(path);document.querySelector('[data-chip="rom-chip"]').click();return;
   }
@@ -953,6 +973,7 @@ function renameSource(text,from,to){
   return JSON.stringify(p,null,2);
 }
 function fileActions(path){
+  if(isCatalogPath(path))return [{id:'open',label:'Open ROM presets'}];
   if(path==='/banks')return [{id:'new-rom',label:'New ROM…'},{id:'import-rom',label:'Import ROM…'}];
   if(!files.has(path))return [{id:'new',label:'New JavaScript file…'}];
   if(isBankPath(path))return [{id:'open',label:'Load ROM'},{id:'new-rom',label:'New ROM…'},{id:'duplicate',label:'Duplicate'},{id:'rename',label:'Rename…'},{id:'delete',label:'Delete',disabled:path===bankPath}];
@@ -972,7 +993,7 @@ function fileAction(action,path){
   if(action==='delete'){
     if(!confirm('Delete '+path+'?'))return;
     files.delete(path);pending.delete(path);
-    if(isBankPath(path))delete bankSlots[path];
+    if(isBankPath(path)){files.delete(catalogPath(path));rangePresets.delete(path);delete bankSlots[path];}
     if(attached?.path===path)attached=null;
     if(path===songPath){stop(false);songPath=null;preparedSong=null;transport();selectDefaultSong();}
     if(path===activePath)openScript('/index.js');
@@ -983,7 +1004,7 @@ function fileAction(action,path){
     let dest;
     if(action==='duplicate'){
       const stem=leaf.slice(0,-ext.length);
-      let n=1;do{dest=parent+stem+' copy'+(n===1?'':' '+n)+ext;n++;}while(files.has(dest));
+      let n=1;do{dest=parent+stem+' copy'+(n===1?'':' '+n)+ext;n++;}while(files.has(dest)||(isBankPath(path)&&files.has(catalogPath(dest))));
     }else{
       const name=prompt('Rename file',leaf)?.trim();
       if(!name || name===leaf)return;
@@ -995,7 +1016,10 @@ function fileAction(action,path){
     if(action==='rename' && /\.vg[mz]$/i.test(path)){
       for(const f of presetReferences(path))entries.push({path:f.path,data:renameSource(f.data,path,dest)});
     }
-    if(isBankPath(path) && !isBankPath(dest))throw Error('Choose a .rom file name.');
+    if(isBankPath(path)){
+      if(!isBankPath(dest)||files.has(catalogPath(dest)))throw Error('Choose an unused ROM and catalog name.');
+      entries.push({path:catalogPath(dest),data:catalogText(bankSlots[path],rangePresets.get(path)??[])});
+    }
     files.writeFiles(entries);
     if(pending.has(path))pending.set(dest,pending.get(path));
     if(action==='rename'){
@@ -1010,7 +1034,8 @@ function fileAction(action,path){
       if(activePath===path){activePath=dest;editor.setSource(pending.get(dest)??file.data,dest);}
     }
     if(isBankPath(path)){
-      bankSlots[dest]=structuredClone(bankSlots[path]??[]);
+      bankSlots[dest]=structuredClone(bankSlots[path]??[]);rangePresets.set(dest,structuredClone(rangePresets.get(path)??[]));
+      if(action==='rename'){files.delete(catalogPath(path));rangePresets.delete(path);}
       if(action==='rename'){delete bankSlots[path];if(path===bankPath)bankPath=dest;}
     }
     highlightedPath=dest;
@@ -1029,7 +1054,7 @@ function replaceProject(project) {
   stop(false);
   songSelection++;songPath=null;preparedSong=null;transport();
   attached=null;pending.clear();$('auto-apply').checked=true;
-  files.replace(project.files);
+  files.replace(project.files);rangePresets.clear();
   if(project.bankPath){
     bankPath=project.bankPath;bankSlots=structuredClone(project.bankSlots);
   }else{
@@ -1040,6 +1065,11 @@ function replaceProject(project) {
     }))];
     for(const f of project.files)if(isSamplePath(f.path))files.delete(f.path);
     for(const [path,b] of stockBanks)files.writeBinary(path,path===bankPath?legacy.rom:b.rom);
+  }
+  for(const path of Object.keys(bankSlots)){
+    const f=files.get(catalogPath(path));
+    if(f)rangePresets.set(path,readCatalog(f.data).presets);
+    else syncCatalog(path);
   }
   rebuildSamples();
   project.channels.forEach((v,i)=>Object.assign(channels[i],{samplePath:null},v,{held:null}));
@@ -1121,7 +1151,7 @@ function ensurePadSample(path){
     if(!pcm)throw Error('Missing ADPCM slot: '+path);
     const result=padFromPcm(library.rom,bankSlots[bankPath],pcm);
     checkBankSize(bankPath,result.library.rom);
-    files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;
+    files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;syncCatalog(bankPath);
     rebuildSamples(result.library);renderBankEditor();scheduleDraft();
   }
   return library.padItems.get(path);
@@ -1177,7 +1207,104 @@ function drawSlotWave(item){
     if(max>=min)ctx.fillRect(x,(1-max)*height/2,1,1+(max-min)*height/2);
   }
 }
+function syncCatalog(path){
+  files.writeText(catalogPath(path),catalogText(bankSlots[path]??[],rangePresets.get(path)??[]));
+}
+function projectRanges(){
+  const ranges=(bankSlots[bankPath]??[]).flatMap(s=>s?[{name:s.name,kind:s.kind,
+    bank:Math.floor(s.offset/65536),start:s.offset%65536,end:(s.offset+s.length)%65536,
+    ...(s.kind==='PCM'?{rate:s.rate,loop:s.length}:{})}]:[]);
+  return [...ranges,...(rangePresets.get(bankPath)??[])];
+}
+function authoredRanges(){
+  return [...channels.map((v,i)=>({voice:i,kind:'PCM',bank:bankFor(v),start:startFor(v),end:v.end,rate:v.rate,loop:v.loop})),
+    ...pads.map((p,i)=>({voice:i+16,kind:'ADPCM',bank:p.bank,start:p.start,end:p.end})),
+    {voice:-1,kind:'PCM',bank:bankFor(autoVoice),start:startFor(autoVoice),end:autoVoice.end,rate:autoVoice.rate,loop:autoVoice.loop}];
+}
+const pickerSignatures=new WeakMap();
+function rangeOptions(id,options){
+  const picker=$(id),signature=JSON.stringify(options);
+  if(signature===pickerSignatures.get(picker))return;
+  const old=picker.value;
+  picker.replaceChildren(...options.map(([value,label])=>new Option(label,String(value))));
+  if(options.some(([value])=>String(value)===old))picker.value=old;
+  pickerSignatures.set(picker,signature);
+}
+function availableRanges(){return romPath?vgmRanges:projectRanges();}
+let renderedHistory=null;
+function renderRanges(){
+  const current=liveInstrument?currentRanges:authoredRanges();
+  rangeOptions('range-current',current.map((p,i)=>[i,(p.voice===-1?'AUTO':p.voice<16?'CH'+(p.voice+1):'Voice '+(p.voice-15))+' · '+rangeName(p)]));
+  $('range-save').disabled=Boolean(romPath)||!current.length;
+  if(romPath && renderedHistory===vgmRanges)return;
+  renderedHistory=romPath?vgmRanges:null;
+  const presets=availableRanges();
+  for(const [id,kind] of [['pcm-range','PCM'],['adpcm-range','ADPCM']]){
+    rangeOptions(id,[['','Choose preset…'],...presets.flatMap((p,i)=>p.kind===kind&&!p.earlierImage?[[i,p.name??rangeName(p)]]:[])]);
+  }
+  $('range-history-label').hidden=$('range-history-info').hidden=$('use-history').hidden=!romPath;
+  $('range-saved-label').hidden=$('use-saved').hidden=$('range-rename').hidden=Boolean(romPath);
+  rangeOptions('range-history',romPath?vgmRanges.map((p,i)=>[i,rangeName(p)+(p.earlierImage?' · Earlier ROM image':'')]):[]);
+  $('use-history').disabled=!vgmRanges.length||Boolean(vgmRanges[Number($('range-history').value)]?.earlierImage);
+  $('use-saved').disabled=!presets.length;
+  rangeOptions('range-saved',(romPath?[]:presets).map((p,i)=>[i,p.name??rangeName(p)]));
+  $('range-rename').disabled=Boolean(romPath)||!presets.length;
+  $('range-export').disabled=Boolean(romPath);
+}
+function applyRange(p){
+  if(!p||p.earlierImage)return;
+  if(songState==='playing')pauseSong();
+  if(p.kind==='PCM'){
+    if(!liveInstrument||autoChannel){
+      Object.assign(editedVoice(),{samplePath:null,sample:0,bank:p.bank,start:p.start,end:p.end,loop:p.loop,
+        rate:p.rate,note:60,referenceNote:60,referenceRate:p.rate});
+    }
+    if(!autoChannel||keyboardOwnsTarget()){
+      const b=selected*8;
+      port?.postMessage([[((selected+15)&15)*8,0x8000|p.bank],[b+1,p.start],[b+2,p.rate],[b+3,0],[b+4,p.loop],[b+5,p.end]]);
+    }
+  }else{
+    if(!liveInstrument)Object.assign(pads[padVoice],{samplePath:null,bank:p.bank,start:p.start,end:p.end});
+    const b=0xca+4*padVoice;port?.postMessage([[b,p.start],[b+1,p.end],[b+2,p.bank]]);
+    if(!liveInstrument)showPad();
+  }
+  attached=null;refresh();inspectChannel();scheduleDraft();
+}
+$('pcm-range').onchange=$('adpcm-range').onchange=e=>{if(e.target.value!=='')applyRange(availableRanges()[Number(e.target.value)]);};
+$('range-history').onchange=()=>{$('use-history').disabled=Boolean(vgmRanges[Number($('range-history').value)]?.earlierImage);};
+for(const [button,picker] of [['use-history','range-history'],['use-saved','range-saved']]){
+  $(button).onclick=()=>{
+    const p=availableRanges()[Number($(picker).value)];
+    if(!p||p.earlierImage)return;
+    applyRange(p);document.querySelector('[data-chip="'+p.kind.toLowerCase()+'-chip"]').click();
+  };
+}
+$('range-save').onclick=()=>{
+  const current=liveInstrument?currentRanges:authoredRanges();
+  const selectedRange=current[Number($('range-current').value)];
+  if(!selectedRange||romPath)return;
+  const {voice,...p}=selectedRange;
+  const list=rangePresets.get(bankPath)??[];
+  list.push({...p,name:rangeName(p)});rangePresets.set(bankPath,list);syncCatalog(bankPath);
+  renderRanges();$('range-saved').value=String(projectRanges().length-1);scheduleDraft();
+};
+$('range-rename').onclick=()=>{
+  const i=Number($('range-saved').value),p=projectRanges()[i];
+  if(!p||romPath)return;
+  const name=prompt('Preset name',p.name)?.trim();if(!name)return;
+  const slots=bankSlots[bankPath].filter(Boolean);
+  if(i<slots.length){slots[i].name=name;rebuildSamples();}
+  else rangePresets.get(bankPath)[i-slots.length].name=name;
+  syncCatalog(bankPath);renderBankEditor();scheduleDraft();
+};
+$('range-export').onclick=()=>{
+  const stem=bankPath.split('/').pop().replace(/\.(bin|rom)$/i,'');
+  const bytes=zipSync({[stem+'.bin']:library.rom,[stem+'.preset.json']:new TextEncoder().encode(files.get(catalogPath(bankPath)).data)});
+  const url=URL.createObjectURL(new Blob([bytes])),link=document.createElement('a');
+  link.href=url;link.download=stem+'.zip';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 function renderBankEditor(){
+  renderRanges();
   const picker=$('rom-file'),paths=files.readdir('/banks').map(name=>'/banks/'+name).filter(path=>isBankPath(path)&&files.has(path));
   if(romPath)paths.unshift(romPath);
   if(paths.join('\n')!==Array.from(picker.options,o=>o.value).join('\n'))
@@ -1215,46 +1342,55 @@ function selectBank(path){
   highlightedPath=path;renderFiles();chooseSlot(slot);scheduleDraft();
 }
 $('rom-file').onchange=e=>selectBank(e.target.value);
-function checkBankSize(path,bytes){
-  const total=files.list().reduce((n,f)=>f.path===path?n:n+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),bytes.length);
+function checkBankSize(path,bytes,extraSize=0){
+  const total=files.list().reduce((n,f)=>f.path===path?n:n+(typeof f.data==='string'?new TextEncoder().encode(f.data).length:f.data.length),bytes.length+extraSize);
   if(total>maxRom)throw Error('The cassette exceeds 16 MiB.');
 }
-function addRom(name,bytes){
+function addRom(name,bytes,presets=[],slots=[]){
   if(!name.trim() || /[/\\]/.test(name))throw Error('Enter a ROM file name.');
-  const path=checkPath('/banks/'+name.trim().replace(/\.(bin|rom)$/i,'')+'.rom');
-  if(!isBankPath(path)||files.has(path))throw Error('Choose a new ROM file name.');
-  checkBankSize(path,bytes);
-  files.writeBinary(path,bytes);bankSlots[path]=[];
+  const path=checkPath('/banks/'+name.trim()+(/\.(bin|rom)$/i.test(name.trim())?'':'.bin'));
+  if(!isBankPath(path)||files.has(path)||files.has(catalogPath(path)))throw Error('Choose a new ROM file name.');
+  bankLibrary(bytes,slots);
+  const text=catalogText(slots,presets);readCatalog(text);
+  checkBankSize(path,bytes,new TextEncoder().encode(text).length);
+  files.writeFiles([{path,data:bytes},{path:catalogPath(path),data:text}]);
+  bankSlots[path]=slots;rangePresets.set(path,presets);
   selectBank(path);
 }
 $('new-rom').onclick=()=>run(async()=>{
-  let n=1;while(files.has('/banks/user-'+n+'.rom'))n++;
-  const name=prompt('New ROM file name','user-'+n+'.rom');
+  let n=1;while(files.has('/banks/user-'+n+'.bin'))n++;
+  const name=prompt('New ROM file name','user-'+n+'.bin');
   if(!name?.trim())return;
   addRom(name,new Uint8Array());chooseSlot(0);
   document.querySelector('[data-chip="rom-chip"]').click();
 });
 $('import-rom').onclick=()=>$('rom-input').click();
 $('rom-input').onchange=e=>run(async()=>{
-  const f=e.target.files[0];e.target.value='';if(!f)return;
-  if(f.size>maxRom)throw Error('ROM exceeds 16 MiB.');
-  addRom(f.name,new Uint8Array(await f.arrayBuffer()));
+  const input=[...e.target.files];e.target.value='';if(!input.length)return;
+  const rom=input.find(f=>/\.(rom|bin)$/i.test(f.name)),json=input.find(f=>/\.preset\.json$/i.test(f.name));
+  if(!rom||input.length!==(json?2:1)||json&&json.name!==catalogPath(rom.name))throw Error('Choose one ROM and its matching .preset.json.');
+  if(rom.size+(json?.size??0)>maxRom)throw Error('ROM pair exceeds 16 MiB.');
+  const c=json?readCatalog(await json.text()):{slots:[],presets:[]};
+  addRom(rom.name,new Uint8Array(await rom.arrayBuffer()),c.presets,c.slots);
 });
 $('capture-rom').onclick=()=>run(async()=>{
   if(!romPath)return;
-  const name=prompt('Save current ROM in /banks',romPath.split('/').pop().replace(/\.vg[mz]$/i,'.rom'));
+  const name=prompt('Save ROM and preset JSON in /banks',romPath.split('/').pop().replace(/\.vg[mz]$/i,'.bin'));
   if(!name)return;
   const {port1,port2}=new MessageChannel();
-  const bytes=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
-  port.postMessage({type:'export-rom',reply:port2},[port2]);
-  addRom(name,await bytes);
+  const snapshot=new Promise(resolve=>{port1.onmessage=e=>{port1.close();resolve(e.data);};});
+  port.postMessage({type:'export-pair',reply:port2},[port2]);
+  const {bytes,ranges,current}=await snapshot;
+  const unique=new Map();
+  for(const {voice,...p} of [...ranges.filter(p=>!p.earlierImage),...current])unique.set(rangeKey(p),{...p,name:rangeName(p)});
+  addRom(name,bytes,[...unique.values()]);
 });
 function updateSlot(data,name,kind){
   if(romPath)throw Error('Load a project ROM first.');
   const old=bankSlots[bankPath][slot],result=editSlot(library.rom,bankSlots[bankPath],slot,data,kind,name);
   checkBankSize(bankPath,result.library.rom);
   if(liveInstrument)stop(false);
-  files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;
+  files.writeBinary(bankPath,result.library.rom);bankSlots[bankPath]=result.slots;syncCatalog(bankPath);
   rebuildSamples(result.library);
   if(old){
     for(const v of [...channels,autoVoice])if(old.kind==='PCM'&&v.samplePath===old.path){

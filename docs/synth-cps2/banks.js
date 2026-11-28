@@ -5,7 +5,7 @@ import {demoRom,pcmRate} from './demo.js';
 import {cabinetPluck,cabinetSnare,duetSamplePath,drumPath} from './sample-duet.js';
 
 export const defaultRom='/banks/0_default.rom';
-export const isBankPath=p=>/^\/banks\/[^/]+\.rom$/i.test(p);
+export const isBankPath=p=>/^\/banks\/[^/]+\.(?:rom|bin)$/i.test(p);
 export function bankLibrary(rom,slots=[]){
   if(!(rom instanceof Uint8Array)||rom.length>maxRom||!Array.isArray(slots)||slots.length>128)throw Error('Invalid QSound ROM.');
   const items=new Map(),padItems=new Map(),regions=[];

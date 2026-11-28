@@ -2,6 +2,7 @@
 import {createRegisterTimedProcessor} from '../js/register_timed_processor.js';
 import {qsoundPlanTools} from './timed-plan.js';
 import {LiveFX} from '../js/custom_fx.js';
+import {voiceRange} from './range-presets.js';
 import {chipRomMap} from './rom-map.js';
 import {pcmRegisterAddresses} from './registers.js';
 import {SongTransport} from './song.js';
@@ -49,6 +50,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         this.chip=new QSoundPcm(new Uint8Array(),sampleRate,{spatialPcm:true,trackRom:true});
         this.applyMutes();
         this.starts.fill(0);
+        this.frozenRanges=null;this.sentRanges=null;
         this.song=new SongTransport(data.bytes,this.chip,this.starts);
         if(data.state) {
           this.song.restore(data.state);
@@ -73,6 +75,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         return;
       }
       if (data === 'stop-audition') {
+        if(this.song){this.frozenRanges=this.song.ranges;this.frozenRangeRevision=this.song.rangeRevision;}
         this.capture();
         this.song=null;
         return;
@@ -91,6 +94,22 @@ class Cps2Preview extends AudioWorkletProcessor {
         data.reply.postMessage({source:this.romSource(),clock:Math.round(this.chip.tickRate*4000000/QSOUND_PCM_RATE),
           bank:v.bank,end:v.end&65535,pan:v.pan,...fields,bytes:this.chip.rom.slice(begin,begin+65536)});
         data.reply.close();return;
+      }
+      if(data?.type==='range-state' || data?.type==='export-pair'){
+        const ranges=this.song?.ranges??this.frozenRanges;
+        const version=this.song?.rangeRevision??this.frozenRangeRevision??0;
+        const current=[];
+        for(let i=0;i<19;i++)if(this.chip.lastWrites[i<16?i*8+5:0xcb+4*(i-16)]>=0)
+          current.push({...voiceRange(this.chip,this.starts,i),voice:i});
+        if(data.reply){
+          const bytes=this.chip.rom.slice();
+          data.reply.postMessage({bytes,current,ranges:[...(ranges?.values()??[])]},[bytes.buffer]);data.reply.close();
+        }else{
+          this.port.postMessage({type:'range-state',source:this.sourcePath,current,version,
+            ...(this.sentRanges===ranges && data.known===version?{}:{ranges:[...(ranges?.values()??[])]})});
+          this.sentRanges=ranges;
+        }
+        return;
       }
       if(data?.type==='export-rom'){
         const bytes=this.chip.rom.slice();
@@ -113,7 +132,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         const p=data.preset,ch=data.channel,base=8*ch;
         if(data.rom){
           this.timeline.clear();this.capture();this.song=null;
-          this.chip.rom=data.rom;this.chip.romUsage=new Uint8Array(Math.ceil(data.rom.length/256));this.source=p.source;
+          this.chip.rom=data.rom;this.chip.romUsage=new Uint8Array(Math.ceil(data.rom.length/256));this.source=p.source;this.sourcePath=p.source?.path;this.frozenRanges=null;
           this.chip.tickRate=QSOUND_PCM_RATE*p.clock/4000000;
         }
         if(p.format==='qsound-adpcm-1'){
@@ -180,7 +199,7 @@ class Cps2Preview extends AudioWorkletProcessor {
         return;
       }
       if (data === 'stop') {
-        this.song=null;this.captured=false;this.source=null;
+        this.song=null;this.captured=false;this.source=null;this.sourcePath=null;this.frozenRanges=null;
         this.chip = new QSoundPcm(this.projectRom??demoRom(), sampleRate,{spatialPcm:true,trackRom:true});
         this.applyMutes();
         this.starts.fill(0);

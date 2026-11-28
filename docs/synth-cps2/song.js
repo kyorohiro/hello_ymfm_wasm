@@ -2,6 +2,8 @@
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {QSOUND_PCM_RATE} from '../js/qsoundpcm.js';
 
+import {rangeKey,voiceRange} from './range-presets.js';
+
 export function inspectSong(bytes) {
   const parser=new Ym2612VGM(bytes);
   const clock=parser.header.qsoundClock;
@@ -38,6 +40,7 @@ export class SongTransport {
     this.starts=starts;
     this.frames=this.ticks=this.nextFrame=0;
     this.romRevision=0;
+    this.ranges=new Map();this.rangeRevision=0;this.changedVoices=0;
     this.paused=false;
     this.loop=false;this.looped=false;
     this.loopStart=null;
@@ -45,6 +48,7 @@ export class SongTransport {
   restore(state) {
     const {chip,starts,position,ended,frames,ticks,nextFrame,loopStart}=state;
     Object.assign(this.chip,chip);
+    this.ranges=new Map(state.ranges??[]);
     this.starts.set(starts);
     Object.assign(this,{frames,ticks,nextFrame,loopStart});
     Object.assign(this.parser,{position,ended});
@@ -59,12 +63,43 @@ export class SongTransport {
         this.parser.ended=false;
       }
       if(e.type==='wait'){
+        for(let mask=this.changedVoices;mask;mask&=mask-1){
+          const id=31-Math.clz32(mask&-mask);
+          if(this.chip.lastWrites[id<16?id*8+5:0xcb+4*(id-16)]<0)continue;
+          const p=voiceRange(this.chip,this.starts,id);
+          const key=rangeKey(p),prior=this.ranges.get(key);
+          if(!prior||prior.earlierImage){this.ranges.set(key,p);this.rangeRevision++;}
+        }
+        this.changedVoices=0;
         this.ticks+=e.samples;
         this.nextFrame=Math.round(this.ticks*this.chip.sampleRate/44100);
       } else if(e.type==='qsound-write'){
         this.chip.writeRegister(e.register,e.value);
+        const r=e.register;
+        if(r<128 && [0,1,2,4,5].includes(r&7))this.changedVoices|=1<<((r&7)?r>>3:((r>>3)+1)&15);
+        else if(r>=0xca && r<=0xd5)this.changedVoices|=1<<(16+((r-0xca)>>2));
         if(e.register<128 && (e.register&7)===1)this.starts[e.register>>3]=e.value;
       } else if(e.type==='qsound-rom-data'){
+        // Old address ranges remain inspectable; a ROM snapshot can only carry
+        // presets whose referenced bytes still belong to the captured image.
+        const old=this.chip.rom;
+        for(const p of this.ranges.values()){
+          if(p.earlierImage)continue;
+          const bank=p.bank*65536;
+          const spans=p.end>p.start?[[p.start,p.end]]:[[p.start,65536],[0,p.end]];
+          if(p.loop){
+            const loopStart=(p.end-p.loop)&65535;
+            if(loopStart<p.end)spans.push([loopStart,p.end]);
+            else spans.push([loopStart,65536],[0,p.end]);
+          }
+          const changed=spans.some(([lo,hi])=>{
+            if(old.length!==e.memorySize)return true;
+            const first=Math.max(bank+lo,e.offset),last=Math.min(bank+hi,e.offset+e.data.length);
+            for(let i=first;i<last;i++)if(old[i]!==e.data[i-e.offset])return true;
+            return false;
+          });
+          if(changed){p.earlierImage=true;this.rangeRevision++;}
+        }
         this.chip.rom=applyRomBlock(this.chip.rom,e);
         this.romRevision++;
       }

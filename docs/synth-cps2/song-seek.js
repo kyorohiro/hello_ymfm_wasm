@@ -18,5 +18,5 @@ export function rebuildSongState(bytes,rate,targetTicks,mutes) {
   song.applyDueEvents(true);
   const {position,ended}=song.parser;
   const {frames,ticks,nextFrame,loopStart}=song;
-  return {chip,starts,position,ended,frames,ticks,nextFrame,loopStart};
+  return {ranges:[...song.ranges],chip,starts,position,ended,frames,ticks,nextFrame,loopStart};
 }

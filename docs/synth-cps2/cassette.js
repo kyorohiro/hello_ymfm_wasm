@@ -4,6 +4,7 @@ import {createVirtualFileSystem} from '../js/tetorica_virtual_files/filesystem.j
 import {isPresetPath,readPreset} from './preset.js';
 import {isSamplePath,sampleLibrary} from './samples.js';
 import {bankLibrary,isBankPath} from './banks.js';
+import {isCatalogPath,readCatalog,catalogPath} from './range-presets.js';
 import {validateMix} from './mixer.js';
 import {checkPath} from '../synth-cps1/project-tree.js';
 
@@ -23,7 +24,12 @@ export function validateProject(project) {
       !Array.isArray(project.pads) || project.pads.length!==3) throw Error('Expected a CPS2 cassette.');
   const placements=project.placements??{};
   const padPlacements=project.padPlacements??{};
-  const bankSlots=project.bankSlots??{},bankPath=project.bankPath;
+  const bankSlots={...project.bankSlots},bankPath=project.bankPath;
+  for(const f of project.files.filter(f=>isCatalogPath(f.path))){
+    const matches=project.files.filter(r=>isBankPath(r.path)&&catalogPath(r.path)===f.path);
+    if(matches.length!==1)throw Error('Missing or ambiguous ROM for '+f.path);
+    bankSlots[matches[0].path]=readCatalog(f.data).slots;
+  }
   for(const [path,slots] of Object.entries(bankSlots)){
     if(!isBankPath(path))throw Error('Invalid ROM path.');
     bankLibrary(project.files.find(f=>f.path===path)?.data,slots);
@@ -32,10 +38,10 @@ export function validateProject(project) {
   const {items,padItems}=bankPath?bankLibrary(project.files.find(f=>f.path===bankPath)?.data,bankSlots[bankPath]):
     sampleLibrary(project.files,placements,padPlacements);
   function pcmVoice(v,auto=false){
-    const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??number(v.start??sample*256,0,auto?65535:65534);
+    const sample=number(v.sample,0,1), item=items.get(v.samplePath),start=item?.start??number(v.start??sample*256,0,65535);
     if(v.samplePath && !item)throw Error('Missing WAV sample.');
-    const end=number(v.end,auto&&!item?0:start+1,item?start+item.length:65535);
-    return {sample,bank:number(v.bank??0,0,32767),start,samplePath:v.samplePath??null,end,loop:number(v.loop,0,auto&&!item?65535:end-start),pan:number(v.pan,auto?-0x110:0,auto?65535-0x110:32),volume:number(v.volume,auto?-32768:0,auto?32767:16384),
+    const end=number(v.end,!item?0:start+1,item?start+item.length:65535);
+    return {sample,bank:number(v.bank??0,0,32767),start,samplePath:v.samplePath??null,end,loop:number(v.loop,0,!item?65535:end-start),pan:number(v.pan,auto?-0x110:0,auto?65535-0x110:32),volume:number(v.volume,auto?-32768:0,auto?32767:16384),
       send:number(v.send,-32768,32767),rate:number(v.rate,0,65535),note:number(v.note,0,127),
       referenceNote:number(v.referenceNote,0,127),referenceRate:v.referenceRate===null?null:number(v.referenceRate,0,65535)};
   }
@@ -51,6 +57,7 @@ export function validateProject(project) {
   files.replace(project.files.map(({path,data})=>{
     if (data instanceof Uint8Array && (/\.(vgm|vgz)$/i.test(path)||isSamplePath(path)||isBankPath(path))) return {path:checkPath(path),data};
     if (typeof data!=='string') throw Error('Expected JavaScript source.');
+    if(isCatalogPath(path))return {path:checkPath(path),data};
     if(isPresetPath(path)){readPreset(data);return {path:checkPath(path),data};}
     return {path:scriptPath(path),data};
   }));
@@ -76,7 +83,7 @@ export async function importProject(bytes) {
   const decoder=new TextDecoder('utf-8',{fatal:true});
   for (const [path,data] of archive.files) {
     if (path==='metadata.json' || path==='cassette.metadata.js') continue;
-    files.push({path:'/'+path,data:/\.(vgm|vgz|wav|rom)$/i.test(path)?data:decoder.decode(data)});
+    files.push({path:'/'+path,data:/\.(vgm|vgz|wav|rom|bin)$/i.test(path)?data:decoder.decode(data)});
   }
   return validateProject({...archive.metadata.cps2,files});
 }
