@@ -39,7 +39,7 @@ test('Code assigns a project WAV slice on CH16 and resolves the latest file path
     await execute("await qsound.assignPad(4,'/samples/low.wav');");
     assert.match(messages.at(-1).status,/ADPCM voice/);
     await execute("qsound.assignSample(1,'/samples/low.wav');",{apply:true,samples:null});
-    assert.match(messages.at(-1).status,/Use synth instruments/);
+    assert.match(messages.at(-1).status,/ROM picker/);
   }finally{
     delete globalThis.postMessage;
     delete globalThis.onmessage;

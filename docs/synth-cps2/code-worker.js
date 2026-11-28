@@ -28,7 +28,7 @@ const qsound = {
   },
   assignSample(ch,path,options={}) {
     const index=channel(ch),base=index*8;
-    if(!samples)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
+    if(!samples)throw Error('Select the ROM containing the WAV in the ROM picker.');
     const item=samples.get(path);
     if(!item)throw Error('Missing PCM sample: '+path);
     const offset=integer(options.offset??0,0,item.length-1,'Sample offset');
@@ -40,7 +40,7 @@ const qsound = {
   },
   async assignPad(voice,path){
     integer(voice,1,3,'ADPCM voice');
-    if(!samples)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
+    if(!samples)throw Error('Select the ROM containing the WAV in the ROM picker.');
 
     await hostCall('assignPad',{voice,path});
   },

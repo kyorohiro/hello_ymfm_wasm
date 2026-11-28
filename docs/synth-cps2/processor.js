@@ -201,7 +201,7 @@ class Cps2Preview extends AudioWorkletProcessor {
             padState.bytes=this.chip.rom.subarray(offset,offset+65536);
           }
         }
-        this.port.postMessage({...data,romMap:data.romMap?chipRomMap(this.chip,this.starts):null,view,words,padState,pan:v.pan,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
+        this.port.postMessage({...data,romMap:data.romMap?chipRomMap(this.chip,this.starts):null,view,words,padState,auditionLevel:this.captured?this.levels[data.channel]:(v.volume||v.lastLevel||0),pan:v.pan,address:v.address & 65535,rate:v.rate,end:v.end,loop:v.loop,
           send:v.echoSend,feedback:this.chip.echoFeedback,delay:this.chip.echoEnd-this.chip.echoBase,
           active:v.volume !== 0,start:this.starts[data.channel]});
         return;

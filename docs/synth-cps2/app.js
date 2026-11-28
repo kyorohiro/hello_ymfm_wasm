@@ -48,7 +48,11 @@ const $ = id => document.getElementById(id);
 setupSynthMenu({document,window});
 const channels = Array.from({length:16},()=>({sample:0,send:0,pan:16,volume:8000,held:null,rate:pcmRate(60),referenceRate:null,referenceNote:60,note:60,end:256,loop:256}));
 let autoChannel=true,nextAuto=0;
-let autoVoice={...channels[0]};
+let autoVoice={...channels[0]},projectAutoVoice=null,followSongVoice=false;
+function followSong(){
+  projectAutoVoice??={...autoVoice};
+  followSongVoice=true;
+}
 const editedVoice=()=>autoChannel?autoVoice:channels[selected];
 const keyboardOwnsTarget=()=>!autoChannel || Boolean(channels[selected].held);
 let pitchRequest=0;
@@ -104,7 +108,6 @@ function transport() {
   $('song-stop').disabled=false;
   $('save').disabled=!songPath;
   $('audition-note').hidden=!liveInstrument;
-  $('restore-instrument').hidden=!liveInstrument;
   $('vol').min=liveInstrument?-32768:0;
   $('vol').max=liveInstrument?32767:16384;
 }
@@ -147,6 +150,7 @@ const pcmBank=createParamControl({label:'ROM bank',min:0,max:32767,step:1,direct
 const pcmStart=createParamControl({label:'Start',min:0,max:65535,step:1,directEntry:true,coarseDragSteps:256,dragPixelsPerStep:romDragPixelsPerStep,value:0,formatValue:padHex,onChange:value=>setPcmAddress('start',value)});
 $('pcm-address').append(pcmBank.element,pcmStart.element);
 function setPcmAddress(key,value){
+  if(autoChannel)followSongVoice=false;
   clearPresetPitch();
   const v=editedVoice(),reg=key==='bank'?((selected+15)&15)*8:selected*8+1;
   const writes=[[reg,key==='bank'?value|0x8000:value]];
@@ -165,7 +169,7 @@ for (const [key,label,min,max] of [['send','Echo send · CH',-32768,32767],
     onChange(value) {
       revision++;
       if (!liveInstrument || autoChannel) {
-        if (key === 'send') editedVoice().send = value;
+        if (key === 'send'){if(autoChannel)followSongVoice=false;editedVoice().send=value;}
         else echo[key] = value;
       }
       if(key==='send')editPreset(false,key,value);
@@ -196,6 +200,7 @@ function refresh() {
   draw(shown);
 }
 function edit(key,value) {
+  if(autoChannel)followSongVoice=false;
   if(key==='rate')pitchRequest++;
   else clearPresetPitch();
   editPreset(false,key,value);
@@ -285,14 +290,20 @@ function inspect({data}) {
       tick=preparedSong.loopTick+(tick-preparedSong.ticks)%span;
     }
     if(!sliding && songState!=='stopped')showPosition(tick);
-    if(autoChannel){
+    if(autoChannel && followSongVoice && romPath){
+      Object.assign(autoVoice,{sample:0,samplePath:null,bank:data.view.bank,start:data.view.start,end:data.end&65535,
+        loop:data.loop&65535,rate:data.rate,referenceRate:data.rate,referenceNote:60,note:60,
+        pan:data.view.pan-0x110,volume:data.auditionLevel,send:data.send});
+      shown=autoVoice;
+    }
+    if(autoChannel && !(followSongVoice && romPath)){
       showEcho(autoVoice.send,data.delay,data.feedback);
       if(registerPanel.hidden)draw(autoVoice);return;
     }
     followPcmRange(data.view.bank,data.view.start,data.end&65535,data.loop&65535);
     pcmBank.updateVisual(data.view.bank);pcmStart.updateVisual(data.view.start);
     $('pan').value=Math.min(32,Math.max(0,data.view.pan-0x110));
-    $('vol').value=data.view.volume;
+    $('vol').value=autoChannel?autoVoice.volume:data.view.volume;
     showEcho(data.send,data.delay,data.feedback);
     if(!registerPanel.hidden || !data.view.wave)return;
     draw({sample:0,rate:data.rate,end:data.end&65535,loop:data.loop&65535},data.active?data.address:null,data.view);
@@ -350,7 +361,7 @@ function select(channel,auto=false) {
 const autoButton=document.createElement('button');
 autoButton.textContent='AUTO';
 autoButton.title='Edit the AUTO voice. Each note uses the next available PCM channel; the outline shows the destination.';
-autoButton.onclick=()=>{if(!autoChannel)nextAuto=selected;select(selected,true);};
+autoButton.onclick=()=>{if(!autoChannel){nextAuto=selected;if(romPath)followSongVoice=true;}select(selected,true);};
 $('channels').append(autoButton);
 for(let i=0;i<16;i++) {
   const button=document.createElement('button');
@@ -358,11 +369,13 @@ for(let i=0;i<16;i++) {
 }
 select(0,true);
 $('pan').oninput=()=>{
+  if(autoChannel)followSongVoice=false;
   const value=Number($('pan').value);editPreset(false,'pan',0x110+value);
   if(autoChannel || !liveInstrument)editedVoice().pan=value;
   if(keyboardOwnsTarget())port?.postMessage([[0x80+selected,0x110+value]]);
 };
 $('vol').oninput=()=>{
+  if(autoChannel)followSongVoice=false;
   const volume=Number($('vol').value);editPreset(false,'volume',volume);
   if(autoChannel || !liveInstrument)editedVoice().volume=volume;
   if(!keyboardOwnsTarget())return;
@@ -378,6 +391,7 @@ function press(id,midi) {
       ch=(ch+1)%channels.length;
       if(ch===nextAuto)return;
     }
+    followSongVoice=false;
     nextAuto=(ch+1)%channels.length;
     select(ch,true);
   }
@@ -483,6 +497,9 @@ const setPadKeyboard=setupKeyboard({press,release,triggerPad:voice=>triggerPad(v
 function stop(keepInstrument=true){
   clearPresetPitch();
   liveInstrument=Boolean(keepInstrument && liveInstrument);
+  if(!liveInstrument && projectAutoVoice){
+    autoVoice=projectAutoVoice;projectAutoVoice=null;followSongVoice=false;
+  }
   if(!liveInstrument){attached=null;romPath=null;vgmRanges=[];currentRanges=[];rangeVersion=-1;syncedBank=null;syncedRomRevision=-1;syncedRangeSignature=null;}
   cancelSeek();sliding=false;songState='stopped';
   stopWorker();
@@ -498,7 +515,6 @@ function stop(keepInstrument=true){
 }
 let replacingWav=null;
 window.addEventListener('blur',()=>{if(songState==='stopped' && !replacingWav)stop();else channels.forEach(v=>{if(v.held)release(v.held);});});
-$('restore-instrument').onclick=()=>stop(false);
 $('save').onclick=()=>{
   const file=files.get(songPath);
   if(!file || file.type!=='binary')return;
@@ -729,7 +745,7 @@ $('run-code').onclick=()=>run(async()=>{
     if(data.assignPad){
       const {voice,path,reply}=data.assignPad;
       try{
-        if(romPath)throw Error('Choose Use synth instruments to play WAVs from the project ROM.');
+        if(romPath)throw Error('Select the ROM containing the WAV in the ROM picker.');
         const pad=ensurePadSample(path),base=0xca+4*(voice-1);
         port.postMessage([[base,pad.start],[base+1,pad.start+pad.length],[base+2,pad.bank]]);
         reply.postMessage({});
@@ -916,6 +932,7 @@ async function loadPreset(path,text,explicit=true){
   const current=()=>path===highlightedPath && ch===(adpcm?padVoice:selected);
   await applyPresetFile(path,ch+1,explicit?{switchRom:p.source?.path??null}:{},current);
   if(autoChannel && !adpcm){
+    followSongVoice=false;
     autoVoice={sample:0,samplePath:null,bank:p.bank,start:p.start,end:p.end,loop:p.loop,send:p.send,
       pan:p.pan-0x110,volume:p.volume,note:60,rate:p.rate,referenceNote:60,referenceRate:p.rate,held:null};
     select(ch,true);
@@ -1070,7 +1087,7 @@ installSpuFileContextMenu({root:$('project-tree'),getActions:fileActions,
   onError:e=>{$('file-status').textContent=e.message;}});
 function snapshot() {
   return {version:1,autoFade:$('auto-fade').checked,bankPath,bankSlots:structuredClone(bankSlots),files:files.list(),active:activePath,song:songPath,channels:channels.map(({held,...settings})=>settings),
-    pads:pads.map(p=>({...p})),mix:mixer.get(),selected,autoChannel,autoVoice:{...autoVoice},echo:{...echo}};
+    pads:pads.map(p=>({...p})),mix:mixer.get(),selected,autoChannel,autoVoice:{...(projectAutoVoice??autoVoice)},echo:{...echo}};
 }
 const factory=snapshot();
 function replaceProject(project) {
@@ -1537,6 +1554,7 @@ function pitchResults(output,p,pitches,apply){
   }
 }
 function useKeyboardRate(rate){
+  if(autoChannel)followSongVoice=false;
   if(!liveInstrument || autoChannel){
     Object.assign(editedVoice(),{rate,referenceRate:rate,referenceNote:60,note:60});
     refresh();
@@ -1583,6 +1601,7 @@ function applyRange(p){
   if(!p||p.earlierImage)return;
   if(songState==='playing')pauseSong();
   if(p.kind==='PCM'){
+    if(autoChannel)followSongVoice=false;
     if(!liveInstrument||autoChannel){
       Object.assign(editedVoice(),{samplePath:null,sample:0,bank:p.bank,start:p.start,end:p.end,loop:p.loop,
         rate:p.rate,note:60,referenceNote:60,referenceRate:p.rate});
@@ -1847,14 +1866,14 @@ $('song-input').onchange=async event=>{
 };
 async function playSong(){
   clearPresetPitch();
-  if(songState==='paused'){attached=null;stopWorker();channels.forEach(v=>v.held=null);revision++;songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
+  if(songState==='paused'){followSong();attached=null;stopWorker();channels.forEach(v=>v.held=null);revision++;songState='playing';port.postMessage({type:'pause-song',paused:false});transport();return;}
   stop();
   const token=generation;
   if(!preparedSong)return;
   const {bytes}=preparedSong;
   await audio();
   if(token!==generation)return;
-  attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();liveInstrument=true;songState='playing';port.postMessage({type:'song',path:songPath,bytes,loop:preparedSong.canLoop && $('song-loop').checked});
+  followSong();attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();liveInstrument=true;songState='playing';port.postMessage({type:'song',path:songPath,bytes,loop:preparedSong.canLoop && $('song-loop').checked});
   port.postMessage({type:'range-state',known:-1,knownRom:-1});transport();
 }
 $('song-play').onclick=()=>run(playSong);
@@ -1897,7 +1916,7 @@ slider.onchange=()=>run(async()=>{
     seekWorker=worker;
     worker.onmessage=({data:state})=>{
       if(token!==generation)return;
-      revision++;attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();
+      revision++;followSong();attached=null;romPath=songPath;syncedBank=null;syncedRomRevision=-1;rangeVersion=-1;vgmRanges=[];currentRanges=[];renderPresetInfo();
       port.postMessage({type:'song',path:songPath,bytes:song.bytes,state,loop:$('song-loop').checked,paused:songState==='paused'},
         [state.chip.rom.buffer,state.chip.echoLine.buffer,state.starts.buffer]);
       cancelSeek();transport();inspectChannel();
