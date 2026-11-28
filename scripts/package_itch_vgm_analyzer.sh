@@ -103,6 +103,7 @@ tone_notes.js
 gameboy_notes.js
 huc6280_notes.js
 wonderswan_notes.js
+qsound_monitor.js
 qsound_preview.js
 pokey_playback.js
 pokey_notes.js
@@ -365,6 +366,9 @@ for file in synth_output_visualizer.js synth_controls.js synth_keyboard.js synth
 done
 perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated/#./generated/#g' "${STAGE_DIR}/fm2612_voice_view.js" "${STAGE_DIR}/tfi_info.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/sbi_info.js"
 
+mkdir -p "${STAGE_DIR}/synth-cps2"
+cp "${ROOT_DIR}/docs/synth-cps2/bank-wave.js" "${STAGE_DIR}/synth-cps2/"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./synth-cps2/#./synth-cps2/#g' "${STAGE_DIR}/qsound_monitor.js"
 mkdir -p "${STAGE_DIR}/synth-cps1"
 cp "${ROOT_DIR}/docs/synth-cps1/song-samples.js" "${ROOT_DIR}/docs/synth-cps1/sample-view.js" "${STAGE_DIR}/synth-cps1/"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./synth-cps1/#./synth-cps1/#g' "${STAGE_DIR}/oki6295_monitor.js"
