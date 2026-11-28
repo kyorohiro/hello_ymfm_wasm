@@ -33,6 +33,16 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 [hidden]{display:none!important}
 .workspace-tools,.chip-tabs,.chip-header{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
 .workspace-tools{flex:none;padding:.6rem 1.5rem;border-bottom:1px solid #afbfba}
+.cabinet-logo{display:inline-flex;align-items:center;gap:.45rem;line-height:1;color:#18374d;white-space:nowrap}
+.cabinet-logo::before,.cabinet-logo::after{content:"";width:1.45rem;height:1.45rem;border:2px solid #fffef6;outline:1px solid #b8b4a4;border-radius:2px;background-color:#1f2326;background-image:radial-gradient(#484d50 .7px,transparent .9px);background-size:3px 3px}
+.cabinet-name{display:flex;align-items:baseline;gap:.3em;font-size:.93rem;font-weight:700}
+.cabinet-name b{font-size:1.4em;font-weight:900;font-style:italic;letter-spacing:-.045em}
+@media(max-width:520px){
+  .workspace-tools{padding:.35rem .3rem;gap:.18rem}
+  .workspace-tools>button,.workspace-tools>.switch button{font-size:.8rem;padding:.32rem .3rem}
+  .cabinet-logo{gap:.2rem}.cabinet-logo::before,.cabinet-logo::after{width:.72rem;height:.72rem}
+  .cabinet-name{display:block;font-size:.71rem}.cabinet-name>span{display:block}
+}
 #files-toggle{margin-inline-start:auto}
 .switch{display:inline-flex}.switch button:first-child{border-radius:6px 0 0 6px}.switch button:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
 #workspace{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(11rem,15rem) minmax(0,1fr)}
@@ -161,14 +171,14 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <main>
 <nav class="workspace-tools" aria-label="Workspace"><details id="synthMenu"><summary id="synthMenuButton" aria-label="Menu" aria-expanded="false" aria-controls="synthMenuPanel" title="Menu">☰</summary>
 <div id="synthMenuPanel" class="synth-menu-panel">
-<header><img src="../tetorica_cps2_synth.webp" alt="" width="44" height="44"><div><h1>Tetorica CPS2 Synth</h1><p>QSound DL-1425 · PCM / ADPCM preview</p></div></header>
+<header><img src="../tetorica_cps2_synth.webp" alt="" width="44" height="44"><p>QSound DL-1425 · PCM / ADPCM preview</p></header>
 <strong>New</strong><button id="new-cassette" data-close-synth-menu>New cassette…</button>
 <strong>Import</strong><button id="add-demos" data-close-synth-menu>Add factory demos</button><button id="import-song" data-close-synth-menu>VGM / VGZ…</button><input id="song-input" type="file" accept=".vgm,.vgz" hidden>
 <button id="import-wav" data-close-synth-menu>PCM sample (WAV)…</button><button id="import-pad-wav" data-close-synth-menu>ADPCM sample (WAV)…</button><input id="wav-input" type="file" accept=".wav" hidden>
 <button id="import-cassette" data-close-synth-menu>Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden>
 <strong>Export</strong><button id="save" data-close-synth-menu>Download selected VGM / VGZ</button><button id="export-cassette" aria-describedby="export-contents" data-close-synth-menu>Export cassette</button>
 <small id="export-contents"></small>
-</div></details><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
+</div></details><h1 class="cabinet-logo"><span class="cabinet-name"><span>Tetorica</span> <b>CPS2</b> Synth</span></h1><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
 <div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
 <div id="workspace"><aside id="files" aria-label="Files"><div class="files-heading"><strong>Files</strong><button id="new-script" title="New JavaScript file">＋ JS</button></div><div class="files-actions"><label><input type="checkbox" id="auto-apply" title="Save edits and sync playing ROMs automatically. Apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
 <button id="apply-preset" hidden>Apply preset</button><button id="save-files" hidden>Save files</button></div><div id="project-tree"></div>
