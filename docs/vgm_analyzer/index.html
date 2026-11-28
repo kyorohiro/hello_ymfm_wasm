@@ -604,11 +604,13 @@
                 <button type="button" data-import-input="consoleFolder" title="Choose the folder containing the songs and their libraries">Folder…</button>
                 <input hidden type="file" multiple webkitdirectory id="consoleFolder" aria-label="Music folder">
               </div>
-              <button id="chipSupportButton" type="button" aria-haspopup="dialog" aria-controls="chipSupportDialog">Sound chip support</button>
-              <button data-reset-offline-cache type="button">Reset Offline Cache</button>
             </nav>
           </details>
-          <h1 id="pageTitle">Tetorica <span>FM</span>2612 Analyzer</h1>
+          <h1 id="pageTitle">Tetorica FM2612 <strong>VGM</strong> Analyzer</h1>
+          <div class="panel-tools">
+            <button id="chipSupportButton" type="button" aria-haspopup="dialog" aria-controls="chipSupportDialog">Sound chip support</button>
+            <button data-reset-offline-cache type="button">Reset Offline Cache</button>
+          </div>
         </header>
         <div class="analyzer-status-line">
           <div id="playbackError" role="alert" hidden></div>
@@ -727,8 +729,10 @@
         </div>
 
         <section id="playlistPanel" class="actions tab-panel" role="tabpanel" aria-labelledby="playlistTab">
-          <button type="button" data-import-input="fileInput" aria-describedby="importFormatHint">Select files…</button>
-          <button type="button" data-import-input="consoleFolder" aria-describedby="importFormatHint" title="Choose the folder containing the songs and their libraries">Select folder…</button>
+          <div class="playlist-import">
+            <button type="button" data-import-input="fileInput" aria-describedby="importFormatHint">Select files…</button>
+            <button type="button" data-import-input="consoleFolder" aria-describedby="importFormatHint" title="Choose the folder containing the songs and their libraries">Select folder…</button>
+          </div>
           <p id="importFormatHint" class="file-drop-hint"><strong>Music formats</strong> · VGM / VGZ / S98 / SPC / SID / SSF / miniSSF / PSF1 / miniPSF<br><strong>ROM files</strong> · ym2608_adpcm_rom.bin / yrw801.rom</p>
           <section class="playlist" aria-label="Playlist">
             <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
