@@ -57,6 +57,7 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 #soundchip>section{padding:.7rem 0}.chip-header{justify-content:space-between}
 .chip-tabs{border-bottom:2px solid #155876;margin:.3rem 0}
 .chip-tabs button{border-radius:6px 6px 0 0}
+#keyboard .fade-option{display:inline-flex;align-items:center;margin:0;font-size:.85rem}
 #keyboard{background:#193d5c;color:white}#keys button{color:#102f45}#board-controls,#board-controls [role=group],#pad-keys{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap}
 #board-controls{gap:.4rem .8rem;margin:.4rem 0}#keyboard button{color:#102f45}
 #keyboard button[aria-pressed=true],#keys .playing{background:#155876;color:white}
@@ -146,7 +147,6 @@ output{display:block}button:focus-visible{outline:3px solid #ed9334}
 <button id="import-cassette" data-close-synth-menu>Import cassette…</button><input type="file" accept=".zip" id="cassette-input" hidden>
 <strong>Export</strong><button id="save" data-close-synth-menu>Download selected VGM / VGZ</button><button id="export-cassette" aria-describedby="export-contents" data-close-synth-menu>Export cassette</button>
 <small id="export-contents"></small><button id="demo-cassette" data-close-synth-menu>Download factory demos</button>
-<strong>Options</strong><label><input id="auto-fade" type="checkbox" checked> PCM note-off fade (4 ms)</label>
 </div></details><button id="files-toggle" aria-controls="files" aria-pressed="true">Files</button>
 <div class="switch"><button id="keyboard-tab" aria-pressed="true">Synth</button><button id="code-tab" aria-pressed="false">Code</button></div></nav>
 <div id="workspace"><aside id="files" aria-label="Files"><div class="files-heading"><strong>Files</strong><button id="new-script" title="New JavaScript file">＋ JS</button></div><div class="files-actions"><label><input type="checkbox" id="auto-apply" title="Save edits and sync playing ROMs automatically. Apply presets that use the current ROM. JavaScript uses Run / Apply." checked> Auto apply</label>
@@ -234,5 +234,5 @@ liveLoop('bass', async () => {
     await beat(0.12);
   }
 });</textarea><p id="editor-note" hidden></p></div>
-<section id="keyboard" aria-label="Keyboard"><div class="output-heading"><div id="octave"></div></div><p id="audition-note" hidden>C4 plays the selected channel at its captured rate. Keys 1–3 trigger ADPCM.</p><div id="board-controls"><div id="instruments" role="group" aria-label="Instrument"></div><div id="positions" role="group" aria-label="Fret position"></div><span id="fret"></span><div id="strings" role="group" aria-label="Visible strings"></div></div>
+<section id="keyboard" aria-label="Keyboard"><div class="output-heading"><div id="octave"></div><label class="fade-option"><input id="auto-fade" type="checkbox" checked> PCM note-off fade (8 ms)</label></div><p id="audition-note" hidden>C4 plays the selected channel at its captured rate. Keys 1–3 trigger ADPCM.</p><div id="board-controls"><div id="instruments" role="group" aria-label="Instrument"></div><div id="positions" role="group" aria-label="Fret position"></div><span id="fret"></span><div id="strings" role="group" aria-label="Visible strings"></div></div>
 <div id="keys" aria-label="PCM fretboard"></div><div id="pad-keys" role="group" aria-label="ADPCM pads"></div></section></div></div></main><script type="module" src="./app.js"></script></html>

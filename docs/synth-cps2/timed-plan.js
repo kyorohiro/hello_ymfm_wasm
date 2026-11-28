@@ -20,7 +20,7 @@ export function qsoundPlanTools(sampleAt=()=>null){
       const {offsetSeconds,register,value}=row;
       if(!validation.validOffset(offsetSeconds)||offsetSeconds<previous)throw RangeError('Invalid time offset.');
       previous=offsetSeconds;
-      if(row.fadeMs!==undefined && (row.fadeMs!==4 || register>=128 || (register&7)!==6 || value!==0))
+      if(row.fadeMs!==undefined && (![4,8].includes(row.fadeMs) || register>=128 || (register&7)!==6 || value!==0))
         throw RangeError('Invalid PCM note-off fade.');
       return {...(row.fadeMs===undefined?{}:{fadeMs:row.fadeMs}),offsetSeconds,register:number(register,0,255,'register'),value:number(value,0,65535,'word')};
     });
@@ -54,7 +54,7 @@ export function qsoundPlanTools(sampleAt=()=>null){
         for(const [r,v] of words)b.writeRegister(r,v);
         return b;
       },
-      noteOff(channel){b.keyOff(channel);writes[writes.length-1].fadeMs=4;return b;},
+      noteOff(channel){b.keyOff(channel);writes[writes.length-1].fadeMs=8;return b;},
       keyOff(channel){return b.writeRegister((number(channel,1,16,'channel')-1)*8+6,0);},
       trigger(voice){return b.writeRegister(0xd5+number(voice,1,3,'ADPCM voice'),1);},
     };

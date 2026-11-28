@@ -597,7 +597,7 @@ declare function beat(beats?:number):Promise<void>;
 declare function setBpm(bpm:number):void;
 declare function sleep(seconds:number):Promise<void>;
 declare function stopLoop(name:string):void;
-interface QSoundWrite {offsetSeconds:number;register:number;value:number;fadeMs?:4}
+interface QSoundWrite {offsetSeconds:number;register:number;value:number;fadeMs?:4|8}
 interface QSoundPlan {chip:'qsound';version:1;referenceSampleRate:number;writes:QSoundWrite[]}
 interface QSoundBuilder {
   atSeconds(seconds:number):this; atSample(offset:number):this; writeRegister(register:number,value:number):this;

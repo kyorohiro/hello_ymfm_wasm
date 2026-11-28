@@ -23,7 +23,7 @@ class Cps2Preview extends AudioWorkletProcessor {
     this.reportFxError=message=>this.port.postMessage({fxError:String(message)});
     this.timeline=createRegisterTimedProcessor({
       nowFrame:()=>this.renderedFrames,sampleRate,defaultOwner:'qsound',
-      write:(reg,value,owner,mask,fadeMs)=>fadeMs?this.noteOff(reg>>3):this.applyRegister(reg,value,true,owner),
+      write:(reg,value,owner,mask,fadeMs)=>fadeMs?this.noteOff(reg>>3,fadeMs):this.applyRegister(reg,value,true,owner),
       release:(name,scope)=>this.releaseScheduled(name,scope),
       checkAvailable:()=>{if(this.song && !this.song.paused)throw Error('Pause the VGM before scheduling.');},
       reportError:({message})=>this.port.postMessage({scheduleFailure:message}),
@@ -267,9 +267,9 @@ class Cps2Preview extends AudioWorkletProcessor {
     }
     return released;
   }
-  noteOff(channel){
+  noteOff(channel,milliseconds=8){
     this.gates.delete(channel);
-    if(this.autoFade)this.chip.fadePcmOff(channel,4);
+    if(this.autoFade)this.chip.fadePcmOff(channel,milliseconds);
     else this.chip.writeRegister(channel*8+6,0);
   }
   apply(writes,remember=true){

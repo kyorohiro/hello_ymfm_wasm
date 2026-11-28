@@ -217,12 +217,12 @@ test('same-ROM preset updates just its destination and preserves another held PC
   assert.deepEqual([p.starts[2],p.chip.voices[2].rate,p.chip.voices[2].loop,p.chip.voices[2].volume],[256,2500,32,7234]);
 });
 
-test('PCM note-off ramps one voice for 4 ms and respects retriggers, key-off and the option',()=>{
+test('PCM note-off ramps one voice for 8 ms and respects retriggers, key-off and the option',()=>{
   const p=new Processor(),send=data=>p.port.onmessage({data});
   const [v,other]=p.chip.voices;
   send([[6,8000],[14,9000]]);
   send({type:'note-off',channel:0});
-  const ticks=Math.round(p.chip.tickRate*.004);
+  const ticks=Math.round(p.chip.tickRate*.008);
   for(let n=1;n<=ticks;n++){
     p.chip.tick();
     assert.equal(v.volume,Math.trunc(8000*(ticks-n)/ticks));
