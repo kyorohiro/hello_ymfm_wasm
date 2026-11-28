@@ -22,8 +22,8 @@ export function createRomPages(request){
       bankSignature=signature;
       const buttons=cells.map(([i,state,loaded,read])=>{
         const b=document.createElement('button');
-        b.dataset.state=read||loaded?state:'empty';b.value=i;b.textContent='0x'+i.toString(16).toUpperCase().padStart(2,'0');
-        b.title='Bank '+b.textContent+' · '+(loaded?'Loaded':'No data')+
+        b.dataset.state=read||loaded?state:'empty';b.value=i;b.textContent=i.toString(16).toUpperCase().padStart(2,'0');
+        b.title='Bank 0x'+b.textContent+' · '+(loaded?'Loaded':'No data')+
           (read?' · '+['','PCM','ADPCM','PCM + ADPCM'][read]+' read':'');
         b.setAttribute('aria-label',b.title);
         b.onclick=()=>{bank.value=b.value;bank.dispatchEvent(new Event('change'));};
