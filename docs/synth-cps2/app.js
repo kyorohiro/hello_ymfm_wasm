@@ -3,6 +3,7 @@ import {installSpuFileContextMenu} from '../synth-spu/file_context_menu.js';
 import {presetPitches} from './pitch.js';
 import {padVoiceLabel,setupKeyboard} from './keyboard.js';
 import {createPadWave} from './pad-wave.js';
+import {setupRomCreator} from './rom-creator.js';
 import {createRomPages} from './rom-pages.js';
 import {createRomMap} from './rom-map.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -735,7 +736,12 @@ function displayMap(map){
   drawRomMap(map,romPath??bankPath);
   if(!port)romPages.refresh();
 }
+const romCreator=setupRomCreator((name,rom,presets)=>{
+  addRom(name,rom,presets);
+  document.querySelector('[data-chip="rom-chip"]').click();
+});
 for(const tab of chipTabs)tab.onclick=()=>{
+  if(tab.dataset.chip==='rom-creator')romCreator.load();
   chipView=tab.dataset.chip;
   mainView=chipView;
   drawWorkspace();
@@ -1130,6 +1136,7 @@ function snapshot() {
 }
 const factory=snapshot();
 function replaceProject(project) {
+  romCreator.reset();
   $('use-adpcm').checked=project.useAdpcm!==false;drawWorkspace();
   $('auto-fade').checked=project.autoFade!==false;syncAutoFade();
   stop(false);
